@@ -26,6 +26,7 @@ const ACOES = [
   { id: "banco-horas", label: "Banco de Horas" },
   { id: "descontar", label: "Descontar" },
   { id: "atestado", label: "Atestado Médico" },
+  { id: "esquecimento", label: "Esquecimento" },
 ];
 
 const TURNOS = {
