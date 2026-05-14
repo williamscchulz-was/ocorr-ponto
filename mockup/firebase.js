@@ -218,6 +218,63 @@
         toast("Erro ao salvar: " + err.message, "danger");
       }
     };
+
+    // Override saveTipo → persiste em /tipos
+    window.saveTipo = async function () {
+      const label = $("#tipo-label").value.trim();
+      const tone = $("#tipo-tone").value;
+      if (!label) return toast("Informe o nome do tipo.", "danger");
+      if (label.length < 3) return toast("Nome muito curto.", "danger");
+
+      const id = "custom-" + slugify(label);
+      if (getTipo(id)) return toast("Já existe um tipo com nome parecido.", "danger");
+
+      const u = currentUser();
+      const novo = {
+        label,
+        tone,
+        padrao: false,
+        criadoPor: u.id,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      try {
+        await db.collection("tipos").doc(id).set(novo);
+        if (!state.tiposCustom) state.tiposCustom = [];
+        state.tiposCustom.push({
+          id,
+          ...novo,
+          criadoEm: new Date().toISOString(),
+        });
+        closeModal();
+        toast("Tipo criado!");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro ao salvar: " + err.message, "danger");
+      }
+    };
+
+    // Override deleteTipo → exclui de /tipos
+    window.deleteTipo = async function (id) {
+      const t = (state.tiposCustom || []).find((x) => x.id === id);
+      if (!t) return;
+      const usado = state.ocorrencias.some((o) => o.tipo === id);
+      if (usado) {
+        if (!confirm(`"${t.label}" está em uso. Excluir manterá os registros mas some do form. Continuar?`)) return;
+      } else {
+        if (!confirm(`Excluir "${t.label}"?`)) return;
+      }
+      try {
+        await db.collection("tipos").doc(id).delete();
+        state.tiposCustom = state.tiposCustom.filter((x) => x.id !== id);
+        toast("Tipo excluído.");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro ao excluir: " + err.message, "danger");
+      }
+    };
   }
 
   // ----------------------------------------
@@ -249,6 +306,21 @@
 
     window.logout = async function () {
       await auth.signOut();
+    };
+
+    // Reset de senha via Firebase Auth
+    window.firebaseResetSenha = async function () {
+      const email = ($("#login-user").value || "").trim();
+      if (!email || !email.includes("@")) {
+        toast("Digite seu email primeiro, aí clique de novo em 'Esqueci minha senha'.", "danger");
+        return;
+      }
+      try {
+        await auth.sendPasswordResetEmail(email);
+        toast("Email de recuperação enviado pra " + email);
+      } catch (e) {
+        toast(traduzErroAuth(e), "danger");
+      }
     };
 
     // Atualiza login UI: esconde quick buttons + ajusta copy
@@ -319,6 +391,14 @@
     // Funcionários (todos podem ler)
     const funcSnap = await db.collection("funcionarios").get();
     state.funcionarios = funcSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    // Tipos custom (todos podem ler)
+    const tiposSnap = await db.collection("tipos").get();
+    state.tiposCustom = tiposSnap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+      criadoEm: tsToIso(d.data().criadoEm),
+    }));
 
     // Ocorrências (filtradas pelas regras conforme papel)
     let q = db.collection("ocorrencias").orderBy("data", "desc");

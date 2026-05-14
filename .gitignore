@@ -2,6 +2,9 @@
 *.xlsx
 *.xls
 *.csv
+*.pdf
+mockup/funcionarios.json
+mockup/funcionarios-real.json
 
 # Firebase config local (preencher localmente, não commitar)
 mockup/firebase.config.js

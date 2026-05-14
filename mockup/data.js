@@ -3,21 +3,23 @@
 // ============================================
 
 const STORAGE_KEY = "ocorr-ponto:v1";
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 
 // --- Constantes do domínio ---
 
+// Tipos PADRÃO. RH/admin podem cadastrar tipos extras via UI (persistidos
+// no Firestore na coleção `tipos`). Os padrão ficam aqui pra garantir que
+// o sistema sempre tenha um conjunto base funcionando, mesmo sem BD.
 const TIPOS_OCORRENCIA = [
-  { id: "atraso", label: "Atraso", tone: "warning" },
-  { id: "falta", label: "Falta Injustificada", tone: "danger" },
-  { id: "saida-antecipada", label: "Saída Antecipada", tone: "warning" },
-  { id: "saida-intermediaria", label: "Saída Intermediária", tone: "info" },
-  { id: "esqueceu-cracha", label: "Esqueceu o Crachá", tone: "neutral" },
-  { id: "cartao-problema", label: "Cartão Ponto c/ Problema", tone: "info" },
-  { id: "nao-entrada", label: "Não Registrou Entrada", tone: "warning" },
-  { id: "nao-saida", label: "Não Registrou Saída", tone: "warning" },
-  { id: "nao-lanche", label: "Não Registrou Lanche", tone: "neutral" },
-  { id: "emergencia", label: "Chamada Emergência", tone: "danger" },
+  { id: "atraso", label: "Atraso", tone: "warning", padrao: true },
+  { id: "falta", label: "Falta Injustificada", tone: "danger", padrao: true },
+  { id: "saida-antecipada", label: "Saída Antecipada", tone: "warning", padrao: true },
+  { id: "saida-intermediaria", label: "Saída Intermediária", tone: "info", padrao: true },
+  { id: "nao-entrada", label: "Não Registrou Entrada", tone: "warning", padrao: true },
+  { id: "nao-saida", label: "Não Registrou Saída", tone: "warning", padrao: true },
+  { id: "nao-lanche", label: "Não Registrou Entrada/Saída Lanche", tone: "neutral", padrao: true },
+  { id: "emergencia", label: "Chamada de Emergência", tone: "danger", padrao: true },
+  { id: "esqueceu-cracha", label: "Esqueceu Crachá", tone: "neutral", padrao: true },
 ];
 
 const ACOES = [
@@ -157,11 +159,11 @@ function seedOcorrencias() {
       id: "o6",
       data: d(0),
       funcionarioId: "f12",
-      tipo: "cartao-problema",
+      tipo: "esqueceu-cracha",
       horario: "22:15",
       acao: null,
       dataConferencia: null,
-      observacao: "Leitor biométrico fora do ar.",
+      observacao: "Crachá ficou no carro.",
       historico: [{ por: "rh1", em: nowIso(), acao: "Criou ocorrência" }],
       criadoPor: "rh1",
       criadoEm: nowIso(),
@@ -226,6 +228,7 @@ const store = {
       seedVersion: SEED_VERSION,
       users: SEED_USERS,
       funcionarios: SEED_FUNCIONARIOS,
+      tiposCustom: [],
       ocorrencias: seedOcorrencias(),
       currentUserId: null,
     };

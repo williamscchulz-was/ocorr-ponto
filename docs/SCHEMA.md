@@ -22,6 +22,25 @@ Mapeia o usuário do Firebase Auth para o papel e (se líder) turno.
 
 **Quem cria:** admin (manualmente, no painel ou via console Firebase).
 
+## `tipos/{id}`
+
+Motivos customizados de ocorrência, criados via UI por RH/admin. Os motivos
+padrão (Atraso, Falta, etc.) ficam no código (`TIPOS_OCORRENCIA` em `data.js`)
+e **não** vivem aqui — esta coleção só guarda os extras.
+
+```ts
+{
+  label: string;
+  tone: "neutral" | "info" | "warning" | "danger" | "success";
+  padrao: false;
+  criadoPor: string;     // uid
+  criadoEm: Timestamp;
+}
+```
+
+ID do documento: gerado a partir do label como `custom-<slug>`. Ex.: "Saída
+para Treinamento" → `custom-saida-para-treinamento`.
+
 ## `funcionarios/{id}`
 
 Lista mestra de funcionários monitorados.

@@ -42,7 +42,11 @@ const formatMonth = (iso) => {
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const getFuncionario = (id) => state.funcionarios.find((f) => f.id === id);
-const getTipo = (id) => TIPOS_OCORRENCIA.find((t) => t.id === id);
+const getAllTipos = () => [
+  ...TIPOS_OCORRENCIA,
+  ...(state.tiposCustom || []),
+];
+const getTipo = (id) => getAllTipos().find((t) => t.id === id);
 const getAcao = (id) => ACOES.find((a) => a.id === id);
 const getUser = (id) => state.users.find((u) => u.id === id);
 
@@ -72,6 +76,9 @@ const icon = (name) => {
     file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
     alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
     download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    tag: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+    trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
+    edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${icons[name] || ""}</svg>`;
 };
@@ -193,6 +200,7 @@ function renderNav() {
 
   if (u.role === "rh" || u.role === "admin") {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
+    items.push({ id: "tipos", label: "Tipos de Ocorrência", icon: "tag" });
   }
   if (u.role === "admin") {
     items.push({ id: "usuarios", label: "Usuários", icon: "settings" });
@@ -257,6 +265,7 @@ function renderView() {
 
   if (page === "dashboard") return renderDashboard();
   if (page === "funcionarios") return renderFuncionarios();
+  if (page === "tipos") return renderTipos();
   if (page === "usuarios") return renderUsuarios();
 }
 
@@ -498,7 +507,7 @@ function openNovaOcorrencia() {
         <label for="f-tipo">Tipo de ocorrência</label>
         <select id="f-tipo" required>
           <option value="">Selecione...</option>
-          ${TIPOS_OCORRENCIA.map((t) => `<option value="${t.id}">${t.label}</option>`).join("")}
+          ${getAllTipos().map((t) => `<option value="${t.id}">${t.label}</option>`).join("")}
         </select>
       </div>
 
@@ -746,6 +755,187 @@ function renderFuncionarios() {
   `;
 }
 
+// ---------- Tipos de Ocorrência (Admin/RH) ----------
+
+const TONES = [
+  { id: "neutral", label: "Neutro" },
+  { id: "info", label: "Informativo" },
+  { id: "warning", label: "Atenção" },
+  { id: "danger", label: "Crítico" },
+  { id: "success", label: "Positivo" },
+];
+
+function renderTipos() {
+  const u = currentUser();
+  if (u.role !== "admin" && u.role !== "rh") {
+    state.view.page = "dashboard";
+    return renderApp();
+  }
+
+  $("#topbar-title").textContent = "Tipos de Ocorrência";
+
+  const padrao = TIPOS_OCORRENCIA;
+  const custom = state.tiposCustom || [];
+
+  $("#view").innerHTML = `
+    <header class="page-header">
+      <div>
+        <h1>Tipos de Ocorrência</h1>
+        <p>Motivos disponíveis ao registrar uma ocorrência. RH e admin podem criar novos.</p>
+      </div>
+      <button class="btn btn--primary" id="btn-novo-tipo">${icon("plus")}<span>Novo tipo</span></button>
+    </header>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat__label">Tipos padrão</div>
+        <div class="stat__value">${padrao.length}</div>
+        <div class="stat__hint">imutáveis no sistema</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Personalizados</div>
+        <div class="stat__value">${custom.length}</div>
+        <div class="stat__hint">criados pela equipe</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Total disponível</div>
+        <div class="stat__value">${padrao.length + custom.length}</div>
+        <div class="stat__hint">no formulário de nova ocorrência</div>
+      </div>
+    </div>
+
+    <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Padrão do sistema</div>
+    <div class="list" style="margin-bottom:24px;">
+      ${padrao.map((t) => `
+        <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default;">
+          <div class="occ__main">
+            <div class="occ__name">${t.label}</div>
+            <div class="occ__sub">id: ${t.id}</div>
+          </div>
+          <span class="badge badge--${t.tone}">${TONES.find((to) => to.id === t.tone)?.label || t.tone}</span>
+          <span class="badge badge--neutral">PADRÃO</span>
+        </article>
+      `).join("")}
+    </div>
+
+    <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Personalizados</div>
+    ${custom.length === 0 ? `
+      <div class="empty">
+        <div class="empty__icon">${icon("tag")}</div>
+        <h3>Sem tipos personalizados</h3>
+        <p>Crie tipos extras se os padrão não cobrirem alguma situação específica do seu time.</p>
+        <button class="btn btn--soft" id="btn-novo-tipo-2">${icon("plus")}<span>Criar primeiro tipo</span></button>
+      </div>
+    ` : `
+      <div class="list">
+        ${custom.map((t) => `
+          <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default;" data-tipo="${t.id}">
+            <div class="occ__main">
+              <div class="occ__name">${t.label}</div>
+              <div class="occ__sub">id: ${t.id} · criado por ${getUser(t.criadoPor)?.nome || t.criadoPor || "—"}</div>
+            </div>
+            <span class="badge badge--${t.tone}">${TONES.find((to) => to.id === t.tone)?.label || t.tone}</span>
+            <button class="btn btn--ghost btn--sm" data-delete="${t.id}" title="Excluir">${icon("trash")}</button>
+          </article>
+        `).join("")}
+      </div>
+    `}
+  `;
+
+  $("#btn-novo-tipo").addEventListener("click", openNovoTipoModal);
+  const btn2 = $("#btn-novo-tipo-2");
+  if (btn2) btn2.addEventListener("click", openNovoTipoModal);
+
+  $$("[data-delete]").forEach((b) => {
+    b.addEventListener("click", () => deleteTipo(b.dataset.delete));
+  });
+}
+
+function openNovoTipoModal() {
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Novo tipo de ocorrência</h2>
+        <p>Será adicionado ao formulário e a quem registrar daqui pra frente.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="form-tipo" onsubmit="return false">
+      <div class="field">
+        <label for="tipo-label">Nome do tipo <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="tipo-label" required maxlength="60" placeholder="Ex: Saída para Treinamento" />
+        <span class="field__hint">Aparece no dropdown de "Tipo de ocorrência" no momento de registrar.</span>
+      </div>
+      <div class="field">
+        <label for="tipo-tone">Cor/severidade</label>
+        <select id="tipo-tone">
+          ${TONES.map((t) => `<option value="${t.id}" ${t.id === "neutral" ? "selected" : ""}>${t.label}</option>`).join("")}
+        </select>
+        <span class="field__hint">Define o tom do badge na listagem (não muda o fluxo).</span>
+      </div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-tipo">${icon("check")}<span>Criar tipo</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-save-tipo").addEventListener("click", saveTipo);
+      setTimeout(() => $("#tipo-label").focus(), 100);
+    },
+  });
+}
+
+function slugify(s) {
+  return s.toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function saveTipo() {
+  const label = $("#tipo-label").value.trim();
+  const tone = $("#tipo-tone").value;
+  if (!label) return toast("Informe o nome do tipo.", "danger");
+
+  const id = "custom-" + slugify(label);
+  if (getTipo(id)) return toast("Já existe um tipo com nome parecido.", "danger");
+  if (label.length < 3) return toast("Nome muito curto.", "danger");
+
+  const u = currentUser();
+  const novo = {
+    id,
+    label,
+    tone,
+    padrao: false,
+    criadoPor: u.id,
+    criadoEm: new Date().toISOString(),
+  };
+
+  if (!state.tiposCustom) state.tiposCustom = [];
+  state.tiposCustom.push(novo);
+  store.save(state);
+  closeModal();
+  toast("Tipo criado!");
+  renderApp();
+}
+
+function deleteTipo(id) {
+  const t = (state.tiposCustom || []).find((x) => x.id === id);
+  if (!t) return;
+  const usado = state.ocorrencias.some((o) => o.tipo === id);
+  if (usado) {
+    if (!confirm(`"${t.label}" está em uso por ocorrências antigas. Excluir manterá os registros mas o tipo some do formulário. Continuar?`)) return;
+  } else {
+    if (!confirm(`Excluir o tipo "${t.label}"?`)) return;
+  }
+  state.tiposCustom = state.tiposCustom.filter((x) => x.id !== id);
+  store.save(state);
+  toast("Tipo excluído.");
+  renderApp();
+}
+
 // ---------- Usuários (Admin) ----------
 
 function renderUsuarios() {
@@ -842,6 +1032,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Logout
   $("#logout-btn").addEventListener("click", logout);
+
+  // Reset de senha (só ativo em modo Firebase via window.firebaseResetSenha)
+  const forgot = $("#btn-forgot");
+  if (forgot) {
+    forgot.addEventListener("click", () => {
+      if (typeof window.firebaseResetSenha === "function") {
+        window.firebaseResetSenha();
+      } else {
+        toast("Recuperação de senha só funciona em modo Firebase.", "danger");
+      }
+    });
+  }
 
   // Sidebar
   $("#menu-btn").addEventListener("click", openSidebar);

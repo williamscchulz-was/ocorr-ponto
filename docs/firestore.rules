@@ -41,6 +41,13 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || isRH();
     }
 
+    // ----- tipos (motivos customizados criados pela equipe) -----
+    // Todos logados leem (pra popular o dropdown). Admin/RH criam/excluem.
+    match /tipos/{id} {
+      allow read: if isAuthed();
+      allow create, update, delete: if isAdmin() || isRH();
+    }
+
     // ----- ocorrencias -----
     match /ocorrencias/{id} {
 
