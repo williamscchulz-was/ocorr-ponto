@@ -533,12 +533,24 @@
       tweakLoginUI();
     }
 
+    // Restaura o botão de login se ficou em "Entrando..." (chamado quando
+    // sign-out acontece, sucesso ou erro de carregamento)
+    function restoreLoginButton() {
+      const btn = document.querySelector('#login-form button[type="submit"]');
+      if (!btn || !btn.disabled) return;
+      btn.disabled = false;
+      btn.innerHTML = "Entrar";
+      const u = $("#login-user"); if (u) u.disabled = false;
+      const p = $("#login-pass"); if (p) p.disabled = false;
+    }
+
     // Observador de autenticação
     auth.onAuthStateChanged(async (fbUser) => {
       if (!fbUser) {
         state.currentUserId = null;
         $("#app")?.classList.add("hidden");
         $("#login")?.classList.remove("hidden");
+        restoreLoginButton();
         return;
       }
 
@@ -576,6 +588,9 @@
       } catch (err) {
         console.error("Erro carregando perfil:", err);
         toast("Erro ao carregar perfil: " + err.message, "danger");
+        // Sign out faz onAuthStateChanged disparar de novo com null,
+        // que volta pra tela de login e restaura o botão "Entrar".
+        await auth.signOut().catch(() => {});
       }
     });
   }
