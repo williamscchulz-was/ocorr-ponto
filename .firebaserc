@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "ocorr-ponto"
-  }
+  },
+  "targets": {
+    "ocorr-ponto": {
+      "hosting": {
+        "weave": [
+          "weave-fiobras"
+        ],
+        "old": [
+          "ocorr-ponto"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

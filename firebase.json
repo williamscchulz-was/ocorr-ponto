@@ -1,36 +1,47 @@
 {
-  "hosting": {
-    "public": "mockup",
-    "ignore": [
-      "firebase.config.example.js",
-      "funcionarios.json",
-      "funcionarios-real.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(js|css)",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=3600" }
-        ]
-      },
-      {
-        "source": "**/*.@(jpg|jpeg|png|svg|webp|ico)",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=604800" }
-        ]
-      },
-      {
-        "source": "index.html",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache" }
-        ]
-      }
-    ],
-    "cleanUrls": true,
-    "trailingSlash": false
-  },
+  "hosting": [
+    {
+      "target": "weave",
+      "public": "mockup",
+      "ignore": [
+        "firebase.config.example.js",
+        "funcionarios.json",
+        "funcionarios-real.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=3600" }
+          ]
+        },
+        {
+          "source": "**/*.@(jpg|jpeg|png|svg|webp|ico)",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=604800" }
+          ]
+        },
+        {
+          "source": "index.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        }
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false
+    },
+    {
+      "target": "old",
+      "public": "redirect-stub",
+      "ignore": ["**/.*"],
+      "redirects": [
+        { "source": "**", "destination": "https://weave-fiobras.web.app", "type": 301 }
+      ]
+    }
+  ],
   "firestore": {
     "rules": "docs/firestore.rules"
   }
