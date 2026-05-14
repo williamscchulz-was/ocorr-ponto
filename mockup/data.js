@@ -22,11 +22,13 @@ const TIPOS_OCORRENCIA = [
   { id: "esqueceu-cracha", label: "Esqueceu Crachá", tone: "neutral", padrao: true },
 ];
 
+// Ações PADRÃO. Admin/RH podem cadastrar ações extras via UI
+// (persistidas em /acoes no Firestore).
 const ACOES = [
-  { id: "banco-horas", label: "Banco de Horas" },
-  { id: "descontar", label: "Descontar" },
-  { id: "atestado", label: "Atestado Médico" },
-  { id: "esquecimento", label: "Esquecimento" },
+  { id: "banco-horas", label: "Banco de Horas", padrao: true },
+  { id: "descontar", label: "Descontar", padrao: true },
+  { id: "atestado", label: "Atestado Médico", padrao: true },
+  { id: "esquecimento", label: "Esquecimento", padrao: true },
 ];
 
 const TURNOS = {
@@ -231,6 +233,7 @@ const store = {
       users: SEED_USERS,
       funcionarios: SEED_FUNCIONARIOS,
       tiposCustom: [],
+      acoesCustom: [],
       ocorrencias: seedOcorrencias(),
       currentUserId: null,
     };

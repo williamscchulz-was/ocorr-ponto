@@ -382,6 +382,54 @@
       renderApp();
     };
 
+    // Override saveAcao → /acoes
+    window.saveAcao = async function () {
+      const label = $("#acao-label").value.trim();
+      if (!label) return toast("Informe o nome da ação.", "danger");
+      if (label.length < 3) return toast("Nome muito curto.", "danger");
+      const id = "custom-" + slugify(label);
+      if (getAcao(id)) return toast("Já existe uma ação com nome parecido.", "danger");
+
+      const u = currentUser();
+      const nova = {
+        label,
+        padrao: false,
+        criadoPor: u.id,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      try {
+        await db.collection("acoes").doc(id).set(nova);
+        if (!state.acoesCustom) state.acoesCustom = [];
+        state.acoesCustom.push({ id, ...nova, criadoEm: new Date().toISOString() });
+        closeModal();
+        toast("Ação criada!");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
+    // Override deleteAcao → /acoes
+    window.deleteAcao = async function (id) {
+      const a = (state.acoesCustom || []).find((x) => x.id === id);
+      if (!a) return;
+      const usada = state.ocorrencias.some((o) => o.acao === id);
+      if (usada) {
+        if (!confirm(`"${a.label}" está em uso. Excluir deixa essas ocorrências com a ação registrada mas a opção some do dropdown. Continuar?`)) return;
+      } else {
+        if (!confirm(`Excluir "${a.label}"?`)) return;
+      }
+      try {
+        await db.collection("acoes").doc(id).delete();
+        state.acoesCustom = state.acoesCustom.filter((x) => x.id !== id);
+        toast("Ação excluída.");
+        renderApp();
+      } catch (err) {
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
     // Override deleteTipo → exclui de /tipos
     window.deleteTipo = async function (id) {
       const t = (state.tiposCustom || []).find((x) => x.id === id);
@@ -605,6 +653,14 @@
     // Tipos custom (todos podem ler)
     const tiposSnap = await db.collection("tipos").get();
     state.tiposCustom = tiposSnap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+      criadoEm: tsToIso(d.data().criadoEm),
+    }));
+
+    // Ações custom (todos podem ler)
+    const acoesSnap = await db.collection("acoes").get();
+    state.acoesCustom = acoesSnap.docs.map((d) => ({
       id: d.id,
       ...d.data(),
       criadoEm: tsToIso(d.data().criadoEm),

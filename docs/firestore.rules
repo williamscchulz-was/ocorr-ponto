@@ -48,6 +48,13 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || isRH();
     }
 
+    // ----- acoes (ações customizadas — encaminhamento pelo líder) -----
+    // Mesma lógica de tipos.
+    match /acoes/{id} {
+      allow read: if isAuthed();
+      allow create, update, delete: if isAdmin() || isRH();
+    }
+
     // ----- ocorrencias -----
     match /ocorrencias/{id} {
 

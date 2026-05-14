@@ -53,7 +53,8 @@ const parseTurno = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 const getTipo = (id) => getAllTipos().find((t) => t.id === id);
-const getAcao = (id) => ACOES.find((a) => a.id === id);
+const getAllAcoes = () => [...ACOES, ...(state.acoesCustom || [])];
+const getAcao = (id) => getAllAcoes().find((a) => a.id === id);
 const getUser = (id) => state.users.find((u) => u.id === id);
 
 const currentUser = () => state.currentUserId ? getUser(state.currentUserId) : null;
@@ -687,7 +688,7 @@ function openOcorrenciaDetail(id) {
           <label for="conf-acao">Ação <span style="color:var(--danger)">*</span></label>
           <select id="conf-acao">
             <option value="">Escolha como tratar a ocorrência...</option>
-            ${ACOES.map((a) => `<option value="${a.id}">${a.label}</option>`).join("")}
+            ${getAllAcoes().map((a) => `<option value="${a.id}">${a.label}</option>`).join("")}
           </select>
           <span class="field__hint">A data da conferência será marcada automaticamente.</span>
         </div>
@@ -1183,7 +1184,10 @@ function renderConfig() {
   // Default tab = "tipos" pra RH, ou se não tem permissão pra users
   if (!state.view.configTab) state.view.configTab = "tipos";
 
-  const tabs = [{ id: "tipos", label: "Tipos de Ocorrência", icon: "tag" }];
+  const tabs = [
+    { id: "tipos", label: "Tipos de Ocorrência", icon: "tag" },
+    { id: "acoes", label: "Ações", icon: "check" },
+  ];
   if (u.role === "admin") tabs.push({ id: "usuarios", label: "Usuários", icon: "users" });
 
   $("#view").innerHTML = `
@@ -1215,9 +1219,161 @@ function renderConfig() {
   // Render do conteúdo da tab
   if (state.view.configTab === "usuarios" && u.role === "admin") {
     renderUsuariosInto("#config-content");
+  } else if (state.view.configTab === "acoes") {
+    renderAcoesInto("#config-content");
   } else {
     renderTiposInto("#config-content");
   }
+}
+
+// ---------- Ações (CRUD via Configurações) ----------
+
+function renderAcoesInto(selector) {
+  const u = currentUser();
+  if (u.role !== "admin" && u.role !== "rh") return;
+
+  const padrao = ACOES;
+  const custom = state.acoesCustom || [];
+
+  $(selector).innerHTML = `
+    <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--plum); font-weight: 700;">Ações</h2>
+        <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Como o líder pode encaminhar uma ocorrência. Use pra refletir as práticas internas da empresa.</p>
+      </div>
+      <button class="btn btn--primary" id="btn-nova-acao">${icon("plus")}<span>Nova ação</span></button>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat__label">Padrão do sistema</div>
+        <div class="stat__value">${padrao.length}</div>
+        <div class="stat__hint">imutáveis</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Personalizadas</div>
+        <div class="stat__value">${custom.length}</div>
+        <div class="stat__hint">criadas pela equipe</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Total no dropdown</div>
+        <div class="stat__value">${padrao.length + custom.length}</div>
+        <div class="stat__hint">opções na conferência</div>
+      </div>
+    </div>
+
+    <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Padrão do sistema</div>
+    <div class="list" style="margin-bottom:24px;">
+      ${padrao.map((a) => `
+        <article class="occ" style="grid-template-columns: 1fr auto; cursor:default;">
+          <div class="occ__main">
+            <div class="occ__name">${a.label}</div>
+            <div class="occ__sub">id: ${a.id}</div>
+          </div>
+          <span class="badge badge--neutral">PADRÃO</span>
+        </article>
+      `).join("")}
+    </div>
+
+    <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Personalizadas</div>
+    ${custom.length === 0 ? `
+      <div class="empty">
+        <div class="empty__icon">${icon("check")}</div>
+        <h3>Sem ações personalizadas</h3>
+        <p>Crie ações extras se as 4 padrão não cobrirem alguma prática interna.</p>
+        <button class="btn btn--soft" id="btn-nova-acao-2">${icon("plus")}<span>Criar primeira</span></button>
+      </div>
+    ` : `
+      <div class="list">
+        ${custom.map((a) => `
+          <article class="occ" style="grid-template-columns: 1fr auto; cursor:default;" data-acao="${a.id}">
+            <div class="occ__main">
+              <div class="occ__name">${a.label}</div>
+              <div class="occ__sub">id: ${a.id} · criado por ${getUser(a.criadoPor)?.nome || a.criadoPor || "—"}</div>
+            </div>
+            <button class="btn btn--ghost btn--sm" data-delete-acao="${a.id}" title="Excluir">${icon("trash")}</button>
+          </article>
+        `).join("")}
+      </div>
+    `}
+  `;
+
+  $("#btn-nova-acao").addEventListener("click", openNovaAcaoModal);
+  const btn2 = $("#btn-nova-acao-2");
+  if (btn2) btn2.addEventListener("click", openNovaAcaoModal);
+
+  $$("[data-delete-acao]").forEach((b) => {
+    b.addEventListener("click", () => deleteAcao(b.dataset.deleteAcao));
+  });
+}
+
+function openNovaAcaoModal() {
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Nova ação</h2>
+        <p>Aparece no dropdown que o líder usa pra encaminhar a ocorrência.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="form-acao" onsubmit="return false">
+      <div class="field">
+        <label for="acao-label">Nome da ação <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="acao-label" required maxlength="40" placeholder="Ex: Aviso por escrito" />
+        <span class="field__hint">Curto e direto. Aparece igual em todos os turnos.</span>
+      </div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-acao">${icon("check")}<span>Criar ação</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-save-acao").addEventListener("click", saveAcao);
+      setTimeout(() => $("#acao-label").focus(), 100);
+    },
+  });
+}
+
+function saveAcao() {
+  const label = $("#acao-label").value.trim();
+  if (!label) return toast("Informe o nome da ação.", "danger");
+  if (label.length < 3) return toast("Nome muito curto.", "danger");
+
+  const id = "custom-" + slugify(label);
+  if (getAcao(id)) return toast("Já existe uma ação com nome parecido.", "danger");
+
+  const u = currentUser();
+  const nova = {
+    id,
+    label,
+    padrao: false,
+    criadoPor: u.id,
+    criadoEm: new Date().toISOString(),
+  };
+
+  if (!state.acoesCustom) state.acoesCustom = [];
+  state.acoesCustom.push(nova);
+  store.save(state);
+  closeModal();
+  toast("Ação criada!");
+  renderApp();
+}
+
+function deleteAcao(id) {
+  const a = (state.acoesCustom || []).find((x) => x.id === id);
+  if (!a) return;
+  const usada = state.ocorrencias.some((o) => o.acao === id);
+  if (usada) {
+    if (!confirm(`"${a.label}" está em uso por ocorrências antigas. Excluir deixa elas com a ação como "—" e some do dropdown. Continuar?`)) return;
+  } else {
+    if (!confirm(`Excluir a ação "${a.label}"?`)) return;
+  }
+  state.acoesCustom = state.acoesCustom.filter((x) => x.id !== id);
+  store.save(state);
+  toast("Ação excluída.");
+  renderApp();
 }
 
 // ---------- Tipos de Ocorrência (Admin/RH) ----------
