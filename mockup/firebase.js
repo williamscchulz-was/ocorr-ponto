@@ -429,8 +429,10 @@
       }
     };
 
-    // Atualiza login UI: esconde quick buttons + ajusta copy
-    document.addEventListener("DOMContentLoaded", () => {
+    // Atualiza login UI: esconde quick buttons + ajusta copy.
+    // firebase.js carrega após DOMContentLoaded já ter disparado, então
+    // chamamos direto se o DOM já está pronto.
+    const tweakLoginUI = () => {
       const quick = $("#login-quick");
       if (quick) quick.style.display = "none";
       const lead = document.querySelector(".login__form p.lead");
@@ -442,7 +444,12 @@
         userInput.type = "email";
         userInput.placeholder = "voce@empresa.com";
       }
-    });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", tweakLoginUI);
+    } else {
+      tweakLoginUI();
+    }
 
     // Observador de autenticação
     auth.onAuthStateChanged(async (fbUser) => {
