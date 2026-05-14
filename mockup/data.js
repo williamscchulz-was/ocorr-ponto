@@ -29,6 +29,8 @@ const ACOES = [
   { id: "descontar", label: "Descontar", padrao: true },
   { id: "atestado", label: "Atestado Médico", padrao: true },
   { id: "esquecimento", label: "Esquecimento", padrao: true },
+  { id: "cartao-problema", label: "Cartão Ponto com Problema", padrao: true },
+  { id: "emergencia", label: "Chamada de Emergência", padrao: true },
 ];
 
 const TURNOS = {

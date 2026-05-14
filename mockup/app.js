@@ -732,6 +732,7 @@ function openOcorrenciaDetail(id) {
     <div class="modal__footer">
       ${u.role === "admin" ? `<button class="btn btn--danger" id="btn-del-occ" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Fechar</button>
+      ${u.role === "admin" ? `<button class="btn btn--soft" id="btn-edit-occ">${icon("edit")}<span>Editar tudo</span></button>` : ""}
       ${canEdit && !pending ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
       ${pending && canConfer ? `<button class="btn btn--primary" id="btn-confer">${icon("check")}<span>Confirmar conferência</span></button>` : ""}
       ${pending && u.role === "rh" ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
@@ -742,8 +743,125 @@ function openOcorrenciaDetail(id) {
       if ($("#btn-confer")) $("#btn-confer").addEventListener("click", () => confirmConferencia(o.id));
       if ($("#btn-update-obs")) $("#btn-update-obs").addEventListener("click", () => updateObservacao(o.id));
       if ($("#btn-del-occ")) $("#btn-del-occ").addEventListener("click", () => deleteOcorrencia(o.id));
+      if ($("#btn-edit-occ")) $("#btn-edit-occ").addEventListener("click", () => openEditOcorrenciaModal(o.id));
     },
   });
+}
+
+function openEditOcorrenciaModal(id) {
+  const o = state.ocorrencias.find((x) => x.id === id);
+  if (!o) return;
+  const u = currentUser();
+  if (u.role !== "admin") return;
+
+  const today = todayIso();
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Editar ocorrência</h2>
+        <p>Admin pode ajustar qualquer campo. Mudanças sobrescrevem o registro original.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="edit-form" onsubmit="return false">
+      <div class="field-row">
+        <div class="field">
+          <label for="ef-data">Data</label>
+          <input type="date" id="ef-data" required value="${o.data}" max="${today}" />
+        </div>
+        <div class="field">
+          <label for="ef-horario">Horário</label>
+          <input type="time" id="ef-horario" required value="${o.horario || ""}" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="ef-func">Funcionário</label>
+        <select id="ef-func" required>
+          ${state.funcionarios
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .map((f) => `
+              <option value="${f.id}" ${f.id === o.funcionarioId ? "selected" : ""}>${f.nome}${f.turno ? " — " + (TURNOS[f.turno]?.label || "?") : " — sem turno"}</option>
+            `).join("")}
+        </select>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="ef-tipo">Tipo de ocorrência</label>
+          <select id="ef-tipo" required>
+            ${getAllTipos().map((t) => `<option value="${t.id}" ${t.id === o.tipo ? "selected" : ""}>${t.label}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label for="ef-acao">Ação <span class="muted text-xs">(opcional — vazio = pendente)</span></label>
+          <select id="ef-acao">
+            <option value="">— Pendente —</option>
+            ${getAllAcoes().map((a) => `<option value="${a.id}" ${a.id === o.acao ? "selected" : ""}>${a.label}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="ef-obs">Observação</label>
+        <textarea id="ef-obs" placeholder="Contexto, justificativa...">${o.observacao || ""}</textarea>
+      </div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-edit-occ">${icon("check")}<span>Salvar alterações</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-save-edit-occ").addEventListener("click", () => saveEditOcorrencia(id));
+    },
+  });
+}
+
+function saveEditOcorrencia(id) {
+  const o = state.ocorrencias.find((x) => x.id === id);
+  if (!o) return;
+  const u = currentUser();
+  if (u.role !== "admin") return;
+
+  const data = $("#ef-data").value;
+  const horario = $("#ef-horario").value;
+  const funcionarioId = $("#ef-func").value;
+  const tipo = $("#ef-tipo").value;
+  const acao = $("#ef-acao").value || null;
+  const observacao = $("#ef-obs").value.trim();
+
+  if (!data || !horario || !funcionarioId || !tipo) {
+    return toast("Preencha data, funcionário, tipo e horário.", "danger");
+  }
+
+  const func = getFuncionario(funcionarioId);
+  const dataConferencia = acao ? (o.dataConferencia || todayIso()) : null;
+  const conferidoPor = acao ? (o.conferidoPor || u.id) : null;
+
+  Object.assign(o, {
+    data,
+    funcionarioId,
+    funcionarioNome: func?.nome || o.funcionarioNome,
+    funcionarioTurno: func?.turno ?? o.funcionarioTurno,
+    tipo,
+    horario,
+    acao,
+    dataConferencia,
+    observacao,
+    conferidoPor,
+  });
+  o.historico = [...(o.historico || []), {
+    por: u.id,
+    em: new Date().toISOString(),
+    acao: "Admin editou a ocorrência",
+  }];
+
+  store.save(state);
+  closeModal();
+  toast("Ocorrência atualizada.");
+  renderApp();
 }
 
 function deleteOcorrencia(id) {
@@ -1286,11 +1404,12 @@ function renderAcoesInto(selector) {
     ` : `
       <div class="list">
         ${custom.map((a) => `
-          <article class="occ" style="grid-template-columns: 1fr auto; cursor:default;" data-acao="${a.id}">
+          <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default;" data-acao="${a.id}">
             <div class="occ__main">
               <div class="occ__name">${a.label}</div>
               <div class="occ__sub">id: ${a.id} · criado por ${getUser(a.criadoPor)?.nome || a.criadoPor || "—"}</div>
             </div>
+            <button class="btn btn--ghost btn--sm" data-edit-acao="${a.id}" title="Editar">${icon("edit")}</button>
             <button class="btn btn--ghost btn--sm" data-delete-acao="${a.id}" title="Excluir">${icon("trash")}</button>
           </article>
         `).join("")}
@@ -1305,6 +1424,53 @@ function renderAcoesInto(selector) {
   $$("[data-delete-acao]").forEach((b) => {
     b.addEventListener("click", () => deleteAcao(b.dataset.deleteAcao));
   });
+  $$("[data-edit-acao]").forEach((b) => {
+    b.addEventListener("click", () => openEditAcaoModal(b.dataset.editAcao));
+  });
+}
+
+function openEditAcaoModal(id) {
+  const a = (state.acoesCustom || []).find((x) => x.id === id);
+  if (!a) return toast("Ação não encontrada.", "danger");
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Editar ação</h2>
+        <p>Renomear apenas. O id <code>${a.id}</code> não muda pra não quebrar ocorrências antigas.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="form-edit-acao" onsubmit="return false">
+      <div class="field">
+        <label for="edit-acao-label">Nome da ação <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="edit-acao-label" required maxlength="40" value="${a.label}" />
+      </div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-update-acao">${icon("check")}<span>Salvar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-update-acao").addEventListener("click", () => updateAcao(id));
+      setTimeout(() => $("#edit-acao-label").focus(), 100);
+    },
+  });
+}
+
+function updateAcao(id) {
+  const a = (state.acoesCustom || []).find((x) => x.id === id);
+  if (!a) return;
+  const label = $("#edit-acao-label").value.trim();
+  if (!label || label.length < 3) return toast("Nome muito curto.", "danger");
+
+  a.label = label;
+  store.save(state);
+  closeModal();
+  toast("Ação atualizada.");
+  renderApp();
 }
 
 function openNovaAcaoModal() {

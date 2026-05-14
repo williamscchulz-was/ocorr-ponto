@@ -188,6 +188,70 @@
       }
     };
 
+    // Override saveEditOcorrencia → admin edita qualquer campo
+    window.saveEditOcorrencia = async function (id) {
+      const o = state.ocorrencias.find((x) => x.id === id);
+      if (!o) return;
+      const u = currentUser();
+      if (u.role !== "admin") return;
+
+      const data = $("#ef-data").value;
+      const horario = $("#ef-horario").value;
+      const funcionarioId = $("#ef-func").value;
+      const tipo = $("#ef-tipo").value;
+      const acao = $("#ef-acao").value || null;
+      const observacao = $("#ef-obs").value.trim();
+      if (!data || !horario || !funcionarioId || !tipo) {
+        return toast("Preencha data, funcionário, tipo e horário.", "danger");
+      }
+
+      const func = getFuncionario(funcionarioId);
+      const dataConferencia = acao
+        ? (o.dataConferencia || todayIso())
+        : null;
+      const conferidoPor = acao ? (o.conferidoPor || u.id) : null;
+
+      const novoHist = [...(o.historico || []), {
+        por: u.id,
+        em: new Date().toISOString(),
+        acao: "Admin editou a ocorrência",
+      }];
+
+      const dadosFirestore = {
+        data: firebase.firestore.Timestamp.fromDate(new Date(data + "T00:00:00")),
+        funcionarioId,
+        funcionarioNome: func?.nome || o.funcionarioNome,
+        funcionarioTurno: func?.turno ?? o.funcionarioTurno,
+        tipo,
+        horario,
+        acao,
+        dataConferencia: dataConferencia
+          ? firebase.firestore.Timestamp.fromDate(new Date(dataConferencia + "T00:00:00"))
+          : null,
+        conferidoPor,
+        observacao,
+        historico: novoHist,
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      try {
+        await db.collection("ocorrencias").doc(id).update(dadosFirestore);
+        Object.assign(o, {
+          data, funcionarioId,
+          funcionarioNome: func?.nome || o.funcionarioNome,
+          funcionarioTurno: func?.turno ?? o.funcionarioTurno,
+          tipo, horario, acao, dataConferencia, conferidoPor, observacao,
+          historico: novoHist,
+        });
+        closeModal();
+        toast("Ocorrência atualizada.");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro ao salvar: " + err.message, "danger");
+      }
+    };
+
     // Override deleteOcorrencia → admin exclui do Firestore
     window.deleteOcorrencia = async function (id) {
       const o = state.ocorrencias.find((x) => x.id === id);
@@ -406,6 +470,27 @@
         renderApp();
       } catch (err) {
         console.error(err);
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
+    // Override updateAcao → /acoes (rename)
+    window.updateAcao = async function (id) {
+      const a = (state.acoesCustom || []).find((x) => x.id === id);
+      if (!a) return;
+      const label = $("#edit-acao-label").value.trim();
+      if (!label || label.length < 3) return toast("Nome muito curto.", "danger");
+
+      try {
+        await db.collection("acoes").doc(id).update({
+          label,
+          atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        a.label = label;
+        closeModal();
+        toast("Ação atualizada.");
+        renderApp();
+      } catch (err) {
         toast("Erro: " + err.message, "danger");
       }
     };
