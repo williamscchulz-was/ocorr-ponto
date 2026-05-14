@@ -409,25 +409,28 @@
   // ----------------------------------------
 
   function wireAuthFlow(auth, db) {
-    // Override login: trata input como email (login-user) + senha
+    // Override login: trata input como email (login-user) + senha.
+    // Retorna true em sucesso, false em erro — submit handler usa
+    // pra controlar o loading state do botão.
     window.login = async function (emailOrId, senha) {
       const err = $("#login-error");
       err.classList.add("hidden");
 
-      // Aceita "rh1" digitado virar "rh1@" + autocomplete sugerido,
-      // mas o esperado é email completo. Se não tem @, mostramos erro.
       if (!emailOrId.includes("@")) {
         err.textContent = "Use seu email corporativo completo.";
         err.classList.remove("hidden");
-        return;
+        return false;
       }
 
       try {
         await auth.signInWithEmailAndPassword(emailOrId, senha);
-        // onAuthStateChanged toma o controle daqui
+        // onAuthStateChanged toma o controle daqui (vai carregar dados +
+        // renderizar). Botão fica em "Entrando..." até a transição.
+        return true;
       } catch (e) {
         err.textContent = traduzErroAuth(e);
         err.classList.remove("hidden");
+        return false;
       }
     };
 

@@ -162,7 +162,7 @@ function login(userId, senha) {
   if (!u) {
     err.textContent = "Usuário ou senha inválidos.";
     err.classList.remove("hidden");
-    return;
+    return false;
   }
   err.classList.add("hidden");
   state.currentUserId = u.id;
@@ -171,6 +171,7 @@ function login(userId, senha) {
   $("#app").classList.remove("hidden");
   state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
   renderApp();
+  return true;
 }
 
 function logout() {
@@ -1597,12 +1598,37 @@ document.addEventListener("DOMContentLoaded", () => {
     renderApp();
   }
 
-  // Login form
-  $("#login-form").addEventListener("submit", (e) => {
+  // Login form com loading state no botão
+  $("#login-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn.disabled) return;
+
+    const origHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="icon spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Entrando...</span>`;
+    $("#login-user").disabled = true;
+    $("#login-pass").disabled = true;
+
     const user = $("#login-user").value.trim().toLowerCase();
     const pass = $("#login-pass").value;
-    login(user, pass);
+
+    let ok = false;
+    try {
+      ok = await Promise.resolve(login(user, pass));
+    } catch (err) {
+      console.error(err);
+    }
+
+    if (!ok) {
+      // Erro — restaura botão + inputs
+      btn.disabled = false;
+      btn.innerHTML = origHTML;
+      $("#login-user").disabled = false;
+      $("#login-pass").disabled = false;
+    }
+    // Se ok: deixa o botão em "Entrando..." enquanto Firebase carrega
+    // dados; quando renderApp() rodar, o user já não vê a tela de login.
   });
 
   // Logout

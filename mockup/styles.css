@@ -1233,6 +1233,11 @@ a:hover { color: var(--plum-soft); }
 
 .icon { width: 18px; height: 18px; stroke-width: 2; }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.icon.spin { animation: spin 0.8s linear infinite; }
+
 .divider {
   height: 1px;
   background: var(--border);
