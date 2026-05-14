@@ -1308,22 +1308,47 @@ html.firebase-mode .login__forgot { display: block; }
 }
 .login__forgot button:hover { color: var(--plum-soft); }
 
-/* Logo header (Fiobras) — substitui o "OP" quando definida */
+/* Logo header (Fiobras) — substitui o "OP" quando definida.
+   IMPORTANTE: usa max-width/max-height pra logo não esticar
+   independente do aspect ratio do arquivo. */
 .brand-logo {
   height: 28px;
   width: auto;
+  max-width: 100%;
 }
 .app__brand-mark.has-logo {
   background: transparent;
-  width: auto;
-  height: 36px;
-  padding: 0 4px;
+  width: 40px;
+  height: 40px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
-.app__brand-mark.has-logo img { height: 100%; width: auto; display: block; }
+.app__brand-mark.has-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
 .login__logo-mark.has-logo {
   background: transparent;
-  width: auto;
-  height: 44px;
-  padding: 0;
+  width: 56px;
+  height: 56px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
-.login__logo-mark.has-logo img { height: 100%; width: auto; display: block; }
+.login__logo-mark.has-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}

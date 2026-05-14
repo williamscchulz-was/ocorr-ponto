@@ -1,7 +1,7 @@
 {
-  "name": "Fiobras · Ocorrências do Ponto",
-  "short_name": "Fiobras Ponto",
-  "description": "Sistema de registro e conferência de ocorrências de ponto da Fiobras.",
+  "name": "Trama · Fiobras",
+  "short_name": "Trama",
+  "description": "Controle de ocorrências de ponto da Fiobras — registro pelo RH e conferência pelos líderes.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#FFFFFF",
