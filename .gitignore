@@ -1,0 +1,33 @@
+# Dados reais — nunca commitar
+*.xlsx
+*.xls
+*.csv
+
+# Firebase config local (preencher localmente, não commitar)
+mockup/firebase.config.js
+mockup/firebase.config.local.js
+.env
+.env.local
+.env.*.local
+
+# Service account / chaves
+*-service-account.json
+firebase-adminsdk-*.json
+
+# Logs e build
+*.log
+node_modules/
+dist/
+build/
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code (manter settings.local privado, launch.json comitado)
+.claude/settings.local.json

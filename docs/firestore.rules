@@ -1,0 +1,111 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----- Helpers -----
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isAuthed() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isAuthed() && userDoc().role == 'admin';
+    }
+    function isRH() {
+      return isAuthed() && userDoc().role == 'rh';
+    }
+    function isLider() {
+      return isAuthed() && userDoc().role == 'lider';
+    }
+    function liderDoMesmoTurno(turno) {
+      return isLider() && userDoc().turno == turno;
+    }
+    function podeVerOcorrencia(doc) {
+      return isAdmin() || isRH() || liderDoMesmoTurno(doc.funcionarioTurno);
+    }
+
+    // ----- users -----
+    // Cada usuário lê o próprio doc. Só admin cria/edita usuários.
+    match /users/{uid} {
+      allow read: if isAuthed() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ----- funcionarios -----
+    // Todos logados leem. Admin e RH criam/editam.
+    match /funcionarios/{id} {
+      allow read: if isAuthed();
+      allow create, update, delete: if isAdmin() || isRH();
+    }
+
+    // ----- ocorrencias -----
+    match /ocorrencias/{id} {
+
+      // Leitura: admin/RH veem tudo; líder só do próprio turno.
+      allow read: if podeVerOcorrencia(resource.data);
+
+      // Criar: RH ou admin. Campos obrigatórios e turno coerente.
+      allow create: if (isRH() || isAdmin())
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.acao == null
+        && request.resource.data.dataConferencia == null
+        && request.resource.data.funcionarioId is string
+        && request.resource.data.funcionarioTurno in [1, 2, 3]
+        && request.resource.data.tipo is string
+        && request.resource.data.horario is string;
+
+      // Atualização:
+      //   - Líder do turno: pode definir acao + dataConferencia (conferência)
+      //                     e atualizar observacao.
+      //   - RH/Admin: podem atualizar observacao a qualquer momento.
+      //   - Admin: pode atualizar qualquer campo.
+      // Em nenhum caso pode-se trocar funcionarioId/funcionarioTurno/data/tipo/horario
+      // depois da criação (exceto admin).
+      allow update: if
+        // admin pode tudo
+        isAdmin()
+        // RH pode atualizar obs (e nada mais sensível)
+        || (isRH()
+            && podeAtualizarApenasObservacao())
+        // líder do turno pode conferir e/ou atualizar obs
+        || (liderDoMesmoTurno(resource.data.funcionarioTurno)
+            && podeConferirOuAtualizarObs());
+
+      allow delete: if isAdmin();
+    }
+
+    // ----- Helpers de atualização -----
+
+    function podeAtualizarApenasObservacao() {
+      let imut = ['data', 'funcionarioId', 'funcionarioNome', 'funcionarioTurno',
+                  'tipo', 'horario', 'acao', 'dataConferencia',
+                  'criadoPor', 'criadoEm', 'conferidoPor'];
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['observacao', 'historico', 'atualizadoEm']);
+    }
+
+    function podeConferirOuAtualizarObs() {
+      // Pode mexer em observacao, historico, atualizadoEm sempre.
+      // Pode definir acao/dataConferencia/conferidoPor apenas se ainda eram null.
+      let allowedKeys = ['observacao', 'historico', 'atualizadoEm',
+                         'acao', 'dataConferencia', 'conferidoPor'];
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+
+      // Todas as mudanças devem estar nos campos permitidos
+      let mudancasPermitidas = changed.hasOnly(allowedKeys);
+
+      // Se mudou acao, era null antes (não pode "re-conferir")
+      let acaoOk = !changed.hasAny(['acao'])
+                   || resource.data.acao == null;
+
+      // Se mudou dataConferencia, era null antes
+      let dataOk = !changed.hasAny(['dataConferencia'])
+                   || resource.data.dataConferencia == null;
+
+      return mudancasPermitidas && acaoOk && dataOk;
+    }
+  }
+}

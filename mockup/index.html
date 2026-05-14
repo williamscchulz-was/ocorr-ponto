@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#381932" />
+  <title>Ocorrências do Ponto</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23381932'/><text x='16' y='22' font-family='system-ui' font-size='18' font-weight='800' fill='%23FFF3E6' text-anchor='middle'>OP</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================
+       LOGIN SCREEN
+       ============================================ -->
+  <section id="login" class="login">
+    <aside class="login__brand">
+      <div class="login__logo">
+        <div class="login__logo-mark">OP</div>
+        <div>Ocorrências do Ponto</div>
+      </div>
+      <div class="login__pitch">
+        <h1>Controle de ponto<br/>simples e claro.</h1>
+        <p>RH registra, líderes conferem, todo mundo enxerga o que importa. Sem planilha, sem retrabalho.</p>
+      </div>
+      <div class="login__footer">
+        © 2026 · Versão mockup · Use qualquer atalho ao lado para entrar
+      </div>
+    </aside>
+
+    <form class="login__form" id="login-form" autocomplete="off">
+      <h2>Entrar</h2>
+      <p class="lead">Escolha um usuário rápido para testar o sistema:</p>
+
+      <div class="login__quick" id="login-quick"></div>
+
+      <div class="login__divider">ou entre manualmente</div>
+
+      <div class="field">
+        <label for="login-user">Usuário</label>
+        <input type="text" id="login-user" placeholder="ex: rh1" />
+      </div>
+      <div class="field">
+        <label for="login-pass">Senha</label>
+        <input type="password" id="login-pass" placeholder="senha do usuário" />
+      </div>
+
+      <div id="login-error" class="field__error hidden" style="margin-bottom:12px"></div>
+
+      <button type="submit" class="btn btn--primary btn--block btn--lg">Entrar</button>
+    </form>
+  </section>
+
+
+  <!-- ============================================
+       APP SHELL
+       ============================================ -->
+  <div id="app" class="app hidden">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <aside class="app__sidebar" id="sidebar">
+      <div class="app__brand">
+        <div class="app__brand-mark">OP</div>
+        <div class="app__brand-text">
+          Ocorrências
+          <small>do Ponto</small>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav"></nav>
+
+      <div class="app__user">
+        <div class="avatar" id="user-avatar">--</div>
+        <div class="app__user-info">
+          <strong id="user-name">--</strong>
+          <span id="user-role">--</span>
+        </div>
+        <button class="app__user-logout" id="logout-btn" title="Sair">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <main class="app__main">
+      <div class="topbar">
+        <button class="topbar__menu" id="menu-btn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="topbar__title" id="topbar-title">Ocorrências</div>
+      </div>
+
+      <div id="view"></div>
+    </main>
+
+    <button class="fab" id="fab" title="Nova ocorrência">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="modal-root"></div>
+  <div class="toast-root" id="toast-root"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
