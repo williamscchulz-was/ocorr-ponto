@@ -1,25 +1,25 @@
 {
-  "name": "Ocorrências do Ponto",
-  "short_name": "Ocorrências",
-  "description": "Sistema de registro e conferência de ocorrências de ponto.",
+  "name": "Fiobras · Ocorrências do Ponto",
+  "short_name": "Fiobras Ponto",
+  "description": "Sistema de registro e conferência de ocorrências de ponto da Fiobras.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#FFF3E6",
-  "theme_color": "#381932",
+  "background_color": "#FFFFFF",
+  "theme_color": "#008835",
   "orientation": "any",
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%23381932'/><text x='96' y='130' font-family='system-ui' font-size='108' font-weight='800' fill='%23FFF3E6' text-anchor='middle'>OP</text></svg>",
+      "src": "logo-fiobras-mark.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%23381932'/><text x='256' y='350' font-family='system-ui' font-size='288' font-weight='800' fill='%23FFF3E6' text-anchor='middle'>OP</text></svg>",
+      "src": "logo-fiobras-mark.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

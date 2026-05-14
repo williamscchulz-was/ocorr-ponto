@@ -4,26 +4,32 @@
    ============================================ */
 
 :root {
-  /* Core palette — Ghost #F7F7FF + Persian #27187E
-     Variáveis mantêm nomes --milk/--plum por compatibilidade. */
-  --milk: #F7F7FF;
-  --milk-warm: #ECECF7;
-  --milk-edge: #DCDCEB;
-  --plum: #27187E;
-  --plum-soft: #463BAA;
-  --plum-deep: #160C4D;
+  /* Paleta oficial Fiobras (Manual de Marca, jan/2026):
+     Verde #008835, Amarelo #FFCB00, Azul #0076BE.
+     Variáveis mantêm nomes legacy --milk/--plum por compatibilidade
+     do código existente; valores semânticos: --milk = surface clara,
+     --plum = primário da marca (verde). */
+  --milk: #F5F8F4;
+  --milk-warm: #E8F0E5;
+  --milk-edge: #D2E2CD;
+  --plum: #008835;
+  --plum-soft: #1AA34F;
+  --plum-deep: #006328;
+
+  --fiobras-yellow: #FFCB00;
+  --fiobras-blue: #0076BE;
 
   /* Semantic */
   --bg: var(--milk);
   --surface: #FFFFFF;
   --surface-warm: var(--milk-warm);
-  --border: #DCDCEB;
-  --border-strong: #B8B8D4;
+  --border: #D2E2CD;
+  --border-strong: #A8C5A0;
 
   --text: var(--plum-deep);
-  --text-body: #1A1437;
-  --text-muted: #6B6890;
-  --text-on-plum: var(--milk);
+  --text-body: #1E2D1A;
+  --text-muted: #5D7858;
+  --text-on-plum: #FFFFFF;
 
   --accent: #C8A165;
   --success: #2F6B3F;
@@ -35,10 +41,10 @@
   --info: #2F5A6B;
   --info-bg: #D8E6EA;
 
-  /* Type */
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  /* Type — Poppins (apoio da marca) + fallback system */
+  --font: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  --font-display: "Inter Tight", var(--font);
+  --font-display: "Poppins", var(--font);
 
   /* Geometry */
   --radius-sm: 8px;
