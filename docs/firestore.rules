@@ -55,12 +55,15 @@ service cloud.firestore {
       allow read: if podeVerOcorrencia(resource.data);
 
       // Criar: RH ou admin. Campos obrigatórios e turno coerente.
+      // funcionarioTurno aceita 1, 2, 3 (turnos numerados) e "geral"
+      // (quadro de horário comercial sem turno fixo). null não é
+      // aceito pra forçar o RH a definir o turno do funcionário antes.
       allow create: if (isRH() || isAdmin())
         && request.resource.data.criadoPor == request.auth.uid
         && request.resource.data.acao == null
         && request.resource.data.dataConferencia == null
         && request.resource.data.funcionarioId is string
-        && request.resource.data.funcionarioTurno in [1, 2, 3]
+        && request.resource.data.funcionarioTurno in [1, 2, 3, 'geral']
         && request.resource.data.tipo is string
         && request.resource.data.horario is string;
 
