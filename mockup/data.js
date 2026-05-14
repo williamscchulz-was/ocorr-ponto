@@ -32,6 +32,7 @@ const TURNOS = {
   1: { label: "1º Turno", horario: "06:00 – 14:00" },
   2: { label: "2º Turno", horario: "14:00 – 22:00" },
   3: { label: "3º Turno", horario: "22:00 – 06:00" },
+  geral: { label: "Geral", horario: "horário comercial" },
 };
 
 // --- Seed: usuários do sistema ---

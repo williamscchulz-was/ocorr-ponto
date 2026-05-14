@@ -46,6 +46,12 @@ const getAllTipos = () => [
   ...TIPOS_OCORRENCIA,
   ...(state.tiposCustom || []),
 ];
+const parseTurno = (v) => {
+  if (!v) return null;
+  if (v === "geral") return "geral";
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
 const getTipo = (id) => getAllTipos().find((t) => t.id === id);
 const getAcao = (id) => ACOES.find((a) => a.id === id);
 const getUser = (id) => state.users.find((u) => u.id === id);
@@ -202,10 +208,7 @@ function renderNav() {
 
   if (u.role === "rh" || u.role === "admin") {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
-    items.push({ id: "tipos", label: "Tipos de Ocorrência", icon: "tag" });
-  }
-  if (u.role === "admin") {
-    items.push({ id: "usuarios", label: "Usuários", icon: "settings" });
+    items.push({ id: "config", label: "Configurações", icon: "settings" });
   }
 
   $("#nav").innerHTML = items.map((it) => `
@@ -241,10 +244,7 @@ function renderBottomNav() {
   // Itens à direita do FAB
   const right = [];
   if (u.role === "rh" || u.role === "admin") {
-    right.push({ id: "tipos", label: "Tipos", icon: "tag" });
-  }
-  if (u.role === "admin") {
-    right.push({ id: "usuarios", label: "Usuários", icon: "settings" });
+    right.push({ id: "config", label: "Ajustes", icon: "settings" });
   }
   // Conta/logout sempre presente
   right.push({ id: "__menu", label: "Conta", icon: "user" });
@@ -320,8 +320,13 @@ function renderView() {
 
   if (page === "dashboard") return renderDashboard();
   if (page === "funcionarios") return renderFuncionarios();
-  if (page === "tipos") return renderTipos();
-  if (page === "usuarios") return renderUsuarios();
+  if (page === "config") return renderConfig();
+  // legacy: redirects pra config se alguém entrar via URL antigo
+  if (page === "tipos" || page === "usuarios") {
+    state.view.configTab = page;
+    state.view.page = "config";
+    return renderConfig();
+  }
 }
 
 function renderDashboard() {
@@ -401,6 +406,7 @@ function renderDashboard() {
           <option value="1" ${state.view.filterTurno === "1" ? "selected" : ""}>1º Turno</option>
           <option value="2" ${state.view.filterTurno === "2" ? "selected" : ""}>2º Turno</option>
           <option value="3" ${state.view.filterTurno === "3" ? "selected" : ""}>3º Turno</option>
+          <option value="geral" ${state.view.filterTurno === "geral" ? "selected" : ""}>Geral</option>
         </select>
       ` : ""}
     </div>
@@ -552,10 +558,16 @@ function openNovaOcorrencia() {
         <label for="f-func">Funcionário</label>
         <select id="f-func" required>
           <option value="">Selecione...</option>
-          ${state.funcionarios.map((f) => `
-            <option value="${f.id}">${f.nome} — ${TURNOS[f.turno].label}</option>
-          `).join("")}
+          ${state.funcionarios
+            .filter((f) => f.ativo !== false)
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .map((f) => `
+              <option value="${f.id}">${f.nome}${f.turno ? " — " + (TURNOS[f.turno]?.label || "?") : " — sem turno"}</option>
+            `).join("")}
         </select>
+        ${state.funcionarios.length === 0
+          ? `<span class="field__error">${icon("alert")} Nenhum funcionário cadastrado. <a href="#" id="link-import" style="color:var(--plum);">Ir para Funcionários</a> e importar.</span>`
+          : ""}
       </div>
 
       <div class="field">
@@ -580,6 +592,15 @@ function openNovaOcorrencia() {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#btn-save").addEventListener("click", saveNovaOcorrencia);
+      const linkImport = $("#link-import");
+      if (linkImport) {
+        linkImport.addEventListener("click", (e) => {
+          e.preventDefault();
+          closeModal();
+          state.view.page = "funcionarios";
+          renderApp();
+        });
+      }
     },
   });
 }
@@ -797,7 +818,7 @@ function renderFuncionarios() {
         <div class="stat__value">${semTurno}</div>
         <div class="stat__hint">${semTurno > 0 ? "ajustar antes de líderes verem" : "tudo certo"}</div>
       </div>
-      ${[1, 2, 3].map((t) => `
+      ${[1, 2, 3, "geral"].map((t) => `
         <div class="stat">
           <div class="stat__label">${TURNOS[t].label}</div>
           <div class="stat__value">${state.funcionarios.filter((f) => f.turno === t).length}</div>
@@ -817,6 +838,7 @@ function renderFuncionarios() {
         <option value="1">1º Turno</option>
         <option value="2">2º Turno</option>
         <option value="3">3º Turno</option>
+        <option value="geral">Geral</option>
       </select>
     </div>
 
@@ -908,7 +930,7 @@ function openFuncionarioModal(id) {
           <label for="func-turno">Turno</label>
           <select id="func-turno">
             <option value="">— Sem turno —</option>
-            ${[1, 2, 3].map((t) => `<option value="${t}" ${f?.turno === t ? "selected" : ""}>${TURNOS[t].label} (${TURNOS[t].horario})</option>`).join("")}
+            ${[1, 2, 3, "geral"].map((t) => `<option value="${t}" ${f?.turno === t ? "selected" : ""}>${TURNOS[t].label} (${TURNOS[t].horario})</option>`).join("")}
           </select>
         </div>
       </div>
@@ -949,7 +971,7 @@ function saveFuncionario(id) {
   const dados = {
     nome,
     codigo: $("#func-codigo").value.trim() || null,
-    turno: turnoStr ? Number(turnoStr) : null,
+    turno: parseTurno(turnoStr),
     setor: $("#func-setor").value || null,
     ativo: $("#func-ativo").checked,
   };
@@ -1120,6 +1142,56 @@ function doImportFuncionarios() {
   renderApp();
 }
 
+// ---------- Configurações (Admin/RH) ----------
+
+function renderConfig() {
+  const u = currentUser();
+  if (u.role !== "admin" && u.role !== "rh") {
+    state.view.page = "dashboard";
+    return renderApp();
+  }
+  $("#topbar-title").textContent = "Configurações";
+
+  // Default tab = "tipos" pra RH, ou se não tem permissão pra users
+  if (!state.view.configTab) state.view.configTab = "tipos";
+
+  const tabs = [{ id: "tipos", label: "Tipos de Ocorrência", icon: "tag" }];
+  if (u.role === "admin") tabs.push({ id: "usuarios", label: "Usuários", icon: "users" });
+
+  $("#view").innerHTML = `
+    <header class="page-header">
+      <div>
+        <h1>Configurações</h1>
+        <p>Ajustes do sistema. Apenas administradores e RH.</p>
+      </div>
+    </header>
+
+    <div class="tabs" id="config-tabs">
+      ${tabs.map((t) => `
+        <button class="tab ${state.view.configTab === t.id ? "active" : ""}" data-tab="${t.id}">
+          ${t.label}
+        </button>
+      `).join("")}
+    </div>
+
+    <div id="config-content"></div>
+  `;
+
+  $$("#config-tabs .tab").forEach((b) => {
+    b.addEventListener("click", () => {
+      state.view.configTab = b.dataset.tab;
+      renderConfig();
+    });
+  });
+
+  // Render do conteúdo da tab
+  if (state.view.configTab === "usuarios" && u.role === "admin") {
+    renderUsuariosInto("#config-content");
+  } else {
+    renderTiposInto("#config-content");
+  }
+}
+
 // ---------- Tipos de Ocorrência (Admin/RH) ----------
 
 const TONES = [
@@ -1130,26 +1202,22 @@ const TONES = [
   { id: "success", label: "Positivo" },
 ];
 
-function renderTipos() {
+function renderTipos() { renderTiposInto("#view"); }
+function renderTiposInto(selector) {
   const u = currentUser();
-  if (u.role !== "admin" && u.role !== "rh") {
-    state.view.page = "dashboard";
-    return renderApp();
-  }
-
-  $("#topbar-title").textContent = "Tipos de Ocorrência";
+  if (u.role !== "admin" && u.role !== "rh") return;
 
   const padrao = TIPOS_OCORRENCIA;
   const custom = state.tiposCustom || [];
 
-  $("#view").innerHTML = `
-    <header class="page-header">
+  $(selector).innerHTML = `
+    <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
       <div>
-        <h1>Tipos de Ocorrência</h1>
-        <p>Motivos disponíveis ao registrar uma ocorrência. RH e admin podem criar novos.</p>
+        <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--plum); font-weight: 700;">Tipos de Ocorrência</h2>
+        <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Motivos disponíveis no formulário de nova ocorrência.</p>
       </div>
       <button class="btn btn--primary" id="btn-novo-tipo">${icon("plus")}<span>Novo tipo</span></button>
-    </header>
+    </div>
 
     <div class="stats">
       <div class="stat">
@@ -1303,25 +1371,24 @@ function deleteTipo(id) {
 
 // ---------- Usuários (Admin) ----------
 
-function renderUsuarios() {
-  $("#topbar-title").textContent = "Usuários";
-
-  $("#view").innerHTML = `
-    <header class="page-header">
+function renderUsuarios() { renderUsuariosInto("#view"); }
+function renderUsuariosInto(selector) {
+  $(selector).innerHTML = `
+    <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
       <div>
-        <h1>Usuários do sistema</h1>
-        <p>Quem acessa, com qual papel e qual turno.</p>
+        <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--plum); font-weight: 700;">Usuários do sistema</h2>
+        <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Quem acessa, com qual papel e qual turno.</p>
       </div>
-      <button class="btn btn--soft" disabled title="Em breve">${icon("plus")}<span>Novo usuário</span></button>
-    </header>
+      <button class="btn btn--soft" disabled title="Cadastro via Firebase Console por enquanto">${icon("plus")}<span>Novo usuário</span></button>
+    </div>
 
     <div class="list">
       ${state.users.map((u) => `
         <article class="occ" style="grid-template-columns: 44px 1fr auto;">
-          <div class="avatar">${initials(u.nome)}</div>
+          <div class="avatar">${initials(u.nome || u.email || "?")}</div>
           <div class="occ__main">
-            <div class="occ__name">${u.nome}</div>
-            <div class="occ__sub">@${u.id}</div>
+            <div class="occ__name">${u.nome || "(sem nome)"}</div>
+            <div class="occ__sub">${u.email || "@" + u.id}</div>
           </div>
           <span class="badge badge--${u.role === "admin" ? "danger" : u.role === "rh" ? "info" : "neutral"}">${roleLabel(u)}</span>
         </article>
@@ -1329,12 +1396,13 @@ function renderUsuarios() {
     </div>
 
     <div style="margin-top:24px;">
-      <button class="btn btn--ghost" id="reset-btn">${icon("alert")}<span>Resetar dados de mockup</span></button>
+      <button class="btn btn--ghost" id="reset-btn">${icon("alert")}<span>Resetar dados locais</span></button>
+      <span class="text-xs muted" style="display:block; margin-top:6px;">Útil apenas em modo demo. No Firebase, dados ficam no Firestore.</span>
     </div>
   `;
 
   $("#reset-btn").addEventListener("click", () => {
-    if (confirm("Apagar todos os registros e voltar ao seed inicial?")) {
+    if (confirm("Apagar todos os registros locais e voltar ao seed inicial?")) {
       const fresh = store.reset();
       Object.assign(state, fresh);
       state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };

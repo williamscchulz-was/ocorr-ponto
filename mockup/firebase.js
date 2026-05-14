@@ -263,7 +263,7 @@
       const dados = {
         nome,
         codigo: $("#func-codigo").value.trim() || null,
-        turno: turnoStr ? Number(turnoStr) : null,
+        turno: parseTurno(turnoStr),
         setor: $("#func-setor").value || null,
         ativo: $("#func-ativo").checked,
         atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),

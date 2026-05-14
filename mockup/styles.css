@@ -1054,19 +1054,25 @@ a:hover { color: var(--plum-soft); }
 .fab .icon { width: 24px; height: 24px; }
 
 /* ============================================
-   BOTTOM NAV (mobile)
+   BOTTOM NAV (mobile) — estilo Nubank suspenso
+   Flutuante, com cantos arredondados e sombra. Não cola na borda.
    ============================================ */
 
 .bottom-nav {
   display: none;
   position: fixed;
-  bottom: 0; left: 0; right: 0;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
   z-index: 60;
   background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: 8px 4px calc(8px + env(safe-area-inset-bottom)) 4px;
-  height: calc(72px + env(safe-area-inset-bottom));
-  box-shadow: 0 -4px 16px rgba(22, 12, 77, 0.06);
+  border-radius: 24px;
+  padding: 10px;
+  box-shadow:
+    0 12px 32px rgba(22, 60, 30, 0.18),
+    0 4px 12px rgba(22, 60, 30, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  height: 68px;
 }
 
 .bottom-nav__item {
@@ -1075,15 +1081,16 @@ a:hover { color: var(--plum-soft); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   padding: 6px 4px;
-  border-radius: 12px;
+  border-radius: 16px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   transition: var(--transition);
-  min-width: 56px;
+  min-width: 48px;
   position: relative;
+  background: transparent;
 }
 
 .bottom-nav__item .icon {
@@ -1094,23 +1101,14 @@ a:hover { color: var(--plum-soft); }
 
 .bottom-nav__item.active {
   color: var(--plum);
-}
-.bottom-nav__item.active::before {
-  content: "";
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 32px;
-  height: 3px;
-  border-radius: 0 0 4px 4px;
-  background: var(--plum);
+  background: var(--milk-warm);
 }
 
 .bottom-nav__badge {
   position: absolute;
   top: 4px;
-  right: calc(50% - 18px);
+  right: 50%;
+  margin-right: -22px;
   background: var(--danger);
   color: white;
   font-size: 10px;
@@ -1123,40 +1121,39 @@ a:hover { color: var(--plum-soft); }
 }
 
 .bottom-nav__item--fab {
-  flex: 0 0 64px;
-  background: transparent;
+  flex: 0 0 56px;
   padding: 0;
 }
 
 .bottom-nav__item--fab .bottom-nav__fab {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   background: var(--plum);
   color: var(--milk);
   display: grid;
   place-items: center;
-  margin-top: -20px;
-  box-shadow: 0 8px 24px rgba(39, 24, 126, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 136, 53, 0.4);
   transition: var(--transition);
-  border: 4px solid var(--bg);
 }
 
-.bottom-nav__item--fab:hover .bottom-nav__fab {
+.bottom-nav__item--fab:hover .bottom-nav__fab,
+.bottom-nav__item--fab:active .bottom-nav__fab {
   background: var(--plum-soft);
   transform: scale(1.05);
 }
 
 .bottom-nav__item--fab .icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   stroke-width: 2.5;
 }
 
 @media (max-width: 900px) {
   .bottom-nav { display: flex; }
   .fab { display: none !important; }
-  .app__main { padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important; }
+  .app__main { padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important; }
+  /* Topbar pode some no mobile pra dar mais espaço — sidebar acessada via "Conta" no nav */
 }
 
 /* ============================================
