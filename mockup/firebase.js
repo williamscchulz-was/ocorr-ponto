@@ -255,6 +255,112 @@
       }
     };
 
+    // Override saveFuncionario → /funcionarios
+    window.saveFuncionario = async function (id) {
+      const nome = $("#func-nome").value.trim();
+      if (!nome || nome.length < 3) return toast("Nome muito curto.", "danger");
+      const turnoStr = $("#func-turno").value;
+      const dados = {
+        nome,
+        codigo: $("#func-codigo").value.trim() || null,
+        turno: turnoStr ? Number(turnoStr) : null,
+        setor: $("#func-setor").value || null,
+        ativo: $("#func-ativo").checked,
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      try {
+        if (id) {
+          await db.collection("funcionarios").doc(id).update(dados);
+          const f = state.funcionarios.find((x) => x.id === id);
+          if (f) Object.assign(f, dados);
+        } else {
+          const novoId = "f-" + (dados.codigo || slugify(nome) + "-" + Date.now());
+          await db.collection("funcionarios").doc(novoId).set({
+            ...dados,
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          state.funcionarios.push({ id: novoId, ...dados });
+        }
+        closeModal();
+        toast(id ? "Funcionário atualizado." : "Funcionário criado.");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro ao salvar: " + err.message, "danger");
+      }
+    };
+
+    // Override deleteFuncionario → /funcionarios
+    window.deleteFuncionario = async function (id) {
+      const f = state.funcionarios.find((x) => x.id === id);
+      if (!f) return;
+      const usado = state.ocorrencias.some((o) => o.funcionarioId === id);
+      if (usado) return toast("Este funcionário tem ocorrências. Marque como inativo.", "danger");
+      if (!confirm(`Excluir "${f.nome}"?`)) return;
+      try {
+        await db.collection("funcionarios").doc(id).delete();
+        state.funcionarios = state.funcionarios.filter((x) => x.id !== id);
+        closeModal();
+        toast("Funcionário excluído.");
+        renderApp();
+      } catch (err) {
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
+    // Override doImportFuncionarios → batch write em /funcionarios
+    window.doImportFuncionarios = async function () {
+      const data = window._importData;
+      if (!Array.isArray(data) || data.length === 0) return;
+      const replace = $("#import-replace").checked;
+      if (replace) {
+        if (!confirm(`Substituir TODO o cadastro pelos ${data.length} do JSON? Ocorrências antigas mantêm o nome denormalizado.`)) return;
+        // Deleta existentes
+        const snap = await db.collection("funcionarios").get();
+        const batchDel = db.batch();
+        snap.docs.forEach((d) => batchDel.delete(d.ref));
+        await batchDel.commit();
+        state.funcionarios = [];
+      }
+
+      // Firestore batch tem limite de 500 ops; vamos em chunks de 400.
+      const chunks = [];
+      for (let i = 0; i < data.length; i += 400) chunks.push(data.slice(i, i + 400));
+
+      let total = 0;
+      for (const chunk of chunks) {
+        const batch = db.batch();
+        for (const item of chunk) {
+          const id = "f-" + (item.codigo || slugify(item.nome));
+          const ref = db.collection("funcionarios").doc(id);
+          batch.set(ref, {
+            nome: item.nome,
+            codigo: item.codigo || null,
+            turno: item.turno || null,
+            setor: item.setor || null,
+            ativo: item.ativo !== false,
+            atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+          const existing = state.funcionarios.find((x) => x.id === id);
+          if (existing) Object.assign(existing, {
+            nome: item.nome, codigo: item.codigo, turno: item.turno || null,
+            setor: item.setor || null, ativo: item.ativo !== false,
+          });
+          else state.funcionarios.push({
+            id, nome: item.nome, codigo: item.codigo, turno: item.turno || null,
+            setor: item.setor || null, ativo: item.ativo !== false,
+          });
+        }
+        await batch.commit();
+        total += chunk.length;
+      }
+
+      closeModal();
+      toast(`${total} funcionários sincronizados no Firestore.`);
+      renderApp();
+    };
+
     // Override deleteTipo → exclui de /tipos
     window.deleteTipo = async function (id) {
       const t = (state.tiposCustom || []).find((x) => x.id === id);

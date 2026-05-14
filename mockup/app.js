@@ -719,18 +719,29 @@ function updateObservacao(id) {
 // ---------- Funcionários (Admin/RH) ----------
 
 function renderFuncionarios() {
+  const u = currentUser();
   $("#topbar-title").textContent = "Funcionários";
+
+  const semTurno = state.funcionarios.filter((f) => !f.turno).length;
 
   $("#view").innerHTML = `
     <header class="page-header">
       <div>
         <h1>Funcionários</h1>
-        <p>Cadastro usado ao registrar ocorrências.</p>
+        <p>Clique num funcionário pra definir turno e setor. RH/admin podem importar lote.</p>
       </div>
-      <button class="btn btn--soft" disabled title="Em breve">${icon("plus")}<span>Novo funcionário</span></button>
+      <div class="row" style="gap:8px; flex-wrap:wrap;">
+        <button class="btn btn--ghost" id="btn-import-func">${icon("download")}<span>Importar lote</span></button>
+        <button class="btn btn--primary" id="btn-novo-func">${icon("plus")}<span>Novo funcionário</span></button>
+      </div>
     </header>
 
     <div class="stats">
+      <div class="stat ${semTurno > 0 ? "stat--accent" : ""}">
+        <div class="stat__label">Sem turno definido</div>
+        <div class="stat__value">${semTurno}</div>
+        <div class="stat__hint">${semTurno > 0 ? "ajustar antes de líderes verem" : "tudo certo"}</div>
+      </div>
       ${[1, 2, 3].map((t) => `
         <div class="stat">
           <div class="stat__label">${TURNOS[t].label}</div>
@@ -740,19 +751,275 @@ function renderFuncionarios() {
       `).join("")}
     </div>
 
-    <div class="list">
-      ${state.funcionarios.map((f) => `
-        <article class="occ" style="grid-template-columns: 44px 1fr auto auto;">
-          <div class="avatar">${initials(f.nome)}</div>
-          <div class="occ__main">
-            <div class="occ__name">${f.nome}</div>
-            <div class="occ__sub">${f.setor}</div>
-          </div>
-          <span class="badge badge--neutral">${TURNOS[f.turno].label}</span>
-        </article>
-      `).join("")}
+    <div class="toolbar">
+      <div class="toolbar__search">
+        ${icon("search")}
+        <input type="text" id="func-search" placeholder="Buscar por nome ou código..." />
+      </div>
+      <select id="func-turno-filter">
+        <option value="">Todos</option>
+        <option value="sem">Sem turno</option>
+        <option value="1">1º Turno</option>
+        <option value="2">2º Turno</option>
+        <option value="3">3º Turno</option>
+      </select>
     </div>
+
+    <div id="func-list"></div>
   `;
+
+  $("#btn-import-func").addEventListener("click", openImportFuncModal);
+  $("#btn-novo-func").addEventListener("click", () => openFuncionarioModal(null));
+  $("#func-search").addEventListener("input", renderFuncList);
+  $("#func-turno-filter").addEventListener("change", renderFuncList);
+  renderFuncList();
+}
+
+function renderFuncList() {
+  const search = ($("#func-search")?.value || "").toLowerCase();
+  const filter = $("#func-turno-filter")?.value || "";
+
+  let list = [...state.funcionarios];
+  if (search) {
+    list = list.filter((f) =>
+      f.nome.toLowerCase().includes(search) ||
+      (f.codigo || "").toLowerCase().includes(search)
+    );
+  }
+  if (filter === "sem") list = list.filter((f) => !f.turno);
+  else if (filter) list = list.filter((f) => String(f.turno) === filter);
+
+  list.sort((a, b) => {
+    if (!a.turno && b.turno) return -1;
+    if (a.turno && !b.turno) return 1;
+    return a.nome.localeCompare(b.nome);
+  });
+
+  const root = $("#func-list");
+  if (list.length === 0) {
+    root.innerHTML = `
+      <div class="empty">
+        <div class="empty__icon">${icon("users")}</div>
+        <h3>Nenhum funcionário</h3>
+        <p>Use "Importar lote" pra carregar do JSON ou "Novo funcionário" pra um por um.</p>
+      </div>`;
+    return;
+  }
+
+  root.innerHTML = `<div class="list">${list.map((f) => `
+    <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto;" data-func="${f.id}">
+      <div class="avatar">${initials(f.nome)}</div>
+      <div class="occ__main">
+        <div class="occ__name">${f.nome}</div>
+        <div class="occ__sub">${f.codigo ? "cód: " + f.codigo + " · " : ""}${f.setor || "sem setor"}</div>
+      </div>
+      ${f.turno
+        ? `<span class="badge badge--neutral">${TURNOS[f.turno].label}</span>`
+        : `<span class="badge badge--warning"><span class="dot"></span>Sem turno</span>`}
+      <span class="badge badge--${f.ativo === false ? "neutral" : "success"}">${f.ativo === false ? "Inativo" : "Ativo"}</span>
+      <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>`).join("")}</div>`;
+
+  $$("#func-list .occ").forEach((el) => {
+    el.addEventListener("click", () => openFuncionarioModal(el.dataset.func));
+  });
+}
+
+const SETORES = ["Produção", "Qualidade", "Logística", "Manutenção", "Administrativo", "Comercial", "RH"];
+
+function openFuncionarioModal(id) {
+  const f = id ? state.funcionarios.find((x) => x.id === id) : null;
+  const isNew = !f;
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>${isNew ? "Novo funcionário" : "Editar funcionário"}</h2>
+        <p>${isNew ? "Será incluído no cadastro." : f.nome}</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="func-form" onsubmit="return false">
+      <div class="field">
+        <label for="func-nome">Nome completo <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="func-nome" required value="${f?.nome || ""}" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="func-codigo">Código/Matrícula</label>
+          <input type="text" id="func-codigo" value="${f?.codigo || ""}" placeholder="ex: 1234" />
+        </div>
+        <div class="field">
+          <label for="func-turno">Turno</label>
+          <select id="func-turno">
+            <option value="">— Sem turno —</option>
+            ${[1, 2, 3].map((t) => `<option value="${t}" ${f?.turno === t ? "selected" : ""}>${TURNOS[t].label} (${TURNOS[t].horario})</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="func-setor">Setor</label>
+        <select id="func-setor">
+          <option value="">— Não definido —</option>
+          ${SETORES.map((s) => `<option value="${s}" ${f?.setor === s ? "selected" : ""}>${s}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label class="row" style="gap:8px; cursor:pointer;">
+          <input type="checkbox" id="func-ativo" ${f?.ativo !== false ? "checked" : ""} />
+          <span>Funcionário ativo</span>
+        </label>
+        <span class="field__hint">Inativos não aparecem no formulário de nova ocorrência.</span>
+      </div>
+    </form>
+    <div class="modal__footer">
+      ${!isNew ? `<button class="btn btn--danger" id="btn-del-func">${icon("trash")}<span>Excluir</span></button>` : ""}
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-func">${icon("check")}<span>${isNew ? "Criar" : "Salvar"}</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-save-func").addEventListener("click", () => saveFuncionario(id));
+      if (!isNew) $("#btn-del-func").addEventListener("click", () => deleteFuncionario(id));
+    },
+  });
+}
+
+function saveFuncionario(id) {
+  const nome = $("#func-nome").value.trim();
+  if (!nome || nome.length < 3) return toast("Nome muito curto.", "danger");
+
+  const turnoStr = $("#func-turno").value;
+  const dados = {
+    nome,
+    codigo: $("#func-codigo").value.trim() || null,
+    turno: turnoStr ? Number(turnoStr) : null,
+    setor: $("#func-setor").value || null,
+    ativo: $("#func-ativo").checked,
+  };
+
+  if (id) {
+    const f = state.funcionarios.find((x) => x.id === id);
+    Object.assign(f, dados);
+  } else {
+    const novoId = "f" + Date.now();
+    state.funcionarios.push({ id: novoId, ...dados });
+  }
+  store.save(state);
+  closeModal();
+  toast(id ? "Funcionário atualizado." : "Funcionário criado.");
+  renderApp();
+}
+
+function deleteFuncionario(id) {
+  const f = state.funcionarios.find((x) => x.id === id);
+  if (!f) return;
+  const usado = state.ocorrencias.some((o) => o.funcionarioId === id);
+  if (usado) {
+    return toast("Este funcionário tem ocorrências. Marque como inativo no lugar.", "danger");
+  }
+  if (!confirm(`Excluir "${f.nome}" do cadastro?`)) return;
+  state.funcionarios = state.funcionarios.filter((x) => x.id !== id);
+  store.save(state);
+  closeModal();
+  toast("Funcionário excluído.");
+  renderApp();
+}
+
+function openImportFuncModal() {
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Importar funcionários</h2>
+        <p>Lê o arquivo <code>mockup/funcionarios.json</code> e adiciona/atualiza no cadastro.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div id="import-preview">
+        <div class="row" style="gap:8px; padding: 12px;">
+          ${icon("clock")}<span>Carregando preview...</span>
+        </div>
+      </div>
+      <div class="field" style="margin-top:16px;">
+        <label class="row" style="gap:8px; cursor:pointer;">
+          <input type="checkbox" id="import-replace" />
+          <span>Substituir cadastro inteiro</span>
+        </label>
+        <span class="field__hint">Desmarcado: adiciona novos e mantém os existentes. Marcado: apaga tudo e refaz.</span>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-do-import" disabled>${icon("download")}<span>Importar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-do-import").addEventListener("click", doImportFuncionarios);
+      fetch("funcionarios.json")
+        .then((r) => {
+          if (!r.ok) throw new Error("Arquivo não encontrado");
+          return r.json();
+        })
+        .then((data) => {
+          window._importData = data;
+          $("#import-preview").innerHTML = `
+            <div class="detail-cell">
+              <label>Encontrados</label>
+              <strong>${data.length} funcionários</strong>
+            </div>
+            <div class="text-sm muted" style="margin-top:8px;">
+              Primeiros nomes: ${data.slice(0, 5).map((f) => f.nome).join(", ")}${data.length > 5 ? "..." : ""}
+            </div>`;
+          $("#btn-do-import").disabled = false;
+        })
+        .catch((e) => {
+          $("#import-preview").innerHTML = `
+            <div class="field__error">
+              ${icon("alert")} Não consegui ler <code>funcionarios.json</code>.<br/>
+              <span class="text-xs muted">${e.message}. Crie o arquivo em <code>mockup/funcionarios.json</code> com a estrutura [{ "codigo", "nome", "turno", "setor", "ativo" }, ...].</span>
+            </div>`;
+        });
+    },
+  });
+}
+
+function doImportFuncionarios() {
+  const data = window._importData;
+  if (!Array.isArray(data) || data.length === 0) return;
+
+  const replace = $("#import-replace").checked;
+  if (replace) {
+    if (!confirm(`Substituir TODO o cadastro atual (${state.funcionarios.length} funcionários) pelos ${data.length} do JSON? Ocorrências antigas mantêm o nome denormalizado.`)) return;
+    state.funcionarios = [];
+  }
+
+  let novos = 0, atualizados = 0;
+  for (const item of data) {
+    const id = "f-" + (item.codigo || slugify(item.nome));
+    const existing = state.funcionarios.find((x) => x.id === id || x.codigo === item.codigo);
+    const dados = {
+      nome: item.nome,
+      codigo: item.codigo || null,
+      turno: item.turno || null,
+      setor: item.setor || null,
+      ativo: item.ativo !== false,
+    };
+    if (existing) {
+      Object.assign(existing, dados);
+      atualizados++;
+    } else {
+      state.funcionarios.push({ id, ...dados });
+      novos++;
+    }
+  }
+
+  store.save(state);
+  closeModal();
+  toast(`Import concluído: ${novos} novos, ${atualizados} atualizados.`);
+  renderApp();
 }
 
 // ---------- Tipos de Ocorrência (Admin/RH) ----------
