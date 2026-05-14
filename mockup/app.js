@@ -874,12 +874,22 @@ function renderFuncList() {
 
   const root = $("#func-list");
   if (list.length === 0) {
+    const semFiltro = !search && !filter;
     root.innerHTML = `
       <div class="empty">
         <div class="empty__icon">${icon("users")}</div>
-        <h3>Nenhum funcionário</h3>
-        <p>Use "Importar lote" pra carregar do JSON ou "Novo funcionário" pra um por um.</p>
+        <h3>${semFiltro ? "Sem funcionários cadastrados ainda" : "Nenhum resultado"}</h3>
+        <p>${semFiltro
+          ? "Importe a lista completa de uma vez, ou crie um a um."
+          : "Tente ajustar a busca ou o filtro de turno."}</p>
+        ${semFiltro ? `
+          <div class="row" style="gap:8px; justify-content:center; margin-top:8px;">
+            <button class="btn btn--primary" id="btn-empty-novo">${icon("plus")}<span>Novo funcionário</span></button>
+            <button class="btn btn--ghost" id="btn-empty-import">${icon("download")}<span>Importar lote</span></button>
+          </div>` : ""}
       </div>`;
+    const bn = $("#btn-empty-novo"); if (bn) bn.addEventListener("click", () => openFuncionarioModal(null));
+    const bi = $("#btn-empty-import"); if (bi) bi.addEventListener("click", openImportFuncModal);
     return;
   }
 
