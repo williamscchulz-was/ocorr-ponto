@@ -435,6 +435,64 @@
       await auth.signOut();
     };
 
+    // Convida usuário novo (admin only).
+    // Usa instância SECUNDÁRIA do Firebase Auth pra não deslogar o admin atual.
+    window.inviteUser = async function ({ email, nome, role, turno }) {
+      const u = currentUser();
+      if (u.role !== "admin") return { ok: false, err: "Apenas admin pode convidar usuários." };
+      if (!email || !nome || !role) return { ok: false, err: "Preencha email, nome e papel." };
+      if (role === "lider" && !turno) return { ok: false, err: "Líder precisa de turno." };
+
+      const tempPassword = gerarSenhaTemp();
+      const secondaryName = "invite-" + Date.now();
+      const secondary = firebase.initializeApp(cfg, secondaryName);
+      try {
+        const result = await secondary.auth().createUserWithEmailAndPassword(email, tempPassword);
+        const uid = result.user.uid;
+
+        const userDoc = {
+          email,
+          nome,
+          role,
+          ativo: true,
+          criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          criadoPor: u.id,
+        };
+        if (role === "lider") {
+          userDoc.turno = turno === "geral" ? "geral" : Number(turno);
+        }
+        await db.collection("users").doc(uid).set(userDoc);
+
+        // Envia email de redefinição pra ele criar a própria senha
+        let resetEnviado = false;
+        try {
+          await secondary.auth().sendPasswordResetEmail(email);
+          resetEnviado = true;
+        } catch (e) {
+          console.warn("Não foi possível enviar email de redefinição:", e.message);
+        }
+
+        // Adiciona ao state local pra UI atualizar
+        state.users.push({ id: uid, ...userDoc, criadoEm: new Date().toISOString() });
+
+        return { ok: true, uid, email, tempPassword, resetEnviado };
+      } catch (err) {
+        return { ok: false, err: traduzErroAuth(err) };
+      } finally {
+        await secondary.auth().signOut().catch(() => {});
+        await secondary.delete().catch(() => {});
+      }
+    };
+
+    function gerarSenhaTemp() {
+      // Senha de 12 chars com letras + números + 1 símbolo
+      const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const sym = "!@#$%&*";
+      let pw = sym[Math.floor(Math.random() * sym.length)];
+      for (let i = 0; i < 11; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+      return pw;
+    }
+
     // Reset de senha via Firebase Auth
     window.firebaseResetSenha = async function () {
       const email = ($("#login-user").value || "").trim();

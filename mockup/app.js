@@ -1400,13 +1400,15 @@ function deleteTipo(id) {
 
 function renderUsuarios() { renderUsuariosInto("#view"); }
 function renderUsuariosInto(selector) {
+  const isFirebaseMode = typeof window.inviteUser === "function";
+
   $(selector).innerHTML = `
     <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
       <div>
         <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--plum); font-weight: 700;">Usuários do sistema</h2>
         <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Quem acessa, com qual papel e qual turno.</p>
       </div>
-      <button class="btn btn--soft" disabled title="Cadastro via Firebase Console por enquanto">${icon("plus")}<span>Novo usuário</span></button>
+      <button class="btn btn--primary" id="btn-novo-user" ${!isFirebaseMode ? `disabled title="Disponível apenas em modo Firebase"` : ""}>${icon("plus")}<span>Novo usuário</span></button>
     </div>
 
     <div class="list">
@@ -1422,21 +1424,134 @@ function renderUsuariosInto(selector) {
       `).join("")}
     </div>
 
-    <div style="margin-top:24px;">
-      <button class="btn btn--ghost" id="reset-btn">${icon("alert")}<span>Resetar dados locais</span></button>
-      <span class="text-xs muted" style="display:block; margin-top:6px;">Útil apenas em modo demo. No Firebase, dados ficam no Firestore.</span>
-    </div>
+    ${!isFirebaseMode ? `
+      <div style="margin-top:24px;">
+        <button class="btn btn--ghost" id="reset-btn">${icon("alert")}<span>Resetar dados locais</span></button>
+        <span class="text-xs muted" style="display:block; margin-top:6px;">Útil apenas em modo demo. No Firebase, dados ficam no Firestore.</span>
+      </div>
+    ` : ""}
   `;
 
-  $("#reset-btn").addEventListener("click", () => {
-    if (confirm("Apagar todos os registros locais e voltar ao seed inicial?")) {
-      const fresh = store.reset();
-      Object.assign(state, fresh);
-      state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
-      toast("Dados resetados.");
-      renderApp();
-    }
+  const novo = $("#btn-novo-user");
+  if (novo && isFirebaseMode) novo.addEventListener("click", openNovoUsuarioModal);
+
+  const reset = $("#reset-btn");
+  if (reset) {
+    reset.addEventListener("click", () => {
+      if (confirm("Apagar todos os registros locais e voltar ao seed inicial?")) {
+        const fresh = store.reset();
+        Object.assign(state, fresh);
+        state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
+        toast("Dados resetados.");
+        renderApp();
+      }
+    });
+  }
+}
+
+function openNovoUsuarioModal() {
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Novo usuário</h2>
+        <p>Cria a conta no Firebase Auth e o perfil em Firestore. O usuário recebe email pra definir a própria senha.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="user-form" onsubmit="return false">
+      <div class="field">
+        <label for="user-nome">Nome completo <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="user-nome" required placeholder="Ex: Adelir Padilha" />
+      </div>
+      <div class="field">
+        <label for="user-email">Email corporativo <span style="color:var(--danger)">*</span></label>
+        <input type="email" id="user-email" required placeholder="adelir@fiobras.com.br" />
+        <span class="field__hint">Será o login dele(a). Email pra redefinição vai pra este endereço.</span>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="user-role">Papel <span style="color:var(--danger)">*</span></label>
+          <select id="user-role" required>
+            <option value="rh">RH (cria e edita ocorrências)</option>
+            <option value="lider">Líder (confere ocorrências do turno)</option>
+            <option value="admin">Administrador (acesso total)</option>
+          </select>
+        </div>
+        <div class="field" id="user-turno-field" style="display:none;">
+          <label for="user-turno">Turno <span style="color:var(--danger)">*</span></label>
+          <select id="user-turno">
+            <option value="1">1º Turno (06:00–14:00)</option>
+            <option value="2">2º Turno (14:00–22:00)</option>
+            <option value="3">3º Turno (22:00–06:00)</option>
+            <option value="geral">Geral (horário comercial)</option>
+          </select>
+        </div>
+      </div>
+    </form>
+    <div id="user-result" style="display:none;"></div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-user">${icon("plus")}<span>Criar conta</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+
+      const roleSel = $("#user-role");
+      const turnoField = $("#user-turno-field");
+      const toggleTurno = () => {
+        turnoField.style.display = roleSel.value === "lider" ? "block" : "none";
+      };
+      roleSel.addEventListener("change", toggleTurno);
+      toggleTurno();
+
+      $("#btn-save-user").addEventListener("click", criarUsuario);
+      setTimeout(() => $("#user-nome").focus(), 100);
+    },
   });
+}
+
+async function criarUsuario() {
+  const btn = $("#btn-save-user");
+  btn.disabled = true;
+  btn.innerHTML = icon("clock") + "<span>Criando...</span>";
+
+  const dados = {
+    nome: $("#user-nome").value.trim(),
+    email: $("#user-email").value.trim().toLowerCase(),
+    role: $("#user-role").value,
+    turno: $("#user-role").value === "lider" ? $("#user-turno").value : null,
+  };
+
+  const res = await window.inviteUser(dados);
+
+  if (!res.ok) {
+    toast(res.err || "Erro ao criar usuário.", "danger");
+    btn.disabled = false;
+    btn.innerHTML = icon("plus") + "<span>Criar conta</span>";
+    return;
+  }
+
+  // Sucesso — mostra credenciais
+  $("#user-result").style.display = "block";
+  $("#user-result").innerHTML = `
+    <div style="background: var(--success-bg); border: 1px solid var(--success); border-radius: var(--radius); padding: 16px; margin: 16px 28px;">
+      <div style="font-weight: 700; color: var(--success); margin-bottom: 8px;">
+        ${icon("check")} Conta criada com sucesso
+      </div>
+      <div class="text-sm" style="line-height: 1.7;">
+        <strong>Email:</strong> ${res.email}<br/>
+        <strong>Senha temporária:</strong> <code style="background: white; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${res.tempPassword}</code><br/>
+        ${res.resetEnviado
+          ? `<span class="muted">${icon("check")} Email de redefinição enviado — o usuário pode usar tanto a senha temporária quanto o link do email.</span>`
+          : `<span class="muted">⚠ Email de redefinição falhou. Compartilhe a senha temporária manualmente.</span>`}
+      </div>
+    </div>
+  `;
+  $("#btn-save-user").style.display = "none";
+
+  toast("Usuário criado!");
+  renderApp(); // atualiza lista no fundo
 }
 
 // ---------- Helpers de copy ----------
