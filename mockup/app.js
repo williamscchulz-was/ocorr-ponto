@@ -730,7 +730,7 @@ function openOcorrenciaDetail(id) {
     </div>
 
     <div class="modal__footer">
-      ${u.role === "admin" ? `<button class="btn btn--danger" id="btn-del-occ" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
+      ${(u.role === "admin" || u.role === "rh") ? `<button class="btn btn--danger" id="btn-del-occ" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Fechar</button>
       ${u.role === "admin" ? `<button class="btn btn--soft" id="btn-edit-occ">${icon("edit")}<span>Editar tudo</span></button>` : ""}
       ${canEdit && !pending ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
@@ -1172,9 +1172,9 @@ function openImportFuncModal() {
       <div class="field" style="margin-top:16px;">
         <label class="row" style="gap:8px; cursor:pointer;">
           <input type="checkbox" id="import-replace" />
-          <span>Substituir cadastro inteiro</span>
+          <span>Marcar ausentes como inativos (sincronização completa)</span>
         </label>
-        <span class="field__hint">Desmarcado: adiciona novos e atualiza existentes (por código). Marcado: apaga tudo e refaz.</span>
+        <span class="field__hint">Desmarcado: só adiciona/atualiza. Marcado: também marca como <strong>inativo</strong> quem está cadastrado mas não veio no JSON (preserva histórico — ocorrências antigas continuam visíveis).</span>
       </div>
     </div>
     <div class="modal__footer">
@@ -1257,24 +1257,26 @@ function doImportFuncionarios() {
   const data = window._importData;
   if (!Array.isArray(data) || data.length === 0) return;
 
-  const replace = $("#import-replace").checked;
-  if (replace) {
-    if (!confirm(`Substituir TODO o cadastro atual (${state.funcionarios.length} funcionários) pelos ${data.length} do JSON? Ocorrências antigas mantêm o nome denormalizado.`)) return;
-    state.funcionarios = [];
-  }
+  const markAusentes = $("#import-replace").checked;
+
+  // Conjunto dos códigos/ids que vieram no JSON, pra detectar ausentes
+  const incomingIds = new Set();
 
   let novos = 0, atualizados = 0;
   for (const item of data) {
     const id = "f-" + (item.codigo || slugify(item.nome));
+    incomingIds.add(id);
     const existing = state.funcionarios.find((x) => x.id === id || x.codigo === item.codigo);
     const dados = {
       nome: item.nome,
       codigo: item.codigo || null,
-      turno: item.turno || null,
+      turno: item.turno ?? null,
+      liderNome: item.liderNome || null,
       setor: item.setor || null,
       ativo: item.ativo !== false,
     };
     if (existing) {
+      incomingIds.add(existing.id);
       Object.assign(existing, dados);
       atualizados++;
     } else {
@@ -1283,9 +1285,20 @@ function doImportFuncionarios() {
     }
   }
 
+  let inativados = 0;
+  if (markAusentes) {
+    if (!confirm(`Marcar como inativos os funcionários que não estão no JSON? Eles continuam no cadastro, mas saem do form de Nova Ocorrência. Ocorrências antigas mantêm a referência.`)) return;
+    for (const f of state.funcionarios) {
+      if (!incomingIds.has(f.id) && f.ativo !== false) {
+        f.ativo = false;
+        inativados++;
+      }
+    }
+  }
+
   store.save(state);
   closeModal();
-  toast(`Import concluído: ${novos} novos, ${atualizados} atualizados.`);
+  toast(`Import: ${novos} novos · ${atualizados} atualizados${markAusentes ? ` · ${inativados} inativados` : ""}.`);
   renderApp();
 }
 

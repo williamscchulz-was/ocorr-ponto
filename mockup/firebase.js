@@ -397,18 +397,15 @@
     window.doImportFuncionarios = async function () {
       const data = window._importData;
       if (!Array.isArray(data) || data.length === 0) return;
-      const replace = $("#import-replace").checked;
-      if (replace) {
-        if (!confirm(`Substituir TODO o cadastro pelos ${data.length} do JSON? Ocorrências antigas mantêm o nome denormalizado.`)) return;
-        // Deleta existentes
-        const snap = await db.collection("funcionarios").get();
-        const batchDel = db.batch();
-        snap.docs.forEach((d) => batchDel.delete(d.ref));
-        await batchDel.commit();
-        state.funcionarios = [];
+      const markAusentes = $("#import-replace").checked;
+
+      if (markAusentes) {
+        if (!confirm(`Marcar como inativos os funcionários que não estão no JSON? Eles continuam no Firestore, ocorrências antigas mantêm a referência. Continuar?`)) return;
       }
 
-      // Firestore batch tem limite de 500 ops; vamos em chunks de 400.
+      const incomingIds = new Set();
+
+      // Upsert em chunks de 400 (limite de batch do Firestore é 500)
       const chunks = [];
       for (let i = 0; i < data.length; i += 400) chunks.push(data.slice(i, i + 400));
 
@@ -417,23 +414,26 @@
         const batch = db.batch();
         for (const item of chunk) {
           const id = "f-" + (item.codigo || slugify(item.nome));
+          incomingIds.add(id);
           const ref = db.collection("funcionarios").doc(id);
           batch.set(ref, {
             nome: item.nome,
             codigo: item.codigo || null,
-            turno: item.turno || null,
+            turno: item.turno ?? null,
+            liderNome: item.liderNome || null,
             setor: item.setor || null,
             ativo: item.ativo !== false,
             atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
-            criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
           }, { merge: true });
           const existing = state.funcionarios.find((x) => x.id === id);
           if (existing) Object.assign(existing, {
-            nome: item.nome, codigo: item.codigo, turno: item.turno || null,
+            nome: item.nome, codigo: item.codigo, turno: item.turno ?? null,
+            liderNome: item.liderNome || null,
             setor: item.setor || null, ativo: item.ativo !== false,
           });
           else state.funcionarios.push({
-            id, nome: item.nome, codigo: item.codigo, turno: item.turno || null,
+            id, nome: item.nome, codigo: item.codigo, turno: item.turno ?? null,
+            liderNome: item.liderNome || null,
             setor: item.setor || null, ativo: item.ativo !== false,
           });
         }
@@ -441,8 +441,39 @@
         total += chunk.length;
       }
 
+      let inativados = 0;
+      if (markAusentes) {
+        // Pega TODOS os funcionarios atuais do Firestore (mesmo os de outras páginas que o state local pode não ter)
+        const allSnap = await db.collection("funcionarios").get();
+        const inativarBatches = [];
+        let currentBatch = db.batch();
+        let opsInBatch = 0;
+        for (const doc of allSnap.docs) {
+          if (!incomingIds.has(doc.id) && doc.data().ativo !== false) {
+            currentBatch.update(doc.ref, {
+              ativo: false,
+              atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            inativados++;
+            opsInBatch++;
+            if (opsInBatch >= 400) {
+              inativarBatches.push(currentBatch);
+              currentBatch = db.batch();
+              opsInBatch = 0;
+            }
+          }
+        }
+        if (opsInBatch > 0) inativarBatches.push(currentBatch);
+        for (const b of inativarBatches) await b.commit();
+
+        // Reflete no state local
+        for (const f of state.funcionarios) {
+          if (!incomingIds.has(f.id) && f.ativo !== false) f.ativo = false;
+        }
+      }
+
       closeModal();
-      toast(`${total} funcionários sincronizados no Firestore.`);
+      toast(`Sincronizado: ${total} no JSON${markAusentes ? ` · ${inativados} inativados` : ""}.`);
       renderApp();
     };
 
