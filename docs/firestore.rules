@@ -96,12 +96,13 @@ service cloud.firestore {
 
     // ----- Helpers de atualização -----
 
+    // RH pode mexer em: observacao, historico, atualizadoEm, e nos
+    // campos de lançamento (lancada/lancadoEm/lancadoPor). Não pode
+    // alterar data/funcionário/tipo/horário/ação/conferência.
     function podeAtualizarApenasObservacao() {
-      let imut = ['data', 'funcionarioId', 'funcionarioNome', 'funcionarioTurno',
-                  'tipo', 'horario', 'acao', 'dataConferencia',
-                  'criadoPor', 'criadoEm', 'conferidoPor'];
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['observacao', 'historico', 'atualizadoEm']);
+        .hasOnly(['observacao', 'historico', 'atualizadoEm',
+                  'lancada', 'lancadoEm', 'lancadoPor']);
     }
 
     function podeConferirOuAtualizarObs() {

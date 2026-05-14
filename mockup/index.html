@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=22" />
+  <link rel="stylesheet" href="styles.css?v=23" />
 </head>
 <body>
 
@@ -88,18 +88,18 @@
 
       <nav class="nav" id="nav"></nav>
 
-      <div class="app__user">
+      <button class="app__user" id="user-area" title="Perfil e sessão" style="cursor:pointer; text-align:left; width:100%;">
         <div class="avatar" id="user-avatar">--</div>
         <div class="app__user-info">
           <strong id="user-name">--</strong>
           <span id="user-role">--</span>
         </div>
-        <button class="app__user-logout" id="logout-btn" title="Sair">
+        <span class="app__user-logout" aria-hidden="true">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
           </svg>
-        </button>
-      </div>
+        </span>
+      </button>
     </aside>
 
     <main class="app__main">
@@ -129,11 +129,11 @@
   <div id="modal-root"></div>
   <div class="toast-root" id="toast-root"></div>
 
-  <script src="data.js?v=22"></script>
-  <script src="app.js?v=22"></script>
+  <script src="data.js?v=23"></script>
+  <script src="app.js?v=23"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo). -->
   <script src="firebase.config.js" onerror="void 0"></script>
-  <script src="firebase.js?v=22"></script>
+  <script src="firebase.js?v=23"></script>
 </body>
 </html>

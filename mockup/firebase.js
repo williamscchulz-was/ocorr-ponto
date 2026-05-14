@@ -273,6 +273,43 @@
       }
     };
 
+    // Override marcarComoLancada → /ocorrencias
+    window.marcarComoLancada = async function (id) {
+      const o = state.ocorrencias.find((x) => x.id === id);
+      if (!o) return;
+      const u = currentUser();
+      if (u.role !== "rh" && u.role !== "admin") return;
+      if (isPending(o)) return toast("Confira a ocorrência antes de marcar como lançada.", "danger");
+
+      const novoHist = [...(o.historico || []), {
+        por: u.id,
+        em: new Date().toISOString(),
+        acao: "Marcou como lançada",
+      }];
+
+      try {
+        await db.collection("ocorrencias").doc(id).update({
+          lancada: true,
+          lancadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          lancadoPor: u.id,
+          historico: novoHist,
+          atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        Object.assign(o, {
+          lancada: true,
+          lancadoEm: new Date().toISOString(),
+          lancadoPor: u.id,
+          historico: novoHist,
+        });
+        closeModal();
+        toast("Marcada como lançada!");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
     // Override updateObservacao
     window.updateObservacao = async function (id) {
       const o = state.ocorrencias.find((x) => x.id === id);
@@ -660,6 +697,23 @@
       return pw;
     }
 
+    // Alterar a própria senha (usuário logado)
+    window.alterarMinhaSenha = async function (atual, nova) {
+      const user = auth.currentUser;
+      if (!user) return { ok: false, err: "Não está logado." };
+      if (!atual || !nova) return { ok: false, err: "Preencha senha atual e nova." };
+      if (nova.length < 6) return { ok: false, err: "Senha nova precisa ter pelo menos 6 caracteres." };
+
+      try {
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, atual);
+        await user.reauthenticateWithCredential(credential);
+        await user.updatePassword(nova);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, err: traduzErroAuth(e) };
+      }
+    };
+
     // Reset de senha via Firebase Auth
     window.firebaseResetSenha = async function () {
       const email = ($("#login-user").value || "").trim();
@@ -794,6 +848,7 @@
         ...data,
         data: tsToDateStr(data.data),
         dataConferencia: tsToDateStr(data.dataConferencia),
+        lancadoEm: tsToDateStr(data.lancadoEm),
         criadoEm: tsToIso(data.criadoEm),
         atualizadoEm: tsToIso(data.atualizadoEm),
       };

@@ -60,6 +60,8 @@ const getUser = (id) => state.users.find((u) => u.id === id);
 const currentUser = () => state.currentUserId ? getUser(state.currentUserId) : null;
 
 const isPending = (occ) => !occ.acao || !occ.dataConferencia;
+const isConferida = (occ) => !isPending(occ) && !occ.lancada;
+const isLancada = (occ) => !!occ.lancada;
 
 const initials = (nome) => {
   const parts = nome.trim().split(/\s+/);
@@ -337,7 +339,9 @@ function renderDashboard() {
 
   const visible = visibleOcorrencias();
   const pending = visible.filter(isPending);
-  const done = visible.filter((o) => !isPending(o));
+  const conferidas = visible.filter(isConferida);
+  const lancadas = visible.filter(isLancada);
+  const done = visible.filter((o) => !isPending(o)); // conferidas + lançadas
 
   const greeting = greetingText(u);
   const subtitle =
@@ -390,7 +394,10 @@ function renderDashboard() {
         Pendentes <span class="tab__count">${pending.length}</span>
       </button>
       <button class="tab ${state.view.filterTab === "conferidas" ? "active" : ""}" data-tab="conferidas">
-        Conferidas <span class="tab__count">${done.length}</span>
+        Conferidas <span class="tab__count">${conferidas.length}</span>
+      </button>
+      <button class="tab ${state.view.filterTab === "lancadas" ? "active" : ""}" data-tab="lancadas">
+        Lançadas <span class="tab__count">${lancadas.length}</span>
       </button>
       <button class="tab ${state.view.filterTab === "todas" ? "active" : ""}" data-tab="todas">
         Todas <span class="tab__count">${visible.length}</span>
@@ -454,7 +461,8 @@ function renderOccList() {
   let list = visibleOcorrencias();
 
   if (tab === "pendentes") list = list.filter(isPending);
-  else if (tab === "conferidas") list = list.filter((o) => !isPending(o));
+  else if (tab === "conferidas") list = list.filter(isConferida);
+  else if (tab === "lancadas") list = list.filter(isLancada);
 
   if (turno) {
     list = list.filter((o) => {
@@ -520,7 +528,9 @@ function renderOccCard(o) {
       <div>
         ${pending
           ? `<span class="badge badge--warning"><span class="dot"></span>Pendente</span>`
-          : `<span class="badge badge--success"><span class="dot"></span>${getAcao(o.acao)?.label || "Conferida"}</span>`
+          : isLancada(o)
+            ? `<span class="badge badge--info"><span class="dot"></span>Lançada · ${getAcao(o.acao)?.label || "—"}</span>`
+            : `<span class="badge badge--success"><span class="dot"></span>${getAcao(o.acao)?.label || "Conferida"}</span>`
         }
       </div>
       <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -703,6 +713,18 @@ function openOcorrenciaDetail(id) {
             <strong>${formatDateFull(o.dataConferencia)}</strong>
           </div>
         </div>
+        ${isLancada(o) ? `
+          <div class="detail-grid">
+            <div class="detail-cell" style="background: var(--info-bg); border: 1px solid var(--info);">
+              <label style="color: var(--info);">Lançada na folha</label>
+              <strong>${formatDateFull(o.lancadoEm)}</strong>
+            </div>
+            <div class="detail-cell" style="background: var(--info-bg); border: 1px solid var(--info);">
+              <label style="color: var(--info);">Por</label>
+              <strong>${getUser(o.lancadoPor)?.nome || "—"}</strong>
+            </div>
+          </div>
+        ` : ""}
       ` : ""}
 
       <div class="field">
@@ -736,6 +758,7 @@ function openOcorrenciaDetail(id) {
       ${canEdit && !pending ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
       ${pending && canConfer ? `<button class="btn btn--primary" id="btn-confer">${icon("check")}<span>Confirmar conferência</span></button>` : ""}
       ${pending && u.role === "rh" ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
+      ${!pending && !isLancada(o) && (u.role === "rh" || u.role === "admin") ? `<button class="btn btn--primary" id="btn-lancar">${icon("check")}<span>Marcar como lançada</span></button>` : ""}
     </div>
   `, {
     onMount: (modal) => {
@@ -744,8 +767,31 @@ function openOcorrenciaDetail(id) {
       if ($("#btn-update-obs")) $("#btn-update-obs").addEventListener("click", () => updateObservacao(o.id));
       if ($("#btn-del-occ")) $("#btn-del-occ").addEventListener("click", () => deleteOcorrencia(o.id));
       if ($("#btn-edit-occ")) $("#btn-edit-occ").addEventListener("click", () => openEditOcorrenciaModal(o.id));
+      if ($("#btn-lancar")) $("#btn-lancar").addEventListener("click", () => marcarComoLancada(o.id));
     },
   });
+}
+
+function marcarComoLancada(id) {
+  const o = state.ocorrencias.find((x) => x.id === id);
+  if (!o) return;
+  const u = currentUser();
+  if (u.role !== "rh" && u.role !== "admin") return;
+  if (isPending(o)) return toast("Confira a ocorrência antes de marcar como lançada.", "danger");
+
+  o.lancada = true;
+  o.lancadoEm = todayIso();
+  o.lancadoPor = u.id;
+  o.historico = [...(o.historico || []), {
+    por: u.id,
+    em: new Date().toISOString(),
+    acao: "Marcou como lançada",
+  }];
+
+  store.save(state);
+  closeModal();
+  toast("Marcada como lançada!");
+  renderApp();
 }
 
 function openEditOcorrenciaModal(id) {
@@ -1149,6 +1195,131 @@ function deleteFuncionario(id) {
   closeModal();
   toast("Funcionário excluído.");
   renderApp();
+}
+
+function openProfileModal() {
+  const u = currentUser();
+  if (!u) return;
+  const isFirebaseMode = typeof window.alterarMinhaSenha === "function";
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Minha conta</h2>
+        <p>Configurações de perfil e sessão.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="row" style="gap:14px; padding: 12px 0 16px;">
+        <div class="avatar avatar--lg">${initials(u.nome || "?")}</div>
+        <div>
+          <div style="font-weight:700; color:var(--plum); font-size:16px;">${u.nome}</div>
+          <div class="muted text-sm">${u.email || ""}</div>
+          <div class="text-xs muted" style="margin-top:2px;">${roleLabel(u)}</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="text-xs muted" style="margin: 12px 0 8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Segurança</div>
+      <button class="btn btn--soft btn--block" id="btn-trocar-senha" ${!isFirebaseMode ? "disabled" : ""}>
+        ${icon("settings")}<span>Alterar minha senha</span>
+      </button>
+      ${!isFirebaseMode ? `<span class="field__hint">Disponível só em modo Firebase.</span>` : ""}
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--danger" id="btn-do-logout" style="margin-right:auto;">${icon("alert")}<span>Sair</span></button>
+      <button class="btn btn--ghost" data-close>Fechar</button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-do-logout").addEventListener("click", () => { closeModal(); logout(); });
+      const trocar = $("#btn-trocar-senha");
+      if (trocar && isFirebaseMode) trocar.addEventListener("click", openTrocarSenhaModal);
+    },
+  });
+}
+
+function openTrocarSenhaModal() {
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Alterar senha</h2>
+        <p>Informe sua senha atual e a nova. Mínimo 6 caracteres.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="form-trocar-senha" onsubmit="return false">
+      <div class="field">
+        <label for="pw-current">Senha atual <span style="color:var(--danger)">*</span></label>
+        <input type="password" id="pw-current" required autocomplete="current-password" />
+      </div>
+      <div class="field">
+        <label for="pw-new">Nova senha <span style="color:var(--danger)">*</span></label>
+        <input type="password" id="pw-new" required minlength="6" autocomplete="new-password" />
+        <span class="field__hint">Use 6 caracteres ou mais. Misture letras e números pra mais segurança.</span>
+      </div>
+      <div class="field">
+        <label for="pw-confirm">Confirmar nova senha <span style="color:var(--danger)">*</span></label>
+        <input type="password" id="pw-confirm" required autocomplete="new-password" />
+      </div>
+      <div id="pw-error" class="field__error hidden"></div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-senha">${icon("check")}<span>Salvar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-save-senha").addEventListener("click", trocarSenha);
+      setTimeout(() => $("#pw-current").focus(), 100);
+    },
+  });
+}
+
+async function trocarSenha() {
+  const atual = $("#pw-current").value;
+  const nova = $("#pw-new").value;
+  const confirm = $("#pw-confirm").value;
+  const err = $("#pw-error");
+  err.classList.add("hidden");
+
+  if (!atual || !nova || !confirm) {
+    err.textContent = "Preencha todos os campos.";
+    err.classList.remove("hidden");
+    return;
+  }
+  if (nova !== confirm) {
+    err.textContent = "Nova senha e confirmação não batem.";
+    err.classList.remove("hidden");
+    return;
+  }
+  if (nova.length < 6) {
+    err.textContent = "Senha precisa ter no mínimo 6 caracteres.";
+    err.classList.remove("hidden");
+    return;
+  }
+
+  const btn = $("#btn-save-senha");
+  btn.disabled = true;
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = icon("clock") + "<span>Alterando...</span>";
+
+  const res = await window.alterarMinhaSenha(atual, nova);
+  btn.disabled = false;
+  btn.innerHTML = origHTML;
+
+  if (!res.ok) {
+    err.textContent = res.err || "Erro ao alterar.";
+    err.classList.remove("hidden");
+    return;
+  }
+
+  closeModal();
+  toast("Senha alterada com sucesso!");
 }
 
 function openImportFuncModal() {
@@ -1967,7 +2138,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Logout
-  $("#logout-btn").addEventListener("click", logout);
+  $("#user-area").addEventListener("click", openProfileModal);
 
   // Reset de senha (só ativo em modo Firebase via window.firebaseResetSenha)
   const forgot = $("#btn-forgot");
