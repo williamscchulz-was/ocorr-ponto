@@ -773,6 +773,7 @@ function openOcorrenciaDetail(id) {
       ${pending && canConfer ? `<button class="btn btn--primary" id="btn-confer">${icon("check")}<span>Confirmar conferência</span></button>` : ""}
       ${pending && u.role === "rh" ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
       ${!pending && !isLancada(o) && (u.role === "rh" || u.role === "admin") ? `<button class="btn btn--primary" id="btn-lancar">${icon("check")}<span>Marcar como lançada</span></button>` : ""}
+      ${isLancada(o) && (u.role === "rh" || u.role === "admin") ? `<button class="btn btn--soft" id="btn-desfazer-lancar">${icon("clock")}<span>Desfazer lançamento</span></button>` : ""}
     </div>
   `, {
     onMount: (modal) => {
@@ -782,8 +783,33 @@ function openOcorrenciaDetail(id) {
       if ($("#btn-del-occ")) $("#btn-del-occ").addEventListener("click", () => deleteOcorrencia(o.id));
       if ($("#btn-edit-occ")) $("#btn-edit-occ").addEventListener("click", () => openEditOcorrenciaModal(o.id));
       if ($("#btn-lancar")) $("#btn-lancar").addEventListener("click", () => marcarComoLancada(o.id));
+      if ($("#btn-desfazer-lancar")) $("#btn-desfazer-lancar").addEventListener("click", () => desfazerLancamento(o.id));
     },
   });
+}
+
+function desfazerLancamento(id) {
+  const o = state.ocorrencias.find((x) => x.id === id);
+  if (!o) return;
+  const u = currentUser();
+  if (u.role !== "rh" && u.role !== "admin") return;
+  if (!isLancada(o)) return;
+
+  if (!confirm("Desfazer o lançamento? A ocorrência volta pra Conferidas e a marca de lançada some.")) return;
+
+  o.lancada = false;
+  o.lancadoEm = null;
+  o.lancadoPor = null;
+  o.historico = [...(o.historico || []), {
+    por: u.id,
+    em: new Date().toISOString(),
+    acao: "Desfez lançamento",
+  }];
+
+  store.save(state);
+  closeModal();
+  toast("Lançamento desfeito. Voltou pra Conferidas.");
+  renderApp();
 }
 
 function marcarComoLancada(id) {

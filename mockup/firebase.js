@@ -310,6 +310,45 @@
       }
     };
 
+    // Override desfazerLancamento → /ocorrencias (volta pra Conferida)
+    window.desfazerLancamento = async function (id) {
+      const o = state.ocorrencias.find((x) => x.id === id);
+      if (!o) return;
+      const u = currentUser();
+      if (u.role !== "rh" && u.role !== "admin") return;
+      if (!isLancada(o)) return;
+
+      if (!confirm("Desfazer o lançamento? A ocorrência volta pra Conferidas e a marca de lançada some.")) return;
+
+      const novoHist = [...(o.historico || []), {
+        por: u.id,
+        em: new Date().toISOString(),
+        acao: "Desfez lançamento",
+      }];
+
+      try {
+        await db.collection("ocorrencias").doc(id).update({
+          lancada: false,
+          lancadoEm: null,
+          lancadoPor: null,
+          historico: novoHist,
+          atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        Object.assign(o, {
+          lancada: false,
+          lancadoEm: null,
+          lancadoPor: null,
+          historico: novoHist,
+        });
+        closeModal();
+        toast("Lançamento desfeito. Voltou pra Conferidas.");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
     // Override updateObservacao
     window.updateObservacao = async function (id) {
       const o = state.ocorrencias.find((x) => x.id === id);
