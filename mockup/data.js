@@ -3,6 +3,7 @@
 // ============================================
 
 const STORAGE_KEY = "ocorr-ponto:v1";
+const SEED_VERSION = 2;
 
 // --- Constantes do domínio ---
 
@@ -222,6 +223,7 @@ const store = {
 
   reset() {
     const seed = {
+      seedVersion: SEED_VERSION,
       users: SEED_USERS,
       funcionarios: SEED_FUNCIONARIOS,
       ocorrencias: seedOcorrencias(),
@@ -233,7 +235,7 @@ const store = {
 
   init() {
     const existing = this.load();
-    if (existing && existing.users && existing.funcionarios) {
+    if (existing && existing.seedVersion === SEED_VERSION) {
       return existing;
     }
     return this.reset();
