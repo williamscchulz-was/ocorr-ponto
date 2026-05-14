@@ -209,6 +209,7 @@ function renderNav() {
 
   const items = [];
   items.push({ id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending });
+  items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
 
   if (u.role === "rh" || u.role === "admin") {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
@@ -240,9 +241,10 @@ function renderBottomNav() {
   // Itens à esquerda do FAB
   const left = [
     { id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending },
+    { id: "banco-horas", label: "Banco", icon: "clock" },
   ];
   if (u.role === "rh" || u.role === "admin") {
-    left.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
+    left.push({ id: "funcionarios", label: "Equipe", icon: "users" });
   }
 
   // Itens à direita do FAB
@@ -323,6 +325,7 @@ function renderView() {
   const view = $("#view");
 
   if (page === "dashboard") return renderDashboard();
+  if (page === "banco-horas") return renderBancoHoras();
   if (page === "funcionarios") return renderFuncionarios();
   if (page === "config") return renderConfig();
   // legacy: redirects pra config se alguém entrar via URL antigo
@@ -1482,6 +1485,174 @@ function doImportFuncionarios() {
   closeModal();
   toast(`Import: ${novos} novos · ${atualizados} atualizados${markAusentes ? ` · ${inativados} inativados` : ""}.`);
   renderApp();
+}
+
+// ---------- Banco de Horas (todos) ----------
+
+function renderBancoHoras() {
+  const u = currentUser();
+  $("#topbar-title").textContent = "Banco de Horas";
+
+  // Filtra por turno se líder
+  let visibles = state.funcionarios.filter((f) => f.ativo !== false);
+  if (u.role === "lider") visibles = visibles.filter((f) => f.turno === u.turno);
+
+  const totalFunc = visibles.length;
+  // Por enquanto saldo vem do state (placeholder). Depois vem do Firestore /bancoHoras
+  const bh = state.bancoHoras || {};
+  const comSaldo = visibles.filter((f) => bh[f.id]).length;
+
+  const subtitle = u.role === "lider"
+    ? `Saldo de horas dos funcionários do ${u.turno}º turno.`
+    : "Saldo de horas de todos os funcionários ativos.";
+
+  $("#view").innerHTML = `
+    <header class="page-header">
+      <div>
+        <h1>Banco de Horas</h1>
+        <p>${subtitle}</p>
+      </div>
+      ${u.role === "rh" || u.role === "admin" ? `
+        <button class="btn btn--primary" id="btn-import-bh">${icon("download")}<span>Importar arquivo</span></button>
+      ` : ""}
+    </header>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat__label">Funcionários</div>
+        <div class="stat__value">${totalFunc}</div>
+        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : "todos ativos"}</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Com saldo registrado</div>
+        <div class="stat__value">${comSaldo}</div>
+        <div class="stat__hint">vindos de import</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Última atualização</div>
+        <div class="stat__value" style="font-size: 16px;">—</div>
+        <div class="stat__hint">aguardando primeiro import</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar__search">
+        ${icon("search")}
+        <input type="text" id="bh-search" placeholder="Buscar funcionário..." />
+      </div>
+    </div>
+
+    <div id="bh-list"></div>
+  `;
+
+  if ($("#btn-import-bh")) {
+    $("#btn-import-bh").addEventListener("click", openImportBancoHorasModal);
+  }
+  $("#bh-search").addEventListener("input", () => renderBHList(visibles));
+  renderBHList(visibles);
+}
+
+function renderBHList(funcionarios) {
+  const search = ($("#bh-search")?.value || "").toLowerCase();
+  let list = [...funcionarios];
+  if (search) {
+    list = list.filter((f) =>
+      f.nome.toLowerCase().includes(search) ||
+      (f.codigo || "").toLowerCase().includes(search)
+    );
+  }
+  list.sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const bh = state.bancoHoras || {};
+  const root = $("#bh-list");
+
+  if (list.length === 0) {
+    root.innerHTML = `
+      <div class="empty">
+        <div class="empty__icon">${icon("clock")}</div>
+        <h3>Nenhum funcionário</h3>
+        <p>Ajuste a busca ou cadastre funcionários primeiro.</p>
+      </div>`;
+    return;
+  }
+
+  root.innerHTML = `<div class="list">${list.map((f) => {
+    const saldo = bh[f.id];
+    const saldoStr = saldo
+      ? formatSaldoHoras(saldo.minutos)
+      : "—";
+    const ultima = saldo?.atualizadoEm
+      ? formatDate(saldo.atualizadoEm.slice(0, 10))
+      : "sem dado";
+    const tone = saldo
+      ? (saldo.minutos > 0 ? "success" : saldo.minutos < 0 ? "danger" : "neutral")
+      : "neutral";
+
+    return `
+      <article class="occ" style="grid-template-columns: 44px 1fr auto auto;">
+        <div class="avatar">${initials(f.nome)}</div>
+        <div class="occ__main">
+          <div class="occ__name">${f.nome}</div>
+          <div class="occ__sub">${f.codigo ? "cód: " + f.codigo + " · " : ""}${TURNOS[f.turno]?.label || "sem turno"}</div>
+        </div>
+        <div style="text-align: right;">
+          <span class="badge badge--${tone}" style="font-family: var(--font-display); font-size: 13px; font-weight: 700;">${saldoStr}</span>
+          <div class="text-xs muted" style="margin-top: 2px;">${ultima}</div>
+        </div>
+      </article>
+    `;
+  }).join("")}</div>`;
+}
+
+function formatSaldoHoras(minutos) {
+  if (minutos == null) return "—";
+  const sinal = minutos < 0 ? "-" : (minutos > 0 ? "+" : "");
+  const abs = Math.abs(minutos);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `${sinal}${h}h${m.toString().padStart(2, "0")}`;
+}
+
+function openImportBancoHorasModal() {
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Importar Banco de Horas</h2>
+        <p>Atualiza o saldo de horas dos funcionários a partir do arquivo do RH.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label for="bh-file">Arquivo <span style="color:var(--danger)">*</span></label>
+        <input type="file" id="bh-file" accept=".pdf,.xlsx,.xls,.csv" disabled />
+        <span class="field__hint">Aceita PDF, Excel ou CSV. Formato exato a definir.</span>
+      </div>
+
+      <div style="background: var(--warning-bg); border: 1px solid var(--warning); border-radius: var(--radius); padding: 14px; margin-top: 16px;">
+        <div class="row" style="gap: 8px; align-items: flex-start;">
+          <span style="color: var(--warning); margin-top: 2px;">${icon("alert")}</span>
+          <div class="text-sm" style="line-height: 1.6;">
+            <strong>Funcionalidade em desenvolvimento.</strong><br/>
+            O parser do arquivo ainda não foi implementado — depende do
+            formato que o RH vai exportar (do sistema do relógio de
+            ponto / Excel manual / outro).<br/><br/>
+            Quando você tiver um exemplo do arquivo, manda que eu
+            implemento a leitura. A UI já está aqui pronta — só falta
+            o parser.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Fechar</button>
+      <button class="btn btn--primary" disabled title="Em desenvolvimento">${icon("download")}<span>Importar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+    },
+  });
 }
 
 // ---------- Configurações (Admin/RH) ----------
