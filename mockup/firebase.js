@@ -188,6 +188,27 @@
       }
     };
 
+    // Override deleteOcorrencia → admin exclui do Firestore
+    window.deleteOcorrencia = async function (id) {
+      const o = state.ocorrencias.find((x) => x.id === id);
+      if (!o) return;
+      const f = getFuncionario(o.funcionarioId);
+      const tipo = getTipo(o.tipo);
+      const label = `${f?.nome || "?"} · ${tipo?.label || "?"} · ${formatDate(o.data)}`;
+      if (!confirm(`Excluir DEFINITIVAMENTE esta ocorrência?\n\n${label}\n\nIsso some do histórico, sem desfazer.`)) return;
+
+      try {
+        await db.collection("ocorrencias").doc(id).delete();
+        state.ocorrencias = state.ocorrencias.filter((x) => x.id !== id);
+        closeModal();
+        toast("Ocorrência excluída.");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro ao excluir: " + err.message, "danger");
+      }
+    };
+
     // Override updateObservacao
     window.updateObservacao = async function (id) {
       const o = state.ocorrencias.find((x) => x.id === id);

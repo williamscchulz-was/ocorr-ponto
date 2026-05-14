@@ -728,6 +728,7 @@ function openOcorrenciaDetail(id) {
     </div>
 
     <div class="modal__footer">
+      ${u.role === "admin" ? `<button class="btn btn--danger" id="btn-del-occ" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Fechar</button>
       ${canEdit && !pending ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
       ${pending && canConfer ? `<button class="btn btn--primary" id="btn-confer">${icon("check")}<span>Confirmar conferência</span></button>` : ""}
@@ -738,8 +739,24 @@ function openOcorrenciaDetail(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       if ($("#btn-confer")) $("#btn-confer").addEventListener("click", () => confirmConferencia(o.id));
       if ($("#btn-update-obs")) $("#btn-update-obs").addEventListener("click", () => updateObservacao(o.id));
+      if ($("#btn-del-occ")) $("#btn-del-occ").addEventListener("click", () => deleteOcorrencia(o.id));
     },
   });
+}
+
+function deleteOcorrencia(id) {
+  const o = state.ocorrencias.find((x) => x.id === id);
+  if (!o) return;
+  const f = getFuncionario(o.funcionarioId);
+  const tipo = getTipo(o.tipo);
+  const label = `${f?.nome || "?"} · ${tipo?.label || "?"} · ${formatDate(o.data)}`;
+  if (!confirm(`Excluir DEFINITIVAMENTE esta ocorrência?\n\n${label}\n\nIsso some do histórico, sem desfazer.`)) return;
+
+  state.ocorrencias = state.ocorrencias.filter((x) => x.id !== id);
+  store.save(state);
+  closeModal();
+  toast("Ocorrência excluída.");
+  renderApp();
 }
 
 function confirmConferencia(id) {
