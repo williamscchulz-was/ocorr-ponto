@@ -503,12 +503,20 @@ function renderOccList() {
   $$("#occ-list .occ").forEach((el) => {
     el.addEventListener("click", () => openOcorrenciaDetail(el.dataset.id));
   });
+  $$("#occ-list [data-quick-lancar]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      marcarComoLancada(btn.dataset.quickLancar);
+    });
+  });
 }
 
 function renderOccCard(o) {
+  const u = currentUser();
   const f = getFuncionario(o.funcionarioId);
   const tipo = getTipo(o.tipo);
   const pending = isPending(o);
+  const podeLancar = !pending && !isLancada(o) && (u.role === "rh" || u.role === "admin");
 
   return `
     <article class="occ" data-id="${o.id}">
@@ -533,7 +541,10 @@ function renderOccCard(o) {
             : `<span class="badge badge--success"><span class="dot"></span>${getAcao(o.acao)?.label || "Conferida"}</span>`
         }
       </div>
-      <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      ${podeLancar
+        ? `<button class="btn btn--primary btn--sm" data-quick-lancar="${o.id}" title="Marcar como lançada">${icon("check")}<span>Lançar</span></button>`
+        : `<svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`
+      }
     </article>
   `;
 }
