@@ -987,22 +987,25 @@ function openImportFuncModal() {
     <div class="modal__header">
       <div>
         <h2>Importar funcionários</h2>
-        <p>Lê o arquivo <code>mockup/funcionarios.json</code> e adiciona/atualiza no cadastro.</p>
+        <p>Selecione um arquivo <code>.json</code> com a lista. Estrutura esperada: <code>[{ codigo, nome, turno, liderNome, setor, ativo }, ...]</code></p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
-      <div id="import-preview">
-        <div class="row" style="gap:8px; padding: 12px;">
-          ${icon("clock")}<span>Carregando preview...</span>
-        </div>
+      <div class="field">
+        <label for="import-file">Arquivo JSON <span style="color:var(--danger)">*</span></label>
+        <input type="file" id="import-file" accept=".json,application/json" />
+        <span class="field__hint">Em desenvolvimento local, se houver <code>mockup/funcionarios.json</code>, ele é carregado automaticamente.</span>
       </div>
+
+      <div id="import-preview" style="margin-top:8px;"></div>
+
       <div class="field" style="margin-top:16px;">
         <label class="row" style="gap:8px; cursor:pointer;">
           <input type="checkbox" id="import-replace" />
           <span>Substituir cadastro inteiro</span>
         </label>
-        <span class="field__hint">Desmarcado: adiciona novos e mantém os existentes. Marcado: apaga tudo e refaz.</span>
+        <span class="field__hint">Desmarcado: adiciona novos e atualiza existentes (por código). Marcado: apaga tudo e refaz.</span>
       </div>
     </div>
     <div class="modal__footer">
@@ -1013,32 +1016,72 @@ function openImportFuncModal() {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#btn-do-import").addEventListener("click", doImportFuncionarios);
-      fetch("funcionarios.json")
-        .then((r) => {
-          if (!r.ok) throw new Error("Arquivo não encontrado");
-          return r.json();
-        })
-        .then((data) => {
-          window._importData = data;
-          $("#import-preview").innerHTML = `
-            <div class="detail-cell">
-              <label>Encontrados</label>
-              <strong>${data.length} funcionários</strong>
-            </div>
-            <div class="text-sm muted" style="margin-top:8px;">
-              Primeiros nomes: ${data.slice(0, 5).map((f) => f.nome).join(", ")}${data.length > 5 ? "..." : ""}
-            </div>`;
-          $("#btn-do-import").disabled = false;
-        })
-        .catch((e) => {
+
+      $("#import-file").addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => parseAndPreview(ev.target.result, file.name);
+        reader.onerror = () => {
           $("#import-preview").innerHTML = `
             <div class="field__error">
-              ${icon("alert")} Não consegui ler <code>funcionarios.json</code>.<br/>
-              <span class="text-xs muted">${e.message}. Crie o arquivo em <code>mockup/funcionarios.json</code> com a estrutura [{ "codigo", "nome", "turno", "setor", "ativo" }, ...].</span>
+              ${icon("alert")} Erro ao ler o arquivo: ${reader.error?.message || "desconhecido"}
             </div>`;
+        };
+        reader.readAsText(file);
+      });
+
+      // Auto-fetch quando rodando local (file existe no servidor estático)
+      fetch("funcionarios.json")
+        .then((r) => r.ok ? r.text() : Promise.reject(new Error("404")))
+        .then((text) => parseAndPreview(text, "funcionarios.json (carregado do servidor local)"))
+        .catch(() => {
+          if (!window._importData) {
+            $("#import-preview").innerHTML = `
+              <div class="text-sm muted" style="padding: 12px; background: var(--surface-warm); border-radius: var(--radius);">
+                ${icon("alert")} Sem arquivo selecionado. Escolha o <code>funcionarios.json</code> do seu computador acima.
+              </div>`;
+          }
         });
     },
   });
+}
+
+function parseAndPreview(text, label) {
+  try {
+    const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error("Esperado array JSON");
+    window._importData = data;
+
+    const turnos = { 1: 0, 2: 0, 3: 0, null: 0 };
+    data.forEach((f) => {
+      const t = f.turno ?? "null";
+      turnos[t] = (turnos[t] || 0) + 1;
+    });
+
+    $("#import-preview").innerHTML = `
+      <div class="detail-grid" style="margin-top:8px;">
+        <div class="detail-cell">
+          <label>Encontrados</label>
+          <strong>${data.length} funcionários</strong>
+        </div>
+        <div class="detail-cell">
+          <label>Origem</label>
+          <strong style="font-size:12px;">${label}</strong>
+        </div>
+      </div>
+      <div class="text-sm muted" style="margin-top:8px; line-height: 1.6;">
+        Por turno: 1º (${turnos[1] || 0}) · 2º (${turnos[2] || 0}) · 3º (${turnos[3] || 0}) · Sem turno (${turnos["null"] || 0})<br/>
+        Primeiros nomes: ${data.slice(0, 5).map((f) => f.nome).join(", ")}${data.length > 5 ? "..." : ""}
+      </div>`;
+    $("#btn-do-import").disabled = false;
+  } catch (e) {
+    $("#import-preview").innerHTML = `
+      <div class="field__error">
+        ${icon("alert")} JSON inválido: ${e.message}
+      </div>`;
+    $("#btn-do-import").disabled = true;
+  }
 }
 
 function doImportFuncionarios() {
