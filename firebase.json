@@ -43,6 +43,7 @@
     }
   ],
   "firestore": {
-    "rules": "docs/firestore.rules"
+    "rules": "docs/firestore.rules",
+    "indexes": "docs/firestore.indexes.json"
   }
 }
