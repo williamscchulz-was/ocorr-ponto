@@ -1,6 +1,6 @@
 {
-  "name": "Trama · Fiobras",
-  "short_name": "Trama",
+  "name": "Weave · Fiobras",
+  "short_name": "Weave",
   "description": "Controle de ocorrências de ponto da Fiobras — registro pelo RH e conferência pelos líderes.",
   "start_url": "./index.html",
   "display": "standalone",
