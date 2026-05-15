@@ -42,10 +42,17 @@ const formatMonth = (iso) => {
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const getFuncionario = (id) => state.funcionarios.find((f) => f.id === id);
-const getAllTipos = () => [
-  ...TIPOS_OCORRENCIA,
-  ...(state.tiposCustom || []),
-];
+// Combina tipos padrão + custom. Se um custom tem mesmo id de um
+// padrão, o custom sobrescreve (permite renomear/recolorir padrões
+// sem perder o id que ocorrências antigas referenciam).
+const getAllTipos = () => {
+  const custom = state.tiposCustom || [];
+  const overrideIds = new Set(custom.map((t) => t.id));
+  return [
+    ...TIPOS_OCORRENCIA.filter((t) => !overrideIds.has(t.id)),
+    ...custom,
+  ];
+};
 const parseTurno = (v) => {
   if (!v) return null;
   if (v === "geral") return "geral";
@@ -53,7 +60,14 @@ const parseTurno = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 const getTipo = (id) => getAllTipos().find((t) => t.id === id);
-const getAllAcoes = () => [...ACOES, ...(state.acoesCustom || [])];
+const getAllAcoes = () => {
+  const custom = state.acoesCustom || [];
+  const overrideIds = new Set(custom.map((a) => a.id));
+  return [
+    ...ACOES.filter((a) => !overrideIds.has(a.id)),
+    ...custom,
+  ];
+};
 const getAcao = (id) => getAllAcoes().find((a) => a.id === id);
 const getUser = (id) => state.users.find((u) => u.id === id);
 
@@ -1742,8 +1756,11 @@ function renderAcoesInto(selector) {
   const u = currentUser();
   if (u.role !== "admin" && u.role !== "rh") return;
 
-  const padrao = ACOES;
-  const custom = state.acoesCustom || [];
+  // Padrão = ids originais do código; Custom = ids criados via UI (custom-*).
+  const padraoIds = new Set(ACOES.map((a) => a.id));
+  const all = getAllAcoes();
+  const padrao = all.filter((a) => padraoIds.has(a.id));
+  const custom = all.filter((a) => !padraoIds.has(a.id));
 
   $(selector).innerHTML = `
     <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
@@ -1758,7 +1775,7 @@ function renderAcoesInto(selector) {
       <div class="stat">
         <div class="stat__label">Padrão do sistema</div>
         <div class="stat__value">${padrao.length}</div>
-        <div class="stat__hint">imutáveis</div>
+        <div class="stat__hint">edição muda label</div>
       </div>
       <div class="stat">
         <div class="stat__label">Personalizadas</div>
@@ -1778,9 +1795,9 @@ function renderAcoesInto(selector) {
         <article class="occ" style="grid-template-columns: 1fr auto; cursor:default;">
           <div class="occ__main">
             <div class="occ__name">${a.label}</div>
-            <div class="occ__sub">id: ${a.id}</div>
+            <div class="occ__sub">id: ${a.id}${!a.padrao ? " · editado" : ""}</div>
           </div>
-          <span class="badge badge--neutral">PADRÃO</span>
+          <button class="btn btn--ghost btn--sm" data-edit-acao="${a.id}" title="Editar">${icon("edit")}</button>
         </article>
       `).join("")}
     </div>
@@ -1822,14 +1839,17 @@ function renderAcoesInto(selector) {
 }
 
 function openEditAcaoModal(id) {
-  const a = (state.acoesCustom || []).find((x) => x.id === id);
+  const a = getAcao(id);
   if (!a) return toast("Ação não encontrada.", "danger");
+  const isPadrao = ACOES.some((x) => x.id === id);
 
   openModal(`
     <div class="modal__header">
       <div>
         <h2>Editar ação</h2>
-        <p>Renomear apenas. O id <code>${a.id}</code> não muda pra não quebrar ocorrências antigas.</p>
+        <p>${isPadrao
+          ? "Ação padrão do sistema. Você pode renomear, mas o id <code>" + id + "</code> fica fixo (preserva ocorrências antigas)."
+          : "Renomear. O id <code>" + id + "</code> não muda."}</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
@@ -1853,12 +1873,16 @@ function openEditAcaoModal(id) {
 }
 
 function updateAcao(id) {
-  const a = (state.acoesCustom || []).find((x) => x.id === id);
-  if (!a) return;
   const label = $("#edit-acao-label").value.trim();
   if (!label || label.length < 3) return toast("Nome muito curto.", "danger");
 
-  a.label = label;
+  if (!state.acoesCustom) state.acoesCustom = [];
+  const existing = state.acoesCustom.find((x) => x.id === id);
+  const u = currentUser();
+  const dados = { id, label, padrao: false, atualizadoPor: u.id, atualizadoEm: new Date().toISOString() };
+  if (existing) Object.assign(existing, dados);
+  else state.acoesCustom.push(dados);
+
   store.save(state);
   closeModal();
   toast("Ação atualizada.");
@@ -1949,8 +1973,12 @@ function renderTiposInto(selector) {
   const u = currentUser();
   if (u.role !== "admin" && u.role !== "rh") return;
 
-  const padrao = TIPOS_OCORRENCIA;
-  const custom = state.tiposCustom || [];
+  // Padrão = ids originais do código (mesmo se foram editados/overrided).
+  // Custom = ids criados via UI (custom-*).
+  const padraoIds = new Set(TIPOS_OCORRENCIA.map((t) => t.id));
+  const all = getAllTipos();
+  const padrao = all.filter((t) => padraoIds.has(t.id));
+  const custom = all.filter((t) => !padraoIds.has(t.id));
 
   $(selector).innerHTML = `
     <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
@@ -1965,7 +1993,7 @@ function renderTiposInto(selector) {
       <div class="stat">
         <div class="stat__label">Tipos padrão</div>
         <div class="stat__value">${padrao.length}</div>
-        <div class="stat__hint">imutáveis no sistema</div>
+        <div class="stat__hint">edição muda label/cor</div>
       </div>
       <div class="stat">
         <div class="stat__label">Personalizados</div>
@@ -1985,10 +2013,10 @@ function renderTiposInto(selector) {
         <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default;">
           <div class="occ__main">
             <div class="occ__name">${t.label}</div>
-            <div class="occ__sub">id: ${t.id}</div>
+            <div class="occ__sub">id: ${t.id}${!t.padrao ? " · editado" : ""}</div>
           </div>
           <span class="badge badge--${t.tone}">${TONES.find((to) => to.id === t.tone)?.label || t.tone}</span>
-          <span class="badge badge--neutral">PADRÃO</span>
+          <button class="btn btn--ghost btn--sm" data-edit-tipo="${t.id}" title="Editar">${icon("edit")}</button>
         </article>
       `).join("")}
     </div>
@@ -2004,12 +2032,13 @@ function renderTiposInto(selector) {
     ` : `
       <div class="list">
         ${custom.map((t) => `
-          <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default;" data-tipo="${t.id}">
+          <article class="occ" style="grid-template-columns: 1fr auto auto auto; cursor:default;" data-tipo="${t.id}">
             <div class="occ__main">
               <div class="occ__name">${t.label}</div>
               <div class="occ__sub">id: ${t.id} · criado por ${getUser(t.criadoPor)?.nome || t.criadoPor || "—"}</div>
             </div>
             <span class="badge badge--${t.tone}">${TONES.find((to) => to.id === t.tone)?.label || t.tone}</span>
+            <button class="btn btn--ghost btn--sm" data-edit-tipo="${t.id}" title="Editar">${icon("edit")}</button>
             <button class="btn btn--ghost btn--sm" data-delete="${t.id}" title="Excluir">${icon("trash")}</button>
           </article>
         `).join("")}
@@ -2024,6 +2053,68 @@ function renderTiposInto(selector) {
   $$("[data-delete]").forEach((b) => {
     b.addEventListener("click", () => deleteTipo(b.dataset.delete));
   });
+  $$("[data-edit-tipo]").forEach((b) => {
+    b.addEventListener("click", () => openEditTipoModal(b.dataset.editTipo));
+  });
+}
+
+function openEditTipoModal(id) {
+  const t = getTipo(id);
+  if (!t) return toast("Tipo não encontrado.", "danger");
+  const isPadrao = TIPOS_OCORRENCIA.some((x) => x.id === id);
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Editar tipo</h2>
+        <p>${isPadrao
+          ? "Tipo padrão do sistema. Você pode renomear e mudar a cor, mas o id <code>" + id + "</code> fica fixo (preserva ocorrências antigas)."
+          : "Renomear e/ou trocar a cor."}</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="form-edit-tipo" onsubmit="return false">
+      <div class="field">
+        <label for="edit-tipo-label">Nome do tipo <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="edit-tipo-label" required maxlength="60" value="${t.label}" />
+      </div>
+      <div class="field">
+        <label for="edit-tipo-tone">Cor/severidade</label>
+        <select id="edit-tipo-tone">
+          ${TONES.map((to) => `<option value="${to.id}" ${to.id === t.tone ? "selected" : ""}>${to.label}</option>`).join("")}
+        </select>
+      </div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-update-tipo">${icon("check")}<span>Salvar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-update-tipo").addEventListener("click", () => updateTipo(id));
+      setTimeout(() => $("#edit-tipo-label").focus(), 100);
+    },
+  });
+}
+
+function updateTipo(id) {
+  const label = $("#edit-tipo-label").value.trim();
+  const tone = $("#edit-tipo-tone").value;
+  if (!label || label.length < 3) return toast("Nome muito curto.", "danger");
+
+  // Override no state.tiposCustom (Firestore /tipos no modo Firebase)
+  if (!state.tiposCustom) state.tiposCustom = [];
+  const existing = state.tiposCustom.find((x) => x.id === id);
+  const u = currentUser();
+  const dados = { id, label, tone, padrao: false, atualizadoPor: u.id, atualizadoEm: new Date().toISOString() };
+  if (existing) Object.assign(existing, dados);
+  else state.tiposCustom.push(dados);
+
+  store.save(state);
+  closeModal();
+  toast("Tipo atualizado.");
+  renderApp();
 }
 
 function openNovoTipoModal() {

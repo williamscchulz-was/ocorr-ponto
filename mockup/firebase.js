@@ -581,21 +581,54 @@
       }
     };
 
-    // Override updateAcao → /acoes (rename)
+    // Override updateAcao → /acoes (rename, com suporte a override de padrão)
     window.updateAcao = async function (id) {
-      const a = (state.acoesCustom || []).find((x) => x.id === id);
-      if (!a) return;
       const label = $("#edit-acao-label").value.trim();
       if (!label || label.length < 3) return toast("Nome muito curto.", "danger");
 
+      const u = currentUser();
+      const dados = {
+        label,
+        padrao: false,
+        atualizadoPor: u.id,
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      };
       try {
-        await db.collection("acoes").doc(id).update({
-          label,
-          atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-        a.label = label;
+        await db.collection("acoes").doc(id).set(dados, { merge: true });
+        if (!state.acoesCustom) state.acoesCustom = [];
+        const existing = state.acoesCustom.find((x) => x.id === id);
+        if (existing) Object.assign(existing, { label, padrao: false });
+        else state.acoesCustom.push({ id, label, padrao: false, atualizadoPor: u.id, atualizadoEm: new Date().toISOString() });
         closeModal();
         toast("Ação atualizada.");
+        renderApp();
+      } catch (err) {
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
+    // Override updateTipo → /tipos (rename + tone, override de padrão também)
+    window.updateTipo = async function (id) {
+      const label = $("#edit-tipo-label").value.trim();
+      const tone = $("#edit-tipo-tone").value;
+      if (!label || label.length < 3) return toast("Nome muito curto.", "danger");
+
+      const u = currentUser();
+      const dados = {
+        label,
+        tone,
+        padrao: false,
+        atualizadoPor: u.id,
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      try {
+        await db.collection("tipos").doc(id).set(dados, { merge: true });
+        if (!state.tiposCustom) state.tiposCustom = [];
+        const existing = state.tiposCustom.find((x) => x.id === id);
+        if (existing) Object.assign(existing, { label, tone, padrao: false });
+        else state.tiposCustom.push({ id, label, tone, padrao: false, atualizadoPor: u.id, atualizadoEm: new Date().toISOString() });
+        closeModal();
+        toast("Tipo atualizado.");
         renderApp();
       } catch (err) {
         toast("Erro: " + err.message, "danger");
