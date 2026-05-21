@@ -1570,8 +1570,13 @@ function renderBancoHoras() {
       </div>
       <div class="stat">
         <div class="stat__label">Última atualização</div>
-        <div class="stat__value" style="font-size: 16px;">—</div>
-        <div class="stat__hint">aguardando primeiro import</div>
+        <div class="stat__value" style="font-size: 16px;">${(() => {
+          const dates = Object.values(bh).map(b => b.atualizadoEm).filter(Boolean);
+          if (dates.length === 0) return "—";
+          const max = dates.sort().pop();
+          return formatDate(max.slice(0, 10));
+        })()}</div>
+        <div class="stat__hint">${Object.keys(bh).length === 0 ? "aguardando import" : "última carga"}</div>
       </div>
     </div>
 
@@ -1658,41 +1663,177 @@ function openImportBancoHorasModal() {
     <div class="modal__header">
       <div>
         <h2>Importar Banco de Horas</h2>
-        <p>Atualiza o saldo de horas dos funcionários a partir do arquivo do RH.</p>
+        <p>Lê o XLSX exportado pelo sistema de ponto e substitui o saldo de todos os funcionários encontrados. Match por código.</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="field">
-        <label for="bh-file">Arquivo <span style="color:var(--danger)">*</span></label>
-        <input type="file" id="bh-file" accept=".pdf,.xlsx,.xls,.csv" disabled />
-        <span class="field__hint">Aceita PDF, Excel ou CSV. Formato exato a definir.</span>
+        <label for="bh-file">Arquivo Excel <span style="color:var(--danger)">*</span></label>
+        <input type="file" id="bh-file" accept=".xlsx,.xls" />
+        <span class="field__hint">Formato esperado: colunas <code>Cód. Emp.</code>, <code>Nome</code>, <code>Saldo Atual</code> (HH:MM:SS). Cabeçalho na linha 5.</span>
       </div>
 
-      <div style="background: var(--warning-bg); border: 1px solid var(--warning); border-radius: var(--radius); padding: 14px; margin-top: 16px;">
-        <div class="row" style="gap: 8px; align-items: flex-start;">
-          <span style="color: var(--warning); margin-top: 2px;">${icon("alert")}</span>
-          <div class="text-sm" style="line-height: 1.6;">
-            <strong>Funcionalidade em desenvolvimento.</strong><br/>
-            O parser do arquivo ainda não foi implementado — depende do
-            formato que o RH vai exportar (do sistema do relógio de
-            ponto / Excel manual / outro).<br/><br/>
-            Quando você tiver um exemplo do arquivo, manda que eu
-            implemento a leitura. A UI já está aqui pronta — só falta
-            o parser.
-          </div>
-        </div>
-      </div>
+      <div id="bh-import-preview" style="margin-top:8px;"></div>
     </div>
     <div class="modal__footer">
-      <button class="btn btn--ghost" data-close>Fechar</button>
-      <button class="btn btn--primary" disabled title="Em desenvolvimento">${icon("download")}<span>Importar</span></button>
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-do-bh-import" disabled>${icon("download")}<span>Substituir saldos</span></button>
     </div>
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#bh-file").addEventListener("change", (e) => handleBancoHorasFile(e.target.files?.[0]));
+      $("#btn-do-bh-import").addEventListener("click", doImportBancoHoras);
     },
   });
+}
+
+// Converte "HH:MM:SS" ou "-HH:MM:SS" pra minutos (inteiro, arredonda segundos)
+function parseSaldoToMinutos(saldoStr) {
+  if (saldoStr == null) return 0;
+  const s = String(saldoStr).trim();
+  if (!s) return 0;
+  const negative = s.startsWith("-");
+  const parts = s.replace(/^-/, "").split(":").map((x) => Number(x) || 0);
+  const [h = 0, m = 0, sec = 0] = parts;
+  const totalMin = h * 60 + m + Math.round(sec / 60);
+  return negative ? -totalMin : totalMin;
+}
+
+async function handleBancoHorasFile(file) {
+  const preview = $("#bh-import-preview");
+  if (!file) {
+    preview.innerHTML = "";
+    $("#btn-do-bh-import").disabled = true;
+    return;
+  }
+
+  preview.innerHTML = `<div class="row" style="gap:8px; padding:12px;">${icon("clock")}<span>Lendo arquivo...</span></div>`;
+
+  try {
+    await loadXLSX();
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+
+    // Acha linha de cabeçalho (procura "Cód" + "Nome" + "Saldo")
+    let headerRow = -1;
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+      const r = rows[i] || [];
+      const joined = r.join("|").toLowerCase();
+      if (joined.includes("cód") && joined.includes("nome") && joined.includes("saldo")) {
+        headerRow = i;
+        break;
+      }
+    }
+    if (headerRow === -1) throw new Error('Cabeçalho não encontrado. Procurando "Cód. Emp.", "Nome", "Saldo Atual".');
+
+    // Detecta colunas
+    const headers = rows[headerRow];
+    const idxCodigo = headers.findIndex((h) => String(h || "").toLowerCase().includes("cód"));
+    const idxNome = headers.findIndex((h) => String(h || "").toLowerCase() === "nome");
+    const idxSaldo = headers.findIndex((h) => String(h || "").toLowerCase().includes("saldo"));
+
+    // Linhas de dados
+    const entries = [];
+    for (let i = headerRow + 1; i < rows.length; i++) {
+      const r = rows[i] || [];
+      const codigo = r[idxCodigo] != null ? String(r[idxCodigo]).trim() : "";
+      const nome = r[idxNome] != null ? String(r[idxNome]).trim() : "";
+      const saldoStr = r[idxSaldo] != null ? String(r[idxSaldo]).trim() : "";
+      if (!codigo || !nome) continue;
+      entries.push({
+        codigo,
+        nome,
+        saldoStr,
+        minutos: parseSaldoToMinutos(saldoStr),
+      });
+    }
+
+    // Match com funcionarios cadastrados
+    const semMatch = [];
+    let positivos = 0, negativos = 0, zerados = 0;
+    entries.forEach((e) => {
+      const f = state.funcionarios.find((x) => x.codigo === e.codigo);
+      e.funcionarioId = f?.id || null;
+      if (!f) semMatch.push(e);
+      if (e.minutos > 0) positivos++;
+      else if (e.minutos < 0) negativos++;
+      else zerados++;
+    });
+
+    window._bhImportEntries = entries;
+
+    preview.innerHTML = `
+      <div class="detail-grid" style="margin-top:8px;">
+        <div class="detail-cell">
+          <label>Linhas lidas</label>
+          <strong>${entries.length}</strong>
+        </div>
+        <div class="detail-cell">
+          <label>Match com cadastro</label>
+          <strong>${entries.length - semMatch.length} / ${entries.length}</strong>
+        </div>
+      </div>
+      <div class="text-sm muted" style="margin-top:8px; line-height:1.6;">
+        Saldos: positivo (${positivos}) · negativo (${negativos}) · zerado (${zerados})<br/>
+        ${semMatch.length > 0 ? `
+          <span style="color: var(--warning);">⚠ ${semMatch.length} código(s) não cadastrado(s) — serão ignorados: ${semMatch.slice(0, 5).map(e => e.codigo).join(", ")}${semMatch.length > 5 ? "..." : ""}</span>
+        ` : `<span style="color: var(--success);">✓ Todos os funcionários têm correspondência no cadastro.</span>`}
+      </div>
+    `;
+
+    $("#btn-do-bh-import").disabled = false;
+  } catch (err) {
+    preview.innerHTML = `<div class="field__error">${icon("alert")} ${err.message}</div>`;
+    $("#btn-do-bh-import").disabled = true;
+  }
+}
+
+async function doImportBancoHoras() {
+  const entries = window._bhImportEntries;
+  if (!Array.isArray(entries) || entries.length === 0) return;
+  const u = currentUser();
+  const valid = entries.filter((e) => e.funcionarioId);
+  if (valid.length === 0) return toast("Nenhum funcionário com match.", "danger");
+  if (!confirm(`Substituir o saldo de ${valid.length} funcionários? Os saldos anteriores serão sobrescritos.`)) return;
+
+  // Em demo (sem Firebase), guarda em state.bancoHoras (mapa)
+  if (typeof window.doImportBancoHorasFirebase === "function") {
+    await window.doImportBancoHorasFirebase(valid);
+    return;
+  }
+
+  state.bancoHoras = {};
+  for (const e of valid) {
+    state.bancoHoras[e.funcionarioId] = {
+      minutos: e.minutos,
+      saldoFormatado: e.saldoStr,
+      atualizadoEm: new Date().toISOString(),
+      atualizadoPor: u.id,
+    };
+  }
+  store.save(state);
+  closeModal();
+  toast(`${valid.length} saldos atualizados.`);
+  renderApp();
+}
+
+// Carrega SheetJS sob demanda (cache 7 dias via header do firebase.json)
+let _xlsxLoading = null;
+function loadXLSX() {
+  if (typeof XLSX !== "undefined") return Promise.resolve();
+  if (_xlsxLoading) return _xlsxLoading;
+  _xlsxLoading = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Falha ao carregar SheetJS — sem internet?"));
+    document.head.appendChild(s);
+  });
+  return _xlsxLoading;
 }
 
 // ---------- Configurações (Admin/RH) ----------

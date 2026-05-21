@@ -55,6 +55,14 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || isRH();
     }
 
+    // ----- bancoHoras (saldo de horas por funcionário) -----
+    // Todos logados leem (UI filtra por turno pra líder).
+    // Só RH/admin escrevem (via import do XLSX do sistema de ponto).
+    match /bancoHoras/{funcionarioId} {
+      allow read: if isAuthed();
+      allow create, update, delete: if isAdmin() || isRH();
+    }
+
     // ----- ocorrencias -----
     match /ocorrencias/{id} {
 

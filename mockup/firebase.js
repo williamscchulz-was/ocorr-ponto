@@ -469,6 +469,65 @@
       }
     };
 
+    // Import Banco de Horas: substituição completa em /bancoHoras
+    window.doImportBancoHorasFirebase = async function (entries) {
+      const u = currentUser();
+      try {
+        // 1) Apaga TODOS os docs atuais de bancoHoras (substituição completa)
+        const snap = await db.collection("bancoHoras").get();
+        const deleteBatches = [];
+        let curDel = db.batch(); let opsDel = 0;
+        snap.docs.forEach((d) => {
+          curDel.delete(d.ref); opsDel++;
+          if (opsDel >= 400) { deleteBatches.push(curDel); curDel = db.batch(); opsDel = 0; }
+        });
+        if (opsDel > 0) deleteBatches.push(curDel);
+        for (const b of deleteBatches) await b.commit();
+
+        // 2) Insere os novos
+        const chunks = [];
+        for (let i = 0; i < entries.length; i += 400) chunks.push(entries.slice(i, i + 400));
+
+        let total = 0;
+        for (const chunk of chunks) {
+          const batch = db.batch();
+          for (const e of chunk) {
+            const f = getFuncionario(e.funcionarioId);
+            batch.set(db.collection("bancoHoras").doc(e.funcionarioId), {
+              funcionarioCodigo: e.codigo,
+              funcionarioNome: f?.nome || e.nome,
+              funcionarioTurno: f?.turno ?? null,
+              minutos: e.minutos,
+              saldoFormatado: e.saldoStr,
+              atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+              atualizadoPor: u.id,
+            });
+          }
+          await batch.commit();
+          total += chunk.length;
+        }
+
+        // 3) Reflete no state local
+        state.bancoHoras = {};
+        for (const e of entries) {
+          state.bancoHoras[e.funcionarioId] = {
+            funcionarioCodigo: e.codigo,
+            minutos: e.minutos,
+            saldoFormatado: e.saldoStr,
+            atualizadoEm: new Date().toISOString(),
+            atualizadoPor: u.id,
+          };
+        }
+
+        closeModal();
+        toast(`${total} saldos sincronizados no Firestore.`);
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro ao importar: " + err.message, "danger");
+      }
+    };
+
     // Override doImportFuncionarios → batch write em /funcionarios
     window.doImportFuncionarios = async function () {
       const data = window._importData;
@@ -907,6 +966,16 @@
       ...d.data(),
       criadoEm: tsToIso(d.data().criadoEm),
     }));
+
+    // Banco de Horas (todos logados leem)
+    const bhSnap = await db.collection("bancoHoras").get();
+    state.bancoHoras = {};
+    bhSnap.docs.forEach((d) => {
+      state.bancoHoras[d.id] = {
+        ...d.data(),
+        atualizadoEm: tsToIso(d.data().atualizadoEm),
+      };
+    });
 
     // Ocorrências (filtradas pelas regras conforme papel)
     let q = db.collection("ocorrencias").orderBy("data", "desc");

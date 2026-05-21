@@ -5,6 +5,7 @@
 *.pdf
 mockup/funcionarios.json
 mockup/funcionarios-real.json
+banco-horas-sample.xlsx
 
 # Firebase config local (preencher localmente, não commitar)
 mockup/firebase.config.js
