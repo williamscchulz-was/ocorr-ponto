@@ -1952,7 +1952,10 @@ function renderPJList() {
       <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto;" data-pj="${p.id}">
         <div class="avatar">${initials(p.nome || "?")}</div>
         <div class="occ__main">
-          <div class="occ__name">${p.nome || "(sem nome)"}</div>
+          <div class="occ__name">
+            ${p.nome || "(sem nome)"}
+            ${p.contratoUrl ? `<span title="Contrato anexado" style="color: var(--plum); margin-left: 6px;">${icon("file")}</span>` : ""}
+          </div>
           <div class="occ__sub">
             ${p.tipoServico ? `<span class="badge badge--neutral">${p.tipoServico}</span>` : ""}
             ${p.cnpj ? `<span class="dot"></span><span>${p.cnpj}</span>` : ""}
@@ -2074,15 +2077,21 @@ function openPJModal(id) {
 
       <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contrato</div>
       <div class="field">
-        <label for="pj-contrato-file">Arquivo do contrato (PDF/DOCX)</label>
-        ${pj?.contratoUrl ? `
-          <div class="row" style="gap:8px; padding:10px; background: var(--surface-warm); border-radius: var(--radius); margin-bottom: 8px;">
-            ${icon("file")}<a href="${pj.contratoUrl}" target="_blank" style="color: var(--plum); text-decoration: underline;">${pj.contratoNome || "ver arquivo atual"}</a>
-          </div>
-        ` : ""}
-        <input type="file" id="pj-contrato-file" accept=".pdf,.docx,.doc" disabled />
-        <span class="field__hint">Upload de arquivos requer Firebase Storage habilitado (próximo passo).</span>
+        <label for="pj-contrato-url">Link do contrato (Google Drive / OneDrive)</label>
+        <input type="url" id="pj-contrato-url" value="${pj?.contratoUrl || ""}" placeholder="https://drive.google.com/file/d/..." />
+        <span class="field__hint">
+          Suba o PDF no Drive da Fiobras, gere link de visualização e cole aqui.
+          O Drive já mantém histórico de versões do arquivo, então pra "atualizar"
+          basta subir uma nova versão no mesmo arquivo do Drive.
+        </span>
       </div>
+      ${pj?.contratoUrl ? `
+        <div style="background: var(--surface-warm); border-radius: var(--radius); padding: 12px; margin-top: 8px;">
+          <a href="${pj.contratoUrl}" target="_blank" rel="noopener" class="btn btn--soft btn--block">
+            ${icon("file")}<span>Abrir contrato atual</span>
+          </a>
+        </div>
+      ` : ""}
 
       ${!isNew && pj.historicoValores?.length ? `
         <div class="divider"></div>
@@ -2135,6 +2144,7 @@ function savePJ(id) {
       email: $("#pj-contato-email").value.trim() || null,
       telefone: $("#pj-contato-telefone").value.trim() || null,
     },
+    contratoUrl: $("#pj-contrato-url").value.trim() || null,
     atualizadoPor: u.id,
     atualizadoEm: new Date().toISOString(),
   };

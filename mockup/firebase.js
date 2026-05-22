@@ -493,6 +493,7 @@
           email: $("#pj-contato-email").value.trim() || null,
           telefone: $("#pj-contato-telefone").value.trim() || null,
         },
+        contratoUrl: $("#pj-contrato-url").value.trim() || null,
         atualizadoPor: u.id,
         atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
       };
