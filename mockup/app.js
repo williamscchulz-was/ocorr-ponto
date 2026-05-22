@@ -1862,6 +1862,10 @@ function renderControlePJ() {
     return diff >= 0 && diff <= 30;
   }).length;
 
+  const reajustesPendentes = pjs.filter(pjPrecisaReajuste).length;
+  const diasReajuste = diasParaReajuste();
+  const reajusteVigente = diasReajuste <= 30 || reajustesPendentes > 0;
+
   $("#view").innerHTML = `
     <header class="page-header">
       <div>
@@ -1882,10 +1886,16 @@ function renderControlePJ() {
         <div class="stat__value">${ativos}</div>
         <div class="stat__hint">de ${pjs.length} total</div>
       </div>
-      <div class="stat ${proxRevisao > 0 ? "stat--accent" : ""}">
-        <div class="stat__label">Revisão em 30 dias</div>
-        <div class="stat__value">${proxRevisao}</div>
-        <div class="stat__hint">${proxRevisao > 0 ? "atenção" : "tudo certo"}</div>
+      <div class="stat ${reajusteVigente ? "stat--accent" : ""}">
+        <div class="stat__label">Reajuste anual (15/01)</div>
+        <div class="stat__value">${reajustesPendentes}</div>
+        <div class="stat__hint">${
+          reajustesPendentes > 0
+            ? "pendente" + (reajustesPendentes > 1 ? "s" : "") + " — aplique pelo card"
+            : diasReajuste <= 30
+              ? `próximo em ${diasReajuste} dia${diasReajuste !== 1 ? "s" : ""}`
+              : "tudo em dia"
+        }</div>
       </div>
     </div>
 
@@ -1953,11 +1963,15 @@ function renderPJList() {
       : "—";
     const periodicidade = periodObj?.label || p.periodicidade || "";
 
+    const precisaReajuste = pjPrecisaReajuste(p);
     return `
       <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto auto;" data-pj="${p.id}">
         <div class="avatar">${initials(p.nome || "?")}</div>
         <div class="occ__main">
-          <div class="occ__name">${p.nome || "(sem nome)"}</div>
+          <div class="occ__name">
+            ${p.nome || "(sem nome)"}
+            ${precisaReajuste ? `<span class="badge badge--warning" style="margin-left:8px; font-size:10px;"><span class="dot"></span>REAJUSTE PENDENTE</span>` : ""}
+          </div>
           <div class="occ__sub">
             ${p.tipoServico ? `<span class="badge badge--neutral">${p.tipoServico}</span>` : ""}
             ${p.cnpj ? `<span class="dot"></span><span>${p.cnpj}</span>` : ""}
@@ -1970,7 +1984,9 @@ function renderPJList() {
         ${p.contratoUrl
           ? `<a href="${p.contratoUrl}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" data-stop="1" title="Abrir contrato no Drive">${icon("file")}<span>Contrato</span></a>`
           : `<span class="text-xs muted" style="text-align:center;">sem contrato</span>`}
-        <span class="badge badge--${statusBadge}" style="text-transform: uppercase;">${p.status || "—"}</span>
+        ${precisaReajuste
+          ? `<button class="btn btn--primary btn--sm" data-stop="1" data-reajustar="${p.id}" title="Aplicar reajuste IPCA">${icon("check")}<span>Reajustar</span></button>`
+          : `<span class="badge badge--${statusBadge}" style="text-transform: uppercase;">${p.status || "—"}</span>`}
         <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </article>
     `;
@@ -1978,9 +1994,15 @@ function renderPJList() {
 
   $$("#pj-list .occ").forEach((el) => {
     el.addEventListener("click", (e) => {
-      // Não abre o modal se clicou no link do contrato
+      // Não abre o modal se clicou no link do contrato ou botão "Reajustar"
       if (e.target.closest("[data-stop]")) return;
       openPJModal(el.dataset.pj);
+    });
+  });
+  $$("[data-reajustar]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openReajusteModal(btn.dataset.reajustar);
     });
   });
 }
@@ -1988,6 +2010,52 @@ function renderPJList() {
 function formatMoeda(valor) {
   if (valor == null) return "—";
   return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+// ---------- Reajuste anual ----------
+// Data fixa: 15 de janeiro. Todos os PJs ativos passam por reajuste IPCA.
+const REAJUSTE_MES = 0;  // 0 = janeiro
+const REAJUSTE_DIA = 15;
+
+function dataReajusteDoAno(ano) {
+  return new Date(ano, REAJUSTE_MES, REAJUSTE_DIA);
+}
+
+// Retorna o ano de reajuste mais recente que JÁ passou (ou tá vigente).
+// Se hoje é 10/01/2027, retorna 2026 (ainda não chegou 15/01/2027).
+// Se hoje é 20/01/2027, retorna 2027.
+function ultimoAnoReajusteVigente() {
+  const hoje = new Date();
+  const dataDoAno = dataReajusteDoAno(hoje.getFullYear());
+  return hoje >= dataDoAno ? hoje.getFullYear() : hoje.getFullYear() - 1;
+}
+
+// Próximo reajuste (sempre futuro)
+function proximoReajuste() {
+  const hoje = new Date();
+  const dataDoAno = dataReajusteDoAno(hoje.getFullYear());
+  return hoje < dataDoAno ? dataDoAno : dataReajusteDoAno(hoje.getFullYear() + 1);
+}
+
+// Já passou pelo reajuste do ano vigente?
+function pjJaReajustadoNoAno(pj, ano) {
+  if (!pj.historicoValores?.length) return false;
+  // Procura entrada no histórico com data >= 15/01 do ano e motivo de reajuste
+  const limite = dataReajusteDoAno(ano).toISOString().slice(0, 10);
+  return pj.historicoValores.some(
+    (h) => h.data >= limite && (h.motivo || "").toLowerCase().includes("reajuste")
+  );
+}
+
+// PJ ativo + ainda não foi reajustado no ano vigente
+function pjPrecisaReajuste(pj) {
+  if (pj.status !== "ativo") return false;
+  return !pjJaReajustadoNoAno(pj, ultimoAnoReajusteVigente());
+}
+
+function diasParaReajuste() {
+  const ms = proximoReajuste() - new Date();
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
 
 function openPJModal(id) {
@@ -2240,6 +2308,143 @@ function savePJ(id) {
   store.save(state);
   closeModal();
   toast(id ? "PJ atualizado." : "PJ cadastrado.");
+  renderApp();
+}
+
+// Busca IPCA acumulado em 12 meses na API do Banco Central
+// Série 13522 = IPCA - taxa acumulada nos últimos 12 meses
+async function fetchIPCAAcumulado() {
+  const url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json";
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("API BCB retornou " + res.status);
+  const arr = await res.json();
+  if (!arr.length) throw new Error("BCB sem dados");
+  const item = arr[0];
+  // valor vem como string "4.50" — em alguns casos com vírgula
+  const pct = Number(String(item.valor).replace(",", "."));
+  return { percentual: pct, dataReferencia: item.data };
+}
+
+function openReajusteModal(id) {
+  const pj = (state.pjs || []).find((p) => p.id === id);
+  if (!pj) return;
+  const u = currentUser();
+  if (u.role !== "admin" && u.role !== "rh") return;
+
+  const valorAtual = Number(pj.valorAtual) || 0;
+  const anoVigente = ultimoAnoReajusteVigente();
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Aplicar reajuste · ${pj.nome}</h2>
+        <p>Reajuste anual de 15/01/${anoVigente}. Busca o IPCA acumulado dos últimos 12 meses via Banco Central.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="reajuste-form" onsubmit="return false">
+      <div class="detail-grid">
+        <div class="detail-cell">
+          <label>Valor atual</label>
+          <strong>${formatMoeda(valorAtual)}</strong>
+        </div>
+        <div class="detail-cell">
+          <label>Periodicidade</label>
+          <strong>${PERIODICIDADES_PJ.find(p => p.id === pj.periodicidade)?.label || "—"}</strong>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top: 16px;">
+        <label for="reaj-percentual">Percentual de reajuste (%)</label>
+        <div class="row" style="gap: 8px; align-items: stretch;">
+          <input type="number" id="reaj-percentual" step="0.01" placeholder="4.50" style="flex: 1;" />
+          <button type="button" class="btn btn--soft" id="btn-buscar-ipca">${icon("download")}<span>Buscar IPCA</span></button>
+        </div>
+        <span class="field__hint" id="reaj-fonte">Digite o % ou clique "Buscar IPCA" pra trazer da API do Banco Central.</span>
+      </div>
+
+      <div class="field">
+        <label for="reaj-novo-valor">Novo valor (R$)</label>
+        <input type="number" id="reaj-novo-valor" step="0.01" placeholder="${formatMoeda(valorAtual)}" />
+        <span class="field__hint">Calculado automaticamente quando você preenche o %. Pode ajustar manualmente também.</span>
+      </div>
+
+      <div class="field">
+        <label for="reaj-motivo">Motivo / observação</label>
+        <input type="text" id="reaj-motivo" placeholder="Reajuste IPCA jan/${anoVigente}" />
+      </div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-aplicar-reajuste">${icon("check")}<span>Aplicar reajuste</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+
+      const inpPct = $("#reaj-percentual");
+      const inpVal = $("#reaj-novo-valor");
+      const fonte = $("#reaj-fonte");
+
+      const recalcular = () => {
+        const pct = Number(inpPct.value);
+        if (!Number.isFinite(pct) || pct <= 0) return;
+        const novo = valorAtual * (1 + pct / 100);
+        inpVal.value = novo.toFixed(2);
+      };
+      inpPct.addEventListener("input", recalcular);
+
+      $("#btn-buscar-ipca").addEventListener("click", async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        btn.innerHTML = `${icon("clock")}<span>Buscando...</span>`;
+        try {
+          const ipca = await fetchIPCAAcumulado();
+          inpPct.value = ipca.percentual.toFixed(2);
+          fonte.textContent = `IPCA acumulado 12m (BCB série 13522, ref. ${ipca.dataReferencia}): ${ipca.percentual.toFixed(2)}%`;
+          fonte.style.color = "var(--success)";
+          recalcular();
+          if (!$("#reaj-motivo").value) {
+            $("#reaj-motivo").value = `Reajuste IPCA jan/${anoVigente} (${ipca.percentual.toFixed(2)}%)`;
+          }
+        } catch (err) {
+          toast("Erro ao buscar IPCA: " + err.message, "danger");
+        }
+        btn.disabled = false;
+        btn.innerHTML = `${icon("download")}<span>Buscar IPCA</span>`;
+      });
+
+      $("#btn-aplicar-reajuste").addEventListener("click", () => aplicarReajuste(id));
+      setTimeout(() => $("#reaj-percentual").focus(), 100);
+    },
+  });
+}
+
+function aplicarReajuste(id) {
+  const pj = (state.pjs || []).find((p) => p.id === id);
+  if (!pj) return;
+  const u = currentUser();
+  const novoValor = Number($("#reaj-novo-valor").value);
+  const pct = Number($("#reaj-percentual").value);
+  const motivo = $("#reaj-motivo").value.trim() || `Reajuste IPCA jan/${ultimoAnoReajusteVigente()}`;
+
+  if (!Number.isFinite(novoValor) || novoValor <= 0) return toast("Informe o novo valor.", "danger");
+  if (novoValor === pj.valorAtual) return toast("Valor novo é igual ao atual — sem reajuste a aplicar.", "danger");
+
+  const valorAntigo = pj.valorAtual;
+  pj.valorAtual = novoValor;
+  pj.historicoValores = [...(pj.historicoValores || []), {
+    valor: novoValor,
+    data: new Date().toISOString().slice(0, 10),
+    por: u.id,
+    motivo,
+    percentual: Number.isFinite(pct) ? pct : null,
+    valorAnterior: valorAntigo,
+  }];
+
+  store.save(state);
+  closeModal();
+  toast(`Reajuste aplicado: ${formatMoeda(valorAntigo)} → ${formatMoeda(novoValor)}`);
   renderApp();
 }
 

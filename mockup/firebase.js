@@ -549,6 +549,46 @@
       }
     };
 
+    // Override aplicarReajuste → /pj
+    window.aplicarReajuste = async function (id) {
+      const pj = (state.pjs || []).find((p) => p.id === id);
+      if (!pj) return;
+      const u = currentUser();
+      const novoValor = Number($("#reaj-novo-valor").value);
+      const pct = Number($("#reaj-percentual").value);
+      const motivo = $("#reaj-motivo").value.trim() || `Reajuste IPCA jan/${ultimoAnoReajusteVigente()}`;
+
+      if (!Number.isFinite(novoValor) || novoValor <= 0) return toast("Informe o novo valor.", "danger");
+      if (novoValor === pj.valorAtual) return toast("Valor novo é igual ao atual.", "danger");
+
+      const valorAntigo = pj.valorAtual;
+      const novaEntrada = {
+        valor: novoValor,
+        data: new Date().toISOString().slice(0, 10),
+        por: u.id,
+        motivo,
+        percentual: Number.isFinite(pct) ? pct : null,
+        valorAnterior: valorAntigo,
+      };
+      const novoHist = [...(pj.historicoValores || []), novaEntrada];
+
+      try {
+        await db.collection("pj").doc(id).update({
+          valorAtual: novoValor,
+          historicoValores: novoHist,
+          atualizadoPor: u.id,
+          atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        Object.assign(pj, { valorAtual: novoValor, historicoValores: novoHist });
+        closeModal();
+        toast(`Reajuste aplicado: ${formatMoeda(valorAntigo)} → ${formatMoeda(novoValor)}`);
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
     // Override deletePJ → /pj
     window.deletePJ = async function (id) {
       const pj = (state.pjs || []).find((p) => p.id === id);
