@@ -314,8 +314,20 @@ function notificarEdicaoColab(autor, mensagem) {
 function iniciarSimulacaoColaborativa(scriptDeEdicao) {
   pararSimulacaoColaborativa();
   const u = currentUser();
-  const outros = (state.users || []).filter((x) => x.id !== u?.id && x.active !== false);
-  if (outros.length === 0) return;
+  let outros = (state.users || []).filter((x) => x.id !== u?.id && x.active !== false);
+
+  // Fallback: se não há outros users reais, usa "personagens" fictícios
+  // pra demonstração. Permite mockar mesmo em ambiente sem mais users.
+  if (outros.length < 2) {
+    const ficticios = [
+      { id: "mock-jenifer", nome: "Jenifer Souza", role: "rh" },
+      { id: "mock-bona",    nome: "Bona Wenske",   role: "admin" },
+      { id: "mock-marcos",  nome: "Marcos Lider",  role: "lider" },
+    ].filter((f) => !outros.find((o) => o.nome === f.nome));
+    outros = [...outros, ...ficticios].slice(0, 3);
+  }
+
+  console.log("[Colab MOCK] iniciando simulação com:", outros.map((o) => o.nome));
 
   scriptDeEdicao.forEach((step, idx) => {
     const autor = outros.find((o) => o.id === step.autorId) || outros[idx % outros.length];
@@ -2423,30 +2435,30 @@ function openPJModal(id) {
       if (!isNew) $("#btn-del-pj").addEventListener("click", () => deletePJ(id));
 
       // MOCK: simulação de edição colaborativa em tempo real.
-      // Só pra PJ EXISTENTE (faz sentido: novo registro, ninguém mais
-      // tá vendo ainda). Mostra outros users editando campos junto.
-      if (!isNew && typeof iniciarSimulacaoColaborativa === "function") {
+      // Dispara sempre (novo ou existente). Pra "Novo PJ", simula
+      // dois colegas chegando junto no formulário.
+      if (typeof iniciarSimulacaoColaborativa === "function") {
         const valorAtual = Number(pj?.valorAtual || 0);
-        const novoValorMock = (valorAtual > 0 ? valorAtual * 1.045 : 3500).toFixed(2);
+        const novoValorMock = (valorAtual > 0 ? (valorAtual * 1.045).toFixed(2) : "3500.00");
         iniciarSimulacaoColaborativa([
           {
             selector: "#pj-data-revisao",
-            startAt: 1200,
-            duration: 3000,
+            startAt: 700,
+            duration: 2800,
             descricao: "está revisando a próxima data de reajuste",
           },
           {
             selector: "#pj-valor",
-            startAt: 4800,
-            duration: 4200,
+            startAt: 3800,
+            duration: 3800,
             novoValor: novoValorMock,
             descricao: `atualizou o valor para R$ ${novoValorMock}`,
           },
           {
             selector: "#pj-status",
-            startAt: 9500,
-            duration: 2500,
-            descricao: "abriu o status do contrato",
+            startAt: 8000,
+            duration: 2200,
+            descricao: isNew ? "está conferindo o status" : "abriu o status do contrato",
           },
         ]);
       }

@@ -641,7 +641,8 @@ a:hover { color: var(--plum-soft); }
 /* Edição colaborativa (MOCK) — destaque de campo sendo editado por outro user */
 .field--editing {
   position: relative;
-  padding-top: 14px;
+  padding-top: 18px;
+  margin-top: 2px;
 }
 .field--editing input,
 .field--editing select,
@@ -653,7 +654,7 @@ a:hover { color: var(--plum-soft); }
 }
 .field__editor-badge {
   position: absolute;
-  top: -8px;
+  top: 0;
   left: 4px;
   display: inline-flex;
   align-items: center;
