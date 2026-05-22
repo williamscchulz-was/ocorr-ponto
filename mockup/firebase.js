@@ -469,6 +469,101 @@
       }
     };
 
+    // Override savePJ → /pj
+    window.savePJ = async function (id) {
+      const u = currentUser();
+      const nome = $("#pj-nome").value.trim();
+      if (!nome || nome.length < 2) return toast("Informe o nome do PJ.", "danger");
+
+      const valorRaw = $("#pj-valor").value;
+      const valor = valorRaw ? Number(valorRaw) : 0;
+
+      const dados = {
+        nome,
+        cnpj: $("#pj-cnpj").value.trim() || null,
+        tipoServico: $("#pj-tipo").value.trim() || null,
+        valorAtual: valor,
+        periodicidade: $("#pj-periodicidade").value,
+        dataInicio: $("#pj-data-inicio").value || null,
+        dataProximaRevisao: $("#pj-data-revisao").value || null,
+        status: $("#pj-status").value,
+        descricao: $("#pj-descricao").value.trim() || null,
+        contato: {
+          nome: $("#pj-contato-nome").value.trim() || null,
+          email: $("#pj-contato-email").value.trim() || null,
+          telefone: $("#pj-contato-telefone").value.trim() || null,
+        },
+        atualizadoPor: u.id,
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      try {
+        if (id) {
+          const existing = (state.pjs || []).find((p) => p.id === id);
+          if (!existing) return toast("PJ não encontrado.", "danger");
+          // Registra histórico se valor mudou
+          let novoHist = existing.historicoValores || [];
+          if (existing.valorAtual !== dados.valorAtual) {
+            novoHist = [...novoHist, {
+              valor: dados.valorAtual,
+              data: new Date().toISOString().slice(0, 10),
+              por: u.id,
+            }];
+            dados.historicoValores = novoHist;
+          }
+          await db.collection("pj").doc(id).update(dados);
+          Object.assign(existing, {
+            ...dados,
+            atualizadoEm: new Date().toISOString(),
+            historicoValores: novoHist,
+          });
+        } else {
+          const novoId = "pj-" + Date.now();
+          const docData = {
+            ...dados,
+            criadoPor: u.id,
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+            historicoValores: valor > 0 ? [{
+              valor,
+              data: new Date().toISOString().slice(0, 10),
+              por: u.id,
+            }] : [],
+          };
+          await db.collection("pj").doc(novoId).set(docData);
+          if (!state.pjs) state.pjs = [];
+          state.pjs.push({
+            id: novoId,
+            ...dados,
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString(),
+            historicoValores: docData.historicoValores,
+          });
+        }
+        closeModal();
+        toast(id ? "PJ atualizado." : "PJ cadastrado.");
+        renderApp();
+      } catch (err) {
+        console.error(err);
+        toast("Erro ao salvar: " + err.message, "danger");
+      }
+    };
+
+    // Override deletePJ → /pj
+    window.deletePJ = async function (id) {
+      const pj = (state.pjs || []).find((p) => p.id === id);
+      if (!pj) return;
+      if (!confirm(`Excluir o PJ "${pj.nome}"? O histórico inteiro será perdido.`)) return;
+      try {
+        await db.collection("pj").doc(id).delete();
+        state.pjs = state.pjs.filter((p) => p.id !== id);
+        closeModal();
+        toast("PJ excluído.");
+        renderApp();
+      } catch (err) {
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
     // Import Banco de Horas: substituição completa em /bancoHoras
     window.doImportBancoHorasFirebase = async function (entries) {
       const u = currentUser();
@@ -976,6 +1071,18 @@
         atualizadoEm: tsToIso(d.data().atualizadoEm),
       };
     });
+
+    // Controle PJ (admin/RH só)
+    state.pjs = [];
+    if (u.role === "admin" || u.role === "rh") {
+      const pjSnap = await db.collection("pj").get();
+      state.pjs = pjSnap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        criadoEm: tsToIso(d.data().criadoEm),
+        atualizadoEm: tsToIso(d.data().atualizadoEm),
+      }));
+    }
 
     // Ocorrências (filtradas pelas regras conforme papel)
     let q = db.collection("ocorrencias").orderBy("data", "desc");

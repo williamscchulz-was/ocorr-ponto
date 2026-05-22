@@ -227,6 +227,7 @@ function renderNav() {
 
   if (u.role === "rh" || u.role === "admin") {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
+    items.push({ id: "pj", label: "Controle PJ", icon: "file" });
     items.push({ id: "config", label: "Configurações", icon: "settings" });
   }
 
@@ -341,6 +342,7 @@ function renderView() {
   if (page === "dashboard") return renderDashboard();
   if (page === "banco-horas") return renderBancoHoras();
   if (page === "funcionarios") return renderFuncionarios();
+  if (page === "pj") return renderControlePJ();
   if (page === "config") return renderConfig();
   // legacy: redirects pra config se alguém entrar via URL antigo
   if (page === "tipos" || page === "usuarios") {
@@ -1834,6 +1836,354 @@ function loadXLSX() {
     document.head.appendChild(s);
   });
   return _xlsxLoading;
+}
+
+// ---------- Controle PJ (Admin/RH) ----------
+
+function renderControlePJ() {
+  const u = currentUser();
+  if (u.role !== "admin" && u.role !== "rh") {
+    state.view.page = "dashboard";
+    return renderApp();
+  }
+  $("#topbar-title").textContent = "Controle PJ";
+
+  const pjs = state.pjs || [];
+  const ativos = pjs.filter((p) => p.status === "ativo").length;
+  const totalMensal = pjs
+    .filter((p) => p.status === "ativo" && p.periodicidade === "mensal")
+    .reduce((sum, p) => sum + (p.valorAtual || 0), 0);
+  const proxRevisao = pjs.filter((p) => {
+    if (!p.dataProximaRevisao || p.status !== "ativo") return false;
+    const d = new Date(p.dataProximaRevisao + "T00:00:00");
+    const diff = (d - new Date()) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= 30;
+  }).length;
+
+  $("#view").innerHTML = `
+    <header class="page-header">
+      <div>
+        <h1>Controle PJ</h1>
+        <p>Prestadores de serviço da Fiobras. Contratos, valores e arquivos.</p>
+      </div>
+      <button class="btn btn--primary" id="btn-novo-pj">${icon("plus")}<span>Novo PJ</span></button>
+    </header>
+
+    <div class="stats">
+      <div class="stat stat--accent">
+        <div class="stat__label">Total mensal (ativos)</div>
+        <div class="stat__value">${formatMoeda(totalMensal)}</div>
+        <div class="stat__hint">prestadores mensais</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">PJs ativos</div>
+        <div class="stat__value">${ativos}</div>
+        <div class="stat__hint">de ${pjs.length} total</div>
+      </div>
+      <div class="stat ${proxRevisao > 0 ? "stat--accent" : ""}">
+        <div class="stat__label">Revisão em 30 dias</div>
+        <div class="stat__value">${proxRevisao}</div>
+        <div class="stat__hint">${proxRevisao > 0 ? "atenção" : "tudo certo"}</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar__search">
+        ${icon("search")}
+        <input type="text" id="pj-search" placeholder="Buscar por nome, CNPJ ou tipo..." />
+      </div>
+      <select id="pj-status-filter">
+        <option value="">Todos os status</option>
+        <option value="ativo">Ativos</option>
+        <option value="suspenso">Suspensos</option>
+        <option value="encerrado">Encerrados</option>
+      </select>
+    </div>
+
+    <div id="pj-list"></div>
+  `;
+
+  $("#btn-novo-pj").addEventListener("click", () => openPJModal(null));
+  $("#pj-search").addEventListener("input", renderPJList);
+  $("#pj-status-filter").addEventListener("change", renderPJList);
+  renderPJList();
+}
+
+function renderPJList() {
+  const search = ($("#pj-search")?.value || "").toLowerCase();
+  const filter = $("#pj-status-filter")?.value || "";
+
+  let list = [...(state.pjs || [])];
+  if (search) {
+    list = list.filter((p) =>
+      (p.nome || "").toLowerCase().includes(search) ||
+      (p.razaoSocial || "").toLowerCase().includes(search) ||
+      (p.cnpj || "").includes(search) ||
+      (p.tipoServico || "").toLowerCase().includes(search)
+    );
+  }
+  if (filter) list = list.filter((p) => p.status === filter);
+
+  list.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+
+  const root = $("#pj-list");
+  if (list.length === 0) {
+    const semFiltro = !search && !filter;
+    root.innerHTML = `
+      <div class="empty">
+        <div class="empty__icon">${icon("file")}</div>
+        <h3>${semFiltro ? "Nenhum PJ cadastrado" : "Sem resultados"}</h3>
+        <p>${semFiltro
+          ? "Cadastre o primeiro prestador de serviço com contratos, valores e contato."
+          : "Ajuste a busca ou o filtro."}</p>
+        ${semFiltro ? `<button class="btn btn--primary" id="btn-novo-pj-2">${icon("plus")}<span>Novo PJ</span></button>` : ""}
+      </div>`;
+    const b = $("#btn-novo-pj-2");
+    if (b) b.addEventListener("click", () => openPJModal(null));
+    return;
+  }
+
+  root.innerHTML = `<div class="list">${list.map((p) => {
+    const statusBadge = p.status === "ativo" ? "success" : p.status === "suspenso" ? "warning" : "neutral";
+    const valor = p.valorAtual ? formatMoeda(p.valorAtual) : "—";
+    const periodicidade = PERIODICIDADES_PJ.find((x) => x.id === p.periodicidade)?.label || p.periodicidade || "";
+
+    return `
+      <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto;" data-pj="${p.id}">
+        <div class="avatar">${initials(p.nome || "?")}</div>
+        <div class="occ__main">
+          <div class="occ__name">${p.nome || "(sem nome)"}</div>
+          <div class="occ__sub">
+            ${p.tipoServico ? `<span class="badge badge--neutral">${p.tipoServico}</span>` : ""}
+            ${p.cnpj ? `<span class="dot"></span><span>${p.cnpj}</span>` : ""}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-family: var(--font-display); font-weight: 700; color: var(--plum); font-size: 15px;">${valor}</div>
+          <div class="text-xs muted">${periodicidade}</div>
+        </div>
+        <span class="badge badge--${statusBadge}" style="text-transform: uppercase;">${p.status || "—"}</span>
+        <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </article>
+    `;
+  }).join("")}</div>`;
+
+  $$("#pj-list .occ").forEach((el) => {
+    el.addEventListener("click", () => openPJModal(el.dataset.pj));
+  });
+}
+
+function formatMoeda(valor) {
+  if (valor == null) return "—";
+  return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function openPJModal(id) {
+  const pj = id ? (state.pjs || []).find((p) => p.id === id) : null;
+  const isNew = !pj;
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>${isNew ? "Novo PJ" : pj.nome}</h2>
+        <p>${isNew ? "Cadastre um novo prestador de serviço." : "Detalhes, contratos e histórico."}</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="pj-form" onsubmit="return false">
+      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Identificação</div>
+      <div class="field">
+        <label for="pj-nome">Nome / Razão social <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="pj-nome" required maxlength="120" value="${pj?.nome || ""}" placeholder="Ex: Aceres Branding" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="pj-cnpj">CNPJ</label>
+          <input type="text" id="pj-cnpj" maxlength="20" value="${pj?.cnpj || ""}" placeholder="00.000.000/0001-00" />
+        </div>
+        <div class="field">
+          <label for="pj-tipo">Tipo de serviço</label>
+          <input type="text" id="pj-tipo" list="pj-tipos-list" value="${pj?.tipoServico || ""}" placeholder="Marketing, Contábil..." />
+          <datalist id="pj-tipos-list">
+            ${TIPOS_PJ.map((t) => `<option value="${t}">`).join("")}
+          </datalist>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Financeiro</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="pj-valor">Valor (R$)</label>
+          <input type="number" id="pj-valor" step="0.01" min="0" value="${pj?.valorAtual ?? ""}" placeholder="3500.00" />
+        </div>
+        <div class="field">
+          <label for="pj-periodicidade">Periodicidade</label>
+          <select id="pj-periodicidade">
+            ${PERIODICIDADES_PJ.map((p) => `<option value="${p.id}" ${pj?.periodicidade === p.id ? "selected" : ""}>${p.label}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="pj-data-inicio">Início do contrato</label>
+          <input type="date" id="pj-data-inicio" value="${pj?.dataInicio || ""}" />
+        </div>
+        <div class="field">
+          <label for="pj-data-revisao">Próxima revisão</label>
+          <input type="date" id="pj-data-revisao" value="${pj?.dataProximaRevisao || ""}" />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Operacional</div>
+      <div class="field">
+        <label for="pj-status">Status</label>
+        <select id="pj-status">
+          <option value="ativo" ${(!pj || pj.status === "ativo") ? "selected" : ""}>Ativo</option>
+          <option value="suspenso" ${pj?.status === "suspenso" ? "selected" : ""}>Suspenso</option>
+          <option value="encerrado" ${pj?.status === "encerrado" ? "selected" : ""}>Encerrado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="pj-descricao">Descrição / escopo</label>
+        <textarea id="pj-descricao" placeholder="O que está incluído no contrato...">${pj?.descricao || ""}</textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contato</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="pj-contato-nome">Nome do contato</label>
+          <input type="text" id="pj-contato-nome" value="${pj?.contato?.nome || ""}" />
+        </div>
+        <div class="field">
+          <label for="pj-contato-email">Email</label>
+          <input type="email" id="pj-contato-email" value="${pj?.contato?.email || ""}" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="pj-contato-telefone">Telefone</label>
+        <input type="tel" id="pj-contato-telefone" value="${pj?.contato?.telefone || ""}" placeholder="(47) 99999-9999" />
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contrato</div>
+      <div class="field">
+        <label for="pj-contrato-file">Arquivo do contrato (PDF/DOCX)</label>
+        ${pj?.contratoUrl ? `
+          <div class="row" style="gap:8px; padding:10px; background: var(--surface-warm); border-radius: var(--radius); margin-bottom: 8px;">
+            ${icon("file")}<a href="${pj.contratoUrl}" target="_blank" style="color: var(--plum); text-decoration: underline;">${pj.contratoNome || "ver arquivo atual"}</a>
+          </div>
+        ` : ""}
+        <input type="file" id="pj-contrato-file" accept=".pdf,.docx,.doc" disabled />
+        <span class="field__hint">Upload de arquivos requer Firebase Storage habilitado (próximo passo).</span>
+      </div>
+
+      ${!isNew && pj.historicoValores?.length ? `
+        <div class="divider"></div>
+        <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Histórico de valores</div>
+        <div class="timeline">
+          ${pj.historicoValores.slice().reverse().map((h, i) => `
+            <div class="timeline__item ${i === 0 ? "" : "done"}">
+              <div class="timeline__item-title">${formatMoeda(h.valor)}</div>
+              <div class="timeline__item-meta">${formatDateFull(h.data)} · ${getUser(h.por)?.nome || h.por || "—"}${h.motivo ? " · " + h.motivo : ""}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
+    </form>
+
+    <div class="modal__footer">
+      ${!isNew ? `<button class="btn btn--danger" id="btn-del-pj" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-pj">${icon("check")}<span>${isNew ? "Cadastrar" : "Salvar"}</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#btn-save-pj").addEventListener("click", () => savePJ(id));
+      if (!isNew) $("#btn-del-pj").addEventListener("click", () => deletePJ(id));
+    },
+  });
+}
+
+function savePJ(id) {
+  const u = currentUser();
+  const nome = $("#pj-nome").value.trim();
+  if (!nome || nome.length < 2) return toast("Informe o nome do PJ.", "danger");
+
+  const valorRaw = $("#pj-valor").value;
+  const valor = valorRaw ? Number(valorRaw) : 0;
+
+  const dados = {
+    nome,
+    cnpj: $("#pj-cnpj").value.trim() || null,
+    tipoServico: $("#pj-tipo").value.trim() || null,
+    valorAtual: valor,
+    periodicidade: $("#pj-periodicidade").value,
+    dataInicio: $("#pj-data-inicio").value || null,
+    dataProximaRevisao: $("#pj-data-revisao").value || null,
+    status: $("#pj-status").value,
+    descricao: $("#pj-descricao").value.trim() || null,
+    contato: {
+      nome: $("#pj-contato-nome").value.trim() || null,
+      email: $("#pj-contato-email").value.trim() || null,
+      telefone: $("#pj-contato-telefone").value.trim() || null,
+    },
+    atualizadoPor: u.id,
+    atualizadoEm: new Date().toISOString(),
+  };
+
+  if (!state.pjs) state.pjs = [];
+
+  if (id) {
+    const existing = state.pjs.find((p) => p.id === id);
+    if (!existing) return toast("PJ não encontrado.", "danger");
+    // Registra histórico se valor mudou
+    if (existing.valorAtual !== dados.valorAtual) {
+      existing.historicoValores = [...(existing.historicoValores || []), {
+        valor: dados.valorAtual,
+        data: new Date().toISOString().slice(0, 10),
+        por: u.id,
+      }];
+    }
+    Object.assign(existing, dados);
+  } else {
+    const novoId = "pj-" + Date.now();
+    state.pjs.push({
+      id: novoId,
+      ...dados,
+      criadoPor: u.id,
+      criadoEm: new Date().toISOString(),
+      historicoValores: valor > 0 ? [{
+        valor,
+        data: new Date().toISOString().slice(0, 10),
+        por: u.id,
+      }] : [],
+    });
+  }
+
+  store.save(state);
+  closeModal();
+  toast(id ? "PJ atualizado." : "PJ cadastrado.");
+  renderApp();
+}
+
+function deletePJ(id) {
+  const pj = (state.pjs || []).find((p) => p.id === id);
+  if (!pj) return;
+  if (!confirm(`Excluir o PJ "${pj.nome}"? O histórico inteiro será perdido.`)) return;
+
+  state.pjs = state.pjs.filter((p) => p.id !== id);
+  store.save(state);
+  closeModal();
+  toast("PJ excluído.");
+  renderApp();
 }
 
 // ---------- Configurações (Admin/RH) ----------

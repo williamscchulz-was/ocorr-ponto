@@ -63,6 +63,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || isRH();
     }
 
+    // ----- pj (controle de prestadores de serviço) -----
+    // Apenas admin e RH leem/escrevem. Líderes não têm acesso.
+    match /pj/{id} {
+      allow read, create, update, delete: if isAdmin() || isRH();
+    }
+
     // ----- ocorrencias -----
     match /ocorrencias/{id} {
 

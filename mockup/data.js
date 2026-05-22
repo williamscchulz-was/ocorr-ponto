@@ -40,6 +40,30 @@ const TURNOS = {
   geral: { label: "Geral", horario: "horário comercial" },
 };
 
+// Tipos de serviço pra Controle PJ. Apenas sugestões — campo aceita
+// texto livre no form pra cobrir o que não estiver listado.
+const TIPOS_PJ = [
+  "Marketing",
+  "Contábil",
+  "TI / Desenvolvimento",
+  "Jurídico",
+  "Limpeza / Conservação",
+  "Manutenção",
+  "Consultoria",
+  "Segurança",
+  "Logística",
+  "Outro",
+];
+
+const PERIODICIDADES_PJ = [
+  { id: "mensal", label: "Mensal" },
+  { id: "trimestral", label: "Trimestral" },
+  { id: "semestral", label: "Semestral" },
+  { id: "anual", label: "Anual" },
+  { id: "projeto", label: "Por projeto" },
+  { id: "pontual", label: "Pontual" },
+];
+
 // --- Seed: usuários do sistema ---
 // NOTA: dados de demonstração. Em produção, usuários reais ficam no Firebase Auth.
 // Veja docs/SETUP_FIREBASE.md para criar usuários reais.
@@ -237,6 +261,8 @@ const store = {
       tiposCustom: [],
       acoesCustom: [],
       ocorrencias: seedOcorrencias(),
+      bancoHoras: {},
+      pjs: [],
       currentUserId: null,
     };
     this.save(seed);
