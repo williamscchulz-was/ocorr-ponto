@@ -969,6 +969,22 @@
         return false;
       }
 
+      // Lê checkbox "manter conectado" — define persistência ANTES do signIn.
+      // - marcado  → LOCAL (sobrevive a fechar o browser)
+      // - desmarcado (default) → SESSION (some ao fechar a aba)
+      const manterConectado = !!$("#login-remember")?.checked;
+      try {
+        localStorage.setItem("weave:manterConectado", manterConectado ? "1" : "0");
+      } catch {}
+      try {
+        const target = manterConectado
+          ? firebase.auth.Auth.Persistence.LOCAL
+          : firebase.auth.Auth.Persistence.SESSION;
+        await auth.setPersistence(target);
+      } catch (e) {
+        console.warn("[Auth] não foi possível ajustar persistência:", e);
+      }
+
       try {
         await auth.signInWithEmailAndPassword(emailOrId, senha);
         // onAuthStateChanged toma o controle daqui (vai carregar dados +
@@ -1112,20 +1128,32 @@
       const p = $("#login-pass"); if (p) p.disabled = false;
     }
 
-    // Persistência SESSION: sessão expira ao fechar a aba/browser.
-    // Importante pra PC compartilhado (Jenifer/RH frequentemente
-    // deixam o computador disponível pra outros).
+    // Persistência inicial = SESSION (default seguro).
+    // window.login() ajusta dinamicamente conforme checkbox "manter conectado".
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch((e) => {
       console.warn("[Auth] não foi possível ajustar persistência:", e);
     });
 
+    // Restaura estado do checkbox "manter conectado" entre visitas
+    try {
+      const remembered = localStorage.getItem("weave:manterConectado") === "1";
+      const cb = $("#login-remember");
+      if (cb) cb.checked = remembered;
+    } catch {}
+
     // Auto-logout por inatividade: 30 min sem interação → signOut.
+    // DESLIGADO quando user marcou "manter conectado" (opt-in explícito).
     const IDLE_MS = 30 * 60 * 1000;
     let idleTimer = null;
+    function manterConectadoAtivo() {
+      try { return localStorage.getItem("weave:manterConectado") === "1"; }
+      catch { return false; }
+    }
     function resetIdleTimer() {
       if (idleTimer) clearTimeout(idleTimer);
-      // Só conta inatividade se houver alguém logado
       if (!auth.currentUser) return;
+      // Se user optou por manter conectado, não desloga por idle
+      if (manterConectadoAtivo()) return;
       idleTimer = setTimeout(async () => {
         if (auth.currentUser) {
           await auth.signOut().catch(() => {});

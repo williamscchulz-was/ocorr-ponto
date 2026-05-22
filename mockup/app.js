@@ -2143,6 +2143,35 @@ function openPJModal(id) {
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body" id="pj-form" onsubmit="return false">
+      ${isNew ? `
+        <div style="background: var(--surface-warm); border-left: 3px solid var(--primary); padding: 10px 12px; border-radius: var(--radius); margin-bottom: 12px;">
+          <div style="font-weight: 600; font-size: 13px;">📄 Comece pelo contrato</div>
+          <div class="text-xs muted" style="margin-top: 2px;">Suba o PDF que o sistema detecta CNPJ, valor, nome e início automaticamente.</div>
+        </div>
+      ` : ""}
+
+      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contrato</div>
+      <div class="field">
+        <label for="pj-contrato-url">Link do contrato (Google Drive)</label>
+        <input type="url" id="pj-contrato-url" value="${pj?.contratoUrl || ""}" placeholder="https://drive.google.com/file/d/..." />
+        <span class="field__hint">Cole o link manualmente OU use o botão abaixo pra subir o PDF direto pro Drive da Fiobras (o sistema lê e preenche os campos automaticamente).</span>
+      </div>
+
+      <input type="file" id="pj-contrato-file" accept=".pdf,.docx,.doc" style="display:none;" />
+      <button type="button" class="btn ${isNew ? "btn--primary" : "btn--soft"} btn--block" id="btn-upload-drive">
+        ${icon("upload")}<span>${isNew ? "Subir contrato e preencher automaticamente" : "Subir arquivo pro Drive Fiobras"}</span>
+      </button>
+
+      ${pj?.contratoUrl ? `
+        <div style="background: var(--surface-warm); border-radius: var(--radius); padding: 12px; margin-top: 8px;">
+          <a href="${pj.contratoUrl}" target="_blank" rel="noopener" class="btn btn--soft btn--block">
+            ${icon("file")}<span>Abrir contrato atual</span>
+          </a>
+        </div>
+      ` : ""}
+
+      <div class="divider"></div>
+
       <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Identificação</div>
       <div class="field">
         <label for="pj-nome">Nome / Razão social <span style="color:var(--danger)">*</span></label>
@@ -2252,30 +2281,6 @@ function openPJModal(id) {
           <button type="button" class="btn btn--ghost btn--sm" id="btn-add-ferias">${icon("plus")}<span>Dar baixa</span></button>
         </div>
         <div id="pj-ferias-list" style="margin-bottom: 8px;"></div>
-      ` : ""}
-
-      <div class="divider"></div>
-
-      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contrato</div>
-      <div class="field">
-        <label for="pj-contrato-url">Link do contrato (Google Drive)</label>
-        <input type="url" id="pj-contrato-url" value="${pj?.contratoUrl || ""}" placeholder="https://drive.google.com/file/d/..." />
-        <span class="field__hint">
-          Cole o link manualmente OU use o botão abaixo pra subir o arquivo direto pro Drive da Fiobras.
-        </span>
-      </div>
-
-      <input type="file" id="pj-contrato-file" accept=".pdf,.docx,.doc" style="display:none;" />
-      <button type="button" class="btn btn--soft btn--block" id="btn-upload-drive">
-        ${icon("upload")}<span>Subir arquivo pro Drive Fiobras</span>
-      </button>
-
-      ${pj?.contratoUrl ? `
-        <div style="background: var(--surface-warm); border-radius: var(--radius); padding: 12px; margin-top: 8px;">
-          <a href="${pj.contratoUrl}" target="_blank" rel="noopener" class="btn btn--soft btn--block">
-            ${icon("file")}<span>Abrir contrato atual</span>
-          </a>
-        </div>
       ` : ""}
 
       ${!isNew && pj.historicoValores?.length ? `

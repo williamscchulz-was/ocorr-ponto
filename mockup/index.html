@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=48" />
+  <link rel="stylesheet" href="styles.css?v=49" />
 </head>
 <body>
 
@@ -59,6 +59,11 @@
       </div>
 
       <div id="login-error" class="field__error hidden" style="margin-bottom:12px"></div>
+
+      <label class="login__remember" for="login-remember" style="display:flex; align-items:center; gap:8px; margin-bottom:12px; cursor:pointer; font-size:14px;">
+        <input type="checkbox" id="login-remember" style="width:16px; height:16px; cursor:pointer;" />
+        <span>Manter conectado neste navegador</span>
+      </label>
 
       <button type="submit" class="btn btn--primary btn--block btn--lg">Entrar</button>
 
@@ -129,12 +134,12 @@
   <div id="modal-root"></div>
   <div class="toast-root" id="toast-root"></div>
 
-  <script src="data.js?v=48"></script>
-  <script src="app.js?v=48"></script>
+  <script src="data.js?v=49"></script>
+  <script src="app.js?v=49"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo). -->
   <script src="firebase.config.js" onerror="void 0"></script>
-  <script src="firebase.js?v=48"></script>
-  <script src="google-drive.js?v=48"></script>
+  <script src="firebase.js?v=49"></script>
+  <script src="google-drive.js?v=49"></script>
 </body>
 </html>
