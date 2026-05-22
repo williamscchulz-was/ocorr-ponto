@@ -2606,36 +2606,104 @@ function analisarTextoContrato(texto) {
     }
   }
 
-  // Valor R$: pega o MAIOR valor mencionado entre R$ 100 e R$ 1.000.000
-  // (heurística: o "preço do contrato" costuma ser o maior número monetário)
-  const valores = [...texto.matchAll(/R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/g)]
-    .map((m) => {
-      const raw = m[1].replace(/\./g, "").replace(",", ".");
-      return Number(raw);
-    })
-    .filter((v) => Number.isFinite(v) && v >= 100 && v <= 1_000_000);
-  if (valores.length > 0) r.valor = Math.max(...valores);
+  // ---------- Periodicidade ----------
+  // Detecta "por hora" / "/h" / "horista" antes de decidir o valor.
+  const ehPorHora = /(?:\bpor\s+hora\b|\bvalor[\s\-\/]+(?:da\s+)?hora\b|\bhora\s+trabalhada\b|\bhorista\b|\bR\$\s*[\d.,]+\s*\/\s*h(?:ora)?\b|\bR\$\s*[\d.,]+\s*\/\s*hr\b)/i.test(texto);
+  const ehAnual = /\b(?:anual(?:mente)?|por\s+ano|ao\s+ano)\b/i.test(texto) && !ehPorHora;
+  const ehTrimestral = /\btrimestral(?:mente)?\b/i.test(texto) && !ehPorHora;
+  const ehSemestral = /\bsemestral(?:mente)?\b/i.test(texto) && !ehPorHora;
+  if (ehPorHora) r.periodicidade = "hora";
+  else if (ehTrimestral) r.periodicidade = "trimestral";
+  else if (ehSemestral) r.periodicidade = "semestral";
+  else if (ehAnual) r.periodicidade = "anual";
 
-  // Nome / razão social do prestador
-  // Procura padrões típicos: "CONTRATADO(A):", "PRESTADOR:", "RAZÃO SOCIAL:"
+  // ---------- Valor R$ ----------
+  if (ehPorHora) {
+    // Procura valor PRÓXIMO a indicadores de "hora". Não é o maior.
+    const padroesHora = [
+      /R\$\s*([\d.]*\d+(?:,\d{2})?)\s*\/\s*h(?:ora|r)?\b/i,
+      /R\$\s*([\d.]*\d+(?:,\d{2})?)\s+por\s+hora/i,
+      /R\$\s*([\d.]*\d+(?:,\d{2})?)[\s\S]{0,30}?(?:por\s+)?hora\s+trabalhada/i,
+      /valor[\s\-\/]+(?:da\s+)?hora[\s\S]{0,60}?R\$\s*([\d.]*\d+(?:,\d{2})?)/i,
+      /hora\s+trabalhada[\s\S]{0,60}?R\$\s*([\d.]*\d+(?:,\d{2})?)/i,
+      /(\d+(?:,\d{2})?)\s+reais\s+(?:por\s+)?hora/i,
+    ];
+    for (const re of padroesHora) {
+      const m = texto.match(re);
+      if (m) {
+        const raw = m[1].replace(/\./g, "").replace(",", ".");
+        const v = Number(raw);
+        if (Number.isFinite(v) && v > 0 && v <= 10000) { r.valor = v; break; }
+      }
+    }
+    // Fallback: menor valor razoável (R$ 5 a R$ 500) — valor/h costuma ser baixo
+    if (!r.valor) {
+      const valoresHora = [...texto.matchAll(/R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/g)]
+        .map((m) => Number(m[1].replace(/\./g, "").replace(",", ".")))
+        .filter((v) => Number.isFinite(v) && v >= 5 && v <= 500);
+      if (valoresHora.length) r.valor = Math.min(...valoresHora);
+    }
+  } else {
+    // Mensal / outros: pega o MAIOR valor monetário entre R$ 100 e R$ 1.000.000
+    const valores = [...texto.matchAll(/R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/g)]
+      .map((m) => Number(m[1].replace(/\./g, "").replace(",", ".")))
+      .filter((v) => Number.isFinite(v) && v >= 100 && v <= 1_000_000);
+    if (valores.length > 0) r.valor = Math.max(...valores);
+  }
+
+  // ---------- Nome / razão social do prestador ----------
   const mNome = texto.match(
     /(?:CONTRATAD[OA]|PRESTADOR(?:\s+DE\s+SERVI[ÇC]OS?)?|RAZ[ÃA]O\s+SOCIAL)\s*[:\-]?\s*([A-ZÀ-Ú][A-ZÀ-Ú0-9 .,&\-]{4,80})/i
   );
   if (mNome) {
-    // Limpa: corta em vírgula, "CNPJ", "inscrita", etc
     let nome = mNome[1].trim();
     nome = nome.split(/,|\s+CNPJ|\s+inscrita|\s+CPF|\s{3,}/i)[0].trim();
     if (nome.length >= 3) r.nome = nome;
   }
 
-  // Data de início: "vigência", "início", "começa em" + DD/MM/AAAA
-  const mData = texto.match(
-    /(?:in[ií]cio|vig[êe]ncia|come[çc]a|a\s+partir\s+de)\s+(?:em\s+|de\s+)?(\d{1,2}\/\d{1,2}\/\d{4})/i
-  );
-  if (mData) {
-    const [d, m, y] = mData[1].split("/").map(Number);
+  // ---------- Data de início ----------
+  // Mapas de meses (pt-br) — usado pra parsing extenso
+  const MESES_PT = {
+    janeiro: 1, fevereiro: 2, marco: 3, "março": 3, abril: 4, maio: 5,
+    junho: 6, julho: 7, agosto: 8, setembro: 9, outubro: 10,
+    novembro: 11, dezembro: 12,
+  };
+  const palavrasChaveData = "(?:in[ií]cio|vig[êe]ncia|vigora(?:r[áa])?|come[çc]a|a\\s+partir\\s+de|data\\s+(?:de\\s+)?in[ií]cio|presta[çc][ãa]o\\s+(?:dos\\s+)?servi[çc]os|firmad[oa])";
+
+  // Padrão 1: palavra-chave + DD/MM/AAAA (ou DD-MM-AAAA ou DD.MM.AAAA)
+  const reDataNum = new RegExp(`${palavrasChaveData}[\\s\\S]{0,50}?(\\d{1,2})[\\/.\\-](\\d{1,2})[\\/.\\-](\\d{4})`, "i");
+  const mDataNum = texto.match(reDataNum);
+  if (mDataNum) {
+    const d = +mDataNum[1], m = +mDataNum[2], y = +mDataNum[3];
     if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2100) {
       r.dataInicio = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    }
+  }
+
+  // Padrão 2: palavra-chave + "DD de mês de AAAA" (extenso)
+  if (!r.dataInicio) {
+    const reDataExt = new RegExp(`${palavrasChaveData}[\\s\\S]{0,60}?(\\d{1,2})\\s+de\\s+(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\\s+de\\s+(\\d{4})`, "i");
+    const mDataExt = texto.match(reDataExt);
+    if (mDataExt) {
+      const d = +mDataExt[1];
+      const mesKey = mDataExt[2].toLowerCase();
+      const m = MESES_PT[mesKey] || MESES_PT[mesKey.replace("ç", "c")];
+      const y = +mDataExt[3];
+      if (m && d >= 1 && d <= 31 && y >= 2000 && y <= 2100) {
+        r.dataInicio = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      }
+    }
+  }
+
+  // Padrão 3 (fallback): primeira data DD/MM/AAAA do documento, se nada
+  // foi achado com palavra-chave. Costuma ser a data de assinatura/início.
+  if (!r.dataInicio) {
+    const mAny = texto.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})\b/);
+    if (mAny) {
+      const d = +mAny[1], m = +mAny[2], y = +mAny[3];
+      if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2100) {
+        r.dataInicio = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      }
     }
   }
 
@@ -2660,6 +2728,21 @@ function aplicarExtracaoTextoNoForm(texto) {
   setSe("#pj-nome", dados.nome, "nome");
   setSe("#pj-valor", dados.valor ? dados.valor.toFixed(2) : null, "valor");
   setSe("#pj-data-inicio", dados.dataInicio, "início");
+
+  // Periodicidade: select. Considera "vazio" quando ainda está no default
+  // do form pra novo PJ (mensal). Se já foi mexido pelo user, respeita.
+  if (dados.periodicidade) {
+    const sel = $("#pj-periodicidade");
+    if (sel && (sel.value === "mensal" || !sel.value)) {
+      // Confere se a opção existe no select antes de aplicar
+      const opt = [...sel.options].find((o) => o.value === dados.periodicidade);
+      if (opt) {
+        sel.value = dados.periodicidade;
+        sel.dispatchEvent(new Event("change", { bubbles: true }));
+        preenchidos.push("periodicidade");
+      }
+    }
+  }
 
   return { dados, preenchidos };
 }
