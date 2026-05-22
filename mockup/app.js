@@ -378,31 +378,52 @@ function renderPresence() {
   const u = currentUser();
   if (!u) { el.innerHTML = ""; return; }
 
-  // Mock: current user + até 3 colegas ativos
-  const outros = (state.users || [])
-    .filter((x) => x.id !== u.id && x.active !== false)
-    .slice(0, 3);
-  const online = [u, ...outros];
+  // Modo real (Firebase): usa state.presence vindo do Firestore.
+  // Modo demo: fallback pro mock antigo com state.users.
+  let online;
+  if (Array.isArray(state.presence) && state.presence.length > 0) {
+    online = state.presence.map((p) => ({
+      id: p.uid,
+      nome: p.nome,
+      role: p.role,
+      status: p.status, // "ativo" ou "ausente"
+    }));
+    // Ordena: ativos primeiro, depois ausentes; o próprio user no início
+    online.sort((a, b) => {
+      if (a.id === u.id) return -1;
+      if (b.id === u.id) return 1;
+      if (a.status !== b.status) return a.status === "ativo" ? -1 : 1;
+      return (a.nome || "").localeCompare(b.nome || "");
+    });
+  } else {
+    // Fallback mock: user atual + colegas do state.users
+    const outros = (state.users || [])
+      .filter((x) => x.id !== u.id && x.active !== false)
+      .slice(0, 3);
+    online = [u, ...outros].map((x) => ({ ...x, status: "ativo" }));
+  }
 
   const maxAvatars = 4;
   const visiveis = online.slice(0, maxAvatars);
   const extras = online.length - visiveis.length;
 
   const stack = visiveis
-    .map(
-      (usr) => `
-      <div class="presence__avatar"
+    .map((usr) => {
+      const ausente = usr.status === "ausente";
+      const tooltip = `${usr.nome || "?"} (${ausente ? "ausente" : "online"})`;
+      return `
+      <div class="presence__avatar ${ausente ? "presence__avatar--idle" : ""}"
            style="background: ${presenceColor(usr.id)};"
-           title="${usr.nome || "?"} (online)">
+           title="${tooltip}">
         ${initials(usr.nome || "?")}
-      </div>`
-    )
+      </div>`;
+    })
     .join("");
 
   el.innerHTML = `
     <div class="presence__avatars">
       ${stack}
-      ${extras > 0 ? `<div class="presence__avatar" style="background:#555;" title="+${extras} online">+${extras}</div>` : ""}
+      ${extras > 0 ? `<div class="presence__avatar" style="background:#555;" title="+${extras} conectados">+${extras}</div>` : ""}
     </div>
     <div class="presence__count"><span class="dot-live"></span>${online.length} online</div>
   `;

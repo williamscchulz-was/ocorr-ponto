@@ -614,6 +614,12 @@ a:hover { color: var(--plum-soft); }
   border-radius: 50%;
   border: 1.5px solid var(--plum);
 }
+.presence__avatar--idle::after {
+  background: #f59e0b; /* ausente (lastSeen entre 2 e 7min) */
+}
+.presence__avatar--idle {
+  opacity: 0.7;
+}
 .presence__count {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.78);

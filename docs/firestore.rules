@@ -69,6 +69,15 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin() || isRH();
     }
 
+    // ----- presence (quem está online agora) -----
+    // Leitura: qualquer usuário autenticado (pra renderizar o indicador).
+    // Escrita/delete: só o próprio user no próprio documento (uid = doc id).
+    // Campos esperados: { uid, nome, role, page, lastSeen (timestamp) }
+    match /presence/{uid} {
+      allow read: if isAuthed();
+      allow create, update, delete: if isAuthed() && request.auth.uid == uid;
+    }
+
     // ----- ocorrencias -----
     match /ocorrencias/{id} {
 

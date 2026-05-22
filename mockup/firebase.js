@@ -1159,9 +1159,104 @@
       window.addEventListener(evt, resetIdleTimer, { passive: true });
     });
 
+    // ============================================
+    // Presença em tempo real (/presence/{uid})
+    // ============================================
+    const PRESENCE_HEARTBEAT_MS = 60 * 1000; // 60s
+    const PRESENCE_ONLINE_MS = 2 * 60 * 1000; // <2min = ativo
+    const PRESENCE_IDLE_MS = 7 * 60 * 1000;   // <7min = ausente, >= = some
+    let presenceHeartbeat = null;
+    let presenceUnsubscribe = null;
+
+    async function pingPresenca() {
+      if (!auth.currentUser) return;
+      const u = currentUser();
+      if (!u) return;
+      try {
+        await db.collection("presence").doc(auth.currentUser.uid).set({
+          uid: auth.currentUser.uid,
+          nome: u.nome || auth.currentUser.email,
+          role: u.role || "lider",
+          turno: u.turno || null,
+          page: state.view?.page || "dashboard",
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      } catch (e) {
+        console.warn("[Presence] heartbeat falhou:", e);
+      }
+    }
+
+    function ouvirPresenca() {
+      if (presenceUnsubscribe) presenceUnsubscribe();
+      presenceUnsubscribe = db.collection("presence").onSnapshot((snap) => {
+        const agora = Date.now();
+        state.presence = snap.docs
+          .map((d) => {
+            const data = d.data();
+            const lastSeenMs = data.lastSeen?.toMillis?.() || 0;
+            const age = agora - lastSeenMs;
+            let status = "offline";
+            if (age < PRESENCE_ONLINE_MS) status = "ativo";
+            else if (age < PRESENCE_IDLE_MS) status = "ausente";
+            return {
+              uid: d.id,
+              nome: data.nome || "?",
+              role: data.role || "",
+              turno: data.turno || null,
+              page: data.page || "",
+              lastSeenMs,
+              status,
+              age,
+            };
+          })
+          .filter((p) => p.status !== "offline");
+        if (typeof renderPresence === "function") renderPresence();
+      }, (err) => {
+        console.warn("[Presence] snapshot erro:", err);
+      });
+    }
+
+    async function iniciarPresenca() {
+      await pingPresenca();
+      ouvirPresenca();
+      // Heartbeat
+      if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+      presenceHeartbeat = setInterval(() => {
+        // Só pinga se aba visível — economiza writes e bateria
+        if (document.visibilityState === "visible") pingPresenca();
+      }, PRESENCE_HEARTBEAT_MS);
+    }
+
+    async function limparPresenca() {
+      if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+      if (presenceUnsubscribe) { presenceUnsubscribe(); presenceUnsubscribe = null; }
+      state.presence = [];
+      if (auth.currentUser) {
+        try {
+          await db.collection("presence").doc(auth.currentUser.uid).delete();
+        } catch (e) { console.warn("[Presence] cleanup falhou:", e); }
+      }
+    }
+
+    // Quando o tab volta a ficar visível, pinga imediatamente
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && auth.currentUser) {
+        pingPresenca();
+      }
+    });
+    // Beforeunload: tenta limpar (best-effort, sem garantias)
+    window.addEventListener("beforeunload", () => {
+      if (auth.currentUser) {
+        // sendBeacon não suporta Firestore SDK, então só dispara delete
+        // (pode não completar — backstop é o threshold de 7min na UI)
+        db.collection("presence").doc(auth.currentUser.uid).delete().catch(() => {});
+      }
+    });
+
     // Observador de autenticação
     auth.onAuthStateChanged(async (fbUser) => {
       if (!fbUser) {
+        await limparPresenca();
         state.currentUserId = null;
         $("#app")?.classList.add("hidden");
         $("#login")?.classList.remove("hidden");
@@ -1204,6 +1299,9 @@
         $("#app").classList.remove("hidden");
         state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
         renderApp();
+
+        // Inicia presença DEPOIS do app renderizar (state.view existe)
+        iniciarPresenca().catch((e) => console.warn("[Presence] init falhou:", e));
       } catch (err) {
         console.error("Erro carregando perfil:", err);
         toast("Erro ao carregar perfil: " + err.message, "danger");
