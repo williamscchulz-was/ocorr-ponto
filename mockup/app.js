@@ -1868,8 +1868,6 @@ function renderControlePJ() {
   // Stat só fica em destaque dentro da janela (15 dias antes / 30 dias depois)
   const reajusteVigente = janelaR.dentro && reajustesPendentes > 0;
 
-  const emFeriasHoje = pjs.filter((p) => pjEmFeriasHoje(p)).length;
-
   $("#view").innerHTML = `
     <header class="page-header">
       <div>
@@ -1906,11 +1904,6 @@ function renderControlePJ() {
               ? `dias até o próximo`
               : "próximo em janeiro"
         }</div>
-      </div>
-      <div class="stat ${emFeriasHoje > 0 ? "stat--accent" : ""}">
-        <div class="stat__label">Em férias hoje</div>
-        <div class="stat__value">${emFeriasHoje}</div>
-        <div class="stat__hint">${emFeriasHoje > 0 ? "ver no card do PJ" : "nenhum"}</div>
       </div>
     </div>
 
@@ -1979,7 +1972,6 @@ function renderPJList() {
     const periodicidade = periodObj?.label || p.periodicidade || "";
 
     const precisaReajuste = pjPrecisaReajuste(p);
-    const feriasAtual = pjEmFeriasHoje(p);
     return `
       <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto auto;" data-pj="${p.id}">
         <div class="avatar">${initials(p.nome || "?")}</div>
@@ -1987,7 +1979,6 @@ function renderPJList() {
           <div class="occ__name">
             ${p.nome || "(sem nome)"}
             ${precisaReajuste ? `<span class="badge badge--warning" style="margin-left:8px; font-size:10px;"><span class="dot"></span>REAJUSTE PENDENTE</span>` : ""}
-            ${feriasAtual ? `<span class="badge badge--info" style="margin-left:8px; font-size:10px;"><span class="dot"></span>FÉRIAS · volta em ${formatDate(feriasAtual.fim)}</span>` : ""}
           </div>
           <div class="occ__sub">
             ${p.tipoServico ? `<span class="badge badge--neutral">${p.tipoServico}</span>` : ""}
@@ -2089,41 +2080,46 @@ function diasParaReajuste() {
 }
 
 // ---------- Férias dos PJs ----------
+// Modelo simplificado: sistema acumula automaticamente conforme tempo
+// de contrato. RH só registra baixas (uso ou venda) com data + dias.
 
-function pjEmFeriasHoje(pj) {
-  if (!pj.ferias?.length) return null;
-  const hoje = new Date().toISOString().slice(0, 10);
-  return pj.ferias.find((f) => f.inicio <= hoje && hoje <= f.fim) || null;
+// Meses completos entre 2 datas (estilo calendário, não 30 dias fixos)
+function mesesCompletos(d1, d2) {
+  if (!(d1 instanceof Date)) d1 = new Date(d1 + "T00:00:00");
+  if (!(d2 instanceof Date)) d2 = new Date(d2 + "T00:00:00");
+  if (d2 < d1) return 0;
+  let meses = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+  if (d2.getDate() < d1.getDate()) meses--;
+  return Math.max(0, meses);
 }
 
-function diasRestantesFerias(periodo) {
-  const hoje = new Date();
-  const fim = new Date(periodo.fim + "T00:00:00");
-  return Math.max(0, Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24)));
+// Dias de férias acumulados desde início do direito até hoje
+function feriasAcumuladas(pj) {
+  if (!pj.temFerias) return 0;
+  const inicio = pj.inicioDireitoFerias || pj.dataInicio;
+  if (!inicio) return 0;
+  const diasPorAno = Number(pj.diasFeriasAno) || 30;
+  const meses = mesesCompletos(inicio, new Date());
+  return Math.floor((meses / 12) * diasPorAno);
 }
 
-function diasDoPeriodo(f, ano) {
-  const inicioAno = `${ano}-01-01`;
-  const fimAno = `${ano}-12-31`;
-  if (f.fim < inicioAno || f.inicio > fimAno) return 0;
-  const ini = new Date(Math.max(new Date(f.inicio + "T00:00:00"), new Date(inicioAno + "T00:00:00")));
-  const fim = new Date(Math.min(new Date(f.fim + "T00:00:00"), new Date(fimAno + "T00:00:00")));
-  return Math.ceil((fim - ini) / (1000 * 60 * 60 * 24)) + 1;
-}
-
-function resumoFeriasNoAno(pj, ano) {
-  const ferias = pj.ferias || [];
+function feriasUsadas(pj) {
+  if (!pj.ferias?.length) return { gozadas: 0, vendidas: 0 };
   let gozadas = 0, vendidas = 0;
-  for (const f of ferias) {
-    const dias = diasDoPeriodo(f, ano);
-    if (!dias) continue;
+  for (const f of pj.ferias) {
+    const dias = Number(f.dias) || 0;
     if (f.tipo === "vendidas") vendidas += dias;
-    else gozadas += dias; // default
+    else gozadas += dias;
   }
+  return { gozadas, vendidas };
+}
+
+function resumoFerias(pj) {
+  const acumulado = feriasAcumuladas(pj);
+  const { gozadas, vendidas } = feriasUsadas(pj);
   const usados = gozadas + vendidas;
-  const direito = Number(pj.diasDireitoAno) || 0;
-  const saldo = direito > 0 ? direito - usados : null;
-  return { gozadas, vendidas, usados, direito, saldo };
+  const saldo = acumulado - usados;
+  return { acumulado, gozadas, vendidas, usados, saldo };
 }
 
 function openPJModal(id) {
@@ -2195,15 +2191,37 @@ function openPJModal(id) {
           <option value="encerrado" ${pj?.status === "encerrado" ? "selected" : ""}>Encerrado</option>
         </select>
       </div>
-      <div class="field-row">
-        <div class="field" style="flex: 2;">
-          <label for="pj-descricao">Descrição / escopo</label>
-          <textarea id="pj-descricao" placeholder="O que está incluído no contrato...">${pj?.descricao || ""}</textarea>
+      <div class="field">
+        <label for="pj-descricao">Descrição / escopo</label>
+        <textarea id="pj-descricao" placeholder="O que está incluído no contrato...">${pj?.descricao || ""}</textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Direito a férias</div>
+      <label class="toggle__row">
+        <label class="toggle">
+          <input type="checkbox" id="pj-tem-ferias" ${pj?.temFerias ? "checked" : ""} />
+          <span class="toggle__slider"></span>
+        </label>
+        <div>
+          <div style="font-weight: 600;">Tem direito a férias remuneradas</div>
+          <div class="text-xs muted">Ativar pra controlar dias acumulados, gozados e vendidos.</div>
         </div>
-        <div class="field" style="flex: 1;">
-          <label for="pj-dias-direito">Dias de férias/ano</label>
-          <input type="number" id="pj-dias-direito" min="0" max="365" value="${pj?.diasDireitoAno ?? ""}" placeholder="30" />
-          <span class="field__hint">Direito anual (opcional). Sistema calcula saldo.</span>
+      </label>
+
+      <div id="pj-ferias-fields" style="display: ${pj?.temFerias ? "block" : "none"}; margin-top: 8px;">
+        <div class="field-row">
+          <div class="field">
+            <label for="pj-dias-ano">Dias por ano</label>
+            <input type="number" id="pj-dias-ano" min="1" max="365" value="${pj?.diasFeriasAno ?? 30}" />
+            <span class="field__hint">CLT padrão: 30 dias.</span>
+          </div>
+          <div class="field">
+            <label for="pj-inicio-direito">Início do direito</label>
+            <input type="date" id="pj-inicio-direito" value="${pj?.inicioDireitoFerias || pj?.dataInicio || ""}" />
+            <span class="field__hint">Marco zero. Geralmente = início do contrato.</span>
+          </div>
         </div>
       </div>
 
@@ -2225,11 +2243,11 @@ function openPJModal(id) {
         <input type="tel" id="pj-contato-telefone" value="${pj?.contato?.telefone || ""}" placeholder="(47) 99999-9999" />
       </div>
 
-      ${!isNew ? `
+      ${!isNew && pj?.temFerias ? `
         <div class="divider"></div>
         <div class="row row--between" style="margin-bottom: 8px;">
-          <div class="text-xs muted" style="font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Férias</div>
-          <button type="button" class="btn btn--ghost btn--sm" id="btn-add-ferias">${icon("plus")}<span>Adicionar período</span></button>
+          <div class="text-xs muted" style="font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Férias — controle de dias</div>
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-add-ferias">${icon("plus")}<span>Dar baixa</span></button>
         </div>
         <div id="pj-ferias-list" style="margin-bottom: 8px;"></div>
       ` : ""}
@@ -2291,8 +2309,16 @@ function openPJModal(id) {
       $("#pj-periodicidade").addEventListener("change", updateValorLabel);
       updateValorLabel();
 
-      // Lista de férias + botão de adicionar
-      if (!isNew && pj) {
+      // Toggle "tem férias" mostra/esconde os campos extras
+      const togFerias = $("#pj-tem-ferias");
+      if (togFerias) {
+        togFerias.addEventListener("change", () => {
+          $("#pj-ferias-fields").style.display = togFerias.checked ? "block" : "none";
+        });
+      }
+
+      // Lista de férias + botão de adicionar (só pra PJ existente e com toggle ON)
+      if (!isNew && pj?.temFerias) {
         renderPJFeriasList(id);
         const addFeriasBtn = $("#btn-add-ferias");
         if (addFeriasBtn) addFeriasBtn.addEventListener("click", () => openAddFeriasModal(id));
@@ -2357,7 +2383,13 @@ function savePJ(id) {
     dataProximaRevisao: $("#pj-data-revisao").value || null,
     status: $("#pj-status").value,
     descricao: $("#pj-descricao").value.trim() || null,
-    diasDireitoAno: $("#pj-dias-direito").value ? Number($("#pj-dias-direito").value) : null,
+    temFerias: !!$("#pj-tem-ferias").checked,
+    diasFeriasAno: $("#pj-tem-ferias").checked
+      ? (Number($("#pj-dias-ano").value) || 30)
+      : null,
+    inicioDireitoFerias: $("#pj-tem-ferias").checked
+      ? ($("#pj-inicio-direito").value || null)
+      : null,
     contato: {
       nome: $("#pj-contato-nome").value.trim() || null,
       email: $("#pj-contato-email").value.trim() || null,
@@ -2544,64 +2576,60 @@ function renderPJFeriasList(pjId) {
   const root = $("#pj-ferias-list");
   if (!root) return;
   const pj = (state.pjs || []).find((p) => p.id === pjId);
-  if (!pj) return;
+  if (!pj?.temFerias) return;
 
-  const ferias = (pj.ferias || []).slice().sort((a, b) => b.inicio.localeCompare(a.inicio));
-  const ano = new Date().getFullYear();
-  const resumo = resumoFeriasNoAno(pj, ano);
+  const baixas = (pj.ferias || []).slice().sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  const r = resumoFerias(pj);
+  const saldoTone = r.saldo > 0 ? "success" : r.saldo === 0 ? "neutral" : "danger";
 
-  // Cabeçalho com saldo
-  let resumoHtml = "";
-  if (resumo.direito > 0) {
-    const saldoTone = resumo.saldo >= 0 ? "success" : "danger";
-    resumoHtml = `
-      <div class="detail-grid" style="margin-bottom: 10px;">
-        <div class="detail-cell"><label>Direito ${ano}</label><strong>${resumo.direito} dias</strong></div>
-        <div class="detail-cell"><label>Gozadas</label><strong>${resumo.gozadas} dia${resumo.gozadas !== 1 ? "s" : ""}</strong></div>
-        <div class="detail-cell"><label>Vendidas</label><strong>${resumo.vendidas} dia${resumo.vendidas !== 1 ? "s" : ""}</strong></div>
-        <div class="detail-cell" style="background: var(--${saldoTone}-bg);"><label>Saldo</label><strong style="color: var(--${saldoTone});">${resumo.saldo} dia${Math.abs(resumo.saldo) !== 1 ? "s" : ""}</strong></div>
+  const resumoHtml = `
+    <div class="detail-grid" style="margin-bottom: 10px;">
+      <div class="detail-cell">
+        <label>Acumulado até hoje</label>
+        <strong>${r.acumulado} dia${r.acumulado !== 1 ? "s" : ""}</strong>
       </div>
-    `;
-  } else {
-    resumoHtml = `
-      <div class="text-xs muted" style="margin-bottom: 8px;">
-        Em ${ano}: <strong>${resumo.gozadas}</strong> gozadas · <strong>${resumo.vendidas}</strong> vendidas · total <strong>${resumo.usados}</strong> dia${resumo.usados !== 1 ? "s" : ""}
-        ${pj.diasDireitoAno == null ? `<br/><span style="font-style: italic;">(preencha "Dias de férias/ano" no PJ pra ver o saldo)</span>` : ""}
+      <div class="detail-cell">
+        <label>Gozadas</label>
+        <strong>${r.gozadas} dia${r.gozadas !== 1 ? "s" : ""}</strong>
       </div>
-    `;
-  }
+      <div class="detail-cell">
+        <label>Vendidas</label>
+        <strong>${r.vendidas} dia${r.vendidas !== 1 ? "s" : ""}</strong>
+      </div>
+      <div class="detail-cell" style="background: var(--${saldoTone}-bg);">
+        <label>Saldo disponível</label>
+        <strong style="color: var(--${saldoTone});">${r.saldo} dia${Math.abs(r.saldo) !== 1 ? "s" : ""}</strong>
+      </div>
+    </div>
+    <div class="text-xs muted" style="margin-bottom: 8px;">
+      Sistema acumula ${(Number(pj.diasFeriasAno) || 30) / 12 % 1 === 0 ? (Number(pj.diasFeriasAno) || 30) / 12 : ((Number(pj.diasFeriasAno) || 30) / 12).toFixed(2)} dia/mês desde ${pj.inicioDireitoFerias ? formatDate(pj.inicioDireitoFerias) : "—"} (${pj.diasFeriasAno || 30} dias/ano).
+    </div>
+  `;
 
-  if (ferias.length === 0) {
-    root.innerHTML = resumoHtml + `<div class="text-sm muted" style="padding: 8px 0;">Nenhum período de férias registrado.</div>`;
+  if (baixas.length === 0) {
+    root.innerHTML = resumoHtml + `<div class="text-sm muted" style="padding: 8px 0;">Nenhuma baixa registrada. Quando o PJ usar ou vender férias, clica em "Dar baixa".</div>`;
     return;
   }
 
-  const hoje = new Date().toISOString().slice(0, 10);
   root.innerHTML = resumoHtml + `
+    <div class="text-xs muted" style="margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Histórico de baixas</div>
     <div style="display: flex; flex-direction: column; gap: 6px;">
-      ${ferias.map((f) => {
-        const vigente = f.inicio <= hoje && hoje <= f.fim;
-        const futuro = f.inicio > hoje;
-        const passado = f.fim < hoje;
-        const dias = Math.ceil((new Date(f.fim + "T00:00:00") - new Date(f.inicio + "T00:00:00")) / (1000 * 60 * 60 * 24)) + 1;
+      ${baixas.map((f) => {
         const isVendidas = f.tipo === "vendidas";
         const tipoBadge = isVendidas
           ? `<span class="badge badge--warning" style="font-size: 10px;">VENDIDAS</span>`
           : `<span class="badge badge--info" style="font-size: 10px;">GOZADAS</span>`;
-        const periodoLabel = isVendidas
-          ? `Pagamento em ${formatDate(f.inicio)}`
-          : `${formatDate(f.inicio)} → ${formatDate(f.fim)}`;
         return `
-          <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: ${vigente ? "var(--info-bg)" : "var(--surface-warm)"}; border-radius: var(--radius);">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--surface-warm); border-radius: var(--radius);">
             <div style="flex: 1;">
-              <div style="font-weight: 600;">${periodoLabel} <span class="muted text-xs">· ${dias} dia${dias !== 1 ? "s" : ""}</span></div>
-              ${f.observacao ? `<div class="text-xs muted" style="margin-top: 2px;">${f.observacao}</div>` : ""}
-              <div style="margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap;">
+              <div style="font-weight: 600;">
                 ${tipoBadge}
-                ${vigente ? `<span class="badge badge--info" style="font-size: 10px;">EM FÉRIAS HOJE</span>` : futuro ? `<span class="badge badge--neutral" style="font-size: 10px;">FUTURO</span>` : passado ? `<span class="badge badge--neutral" style="font-size: 10px;">CONCLUÍDO</span>` : ""}
+                <span style="margin-left: 8px;">${f.dias} dia${f.dias !== 1 ? "s" : ""}</span>
+                <span class="muted text-xs">· baixa em ${formatDate(f.data)}</span>
               </div>
+              ${f.observacao ? `<div class="text-xs muted" style="margin-top: 4px;">${f.observacao}</div>` : ""}
             </div>
-            <button type="button" class="btn btn--ghost btn--sm" data-del-ferias="${f.id}" title="Excluir período">${icon("trash")}</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-del-ferias="${f.id}" title="Excluir baixa">${icon("trash")}</button>
           </div>
         `;
       }).join("")}
@@ -2616,87 +2644,78 @@ function renderPJFeriasList(pjId) {
 function openAddFeriasModal(pjId) {
   const pj = (state.pjs || []).find((p) => p.id === pjId);
   if (!pj) return;
+  const r = resumoFerias(pj);
+  const hoje = new Date().toISOString().slice(0, 10);
 
   openModal(`
     <div class="modal__header">
       <div>
-        <h2>Adicionar férias · ${pj.nome}</h2>
-        <p>Registro de período de férias para controle interno (não afeta pagamento).</p>
+        <h2>Dar baixa em férias · ${pj.nome}</h2>
+        <p>Saldo disponível: <strong style="color: var(--plum);">${r.saldo} dia${Math.abs(r.saldo) !== 1 ? "s" : ""}</strong></p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body" id="ferias-form" onsubmit="return false">
       <div class="field">
-        <label>Tipo <span style="color:var(--danger)">*</span></label>
+        <label>Tipo de baixa <span style="color:var(--danger)">*</span></label>
         <div class="row" style="gap: 8px;">
           <label class="row" style="gap: 6px; cursor: pointer; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); flex: 1;">
             <input type="radio" name="ferias-tipo" value="gozadas" checked />
             <div>
               <div style="font-weight: 600;">Gozadas</div>
-              <div class="text-xs muted">Afastamento (folga)</div>
+              <div class="text-xs muted">PJ tirou folga</div>
             </div>
           </label>
           <label class="row" style="gap: 6px; cursor: pointer; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); flex: 1;">
             <input type="radio" name="ferias-tipo" value="vendidas" />
             <div>
               <div style="font-weight: 600;">Vendidas</div>
-              <div class="text-xs muted">Pago em $, sem afastamento</div>
+              <div class="text-xs muted">Pagas em $</div>
             </div>
           </label>
         </div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label for="ferias-inicio">Data início <span style="color:var(--danger)">*</span></label>
-          <input type="date" id="ferias-inicio" required />
+          <label for="ferias-dias">Quantidade de dias <span style="color:var(--danger)">*</span></label>
+          <input type="number" id="ferias-dias" required min="1" max="365" placeholder="ex: 15" />
         </div>
         <div class="field">
-          <label for="ferias-fim">Data fim <span style="color:var(--danger)">*</span></label>
-          <input type="date" id="ferias-fim" required />
-          <span class="field__hint" id="ferias-fim-hint"></span>
+          <label for="ferias-data">Data da baixa</label>
+          <input type="date" id="ferias-data" value="${hoje}" />
+          <span class="field__hint">Quando a baixa foi feita.</span>
         </div>
       </div>
       <div class="field">
         <label for="ferias-obs">Observação</label>
-        <input type="text" id="ferias-obs" placeholder="Ex: férias de fim de ano, abono pecuniário..." />
+        <input type="text" id="ferias-obs" placeholder="Ex: férias de janeiro, abono pecuniário..." />
       </div>
       <div id="ferias-info" class="text-xs muted" style="margin-top: 4px;"></div>
     </form>
     <div class="modal__footer">
       <button class="btn btn--ghost" data-close>Cancelar</button>
-      <button class="btn btn--primary" id="btn-save-ferias">${icon("check")}<span>Adicionar</span></button>
+      <button class="btn btn--primary" id="btn-save-ferias">${icon("check")}<span>Dar baixa</span></button>
     </div>
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       const updateInfo = () => {
-        const i = $("#ferias-inicio").value;
-        const f = $("#ferias-fim").value;
-        if (i && f && f >= i) {
-          const dias = Math.ceil((new Date(f + "T00:00:00") - new Date(i + "T00:00:00")) / (1000*60*60*24)) + 1;
-          $("#ferias-info").textContent = `Período: ${dias} dia${dias !== 1 ? "s" : ""}.`;
-        } else if (i && f) {
-          $("#ferias-info").textContent = "Data fim deve ser maior ou igual ao início.";
+        const dias = Number($("#ferias-dias").value);
+        const info = $("#ferias-info");
+        if (!dias || dias <= 0) {
+          info.textContent = "";
+          return;
+        }
+        const novoSaldo = r.saldo - dias;
+        if (novoSaldo < 0) {
+          info.innerHTML = `⚠ Saldo após baixa: <strong style="color: var(--danger);">${novoSaldo} dia${Math.abs(novoSaldo) !== 1 ? "s" : ""}</strong> — vai ficar negativo.`;
         } else {
-          $("#ferias-info").textContent = "";
+          info.innerHTML = `Saldo após baixa: <strong style="color: var(--success);">${novoSaldo} dia${Math.abs(novoSaldo) !== 1 ? "s" : ""}</strong>.`;
         }
       };
-      $("#ferias-inicio").addEventListener("change", updateInfo);
-      $("#ferias-fim").addEventListener("change", updateInfo);
-      // Reage à mudança de tipo
-      const tipoRadios = document.querySelectorAll('input[name="ferias-tipo"]');
-      const updateTipoHint = () => {
-        const tipo = document.querySelector('input[name="ferias-tipo"]:checked')?.value;
-        if (tipo === "vendidas") {
-          $("#ferias-fim-hint").textContent = "Pra vendidas, geralmente fim = início (1 dia avulso) ou um range simbólico.";
-        } else {
-          $("#ferias-fim-hint").textContent = "";
-        }
-      };
-      tipoRadios.forEach((r) => r.addEventListener("change", updateTipoHint));
-      updateTipoHint();
+      $("#ferias-dias").addEventListener("input", updateInfo);
       $("#btn-save-ferias").addEventListener("click", () => saveFeriasPJ(pjId));
-      setTimeout(() => $("#ferias-inicio").focus(), 100);
+      setTimeout(() => $("#ferias-dias").focus(), 100);
     },
   });
 }
@@ -2706,17 +2725,16 @@ function saveFeriasPJ(pjId) {
   if (!pj) return;
   const u = currentUser();
   const tipo = document.querySelector('input[name="ferias-tipo"]:checked')?.value || "gozadas";
-  const inicio = $("#ferias-inicio").value;
-  const fim = $("#ferias-fim").value;
+  const dias = Number($("#ferias-dias").value);
+  const data = $("#ferias-data").value || new Date().toISOString().slice(0, 10);
   const observacao = $("#ferias-obs").value.trim();
-  if (!inicio || !fim) return toast("Informe as duas datas.", "danger");
-  if (fim < inicio) return toast("Data fim deve ser maior ou igual ao início.", "danger");
+  if (!dias || dias <= 0) return toast("Informe a quantidade de dias.", "danger");
 
   const novo = {
     id: "fer-" + Date.now(),
     tipo,
-    inicio,
-    fim,
+    dias,
+    data,
     observacao: observacao || null,
     criadoPor: u.id,
     criadoEm: new Date().toISOString(),
@@ -2726,8 +2744,7 @@ function saveFeriasPJ(pjId) {
 
   store.save(state);
   closeModal();
-  toast("Período adicionado.");
-  // Re-renderiza só a lista pra não fechar o modal principal
+  toast(`Baixa de ${dias} dia${dias !== 1 ? "s" : ""} registrada.`);
   setTimeout(() => {
     if ($("#pj-ferias-list")) renderPJFeriasList(pjId);
     renderApp();
@@ -2737,13 +2754,14 @@ function saveFeriasPJ(pjId) {
 function deletePJFerias(pjId, feriasId) {
   const pj = (state.pjs || []).find((p) => p.id === pjId);
   if (!pj?.ferias) return;
-  const periodo = pj.ferias.find((f) => f.id === feriasId);
-  if (!periodo) return;
-  if (!confirm(`Excluir o período ${formatDate(periodo.inicio)} → ${formatDate(periodo.fim)}?`)) return;
+  const baixa = pj.ferias.find((f) => f.id === feriasId);
+  if (!baixa) return;
+  const desc = `${baixa.dias} dia${baixa.dias !== 1 ? "s" : ""} ${baixa.tipo === "vendidas" ? "vendidas" : "gozadas"} (${formatDate(baixa.data)})`;
+  if (!confirm(`Excluir a baixa de ${desc}? O saldo aumenta de volta.`)) return;
 
   pj.ferias = pj.ferias.filter((f) => f.id !== feriasId);
   store.save(state);
-  toast("Período removido.");
+  toast("Baixa removida.");
   renderPJFeriasList(pjId);
   renderApp();
 }

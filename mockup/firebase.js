@@ -488,7 +488,13 @@
         dataProximaRevisao: $("#pj-data-revisao").value || null,
         status: $("#pj-status").value,
         descricao: $("#pj-descricao").value.trim() || null,
-        diasDireitoAno: $("#pj-dias-direito").value ? Number($("#pj-dias-direito").value) : null,
+        temFerias: !!$("#pj-tem-ferias").checked,
+        diasFeriasAno: $("#pj-tem-ferias").checked
+          ? (Number($("#pj-dias-ano").value) || 30)
+          : null,
+        inicioDireitoFerias: $("#pj-tem-ferias").checked
+          ? ($("#pj-inicio-direito").value || null)
+          : null,
         contato: {
           nome: $("#pj-contato-nome").value.trim() || null,
           email: $("#pj-contato-email").value.trim() || null,
@@ -550,23 +556,22 @@
       }
     };
 
-    // Override saveFeriasPJ → /pj (append no array de férias)
+    // Override saveFeriasPJ → /pj (append uma baixa no array)
     window.saveFeriasPJ = async function (pjId) {
       const pj = (state.pjs || []).find((p) => p.id === pjId);
       if (!pj) return;
       const u = currentUser();
       const tipo = document.querySelector('input[name="ferias-tipo"]:checked')?.value || "gozadas";
-      const inicio = $("#ferias-inicio").value;
-      const fim = $("#ferias-fim").value;
+      const dias = Number($("#ferias-dias").value);
+      const data = $("#ferias-data").value || new Date().toISOString().slice(0, 10);
       const observacao = $("#ferias-obs").value.trim();
-      if (!inicio || !fim) return toast("Informe as duas datas.", "danger");
-      if (fim < inicio) return toast("Data fim deve ser maior ou igual ao início.", "danger");
+      if (!dias || dias <= 0) return toast("Informe a quantidade de dias.", "danger");
 
       const novo = {
         id: "fer-" + Date.now(),
         tipo,
-        inicio,
-        fim,
+        dias,
+        data,
         observacao: observacao || null,
         criadoPor: u.id,
         criadoEm: new Date().toISOString(),
@@ -581,7 +586,7 @@
         });
         pj.ferias = novoFerias;
         closeModal();
-        toast("Período adicionado.");
+        toast(`Baixa de ${dias} dia${dias !== 1 ? "s" : ""} registrada.`);
         setTimeout(() => {
           if ($("#pj-ferias-list")) renderPJFeriasList(pjId);
           renderApp();
@@ -596,9 +601,10 @@
     window.deletePJFerias = async function (pjId, feriasId) {
       const pj = (state.pjs || []).find((p) => p.id === pjId);
       if (!pj?.ferias) return;
-      const periodo = pj.ferias.find((f) => f.id === feriasId);
-      if (!periodo) return;
-      if (!confirm(`Excluir o período ${formatDate(periodo.inicio)} → ${formatDate(periodo.fim)}?`)) return;
+      const baixa = pj.ferias.find((f) => f.id === feriasId);
+      if (!baixa) return;
+      const desc = `${baixa.dias} dia${baixa.dias !== 1 ? "s" : ""} ${baixa.tipo === "vendidas" ? "vendidas" : "gozadas"} (${formatDate(baixa.data)})`;
+      if (!confirm(`Excluir a baixa de ${desc}? O saldo aumenta de volta.`)) return;
 
       const novoFerias = pj.ferias.filter((f) => f.id !== feriasId);
       try {
@@ -607,7 +613,7 @@
           atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
         });
         pj.ferias = novoFerias;
-        toast("Período removido.");
+        toast("Baixa removida.");
         renderPJFeriasList(pjId);
         renderApp();
       } catch (err) {
