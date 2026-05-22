@@ -989,6 +989,31 @@
       const p = $("#login-pass"); if (p) p.disabled = false;
     }
 
+    // Persistência SESSION: sessão expira ao fechar a aba/browser.
+    // Importante pra PC compartilhado (Jenifer/RH frequentemente
+    // deixam o computador disponível pra outros).
+    auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch((e) => {
+      console.warn("[Auth] não foi possível ajustar persistência:", e);
+    });
+
+    // Auto-logout por inatividade: 30 min sem interação → signOut.
+    const IDLE_MS = 30 * 60 * 1000;
+    let idleTimer = null;
+    function resetIdleTimer() {
+      if (idleTimer) clearTimeout(idleTimer);
+      // Só conta inatividade se houver alguém logado
+      if (!auth.currentUser) return;
+      idleTimer = setTimeout(async () => {
+        if (auth.currentUser) {
+          await auth.signOut().catch(() => {});
+          if (typeof toast === "function") toast("Sessão expirada por inatividade. Entre de novo.", "danger");
+        }
+      }, IDLE_MS);
+    }
+    ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach((evt) => {
+      window.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+
     // Observador de autenticação
     auth.onAuthStateChanged(async (fbUser) => {
       if (!fbUser) {
@@ -996,8 +1021,12 @@
         $("#app")?.classList.add("hidden");
         $("#login")?.classList.remove("hidden");
         restoreLoginButton();
+        // Cancela timer de inatividade
+        if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
         return;
       }
+      // Inicia timer assim que loga
+      resetIdleTimer();
 
       // Busca o doc users/{uid} pra papel/turno
       try {
