@@ -2435,18 +2435,58 @@ function savePJ(id) {
   renderApp();
 }
 
-// Busca IPCA acumulado em 12 meses na API do Banco Central
-// Série 13522 = IPCA - taxa acumulada nos últimos 12 meses
-async function fetchIPCAAcumulado() {
-  const url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json";
+// Busca IPCA mensal acumulado em N meses na API do Banco Central
+// Série 433 = IPCA mensal (variação % mês a mês)
+// Acumula via produtório: ((1 + r1/100) × (1 + r2/100) × ... - 1) × 100
+async function fetchIPCAAcumulado(meses = 12) {
+  const n = Math.min(24, Math.max(1, Number(meses) || 12));
+  const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/${n}?formato=json`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("API BCB retornou " + res.status);
   const arr = await res.json();
   if (!arr.length) throw new Error("BCB sem dados");
-  const item = arr[0];
-  // valor vem como string "4.50" — em alguns casos com vírgula
-  const pct = Number(String(item.valor).replace(",", "."));
-  return { percentual: pct, dataReferencia: item.data };
+
+  // Acumula
+  let fator = 1;
+  const valoresMensais = [];
+  for (const item of arr) {
+    const r = Number(String(item.valor).replace(",", "."));
+    if (Number.isFinite(r)) {
+      fator *= 1 + r / 100;
+      valoresMensais.push({ data: item.data, valor: r });
+    }
+  }
+  const pct = (fator - 1) * 100;
+
+  return {
+    percentual: pct,
+    meses: valoresMensais.length,
+    dataInicial: valoresMensais[0]?.data,
+    dataReferencia: valoresMensais[valoresMensais.length - 1]?.data,
+    valoresMensais,
+  };
+}
+
+// Calcula quantos meses de IPCA fazem sentido pra esse PJ em determinado ano de reajuste.
+// Regra: se é o PRIMEIRO reajuste (nunca foi reajustado antes), usa proporcional desde
+// dataInicio até dezembro do ano anterior ao reajuste. Senão, sempre 12 meses.
+// Ex: contrato iniciou 15/10/2025, reajuste 2026 → 3 meses (out, nov, dez 2025).
+function calcularMesesProporcionaisIPCA(pj, anoReajuste) {
+  const limiteReajusteAtual = `${anoReajuste}-01-15`;
+  const teveReajusteAntes = (pj.historicoValores || []).some(
+    (h) => (h.data || "") < limiteReajusteAtual && (h.motivo || "").toLowerCase().includes("reajuste")
+  );
+  if (teveReajusteAntes) return 12;
+
+  const inicio = pj.dataInicio;
+  if (!inicio) return 12;
+
+  const [y, m] = inicio.split("-").map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return 12;
+
+  // Meses do início do contrato até dezembro do ano anterior ao reajuste, inclusive
+  const totalMeses = (anoReajuste - 1 - y) * 12 + (12 - m + 1);
+  return Math.min(12, Math.max(1, totalMeses));
 }
 
 function openReajusteModal(id) {
@@ -2457,12 +2497,18 @@ function openReajusteModal(id) {
 
   const valorAtual = Number(pj.valorAtual) || 0;
   const anoVigente = ultimoAnoReajusteVigente();
+  const mesesSugeridos = calcularMesesProporcionaisIPCA(pj, anoVigente);
+  const ehPrimeiroReajuste = mesesSugeridos < 12;
+
+  const hintAuto = ehPrimeiroReajuste
+    ? `Primeiro reajuste — proporcional ao tempo de contrato (início ${pj.dataInicio ? formatDate(pj.dataInicio) : "?"} → dez/${anoVigente - 1} = <strong>${mesesSugeridos} ${mesesSugeridos === 1 ? "mês" : "meses"}</strong>).`
+    : `Contrato com 12+ meses fechados — pega IPCA acumulado dos <strong>últimos 12 meses</strong>.`;
 
   openModal(`
     <div class="modal__header">
       <div>
         <h2>Aplicar reajuste · ${pj.nome}</h2>
-        <p>Reajuste anual de 15/01/${anoVigente}. Busca o IPCA acumulado dos últimos 12 meses via Banco Central.</p>
+        <p>Reajuste anual de 15/01/${anoVigente}. Busca o IPCA via Banco Central conforme o período escolhido.</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
@@ -2473,18 +2519,30 @@ function openReajusteModal(id) {
           <strong>${formatMoeda(valorAtual)}</strong>
         </div>
         <div class="detail-cell">
-          <label>Periodicidade</label>
-          <strong>${PERIODICIDADES_PJ.find(p => p.id === pj.periodicidade)?.label || "—"}</strong>
+          <label>Início do contrato</label>
+          <strong>${pj.dataInicio ? formatDate(pj.dataInicio) : "—"}</strong>
         </div>
       </div>
 
       <div class="field" style="margin-top: 16px;">
+        <label for="reaj-meses">Período do IPCA</label>
+        <select id="reaj-meses">
+          <option value="auto" selected>Auto — ${mesesSugeridos} ${mesesSugeridos === 1 ? "mês" : "meses"} (${ehPrimeiroReajuste ? "proporcional" : "12 meses cheios"})</option>
+          <option disabled>──────────</option>
+          ${Array.from({ length: 12 }, (_, i) => i + 1).map(
+            (n) => `<option value="${n}">${n} ${n === 1 ? "mês" : "meses"}</option>`
+          ).join("")}
+        </select>
+        <span class="field__hint" id="reaj-meses-hint">${hintAuto}</span>
+      </div>
+
+      <div class="field">
         <label for="reaj-percentual">Percentual de reajuste (%)</label>
         <div class="row" style="gap: 8px; align-items: stretch;">
           <input type="number" id="reaj-percentual" step="0.01" placeholder="4.50" style="flex: 1;" />
           <button type="button" class="btn btn--soft" id="btn-buscar-ipca">${icon("download")}<span>Buscar IPCA</span></button>
         </div>
-        <span class="field__hint" id="reaj-fonte">Digite o % ou clique "Buscar IPCA" pra trazer da API do Banco Central.</span>
+        <span class="field__hint" id="reaj-fonte">Digite o % manualmente ou clique "Buscar IPCA" pra trazer da API do Banco Central.</span>
       </div>
 
       <div class="field">
@@ -2509,6 +2567,22 @@ function openReajusteModal(id) {
       const inpPct = $("#reaj-percentual");
       const inpVal = $("#reaj-novo-valor");
       const fonte = $("#reaj-fonte");
+      const selMeses = $("#reaj-meses");
+      const hintMeses = $("#reaj-meses-hint");
+
+      const getMesesEscolhidos = () => {
+        const v = selMeses.value;
+        return v === "auto" ? mesesSugeridos : Math.min(12, Math.max(1, Number(v) || 12));
+      };
+
+      selMeses.addEventListener("change", () => {
+        const m = getMesesEscolhidos();
+        if (selMeses.value === "auto") {
+          hintMeses.innerHTML = hintAuto;
+        } else {
+          hintMeses.textContent = `IPCA acumulado dos últimos ${m} ${m === 1 ? "mês" : "meses"} fechados na série BCB.`;
+        }
+      });
 
       const recalcular = () => {
         const pct = Number(inpPct.value);
@@ -2520,16 +2594,20 @@ function openReajusteModal(id) {
 
       $("#btn-buscar-ipca").addEventListener("click", async (e) => {
         const btn = e.currentTarget;
+        const meses = getMesesEscolhidos();
         btn.disabled = true;
         btn.innerHTML = `${icon("clock")}<span>Buscando...</span>`;
         try {
-          const ipca = await fetchIPCAAcumulado();
+          const ipca = await fetchIPCAAcumulado(meses);
           inpPct.value = ipca.percentual.toFixed(2);
-          fonte.textContent = `IPCA acumulado 12m (BCB série 13522, ref. ${ipca.dataReferencia}): ${ipca.percentual.toFixed(2)}%`;
+          const labelPeriodo = ipca.dataInicial && ipca.dataReferencia && ipca.dataInicial !== ipca.dataReferencia
+            ? `${ipca.dataInicial} a ${ipca.dataReferencia}`
+            : ipca.dataReferencia;
+          fonte.innerHTML = `IPCA acumulado <strong>${ipca.meses} ${ipca.meses === 1 ? "mês" : "meses"}</strong> (BCB série 433, ${labelPeriodo}): <strong>${ipca.percentual.toFixed(2)}%</strong>`;
           fonte.style.color = "var(--success)";
           recalcular();
           if (!$("#reaj-motivo").value) {
-            $("#reaj-motivo").value = `Reajuste IPCA jan/${anoVigente} (${ipca.percentual.toFixed(2)}%)`;
+            $("#reaj-motivo").value = `Reajuste IPCA jan/${anoVigente} (${ipca.meses}m, ${ipca.percentual.toFixed(2)}%)`;
           }
         } catch (err) {
           toast("Erro ao buscar IPCA: " + err.message, "danger");
