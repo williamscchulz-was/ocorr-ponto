@@ -1379,8 +1379,13 @@ function renderFuncionarios() {
         ${icon("search")}
         <input type="text" id="func-search" placeholder="Buscar por nome ou código..." />
       </div>
+      <select id="func-status-filter">
+        <option value="ativo" selected>Apenas ativos</option>
+        <option value="inativo">Apenas inativos</option>
+        <option value="todos">Todos (ativos + inativos)</option>
+      </select>
       <select id="func-turno-filter">
-        <option value="">Todos</option>
+        <option value="">Todos os turnos</option>
         <option value="sem">Sem turno</option>
         <option value="1">1º Turno</option>
         <option value="2">2º Turno</option>
@@ -1395,15 +1400,23 @@ function renderFuncionarios() {
   $("#btn-import-func").addEventListener("click", openImportFuncModal);
   $("#btn-novo-func").addEventListener("click", () => openFuncionarioModal(null));
   $("#func-search").addEventListener("input", renderFuncList);
+  $("#func-status-filter").addEventListener("change", renderFuncList);
   $("#func-turno-filter").addEventListener("change", renderFuncList);
   renderFuncList();
 }
 
 function renderFuncList() {
   const search = ($("#func-search")?.value || "").toLowerCase();
+  const statusFilter = $("#func-status-filter")?.value || "ativo";
   const filter = $("#func-turno-filter")?.value || "";
 
   let list = [...state.funcionarios];
+
+  // Filtro por status (default = só ativos)
+  if (statusFilter === "ativo") list = list.filter((f) => f.ativo !== false);
+  else if (statusFilter === "inativo") list = list.filter((f) => f.ativo === false);
+  // "todos" não filtra
+
   if (search) {
     list = list.filter((f) =>
       f.nome.toLowerCase().includes(search) ||
@@ -1421,14 +1434,15 @@ function renderFuncList() {
 
   const root = $("#func-list");
   if (list.length === 0) {
-    const semFiltro = !search && !filter;
+    const semFiltro = !search && !filter && statusFilter === "ativo";
+    const apenasInativos = statusFilter === "inativo" && state.funcionarios.some((f) => f.ativo === false);
     root.innerHTML = `
       <div class="empty">
         <div class="empty__icon">${icon("users")}</div>
         <h3>${semFiltro ? "Sem funcionários cadastrados ainda" : "Nenhum resultado"}</h3>
         <p>${semFiltro
           ? "Importe a lista completa de uma vez, ou crie um a um."
-          : "Tente ajustar a busca ou o filtro de turno."}</p>
+          : (apenasInativos ? "" : "Tente ajustar a busca ou os filtros (turno/status).")}</p>
         ${semFiltro ? `
           <div class="row" style="gap:8px; justify-content:center; margin-top:8px;">
             <button class="btn btn--primary" id="btn-empty-novo">${icon("plus")}<span>Novo funcionário</span></button>
