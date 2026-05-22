@@ -1866,6 +1866,8 @@ function renderControlePJ() {
   const diasReajuste = diasParaReajuste();
   const reajusteVigente = diasReajuste <= 30 || reajustesPendentes > 0;
 
+  const emFeriasHoje = pjs.filter((p) => pjEmFeriasHoje(p)).length;
+
   $("#view").innerHTML = `
     <header class="page-header">
       <div>
@@ -1896,6 +1898,11 @@ function renderControlePJ() {
               ? `próximo em ${diasReajuste} dia${diasReajuste !== 1 ? "s" : ""}`
               : "tudo em dia"
         }</div>
+      </div>
+      <div class="stat ${emFeriasHoje > 0 ? "stat--accent" : ""}">
+        <div class="stat__label">Em férias hoje</div>
+        <div class="stat__value">${emFeriasHoje}</div>
+        <div class="stat__hint">${emFeriasHoje > 0 ? "ver no card do PJ" : "nenhum"}</div>
       </div>
     </div>
 
@@ -1964,6 +1971,7 @@ function renderPJList() {
     const periodicidade = periodObj?.label || p.periodicidade || "";
 
     const precisaReajuste = pjPrecisaReajuste(p);
+    const feriasAtual = pjEmFeriasHoje(p);
     return `
       <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto auto;" data-pj="${p.id}">
         <div class="avatar">${initials(p.nome || "?")}</div>
@@ -1971,6 +1979,7 @@ function renderPJList() {
           <div class="occ__name">
             ${p.nome || "(sem nome)"}
             ${precisaReajuste ? `<span class="badge badge--warning" style="margin-left:8px; font-size:10px;"><span class="dot"></span>REAJUSTE PENDENTE</span>` : ""}
+            ${feriasAtual ? `<span class="badge badge--info" style="margin-left:8px; font-size:10px;"><span class="dot"></span>FÉRIAS · volta em ${formatDate(feriasAtual.fim)}</span>` : ""}
           </div>
           <div class="occ__sub">
             ${p.tipoServico ? `<span class="badge badge--neutral">${p.tipoServico}</span>` : ""}
@@ -2056,6 +2065,33 @@ function pjPrecisaReajuste(pj) {
 function diasParaReajuste() {
   const ms = proximoReajuste() - new Date();
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
+}
+
+// ---------- Férias dos PJs ----------
+
+function pjEmFeriasHoje(pj) {
+  if (!pj.ferias?.length) return null;
+  const hoje = new Date().toISOString().slice(0, 10);
+  return pj.ferias.find((f) => f.inicio <= hoje && hoje <= f.fim) || null;
+}
+
+function diasRestantesFerias(periodo) {
+  const hoje = new Date();
+  const fim = new Date(periodo.fim + "T00:00:00");
+  return Math.max(0, Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24)));
+}
+
+function totalDiasFeriasNoAno(pj, ano) {
+  if (!pj.ferias?.length) return 0;
+  const inicioAno = `${ano}-01-01`;
+  const fimAno = `${ano}-12-31`;
+  return pj.ferias
+    .filter((f) => f.fim >= inicioAno && f.inicio <= fimAno)
+    .reduce((sum, f) => {
+      const ini = new Date(Math.max(new Date(f.inicio + "T00:00:00"), new Date(inicioAno + "T00:00:00")));
+      const fim = new Date(Math.min(new Date(f.fim + "T00:00:00"), new Date(fimAno + "T00:00:00")));
+      return sum + Math.ceil((fim - ini) / (1000 * 60 * 60 * 24)) + 1;
+    }, 0);
 }
 
 function openPJModal(id) {
@@ -2150,6 +2186,15 @@ function openPJModal(id) {
         <input type="tel" id="pj-contato-telefone" value="${pj?.contato?.telefone || ""}" placeholder="(47) 99999-9999" />
       </div>
 
+      ${!isNew ? `
+        <div class="divider"></div>
+        <div class="row row--between" style="margin-bottom: 8px;">
+          <div class="text-xs muted" style="font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Férias</div>
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-add-ferias">${icon("plus")}<span>Adicionar período</span></button>
+        </div>
+        <div id="pj-ferias-list" style="margin-bottom: 8px;"></div>
+      ` : ""}
+
       <div class="divider"></div>
 
       <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contrato</div>
@@ -2206,6 +2251,13 @@ function openPJModal(id) {
       };
       $("#pj-periodicidade").addEventListener("change", updateValorLabel);
       updateValorLabel();
+
+      // Lista de férias + botão de adicionar
+      if (!isNew && pj) {
+        renderPJFeriasList(id);
+        const addFeriasBtn = $("#btn-add-ferias");
+        if (addFeriasBtn) addFeriasBtn.addEventListener("click", () => openAddFeriasModal(id));
+      }
 
       // Botão de upload pro Drive
       const uploadBtn = $("#btn-upload-drive");
@@ -2445,6 +2497,150 @@ function aplicarReajuste(id) {
   store.save(state);
   closeModal();
   toast(`Reajuste aplicado: ${formatMoeda(valorAntigo)} → ${formatMoeda(novoValor)}`);
+  renderApp();
+}
+
+function renderPJFeriasList(pjId) {
+  const root = $("#pj-ferias-list");
+  if (!root) return;
+  const pj = (state.pjs || []).find((p) => p.id === pjId);
+  if (!pj) return;
+
+  const ferias = (pj.ferias || []).slice().sort((a, b) => b.inicio.localeCompare(a.inicio));
+  const ano = new Date().getFullYear();
+  const totalAno = totalDiasFeriasNoAno(pj, ano);
+
+  if (ferias.length === 0) {
+    root.innerHTML = `<div class="text-sm muted" style="padding: 8px 0;">Nenhum período de férias registrado.</div>`;
+    return;
+  }
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  root.innerHTML = `
+    <div class="text-xs muted" style="margin-bottom: 6px;">Total em ${ano}: <strong>${totalAno} dia${totalAno !== 1 ? "s" : ""}</strong></div>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      ${ferias.map((f) => {
+        const vigente = f.inicio <= hoje && hoje <= f.fim;
+        const futuro = f.inicio > hoje;
+        const passado = f.fim < hoje;
+        const dias = Math.ceil((new Date(f.fim + "T00:00:00") - new Date(f.inicio + "T00:00:00")) / (1000 * 60 * 60 * 24)) + 1;
+        return `
+          <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: ${vigente ? "var(--info-bg)" : "var(--surface-warm)"}; border-radius: var(--radius);">
+            <div style="flex: 1;">
+              <div style="font-weight: 600;">${formatDate(f.inicio)} → ${formatDate(f.fim)} <span class="muted text-xs">· ${dias} dia${dias !== 1 ? "s" : ""}</span></div>
+              ${f.observacao ? `<div class="text-xs muted" style="margin-top: 2px;">${f.observacao}</div>` : ""}
+              ${vigente ? `<span class="badge badge--info" style="margin-top: 4px; font-size: 10px;">EM FÉRIAS HOJE</span>` : futuro ? `<span class="badge badge--neutral" style="margin-top: 4px; font-size: 10px;">FUTURO</span>` : passado ? `<span class="badge badge--neutral" style="margin-top: 4px; font-size: 10px;">CONCLUÍDO</span>` : ""}
+            </div>
+            <button type="button" class="btn btn--ghost btn--sm" data-del-ferias="${f.id}" title="Excluir período">${icon("trash")}</button>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  $$("[data-del-ferias]").forEach((b) => {
+    b.addEventListener("click", () => deletePJFerias(pjId, b.dataset.delFerias));
+  });
+}
+
+function openAddFeriasModal(pjId) {
+  const pj = (state.pjs || []).find((p) => p.id === pjId);
+  if (!pj) return;
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Adicionar férias · ${pj.nome}</h2>
+        <p>Registro de período de férias para controle interno (não afeta pagamento).</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="ferias-form" onsubmit="return false">
+      <div class="field-row">
+        <div class="field">
+          <label for="ferias-inicio">Data início <span style="color:var(--danger)">*</span></label>
+          <input type="date" id="ferias-inicio" required />
+        </div>
+        <div class="field">
+          <label for="ferias-fim">Data fim <span style="color:var(--danger)">*</span></label>
+          <input type="date" id="ferias-fim" required />
+        </div>
+      </div>
+      <div class="field">
+        <label for="ferias-obs">Observação</label>
+        <input type="text" id="ferias-obs" placeholder="Ex: férias de fim de ano, recesso de carnaval..." />
+      </div>
+      <div id="ferias-info" class="text-xs muted" style="margin-top: 4px;"></div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-ferias">${icon("check")}<span>Adicionar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const updateInfo = () => {
+        const i = $("#ferias-inicio").value;
+        const f = $("#ferias-fim").value;
+        if (i && f && f >= i) {
+          const dias = Math.ceil((new Date(f + "T00:00:00") - new Date(i + "T00:00:00")) / (1000*60*60*24)) + 1;
+          $("#ferias-info").textContent = `Período: ${dias} dia${dias !== 1 ? "s" : ""}.`;
+        } else if (i && f) {
+          $("#ferias-info").textContent = "Data fim deve ser maior ou igual ao início.";
+        } else {
+          $("#ferias-info").textContent = "";
+        }
+      };
+      $("#ferias-inicio").addEventListener("change", updateInfo);
+      $("#ferias-fim").addEventListener("change", updateInfo);
+      $("#btn-save-ferias").addEventListener("click", () => saveFeriasPJ(pjId));
+      setTimeout(() => $("#ferias-inicio").focus(), 100);
+    },
+  });
+}
+
+function saveFeriasPJ(pjId) {
+  const pj = (state.pjs || []).find((p) => p.id === pjId);
+  if (!pj) return;
+  const u = currentUser();
+  const inicio = $("#ferias-inicio").value;
+  const fim = $("#ferias-fim").value;
+  const observacao = $("#ferias-obs").value.trim();
+  if (!inicio || !fim) return toast("Informe as duas datas.", "danger");
+  if (fim < inicio) return toast("Data fim deve ser maior ou igual ao início.", "danger");
+
+  const novo = {
+    id: "fer-" + Date.now(),
+    inicio,
+    fim,
+    observacao: observacao || null,
+    criadoPor: u.id,
+    criadoEm: new Date().toISOString(),
+  };
+  if (!pj.ferias) pj.ferias = [];
+  pj.ferias.push(novo);
+
+  store.save(state);
+  closeModal();
+  toast("Período adicionado.");
+  // Re-renderiza só a lista pra não fechar o modal principal
+  setTimeout(() => {
+    if ($("#pj-ferias-list")) renderPJFeriasList(pjId);
+    renderApp();
+  }, 50);
+}
+
+function deletePJFerias(pjId, feriasId) {
+  const pj = (state.pjs || []).find((p) => p.id === pjId);
+  if (!pj?.ferias) return;
+  const periodo = pj.ferias.find((f) => f.id === feriasId);
+  if (!periodo) return;
+  if (!confirm(`Excluir o período ${formatDate(periodo.inicio)} → ${formatDate(periodo.fim)}?`)) return;
+
+  pj.ferias = pj.ferias.filter((f) => f.id !== feriasId);
+  store.save(state);
+  toast("Período removido.");
+  renderPJFeriasList(pjId);
   renderApp();
 }
 

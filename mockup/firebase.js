@@ -549,6 +549,69 @@
       }
     };
 
+    // Override saveFeriasPJ → /pj (append no array de férias)
+    window.saveFeriasPJ = async function (pjId) {
+      const pj = (state.pjs || []).find((p) => p.id === pjId);
+      if (!pj) return;
+      const u = currentUser();
+      const inicio = $("#ferias-inicio").value;
+      const fim = $("#ferias-fim").value;
+      const observacao = $("#ferias-obs").value.trim();
+      if (!inicio || !fim) return toast("Informe as duas datas.", "danger");
+      if (fim < inicio) return toast("Data fim deve ser maior ou igual ao início.", "danger");
+
+      const novo = {
+        id: "fer-" + Date.now(),
+        inicio,
+        fim,
+        observacao: observacao || null,
+        criadoPor: u.id,
+        criadoEm: new Date().toISOString(),
+      };
+      const novoFerias = [...(pj.ferias || []), novo];
+
+      try {
+        await db.collection("pj").doc(pjId).update({
+          ferias: novoFerias,
+          atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          atualizadoPor: u.id,
+        });
+        pj.ferias = novoFerias;
+        closeModal();
+        toast("Período adicionado.");
+        setTimeout(() => {
+          if ($("#pj-ferias-list")) renderPJFeriasList(pjId);
+          renderApp();
+        }, 50);
+      } catch (err) {
+        console.error(err);
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
+    // Override deletePJFerias → /pj
+    window.deletePJFerias = async function (pjId, feriasId) {
+      const pj = (state.pjs || []).find((p) => p.id === pjId);
+      if (!pj?.ferias) return;
+      const periodo = pj.ferias.find((f) => f.id === feriasId);
+      if (!periodo) return;
+      if (!confirm(`Excluir o período ${formatDate(periodo.inicio)} → ${formatDate(periodo.fim)}?`)) return;
+
+      const novoFerias = pj.ferias.filter((f) => f.id !== feriasId);
+      try {
+        await db.collection("pj").doc(pjId).update({
+          ferias: novoFerias,
+          atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        pj.ferias = novoFerias;
+        toast("Período removido.");
+        renderPJFeriasList(pjId);
+        renderApp();
+      } catch (err) {
+        toast("Erro: " + err.message, "danger");
+      }
+    };
+
     // Override aplicarReajuste → /pj
     window.aplicarReajuste = async function (id) {
       const pj = (state.pjs || []).find((p) => p.id === id);
