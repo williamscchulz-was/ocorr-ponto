@@ -468,12 +468,61 @@ function renderPresence() {
   `;
 
   // Se há um modal de PJ aberto, sincroniza o banner de outros editando.
-  // Detecta o pj id pelo botão de upload (que carrega o nome) ou pelo
-  // estado. Mais simples: olha pra modal aberto + delete button.
   const banner = document.getElementById("modal-colab-banner");
   if (banner && banner.dataset.pjid) {
     atualizarBannerColabModal(banner.dataset.pjid);
   }
+
+  // Atualiza o painel detalhado na sidebar
+  renderSidebarPresence(online);
+}
+
+// Painel detalhado de "Online agora" na sidebar — formato vertical
+// com avatar + nome + o que cada um está vendo.
+function renderSidebarPresence(online) {
+  const el = document.getElementById("sidebar-presence");
+  if (!el) return;
+  const u = currentUser();
+
+  // Mapa de páginas pra rótulos amigáveis
+  const PAGE_LABELS = {
+    dashboard: "Ocorrências",
+    "banco-horas": "Banco de Horas",
+    funcionarios: "Funcionários",
+    pj: "Controle PJ",
+    config: "Configurações",
+  };
+
+  const items = (online || []).map((usr) => {
+    const ausente = usr.status === "ausente";
+    const ehVoce = usr.id === u?.id;
+    const pageLabel = PAGE_LABELS[usr.page] || usr.role || "";
+    return `
+      <div class="sidebar-presence__item" title="${usr.nome || "?"} · ${ausente ? "ausente" : "ativo"}${pageLabel ? " · em " + pageLabel : ""}">
+        <div class="sidebar-presence__avatar ${ausente ? "is-idle" : ""}"
+             style="background: ${presenceColor(usr.id)};">
+          ${initials(usr.nome || "?")}
+        </div>
+        <div class="sidebar-presence__info">
+          <span class="sidebar-presence__name">${usr.nome || "?"}${ehVoce ? " (você)" : ""}</span>
+          <span class="sidebar-presence__page">${ehVoce ? "neste navegador" : (pageLabel ? "em " + pageLabel : (ausente ? "ausente" : "ativo"))}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const totalOutros = (online || []).filter((x) => x.id !== u?.id).length;
+
+  el.innerHTML = `
+    <div class="sidebar-presence__title">
+      <span class="live-dot"></span>
+      Online agora · ${online.length}
+    </div>
+    <div class="sidebar-presence__list">
+      ${items || `<div class="sidebar-presence__empty">Ninguém mais conectado</div>`}
+    </div>
+    ${totalOutros === 0 ? `<div class="sidebar-presence__empty" style="margin-top:4px;">Só você por enquanto. Quando outros usuários entrarem, aparecem aqui.</div>` : ""}
+  `;
 }
 
 function renderNav() {
