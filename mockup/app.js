@@ -2313,67 +2313,84 @@ function openPJModal(id) {
 
           let textoDoPDF = "";
           let resultadoExtracao = null;
+          const ehPDF = file.type === "application/pdf";
 
-          // 1) Primeira tentativa: pdf.js puro (rápido, funciona em PDF
-          //    com camada de texto — contratos digitais).
-          if (file.type === "application/pdf") {
-            uploadBtn.innerHTML = `${icon("clock")}<span>Lendo PDF...</span>`;
-            try {
-              textoDoPDF = await extrairTextoDoPDF(file);
-              resultadoExtracao = aplicarExtracaoTextoNoForm(textoDoPDF);
-              if (resultadoExtracao.preenchidos.length) {
-                toast(`Detectei do contrato: ${resultadoExtracao.preenchidos.join(", ")}. Confira antes de salvar.`);
-              }
-            } catch (err) {
-              console.warn("[pdf.js] falhou:", err);
-            }
-          }
+          // Steps visíveis ao usuário (ordem fixa, atualiza conforme avança)
+          const steps = ehPDF
+            ? ["Lendo PDF", "Enviando pro Drive", "OCR (se necessário)", "Concluído"]
+            : ["Enviando pro Drive", "Concluído"];
+          showFormBlocker(ehPDF ? "Lendo PDF..." : `Enviando "${file.name}"...`, steps);
 
-          // 2) Upload pro Drive
-          uploadBtn.innerHTML = `${icon("clock")}<span>Enviando "${file.name}"...</span>`;
-          let uploadResult = null;
           try {
-            uploadResult = await window.uploadContratoToDrive(file, {
-              name: `[${$("#pj-nome").value.trim() || "PJ"}] ${file.name}`,
-            });
-            console.log("[Drive] resposta:", uploadResult);
-            const link = uploadResult.webViewLink
-              || (uploadResult.id ? `https://drive.google.com/file/d/${uploadResult.id}/view` : null);
-            if (!link) throw new Error("Drive não retornou link nem id. Resposta: " + JSON.stringify(uploadResult));
-            urlInput.value = link;
-            urlInput.dispatchEvent(new Event("input", { bubbles: true }));
-            toast(`Arquivo enviado! Link preenchido — clique Salvar pra gravar.`);
-          } catch (err) {
-            console.error("[Drive] erro:", err);
-            toast("Erro no upload: " + (err.message || err), "danger");
-          }
-
-          // 3) Se PDF tinha pouco texto (provável scaneado) E o upload deu
-          //    certo, tenta OCR via Drive como fallback.
-          const ehPdfEscaneado = file.type === "application/pdf"
-            && (!textoDoPDF || textoDoPDF.trim().length < 200);
-          const drivePodeOCR = window.extrairTextoViaDriveOCR && uploadResult?.id;
-          if (ehPdfEscaneado && drivePodeOCR) {
-            uploadBtn.innerHTML = `${icon("clock")}<span>OCR Google Drive...</span>`;
-            try {
-              const textoOCR = await window.extrairTextoViaDriveOCR(uploadResult.id);
-              if (textoOCR && textoOCR.trim().length > 100) {
-                const resOCR = aplicarExtracaoTextoNoForm(textoOCR);
-                if (resOCR.preenchidos.length) {
-                  toast(`OCR detectou: ${resOCR.preenchidos.join(", ")}. Confira antes de salvar.`);
-                } else {
-                  toast("OCR rodou mas não achou padrões reconhecíveis. Preenche manual.", "danger");
+            // 1) Primeira tentativa: pdf.js puro (rápido, funciona em PDF
+            //    com camada de texto — contratos digitais).
+            if (ehPDF) {
+              updateFormBlocker("Lendo PDF...", 0);
+              try {
+                textoDoPDF = await extrairTextoDoPDF(file);
+                resultadoExtracao = aplicarExtracaoTextoNoForm(textoDoPDF);
+                if (resultadoExtracao.preenchidos.length) {
+                  toast(`Detectei do contrato: ${resultadoExtracao.preenchidos.join(", ")}. Confira antes de salvar.`);
                 }
+              } catch (err) {
+                console.warn("[pdf.js] falhou:", err);
               }
-            } catch (err) {
-              console.warn("[Drive OCR] falhou:", err);
-              toast("OCR via Drive falhou: " + (err.message || err), "danger");
             }
-          }
 
-          uploadBtn.disabled = false;
-          uploadBtn.innerHTML = origHTML;
-          fileInput.value = "";
+            // 2) Upload pro Drive
+            updateFormBlocker(`Enviando "${file.name}"...`, ehPDF ? 1 : 0);
+            let uploadResult = null;
+            try {
+              uploadResult = await window.uploadContratoToDrive(file, {
+                name: `[${$("#pj-nome").value.trim() || "PJ"}] ${file.name}`,
+              });
+              console.log("[Drive] resposta:", uploadResult);
+              const link = uploadResult.webViewLink
+                || (uploadResult.id ? `https://drive.google.com/file/d/${uploadResult.id}/view` : null);
+              if (!link) throw new Error("Drive não retornou link nem id. Resposta: " + JSON.stringify(uploadResult));
+              urlInput.value = link;
+              urlInput.dispatchEvent(new Event("input", { bubbles: true }));
+            } catch (err) {
+              console.error("[Drive] erro:", err);
+              toast("Erro no upload: " + (err.message || err), "danger");
+            }
+
+            // 3) Se PDF tinha pouco texto (provável scaneado) E o upload deu
+            //    certo, tenta OCR via Drive como fallback.
+            const ehPdfEscaneado = ehPDF && (!textoDoPDF || textoDoPDF.trim().length < 200);
+            const drivePodeOCR = window.extrairTextoViaDriveOCR && uploadResult?.id;
+            if (ehPdfEscaneado && drivePodeOCR) {
+              updateFormBlocker("Rodando OCR no Google Drive...", 2);
+              try {
+                const textoOCR = await window.extrairTextoViaDriveOCR(uploadResult.id);
+                if (textoOCR && textoOCR.trim().length > 100) {
+                  const resOCR = aplicarExtracaoTextoNoForm(textoOCR);
+                  if (resOCR.preenchidos.length) {
+                    toast(`OCR detectou: ${resOCR.preenchidos.join(", ")}. Confira antes de salvar.`);
+                  } else {
+                    toast("OCR rodou mas não achou padrões reconhecíveis. Preenche manual.", "danger");
+                  }
+                }
+              } catch (err) {
+                console.warn("[Drive OCR] falhou:", err);
+                toast("OCR via Drive falhou: " + (err.message || err), "danger");
+              }
+            }
+
+            // 4) Concluído
+            const lastStep = ehPDF ? 3 : 1;
+            updateFormBlocker("Pronto!", lastStep);
+            if (uploadResult) {
+              toast("Arquivo enviado! Confira os campos e clique Salvar pra gravar.");
+            }
+            // Pequena pausa pra usuário ver "Pronto!" antes de fechar
+            await new Promise((r) => setTimeout(r, 400));
+          } finally {
+            hideFormBlocker();
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = origHTML;
+            fileInput.value = "";
+          }
         });
       }
     },
@@ -2495,6 +2512,46 @@ function calcularMesesProporcionaisIPCA(pj, anoReajuste) {
   // Meses do início do contrato até dezembro do ano anterior ao reajuste, inclusive
   const totalMeses = (anoReajuste - 1 - y) * 12 + (12 - m + 1);
   return Math.min(12, Math.max(1, totalMeses));
+}
+
+// ---------- Form blocker (overlay bloqueante durante OCR/upload) ----------
+// Mostra um overlay em cima do modal que impede edição enquanto o
+// processo de upload + OCR está rodando.
+function showFormBlocker(initialMsg = "Processando...", steps = []) {
+  hideFormBlocker(); // garante que não tem outro
+  const modal = document.querySelector("#modal-root .modal");
+  if (!modal) return;
+  const blocker = document.createElement("div");
+  blocker.className = "form-blocker";
+  blocker.id = "form-blocker";
+  blocker.setAttribute("role", "alert");
+  blocker.setAttribute("aria-live", "assertive");
+  blocker.innerHTML = `
+    <div class="form-blocker__spinner"></div>
+    <div class="form-blocker__msg" id="form-blocker-msg">${initialMsg}</div>
+    <div class="form-blocker__hint">Não feche essa janela</div>
+    ${steps.length ? `
+      <div class="form-blocker__steps" id="form-blocker-steps">
+        ${steps.map((s, i) => `<div class="form-blocker__step" data-step="${i}">${s}</div>`).join("")}
+      </div>
+    ` : ""}
+  `;
+  modal.appendChild(blocker);
+}
+function updateFormBlocker(msg, activeStepIdx = null) {
+  const m = document.getElementById("form-blocker-msg");
+  if (m) m.textContent = msg;
+  if (activeStepIdx !== null) {
+    const all = document.querySelectorAll("#form-blocker-steps .form-blocker__step");
+    all.forEach((el, i) => {
+      el.classList.remove("is-active", "is-done");
+      if (i < activeStepIdx) el.classList.add("is-done");
+      else if (i === activeStepIdx) el.classList.add("is-active");
+    });
+  }
+}
+function hideFormBlocker() {
+  document.getElementById("form-blocker")?.remove();
 }
 
 // ---------- Extração automática de dados do contrato (PDF) ----------

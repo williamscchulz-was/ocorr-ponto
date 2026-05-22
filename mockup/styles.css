@@ -904,6 +904,66 @@ a:hover { color: var(--plum-soft); }
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
   animation: slideUp 220ms cubic-bezier(.4, 0, .2, 1);
+  position: relative; /* âncora pro form-blocker absoluto */
+}
+
+/* Overlay bloqueante usado durante OCR/upload (não deixa editar) */
+.form-blocker {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 50;
+  border-radius: var(--radius-xl);
+  text-align: center;
+  padding: 24px;
+}
+.form-blocker__spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e6e6e6;
+  border-top-color: var(--primary, #008835);
+  border-radius: 50%;
+  animation: spinBlocker 0.7s linear infinite;
+}
+.form-blocker__msg {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text, #222);
+}
+.form-blocker__hint {
+  font-size: 13px;
+  color: var(--muted, #666);
+}
+.form-blocker__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted, #777);
+}
+.form-blocker__step {
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+.form-blocker__step.is-active {
+  opacity: 1;
+  font-weight: 600;
+  color: var(--primary, #008835);
+}
+.form-blocker__step.is-done {
+  opacity: 0.7;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+@keyframes spinBlocker {
+  to { transform: rotate(360deg); }
 }
 
 .modal__header {
