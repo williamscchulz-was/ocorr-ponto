@@ -57,6 +57,7 @@ const TIPOS_PJ = [
 
 const PERIODICIDADES_PJ = [
   { id: "mensal", label: "Mensal" },
+  { id: "hora", label: "Por hora", sufixo: "/h" },
   { id: "trimestral", label: "Trimestral" },
   { id: "semestral", label: "Semestral" },
   { id: "anual", label: "Anual" },

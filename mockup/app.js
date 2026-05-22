@@ -1853,6 +1853,7 @@ function renderControlePJ() {
   const totalMensal = pjs
     .filter((p) => p.status === "ativo" && p.periodicidade === "mensal")
     .reduce((sum, p) => sum + (p.valorAtual || 0), 0);
+  const horistas = pjs.filter((p) => p.status === "ativo" && p.periodicidade === "hora").length;
   const proxRevisao = pjs.filter((p) => {
     if (!p.dataProximaRevisao || p.status !== "ativo") return false;
     const d = new Date(p.dataProximaRevisao + "T00:00:00");
@@ -1873,7 +1874,7 @@ function renderControlePJ() {
       <div class="stat stat--accent">
         <div class="stat__label">Total mensal (ativos)</div>
         <div class="stat__value">${formatMoeda(totalMensal)}</div>
-        <div class="stat__hint">prestadores mensais</div>
+        <div class="stat__hint">só mensais${horistas > 0 ? ` · ${horistas} horista${horistas > 1 ? "s" : ""}` : ""}</div>
       </div>
       <div class="stat">
         <div class="stat__label">PJs ativos</div>
@@ -1945,8 +1946,11 @@ function renderPJList() {
 
   root.innerHTML = `<div class="list">${list.map((p) => {
     const statusBadge = p.status === "ativo" ? "success" : p.status === "suspenso" ? "warning" : "neutral";
-    const valor = p.valorAtual ? formatMoeda(p.valorAtual) : "—";
-    const periodicidade = PERIODICIDADES_PJ.find((x) => x.id === p.periodicidade)?.label || p.periodicidade || "";
+    const periodObj = PERIODICIDADES_PJ.find((x) => x.id === p.periodicidade);
+    const valor = p.valorAtual
+      ? formatMoeda(p.valorAtual) + (periodObj?.sufixo || "")
+      : "—";
+    const periodicidade = periodObj?.label || p.periodicidade || "";
 
     return `
       <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto;" data-pj="${p.id}">
@@ -2018,7 +2022,7 @@ function openPJModal(id) {
       <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Financeiro</div>
       <div class="field-row">
         <div class="field">
-          <label for="pj-valor">Valor (R$)</label>
+          <label for="pj-valor">Valor (R$) <span id="pj-valor-sufixo" class="muted text-xs"></span></label>
           <input type="number" id="pj-valor" step="0.01" min="0" value="${pj?.valorAtual ?? ""}" placeholder="3500.00" />
         </div>
         <div class="field">
@@ -2117,6 +2121,14 @@ function openPJModal(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#btn-save-pj").addEventListener("click", () => savePJ(id));
       if (!isNew) $("#btn-del-pj").addEventListener("click", () => deletePJ(id));
+      // Atualiza sufixo do label de valor conforme periodicidade
+      const updateValorLabel = () => {
+        const period = PERIODICIDADES_PJ.find(p => p.id === $("#pj-periodicidade").value);
+        const sufixo = period?.sufixo || (period?.id === "mensal" ? "/mês" : "");
+        $("#pj-valor-sufixo").textContent = sufixo ? `· valor ${sufixo}` : "";
+      };
+      $("#pj-periodicidade").addEventListener("change", updateValorLabel);
+      updateValorLabel();
     },
   });
 }
