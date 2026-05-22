@@ -2683,15 +2683,20 @@ function analisarTextoContrato(texto) {
     if (candidato) { cnpjEscolhido = candidato; break; }
   }
 
-  // 2ª prioridade: primeiro CNPJ que NÃO seja da Fiobras
+  // 2ª prioridade: primeiro CNPJ que NÃO esteja na lista de ignorados
   if (!cnpjEscolhido) {
     cnpjEscolhido = cnpjsUnicos.find((c) => !CNPJS_IGNORAR.has(c.raw));
   }
 
-  // 3ª prioridade (fallback): primeiro CNPJ encontrado, qualquer
-  if (!cnpjEscolhido && cnpjsUnicos.length) cnpjEscolhido = cnpjsUnicos[0];
+  // SEM fallback pra CNPJ da Fiobras — melhor deixar vazio do que
+  // preencher o CNPJ do contratante. Provável que o prestador seja
+  // pessoa física / MEI sem CNPJ aparecendo no contrato.
+  if (cnpjEscolhido) {
+    r.cnpj = cnpjEscolhido.formatado;
+  }
 
-  if (cnpjEscolhido) r.cnpj = cnpjEscolhido.formatado;
+  console.log("[Contrato] CNPJs encontrados:", cnpjsUnicos.map((c) => c.formatado));
+  console.log("[Contrato] CNPJ escolhido:", r.cnpj || "(nenhum válido — só CNPJ ignorado ou nenhum CNPJ)");
 
   // ---------- Periodicidade ----------
   // Detecta "por hora" / "/h" / "horista" antes de decidir o valor.
