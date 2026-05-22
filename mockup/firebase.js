@@ -44,6 +44,8 @@
 
       const app = firebase.initializeApp(cfg);
       const auth = firebase.auth();
+      // Templates de email (reset senha, verificação) saem em pt-BR
+      auth.languageCode = "pt";
       const db = firebase.firestore();
 
       // Limpa qualquer sessão de modo demo
