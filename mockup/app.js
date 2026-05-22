@@ -1850,23 +1850,6 @@ function renderControlePJ() {
   $("#topbar-title").textContent = "Controle PJ";
 
   const pjs = state.pjs || [];
-  const ativos = pjs.filter((p) => p.status === "ativo").length;
-  const totalMensal = pjs
-    .filter((p) => p.status === "ativo" && p.periodicidade === "mensal")
-    .reduce((sum, p) => sum + (p.valorAtual || 0), 0);
-  const horistas = pjs.filter((p) => p.status === "ativo" && p.periodicidade === "hora").length;
-  const proxRevisao = pjs.filter((p) => {
-    if (!p.dataProximaRevisao || p.status !== "ativo") return false;
-    const d = new Date(p.dataProximaRevisao + "T00:00:00");
-    const diff = (d - new Date()) / (1000 * 60 * 60 * 24);
-    return diff >= 0 && diff <= 30;
-  }).length;
-
-  const reajustesPendentes = pjs.filter(pjPrecisaReajuste).length;
-  const diasReajuste = diasParaReajuste();
-  const janelaR = janelaReajuste();
-  // Stat só fica em destaque dentro da janela (15 dias antes / 30 dias depois)
-  const reajusteVigente = janelaR.dentro && reajustesPendentes > 0;
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -1876,36 +1859,6 @@ function renderControlePJ() {
       </div>
       <button class="btn btn--primary" id="btn-novo-pj">${icon("plus")}<span>Novo PJ</span></button>
     </header>
-
-    <div class="stats">
-      <div class="stat stat--accent">
-        <div class="stat__label">Total mensal (ativos)</div>
-        <div class="stat__value">${formatMoeda(totalMensal)}</div>
-        <div class="stat__hint">só mensais${horistas > 0 ? ` · ${horistas} horista${horistas > 1 ? "s" : ""}` : ""}</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">PJs ativos</div>
-        <div class="stat__value">${ativos}</div>
-        <div class="stat__hint">de ${pjs.length} total</div>
-      </div>
-      <div class="stat ${reajusteVigente ? "stat--accent" : ""}">
-        <div class="stat__label">Reajuste anual (15/01)</div>
-        <div class="stat__value">${
-          janelaR.dentro
-            ? reajustesPendentes
-            : diasReajuste <= 30 ? diasReajuste : "—"
-        }</div>
-        <div class="stat__hint">${
-          janelaR.dentro
-            ? (reajustesPendentes > 0
-                ? "pendente" + (reajustesPendentes > 1 ? "s" : "") + " — aplique pelo card"
-                : "tudo em dia neste ano")
-            : diasReajuste <= 30
-              ? `dias até o próximo`
-              : "próximo em janeiro"
-        }</div>
-      </div>
-    </div>
 
     <div class="toolbar">
       <div class="toolbar__search">
