@@ -52,23 +52,38 @@
   async function getAccessToken() {
     await loadGSI();
     return new Promise((resolve, reject) => {
+      const onSuccess = (resp) => {
+        console.log("[Drive] OAuth success");
+        if (resp.error) {
+          console.error("[Drive] callback error:", resp);
+          reject(new Error(resp.error_description || resp.error));
+        } else {
+          resolve(resp.access_token);
+        }
+      };
+      const onError = (err) => {
+        console.error("[Drive] OAuth error:", err);
+        const msg = err?.type === "popup_closed"
+          ? "Popup do Google foi fechado antes de autorizar."
+          : err?.type === "popup_failed_to_open"
+          ? "Browser bloqueou o popup. Permita popups pra weave-fiobras.web.app e tente de novo."
+          : (err?.message || err?.type || "Erro desconhecido no OAuth. Verifique se você foi adicionado como 'Test user' no console Google Cloud.");
+        reject(new Error(msg));
+      };
+
       if (!tokenClient) {
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: cfg.clientId,
           scope: "https://www.googleapis.com/auth/drive.file",
-          callback: (resp) => {
-            if (resp.error) reject(new Error(resp.error_description || resp.error));
-            else resolve(resp.access_token);
-          },
+          callback: onSuccess,
+          error_callback: onError,
         });
       } else {
-        // Atualiza callback porque cada request precisa do seu próprio
-        tokenClient.callback = (resp) => {
-          if (resp.error) reject(new Error(resp.error_description || resp.error));
-          else resolve(resp.access_token);
-        };
+        tokenClient.callback = onSuccess;
+        tokenClient.error_callback = onError;
       }
-      tokenClient.requestAccessToken({ prompt: "" });
+      console.log("[Drive] solicitando access token...");
+      tokenClient.requestAccessToken();
     });
   }
 
