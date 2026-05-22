@@ -2093,10 +2093,11 @@ function mesesCompletos(d1, d2) {
   return Math.max(0, meses);
 }
 
-// Dias de férias acumulados desde início do direito até hoje
+// Dias de férias acumulados desde o início do contrato até hoje
+// Regra: diasPorAno * (meses_completos / 12), proporcional mês a mês.
 function feriasAcumuladas(pj) {
   if (!pj.temFerias) return 0;
-  const inicio = pj.inicioDireitoFerias || pj.dataInicio;
+  const inicio = pj.dataInicio || pj.inicioDireitoFerias; // legado: respeita campo antigo
   if (!inicio) return 0;
   const diasPorAno = Number(pj.diasFeriasAno) || 30;
   const meses = mesesCompletos(inicio, new Date());
@@ -2211,17 +2212,10 @@ function openPJModal(id) {
       </label>
 
       <div id="pj-ferias-fields" style="display: ${pj?.temFerias ? "block" : "none"}; margin-top: 8px;">
-        <div class="field-row">
-          <div class="field">
-            <label for="pj-dias-ano">Dias por ano</label>
-            <input type="number" id="pj-dias-ano" min="1" max="365" value="${pj?.diasFeriasAno ?? 30}" />
-            <span class="field__hint">CLT padrão: 30 dias.</span>
-          </div>
-          <div class="field">
-            <label for="pj-inicio-direito">Início do direito</label>
-            <input type="date" id="pj-inicio-direito" value="${pj?.inicioDireitoFerias || pj?.dataInicio || ""}" />
-            <span class="field__hint">Marco zero. Geralmente = início do contrato.</span>
-          </div>
+        <div class="field">
+          <label for="pj-dias-ano">Dias por ano</label>
+          <input type="number" id="pj-dias-ano" min="1" max="365" value="${pj?.diasFeriasAno ?? 30}" />
+          <span class="field__hint">CLT padrão: 30 dias. O sistema acumula proporcionalmente a partir do <strong>início do contrato</strong> (acima).</span>
         </div>
       </div>
 
@@ -2387,9 +2381,8 @@ function savePJ(id) {
     diasFeriasAno: $("#pj-tem-ferias").checked
       ? (Number($("#pj-dias-ano").value) || 30)
       : null,
-    inicioDireitoFerias: $("#pj-tem-ferias").checked
-      ? ($("#pj-inicio-direito").value || null)
-      : null,
+    // inicioDireitoFerias removido: o cálculo usa sempre dataInicio do contrato
+    inicioDireitoFerias: null,
     contato: {
       nome: $("#pj-contato-nome").value.trim() || null,
       email: $("#pj-contato-email").value.trim() || null,
@@ -2680,7 +2673,9 @@ function renderPJFeriasList(pjId) {
       </div>
     </div>
     <div class="text-xs muted" style="margin-bottom: 8px;">
-      Sistema acumula ${(Number(pj.diasFeriasAno) || 30) / 12 % 1 === 0 ? (Number(pj.diasFeriasAno) || 30) / 12 : ((Number(pj.diasFeriasAno) || 30) / 12).toFixed(2)} dia/mês desde ${pj.inicioDireitoFerias ? formatDate(pj.inicioDireitoFerias) : "—"} (${pj.diasFeriasAno || 30} dias/ano).
+      ${pj.dataInicio
+        ? `Sistema acumula ${(Number(pj.diasFeriasAno) || 30) / 12 % 1 === 0 ? (Number(pj.diasFeriasAno) || 30) / 12 : ((Number(pj.diasFeriasAno) || 30) / 12).toFixed(2)} dia/mês desde <strong>${formatDate(pj.dataInicio)}</strong> (início do contrato · ${pj.diasFeriasAno || 30} dias/ano).`
+        : `<span style="color: var(--danger);">⚠ Preencha "Início do contrato" no PJ pra o sistema calcular as férias.</span>`}
     </div>
   `;
 

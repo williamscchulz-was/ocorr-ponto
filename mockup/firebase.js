@@ -492,9 +492,8 @@
         diasFeriasAno: $("#pj-tem-ferias").checked
           ? (Number($("#pj-dias-ano").value) || 30)
           : null,
-        inicioDireitoFerias: $("#pj-tem-ferias").checked
-          ? ($("#pj-inicio-direito").value || null)
-          : null,
+        // inicioDireitoFerias removido — usa dataInicio do contrato como base
+        inicioDireitoFerias: null,
         contato: {
           nome: $("#pj-contato-nome").value.trim() || null,
           email: $("#pj-contato-email").value.trim() || null,
