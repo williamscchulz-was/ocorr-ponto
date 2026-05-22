@@ -1930,6 +1930,7 @@ function renderControlePJ() {
 }
 
 function renderPJList() {
+  const u = currentUser();
   const search = ($("#pj-search")?.value || "").toLowerCase();
   const filter = $("#pj-status-filter")?.value || "";
 
@@ -1972,6 +1973,8 @@ function renderPJList() {
     const periodicidade = periodObj?.label || p.periodicidade || "";
 
     const precisaReajuste = pjPrecisaReajuste(p);
+    const userPodeReajustar = u && (u.role === "admin" || u.role === "rh");
+    const podeMostrarBotaoReajuste = userPodeReajustar && p.status === "ativo";
     return `
       <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto auto;" data-pj="${p.id}">
         <div class="avatar">${initials(p.nome || "?")}</div>
@@ -1992,8 +1995,10 @@ function renderPJList() {
         ${p.contratoUrl
           ? `<a href="${p.contratoUrl}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" data-stop="1" title="Abrir contrato no Drive">${icon("file")}<span>Contrato</span></a>`
           : `<span class="text-xs muted" style="text-align:center;">sem contrato</span>`}
-        ${precisaReajuste
-          ? `<button class="btn btn--primary btn--sm" data-stop="1" data-reajustar="${p.id}" title="Aplicar reajuste IPCA">${icon("check")}<span>Reajustar</span></button>`
+        ${podeMostrarBotaoReajuste
+          ? (precisaReajuste
+              ? `<button class="btn btn--primary btn--sm" data-stop="1" data-reajustar="${p.id}" title="Aplicar reajuste IPCA do ciclo atual">${icon("check")}<span>Reajustar</span></button>`
+              : `<button class="btn btn--ghost btn--sm" data-stop="1" data-reajustar="${p.id}" title="Aplicar reajuste extra (fora do ciclo anual)">${icon("plus")}<span>Reajuste</span></button>`)
           : `<span class="badge badge--${statusBadge}" style="text-transform: uppercase;">${p.status || "—"}</span>`}
         <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </article>
@@ -2346,36 +2351,66 @@ function openPJModal(id) {
           if (!file) return;
           uploadBtn.disabled = true;
 
-          // 1) Antes de subir, tenta extrair CNPJ/valor/nome/data do PDF
-          //    e preenche campos vazios do form (não sobrescreve).
+          let textoDoPDF = "";
+          let resultadoExtracao = null;
+
+          // 1) Primeira tentativa: pdf.js puro (rápido, funciona em PDF
+          //    com camada de texto — contratos digitais).
           if (file.type === "application/pdf") {
             uploadBtn.innerHTML = `${icon("clock")}<span>Lendo PDF...</span>`;
-            const res = await autopreencherFormPJDoContrato(file);
-            if (res && res.preenchidos.length) {
-              toast(`Detectei do contrato: ${res.preenchidos.join(", ")}. Confira antes de salvar.`);
-            } else if (res && !res.preenchidos.length) {
-              console.info("[PDF] nenhum dado novo detectado — provavelmente PDF escaneado ou formato fora do padrão");
+            try {
+              textoDoPDF = await extrairTextoDoPDF(file);
+              resultadoExtracao = aplicarExtracaoTextoNoForm(textoDoPDF);
+              if (resultadoExtracao.preenchidos.length) {
+                toast(`Detectei do contrato: ${resultadoExtracao.preenchidos.join(", ")}. Confira antes de salvar.`);
+              }
+            } catch (err) {
+              console.warn("[pdf.js] falhou:", err);
             }
           }
 
+          // 2) Upload pro Drive
           uploadBtn.innerHTML = `${icon("clock")}<span>Enviando "${file.name}"...</span>`;
+          let uploadResult = null;
           try {
-            const result = await window.uploadContratoToDrive(file, {
+            uploadResult = await window.uploadContratoToDrive(file, {
               name: `[${$("#pj-nome").value.trim() || "PJ"}] ${file.name}`,
             });
-            console.log("[Drive] resposta:", result);
-            // Fallback: se webViewLink não veio, monta a partir do id
-            const link = result.webViewLink
-              || (result.id ? `https://drive.google.com/file/d/${result.id}/view` : null);
-            if (!link) throw new Error("Drive não retornou link nem id. Resposta: " + JSON.stringify(result));
+            console.log("[Drive] resposta:", uploadResult);
+            const link = uploadResult.webViewLink
+              || (uploadResult.id ? `https://drive.google.com/file/d/${uploadResult.id}/view` : null);
+            if (!link) throw new Error("Drive não retornou link nem id. Resposta: " + JSON.stringify(uploadResult));
             urlInput.value = link;
-            // Dispara evento change pra qualquer listener atrelado
             urlInput.dispatchEvent(new Event("input", { bubbles: true }));
             toast(`Arquivo enviado! Link preenchido — clique Salvar pra gravar.`);
           } catch (err) {
             console.error("[Drive] erro:", err);
             toast("Erro no upload: " + (err.message || err), "danger");
           }
+
+          // 3) Se PDF tinha pouco texto (provável scaneado) E o upload deu
+          //    certo, tenta OCR via Drive como fallback.
+          const ehPdfEscaneado = file.type === "application/pdf"
+            && (!textoDoPDF || textoDoPDF.trim().length < 200);
+          const drivePodeOCR = window.extrairTextoViaDriveOCR && uploadResult?.id;
+          if (ehPdfEscaneado && drivePodeOCR) {
+            uploadBtn.innerHTML = `${icon("clock")}<span>OCR Google Drive...</span>`;
+            try {
+              const textoOCR = await window.extrairTextoViaDriveOCR(uploadResult.id);
+              if (textoOCR && textoOCR.trim().length > 100) {
+                const resOCR = aplicarExtracaoTextoNoForm(textoOCR);
+                if (resOCR.preenchidos.length) {
+                  toast(`OCR detectou: ${resOCR.preenchidos.join(", ")}. Confira antes de salvar.`);
+                } else {
+                  toast("OCR rodou mas não achou padrões reconhecíveis. Preenche manual.", "danger");
+                }
+              }
+            } catch (err) {
+              console.warn("[Drive OCR] falhou:", err);
+              toast("OCR via Drive falhou: " + (err.message || err), "danger");
+            }
+          }
+
           uploadBtn.disabled = false;
           uploadBtn.innerHTML = origHTML;
           fileInput.value = "";
@@ -2596,31 +2631,26 @@ function analisarTextoContrato(texto) {
   return r;
 }
 
-// Tenta extrair dados do PDF e preenche campos vazios do form
-async function autopreencherFormPJDoContrato(file) {
-  if (!file || file.type !== "application/pdf") return null;
-  try {
-    const texto = await extrairTextoDoPDF(file);
-    const dados = analisarTextoContrato(texto);
-    const preenchidos = [];
+// Aplica regex/heurísticas no texto e preenche campos vazios do form.
+// Reusado tanto pelo pdf.js puro quanto pelo OCR via Drive.
+// Retorna { dados, preenchidos: [labels] }
+function aplicarExtracaoTextoNoForm(texto) {
+  const dados = analisarTextoContrato(texto || "");
+  const preenchidos = [];
 
-    const setSe = (selector, valor, label) => {
-      const el = $(selector);
-      if (el && valor && !el.value.trim()) {
-        el.value = valor;
-        preenchidos.push(label);
-      }
-    };
-    setSe("#pj-cnpj", dados.cnpj, "CNPJ");
-    setSe("#pj-nome", dados.nome, "nome");
-    setSe("#pj-valor", dados.valor ? dados.valor.toFixed(2) : null, "valor");
-    setSe("#pj-data-inicio", dados.dataInicio, "início");
+  const setSe = (selector, valor, label) => {
+    const el = $(selector);
+    if (el && valor && !el.value.trim()) {
+      el.value = valor;
+      preenchidos.push(label);
+    }
+  };
+  setSe("#pj-cnpj", dados.cnpj, "CNPJ");
+  setSe("#pj-nome", dados.nome, "nome");
+  setSe("#pj-valor", dados.valor ? dados.valor.toFixed(2) : null, "valor");
+  setSe("#pj-data-inicio", dados.dataInicio, "início");
 
-    return { dados, preenchidos };
-  } catch (err) {
-    console.warn("[PDF extração] falhou:", err);
-    return null;
-  }
+  return { dados, preenchidos };
 }
 
 function openReajusteModal(id) {
@@ -2633,6 +2663,10 @@ function openReajusteModal(id) {
   const anoVigente = ultimoAnoReajusteVigente();
   const mesesSugeridos = calcularMesesProporcionaisIPCA(pj, anoVigente);
   const ehPrimeiroReajuste = mesesSugeridos < 12;
+  const janela = janelaReajuste();
+  const foraDaJanela = !janela.dentro;
+  const jaReajustadoNoAno = pjJaReajustadoNoAno(pj, janela.ano);
+  const reajusteExtra = foraDaJanela || jaReajustadoNoAno;
 
   const hintAuto = ehPrimeiroReajuste
     ? `Primeiro reajuste — proporcional ao tempo de contrato (início ${pj.dataInicio ? formatDate(pj.dataInicio) : "?"} → dez/${anoVigente - 1} = <strong>${mesesSugeridos} ${mesesSugeridos === 1 ? "mês" : "meses"}</strong>).`
@@ -2641,12 +2675,25 @@ function openReajusteModal(id) {
   openModal(`
     <div class="modal__header">
       <div>
-        <h2>Aplicar reajuste · ${pj.nome}</h2>
-        <p>Reajuste anual de 15/01/${anoVigente}. Busca o IPCA via Banco Central conforme o período escolhido.</p>
+        <h2>${reajusteExtra ? "Reajuste extra" : "Aplicar reajuste"} · ${pj.nome}</h2>
+        <p>${reajusteExtra
+            ? "Reajuste fora do ciclo anual (15/01). Use pra casos especiais — não substitui o reajuste oficial."
+            : `Reajuste anual de 15/01/${anoVigente}. Busca o IPCA via Banco Central conforme o período escolhido.`}</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body" id="reajuste-form" onsubmit="return false">
+      ${reajusteExtra ? `
+        <div style="background: rgba(255, 203, 0, 0.12); border-left: 3px solid var(--warning); padding: 10px 12px; border-radius: var(--radius); margin-bottom: 12px;">
+          <div style="font-weight: 600; font-size: 13px;">⚠ Você está fora da janela anual de reajuste</div>
+          <div class="text-xs muted" style="margin-top: 2px;">
+            ${jaReajustadoNoAno
+              ? `Esse PJ já foi reajustado em ${janela.ano}. Continue só se for ajuste pontual (negociado, erro de valor, etc).`
+              : `A janela anual é de 31/12 a 14/02. Continue apenas pra ajustes pontuais negociados com o PJ.`}
+            Pode digitar o % manual sem usar o botão de buscar IPCA.
+          </div>
+        </div>
+      ` : ""}
       <div class="detail-grid">
         <div class="detail-cell">
           <label>Valor atual</label>
@@ -2673,10 +2720,10 @@ function openReajusteModal(id) {
       <div class="field">
         <label for="reaj-percentual">Percentual de reajuste (%)</label>
         <div class="row" style="gap: 8px; align-items: stretch;">
-          <input type="number" id="reaj-percentual" step="0.01" placeholder="4.50" style="flex: 1;" />
-          <button type="button" class="btn btn--soft" id="btn-buscar-ipca">${icon("download")}<span>Buscar IPCA</span></button>
+          <input type="number" id="reaj-percentual" step="0.01" placeholder="ex: 4.50" style="flex: 1;" />
+          <button type="button" class="btn btn--soft" id="btn-buscar-ipca" title="Trazer da API do Banco Central conforme o período acima">${icon("download")}<span>Buscar IPCA</span></button>
         </div>
-        <span class="field__hint" id="reaj-fonte">Digite o % manualmente ou clique "Buscar IPCA" pra trazer da API do Banco Central.</span>
+        <span class="field__hint" id="reaj-fonte"><strong>Digite o % diretamente</strong> (negociado com o PJ) ou clique <strong>"Buscar IPCA"</strong> pra trazer do Banco Central.</span>
       </div>
 
       <div class="field">

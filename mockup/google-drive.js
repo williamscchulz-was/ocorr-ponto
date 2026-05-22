@@ -115,4 +115,62 @@
     }
     return res.json();
   };
+
+  /**
+   * Extrai texto de um PDF no Drive usando o OCR nativo do Google.
+   * Estratégia: copia o PDF como Google Doc (Drive gatilha OCR) →
+   * exporta como text/plain → deleta o Doc temporário.
+   *
+   * Funciona em PDFs escaneados (imagem). Precisão alta (Google Vision
+   * por trás). Latência ~3-15s. Free dentro da cota do Drive.
+   *
+   * fileId: ID do arquivo PDF no Drive (já uploadado)
+   * Retorna string com o texto extraído.
+   */
+  window.extrairTextoViaDriveOCR = async function (fileId) {
+    if (!fileId) throw new Error("fileId obrigatório");
+    const token = await getAccessToken();
+
+    // 1) Copia como Google Doc — isso gatilha o OCR automaticamente
+    const copyRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/copy?fields=id,name`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: `[OCR temp ${Date.now()}]`,
+          mimeType: "application/vnd.google-apps.document",
+        }),
+      }
+    );
+    if (!copyRes.ok) {
+      const t = await copyRes.text();
+      throw new Error("Drive copy (OCR) falhou: " + t.slice(0, 300));
+    }
+    const doc = await copyRes.json();
+    const docId = doc.id;
+
+    try {
+      // 2) Exporta o Doc convertido como texto plano
+      const expRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${docId}/export?mimeType=text/plain`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!expRes.ok) {
+        const t = await expRes.text();
+        throw new Error("Drive export falhou: " + t.slice(0, 300));
+      }
+      const texto = await expRes.text();
+      return texto;
+    } finally {
+      // 3) Limpa o Doc temporário, sucesso ou erro
+      fetch(`https://www.googleapis.com/drive/v3/files/${docId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch((e) => console.warn("[Drive OCR] cleanup falhou:", e));
+    }
+  };
 })();
