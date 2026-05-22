@@ -2117,7 +2117,7 @@ function openPJModal(id) {
 
       <input type="file" id="pj-contrato-file" accept=".pdf,.docx,.doc" style="display:none;" />
       <button type="button" class="btn ${isNew ? "btn--primary" : "btn--soft"} btn--block" id="btn-upload-drive">
-        ${icon("upload")}<span>${isNew ? "Subir contrato e preencher automaticamente" : "Subir arquivo pro Drive Fiobras"}</span>
+        ${icon("upload")}<span>Upload contrato</span>
       </button>
 
       ${pj?.contratoUrl ? `
