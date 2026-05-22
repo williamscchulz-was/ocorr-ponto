@@ -488,6 +488,7 @@
         dataProximaRevisao: $("#pj-data-revisao").value || null,
         status: $("#pj-status").value,
         descricao: $("#pj-descricao").value.trim() || null,
+        diasDireitoAno: $("#pj-dias-direito").value ? Number($("#pj-dias-direito").value) : null,
         contato: {
           nome: $("#pj-contato-nome").value.trim() || null,
           email: $("#pj-contato-email").value.trim() || null,
@@ -554,6 +555,7 @@
       const pj = (state.pjs || []).find((p) => p.id === pjId);
       if (!pj) return;
       const u = currentUser();
+      const tipo = document.querySelector('input[name="ferias-tipo"]:checked')?.value || "gozadas";
       const inicio = $("#ferias-inicio").value;
       const fim = $("#ferias-fim").value;
       const observacao = $("#ferias-obs").value.trim();
@@ -562,6 +564,7 @@
 
       const novo = {
         id: "fer-" + Date.now(),
+        tipo,
         inicio,
         fim,
         observacao: observacao || null,
