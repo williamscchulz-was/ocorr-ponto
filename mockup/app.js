@@ -2340,6 +2340,19 @@ function openPJModal(id) {
           const file = e.target.files?.[0];
           if (!file) return;
           uploadBtn.disabled = true;
+
+          // 1) Antes de subir, tenta extrair CNPJ/valor/nome/data do PDF
+          //    e preenche campos vazios do form (não sobrescreve).
+          if (file.type === "application/pdf") {
+            uploadBtn.innerHTML = `${icon("clock")}<span>Lendo PDF...</span>`;
+            const res = await autopreencherFormPJDoContrato(file);
+            if (res && res.preenchidos.length) {
+              toast(`Detectei do contrato: ${res.preenchidos.join(", ")}. Confira antes de salvar.`);
+            } else if (res && !res.preenchidos.length) {
+              console.info("[PDF] nenhum dado novo detectado — provavelmente PDF escaneado ou formato fora do padrão");
+            }
+          }
+
           uploadBtn.innerHTML = `${icon("clock")}<span>Enviando "${file.name}"...</span>`;
           try {
             const result = await window.uploadContratoToDrive(file, {
@@ -2488,6 +2501,121 @@ function calcularMesesProporcionaisIPCA(pj, anoReajuste) {
   // Meses do início do contrato até dezembro do ano anterior ao reajuste, inclusive
   const totalMeses = (anoReajuste - 1 - y) * 12 + (12 - m + 1);
   return Math.min(12, Math.max(1, totalMeses));
+}
+
+// ---------- Extração automática de dados do contrato (PDF) ----------
+// Lê o PDF via pdf.js no browser e tenta achar CNPJ, valor, nome do
+// prestador, data de início. PDFs escaneados (imagem) não funcionam.
+let _pdfJsPromise = null;
+async function loadPdfJs() {
+  if (window.pdfjsLib) return window.pdfjsLib;
+  if (_pdfJsPromise) return _pdfJsPromise;
+  const ver = "3.11.174";
+  _pdfJsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${ver}/pdf.min.js`;
+    s.onload = () => {
+      try {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${ver}/pdf.worker.min.js`;
+        resolve(window.pdfjsLib);
+      } catch (e) { reject(e); }
+    };
+    s.onerror = () => reject(new Error("Falha ao carregar pdf.js"));
+    document.head.appendChild(s);
+  });
+  return _pdfJsPromise;
+}
+
+async function extrairTextoDoPDF(file) {
+  const pdfjs = await loadPdfJs();
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: buf }).promise;
+  // Limita a 15 páginas pra não travar em contratos enormes
+  const maxPag = Math.min(pdf.numPages, 15);
+  let texto = "";
+  for (let i = 1; i <= maxPag; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    texto += content.items.map((it) => it.str).join(" ") + "\n";
+  }
+  return texto;
+}
+
+function analisarTextoContrato(texto) {
+  const r = {};
+  if (!texto || texto.length < 20) return r;
+
+  // CNPJ: 14 dígitos, com ou sem máscara
+  const mCNPJ = texto.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/);
+  if (mCNPJ) {
+    const raw = mCNPJ[0].replace(/\D/g, "");
+    if (raw.length === 14) {
+      r.cnpj = `${raw.slice(0, 2)}.${raw.slice(2, 5)}.${raw.slice(5, 8)}/${raw.slice(8, 12)}-${raw.slice(12, 14)}`;
+    }
+  }
+
+  // Valor R$: pega o MAIOR valor mencionado entre R$ 100 e R$ 1.000.000
+  // (heurística: o "preço do contrato" costuma ser o maior número monetário)
+  const valores = [...texto.matchAll(/R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/g)]
+    .map((m) => {
+      const raw = m[1].replace(/\./g, "").replace(",", ".");
+      return Number(raw);
+    })
+    .filter((v) => Number.isFinite(v) && v >= 100 && v <= 1_000_000);
+  if (valores.length > 0) r.valor = Math.max(...valores);
+
+  // Nome / razão social do prestador
+  // Procura padrões típicos: "CONTRATADO(A):", "PRESTADOR:", "RAZÃO SOCIAL:"
+  const mNome = texto.match(
+    /(?:CONTRATAD[OA]|PRESTADOR(?:\s+DE\s+SERVI[ÇC]OS?)?|RAZ[ÃA]O\s+SOCIAL)\s*[:\-]?\s*([A-ZÀ-Ú][A-ZÀ-Ú0-9 .,&\-]{4,80})/i
+  );
+  if (mNome) {
+    // Limpa: corta em vírgula, "CNPJ", "inscrita", etc
+    let nome = mNome[1].trim();
+    nome = nome.split(/,|\s+CNPJ|\s+inscrita|\s+CPF|\s{3,}/i)[0].trim();
+    if (nome.length >= 3) r.nome = nome;
+  }
+
+  // Data de início: "vigência", "início", "começa em" + DD/MM/AAAA
+  const mData = texto.match(
+    /(?:in[ií]cio|vig[êe]ncia|come[çc]a|a\s+partir\s+de)\s+(?:em\s+|de\s+)?(\d{1,2}\/\d{1,2}\/\d{4})/i
+  );
+  if (mData) {
+    const [d, m, y] = mData[1].split("/").map(Number);
+    if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2100) {
+      r.dataInicio = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    }
+  }
+
+  return r;
+}
+
+// Tenta extrair dados do PDF e preenche campos vazios do form
+async function autopreencherFormPJDoContrato(file) {
+  if (!file || file.type !== "application/pdf") return null;
+  try {
+    const texto = await extrairTextoDoPDF(file);
+    const dados = analisarTextoContrato(texto);
+    const preenchidos = [];
+
+    const setSe = (selector, valor, label) => {
+      const el = $(selector);
+      if (el && valor && !el.value.trim()) {
+        el.value = valor;
+        preenchidos.push(label);
+      }
+    };
+    setSe("#pj-cnpj", dados.cnpj, "CNPJ");
+    setSe("#pj-nome", dados.nome, "nome");
+    setSe("#pj-valor", dados.valor ? dados.valor.toFixed(2) : null, "valor");
+    setSe("#pj-data-inicio", dados.dataInicio, "início");
+
+    return { dados, preenchidos };
+  } catch (err) {
+    console.warn("[PDF extração] falhou:", err);
+    return null;
+  }
 }
 
 function openReajusteModal(id) {
