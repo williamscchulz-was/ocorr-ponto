@@ -214,8 +214,55 @@ function renderApp() {
 
   renderNav();
   renderBottomNav();
+  renderPresence();
   renderView();
   updateFab();
+}
+
+// Presence indicator (MOCK — não tem realtime backend ainda).
+// Mostra o user atual + alguns colegas como "online" no topbar.
+// Cor do avatar é estável (derivada do id) pra ficar reconhecível.
+function presenceColor(id) {
+  const palette = ["#008835", "#0076BE", "#FFCB00", "#E63946", "#7B4F9C", "#F28C28"];
+  let h = 0;
+  for (let i = 0; i < (id || "").length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return palette[h % palette.length];
+}
+
+function renderPresence() {
+  const el = $("#presence");
+  if (!el) return;
+  const u = currentUser();
+  if (!u) { el.innerHTML = ""; return; }
+
+  // Mock: current user + até 3 colegas ativos
+  const outros = (state.users || [])
+    .filter((x) => x.id !== u.id && x.active !== false)
+    .slice(0, 3);
+  const online = [u, ...outros];
+
+  const maxAvatars = 4;
+  const visiveis = online.slice(0, maxAvatars);
+  const extras = online.length - visiveis.length;
+
+  const stack = visiveis
+    .map(
+      (usr) => `
+      <div class="presence__avatar"
+           style="background: ${presenceColor(usr.id)};"
+           title="${usr.nome || "?"} (online)">
+        ${initials(usr.nome || "?")}
+      </div>`
+    )
+    .join("");
+
+  el.innerHTML = `
+    <div class="presence__avatars">
+      ${stack}
+      ${extras > 0 ? `<div class="presence__avatar" style="background:#555;" title="+${extras} online">+${extras}</div>` : ""}
+    </div>
+    <div class="presence__count"><span class="dot-live"></span>${online.length} online</div>
+  `;
 }
 
 function renderNav() {
