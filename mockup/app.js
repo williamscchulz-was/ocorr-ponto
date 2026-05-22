@@ -1954,13 +1954,10 @@ function renderPJList() {
     const periodicidade = periodObj?.label || p.periodicidade || "";
 
     return `
-      <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto;" data-pj="${p.id}">
+      <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto auto;" data-pj="${p.id}">
         <div class="avatar">${initials(p.nome || "?")}</div>
         <div class="occ__main">
-          <div class="occ__name">
-            ${p.nome || "(sem nome)"}
-            ${p.contratoUrl ? `<span title="Contrato anexado" style="color: var(--plum); margin-left: 6px;">${icon("file")}</span>` : ""}
-          </div>
+          <div class="occ__name">${p.nome || "(sem nome)"}</div>
           <div class="occ__sub">
             ${p.tipoServico ? `<span class="badge badge--neutral">${p.tipoServico}</span>` : ""}
             ${p.cnpj ? `<span class="dot"></span><span>${p.cnpj}</span>` : ""}
@@ -1970,6 +1967,9 @@ function renderPJList() {
           <div style="font-family: var(--font-display); font-weight: 700; color: var(--plum); font-size: 15px;">${valor}</div>
           <div class="text-xs muted">${periodicidade}</div>
         </div>
+        ${p.contratoUrl
+          ? `<a href="${p.contratoUrl}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" data-stop="1" title="Abrir contrato no Drive">${icon("file")}<span>Contrato</span></a>`
+          : `<span class="text-xs muted" style="text-align:center;">sem contrato</span>`}
         <span class="badge badge--${statusBadge}" style="text-transform: uppercase;">${p.status || "—"}</span>
         <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </article>
@@ -1977,7 +1977,11 @@ function renderPJList() {
   }).join("")}</div>`;
 
   $$("#pj-list .occ").forEach((el) => {
-    el.addEventListener("click", () => openPJModal(el.dataset.pj));
+    el.addEventListener("click", (e) => {
+      // Não abre o modal se clicou no link do contrato
+      if (e.target.closest("[data-stop]")) return;
+      openPJModal(el.dataset.pj);
+    });
   });
 }
 
