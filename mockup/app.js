@@ -2337,12 +2337,30 @@ function openPJModal(id) {
               }
             }
 
-            // 2) Upload pro Drive
-            updateFormBlocker(`Enviando "${file.name}"...`, ehPDF ? 1 : 0);
+            // 2) Upload pro Drive — em pasta do prestador, nome padronizado
+            updateFormBlocker("Organizando pasta no Drive...", ehPDF ? 1 : 0);
+            const pjNome = ($("#pj-nome").value || "").trim();
+            const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
+            const nomeArquivo = pjNome
+              ? `Contrato - ${pjNome}.${ext}`
+              : file.name;
+
+            // Tenta criar/achar a pasta do prestador. Se falhar, sobe na raiz.
+            let parentFolderId = null;
+            if (pjNome && window.findOrCreateFolderForPJ) {
+              try {
+                parentFolderId = await window.findOrCreateFolderForPJ(pjNome);
+              } catch (err) {
+                console.warn("[Drive] subpasta falhou, segue na raiz:", err);
+              }
+            }
+
+            updateFormBlocker(`Enviando "${nomeArquivo}"...`, ehPDF ? 1 : 0);
             let uploadResult = null;
             try {
               uploadResult = await window.uploadContratoToDrive(file, {
-                name: `[${$("#pj-nome").value.trim() || "PJ"}] ${file.name}`,
+                name: nomeArquivo,
+                parents: parentFolderId ? [parentFolderId] : undefined,
               });
               console.log("[Drive] resposta:", uploadResult);
               const link = uploadResult.webViewLink
@@ -2374,6 +2392,30 @@ function openPJModal(id) {
               } catch (err) {
                 console.warn("[Drive OCR] falhou:", err);
                 toast("OCR via Drive falhou: " + (err.message || err), "danger");
+              }
+            }
+
+            // 3.5) Pós-OCR: se OCR detectou o nome E o arquivo subiu na
+            // raiz (sem pasta), move pra subpasta + renomeia.
+            if (uploadResult?.id && !parentFolderId && window.atualizarArquivoNoDrive) {
+              const pjNomeFinal = ($("#pj-nome").value || "").trim();
+              if (pjNomeFinal && pjNomeFinal !== pjNome) {
+                try {
+                  const novaPasta = await window.findOrCreateFolderForPJ(pjNomeFinal);
+                  const novoNome = `Contrato - ${pjNomeFinal}.${ext}`;
+                  const atualizado = await window.atualizarArquivoNoDrive(uploadResult.id, {
+                    newParentId: novaPasta,
+                    newName: novoNome,
+                  });
+                  // Atualiza URL no form caso webViewLink tenha mudado
+                  if (atualizado.webViewLink) {
+                    urlInput.value = atualizado.webViewLink;
+                    urlInput.dispatchEvent(new Event("input", { bubbles: true }));
+                  }
+                  console.log("[Drive] pós-OCR: movido + renomeado", atualizado);
+                } catch (err) {
+                  console.warn("[Drive] mover/renomear pós-OCR falhou:", err);
+                }
               }
             }
 

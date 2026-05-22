@@ -114,14 +114,118 @@
   }
 
   /**
+   * Move um arquivo no Drive pra outra pasta e/ou renomeia.
+   * opts: { newParentId, newName }
+   */
+  window.atualizarArquivoNoDrive = async function (fileId, opts = {}) {
+    if (!fileId) throw new Error("fileId obrigatório");
+    const token = await getAccessToken();
+
+    const params = new URLSearchParams();
+    let removeParents = "";
+    if (opts.newParentId) {
+      // Busca parents atuais pra remover
+      const getRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (getRes.ok) {
+        const d = await getRes.json();
+        removeParents = (d.parents || []).join(",");
+      }
+      params.set("addParents", opts.newParentId);
+      if (removeParents) params.set("removeParents", removeParents);
+    }
+    params.set("fields", "id,name,parents,webViewLink");
+
+    const body = {};
+    if (opts.newName) body.name = opts.newName;
+
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?${params.toString()}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error("Drive: atualizar arquivo falhou — " + t.slice(0, 200));
+    }
+    return res.json();
+  };
+
+  /**
+   * Acha ou cria uma subpasta com o nome do prestador dentro do
+   * folderId raiz. Retorna o id da subpasta, ou null se folderId raiz
+   * não foi configurado (sem hierarquia possível).
+   */
+  window.findOrCreateFolderForPJ = async function (pjName) {
+    if (!pjName || !pjName.trim()) {
+      throw new Error("Nome do PJ é obrigatório pra organizar a pasta.");
+    }
+    if (!cfg.folderId) return null;
+    const token = await getAccessToken();
+    const parentId = cfg.folderId;
+    const safeName = pjName.trim().replace(/'/g, "\\'");
+
+    // 1) Procura subpasta existente
+    const q = `name='${safeName}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!searchRes.ok) {
+      const t = await searchRes.text();
+      throw new Error("Drive: busca de pasta falhou — " + t.slice(0, 200));
+    }
+    const data = await searchRes.json();
+    if (data.files && data.files.length > 0) return data.files[0].id;
+
+    // 2) Cria nova
+    const createRes = await fetch(
+      "https://www.googleapis.com/drive/v3/files?fields=id,name",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: pjName.trim(),
+          mimeType: "application/vnd.google-apps.folder",
+          parents: [parentId],
+        }),
+      }
+    );
+    if (!createRes.ok) {
+      const t = await createRes.text();
+      throw new Error("Drive: criar pasta falhou — " + t.slice(0, 200));
+    }
+    const folder = await createRes.json();
+    console.log("[Drive] subpasta criada:", folder);
+    return folder.id;
+  };
+
+  /**
    * Faz upload de um File pro Drive.
+   * opts:
+   *   - name: nome final do arquivo (padronização)
+   *   - parents: lista de folder IDs (sobrescreve o folderId default)
    * Retorna { id, name, webViewLink }
    */
   window.uploadContratoToDrive = async function (file, opts = {}) {
     const token = await getAccessToken();
+    const parents = opts.parents && opts.parents.length
+      ? opts.parents
+      : (cfg.folderId ? [cfg.folderId] : []);
     const metadata = {
       name: opts.name || file.name,
-      ...(cfg.folderId ? { parents: [cfg.folderId] } : {}),
+      ...(parents.length ? { parents } : {}),
     };
     const form = new FormData();
     form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
