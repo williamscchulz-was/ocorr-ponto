@@ -2187,10 +2187,6 @@ function openPJModal(id) {
           <option value="encerrado" ${pj?.status === "encerrado" ? "selected" : ""}>Encerrado</option>
         </select>
       </div>
-      <div class="field">
-        <label for="pj-descricao">Descrição / escopo</label>
-        <textarea id="pj-descricao" placeholder="O que está incluído no contrato...">${pj?.descricao || ""}</textarea>
-      </div>
 
       <div class="divider"></div>
 
@@ -2212,24 +2208,6 @@ function openPJModal(id) {
           <input type="number" id="pj-dias-ano" min="1" max="365" value="${pj?.diasFeriasAno ?? 30}" />
           <span class="field__hint">CLT padrão: 30 dias. O sistema acumula proporcionalmente a partir do <strong>início do contrato</strong> (acima).</span>
         </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contato</div>
-      <div class="field-row">
-        <div class="field">
-          <label for="pj-contato-nome">Nome do contato</label>
-          <input type="text" id="pj-contato-nome" value="${pj?.contato?.nome || ""}" />
-        </div>
-        <div class="field">
-          <label for="pj-contato-email">Email</label>
-          <input type="email" id="pj-contato-email" value="${pj?.contato?.email || ""}" />
-        </div>
-      </div>
-      <div class="field">
-        <label for="pj-contato-telefone">Telefone</label>
-        <input type="tel" id="pj-contato-telefone" value="${pj?.contato?.telefone || ""}" placeholder="(47) 99999-9999" />
       </div>
 
       ${!isNew && pj?.temFerias ? `
@@ -2298,7 +2276,36 @@ function openPJModal(id) {
         uploadBtn.title = "Configure GOOGLE_DRIVE_CONFIG.clientId em firebase.config.js (instruções em firebase.config.example.js)";
       } else {
         const origHTML = uploadBtn.innerHTML;
-        uploadBtn.addEventListener("click", () => fileInput.click());
+        uploadBtn.addEventListener("click", async () => {
+          // Se ainda não há token em cache, autoriza ANTES de abrir o file
+          // dialog. Garantir que o popup do Google abra em contexto de
+          // clique direto do user — assim o browser não bloqueia.
+          if (window.driveTokenEmCache && !window.driveTokenEmCache()) {
+            const origText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = `${icon("clock")}<span>Conectando ao Drive...</span>`;
+            uploadBtn.disabled = true;
+            try {
+              await window.preAquecerTokenDrive();
+              toast("Drive conectado! Próximos uploads serão diretos.", "success");
+            } catch (err) {
+              const msg = (err.message || "").toLowerCase();
+              if (msg.includes("popup") || msg.includes("bloque")) {
+                toast(
+                  "Browser bloqueou o popup. Clica no ícone 🛑 da barra de endereço → 'Permitir popups deste site' → tenta de novo.",
+                  "danger"
+                );
+              } else {
+                toast("Não conectou ao Drive: " + err.message, "danger");
+              }
+              uploadBtn.disabled = false;
+              uploadBtn.innerHTML = origText;
+              return;
+            }
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = origText;
+          }
+          fileInput.click();
+        });
         fileInput.addEventListener("change", async (e) => {
           const file = e.target.files?.[0];
           if (!file) return;
@@ -2390,18 +2397,12 @@ function savePJ(id) {
     dataInicio: $("#pj-data-inicio").value || null,
     dataProximaRevisao: $("#pj-data-revisao").value || null,
     status: $("#pj-status").value,
-    descricao: $("#pj-descricao").value.trim() || null,
     temFerias: !!$("#pj-tem-ferias").checked,
     diasFeriasAno: $("#pj-tem-ferias").checked
       ? (Number($("#pj-dias-ano").value) || 30)
       : null,
     // inicioDireitoFerias removido: o cálculo usa sempre dataInicio do contrato
     inicioDireitoFerias: null,
-    contato: {
-      nome: $("#pj-contato-nome").value.trim() || null,
-      email: $("#pj-contato-email").value.trim() || null,
-      telefone: $("#pj-contato-telefone").value.trim() || null,
-    },
     contratoUrl: $("#pj-contrato-url").value.trim() || null,
     atualizadoPor: u.id,
     atualizadoEm: new Date().toISOString(),

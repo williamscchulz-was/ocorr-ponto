@@ -54,6 +54,18 @@
   let cachedToken = null;
   let cachedTokenExpiresAt = 0;
 
+  // Expõe estado pra UI: token válido em cache?
+  window.driveTokenEmCache = function () {
+    return !!cachedToken && Date.now() < cachedTokenExpiresAt - 60000;
+  };
+
+  // Aquece o token explicitamente, em contexto de clique direto do user.
+  // Evita popup bloqueado pelo browser quando o getAccessToken só seria
+  // chamado após múltiplos await (fora de user activation).
+  window.preAquecerTokenDrive = async function () {
+    return getAccessToken();
+  };
+
   async function getAccessToken() {
     await loadGSI();
 

@@ -489,18 +489,12 @@
         dataInicio: $("#pj-data-inicio").value || null,
         dataProximaRevisao: $("#pj-data-revisao").value || null,
         status: $("#pj-status").value,
-        descricao: $("#pj-descricao").value.trim() || null,
         temFerias: !!$("#pj-tem-ferias").checked,
         diasFeriasAno: $("#pj-tem-ferias").checked
           ? (Number($("#pj-dias-ano").value) || 30)
           : null,
         // inicioDireitoFerias removido — usa dataInicio do contrato como base
         inicioDireitoFerias: null,
-        contato: {
-          nome: $("#pj-contato-nome").value.trim() || null,
-          email: $("#pj-contato-email").value.trim() || null,
-          telefone: $("#pj-contato-telefone").value.trim() || null,
-        },
         contratoUrl: $("#pj-contrato-url").value.trim() || null,
         atualizadoPor: u.id,
         atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
