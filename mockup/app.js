@@ -2597,14 +2597,59 @@ function analisarTextoContrato(texto) {
   const r = {};
   if (!texto || texto.length < 20) return r;
 
-  // CNPJ: 14 dígitos, com ou sem máscara
-  const mCNPJ = texto.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/);
-  if (mCNPJ) {
-    const raw = mCNPJ[0].replace(/\D/g, "");
-    if (raw.length === 14) {
-      r.cnpj = `${raw.slice(0, 2)}.${raw.slice(2, 5)}.${raw.slice(5, 8)}/${raw.slice(8, 12)}-${raw.slice(12, 14)}`;
-    }
+  // ---------- CNPJ ----------
+  // Contratos sempre têm pelo menos 2 CNPJs (contratante + contratado).
+  // O primeiro do texto costuma ser o da Fiobras (contratante), então:
+  // 1) Coleta todos os CNPJs com posição no texto
+  // 2) Tenta achar um próximo às palavras CONTRATADO/PRESTADOR
+  // 3) Senão, ignora CNPJs conhecidos (Fiobras) e pega o primeiro restante
+  // 4) Fallback final: primeiro CNPJ (mesmo se conhecido)
+  const CNPJS_IGNORAR = new Set([
+    "01475188000197", // Fiobras Ltda
+  ]);
+
+  const cnpjsEncontrados = [...texto.matchAll(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g)]
+    .map((m) => {
+      const raw = m[0].replace(/\D/g, "");
+      if (raw.length !== 14) return null;
+      return {
+        raw,
+        pos: m.index,
+        formatado: `${raw.slice(0, 2)}.${raw.slice(2, 5)}.${raw.slice(5, 8)}/${raw.slice(8, 12)}-${raw.slice(12, 14)}`,
+      };
+    })
+    .filter(Boolean);
+
+  // Deduplicar (mesmo CNPJ pode aparecer várias vezes)
+  const cnpjsUnicos = [];
+  const vistos = new Set();
+  for (const c of cnpjsEncontrados) {
+    if (!vistos.has(c.raw)) { vistos.add(c.raw); cnpjsUnicos.push(c); }
   }
+
+  let cnpjEscolhido = null;
+
+  // 1ª prioridade: CNPJ próximo a CONTRATADO / PRESTADOR (até 400 chars
+  // após a palavra), e que NÃO esteja na lista de ignorados.
+  const matchesContratado = [...texto.matchAll(/(?:CONTRATAD[OA]|PRESTADOR)/gi)];
+  for (const mc of matchesContratado) {
+    const inicio = mc.index;
+    const fim = inicio + 400;
+    const candidato = cnpjsEncontrados.find(
+      (c) => c.pos >= inicio && c.pos <= fim && !CNPJS_IGNORAR.has(c.raw)
+    );
+    if (candidato) { cnpjEscolhido = candidato; break; }
+  }
+
+  // 2ª prioridade: primeiro CNPJ que NÃO seja da Fiobras
+  if (!cnpjEscolhido) {
+    cnpjEscolhido = cnpjsUnicos.find((c) => !CNPJS_IGNORAR.has(c.raw));
+  }
+
+  // 3ª prioridade (fallback): primeiro CNPJ encontrado, qualquer
+  if (!cnpjEscolhido && cnpjsUnicos.length) cnpjEscolhido = cnpjsUnicos[0];
+
+  if (cnpjEscolhido) r.cnpj = cnpjEscolhido.formatado;
 
   // ---------- Periodicidade ----------
   // Detecta "por hora" / "/h" / "horista" antes de decidir o valor.
