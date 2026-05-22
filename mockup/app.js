@@ -1864,7 +1864,9 @@ function renderControlePJ() {
 
   const reajustesPendentes = pjs.filter(pjPrecisaReajuste).length;
   const diasReajuste = diasParaReajuste();
-  const reajusteVigente = diasReajuste <= 30 || reajustesPendentes > 0;
+  const janelaR = janelaReajuste();
+  // Stat só fica em destaque dentro da janela (15 dias antes / 30 dias depois)
+  const reajusteVigente = janelaR.dentro && reajustesPendentes > 0;
 
   const emFeriasHoje = pjs.filter((p) => pjEmFeriasHoje(p)).length;
 
@@ -1890,13 +1892,19 @@ function renderControlePJ() {
       </div>
       <div class="stat ${reajusteVigente ? "stat--accent" : ""}">
         <div class="stat__label">Reajuste anual (15/01)</div>
-        <div class="stat__value">${reajustesPendentes}</div>
+        <div class="stat__value">${
+          janelaR.dentro
+            ? reajustesPendentes
+            : diasReajuste <= 30 ? diasReajuste : "—"
+        }</div>
         <div class="stat__hint">${
-          reajustesPendentes > 0
-            ? "pendente" + (reajustesPendentes > 1 ? "s" : "") + " — aplique pelo card"
+          janelaR.dentro
+            ? (reajustesPendentes > 0
+                ? "pendente" + (reajustesPendentes > 1 ? "s" : "") + " — aplique pelo card"
+                : "tudo em dia neste ano")
             : diasReajuste <= 30
-              ? `próximo em ${diasReajuste} dia${diasReajuste !== 1 ? "s" : ""}`
-              : "tudo em dia"
+              ? `dias até o próximo`
+              : "próximo em janeiro"
         }</div>
       </div>
       <div class="stat ${emFeriasHoje > 0 ? "stat--accent" : ""}">
@@ -2056,10 +2064,23 @@ function pjJaReajustadoNoAno(pj, ano) {
   );
 }
 
-// PJ ativo + ainda não foi reajustado no ano vigente
+// Janela de alerta de reajuste: 15 dias antes do 15/01 e 30 dias depois.
+// Fora dessa janela, o sistema não chama atenção (mesmo se esquecido).
+function janelaReajuste() {
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const dataAtual = dataReajusteDoAno(ano);
+  const inicio = new Date(dataAtual); inicio.setDate(inicio.getDate() - 15);
+  const fim = new Date(dataAtual); fim.setDate(fim.getDate() + 30);
+  return { dentro: hoje >= inicio && hoje <= fim, inicio, fim, ano };
+}
+
+// PJ ativo + dentro da janela de alerta + ainda não reajustado no ano corrente
 function pjPrecisaReajuste(pj) {
   if (pj.status !== "ativo") return false;
-  return !pjJaReajustadoNoAno(pj, ultimoAnoReajusteVigente());
+  const j = janelaReajuste();
+  if (!j.dentro) return false;
+  return !pjJaReajustadoNoAno(pj, j.ano);
 }
 
 function diasParaReajuste() {
