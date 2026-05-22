@@ -1055,15 +1055,19 @@
 
     // Reset de senha via Firebase Auth
     window.firebaseResetSenha = async function () {
-      const email = ($("#login-user").value || "").trim();
+      const emailInput = $("#login-user");
+      const email = (emailInput?.value || "").trim();
       if (!email || !email.includes("@")) {
-        toast("Digite seu email primeiro, aí clique de novo em 'Esqueci minha senha'.", "danger");
+        toast("Digite seu email no campo Usuário acima, depois clica em 'Esqueci minha senha'.", "danger");
+        if (emailInput) emailInput.focus();
         return;
       }
+      console.log("[Auth] enviando email de redefinição pra:", email);
       try {
         await auth.sendPasswordResetEmail(email);
-        toast("Email de recuperação enviado pra " + email);
+        toast(`Email enviado pra ${email}. Veja na caixa de entrada (e na pasta de spam).`);
       } catch (e) {
+        console.error("[Auth] reset error:", e);
         toast(traduzErroAuth(e), "danger");
       }
     };
