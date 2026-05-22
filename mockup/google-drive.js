@@ -49,8 +49,19 @@
 
   // Cache do tokenClient — reusa pra não criar de novo a cada upload
   let tokenClient = null;
+  // Cache do access token — evita popup duplo no mesmo fluxo (ex: upload + OCR).
+  // Tokens GIS duram 1h. Margem de 1 min pra evitar race com expiração.
+  let cachedToken = null;
+  let cachedTokenExpiresAt = 0;
+
   async function getAccessToken() {
     await loadGSI();
+
+    // Reusa token se ainda válido (não dispara novo popup)
+    if (cachedToken && Date.now() < cachedTokenExpiresAt - 60000) {
+      return cachedToken;
+    }
+
     return new Promise((resolve, reject) => {
       const onSuccess = (resp) => {
         console.log("[Drive] OAuth success");
@@ -58,6 +69,9 @@
           console.error("[Drive] callback error:", resp);
           reject(new Error(resp.error_description || resp.error));
         } else {
+          cachedToken = resp.access_token;
+          // resp.expires_in vem em segundos
+          cachedTokenExpiresAt = Date.now() + ((resp.expires_in || 3600) * 1000);
           resolve(resp.access_token);
         }
       };
