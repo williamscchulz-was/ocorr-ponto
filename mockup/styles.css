@@ -644,6 +644,26 @@ a:hover { color: var(--plum-soft); }
   .presence__count { display: none; }
 }
 
+/* Banner de outros usuários editando o mesmo PJ (real, via Firestore) */
+.modal-colab-banner {
+  margin: 0 28px 12px;
+  background: linear-gradient(90deg, rgba(0, 118, 190, 0.08), rgba(0, 118, 190, 0.02));
+  border-left: 3px solid #0076BE;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text);
+  animation: collabBadgeIn 0.3s ease-out;
+}
+.modal-colab-banner .presence__avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 9px;
+}
+
 /* Edição colaborativa (MOCK) — destaque de campo sendo editado por outro user */
 .field--editing {
   position: relative;

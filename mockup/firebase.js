@@ -1168,6 +1168,9 @@
     let presenceHeartbeat = null;
     let presenceUnsubscribe = null;
 
+    // Estado adicional pra colab: qual PJ esse user está editando
+    let presencePjEditing = null;
+
     async function pingPresenca() {
       if (!auth.currentUser) return;
       const u = currentUser();
@@ -1179,12 +1182,53 @@
           role: u.role || "lider",
           turno: u.turno || null,
           page: state.view?.page || "dashboard",
+          pjEditing: presencePjEditing,
           lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
       } catch (e) {
         console.warn("[Presence] heartbeat falhou:", e);
       }
     }
+
+    // Exposto pro app.js: sinaliza qual PJ esse user está editando
+    window.setarPJEditando = function (pjId) {
+      presencePjEditing = pjId || null;
+      pingPresenca(); // dispara update imediato
+    };
+
+    // Subscription do PJ específico que está sendo editado
+    let pjDocUnsubscribe = null;
+    let pjDocUltimoAtualizadoEm = null;
+    window.iniciarEscutaPJ = function (pjId, onChange) {
+      if (pjDocUnsubscribe) pjDocUnsubscribe();
+      pjDocUltimoAtualizadoEm = null;
+      if (!pjId) return;
+      pjDocUnsubscribe = db.collection("pj").doc(pjId).onSnapshot((doc) => {
+        if (!doc.exists) return;
+        const dados = doc.data();
+        // Ignora o snapshot inicial (cache local + carregamento)
+        const atualMs = dados.atualizadoEm?.toMillis?.() || 0;
+        if (pjDocUltimoAtualizadoEm === null) {
+          pjDocUltimoAtualizadoEm = atualMs;
+          return;
+        }
+        // Só notifica se a marca temporal mudou + foi alguém diferente
+        if (atualMs > pjDocUltimoAtualizadoEm
+            && dados.atualizadoPor
+            && dados.atualizadoPor !== auth.currentUser?.uid) {
+          pjDocUltimoAtualizadoEm = atualMs;
+          if (typeof onChange === "function") {
+            onChange({ id: doc.id, ...dados });
+          }
+        } else {
+          pjDocUltimoAtualizadoEm = atualMs;
+        }
+      }, (err) => console.warn("[PJ doc] snapshot erro:", err));
+    };
+    window.pararEscutaPJ = function () {
+      if (pjDocUnsubscribe) { pjDocUnsubscribe(); pjDocUnsubscribe = null; }
+      pjDocUltimoAtualizadoEm = null;
+    };
 
     function ouvirPresenca() {
       if (presenceUnsubscribe) presenceUnsubscribe();

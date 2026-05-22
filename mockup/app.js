@@ -143,6 +143,9 @@ function closeModal() {
   if (!backdrop) return;
   // Para qualquer simulação colaborativa rodando
   if (typeof pararSimulacaoColaborativa === "function") pararSimulacaoColaborativa();
+  // Sinaliza fim da edição de PJ (limpa pjEditing no presence)
+  if (window.setarPJEditando) window.setarPJEditando(null);
+  if (window.pararEscutaPJ) window.pararEscutaPJ();
   backdrop.style.animation = "fadeIn 160ms reverse";
   setTimeout(() => ($("#modal-root").innerHTML = ""), 140);
 }
@@ -362,6 +365,42 @@ function iniciarSimulacaoColaborativa(scriptDeEdicao) {
   });
 }
 
+// Atualiza o banner de "outros editando este PJ" dentro do modal aberto.
+// Re-chamado toda vez que state.presence muda (via renderPresence).
+function atualizarBannerColabModal(pjId) {
+  const banner = document.getElementById("modal-colab-banner");
+  if (!banner || !pjId) return;
+  const u = currentUser();
+  const outros = (state.presence || []).filter(
+    (p) => p.pjEditing === pjId && p.uid !== u?.id && p.status === "ativo"
+  );
+  if (outros.length === 0) {
+    banner.style.display = "none";
+    banner.innerHTML = "";
+    return;
+  }
+  banner.style.display = "flex";
+  const avatares = outros
+    .slice(0, 4)
+    .map(
+      (p) => `
+      <div class="presence__avatar"
+           style="background:${presenceColor(p.uid)}; border-color:#fff;"
+           title="${p.nome}">
+        ${initials(p.nome || "?")}
+      </div>`
+    )
+    .join("");
+  const nomes = outros.map((p) => (p.nome || "").split(" ")[0]).join(", ");
+  banner.innerHTML = `
+    <div class="presence__avatars" style="margin-right:10px">${avatares}</div>
+    <div>
+      <strong>${nomes}</strong> também ${outros.length > 1 ? "estão" : "está"} editando este PJ agora.
+      <span class="text-xs muted" style="display:block;">Cuidado pra não sobrescrever — combina pelo Slack se mexer no mesmo campo.</span>
+    </div>
+  `;
+}
+
 // Presence indicator (MOCK — não tem realtime backend ainda).
 // Mostra o user atual + alguns colegas como "online" no topbar.
 // Cor do avatar é estável (derivada do id) pra ficar reconhecível.
@@ -427,6 +466,14 @@ function renderPresence() {
     </div>
     <div class="presence__count"><span class="dot-live"></span>${online.length} online</div>
   `;
+
+  // Se há um modal de PJ aberto, sincroniza o banner de outros editando.
+  // Detecta o pj id pelo botão de upload (que carrega o nome) ou pelo
+  // estado. Mais simples: olha pra modal aberto + delete button.
+  const banner = document.getElementById("modal-colab-banner");
+  if (banner && banner.dataset.pjid) {
+    atualizarBannerColabModal(banner.dataset.pjid);
+  }
 }
 
 function renderNav() {
@@ -2311,6 +2358,7 @@ function openPJModal(id) {
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
+    <div id="modal-colab-banner" class="modal-colab-banner" style="display:none;"></div>
     <form class="modal__body" id="pj-form" onsubmit="return false">
       ${isNew ? `
         <div style="background: var(--surface-warm); border-left: 3px solid var(--primary); padding: 10px 12px; border-radius: var(--radius); margin-bottom: 12px;">
@@ -2455,34 +2503,51 @@ function openPJModal(id) {
       $("#btn-save-pj").addEventListener("click", () => savePJ(id));
       if (!isNew) $("#btn-del-pj").addEventListener("click", () => deletePJ(id));
 
-      // MOCK: simulação de edição colaborativa em tempo real.
-      // Dispara sempre (novo ou existente). Pra "Novo PJ", simula
-      // dois colegas chegando junto no formulário.
-      if (typeof iniciarSimulacaoColaborativa === "function") {
-        const valorAtual = Number(pj?.valorAtual || 0);
-        const novoValorMock = (valorAtual > 0 ? (valorAtual * 1.045).toFixed(2) : "3500.00");
-        iniciarSimulacaoColaborativa([
-          {
-            selector: "#pj-data-revisao",
-            startAt: 700,
-            duration: 2800,
-            descricao: "está revisando a próxima data de reajuste",
-          },
-          {
-            selector: "#pj-valor",
-            startAt: 3800,
-            duration: 3800,
-            novoValor: novoValorMock,
-            descricao: `atualizou o valor para R$ ${novoValorMock}`,
-          },
-          {
-            selector: "#pj-status",
-            startAt: 8000,
-            duration: 2200,
-            descricao: isNew ? "está conferindo o status" : "abriu o status do contrato",
-          },
-        ]);
+      // EDIÇÃO COLABORATIVA REAL (Firestore-backed)
+      // 1) Sinaliza pra outros users que estou editando este PJ
+      // 2) Escuta mudanças do doc /pj/{id} pra notificar
+      if (!isNew && id) {
+        const bannerEl = document.getElementById("modal-colab-banner");
+        if (bannerEl) bannerEl.dataset.pjid = id;
       }
+      if (!isNew && id && window.setarPJEditando && window.iniciarEscutaPJ) {
+        window.setarPJEditando(id);
+        window.iniciarEscutaPJ(id, (dadosAtualizados) => {
+          // Outro user salvou alterações
+          const autorId = dadosAtualizados.atualizadoPor;
+          const autor =
+            (state.users || []).find((x) => x.id === autorId) ||
+            (state.presence || []).find((p) => p.uid === autorId) ||
+            { uid: autorId, nome: "Outro usuário" };
+          const autorObj = { id: autor.id || autor.uid, nome: autor.nome };
+
+          // Detecta o que mudou comparando com state local
+          const local = (state.pjs || []).find((p) => p.id === id) || {};
+          const mudancas = [];
+          if (local.valorAtual !== dadosAtualizados.valorAtual)
+            mudancas.push(`valor → ${formatMoeda(dadosAtualizados.valorAtual)}`);
+          if (local.status !== dadosAtualizados.status)
+            mudancas.push(`status → ${dadosAtualizados.status}`);
+          if (local.dataProximaRevisao !== dadosAtualizados.dataProximaRevisao)
+            mudancas.push(`próxima revisão`);
+          if (local.contratoUrl !== dadosAtualizados.contratoUrl)
+            mudancas.push(`contrato`);
+
+          const msg = mudancas.length
+            ? `atualizou: ${mudancas.join(", ")}`
+            : "salvou alterações neste PJ";
+          if (typeof notificarEdicaoColab === "function") {
+            notificarEdicaoColab(autorObj, msg + " — feche e reabra pra ver");
+          }
+
+          // Atualiza state local com os novos dados
+          if (local) Object.assign(local, dadosAtualizados);
+        });
+      }
+
+      // Atualiza banner de "outros editando" quando state.presence muda
+      // (renderPresence é chamado automaticamente pelo onSnapshot)
+      atualizarBannerColabModal(id);
 
       // Atualiza sufixo do label de valor conforme periodicidade
       const updateValorLabel = () => {
