@@ -99,6 +99,7 @@ const icon = (name) => {
     file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
     alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
     download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
     tag: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
     trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
     edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
@@ -2081,14 +2082,18 @@ function openPJModal(id) {
 
       <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contrato</div>
       <div class="field">
-        <label for="pj-contrato-url">Link do contrato (Google Drive / OneDrive)</label>
+        <label for="pj-contrato-url">Link do contrato (Google Drive)</label>
         <input type="url" id="pj-contrato-url" value="${pj?.contratoUrl || ""}" placeholder="https://drive.google.com/file/d/..." />
         <span class="field__hint">
-          Suba o PDF no Drive da Fiobras, gere link de visualização e cole aqui.
-          O Drive já mantém histórico de versões do arquivo, então pra "atualizar"
-          basta subir uma nova versão no mesmo arquivo do Drive.
+          Cole o link manualmente OU use o botão abaixo pra subir o arquivo direto pro Drive da Fiobras.
         </span>
       </div>
+
+      <input type="file" id="pj-contrato-file" accept=".pdf,.docx,.doc" style="display:none;" />
+      <button type="button" class="btn btn--soft btn--block" id="btn-upload-drive">
+        ${icon("upload")}<span>Subir arquivo pro Drive Fiobras</span>
+      </button>
+
       ${pj?.contratoUrl ? `
         <div style="background: var(--surface-warm); border-radius: var(--radius); padding: 12px; margin-top: 8px;">
           <a href="${pj.contratoUrl}" target="_blank" rel="noopener" class="btn btn--soft btn--block">
@@ -2129,6 +2134,37 @@ function openPJModal(id) {
       };
       $("#pj-periodicidade").addEventListener("change", updateValorLabel);
       updateValorLabel();
+
+      // Botão de upload pro Drive
+      const uploadBtn = $("#btn-upload-drive");
+      const fileInput = $("#pj-contrato-file");
+      const urlInput = $("#pj-contrato-url");
+      if (!window.driveUploadDisponivel) {
+        uploadBtn.disabled = true;
+        uploadBtn.title = "Configure GOOGLE_DRIVE_CONFIG.clientId em firebase.config.js (instruções em firebase.config.example.js)";
+      } else {
+        const origHTML = uploadBtn.innerHTML;
+        uploadBtn.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          uploadBtn.disabled = true;
+          uploadBtn.innerHTML = `${icon("clock")}<span>Enviando "${file.name}"...</span>`;
+          try {
+            const result = await window.uploadContratoToDrive(file, {
+              name: `[${$("#pj-nome").value.trim() || "PJ"}] ${file.name}`,
+            });
+            urlInput.value = result.webViewLink;
+            toast(`Arquivo enviado pro Drive! Link preenchido — salve o PJ.`);
+          } catch (err) {
+            console.error(err);
+            toast("Erro no upload: " + err.message, "danger");
+          }
+          uploadBtn.disabled = false;
+          uploadBtn.innerHTML = origHTML;
+          fileInput.value = "";
+        });
+      }
     },
   });
 }
