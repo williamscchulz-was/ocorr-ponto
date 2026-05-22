@@ -3015,9 +3015,19 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#menu-btn").addEventListener("click", openSidebar);
   $("#sidebar-backdrop").addEventListener("click", closeSidebar);
 
-  // ESC closes modal
+  // ESC fecha modais e drawer da sidebar mobile
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeModal();
+    if (e.key !== "Escape") return;
+    // Prioridade: modal > sidebar
+    if (document.querySelector("#modal-backdrop")) {
+      e.preventDefault();
+      closeModal();
+      return;
+    }
+    if ($("#sidebar")?.classList.contains("open")) {
+      e.preventDefault();
+      closeSidebar();
+    }
   });
 });
 
