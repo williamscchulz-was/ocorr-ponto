@@ -141,6 +141,8 @@ function openModal(html, opts = {}) {
 function closeModal() {
   const backdrop = $("#modal-backdrop");
   if (!backdrop) return;
+  // Para qualquer simulação colaborativa rodando
+  if (typeof pararSimulacaoColaborativa === "function") pararSimulacaoColaborativa();
   backdrop.style.animation = "fadeIn 160ms reverse";
   setTimeout(() => ($("#modal-root").innerHTML = ""), 140);
 }
@@ -217,6 +219,135 @@ function renderApp() {
   renderPresence();
   renderView();
   updateFab();
+}
+
+// ============================================================
+// Edição colaborativa em tempo real (MOCK VISUAL)
+// Simula outros usuários editando o mesmo registro junto com você.
+// Sem backend realtime — só pra demonstrar a feature em HTML.
+// ============================================================
+let _colabTimers = [];
+function pararSimulacaoColaborativa() {
+  _colabTimers.forEach((t) => clearTimeout(t));
+  _colabTimers = [];
+  document.querySelectorAll(".field--editing").forEach((f) => {
+    f.classList.remove("field--editing");
+    f.style.removeProperty("--collab-color");
+    f.style.removeProperty("--collab-color-soft");
+    f.style.removeProperty("--collab-color-bg");
+    f.querySelector(".field__editor-badge")?.remove();
+    f.querySelector(".field__cursor-pulse")?.remove();
+  });
+  document.querySelectorAll(".collab-toast").forEach((t) => t.remove());
+}
+
+function hexToRgba(hex, alpha) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function marcarCampoEditando(selector, autor) {
+  const input = document.querySelector(selector);
+  if (!input || !autor) return null;
+  const field = input.closest(".field");
+  if (!field || field.classList.contains("field--editing")) return null;
+
+  const cor = presenceColor(autor.id);
+  field.classList.add("field--editing");
+  field.style.setProperty("--collab-color", cor);
+  field.style.setProperty("--collab-color-soft", hexToRgba(cor, 0.18));
+  field.style.setProperty("--collab-color-bg", hexToRgba(cor, 0.04));
+
+  const badge = document.createElement("div");
+  badge.className = "field__editor-badge";
+  badge.innerHTML = `
+    <div class="field__editor-avatar-mini">${initials(autor.nome)}</div>
+    <span>${(autor.nome || "").split(" ")[0]} editando</span>
+  `;
+  field.appendChild(badge);
+
+  // Cursor "fantasma" pulsando no input
+  if (input.tagName === "INPUT" || input.tagName === "TEXTAREA") {
+    const cursor = document.createElement("div");
+    cursor.className = "field__cursor-pulse";
+    field.appendChild(cursor);
+  }
+  return field;
+}
+
+function desmarcarCampoEditando(selector) {
+  const input = document.querySelector(selector);
+  if (!input) return;
+  const field = input.closest(".field");
+  if (!field) return;
+  field.classList.remove("field--editing");
+  field.style.removeProperty("--collab-color");
+  field.style.removeProperty("--collab-color-soft");
+  field.style.removeProperty("--collab-color-bg");
+  field.querySelector(".field__editor-badge")?.remove();
+  field.querySelector(".field__cursor-pulse")?.remove();
+}
+
+function notificarEdicaoColab(autor, mensagem) {
+  const t = document.createElement("div");
+  t.className = "collab-toast";
+  const cor = presenceColor(autor.id);
+  t.style.setProperty("--collab-color", cor);
+  t.innerHTML = `
+    <div class="collab-toast__avatar" style="background:${cor};">${initials(autor.nome)}</div>
+    <div class="collab-toast__body">
+      <strong>${(autor.nome || "").split(" ")[0]}</strong>
+      <small>${mensagem}</small>
+    </div>
+  `;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4500);
+}
+
+/**
+ * Inicia simulação visual de outros users editando o mesmo registro.
+ * @param scriptDeEdicao - lista de { selector, autorId, delay, novoValor?, descricao? }
+ */
+function iniciarSimulacaoColaborativa(scriptDeEdicao) {
+  pararSimulacaoColaborativa();
+  const u = currentUser();
+  const outros = (state.users || []).filter((x) => x.id !== u?.id && x.active !== false);
+  if (outros.length === 0) return;
+
+  scriptDeEdicao.forEach((step, idx) => {
+    const autor = outros.find((o) => o.id === step.autorId) || outros[idx % outros.length];
+    if (!autor) return;
+
+    const t1 = setTimeout(() => {
+      marcarCampoEditando(step.selector, autor);
+    }, step.startAt || 0);
+    _colabTimers.push(t1);
+
+    if (step.duration) {
+      const t2 = setTimeout(() => {
+        // Aplica a "edição" simulada (só se o user não tocou no campo)
+        const input = document.querySelector(step.selector);
+        if (input && step.novoValor !== undefined) {
+          // Se for select, troca a opção; senão, seta o valor com efeito
+          if (input.tagName === "SELECT") {
+            input.value = step.novoValor;
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+          } else {
+            input.value = step.novoValor;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }
+        desmarcarCampoEditando(step.selector);
+        if (step.descricao) {
+          notificarEdicaoColab(autor, step.descricao);
+        }
+      }, (step.startAt || 0) + step.duration);
+      _colabTimers.push(t2);
+    }
+  });
 }
 
 // Presence indicator (MOCK — não tem realtime backend ainda).
@@ -2290,6 +2421,36 @@ function openPJModal(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#btn-save-pj").addEventListener("click", () => savePJ(id));
       if (!isNew) $("#btn-del-pj").addEventListener("click", () => deletePJ(id));
+
+      // MOCK: simulação de edição colaborativa em tempo real.
+      // Só pra PJ EXISTENTE (faz sentido: novo registro, ninguém mais
+      // tá vendo ainda). Mostra outros users editando campos junto.
+      if (!isNew && typeof iniciarSimulacaoColaborativa === "function") {
+        const valorAtual = Number(pj?.valorAtual || 0);
+        const novoValorMock = (valorAtual > 0 ? valorAtual * 1.045 : 3500).toFixed(2);
+        iniciarSimulacaoColaborativa([
+          {
+            selector: "#pj-data-revisao",
+            startAt: 1200,
+            duration: 3000,
+            descricao: "está revisando a próxima data de reajuste",
+          },
+          {
+            selector: "#pj-valor",
+            startAt: 4800,
+            duration: 4200,
+            novoValor: novoValorMock,
+            descricao: `atualizou o valor para R$ ${novoValorMock}`,
+          },
+          {
+            selector: "#pj-status",
+            startAt: 9500,
+            duration: 2500,
+            descricao: "abriu o status do contrato",
+          },
+        ]);
+      }
+
       // Atualiza sufixo do label de valor conforme periodicidade
       const updateValorLabel = () => {
         const period = PERIODICIDADES_PJ.find(p => p.id === $("#pj-periodicidade").value);
