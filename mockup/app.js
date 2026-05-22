@@ -2154,11 +2154,18 @@ function openPJModal(id) {
             const result = await window.uploadContratoToDrive(file, {
               name: `[${$("#pj-nome").value.trim() || "PJ"}] ${file.name}`,
             });
-            urlInput.value = result.webViewLink;
-            toast(`Arquivo enviado pro Drive! Link preenchido — salve o PJ.`);
+            console.log("[Drive] resposta:", result);
+            // Fallback: se webViewLink não veio, monta a partir do id
+            const link = result.webViewLink
+              || (result.id ? `https://drive.google.com/file/d/${result.id}/view` : null);
+            if (!link) throw new Error("Drive não retornou link nem id. Resposta: " + JSON.stringify(result));
+            urlInput.value = link;
+            // Dispara evento change pra qualquer listener atrelado
+            urlInput.dispatchEvent(new Event("input", { bubbles: true }));
+            toast(`Arquivo enviado! Link preenchido — clique Salvar pra gravar.`);
           } catch (err) {
-            console.error(err);
-            toast("Erro no upload: " + err.message, "danger");
+            console.error("[Drive] erro:", err);
+            toast("Erro no upload: " + (err.message || err), "danger");
           }
           uploadBtn.disabled = false;
           uploadBtn.innerHTML = origHTML;
