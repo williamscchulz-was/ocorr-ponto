@@ -644,15 +644,21 @@
         valorAnterior: valorAntigo,
       };
       const novoHist = [...(pj.historicoValores || []), novaEntrada];
+      const novaProxRevisao = `${new Date().getFullYear() + 1}-01-15`;
 
       try {
         await db.collection("pj").doc(id).update({
           valorAtual: novoValor,
           historicoValores: novoHist,
+          dataProximaRevisao: novaProxRevisao,
           atualizadoPor: u.id,
           atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
         });
-        Object.assign(pj, { valorAtual: novoValor, historicoValores: novoHist });
+        Object.assign(pj, {
+          valorAtual: novoValor,
+          historicoValores: novoHist,
+          dataProximaRevisao: novaProxRevisao,
+        });
         closeModal();
         toast(`Reajuste aplicado: ${formatMoeda(valorAntigo)} → ${formatMoeda(novoValor)}`);
         renderApp();

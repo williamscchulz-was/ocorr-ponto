@@ -2045,6 +2045,13 @@ function proximoReajuste() {
   return hoje < dataDoAno ? dataDoAno : dataReajusteDoAno(hoje.getFullYear() + 1);
 }
 
+// Próximo reajuste em formato ISO ("YYYY-01-15") pra input type="date"
+function proximoReajusteISO() {
+  const d = proximoReajuste();
+  const y = d.getFullYear();
+  return `${y}-01-15`;
+}
+
 // Já passou pelo reajuste do ano vigente?
 function pjJaReajustadoNoAno(pj, ano) {
   if (!pj.historicoValores?.length) return false;
@@ -2177,7 +2184,8 @@ function openPJModal(id) {
         </div>
         <div class="field">
           <label for="pj-data-revisao">Próxima revisão</label>
-          <input type="date" id="pj-data-revisao" value="${pj?.dataProximaRevisao || ""}" />
+          <input type="date" id="pj-data-revisao" value="${pj?.dataProximaRevisao || proximoReajusteISO()}" />
+          <span class="field__hint">Padrão: 15/01 — data anual de reajuste IPCA. O sistema avança sozinho a cada reajuste aplicado.</span>
         </div>
       </div>
 
@@ -2636,6 +2644,8 @@ function aplicarReajuste(id) {
     percentual: Number.isFinite(pct) ? pct : null,
     valorAnterior: valorAntigo,
   }];
+  // Avança a próxima revisão pro 15/01 do ano seguinte ao reajuste
+  pj.dataProximaRevisao = `${new Date().getFullYear() + 1}-01-15`;
 
   store.save(state);
   closeModal();
