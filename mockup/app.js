@@ -1345,7 +1345,11 @@ function renderFuncionarios() {
   const u = currentUser();
   $("#topbar-title").textContent = "Funcionários";
 
-  const semTurno = state.funcionarios.filter((f) => !f.turno).length;
+  // Stats consideram só funcionários ATIVOS — inativos não poluem
+  const ativos = state.funcionarios.filter((f) => f.ativo !== false);
+  const semTurno = ativos.filter((f) => !f.turno).length;
+  const totalAtivos = ativos.length;
+  const totalInativos = state.funcionarios.length - totalAtivos;
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -1360,6 +1364,11 @@ function renderFuncionarios() {
     </header>
 
     <div class="stats">
+      <div class="stat stat--accent">
+        <div class="stat__label">Total ativos</div>
+        <div class="stat__value">${totalAtivos}</div>
+        <div class="stat__hint">${totalInativos > 0 ? `+ ${totalInativos} inativo${totalInativos > 1 ? "s" : ""}` : "todos ativos"}</div>
+      </div>
       <div class="stat ${semTurno > 0 ? "stat--accent" : ""}">
         <div class="stat__label">Sem turno definido</div>
         <div class="stat__value">${semTurno}</div>
@@ -1368,7 +1377,7 @@ function renderFuncionarios() {
       ${[1, 2, 3, "geral"].map((t) => `
         <div class="stat">
           <div class="stat__label">${TURNOS[t].label}</div>
-          <div class="stat__value">${state.funcionarios.filter((f) => f.turno === t).length}</div>
+          <div class="stat__value">${ativos.filter((f) => f.turno === t).length}</div>
           <div class="stat__hint">${TURNOS[t].horario}</div>
         </div>
       `).join("")}
@@ -1883,9 +1892,9 @@ function renderBancoHoras() {
 
     <div class="stats">
       <div class="stat">
-        <div class="stat__label">Funcionários</div>
+        <div class="stat__label">Funcionários ativos</div>
         <div class="stat__value">${totalFunc}</div>
-        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : "todos ativos"}</div>
+        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : "inativos não aparecem aqui"}</div>
       </div>
       <div class="stat">
         <div class="stat__label">Com saldo registrado</div>
@@ -2076,18 +2085,22 @@ async function handleBancoHorasFile(file) {
       });
     }
 
-    // Match com funcionarios cadastrados
+    // Match com funcionarios cadastrados, separando ativos/inativos
     const semMatch = [];
+    const matchInativos = [];
     let positivos = 0, negativos = 0, zerados = 0;
     entries.forEach((e) => {
       const f = state.funcionarios.find((x) => x.codigo === e.codigo);
       e.funcionarioId = f?.id || null;
+      e.inativo = f?.ativo === false;
       if (!f) semMatch.push(e);
+      else if (f.ativo === false) matchInativos.push(e);
       if (e.minutos > 0) positivos++;
       else if (e.minutos < 0) negativos++;
       else zerados++;
     });
 
+    const matchAtivos = entries.length - semMatch.length - matchInativos.length;
     window._bhImportEntries = entries;
 
     preview.innerHTML = `
@@ -2097,15 +2110,18 @@ async function handleBancoHorasFile(file) {
           <strong>${entries.length}</strong>
         </div>
         <div class="detail-cell">
-          <label>Match com cadastro</label>
-          <strong>${entries.length - semMatch.length} / ${entries.length}</strong>
+          <label>Funcionários ativos</label>
+          <strong>${matchAtivos}</strong>
         </div>
       </div>
       <div class="text-sm muted" style="margin-top:8px; line-height:1.6;">
         Saldos: positivo (${positivos}) · negativo (${negativos}) · zerado (${zerados})<br/>
+        ${matchInativos.length > 0 ? `
+          <span style="color: var(--muted);">ℹ ${matchInativos.length} código(s) de funcionário(s) <strong>inativo(s)</strong> — saldo será gravado mas não aparece na listagem do Banco de Horas.</span><br/>
+        ` : ""}
         ${semMatch.length > 0 ? `
           <span style="color: var(--warning);">⚠ ${semMatch.length} código(s) não cadastrado(s) — serão ignorados: ${semMatch.slice(0, 5).map(e => e.codigo).join(", ")}${semMatch.length > 5 ? "..." : ""}</span>
-        ` : `<span style="color: var(--success);">✓ Todos os funcionários têm correspondência no cadastro.</span>`}
+        ` : (matchInativos.length === 0 ? `<span style="color: var(--success);">✓ Todos os funcionários têm correspondência no cadastro.</span>` : "")}
       </div>
     `;
 
