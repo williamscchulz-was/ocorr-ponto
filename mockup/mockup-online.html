@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mockup · Indicador de usuários online · Weave</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+  <style>
+    :root {
+      --verde: #008835;
+      --amarelo: #FFCB00;
+      --azul: #0076BE;
+      --plum: #1a1a2e;
+      --milk: #fffaf2;
+      --surface: #ffffff;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --radius: 10px;
+      --radius-xl: 16px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 12px 32px rgba(0,0,0,0.14);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: 'Poppins', system-ui, sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, #f6f7fb 0%, #eef2f7 100%);
+      min-height: 100vh;
+    }
+
+    /* ====== Hero ====== */
+    .hero {
+      max-width: 920px;
+      margin: 32px auto 18px;
+      padding: 0 20px;
+    }
+    .hero h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0 0 6px;
+      color: var(--plum);
+    }
+    .hero h1 .tag {
+      display: inline-block;
+      font-size: 11px;
+      background: var(--amarelo);
+      color: var(--plum);
+      padding: 3px 10px;
+      border-radius: 999px;
+      vertical-align: middle;
+      margin-left: 8px;
+      letter-spacing: 0.04em;
+    }
+    .hero p {
+      color: var(--muted);
+      margin: 0 0 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .hero .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .hero button {
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13px;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      cursor: pointer;
+      background: var(--verde);
+      color: white;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .hero button:hover { opacity: 0.9; }
+    .hero button:active { transform: scale(0.97); }
+    .hero button.ghost {
+      background: white;
+      color: var(--plum);
+      border: 1px solid var(--border);
+    }
+    .hero button.danger {
+      background: #dc2626;
+    }
+
+    /* ====== Topbar (foco do mockup) ====== */
+    .demo-section {
+      max-width: 920px;
+      margin: 0 auto 28px;
+      padding: 0 20px;
+    }
+    .demo-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 24px 0 10px;
+    }
+    .topbar {
+      background: var(--plum);
+      color: var(--milk);
+      border-radius: var(--radius-xl);
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: var(--shadow-md);
+    }
+    .topbar__title { font-weight: 700; font-size: 15px; }
+    .topbar__sep { color: rgba(255,255,255,0.3); }
+    .topbar__crumb { font-size: 14px; color: rgba(255,255,255,0.85); }
+
+    /* ===== Indicador de presença ===== */
+    .presence {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 12px 4px 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s;
+      position: relative;
+    }
+    .presence:hover {
+      background: rgba(255,255,255,0.14);
+    }
+    .presence__avatars { display: flex; }
+    .presence__avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      color: #fff;
+      border: 2px solid var(--plum);
+      margin-left: -8px;
+      position: relative;
+      transition: transform 0.18s;
+      animation: avatarIn 0.5s cubic-bezier(.4,0,.2,1) backwards;
+    }
+    .presence:hover .presence__avatar {
+      transform: translateY(-1px);
+    }
+    .presence__avatar:first-child { margin-left: 0; }
+    .presence__avatar::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; right: -1px;
+      width: 10px; height: 10px;
+      background: #22c55e;
+      border-radius: 50%;
+      border: 2px solid var(--plum);
+    }
+    .presence__avatar--leaving {
+      animation: avatarOut 0.4s ease-in forwards !important;
+    }
+    @keyframes avatarIn {
+      from { opacity: 0; transform: scale(0.3) translateX(-10px); }
+      to   { opacity: 1; transform: scale(1) translateX(0); }
+    }
+    @keyframes avatarOut {
+      to { opacity: 0; transform: scale(0.3) translateX(10px); }
+    }
+    .presence__count {
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .presence__count .dot-live {
+      display: inline-block;
+      width: 7px; height: 7px;
+      background: #22c55e;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+      animation: pulse-live 1.6s ease-in-out infinite;
+      box-shadow: 0 0 0 0 #22c55e;
+    }
+    @keyframes pulse-live {
+      0%   { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+      70%  { opacity: 1; transform: scale(1); box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+      100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+
+    /* ===== Popover ao clicar no presence ===== */
+    .presence__popover {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      background: white;
+      color: var(--text);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      padding: 14px 16px;
+      min-width: 280px;
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(-6px);
+      pointer-events: none;
+      transition: opacity 0.18s, transform 0.18s;
+    }
+    .presence.open .presence__popover {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .presence__popover h4 {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 0 0 10px;
+    }
+    .presence__user-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .presence__user-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: default;
+    }
+    .presence__user-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .presence__user-avatar::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 10px;
+      height: 10px;
+      background: #22c55e;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+    .presence__user-avatar.idle::after {
+      background: #f59e0b;
+    }
+    .presence__user-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .presence__user-info strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .presence__user-info small {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .presence__user-status {
+      font-size: 10px;
+      color: var(--muted);
+      padding: 2px 8px;
+      background: #f3f4f6;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .presence__user-status.active {
+      background: rgba(34,197,94,0.12);
+      color: #15803d;
+    }
+
+    /* ===== Anotações ===== */
+    .annot {
+      max-width: 920px;
+      margin: 0 auto 28px;
+      padding: 0 20px;
+    }
+    .annot-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      border-left: 3px solid var(--azul);
+      box-shadow: var(--shadow-sm);
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .annot-card strong { color: var(--text); }
+
+    /* ===== Toast de novo user ===== */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: white;
+      border-left: 3px solid var(--verde);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 360px;
+      z-index: 9999;
+      animation: toastIn 240ms cubic-bezier(.4,0,.2,1), toastOut 0.4s ease-in 3.6s forwards;
+    }
+    .toast.leaving { border-left-color: #dc2626; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateY(8px); }
+    }
+    .toast__avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 11px;
+      flex-shrink: 0;
+    }
+    .toast__body strong { display: block; font-size: 13px; }
+    .toast__body small { color: var(--muted); font-size: 11px; }
+
+    /* ===== Mini exemplos comparativos ===== */
+    .variants {
+      max-width: 920px;
+      margin: 0 auto 60px;
+      padding: 0 20px;
+    }
+    .variants__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .variant-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .variant-card__label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .variant-card .presence {
+      background: var(--plum);
+      padding: 6px 14px 6px 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <h1>Indicador de usuários online <span class="tag">MOCKUP</span></h1>
+    <p>Demonstração do indicador de presença no header — quem está conectado agora, com pulse "ao vivo", popover de detalhes ao clicar e animação de entrar/sair.</p>
+    <div class="controls">
+      <button onclick="simularEntrada()">+ Simular usuário entrando</button>
+      <button class="danger" onclick="simularSaida()">− Simular usuário saindo</button>
+      <button class="ghost" onclick="resetar()">↻ Resetar</button>
+    </div>
+  </div>
+
+  <!-- Topbar principal (foco) -->
+  <div class="demo-section">
+    <h3>Header com indicador de presença</h3>
+    <div class="topbar">
+      <span style="font-size: 18px;">≡</span>
+      <span class="topbar__title">Weave</span>
+      <span class="topbar__sep">/</span>
+      <span class="topbar__crumb">Controle PJ</span>
+
+      <div class="presence" id="presence-main" onclick="togglePopover(event)" title="Clique pra ver quem está online">
+        <div class="presence__avatars" id="presence-avatars">
+          <!-- preenchido via JS -->
+        </div>
+        <div class="presence__count"><span class="dot-live"></span><span id="presence-count">4</span> online</div>
+
+        <!-- Popover ao clicar -->
+        <div class="presence__popover" id="presence-popover" onclick="event.stopPropagation()">
+          <h4>Conectados agora</h4>
+          <ul class="presence__user-list" id="presence-user-list">
+            <!-- preenchido via JS -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="annot">
+    <div class="annot-card">
+      💡 <strong>Comportamento:</strong> avatares com pulse animado, dot verde indica online (amarelo seria "ausente" depois de 5min sem mexer). Clica no chip pra ver lista completa, com último horário de atividade e o que cada um tá vendo no momento.
+    </div>
+  </div>
+
+  <!-- Variantes de design -->
+  <div class="variants">
+    <h3 style="font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin: 24px 0 10px;">Variações</h3>
+    <div class="variants__grid">
+      <div class="variant-card">
+        <div class="variant-card__label">1 usuário online</div>
+        <div class="topbar">
+          <span style="font-size: 14px;">≡</span>
+          <span class="topbar__title">Weave</span>
+          <div class="presence" style="margin-left: auto;">
+            <div class="presence__avatars">
+              <div class="presence__avatar" style="background:#008835">WS</div>
+            </div>
+            <div class="presence__count"><span class="dot-live"></span>só você</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="variant-card">
+        <div class="variant-card__label">2 usuários</div>
+        <div class="topbar">
+          <span style="font-size: 14px;">≡</span>
+          <span class="topbar__title">Weave</span>
+          <div class="presence" style="margin-left: auto;">
+            <div class="presence__avatars">
+              <div class="presence__avatar" style="background:#008835">WS</div>
+              <div class="presence__avatar" style="background:#0076BE">JS</div>
+            </div>
+            <div class="presence__count"><span class="dot-live"></span>2 online</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="variant-card">
+        <div class="variant-card__label">5+ usuários (overflow)</div>
+        <div class="topbar">
+          <span style="font-size: 14px;">≡</span>
+          <span class="topbar__title">Weave</span>
+          <div class="presence" style="margin-left: auto;">
+            <div class="presence__avatars">
+              <div class="presence__avatar" style="background:#008835">WS</div>
+              <div class="presence__avatar" style="background:#0076BE">JS</div>
+              <div class="presence__avatar" style="background:#7B4F9C">BW</div>
+              <div class="presence__avatar" style="background:#555">+3</div>
+            </div>
+            <div class="presence__count"><span class="dot-live"></span>6 online</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // Estado de "usuários online"
+    // ============================================================
+    const ROSTER = {
+      william: { id: "william", nome: "William Schulz", iniciais: "WS", cor: "#008835", role: "Admin", visualizando: "Você", status: "ativo" },
+      jenifer: { id: "jenifer", nome: "Jenifer Souza",  iniciais: "JS", cor: "#0076BE", role: "RH",    visualizando: "Aceres Branding", status: "ativo", desde: "há 8 min" },
+      bona:    { id: "bona",    nome: "Bona Wenske",    iniciais: "BW", cor: "#7B4F9C", role: "Admin", visualizando: "Dashboard",       status: "ativo", desde: "há 23 min" },
+      marcos:  { id: "marcos",  nome: "Marcos Pereira", iniciais: "MP", cor: "#F28C28", role: "Líder 1º turno", visualizando: "Ocorrências", status: "ausente", desde: "há 6 min" },
+      rafael:  { id: "rafael",  nome: "Rafael Costa",   iniciais: "RC", cor: "#E63946", role: "Líder 2º turno", visualizando: "Banco de Horas", status: "ativo", desde: "há 1 min" },
+      paula:   { id: "paula",   nome: "Paula Andrade",  iniciais: "PA", cor: "#0EA5E9", role: "RH",    visualizando: "Funcionários",   status: "ativo", desde: "há 12 min" },
+    };
+
+    // Quem está visivelmente "online" agora (ordem importa)
+    let online = ["william", "jenifer", "bona", "marcos"];
+    const MAX_VISIVEIS = 4;
+
+    function renderPresence() {
+      const stackEl = document.getElementById("presence-avatars");
+      const countEl = document.getElementById("presence-count");
+      const listEl = document.getElementById("presence-user-list");
+
+      const visiveis = online.slice(0, MAX_VISIVEIS);
+      const extras = online.length - visiveis.length;
+
+      stackEl.innerHTML = visiveis.map((id) => {
+        const u = ROSTER[id];
+        return `<div class="presence__avatar" style="background:${u.cor}" title="${u.nome} (${u.role})">${u.iniciais}</div>`;
+      }).join("") + (extras > 0
+        ? `<div class="presence__avatar" style="background:#555" title="+${extras} online">+${extras}</div>`
+        : "");
+
+      countEl.textContent = online.length;
+
+      listEl.innerHTML = online.map((id) => {
+        const u = ROSTER[id];
+        const isMe = id === "william";
+        return `
+          <li class="presence__user-item">
+            <div class="presence__user-avatar ${u.status === 'ausente' ? 'idle' : ''}" style="background:${u.cor}">${u.iniciais}</div>
+            <div class="presence__user-info">
+              <strong>${u.nome}${isMe ? ' (você)' : ''}</strong>
+              <small>${u.role} · em ${u.visualizando}</small>
+            </div>
+            <span class="presence__user-status ${u.status === 'ativo' ? 'active' : ''}">${u.status === 'ativo' ? 'ativo' : 'ausente'}</span>
+          </li>
+        `;
+      }).join("");
+    }
+
+    // ============================================================
+    // Popover
+    // ============================================================
+    function togglePopover(evt) {
+      evt?.stopPropagation();
+      document.getElementById("presence-main").classList.toggle("open");
+    }
+    document.addEventListener("click", (e) => {
+      const p = document.getElementById("presence-main");
+      if (!p.contains(e.target)) p.classList.remove("open");
+    });
+
+    // ============================================================
+    // Toast
+    // ============================================================
+    function toast(user, msg, leaving = false) {
+      const t = document.createElement("div");
+      t.className = "toast" + (leaving ? " leaving" : "");
+      t.innerHTML = `
+        <div class="toast__avatar" style="background:${user.cor}">${user.iniciais}</div>
+        <div class="toast__body">
+          <strong>${user.nome.split(" ")[0]}</strong>
+          <small>${msg}</small>
+        </div>
+      `;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 4200);
+    }
+
+    // ============================================================
+    // Simulação
+    // ============================================================
+    function simularEntrada() {
+      const candidatos = Object.keys(ROSTER).filter((id) => !online.includes(id));
+      if (candidatos.length === 0) return alert("Todo mundo já está online!");
+      const novo = candidatos[Math.floor(Math.random() * candidatos.length)];
+      online.push(novo);
+      renderPresence();
+      toast(ROSTER[novo], "entrou no sistema");
+    }
+
+    function simularSaida() {
+      if (online.length <= 1) return alert("Só você está online — não pode 'sair'!");
+      // Não tira o usuário atual (william)
+      const candidatos = online.filter((id) => id !== "william");
+      const saindo = candidatos[Math.floor(Math.random() * candidatos.length)];
+      // Anima a saída antes de remover
+      const avatares = document.querySelectorAll("#presence-avatars .presence__avatar");
+      const idx = online.indexOf(saindo);
+      if (avatares[idx]) avatares[idx].classList.add("presence__avatar--leaving");
+      setTimeout(() => {
+        online = online.filter((id) => id !== saindo);
+        renderPresence();
+      }, 380);
+      toast(ROSTER[saindo], "saiu do sistema", true);
+    }
+
+    function resetar() {
+      online = ["william", "jenifer", "bona", "marcos"];
+      renderPresence();
+      document.querySelectorAll(".toast").forEach((t) => t.remove());
+    }
+
+    // Inicial
+    renderPresence();
+
+    // Atividade simulada: a cada 6-10s, alguém entra ou sai
+    function ciclo() {
+      const acao = Math.random();
+      if (online.length < 5 && acao < 0.55) simularEntrada();
+      else if (online.length > 2) simularSaida();
+      const proximo = 6000 + Math.random() * 4000;
+      setTimeout(ciclo, proximo);
+    }
+    setTimeout(ciclo, 4500);
+  </script>
+</body>
+</html>
