@@ -1,7 +1,7 @@
 {
-  "name": "Weave · Fiobras",
-  "short_name": "Weave",
-  "description": "Controle de ocorrências de ponto da Fiobras — registro pelo RH e conferência pelos líderes.",
+  "name": "FioPulse · Fiobras",
+  "short_name": "FioPulse",
+  "description": "O batimento do RH Fiobras — controle de ponto, banco de horas e PJs em tempo real.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#FFFFFF",

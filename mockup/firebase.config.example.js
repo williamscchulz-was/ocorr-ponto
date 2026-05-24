@@ -22,7 +22,7 @@ window.FIREBASE_CONFIG = {
 //  2. APIs & Services → Library → habilita "Google Drive API"
 //  3. APIs & Services → OAuth consent screen
 //     → User Type: Internal (limita a fiobras.com.br)
-//     → App name: Weave
+//     → App name: FioPulse
 //  4. APIs & Services → Credentials → Create Credentials → OAuth client ID
 //     → Application type: Web application
 //     → Authorized JavaScript origins:

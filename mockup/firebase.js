@@ -968,7 +968,7 @@
       // - desmarcado (default) → SESSION (some ao fechar a aba)
       const manterConectado = !!$("#login-remember")?.checked;
       try {
-        localStorage.setItem("weave:manterConectado", manterConectado ? "1" : "0");
+        localStorage.setItem("fiopulse:manterConectado", manterConectado ? "1" : "0");
       } catch {}
       try {
         const target = manterConectado
@@ -1128,9 +1128,18 @@
       console.warn("[Auth] não foi possível ajustar persistência:", e);
     });
 
+    // Migração: chave antiga era "weave:manterConectado" — copia se existir
+    try {
+      const old = localStorage.getItem("weave:manterConectado");
+      if (old !== null && localStorage.getItem("fiopulse:manterConectado") === null) {
+        localStorage.setItem("fiopulse:manterConectado", old);
+        localStorage.removeItem("weave:manterConectado");
+      }
+    } catch {}
+
     // Restaura estado do checkbox "manter conectado" entre visitas
     try {
-      const remembered = localStorage.getItem("weave:manterConectado") === "1";
+      const remembered = localStorage.getItem("fiopulse:manterConectado") === "1";
       const cb = $("#login-remember");
       if (cb) cb.checked = remembered;
     } catch {}
@@ -1140,7 +1149,7 @@
     const IDLE_MS = 30 * 60 * 1000;
     let idleTimer = null;
     function manterConectadoAtivo() {
-      try { return localStorage.getItem("weave:manterConectado") === "1"; }
+      try { return localStorage.getItem("fiopulse:manterConectado") === "1"; }
       catch { return false; }
     }
     function resetIdleTimer() {

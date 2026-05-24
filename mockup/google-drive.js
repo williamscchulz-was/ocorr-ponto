@@ -11,7 +11,7 @@
 //  1. https://console.cloud.google.com/apis/library/drive.googleapis.com
 //     → habilitar Drive API no projeto ocorr-ponto
 //  2. APIs & Services → OAuth consent screen → User Type "Internal"
-//     (limita a usuários do fiobras.com.br). App name: Weave.
+//     (limita a usuários do fiobras.com.br). App name: FioPulse.
 //  3. APIs & Services → Credentials → Create OAuth client ID
 //     → Web application
 //     → Authorized JavaScript origins:
