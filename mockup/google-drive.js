@@ -76,7 +76,7 @@
 
     return new Promise((resolve, reject) => {
       const onSuccess = (resp) => {
-        console.log("[Drive] OAuth success");
+        if (typeof debug === "function") debug("[Drive] OAuth success");
         if (resp.error) {
           console.error("[Drive] callback error:", resp);
           reject(new Error(resp.error_description || resp.error));
@@ -108,7 +108,7 @@
         tokenClient.callback = onSuccess;
         tokenClient.error_callback = onError;
       }
-      console.log("[Drive] solicitando access token...");
+      if (typeof debug === "function") debug("[Drive] solicitando access token...");
       tokenClient.requestAccessToken();
     });
   }
@@ -207,7 +207,7 @@
       throw new Error("Drive: criar pasta falhou — " + t.slice(0, 200));
     }
     const folder = await createRes.json();
-    console.log("[Drive] subpasta criada:", folder);
+    if (typeof debug === "function") debug("[Drive] subpasta criada:", folder);
     return folder.id;
   };
 

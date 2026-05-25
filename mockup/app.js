@@ -12,6 +12,36 @@ const state = {
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+// Logger gateado: console.log que carrega PII (emails, nomes, CNPJs)
+// deve usar debug() em vez de console.log direto. Só imprime em localhost
+// ou se window.DEBUG = true for setado manualmente (DevTools).
+const _ehDev = (() => {
+  try {
+    return location.hostname === "localhost" ||
+           location.hostname === "127.0.0.1" ||
+           location.hostname.endsWith(".local");
+  } catch { return false; }
+})();
+const debug = (...args) => {
+  if (_ehDev || window.DEBUG === true) console.log(...args);
+};
+
+// Escapa HTML pra evitar XSS quando interpolando dados de usuário em
+// innerHTML. Aplicar em: nomes, observações, CNPJs, razão social,
+// emails, descrições e qualquer texto vindo de input/Firestore.
+const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// Valida que uma URL é https:// — usar antes de salvar contratoUrl pra
+// rejeitar javascript: / data: que viraria XSS via href.
+const ehUrlSegura = (url) => {
+  if (!url || !url.trim()) return true; // vazio é OK (campo opcional)
+  try {
+    const u = new URL(url.trim());
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch { return false; }
+};
+
 const formatDate = (iso) => {
   if (!iso) return "—";
   const d = new Date(iso + "T00:00:00");
@@ -156,7 +186,7 @@ function renderLoginQuick() {
   const root = $("#login-quick");
   root.innerHTML = state.users.map((u) => `
     <button type="button" data-user="${u.id}">
-      <strong>${u.nome}</strong>
+      <strong>${escapeHtml(u.nome)}</strong>
       <span>${roleLabel(u)}</span>
     </button>
   `).join("");
@@ -330,7 +360,7 @@ function iniciarSimulacaoColaborativa(scriptDeEdicao) {
     outros = [...outros, ...ficticios].slice(0, 3);
   }
 
-  console.log("[Colab MOCK] iniciando simulação com:", outros.map((o) => o.nome));
+  debug("[Colab MOCK] iniciando simulação com:", outros.map((o) => o.nome));
 
   scriptDeEdicao.forEach((step, idx) => {
     const autor = outros.find((o) => o.id === step.autorId) || outros[idx % outros.length];
@@ -386,7 +416,7 @@ function atualizarBannerColabModal(pjId) {
       (p) => `
       <div class="presence__avatar"
            style="background:${presenceColor(p.uid)}; border-color:#fff;"
-           title="${p.nome}">
+           title="${escapeHtml(p.nome)}">
         ${initials(p.nome || "?")}
       </div>`
     )
@@ -395,7 +425,7 @@ function atualizarBannerColabModal(pjId) {
   banner.innerHTML = `
     <div class="presence__avatars" style="margin-right:10px">${avatares}</div>
     <div>
-      <strong>${nomes}</strong> também ${outros.length > 1 ? "estão" : "está"} editando este PJ agora.
+      <strong>${escapeHtml(nomes)}</strong> também ${outros.length > 1 ? "estão" : "está"} editando este PJ agora.
       <span class="text-xs muted" style="display:block;">Cuidado pra não sobrescrever — combina pelo Slack se mexer no mesmo campo.</span>
     </div>
   `;
@@ -449,7 +479,7 @@ function renderPresence() {
   const stack = visiveis
     .map((usr) => {
       const ausente = usr.status === "ausente";
-      const tooltip = `${usr.nome || "?"} (${ausente ? "ausente" : "online"})`;
+      const tooltip = escapeHtml(`${usr.nome || "?"} (${ausente ? "ausente" : "online"})`);
       return `
       <div class="presence__avatar ${ausente ? "presence__avatar--idle" : ""}"
            style="background: ${presenceColor(usr.id)};"
@@ -498,14 +528,14 @@ function renderSidebarPresence(online) {
     const ehVoce = usr.id === u?.id;
     const pageLabel = PAGE_LABELS[usr.page] || usr.role || "";
     return `
-      <div class="sidebar-presence__item" title="${usr.nome || "?"} · ${ausente ? "ausente" : "ativo"}${pageLabel ? " · em " + pageLabel : ""}">
+      <div class="sidebar-presence__item" title="${escapeHtml(usr.nome || "?")} · ${ausente ? "ausente" : "ativo"}${pageLabel ? " · em " + escapeHtml(pageLabel) : ""}">
         <div class="sidebar-presence__avatar ${ausente ? "is-idle" : ""}"
              style="background: ${presenceColor(usr.id)};">
-          ${initials(usr.nome || "?")}
+          ${escapeHtml(initials(usr.nome || "?"))}
         </div>
         <div class="sidebar-presence__info">
-          <span class="sidebar-presence__name">${usr.nome || "?"}${ehVoce ? " (você)" : ""}</span>
-          <span class="sidebar-presence__page">${ehVoce ? "neste navegador" : (pageLabel ? "em " + pageLabel : (ausente ? "ausente" : "ativo"))}</span>
+          <span class="sidebar-presence__name">${escapeHtml(usr.nome || "?")}${ehVoce ? " (você)" : ""}</span>
+          <span class="sidebar-presence__page">${ehVoce ? "neste navegador" : (pageLabel ? "em " + escapeHtml(pageLabel) : (ausente ? "ausente" : "ativo"))}</span>
         </div>
       </div>
     `;
@@ -912,7 +942,7 @@ function openNovaOcorrencia() {
             .filter((f) => f.ativo !== false)
             .sort((a, b) => a.nome.localeCompare(b.nome))
             .map((f) => `
-              <option value="${f.id}">${f.nome}${f.turno ? " — " + (TURNOS[f.turno]?.label || "?") : " — sem turno"}</option>
+              <option value="${f.id}">${escapeHtml(f.nome)}${f.turno ? " — " + (TURNOS[f.turno]?.label || "?") : " — sem turno"}</option>
             `).join("")}
         </select>
         ${state.funcionarios.length === 0
@@ -1067,7 +1097,7 @@ function openOcorrenciaDetail(id) {
 
       <div class="field">
         <label for="conf-obs">Observação</label>
-        <textarea id="conf-obs" ${!canEdit ? "disabled" : ""} placeholder="Adicione contexto, justificativas ou notas...">${o.observacao || ""}</textarea>
+        <textarea id="conf-obs" ${!canEdit ? "disabled" : ""} placeholder="Adicione contexto, justificativas ou notas...">${escapeHtml(o.observacao || "")}</textarea>
       </div>
 
       <div style="margin-top:20px;">
@@ -1191,7 +1221,7 @@ function openEditOcorrenciaModal(id) {
           ${state.funcionarios
             .sort((a, b) => a.nome.localeCompare(b.nome))
             .map((f) => `
-              <option value="${f.id}" ${f.id === o.funcionarioId ? "selected" : ""}>${f.nome}${f.turno ? " — " + (TURNOS[f.turno]?.label || "?") : " — sem turno"}</option>
+              <option value="${f.id}" ${f.id === o.funcionarioId ? "selected" : ""}>${escapeHtml(f.nome)}${f.turno ? " — " + (TURNOS[f.turno]?.label || "?") : " — sem turno"}</option>
             `).join("")}
         </select>
       </div>
@@ -1214,7 +1244,7 @@ function openEditOcorrenciaModal(id) {
 
       <div class="field">
         <label for="ef-obs">Observação</label>
-        <textarea id="ef-obs" placeholder="Contexto, justificativa...">${o.observacao || ""}</textarea>
+        <textarea id="ef-obs" placeholder="Contexto, justificativa...">${escapeHtml(o.observacao || "")}</textarea>
       </div>
     </form>
     <div class="modal__footer">
@@ -1467,8 +1497,8 @@ function renderFuncList() {
     <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto;" data-func="${f.id}">
       <div class="avatar">${initials(f.nome)}</div>
       <div class="occ__main">
-        <div class="occ__name">${f.nome}</div>
-        <div class="occ__sub">${f.codigo ? "cód: " + f.codigo + " · " : ""}${f.setor || "sem setor"}</div>
+        <div class="occ__name">${escapeHtml(f.nome)}</div>
+        <div class="occ__sub">${f.codigo ? "cód: " + escapeHtml(f.codigo) + " · " : ""}${escapeHtml(f.setor || "sem setor")}</div>
       </div>
       ${f.turno
         ? `<span class="badge badge--neutral">${TURNOS[f.turno].label}</span>`
@@ -1601,8 +1631,8 @@ function openProfileModal() {
       <div class="row" style="gap:14px; padding: 12px 0 16px;">
         <div class="avatar avatar--lg">${initials(u.nome || "?")}</div>
         <div>
-          <div style="font-weight:700; color:var(--plum); font-size:16px;">${u.nome}</div>
-          <div class="muted text-sm">${u.email || ""}</div>
+          <div style="font-weight:700; color:var(--plum); font-size:16px;">${escapeHtml(u.nome)}</div>
+          <div class="muted text-sm">${escapeHtml(u.email || "")}</div>
           <div class="text-xs muted" style="margin-top:2px;">${roleLabel(u)}</div>
         </div>
       </div>
@@ -1970,8 +2000,8 @@ function renderBHList(funcionarios) {
       <article class="occ" style="grid-template-columns: 44px 1fr auto auto;">
         <div class="avatar">${initials(f.nome)}</div>
         <div class="occ__main">
-          <div class="occ__name">${f.nome}</div>
-          <div class="occ__sub">${f.codigo ? "cód: " + f.codigo + " · " : ""}${TURNOS[f.turno]?.label || "sem turno"}</div>
+          <div class="occ__name">${escapeHtml(f.nome)}</div>
+          <div class="occ__sub">${f.codigo ? "cód: " + escapeHtml(f.codigo) + " · " : ""}${TURNOS[f.turno]?.label || "sem turno"}</div>
         </div>
         <div style="text-align: right;">
           <span class="badge badge--${tone}" style="font-family: var(--font-display); font-size: 13px; font-weight: 700;">${saldoStr}</span>
@@ -2270,12 +2300,12 @@ function renderPJList() {
         <div class="avatar">${initials(p.nome || "?")}</div>
         <div class="occ__main">
           <div class="occ__name">
-            ${p.nome || "(sem nome)"}
+            ${escapeHtml(p.nome || "(sem nome)")}
             ${precisaReajuste ? `<span class="badge badge--warning" style="margin-left:8px; font-size:10px;"><span class="dot"></span>REAJUSTE PENDENTE</span>` : ""}
           </div>
           <div class="occ__sub">
-            ${p.tipoServico ? `<span class="badge badge--neutral">${p.tipoServico}</span>` : ""}
-            ${p.cnpj ? `<span class="dot"></span><span>${p.cnpj}</span>` : ""}
+            ${p.tipoServico ? `<span class="badge badge--neutral">${escapeHtml(p.tipoServico)}</span>` : ""}
+            ${p.cnpj ? `<span class="dot"></span><span>${escapeHtml(p.cnpj)}</span>` : ""}
           </div>
         </div>
         <div style="text-align: right;">
@@ -2564,7 +2594,7 @@ function openPJModal(id) {
           ${pj.historicoValores.slice().reverse().map((h, i) => `
             <div class="timeline__item ${i === 0 ? "" : "done"}">
               <div class="timeline__item-title">${formatMoeda(h.valor)}</div>
-              <div class="timeline__item-meta">${formatDateFull(h.data)} · ${getUser(h.por)?.nome || h.por || "—"}${h.motivo ? " · " + h.motivo : ""}</div>
+              <div class="timeline__item-meta">${formatDateFull(h.data)} · ${escapeHtml(getUser(h.por)?.nome || h.por || "—")}${h.motivo ? " · " + escapeHtml(h.motivo) : ""}</div>
             </div>
           `).join("")}
         </div>
@@ -2747,7 +2777,7 @@ function openPJModal(id) {
                 name: nomeArquivo,
                 parents: parentFolderId ? [parentFolderId] : undefined,
               });
-              console.log("[Drive] resposta:", uploadResult);
+              debug("[Drive] resposta:", uploadResult);
               const link = uploadResult.webViewLink
                 || (uploadResult.id ? `https://drive.google.com/file/d/${uploadResult.id}/view` : null);
               if (!link) throw new Error("Drive não retornou link nem id. Resposta: " + JSON.stringify(uploadResult));
@@ -2797,7 +2827,7 @@ function openPJModal(id) {
                     urlInput.value = atualizado.webViewLink;
                     urlInput.dispatchEvent(new Event("input", { bubbles: true }));
                   }
-                  console.log("[Drive] pós-OCR: movido + renomeado", atualizado);
+                  debug("[Drive] pós-OCR: movido + renomeado", atualizado);
                 } catch (err) {
                   console.warn("[Drive] mover/renomear pós-OCR falhou:", err);
                 }
@@ -2829,8 +2859,13 @@ function savePJ(id) {
   const nome = $("#pj-nome").value.trim();
   if (!nome || nome.length < 2) return toast("Informe o nome do PJ.", "danger");
 
+  const contratoUrl = $("#pj-contrato-url").value.trim();
+  if (!ehUrlSegura(contratoUrl)) {
+    return toast("Link do contrato precisa ser https:// — recuse 'javascript:' ou outros.", "danger");
+  }
+
   const valorRaw = $("#pj-valor").value;
-  const valor = valorRaw ? Number(valorRaw) : 0;
+  const valor = Math.max(0, Number(valorRaw) || 0); // clamp não-negativo
 
   const dados = {
     nome,
@@ -3080,8 +3115,8 @@ function analisarTextoContrato(texto) {
     r.cnpj = cnpjEscolhido.formatado;
   }
 
-  console.log("[Contrato] CNPJs encontrados:", cnpjsUnicos.map((c) => c.formatado));
-  console.log("[Contrato] CNPJ escolhido:", r.cnpj || "(nenhum válido — só CNPJ ignorado ou nenhum CNPJ)");
+  debug("[Contrato] CNPJs encontrados:", cnpjsUnicos.map((c) => c.formatado));
+  debug("[Contrato] CNPJ escolhido:", r.cnpj || "(nenhum válido — só CNPJ ignorado ou nenhum CNPJ)");
 
   // ---------- Periodicidade ----------
   // Detecta "por hora" / "/h" / "horista" antes de decidir o valor.
@@ -3246,7 +3281,7 @@ function openReajusteModal(id) {
   openModal(`
     <div class="modal__header">
       <div>
-        <h2>${reajusteExtra ? "Reajuste extra" : "Aplicar reajuste"} · ${pj.nome}</h2>
+        <h2>${reajusteExtra ? "Reajuste extra" : "Aplicar reajuste"} · ${escapeHtml(pj.nome)}</h2>
         <p>${reajusteExtra
             ? "Reajuste fora do ciclo anual (15/01). Use pra casos especiais — não substitui o reajuste oficial."
             : `Reajuste anual de 15/01/${anoVigente}. Busca o IPCA via Banco Central conforme o período escolhido.`}</p>
@@ -3461,7 +3496,7 @@ function renderPJFeriasList(pjId) {
                 <span style="margin-left: 8px;">${f.dias} dia${f.dias !== 1 ? "s" : ""}</span>
                 <span class="muted text-xs">· baixa em ${formatDate(f.data)}</span>
               </div>
-              ${f.observacao ? `<div class="text-xs muted" style="margin-top: 4px;">${f.observacao}</div>` : ""}
+              ${f.observacao ? `<div class="text-xs muted" style="margin-top: 4px;">${escapeHtml(f.observacao)}</div>` : ""}
             </div>
             <button type="button" class="btn btn--ghost btn--sm" data-del-ferias="${f.id}" title="Excluir baixa">${icon("trash")}</button>
           </div>
@@ -3484,7 +3519,7 @@ function openAddFeriasModal(pjId) {
   openModal(`
     <div class="modal__header">
       <div>
-        <h2>Dar baixa em férias · ${pj.nome}</h2>
+        <h2>Dar baixa em férias · ${escapeHtml(pj.nome)}</h2>
         <p>Saldo disponível: <strong style="color: var(--plum);">${r.saldo} dia${Math.abs(r.saldo) !== 1 ? "s" : ""}</strong></p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
@@ -4139,8 +4174,8 @@ function renderUsuariosInto(selector) {
         <article class="occ" style="grid-template-columns: 44px 1fr auto;">
           <div class="avatar">${initials(u.nome || u.email || "?")}</div>
           <div class="occ__main">
-            <div class="occ__name">${u.nome || "(sem nome)"}</div>
-            <div class="occ__sub">${u.email || "@" + u.id}</div>
+            <div class="occ__name">${escapeHtml(u.nome || "(sem nome)")}</div>
+            <div class="occ__sub">${escapeHtml(u.email || "@" + u.id)}</div>
           </div>
           <span class="badge badge--${u.role === "admin" ? "danger" : u.role === "rh" ? "info" : "neutral"}">${roleLabel(u)}</span>
         </article>
@@ -4263,7 +4298,7 @@ async function criarUsuario() {
         ${icon("check")} Conta criada com sucesso
       </div>
       <div class="text-sm" style="line-height: 1.7;">
-        <strong>Email:</strong> ${res.email}<br/>
+        <strong>Email:</strong> ${escapeHtml(res.email)}<br/>
         <strong>Senha temporária:</strong> <code style="background: white; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${res.tempPassword}</code><br/>
         ${res.resetEnviado
           ? `<span class="muted">${icon("check")} Email de redefinição enviado — o usuário pode usar tanto a senha temporária quanto o link do email.</span>`

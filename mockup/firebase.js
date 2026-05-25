@@ -1079,7 +1079,7 @@
         if (emailInput) emailInput.focus();
         return;
       }
-      console.log("[Auth] enviando email de redefinição pra:", email);
+      debug?.("[Auth] enviando email de redefinição pra:", email);
       try {
         await auth.sendPasswordResetEmail(email);
         toast(`Email enviado pra ${email}. Veja na caixa de entrada (e na pasta de spam).`);
@@ -1284,6 +1284,12 @@
       if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
       if (presenceUnsubscribe) { presenceUnsubscribe(); presenceUnsubscribe = null; }
       state.presence = [];
+      // Para qualquer subscription de PJ ativa (modal pode estar aberto
+      // quando signOut dispara por idle timeout — listener ficaria órfão
+      // com regra de auth falhando e poluindo console)
+      try { window.pararEscutaPJ?.(); } catch {}
+      // Limpa pjEditing antes do delete final (best-effort)
+      presencePjEditing = null;
       if (auth.currentUser) {
         try {
           await db.collection("presence").doc(auth.currentUser.uid).delete();
