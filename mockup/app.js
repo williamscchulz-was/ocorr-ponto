@@ -12,6 +12,16 @@ const state = {
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+// Debounce: usado nos search inputs pra não re-renderizar a lista
+// inteira (130+ funcionários) a cada keystroke.
+const debounce = (fn, ms = 150) => {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(null, args), ms);
+  };
+};
+
 // Logger gateado: console.log que carrega PII (emails, nomes, CNPJs)
 // deve usar debug() em vez de console.log direto. Só imprime em localhost
 // ou se window.DEBUG = true for setado manualmente (DevTools).
@@ -40,6 +50,28 @@ const ehUrlSegura = (url) => {
     const u = new URL(url.trim());
     return u.protocol === "https:" || u.protocol === "http:";
   } catch { return false; }
+};
+
+// Valida CNPJ via dígitos verificadores. Aceita string com ou sem máscara.
+// Retorna true se válido OU se vazio (campo opcional). False se inválido.
+const ehCNPJValido = (raw) => {
+  if (!raw || !String(raw).trim()) return true; // vazio = OK (opcional)
+  const cnpj = String(raw).replace(/\D/g, "");
+  if (cnpj.length !== 14) return false;
+  if (/^(\d)\1+$/.test(cnpj)) return false; // 00000000000000, etc
+
+  // Calcula dígitos verificadores
+  const calc = (size) => {
+    const pesos = size === 12
+      ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+      : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    let soma = 0;
+    for (let i = 0; i < size; i++) soma += parseInt(cnpj[i], 10) * pesos[i];
+    const mod = soma % 11;
+    return mod < 2 ? 0 : 11 - mod;
+  };
+  return parseInt(cnpj[12], 10) === calc(12)
+      && parseInt(cnpj[13], 10) === calc(13);
 };
 
 const formatDate = (iso) => {
@@ -171,11 +203,11 @@ function openModal(html, opts = {}) {
 function closeModal() {
   const backdrop = $("#modal-backdrop");
   if (!backdrop) return;
-  // Para qualquer simulação colaborativa rodando
-  if (typeof pararSimulacaoColaborativa === "function") pararSimulacaoColaborativa();
-  // Sinaliza fim da edição de PJ (limpa pjEditing no presence)
+  // Sinaliza fim da edição de PJ (limpa pjEditing no presence + cancela sub)
   if (window.setarPJEditando) window.setarPJEditando(null);
   if (window.pararEscutaPJ) window.pararEscutaPJ();
+  // Limpa qualquer toast colab residual
+  document.querySelectorAll(".collab-toast").forEach((t) => t.remove());
   backdrop.style.animation = "fadeIn 160ms reverse";
   setTimeout(() => ($("#modal-root").innerHTML = ""), 140);
 }
@@ -255,144 +287,24 @@ function renderApp() {
 }
 
 // ============================================================
-// Edição colaborativa em tempo real (MOCK VISUAL)
-// Simula outros usuários editando o mesmo registro junto com você.
-// Sem backend realtime — só pra demonstrar a feature em HTML.
+// Notificação colaborativa (usado pelo callback de iniciarEscutaPJ)
+// Mostra um toast quando outro user salva alterações no mesmo PJ.
 // ============================================================
-let _colabTimers = [];
-function pararSimulacaoColaborativa() {
-  _colabTimers.forEach((t) => clearTimeout(t));
-  _colabTimers = [];
-  document.querySelectorAll(".field--editing").forEach((f) => {
-    f.classList.remove("field--editing");
-    f.style.removeProperty("--collab-color");
-    f.style.removeProperty("--collab-color-soft");
-    f.style.removeProperty("--collab-color-bg");
-    f.querySelector(".field__editor-badge")?.remove();
-    f.querySelector(".field__cursor-pulse")?.remove();
-  });
-  document.querySelectorAll(".collab-toast").forEach((t) => t.remove());
-}
-
-function hexToRgba(hex, alpha) {
-  const h = hex.replace("#", "");
-  const r = parseInt(h.substring(0, 2), 16);
-  const g = parseInt(h.substring(2, 4), 16);
-  const b = parseInt(h.substring(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function marcarCampoEditando(selector, autor) {
-  const input = document.querySelector(selector);
-  if (!input || !autor) return null;
-  const field = input.closest(".field");
-  if (!field || field.classList.contains("field--editing")) return null;
-
-  const cor = presenceColor(autor.id);
-  field.classList.add("field--editing");
-  field.style.setProperty("--collab-color", cor);
-  field.style.setProperty("--collab-color-soft", hexToRgba(cor, 0.18));
-  field.style.setProperty("--collab-color-bg", hexToRgba(cor, 0.04));
-
-  const badge = document.createElement("div");
-  badge.className = "field__editor-badge";
-  badge.innerHTML = `
-    <div class="field__editor-avatar-mini">${initials(autor.nome)}</div>
-    <span>${(autor.nome || "").split(" ")[0]} editando</span>
-  `;
-  field.appendChild(badge);
-
-  // Cursor "fantasma" pulsando no input
-  if (input.tagName === "INPUT" || input.tagName === "TEXTAREA") {
-    const cursor = document.createElement("div");
-    cursor.className = "field__cursor-pulse";
-    field.appendChild(cursor);
-  }
-  return field;
-}
-
-function desmarcarCampoEditando(selector) {
-  const input = document.querySelector(selector);
-  if (!input) return;
-  const field = input.closest(".field");
-  if (!field) return;
-  field.classList.remove("field--editing");
-  field.style.removeProperty("--collab-color");
-  field.style.removeProperty("--collab-color-soft");
-  field.style.removeProperty("--collab-color-bg");
-  field.querySelector(".field__editor-badge")?.remove();
-  field.querySelector(".field__cursor-pulse")?.remove();
-}
-
 function notificarEdicaoColab(autor, mensagem) {
   const t = document.createElement("div");
   t.className = "collab-toast";
   const cor = presenceColor(autor.id);
+  const primeiroNome = (autor.nome || "").split(" ")[0];
   t.style.setProperty("--collab-color", cor);
   t.innerHTML = `
-    <div class="collab-toast__avatar" style="background:${cor};">${initials(autor.nome)}</div>
+    <div class="collab-toast__avatar" style="background:${cor};">${escapeHtml(initials(autor.nome))}</div>
     <div class="collab-toast__body">
-      <strong>${(autor.nome || "").split(" ")[0]}</strong>
-      <small>${mensagem}</small>
+      <strong>${escapeHtml(primeiroNome)}</strong>
+      <small>${escapeHtml(mensagem)}</small>
     </div>
   `;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4500);
-}
-
-/**
- * Inicia simulação visual de outros users editando o mesmo registro.
- * @param scriptDeEdicao - lista de { selector, autorId, delay, novoValor?, descricao? }
- */
-function iniciarSimulacaoColaborativa(scriptDeEdicao) {
-  pararSimulacaoColaborativa();
-  const u = currentUser();
-  let outros = (state.users || []).filter((x) => x.id !== u?.id && x.active !== false);
-
-  // Fallback: se não há outros users reais, usa "personagens" fictícios
-  // pra demonstração. Permite mockar mesmo em ambiente sem mais users.
-  if (outros.length < 2) {
-    const ficticios = [
-      { id: "mock-jenifer", nome: "Jenifer Souza", role: "rh" },
-      { id: "mock-bona",    nome: "Bona Wenske",   role: "admin" },
-      { id: "mock-marcos",  nome: "Marcos Lider",  role: "lider" },
-    ].filter((f) => !outros.find((o) => o.nome === f.nome));
-    outros = [...outros, ...ficticios].slice(0, 3);
-  }
-
-  debug("[Colab MOCK] iniciando simulação com:", outros.map((o) => o.nome));
-
-  scriptDeEdicao.forEach((step, idx) => {
-    const autor = outros.find((o) => o.id === step.autorId) || outros[idx % outros.length];
-    if (!autor) return;
-
-    const t1 = setTimeout(() => {
-      marcarCampoEditando(step.selector, autor);
-    }, step.startAt || 0);
-    _colabTimers.push(t1);
-
-    if (step.duration) {
-      const t2 = setTimeout(() => {
-        // Aplica a "edição" simulada (só se o user não tocou no campo)
-        const input = document.querySelector(step.selector);
-        if (input && step.novoValor !== undefined) {
-          // Se for select, troca a opção; senão, seta o valor com efeito
-          if (input.tagName === "SELECT") {
-            input.value = step.novoValor;
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-          } else {
-            input.value = step.novoValor;
-            input.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        }
-        desmarcarCampoEditando(step.selector);
-        if (step.descricao) {
-          notificarEdicaoColab(autor, step.descricao);
-        }
-      }, (step.startAt || 0) + step.duration);
-      _colabTimers.push(t2);
-    }
-  });
 }
 
 // Atualiza o banner de "outros editando este PJ" dentro do modal aberto.
@@ -465,9 +377,9 @@ function renderPresence() {
       return (a.nome || "").localeCompare(b.nome || "");
     });
   } else {
-    // Fallback mock: user atual + colegas do state.users
+    // Fallback mock: user atual + colegas do state.users (campo é "ativo" em PT-BR)
     const outros = (state.users || [])
-      .filter((x) => x.id !== u.id && x.active !== false)
+      .filter((x) => x.id !== u.id && x.ativo !== false)
       .slice(0, 3);
     online = [u, ...outros].map((x) => ({ ...x, status: "ativo" }));
   }
@@ -790,10 +702,10 @@ function renderDashboard() {
     });
   });
 
-  $("#search").addEventListener("input", (e) => {
+  $("#search").addEventListener("input", debounce((e) => {
     state.view.search = e.target.value;
     renderOccList();
-  });
+  }, 150));
   $("#search").addEventListener("focus", (e) => {
     const len = e.target.value.length;
     e.target.setSelectionRange(len, len);
@@ -1438,7 +1350,7 @@ function renderFuncionarios() {
 
   $("#btn-import-func").addEventListener("click", openImportFuncModal);
   $("#btn-novo-func").addEventListener("click", () => openFuncionarioModal(null));
-  $("#func-search").addEventListener("input", renderFuncList);
+  $("#func-search").addEventListener("input", debounce(renderFuncList, 150));
   $("#func-status-filter").addEventListener("change", renderFuncList);
   $("#func-turno-filter").addEventListener("change", renderFuncList);
   renderFuncList();
@@ -1956,7 +1868,7 @@ function renderBancoHoras() {
   if ($("#btn-import-bh")) {
     $("#btn-import-bh").addEventListener("click", openImportBancoHorasModal);
   }
-  $("#bh-search").addEventListener("input", () => renderBHList(visibles));
+  $("#bh-search").addEventListener("input", debounce(() => renderBHList(visibles), 150));
   renderBHList(visibles);
 }
 
@@ -2244,7 +2156,7 @@ function renderControlePJ() {
   `;
 
   $("#btn-novo-pj").addEventListener("click", () => openPJModal(null));
-  $("#pj-search").addEventListener("input", renderPJList);
+  $("#pj-search").addEventListener("input", debounce(renderPJList, 150));
   $("#pj-status-filter").addEventListener("change", renderPJList);
   renderPJList();
 }
@@ -2862,6 +2774,11 @@ function savePJ(id) {
   const contratoUrl = $("#pj-contrato-url").value.trim();
   if (!ehUrlSegura(contratoUrl)) {
     return toast("Link do contrato precisa ser https:// — recuse 'javascript:' ou outros.", "danger");
+  }
+
+  const cnpjRaw = $("#pj-cnpj").value.trim();
+  if (!ehCNPJValido(cnpjRaw)) {
+    return toast("CNPJ inválido — confere os 14 dígitos.", "danger");
   }
 
   const valorRaw = $("#pj-valor").value;

@@ -373,9 +373,9 @@ a:hover { color: var(--plum-soft); }
 .btn--danger:hover { background: #7B1F22; }
 
 .btn--block { width: 100%; }
-.btn--sm { padding: 8px 12px; font-size: 13px; }
+.btn--sm { padding: 11px 14px; font-size: 13px; min-height: 36px; } /* min-h ajuda touch */
 .btn--lg { padding: 14px 22px; font-size: 15px; }
-.btn--icon { width: 40px; padding: 0; }
+.btn--icon { width: 44px; min-height: 44px; padding: 0; } /* WCAG 2.5.5 */
 
 .btn .icon { width: 16px; height: 16px; }
 
@@ -477,6 +477,25 @@ a:hover { color: var(--plum-soft); }
 }
 .nav__item.active .nav__badge { background: var(--plum); color: var(--milk); }
 .nav__item:not(.active) .nav__badge { background: rgba(255, 243, 230, .15); color: var(--milk); }
+
+/* Acessibilidade: focus-visible em todos os interativos pra teclado/screen-reader */
+*:focus { outline: none; } /* baseline limpo */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--primary, #008835);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* No header escuro, usa cor clara pra contraste */
+.app__sidebar button:focus-visible,
+.app__sidebar a:focus-visible,
+.topbar button:focus-visible {
+  outline-color: var(--milk, #fffaf2);
+}
 
 /* Pulse animado ao lado do nome FioPulse na sidebar */
 .brand-pulse {
@@ -693,7 +712,7 @@ a:hover { color: var(--plum-soft); }
 
 .topbar__title { font-weight: 700; font-size: 15px; }
 .topbar__menu {
-  width: 40px; height: 40px;
+  width: 44px; height: 44px; /* WCAG 2.5.5 touch target */
   display: grid; place-items: center;
   border-radius: 10px;
   color: var(--milk);
@@ -792,80 +811,10 @@ a:hover { color: var(--plum-soft); }
   font-size: 9px;
 }
 
-/* Edição colaborativa (MOCK) — destaque de campo sendo editado por outro user */
-.field--editing {
-  position: relative;
-  padding-top: 18px;
-  margin-top: 2px;
-}
-.field--editing input,
-.field--editing select,
-.field--editing textarea {
-  border-color: var(--collab-color, #0076BE) !important;
-  box-shadow: 0 0 0 3px var(--collab-color-soft, rgba(0,118,190,0.15)) !important;
-  background: var(--collab-color-bg, rgba(0,118,190,0.03)) !important;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.field__editor-badge {
-  position: absolute;
-  top: 0;
-  left: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 9px 2px 3px;
-  background: var(--collab-color, #0076BE);
-  color: #fff;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  z-index: 5;
-  white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.12);
-  animation: collabBadgeIn 0.3s ease-out;
-}
-.field__editor-badge::after {
-  content: '';
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  background: #fff;
-  border-radius: 50%;
-  margin-left: 4px;
-  animation: pulse-live 1.4s ease-in-out infinite;
-}
-.field__editor-avatar-mini {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 700;
-  color: #fff;
-}
-.field__cursor-pulse {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 22px;
-  background: var(--collab-color, #0076BE);
-  border-radius: 1px;
-  animation: cursorBlink 1s ease-in-out infinite;
-  pointer-events: none;
-}
+/* Animação usada pelo .modal-colab-banner (mantida do mock antigo) */
 @keyframes collabBadgeIn {
   from { opacity: 0; transform: translateY(-4px) scale(0.9); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes cursorBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.2; }
 }
 
 /* Toast de atualização colaborativa */
@@ -1321,7 +1270,7 @@ a:hover { color: var(--plum-soft); }
 }
 
 .modal__close {
-  width: 32px; height: 32px;
+  width: 44px; height: 44px; /* WCAG 2.5.5 touch target */
   border-radius: 8px;
   display: grid; place-items: center;
   color: var(--text-muted);
