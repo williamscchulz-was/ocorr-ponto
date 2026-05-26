@@ -1421,15 +1421,45 @@
       criadoEm: tsToIso(d.data().criadoEm),
     }));
 
-    // Banco de Horas (todos logados leem)
-    const bhSnap = await db.collection("bancoHoras").get();
+    // Banco de Horas — fonte canônica: pipeline-rh/cur (ETL do WK Radar ERP).
+    // Pipeline RH (servidor WKRADAR) gera esse doc diariamente às 08:00 BRT.
+    // Schema documentado em claude-bridge/shared/SCHEMAS.md + verify output.
+    // funcId mapeia direto pra "f-{funcId}" (doc id em /funcionarios).
     state.bancoHoras = {};
-    bhSnap.docs.forEach((d) => {
-      state.bancoHoras[d.id] = {
-        ...d.data(),
-        atualizadoEm: tsToIso(d.data().atualizadoEm),
-      };
-    });
+    state.pipelineMeta = null;
+    try {
+      const curSnap = await db.collection("pipeline-rh").doc("cur").get();
+      if (curSnap.exists) {
+        const cur = curSnap.data();
+        const atualizadoEm = tsToIso(cur.meta?.generatedAt);
+        for (const f of (cur.funcionarios || [])) {
+          state.bancoHoras["f-" + f.funcId] = {
+            funcionarioCodigo: f.funcId,
+            funcionarioNome: f.nome,
+            minutos: f.saldoAtualMin,
+            saldoFormatado: f.saldoAtualFmt,
+            atualizadoEm,
+            ultimaDataIso: f.ultimaDataIso,
+          };
+        }
+        state.pipelineMeta = {
+          schema: cur.schema,
+          month: cur.month,
+          generatedAt: atualizadoEm,
+          periodStart: cur.meta?.periodStart,
+          periodEnd: cur.meta?.periodEnd,
+          totalAtivos: cur.meta?.totalFuncionariosAtivos,
+          totalInativos: cur.meta?.totalFuncionariosInativos,
+          totalLancamentos: cur.meta?.totalLancamentos,
+          warnings: cur.meta?.warnings,
+        };
+        debug?.("[pipeline-rh] cur carregado:", state.pipelineMeta);
+      } else {
+        debug?.("[pipeline-rh] doc 'cur' não existe — pipeline RH não rodou ainda.");
+      }
+    } catch (e) {
+      console.warn("[pipeline-rh] falha ao ler cur, banco de horas vazio:", e?.message || e);
+    }
 
     // Controle PJ (admin/RH só)
     state.pjs = [];

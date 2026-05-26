@@ -117,10 +117,13 @@ service cloud.firestore {
     }
 
     // ----- pipeline-rh (estrutura cur/hist · espelho do Comercial · SEM PII) -----
-    // Dashboards externos (BI, Weave) consomem aqui.
+    // FioPulse usa como fonte canônica do banco de horas (substitui a coleção
+    // bancoHoras legada). Sem PII (CPF/PIS estão isolados em banco-horas-saldos,
+    // admin+RH only). Mesma política de leitura que /bancoHoras: todos logados
+    // podem ler, UI filtra por turno pra líder.
     // Docs: pipeline-rh/cur (mês corrente + meta) e pipeline-rh/hist (meses fechados).
     match /pipeline-rh/{docId} {
-      allow read: if isAdmin() || isRH();
+      allow read: if isAuthed();
       allow write: if false;
     }
 
