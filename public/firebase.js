@@ -1421,44 +1421,62 @@
       criadoEm: tsToIso(d.data().criadoEm),
     }));
 
-    // Banco de Horas — fonte canônica: pipeline-rh/cur (ETL do WK Radar ERP).
-    // Pipeline RH (servidor WKRADAR) gera esse doc diariamente às 08:00 BRT.
-    // Schema documentado em claude-bridge/shared/SCHEMAS.md + verify output.
-    // funcId mapeia direto pra "f-{funcId}" (doc id em /funcionarios).
+    // Banco de Horas — fontes diferentes por papel pra isolamento por turno:
+    //
+    // Admin/RH: lê pipeline-rh/cur (canônico, tem meta agregada). Doc único
+    // com TODOS os funcionários ativos — não dá pra filtrar por turno via rule.
+    //
+    // Líder: lê /bancoHoras filtrando por funcionarioTurno=u.turno. Cada doc
+    // tem o turno denormalizado pelo pipeline, regra do Firestore garante o
+    // isolamento. Sem acesso à meta agregada (não precisa, vê só dos seus).
     state.bancoHoras = {};
     state.pipelineMeta = null;
     try {
-      const curSnap = await db.collection("pipeline-rh").doc("cur").get();
-      if (curSnap.exists) {
-        const cur = curSnap.data();
-        const atualizadoEm = tsToIso(cur.meta?.generatedAt);
-        for (const f of (cur.funcionarios || [])) {
-          state.bancoHoras["f-" + f.funcId] = {
-            funcionarioCodigo: f.funcId,
-            funcionarioNome: f.nome,
-            minutos: f.saldoAtualMin,
-            saldoFormatado: f.saldoAtualFmt,
-            atualizadoEm,
-            ultimaDataIso: f.ultimaDataIso,
+      if (u.role === "admin" || u.role === "rh") {
+        const curSnap = await db.collection("pipeline-rh").doc("cur").get();
+        if (curSnap.exists) {
+          const cur = curSnap.data();
+          const atualizadoEm = tsToIso(cur.meta?.generatedAt);
+          for (const f of (cur.funcionarios || [])) {
+            state.bancoHoras["f-" + f.funcId] = {
+              funcionarioCodigo: f.funcId,
+              funcionarioNome: f.nome,
+              minutos: f.saldoAtualMin,
+              saldoFormatado: f.saldoAtualFmt,
+              atualizadoEm,
+              ultimaDataIso: f.ultimaDataIso,
+            };
+          }
+          state.pipelineMeta = {
+            schema: cur.schema,
+            month: cur.month,
+            generatedAt: atualizadoEm,
+            periodStart: cur.meta?.periodStart,
+            periodEnd: cur.meta?.periodEnd,
+            totalAtivos: cur.meta?.totalFuncionariosAtivos,
+            totalInativos: cur.meta?.totalFuncionariosInativos,
+            totalLancamentos: cur.meta?.totalLancamentos,
+            warnings: cur.meta?.warnings,
           };
+          debug?.("[pipeline-rh] cur carregado:", state.pipelineMeta);
+        } else {
+          debug?.("[pipeline-rh] doc 'cur' não existe — pipeline RH não rodou ainda.");
         }
-        state.pipelineMeta = {
-          schema: cur.schema,
-          month: cur.month,
-          generatedAt: atualizadoEm,
-          periodStart: cur.meta?.periodStart,
-          periodEnd: cur.meta?.periodEnd,
-          totalAtivos: cur.meta?.totalFuncionariosAtivos,
-          totalInativos: cur.meta?.totalFuncionariosInativos,
-          totalLancamentos: cur.meta?.totalLancamentos,
-          warnings: cur.meta?.warnings,
-        };
-        debug?.("[pipeline-rh] cur carregado:", state.pipelineMeta);
-      } else {
-        debug?.("[pipeline-rh] doc 'cur' não existe — pipeline RH não rodou ainda.");
+      } else if (u.role === "lider") {
+        // Query OBRIGATORIAMENTE filtrada por turno pra casar com a rule.
+        const bhSnap = await db.collection("bancoHoras")
+          .where("funcionarioTurno", "==", u.turno)
+          .get();
+        bhSnap.docs.forEach((d) => {
+          state.bancoHoras[d.id] = {
+            ...d.data(),
+            atualizadoEm: tsToIso(d.data().atualizadoEm),
+          };
+        });
+        debug?.("[bancoHoras] líder turno", u.turno, "→", bhSnap.size, "saldos");
       }
     } catch (e) {
-      console.warn("[pipeline-rh] falha ao ler cur, banco de horas vazio:", e?.message || e);
+      console.warn("[bh] falha ao ler banco de horas:", e?.message || e);
     }
 
     // Controle PJ (admin/RH só)
