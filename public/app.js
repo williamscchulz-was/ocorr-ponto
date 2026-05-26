@@ -300,9 +300,8 @@ function aplicarAvatar(el, user) {
   }
 }
 
-// Redimensiona uma imagem (File) pra max 256×256, retorna JPEG base64 ~30KB.
-// Mantém proporção. Quality 0.85 é o sweet spot pra avatars.
-function redimensionarFotoBase64(file, maxSize = 256, quality = 0.85) {
+// Carrega uma imagem (File) em Image element. Promise.
+function carregarImagem(file) {
   return new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith("image/")) {
       return reject(new Error("Arquivo não é imagem."));
@@ -310,20 +309,156 @@ function redimensionarFotoBase64(file, maxSize = 256, quality = 0.85) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Não foi possível decodificar a imagem."));
       img.src = e.target.result;
     };
     reader.onerror = () => reject(new Error("Falha ao ler o arquivo."));
     reader.readAsDataURL(file);
+  });
+}
+
+// Modal de crop pra foto de perfil. Quadrado (1:1) porque o avatar é circular.
+// Arrasta pra reposicionar, slider/wheel pra zoom. No confirm retorna base64
+// JPEG 256×256 via callback onConfirm.
+async function openCropFotoModal(file, onConfirm) {
+  let img;
+  try {
+    img = await carregarImagem(file);
+  } catch (e) {
+    return toast(e.message, "danger");
+  }
+
+  const VIEW = 280;   // tamanho do preview (px)
+  const OUTPUT = 256; // tamanho final do crop (px)
+  const minScale = VIEW / Math.min(img.width, img.height); // fit shortest side
+  let scale = minScale;
+  let tx = (VIEW - img.width * scale) / 2;
+  let ty = (VIEW - img.height * scale) / 2;
+  let drag = null;
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Ajustar foto</h2>
+        <p>Arraste pra posicionar e use o zoom pra enquadrar.</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:14px;">
+        <div id="crop-stage" style="width:${VIEW}px; height:${VIEW}px; position:relative; background:#000; border-radius:8px; overflow:hidden; cursor:grab; touch-action:none; user-select:none;">
+          <canvas id="crop-canvas" width="${VIEW}" height="${VIEW}" style="display:block;"></canvas>
+          <div style="position:absolute; inset:0; pointer-events:none;
+                      box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+                      border-radius:50%;
+                      margin: 0;"></div>
+          <div style="position:absolute; inset:0; pointer-events:none;
+                      border-radius:50%; border: 2px dashed rgba(255,255,255,0.8);
+                      box-sizing:border-box;"></div>
+        </div>
+        <div style="width:${VIEW}px; display:flex; align-items:center; gap:10px;">
+          <span class="text-xs muted">Zoom</span>
+          <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" style="flex:1;" />
+        </div>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-confirm-crop">${icon("check")}<span>Aplicar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+
+      const canvas = $("#crop-canvas");
+      const ctx = canvas.getContext("2d");
+      const stage = $("#crop-stage");
+      const zoom = $("#crop-zoom");
+
+      const clamp = () => {
+        const vw = img.width * scale;
+        const vh = img.height * scale;
+        // Garante que a imagem sempre cobre o stage (sem espaços vazios)
+        tx = Math.min(0, Math.max(VIEW - vw, tx));
+        ty = Math.min(0, Math.max(VIEW - vh, ty));
+      };
+
+      const render = () => {
+        clamp();
+        ctx.clearRect(0, 0, VIEW, VIEW);
+        ctx.drawImage(img, tx, ty, img.width * scale, img.height * scale);
+      };
+
+      render();
+
+      // Drag
+      const start = (e) => {
+        const p = e.touches ? e.touches[0] : e;
+        drag = { startX: p.clientX, startY: p.clientY, origTx: tx, origTy: ty };
+        stage.style.cursor = "grabbing";
+      };
+      const move = (e) => {
+        if (!drag) return;
+        e.preventDefault();
+        const p = e.touches ? e.touches[0] : e;
+        tx = drag.origTx + (p.clientX - drag.startX);
+        ty = drag.origTy + (p.clientY - drag.startY);
+        render();
+      };
+      const end = () => {
+        drag = null;
+        stage.style.cursor = "grab";
+      };
+      stage.addEventListener("mousedown", start);
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", end);
+      stage.addEventListener("touchstart", start, { passive: true });
+      window.addEventListener("touchmove", move, { passive: false });
+      window.addEventListener("touchend", end);
+
+      // Zoom (slider: 1.0 = scale base; 4.0 = scale * 4)
+      const applyZoom = (z) => {
+        // Mantém centro do stage como pivot
+        const oldScale = scale;
+        scale = minScale * Number(z);
+        const cx = VIEW / 2;
+        const cy = VIEW / 2;
+        tx = cx - ((cx - tx) / oldScale) * scale;
+        ty = cy - ((cy - ty) / oldScale) * scale;
+        render();
+      };
+      zoom.addEventListener("input", () => applyZoom(zoom.value));
+
+      // Wheel zoom (desktop conveniência)
+      stage.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.1 : -0.1;
+        const next = Math.min(4, Math.max(1, Number(zoom.value) + delta));
+        zoom.value = next;
+        applyZoom(next);
+      }, { passive: false });
+
+      // Confirma: extrai o crop em 256×256
+      $("#btn-confirm-crop").addEventListener("click", () => {
+        const out = document.createElement("canvas");
+        out.width = OUTPUT;
+        out.height = OUTPUT;
+        const octx = out.getContext("2d");
+        // Mapeia a view (VIEW×VIEW) pra OUTPUT×OUTPUT, mantendo a mesma transform
+        const ratio = OUTPUT / VIEW;
+        octx.drawImage(
+          img,
+          tx * ratio,
+          ty * ratio,
+          img.width * scale * ratio,
+          img.height * scale * ratio
+        );
+        const base64 = out.toDataURL("image/jpeg", 0.85);
+        closeModal();
+        onConfirm(base64);
+      });
+    },
   });
 }
 
@@ -1687,18 +1822,18 @@ function openProfileModal() {
         if (file.size > 5 * 1024 * 1024) {
           return setStatus("Arquivo maior que 5MB. Escolha uma imagem menor.", true);
         }
-        setStatus("Processando imagem...");
-        try {
-          const base64 = await redimensionarFotoBase64(file);
-          setStatus("Enviando...");
-          await window.atualizarMinhaFoto(base64);
-          aplicarAvatar($("#profile-avatar"), currentUser());
-          aplicarAvatar($("#user-avatar"), currentUser());
-          setStatus("Foto atualizada ✓");
-          setTimeout(() => { closeModal(); openProfileModal(); }, 600);
-        } catch (err) {
-          setStatus("Erro: " + (err?.message || err), true);
-        }
+        // Abre o cropper. Profile modal se fecha enquanto edita.
+        openCropFotoModal(file, async (base64) => {
+          try {
+            await window.atualizarMinhaFoto(base64);
+            aplicarAvatar($("#user-avatar"), currentUser());
+            toast("Foto atualizada ✓");
+            openProfileModal();
+          } catch (err) {
+            toast("Erro ao salvar foto: " + (err?.message || err), "danger");
+            openProfileModal();
+          }
+        });
       });
 
       const btnRm = $("#btn-remover-foto");
