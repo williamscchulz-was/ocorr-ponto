@@ -28,14 +28,12 @@ service cloud.firestore {
     }
 
     // ----- users -----
-    // Cada usuário lê o próprio doc. Só admin cria/edita usuários.
     match /users/{uid} {
       allow read: if isAuthed() && (request.auth.uid == uid || isAdmin());
       allow create, update, delete: if isAdmin();
     }
 
     // ----- funcionarios -----
-    // Todos logados leem. Admin e RH criam/editam.
     match /funcionarios/{id} {
       allow read: if isAuthed();
       allow create, update, delete: if isAdmin() || isRH();
@@ -57,7 +55,7 @@ service cloud.firestore {
 
     // ----- bancoHoras (saldo de horas por funcionário) -----
     // Todos logados leem (UI filtra por turno pra líder).
-    // Só RH/admin escrevem (via import do XLSX do sistema de ponto).
+    // Só RH/admin escrevem (via import do XLSX do sistema de ponto OU via pipeline RH).
     match /bancoHoras/{funcionarioId} {
       allow read: if isAuthed();
       allow create, update, delete: if isAdmin() || isRH();
@@ -80,8 +78,6 @@ service cloud.firestore {
 
     // ----- ocorrencias -----
     match /ocorrencias/{id} {
-
-      // Leitura: admin/RH veem tudo; líder só do próprio turno.
       allow read: if podeVerOcorrencia(resource.data);
 
       // Criar: RH ou admin. Campos obrigatórios e turno coerente.
@@ -97,24 +93,35 @@ service cloud.firestore {
         && request.resource.data.tipo is string
         && request.resource.data.horario is string;
 
-      // Atualização:
-      //   - Líder do turno: pode definir acao + dataConferencia (conferência)
-      //                     e atualizar observacao.
-      //   - RH/Admin: podem atualizar observacao a qualquer momento.
-      //   - Admin: pode atualizar qualquer campo.
-      // Em nenhum caso pode-se trocar funcionarioId/funcionarioTurno/data/tipo/horario
-      // depois da criação (exceto admin).
       allow update: if
-        // admin pode tudo
         isAdmin()
-        // RH pode atualizar obs (e nada mais sensível)
-        || (isRH()
-            && podeAtualizarApenasObservacao())
-        // líder do turno pode conferir e/ou atualizar obs
+        || (isRH() && podeAtualizarApenasObservacao())
         || (liderDoMesmoTurno(resource.data.funcionarioTurno)
             && podeConferirOuAtualizarObs());
 
       allow delete: if isAdmin() || isRH();
+    }
+
+    // ----- banco-horas-saldos -----
+    // Snapshot rico com CPF/PIS · só admin + RH leem · escrita via Admin SDK
+    match /banco-horas-saldos/{funcId} {
+      allow read: if isAdmin() || isRH();
+      allow write: if false;
+    }
+
+    // ----- banco-horas -----
+    // Histórico mensal de lançamentos diários · admin + RH leem
+    match /banco-horas/{docId} {
+      allow read: if isAdmin() || isRH();
+      allow write: if false;
+    }
+
+    // ----- pipeline-rh (estrutura cur/hist · espelho do Comercial · SEM PII) -----
+    // Dashboards externos (BI, Weave) consomem aqui.
+    // Docs: pipeline-rh/cur (mês corrente + meta) e pipeline-rh/hist (meses fechados).
+    match /pipeline-rh/{docId} {
+      allow read: if isAdmin() || isRH();
+      allow write: if false;
     }
 
     // ----- Helpers de atualização -----
@@ -129,23 +136,12 @@ service cloud.firestore {
     }
 
     function podeConferirOuAtualizarObs() {
-      // Pode mexer em observacao, historico, atualizadoEm sempre.
-      // Pode definir acao/dataConferencia/conferidoPor apenas se ainda eram null.
       let allowedKeys = ['observacao', 'historico', 'atualizadoEm',
                          'acao', 'dataConferencia', 'conferidoPor'];
       let changed = request.resource.data.diff(resource.data).affectedKeys();
-
-      // Todas as mudanças devem estar nos campos permitidos
       let mudancasPermitidas = changed.hasOnly(allowedKeys);
-
-      // Se mudou acao, era null antes (não pode "re-conferir")
-      let acaoOk = !changed.hasAny(['acao'])
-                   || resource.data.acao == null;
-
-      // Se mudou dataConferencia, era null antes
-      let dataOk = !changed.hasAny(['dataConferencia'])
-                   || resource.data.dataConferencia == null;
-
+      let acaoOk = !changed.hasAny(['acao']) || resource.data.acao == null;
+      let dataOk = !changed.hasAny(['dataConferencia']) || resource.data.dataConferencia == null;
       return mudancasPermitidas && acaoOk && dataOk;
     }
   }
