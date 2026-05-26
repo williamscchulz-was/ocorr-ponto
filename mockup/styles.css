@@ -519,111 +519,39 @@ textarea:focus-visible,
   }
 }
 
-/* ===== Sidebar: painel de "Online agora" ===== */
+/* ===== Sidebar: presença minimalista ===== */
 .sidebar-presence {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  margin-top: 18px;
-  padding: 8px 4px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  padding: 10px 12px 14px;
   border-top: 1px solid rgba(255, 243, 230, .08);
+  min-height: 0;
 }
-.sidebar-presence__title {
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(255, 243, 230, .55);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0 10px 8px;
+/* Cluster de pontos — só aparece quando há outros online */
+.sp-cluster {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
-.sidebar-presence__title .live-dot {
-  width: 6px;
-  height: 6px;
+.sp-live {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
   background: #22c55e;
-  border-radius: 50%;
-  animation: pulse-live 1.6s ease-in-out infinite;
-  box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
-}
-.sidebar-presence__list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sidebar-presence__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  transition: background 0.18s;
-  cursor: default;
-}
-.sidebar-presence__item:hover {
-  background: rgba(255, 243, 230, .06);
-}
-.sidebar-presence__avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
   flex-shrink: 0;
-  position: relative;
+  animation: pulse-live 1.6s ease-in-out infinite;
 }
-.sidebar-presence__avatar::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 9px;
-  height: 9px;
-  background: #22c55e;
+.sp-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 2px solid var(--verde, #008835);
+  cursor: default;
+  transition: opacity .2s, transform .2s;
 }
-.sidebar-presence__avatar.is-idle::after {
-  background: #f59e0b;
-}
-.sidebar-presence__avatar.is-idle {
-  opacity: 0.65;
-}
-.sidebar-presence__info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.sidebar-presence__name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--milk);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sidebar-presence__page {
+.sp-dot:hover { transform: scale(1.35); }
+.sp-dot--idle { opacity: 0.45; }
+.sp-extra {
   font-size: 10px;
-  color: rgba(255, 243, 230, .55);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sidebar-presence__empty {
-  padding: 10px;
-  font-size: 11px;
-  color: rgba(255, 243, 230, .45);
-  text-align: center;
-  font-style: italic;
+  color: rgba(255, 243, 230, .5);
+  font-weight: 600;
 }
 
 .app__user {
@@ -719,76 +647,37 @@ textarea:focus-visible,
 }
 .topbar__menu:hover { background: rgba(255, 243, 230, .1); }
 
-/* Presence (mock): stack de avatares dos usuários online */
+/* Presence: pontos minimalistas na topbar e sidebar */
 .presence {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 10px 4px 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  min-width: 0;
+}
+.presence__dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.presence__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   cursor: default;
+  transition: transform .15s;
+  flex-shrink: 0;
 }
-.presence__avatars {
-  display: flex;
-  align-items: center;
-}
-.presence__avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.presence__dot:hover { transform: scale(1.5); }
+.presence__dot--idle { opacity: 0.35; }
+.presence__extra {
   font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  border: 2px solid var(--plum);
-  margin-left: -8px;
-  position: relative;
-  letter-spacing: 0;
-}
-.presence__avatar:first-child { margin-left: 0; }
-.presence__avatar::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 9px;
-  height: 9px;
-  background: #22c55e;
-  border-radius: 50%;
-  border: 1.5px solid var(--plum);
-}
-.presence__avatar--idle::after {
-  background: #f59e0b; /* ausente (lastSeen entre 2 e 7min) */
-}
-.presence__avatar--idle {
-  opacity: 0.7;
-}
-.presence__count {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255,255,255,.5);
   font-weight: 600;
-  white-space: nowrap;
-}
-.presence__count .dot-live {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: #22c55e;
-  border-radius: 50%;
-  margin-right: 4px;
-  vertical-align: middle;
-  animation: pulse-live 1.6s ease-in-out infinite;
+  margin-left: 2px;
 }
 @keyframes pulse-live {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.7); }
-}
-@media (max-width: 600px) {
-  .presence__count { display: none; }
 }
 
 /* Banner de outros usuários editando o mesmo PJ (real, via Firestore) */
@@ -893,51 +782,56 @@ textarea:focus-visible,
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
 .stat {
-  background: var(--surface);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  border-radius: 8px;
+  padding: 10px 12px;
   position: relative;
   overflow: hidden;
   transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.stat:hover { box-shadow: var(--shadow-sm); }
+.stat:hover { background: rgba(0,0,0,0.015); }
 
 .stat__label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 6px;
+  margin: 0;
 }
 
 .stat__value {
   font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 700;
   color: var(--plum);
-  letter-spacing: -0.02em;
-  line-height: 1;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 
 .stat__hint {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-muted);
-  margin-top: 6px;
+  margin: 0;
+  opacity: 0.75;
 }
 
-.stat--accent { background: var(--plum); color: var(--milk); border-color: var(--plum); }
-.stat--accent .stat__label { color: rgba(255, 243, 230, .6); }
-.stat--accent .stat__value { color: var(--milk); }
-.stat--accent .stat__hint { color: rgba(255, 243, 230, .6); }
+.stat--accent {
+  background: rgba(0, 136, 53, 0.06);
+  border-color: rgba(0, 136, 53, 0.25);
+}
+.stat--accent .stat__value { color: var(--verde, #008835); }
 
 /* ============================================
    FILTER BAR
@@ -1677,6 +1571,11 @@ textarea:focus-visible,
 }
 
 html.firebase-mode .demo-banner { display: none; }
+
+/* Em modo Firebase: esconde quick login + lead demo + divider */
+html.firebase-mode .login__quick,
+html.firebase-mode .login .lead,
+html.firebase-mode .login__divider { display: none; }
 
 /* Login: link "esqueci senha" só em modo Firebase */
 .login__forgot {

@@ -92,7 +92,7 @@
         const msg = err?.type === "popup_closed"
           ? "Popup do Google foi fechado antes de autorizar."
           : err?.type === "popup_failed_to_open"
-          ? "Browser bloqueou o popup. Permita popups pra weave-fiobras.web.app e tente de novo."
+          ? "Browser bloqueou o popup. Permita popups para este site e tente de novo."
           : (err?.message || err?.type || "Erro desconhecido no OAuth. Verifique se você foi adicionado como 'Test user' no console Google Cloud.");
         reject(new Error(msg));
       };

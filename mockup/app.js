@@ -92,6 +92,47 @@ const formatDateTime = (iso) => {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 };
 
+// Recebe lista de timestamps (Firestore Timestamp, ISO string, Date, ou ms)
+// Retorna { value, hint } pro card de "Última atualização".
+// value = tempo relativo ("há 5m", "há 2h", "agora")
+// hint  = data + hora detalhada ("14/05 às 15:30")
+function formatUltimaAtualizacao(dates) {
+  const ms = (dates || [])
+    .filter(Boolean)
+    .map((d) => {
+      if (typeof d === "number") return d;
+      if (typeof d === "string") return new Date(d).getTime();
+      if (d?.toMillis) return d.toMillis();
+      if (d?.seconds) return d.seconds * 1000;
+      return new Date(d).getTime();
+    })
+    .filter((n) => !Number.isNaN(n) && n > 0);
+
+  if (ms.length === 0) {
+    return { value: "—", hint: "aguardando 1ª sincronização" };
+  }
+
+  const max = Math.max(...ms);
+  const agora = Date.now();
+  const diffMin = Math.floor((agora - max) / 60000);
+  const diffH = Math.floor(diffMin / 60);
+  const diffD = Math.floor(diffH / 24);
+
+  let value;
+  if (diffMin < 1) value = "agora";
+  else if (diffMin < 60) value = `há ${diffMin}m`;
+  else if (diffH < 24) value = `há ${diffH}h`;
+  else if (diffD < 7) value = `há ${diffD}d`;
+  else value = new Date(max).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+
+  const dt = new Date(max);
+  const hint = dt.toLocaleString("pt-BR", {
+    day: "2-digit", month: "short",
+    hour: "2-digit", minute: "2-digit",
+  });
+  return { value, hint };
+}
+
 const formatDay = (iso) => {
   const d = new Date(iso + "T00:00:00");
   return String(d.getDate()).padStart(2, "0");
@@ -359,55 +400,44 @@ function renderPresence() {
   const u = currentUser();
   if (!u) { el.innerHTML = ""; return; }
 
-  // Modo real (Firebase): usa state.presence vindo do Firestore.
-  // Modo demo: fallback pro mock antigo com state.users.
-  let online;
-  if (Array.isArray(state.presence) && state.presence.length > 0) {
-    online = state.presence.map((p) => ({
+  // Só usa dados reais do Firestore — sem fallback mock pra evitar flash
+  if (!Array.isArray(state.presence) || state.presence.length === 0) {
+    el.innerHTML = "";
+    renderSidebarPresence([]);
+    return;
+  }
+
+  const online = state.presence
+    .map((p) => ({
       id: p.uid,
       nome: p.nome,
       role: p.role,
-      status: p.status, // "ativo" ou "ausente"
-    }));
-    // Ordena: ativos primeiro, depois ausentes; o próprio user no início
-    online.sort((a, b) => {
+      turno: p.turno || null,
+      status: p.status,
+      page: p.page || "",
+      pjEditing: p.pjEditing || null,
+    }))
+    .sort((a, b) => {
       if (a.id === u.id) return -1;
       if (b.id === u.id) return 1;
       if (a.status !== b.status) return a.status === "ativo" ? -1 : 1;
       return (a.nome || "").localeCompare(b.nome || "");
     });
+
+  // Topbar: só mostra outros usuários (não você mesmo)
+  const outros = online.filter((x) => x.id !== u.id);
+  if (outros.length === 0) {
+    el.innerHTML = "";
   } else {
-    // Fallback mock: user atual + colegas do state.users (campo é "ativo" em PT-BR)
-    const outros = (state.users || [])
-      .filter((x) => x.id !== u.id && x.ativo !== false)
-      .slice(0, 3);
-    online = [u, ...outros].map((x) => ({ ...x, status: "ativo" }));
-  }
-
-  const maxAvatars = 4;
-  const visiveis = online.slice(0, maxAvatars);
-  const extras = online.length - visiveis.length;
-
-  const stack = visiveis
-    .map((usr) => {
+    const dots = outros.slice(0, 5).map((usr) => {
       const ausente = usr.status === "ausente";
-      const tooltip = escapeHtml(`${usr.nome || "?"} (${ausente ? "ausente" : "online"})`);
-      return `
-      <div class="presence__avatar ${ausente ? "presence__avatar--idle" : ""}"
-           style="background: ${presenceColor(usr.id)};"
-           title="${tooltip}">
-        ${initials(usr.nome || "?")}
-      </div>`;
-    })
-    .join("");
-
-  el.innerHTML = `
-    <div class="presence__avatars">
-      ${stack}
-      ${extras > 0 ? `<div class="presence__avatar" style="background:#555;" title="+${extras} conectados">+${extras}</div>` : ""}
-    </div>
-    <div class="presence__count"><span class="dot-live"></span>${online.length} online</div>
-  `;
+      return `<div class="presence__dot ${ausente ? "presence__dot--idle" : ""}"
+                   style="background:${presenceColor(usr.id)};"
+                   title="${escapeHtml(usr.nome || "?")}"></div>`;
+    }).join("");
+    const extra = outros.length > 5 ? `<span class="presence__extra">+${outros.length - 5}</span>` : "";
+    el.innerHTML = `<div class="presence__dots">${dots}${extra}</div>`;
+  }
 
   // Se há um modal de PJ aberto, sincroniza o banner de outros editando.
   const banner = document.getElementById("modal-colab-banner");
@@ -415,56 +445,49 @@ function renderPresence() {
     atualizarBannerColabModal(banner.dataset.pjid);
   }
 
-  // Atualiza o painel detalhado na sidebar
   renderSidebarPresence(online);
 }
 
-// Painel detalhado de "Online agora" na sidebar — formato vertical
-// com avatar + nome + o que cada um está vendo.
+// Presença na sidebar: minimalista — só pontos coloridos com tooltip.
+// Aparece apenas quando há outros usuários online além do próprio.
 function renderSidebarPresence(online) {
   const el = document.getElementById("sidebar-presence");
   if (!el) return;
   const u = currentUser();
 
-  // Mapa de páginas pra rótulos amigáveis
+  const ROLE_LABELS = { admin: "Admin", rh: "RH", lider: "Líder" };
   const PAGE_LABELS = {
-    dashboard: "Ocorrências",
-    "banco-horas": "Banco de Horas",
-    funcionarios: "Funcionários",
-    pj: "Controle PJ",
-    config: "Configurações",
+    dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
+    funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
   };
 
-  const items = (online || []).map((usr) => {
+  const outros = (online || []).filter((x) => x.id !== u?.id);
+
+  if (outros.length === 0) {
+    el.innerHTML = "";
+    return;
+  }
+
+  const dots = outros.map((usr) => {
     const ausente = usr.status === "ausente";
-    const ehVoce = usr.id === u?.id;
-    const pageLabel = PAGE_LABELS[usr.page] || usr.role || "";
-    return `
-      <div class="sidebar-presence__item" title="${escapeHtml(usr.nome || "?")} · ${ausente ? "ausente" : "ativo"}${pageLabel ? " · em " + escapeHtml(pageLabel) : ""}">
-        <div class="sidebar-presence__avatar ${ausente ? "is-idle" : ""}"
-             style="background: ${presenceColor(usr.id)};">
-          ${escapeHtml(initials(usr.nome || "?"))}
-        </div>
-        <div class="sidebar-presence__info">
-          <span class="sidebar-presence__name">${escapeHtml(usr.nome || "?")}${ehVoce ? " (você)" : ""}</span>
-          <span class="sidebar-presence__page">${ehVoce ? "neste navegador" : (pageLabel ? "em " + escapeHtml(pageLabel) : (ausente ? "ausente" : "ativo"))}</span>
-        </div>
-      </div>
-    `;
+    const role = ROLE_LABELS[usr.role] || "";
+    const turno = usr.turno ? ` T${usr.turno}` : "";
+    const page = PAGE_LABELS[usr.page] || "";
+    let tooltip = escapeHtml(usr.nome || "?");
+    if (role) tooltip += ` · ${role}${turno}`;
+    if (usr.pjEditing) {
+      const pj = (state.pjs || []).find((p) => p.id === usr.pjEditing);
+      tooltip += ` · editando ${pj ? escapeHtml(pj.nome) : "PJ"}`;
+    } else if (page) {
+      tooltip += ` · ${page}`;
+    }
+    if (ausente) tooltip += " · ausente";
+    return `<div class="sp-dot ${ausente ? "sp-dot--idle" : ""}"
+                 style="background:${presenceColor(usr.id)};"
+                 title="${tooltip}"></div>`;
   }).join("");
 
-  const totalOutros = (online || []).filter((x) => x.id !== u?.id).length;
-
-  el.innerHTML = `
-    <div class="sidebar-presence__title">
-      <span class="live-dot"></span>
-      Online agora · ${online.length}
-    </div>
-    <div class="sidebar-presence__list">
-      ${items || `<div class="sidebar-presence__empty">Ninguém mais conectado</div>`}
-    </div>
-    ${totalOutros === 0 ? `<div class="sidebar-presence__empty" style="margin-top:4px;">Só você por enquanto. Quando outros usuários entrarem, aparecem aqui.</div>` : ""}
-  `;
+  el.innerHTML = `<div class="sp-cluster"><span class="sp-live"></span>${dots}</div>`;
 }
 
 function renderNav() {
@@ -1297,14 +1320,15 @@ function renderFuncionarios() {
     <header class="page-header">
       <div>
         <h1>Funcionários</h1>
-        <p>Clique num funcionário pra definir turno e setor. RH/admin podem importar lote.</p>
-      </div>
-      <div class="row" style="gap:8px; flex-wrap:wrap;">
-        <button class="btn btn--ghost" id="btn-import-func">${icon("download")}<span>Importar lote</span></button>
-        <button class="btn btn--primary" id="btn-novo-func">${icon("plus")}<span>Novo funcionário</span></button>
+        <p>Clique num funcionário pra definir turno e setor.</p>
       </div>
     </header>
 
+    ${(() => {
+      const ultima = formatUltimaAtualizacao(
+        state.funcionarios.map((f) => f.atualizadoEm || f.criadoEm)
+      );
+      return `
     <div class="stats">
       <div class="stat stat--accent">
         <div class="stat__label">Total ativos</div>
@@ -1323,7 +1347,13 @@ function renderFuncionarios() {
           <div class="stat__hint">${TURNOS[t].horario}</div>
         </div>
       `).join("")}
-    </div>
+      <div class="stat">
+        <div class="stat__label">Última atualização</div>
+        <div class="stat__value" style="font-size: 16px;">${ultima.value}</div>
+        <div class="stat__hint">${ultima.hint}</div>
+      </div>
+    </div>`;
+    })()}
 
     <div class="toolbar">
       <div class="toolbar__search">
@@ -1348,8 +1378,6 @@ function renderFuncionarios() {
     <div id="func-list"></div>
   `;
 
-  $("#btn-import-func").addEventListener("click", openImportFuncModal);
-  $("#btn-novo-func").addEventListener("click", () => openFuncionarioModal(null));
   $("#func-search").addEventListener("input", debounce(renderFuncList, 150));
   $("#func-status-filter").addEventListener("change", renderFuncList);
   $("#func-turno-filter").addEventListener("change", renderFuncList);
@@ -1390,18 +1418,11 @@ function renderFuncList() {
     root.innerHTML = `
       <div class="empty">
         <div class="empty__icon">${icon("users")}</div>
-        <h3>${semFiltro ? "Sem funcionários cadastrados ainda" : "Nenhum resultado"}</h3>
+        <h3>${semFiltro ? "Aguardando primeira sincronização" : "Nenhum resultado"}</h3>
         <p>${semFiltro
-          ? "Importe a lista completa de uma vez, ou crie um a um."
+          ? "Os funcionários virão automaticamente do pipeline de RH na próxima execução."
           : (apenasInativos ? "" : "Tente ajustar a busca ou os filtros (turno/status).")}</p>
-        ${semFiltro ? `
-          <div class="row" style="gap:8px; justify-content:center; margin-top:8px;">
-            <button class="btn btn--primary" id="btn-empty-novo">${icon("plus")}<span>Novo funcionário</span></button>
-            <button class="btn btn--ghost" id="btn-empty-import">${icon("download")}<span>Importar lote</span></button>
-          </div>` : ""}
       </div>`;
-    const bn = $("#btn-empty-novo"); if (bn) bn.addEventListener("click", () => openFuncionarioModal(null));
-    const bi = $("#btn-empty-import"); if (bi) bi.addEventListener("click", openImportFuncModal);
     return;
   }
 
@@ -1827,9 +1848,6 @@ function renderBancoHoras() {
         <h1>Banco de Horas</h1>
         <p>${subtitle}</p>
       </div>
-      ${u.role === "rh" || u.role === "admin" ? `
-        <button class="btn btn--primary" id="btn-import-bh">${icon("download")}<span>Importar arquivo</span></button>
-      ` : ""}
     </header>
 
     <div class="stats">
@@ -1843,16 +1861,17 @@ function renderBancoHoras() {
         <div class="stat__value">${comSaldo}</div>
         <div class="stat__hint">vindos de import</div>
       </div>
+      ${(() => {
+        const ultima = formatUltimaAtualizacao(
+          Object.values(bh).map((b) => b.atualizadoEm)
+        );
+        return `
       <div class="stat">
         <div class="stat__label">Última atualização</div>
-        <div class="stat__value" style="font-size: 16px;">${(() => {
-          const dates = Object.values(bh).map(b => b.atualizadoEm).filter(Boolean);
-          if (dates.length === 0) return "—";
-          const max = dates.sort().pop();
-          return formatDate(max.slice(0, 10));
-        })()}</div>
-        <div class="stat__hint">${Object.keys(bh).length === 0 ? "aguardando import" : "última carga"}</div>
-      </div>
+        <div class="stat__value" style="font-size: 16px;">${ultima.value}</div>
+        <div class="stat__hint">${ultima.hint}</div>
+      </div>`;
+      })()}
     </div>
 
     <div class="toolbar">
@@ -3564,6 +3583,71 @@ function deletePJ(id) {
   renderApp();
 }
 
+// Stub de modo demo. Em Firebase mode, firebase.js sobrescreve window.limparFuncionariosEBancoHoras
+// com batch delete real no Firestore. Atribui explicitamente a window pra evitar shadow do binding lexical.
+window.limparFuncionariosEBancoHoras = async function () {
+  state.funcionarios = [];
+  state.bancoHoras = {};
+  if (window.store?.save) store.save(state);
+  renderApp();
+  toast("Base zerada (modo demo). Em produção, conecte o Firebase pra deletar do Firestore.", "info");
+};
+
+function renderDadosInto(selector) {
+  const u = currentUser();
+  if (u.role !== "admin") return;
+
+  const nFuncionarios = (state.funcionarios || []).length;
+  const bh = state.bancoHoras || {};
+  const nBH = Array.isArray(bh) ? bh.length : Object.keys(bh).length;
+
+  $(selector).innerHTML = `
+    <div style="max-width: 600px; margin-top: 24px;">
+      <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0 0 4px; font-weight: 700;">Dados</h2>
+      <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 24px;">Gerenciamento da base de dados do sistema. Apenas administradores.</p>
+
+      <div class="stats" style="margin-bottom: 24px;">
+        <div class="stat">
+          <div class="stat__label">Funcionários</div>
+          <div class="stat__value">${nFuncionarios}</div>
+          <div class="stat__hint">na base atual</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">Registros BH</div>
+          <div class="stat__value">${nBH}</div>
+          <div class="stat__hint">banco de horas</div>
+        </div>
+      </div>
+
+      <div style="background: #fff8f8; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 20px; margin-bottom: 16px;">
+        <div style="font-weight: 700; color: #b91c1c; margin-bottom: 6px; font-size: 15px;">⚠️ Zona de perigo</div>
+        <p style="font-size: 13px; color: #7f1d1d; margin: 0 0 16px; line-height: 1.5;">
+          <strong>Zerar funcionários e banco de horas</strong> apaga permanentemente todos os registros das duas coleções.
+          Use antes de uma nova importação completa pelo pipeline WKRADAR.
+          Não afeta ocorrências, PJs nem usuários.
+        </p>
+        <button class="btn btn--danger" id="btn-limpar-base" style="background:#dc2626; color:#fff; border:none;">
+          Zerar base de dados
+        </button>
+      </div>
+    </div>
+  `;
+
+  $("#btn-limpar-base").addEventListener("click", async () => {
+    if (!confirm("ATENÇÃO: Isso vai apagar todos os funcionários e todo o banco de horas.\n\nEsta ação não pode ser desfeita.\n\nTem certeza?")) return;
+    const btn = $("#btn-limpar-base");
+    btn.disabled = true;
+    btn.textContent = "Zerando...";
+    try {
+      // Chama via window.* explicitamente pra pegar o override do Firebase (não o stub local)
+      await window.limparFuncionariosEBancoHoras();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Zerar base de dados";
+    }
+  });
+}
+
 // ---------- Configurações (Admin/RH) ----------
 
 function renderConfig() {
@@ -3582,6 +3666,7 @@ function renderConfig() {
     { id: "acoes", label: "Ações", icon: "check" },
   ];
   if (u.role === "admin") tabs.push({ id: "usuarios", label: "Usuários", icon: "users" });
+  if (u.role === "admin") tabs.push({ id: "dados", label: "Dados", icon: "settings" });
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -3614,6 +3699,8 @@ function renderConfig() {
     renderUsuariosInto("#config-content");
   } else if (state.view.configTab === "acoes") {
     renderAcoesInto("#config-content");
+  } else if (state.view.configTab === "dados" && u.role === "admin") {
+    renderDadosInto("#config-content");
   } else {
     renderTiposInto("#config-content");
   }
@@ -3638,24 +3725,6 @@ function renderAcoesInto(selector) {
         <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Como o líder pode encaminhar uma ocorrência. Use pra refletir as práticas internas da empresa.</p>
       </div>
       <button class="btn btn--primary" id="btn-nova-acao">${icon("plus")}<span>Nova ação</span></button>
-    </div>
-
-    <div class="stats">
-      <div class="stat">
-        <div class="stat__label">Padrão do sistema</div>
-        <div class="stat__value">${padrao.length}</div>
-        <div class="stat__hint">edição muda label</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Personalizadas</div>
-        <div class="stat__value">${custom.length}</div>
-        <div class="stat__hint">criadas pela equipe</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Total no dropdown</div>
-        <div class="stat__value">${padrao.length + custom.length}</div>
-        <div class="stat__hint">opções na conferência</div>
-      </div>
     </div>
 
     <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Padrão do sistema</div>
@@ -3856,24 +3925,6 @@ function renderTiposInto(selector) {
         <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Motivos disponíveis no formulário de nova ocorrência.</p>
       </div>
       <button class="btn btn--primary" id="btn-novo-tipo">${icon("plus")}<span>Novo tipo</span></button>
-    </div>
-
-    <div class="stats">
-      <div class="stat">
-        <div class="stat__label">Tipos padrão</div>
-        <div class="stat__value">${padrao.length}</div>
-        <div class="stat__hint">edição muda label/cor</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Personalizados</div>
-        <div class="stat__value">${custom.length}</div>
-        <div class="stat__hint">criados pela equipe</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Total disponível</div>
-        <div class="stat__value">${padrao.length + custom.length}</div>
-        <div class="stat__hint">no formulário de nova ocorrência</div>
-      </div>
     </div>
 
     <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Padrão do sistema</div>
@@ -4263,6 +4314,23 @@ function closeSidebar() {
 
 document.addEventListener("DOMContentLoaded", () => {
   renderLoginQuick();
+
+  // Em modo Firebase: ajusta labels/placeholders pra login real (email + senha)
+  if (document.documentElement.classList.contains("firebase-mode")) {
+    const lblUser = document.querySelector('label[for="login-user"]');
+    if (lblUser) lblUser.textContent = "E-mail";
+    const inpUser = $("#login-user");
+    if (inpUser) {
+      inpUser.placeholder = "seu@fiobras.com.br";
+      inpUser.type = "email";
+      inpUser.autocomplete = "email";
+    }
+    const inpPass = $("#login-pass");
+    if (inpPass) {
+      inpPass.placeholder = "sua senha";
+      inpPass.autocomplete = "current-password";
+    }
+  }
 
   // Auto-restore session if user was logged in
   if (state.currentUserId && getUser(state.currentUserId)) {

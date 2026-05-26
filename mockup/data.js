@@ -50,6 +50,7 @@ const TIPOS_PJ = [
   "Limpeza / Conservação",
   "Manutenção",
   "Consultoria",
+  "Gestão / Gerência",
   "Segurança",
   "Logística",
   "Outro",

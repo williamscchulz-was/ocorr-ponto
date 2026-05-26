@@ -471,6 +471,32 @@
       }
     };
 
+    // Zera TODAS as coleções de funcionários e banco de horas (admin only)
+    window.limparFuncionariosEBancoHoras = async function () {
+      try {
+        const cols = ["funcionarios", "bancoHoras"];
+        for (const col of cols) {
+          const snap = await db.collection(col).get();
+          if (snap.empty) continue;
+          const batches = [];
+          let cur = db.batch(); let ops = 0;
+          snap.docs.forEach((d) => {
+            cur.delete(d.ref); ops++;
+            if (ops >= 400) { batches.push(cur); cur = db.batch(); ops = 0; }
+          });
+          if (ops > 0) batches.push(cur);
+          for (const b of batches) await b.commit();
+        }
+        state.funcionarios = [];
+        state.bancoHoras = {};
+        renderApp();
+        toast("Base zerada. Aguardando próxima sincronização do pipeline.");
+      } catch (e) {
+        console.error("[limparBase]", e);
+        toast("Erro ao limpar: " + e.message, "danger");
+      }
+    };
+
     // Override savePJ → /pj
     window.savePJ = async function (id) {
       const u = currentUser();
@@ -1257,6 +1283,7 @@
               role: data.role || "",
               turno: data.turno || null,
               page: data.page || "",
+              pjEditing: data.pjEditing || null,
               lastSeenMs,
               status,
               age,
