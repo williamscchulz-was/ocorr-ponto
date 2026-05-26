@@ -28,9 +28,17 @@ service cloud.firestore {
     }
 
     // ----- users -----
+    // Admin lê todos; user lê só o próprio doc.
+    // Admin cria/deleta/edita qualquer campo. O próprio user pode atualizar
+    // APENAS o campo fotoBase64 (foto de perfil) — sem poder mexer em role,
+    // turno, ativo. Rule garante isolamento mesmo se a UI for burlada.
     match /users/{uid} {
       allow read: if isAuthed() && (request.auth.uid == uid || isAdmin());
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.auth.uid == uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoBase64'])
+      );
     }
 
     // ----- funcionarios -----

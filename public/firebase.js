@@ -1079,6 +1079,23 @@
       return pw;
     }
 
+    // Atualizar a própria foto de perfil. Recebe base64 (data URL) ou null
+    // pra remover. Rule do Firestore garante que só o próprio user pode
+    // atualizar e que só o campo fotoBase64 pode ser tocado por self-update.
+    window.atualizarMinhaFoto = async function (base64OrNull) {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Não está logado.");
+      const uid = user.uid;
+      const value = base64OrNull || firebase.firestore.FieldValue.delete();
+      await db.collection("users").doc(uid).update({ fotoBase64: value });
+      // Reflete no state local
+      const me = (state.users || []).find((x) => x.id === uid);
+      if (me) {
+        if (base64OrNull) me.fotoBase64 = base64OrNull;
+        else delete me.fotoBase64;
+      }
+    };
+
     // Alterar a própria senha (usuário logado)
     window.alterarMinhaSenha = async function (atual, nova) {
       const user = auth.currentUser;

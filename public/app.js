@@ -282,6 +282,51 @@ function roleLabel(user) {
   return user.role;
 }
 
+// Aplica foto (base64) ou iniciais num elemento .avatar existente.
+// Usa background-image porque mantém o tamanho fixo do elemento.
+function aplicarAvatar(el, user) {
+  if (!el) return;
+  const foto = user?.fotoBase64;
+  if (foto) {
+    el.style.backgroundImage = `url(${foto})`;
+    el.style.backgroundSize = "cover";
+    el.style.backgroundPosition = "center";
+    el.style.color = "transparent";
+    el.textContent = "";
+  } else {
+    el.style.backgroundImage = "";
+    el.style.color = "";
+    el.textContent = initials(user?.nome || "?");
+  }
+}
+
+// Redimensiona uma imagem (File) pra max 256×256, retorna JPEG base64 ~30KB.
+// Mantém proporção. Quality 0.85 é o sweet spot pra avatars.
+function redimensionarFotoBase64(file, maxSize = 256, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith("image/")) {
+      return reject(new Error("Arquivo não é imagem."));
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Falha ao ler o arquivo."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function login(userId, senha) {
   const u = state.users.find((x) => x.id === userId && x.senha === senha);
   const err = $("#login-error");
@@ -315,8 +360,8 @@ function renderApp() {
   const u = currentUser();
   if (!u) { logout(); return; }
 
-  // Sidebar user
-  $("#user-avatar").textContent = initials(u.nome);
+  // Sidebar user (avatar com foto se houver, senão iniciais)
+  aplicarAvatar($("#user-avatar"), u);
   $("#user-name").textContent = u.nome;
   $("#user-role").textContent = roleLabel(u);
 
@@ -1569,6 +1614,7 @@ function openProfileModal() {
   const u = currentUser();
   if (!u) return;
   const isFirebaseMode = typeof window.alterarMinhaSenha === "function";
+  const podeAlterarFoto = typeof window.atualizarMinhaFoto === "function";
 
   openModal(`
     <div class="modal__header">
@@ -1579,14 +1625,31 @@ function openProfileModal() {
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
-      <div class="row" style="gap:14px; padding: 12px 0 16px;">
-        <div class="avatar avatar--lg">${initials(u.nome || "?")}</div>
-        <div>
+      <div class="row" style="gap:14px; padding: 12px 0 16px; align-items:center;">
+        <div style="position:relative;">
+          <div class="avatar avatar--lg" id="profile-avatar"></div>
+          ${podeAlterarFoto ? `
+            <button type="button" id="btn-alterar-foto"
+                    title="Alterar foto"
+                    style="position:absolute; bottom:-2px; right:-2px; width:28px; height:28px; border-radius:50%; background:var(--plum); color:#fff; border:2px solid var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">
+              ${icon("edit")}
+            </button>
+            <input type="file" id="input-foto" accept="image/*" style="display:none;" />
+          ` : ""}
+        </div>
+        <div style="flex:1; min-width:0;">
           <div style="font-weight:700; color:var(--plum); font-size:16px;">${escapeHtml(u.nome)}</div>
           <div class="muted text-sm">${escapeHtml(u.email || "")}</div>
           <div class="text-xs muted" style="margin-top:2px;">${roleLabel(u)}</div>
+          ${podeAlterarFoto && u.fotoBase64 ? `
+            <button type="button" id="btn-remover-foto" class="text-xs"
+                    style="background:none; border:none; color:var(--danger); cursor:pointer; padding:4px 0 0; font-weight:600;">
+              Remover foto
+            </button>
+          ` : ""}
         </div>
       </div>
+      <div id="foto-status" class="text-xs muted hidden" style="margin-bottom:8px;"></div>
 
       <div class="divider"></div>
 
@@ -1603,9 +1666,53 @@ function openProfileModal() {
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      aplicarAvatar($("#profile-avatar"), u);
       $("#btn-do-logout").addEventListener("click", () => { closeModal(); logout(); });
       const trocar = $("#btn-trocar-senha");
       if (trocar && isFirebaseMode) trocar.addEventListener("click", openTrocarSenhaModal);
+
+      if (!podeAlterarFoto) return;
+      const status = $("#foto-status");
+      const setStatus = (txt, danger = false) => {
+        if (!status) return;
+        status.textContent = txt || "";
+        status.classList.toggle("hidden", !txt);
+        status.style.color = danger ? "var(--danger)" : "";
+      };
+
+      $("#btn-alterar-foto").addEventListener("click", () => $("#input-foto").click());
+      $("#input-foto").addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+          return setStatus("Arquivo maior que 5MB. Escolha uma imagem menor.", true);
+        }
+        setStatus("Processando imagem...");
+        try {
+          const base64 = await redimensionarFotoBase64(file);
+          setStatus("Enviando...");
+          await window.atualizarMinhaFoto(base64);
+          aplicarAvatar($("#profile-avatar"), currentUser());
+          aplicarAvatar($("#user-avatar"), currentUser());
+          setStatus("Foto atualizada ✓");
+          setTimeout(() => { closeModal(); openProfileModal(); }, 600);
+        } catch (err) {
+          setStatus("Erro: " + (err?.message || err), true);
+        }
+      });
+
+      const btnRm = $("#btn-remover-foto");
+      if (btnRm) btnRm.addEventListener("click", async () => {
+        if (!confirm("Remover sua foto de perfil?")) return;
+        try {
+          await window.atualizarMinhaFoto(null);
+          closeModal();
+          openProfileModal();
+          aplicarAvatar($("#user-avatar"), currentUser());
+        } catch (err) {
+          setStatus("Erro: " + (err?.message || err), true);
+        }
+      });
     },
   });
 }
