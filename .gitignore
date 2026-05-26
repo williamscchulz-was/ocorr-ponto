@@ -3,13 +3,13 @@
 *.xls
 *.csv
 *.pdf
-mockup/funcionarios.json
-mockup/funcionarios-real.json
+public/funcionarios.json
+public/funcionarios-real.json
 banco-horas-sample.xlsx
 
 # Firebase config local (preencher localmente, não commitar)
-mockup/firebase.config.js
-mockup/firebase.config.local.js
+public/firebase.config.js
+public/firebase.config.local.js
 .env
 .env.local
 .env.*.local

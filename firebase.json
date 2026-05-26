@@ -2,7 +2,7 @@
   "hosting": [
     {
       "target": "weave",
-      "public": "mockup",
+      "public": "public",
       "ignore": [
         "firebase.config.example.js",
         "funcionarios.json",

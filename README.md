@@ -1,71 +1,106 @@
-# Ocorrências do Ponto
+# FioPulse · Fiobras
 
-Sistema web/PWA pra registrar e conferir ocorrências de ponto (atrasos, faltas, esquecimento de crachá etc.). Substitui o fluxo em planilha Excel por algo desktop+mobile com login e papéis.
+> O batimento do RH Fiobras. Controle de ponto, banco de horas e PJs em tempo real.
 
-## Como funciona
+PWA interno da Fiobras pra substituir a planilha Excel de controle de ponto. RH registra ocorrências, líderes conferem, todo mundo vê o que importa — sem retrabalho, com colaboração em tempo real.
 
-- **RH** registra a ocorrência: data, funcionário, tipo, horário e observação opcional.
-- **Líder do turno** confere: escolhe a ação (Banco de Horas / Descontar / Atestado Médico). A data da conferência é preenchida automaticamente.
-- **Observação** fica editável por RH e Líder, com histórico de quem mexeu.
-- **Líder só vê** ocorrências de funcionários do próprio turno. RH e Admin veem tudo.
+🔗 **Produção:** [gh.fiobras.com.br](https://gh.fiobras.com.br) (em provisionamento) · [weave-fiobras.web.app](https://weave-fiobras.web.app)
+
+## Funcionalidades
+
+- **Ocorrências de ponto** — atrasos, faltas, esquecimento de crachá, com fluxo de conferência por líder de turno
+- **Banco de horas** — saldo por funcionário, importado automaticamente do pipeline RH (WKRADAR)
+- **Funcionários** — base sincronizada do pipeline, filtros por turno/status, edição de setor
+- **Controle de PJs** — prestadores de serviço com IPCA proporcional/anual, férias, contratos no Drive, OCR via Google Drive
+- **Tempo real** — presença minimalista (quem está online) + edição colaborativa em modais via Firestore
+- **Auth** — Firebase Authentication com sessão por aba + idle timeout, redefinição de senha em PT-BR
 
 ## Stack
 
-- **Frontend**: HTML + CSS + JavaScript vanilla. Sem build, sem framework.
-- **PWA**: instalável no celular, funciona offline (cache via Service Worker).
-- **Backend**: [Firebase](https://firebase.google.com) — Authentication (login) e Firestore (banco). Veja [docs/SETUP_FIREBASE.md](docs/SETUP_FIREBASE.md).
-- **Hospedagem**: Firebase Hosting (gratuito, recomendado) ou qualquer host estático.
+- **Frontend:** HTML + CSS + JS vanilla. Sem build, sem framework.
+- **PWA:** instalável no celular, Service Worker com network-first pra HTML.
+- **Backend:** [Firebase](https://firebase.google.com) — Auth + Firestore + Storage + Hosting.
+- **Pipeline RH:** WKRADAR (ETL Git-async) gera JSONs no Storage, app consome automaticamente.
+- **Integrações:** Google Drive API pra contratos (upload + OCR via Google Doc conversion).
+
+## Estrutura do repo
+
+```
+ocorr-ponto/
+├── public/                       # App deployado em Firebase Hosting
+│   ├── index.html
+│   ├── app.js                    # UI, fluxo, lógica de negócio
+│   ├── data.js                   # Seed, constantes (tipos, ações, periodicidades)
+│   ├── firebase.js               # Wrapper Firebase (auth, firestore, presence)
+│   ├── google-drive.js           # OAuth + upload + OCR de contratos
+│   ├── styles.css
+│   ├── sw.js                     # Service Worker (network-first pra HTML)
+│   ├── manifest.webmanifest
+│   ├── firebase.config.example.js
+│   └── (icons, logos)
+├── docs/
+│   ├── SCHEMA.md                 # Modelo Firestore
+│   ├── SETUP_FIREBASE.md         # Setup passo-a-passo
+│   ├── AUDITORIA-2026-05-24.md   # Auditoria completa (P0/P1/P2)
+│   ├── firestore.rules           # Regras de segurança
+│   ├── firestore.indexes.json    # Índices compostos
+│   ├── wkradar-missions/         # Pipeline assíncrono (ETL)
+│   │   ├── README.md             # Protocolo de comunicação
+│   │   ├── pending/              # Missões aguardando execução
+│   │   └── done/                 # Missões concluídas
+│   └── wkradar-reports/          # Monitor reports do /loop
+├── redirect-stub/                # Site secundário (redireciona)
+├── scripts/                      # Utilitários locais (não deploy)
+├── firebase.json
+├── .firebaserc
+└── README.md
+```
 
 ## Rodando localmente
 
-Requer Python 3 (já vem no Windows e Mac/Linux modernos).
+Requer Python 3.
 
 ```bash
-cd mockup
+cd public
 python -m http.server 9876
 ```
 
 Abra <http://localhost:9876>.
 
-Sem Firebase configurado, o app roda em **modo demo** (dados em `localStorage` do navegador).
+Sem `firebase.config.js` configurado, o app roda em **modo demo** (dados em `localStorage`, sem persistência real).
 
-### Usuários de demonstração
+### Setup completo do Firebase
 
-| Usuário | Senha | Papel |
-|---------|-------|-------|
-| `admin` | `admin` | Administrador |
-| `rh1`   | `rh1`   | RH |
-| `rh2`   | `rh2`   | RH |
-| `lider1` | `lider1` | Líder 1º Turno |
-| `lider2` | `lider2` | Líder 2º Turno |
-| `lider3` | `lider3` | Líder 3º Turno |
+Veja [docs/SETUP_FIREBASE.md](docs/SETUP_FIREBASE.md).
 
-## Estrutura
+## Deploy
 
-```
-ocorr-ponto/
-├── mockup/                  # App (HTML/CSS/JS vanilla)
-│   ├── index.html
-│   ├── styles.css
-│   ├── data.js              # Seed + storage helpers
-│   ├── app.js               # UI e fluxo
-│   ├── manifest.webmanifest # PWA
-│   └── sw.js                # Service worker
-├── docs/
-│   ├── SCHEMA.md            # Modelo de dados Firestore
-│   ├── SETUP_FIREBASE.md    # Passo-a-passo de configuração
-│   └── firestore.rules      # Regras de segurança
-└── README.md
+```bash
+firebase deploy --only hosting:weave
 ```
 
-## Próximos passos
+O hosting target `weave` está configurado no `.firebaserc` apontando pro site `weave-fiobras`.
 
-- [x] Mockup funcional com localStorage
-- [ ] Integração com Firebase Auth e Firestore
-- [ ] Notificação ao líder quando RH cria ocorrência
-- [ ] Exportação para Excel (compatível com o template atual)
-- [ ] Cadastro de funcionários via UI
-- [ ] Relatórios mensais por funcionário/setor
+## Papéis e permissões
+
+| Papel | Acesso |
+|-------|--------|
+| **Admin** | Tudo — incluindo aba Dados (zerar base), gerência de usuários, todas as configurações |
+| **RH** | Registra ocorrências, gerencia PJs, edita funcionários, configura tipos/ações |
+| **Líder de Turno** | Vê apenas ocorrências e banco de horas do próprio turno; confere ocorrências |
+
+## Status
+
+- [x] Mockup funcional + Firebase Auth + Firestore
+- [x] Banco de horas via import XLSX (legado)
+- [x] Controle PJ com IPCA, férias, contratos no Drive, OCR
+- [x] Presença + edição colaborativa em tempo real
+- [x] Rebrand Weave → FioPulse
+- [x] Auditoria + fixes P0 (XSS, defer, PII) e P1 (dead code, polish UX, CNPJ)
+- [ ] Pipeline WKRADAR consumindo JSONs do Storage (em curso)
+- [ ] Custom domain `gh.fiobras.com.br` (DNS configurado, aguardando verificação Firebase)
+- [ ] Modal de confirmação destrutiva (substituir `confirm()` nativo)
+- [ ] CSP header no `firebase.json`
 
 ## Licença
 

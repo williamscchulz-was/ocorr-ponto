@@ -64,7 +64,7 @@ Pra que o sistema reconheça o admin (e não só o Auth):
 
 ## 7. Plugar a config no app
 
-1. Na pasta `mockup/`, crie o arquivo `firebase.config.js` (esse arquivo está no `.gitignore`, não vai pro repo):
+1. Na pasta `public/`, crie o arquivo `firebase.config.js` (esse arquivo está no `.gitignore`, não vai pro repo):
 
    ```js
    window.FIREBASE_CONFIG = {
@@ -106,7 +106,7 @@ Quando quiser publicar pra acessar de qualquer lugar:
 ```bash
 npm install -g firebase-tools
 firebase login
-firebase init hosting     # Public dir: mockup
+firebase init hosting     # Public dir: public
 firebase deploy
 ```
 
