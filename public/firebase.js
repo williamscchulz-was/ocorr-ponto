@@ -1079,6 +1079,31 @@
       return pw;
     }
 
+    // Atualiza dados de outro usuário (admin only). Permite mudar nome,
+    // role, turno e ativo. Email não muda (Firebase Auth).
+    window.atualizarUsuario = async function (uid, dados) {
+      const me = currentUser();
+      if (me.role !== "admin") return { ok: false, err: "Apenas admin pode editar usuários." };
+      if (!uid) return { ok: false, err: "UID inválido." };
+
+      const update = {};
+      if (dados.nome !== undefined) update.nome = String(dados.nome).trim();
+      if (dados.role !== undefined) update.role = dados.role;
+      if (dados.turno !== undefined) {
+        update.turno = dados.turno || null;
+      }
+      if (dados.ativo !== undefined) update.ativo = !!dados.ativo;
+
+      try {
+        await db.collection("users").doc(uid).update(update);
+        const local = state.users.find((x) => x.id === uid);
+        if (local) Object.assign(local, update);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, err: e.message || String(e) };
+      }
+    };
+
     // Atualizar a própria foto de perfil. Recebe base64 (data URL) ou null
     // pra remover. Rule do Firestore garante que só o próprio user pode
     // atualizar e que só o campo fotoBase64 pode ser tocado por self-update.

@@ -4264,10 +4264,15 @@ function renderUsuariosInto(selector) {
 
     <div class="list">
       ${state.users.map((u) => `
-        <article class="occ" style="grid-template-columns: 44px 1fr auto;">
-          <div class="avatar">${initials(u.nome || u.email || "?")}</div>
+        <article class="occ" data-edit-user="${u.id}"
+                 style="grid-template-columns: 44px 1fr auto; cursor:${isFirebaseMode ? "pointer" : "default"}; opacity:${u.ativo === false ? "0.55" : "1"};"
+                 title="${isFirebaseMode ? "Clique para editar" : ""}">
+          <div class="avatar" data-uid="${u.id}">${initials(u.nome || u.email || "?")}</div>
           <div class="occ__main">
-            <div class="occ__name">${escapeHtml(u.nome || "(sem nome)")}</div>
+            <div class="occ__name">
+              ${escapeHtml(u.nome || "(sem nome)")}
+              ${u.ativo === false ? `<span class="badge badge--neutral" style="margin-left:6px; font-size:10px;">INATIVO</span>` : ""}
+            </div>
             <div class="occ__sub">${escapeHtml(u.email || "@" + u.id)}</div>
           </div>
           <span class="badge badge--${u.role === "admin" ? "danger" : u.role === "rh" ? "info" : "neutral"}">${roleLabel(u)}</span>
@@ -4285,6 +4290,21 @@ function renderUsuariosInto(selector) {
 
   const novo = $("#btn-novo-user");
   if (novo && isFirebaseMode) novo.addEventListener("click", openNovoUsuarioModal);
+
+  // Cards clicáveis para edição (admin only, em modo Firebase)
+  if (isFirebaseMode) {
+    $$(`${selector} article[data-edit-user]`).forEach((card) => {
+      card.addEventListener("click", () => {
+        const uid = card.dataset.editUser;
+        openEditarUsuarioModal(uid);
+      });
+    });
+    // Aplica fotos nos avatars
+    $$(`${selector} .avatar[data-uid]`).forEach((el) => {
+      const usr = state.users.find((x) => x.id === el.dataset.uid);
+      if (usr) aplicarAvatar(el, usr);
+    });
+  }
 
   const reset = $("#reset-btn");
   if (reset) {
@@ -4403,6 +4423,108 @@ async function criarUsuario() {
 
   toast("Usuário criado!");
   renderApp(); // atualiza lista no fundo
+}
+
+function openEditarUsuarioModal(uid) {
+  const u = state.users.find((x) => x.id === uid);
+  if (!u) return toast("Usuário não encontrado.", "danger");
+
+  const me = currentUser();
+  const ehVoceMesmo = uid === me?.id;
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Editar usuário</h2>
+        <p>${escapeHtml(u.email || "(sem email)")} ${ehVoceMesmo ? `<span class="badge badge--neutral" style="margin-left:6px;">VOCÊ</span>` : ""}</p>
+      </div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="edit-user-form" onsubmit="return false">
+      <div class="field">
+        <label for="edit-nome">Nome completo <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="edit-nome" required value="${escapeHtml(u.nome || "")}" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="edit-role">Papel <span style="color:var(--danger)">*</span></label>
+          <select id="edit-role" required ${ehVoceMesmo ? "disabled" : ""}>
+            <option value="rh" ${u.role === "rh" ? "selected" : ""}>RH</option>
+            <option value="lider" ${u.role === "lider" ? "selected" : ""}>Líder</option>
+            <option value="admin" ${u.role === "admin" ? "selected" : ""}>Administrador</option>
+          </select>
+          ${ehVoceMesmo ? `<span class="field__hint">Você não pode mudar seu próprio papel.</span>` : ""}
+        </div>
+        <div class="field" id="edit-turno-field" style="display:${u.role === "lider" ? "block" : "none"};">
+          <label for="edit-turno">Turno <span style="color:var(--danger)">*</span></label>
+          <select id="edit-turno">
+            <option value="1" ${u.turno == 1 ? "selected" : ""}>1º Turno (06:00–14:00)</option>
+            <option value="2" ${u.turno == 2 ? "selected" : ""}>2º Turno (14:00–22:00)</option>
+            <option value="3" ${u.turno == 3 ? "selected" : ""}>3º Turno (22:00–06:00)</option>
+            <option value="geral" ${u.turno === "geral" ? "selected" : ""}>Geral (horário comercial)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <label class="row" style="gap:10px; align-items:center; cursor:pointer; padding:8px 0;">
+        <input type="checkbox" id="edit-ativo" ${u.ativo !== false ? "checked" : ""} ${ehVoceMesmo ? "disabled" : ""} style="width:18px; height:18px;" />
+        <div>
+          <div style="font-weight:600;">Usuário ativo</div>
+          <div class="text-xs muted">Desmarcar impede o login. ${ehVoceMesmo ? "Você não pode se desativar." : ""}</div>
+        </div>
+      </label>
+
+      <div id="edit-user-error" class="field__error hidden" style="margin-top:8px;"></div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="btn-save-edit-user">${icon("check")}<span>Salvar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const roleSel = $("#edit-role");
+      const turnoField = $("#edit-turno-field");
+      roleSel.addEventListener("change", () => {
+        turnoField.style.display = roleSel.value === "lider" ? "block" : "none";
+      });
+
+      $("#btn-save-edit-user").addEventListener("click", async () => {
+        const nome = $("#edit-nome").value.trim();
+        if (nome.length < 2) {
+          const err = $("#edit-user-error");
+          err.textContent = "Nome muito curto.";
+          err.classList.remove("hidden");
+          return;
+        }
+        const role = ehVoceMesmo ? u.role : roleSel.value;
+        const turno = role === "lider" ? $("#edit-turno").value : null;
+        const ativo = ehVoceMesmo ? true : $("#edit-ativo").checked;
+
+        const btn = $("#btn-save-edit-user");
+        btn.disabled = true;
+        btn.innerHTML = icon("clock") + "<span>Salvando...</span>";
+
+        const res = await window.atualizarUsuario(uid, { nome, role, turno, ativo });
+        if (!res.ok) {
+          const err = $("#edit-user-error");
+          err.textContent = res.err || "Erro ao salvar.";
+          err.classList.remove("hidden");
+          btn.disabled = false;
+          btn.innerHTML = icon("check") + "<span>Salvar</span>";
+          return;
+        }
+
+        toast("Usuário atualizado.");
+        closeModal();
+        renderApp();
+      });
+
+      setTimeout(() => $("#edit-nome").focus(), 100);
+    },
+  });
 }
 
 // ---------- Helpers de copy ----------
