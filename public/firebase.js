@@ -51,6 +51,27 @@
       // Limpa qualquer sessão de modo demo
       localStorage.removeItem("ocorr-ponto:v1");
 
+      // PERSISTÊNCIA — define ANTES de qualquer outra coisa pra evitar
+      // que o Firebase auto-restaure user com persistence default (LOCAL).
+      //   manterConectado=1 → LOCAL  (sobrevive a fechar browser)
+      //   default (não marcado) → NONE (memória apenas — refresh logo-out)
+      //
+      // NONE ≠ SESSION: SESSION sobrevive refresh na mesma aba; NONE não.
+      // Como o user pediu "refresh sem manter conectado = login screen",
+      // NONE é o correto.
+      let manterConectadoBoot = false;
+      try { manterConectadoBoot = localStorage.getItem("fiopulse:manterConectado") === "1"; }
+      catch {}
+      const initialPersistence = manterConectadoBoot
+        ? firebase.auth.Auth.Persistence.LOCAL
+        : firebase.auth.Auth.Persistence.NONE;
+      try {
+        await auth.setPersistence(initialPersistence);
+        debug?.("[Auth] persistência inicial:", manterConectadoBoot ? "LOCAL" : "NONE");
+      } catch (e) {
+        console.warn("[Auth] setPersistence falhou:", e);
+      }
+
       window.FIREBASE = { app, auth, db };
 
       installFirebaseStore(auth, db);
@@ -1035,8 +1056,8 @@
       }
 
       // Lê checkbox "manter conectado" — define persistência ANTES do signIn.
-      // - marcado  → LOCAL (sobrevive a fechar o browser)
-      // - desmarcado (default) → SESSION (some ao fechar a aba)
+      // - marcado  → LOCAL (sobrevive a fechar o browser, refresh, etc.)
+      // - desmarcado (default) → NONE (memória apenas; refresh = login screen)
       const manterConectado = !!$("#login-remember")?.checked;
       try {
         localStorage.setItem("fiopulse:manterConectado", manterConectado ? "1" : "0");
@@ -1044,7 +1065,7 @@
       try {
         const target = manterConectado
           ? firebase.auth.Auth.Persistence.LOCAL
-          : firebase.auth.Auth.Persistence.SESSION;
+          : firebase.auth.Auth.Persistence.NONE;
         await auth.setPersistence(target);
       } catch (e) {
         console.warn("[Auth] não foi possível ajustar persistência:", e);
@@ -1235,11 +1256,9 @@
       const p = $("#login-pass"); if (p) p.disabled = false;
     }
 
-    // Persistência inicial = SESSION (default seguro).
-    // window.login() ajusta dinamicamente conforme checkbox "manter conectado".
-    auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch((e) => {
-      console.warn("[Auth] não foi possível ajustar persistência:", e);
-    });
+    // Persistência inicial já foi setada em bootFirebase (LOCAL ou NONE
+    // conforme localStorage 'fiopulse:manterConectado'). window.login()
+    // ajusta dinamicamente conforme checkbox no momento do submit.
 
     // Migração: chave antiga era "weave:manterConectado" — copia se existir
     try {
