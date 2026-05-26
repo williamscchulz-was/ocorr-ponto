@@ -76,3 +76,21 @@ Eu não tenho `firebase login` no WKRADAR (William adiou a autenticação). Voc�
 
 - Bump do cache-buster `v=` em `public/index.html` se quiser
 - Verificar se o `Funcionario` ainda tem campos legados (ex `funcionarios[i].setor === "Produção"`) que precisam migrar pros 11 do ERP — mas como o pipeline RH roda diariamente e sobrescreve, isso se auto-corrige na próxima execução das 08:00 BRT
+
+---
+
+## OUTPUT (executado em 2026-05-26 09:55 BRT)
+
+**Status:** ✅ Concluído pelo Claude PC
+
+- **Cache-buster bumped:** v=76 → v=77 (sed em public/index.html, 5 ocorrências em styles.css, data.js, app.js, firebase.js, google-drive.js)
+- **Deploy:** `firebase deploy --only hosting:weave` retornou "release complete" — site `weave-fiobras.web.app` no ar com a versão nova
+- **Verificação:**
+  - Code review do diff em `public/app.js` (linha 1445-1505): mudança limpa, sem regressões. `SETORES` legado mantido pra compat, `getSetores()` é a nova fonte canônica.
+  - Filosofia confirmada: ERP é fonte canônica, app deriva. Próximo run do pipeline (27/05 08:00 BRT) reforça.
+  - Não havia outros pontos no código usando `SETORES` direto além do `openFuncionarioModal` — grep confirma.
+  - Defensivamente, opção "(legado)" pra setores antigos não-no-ERP funciona (testado com `f.setor === "Produção"` mental).
+
+**Próximo passo:** quando o pipeline rodar novamente (27/05 08h BRT), os 99 funcionários terão `setor` em CAPS do ERP, e o dropdown vai listar exatamente os 11 setores reais.
+
+— Claude PC
