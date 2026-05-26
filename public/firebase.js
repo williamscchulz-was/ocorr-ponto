@@ -688,6 +688,51 @@
       }
     };
 
+    // Adiciona um aditivo contratual ao array /pj/{id}.aditivos
+    // (arrayUnion evita conflito se 2 admins adicionarem ao mesmo tempo)
+    window.adicionarAditivoPJ = async function (pjId, aditivo) {
+      const u = currentUser();
+      if (!pjId) throw new Error("pjId obrigatório");
+      if (!aditivo?.descricao) throw new Error("Descrição obrigatória.");
+      if (!aditivo?.data) throw new Error("Data obrigatória.");
+
+      const novo = {
+        id: aditivo.id || "ad-" + Date.now(),
+        data: aditivo.data,
+        dataVigencia: aditivo.dataVigencia || aditivo.data,
+        descricao: aditivo.descricao,
+        contratoUrl: aditivo.contratoUrl || null,
+        criadoPor: u?.id || "?",
+        criadoEm: new Date().toISOString(),
+      };
+
+      await db.collection("pj").doc(pjId).update({
+        aditivos: firebase.firestore.FieldValue.arrayUnion(novo),
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        atualizadoPor: u?.id || "?",
+      });
+      const local = (state.pjs || []).find((p) => p.id === pjId);
+      if (local) local.aditivos = [...(local.aditivos || []), novo];
+      return novo;
+    };
+
+    // Remove aditivo do array /pj/{id}.aditivos por id
+    window.removerAditivoPJ = async function (pjId, aditivoId) {
+      const u = currentUser();
+      if (!pjId || !aditivoId) throw new Error("pjId e aditivoId obrigatórios");
+      const local = (state.pjs || []).find((p) => p.id === pjId);
+      if (!local) throw new Error("PJ não encontrado");
+      const alvo = (local.aditivos || []).find((a) => a.id === aditivoId);
+      if (!alvo) throw new Error("Aditivo não encontrado");
+
+      await db.collection("pj").doc(pjId).update({
+        aditivos: firebase.firestore.FieldValue.arrayRemove(alvo),
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        atualizadoPor: u?.id || "?",
+      });
+      local.aditivos = (local.aditivos || []).filter((a) => a.id !== aditivoId);
+    };
+
     // Override deletePJ → /pj
     window.deletePJ = async function (id) {
       const pj = (state.pjs || []).find((p) => p.id === id);

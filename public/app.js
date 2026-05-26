@@ -2933,6 +2933,47 @@ function openPJModal(id) {
           `).join("")}
         </div>
       ` : ""}
+
+      ${!isNew ? `
+        <div class="divider"></div>
+        <div class="row row--between" style="margin-bottom: 8px;">
+          <div class="text-xs muted" style="font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">
+            Aditivos contratuais <span id="pj-aditivos-count" style="opacity:.7;"></span>
+          </div>
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-add-aditivo">${icon("plus")}<span>Adicionar</span></button>
+        </div>
+        <div id="pj-aditivos-list" style="margin-bottom: 8px;"></div>
+
+        <div id="pj-aditivo-form" style="display:none; background: var(--surface-warm); border-radius: var(--radius); padding: 12px; margin-top: 8px;">
+          <div class="field-row">
+            <div class="field">
+              <label for="aditivo-data">Data do aditivo <span style="color:var(--danger)">*</span></label>
+              <input type="date" id="aditivo-data" required />
+            </div>
+            <div class="field">
+              <label for="aditivo-vigencia">Vigência (opcional)</label>
+              <input type="date" id="aditivo-vigencia" />
+              <span class="field__hint">Quando passa a valer. Vazio = mesma data acima.</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="aditivo-desc">Descrição / motivo <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="aditivo-desc" maxlength="200" placeholder="Reajuste IPCA 5.5%, inclusão de escopo, prorrogação..." />
+          </div>
+          <div class="field">
+            <label for="aditivo-url">Link do aditivo (Google Drive)</label>
+            <input type="url" id="aditivo-url" placeholder="https://drive.google.com/file/d/..." />
+          </div>
+          <input type="file" id="aditivo-file" accept=".pdf,.docx,.doc" style="display:none;" />
+          <button type="button" class="btn btn--soft btn--block" id="btn-upload-aditivo">
+            ${icon("upload")}<span>Upload PDF do aditivo</span>
+          </button>
+          <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end;">
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-cancel-aditivo">Cancelar</button>
+            <button type="button" class="btn btn--primary btn--sm" id="btn-save-aditivo">${icon("check")}<span>Salvar aditivo</span></button>
+          </div>
+        </div>
+      ` : ""}
     </form>
 
     <div class="modal__footer">
@@ -3014,6 +3055,11 @@ function openPJModal(id) {
         renderPJFeriasList(id);
         const addFeriasBtn = $("#btn-add-ferias");
         if (addFeriasBtn) addFeriasBtn.addEventListener("click", () => openAddFeriasModal(id));
+      }
+
+      // Aditivos contratuais — só em PJ existente
+      if (!isNew) {
+        bindAditivosPJ(id);
       }
 
       // Botão de upload pro Drive
@@ -3776,6 +3822,169 @@ function aplicarReajuste(id) {
   closeModal();
   toast(`Reajuste aplicado: ${formatMoeda(valorAntigo)} → ${formatMoeda(novoValor)}`);
   renderApp();
+}
+
+// ============================================================
+// Aditivos contratuais — registros de mudanças no contrato PJ
+// Persiste em /pj/{id}.aditivos[] (arrayUnion/arrayRemove via firebase.js)
+// ============================================================
+function bindAditivosPJ(pjId) {
+  const pj = (state.pjs || []).find((p) => p.id === pjId);
+  if (!pj) return;
+
+  const list = $("#pj-aditivos-list");
+  const form = $("#pj-aditivo-form");
+  const countEl = $("#pj-aditivos-count");
+  if (!list || !form) return;
+
+  const fechar = () => {
+    form.style.display = "none";
+    $("#aditivo-data").value = "";
+    $("#aditivo-vigencia").value = "";
+    $("#aditivo-desc").value = "";
+    $("#aditivo-url").value = "";
+    if ($("#aditivo-file")) $("#aditivo-file").value = "";
+  };
+
+  const renderLista = () => {
+    const aditivos = ((state.pjs || []).find((p) => p.id === pjId)?.aditivos) || [];
+    countEl.textContent = aditivos.length ? `(${aditivos.length})` : "";
+    if (aditivos.length === 0) {
+      list.innerHTML = `<div class="text-xs muted" style="padding:8px 4px;">Nenhum aditivo registrado.</div>`;
+      return;
+    }
+    const ordenados = [...aditivos].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+    list.innerHTML = ordenados.map((a) => `
+      <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default; padding:10px 12px; margin-bottom:6px;">
+        <div class="occ__main" style="min-width:0;">
+          <div class="occ__name" style="font-size:13px; font-weight:600; white-space:normal;">${escapeHtml(a.descricao || "—")}</div>
+          <div class="occ__sub" style="font-size:11px;">
+            ${a.data ? formatDateFull(a.data) : "—"}
+            ${a.dataVigencia && a.dataVigencia !== a.data ? ` · vigência ${formatDateFull(a.dataVigencia)}` : ""}
+            ${a.criadoPor ? ` · ${escapeHtml(getUser(a.criadoPor)?.nome || "")}` : ""}
+          </div>
+        </div>
+        ${a.contratoUrl && ehUrlSegura(a.contratoUrl)
+          ? `<a href="${escapeHtml(a.contratoUrl)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" data-stop="1" title="Abrir aditivo">${icon("file")}</a>`
+          : `<span></span>`}
+        <button type="button" class="btn btn--ghost btn--sm" data-del-aditivo="${escapeHtml(a.id)}" title="Excluir aditivo">${icon("trash")}</button>
+      </article>
+    `).join("");
+
+    list.querySelectorAll("[data-del-aditivo]").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const aid = btn.dataset.delAditivo;
+        if (!confirm("Excluir este aditivo? O PDF no Drive não será apagado.")) return;
+        if (!window.removerAditivoPJ) {
+          return toast("Modo demo: requer Firebase pra persistir.", "danger");
+        }
+        try {
+          await window.removerAditivoPJ(pjId, aid);
+          toast("Aditivo excluído.");
+          renderLista();
+        } catch (err) {
+          toast("Erro: " + (err?.message || err), "danger");
+        }
+      });
+    });
+  };
+
+  renderLista();
+
+  $("#btn-add-aditivo")?.addEventListener("click", () => {
+    form.style.display = "block";
+    $("#aditivo-data").value = new Date().toISOString().slice(0, 10);
+    $("#aditivo-desc").focus();
+  });
+  $("#btn-cancel-aditivo")?.addEventListener("click", fechar);
+
+  // Upload PDF do aditivo no Drive, na mesma subpasta do PJ
+  const uploadBtn = $("#btn-upload-aditivo");
+  const fileInput = $("#aditivo-file");
+  if (uploadBtn && fileInput) {
+    if (!window.driveUploadDisponivel) {
+      uploadBtn.disabled = true;
+      uploadBtn.title = "Configure GOOGLE_DRIVE_CONFIG em firebase.config.js";
+    } else {
+      uploadBtn.addEventListener("click", async () => {
+        if (window.driveTokenEmCache && !window.driveTokenEmCache()) {
+          try { await window.preAquecerTokenDrive(); } catch (e) {
+            return toast("Autorize o Google Drive: " + e.message, "danger");
+          }
+        }
+        fileInput.click();
+      });
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        const origHTML = uploadBtn.innerHTML;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = icon("clock") + "<span>Enviando...</span>";
+        try {
+          // Nome padronizado: "Aditivo YYYY-MM-DD - PJName.pdf"
+          const dataInput = $("#aditivo-data").value || new Date().toISOString().slice(0, 10);
+          const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
+          const nomeArquivo = `Aditivo ${dataInput} - ${pj.nome}.${ext}`.replace(/[/\\:*?"<>|]/g, "-");
+          let parentFolderId = null;
+          if (window.findOrCreateFolderForPJ && pj.nome) {
+            try { parentFolderId = await window.findOrCreateFolderForPJ(pj.nome); } catch (e) {
+              debug?.("[Aditivo] subpasta falhou:", e.message);
+            }
+          }
+          const res = await window.uploadContratoToDrive(file, {
+            name: nomeArquivo,
+            parents: parentFolderId ? [parentFolderId] : undefined,
+          });
+          $("#aditivo-url").value = res.webViewLink || "";
+          uploadBtn.innerHTML = icon("check") + "<span>PDF enviado</span>";
+          toast("Aditivo subido pro Drive.");
+        } catch (err) {
+          uploadBtn.innerHTML = origHTML;
+          toast("Erro ao subir: " + (err?.message || err), "danger");
+        } finally {
+          uploadBtn.disabled = false;
+          fileInput.value = "";
+          setTimeout(() => { uploadBtn.innerHTML = origHTML; }, 2000);
+        }
+      });
+    }
+  }
+
+  $("#btn-save-aditivo")?.addEventListener("click", async () => {
+    const data = $("#aditivo-data").value;
+    const vigencia = $("#aditivo-vigencia").value;
+    const desc = $("#aditivo-desc").value.trim();
+    const url = $("#aditivo-url").value.trim();
+
+    if (!data) return toast("Informe a data do aditivo.", "danger");
+    if (!desc || desc.length < 3) return toast("Descreva o aditivo (mínimo 3 caracteres).", "danger");
+    if (url && !ehUrlSegura(url)) return toast("URL inválida — use https://", "danger");
+
+    if (!window.adicionarAditivoPJ) {
+      return toast("Modo demo: requer Firebase pra persistir.", "danger");
+    }
+
+    const btn = $("#btn-save-aditivo");
+    btn.disabled = true;
+    btn.innerHTML = icon("clock") + "<span>Salvando...</span>";
+    try {
+      await window.adicionarAditivoPJ(pjId, {
+        data,
+        dataVigencia: vigencia || data,
+        descricao: desc,
+        contratoUrl: url || null,
+      });
+      toast("Aditivo adicionado.");
+      fechar();
+      renderLista();
+    } catch (err) {
+      toast("Erro: " + (err?.message || err), "danger");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = icon("check") + "<span>Salvar aditivo</span>";
+    }
+  });
 }
 
 function renderPJFeriasList(pjId) {
