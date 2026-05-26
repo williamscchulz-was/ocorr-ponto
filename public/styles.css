@@ -525,33 +525,20 @@ textarea:focus-visible,
   border-top: 1px solid rgba(255, 243, 230, .08);
   min-height: 0;
 }
-/* Cluster de pontos — só aparece quando há outros online */
+/* Cluster de avatares na sidebar — só aparece quando há outros online */
 .sp-cluster {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 .sp-live {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #22c55e;
   flex-shrink: 0;
   animation: pulse-live 1.6s ease-in-out infinite;
-}
-.sp-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  cursor: default;
-  transition: opacity .2s, transform .2s;
-}
-.sp-dot:hover { transform: scale(1.35); }
-.sp-dot--idle { opacity: 0.45; }
-.sp-extra {
-  font-size: 10px;
-  color: rgba(255, 243, 230, .5);
-  font-weight: 600;
+  margin-right: 4px;
 }
 
 .app__user {
@@ -647,38 +634,123 @@ textarea:focus-visible,
 }
 .topbar__menu:hover { background: rgba(255, 243, 230, .1); }
 
-/* Presence: pontos minimalistas na topbar e sidebar */
+/* Presence — estilo Google Sheets: avatares circulares sobrepostos */
 .presence {
   margin-left: auto;
   display: flex;
   align-items: center;
   min-width: 0;
 }
-.presence__dots {
+
+.presence-stack {
   display: flex;
   align-items: center;
-  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform .15s ease;
 }
-.presence__dot {
-  width: 8px;
-  height: 8px;
+.presence-stack:hover { transform: translateY(-1px); }
+.presence-stack:focus-visible {
+  outline: 2px solid var(--verde, #008835);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+.presence-avatar {
   border-radius: 50%;
-  cursor: default;
-  transition: transform .15s;
+  border: 2px solid;
+  margin-left: -8px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0;
+  background-color: #555;
+  position: relative;
+  overflow: hidden;
 }
-.presence__dot:hover { transform: scale(1.5); }
-.presence__dot--idle { opacity: 0.35; }
-.presence__extra {
-  font-size: 10px;
-  color: rgba(255,255,255,.5);
-  font-weight: 600;
-  margin-left: 2px;
+.presence-avatar:first-child { margin-left: 0; }
+.presence-avatar--idle { opacity: 0.55; }
+.presence-avatar--extra {
+  background: #4a4a4a !important;
+  color: #fff;
 }
+
 @keyframes pulse-live {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.7); }
 }
+
+/* Dropdown estilo Google Sheets: clica nos avatares e abre lista completa */
+.presence-dropdown {
+  position: fixed;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.08);
+  min-width: 280px;
+  max-width: 340px;
+  max-height: 70vh;
+  overflow-y: auto;
+  z-index: 1000;
+  animation: dropdown-in .18s ease-out;
+}
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.presence-dropdown__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  color: var(--plum);
+}
+.presence-dropdown__header .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse-live 1.6s ease-in-out infinite;
+}
+.presence-dropdown__list { padding: 4px 0; }
+.presence-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  transition: background .12s;
+}
+.presence-dropdown__item:hover { background: rgba(0,0,0,.03); }
+.presence-dropdown__item.is-idle { opacity: 0.7; }
+.presence-dropdown__info { flex: 1; min-width: 0; }
+.presence-dropdown__name {
+  font-weight: 600;
+  color: var(--plum);
+  font-size: 14px;
+}
+.presence-dropdown__meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.presence-dropdown__role {
+  background: rgba(0,118,190,.1);
+  color: #0076be;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.presence-dropdown__activity { color: var(--text-muted); }
 
 /* Banner de outros usuários editando o mesmo PJ (real, via Firestore) */
 .modal-colab-banner {

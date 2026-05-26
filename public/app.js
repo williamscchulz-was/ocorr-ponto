@@ -574,6 +574,26 @@ function presenceColor(id) {
   return palette[h % palette.length];
 }
 
+// Constrói o HTML de UM avatar de presença (foto se houver, senão iniciais
+// coloridas). Borda no entorno deixa eles "pinados" sobre o fundo escuro
+// quando empilhados.
+function buildPresenceAvatar(usr, opts = {}) {
+  const { size = 32, borderColor = "var(--plum)" } = opts;
+  const userDoc = (state.users || []).find((x) => x.id === usr.id);
+  const foto = userDoc?.fotoBase64;
+  const ausente = usr.status === "ausente";
+  const bg = foto ? "transparent" : presenceColor(usr.id);
+  const photoStyle = foto
+    ? `background-image:url(${foto}); background-size:cover; background-position:center;`
+    : "";
+  return `
+    <div class="presence-avatar ${ausente ? "presence-avatar--idle" : ""}"
+         data-uid="${usr.id}"
+         style="width:${size}px; height:${size}px; background:${bg}; border-color:${borderColor}; font-size:${Math.round(size * 0.36)}px; ${photoStyle}">
+      ${foto ? "" : escapeHtml(initials(usr.nome || "?"))}
+    </div>`;
+}
+
 function renderPresence() {
   const el = $("#presence");
   if (!el) return;
@@ -584,6 +604,7 @@ function renderPresence() {
   if (!Array.isArray(state.presence) || state.presence.length === 0) {
     el.innerHTML = "";
     renderSidebarPresence([]);
+    fecharPresenceDropdown();
     return;
   }
 
@@ -609,14 +630,21 @@ function renderPresence() {
   if (outros.length === 0) {
     el.innerHTML = "";
   } else {
-    const dots = outros.slice(0, 5).map((usr) => {
-      const ausente = usr.status === "ausente";
-      return `<div class="presence__dot ${ausente ? "presence__dot--idle" : ""}"
-                   style="background:${presenceColor(usr.id)};"
-                   title="${escapeHtml(usr.nome || "?")}"></div>`;
+    const maxShown = 4;
+    const visiveis = outros.slice(0, maxShown);
+    const extra = outros.length - visiveis.length;
+    const avatars = visiveis.map((usr) => {
+      const tooltip = montarTooltipPresence(usr);
+      return buildPresenceAvatar(usr, { size: 32 }).replace("class=", `title="${tooltip}" class=`);
     }).join("");
-    const extra = outros.length > 5 ? `<span class="presence__extra">+${outros.length - 5}</span>` : "";
-    el.innerHTML = `<div class="presence__dots">${dots}${extra}</div>`;
+    const extraAvatar = extra > 0
+      ? `<div class="presence-avatar presence-avatar--extra" style="width:32px; height:32px; font-size:11px; border-color:var(--plum);">+${extra}</div>`
+      : "";
+    el.innerHTML = `<button type="button" class="presence-stack" id="presence-stack" aria-label="Ver pessoas conectadas">${avatars}${extraAvatar}</button>`;
+    $("#presence-stack").addEventListener("click", (e) => {
+      e.stopPropagation();
+      togglePresenceDropdown(online);
+    });
   }
 
   // Se há um modal de PJ aberto, sincroniza o banner de outros editando.
@@ -626,14 +654,51 @@ function renderPresence() {
   }
 
   renderSidebarPresence(online);
+
+  // Se o dropdown já estiver aberto, refresca o conteúdo
+  if (document.querySelector(".presence-dropdown")) {
+    abrirPresenceDropdown(online);
+  }
 }
 
-// Presença na sidebar: minimalista — só pontos coloridos com tooltip.
-// Aparece apenas quando há outros usuários online além do próprio.
-function renderSidebarPresence(online) {
-  const el = document.getElementById("sidebar-presence");
-  if (!el) return;
+// Tooltip helper (compartilhado entre topbar + sidebar)
+function montarTooltipPresence(usr) {
+  const ROLE_LABELS = { admin: "Admin", rh: "RH", lider: "Líder" };
+  const PAGE_LABELS = {
+    dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
+    funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
+  };
+  const role = ROLE_LABELS[usr.role] || "";
+  const turno = usr.turno ? ` T${usr.turno}` : "";
+  let tooltip = (usr.nome || "?").replace(/"/g, "&quot;");
+  if (role) tooltip += ` · ${role}${turno}`;
+  if (usr.pjEditing) {
+    const pj = (state.pjs || []).find((p) => p.id === usr.pjEditing);
+    tooltip += ` · editando ${pj ? pj.nome.replace(/"/g, "&quot;") : "PJ"}`;
+  } else if (PAGE_LABELS[usr.page]) {
+    tooltip += ` · ${PAGE_LABELS[usr.page]}`;
+  }
+  if (usr.status === "ausente") tooltip += " · ausente";
+  return tooltip;
+}
+
+// Dropdown estilo Google Sheets: lista completa de quem está online
+function togglePresenceDropdown(online) {
+  const existing = document.querySelector(".presence-dropdown");
+  if (existing) {
+    existing.remove();
+    return;
+  }
+  abrirPresenceDropdown(online);
+}
+
+function fecharPresenceDropdown() {
+  document.querySelector(".presence-dropdown")?.remove();
+}
+
+function abrirPresenceDropdown(online) {
   const u = currentUser();
+  fecharPresenceDropdown();
 
   const ROLE_LABELS = { admin: "Admin", rh: "RH", lider: "Líder" };
   const PAGE_LABELS = {
@@ -641,12 +706,91 @@ function renderSidebarPresence(online) {
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
   };
 
+  const items = (online || []).map((usr) => {
+    const ehVoce = usr.id === u?.id;
+    const ausente = usr.status === "ausente";
+    const role = ROLE_LABELS[usr.role] || "";
+    const turno = usr.turno ? ` · T${usr.turno}` : "";
+    let atividade = "";
+    if (ehVoce) {
+      atividade = "neste navegador";
+    } else if (usr.pjEditing) {
+      const pj = (state.pjs || []).find((p) => p.id === usr.pjEditing);
+      atividade = `editando <strong>${pj ? escapeHtml(pj.nome) : "PJ"}</strong>`;
+    } else if (PAGE_LABELS[usr.page]) {
+      atividade = "em " + PAGE_LABELS[usr.page];
+    } else if (ausente) {
+      atividade = "ausente";
+    }
+    const avatarHTML = buildPresenceAvatar(usr, { size: 32, borderColor: "var(--surface)" });
+    return `
+      <div class="presence-dropdown__item ${ausente ? "is-idle" : ""}">
+        ${avatarHTML}
+        <div class="presence-dropdown__info">
+          <div class="presence-dropdown__name">
+            ${escapeHtml(usr.nome || "?")}
+            ${ehVoce ? `<span style="opacity:.5; font-weight:500; font-size:11px;"> (você)</span>` : ""}
+          </div>
+          <div class="presence-dropdown__meta">
+            ${role ? `<span class="presence-dropdown__role">${escapeHtml(role + turno)}</span>` : ""}
+            ${atividade ? `<span class="presence-dropdown__activity">${atividade}</span>` : ""}
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+
+  const total = online.length;
+  const dropdown = document.createElement("div");
+  dropdown.className = "presence-dropdown";
+  dropdown.innerHTML = `
+    <div class="presence-dropdown__header">
+      <span class="live-dot"></span>
+      <strong>Pessoas conectadas</strong>
+      <span class="text-xs muted" style="margin-left:auto;">${total}</span>
+    </div>
+    <div class="presence-dropdown__list">${items || `<div class="muted text-sm" style="padding:16px; text-align:center;">Ninguém mais aqui agora.</div>`}</div>
+  `;
+  document.body.appendChild(dropdown);
+
+  // Posiciona abaixo do stack na topbar
+  const stack = document.getElementById("presence-stack");
+  if (stack) {
+    const r = stack.getBoundingClientRect();
+    dropdown.style.top = (r.bottom + 8) + "px";
+    dropdown.style.right = (window.innerWidth - r.right) + "px";
+  }
+
+  // Fecha ao clicar fora
+  setTimeout(() => {
+    const onDocClick = (e) => {
+      if (!dropdown.contains(e.target) && e.target.id !== "presence-stack") {
+        fecharPresenceDropdown();
+        document.removeEventListener("click", onDocClick);
+      }
+    };
+    document.addEventListener("click", onDocClick);
+  }, 50);
+}
+
+// Presença na sidebar: avatares pequenos sobrepostos (estilo Google Sheets).
+// Aparece apenas quando há outros usuários online além do próprio.
+function renderSidebarPresence(online) {
+  const el = document.getElementById("sidebar-presence");
+  if (!el) return;
+  const u = currentUser();
+
   const outros = (online || []).filter((x) => x.id !== u?.id);
 
   if (outros.length === 0) {
     el.innerHTML = "";
     return;
   }
+
+  const ROLE_LABELS = { admin: "Admin", rh: "RH", lider: "Líder" };
+  const PAGE_LABELS = {
+    dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
+    funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
+  };
 
   const dots = outros.map((usr) => {
     const ausente = usr.status === "ausente";
@@ -662,9 +806,8 @@ function renderSidebarPresence(online) {
       tooltip += ` · ${page}`;
     }
     if (ausente) tooltip += " · ausente";
-    return `<div class="sp-dot ${ausente ? "sp-dot--idle" : ""}"
-                 style="background:${presenceColor(usr.id)};"
-                 title="${tooltip}"></div>`;
+    return buildPresenceAvatar(usr, { size: 22, borderColor: "var(--plum)" })
+      .replace("class=", `title="${tooltip}" class=`);
   }).join("");
 
   el.innerHTML = `<div class="sp-cluster"><span class="sp-live"></span>${dots}</div>`;
