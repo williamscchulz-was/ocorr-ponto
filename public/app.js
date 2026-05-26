@@ -1445,7 +1445,24 @@ function renderFuncList() {
   });
 }
 
-const SETORES = ["Produção", "Qualidade", "Logística", "Manutenção", "Administrativo", "Comercial", "RH"];
+// Setores: derivados dinamicamente dos funcionarios atuais (CSV do ERP WK Radar
+// via pipeline RH é a fonte canônica). Lista FALLBACK só usada se nenhum
+// funcionário estiver carregado em state.funcionarios (modo demo / cold start).
+const SETORES_FALLBACK = [
+  "ADMINISTRAÇÃO", "ADMINISTRAÇÃO PRODUÇÃO", "COMERCIAL",
+  "DIRETOS BENEFICIAMENTO", "EXPEDIÇÃO", "LABORATÓRIO",
+  "MANUTENÇÃO BENEFICIAMENTO", "MANUTENÇÃO DA PRODUÇÃO",
+  "PREPARAÇÃO", "REPASSE", "RETORCEDEIRAS",
+];
+function getSetores() {
+  const fromFuncs = new Set();
+  for (const f of (state.funcionarios || [])) {
+    if (f.setor) fromFuncs.add(f.setor);
+  }
+  return fromFuncs.size > 0 ? [...fromFuncs].sort() : SETORES_FALLBACK;
+}
+// Compat: SETORES legado aponta pro fallback. Código novo usa getSetores().
+const SETORES = SETORES_FALLBACK;
 
 function openFuncionarioModal(id) {
   const f = id ? state.funcionarios.find((x) => x.id === id) : null;
@@ -1481,7 +1498,8 @@ function openFuncionarioModal(id) {
         <label for="func-setor">Setor</label>
         <select id="func-setor">
           <option value="">— Não definido —</option>
-          ${SETORES.map((s) => `<option value="${s}" ${f?.setor === s ? "selected" : ""}>${s}</option>`).join("")}
+          ${getSetores().map((s) => `<option value="${s}" ${f?.setor === s ? "selected" : ""}>${s}</option>`).join("")}
+          ${f?.setor && !getSetores().includes(f.setor) ? `<option value="${f.setor}" selected>${f.setor} (legado)</option>` : ""}
         </select>
       </div>
       <div class="field">
