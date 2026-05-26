@@ -3426,6 +3426,18 @@ async function loadPdfJs() {
 }
 
 async function extrairTextoDoPDF(file) {
+  // Timeout de 20s: se pdf.js travar (worker não carrega, PDF gigante,
+  // CDN lenta), aborta sem segurar a UI eternamente. O caller cai no
+  // catch e o fluxo continua direto pro upload no Drive sem auto-fill.
+  return Promise.race([
+    _extrairTextoDoPDFReal(file),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout: pdf.js não respondeu em 20s. Pulando auto-extração.")), 20000)
+    ),
+  ]);
+}
+
+async function _extrairTextoDoPDFReal(file) {
   const pdfjs = await loadPdfJs();
   const buf = await file.arrayBuffer();
   const pdf = await pdfjs.getDocument({ data: buf }).promise;
