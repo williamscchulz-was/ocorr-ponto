@@ -234,10 +234,22 @@ function openModal(html, opts = {}) {
       <div class="modal" role="dialog" aria-modal="true">${html}</div>
     </div>
   `;
-  const backdrop = $("#modal-backdrop");
-  backdrop.addEventListener("click", (e) => {
-    if (e.target === backdrop) closeModal();
-  });
+  // Clique no backdrop NÃO fecha mais — evita perder form com clique acidental.
+  // Fechar só via: ESC, botão X, Cancelar, Salvar, ou Excluir.
+  // Para modais de exibição (não-form) podem passar opts.dismissOnBackdrop = true.
+  if (opts.dismissOnBackdrop) {
+    const backdrop = $("#modal-backdrop");
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) closeModal();
+    });
+  }
+  // Handler de ESC — fecha qualquer modal aberto. Auto-remove no closeModal.
+  if (!window._modalEscHandler) {
+    window._modalEscHandler = (e) => {
+      if (e.key === "Escape" && $("#modal-backdrop")) closeModal();
+    };
+    document.addEventListener("keydown", window._modalEscHandler);
+  }
   if (opts.onMount) opts.onMount(root.querySelector(".modal"));
 }
 
