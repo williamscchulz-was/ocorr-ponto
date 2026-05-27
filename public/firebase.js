@@ -452,6 +452,10 @@
         ativo: $("#func-ativo").checked,
         atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
       };
+      // bhExempt: só admin enxerga o toggle no modal. Se o checkbox existe,
+      // grava o valor; senão omite o campo (não sobrescreve quando RH edita).
+      const bhEl = $("#func-bhexempt");
+      if (bhEl) dados.bhExempt = bhEl.checked;
       try {
         if (id) {
           await db.collection("funcionarios").doc(id).update(dados);
@@ -489,6 +493,25 @@
         renderApp();
       } catch (err) {
         toast("Erro: " + err.message, "danger");
+      }
+    };
+
+    // Lê dados sensíveis (CPF, PIS, nomeMae) de banco-horas-saldos/{codigo}.
+    // Admin+RH only — rule do Firestore garante mesmo se UI burlar.
+    // Retorna null se sem permissão, sem código, ou doc inexistente.
+    // Usado no perfil enriquecido do funcionário pra mostrar PII só pra quem deve.
+    window.lerSaldoSensivel = async function (codigo) {
+      const u = currentUser();
+      if (!u || (u.role !== "admin" && u.role !== "rh")) return null;
+      if (!codigo) return null;
+      try {
+        const snap = await db.collection("banco-horas-saldos").doc(String(codigo)).get();
+        if (!snap.exists) return null;
+        const d = snap.data();
+        return { cpf: d.cpf || null, pis: d.pis || null, nomeMae: d.nomeMae || null };
+      } catch (e) {
+        console.warn("[saldo-sensivel] read falhou:", e?.message || e);
+        return null;
       }
     };
 

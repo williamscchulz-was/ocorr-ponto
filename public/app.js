@@ -92,6 +92,32 @@ const formatDateTime = (iso) => {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 };
 
+// Helpers pros campos do pipeline RH (funcionários enriquecidos).
+// Firestore Timestamp tem .toDate(); ISO string já é string; null → null.
+// Use em: f.nascimento, f.admissao, f.demissao (vêm como Timestamp do Firestore).
+function tsToDateStr(ts) {
+  if (!ts) return null;
+  let d = null;
+  if (typeof ts === "string") d = new Date(ts);
+  else if (ts.toDate) d = ts.toDate();
+  else if (ts.seconds) d = new Date(ts.seconds * 1000);
+  else if (ts instanceof Date) d = ts;
+  if (!d || isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+// Formata tempo de casa em "X anos e Y meses" a partir do número de dias.
+// Pipeline já calcula diasNaEmpresa; aqui só formata pro humano.
+function tempoDeCasa(dias) {
+  if (!dias || dias < 1) return "—";
+  const anos = Math.floor(dias / 365);
+  const meses = Math.floor((dias % 365) / 30);
+  if (anos === 0 && meses === 0) return `${dias} ${dias === 1 ? "dia" : "dias"}`;
+  if (anos === 0) return `${meses} ${meses === 1 ? "mês" : "meses"}`;
+  if (meses === 0) return `${anos} ${anos === 1 ? "ano" : "anos"}`;
+  return `${anos} ${anos === 1 ? "ano" : "anos"} e ${meses} ${meses === 1 ? "mês" : "meses"}`;
+}
+
 // Recebe lista de timestamps (Firestore Timestamp, ISO string, Date, ou ms)
 // Retorna { value, hint } pro card de "Última atualização".
 // value = tempo relativo ("há 5m", "há 2h", "agora")
@@ -494,6 +520,8 @@ function login(userId, senha) {
 
 function logout() {
   state.currentUserId = null;
+  // Permite que o toast de aniversário reapareça no próximo login da sessão.
+  window.__niverToastShown = false;
   store.save({ ...state, view: undefined });
   $("#app").classList.add("hidden");
   $("#login").classList.remove("hidden");
@@ -517,6 +545,22 @@ function renderApp() {
   renderPresence();
   renderView();
   updateFab();
+
+  // Toast de aniversariantes do dia — uma vez por sessão (post-login).
+  // Líder vê só do próprio turno; admin/RH veem todos.
+  // window.__niverToastShown é resetada no logout pra reaparecer no próximo login.
+  if (!window.__niverToastShown && Array.isArray(state.funcionarios) && state.funcionarios.length > 0) {
+    window.__niverToastShown = true;
+    const hoje = new Date();
+    const dia = hoje.getDate();
+    const mes = hoje.getMonth() + 1;
+    const pool = funcionariosVisiveisPara(u);
+    const niver = pool.filter((f) => Number(f.aniversarioDia) === dia && Number(f.aniversarioMes) === mes);
+    if (niver.length > 0) {
+      const nomes = niver.map((f) => (f.nome || "").split(" ")[0]).join(", ");
+      setTimeout(() => toast(`🎂 Aniversário hoje: ${nomes}`), 800);
+    }
+  }
 }
 
 // ============================================================
@@ -960,6 +1004,167 @@ function renderView() {
   }
 }
 
+// Filtra funcionários ATIVOS visíveis pro user atual.
+// Líder vê só do próprio turno; admin/RH veem todos.
+// Tolerante a state.funcionarios undefined (cold start).
+function funcionariosVisiveisPara(u) {
+  let pool = (state.funcionarios || []).filter((f) => f.ativo !== false);
+  if (u.role === "lider") pool = pool.filter((f) => f.turno === u.turno);
+  return pool;
+}
+
+const NOMES_MES_ABREV = [
+  "jan", "fev", "mar", "abr", "mai", "jun",
+  "jul", "ago", "set", "out", "nov", "dez",
+];
+
+// Widget de aniversariantes no dashboard.
+// Admin/RH veem todos; líder vê só do próprio turno.
+// Só renderiza se houver pelo menos 1 aniversariante no mês corrente.
+// Campos vêm do pipeline RH (aniversarioDia/aniversarioMes em funcionarios/{id}).
+function renderAniversariantesWidget(u) {
+  const hoje = new Date();
+  const dia = hoje.getDate();
+  const mes = hoje.getMonth() + 1;
+  const pool = funcionariosVisiveisPara(u);
+
+  const niverMes = pool
+    .filter((f) => Number(f.aniversarioMes) === mes && Number(f.aniversarioDia) > 0)
+    .sort((a, b) => (a.aniversarioDia || 99) - (b.aniversarioDia || 99));
+
+  if (niverMes.length === 0) return "";
+
+  const niverHoje = niverMes.filter((f) => Number(f.aniversarioDia) === dia);
+
+  return `
+    <div class="card-aniversariantes">
+      <div class="card-aniversariantes__header">
+        <span class="card-aniversariantes__title">🎂 Aniversariantes de ${NOMES_MES_ABREV[mes - 1]}</span>
+        <span class="card-aniversariantes__count">${niverMes.length}</span>
+      </div>
+      ${niverHoje.length > 0 ? `
+        <div class="card-aniversariantes__today">
+          <strong>Hoje:</strong> ${niverHoje.map((f) => escapeHtml(f.nome)).join(", ")}
+        </div>
+      ` : ""}
+      <div class="card-aniversariantes__list">
+        ${niverMes.map((f) => {
+          const ehHoje = Number(f.aniversarioDia) === dia;
+          return `
+            <div class="card-aniversariantes__item${ehHoje ? " is-today" : ""}">
+              <span class="card-aniversariantes__dia">${String(f.aniversarioDia).padStart(2, "0")}/${String(f.aniversarioMes).padStart(2, "0")}</span>
+              <span class="card-aniversariantes__nome">${escapeHtml(f.nome)}</span>
+              <span class="card-aniversariantes__cargo">${escapeHtml(f.cargo || "")}</span>
+              ${ehHoje ? `<span class="card-aniversariantes__badge">HOJE</span>` : ""}
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>`;
+}
+
+// Widget de demografia agregada — admin only, collapsed por default.
+// Idade média, distribuição por sexo, escolaridade resumida e tempo médio de casa.
+// Tolerante a campos faltando: só conta quem tem o campo.
+function renderDemografiaWidget(u) {
+  if (u.role !== "admin") return "";
+  const pool = (state.funcionarios || []).filter((f) => f.ativo !== false);
+  if (pool.length === 0) return "";
+
+  // Idade média
+  const comIdade = pool.filter((f) => Number.isFinite(Number(f.idade)) && Number(f.idade) > 0);
+  const idadeMedia = comIdade.length
+    ? Math.round(comIdade.reduce((s, f) => s + Number(f.idade), 0) / comIdade.length)
+    : null;
+
+  // Sexo
+  const sexF = pool.filter((f) => f.sexo === "Feminino").length;
+  const sexM = pool.filter((f) => f.sexo === "Masculino").length;
+  const sexTotal = sexF + sexM;
+  const pctF = sexTotal ? Math.round((sexF / sexTotal) * 100) : 0;
+  const pctM = sexTotal ? 100 - pctF : 0;
+
+  // Escolaridade — agrupa exato + bucket "outros"
+  const escolaridade = {};
+  for (const f of pool) {
+    const g = (f.grauInstrucao || "").trim();
+    if (!g) continue;
+    escolaridade[g] = (escolaridade[g] || 0) + 1;
+  }
+  const escolaridadeTop = Object.entries(escolaridade)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  // Tempo de casa médio
+  const comDias = pool.filter((f) => Number.isFinite(Number(f.diasNaEmpresa)) && Number(f.diasNaEmpresa) > 0);
+  const diasMedia = comDias.length
+    ? Math.round(comDias.reduce((s, f) => s + Number(f.diasNaEmpresa), 0) / comDias.length)
+    : null;
+
+  // Naturalidade — top 3 cidades
+  const naturalidades = {};
+  for (const f of pool) {
+    const n = (f.naturalidade || "").trim();
+    if (!n) continue;
+    naturalidades[n] = (naturalidades[n] || 0) + 1;
+  }
+  const naturalidadeTop = Object.entries(naturalidades)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  return `
+    <details class="dashboard-demografia">
+      <summary>📊 Demografia da empresa <span class="muted text-xs">(${pool.length} ativos)</span></summary>
+      <div class="dashboard-demografia__grid">
+        <div class="demografia-bloco">
+          <div class="demografia-bloco__label">Idade média</div>
+          <div class="demografia-bloco__big">${idadeMedia ?? "—"}${idadeMedia ? " <small style='font-size:13px; font-weight:500;'>anos</small>" : ""}</div>
+          <div class="text-xs muted">${comIdade.length} de ${pool.length} com data de nascimento</div>
+        </div>
+        <div class="demografia-bloco">
+          <div class="demografia-bloco__label">Sexo</div>
+          ${sexTotal > 0 ? `
+            <div class="demografia-bloco__big" style="font-size:14px;">
+              <span style="color:#d946ef;">♀ ${pctF}%</span>
+              &nbsp;·&nbsp;
+              <span style="color:#0076BE;">♂ ${pctM}%</span>
+            </div>
+            <div class="demografia-bloco__bar">
+              <span style="width:${pctF}%; background:#d946ef;"></span>
+              <span style="width:${pctM}%; background:#0076BE;"></span>
+            </div>
+            <div class="text-xs muted" style="margin-top:4px;">${sexF} F · ${sexM} M</div>
+          ` : `<div class="demografia-bloco__big" style="font-size:14px;">—</div>`}
+        </div>
+        <div class="demografia-bloco">
+          <div class="demografia-bloco__label">Tempo médio de casa</div>
+          <div class="demografia-bloco__big" style="font-size:16px;">${tempoDeCasa(diasMedia)}</div>
+          <div class="text-xs muted">${comDias.length} com admissão registrada</div>
+        </div>
+        <div class="demografia-bloco">
+          <div class="demografia-bloco__label">Escolaridade (top)</div>
+          ${escolaridadeTop.length > 0 ? escolaridadeTop.map(([g, n]) => `
+            <div class="text-xs" style="display:flex; justify-content:space-between; gap:8px; padding:2px 0;">
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g)}</span>
+              <strong>${n}</strong>
+            </div>
+          `).join("") : `<div class="demografia-bloco__big" style="font-size:14px;">—</div>`}
+        </div>
+        ${naturalidadeTop.length > 0 ? `
+          <div class="demografia-bloco">
+            <div class="demografia-bloco__label">Naturalidade (top)</div>
+            ${naturalidadeTop.map(([n, c]) => `
+              <div class="text-xs" style="display:flex; justify-content:space-between; gap:8px; padding:2px 0;">
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(n)}</span>
+                <strong>${c}</strong>
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
+      </div>
+    </details>`;
+}
+
 function renderDashboard() {
   const u = currentUser();
   $("#topbar-title").textContent = "Ocorrências";
@@ -1015,6 +1220,9 @@ function renderDashboard() {
         <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : "todos os turnos"}</div>
       </div>
     </div>
+
+    ${renderAniversariantesWidget(u)}
+    ${renderDemografiaWidget(u)}
 
     <div class="tabs" id="tabs">
       <button class="tab ${state.view.filterTab === "pendentes" ? "active" : ""}" data-tab="pendentes">
@@ -1761,19 +1969,27 @@ function renderFuncList() {
     return;
   }
 
-  root.innerHTML = `<div class="list">${list.map((f) => `
+  root.innerHTML = `<div class="list">${list.map((f) => {
+    const demissaoStr = f.ativo === false && f.demissao ? tsToDateStr(f.demissao) : null;
+    return `
     <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto;" data-func="${f.id}">
       <div class="avatar">${initials(f.nome)}</div>
       <div class="occ__main">
         <div class="occ__name">${escapeHtml(f.nome)}</div>
         <div class="occ__sub">${f.codigo ? "cód: " + escapeHtml(f.codigo) + " · " : ""}${escapeHtml(f.setor || "sem setor")}</div>
+        ${demissaoStr ? `
+          <div class="text-xs" style="margin-top:2px; color:#b91c1c; font-weight:500;">
+            ⚠️ Demitido em ${demissaoStr}
+          </div>
+        ` : ""}
       </div>
       ${f.turno
         ? `<span class="badge badge--neutral">${TURNOS[f.turno].label}</span>`
         : `<span class="badge badge--warning"><span class="dot"></span>Sem turno</span>`}
       <span class="badge badge--${f.ativo === false ? "neutral" : "success"}">${f.ativo === false ? "Inativo" : "Ativo"}</span>
       <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </article>`).join("")}</div>`;
+    </article>`;
+  }).join("")}</div>`;
 
   $$("#func-list .occ").forEach((el) => {
     el.addEventListener("click", () => openFuncionarioModal(el.dataset.func));
@@ -1799,52 +2015,179 @@ function getSetores() {
 // Compat: SETORES legado aponta pro fallback. Código novo usa getSetores().
 const SETORES = SETORES_FALLBACK;
 
+// Bloco de visualização: dados pessoais + trabalho + (opcional) PII / demissão.
+// Renderizado ANTES do form de edição quando o funcionário já existe.
+// Os campos vêm do pipeline RH; UI defensiva pra funcionários antigos
+// (cadastrados antes do enriquecimento) que podem não ter todos os campos.
+function renderFuncPerfilSecoes(f) {
+  if (!f) return "";
+  const nascStr = tsToDateStr(f.nascimento);
+  const admStr = tsToDateStr(f.admissao);
+  const demStr = tsToDateStr(f.demissao);
+  const inativo = f.ativo === false;
+
+  // Header com avatar grande + nome + cargo/setor/turno
+  const turnoLabel = f.turno && TURNOS[f.turno] ? TURNOS[f.turno].label : null;
+
+  const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
+
+  return `
+    <div class="func-perfil-header">
+      <div class="avatar avatar--lg" style="width:56px; height:56px; font-size:20px;">${initials(f.nome)}</div>
+      <div style="flex:1; min-width:0;">
+        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}</div>
+        <div class="func-perfil-header__sub">
+          ${escapeHtml(f.cargo || "sem cargo")} · ${escapeHtml(f.setor || "sem setor")}${turnoLabel ? " · " + escapeHtml(turnoLabel) : ""}
+        </div>
+        ${f.codigo ? `<div class="text-xs muted" style="margin-top:2px;">cód: ${escapeHtml(f.codigo)}</div>` : ""}
+      </div>
+    </div>
+
+    ${inativo && demStr ? `
+      <div class="func-perfil-demitido">
+        <span style="font-size:18px;">⚠️</span>
+        <div>
+          <strong>Funcionário INATIVO</strong>
+          <div class="text-xs" style="margin-top:2px;">Demitido em ${demStr}</div>
+        </div>
+      </div>
+    ` : inativo ? `
+      <div class="func-perfil-demitido">
+        <span style="font-size:18px;">⚠️</span>
+        <strong>Funcionário INATIVO</strong>
+      </div>
+    ` : ""}
+
+    <div class="func-perfil-secao">
+      <div class="func-perfil-secao__titulo">Dados pessoais</div>
+      <div class="func-perfil-grid">
+        <div class="func-perfil-grid__item">
+          <label>Idade</label>
+          <span>${dash(f.idade ? `${f.idade} anos` : null)}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Nascimento</label>
+          <span>${dash(nascStr)}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Sexo</label>
+          <span>${dash(f.sexo)}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Estado civil</label>
+          <span>${dash(f.estadoCivil)}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Grau de instrução</label>
+          <span>${escapeHtml(dash(f.grauInstrucao))}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Naturalidade</label>
+          <span>${escapeHtml(dash(f.naturalidade))}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="func-perfil-secao">
+      <div class="func-perfil-secao__titulo">Trabalho</div>
+      <div class="func-perfil-grid">
+        <div class="func-perfil-grid__item">
+          <label>Cargo</label>
+          <span>${escapeHtml(dash(f.cargo))}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Admissão</label>
+          <span>${dash(admStr)}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Tempo de casa</label>
+          <span>${tempoDeCasa(f.diasNaEmpresa)}</span>
+        </div>
+        <div class="func-perfil-grid__item" style="grid-column: span 2;">
+          <label>Escala</label>
+          <span>${escapeHtml(dash(f.escala))}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Carga horária / semana</label>
+          <span>${dash(f.cargaHorariaSemana ? `${f.cargaHorariaSemana}h` : null)}</span>
+        </div>
+        <div class="func-perfil-grid__item">
+          <label>Carga horária / mês</label>
+          <span>${dash(f.cargaHorariaMes ? `${f.cargaHorariaMes}h` : null)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Container vazio: preenchido async se user é admin/RH (PII vem de banco-horas-saldos) -->
+    <div id="func-perfil-pii"></div>
+  `;
+}
+
 function openFuncionarioModal(id) {
   const f = id ? state.funcionarios.find((x) => x.id === id) : null;
   const isNew = !f;
+  const u = currentUser();
+  const ehAdmin = u && u.role === "admin";
 
   openModal(`
     <div class="modal__header">
       <div>
-        <h2>${isNew ? "Novo funcionário" : "Editar funcionário"}</h2>
-        <p>${isNew ? "Será incluído no cadastro." : f.nome}</p>
+        <h2>${isNew ? "Novo funcionário" : "Perfil do funcionário"}</h2>
+        <p>${isNew ? "Será incluído no cadastro." : "Dados vêm do ERP · campos editáveis abaixo."}</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
-    <form class="modal__body" id="func-form" onsubmit="return false">
-      <div class="field">
-        <label for="func-nome">Nome completo <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="func-nome" required value="${f?.nome || ""}" />
+    <div class="modal__body">
+      ${isNew ? "" : renderFuncPerfilSecoes(f)}
+
+      <div class="func-perfil-secao" ${isNew ? "" : `style="border-top:1px solid var(--border); padding-top:14px; margin-top:4px;"`}>
+        ${isNew ? "" : `<div class="func-perfil-secao__titulo">Editar (turno / setor / status)</div>`}
+        <form id="func-form" onsubmit="return false">
+          <div class="field">
+            <label for="func-nome">Nome completo <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="func-nome" required value="${escapeHtml(f?.nome || "")}" ${!isNew ? "readonly style='background:var(--surface-warm); cursor:not-allowed;'" : ""} />
+            ${!isNew ? `<span class="field__hint">Nome vem do ERP. Para alterar, ajuste lá.</span>` : ""}
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="func-codigo">Código/Matrícula</label>
+              <input type="text" id="func-codigo" value="${escapeHtml(f?.codigo || "")}" placeholder="ex: 1234" ${!isNew ? "readonly style='background:var(--surface-warm); cursor:not-allowed;'" : ""} />
+            </div>
+            <div class="field">
+              <label for="func-turno">Turno</label>
+              <select id="func-turno">
+                <option value="">— Sem turno —</option>
+                ${[1, 2, 3, "geral"].map((t) => `<option value="${t}" ${f?.turno === t ? "selected" : ""}>${TURNOS[t].label} (${TURNOS[t].horario})</option>`).join("")}
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="func-setor">Setor</label>
+            <select id="func-setor">
+              <option value="">— Não definido —</option>
+              ${getSetores().map((s) => `<option value="${s}" ${f?.setor === s ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}
+              ${f?.setor && !getSetores().includes(f.setor) ? `<option value="${escapeHtml(f.setor)}" selected>${escapeHtml(f.setor)} (legado)</option>` : ""}
+            </select>
+          </div>
+          <div class="field">
+            <label class="row" style="gap:8px; cursor:pointer;">
+              <input type="checkbox" id="func-ativo" ${f?.ativo !== false ? "checked" : ""} />
+              <span>Funcionário ativo</span>
+            </label>
+            <span class="field__hint">Inativos não aparecem no formulário de nova ocorrência.</span>
+          </div>
+          ${ehAdmin ? `
+            <div class="field">
+              <label class="row" style="gap:8px; cursor:pointer;">
+                <input type="checkbox" id="func-bhexempt" ${f?.bhExempt ? "checked" : ""} />
+                <span>Isento do banco de horas (pipeline ignora)</span>
+              </label>
+              <span class="field__hint">Marque pra funcionários que não devem ter saldo calculado (ex.: trainees, estagiários especiais).</span>
+            </div>
+          ` : ""}
+        </form>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="func-codigo">Código/Matrícula</label>
-          <input type="text" id="func-codigo" value="${f?.codigo || ""}" placeholder="ex: 1234" />
-        </div>
-        <div class="field">
-          <label for="func-turno">Turno</label>
-          <select id="func-turno">
-            <option value="">— Sem turno —</option>
-            ${[1, 2, 3, "geral"].map((t) => `<option value="${t}" ${f?.turno === t ? "selected" : ""}>${TURNOS[t].label} (${TURNOS[t].horario})</option>`).join("")}
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label for="func-setor">Setor</label>
-        <select id="func-setor">
-          <option value="">— Não definido —</option>
-          ${getSetores().map((s) => `<option value="${s}" ${f?.setor === s ? "selected" : ""}>${s}</option>`).join("")}
-          ${f?.setor && !getSetores().includes(f.setor) ? `<option value="${f.setor}" selected>${f.setor} (legado)</option>` : ""}
-        </select>
-      </div>
-      <div class="field">
-        <label class="row" style="gap:8px; cursor:pointer;">
-          <input type="checkbox" id="func-ativo" ${f?.ativo !== false ? "checked" : ""} />
-          <span>Funcionário ativo</span>
-        </label>
-        <span class="field__hint">Inativos não aparecem no formulário de nova ocorrência.</span>
-      </div>
-    </form>
+    </div>
     <div class="modal__footer">
       ${!isNew ? `<button class="btn btn--danger" id="btn-del-func">${icon("trash")}<span>Excluir</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Cancelar</button>
@@ -1855,6 +2198,53 @@ function openFuncionarioModal(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#btn-save-func").addEventListener("click", () => saveFuncionario(id));
       if (!isNew) $("#btn-del-func").addEventListener("click", () => deleteFuncionario(id));
+
+      // Carrega PII async (admin/RH só) — UI mostra placeholder enquanto carrega.
+      if (!isNew && (u.role === "admin" || u.role === "rh") && typeof window.lerSaldoSensivel === "function" && f?.codigo) {
+        const pii = $("#func-perfil-pii");
+        if (pii) {
+          pii.innerHTML = `
+            <div class="func-perfil-secao">
+              <div class="func-perfil-secao__titulo">🔒 Dados sensíveis (admin/RH)</div>
+              <div class="text-xs muted">carregando…</div>
+            </div>`;
+        }
+        window.lerSaldoSensivel(f.codigo).then((dados) => {
+          const cont = $("#func-perfil-pii");
+          if (!cont) return; // modal fechou
+          if (!dados) {
+            cont.innerHTML = `
+              <div class="func-perfil-secao">
+                <div class="func-perfil-secao__titulo">🔒 Dados sensíveis (admin/RH)</div>
+                <div class="text-xs muted">Sem dados em banco-horas-saldos pra este código.</div>
+              </div>`;
+            return;
+          }
+          const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
+          cont.innerHTML = `
+            <div class="func-perfil-secao">
+              <div class="func-perfil-secao__titulo">🔒 Dados sensíveis (admin/RH)</div>
+              <div class="func-perfil-grid">
+                <div class="func-perfil-grid__item">
+                  <label>CPF</label>
+                  <span>${escapeHtml(dash(dados.cpf))}</span>
+                </div>
+                <div class="func-perfil-grid__item">
+                  <label>PIS</label>
+                  <span>${escapeHtml(dash(dados.pis))}</span>
+                </div>
+                <div class="func-perfil-grid__item" style="grid-column: span 2;">
+                  <label>Nome da mãe</label>
+                  <span>${escapeHtml(dash(dados.nomeMae))}</span>
+                </div>
+              </div>
+            </div>`;
+        }).catch((e) => {
+          console.warn("[func-modal] lerSaldoSensivel falhou:", e?.message || e);
+          const cont = $("#func-perfil-pii");
+          if (cont) cont.innerHTML = "";
+        });
+      }
     },
   });
 }
@@ -1871,6 +2261,9 @@ function saveFuncionario(id) {
     setor: $("#func-setor").value || null,
     ativo: $("#func-ativo").checked,
   };
+  // bhExempt só aparece pra admin — se o checkbox existir, lê o valor
+  const bhEl = $("#func-bhexempt");
+  if (bhEl) dados.bhExempt = bhEl.checked;
 
   if (id) {
     const f = state.funcionarios.find((x) => x.id === id);

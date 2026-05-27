@@ -145,3 +145,72 @@ Nenhum — toda lógica é frontend. Validação pode ser feita via inspeção d
 - O pipeline rodou hoje 27/05 13:40 BRT e populou os 135 docs. Já tá no ar no Firestore.
 - Próximo run automático: 27/05 (amanhã) 08:00 BRT.
 - William aprovou implementação completa — pode caminhar sem ping intermediário.
+
+---
+
+## OUTPUT (executado em 2026-05-27 14:20 BRT)
+
+**Status:** ✅ Concluído pelo Claude PC
+
+### Implementação
+
+Implementadas todas as 5 tarefas da missão (1 a 5). Tarefa 6 (enriquecer
+BH do líder) propositalmente NÃO implementada — depende de campo extra
+na coleção `bancoHoras/{f-codigo}` que precisaria de mudança no pipeline
+do WKRADAR. Recomendação pra próxima missão.
+
+### Arquivos editados
+
+- **public/index.html**: cache buster `v=87 → v=88` (5 ocorrências)
+- **public/app.js** (+393 linhas):
+  - Helpers `tsToDateStr` e `tempoDeCasa` (top do arquivo)
+  - Toast de aniversário do dia no `renderApp`, gateado por
+    `window.__niverToastShown` (reset no logout)
+  - `renderAniversariantesWidget(u)` + `renderDemografiaWidget(u)`
+    no dashboard, entre `.stats` e `.tabs`
+  - `funcionariosVisiveisPara(u)` helper para filtrar por turno se líder
+  - `renderFuncList` agora mostra "⚠️ Demitido em DD de mês de YYYY"
+    abaixo do setor pra `f.ativo === false && f.demissao`
+  - `renderFuncPerfilSecoes(f)` (perfil rico) chamado em
+    `openFuncionarioModal` antes do form de edição
+- **public/firebase.js** (+23 linhas):
+  - `window.lerSaldoSensivel(codigo)`: lê CPF/PIS/nomeMae de
+    `banco-horas-saldos/{codigo}` com gate role admin/RH
+  - `saveFuncionario` agora inclui `bhExempt` no payload se checkbox
+    existir (admin only)
+- **public/styles.css** (+233 linhas): blocos `.card-aniversariantes*`,
+  `.dashboard-demografia*`, `.func-perfil-*`
+
+### Deploy
+
+- v=87 → v=88
+- Hosting URL: https://weave-fiobras.web.app (também gh.fiobras.com.br)
+- Firebase deploy: release complete (sem erros)
+
+### Princípios defensivos seguidos
+
+- Tolerante a campos faltando: helper `dash()` mostra "—" pra
+  null/undefined/""
+- `tsToDateStr` aceita ISO string, Firestore Timestamp,
+  `{seconds}` object, e plain Date
+- Toast só dispara se `state.funcionarios` populado
+- Modal: callback async do PII checa se `#func-perfil-pii` ainda
+  existe antes de escrever (modal pode ter fechado)
+- Líder filtra por turno no widget aniversariantes
+- Admin only: stats demográficas + checkbox `bhExempt`
+- Admin+RH: PII (CPF/PIS/nomeMae) via `lerSaldoSensivel`
+- Campos `nome` e `codigo` viram readonly na edição (vêm do ERP,
+  pipeline sobrescreve no próximo run)
+
+### Dúvidas pra confirmar com William
+
+1. `nome` e `codigo` readonly na edição — OK?
+2. Toast aniversário aparece uma vez por LOGIN (reset no logout) —
+   queria por sessão de browser independente de login?
+3. Naturalidade incluída no widget demografia (top 3 cidades) —
+   manter ou remover?
+4. Pré-load do PII em `carregarDadosCompletos` vs read async no modal?
+
+### Commits
+
+(serão adicionados após push)
