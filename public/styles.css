@@ -519,17 +519,12 @@ textarea:focus-visible,
   }
 }
 
-/* ===== Sidebar: presença minimalista ===== */
+/* ===== Sidebar: presença (lista com nomes) ===== */
 .sidebar-presence {
-  padding: 10px 12px 14px;
+  padding: 10px 8px 14px;
   border-top: 1px solid rgba(255, 243, 230, .08);
   min-height: 0;
-}
-/* Cluster de avatares na sidebar — só aparece quando há outros online */
-.sp-cluster {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  overflow-y: auto;
 }
 .sp-live {
   width: 6px;
@@ -538,7 +533,54 @@ textarea:focus-visible,
   background: #22c55e;
   flex-shrink: 0;
   animation: pulse-live 1.6s ease-in-out infinite;
-  margin-right: 4px;
+}
+.sp-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 243, 230, .55);
+  padding: 0 6px 8px;
+}
+.sp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sp-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  transition: background .15s;
+}
+.sp-item:hover { background: rgba(255, 243, 230, .06); }
+.sp-item.is-idle { opacity: 0.55; }
+.sp-item .presence-avatar { margin-left: 0; border-width: 0; }
+.sp-item__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.sp-item__nome {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--milk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-item__atividade {
+  font-size: 10px;
+  color: rgba(255, 243, 230, .5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app__user {

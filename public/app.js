@@ -828,7 +828,7 @@ function abrirPresenceDropdown(online) {
   }, 50);
 }
 
-// Presença na sidebar: avatares pequenos sobrepostos (estilo Google Sheets).
+// Presença na sidebar: lista vertical com avatar + nome + atividade.
 // Aparece apenas quando há outros usuários online além do próprio.
 function renderSidebarPresence(online) {
   const el = document.getElementById("sidebar-presence");
@@ -848,25 +848,37 @@ function renderSidebarPresence(online) {
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
   };
 
-  const dots = outros.map((usr) => {
+  const items = outros.map((usr) => {
     const ausente = usr.status === "ausente";
     const role = ROLE_LABELS[usr.role] || "";
     const turno = usr.turno ? ` T${usr.turno}` : "";
-    const page = PAGE_LABELS[usr.page] || "";
-    let tooltip = escapeHtml(usr.nome || "?");
-    if (role) tooltip += ` · ${role}${turno}`;
+    // Atividade: PJ editando > página atual > ausente
+    let atividade = "";
     if (usr.pjEditing) {
       const pj = (state.pjs || []).find((p) => p.id === usr.pjEditing);
-      tooltip += ` · editando ${pj ? escapeHtml(pj.nome) : "PJ"}`;
-    } else if (page) {
-      tooltip += ` · ${page}`;
+      atividade = `editando ${pj ? escapeHtml(pj.nome) : "PJ"}`;
+    } else if (PAGE_LABELS[usr.page]) {
+      atividade = PAGE_LABELS[usr.page];
+    } else if (ausente) {
+      atividade = "ausente";
+    } else {
+      atividade = role ? role + turno : "online";
     }
-    if (ausente) tooltip += " · ausente";
-    return buildPresenceAvatar(usr, { size: 22, borderColor: "var(--plum)" })
-      .replace("class=", `title="${tooltip}" class=`);
+    const avatar = buildPresenceAvatar(usr, { size: 26, borderColor: "transparent" });
+    return `
+      <div class="sp-item${ausente ? " is-idle" : ""}">
+        ${avatar}
+        <div class="sp-item__info">
+          <span class="sp-item__nome">${escapeHtml(usr.nome || "?")}</span>
+          <span class="sp-item__atividade">${atividade}</span>
+        </div>
+      </div>`;
   }).join("");
 
-  el.innerHTML = `<div class="sp-cluster"><span class="sp-live"></span>${dots}</div>`;
+  el.innerHTML = `
+    <div class="sp-header"><span class="sp-live"></span>Online agora · ${outros.length}</div>
+    <div class="sp-list">${items}</div>
+  `;
 }
 
 function renderNav() {
