@@ -40,3 +40,7 @@ Thumbs.db
 
 # Firebase deploy cache local
 .firebase/
+
+# Cron/scheduled tasks runtime (sessão local)
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
