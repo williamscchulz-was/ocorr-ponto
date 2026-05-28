@@ -44,3 +44,6 @@ Thumbs.db
 # Cron/scheduled tasks runtime (sessão local)
 .claude/scheduled_tasks.lock
 .claude/scheduled_tasks.json
+
+# Mapa supervisor→funcionários (nomes reais, não commitar)
+scripts/supervisores-map.json
