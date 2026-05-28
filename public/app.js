@@ -558,7 +558,7 @@ function renderApp() {
     const niver = pool.filter((f) => Number(f.aniversarioDia) === dia && Number(f.aniversarioMes) === mes);
     if (niver.length > 0) {
       const nomes = niver.map((f) => (f.nome || "").split(" ")[0]).join(", ");
-      setTimeout(() => toast(`🎂 Aniversário hoje: ${nomes}`), 800);
+      setTimeout(() => toast(`Aniversário hoje: ${nomes}`), 800);
     }
   }
 }
@@ -1039,7 +1039,7 @@ function renderAniversariantesWidget(u) {
   return `
     <div class="card-aniversariantes">
       <div class="card-aniversariantes__header">
-        <span class="card-aniversariantes__title">🎂 Aniversariantes de ${NOMES_MES_ABREV[mes - 1]}</span>
+        <span class="card-aniversariantes__title">Aniversariantes de ${NOMES_MES_ABREV[mes - 1]}</span>
         <span class="card-aniversariantes__count">${niverMes.length}</span>
       </div>
       ${niverHoje.length > 0 ? `
@@ -1114,7 +1114,7 @@ function renderDemografiaWidget(u) {
 
   return `
     <details class="dashboard-demografia">
-      <summary>📊 Demografia da empresa <span class="muted text-xs">(${pool.length} ativos)</span></summary>
+      <summary>Demografia da empresa <span class="muted text-xs">(${pool.length} ativos)</span></summary>
       <div class="dashboard-demografia__grid">
         <div class="demografia-bloco">
           <div class="demografia-bloco__label">Idade média</div>
@@ -1125,9 +1125,9 @@ function renderDemografiaWidget(u) {
           <div class="demografia-bloco__label">Sexo</div>
           ${sexTotal > 0 ? `
             <div class="demografia-bloco__big" style="font-size:14px;">
-              <span style="color:#d946ef;">♀ ${pctF}%</span>
+              <span style="color:#d946ef;">Fem ${pctF}%</span>
               &nbsp;·&nbsp;
-              <span style="color:#0076BE;">♂ ${pctM}%</span>
+              <span style="color:#0076BE;">Masc ${pctM}%</span>
             </div>
             <div class="demografia-bloco__bar">
               <span style="width:${pctF}%; background:#d946ef;"></span>
@@ -1979,7 +1979,7 @@ function renderFuncList() {
         <div class="occ__sub">${f.codigo ? "cód: " + escapeHtml(f.codigo) + " · " : ""}${escapeHtml(f.setor || "sem setor")}</div>
         ${demissaoStr ? `
           <div class="text-xs" style="margin-top:2px; color:#b91c1c; font-weight:500;">
-            ⚠️ Demitido em ${demissaoStr}
+            Demitido em ${demissaoStr}
           </div>
         ` : ""}
       </div>
@@ -2045,7 +2045,7 @@ function renderFuncPerfilSecoes(f) {
 
     ${inativo && demStr ? `
       <div class="func-perfil-demitido">
-        <span style="font-size:18px;">⚠️</span>
+        <span class="func-perfil-demitido__icon">${icon("alert")}</span>
         <div>
           <strong>Funcionário INATIVO</strong>
           <div class="text-xs" style="margin-top:2px;">Demitido em ${demStr}</div>
@@ -2053,7 +2053,7 @@ function renderFuncPerfilSecoes(f) {
       </div>
     ` : inativo ? `
       <div class="func-perfil-demitido">
-        <span style="font-size:18px;">⚠️</span>
+        <span class="func-perfil-demitido__icon">${icon("alert")}</span>
         <strong>Funcionário INATIVO</strong>
       </div>
     ` : ""}
@@ -2205,7 +2205,7 @@ function openFuncionarioModal(id) {
         if (pii) {
           pii.innerHTML = `
             <div class="func-perfil-secao">
-              <div class="func-perfil-secao__titulo">🔒 Dados sensíveis (admin/RH)</div>
+              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/RH)</div>
               <div class="text-xs muted">carregando…</div>
             </div>`;
         }
@@ -2215,7 +2215,7 @@ function openFuncionarioModal(id) {
           if (!dados) {
             cont.innerHTML = `
               <div class="func-perfil-secao">
-                <div class="func-perfil-secao__titulo">🔒 Dados sensíveis (admin/RH)</div>
+                <div class="func-perfil-secao__titulo">Dados sensíveis (admin/RH)</div>
                 <div class="text-xs muted">Sem dados em banco-horas-saldos pra este código.</div>
               </div>`;
             return;
@@ -2223,7 +2223,7 @@ function openFuncionarioModal(id) {
           const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
           cont.innerHTML = `
             <div class="func-perfil-secao">
-              <div class="func-perfil-secao__titulo">🔒 Dados sensíveis (admin/RH)</div>
+              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/RH)</div>
               <div class="func-perfil-grid">
                 <div class="func-perfil-grid__item">
                   <label>CPF</label>
@@ -2375,7 +2375,7 @@ function openProfileModal() {
           try {
             await window.atualizarMinhaFoto(base64);
             aplicarAvatar($("#user-avatar"), currentUser());
-            toast("Foto atualizada ✓");
+            toast("Foto atualizada");
             openProfileModal();
           } catch (err) {
             toast("Erro ao salvar foto: " + (err?.message || err), "danger");
@@ -2889,8 +2889,8 @@ async function handleBancoHorasFile(file) {
           <span style="color: var(--muted);">ℹ ${matchInativos.length} código(s) de funcionário(s) <strong>inativo(s)</strong> — saldo será gravado mas não aparece na listagem do Banco de Horas.</span><br/>
         ` : ""}
         ${semMatch.length > 0 ? `
-          <span style="color: var(--warning);">⚠ ${semMatch.length} código(s) não cadastrado(s) — serão ignorados: ${semMatch.slice(0, 5).map(e => e.codigo).join(", ")}${semMatch.length > 5 ? "..." : ""}</span>
-        ` : (matchInativos.length === 0 ? `<span style="color: var(--success);">✓ Todos os funcionários têm correspondência no cadastro.</span>` : "")}
+          <span style="color: var(--warning);">${semMatch.length} código(s) não cadastrado(s) — serão ignorados: ${semMatch.slice(0, 5).map(e => e.codigo).join(", ")}${semMatch.length > 5 ? "..." : ""}</span>
+        ` : (matchInativos.length === 0 ? `<span style="color: var(--success);">Todos os funcionários têm correspondência no cadastro.</span>` : "")}
       </div>
     `;
 
@@ -3210,7 +3210,7 @@ function openPJModal(id) {
     <form class="modal__body" id="pj-form" onsubmit="return false">
       ${isNew ? `
         <div style="background: var(--surface-warm); border-left: 3px solid var(--primary); padding: 10px 12px; border-radius: var(--radius); margin-bottom: 12px;">
-          <div style="font-weight: 600; font-size: 13px;">📄 Comece pelo contrato</div>
+          <div style="font-weight: 600; font-size: 13px;">Comece pelo contrato</div>
           <div class="text-xs muted" style="margin-top: 2px;">Suba o PDF que o sistema detecta CNPJ, valor, nome e início automaticamente.</div>
         </div>
       ` : ""}
@@ -3491,7 +3491,7 @@ function openPJModal(id) {
               const msg = (err.message || "").toLowerCase();
               if (msg.includes("popup") || msg.includes("bloque")) {
                 toast(
-                  "Browser bloqueou o popup. Clica no ícone 🛑 da barra de endereço → 'Permitir popups deste site' → tenta de novo.",
+                  "Browser bloqueou o popup. Clica no ícone de bloqueio na barra de endereço, escolhe 'Permitir popups deste site' e tenta de novo.",
                   "danger"
                 );
               } else {
@@ -4093,7 +4093,7 @@ function openReajusteModal(id) {
     <form class="modal__body" id="reajuste-form" onsubmit="return false">
       ${reajusteExtra ? `
         <div style="background: rgba(255, 203, 0, 0.12); border-left: 3px solid var(--warning); padding: 10px 12px; border-radius: var(--radius); margin-bottom: 12px;">
-          <div style="font-weight: 600; font-size: 13px;">⚠ Você está fora da janela anual de reajuste</div>
+          <div style="font-weight: 600; font-size: 13px;">Você está fora da janela anual de reajuste</div>
           <div class="text-xs muted" style="margin-top: 2px;">
             ${jaReajustadoNoAno
               ? `Esse PJ já foi reajustado em ${janela.ano}. Continue só se for ajuste pontual (negociado, erro de valor, etc).`
@@ -4436,7 +4436,7 @@ function renderPJFeriasList(pjId) {
     <div class="text-xs muted" style="margin-bottom: 8px;">
       ${pj.dataInicio
         ? `Sistema acumula ${(Number(pj.diasFeriasAno) || 30) / 12 % 1 === 0 ? (Number(pj.diasFeriasAno) || 30) / 12 : ((Number(pj.diasFeriasAno) || 30) / 12).toFixed(2)} dia/mês desde <strong>${formatDate(pj.dataInicio)}</strong> (início do contrato · ${pj.diasFeriasAno || 30} dias/ano).`
-        : `<span style="color: var(--danger);">⚠ Preencha "Início do contrato" no PJ pra o sistema calcular as férias.</span>`}
+        : `<span style="color: var(--danger);">Preencha "Início do contrato" no PJ pra o sistema calcular as férias.</span>`}
     </div>
   `;
 
@@ -4542,7 +4542,7 @@ function openAddFeriasModal(pjId) {
         }
         const novoSaldo = r.saldo - dias;
         if (novoSaldo < 0) {
-          info.innerHTML = `⚠ Saldo após baixa: <strong style="color: var(--danger);">${novoSaldo} dia${Math.abs(novoSaldo) !== 1 ? "s" : ""}</strong> — vai ficar negativo.`;
+          info.innerHTML = `Saldo após baixa: <strong style="color: var(--danger);">${novoSaldo} dia${Math.abs(novoSaldo) !== 1 ? "s" : ""}</strong> — vai ficar negativo.`;
         } else {
           info.innerHTML = `Saldo após baixa: <strong style="color: var(--success);">${novoSaldo} dia${Math.abs(novoSaldo) !== 1 ? "s" : ""}</strong>.`;
         }
@@ -4649,7 +4649,7 @@ function renderDadosInto(selector) {
       </div>
 
       <div style="background: #fff8f8; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 20px; margin-bottom: 16px;">
-        <div style="font-weight: 700; color: #b91c1c; margin-bottom: 6px; font-size: 15px;">⚠️ Zona de perigo</div>
+        <div style="font-weight: 700; color: #b91c1c; margin-bottom: 6px; font-size: 15px;">Zona de perigo</div>
         <p style="font-size: 13px; color: #7f1d1d; margin: 0 0 16px; line-height: 1.5;">
           <strong>Zerar funcionários e banco de horas</strong> apaga permanentemente todos os registros das duas coleções.
           Use antes de uma nova importação completa pelo pipeline WKRADAR.
@@ -5319,7 +5319,7 @@ async function criarUsuario() {
         <strong>Senha temporária:</strong> <code style="background: white; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${res.tempPassword}</code><br/>
         ${res.resetEnviado
           ? `<span class="muted">${icon("check")} Email de redefinição enviado — o usuário pode usar tanto a senha temporária quanto o link do email.</span>`
-          : `<span class="muted">⚠ Email de redefinição falhou. Compartilhe a senha temporária manualmente.</span>`}
+          : `<span class="muted">Email de redefinição falhou. Compartilhe a senha temporária manualmente.</span>`}
       </div>
     </div>
   `;
