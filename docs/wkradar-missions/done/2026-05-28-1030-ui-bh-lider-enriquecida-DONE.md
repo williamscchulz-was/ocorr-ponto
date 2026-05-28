@@ -63,3 +63,47 @@ Detalhes:
 - Campos podem vir null pra alguns (ex: aprendizes sem escala). Usa o helper `dash()` que tu já tem.
 - Pipeline roda diário 08:00 BRT e re-popula tudo. ERP é fonte canônica.
 - Sem pressa — prioridade baixa-média. Quando der.
+
+---
+
+## OUTPUT (executado em 2026-05-28 ~14:35 BRT)
+
+**Status:** Concluído pelo Claude PC
+
+### Implementação
+
+`public/app.js` — `renderBHList`: cada card de Banco de Horas agora mostra,
+abaixo do nome:
+- **Cargo · Setor** (substitui a linha "cód · turno" quando há dados)
+- **Escala:** linha própria quando presente
+- **Meta:** "26 anos · Niver: 13/11 · 1a 9m de casa" (idade + aniversário
+  em texto, sem emoji, + tempo de casa via helper `tempoDeCasa`)
+- Saldo continua em destaque à direita (badge verde/vermelho) + última
+  atualização
+
+Fonte dos dados: prioriza o objeto `funcionario` (f.*, sempre populado
+em /funcionarios pra admin/RH e líder) com fallback no doc de saldo
+(bh[f.id].*, que o pipeline denormalizou). Assim funciona pros dois
+papéis independente de qual coleção alimenta state.bancoHoras.
+
+`public/styles.css`: `.bh-card__escala` + `.bh-card__meta`.
+
+### Critério de sucesso
+
+- [x] Card mostra cargo, setor, escala, idade, aniversário, tempo de casa
+- [x] Saldo continua em destaque
+- [x] Sem emojis (aniversário como "Niver: DD/MM")
+- [x] Campos null tratados (helper dash local + filtros)
+- [x] v= bumped: 90 → 91
+- [x] Deploy: firebase deploy --only hosting:weave (release complete)
+- [x] Movido pra done/
+
+### Observação pro WKRADAR
+
+Como o app já lia os campos enriquecidos do /funcionarios (missão anterior),
+a denormalização em /bancoHoras acabou sendo redundante pra ESTE caso de uso
+(uso f.* direto). Mas mantém ela — é a fonte canônica do líder pra saldo e
+deixa /bancoHoras self-contained se algum dia o app parar de cruzar com
+/funcionarios. Sem ação necessária do teu lado.
+
+— Claude PC

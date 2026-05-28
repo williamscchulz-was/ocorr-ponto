@@ -2735,26 +2735,50 @@ function renderBHList(funcionarios) {
     return;
   }
 
+  // "—" pra valor vazio/null. Dados enriquecidos vêm do funcionário (f.*),
+  // sempre populado; fallback no doc de saldo (bh[f.id]) pro caso de líder
+  // cuja /bancoHoras o pipeline denormalizou.
+  const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
+
   root.innerHTML = `<div class="list">${list.map((f) => {
     const saldo = bh[f.id];
     const saldoStr = saldo
       ? formatSaldoHoras(saldo.minutos)
       : "—";
     const ultima = saldo?.atualizadoEm
-      ? formatDate(saldo.atualizadoEm.slice(0, 10))
+      ? formatDate((typeof saldo.atualizadoEm === "string" ? saldo.atualizadoEm : "").slice(0, 10) || null)
       : "sem dado";
     const tone = saldo
       ? (saldo.minutos > 0 ? "success" : saldo.minutos < 0 ? "danger" : "neutral")
       : "neutral";
 
+    // Campos enriquecidos (ERP via pipeline). f.* prioritário, saldo.* fallback.
+    const cargo = f.cargo || saldo?.cargo || "";
+    const setor = f.setor || saldo?.setor || "";
+    const escala = f.escala || saldo?.escala || "";
+    const idade = f.idade ?? saldo?.idade ?? null;
+    const niver = f.aniversarioDM || saldo?.aniversarioDM || "";
+    const dias = f.diasNaEmpresa ?? saldo?.diasNaEmpresa ?? null;
+
+    // Linha cargo · setor
+    const cargoSetor = [cargo, setor].filter(Boolean).join(" · ");
+    // Linha idade · niver · tempo de casa
+    const metaPartes = [];
+    if (idade != null) metaPartes.push(`${idade} anos`);
+    if (niver) metaPartes.push(`Niver: ${escapeHtml(niver)}`);
+    if (dias != null) metaPartes.push(`${tempoDeCasa(dias)} de casa`);
+    const metaLinha = metaPartes.join(" · ");
+
     return `
-      <article class="occ" style="grid-template-columns: 44px 1fr auto auto;">
+      <article class="occ bh-card" style="grid-template-columns: 44px 1fr auto;">
         <div class="avatar">${initials(f.nome)}</div>
-        <div class="occ__main">
+        <div class="occ__main" style="min-width:0;">
           <div class="occ__name">${escapeHtml(f.nome)}</div>
-          <div class="occ__sub">${f.codigo ? "cód: " + escapeHtml(f.codigo) + " · " : ""}${TURNOS[f.turno]?.label || "sem turno"}</div>
+          <div class="occ__sub">${cargoSetor ? escapeHtml(cargoSetor) : (TURNOS[f.turno]?.label || "sem turno")}</div>
+          ${escala ? `<div class="bh-card__escala">Escala: ${escapeHtml(escala)}</div>` : ""}
+          ${metaLinha ? `<div class="bh-card__meta">${metaLinha}</div>` : ""}
         </div>
-        <div style="text-align: right;">
+        <div style="text-align: right; align-self: start;">
           <span class="badge badge--${tone}" style="font-family: var(--font-display); font-size: 13px; font-weight: 700;">${saldoStr}</span>
           <div class="text-xs muted" style="margin-top: 2px;">${ultima}</div>
         </div>
