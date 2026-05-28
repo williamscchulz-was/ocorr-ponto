@@ -20,11 +20,23 @@ service cloud.firestore {
     function isLider() {
       return isAuthed() && userDoc().role == 'lider';
     }
+    function isSupervisor() {
+      return isAuthed() && userDoc().role == 'supervisor';
+    }
+    function supervisorVe(funcId) {
+      return isSupervisor()
+        && userDoc().funcionariosVisiveis is list
+        && userDoc().funcionariosVisiveis.hasAny([funcId]);
+    }
     function liderDoMesmoTurno(turno) {
       return isLider() && userDoc().turno == turno;
     }
+    // READ amplo: supervisor lê todas as ocorrências (a UI filtra pela lista
+    // dele). O escopo estrito (supervisorVe) é aplicado só no WRITE/conferir.
     function podeVerOcorrencia(doc) {
-      return isAdmin() || isRH() || liderDoMesmoTurno(doc.funcionarioTurno);
+      return isAdmin() || isRH()
+        || liderDoMesmoTurno(doc.funcionarioTurno)
+        || isSupervisor();
     }
 
     // ----- users -----
@@ -67,8 +79,9 @@ service cloud.firestore {
     // .where("funcionarioTurno", "==", u.turno) pro Firestore aceitar a lista.
     // Escrita: pipeline RH (servidor) ou admin/RH via UI.
     match /bancoHoras/{funcionarioId} {
-      allow read: if isAdmin() || isRH() ||
-                  (isLider() && resource.data.funcionarioTurno == userDoc().turno);
+      allow read: if isAdmin() || isRH()
+                  || (isLider() && resource.data.funcionarioTurno == userDoc().turno)
+                  || isSupervisor();
       allow create, update, delete: if isAdmin() || isRH();
     }
 
@@ -108,6 +121,9 @@ service cloud.firestore {
         isAdmin()
         || (isRH() && podeAtualizarApenasObservacao())
         || (liderDoMesmoTurno(resource.data.funcionarioTurno)
+            && podeConferirOuAtualizarObs())
+        || (isSupervisor()
+            && supervisorVe(resource.data.funcionarioId)
             && podeConferirOuAtualizarObs());
 
       allow delete: if isAdmin() || isRH();

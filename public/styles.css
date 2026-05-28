@@ -1964,3 +1964,26 @@ html.firebase-mode .login__forgot { display: block; }
   height: 20px;
   color: #dc2626;
 }
+
+/* Picker de funcionários visíveis (edição de supervisor) */
+.superv-picker {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+}
+.superv-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.superv-picker__item:hover { background: rgba(0,0,0,0.03); }
+.superv-picker__item input { width: 16px; height: 16px; flex-shrink: 0; }
+.superv-picker__nome { font-weight: 500; }
+.superv-picker__meta { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+.superv-picker__empty { padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px; }

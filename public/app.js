@@ -317,6 +317,7 @@ function roleLabel(user) {
   if (user.role === "admin") return "Administrador";
   if (user.role === "rh") return "RH";
   if (user.role === "lider") return `Líder ${user.turno}º Turno`;
+  if (user.role === "supervisor") return "Supervisor";
   return user.role;
 }
 
@@ -889,8 +890,10 @@ function renderNav() {
   items.push({ id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
 
-  if (u.role === "rh" || u.role === "admin") {
+  if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
+  }
+  if (u.role === "rh" || u.role === "admin") {
     items.push({ id: "pj", label: "Controle PJ", icon: "file" });
     items.push({ id: "config", label: "Configurações", icon: "settings" });
   }
@@ -922,7 +925,7 @@ function renderBottomNav() {
     { id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending },
     { id: "banco-horas", label: "Banco", icon: "clock" },
   ];
-  if (u.role === "rh" || u.role === "admin") {
+  if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
     left.push({ id: "funcionarios", label: "Equipe", icon: "users" });
   }
 
@@ -964,25 +967,12 @@ function renderBottomNav() {
 }
 
 function pendingForUser(u) {
-  return state.ocorrencias.filter((o) => {
-    if (!isPending(o)) return false;
-    if (u.role === "lider") {
-      const f = getFuncionario(o.funcionarioId);
-      return f && f.turno === u.turno;
-    }
-    return true;
-  });
+  return state.ocorrencias.filter((o) => isPending(o) && podeVerOcorrenciaUI(u, o));
 }
 
 function visibleOcorrencias() {
   const u = currentUser();
-  return state.ocorrencias.filter((o) => {
-    if (u.role === "lider") {
-      const f = getFuncionario(o.funcionarioId);
-      return f && f.turno === u.turno;
-    }
-    return true;
-  });
+  return state.ocorrencias.filter((o) => podeVerOcorrenciaUI(u, o));
 }
 
 function updateFab() {
@@ -1016,12 +1006,41 @@ function renderView() {
   }
 }
 
+// Decide se o user pode VER um funcionário (escopo de visibilidade por papel).
+function podeVerFuncionario(u, f) {
+  if (!u || !f) return false;
+  if (u.role === "admin" || u.role === "rh") return true;
+  if (u.role === "lider") return f.turno === u.turno;
+  if (u.role === "supervisor") return (u.funcionariosVisiveis || []).includes(f.id);
+  return false;
+}
+// Decide se o user pode VER uma ocorrência (via funcionário dela).
+function podeVerOcorrenciaUI(u, o) {
+  if (!u || !o) return false;
+  if (u.role === "admin" || u.role === "rh") return true;
+  if (u.role === "lider") {
+    const f = getFuncionario(o.funcionarioId);
+    return !!f && f.turno === u.turno;
+  }
+  if (u.role === "supervisor") return (u.funcionariosVisiveis || []).includes(o.funcionarioId);
+  return false;
+}
+// Decide se o user pode CONFERIR (dar baixa) numa ocorrência.
+// admin sempre; lider/supervisor só do escopo deles; rh não confere (cria).
+function podeConferirUI(u, o) {
+  if (!u || !o) return false;
+  if (u.role === "admin") return true;
+  if (u.role === "lider" || u.role === "supervisor") return podeVerOcorrenciaUI(u, o);
+  return false;
+}
+
 // Filtra funcionários ATIVOS visíveis pro user atual.
-// Líder vê só do próprio turno; admin/RH veem todos.
+// Líder vê só do próprio turno; supervisor vê só a lista dele; admin/RH veem todos.
 // Tolerante a state.funcionarios undefined (cold start).
 function funcionariosVisiveisPara(u) {
   let pool = (state.funcionarios || []).filter((f) => f.ativo !== false);
   if (u.role === "lider") pool = pool.filter((f) => f.turno === u.turno);
+  else if (u.role === "supervisor") pool = pool.filter((f) => (u.funcionariosVisiveis || []).includes(f.id));
   return pool;
 }
 
@@ -1181,6 +1200,8 @@ function renderDashboard() {
   const subtitle =
     u.role === "lider"
       ? `Você visualiza apenas ocorrências do ${u.turno}º turno.`
+      : u.role === "supervisor"
+      ? "Você visualiza apenas os funcionários sob sua supervisão."
       : u.role === "rh"
       ? "Registre e acompanhe ocorrências de todos os turnos."
       : "Você tem acesso completo ao sistema.";
@@ -1204,7 +1225,7 @@ function renderDashboard() {
       <div class="stat stat--accent">
         <div class="stat__label">Pendentes</div>
         <div class="stat__value">${pending.length}</div>
-        <div class="stat__hint">${u.role === "lider" ? "aguardando sua conferência" : "aguardando líder"}</div>
+        <div class="stat__hint">${u.role === "lider" || u.role === "supervisor" ? "aguardando sua conferência" : "aguardando líder"}</div>
       </div>
       <div class="stat">
         <div class="stat__label">Conferidas</div>
@@ -1219,7 +1240,7 @@ function renderDashboard() {
       <div class="stat">
         <div class="stat__label">Funcionários ativos</div>
         <div class="stat__value">${countActiveFuncs(u)}</div>
-        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : "todos os turnos"}</div>
+        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "todos os turnos"}</div>
       </div>
     </div>
 
@@ -1390,7 +1411,8 @@ function renderOccCard(o) {
 
 function openNovaOcorrencia() {
   const u = currentUser();
-  if (u.role === "lider") return;
+  // Só RH e admin criam ocorrências. Líder e supervisor apenas conferem.
+  if (u.role !== "rh" && u.role !== "admin") return;
 
   const today = todayIso();
 
@@ -1509,7 +1531,7 @@ function openOcorrenciaDetail(id) {
   const f = getFuncionario(o.funcionarioId);
   const tipo = getTipo(o.tipo);
   const pending = isPending(o);
-  const canConfer = (u.role === "admin" || (u.role === "lider" && f && f.turno === u.turno));
+  const canConfer = podeConferirUI(u, o);
   const canEdit = canConfer || u.role === "rh";
 
   openModal(`
@@ -1855,17 +1877,19 @@ function renderFuncionarios() {
   const u = currentUser();
   $("#topbar-title").textContent = "Funcionários";
 
+  // Base dos stats respeita o escopo do papel (supervisor vê só os dele).
+  const escopo = state.funcionarios.filter((f) => podeVerFuncionario(u, f));
   // Stats consideram só funcionários ATIVOS — inativos não poluem
-  const ativos = state.funcionarios.filter((f) => f.ativo !== false);
+  const ativos = escopo.filter((f) => f.ativo !== false);
   const semTurno = ativos.filter((f) => !f.turno).length;
   const totalAtivos = ativos.length;
-  const totalInativos = state.funcionarios.length - totalAtivos;
+  const totalInativos = escopo.length - totalAtivos;
 
   $("#view").innerHTML = `
     <header class="page-header">
       <div>
         <h1>Funcionários</h1>
-        <p>Clique num funcionário pra definir turno e setor.</p>
+        <p>${u.role === "supervisor" ? "Funcionários sob sua supervisão." : "Clique num funcionário pra definir turno e setor."}</p>
       </div>
     </header>
 
@@ -1930,11 +1954,15 @@ function renderFuncionarios() {
 }
 
 function renderFuncList() {
+  const u = currentUser();
   const search = ($("#func-search")?.value || "").toLowerCase();
   const statusFilter = $("#func-status-filter")?.value || "ativo";
   const filter = $("#func-turno-filter")?.value || "";
 
   let list = [...state.funcionarios];
+
+  // Escopo de visibilidade por papel (supervisor vê só a lista dele; líder, só turno)
+  list = list.filter((f) => podeVerFuncionario(u, f));
 
   // Filtro por status (default = só ativos)
   if (statusFilter === "ativo") list = list.filter((f) => f.ativo !== false);
@@ -2130,18 +2158,21 @@ function openFuncionarioModal(id) {
   const isNew = !f;
   const u = currentUser();
   const ehAdmin = u && u.role === "admin";
+  // Só admin/RH editam o cadastro. Supervisor abre em modo leitura (vê o perfil).
+  const podeEditarFunc = u && (u.role === "admin" || u.role === "rh");
 
   openModal(`
     <div class="modal__header">
       <div>
         <h2>${isNew ? "Novo funcionário" : "Perfil do funcionário"}</h2>
-        <p>${isNew ? "Será incluído no cadastro." : "Dados vêm do ERP · campos editáveis abaixo."}</p>
+        <p>${isNew ? "Será incluído no cadastro." : podeEditarFunc ? "Dados vêm do ERP · campos editáveis abaixo." : "Dados vêm do ERP."}</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
       ${isNew ? "" : renderFuncPerfilSecoes(f)}
 
+      ${podeEditarFunc ? `
       <div class="func-perfil-secao" ${isNew ? "" : `style="border-top:1px solid var(--border); padding-top:14px; margin-top:4px;"`}>
         ${isNew ? "" : `<div class="func-perfil-secao__titulo">Editar (turno / setor / status)</div>`}
         <form id="func-form" onsubmit="return false">
@@ -2189,17 +2220,18 @@ function openFuncionarioModal(id) {
           ` : ""}
         </form>
       </div>
+      ` : ""}
     </div>
     <div class="modal__footer">
-      ${!isNew ? `<button class="btn btn--danger" id="btn-del-func">${icon("trash")}<span>Excluir</span></button>` : ""}
-      <button class="btn btn--ghost" data-close>Cancelar</button>
-      <button class="btn btn--primary" id="btn-save-func">${icon("check")}<span>${isNew ? "Criar" : "Salvar"}</span></button>
+      ${podeEditarFunc && !isNew ? `<button class="btn btn--danger" id="btn-del-func">${icon("trash")}<span>Excluir</span></button>` : ""}
+      <button class="btn btn--ghost" data-close>${podeEditarFunc ? "Cancelar" : "Fechar"}</button>
+      ${podeEditarFunc ? `<button class="btn btn--primary" id="btn-save-func">${icon("check")}<span>${isNew ? "Criar" : "Salvar"}</span></button>` : ""}
     </div>
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      $("#btn-save-func").addEventListener("click", () => saveFuncionario(id));
-      if (!isNew) $("#btn-del-func").addEventListener("click", () => deleteFuncionario(id));
+      if ($("#btn-save-func")) $("#btn-save-func").addEventListener("click", () => saveFuncionario(id));
+      if (podeEditarFunc && !isNew && $("#btn-del-func")) $("#btn-del-func").addEventListener("click", () => deleteFuncionario(id));
 
       // Carrega PII async (admin/RH só) — UI mostra placeholder enquanto carrega.
       if (!isNew && (u.role === "admin" || u.role === "rh") && typeof window.lerSaldoSensivel === "function" && f?.codigo) {
@@ -2639,9 +2671,8 @@ function renderBancoHoras() {
   const u = currentUser();
   $("#topbar-title").textContent = "Banco de Horas";
 
-  // Filtra por turno se líder
-  let visibles = state.funcionarios.filter((f) => f.ativo !== false);
-  if (u.role === "lider") visibles = visibles.filter((f) => f.turno === u.turno);
+  // Escopo de visibilidade: admin/rh = todos, líder = turno, supervisor = lista
+  let visibles = (state.funcionarios || []).filter((f) => f.ativo !== false && podeVerFuncionario(u, f));
 
   const totalFunc = visibles.length;
   // Por enquanto saldo vem do state (placeholder). Depois vem do Firestore /bancoHoras
@@ -2650,6 +2681,8 @@ function renderBancoHoras() {
 
   const subtitle = u.role === "lider"
     ? `Saldo de horas dos funcionários do ${u.turno}º turno.`
+    : u.role === "supervisor"
+    ? "Saldo de horas dos funcionários sob sua supervisão."
     : "Saldo de horas de todos os funcionários ativos.";
 
   $("#view").innerHTML = `
@@ -2664,7 +2697,7 @@ function renderBancoHoras() {
       <div class="stat">
         <div class="stat__label">Funcionários ativos</div>
         <div class="stat__value">${totalFunc}</div>
-        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : "inativos não aparecem aqui"}</div>
+        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "inativos não aparecem aqui"}</div>
       </div>
       <div class="stat">
         <div class="stat__label">Com saldo registrado</div>
@@ -5275,6 +5308,7 @@ function openNovoUsuarioModal() {
           <select id="user-role" required>
             <option value="rh">RH (cria e edita ocorrências)</option>
             <option value="lider">Líder (confere ocorrências do turno)</option>
+            <option value="supervisor">Supervisor (confere funcionários específicos)</option>
             <option value="admin">Administrador (acesso total)</option>
           </select>
         </div>
@@ -5288,6 +5322,9 @@ function openNovoUsuarioModal() {
           </select>
         </div>
       </div>
+      <div class="field" id="user-superv-hint" style="display:none;">
+        <span class="field__hint">Defina os funcionários visíveis após criar, na edição do usuário.</span>
+      </div>
     </form>
     <div id="user-result" style="display:none;"></div>
     <div class="modal__footer">
@@ -5300,8 +5337,10 @@ function openNovoUsuarioModal() {
 
       const roleSel = $("#user-role");
       const turnoField = $("#user-turno-field");
+      const supervHint = $("#user-superv-hint");
       const toggleTurno = () => {
         turnoField.style.display = roleSel.value === "lider" ? "block" : "none";
+        if (supervHint) supervHint.style.display = roleSel.value === "supervisor" ? "block" : "none";
       };
       roleSel.addEventListener("change", toggleTurno);
       toggleTurno();
@@ -5381,6 +5420,7 @@ function openEditarUsuarioModal(uid) {
           <select id="edit-role" required ${ehVoceMesmo ? "disabled" : ""}>
             <option value="rh" ${u.role === "rh" ? "selected" : ""}>RH</option>
             <option value="lider" ${u.role === "lider" ? "selected" : ""}>Líder</option>
+            <option value="supervisor" ${u.role === "supervisor" ? "selected" : ""}>Supervisor</option>
             <option value="admin" ${u.role === "admin" ? "selected" : ""}>Administrador</option>
           </select>
           ${ehVoceMesmo ? `<span class="field__hint">Você não pode mudar seu próprio papel.</span>` : ""}
@@ -5394,6 +5434,13 @@ function openEditarUsuarioModal(uid) {
             <option value="geral" ${u.turno === "geral" ? "selected" : ""}>Geral (horário comercial)</option>
           </select>
         </div>
+      </div>
+
+      <div class="field" id="edit-superv-field" style="display:${u.role === "supervisor" ? "block" : "none"};">
+        <label>Funcionários visíveis <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="superv-search" placeholder="Buscar funcionário..." style="margin-bottom:8px;" />
+        <div id="superv-list" class="superv-picker"></div>
+        <span class="field__hint"><span id="superv-count">0</span> selecionados</span>
       </div>
 
       <div class="divider"></div>
@@ -5417,9 +5464,71 @@ function openEditarUsuarioModal(uid) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       const roleSel = $("#edit-role");
       const turnoField = $("#edit-turno-field");
-      roleSel.addEventListener("change", () => {
-        turnoField.style.display = roleSel.value === "lider" ? "block" : "none";
-      });
+      const supervField = $("#edit-superv-field");
+
+      // Estado do picker de supervisor: Set de funcionarioIds selecionados.
+      // Sobrevive à re-filtragem da busca (a lista re-renderiza, mas o Set
+      // mantém quem está marcado, inclusive itens fora do filtro atual).
+      const selecionados = new Set(Array.isArray(u.funcionariosVisiveis) ? u.funcionariosVisiveis : []);
+
+      const atualizarContador = () => {
+        const c = $("#superv-count");
+        if (c) c.textContent = String(selecionados.size);
+      };
+
+      // Popula #superv-list com checkboxes dos funcionários ATIVOS que casam
+      // com o filtro. Cada checkbox marca/desmarca no Set local.
+      const renderSupervPicker = (filtro) => {
+        const root = $("#superv-list");
+        if (!root) return;
+        const termo = (filtro || "").toLowerCase();
+        const ativos = (state.funcionarios || [])
+          .filter((f) => f.ativo !== false)
+          .filter((f) =>
+            !termo ||
+            (f.nome || "").toLowerCase().includes(termo) ||
+            (f.codigo || "").toLowerCase().includes(termo)
+          )
+          .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+
+        if (ativos.length === 0) {
+          root.innerHTML = `<div class="superv-picker__empty">Nenhum funcionário encontrado.</div>`;
+          return;
+        }
+
+        root.innerHTML = ativos.map((f) => {
+          const checked = selecionados.has(f.id) ? "checked" : "";
+          const meta = [f.codigo ? "cód " + escapeHtml(f.codigo) : "", f.turno ? (TURNOS[f.turno]?.label || "") : ""].filter(Boolean).join(" · ");
+          return `
+            <label class="superv-picker__item">
+              <input type="checkbox" value="${escapeHtml(f.id)}" ${checked} />
+              <span class="superv-picker__nome">${escapeHtml(f.nome || "?")}</span>
+              ${meta ? `<span class="superv-picker__meta">${meta}</span>` : ""}
+            </label>`;
+        }).join("");
+
+        root.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+          cb.addEventListener("change", () => {
+            if (cb.checked) selecionados.add(cb.value);
+            else selecionados.delete(cb.value);
+            atualizarContador();
+          });
+        });
+      };
+
+      const aplicarVisibilidadePapel = () => {
+        const r = roleSel.value;
+        turnoField.style.display = r === "lider" ? "block" : "none";
+        supervField.style.display = r === "supervisor" ? "block" : "none";
+        if (r === "supervisor") renderSupervPicker($("#superv-search")?.value || "");
+      };
+
+      roleSel.addEventListener("change", aplicarVisibilidadePapel);
+      if ($("#superv-search")) {
+        $("#superv-search").addEventListener("input", debounce(() => renderSupervPicker($("#superv-search").value), 120));
+      }
+      aplicarVisibilidadePapel();
+      atualizarContador();
 
       $("#btn-save-edit-user").addEventListener("click", async () => {
         const nome = $("#edit-nome").value.trim();
@@ -5433,11 +5542,20 @@ function openEditarUsuarioModal(uid) {
         const turno = role === "lider" ? $("#edit-turno").value : null;
         const ativo = ehVoceMesmo ? true : $("#edit-ativo").checked;
 
+        // Coleta a lista do picker quando supervisor; pros demais, zera.
+        const funcionariosVisiveis = role === "supervisor" ? [...selecionados] : [];
+        if (role === "supervisor" && funcionariosVisiveis.length === 0) {
+          const err = $("#edit-user-error");
+          err.textContent = "Selecione ao menos um funcionário visível.";
+          err.classList.remove("hidden");
+          return;
+        }
+
         const btn = $("#btn-save-edit-user");
         btn.disabled = true;
         btn.innerHTML = icon("clock") + "<span>Salvando...</span>";
 
-        const res = await window.atualizarUsuario(uid, { nome, role, turno, ativo });
+        const res = await window.atualizarUsuario(uid, { nome, role, turno, ativo, funcionariosVisiveis });
         if (!res.ok) {
           const err = $("#edit-user-error");
           err.textContent = res.err || "Erro ao salvar.";
@@ -5473,6 +5591,7 @@ function currentMonthLabel() {
 
 function countActiveFuncs(u) {
   if (u.role === "lider") return state.funcionarios.filter((f) => f.turno === u.turno).length;
+  if (u.role === "supervisor") return state.funcionarios.filter((f) => podeVerFuncionario(u, f)).length;
   return state.funcionarios.length;
 }
 

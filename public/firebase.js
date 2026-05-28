@@ -1136,6 +1136,12 @@
         if (role === "lider") {
           userDoc.turno = turno === "geral" ? "geral" : Number(turno);
         }
+        if (role === "supervisor") {
+          // Supervisor nasce sem turno e com lista vazia; admin define os
+          // funcionários visíveis depois, na edição do usuário.
+          userDoc.turno = null;
+          userDoc.funcionariosVisiveis = [];
+        }
         await db.collection("users").doc(uid).set(userDoc);
 
         // Envia email de redefinição pra ele criar a própria senha
@@ -1182,6 +1188,14 @@
         update.turno = dados.turno || null;
       }
       if (dados.ativo !== undefined) update.ativo = !!dados.ativo;
+      if (dados.funcionariosVisiveis !== undefined) {
+        update.funcionariosVisiveis = Array.isArray(dados.funcionariosVisiveis) ? dados.funcionariosVisiveis : [];
+      }
+      // Se o papel mudou pra algo != supervisor, zera a lista de funcionários
+      // visíveis (não faz sentido manter escopo de supervisor noutro papel).
+      if (dados.role !== undefined && dados.role !== "supervisor") {
+        update.funcionariosVisiveis = [];
+      }
 
       try {
         await db.collection("users").doc(uid).update(update);
@@ -1603,6 +1617,17 @@
           };
         });
         debug?.("[bancoHoras] líder turno", u.turno, "→", bhSnap.size, "saldos");
+      } else if (u.role === "supervisor") {
+        // Supervisor lê a coleção bancoHoras inteira (rule permite leitura
+        // ampla; a UI filtra pela lista funcionariosVisiveis do supervisor).
+        const bhSnap = await db.collection("bancoHoras").get();
+        bhSnap.docs.forEach((d) => {
+          state.bancoHoras[d.id] = {
+            ...d.data(),
+            atualizadoEm: tsToIso(d.data().atualizadoEm),
+          };
+        });
+        debug?.("[bancoHoras] supervisor →", bhSnap.size, "saldos");
       }
     } catch (e) {
       console.warn("[bh] falha ao ler banco de horas:", e?.message || e);
