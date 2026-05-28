@@ -1046,32 +1046,22 @@ function renderAniversariantesWidget(u) {
 
   if (niverMes.length === 0) return "";
 
-  const niverHoje = niverMes.filter((f) => Number(f.aniversarioDia) === dia);
+  const MESES_FULL = [
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+  ];
+
+  const itens = niverMes.map((f) => {
+    const ehHoje = Number(f.aniversarioDia) === dia;
+    const primeiro = escapeHtml((f.nome || "?").split(" ")[0]);
+    const d = String(f.aniversarioDia).padStart(2, "0");
+    return `<span class="niver-mini__item${ehHoje ? " is-today" : ""}" title="${escapeHtml(f.nome)}">${primeiro}<span class="niver-mini__dia">${d}</span></span>`;
+  }).join("");
 
   return `
-    <div class="card-aniversariantes">
-      <div class="card-aniversariantes__header">
-        <span class="card-aniversariantes__title">Aniversariantes de ${NOMES_MES_ABREV[mes - 1]}</span>
-        <span class="card-aniversariantes__count">${niverMes.length}</span>
-      </div>
-      ${niverHoje.length > 0 ? `
-        <div class="card-aniversariantes__today">
-          <strong>Hoje:</strong> ${niverHoje.map((f) => escapeHtml(f.nome)).join(", ")}
-        </div>
-      ` : ""}
-      <div class="card-aniversariantes__list">
-        ${niverMes.map((f) => {
-          const ehHoje = Number(f.aniversarioDia) === dia;
-          return `
-            <div class="card-aniversariantes__item${ehHoje ? " is-today" : ""}">
-              <span class="card-aniversariantes__dia">${String(f.aniversarioDia).padStart(2, "0")}/${String(f.aniversarioMes).padStart(2, "0")}</span>
-              <span class="card-aniversariantes__nome">${escapeHtml(f.nome)}</span>
-              <span class="card-aniversariantes__cargo">${escapeHtml(f.cargo || "")}</span>
-              ${ehHoje ? `<span class="card-aniversariantes__badge">HOJE</span>` : ""}
-            </div>
-          `;
-        }).join("")}
-      </div>
+    <div class="niver-mini">
+      <span class="niver-mini__label">Aniversariantes de ${MESES_FULL[mes - 1]}</span>
+      <span class="niver-mini__nomes">${itens}</span>
     </div>`;
 }
 
