@@ -5304,8 +5304,8 @@ function openNovoUsuarioModal() {
       </div>
       <div class="field-row">
         <div class="field">
-          <label for="user-role">Papel <span style="color:var(--danger)">*</span></label>
-          <select id="user-role" required>
+          <label for="novo-user-role">Papel <span style="color:var(--danger)">*</span></label>
+          <select id="novo-user-role" required>
             <option value="rh">RH (cria e edita ocorrências)</option>
             <option value="lider">Líder (confere ocorrências do turno)</option>
             <option value="supervisor">Supervisor (confere funcionários específicos)</option>
@@ -5335,7 +5335,7 @@ function openNovoUsuarioModal() {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
 
-      const roleSel = $("#user-role");
+      const roleSel = $("#novo-user-role");
       const turnoField = $("#user-turno-field");
       const supervHint = $("#user-superv-hint");
       const toggleTurno = () => {
@@ -5359,8 +5359,8 @@ async function criarUsuario() {
   const dados = {
     nome: $("#user-nome").value.trim(),
     email: $("#user-email").value.trim().toLowerCase(),
-    role: $("#user-role").value,
-    turno: $("#user-role").value === "lider" ? $("#user-turno").value : null,
+    role: $("#novo-user-role").value,
+    turno: $("#novo-user-role").value === "lider" ? $("#user-turno").value : null,
   };
 
   const res = await window.inviteUser(dados);
