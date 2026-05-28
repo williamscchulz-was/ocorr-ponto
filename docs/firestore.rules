@@ -100,6 +100,25 @@ service cloud.firestore {
       allow create, update, delete: if isAuthed() && request.auth.uid == uid;
     }
 
+    // ----- mensagens (chat interno · TTL 3 dias via expiraEm) -----
+    match /mensagens/{id} {
+      allow read: if isAuthed()
+        && (resource.data.de == request.auth.uid || resource.data.para == request.auth.uid);
+      allow create: if isAuthed()
+        && request.resource.data.de == request.auth.uid
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && request.resource.data.texto.size() <= 2000
+        && request.resource.data.para is string
+        && request.resource.data.parKey is string;
+      // destinatário marca como lida (só o campo 'lido')
+      allow update: if isAuthed()
+        && resource.data.para == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lido']);
+      // remetente pode apagar a própria msg (TTL cuida do resto)
+      allow delete: if isAuthed() && resource.data.de == request.auth.uid;
+    }
+
     // ----- ocorrencias -----
     match /ocorrencias/{id} {
       allow read: if podeVerOcorrencia(resource.data);

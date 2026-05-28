@@ -7,6 +7,15 @@ const state = {
   view: { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" },
 };
 
+// Subscription da conversa de chat aberta no momento (cancelada ao trocar de
+// peer ou sair da página chat) — evita vazar listeners do Firestore.
+let _chatConvUnsub = null;
+function pararEscutaConversa() {
+  if (_chatConvUnsub) { _chatConvUnsub(); _chatConvUnsub = null; }
+}
+// Exposto pro firebase.js cancelar no logout (limparPresenca).
+window.pararEscutaConversa = pararEscutaConversa;
+
 // ---------- Helpers ----------
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -224,6 +233,9 @@ const icon = (name) => {
     users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
     inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    message: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+    send: '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+    arrowLeft: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
     calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
     file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
     alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
@@ -716,6 +728,11 @@ function renderPresence() {
   if (document.querySelector(".presence-dropdown")) {
     abrirPresenceDropdown(online);
   }
+
+  // Se a página de chat está aberta, atualiza a lista (pontos verdes online/offline)
+  if (state.view?.page === "chat" && $("#chat-contatos")) {
+    renderChatLista();
+  }
 }
 
 // Tooltip helper (compartilhado entre topbar + sidebar)
@@ -780,6 +797,11 @@ function abrirPresenceDropdown(online) {
       atividade = "ausente";
     }
     const avatarHTML = buildPresenceAvatar(usr, { size: 32, borderColor: "var(--surface)" });
+    // Botão "Mensagem" pra abrir o chat 1:1 (só pra outros, e só em modo Firebase)
+    const podeChat = !ehVoce && typeof window.enviarMensagem === "function";
+    const btnChat = podeChat
+      ? `<button type="button" class="presence-dropdown__chat" data-chat-uid="${escapeHtml(usr.id)}" data-chat-nome="${escapeHtml(usr.nome || "?")}" title="Enviar mensagem">${icon("message")}</button>`
+      : "";
     return `
       <div class="presence-dropdown__item ${ausente ? "is-idle" : ""}">
         ${avatarHTML}
@@ -793,6 +815,7 @@ function abrirPresenceDropdown(online) {
             ${atividade ? `<span class="presence-dropdown__activity">${atividade}</span>` : ""}
           </div>
         </div>
+        ${btnChat}
       </div>`;
   }).join("");
 
@@ -808,6 +831,14 @@ function abrirPresenceDropdown(online) {
     <div class="presence-dropdown__list">${items || `<div class="muted text-sm" style="padding:16px; text-align:center;">Ninguém mais aqui agora.</div>`}</div>
   `;
   document.body.appendChild(dropdown);
+
+  // Wire dos botões "Mensagem" → abre o chat já no peer escolhido
+  dropdown.querySelectorAll(".presence-dropdown__chat").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      abrirChatCom(btn.dataset.chatUid, btn.dataset.chatNome);
+    });
+  });
 
   // Posiciona abaixo do stack na topbar
   const stack = document.getElementById("presence-stack");
@@ -889,6 +920,7 @@ function renderNav() {
   const items = [];
   items.push({ id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
+  items.push({ id: "chat", label: "Mensagens", icon: "message", badge: contarNaoLidas() });
 
   if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
@@ -924,6 +956,7 @@ function renderBottomNav() {
   const left = [
     { id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending },
     { id: "banco-horas", label: "Banco", icon: "clock" },
+    { id: "chat", label: "Mensagens", icon: "message", badge: contarNaoLidas() },
   ];
   if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
     left.push({ id: "funcionarios", label: "Equipe", icon: "users" });
@@ -970,6 +1003,18 @@ function pendingForUser(u) {
   return state.ocorrencias.filter((o) => isPending(o) && podeVerOcorrenciaUI(u, o));
 }
 
+// ---------- Chat: contadores / badge ----------
+
+// Total de mensagens recebidas não-lidas (todas as conversas).
+function contarNaoLidas() {
+  return (state.mensagensRecebidas || []).filter((m) => !m.lido).length;
+}
+
+// Chamado pelo listener global pra atualizar só o badge sem re-render pesado.
+window.atualizarBadgeChat = function () {
+  if (currentUser()) { renderNav(); renderBottomNav(); }
+};
+
 function visibleOcorrencias() {
   const u = currentUser();
   return state.ocorrencias.filter((o) => podeVerOcorrenciaUI(u, o));
@@ -993,8 +1038,13 @@ function renderView() {
   const page = state.view.page;
   const view = $("#view");
 
+  // Ao sair da página de chat, cancela a subscription da conversa aberta
+  // (evita vazar listener do Firestore quando navega pra outra página).
+  if (page !== "chat") pararEscutaConversa();
+
   if (page === "dashboard") return renderDashboard();
   if (page === "banco-horas") return renderBancoHoras();
+  if (page === "chat") return renderChat();
   if (page === "funcionarios") return renderFuncionarios();
   if (page === "pj") return renderControlePJ();
   if (page === "config") return renderConfig();
@@ -4671,71 +4721,6 @@ function deletePJ(id) {
   renderApp();
 }
 
-// Stub de modo demo. Em Firebase mode, firebase.js sobrescreve window.limparFuncionariosEBancoHoras
-// com batch delete real no Firestore. Atribui explicitamente a window pra evitar shadow do binding lexical.
-window.limparFuncionariosEBancoHoras = async function () {
-  state.funcionarios = [];
-  state.bancoHoras = {};
-  if (window.store?.save) store.save(state);
-  renderApp();
-  toast("Base zerada (modo demo). Em produção, conecte o Firebase pra deletar do Firestore.", "info");
-};
-
-function renderDadosInto(selector) {
-  const u = currentUser();
-  if (u.role !== "admin") return;
-
-  const nFuncionarios = (state.funcionarios || []).length;
-  const bh = state.bancoHoras || {};
-  const nBH = Array.isArray(bh) ? bh.length : Object.keys(bh).length;
-
-  $(selector).innerHTML = `
-    <div style="max-width: 600px; margin-top: 24px;">
-      <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0 0 4px; font-weight: 700;">Dados</h2>
-      <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 24px;">Gerenciamento da base de dados do sistema. Apenas administradores.</p>
-
-      <div class="stats" style="margin-bottom: 24px;">
-        <div class="stat">
-          <div class="stat__label">Funcionários</div>
-          <div class="stat__value">${nFuncionarios}</div>
-          <div class="stat__hint">na base atual</div>
-        </div>
-        <div class="stat">
-          <div class="stat__label">Registros BH</div>
-          <div class="stat__value">${nBH}</div>
-          <div class="stat__hint">banco de horas</div>
-        </div>
-      </div>
-
-      <div style="background: #fff8f8; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 20px; margin-bottom: 16px;">
-        <div style="font-weight: 700; color: #b91c1c; margin-bottom: 6px; font-size: 15px;">Zona de perigo</div>
-        <p style="font-size: 13px; color: #7f1d1d; margin: 0 0 16px; line-height: 1.5;">
-          <strong>Zerar funcionários e banco de horas</strong> apaga permanentemente todos os registros das duas coleções.
-          Use antes de uma nova importação completa pelo pipeline WKRADAR.
-          Não afeta ocorrências, PJs nem usuários.
-        </p>
-        <button class="btn btn--danger" id="btn-limpar-base" style="background:#dc2626; color:#fff; border:none;">
-          Zerar base de dados
-        </button>
-      </div>
-    </div>
-  `;
-
-  $("#btn-limpar-base").addEventListener("click", async () => {
-    if (!confirm("ATENÇÃO: Isso vai apagar todos os funcionários e todo o banco de horas.\n\nEsta ação não pode ser desfeita.\n\nTem certeza?")) return;
-    const btn = $("#btn-limpar-base");
-    btn.disabled = true;
-    btn.textContent = "Zerando...";
-    try {
-      // Chama via window.* explicitamente pra pegar o override do Firebase (não o stub local)
-      await window.limparFuncionariosEBancoHoras();
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Zerar base de dados";
-    }
-  });
-}
-
 // ---------- Configurações (Admin/RH) ----------
 
 function renderConfig() {
@@ -4754,7 +4739,6 @@ function renderConfig() {
     { id: "acoes", label: "Ações", icon: "check" },
   ];
   if (u.role === "admin") tabs.push({ id: "usuarios", label: "Usuários", icon: "users" });
-  if (u.role === "admin") tabs.push({ id: "dados", label: "Dados", icon: "settings" });
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -4787,8 +4771,6 @@ function renderConfig() {
     renderUsuariosInto("#config-content");
   } else if (state.view.configTab === "acoes") {
     renderAcoesInto("#config-content");
-  } else if (state.view.configTab === "dados" && u.role === "admin") {
-    renderDadosInto("#config-content");
   } else {
     renderTiposInto("#config-content");
   }
@@ -5573,6 +5555,317 @@ function openEditarUsuarioModal(uid) {
       setTimeout(() => $("#edit-nome").focus(), 100);
     },
   });
+}
+
+// ============================================================
+// ---------- Chat interno 1:1 ----------
+// Mensagens de texto entre usuários online. Conversa some em 3 dias (TTL
+// via expiraEm no Firestore). Lista esquerda = conversas existentes (de
+// state.mensagensRecebidas) + quem está online agora (state.presence).
+// Subscription da conversa aberta vive em _chatConvUnsub (módulo, topo).
+// ============================================================
+
+// Firebase disponível? (modo demo não tem as funções window.* do chat)
+function chatDisponivel() {
+  return typeof window.enviarMensagem === "function"
+    && typeof window.escutarConversa === "function";
+}
+
+// Hora curta (HH:MM) a partir de ISO. "" se inválido (msg otimista sem ts).
+function formatHoraCurta(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+// uid do usuário atual. Em modo Firebase currentUser().id === auth.currentUser.uid.
+function meuUid() {
+  const u = currentUser();
+  return u ? u.id : null;
+}
+
+// Está online agora? (presença ativa). Usado pro ponto verde.
+function peerOnline(uid) {
+  return (state.presence || []).some((p) => p.uid === uid && p.status === "ativo");
+}
+
+// Monta a lista de "contatos/conversas" pra coluna esquerda.
+// Une: (a) pessoas de quem recebi msg, (b) usuários online agora (exceto eu).
+// Cada item: { uid, nome, online, naoLidas, ultimaMsg, ultimaEm }.
+function montarListaContatosChat() {
+  const meu = meuUid();
+  const mapa = new Map();
+
+  // (a) de mensagens recebidas — agrupa por remetente (de/deNome)
+  for (const m of (state.mensagensRecebidas || [])) {
+    if (!m.de || m.de === meu) continue;
+    const ex = mapa.get(m.de) || { uid: m.de, nome: m.deNome || "?", online: false, naoLidas: 0, ultimaMsg: "", ultimaEm: null };
+    if (!m.lido) ex.naoLidas += 1;
+    // mensagensRecebidas vem ordenado desc; a primeira que vemos por uid é a mais recente
+    if (!ex.ultimaEm) { ex.ultimaMsg = m.texto || ""; ex.ultimaEm = m.criadoEm || null; }
+    mapa.set(m.de, ex);
+  }
+
+  // (b) usuários online agora (exceto eu) — marca online; cria item se faltar
+  for (const p of (state.presence || [])) {
+    if (!p.uid || p.uid === meu) continue;
+    const ex = mapa.get(p.uid) || { uid: p.uid, nome: p.nome || "?", online: false, naoLidas: 0, ultimaMsg: "", ultimaEm: null };
+    ex.online = p.status === "ativo";
+    if (!ex.nome || ex.nome === "?") ex.nome = p.nome || "?";
+    mapa.set(p.uid, ex);
+  }
+
+  const lista = Array.from(mapa.values());
+  // Ordena: não-lidas primeiro, depois online, depois alfabético
+  lista.sort((a, b) => {
+    if ((b.naoLidas > 0) !== (a.naoLidas > 0)) return (b.naoLidas > 0) ? 1 : -1;
+    if (a.online !== b.online) return a.online ? -1 : 1;
+    return (a.nome || "").localeCompare(b.nome || "");
+  });
+  return lista;
+}
+
+function renderChat() {
+  $("#topbar-title").textContent = "Mensagens";
+
+  // Modo demo: sem backend de chat → aviso, sem quebrar
+  if (!chatDisponivel()) {
+    $("#view").innerHTML = `
+      <header class="page-header">
+        <div><h1>Mensagens</h1><p>Conversas internas entre a equipe.</p></div>
+      </header>
+      <div class="chat-empty-state">
+        ${icon("message")}
+        <p>Chat disponível só no modo Firebase.</p>
+      </div>`;
+    return;
+  }
+
+  const peer = state.view.chatPeer || null;
+
+  $("#view").innerHTML = `
+    <div class="chat ${peer ? "chat--thread-aberto" : ""}" id="chat-root">
+      <aside class="chat__sidebar">
+        <div class="chat__sidebar-head">
+          <h2>Conversas</h2>
+          <span class="chat__sidebar-hint">somem após 3 dias</span>
+        </div>
+        <div class="chat__contatos" id="chat-contatos"></div>
+      </aside>
+      <section class="chat__thread" id="chat-thread">
+        ${peer ? "" : `
+          <div class="chat__sem-peer">
+            ${icon("message")}
+            <p>Escolha uma conversa pra começar.</p>
+          </div>`}
+      </section>
+    </div>`;
+
+  renderChatLista();
+
+  // Se já há um peer selecionado (ex.: veio do dropdown de presença), abre.
+  if (peer && peer.uid) {
+    abrirConversa(peer.uid, peer.nome);
+  }
+}
+
+// Renderiza só a coluna esquerda (lista de contatos/conversas).
+// Chamável pelo listener global quando chegam novas msgs.
+function renderChatLista() {
+  const cont = $("#chat-contatos");
+  if (!cont) return;
+  const peer = state.view.chatPeer || null;
+  const lista = montarListaContatosChat();
+
+  if (lista.length === 0) {
+    cont.innerHTML = `<div class="chat__contatos-vazio">Ninguém online pra conversar agora.</div>`;
+    return;
+  }
+
+  cont.innerHTML = lista.map((c) => {
+    const ativo = peer && peer.uid === c.uid;
+    const preview = c.ultimaMsg
+      ? escapeHtml(c.ultimaMsg.length > 40 ? c.ultimaMsg.slice(0, 40) + "…" : c.ultimaMsg)
+      : (c.online ? "online" : "");
+    return `
+      <button class="chat__contato ${c.online ? "chat__contato--online" : ""} ${ativo ? "is-active" : ""}"
+              data-uid="${escapeHtml(c.uid)}" data-nome="${escapeHtml(c.nome)}">
+        <span class="chat__avatar" style="background:${presenceColor(c.uid)};">
+          ${escapeHtml(initials(c.nome || "?"))}
+          ${c.online ? `<span class="chat__online-dot"></span>` : ""}
+        </span>
+        <span class="chat__contato-info">
+          <span class="chat__contato-nome">${escapeHtml(c.nome || "?")}</span>
+          <span class="chat__contato-preview">${preview}</span>
+        </span>
+        ${c.naoLidas > 0 ? `<span class="chat__contato-badge">${c.naoLidas > 9 ? "9+" : c.naoLidas}</span>` : ""}
+      </button>`;
+  }).join("");
+
+  $$("#chat-contatos .chat__contato").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const uid = btn.dataset.uid;
+      const nome = btn.dataset.nome;
+      state.view.chatPeer = { uid, nome };
+      // Marca o container como "thread aberto" (mobile)
+      $("#chat-root")?.classList.add("chat--thread-aberto");
+      renderChatLista(); // atualiza highlight ativo
+      abrirConversa(uid, nome);
+    });
+  });
+}
+
+// Abre/assina a conversa com um peer. Cancela a subscription anterior.
+function abrirConversa(peerUid, peerNome) {
+  pararEscutaConversa();
+  const meu = meuUid();
+  if (!meu || !chatDisponivel()) return;
+
+  const parKey = window.parKeyChat(meu, peerUid);
+
+  // Render inicial do "carregando" enquanto o 1º snapshot não chega
+  const thread = $("#chat-thread");
+  if (thread) {
+    thread.innerHTML = chatThreadShell(peerNome, peerUid, `<div class="chat__msgs-carregando">Carregando…</div>`);
+    wireChatThread(peerUid, peerNome);
+  }
+
+  _chatConvUnsub = window.escutarConversa(parKey, (msgs) => {
+    renderChatThread(peerUid, peerNome, msgs);
+    // Marca como lidas as recebidas desta conversa (best-effort)
+    window.marcarConversaLida(parKey).catch((e) => console.warn("[chat] marcarLida:", e?.message || e));
+  });
+}
+
+// HTML do "esqueleto" da thread (header + área de msgs + composer).
+function chatThreadShell(peerNome, peerUid, msgsHtml) {
+  const online = peerOnline(peerUid);
+  return `
+    <div class="chat__thread-head">
+      <button class="chat__voltar" id="chat-voltar" aria-label="Voltar">${icon("arrowLeft")}</button>
+      <span class="chat__avatar chat__avatar--sm" style="background:${presenceColor(peerUid)};">
+        ${escapeHtml(initials(peerNome || "?"))}
+        ${online ? `<span class="chat__online-dot"></span>` : ""}
+      </span>
+      <span class="chat__thread-head-info">
+        <span class="chat__thread-nome">${escapeHtml(peerNome || "?")}</span>
+        <span class="chat__thread-status">${online ? "online" : "offline"}</span>
+      </span>
+    </div>
+    <div class="chat__msgs" id="chat-msgs">${msgsHtml}</div>
+    <form class="chat__composer" id="chat-composer">
+      <textarea id="chat-input" rows="1" maxlength="2000" placeholder="Escreva uma mensagem… (Enter envia)"></textarea>
+      <button type="submit" class="chat__enviar" aria-label="Enviar">${icon("send")}</button>
+    </form>`;
+}
+
+// Renderiza a thread completa (balões + composer) e re-wira eventos.
+function renderChatThread(peerUid, peerNome, msgs) {
+  const thread = $("#chat-thread");
+  if (!thread) return;
+  const meu = meuUid();
+
+  let bolhas;
+  if (!msgs || msgs.length === 0) {
+    bolhas = `<div class="chat__msgs-vazio">Nenhuma mensagem ainda. Diga oi!</div>`;
+  } else {
+    bolhas = msgs.map((m) => {
+      const minha = m.de === meu;
+      const hora = formatHoraCurta(m.criadoEm);
+      return `
+        <div class="chat__bolha ${minha ? "chat__bolha--minha" : ""}">
+          <span class="chat__bolha-texto">${escapeHtml(m.texto || "")}</span>
+          ${hora ? `<span class="chat__bolha-hora">${hora}</span>` : ""}
+        </div>`;
+    }).join("");
+  }
+
+  // Preserva o que o usuário já digitou ao re-renderizar
+  const inputAtual = $("#chat-input");
+  const rascunho = inputAtual ? inputAtual.value : "";
+
+  thread.innerHTML = chatThreadShell(peerNome, peerUid, bolhas);
+  wireChatThread(peerUid, peerNome);
+
+  const input = $("#chat-input");
+  if (input && rascunho) { input.value = rascunho; autoGrowTextarea(input); }
+
+  // Auto-scroll pro fim
+  const cont = $("#chat-msgs");
+  if (cont) cont.scrollTop = cont.scrollHeight;
+}
+
+// Auto-cresce o textarea conforme o conteúdo (até um teto via CSS max-height).
+function autoGrowTextarea(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}
+
+// Wire dos eventos da thread (voltar, enviar, Enter/Shift+Enter, auto-grow).
+function wireChatThread(peerUid, peerNome) {
+  const voltar = $("#chat-voltar");
+  if (voltar) {
+    voltar.addEventListener("click", () => {
+      pararEscutaConversa();
+      state.view.chatPeer = null;
+      $("#chat-root")?.classList.remove("chat--thread-aberto");
+      // Re-renderiza a página inteira do chat (volta pro estado lista)
+      renderChat();
+    });
+  }
+
+  const form = $("#chat-composer");
+  const input = $("#chat-input");
+  if (input) {
+    input.addEventListener("input", () => autoGrowTextarea(input));
+    // Enter envia; Shift+Enter quebra linha
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        enviarDoComposer(peerUid, peerNome);
+      }
+    });
+    setTimeout(() => input.focus(), 30);
+  }
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      enviarDoComposer(peerUid, peerNome);
+    });
+  }
+}
+
+// Lê o composer, envia a msg e limpa o input. O onSnapshot traz a msg de volta.
+async function enviarDoComposer(peerUid, peerNome) {
+  const input = $("#chat-input");
+  if (!input) return;
+  const texto = input.value.trim();
+  if (!texto) return;
+  if (!chatDisponivel()) { toast("Chat disponível só no modo Firebase.", "danger"); return; }
+
+  // Limpa já (otimista na UX do input); se falhar, restaura
+  input.value = "";
+  autoGrowTextarea(input);
+  input.focus();
+
+  try {
+    await window.enviarMensagem(peerUid, peerNome, texto);
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Erro ao enviar mensagem.", "danger");
+    input.value = texto;
+    autoGrowTextarea(input);
+  }
+}
+
+// Atalho usado pelo dropdown de presença: abre o chat já no peer escolhido.
+function abrirChatCom(uid, nome) {
+  state.view.page = "chat";
+  state.view.chatPeer = { uid, nome };
+  fecharPresenceDropdown();
+  renderApp();
 }
 
 // ---------- Helpers de copy ----------

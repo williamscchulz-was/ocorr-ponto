@@ -7,6 +7,31 @@
         { "fieldPath": "funcionarioTurno", "order": "ASCENDING" },
         { "fieldPath": "data", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parKey", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "para", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parKey", "order": "ASCENDING" },
+        { "fieldPath": "para", "order": "ASCENDING" },
+        { "fieldPath": "lido", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

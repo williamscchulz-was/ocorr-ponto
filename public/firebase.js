@@ -515,32 +515,6 @@
       }
     };
 
-    // Zera TODAS as coleções de funcionários e banco de horas (admin only)
-    window.limparFuncionariosEBancoHoras = async function () {
-      try {
-        const cols = ["funcionarios", "bancoHoras"];
-        for (const col of cols) {
-          const snap = await db.collection(col).get();
-          if (snap.empty) continue;
-          const batches = [];
-          let cur = db.batch(); let ops = 0;
-          snap.docs.forEach((d) => {
-            cur.delete(d.ref); ops++;
-            if (ops >= 400) { batches.push(cur); cur = db.batch(); ops = 0; }
-          });
-          if (ops > 0) batches.push(cur);
-          for (const b of batches) await b.commit();
-        }
-        state.funcionarios = [];
-        state.bancoHoras = {};
-        renderApp();
-        toast("Base zerada. Aguardando próxima sincronização do pipeline.");
-      } catch (e) {
-        console.error("[limparBase]", e);
-        toast("Erro ao limpar: " + e.message, "danger");
-      }
-    };
-
     // Override savePJ → /pj
     window.savePJ = async function (id) {
       const u = currentUser();
@@ -1207,6 +1181,79 @@
       }
     };
 
+    // ===== Chat interno =====
+    const MSG_RETENCAO_MS = 3 * 24 * 60 * 60 * 1000; // 3 dias
+
+    function parKeyDe(a, b) { return [a, b].sort().join("__"); }
+    window.parKeyChat = parKeyDe;
+
+    // Envia mensagem de texto. paraUid/paraNome = destinatário.
+    window.enviarMensagem = async function (paraUid, paraNome, texto) {
+      const u = currentUser();
+      if (!u || !auth.currentUser) throw new Error("Não autenticado.");
+      const t = String(texto || "").trim();
+      if (!t) throw new Error("Mensagem vazia.");
+      if (t.length > 2000) throw new Error("Mensagem muito longa (máx 2000).");
+      const meu = auth.currentUser.uid;
+      await db.collection("mensagens").add({
+        parKey: parKeyDe(meu, paraUid),
+        de: meu,
+        deNome: u.nome || "?",
+        para: paraUid,
+        paraNome: paraNome || "?",
+        texto: t,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        expiraEm: firebase.firestore.Timestamp.fromMillis(Date.now() + MSG_RETENCAO_MS),
+        lido: false,
+      });
+    };
+
+    // Escuta UMA conversa (parKey). cb recebe array de msgs ordenadas asc. Retorna unsubscribe.
+    window.escutarConversa = function (parKey, cb) {
+      return db.collection("mensagens")
+        .where("parKey", "==", parKey)
+        .orderBy("criadoEm", "asc")
+        .onSnapshot((snap) => {
+          const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }));
+          cb(msgs);
+        }, (e) => console.warn("[chat] conversa snapshot:", e.message));
+    };
+
+    // Escuta TODAS as mensagens recebidas por mim (pra badge de não-lidas + lista
+    // de conversas). Popula state.mensagensRecebidas e atualiza o badge do nav.
+    // Retorna unsubscribe.
+    window.escutarMinhasMensagens = function () {
+      if (!auth.currentUser) return () => {};
+      const meu = auth.currentUser.uid;
+      return db.collection("mensagens")
+        .where("para", "==", meu)
+        .orderBy("criadoEm", "desc")
+        .onSnapshot((snap) => {
+          state.mensagensRecebidas = snap.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }));
+          // só re-render leve do nav/badge
+          try { window.atualizarBadgeChat?.(); } catch {}
+          // se a página de chat está aberta, re-renderiza a lista de conversas
+          try {
+            if (state.view?.page === "chat" && typeof renderChatLista === "function") renderChatLista();
+          } catch {}
+        }, (e) => console.warn("[chat] minhas msgs snapshot:", e.message));
+    };
+
+    // Marca como lida toda msg recebida nesta conversa.
+    window.marcarConversaLida = async function (parKey) {
+      if (!auth.currentUser) return;
+      const meu = auth.currentUser.uid;
+      const snap = await db.collection("mensagens")
+        .where("parKey", "==", parKey)
+        .where("para", "==", meu)
+        .where("lido", "==", false)
+        .get();
+      if (snap.empty) return;
+      const batch = db.batch();
+      snap.docs.forEach((d) => batch.update(d.ref, { lido: true }));
+      await batch.commit();
+    };
+
     // Atualizar a própria foto de perfil. Recebe base64 (data URL) ou null
     // pra remover. Rule do Firestore garante que só o próprio user pode
     // atualizar e que só o campo fotoBase64 pode ser tocado por self-update.
@@ -1345,6 +1392,8 @@
     const PRESENCE_IDLE_MS = 7 * 60 * 1000;   // <7min = ausente, >= = some
     let presenceHeartbeat = null;
     let presenceUnsubscribe = null;
+    // Listener global do chat (mensagens recebidas → badge + lista de conversas)
+    let chatUnsub = null;
 
     // Estado adicional pra colab: qual PJ esse user está editando
     let presencePjEditing = null;
@@ -1453,6 +1502,11 @@
     async function limparPresenca() {
       if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
       if (presenceUnsubscribe) { presenceUnsubscribe(); presenceUnsubscribe = null; }
+      // Para o listener global do chat e zera as mensagens recebidas
+      if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+      state.mensagensRecebidas = [];
+      // Para qualquer subscription de conversa aberta (app.js)
+      try { window.pararEscutaConversa?.(); } catch {}
       state.presence = [];
       // Para qualquer subscription de PJ ativa (modal pode estar aberto
       // quando signOut dispara por idle timeout — listener ficaria órfão
@@ -1531,6 +1585,11 @@
 
         // Inicia presença DEPOIS do app renderizar (state.view existe)
         iniciarPresenca().catch((e) => console.warn("[Presence] init falhou:", e));
+
+        // Inicia o listener global do chat (mensagens recebidas → badge)
+        if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+        try { chatUnsub = window.escutarMinhasMensagens(); }
+        catch (e) { console.warn("[chat] init falhou:", e); }
       } catch (err) {
         console.error("Erro carregando perfil:", err);
         toast("Erro ao carregar perfil: " + err.message, "danger");
