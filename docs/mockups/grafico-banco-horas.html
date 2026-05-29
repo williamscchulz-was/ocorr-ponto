@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Gráfico de Banco de Horas (perfil do funcionário)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+<style>
+  :root{ --verde:#008835; --verde-deep:#00682B; --ok:#2F6B3F; --danger:#9A3437;
+         --bg:#F7F9F6; --surface:#fff; --line:#E7EDE4; --text:#1C2A18; --muted:#4A6245;
+         --font:"Poppins",system-ui,sans-serif; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#dfe3dd;color:var(--text);padding:28px;}
+  h1{text-align:center;color:var(--verde-deep);font-weight:800;margin:0 0 2px;font-size:22px;}
+  .s{text-align:center;color:#5a6b54;margin:0 0 26px;font-size:13px;}
+  .grid{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:26px;}
+  .cap{font-weight:700;color:var(--verde-deep);font-size:15px;margin:0 0 2px;}
+  .cap small{display:block;font-weight:400;color:var(--muted);font-size:12px;}
+
+  /* bloco do perfil (contexto) */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;}
+  .secao-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px;}
+  .gtop{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}
+  .gtop b{font-size:13px;color:var(--text);font-weight:600;}
+  .gsaldo{font-weight:800;font-size:20px;letter-spacing:-.02em;}
+  .gsaldo.neg{color:var(--danger);} .gsaldo.pos{color:var(--ok);}
+  .gmeta{font-size:11px;color:var(--muted);margin-top:6px;display:flex;gap:14px;}
+  .gmeta b{color:var(--text);}
+  svg{display:block;width:100%;height:auto;}
+</style>
+</head>
+<body>
+  <h1>Gráfico de Banco de Horas — no perfil do funcionário</h1>
+  <p class="s">O pipeline já manda o saldo de cada dia do mês (lançamentos diários). Dá pra plotar a evolução. 3 estilos — dados de exemplo (21 dias).</p>
+
+  <div class="grid">
+
+    <!-- A: área -->
+    <div>
+      <p class="cap">A · Área (linha + preenchimento)</p>
+      <div class="card">
+        <div class="secao-t">Banco de horas · maio</div>
+        <div class="gtop"><b>Saldo atual</b><span class="gsaldo neg" id="sa">-1h24</span></div>
+        <div id="ga"></div>
+        <div class="gmeta"><span>Pico: <b>+2h40</b></span><span>Vale: <b>-3h10</b></span><span>Atualizado <b>29/05</b></span></div>
+      </div>
+    </div>
+
+    <!-- B: barras por dia -->
+    <div>
+      <p class="cap">B · Barras por dia</p>
+      <div class="card">
+        <div class="secao-t">Banco de horas · maio</div>
+        <div class="gtop"><b>Saldo atual</b><span class="gsaldo neg">-1h24</span></div>
+        <div id="gb"></div>
+        <div class="gmeta"><span>Verde = positivo · vermelho = negativo</span></div>
+      </div>
+    </div>
+
+    <!-- C: linha minimalista (sparkline) -->
+    <div>
+      <p class="cap">C · Linha minimalista (sparkline)</p>
+      <div class="card">
+        <div class="gtop"><b>Banco de horas · maio</b><span class="gsaldo neg">-1h24</span></div>
+        <div id="gc"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // saldo cumulativo (minutos) por dia — exemplo de 21 dias
+    const dados = [0,30,-20,-60,-90,-40,10,50,90,160,120,80,30,-10,-70,-120,-190,-150,-110,-100,-84];
+    const W=620, H=140, P=8;
+    const min=Math.min(...dados,0), max=Math.max(...dados,0);
+    const rng=(max-min)||1;
+    const x=i=>P + i*(W-2*P)/(dados.length-1);
+    const y=v=>P + (1-(v-min)/rng)*(H-2*P);
+    const y0=y(0);
+
+    // A — área (acima de zero verde, abaixo vermelho, via 2 clips)
+    (function(){
+      let line=dados.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+      let area=`${line} L${x(dados.length-1).toFixed(1)} ${y0.toFixed(1)} L${x(0).toFixed(1)} ${y0.toFixed(1)} Z`;
+      document.getElementById('ga').innerHTML=`
+      <svg viewBox="0 0 ${W} ${H}">
+        <defs>
+          <clipPath id="acima"><rect x="0" y="0" width="${W}" height="${y0}"/></clipPath>
+          <clipPath id="abaixo"><rect x="0" y="${y0}" width="${W}" height="${H-y0}"/></clipPath>
+        </defs>
+        <line x1="${P}" y1="${y0}" x2="${W-P}" y2="${y0}" stroke="#cfdac9" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="${area}" fill="#2F6B3F" opacity=".12" clip-path="url(#acima)"/>
+        <path d="${area}" fill="#9A3437" opacity=".12" clip-path="url(#abaixo)"/>
+        <path d="${line}" fill="none" stroke="#2F6B3F" stroke-width="2" clip-path="url(#acima)" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="${line}" fill="none" stroke="#9A3437" stroke-width="2" clip-path="url(#abaixo)" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="${x(dados.length-1).toFixed(1)}" cy="${y(dados[dados.length-1]).toFixed(1)}" r="3.5" fill="#9A3437"/>
+      </svg>`;
+    })();
+
+    // B — barras
+    (function(){
+      const bw=(W-2*P)/dados.length*0.6;
+      let bars=dados.map((v,i)=>{
+        const cx=x(i), top=Math.min(y(v),y0), h=Math.abs(y(v)-y0);
+        const cor=v>=0?'#2F6B3F':'#9A3437';
+        return `<rect x="${(cx-bw/2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" rx="1.5" fill="${cor}" opacity=".85"/>`;
+      }).join('');
+      document.getElementById('gb').innerHTML=`
+      <svg viewBox="0 0 ${W} ${H}">
+        <line x1="${P}" y1="${y0}" x2="${W-P}" y2="${y0}" stroke="#cfdac9" stroke-width="1"/>
+        ${bars}
+      </svg>`;
+    })();
+
+    // C — sparkline minimalista
+    (function(){
+      let line=dados.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+      document.getElementById('gc').innerHTML=`
+      <svg viewBox="0 0 ${W} 90">
+        ${(function(){const yy=v=>P+(1-(v-min)/rng)*(90-2*P);const l=dados.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${yy(v).toFixed(1)}`).join(' ');const z=yy(0);
+          return `<line x1="${P}" y1="${z.toFixed(1)}" x2="${W-P}" y2="${z.toFixed(1)}" stroke="#e0e8dc" stroke-width="1" stroke-dasharray="3 3"/>
+          <path d="${l}" fill="none" stroke="#008835" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="${x(dados.length-1).toFixed(1)}" cy="${yy(dados[dados.length-1]).toFixed(1)}" r="3.5" fill="#008835"/>`;})()}
+      </svg>`;
+    })();
+  </script>
+</body>
+</html>
