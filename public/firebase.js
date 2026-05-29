@@ -1570,6 +1570,10 @@
           email: fbUser.email,
           role: userData.role,
           turno: userData.turno || null,
+          // Escopo do supervisor — sem isso o filtro de visibilidade fica vazio
+          funcionariosVisiveis: userData.funcionariosVisiveis || [],
+          // Foto de perfil do próprio usuário (avatar na sidebar)
+          fotoBase64: userData.fotoBase64 || null,
         };
 
         // Popula state.users com pelo menos esse user
