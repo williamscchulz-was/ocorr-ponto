@@ -14,9 +14,29 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=106" />
+  <link rel="stylesheet" href="styles.css?v=107" />
+  <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
+       sessão pra restaurar → mostra o splash "Entrando…" em vez do login
+       (que só some quando o Firebase confirma). Zero flash do formulário. -->
+  <script>
+    try {
+      if (localStorage.getItem("fiopulse:manterConectado") === "1") {
+        document.documentElement.classList.add("sessao-restaurando");
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body>
+
+  <!-- Splash de restauração de sessão (visível só com .sessao-restaurando) -->
+  <div id="splash" class="splash">
+    <div class="splash__inner">
+      <img class="splash__logo" src="logo-fiobras-mark.png" alt="" />
+      <div class="splash__name">FioPulse<small>Fiobras · o batimento do RH</small></div>
+      <div class="splash__spin" aria-hidden="true"></div>
+      <div class="splash__status" role="status">Entrando…</div>
+    </div>
+  </div>
 
   <!-- ============================================
        LOGIN SCREEN
@@ -146,13 +166,13 @@
   <div id="modal-root"></div>
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
-  <script defer src="data.js?v=106"></script>
-  <script defer src="app.js?v=106"></script>
+  <script defer src="data.js?v=107"></script>
+  <script defer src="app.js?v=107"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=106"></script>
-  <script defer src="google-drive.js?v=106"></script>
+  <script defer src="firebase.js?v=107"></script>
+  <script defer src="google-drive.js?v=107"></script>
 </body>
 </html>

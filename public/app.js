@@ -6121,6 +6121,14 @@ function closeSidebar() {
 document.addEventListener("DOMContentLoaded", () => {
   renderLoginQuick();
 
+  // Salvaguarda do splash "Entrando…": em modo demo (sem Firebase) não há
+  // sessão pra restaurar — firebase.js não roda pra esconder. Limpa aqui.
+  // (scripts deferred rodam em ordem antes do DOMContentLoaded, então a
+  // classe firebase-mode já foi setada por firebase.js se a config existir.)
+  if (!document.documentElement.classList.contains("firebase-mode")) {
+    document.documentElement.classList.remove("sessao-restaurando");
+  }
+
   // Em modo Firebase: ajusta labels/placeholders pra login real (email + senha)
   if (document.documentElement.classList.contains("firebase-mode")) {
     const lblUser = document.querySelector('label[for="login-user"]');

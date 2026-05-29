@@ -62,6 +62,14 @@
       let manterConectadoBoot = false;
       try { manterConectadoBoot = localStorage.getItem("fiopulse:manterConectado") === "1"; }
       catch {}
+      // Splash "Entrando…": o inline script do <head> já marcou .sessao-restaurando
+      // quando manterConectado=1. Salvaguarda: se o auth travar (rede), esconde
+      // o splash após 7s pra não prender o usuário (cai no login).
+      if (manterConectadoBoot) {
+        setTimeout(() => document.documentElement.classList.remove("sessao-restaurando"), 7000);
+      } else {
+        document.documentElement.classList.remove("sessao-restaurando");
+      }
       const initialPersistence = manterConectadoBoot
         ? firebase.auth.Auth.Persistence.LOCAL
         : firebase.auth.Auth.Persistence.NONE;
@@ -1611,6 +1619,11 @@
       }
     });
 
+    // Splash de restauração de sessão: esconde o overlay "Entrando…".
+    function esconderSplash() {
+      document.documentElement.classList.remove("sessao-restaurando");
+    }
+
     // Observador de autenticação
     auth.onAuthStateChanged(async (fbUser) => {
       if (!fbUser) {
@@ -1618,6 +1631,7 @@
         state.currentUserId = null;
         $("#app")?.classList.add("hidden");
         $("#login")?.classList.remove("hidden");
+        esconderSplash(); // sem sessão → mostra login (sem flash de novo)
         restoreLoginButton();
         // Cancela timer de inatividade
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
@@ -1659,6 +1673,7 @@
 
         $("#login").classList.add("hidden");
         $("#app").classList.remove("hidden");
+        esconderSplash(); // troca splash → app direto (login nunca pisca)
         state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
         renderApp();
 
