@@ -537,12 +537,18 @@ textarea:focus-visible,
 }
 
 /* ===== Sidebar: presença (lista com nomes) ===== */
-.sidebar-presence {
-  padding: 10px 8px 14px;
-  border-top: 1px solid rgba(255, 243, 230, .08);
-  min-height: 0;
-  overflow-y: auto;
+/* Bloco fixo no rodapé da sidebar: presença + usuário logado */
+.app__bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
+.sidebar-presence {
+  padding: 10px 6px 0;
+  border-top: 1px solid rgba(255, 243, 230, .08);
+}
+.sidebar-presence:empty { display: none; }
 .sp-live {
   width: 6px;
   height: 6px;
@@ -562,42 +568,19 @@ textarea:focus-visible,
   color: rgba(255, 243, 230, .55);
   padding: 0 6px 8px;
 }
-.sp-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sp-item {
+/* avatares mini sobrepostos (compacto, estilo Google Sheets) */
+.sp-avs {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 5px 6px;
-  border-radius: 8px;
-  transition: background .15s;
+  padding: 0 6px;
 }
-.sp-item:hover { background: rgba(255, 243, 230, .06); }
-.sp-item.is-idle { opacity: 0.55; }
-.sp-item .presence-avatar { margin-left: 0; border-width: 0; }
-.sp-item__info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.25;
-}
-.sp-item__nome {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--milk);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sp-item__atividade {
+.sp-avs .presence-avatar { margin-left: -7px; }
+.sp-avs .presence-avatar:first-child { margin-left: 0; }
+.sp-extra {
   font-size: 10px;
-  color: rgba(255, 243, 230, .5);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 600;
+  color: rgba(255, 243, 230, .6);
+  margin-left: 6px;
 }
 
 .app__user {

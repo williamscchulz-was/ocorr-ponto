@@ -238,6 +238,8 @@ const icon = (name) => {
     arrowLeft: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
     calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
     file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+    briefcase: '<rect x="2.5" y="7" width="19" height="13.5" rx="2.2"/><path d="M8 7V5.2A2.2 2.2 0 0 1 10.2 3h3.6A2.2 2.2 0 0 1 16 5.2V7"/><path d="M2.5 12.5h19"/>',
+    clipboard: '<rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M9 10h6M9 14h6M9 18h4"/>',
     alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
     download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
     upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
@@ -991,42 +993,17 @@ function renderSidebarPresence(online) {
     return;
   }
 
-  const ROLE_LABELS = { admin: "Admin", rh: "RH", lider: "Líder" };
-  const PAGE_LABELS = {
-    dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
-    funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
-  };
-
-  const items = outros.map((usr) => {
-    const ausente = usr.status === "ausente";
-    const role = ROLE_LABELS[usr.role] || "";
-    const turno = usr.turno ? ` T${usr.turno}` : "";
-    // Atividade: PJ editando > página atual > ausente
-    let atividade = "";
-    if (usr.pjEditing) {
-      const pj = (state.pjs || []).find((p) => p.id === usr.pjEditing);
-      atividade = `editando ${pj ? escapeHtml(pj.nome) : "PJ"}`;
-    } else if (PAGE_LABELS[usr.page]) {
-      atividade = PAGE_LABELS[usr.page];
-    } else if (ausente) {
-      atividade = "ausente";
-    } else {
-      atividade = role ? role + turno : "online";
-    }
-    const avatar = buildPresenceAvatar(usr, { size: 26, borderColor: "transparent" });
-    return `
-      <div class="sp-item${ausente ? " is-idle" : ""}">
-        ${avatar}
-        <div class="sp-item__info">
-          <span class="sp-item__nome">${escapeHtml(usr.nome || "?")}</span>
-          <span class="sp-item__atividade">${atividade}</span>
-        </div>
-      </div>`;
+  // Compacto: avatares mini com tooltip (hover mostra nome+atividade).
+  const avs = outros.slice(0, 6).map((usr) => {
+    const tooltip = montarTooltipPresence(usr);
+    return buildPresenceAvatar(usr, { size: 26, borderColor: "var(--plum)" })
+      .replace("class=", `title="${tooltip}" class=`);
   }).join("");
+  const extra = outros.length > 6 ? `<span class="sp-extra">+${outros.length - 6}</span>` : "";
 
   el.innerHTML = `
     <div class="sp-header"><span class="sp-live"></span>Online agora · ${outros.length}</div>
-    <div class="sp-list">${items}</div>
+    <div class="sp-avs">${avs}${extra}</div>
   `;
 }
 
@@ -1035,14 +1012,14 @@ function renderNav() {
   const pending = pendingForUser(u).length;
 
   const items = [];
-  items.push({ id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending });
+  items.push({ id: "dashboard", label: "Ocorrências", icon: "clipboard", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
 
   if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
   }
   if (u.role === "rh" || u.role === "admin") {
-    items.push({ id: "pj", label: "Controle PJ", icon: "file" });
+    items.push({ id: "pj", label: "Controle PJ", icon: "briefcase" });
     items.push({ id: "config", label: "Configurações", icon: "settings" });
   }
 

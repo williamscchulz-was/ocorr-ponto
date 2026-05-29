@@ -106,20 +106,23 @@
 
       <nav class="nav" id="nav"></nav>
 
-      <div class="sidebar-presence" id="sidebar-presence"></div>
+      <!-- Bloco fixo no rodapé: presença online + usuário logado -->
+      <div class="app__bottom">
+        <div class="sidebar-presence" id="sidebar-presence"></div>
 
-      <button class="app__user" id="user-area" title="Perfil e sessão" style="cursor:pointer; text-align:left; width:100%;">
-        <div class="avatar" id="user-avatar">--</div>
-        <div class="app__user-info">
-          <strong id="user-name">--</strong>
-          <span id="user-role">--</span>
-        </div>
-        <span class="app__user-logout" aria-hidden="true">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
-          </svg>
-        </span>
-      </button>
+        <button class="app__user" id="user-area" title="Perfil e sessão" style="cursor:pointer; text-align:left; width:100%;">
+          <div class="avatar" id="user-avatar">--</div>
+          <div class="app__user-info">
+            <strong id="user-name">--</strong>
+            <span id="user-role">--</span>
+          </div>
+          <span class="app__user-logout" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+            </svg>
+          </span>
+        </button>
+      </div>
     </aside>
 
     <main class="app__main">
