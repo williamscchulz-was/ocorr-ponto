@@ -40,6 +40,8 @@ Firestore (projeto ocorr-ponto)  →  app FioPulse
 
 ⚠️ Tarefas estão em modo **"Interativo apenas"** — só rodam quando o usuário `wkradar` está logado na máquina.
 
+> **📌 Mudança 2026-05-29 (fix do saldo travado):** a pipeline das **08:00** agora reescreve as datas e **re-exporta o BH ela mesma** (passos 0 e 1 do `run-pipeline.mjs`). Por quê: a `DataFinal` não estende sozinha (ver §4), então o export das 07:45 sai com a janela do dia anterior; a pipeline corrige isso atualizando `DataFinal=hoje` e re-rodando o `.exe` antes de parsear. A tarefa **WKRadar Export BH (07:45)** virou **fallback** (se o export interno da pipeline falhar, `process-bh` usa o CSV que ela deixou). A tarefa **D_Empregado (07:40)** continua sendo a única fonte do CSV de cadastro (a pipeline não re-exporta esse — não tem problema de data).
+
 ---
 
 ## 2. ⭐ Seleção dinâmica (auto-incremental) — A LIÇÃO MAIS IMPORTANTE
@@ -100,8 +102,9 @@ $after = (Get-Item "D:\...\ExpAuto_Banco_de_Horas.txt").LastWriteTime
 | Fato | Detalhe |
 |---|---|
 | **Hash NÃO valida conteúdo** | O campo `"Hash"="..."` é só identificador do modelo/relatório. Dá pra editar outros campos sem invalidar (testado). |
-| **Datas hardcoded NÃO limitam** | `DataInicial`/`DataFinal` têm datas fixas, mas o ERP **estende dinamicamente** até ~D-2 do dia atual. Em 27/05 o config dizia 21/05 mas trouxe dados até 25/05. |
-| **Datas vazias — incerto** | Suspeitamos que `DataInicial=""` quebrava o /Silent, mas a causa real das falhas foi o sed (CRLF). Não re-testado. Por segurança, deixar datas hardcoded (ERP estende). |
+| **⚠️ Datas hardcoded LIMITAM SIM (CORRIGIDO 2026-05-29)** | `DataInicial`/`DataFinal` são respeitadas **ao pé da letra** — o ERP **NÃO estende** além de `DataFinal`. A crença antiga ("estende até D-2") estava **ERRADA**: fomos enganados pelas datas de admissão/demissão no cabeçalho (24/05, 25/05), que NÃO são lançamentos diários. **Prova:** em 29/05 o config dizia `DataFinal="21/05"` e o saldo do app estava travado em 21/05 (8 dias atrás) — RH reclamou que "não batia". Comparação do Excel da RH (emissão 29/05) × pipeline: 43 dos 88 funcs divergiam. Ao mudar `DataFinal` pra 29/05 e re-exportar: **88/88 passaram a bater**. |
+| **Solução: datas DINÂMICAS** | Como `DataFinal` não estende sozinha, ela tem que ser reescrita a cada run. A pipeline faz isso no **passo 0** (`update-config-dates.mjs`): `DataInicial`=1º-do-mês, `DataFinal`=hoje. Edição byte-safe em `latin1` (preserva windows-1252 + CRLF). É o mesmo tipo de problema do `IdsFuncionarios`, só que datas não têm "modo vazio = dinâmico" confiável — então reescrevemos. |
+| **Datas vazias — NÃO usar** | `DataInicial=""`/`DataFinal=""` não foi confirmado como "dinâmico" (diferente do `IdsFuncionarios`, esse sim vazio=dinâmico). Usamos reescrita explícita das datas em vez de deixar vazio. |
 | **Auto-incremento de nome de arquivo** | Ao salvar config pela UI, se `Config_X.txt` já existe, o WK salva como `Config_X2.txt` (e o `ArquivoExportacao` também ganha "2"). Sempre conferir o nome final. |
 | **Encoding** | Latin-1 / windows-1252. Acentos quebram se ler como UTF-8. |
 | **Formato do CSV BH** | "Agrupado": linha header do funcionário (Cód. preenchido, Data Saldo vazia) + N linhas de detalhe diárias (Cód. vazio, Data Saldo preenchida). Forward-fill no parser. |
