@@ -5995,6 +5995,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Olhinho: mostra/oculta a senha no login
+  $("#toggle-senha")?.addEventListener("click", () => {
+    const inp = $("#login-pass");
+    const btn = $("#toggle-senha");
+    if (!inp || !btn) return;
+    const mostrar = inp.type === "password";
+    inp.type = mostrar ? "text" : "password";
+    btn.querySelector(".icon-olho")?.classList.toggle("hidden", mostrar);
+    btn.querySelector(".icon-olho-off")?.classList.toggle("hidden", !mostrar);
+    btn.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
+    btn.setAttribute("title", mostrar ? "Ocultar senha" : "Mostrar senha");
+    inp.focus();
+  });
+
   // Sidebar
   $("#menu-btn").addEventListener("click", openSidebar);
   $("#sidebar-backdrop").addEventListener("click", closeSidebar);
