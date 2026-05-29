@@ -741,6 +741,9 @@ function renderApp() {
   updateFab();
   window.atualizarBadgeChat();
 
+  // Novidades: uma vez por sessão (post-login), abre o popup se houver versão nova.
+  if (!_changelogChecado) { _changelogChecado = true; checkChangelog(); }
+
   // Toast de aniversariantes do dia — uma vez por sessão (post-login).
   // Líder vê só do próprio turno; admin/RH veem todos.
   // window.__niverToastShown é resetada no logout pra reaparecer no próximo login.
@@ -6722,10 +6725,89 @@ function closeSidebar() {
   $("#sidebar-backdrop").classList.remove("show");
 }
 
+// ============================================
+// Novidades / Histórico de versões
+// Pill na topbar abre o modal; popup automático quando o usuário entra numa
+// versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
+// DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
+// ============================================
+window.CURRENT_VERSION = "1.0.0";
+let _changelogCarregado = false;
+let _changelogChecado = false;
+
+function carregarChangelog(cb) {
+  if (window.CHANGELOG || _changelogCarregado) { cb && cb(); return; }
+  _changelogCarregado = true;
+  const s = document.createElement("script");
+  s.src = "changelog.js?v=" + (window.CURRENT_VERSION || "1");
+  s.onload = () => cb && cb();
+  s.onerror = () => { _changelogCarregado = false; cb && cb(); };
+  document.head.appendChild(s);
+}
+
+function renderChangelog() {
+  const body = document.getElementById("changelog-body");
+  if (!body) return;
+  const lista = window.CHANGELOG || [];
+  if (!lista.length) {
+    body.innerHTML = `<div class="cl-vazio">Sem novidades por enquanto.</div>`;
+    return;
+  }
+  body.innerHTML = lista.map((ver) => `
+    <div class="cl-versao">
+      <div class="cl-versao__head">
+        <span class="cl-versao__v">v${escapeHtml(ver.v || "")}</span>
+        <span class="cl-versao__d">${escapeHtml(ver.d || "")}</span>
+        ${ver.current ? `<span class="cl-badge">Atual</span>` : ""}
+      </div>
+      <div class="cl-itens">
+        ${(ver.items || []).map((it) => `
+          <div class="cl-item">
+            <span class="cl-dot cl-dot--${escapeHtml(it.type || "note")}"></span>
+            <span class="cl-item__title">${escapeHtml(it.title || "")}</span>
+          </div>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function openChangelog() {
+  const ov = document.getElementById("changelog-overlay");
+  if (!ov) return;
+  ov.classList.add("open");
+  carregarChangelog(renderChangelog);
+}
+
+function closeChangelog() {
+  const ov = document.getElementById("changelog-overlay");
+  if (ov) ov.classList.remove("open");
+  try { localStorage.setItem("last-seen-version", window.CURRENT_VERSION); } catch (e) {}
+}
+
+// Abre sozinho ~0,6s depois quando a versão atual ainda não foi vista.
+function checkChangelog() {
+  let seen = null;
+  try { seen = localStorage.getItem("last-seen-version"); } catch (e) {}
+  if (seen !== window.CURRENT_VERSION) setTimeout(openChangelog, 600);
+}
+
 // ---------- Boot ----------
 
 document.addEventListener("DOMContentLoaded", () => {
   renderLoginQuick();
+
+  // Novidades: pill na topbar + modal (abre, fecha, Esc, clique fora).
+  const vpill = document.getElementById("version-pill");
+  if (vpill) {
+    vpill.textContent = "v" + window.CURRENT_VERSION;
+    vpill.addEventListener("click", openChangelog);
+  }
+  const clClose = document.getElementById("changelog-close");
+  if (clClose) clClose.addEventListener("click", closeChangelog);
+  const clOv = document.getElementById("changelog-overlay");
+  if (clOv) clOv.addEventListener("click", (e) => { if (e.target === clOv) closeChangelog(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && clOv && clOv.classList.contains("open")) closeChangelog();
+  });
 
   // Salvaguarda do splash "Entrando…": em modo demo (sem Firebase) não há
   // sessão pra restaurar — firebase.js não roda pra esconder. Limpa aqui.

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=129" />
+  <link rel="stylesheet" href="styles.css?v=130" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -137,6 +137,7 @@
         </button>
         <div class="topbar__title" id="topbar-title">Ocorrências</div>
         <div class="presence" id="presence" title="Quem está online agora"></div>
+        <button class="version-pill" id="version-pill" title="Novidades e histórico de versões">v—</button>
       </div>
 
       <div id="view"></div>
@@ -169,16 +170,30 @@
 
   <div class="demo-banner" title="Modo demo — dados em localStorage. Configure Firebase para usar em produção.">Modo demo</div>
 
+  <!-- Novidades / Histórico de versões (abre sozinho quando há versão nova) -->
+  <div id="changelog-overlay" class="changelog-overlay">
+    <div class="changelog" role="dialog" aria-modal="true" aria-labelledby="changelog-titulo">
+      <div class="changelog__head">
+        <div>
+          <h2 id="changelog-titulo">Novidades</h2>
+          <p class="changelog__sub">O que mudou no FioPulse</p>
+        </div>
+        <button class="changelog__close" id="changelog-close" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="changelog__body" id="changelog-body"></div>
+    </div>
+  </div>
+
   <div id="modal-root"></div>
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
-  <script defer src="data.js?v=129"></script>
-  <script defer src="app.js?v=129"></script>
+  <script defer src="data.js?v=130"></script>
+  <script defer src="app.js?v=130"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=129"></script>
-  <script defer src="google-drive.js?v=129"></script>
+  <script defer src="firebase.js?v=130"></script>
+  <script defer src="google-drive.js?v=130"></script>
 </body>
 </html>
