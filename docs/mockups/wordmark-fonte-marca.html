@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Fonte da marca FioPulse (alternativas ao Handel Gothic)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Michroma&family=Audiowide&family=Exo+2:wght@700;800&family=Chakra+Petch:wght@600;700&family=Saira:wght@700&display=swap" />
+<style>
+  :root{ --verde:#008835; --verde-deep:#00682B; --amarelo:#FFCB00; --muted:#4A6245;
+         --font:"Poppins",system-ui,sans-serif; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#dfe3dd;color:#1C2A18;padding:26px 16px 60px;}
+  h1{text-align:center;color:var(--verde-deep);font-weight:700;margin:0 0 2px;font-size:21px;}
+  p.s{text-align:center;color:#5a6b54;margin:0 0 22px;font-size:13px;}
+
+  .grid{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
+  .cand{display:grid;grid-template-columns:120px 1fr 1fr;gap:0;background:#fff;border:1px solid #E7EDE4;border-radius:14px;overflow:hidden;box-shadow:0 8px 26px rgba(0,40,20,.10);}
+  .cand__name{display:flex;flex-direction:column;justify-content:center;padding:16px;background:#FAFCF9;border-right:1px solid #E7EDE4;}
+  .cand__name b{font-size:13px;color:var(--verde-deep);}
+  .cand__name span{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.3;}
+
+  /* contexto sidebar (verde) */
+  .ctx-side{background:var(--verde);padding:18px 20px;display:flex;align-items:center;gap:12px;}
+  .ctx-login{background:#fff;padding:18px 20px;display:flex;align-items:center;gap:12px;border-left:1px solid #E7EDE4;}
+  .mark{width:34px;height:34px;flex-shrink:0;}
+  .mark svg{width:100%;height:100%;}
+
+  .wm{line-height:1;}
+  .wm__name{font-size:21px;font-weight:700;letter-spacing:.01em;display:flex;align-items:center;gap:7px;}
+  .ctx-side .wm__name{color:#fff;}
+  .ctx-login .wm__name{color:var(--verde-deep);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--amarelo);display:inline-block;}
+  .wm__tag{font-family:"Poppins",sans-serif !important;font-weight:400;font-size:10.5px;margin-top:4px;letter-spacing:0;}
+  .ctx-side .wm__tag{color:rgba(255,255,255,.72);}
+  .ctx-login .wm__tag{color:var(--muted);}
+
+  /* fontes por candidato (só no nome FioPulse) */
+  .f-poppins .wm__name{font-family:"Poppins",sans-serif;}
+  .f-michroma .wm__name{font-family:"Michroma",sans-serif;font-size:16px;letter-spacing:.02em;}
+  .f-audiowide .wm__name{font-family:"Audiowide",sans-serif;font-size:18px;}
+  .f-exo .wm__name{font-family:"Exo 2",sans-serif;font-weight:800;}
+  .f-chakra .wm__name{font-family:"Chakra Petch",sans-serif;font-weight:700;}
+  .f-saira .wm__name{font-family:"Saira",sans-serif;font-weight:700;}
+
+  .note{max-width:920px;margin:20px auto 0;font-size:12.5px;color:#41513c;line-height:1.65;background:#fff;border:1px solid #E7EDE4;border-radius:12px;padding:15px 18px;}
+  .note b{color:var(--verde-deep);}
+</style>
+</head>
+<body>
+  <h1>Fonte da marca "FioPulse" — alternativas grátis ao Handel Gothic</h1>
+  <p class="s">Só o logotipo muda de fonte. O slogan e o resto do app continuam em Poppins. Esquerda = barra lateral (verde), direita = login (branco).</p>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="note">
+    <b>Sobre as opções:</b> Handel Gothic é larga, geométrica e arredondada.
+    As mais próximas no Google Fonts: <b>Michroma</b> (larga e geométrica, bem "tech corporativo"),
+    <b>Audiowide</b> (arredondada e retrô-futurista, mais simpática) e <b>Exo 2</b> (geométrica moderna, versátil).
+    Incluí também <b>Chakra Petch</b> e <b>Saira</b> como variações, e a <b>Poppins</b> atual no topo pra comparar.
+    Me diz qual número você curtiu (ou "fico na Poppins").
+  </div>
+
+  <script>
+    const MARK = '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 31c6-13 22-12 27-1-8-4-16-1-19 6-2-4-5-5-8-5z" fill="CURRENT"/><circle cx="35" cy="15" r="4" fill="#FFCB00"/></svg>';
+    const cands = [
+      { cls:"f-poppins",  nome:"0 · Poppins (atual)", desc:"O que está hoje" },
+      { cls:"f-michroma", nome:"1 · Michroma",         desc:"Larga, geométrica, tech" },
+      { cls:"f-audiowide",nome:"2 · Audiowide",        desc:"Arredondada, retrô-futurista" },
+      { cls:"f-exo",      nome:"3 · Exo 2",            desc:"Geométrica moderna" },
+      { cls:"f-chakra",   nome:"4 · Chakra Petch",     desc:"Squarish, industrial" },
+      { cls:"f-saira",    nome:"5 · Saira",            desc:"Geométrica, sóbria" },
+    ];
+    const wm = (login) => `
+      <div class="wm">
+        <div class="wm__name">FioPulse<span class="dot"></span></div>
+        <div class="wm__tag">Fiobras · o batimento do GH</div>
+      </div>`;
+    document.getElementById("grid").innerHTML = cands.map((c) => `
+      <div class="cand ${c.cls}">
+        <div class="cand__name"><b>${c.nome}</b><span>${c.desc}</span></div>
+        <div class="ctx-side">
+          <span class="mark">${MARK.replace("CURRENT", "#fff")}</span>
+          ${wm(false)}
+        </div>
+        <div class="ctx-login">
+          <span class="mark">${MARK.replace("CURRENT", "#008835")}</span>
+          ${wm(true)}
+        </div>
+      </div>
+    `).join("");
+  </script>
+</body>
+</html>
