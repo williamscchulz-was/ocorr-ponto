@@ -6,6 +6,18 @@
 
 ---
 
+## 0. 🛑 SEGURANÇA DE DISCO (ler antes de tudo)
+
+**NUNCA faça busca recursiva em `D:\WKRadar`** (`grep -r`, `find`, `ls -R`, `rg` sem escopo, `Get-ChildItem -Recurse`, `dir /s`).
+
+É o banco do ERP WK Radar — vários GB de `.dat` binários num **RAID 1 SSD que é o disco de sistema**. Varrer ali **satura o RAID e CONGELA o servidor a 100% de disco**. Aconteceu em **2026-05-29**: um `grep -rliE ... /d/WKRadar` órfão ficou 52 min varrendo e travou a máquina (ver `HISTORICO-DECISOES.md`).
+
+- O pipeline só precisa de **4 caminhos EXATOS** em D:\WKRadar (já em `config.mjs`): `ExpAuto_Banco_de_Horas.txt`, `ExpAuto_D_Empregado.txt`, `Config_Banco_de_Horas.txt`, `ExportacaoAutomatica.exe`. **Leia-os direto, nunca navegue.**
+- Buscas: escopar a `C:\fiobras-pipeline-rh`/`C:\ocorr-ponto-repo`; usar ripgrep/Grep tool (pula binários); se usar `grep` no shell, usar `--include=*.ext` ou lista de arquivos, **nunca `-r` na raiz**, e `--exclude=*.dat`.
+- Se matar um processo travado: `Get-Process grep,find | Stop-Process -Force` (matar processo NÃO lê o disco — só para a leitura).
+
+---
+
 ## 1. Visão geral do fluxo
 
 ```
