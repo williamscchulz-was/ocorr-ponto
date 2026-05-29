@@ -130,3 +130,17 @@ A causa mais provável do **"100% do nada"** NÃO é um processo varrendo arquiv
 3. **Atualizar driver Intel RST** (eventos 129 também podem agravar por driver antigo) e checar no app "Intel Optane/RST" se há **verify/patrol read** agendado caindo em horário de expediente — reagendar pra madrugada.
 4. **Mover o pagefile** (hoje em C:, no mesmo RAID estolante) — se sobrar pressão, considerar pagefile no HDD E: ou, melhor, resolver o SSD (item 1).
 5. Manter o logger até capturar 1–2 picos e fechar o diagnóstico empiricamente; depois **parar o logger** (STOP-disk-watch.ps1).
+
+---
+
+## 2026-05-29 · 🔎 RAID 100% — confirmação via app Intel RST + achado do cache de escrita
+
+Seguimento da investigação acima. Como o RAID esconde o SMART dos membros (`Get-StorageReliabilityCounter` no volume retorna dado fantasma: Wear=0% Temp=0C; só o HDD do E: aparece real), abrimos o **app Intel RST** (RstHSA) pra ver os discos por trás.
+
+- **Confirmado:** 2× **Crucial CT2000BX500SSD1** (seriais `2504E9A2E8E0` porta 4, `2504E9A2F0D8` porta 5), firmware **M6CR082**, SATA 6 Gb/s, controlador **VMD**, RAID 1 (Volume1). **Status: Normal** nos dois → sem alarme de falha iminente; o travamento é **desempenho**, não SSD morrendo.
+- **App da Intel NÃO expõe o % de vida útil/SMART** nessa versão (só "Normal"). O número de wear só sai via `smartctl` (não instalado; sob VMD pode nem funcionar) — mas **não é bloqueante**: o BX500 QLC sem DRAM é arquiteturalmente errado pro workload independente do desgaste.
+- **🔴 Achado novo e acionável:** painel da Intel mostra **"Cache de disco de dados: Desativado"** nos 2 SSDs. Cache de escrita desligado faz o QLC lento ficar **ainda mais lento sob escrita** → ajuda a entupir a fila e disparar os resets (evt 129). O servidor **TEM nobreak (confirmado pelo William)**, então ligar o cache de escrita é seguro (o risco do cache é corromper em queda de energia).
+
+**Ação imediata (grátis, reversível):** habilitar o cache de escrita do volume RAID — Gerenciador de Dispositivos → Unidades de disco → "Intel Raid 1 Volume" → Propriedades → aba **Políticas** → marcar **"Habilitar cache de gravação no dispositivo"**. (Opcional, só por ter nobreak: marcar também "Desativar liberação do buffer".) Reversível desmarcando. Medir resets evt 129 antes/depois pelo logger.
+
+**Continua valendo** a troca dos BX500 por SSD com DRAM/TLC (WD Red SA500 / Samsung 870 EVO / ou enterprise PM893) como correção definitiva — o cache só alivia.
