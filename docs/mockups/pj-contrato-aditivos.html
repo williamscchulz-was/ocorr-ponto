@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Contrato & aditivos (modal PJ)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#F7F9F6; --surface:#fff; --surface-warm:#EEF3EC; --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:#006328; --text-body:#1E2D1A; --muted:#4A6245;
+    --plum:#008835; --plum-deep:#006328; --plum-soft:#1AA34F;
+    --danger:#962F32; --milk-warm:#EEF3EC;
+    --font:"Poppins",system-ui,sans-serif; --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:rgba(31,11,28,.4);color:var(--text-body);padding:28px 16px 60px;}
+  h1.tt{text-align:center;color:#fff;font-weight:700;margin:0 0 2px;font-size:20px;}
+  p.ss{text-align:center;color:rgba(255,255,255,.85);margin:0 0 20px;font-size:13px;}
+
+  .modal{background:var(--surface);border-radius:18px;max-width:480px;margin:0 auto 22px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.4);}
+  .mhead{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px 4px;}
+  .mhead h2{font-size:18px;margin:0;color:var(--text-body);}
+  .mhead p{margin:2px 0 0;font-size:12px;color:var(--muted);}
+  .mclose{width:32px;height:32px;border:0;background:none;color:var(--muted);font-size:22px;cursor:pointer;border-radius:8px;}
+  .mbody{padding:14px 22px 22px;}
+  .tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 10px;}
+
+  /* ---- contrato anexado (compacto) ---- */
+  .ct-chip{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#FAFCF9;}
+  .ct-ic{width:40px;height:40px;border-radius:10px;background:var(--surface-warm);display:grid;place-items:center;color:var(--plum-deep);flex-shrink:0;}
+  .ct-ic svg{width:20px;height:20px;}
+  .ct-main{flex:1;min-width:0;}
+  .ct-main b{font-size:13.5px;font-weight:600;color:var(--text-body);display:block;}
+  .ct-main span{font-size:11.5px;color:var(--muted);}
+  .ct-abrir{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border-strong);background:var(--surface);border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--plum-deep);cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
+  .ct-abrir:hover{background:var(--surface-warm);}
+  .ct-troca{width:34px;height:34px;border-radius:8px;border:0;background:none;color:#9fb098;display:grid;place-items:center;cursor:pointer;flex-shrink:0;transition:.15s;}
+  .ct-troca:hover{background:var(--surface-warm);color:var(--plum-deep);}
+  .ct-troca svg{width:15px;height:15px;}
+
+  /* ---- contrato vazio (anexar) ---- */
+  .ct-drop{border:1.5px dashed var(--border-strong);border-radius:12px;padding:22px 16px;text-align:center;background:#FAFCF9;cursor:pointer;transition:.16s var(--ease);}
+  .ct-drop:hover{border-color:var(--plum-soft);background:var(--surface-warm);}
+  .ct-drop .up{width:42px;height:42px;border-radius:50%;background:var(--surface-warm);display:grid;place-items:center;margin:0 auto 8px;color:var(--plum-deep);}
+  .ct-drop .up svg{width:20px;height:20px;}
+  .ct-drop b{font-size:13.5px;color:var(--text-body);}
+  .ct-drop small{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;}
+  .ct-link-toggle{display:block;width:100%;text-align:center;margin-top:10px;background:none;border:0;font-family:inherit;font-size:12px;color:var(--plum-deep);font-weight:600;cursor:pointer;}
+
+  /* ---- aditivos ---- */
+  .adv-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;}
+  .adv-t{font-size:12px;font-weight:700;color:var(--text-body);}
+  .adv-t span{color:var(--muted);font-weight:500;}
+  .adv-add{display:inline-flex;align-items:center;gap:5px;border:0;background:none;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--plum-deep);cursor:pointer;padding:5px 7px;border-radius:7px;transition:background .15s;}
+  .adv-add:hover{background:var(--surface-warm);}
+  .adv-add svg{width:14px;height:14px;}
+  .adv-list{border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .adv-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);}
+  .adv-row:last-child{border-bottom:0;}
+  .adv-date{font-size:12px;font-weight:600;color:var(--plum-deep);white-space:nowrap;flex-shrink:0;width:74px;}
+  .adv-desc{flex:1;min-width:0;font-size:13px;color:var(--text-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .adv-open{width:30px;height:30px;border-radius:8px;border:0;background:none;color:#9fb098;display:grid;place-items:center;cursor:pointer;flex-shrink:0;transition:.15s;text-decoration:none;}
+  .adv-open:hover{background:var(--surface-warm);color:var(--plum-deep);}
+  .adv-open svg{width:15px;height:15px;}
+  .adv-empty{font-size:12.5px;color:var(--muted);padding:4px 2px;}
+
+  .divider{height:1px;background:var(--border);margin:18px 0;}
+  .label{font-size:12px;font-weight:600;color:var(--text-body);margin:0 0 10px;}
+
+  .note{max-width:480px;margin:0 auto;font-size:12.5px;color:#41513c;line-height:1.65;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+  .note b{color:var(--plum-deep);}
+  .note ul{margin:7px 0 0;padding-left:18px;}
+  .note li{margin-bottom:3px;}
+</style>
+</head>
+<body>
+  <h1 class="tt">Modal PJ — Contrato &amp; aditivos juntos</h1>
+  <p class="ss">Bloco único no topo. Contrato compacto (sem a URL crua) + aditivos logo abaixo.</p>
+
+  <!-- ESTADO A: contrato anexado + aditivos -->
+  <div class="modal">
+    <div class="mhead">
+      <div><h2>Aceres Branding</h2><p>Detalhes, contratos e histórico.</p></div>
+      <button class="mclose">&times;</button>
+    </div>
+    <div class="mbody">
+      <div class="tag">Contrato &amp; aditivos</div>
+
+      <div class="ct-chip">
+        <span class="ct-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        <div class="ct-main"><b>Contrato principal</b><span>PDF no Google Drive</span></div>
+        <a class="ct-abrir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Abrir</a>
+        <button class="ct-troca" title="Trocar contrato / colar link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+      </div>
+
+      <div class="adv-head">
+        <div class="adv-t">Aditivos <span>· 2</span></div>
+        <button class="adv-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar</button>
+      </div>
+      <div class="adv-list">
+        <div class="adv-row">
+          <span class="adv-date">12 mar 25</span>
+          <span class="adv-desc">Reajuste IPCA 5,5%</span>
+          <a class="adv-open" title="Abrir aditivo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+        </div>
+        <div class="adv-row">
+          <span class="adv-date">01 ago 24</span>
+          <span class="adv-desc">Inclusão de escopo — relatórios mensais</span>
+          <a class="adv-open" title="Abrir aditivo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="label">Identificação</div>
+      <div style="font-size:12px;color:var(--muted);">(nome, CNPJ, valor, status… seguem igual abaixo)</div>
+    </div>
+  </div>
+
+  <!-- ESTADO B: novo PJ / sem contrato -->
+  <div class="modal">
+    <div class="mhead">
+      <div><h2>Novo PJ</h2><p>Cadastre um novo prestador de serviço.</p></div>
+      <button class="mclose">&times;</button>
+    </div>
+    <div class="mbody">
+      <div class="tag">Contrato &amp; aditivos</div>
+
+      <div class="ct-drop">
+        <div class="up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+        <b>Anexar contrato (PDF)</b>
+        <small>O sistema lê CNPJ, valor, nome e início automaticamente.</small>
+      </div>
+      <button class="ct-link-toggle">ou colar link do Drive</button>
+
+      <div class="adv-head">
+        <div class="adv-t">Aditivos <span>· 0</span></div>
+      </div>
+      <div class="adv-empty">Disponível depois de salvar o PJ.</div>
+
+      <div class="divider"></div>
+      <div class="label">Identificação</div>
+      <div style="font-size:12px;color:var(--muted);">(nome, CNPJ, valor, status… seguem igual abaixo)</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>O que muda:</b>
+    <ul>
+      <li><b>Contrato anexado</b> vira um "chip" compacto (ícone + "Abrir" + lápis pra trocar/colar link) — some a URL gigante crua e os dois botões empilhados.</li>
+      <li><b>Sem contrato</b>: um tile de "Anexar contrato (PDF)" + um link discreto "ou colar link do Drive" (abre o campo de URL só quando preciso).</li>
+      <li><b>Aditivos</b> sobem pro mesmo bloco, logo abaixo do contrato — lista enxuta (data · descrição · abrir) e "+ Adicionar" abre o mesmo formulário de hoje. No PJ novo, ficam disponíveis após salvar.</li>
+      <li>Todo o resto do modal (Identificação, Financeiro, Status, Férias) continua igual.</li>
+    </ul>
+  </div>
+</body>
+</html>

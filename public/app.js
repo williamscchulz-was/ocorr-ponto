@@ -5336,19 +5336,10 @@ function renderAcoesInto(selector) {
       <p>Como o líder pode encaminhar uma ocorrência. Use pra refletir as práticas internas da empresa.</p>
       <button class="btn btn--primary" id="btn-nova-acao">${icon("plus")}<span>Nova ação</span></button>
     </div>
-
-    <div class="cfg-grp">Padrão do sistema</div>
-    <div class="cfg-list">${padrao.map((a) => acaoRow(a, false)).join("")}</div>
-
-    <div class="cfg-grp">Personalizadas</div>
-    ${custom.length === 0 ? `
-      <div class="empty">
-        <div class="empty__icon">${icon("check")}</div>
-        <h3>Sem ações personalizadas</h3>
-        <p>Crie ações extras se as 4 padrão não cobrirem alguma prática interna.</p>
-        <button class="btn btn--soft" id="btn-nova-acao-2">${icon("plus")}<span>Criar primeira</span></button>
-      </div>
-    ` : `<div class="cfg-list">${custom.map((a) => acaoRow(a, true)).join("")}</div>`}
+    <div class="cfg-list">
+      ${padrao.map((a) => acaoRow(a, false)).join("")}
+      ${custom.map((a) => acaoRow(a, true)).join("")}
+    </div>
   `;
 
   $("#btn-nova-acao").addEventListener("click", openNovaAcaoModal);
@@ -5541,19 +5532,10 @@ function renderTiposInto(selector) {
       <p>Motivos disponíveis no formulário de nova ocorrência.</p>
       <button class="btn btn--primary" id="btn-novo-tipo">${icon("plus")}<span>Novo tipo</span></button>
     </div>
-
-    <div class="cfg-grp">Padrão do sistema</div>
-    <div class="cfg-list">${padrao.map((t) => tipoRow(t, false)).join("")}</div>
-
-    <div class="cfg-grp">Personalizados</div>
-    ${custom.length === 0 ? `
-      <div class="empty">
-        <div class="empty__icon">${icon("tag")}</div>
-        <h3>Sem tipos personalizados</h3>
-        <p>Crie tipos extras se os padrão não cobrirem alguma situação específica do seu time.</p>
-        <button class="btn btn--soft" id="btn-novo-tipo-2">${icon("plus")}<span>Criar primeiro tipo</span></button>
-      </div>
-    ` : `<div class="cfg-list">${custom.map((t) => tipoRow(t, true)).join("")}</div>`}
+    <div class="cfg-list">
+      ${padrao.map((t) => tipoRow(t, false)).join("")}
+      ${custom.map((t) => tipoRow(t, true)).join("")}
+    </div>
   `;
 
   $("#btn-novo-tipo").addEventListener("click", openNovoTipoModal);
