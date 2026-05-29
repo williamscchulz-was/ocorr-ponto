@@ -2247,29 +2247,38 @@ function renderFuncList() {
     return;
   }
 
-  root.innerHTML = `<div class="list">${list.map((f) => {
-    const demissaoStr = f.ativo === false && f.demissao ? tsToDateStr(f.demissao) : null;
+  root.innerHTML = `<div class="func-list">${list.map((f) => {
+    const inativo = f.ativo === false;
+    const demissaoStr = inativo && f.demissao ? tsToDateStr(f.demissao) : null;
+    const semTurno = !f.turno;
+    // Alerta âmbar "sem turno" só faz sentido pra quem está ativo (inativo não
+    // precisa de ação). Inativo mostra "Inativo"; ativo c/ turno mostra o turno.
+    const alertaSemTurno = semTurno && !inativo;
+
+    const subParts = [];
+    if (f.codigo) subParts.push(`cód: ${escapeHtml(f.codigo)}`);
+    subParts.push(escapeHtml(f.setor || "sem setor"));
+    if (demissaoStr) subParts.push(`<span class="func-demit">Demitido em ${escapeHtml(demissaoStr)}</span>`);
+    const subHtml = subParts.join(`<span class="dot"></span>`);
+
+    const tag = inativo
+      ? `<span class="func-stag">Inativo</span>`
+      : (semTurno
+          ? `<span class="func-turno func-turno--sem"><span class="func-turno__dot"></span>Sem turno</span>`
+          : `<span class="func-turno">${escapeHtml(TURNOS[f.turno].label)}</span>`);
+
     return `
-    <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto;" data-func="${f.id}">
-      <div class="avatar">${initials(f.nome)}</div>
-      <div class="occ__main">
-        <div class="occ__name">${escapeHtml(f.nome)}</div>
-        <div class="occ__sub">${f.codigo ? "cód: " + escapeHtml(f.codigo) + " · " : ""}${escapeHtml(f.setor || "sem setor")}</div>
-        ${demissaoStr ? `
-          <div class="text-xs" style="margin-top:2px; color:#b91c1c; font-weight:500;">
-            Demitido em ${demissaoStr}
-          </div>
-        ` : ""}
-      </div>
-      ${f.turno
-        ? `<span class="badge badge--neutral">${TURNOS[f.turno].label}</span>`
-        : `<span class="badge badge--warning"><span class="dot"></span>Sem turno</span>`}
-      <span class="badge badge--${f.ativo === false ? "neutral" : "success"}">${f.ativo === false ? "Inativo" : "Ativo"}</span>
-      <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </article>`;
+      <article class="func-row ${alertaSemTurno ? "func-row--semturno" : ""} ${inativo ? "func-row--inativo" : ""}" data-func="${f.id}">
+        <div class="func-info">
+          <div class="func-nome">${escapeHtml(f.nome)}</div>
+          <div class="func-sub">${subHtml}</div>
+        </div>
+        ${tag}
+        <svg class="icon func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </article>`;
   }).join("")}</div>`;
 
-  $$("#func-list .occ").forEach((el) => {
+  $$("#func-list .func-row").forEach((el) => {
     el.addEventListener("click", () => openFuncionarioModal(el.dataset.func));
   });
 }

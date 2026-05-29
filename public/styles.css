@@ -2427,6 +2427,78 @@ html.firebase-mode .login__forgot { display: block; }
 .cfg-iconbtn:hover { background: var(--milk-warm); color: var(--plum-deep); }
 .cfg-iconbtn--dang:hover { background: var(--danger-bg); color: var(--danger); }
 .cfg-iconbtn .icon { width: 15px; height: 15px; }
+
+/* ============================================
+   Funcionários — lista minimalista (sem avatar)
+   ============================================ */
+.func-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.func-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.func-row:last-child { border-bottom: 0; }
+.func-row:hover { background: #FAFCF9; }
+.func-row--semturno { box-shadow: inset 3px 0 0 var(--warning); }
+.func-row--inativo { opacity: 0.6; }
+.func-info { flex: 1; min-width: 0; }
+.func-nome { font-size: 14.5px; font-weight: 600; color: var(--text-body); }
+.func-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.func-sub .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #c2cdba;
+  display: inline-block;
+}
+.func-demit { color: var(--danger); font-weight: 500; }
+.func-turno {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--milk-warm);
+  border-radius: 6px;
+  padding: 3px 9px;
+  flex-shrink: 0;
+}
+.func-turno--sem {
+  color: var(--warning);
+  background: var(--warning-bg);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.func-turno__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warning); }
+.func-stag {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 1px 7px;
+  flex-shrink: 0;
+}
+.func-chev { width: 18px; height: 18px; color: #b9c6b1; flex-shrink: 0; }
 .func-perfil-demitido__icon {
   display: inline-flex;
   flex-shrink: 0;
