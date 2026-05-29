@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Sidebar minimalista + ícones modernos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+<style>
+  :root{ --verde:#008835; --verde-deep:#00682B; --amarelo:#FFCB00; --font:"Poppins",system-ui,sans-serif; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#dfe3dd;color:#1C2A18;padding:28px;}
+  h1{text-align:center;color:var(--verde-deep);font-weight:800;margin:0 0 2px;font-size:22px;}
+  .s{text-align:center;color:#5a6b54;margin:0 0 24px;font-size:13px;}
+  .row{display:flex;gap:26px;justify-content:center;align-items:flex-start;flex-wrap:wrap;}
+  .col{display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .cap{font-size:12.5px;font-weight:600;color:var(--verde-deep);}
+  .cap small{display:block;font-weight:400;color:#5a6b54;font-size:11px;}
+
+  /* ===== sidebar ===== */
+  .sb{width:248px;height:580px;background:var(--verde);color:#fff;display:flex;flex-direction:column;
+      padding:18px 14px;border-radius:16px;box-shadow:0 14px 40px rgba(0,40,20,.18);}
+  .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 16px;}
+  .brand__logo{width:34px;height:34px;flex-shrink:0;}
+  .brand__logo svg{width:100%;height:100%;}
+  .brand b{font-weight:700;font-size:16px;display:flex;align-items:center;gap:6px;}
+  .brand .pulse{width:7px;height:7px;border-radius:50%;background:var(--amarelo);}
+  .brand small{display:block;font-weight:400;font-size:10px;opacity:.7;margin-top:1px;}
+  .divider{height:1px;background:rgba(255,255,255,.12);margin:0 6px 14px;}
+
+  .nav{display:flex;flex-direction:column;gap:3px;}
+  .ni{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:10px;
+      color:rgba(255,255,255,.82);font-size:13.5px;font-weight:500;cursor:pointer;}
+  .ni svg{width:19px;height:19px;flex-shrink:0;}
+  .ni:hover{background:rgba(255,255,255,.08);color:#fff;}
+  .ni.on{background:rgba(255,255,255,.15);color:#fff;font-weight:600;}
+
+  /* spacer empurra rodapé pra baixo */
+  .spacer{flex:1;}
+
+  /* online — compacto: rótulo + avatares mini */
+  .online{padding:10px 10px 12px;}
+  .online__t{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.6;
+             display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+  .live{width:6px;height:6px;border-radius:50%;background:#7CFFB0;}
+  .online__avs{display:flex;gap:-6px;}
+  .mav{width:26px;height:26px;border-radius:50%;border:2px solid var(--verde);display:grid;place-items:center;
+       font-size:9px;font-weight:700;color:#fff;margin-left:-7px;}
+  .mav:first-child{margin-left:0;}
+
+  /* usuário logado — FIXO no rodapé */
+  .user{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;
+        background:rgba(255,255,255,.1);}
+  .user__av{width:34px;height:34px;border-radius:50%;background:#fff;color:var(--verde-deep);
+            display:grid;place-items:center;font-weight:700;font-size:12px;overflow:hidden;flex-shrink:0;}
+  .user b{font-size:13px;font-weight:600;display:block;line-height:1.2;}
+  .user span{font-size:10.5px;opacity:.72;}
+  .user__more{margin-left:auto;opacity:.6;}
+
+  .note{max-width:720px;margin:24px auto 0;font-size:12.5px;color:#5a6b54;line-height:1.6;background:#fff;border:1px solid #E7EDE4;border-radius:10px;padding:14px 18px;}
+  .note b{color:var(--verde-deep);}
+</style>
+</head>
+<body>
+  <h1>Sidebar minimalista + ícones modernos</h1>
+  <p class="s">Ícones com traço mais limentação fino e arredondado (estilo Lucide), online compacto (avatares mini), e o usuário logado <b>fixo no rodapé</b> — fim do vazio embaixo.</p>
+
+  <div class="row">
+
+    <!-- ANTES -->
+    <div class="col">
+      <div class="cap" style="color:#9a6b1e;">Antes<small>vazio embaixo do usuário</small></div>
+      <div class="sb" style="opacity:.65;filter:grayscale(.15);">
+        <div class="brand"><span class="brand__logo">L</span><div><b>FioPulse</b><small>Fiobras · o batimento do RH</small></div></div>
+        <div class="divider"></div>
+        <div class="nav">
+          <div class="ni">▢ Ocorrências</div>
+          <div class="ni">▢ Banco de Horas</div>
+          <div class="ni on">▢ Configurações</div>
+        </div>
+        <div class="online"><div class="online__t"><span class="live"></span>Online · 1</div></div>
+        <div class="user"><span class="user__av">AA</span><div><b>Administrador</b><span>Administrador</span></div></div>
+        <!-- vazio sobra aqui embaixo -->
+      </div>
+    </div>
+
+    <!-- DEPOIS -->
+    <div class="col">
+      <div class="cap">Depois<small>usuário fixo no rodapé</small></div>
+      <div class="sb">
+        <div class="brand">
+          <span class="brand__logo">L</span>
+          <div><b>FioPulse<span class="pulse"></span></b><small>Fiobras · o batimento do RH</small></div>
+        </div>
+        <div class="divider"></div>
+        <nav class="nav">
+          <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>Ocorrências</div>
+          <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>Banco de Horas</div>
+          <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19"/><circle cx="10" cy="8" r="3.2"/><path d="M20 19v-1.4a3.5 3.5 0 0 0-2.6-3.4M15.5 5.2a3.2 3.2 0 0 1 0 5.6"/></svg>Funcionários</div>
+          <div class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Controle PJ</div>
+          <div class="ni on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 0 1-4 0v-.2a1.7 1.7 0 0 0-2.9-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 0 1 0-4h.2a1.7 1.7 0 0 0 1.1-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 0 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 0 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z"/></svg>Configurações</div>
+        </nav>
+
+        <div class="spacer"></div>
+
+        <div class="online">
+          <div class="online__t"><span class="live"></span>Online agora · 1</div>
+          <div class="online__avs"><span class="mav" style="background:#0076BE;">AA</span></div>
+        </div>
+        <div class="user">
+          <span class="user__av">AA</span>
+          <div><b>Administrador</b><span>Administrador</span></div>
+          <svg class="user__more" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>Mudanças:</b> ícones modernos (traço fino arredondado, estilo Lucide) — Controle PJ vira uma <b>maleta</b> (mais semântico que "arquivo"); <b>online compacto</b> (rótulo + avatares mini em vez da lista vertical alta); e o bloco <b>"Online + usuário fica colado no rodapé</b> via flex spacer — acaba o espaço verde vazio. Continua tudo verde da marca, flat.
+  </div>
+
+  <script>
+    var L='<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 30c5-12 19-12 24-2-7-3-14-1-17 5-2-3-5-4-7-3z" fill="#fff"/><circle cx="34" cy="16" r="3.5" fill="#FFCB00"/></svg>';
+    document.querySelectorAll('.brand__logo').forEach(function(e){e.innerHTML=L;});
+  </script>
+</body>
+</html>
