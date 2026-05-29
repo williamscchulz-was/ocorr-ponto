@@ -9,9 +9,9 @@
      Variáveis mantêm nomes legacy --milk/--plum por compatibilidade
      do código existente; valores semânticos: --milk = surface clara,
      --plum = primário da marca (verde). */
-  --milk: #F5F8F4;
-  --milk-warm: #E8F0E5;
-  --milk-edge: #D2E2CD;
+  --milk: #F7F9F6;
+  --milk-warm: #EEF3EC;
+  --milk-edge: #D8E2D3;
   --plum: #008835;
   --plum-soft: #1AA34F;
   --plum-deep: #006328;
@@ -23,8 +23,8 @@
   --bg: var(--milk);
   --surface: #FFFFFF;
   --surface-warm: var(--milk-warm);
-  --border: #D2E2CD;
-  --border-strong: #A8C5A0;
+  --border: #E7EDE4;
+  --border-strong: #D8E2D3;
 
   --text: var(--plum-deep);
   --text-body: #1E2D1A;
@@ -52,10 +52,13 @@
   --radius-lg: 18px;
   --radius-xl: 28px;
 
-  --shadow-xs: 0 1px 2px rgba(56, 25, 50, 0.06);
-  --shadow-sm: 0 2px 6px rgba(56, 25, 50, 0.08);
-  --shadow: 0 8px 24px rgba(56, 25, 50, 0.12);
-  --shadow-lg: 0 20px 60px rgba(56, 25, 50, 0.22);
+  /* Sombras suavizadas — a linguagem nova usa hairlines no lugar de elevação.
+     Mantidas bem sutis; --shadow-lg preserva alguma elevação só p/ overlays
+     flutuantes (modais, drawer, toasts). */
+  --shadow-xs: 0 1px 1px rgba(0, 40, 20, 0.03);
+  --shadow-sm: 0 1px 2px rgba(0, 40, 20, 0.05);
+  --shadow: 0 4px 16px rgba(0, 40, 20, 0.07);
+  --shadow-lg: 0 16px 50px rgba(0, 40, 20, 0.16);
 
   --transition: 180ms cubic-bezier(.4, 0, .2, 1);
 }
@@ -264,7 +267,7 @@ a:hover { color: var(--plum-soft); }
 .field textarea:focus {
   outline: none;
   border-color: var(--plum);
-  box-shadow: 0 0 0 3px rgba(56, 25, 50, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 136, 53, 0.12);
 }
 
 .field textarea {
@@ -325,7 +328,7 @@ a:hover { color: var(--plum-soft); }
   justify-content: center;
   gap: 8px;
   padding: 12px 18px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
   transition: var(--transition);
@@ -337,7 +340,7 @@ a:hover { color: var(--plum-soft); }
   background: var(--plum);
   color: var(--text-on-plum);
 }
-.btn--primary:hover { background: var(--plum-soft); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.btn--primary:hover { background: var(--plum-soft); }
 
 .btn--ghost {
   background: transparent;
@@ -447,22 +450,23 @@ a:hover { color: var(--plum-soft); }
   color: var(--milk);
 }
 
+/* Item ativo: realce sutil (bg leve + peso), sem a caixa branca cheia. */
 .nav__item.active {
-  background: var(--milk);
-  color: var(--plum);
+  background: rgba(255, 243, 230, .14);
+  color: var(--milk);
   font-weight: 600;
 }
 
 .nav__badge {
   margin-left: auto;
-  background: var(--plum);
-  color: var(--milk);
+  background: var(--milk);
+  color: var(--plum-deep);
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 11px;
   font-weight: 700;
 }
-.nav__item.active .nav__badge { background: var(--plum); color: var(--milk); }
+.nav__item.active .nav__badge { background: var(--milk); color: var(--plum-deep); }
 .nav__item:not(.active) .nav__badge { background: rgba(255, 243, 230, .15); color: var(--milk); }
 
 /* Acessibilidade: focus-visible em todos os interativos pra teclado/screen-reader */
@@ -869,39 +873,54 @@ textarea:focus-visible,
 
 .page-header h1 {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 21px;
   letter-spacing: -0.02em;
   margin: 0;
-  color: var(--plum);
-  font-weight: 800;
+  color: var(--text-body);
+  font-weight: 700;
 }
 .page-header p {
-  margin: 6px 0 0;
+  margin: 2px 0 0;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 12.5px;
 }
 
+/* Stats — UM bloco contido, células divididas por hairline (sem moldura
+   individual). Funciona com 3 / 4 / 6 células e faz wrap p/ 2 colunas no
+   mobile. Técnica: cada célula tem border-left + border-top e é deslocada
+   -1px p/ cima e p/ esquerda; assim as bordas das células vizinhas se
+   sobrepõem (colapsam em 1 hairline) tanto na horizontal quanto entre
+   linhas quebradas. A moldura externa do container + overflow:hidden
+   recortam as bordas negativas das células de borda. */
 .stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 8px;
-  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin: 0 0 20px;
+  overflow: hidden;
 }
 
 .stat {
+  flex: 1 1 0;
+  min-width: 0;
   background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  margin: -1px 0 0 -1px;       /* colapsa as divisórias entre células/linhas */
+  border-radius: 0;
+  padding: 14px 16px;
   position: relative;
   overflow: hidden;
   transition: var(--transition);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
-.stat:hover { background: rgba(0,0,0,0.015); }
+.stat:hover { background: rgba(0,0,0,0.012); }
 
 .stat__label {
   font-size: 10px;
@@ -914,25 +933,40 @@ textarea:focus-visible,
 
 .stat__value {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--plum);
-  letter-spacing: -0.01em;
-  line-height: 1.1;
+  color: var(--text-body);
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .stat__hint {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-muted);
   margin: 0;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
+/* Acento: verde só no número (saldo/destaque), sem moldura preenchida */
 .stat--accent {
-  background: rgba(0, 136, 53, 0.06);
-  border-color: rgba(0, 136, 53, 0.25);
+  background: transparent;
+  border-color: var(--border);
 }
-.stat--accent .stat__value { color: var(--verde, #008835); }
+.stat--accent .stat__value { color: var(--plum); }
+
+/* Mobile: 2 colunas. flex-basis 50% força o wrap; o colapso de bordas
+   (margin -1px) cuida das divisórias entre as linhas que surgem. */
+@media (max-width: 700px) {
+  .stat {
+    flex: 1 1 50%;
+    min-width: 50%;
+  }
+}
+
+@media (max-width: 380px) {
+  .stat { padding: 12px 14px; }
+  .stat__value { font-size: 21px; }
+}
 
 /* ============================================
    FILTER BAR
@@ -956,7 +990,7 @@ textarea:focus-visible,
   width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   padding: 10px 12px 10px 38px;
   font-size: 14px;
   transition: var(--transition);
@@ -965,7 +999,7 @@ textarea:focus-visible,
 .toolbar__search input:focus {
   outline: none;
   border-color: var(--plum);
-  box-shadow: 0 0 0 3px rgba(56, 25, 50, 0.08);
+  box-shadow: 0 0 0 3px rgba(0, 136, 53, 0.10);
 }
 
 .toolbar__search .icon {
@@ -980,78 +1014,103 @@ textarea:focus-visible,
 .toolbar select {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
   font-size: 14px;
   color: var(--text-body);
 }
 
+/* Tabs — sublinhado na aba ativa (sem pílula preenchida). */
 .tabs {
   display: flex;
-  gap: 4px;
+  gap: 22px;
   margin-bottom: 16px;
-  background: var(--surface-warm);
-  padding: 4px;
-  border-radius: var(--radius);
-  width: fit-content;
+  background: transparent;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  width: auto;
+  flex-wrap: wrap;
 }
 
 .tab {
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 0 12px;
+  border-radius: 0;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--text-muted);
   transition: var(--transition);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;          /* cobre a linha do container na aba ativa */
+  background: transparent;
 }
 
 .tab.active {
-  background: var(--surface);
-  color: var(--plum);
+  background: transparent;
+  color: var(--plum-deep);
   font-weight: 600;
-  box-shadow: var(--shadow-xs);
+  box-shadow: none;
+  border-bottom-color: var(--plum);
 }
 
 .tab:hover:not(.active) { color: var(--plum); }
 
 .tab__count {
-  margin-left: 6px;
-  background: rgba(56, 25, 50, .08);
-  color: var(--plum);
+  margin-left: 0;
+  background: var(--border);
+  color: var(--text-muted);
   padding: 1px 7px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
 }
-.tab.active .tab__count { background: var(--plum); color: var(--milk); }
+.tab.active .tab__count { background: var(--success-bg); color: var(--success); }
 
 /* ============================================
    OCORRÊNCIA CARDS / TABLE
    ============================================ */
 
+/* Listas — UM container com hairlines entre as linhas (sem cartãozinho por
+   item). O container tem a moldura/raio; cada .occ é só uma linha separada
+   por border-bottom. NÃO definimos grid-template-columns aqui: o app.js
+   passa colunas inline em vários lugares (BH "1fr auto", funcionários
+   "44px 1fr auto auto auto", PJ, config, etc.) — manter genérico. */
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .occ {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px 18px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 14px 18px;
   display: grid;
   grid-template-columns: 80px 1fr auto auto auto;
   align-items: center;
   gap: 16px;
-  transition: var(--transition);
+  transition: background var(--transition);
   cursor: pointer;
 }
 
+/* última linha sem divisória; cobre também listas com itens diretos */
+.list > .occ:last-child,
+.occ:last-child { border-bottom: 0; }
+
 .occ:hover {
-  border-color: var(--plum);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
+  background: #FAFCF9;
+  border-color: var(--border);
+  box-shadow: none;
+  transform: none;
 }
 
 .occ__date {
@@ -1084,7 +1143,7 @@ textarea:focus-visible,
 
 .occ__name {
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-body);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1145,13 +1204,12 @@ textarea:focus-visible,
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 6px;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 
@@ -1681,7 +1739,7 @@ textarea:focus-visible,
 .stack { display: flex; flex-direction: column; gap: 12px; }
 
 @media (max-width: 720px) {
-  .page-header h1 { font-size: 24px; }
+  .page-header h1 { font-size: 19px; }
 }
 
 /* ============================================
