@@ -1404,6 +1404,7 @@
       const meu = auth.currentUser.uid;
       let recebidas = [], enviadas = [];
       let prontoR = false, prontoE = false;
+      let chatRecebidasIds = null; // null = 1ª carga (não avisa)
       const mapDoc = (d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) });
 
       const rebuild = () => {
@@ -1435,7 +1436,16 @@
 
       const onErr = (e) => debug?.("[chat] minhas msgs snapshot:", e.message);
       const ur = db.collection("mensagens").where("para", "==", meu)
-        .onSnapshot((s) => { recebidas = s.docs.map(mapDoc); prontoR = true; if (prontoE) rebuild(); else rebuild(); }, onErr);
+        .onSnapshot((s) => {
+          const arr = s.docs.map(mapDoc);
+          // Delta: novas recebidas não-lidas → avisa (toast + bip), exceto na 1ª carga.
+          if (chatRecebidasIds !== null) {
+            const novas = arr.filter((m) => m.de !== meu && !m.lido && !chatRecebidasIds.has(m.id));
+            if (novas.length) { try { window.onNovaMensagemChat?.(novas); } catch (e) {} }
+          }
+          chatRecebidasIds = new Set(arr.map((m) => m.id));
+          recebidas = arr; prontoR = true; rebuild();
+        }, onErr);
       const ue = db.collection("mensagens").where("de", "==", meu)
         .onSnapshot((s) => { enviadas = s.docs.map(mapDoc); prontoE = true; rebuild(); }, onErr);
       return () => { try { ur(); } catch {} try { ue(); } catch {} };
@@ -1625,6 +1635,17 @@
       pingPresenca(); // dispara update imediato
     };
 
+    // "Digitando…": grava digitandoPara (uid do peer) na minha presença, ou
+    // null pra limpar. merge:true preserva os outros campos. O peer lê isso
+    // via state.presence e mostra "digitando…" no header da conversa.
+    window.setDigitando = function (peerUid) {
+      if (!auth.currentUser) return;
+      db.collection("presence").doc(auth.currentUser.uid).set({
+        digitandoPara: peerUid || null,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true }).catch((e) => debug?.("[digitando]", e?.message || e));
+    };
+
     // Subscription do PJ específico que está sendo editado
     let pjDocUnsubscribe = null;
     let pjDocUltimoAtualizadoEm = null;
@@ -1678,6 +1699,7 @@
               turno: data.turno || null,
               page: data.page || "",
               pjEditing: data.pjEditing || null,
+              digitandoPara: data.digitandoPara || null,
               lastSeenMs,
               status,
               age,

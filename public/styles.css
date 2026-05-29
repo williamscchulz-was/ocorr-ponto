@@ -3115,3 +3115,11 @@ code { font-family: inherit; }
 .chat__enviar:hover { background: var(--plum-soft); }
 .chat__enviar:active { transform: scale(0.9); }
 .chat__enviar .icon { width: 18px; height: 18px; }
+
+/* Meta do balão (hora + check de envio / duplo de leitura) e status "digitando". */
+.chat__bolha-meta { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 2px; line-height: 1; }
+.chat__bolha-meta .chat__bolha-hora { float: none; margin: 0; }
+.chat__check { display: inline-flex; color: rgba(255, 255, 255, 0.6); }
+.chat__check svg { width: 15px; height: 13px; }
+.chat__check.is-lido { color: #AEE0FF; }
+.chat__thread-status.is-typing { color: var(--plum-soft); font-style: italic; }

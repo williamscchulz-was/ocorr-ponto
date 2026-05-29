@@ -963,8 +963,10 @@ function renderPresence() {
   }
 
   // Se o widget de chat está aberto, atualiza a lista (pontos verdes online/offline)
-  if (!$("#chat-widget")?.hidden && $("#chat-contatos")) {
-    renderChatLista();
+  // e o status da conversa aberta (online/offline/digitando…).
+  if (!$("#chat-widget")?.hidden) {
+    if ($("#chat-contatos")) renderChatLista();
+    atualizarStatusThread();
   }
 }
 
@@ -6209,6 +6211,50 @@ function peerOnline(uid) {
   return (state.presence || []).some((p) => p.uid === uid && p.status === "ativo");
 }
 
+// Aviso de mensagem nova (toast + bip) — só quando NÃO estou vendo aquela
+// conversa. Chamado pelo listener global (firebase.js) com as msgs novas.
+window.onNovaMensagemChat = function (novas) {
+  if (!Array.isArray(novas) || !novas.length) return;
+  const widget = $("#chat-widget");
+  const vendo = widget && !widget.hidden && state.view.chatPeer;
+  const relevantes = novas.filter((m) => !(vendo && state.view.chatPeer.uid === m.de));
+  if (!relevantes.length) return;
+  const ult = relevantes[relevantes.length - 1];
+  const nome = (ult.deNome || "Alguém").split(" ")[0];
+  toast(relevantes.length === 1 ? `Mensagem de ${nome}` : `${relevantes.length} novas mensagens`, "success");
+  try { tocarBeepNotificacao(); } catch (e) {}
+};
+
+// Atualiza o status no header da conversa aberta: digitando… / online / offline.
+function atualizarStatusThread() {
+  if (!_chatRender) return;
+  const st = $("#chat-thread .chat__thread-status");
+  if (!st) return;
+  const meu = meuUid();
+  const p = (state.presence || []).find((x) => x.uid === _chatRender.peerUid);
+  if (p && p.status === "ativo" && p.digitandoPara === meu) {
+    st.textContent = "digitando…";
+    st.classList.add("is-typing");
+    return;
+  }
+  st.classList.remove("is-typing");
+  st.textContent = peerOnline(_chatRender.peerUid) ? "online" : "offline";
+}
+
+// "Digitando…": escreve na minha presença ao digitar; limpa após 2,5s parado
+// (ou no envio/voltar/fechar). Throttle: 1 escrita por rajada de digitação.
+let _digitTimer = null, _digitOn = false;
+function sinalizarDigitando(peerUid) {
+  if (!window.setDigitando || !peerUid) return;
+  if (!_digitOn) { _digitOn = true; window.setDigitando(peerUid); }
+  clearTimeout(_digitTimer);
+  _digitTimer = setTimeout(() => { _digitOn = false; window.setDigitando(null); }, 2500);
+}
+function pararDigitando() {
+  if (_digitTimer) { clearTimeout(_digitTimer); _digitTimer = null; }
+  if (_digitOn && window.setDigitando) { _digitOn = false; window.setDigitando(null); }
+}
+
 // Hora curta se for hoje; "ontem"; senão data curta. Usado na lista de conversas.
 function formatHoraOuDia(iso) {
   if (!iso) return "";
@@ -6258,7 +6304,9 @@ function fecharChatWidget() {
   const w = $("#chat-widget"); if (!w) return;
   w.hidden = true;
   document.body.classList.remove("chat-widget-aberto");
+  pararDigitando();
   pararEscutaConversa();
+  _chatRender = null;
 }
 
 function toggleChatWidget() {
@@ -6378,6 +6426,7 @@ function abrirConversa(peerUid, peerNome) {
   }
   // Estado do render incremental desta conversa.
   _chatRender = { peerUid, ids: new Set(), lastDia: null, lastDe: null, primeiro: true };
+  atualizarStatusThread();
 
   _chatConvUnsub = window.escutarConversa(peerUid, (msgs, err) => {
     if (err) {
@@ -6418,9 +6467,22 @@ function chatThreadShell(peerNome, peerUid, msgsHtml) {
     </form>`;
 }
 
+// Check de envio (1) e de leitura (2 riscos) — só nas minhas mensagens.
+const CHAT_CHK_SENT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+const CHAT_CHK_READ = `<svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg>`;
+
+// Meta do balao: hora + (nas minhas) check de envio / duplo de leitura.
+function chatMetaHtml(m, minha) {
+  const hora = formatHoraCurta(m.criadoEm);
+  const horaSpan = hora ? `<span class="chat__bolha-hora">${hora}</span>` : "";
+  const check = minha ? `<span class="chat__check ${m.lido ? "is-lido" : ""}">${m.lido ? CHAT_CHK_READ : CHAT_CHK_SENT}</span>` : "";
+  return horaSpan + check;
+}
+
 // Render INCREMENTAL: anexa só as mensagens ainda não renderizadas em
-// #chat-msgs, com separador de dia + agrupamento de balões consecutivos.
-// Não toca header/composer (foco preservado) e usa scroll inteligente.
+// #chat-msgs (com separador de dia + agrupamento), e nas já renderizadas só
+// atualiza a meta (hora que resolveu / leitura). Não toca header/composer
+// (foco preservado) e usa scroll inteligente.
 function pintarMensagens(msgs) {
   const cont = $("#chat-msgs");
   if (!cont || !_chatRender) return;
@@ -6434,15 +6496,21 @@ function pintarMensagens(msgs) {
       return;
     }
   }
-  // Se estava no estado "vazio" e chegou a 1ª msg, limpa o placeholder.
   if (msgs && msgs.length && cont.querySelector(".chat__msgs-vazio")) cont.innerHTML = "";
 
-  // Estava perto do fim? (pra decidir o auto-scroll depois de anexar)
   const perto = (cont.scrollHeight - cont.scrollTop - cont.clientHeight) < 110;
-
   let anexou = false, ultimaMinha = false;
+
   for (const m of (msgs || [])) {
-    if (!m.id || _chatRender.ids.has(m.id)) continue;
+    if (!m.id) continue;
+    const minha = m.de === meu;
+
+    // Já renderizada: atualiza só a meta (hora resolvida / leitura).
+    if (_chatRender.ids.has(m.id)) {
+      const metaEl = cont.querySelector(`[data-mid="${m.id}"] .chat__bolha-meta`);
+      if (metaEl) metaEl.innerHTML = chatMetaHtml(m, minha);
+      continue;
+    }
     _chatRender.ids.add(m.id);
 
     const dia = (m.criadoEm || "").slice(0, 10);
@@ -6455,12 +6523,11 @@ function pintarMensagens(msgs) {
       _chatRender.lastDe = null; // novo dia quebra o agrupamento
     }
 
-    const minha = m.de === meu;
     const grp = _chatRender.lastDe === m.de;
-    const hora = formatHoraCurta(m.criadoEm);
     const b = document.createElement("div");
     b.className = `chat__bolha ${minha ? "chat__bolha--minha" : ""} ${grp ? "chat__bolha--grp" : ""}`;
-    b.innerHTML = `<span class="chat__bolha-texto">${escapeHtml(m.texto || "")}</span>${hora ? `<span class="chat__bolha-hora">${hora}</span>` : ""}`;
+    b.dataset.mid = m.id;
+    b.innerHTML = `<span class="chat__bolha-texto">${escapeHtml(m.texto || "")}</span><span class="chat__bolha-meta">${chatMetaHtml(m, minha)}</span>`;
     cont.appendChild(b);
 
     _chatRender.lastDe = m.de;
@@ -6483,6 +6550,7 @@ function wireChatThread(peerUid, peerNome) {
   const voltar = $("#chat-voltar");
   if (voltar) {
     voltar.addEventListener("click", () => {
+      pararDigitando();
       pararEscutaConversa();
       _chatRender = null;
       state.view.chatPeer = null;
@@ -6495,7 +6563,7 @@ function wireChatThread(peerUid, peerNome) {
   const form = $("#chat-composer");
   const input = $("#chat-input");
   if (input) {
-    input.addEventListener("input", () => autoGrowTextarea(input));
+    input.addEventListener("input", () => { autoGrowTextarea(input); sinalizarDigitando(peerUid); });
     // Enter envia; Shift+Enter quebra linha
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -6525,6 +6593,7 @@ async function enviarDoComposer(peerUid, peerNome) {
   input.value = "";
   autoGrowTextarea(input);
   input.focus();
+  pararDigitando();
 
   try {
     await window.enviarMensagem(peerUid, peerNome, texto);
