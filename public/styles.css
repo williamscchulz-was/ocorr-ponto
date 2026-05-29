@@ -2247,6 +2247,120 @@ html.firebase-mode .login__forgot { display: block; }
   .aud__meta { max-width: 96px; }
   .aud__quem { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 96px; }
 }
+
+/* ============================================
+   Controle PJ — lista minimalista (sem avatar)
+   ============================================ */
+.pj-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.pj-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--transition);
+  position: relative;
+}
+.pj-row:last-child { border-bottom: 0; }
+.pj-row:hover { background: #FAFCF9; }
+.pj-row--pend { box-shadow: inset 3px 0 0 var(--warning); }
+.pj-info { flex: 1; min-width: 0; }
+.pj-nome {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-body);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pj-pend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--warning);
+  background: var(--warning-bg);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+.pj-pend__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warning); }
+.pj-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.pj-sub .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #c2cdba;
+  display: inline-block;
+}
+.pj-ttag {
+  background: var(--milk-warm);
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.pj-stag {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 1px 7px;
+}
+.pj-val { text-align: right; flex-shrink: 0; }
+.pj-val b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--plum-deep);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.pj-val span { font-size: 11px; color: var(--text-muted); }
+.pj-reaj {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.pj-reaj .icon { width: 14px; height: 14px; }
+.pj-reaj:hover { background: var(--warning-bg); }
+.pj-chev { width: 18px; height: 18px; color: #b9c6b1; flex-shrink: 0; }
+@media (max-width: 560px) {
+  .pj-row { gap: 10px; padding: 13px 14px; }
+  .pj-reaj span { display: none; }
+  .pj-reaj { padding: 8px; }
+}
 .func-perfil-demitido__icon {
   display: inline-flex;
   flex-shrink: 0;

@@ -3398,8 +3398,7 @@ function renderPJList() {
     return;
   }
 
-  root.innerHTML = `<div class="list">${list.map((p) => {
-    const statusBadge = p.status === "ativo" ? "success" : p.status === "suspenso" ? "warning" : "neutral";
+  root.innerHTML = `<div class="pj-list">${list.map((p) => {
     const periodObj = PERIODICIDADES_PJ.find((x) => x.id === p.periodicidade);
     const valor = p.valorAtual
       ? formatMoeda(p.valorAtual) + (periodObj?.sufixo || "")
@@ -3408,38 +3407,40 @@ function renderPJList() {
 
     const precisaReajuste = pjPrecisaReajuste(p);
     const userPodeReajustar = u && (u.role === "admin" || u.role === "rh");
-    const podeMostrarBotaoReajuste = userPodeReajustar && p.status === "ativo";
+    // "Reajustar" aparece só nas linhas que realmente precisam (a exceção, não a
+    // regra). Reajuste fora de ciclo vive no detalhe (botão no modal do PJ).
+    const mostrarReajustar = userPodeReajustar && p.status === "ativo" && precisaReajuste;
+
+    const subParts = [];
+    if (p.tipoServico) subParts.push(`<span class="pj-ttag">${escapeHtml(p.tipoServico)}</span>`);
+    if (p.cnpj) subParts.push(`<span>${escapeHtml(p.cnpj)}</span>`);
+    if (p.status && p.status !== "ativo") {
+      subParts.push(`<span class="pj-stag">${p.status === "suspenso" ? "Suspenso" : "Encerrado"}</span>`);
+    }
+    const subHtml = subParts.join(`<span class="dot"></span>`);
+
     return `
-      <article class="occ" style="grid-template-columns: 44px 1fr auto auto auto auto;" data-pj="${p.id}">
-        <div class="avatar">${initials(p.nome || "?")}</div>
-        <div class="occ__main">
-          <div class="occ__name">
+      <article class="pj-row ${precisaReajuste ? "pj-row--pend" : ""}" data-pj="${p.id}">
+        <div class="pj-info">
+          <div class="pj-nome">
             ${escapeHtml(p.nome || "(sem nome)")}
-            ${precisaReajuste ? `<span class="badge badge--warning" style="margin-left:8px; font-size:10px;"><span class="dot"></span>REAJUSTE PENDENTE</span>` : ""}
+            ${precisaReajuste ? `<span class="pj-pend"><span class="pj-pend__dot"></span>reajuste pendente</span>` : ""}
           </div>
-          <div class="occ__sub">
-            ${p.tipoServico ? `<span class="badge badge--neutral">${escapeHtml(p.tipoServico)}</span>` : ""}
-            ${p.cnpj ? `<span class="dot"></span><span>${escapeHtml(p.cnpj)}</span>` : ""}
-          </div>
+          ${subHtml ? `<div class="pj-sub">${subHtml}</div>` : ""}
         </div>
-        <div style="text-align: right;">
-          <div style="font-family: var(--font-display); font-weight: 700; color: var(--plum); font-size: 15px;">${valor}</div>
-          <div class="text-xs muted">${periodicidade}</div>
+        <div class="pj-val">
+          <b>${valor}</b>
+          <span>${escapeHtml(periodicidade)}</span>
         </div>
-        ${p.contratoUrl
-          ? `<a href="${p.contratoUrl}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" data-stop="1" title="Abrir contrato no Drive">${icon("file")}<span>Contrato</span></a>`
-          : `<span class="text-xs muted" style="text-align:center;">sem contrato</span>`}
-        ${podeMostrarBotaoReajuste
-          ? (precisaReajuste
-              ? `<button class="btn btn--primary btn--sm" data-stop="1" data-reajustar="${p.id}" title="Aplicar reajuste IPCA do ciclo atual">${icon("check")}<span>Reajustar</span></button>`
-              : `<button class="btn btn--ghost btn--sm" data-stop="1" data-reajustar="${p.id}" title="Aplicar reajuste extra (fora do ciclo anual)">${icon("plus")}<span>Reajuste</span></button>`)
-          : `<span class="badge badge--${statusBadge}" style="text-transform: uppercase;">${p.status || "—"}</span>`}
-        <svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        ${mostrarReajustar
+          ? `<button class="pj-reaj" data-stop="1" data-reajustar="${p.id}" title="Aplicar reajuste IPCA do ciclo atual">${icon("check")}<span>Reajustar</span></button>`
+          : ""}
+        <svg class="icon pj-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </article>
     `;
   }).join("")}</div>`;
 
-  $$("#pj-list .occ").forEach((el) => {
+  $$("#pj-list .pj-row").forEach((el) => {
     el.addEventListener("click", (e) => {
       // Não abre o modal se clicou no link do contrato ou botão "Reajustar"
       if (e.target.closest("[data-stop]")) return;
@@ -3758,6 +3759,8 @@ function openPJModal(id) {
 
     <div class="modal__footer">
       ${!isNew ? `<button class="btn btn--danger" id="btn-del-pj" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
+      ${(!isNew && pj && (currentUser().role === "admin" || currentUser().role === "rh") && pj.status === "ativo")
+        ? `<button class="btn btn--soft" id="btn-reajustar-pj">${icon("plus")}<span>Reajustar</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Cancelar</button>
       <button class="btn btn--primary" id="btn-save-pj">${icon("check")}<span>${isNew ? "Cadastrar" : "Salvar"}</span></button>
     </div>
@@ -3766,6 +3769,16 @@ function openPJModal(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#btn-save-pj").addEventListener("click", () => savePJ(id));
       if (!isNew) $("#btn-del-pj").addEventListener("click", () => deletePJ(id));
+
+      // Reajustar a partir do detalhe (caso fora de ciclo). openModal substitui
+      // o #modal-root, então o cleanup do closeModal não roda sozinho — encerro
+      // a edição colaborativa na mão antes de abrir o modal de reajuste.
+      const btnReaj = document.getElementById("btn-reajustar-pj");
+      if (btnReaj) btnReaj.addEventListener("click", () => {
+        if (window.setarPJEditando) window.setarPJEditando(null);
+        if (window.pararEscutaPJ) window.pararEscutaPJ();
+        openReajusteModal(id);
+      });
 
       // EDIÇÃO COLABORATIVA REAL (Firestore-backed)
       // 1) Sinaliza pra outros users que estou editando este PJ
