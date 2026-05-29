@@ -18,6 +18,22 @@
 
 ---
 
+## 0.1 🩺 Hardware do RAID + diagnóstico de "100% do nada" (2026-05-29)
+
+**O disco de sistema (C:+D:) é um RAID 1 Intel de 2× Crucial BX500 2 TB (`CT2000BX500S`) — SSD QLC *sem DRAM*.** Esse modelo **colapsa sob escrita sustentada** (cache SLC enche → vazão cai a nível de HDD, latência dispara). É o gargalo físico do servidor. (Disco 1 = HDD Seagate 4 TB no E:, ocioso.)
+
+**Assinatura do "100% do nada"** (≠ o incidente do grep, que foi auto-infligido): no Event Viewer / System, fonte **`iaStorVD` ID 129 "Redefinir para dispositivo \Device\RaidPort0, emitido"** = o Intel RST **resetou a porta do RAID** porque uma I/O estourou o timeout. Disco fica **100% de tempo ativo com pouca vazão** (tudo travado esperando). Em 90 dias houve rajadas (38 num só dia), em horas variadas → **dependente de carga**, não horário fixo. Eventos `disk` ID 51 (paginação, ~01:00) batem com o `Microsoft-Windows-WindowsBackup` + VSS.
+
+**Como diagnosticar com segurança (read-only, NUNCA varrer disco):**
+- Logger pronto em `C:\fiobras-pipeline-rh\_diag\` (`disk-watch.ps1` rodando; `STOP-disk-watch.ps1` pra parar; `README.md` explica). Loga I/O a cada 10 s + marca resets 129/51/153 em `disk-resets.log`.
+- No pico: `resmon` → aba **Disco** ordenar por Total B/s mostra o arquivo/processo. **Se nenhum processo aparece com I/O = é controlador/SSD/VSS, não app.**
+- Ver resets: `Get-WinEvent -FilterHashtable @{LogName='System';ProviderName='iaStorVD';Id=129}`.
+- **SMART dos BX500 (precisa admin):** `Get-PhysicalDisk | Get-StorageReliabilityCounter`.
+
+**Mitigação:** (1) checar SMART; se desgastados, **trocar os BX500 por SSD com DRAM/TLC (datacenter)** — maior alavanca; (2) espalhar backups/exports (WKBackup 11:55, rajada comercial 14:00, estoque a cada 30 min) pra fora do horário de carga; (3) atualizar driver Intel RST + checar verify/patrol read agendado; (4) Defender real-time já está OFF (não é causa). Detalhe completo no `HISTORICO-DECISOES.md` (2026-05-29).
+
+---
+
 ## 1. Visão geral do fluxo
 
 ```

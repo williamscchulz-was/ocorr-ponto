@@ -90,3 +90,43 @@
   - Adicionada **diretriz permanente #5** na memória local do Claude WKRADAR.
   - Esta entrada no histórico.
 - **Lição:** `D:\WKRadar` é dado de produção do ERP num SSD de sistema. Qualquer leitura em massa ali derruba o servidor. Buscas sempre escopadas ao pipeline/repo, com ferramenta que pula binários (ripgrep/Grep tool), e comandos longos em background precisam ser confirmados (não deixar órfão).
+
+---
+
+## 2026-05-29 · 🔬 Investigação: RAID a 100% "do nada" — causa EXTERNA (controlador/SSD), não o pipeline
+
+> Investigação **read-only** (sem varrer disco — só métricas/perf/Event Log), continuando o incidente do grep órfão (acima). Objetivo: achar a causa **recorrente e externa** dos picos de 100% no RAID 1 SSD de sistema.
+
+### Hardware do RAID (descoberto via `Get-PhysicalDisk` + eventos RST Middleware)
+- **Disco 0 (C:+D:) = "Intel Raid 1 Volume", RAID 1 de 2× `CT2000BX500S` (Crucial BX500 2 TB)**, controlado pelo Intel RST (`iaStorVD` / `RstMwService`).
+- **Os BX500 são SSDs QLC *DRAM-less* de consumo** — conhecidos por **colapso de desempenho sob escrita sustentada** (quando o cache SLC enche, a taxa despenca pra nível de HDD e a latência dispara). Dois deles em espelho = o gargalo do servidor.
+- Disco 1 (E:) = Seagate IronWolf ST4000VN006 4 TB (HDD, passthru), ocioso.
+
+### 🔴 Achado principal — resets de controlador (assinatura do "100% do nada")
+- Event Viewer / System, fonte **`iaStorVD`, ID 129: "Redefinir para dispositivo \Device\RaidPort0, emitido"** = o driver Intel RST **resetou a porta do RAID** porque uma I/O não completou no timeout. Quando isso acontece, o disco fica em **100% de tempo ativo com pouca vazão** — tudo travado esperando o reset. **Isso É o "100% do nada".**
+- Distribuição (90 dias): **38 resets em 21/05** concentrados às 21h (17) e 23h (19) — um episódio de stall longo naquela noite; e esparsos em 04/05, 15/05, 23/05, 24/05, em horas variadas (10h/12h/18h/19h). **Padrão disperso/dependente de carga**, não horário fixo → bate com stall de SSD (cache SLC esgotado / disco lento), não com tarefa agendada.
+- Eventos **`disk` ID 51 "erro durante operação de paginação" em `\Device\Harddisk2`** todo dia ~01:00–01:02, junto da criação de VSS shadow copies do volume WKRADAR — correlaciona com a tarefa **`Microsoft-Windows-WindowsBackup` (diária 01:00)**.
+
+### Agenda dos suspeitos externos (levantada com `Get-ScheduledTaskInfo`)
+- **Windows Backup (`Microsoft-Windows-WindowsBackup`)** — diário **01:00** (cria VSS + lê disco; gera os eventos 51 noturnos).
+- **`WKRADAR - Backup` → `WKBackup.exe`** — diário **11:55** (sem repetição); lê o banco do ERP pra backup.
+- **7× "Exportação Saldo Estoque" (300/300T/302/360RET/400/401/404)** → `.bat` → `ExportacaoAutomatica.exe` — **repetem a cada 30 min, o dia todo** (`PT30M`/`P1D`), escalonadas. Consumidor frequente do banco D:\WKRadar (bursts curtos).
+- **Pipeline Comercial** (`Fiobras Dim*`/`Fat*`) e exports de estoque 360 — rajada **14:00–14:04** + estoque a cada 30 min; todos chamam o mesmo `ExportacaoAutomatica.exe`.
+- **Pipeline RH** — `WKRadar Export D_Empregado` 07:40 + `Fiobras Pipeline RH` 08:00 (já auditado, descartado).
+- **Windows Defender** — **Real-Time DESLIGADO** (`RealTimeProtectionEnabled=False`); só **quick scan diário ~04:06 (~41 s)**. **Descartado** como causa de pico sustentado.
+- **Defrag/Otimização** — semanal, rodou 22/05. **ReFS "Data Integrity Scan"** = **no-op** (todos os volumes são NTFS). Descartados.
+- **SQL Server** (`sqlservr`) também roda no servidor (além do Firebird/.dat do WK) — segundo motor de banco fazendo I/O.
+
+### Conclusão (hipótese forte, a confirmar com o logger no próximo pico)
+A causa mais provável do **"100% do nada"** NÃO é um processo varrendo arquivo — é o **par de SSDs Crucial BX500 (QLC sem DRAM) em RAID 1 estolando sob escrita sustentada**, fazendo o **Intel RST resetar a RaidPort0 (evento 129)** e o disco ficar 100% travado esperando. Gatilhos prováveis de carga: backups (01:00 e 11:55), exports de estoque a cada 30 min + rajada comercial das 14:00, e operações pesadas do ERP/SQL. **"Sem processo culpado no pico" = diagnóstico, não falha de medição** (aponta controlador/SSD).
+
+### Logger instalado (pra pegar o culpado no ato)
+- `C:\fiobras-pipeline-rh\_diag\disk-watch.ps1` — loop 10 s, read-only; loga %tempo/fila/latência/MBps, top-5 processos de I/O quando carrega, e **marca cada evento 129/51/153 novo** em `disk-resets.log`. Rodando agora (**PID salvo em `_diag\disk-watch.pid`**). Há `STOP-disk-watch.ps1` pra encerrar — **não deixar órfão**.
+- ⚠️ **Pendências que exigem elevação (Claude rodou sem admin — "Acesso negado"):** (a) registrar o logger como tarefa no boot/SYSTEM (pra sobreviver reboot e pegar madrugada) e (b) ler **SMART** dos BX500 (`Get-StorageReliabilityCounter` / `smartctl`) pra confirmar wear/erros. Comandos prontos no `_diag\README.md`.
+
+### Recomendação de mitigação (ordem de impacto)
+1. **Confirmar saúde dos BX500 via SMART (elevado).** Se houver Wear alto / Reallocated / erros → **trocar os 2 SSDs por modelos com DRAM e TLC (linha datacenter/pro)**; BX500 QLC é inadequado pra disco de sistema de ERP+SQL com escrita constante. **Maior alavanca.**
+2. **Espalhar os horários de backup/export** pra não somar com carga do ERP: mover `WKBackup.exe` (11:55) e a rajada comercial (14:00) pra janela ociosa noturna; reavaliar a real necessidade dos exports de estoque **a cada 30 min** (talvez 1–2×/dia baste).
+3. **Atualizar driver Intel RST** (eventos 129 também podem agravar por driver antigo) e checar no app "Intel Optane/RST" se há **verify/patrol read** agendado caindo em horário de expediente — reagendar pra madrugada.
+4. **Mover o pagefile** (hoje em C:, no mesmo RAID estolante) — se sobrar pressão, considerar pagefile no HDD E: ou, melhor, resolver o SSD (item 1).
+5. Manter o logger até capturar 1–2 picos e fechar o diagnóstico empiricamente; depois **parar o logger** (STOP-disk-watch.ps1).
