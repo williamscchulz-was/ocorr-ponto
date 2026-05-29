@@ -89,13 +89,23 @@ a:hover { color: var(--plum-soft); }
    LOGIN SCREEN
    ============================================ */
 
-/* Login minimalista: coluna única centralizada, sem painel de marca */
+/* Login minimalista — card flutuante (variante C aprovada) */
 .login {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  background: var(--bg);
+  background: linear-gradient(160deg, var(--milk-warm) 0%, var(--bg) 60%);
   padding: 24px;
+  position: relative;
+}
+/* fiozinho de cor no topo da tela */
+.login::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--plum) 0%, var(--plum-soft) 100%);
+  z-index: 1;
 }
 
 .login__form {
@@ -103,6 +113,11 @@ a:hover { color: var(--plum-soft); }
   flex-direction: column;
   width: 100%;
   max-width: 340px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 14px 40px rgba(0, 80, 40, .12);
 }
 
 /* Marca no topo do form */

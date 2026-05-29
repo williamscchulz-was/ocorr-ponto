@@ -1100,14 +1100,15 @@ const NOMES_MES_ABREV = [
 ];
 
 // Widget de aniversariantes no dashboard.
-// Admin/RH veem todos; líder vê só do próprio turno.
+// Mostra TODOS os funcionários ativos (aniversário é social, não tem escopo
+// por papel — admin/RH/líder/supervisor veem todos os aniversariantes do mês).
 // Só renderiza se houver pelo menos 1 aniversariante no mês corrente.
 // Campos vêm do pipeline RH (aniversarioDia/aniversarioMes em funcionarios/{id}).
 function renderAniversariantesWidget(u) {
   const hoje = new Date();
   const dia = hoje.getDate();
   const mes = hoje.getMonth() + 1;
-  const pool = funcionariosVisiveisPara(u);
+  const pool = (state.funcionarios || []).filter((f) => f.ativo !== false);
 
   const niverMes = pool
     .filter((f) => Number(f.aniversarioMes) === mes && Number(f.aniversarioDia) > 0)
@@ -5690,11 +5691,15 @@ function renderChatLista() {
     const preview = c.ultimaMsg
       ? escapeHtml(c.ultimaMsg.length > 40 ? c.ultimaMsg.slice(0, 40) + "…" : c.ultimaMsg)
       : (c.online ? "online" : "");
+    const foto = (state.users || []).find((x) => x.id === c.uid)?.fotoBase64;
+    const avStyle = foto
+      ? `background-image:url(${foto}); background-size:cover; background-position:center;`
+      : `background:${presenceColor(c.uid)};`;
     return `
       <button class="chat__contato ${c.online ? "chat__contato--online" : ""} ${ativo ? "is-active" : ""}"
               data-uid="${escapeHtml(c.uid)}" data-nome="${escapeHtml(c.nome)}">
-        <span class="chat__avatar" style="background:${presenceColor(c.uid)};">
-          ${escapeHtml(initials(c.nome || "?"))}
+        <span class="chat__avatar" style="${avStyle}">
+          ${foto ? "" : escapeHtml(initials(c.nome || "?"))}
           ${c.online ? `<span class="chat__online-dot"></span>` : ""}
         </span>
         <span class="chat__contato-info">
@@ -5744,11 +5749,15 @@ function abrirConversa(peerUid, peerNome) {
 // HTML do "esqueleto" da thread (header + área de msgs + composer).
 function chatThreadShell(peerNome, peerUid, msgsHtml) {
   const online = peerOnline(peerUid);
+  const foto = (state.users || []).find((x) => x.id === peerUid)?.fotoBase64;
+  const avStyle = foto
+    ? `background-image:url(${foto}); background-size:cover; background-position:center;`
+    : `background:${presenceColor(peerUid)};`;
   return `
     <div class="chat__thread-head">
       <button class="chat__voltar" id="chat-voltar" aria-label="Voltar">${icon("arrowLeft")}</button>
-      <span class="chat__avatar chat__avatar--sm" style="background:${presenceColor(peerUid)};">
-        ${escapeHtml(initials(peerNome || "?"))}
+      <span class="chat__avatar chat__avatar--sm" style="${avStyle}">
+        ${foto ? "" : escapeHtml(initials(peerNome || "?"))}
         ${online ? `<span class="chat__online-dot"></span>` : ""}
       </span>
       <span class="chat__thread-head-info">
