@@ -3013,3 +3013,7 @@ html.firebase-mode .login__forgot { display: block; }
 }
 .hv-del:hover { background: var(--danger-bg); color: var(--danger); }
 .hv-del .icon { width: 13px; height: 13px; }
+
+/* Padroniza <code> na fonte do sistema (Poppins) — sem monospace solto.
+   "Padroniza tudo" inclui a senha temporária. */
+code { font-family: inherit; }

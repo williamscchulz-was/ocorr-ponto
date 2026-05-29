@@ -490,7 +490,7 @@ function renderLoginQuick() {
 
 function roleLabel(user) {
   if (user.role === "admin") return "Administrador";
-  if (user.role === "rh") return "RH";
+  if (user.role === "rh") return "GH";
   if (user.role === "lider") return `Líder ${user.turno}º Turno`;
   if (user.role === "supervisor") return "Supervisor";
   return user.role;
@@ -968,7 +968,7 @@ function renderPresence() {
 
 // Tooltip helper (compartilhado entre topbar + sidebar)
 function montarTooltipPresence(usr) {
-  const ROLE_LABELS = { admin: "Admin", rh: "RH", lider: "Líder" };
+  const ROLE_LABELS = { admin: "Admin", rh: "GH", lider: "Líder" };
   const PAGE_LABELS = {
     dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
@@ -1005,7 +1005,7 @@ function abrirPresenceDropdown(online) {
   const u = currentUser();
   fecharPresenceDropdown();
 
-  const ROLE_LABELS = { admin: "Admin", rh: "RH", lider: "Líder" };
+  const ROLE_LABELS = { admin: "Admin", rh: "GH", lider: "Líder" };
   const PAGE_LABELS = {
     dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
@@ -1699,7 +1699,7 @@ function openNovaOcorrencia() {
     <div class="modal__header">
       <div>
         <h2>Nova ocorrência</h2>
-        <p>Preencha os dados que o RH conhece. O líder cuida da conferência depois.</p>
+        <p>Preencha os dados que o GH conhece. O líder cuida da conferência depois.</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
@@ -2283,7 +2283,7 @@ function renderFuncList(animar) {
         <div class="empty__icon">${icon("users")}</div>
         <h3>${semFiltro ? "Aguardando primeira sincronização" : "Nenhum resultado"}</h3>
         <p>${semFiltro
-          ? "Os funcionários virão automaticamente do pipeline de RH na próxima execução."
+          ? "Os funcionários virão automaticamente do pipeline de GH na próxima execução."
           : (apenasInativos ? "" : "Tente ajustar a busca ou os filtros (turno/status).")}</p>
         ${semFiltro ? "" : `<button class="btn btn--ghost" id="btn-limpar-func">${icon("x")}<span>Limpar filtros</span></button>`}
       </div>`;
@@ -2604,7 +2604,7 @@ function openFuncionarioModal(id) {
         if (pii) {
           pii.innerHTML = `
             <div class="func-perfil-secao">
-              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/RH)</div>
+              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GH)</div>
               <div class="text-xs muted">carregando…</div>
             </div>`;
         }
@@ -2614,7 +2614,7 @@ function openFuncionarioModal(id) {
           if (!dados) {
             cont.innerHTML = `
               <div class="func-perfil-secao">
-                <div class="func-perfil-secao__titulo">Dados sensíveis (admin/RH)</div>
+                <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GH)</div>
                 <div class="text-xs muted">Sem dados em banco-horas-saldos pra este código.</div>
               </div>`;
             return;
@@ -2622,7 +2622,7 @@ function openFuncionarioModal(id) {
           const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
           cont.innerHTML = `
             <div class="func-perfil-secao">
-              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/RH)</div>
+              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GH)</div>
               <div class="func-perfil-grid">
                 <div class="func-perfil-grid__item">
                   <label>CPF</label>
@@ -5196,7 +5196,7 @@ function renderAuditoria() {
     <header class="page-header">
       <div>
         <h1>Auditoria</h1>
-        <p>Quem fez o quê e quando — ocorrências e PJ. Apenas Admin e RH.</p>
+        <p>Quem fez o quê e quando — ocorrências e PJ. Apenas Admin e GH.</p>
       </div>
     </header>
     <div class="aud">
@@ -5345,7 +5345,7 @@ function renderConfig() {
     <header class="page-header">
       <div>
         <h1>Configurações</h1>
-        <p>Ajustes do sistema. Apenas administradores e RH.</p>
+        <p>Ajustes do sistema. Apenas administradores e GH.</p>
       </div>
     </header>
 
@@ -5875,7 +5875,7 @@ function openNovoUsuarioModal() {
         <div class="field">
           <label for="novo-user-role">Papel <span style="color:var(--danger)">*</span></label>
           <select id="novo-user-role" required aria-required="true">
-            <option value="rh">RH (cria e edita ocorrências)</option>
+            <option value="rh">GH (cria e edita ocorrências)</option>
             <option value="lider">Líder (confere ocorrências do turno)</option>
             <option value="supervisor">Supervisor (confere funcionários específicos)</option>
             <option value="admin">Administrador (acesso total)</option>
@@ -5987,7 +5987,7 @@ function openEditarUsuarioModal(uid) {
         <div class="field">
           <label for="edit-role">Papel <span style="color:var(--danger)">*</span></label>
           <select id="edit-role" required aria-required="true" ${ehVoceMesmo ? "disabled" : ""}>
-            <option value="rh" ${u.role === "rh" ? "selected" : ""}>RH</option>
+            <option value="rh" ${u.role === "rh" ? "selected" : ""}>GH</option>
             <option value="lider" ${u.role === "lider" ? "selected" : ""}>Líder</option>
             <option value="supervisor" ${u.role === "supervisor" ? "selected" : ""}>Supervisor</option>
             <option value="admin" ${u.role === "admin" ? "selected" : ""}>Administrador</option>

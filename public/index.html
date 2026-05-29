@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=122" />
+  <link rel="stylesheet" href="styles.css?v=123" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -32,7 +32,7 @@
   <div id="splash" class="splash">
     <div class="splash__inner">
       <img class="splash__logo" src="logo-fiobras-mark.png" alt="" />
-      <div class="splash__name">FioPulse<small>Fiobras · o batimento do RH</small></div>
+      <div class="splash__name">FioPulse<small>Fiobras · o batimento do GH</small></div>
       <div class="splash__spin" aria-hidden="true"></div>
       <div class="splash__status" role="status">Entrando…</div>
     </div>
@@ -47,7 +47,7 @@
         <img class="login__mark-img" src="logo-fiobras-mark.png" alt="Fiobras" />
         <div class="login__wordmark">
           FioPulse
-          <small>Fiobras · o batimento do RH</small>
+          <small>Fiobras · o batimento do GH</small>
         </div>
       </div>
 
@@ -103,7 +103,7 @@
         </div>
         <div class="app__brand-text">
           FioPulse<span class="brand-pulse" aria-hidden="true"></span>
-          <small>Fiobras · o batimento do RH</small>
+          <small>Fiobras · o batimento do GH</small>
         </div>
       </div>
 
@@ -172,13 +172,13 @@
   <div id="modal-root"></div>
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
-  <script defer src="data.js?v=122"></script>
-  <script defer src="app.js?v=122"></script>
+  <script defer src="data.js?v=123"></script>
+  <script defer src="app.js?v=123"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=122"></script>
-  <script defer src="google-drive.js?v=122"></script>
+  <script defer src="firebase.js?v=123"></script>
+  <script defer src="google-drive.js?v=123"></script>
 </body>
 </html>

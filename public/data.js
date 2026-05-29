@@ -73,8 +73,8 @@ const PERIODICIDADES_PJ = [
 
 const SEED_USERS = [
   { id: "admin", nome: "Administrador", role: "admin", senha: "admin" },
-  { id: "rh1", nome: "RH Demo 01", role: "rh", senha: "rh1" },
-  { id: "rh2", nome: "RH Demo 02", role: "rh", senha: "rh2" },
+  { id: "rh1", nome: "GH Demo 01", role: "rh", senha: "rh1" },
+  { id: "rh2", nome: "GH Demo 02", role: "rh", senha: "rh2" },
   { id: "lider1", nome: "Líder 1º Turno", role: "lider", turno: 1, senha: "lider1" },
   { id: "lider2", nome: "Líder 2º Turno", role: "lider", turno: 2, senha: "lider2" },
   { id: "lider3", nome: "Líder 3º Turno", role: "lider", turno: 3, senha: "lider3" },

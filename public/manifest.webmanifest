@@ -1,7 +1,7 @@
 {
   "name": "FioPulse · Fiobras",
   "short_name": "FioPulse",
-  "description": "O batimento do RH Fiobras — controle de ponto, banco de horas e PJs em tempo real.",
+  "description": "O batimento do GH Fiobras — controle de ponto, banco de horas e PJs em tempo real.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#FFFFFF",
