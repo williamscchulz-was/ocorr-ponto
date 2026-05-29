@@ -3664,32 +3664,75 @@ function openPJModal(id) {
     </div>
     <div id="modal-colab-banner" class="modal-colab-banner" style="display:none;"></div>
     <form class="modal__body" id="pj-form" onsubmit="return false">
-      ${isNew ? `
-        <div style="background: var(--surface-warm); border-left: 3px solid var(--primary); padding: 10px 12px; border-radius: var(--radius); margin-bottom: 12px;">
-          <div style="font-weight: 600; font-size: 13px;">Comece pelo contrato</div>
-          <div class="text-xs muted" style="margin-top: 2px;">Suba o PDF que o sistema detecta CNPJ, valor, nome e início automaticamente.</div>
-        </div>
-      ` : ""}
-
-      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contrato</div>
-      <div class="field">
-        <label for="pj-contrato-url">Link do contrato (Google Drive)</label>
-        <input type="url" id="pj-contrato-url" value="${pj?.contratoUrl || ""}" placeholder="https://drive.google.com/file/d/..." />
-        <span class="field__hint">Cole o link manualmente OU use o botão abaixo pra subir o PDF direto pro Drive da Fiobras (o sistema lê e preenche os campos automaticamente).</span>
-      </div>
-
-      <input type="file" id="pj-contrato-file" accept=".pdf,.docx,.doc" style="display:none;" />
-      <button type="button" class="btn ${isNew ? "btn--primary" : "btn--soft"} btn--block" id="btn-upload-drive">
-        ${icon("upload")}<span>Upload contrato</span>
-      </button>
+      <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Contrato${!isNew ? " &amp; aditivos" : ""}</div>
 
       ${pj?.contratoUrl ? `
-        <div style="background: var(--surface-warm); border-radius: var(--radius); padding: 12px; margin-top: 8px;">
-          <a href="${pj.contratoUrl}" target="_blank" rel="noopener" class="btn btn--soft btn--block">
-            ${icon("file")}<span>Abrir contrato atual</span>
-          </a>
+        <div class="pj-ct-chip">
+          <span class="pj-ct-ic">${icon("file")}</span>
+          <div class="pj-ct-main"><b>Contrato principal</b><span>PDF no Google Drive</span></div>
+          ${ehUrlSegura(pj.contratoUrl) ? `<a href="${escapeHtml(pj.contratoUrl)}" target="_blank" rel="noopener" class="pj-ct-abrir">${icon("file")}<span>Abrir</span></a>` : ""}
+          <button type="button" class="pj-ct-troca" id="btn-troca-contrato" title="Trocar contrato ou colar link">${icon("edit")}</button>
         </div>
-      ` : ""}
+      ` : `
+        <button type="button" class="pj-ct-drop" id="btn-ct-drop">
+          <span class="pj-ct-up">${icon("upload")}</span>
+          <b>Anexar contrato (PDF)</b>
+          <small>O sistema lê CNPJ, valor, nome e início automaticamente.</small>
+        </button>
+        <button type="button" class="pj-ct-linktoggle" id="btn-ct-linktoggle">ou colar link do Drive</button>
+      `}
+
+      <div id="pj-contrato-edit" style="display:none; margin-top:10px;">
+        <div class="field">
+          <label for="pj-contrato-url">Link do contrato (Google Drive)</label>
+          <input type="url" id="pj-contrato-url" value="${pj?.contratoUrl || ""}" placeholder="https://drive.google.com/file/d/..." />
+        </div>
+        <input type="file" id="pj-contrato-file" accept=".pdf,.docx,.doc" style="display:none;" />
+        <button type="button" class="btn btn--soft btn--block" id="btn-upload-drive">
+          ${icon("upload")}<span>Upload PDF (preenche automático)</span>
+        </button>
+      </div>
+
+      ${!isNew ? `
+        <div class="pj-adv-head">
+          <div class="pj-adv-t">Aditivos <span id="pj-aditivos-count" class="pj-adv-count"></span></div>
+          <button type="button" class="pj-adv-add" id="btn-add-aditivo">${icon("plus")}<span>Adicionar</span></button>
+        </div>
+        <div id="pj-aditivos-list"></div>
+
+        <div id="pj-aditivo-form" style="display:none; background: var(--surface-warm); border-radius: var(--radius); padding: 12px; margin-top: 8px;">
+          <div class="field-row">
+            <div class="field">
+              <label for="aditivo-data">Data do aditivo <span style="color:var(--danger)">*</span></label>
+              <input type="date" id="aditivo-data" required />
+            </div>
+            <div class="field">
+              <label for="aditivo-vigencia">Vigência (opcional)</label>
+              <input type="date" id="aditivo-vigencia" />
+              <span class="field__hint">Quando passa a valer. Vazio = mesma data acima.</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="aditivo-desc">Descrição / motivo <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="aditivo-desc" maxlength="200" placeholder="Reajuste IPCA 5.5%, inclusão de escopo, prorrogação..." />
+          </div>
+          <div class="field">
+            <label for="aditivo-url">Link do aditivo (Google Drive)</label>
+            <input type="url" id="aditivo-url" placeholder="https://drive.google.com/file/d/..." />
+          </div>
+          <input type="file" id="aditivo-file" accept=".pdf,.docx,.doc" style="display:none;" />
+          <button type="button" class="btn btn--soft btn--block" id="btn-upload-aditivo">
+            ${icon("upload")}<span>Upload PDF do aditivo</span>
+          </button>
+          <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end;">
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-cancel-aditivo">Cancelar</button>
+            <button type="button" class="btn btn--primary btn--sm" id="btn-save-aditivo">${icon("check")}<span>Salvar aditivo</span></button>
+          </div>
+        </div>
+      ` : `
+        <div class="pj-adv-head"><div class="pj-adv-t">Aditivos</div></div>
+        <div class="pj-adv-empty">Disponível depois de salvar o PJ.</div>
+      `}
 
       <div class="divider"></div>
 
@@ -3795,46 +3838,6 @@ function openPJModal(id) {
         </div>
       ` : ""}
 
-      ${!isNew ? `
-        <div class="divider"></div>
-        <div class="row row--between" style="margin-bottom: 8px;">
-          <div class="text-xs muted" style="font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">
-            Aditivos contratuais <span id="pj-aditivos-count" style="opacity:.7;"></span>
-          </div>
-          <button type="button" class="btn btn--ghost btn--sm" id="btn-add-aditivo">${icon("plus")}<span>Adicionar</span></button>
-        </div>
-        <div id="pj-aditivos-list" style="margin-bottom: 8px;"></div>
-
-        <div id="pj-aditivo-form" style="display:none; background: var(--surface-warm); border-radius: var(--radius); padding: 12px; margin-top: 8px;">
-          <div class="field-row">
-            <div class="field">
-              <label for="aditivo-data">Data do aditivo <span style="color:var(--danger)">*</span></label>
-              <input type="date" id="aditivo-data" required />
-            </div>
-            <div class="field">
-              <label for="aditivo-vigencia">Vigência (opcional)</label>
-              <input type="date" id="aditivo-vigencia" />
-              <span class="field__hint">Quando passa a valer. Vazio = mesma data acima.</span>
-            </div>
-          </div>
-          <div class="field">
-            <label for="aditivo-desc">Descrição / motivo <span style="color:var(--danger)">*</span></label>
-            <input type="text" id="aditivo-desc" maxlength="200" placeholder="Reajuste IPCA 5.5%, inclusão de escopo, prorrogação..." />
-          </div>
-          <div class="field">
-            <label for="aditivo-url">Link do aditivo (Google Drive)</label>
-            <input type="url" id="aditivo-url" placeholder="https://drive.google.com/file/d/..." />
-          </div>
-          <input type="file" id="aditivo-file" accept=".pdf,.docx,.doc" style="display:none;" />
-          <button type="button" class="btn btn--soft btn--block" id="btn-upload-aditivo">
-            ${icon("upload")}<span>Upload PDF do aditivo</span>
-          </button>
-          <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end;">
-            <button type="button" class="btn btn--ghost btn--sm" id="btn-cancel-aditivo">Cancelar</button>
-            <button type="button" class="btn btn--primary btn--sm" id="btn-save-aditivo">${icon("check")}<span>Salvar aditivo</span></button>
-          </div>
-        </div>
-      ` : ""}
     </form>
 
     <div class="modal__footer">
@@ -3858,6 +3861,25 @@ function openPJModal(id) {
         if (window.setarPJEditando) window.setarPJEditando(null);
         if (window.pararEscutaPJ) window.pararEscutaPJ();
         openReajusteModal(id);
+      });
+
+      // Contrato compacto: a área de edição (URL + botão de upload) fica
+      // escondida; o lápis "trocar", o "colar link" e o tile de anexar a revelam.
+      const revelarContratoEdit = () => {
+        const ed = document.getElementById("pj-contrato-edit");
+        if (ed) { ed.style.display = "block"; document.getElementById("pj-contrato-url")?.focus(); }
+      };
+      document.getElementById("btn-troca-contrato")?.addEventListener("click", revelarContratoEdit);
+      document.getElementById("btn-ct-linktoggle")?.addEventListener("click", revelarContratoEdit);
+      document.getElementById("btn-ct-drop")?.addEventListener("click", () => {
+        // Drive disponível → dispara o upload direto (mostra a área p/ ver o link
+        // preenchido). Sem Drive → revela o campo de link manual.
+        if (window.driveUploadDisponivel) {
+          revelarContratoEdit();
+          document.getElementById("btn-upload-drive")?.click();
+        } else {
+          revelarContratoEdit();
+        }
       });
 
       // EDIÇÃO COLABORATIVA REAL (Firestore-backed)
@@ -4735,26 +4757,26 @@ function bindAditivosPJ(pjId) {
     const aditivos = ((state.pjs || []).find((p) => p.id === pjId)?.aditivos) || [];
     countEl.textContent = aditivos.length ? `(${aditivos.length})` : "";
     if (aditivos.length === 0) {
-      list.innerHTML = `<div class="text-xs muted" style="padding:8px 4px;">Nenhum aditivo registrado.</div>`;
+      list.innerHTML = `<div class="pj-adv-empty">Nenhum aditivo registrado.</div>`;
       return;
     }
     const ordenados = [...aditivos].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
-    list.innerHTML = ordenados.map((a) => `
-      <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default; padding:10px 12px; margin-bottom:6px;">
-        <div class="occ__main" style="min-width:0;">
-          <div class="occ__name" style="font-size:13px; font-weight:600; white-space:normal;">${escapeHtml(a.descricao || "—")}</div>
-          <div class="occ__sub" style="font-size:11px;">
-            ${a.data ? formatDateFull(a.data) : "—"}
-            ${a.dataVigencia && a.dataVigencia !== a.data ? ` · vigência ${formatDateFull(a.dataVigencia)}` : ""}
-            ${a.criadoPor ? ` · ${escapeHtml(getUser(a.criadoPor)?.nome || "")}` : ""}
-          </div>
-        </div>
+    list.innerHTML = `<div class="pj-adv-list">${ordenados.map((a) => {
+      const meta = [
+        a.dataVigencia && a.dataVigencia !== a.data ? `vigência ${formatDateFull(a.dataVigencia)}` : "",
+        a.criadoPor ? (getUser(a.criadoPor)?.nome || "") : "",
+      ].filter(Boolean).join(" · ");
+      const tip = (a.descricao || "—") + (meta ? " — " + meta : "");
+      return `
+      <div class="pj-adv-row">
+        <span class="pj-adv-date">${a.data ? formatDate(a.data) : "—"}</span>
+        <span class="pj-adv-desc" title="${escapeHtml(tip)}">${escapeHtml(a.descricao || "—")}</span>
         ${a.contratoUrl && ehUrlSegura(a.contratoUrl)
-          ? `<a href="${escapeHtml(a.contratoUrl)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" data-stop="1" title="Abrir aditivo">${icon("file")}</a>`
-          : `<span></span>`}
-        <button type="button" class="btn btn--ghost btn--sm" data-del-aditivo="${escapeHtml(a.id)}" title="Excluir aditivo">${icon("trash")}</button>
-      </article>
-    `).join("");
+          ? `<a href="${escapeHtml(a.contratoUrl)}" target="_blank" rel="noopener" class="pj-adv-open" data-stop="1" title="Abrir aditivo">${icon("file")}</a>`
+          : ""}
+        <button type="button" class="pj-adv-open pj-adv-del" data-del-aditivo="${escapeHtml(a.id)}" title="Excluir aditivo">${icon("trash")}</button>
+      </div>`;
+    }).join("")}</div>`;
 
     list.querySelectorAll("[data-del-aditivo]").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
