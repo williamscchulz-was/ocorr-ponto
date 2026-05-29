@@ -3751,10 +3751,15 @@ function openPJModal(id) {
         </div>
         <div class="field">
           <label for="pj-tipo">Tipo de serviço</label>
-          <input type="text" id="pj-tipo" list="pj-tipos-list" value="${pj?.tipoServico || ""}" placeholder="Marketing, Contábil..." />
-          <datalist id="pj-tipos-list">
-            ${TIPOS_PJ.map((t) => `<option value="${t}">`).join("")}
-          </datalist>
+          <select id="pj-tipo">
+            <option value="">— selecione —</option>
+            ${(() => {
+              const atual = pj?.tipoServico || "";
+              // Preserva um tipo legado que não esteja na lista padrão.
+              const lista = (!atual || TIPOS_PJ.includes(atual)) ? TIPOS_PJ : [atual, ...TIPOS_PJ];
+              return lista.map((t) => `<option value="${escapeHtml(t)}" ${t === atual ? "selected" : ""}>${escapeHtml(t)}</option>`).join("");
+            })()}
+          </select>
         </div>
       </div>
 
