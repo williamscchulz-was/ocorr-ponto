@@ -24,6 +24,13 @@
   const SDK_VERSION = "10.12.5";
   const SDK_BASE = `https://www.gstatic.com/firebasejs/${SDK_VERSION}`;
 
+  // Handles do listener vivo de ocorrências. Vivem no escopo do IIFE porque
+  // DUAS funções irmãs precisam deles: carregarDadosCompletos (cria/recria o
+  // onSnapshot) e wireAuthFlow (cancela no signOut). Declarar dentro de uma
+  // delas faz a outra estourar "ocorrenciasUnsub is not defined".
+  let ocorrenciasUnsub = null;
+  let ocorrenciasIdsConhecidos = null; // null = ainda não houve 1ª carga
+
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const s = document.createElement("script");
@@ -1477,10 +1484,8 @@
     let presenceUnsubscribe = null;
     // Listener global do chat (mensagens recebidas → badge + lista de conversas)
     let chatUnsub = null;
-    // Listener vivo das ocorrências (tempo real). Set de ids da última emissão
-    // pra detectar deltas (novas ocorrências pendentes/visíveis → notifica).
-    let ocorrenciasUnsub = null;
-    let ocorrenciasIdsConhecidos = null; // null = ainda não houve 1ª carga
+    // ocorrenciasUnsub / ocorrenciasIdsConhecidos são declarados no escopo do
+    // IIFE (lá no topo) — carregarDadosCompletos, função irmã, também os usa.
 
     // Estado adicional pra colab: qual PJ esse user está editando
     let presencePjEditing = null;
