@@ -2202,6 +2202,8 @@ html.firebase-mode .login__forgot { display: block; }
 }
 .aud__row:last-child { border-bottom: 0; }
 .aud__row:hover { background: #FAFCF9; }
+.aud__row--static { cursor: default; }
+.aud__row--static:hover { background: transparent; }
 .aud__dot {
   width: 30px;
   height: 30px;

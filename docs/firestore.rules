@@ -94,6 +94,19 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin() || isRH();
     }
 
+    // ----- auditoria (log global IMUTÁVEL) -----
+    // Registra eventos que sumiriam do histórico normal — hoje: exclusões de
+    // ocorrência e de PJ (o doc some e leva o historico[] junto). Admin/RH leem
+    // e criam; ninguém edita/apaga (integridade do log de auditoria).
+    match /auditoria/{id} {
+      allow read: if isAdmin() || isRH();
+      allow create: if (isAdmin() || isRH())
+        && request.resource.data.por == request.auth.uid
+        && request.resource.data.acao is string
+        && request.resource.data.acao.size() <= 200;
+      allow update, delete: if false;
+    }
+
     // ----- presence (quem está online agora) -----
     // Leitura: qualquer usuário autenticado (pra renderizar o indicador).
     // Escrita/delete: só o próprio user no próprio documento (uid = doc id).

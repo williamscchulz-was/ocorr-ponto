@@ -3678,12 +3678,19 @@ function openPJModal(id) {
           ${icon("upload")}<span>Upload PDF (preenche automático)</span>
         </button>
       </div>
+      <input type="hidden" id="pj-drive-folder-id" value="${escapeHtml(pj?.driveFolderId || "")}" />
 
-      ${(window.driveUploadDisponivel && window.GOOGLE_DRIVE_CONFIG && window.GOOGLE_DRIVE_CONFIG.folderId) ? `
-        <a href="https://drive.google.com/drive/folders/${escapeHtml(window.GOOGLE_DRIVE_CONFIG.folderId)}" target="_blank" rel="noopener" class="pj-ct-pasta">
-          ${icon("file")}<span>Abrir pasta de contratos no Drive</span>
-        </a>
-      ` : ""}
+      ${(() => {
+        const sub = pj?.driveFolderId;
+        const root = window.GOOGLE_DRIVE_CONFIG && window.GOOGLE_DRIVE_CONFIG.folderId;
+        const fid = sub || root;
+        if (!window.driveUploadDisponivel || !fid) return "";
+        const label = sub ? "Abrir pasta deste PJ no Drive" : "Abrir pasta de contratos no Drive";
+        return `
+          <a href="https://drive.google.com/drive/folders/${escapeHtml(fid)}" target="_blank" rel="noopener" class="pj-ct-pasta">
+            ${icon("file")}<span>${label}</span>
+          </a>`;
+      })()}
 
       ${!isNew ? `
         <div class="pj-adv-head">
@@ -4059,6 +4066,7 @@ function openPJModal(id) {
             if (pjNome && window.findOrCreateFolderForPJ) {
               try {
                 parentFolderId = await window.findOrCreateFolderForPJ(pjNome);
+                if (parentFolderId && $("#pj-drive-folder-id")) $("#pj-drive-folder-id").value = parentFolderId;
               } catch (err) {
                 console.warn("[Drive] subpasta falhou, segue na raiz:", err);
               }
@@ -4111,6 +4119,7 @@ function openPJModal(id) {
               if (pjNomeFinal && pjNomeFinal !== pjNome) {
                 try {
                   const novaPasta = await window.findOrCreateFolderForPJ(pjNomeFinal);
+                  if (novaPasta && $("#pj-drive-folder-id")) $("#pj-drive-folder-id").value = novaPasta;
                   const novoNome = `Contrato - ${pjNomeFinal}.${ext}`;
                   const atualizado = await window.atualizarArquivoNoDrive(uploadResult.id, {
                     newParentId: novaPasta,
@@ -5158,7 +5167,7 @@ function classificarAcaoAuditoria(acao) {
   if (a.includes("desfez")) return { cat: "lancamentos", dot: "warn", ic: "undo" };
   if (a.includes("lançada") || a.includes("lancada") || a.includes("lançou") || a.includes("lancou"))
     return { cat: "lancamentos", dot: "info", ic: "send" };
-  if (a.includes("criou")) return { cat: "criacoes", dot: "neu", ic: "plus" };
+  if (a.includes("criou") || a.includes("adicionou")) return { cat: "criacoes", dot: "neu", ic: "plus" };
   if (a.includes("removeu") || a.includes("excluiu")) return { cat: "edicoes", dot: "dang", ic: "trash" };
   if (a.includes("reajust") || a.includes("alterou")) return { cat: "edicoes", dot: "warn", ic: "edit" };
   if (a.includes("editou") || a.includes("editada")) return { cat: "edicoes", dot: "warn", ic: "edit" };
@@ -5182,6 +5191,11 @@ function coletarAuditoria() {
       if (!h || !h.em) continue;
       itens.push({ tipo: "pj", em: h.em, por: h.por, acao: h.acao || "—", pj: p });
     }
+  }
+  // Log global imutável — eventos que somem do registro normal (exclusões).
+  for (const ev of (state.auditoriaGlobal || [])) {
+    if (!ev || !ev.em) continue;
+    itens.push({ tipo: "log", em: ev.em, por: ev.por, acao: ev.acao || "—", alvoTexto: ev.alvo || "" });
   }
   itens.sort((a, b) => String(b.em).localeCompare(String(a.em)));
   return itens;
@@ -5215,6 +5229,16 @@ function renderAuditoria() {
 
   pintarFeedAuditoria(true);
 
+  // Lazy: carrega o log global (exclusões) só na 1ª vez que a Auditoria abre —
+  // não pesa no boot. Depois fica em cache na sessão (atualizações vêm do push
+  // otimista do registrarAuditoria).
+  if (window.carregarAuditoriaGlobal && !state._audGlobalCarregado) {
+    window.carregarAuditoriaGlobal().then(() => {
+      state._audGlobalCarregado = true;
+      if (state.view.page === "auditoria") pintarFeedAuditoria();
+    });
+  }
+
   const busca = $("#aud-busca");
   if (busca) {
     busca.addEventListener("input", (e) => {
@@ -5245,7 +5269,9 @@ function pintarFeedAuditoria(animar) {
       const quem = (getUser(it.por)?.nome || it.por || "").toLowerCase();
       const alvo = (it.tipo === "pj"
         ? (it.pj?.nome || "")
-        : (it.o?.funcionarioNome || getFuncionario(it.o?.funcionarioId)?.nome || "")).toLowerCase();
+        : it.tipo === "log"
+          ? (it.alvoTexto || "")
+          : (it.o?.funcionarioNome || getFuncionario(it.o?.funcionarioId)?.nome || "")).toLowerCase();
       if (!quem.includes(termo) && !alvo.includes(termo)) return false;
     }
     return true;
@@ -5287,6 +5313,10 @@ function pintarFeedAuditoria(animar) {
           if (it.tipo === "pj") {
             alvo = "PJ · " + (it.pj?.nome || "—");
             attr = `data-pj="${escapeHtml(it.pj?.id || "")}"`;
+          } else if (it.tipo === "log") {
+            // Registro já não existe (foi excluído) — sem clique.
+            alvo = it.alvoTexto || "—";
+            attr = "";
           } else {
             const func = it.o.funcionarioNome || getFuncionario(it.o.funcionarioId)?.nome || "—";
             const tp = getTipo(it.o.tipo)?.label || "—";
@@ -5295,7 +5325,7 @@ function pintarFeedAuditoria(animar) {
           }
           const acaoHtml = escapeHtml(it.acao).replace(/\(([^)]+)\)/, "(<b>$1</b>)");
           return `
-            <button class="aud__row" ${attr}>
+            <button class="aud__row${attr ? "" : " aud__row--static"}" ${attr}>
               <span class="aud__dot aud__dot--${cl.dot}">${icon(cl.ic)}</span>
               <span class="aud__rc">
                 <span class="aud__acao">${acaoHtml}</span>

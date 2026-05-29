@@ -313,6 +313,7 @@
 
       try {
         await db.collection("ocorrencias").doc(id).delete();
+        window.registrarAuditoria?.({ tipo: "occ", acao: "Excluiu ocorrência", alvo: label });
         state.ocorrencias = state.ocorrencias.filter((x) => x.id !== id);
         closeModal();
         toast("Ocorrência excluída.");
@@ -581,6 +582,11 @@
         atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
       };
 
+      // Id da subpasta do Drive (capturado no upload) — pro link "Abrir pasta
+      // deste PJ". Só seta quando há valor (não apaga o existente na edição).
+      const _folderId = ($("#pj-drive-folder-id") && $("#pj-drive-folder-id").value) || "";
+      if (_folderId) dados.driveFolderId = _folderId;
+
       try {
         if (id) {
           const existing = (state.pjs || []).find((p) => p.id === id);
@@ -775,13 +781,16 @@
         criadoEm: new Date().toISOString(),
       };
 
+      const local = (state.pjs || []).find((p) => p.id === pjId);
+      const histEntry = { por: u?.id || "?", em: new Date().toISOString(), acao: "Adicionou aditivo: " + String(aditivo.descricao || "").slice(0, 80) };
+      const novoHistLog = [...((local && local.historico) || []), histEntry];
       await db.collection("pj").doc(pjId).update({
         aditivos: firebase.firestore.FieldValue.arrayUnion(novo),
+        historico: novoHistLog,
         atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
         atualizadoPor: u?.id || "?",
       });
-      const local = (state.pjs || []).find((p) => p.id === pjId);
-      if (local) local.aditivos = [...(local.aditivos || []), novo];
+      if (local) { local.aditivos = [...(local.aditivos || []), novo]; local.historico = novoHistLog; }
       return novo;
     };
 
@@ -794,12 +803,16 @@
       const alvo = (local.aditivos || []).find((a) => a.id === aditivoId);
       if (!alvo) throw new Error("Aditivo não encontrado");
 
+      const histEntry = { por: u?.id || "?", em: new Date().toISOString(), acao: "Removeu aditivo: " + String(alvo.descricao || "").slice(0, 80) };
+      const novoHistLog = [...(local.historico || []), histEntry];
       await db.collection("pj").doc(pjId).update({
         aditivos: firebase.firestore.FieldValue.arrayRemove(alvo),
+        historico: novoHistLog,
         atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
         atualizadoPor: u?.id || "?",
       });
       local.aditivos = (local.aditivos || []).filter((a) => a.id !== aditivoId);
+      local.historico = novoHistLog;
     };
 
     // Remove um lançamento do historicoValores por índice e recalcula o
@@ -843,12 +856,45 @@
       }))) return;
       try {
         await db.collection("pj").doc(id).delete();
+        window.registrarAuditoria?.({ tipo: "pj", acao: "Excluiu o PJ", alvo: "PJ · " + (pj.nome || "?") });
         state.pjs = state.pjs.filter((p) => p.id !== id);
         closeModal();
         toast("PJ excluído.");
         renderApp();
       } catch (err) {
         toast("Erro: " + err.message, "danger");
+      }
+    };
+
+    // Log global IMUTÁVEL (/auditoria) — eventos que somem do histórico normal
+    // (exclusões de ocorrência/PJ). Push otimista local (aparece na Auditoria
+    // na hora) + grava no Firestore. Best-effort: nunca bloqueia a ação.
+    window.registrarAuditoria = async function (evt) {
+      const por = (auth.currentUser && auth.currentUser.uid) || "?";
+      const acao = String(evt?.acao || "").slice(0, 200);
+      const tipo = evt?.tipo || "geral";
+      const alvo = String(evt?.alvo || "").slice(0, 300);
+      if (!Array.isArray(state.auditoriaGlobal)) state.auditoriaGlobal = [];
+      state.auditoriaGlobal.unshift({ por, acao, tipo, alvo, em: new Date().toISOString() });
+      try {
+        await db.collection("auditoria").add({
+          por, acao, tipo, alvo,
+          em: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debug?.("[auditoria] falha ao registrar:", e?.message || e);
+      }
+    };
+
+    // Carrega o log global sob demanda (chamado ao abrir a tela Auditoria).
+    window.carregarAuditoriaGlobal = async function () {
+      const u = currentUser();
+      if (!u || (u.role !== "admin" && u.role !== "rh")) return;
+      try {
+        const snap = await db.collection("auditoria").orderBy("em", "desc").limit(300).get();
+        state.auditoriaGlobal = snap.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
+      } catch (e) {
+        debug?.("[auditoria] load falhou:", e?.message || e);
       }
     };
 
@@ -1850,6 +1896,10 @@
         atualizadoEm: tsToIso(d.data().atualizadoEm),
       }));
     }
+
+    // Log global de auditoria NÃO é lido no boot (perf): carrega sob demanda
+    // ao abrir a tela Auditoria (window.carregarAuditoriaGlobal).
+    state.auditoriaGlobal = [];
 
     // Ocorrências — TEMPO REAL via onSnapshot (listener vivo).
     // limit(500): teto de leitura por boot pra não crescer sem limite conforme
