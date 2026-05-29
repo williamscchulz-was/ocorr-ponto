@@ -3257,7 +3257,7 @@ async function handleBancoHorasFile(file) {
       <div class="text-sm muted" style="margin-top:8px; line-height:1.6;">
         Saldos: positivo (${positivos}) · negativo (${negativos}) · zerado (${zerados})<br/>
         ${matchInativos.length > 0 ? `
-          <span style="color: var(--muted);">ℹ ${matchInativos.length} código(s) de funcionário(s) <strong>inativo(s)</strong> — saldo será gravado mas não aparece na listagem do Banco de Horas.</span><br/>
+          <span style="color: var(--muted);">${matchInativos.length} código(s) de funcionário(s) <strong>inativo(s)</strong> — saldo será gravado mas não aparece na listagem do Banco de Horas.</span><br/>
         ` : ""}
         ${semMatch.length > 0 ? `
           <span style="color: var(--warning);">${semMatch.length} código(s) não cadastrado(s) — serão ignorados: ${semMatch.slice(0, 5).map(e => e.codigo).join(", ")}${semMatch.length > 5 ? "..." : ""}</span>
