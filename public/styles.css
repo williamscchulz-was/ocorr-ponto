@@ -1999,6 +1999,8 @@ html.firebase-mode .login__forgot { display: block; }
   display: flex; flex-direction: column; overflow: hidden;
   animation: chatWidgetIn .18s ease-out;
 }
+/* hidden tem que vencer o display:flex acima (senão o X não fecha) */
+.chat-widget[hidden] { display: none; }
 @keyframes chatWidgetIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
 .chat-widget__head {
   display: flex; align-items: center; gap: 8px;

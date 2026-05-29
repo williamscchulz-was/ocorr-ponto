@@ -1208,15 +1208,20 @@
       });
     };
 
-    // Escuta UMA conversa (parKey). cb recebe array de msgs ordenadas asc. Retorna unsubscribe.
+    // Escuta UMA conversa (parKey). cb recebe array de msgs ordenadas asc.
+    // SEM orderBy no Firestore (evita dependência de índice composto que
+    // deixava o chat "Carregando…" enquanto o índice buildava) — ordena no
+    // cliente. Conversas têm poucas msgs (retenção 3 dias), sort é trivial.
+    // 2º arg do cb = erro (ou null) pra UI mostrar estado de falha.
     window.escutarConversa = function (parKey, cb) {
       return db.collection("mensagens")
         .where("parKey", "==", parKey)
-        .orderBy("criadoEm", "asc")
         .onSnapshot((snap) => {
-          const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }));
-          cb(msgs);
-        }, (e) => console.warn("[chat] conversa snapshot:", e.message));
+          const msgs = snap.docs
+            .map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }))
+            .sort((a, b) => (a.criadoEm || "9999").localeCompare(b.criadoEm || "9999"));
+          cb(msgs, null);
+        }, (e) => { console.warn("[chat] conversa snapshot:", e.message); cb(null, e); });
     };
 
     // Escuta TODAS as mensagens recebidas por mim (pra badge de não-lidas + lista
@@ -1227,11 +1232,11 @@
       const meu = auth.currentUser.uid;
       return db.collection("mensagens")
         .where("para", "==", meu)
-        .orderBy("criadoEm", "desc")
         .onSnapshot((snap) => {
-          state.mensagensRecebidas = snap.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }));
-          // só re-render leve do badge do FAB (que, se o widget estiver
-          // aberto, já re-renderiza a lista de conversas internamente)
+          // sort desc no cliente (sem orderBy → sem índice composto)
+          state.mensagensRecebidas = snap.docs
+            .map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }))
+            .sort((a, b) => (b.criadoEm || "").localeCompare(a.criadoEm || ""));
           try { window.atualizarBadgeChat?.(); } catch {}
         }, (e) => console.warn("[chat] minhas msgs snapshot:", e.message));
     };

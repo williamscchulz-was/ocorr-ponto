@@ -5739,7 +5739,12 @@ function abrirConversa(peerUid, peerNome) {
     wireChatThread(peerUid, peerNome);
   }
 
-  _chatConvUnsub = window.escutarConversa(parKey, (msgs) => {
+  _chatConvUnsub = window.escutarConversa(parKey, (msgs, err) => {
+    if (err) {
+      const area = $("#chat-msgs");
+      if (area) area.innerHTML = `<div class="chat__msgs-vazio">Não foi possível carregar agora. Feche e abra a conversa de novo.</div>`;
+      return;
+    }
     renderChatThread(peerUid, peerNome, msgs);
     // Marca como lidas as recebidas desta conversa (best-effort)
     window.marcarConversaLida(parKey).catch((e) => console.warn("[chat] marcarLida:", e?.message || e));
@@ -5767,7 +5772,7 @@ function chatThreadShell(peerNome, peerUid, msgsHtml) {
     </div>
     <div class="chat__msgs" id="chat-msgs">${msgsHtml}</div>
     <form class="chat__composer" id="chat-composer">
-      <textarea id="chat-input" rows="1" maxlength="2000" placeholder="Escreva uma mensagem… (Enter envia)"></textarea>
+      <textarea id="chat-input" rows="1" maxlength="2000" placeholder="Escreva uma mensagem"></textarea>
       <button type="submit" class="chat__enviar" aria-label="Enviar">${icon("send")}</button>
     </form>`;
 }
