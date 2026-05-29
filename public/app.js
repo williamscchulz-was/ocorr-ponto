@@ -6272,6 +6272,15 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#chat-fab")?.addEventListener("click", toggleChatWidget);
   $("#chat-widget-close")?.addEventListener("click", fecharChatWidget);
 
+  // Sidebar retrátil (desktop): recolhe/expande + persiste o estado.
+  const appElRail = $("#app");
+  try { if (localStorage.getItem("fiopulse:sidebarRail") === "1") appElRail?.classList.add("app--rail"); } catch {}
+  $("#sidebar-toggle")?.addEventListener("click", () => {
+    if (!appElRail) return;
+    const recolhida = appElRail.classList.toggle("app--rail");
+    try { localStorage.setItem("fiopulse:sidebarRail", recolhida ? "1" : "0"); } catch {}
+  });
+
   // ESC fecha modais e drawer da sidebar mobile
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
