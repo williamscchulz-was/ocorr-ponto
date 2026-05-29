@@ -1103,19 +1103,17 @@ textarea:focus-visible,
 
 .occ__sub .dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .4; }
 
-/* Banco de Horas — card enriquecido (cargo/setor/escala/idade) */
-.bh-card__escala {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 3px;
-  line-height: 1.35;
+/* Banco de Horas — saldo grande colorido (variação minimalista) */
+.bh-saldo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
-.bh-card__meta {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 2px;
-  opacity: 0.85;
-}
+.bh-saldo--success { color: var(--success); }
+.bh-saldo--danger { color: var(--danger); }
+.bh-saldo--neutral { color: var(--text-muted); }
 
 .occ__time {
   font-family: var(--font-display);

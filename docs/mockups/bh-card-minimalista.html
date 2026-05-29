@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Card Banco de Horas minimalista (5 ideias)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+<style>
+  :root{
+    --verde:#008835; --verde-deep:#006328;
+    --milk:#F5F8F4; --surface:#FFFFFF; --border:#D2E2CD;
+    --text:#1E2D1A; --muted:#4A6245;
+    --ok:#2F6B3F; --ok-bg:#E0EAD8; --danger:#962F32; --danger-bg:#F4D6D2; --neutral-bg:#EDF1EA;
+    --font:"Poppins",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#eceee9;color:var(--text);padding:32px 20px;}
+  h1{text-align:center;color:var(--verde-deep);font-weight:800;margin:0 0 4px;font-size:24px;}
+  .sub{text-align:center;color:var(--muted);margin:0 0 36px;font-size:14px;}
+  .grid{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:36px;}
+  .variant__label{font-weight:700;color:var(--verde-deep);font-size:16px;margin:0 0 2px;}
+  .variant__desc{font-size:12.5px;color:var(--muted);margin:0 0 12px;}
+  .list{display:flex;flex-direction:column;gap:8px;}
+
+  /* avatar base */
+  .av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+  .av--azul{background:#0076BE;} .av--verde{background:#008835;} .av--ambr{background:#F28C28;}
+
+  /* saldo badge */
+  .saldo{font-family:var(--font);font-weight:700;font-size:13px;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .saldo--neg{background:var(--danger-bg);color:var(--danger);}
+  .saldo--pos{background:var(--ok-bg);color:var(--ok);}
+  .saldo--zero{background:var(--neutral-bg);color:var(--muted);}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;}
+
+  /* ============ V1 — Essencial (avatar + nome + cargo·setor + saldo) ============ */
+  .v1{display:flex;align-items:center;gap:12px;padding:12px 16px;}
+  .v1__main{flex:1;min-width:0;}
+  .v1__nome{font-weight:600;font-size:14px;}
+  .v1__sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  /* ============ V2 — Duas linhas, sem avatar ============ */
+  .v2{padding:12px 16px;}
+  .v2__top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+  .v2__nome{font-weight:600;font-size:14px;}
+  .v2__sub{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  /* ============ V3 — Saldo é o herói (número grande à direita) ============ */
+  .v3{display:flex;align-items:center;gap:14px;padding:14px 16px;}
+  .v3__main{flex:1;min-width:0;}
+  .v3__nome{font-weight:600;font-size:14px;}
+  .v3__sub{font-size:11.5px;color:var(--muted);}
+  .v3__saldo{font-family:var(--font);font-weight:800;font-size:22px;letter-spacing:-.02em;white-space:nowrap;}
+  .v3__saldo.neg{color:var(--danger);} .v3__saldo.pos{color:var(--ok);} .v3__saldo.zero{color:var(--muted);}
+
+  /* ============ V4 — Ultra-enxuto: 1 linha só ============ */
+  .v4{display:flex;align-items:center;gap:10px;padding:10px 16px;}
+  .v4__nome{font-weight:600;font-size:13.5px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .v4__setor{font-size:11px;color:var(--muted);flex-shrink:0;}
+  .v4__dot{width:3px;height:3px;border-radius:50%;background:var(--border);flex-shrink:0;}
+
+  /* ============ V5 — Expandível (minimal + detalhe sob demanda) ============ */
+  .v5{padding:12px 16px;}
+  .v5__row{display:flex;align-items:center;gap:12px;cursor:pointer;}
+  .v5__main{flex:1;min-width:0;}
+  .v5__nome{font-weight:600;font-size:14px;}
+  .v5__sub{font-size:12px;color:var(--muted);}
+  .v5__chev{color:var(--muted);transition:transform .2s;flex-shrink:0;}
+  .v5 details{}
+  .v5 details[open] .v5__chev{transform:rotate(90deg);}
+  .v5__det{margin:10px 0 0 50px;font-size:12px;color:var(--muted);line-height:1.7;border-left:2px solid var(--border);padding-left:12px;}
+  .v5 summary{list-style:none;}
+  .v5 summary::-webkit-details-marker{display:none;}
+</style>
+</head>
+<body>
+  <h1>Card Banco de Horas — 5 ideias minimalistas</h1>
+  <p class="sub">Hoje o card mostra avatar + nome + cargo·setor + escala + idade·niver·tempo de casa + saldo. É muita coisa. Abaixo, 5 formas de enxugar. Dados de exemplo (fictícios).</p>
+
+  <div class="grid">
+
+    <!-- V1 -->
+    <div>
+      <p class="variant__label">1 · Essencial</p>
+      <p class="variant__desc">Avatar + nome + cargo·setor + saldo. Corta escala, idade, niver e tempo de casa. Limpo e direto — o saldo continua sendo o foco.</p>
+      <div class="list">
+        <div class="card v1"><span class="av av--azul">AS</span><div class="v1__main"><div class="v1__nome">Ana Exemplo Silva</div><div class="v1__sub">Operador de Máquina V · Repasse</div></div><span class="saldo saldo--neg">-1h24</span></div>
+        <div class="card v1"><span class="av av--verde">BC</span><div class="v1__main"><div class="v1__nome">Bruno Costa Lima</div><div class="v1__sub">Auxiliar de Produção · Preparação</div></div><span class="saldo saldo--pos">+3h10</span></div>
+        <div class="card v1"><span class="av av--ambr">CD</span><div class="v1__main"><div class="v1__nome">Carla Dias</div><div class="v1__sub">Analista · Administração</div></div><span class="saldo saldo--zero">00:00</span></div>
+      </div>
+    </div>
+
+    <!-- V2 -->
+    <div>
+      <p class="variant__label">2 · Duas linhas (sem avatar)</p>
+      <p class="variant__desc">Nome e saldo na mesma linha; cargo·setor em cinza abaixo. Sem avatar — mais compacto verticalmente, ótimo pra listas longas.</p>
+      <div class="list">
+        <div class="card v2"><div class="v2__top"><span class="v2__nome">Ana Exemplo Silva</span><span class="saldo saldo--neg">-1h24</span></div><div class="v2__sub">Operador de Máquina V · Repasse</div></div>
+        <div class="card v2"><div class="v2__top"><span class="v2__nome">Bruno Costa Lima</span><span class="saldo saldo--pos">+3h10</span></div><div class="v2__sub">Auxiliar de Produção · Preparação</div></div>
+        <div class="card v2"><div class="v2__top"><span class="v2__nome">Carla Dias</span><span class="saldo saldo--zero">00:00</span></div><div class="v2__sub">Analista · Administração</div></div>
+      </div>
+    </div>
+
+    <!-- V3 -->
+    <div>
+      <p class="variant__label">3 · Saldo é o herói</p>
+      <p class="variant__desc">O saldo vira número grande colorido à direita (verde/vermelho). Nome + cargo discretos à esquerda. Bate o olho e enxerga quem tá no vermelho.</p>
+      <div class="list">
+        <div class="card v3"><span class="av av--azul">AS</span><div class="v3__main"><div class="v3__nome">Ana Exemplo Silva</div><div class="v3__sub">Operador de Máquina V · Repasse</div></div><span class="v3__saldo neg">-1h24</span></div>
+        <div class="card v3"><span class="av av--verde">BC</span><div class="v3__main"><div class="v3__nome">Bruno Costa Lima</div><div class="v3__sub">Auxiliar de Produção · Preparação</div></div><span class="v3__saldo pos">+3h10</span></div>
+        <div class="card v3"><span class="av av--ambr">CD</span><div class="v3__main"><div class="v3__nome">Carla Dias</div><div class="v3__sub">Analista · Administração</div></div><span class="v3__saldo zero">00:00</span></div>
+      </div>
+    </div>
+
+    <!-- V4 -->
+    <div>
+      <p class="variant__label">4 · Ultra-enxuto (1 linha)</p>
+      <p class="variant__desc">Tudo numa linha: avatar pequeno + nome + setor curtinho + saldo. Máxima densidade — cabe muita gente na tela sem rolar.</p>
+      <div class="list">
+        <div class="card v4"><span class="av av--azul" style="width:28px;height:28px;font-size:10px;">AS</span><span class="v4__nome">Ana Exemplo Silva</span><span class="v4__setor">Repasse</span><span class="v4__dot"></span><span class="saldo saldo--neg">-1h24</span></div>
+        <div class="card v4"><span class="av av--verde" style="width:28px;height:28px;font-size:10px;">BC</span><span class="v4__nome">Bruno Costa Lima</span><span class="v4__setor">Preparação</span><span class="v4__dot"></span><span class="saldo saldo--pos">+3h10</span></div>
+        <div class="card v4"><span class="av av--ambr" style="width:28px;height:28px;font-size:10px;">CD</span><span class="v4__nome">Carla Dias</span><span class="v4__setor">Administração</span><span class="v4__dot"></span><span class="saldo saldo--zero">00:00</span></div>
+      </div>
+    </div>
+
+    <!-- V5 -->
+    <div>
+      <p class="variant__label">5 · Expandível (minimal + detalhe sob demanda)</p>
+      <p class="variant__desc">Card minimalista (avatar + nome + cargo + saldo). Clica e expande escala, idade, niver e tempo de casa. O melhor dos dois mundos — limpo por padrão, completo quando precisa.</p>
+      <div class="list">
+        <div class="card v5">
+          <details>
+            <summary class="v5__row">
+              <span class="av av--azul">AS</span>
+              <span class="v5__main"><span class="v5__nome">Ana Exemplo Silva</span><span class="v5__sub" style="display:block;">Operador de Máquina V · Repasse</span></span>
+              <span class="saldo saldo--neg">-1h24</span>
+              <svg class="v5__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </summary>
+            <div class="v5__det">Escala: 1º Turno · 05:00–09:00 / 09:30–13:30<br>54 anos · Niversário 16/08 · 16 anos e 1 mês de casa</div>
+          </details>
+        </div>
+        <div class="card v5">
+          <details>
+            <summary class="v5__row">
+              <span class="av av--verde">BC</span>
+              <span class="v5__main"><span class="v5__nome">Bruno Costa Lima</span><span class="v5__sub" style="display:block;">Auxiliar de Produção · Preparação</span></span>
+              <span class="saldo saldo--pos">+3h10</span>
+              <svg class="v5__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </summary>
+            <div class="v5__det">Escala: 2º Turno · 13:30–17:00 / 17:30–22:00<br>29 anos · Niversário 03/02 · 2 anos e 4 meses de casa</div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

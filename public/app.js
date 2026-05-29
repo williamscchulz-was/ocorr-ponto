@@ -2988,36 +2988,20 @@ function renderBHList(funcionarios) {
       ? (saldo.minutos > 0 ? "success" : saldo.minutos < 0 ? "danger" : "neutral")
       : "neutral";
 
-    // Campos enriquecidos (ERP via pipeline). f.* prioritário, saldo.* fallback.
+    // Minimalista (variação aprovada): nome + cargo·setor à esquerda,
+    // saldo grande colorido à direita. Escala/idade/niver/tempo de casa
+    // ficam no perfil do funcionário, não poluem a lista de BH.
     const cargo = f.cargo || saldo?.cargo || "";
     const setor = f.setor || saldo?.setor || "";
-    const escala = f.escala || saldo?.escala || "";
-    const idade = f.idade ?? saldo?.idade ?? null;
-    const niver = f.aniversarioDM || saldo?.aniversarioDM || "";
-    const dias = f.diasNaEmpresa ?? saldo?.diasNaEmpresa ?? null;
-
-    // Linha cargo · setor
     const cargoSetor = [cargo, setor].filter(Boolean).join(" · ");
-    // Linha idade · niver · tempo de casa
-    const metaPartes = [];
-    if (idade != null) metaPartes.push(`${idade} anos`);
-    if (niver) metaPartes.push(`Niver: ${escapeHtml(niver)}`);
-    if (dias != null) metaPartes.push(`${tempoDeCasa(dias)} de casa`);
-    const metaLinha = metaPartes.join(" · ");
 
     return `
-      <article class="occ bh-card" style="grid-template-columns: 44px 1fr auto;">
-        <div class="avatar">${initials(f.nome)}</div>
+      <article class="occ bh-card" style="grid-template-columns: 1fr auto; align-items: center;">
         <div class="occ__main" style="min-width:0;">
           <div class="occ__name">${escapeHtml(f.nome)}</div>
           <div class="occ__sub">${cargoSetor ? escapeHtml(cargoSetor) : (TURNOS[f.turno]?.label || "sem turno")}</div>
-          ${escala ? `<div class="bh-card__escala">Escala: ${escapeHtml(escala)}</div>` : ""}
-          ${metaLinha ? `<div class="bh-card__meta">${metaLinha}</div>` : ""}
         </div>
-        <div style="text-align: right; align-self: start;">
-          <span class="badge badge--${tone}" style="font-family: var(--font-display); font-size: 13px; font-weight: 700;">${saldoStr}</span>
-          <div class="text-xs muted" style="margin-top: 2px;">${ultima}</div>
-        </div>
+        <span class="bh-saldo bh-saldo--${tone}" title="Atualizado ${ultima}">${saldoStr}</span>
       </article>
     `;
   }).join("")}</div>`;
