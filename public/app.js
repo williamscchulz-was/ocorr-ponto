@@ -5159,6 +5159,8 @@ function classificarAcaoAuditoria(acao) {
   if (a.includes("lançada") || a.includes("lancada") || a.includes("lançou") || a.includes("lancou"))
     return { cat: "lancamentos", dot: "info", ic: "send" };
   if (a.includes("criou")) return { cat: "criacoes", dot: "neu", ic: "plus" };
+  if (a.includes("removeu") || a.includes("excluiu")) return { cat: "edicoes", dot: "dang", ic: "trash" };
+  if (a.includes("reajust") || a.includes("alterou")) return { cat: "edicoes", dot: "warn", ic: "edit" };
   if (a.includes("editou") || a.includes("editada")) return { cat: "edicoes", dot: "warn", ic: "edit" };
   if (a.includes("observa")) return { cat: "edicoes", dot: "neu", ic: "message" };
   return { cat: "outros", dot: "neu", ic: "clock" };
@@ -5168,10 +5170,17 @@ function classificarAcaoAuditoria(acao) {
 function coletarAuditoria() {
   const itens = [];
   for (const o of state.ocorrencias) {
-    const hist = Array.isArray(o.historico) ? o.historico : [];
-    for (const h of hist) {
+    for (const h of (Array.isArray(o.historico) ? o.historico : [])) {
       if (!h || !h.em) continue;
-      itens.push({ occId: o.id, em: h.em, por: h.por, acao: h.acao || "—", o });
+      itens.push({ tipo: "occ", em: h.em, por: h.por, acao: h.acao || "—", o });
+    }
+  }
+  // Ações de PJ (criar/editar/reajustar/remover valor) — cada PJ grava seu
+  // próprio historico[]; agregamos aqui junto das ocorrências.
+  for (const p of (state.pjs || [])) {
+    for (const h of (Array.isArray(p.historico) ? p.historico : [])) {
+      if (!h || !h.em) continue;
+      itens.push({ tipo: "pj", em: h.em, por: h.por, acao: h.acao || "—", pj: p });
     }
   }
   itens.sort((a, b) => String(b.em).localeCompare(String(a.em)));
@@ -5184,6 +5193,12 @@ function renderAuditoria() {
   if (state.view.audBusca == null) state.view.audBusca = "";
 
   $("#view").innerHTML = `
+    <header class="page-header">
+      <div>
+        <h1>Auditoria</h1>
+        <p>Quem fez o quê e quando — ocorrências e PJ. Apenas Admin e RH.</p>
+      </div>
+    </header>
     <div class="aud">
       <div class="aud__filtros">
         <div class="aud__busca">
@@ -5228,8 +5243,10 @@ function pintarFeedAuditoria(animar) {
     if (cat !== "tudo" && classificarAcaoAuditoria(it.acao).cat !== cat) return false;
     if (termo) {
       const quem = (getUser(it.por)?.nome || it.por || "").toLowerCase();
-      const func = (it.o.funcionarioNome || getFuncionario(it.o.funcionarioId)?.nome || "").toLowerCase();
-      if (!quem.includes(termo) && !func.includes(termo)) return false;
+      const alvo = (it.tipo === "pj"
+        ? (it.pj?.nome || "")
+        : (it.o?.funcionarioNome || getFuncionario(it.o?.funcionarioId)?.nome || "")).toLowerCase();
+      if (!quem.includes(termo) && !alvo.includes(termo)) return false;
     }
     return true;
   });
@@ -5266,15 +5283,23 @@ function pintarFeedAuditoria(animar) {
         ${g.itens.map((it) => {
           const cl = classificarAcaoAuditoria(it.acao);
           const quem = getUser(it.por)?.nome || it.por || "—";
-          const func = it.o.funcionarioNome || getFuncionario(it.o.funcionarioId)?.nome || "—";
-          const tipo = getTipo(it.o.tipo)?.label || "—";
+          let alvo, attr;
+          if (it.tipo === "pj") {
+            alvo = "PJ · " + (it.pj?.nome || "—");
+            attr = `data-pj="${escapeHtml(it.pj?.id || "")}"`;
+          } else {
+            const func = it.o.funcionarioNome || getFuncionario(it.o.funcionarioId)?.nome || "—";
+            const tp = getTipo(it.o.tipo)?.label || "—";
+            alvo = `${func} · ${tp} · ${formatDate(it.o.data)}`;
+            attr = `data-occ="${escapeHtml(it.o.id)}"`;
+          }
           const acaoHtml = escapeHtml(it.acao).replace(/\(([^)]+)\)/, "(<b>$1</b>)");
           return `
-            <button class="aud__row" data-occ="${escapeHtml(it.occId)}">
+            <button class="aud__row" ${attr}>
               <span class="aud__dot aud__dot--${cl.dot}">${icon(cl.ic)}</span>
               <span class="aud__rc">
                 <span class="aud__acao">${acaoHtml}</span>
-                <span class="aud__alvo">${escapeHtml(func)} · ${escapeHtml(tipo)} · ${formatDate(it.o.data)}</span>
+                <span class="aud__alvo">${escapeHtml(alvo)}</span>
               </span>
               <span class="aud__meta">
                 <span class="aud__quem">${escapeHtml(quem)}</span>
@@ -5288,7 +5313,10 @@ function pintarFeedAuditoria(animar) {
   `).join("");
 
   $$("#aud-feed .aud__row").forEach((row) => {
-    row.addEventListener("click", () => openOcorrenciaDetail(row.dataset.occ));
+    row.addEventListener("click", () => {
+      if (row.dataset.pj) openPJModal(row.dataset.pj);
+      else if (row.dataset.occ) openOcorrenciaDetail(row.dataset.occ);
+    });
   });
 
   if (animar) animarEntrada(feed);

@@ -595,6 +595,9 @@
             }];
             dados.historicoValores = novoHist;
           }
+          // Log de auditoria (historico[] do PJ — agregado pela tela Auditoria).
+          const acaoLog = existing.valorAtual !== dados.valorAtual ? "Alterou o valor do contrato" : "Editou o PJ";
+          dados.historico = [...(existing.historico || []), { por: u.id, em: new Date().toISOString(), acao: acaoLog }];
           await db.collection("pj").doc(id).update(dados);
           Object.assign(existing, {
             ...dados,
@@ -612,6 +615,7 @@
               data: new Date().toISOString().slice(0, 10),
               por: u.id,
             }] : [],
+            historico: [{ por: u.id, em: new Date().toISOString(), acao: "Criou o PJ" }],
           };
           await db.collection("pj").doc(novoId).set(docData);
           if (!state.pjs) state.pjs = [];
@@ -621,6 +625,7 @@
             criadoEm: new Date().toISOString(),
             atualizadoEm: new Date().toISOString(),
             historicoValores: docData.historicoValores,
+            historico: docData.historico,
           });
         }
         closeModal();
@@ -725,11 +730,14 @@
       };
       const novoHist = [...(pj.historicoValores || []), novaEntrada];
       const novaProxRevisao = `${new Date().getFullYear() + 1}-01-15`;
+      const fmt = (v) => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const novoHistLog = [...(pj.historico || []), { por: u.id, em: new Date().toISOString(), acao: `Reajustou: ${fmt(valorAntigo)} → ${fmt(novoValor)}` }];
 
       try {
         await db.collection("pj").doc(id).update({
           valorAtual: novoValor,
           historicoValores: novoHist,
+          historico: novoHistLog,
           dataProximaRevisao: novaProxRevisao,
           atualizadoPor: u.id,
           atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
@@ -737,6 +745,7 @@
         Object.assign(pj, {
           valorAtual: novoValor,
           historicoValores: novoHist,
+          historico: novoHistLog,
           dataProximaRevisao: novaProxRevisao,
         });
         closeModal();
@@ -801,6 +810,7 @@
       if (!local || !Array.isArray(local.historicoValores)) throw new Error("PJ ou histórico não encontrado");
       if (index < 0 || index >= local.historicoValores.length) throw new Error("Índice inválido");
 
+      const removido = local.historicoValores[index];
       const novo = local.historicoValores.filter((_, i) => i !== index);
       // valorAtual = valor do lançamento mais recente (por data) que restou.
       let novoValorAtual = local.valorAtual;
@@ -808,14 +818,17 @@
         const maisRecente = [...novo].sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")))[0];
         if (maisRecente && typeof maisRecente.valor === "number") novoValorAtual = maisRecente.valor;
       }
+      const valFmt = "R$ " + Number(removido?.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const novoHistLog = [...(local.historico || []), { por: u?.id || "?", em: new Date().toISOString(), acao: `Removeu ${valFmt} do histórico de valores` }];
 
       await db.collection("pj").doc(pjId).update({
         historicoValores: novo,
         valorAtual: novoValorAtual,
+        historico: novoHistLog,
         atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
         atualizadoPor: u?.id || "?",
       });
-      Object.assign(local, { historicoValores: novo, valorAtual: novoValorAtual });
+      Object.assign(local, { historicoValores: novo, valorAtual: novoValorAtual, historico: novoHistLog });
     };
 
     // Override deletePJ → /pj

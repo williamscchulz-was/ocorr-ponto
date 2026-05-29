@@ -2110,7 +2110,7 @@ html.firebase-mode .login__forgot { display: block; }
 /* ============================================
    Auditoria — linha do tempo global (Admin/RH)
    ============================================ */
-.aud { max-width: 820px; }
+.aud { width: 100%; }
 .aud__filtros {
   display: flex;
   flex-wrap: wrap;
