@@ -1477,6 +1477,10 @@
     let presenceUnsubscribe = null;
     // Listener global do chat (mensagens recebidas → badge + lista de conversas)
     let chatUnsub = null;
+    // Listener vivo das ocorrências (tempo real). Set de ids da última emissão
+    // pra detectar deltas (novas ocorrências pendentes/visíveis → notifica).
+    let ocorrenciasUnsub = null;
+    let ocorrenciasIdsConhecidos = null; // null = ainda não houve 1ª carga
 
     // Estado adicional pra colab: qual PJ esse user está editando
     let presencePjEditing = null;
@@ -1588,6 +1592,10 @@
       // Para o listener global do chat e zera as mensagens recebidas
       if (chatUnsub) { chatUnsub(); chatUnsub = null; }
       state.mensagensRecebidas = [];
+      // Para o listener vivo das ocorrências e reseta a detecção de deltas
+      // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
+      if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
+      ocorrenciasIdsConhecidos = null;
       // Para qualquer subscription de conversa aberta (app.js)
       try { window.pararEscutaConversa?.(); } catch {}
       state.presence = [];
@@ -1798,26 +1806,104 @@
       }));
     }
 
-    // Ocorrências (filtradas pelas regras conforme papel).
+    // Ocorrências — TEMPO REAL via onSnapshot (listener vivo).
     // limit(500): teto de leitura por boot pra não crescer sem limite conforme
     // o histórico aumenta (custo de reads + memória). Como o orderBy é data desc,
     // pega as 500 mais recentes. "Carregar mais" fica pra depois se precisar.
+    // Líder filtra por turno server-side (casa com a rule); admin/rh/supervisor
+    // leem amplo e a UI filtra (supervisor por funcionariosVisiveis).
     let q = db.collection("ocorrencias").orderBy("data", "desc");
     if (u.role === "lider") q = q.where("funcionarioTurno", "==", u.turno);
     q = q.limit(500);
 
-    const occSnap = await q.get();
-    state.ocorrencias = occSnap.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        ...data,
-        data: tsToIsoDate(data.data),
-        dataConferencia: tsToIsoDate(data.dataConferencia),
-        lancadoEm: tsToIsoDate(data.lancadoEm),
-        criadoEm: tsToIso(data.criadoEm),
-        atualizadoEm: tsToIso(data.atualizadoEm),
-      };
+    // "Pendente" no firebase.js: acao == null (não conferida). Espelha isPending
+    // do app.js (que também checa dataConferencia), mas pra detectar NOVAS
+    // ocorrências relevantes basta a ausência de ação — doc novo nunca vem
+    // conferido. Mantemos simples e independente do app.js.
+    const isPendingFb = (o) => o.acao == null;
+    // Visibilidade pro user atual (mesma lógica do podeVerOcorrenciaUI):
+    // admin/rh veem tudo; líder só do turno (já garantido pela query, mas
+    // checamos por segurança); supervisor só de funcionariosVisiveis.
+    const visivelPara = (user, o) => {
+      if (!user) return false;
+      if (user.role === "admin" || user.role === "rh") return true;
+      if (user.role === "lider") return o.funcionarioTurno === user.turno;
+      if (user.role === "supervisor") {
+        return (user.funcionariosVisiveis || []).includes(o.funcionarioId);
+      }
+      return false;
+    };
+
+    // Cancela listener anterior (re-login na mesma instância, troca de papel etc).
+    if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
+
+    // Promise que resolve no PRIMEIRO snapshot, pra carregarDadosCompletos
+    // poder await-ar o boot. Timeout de segurança de 5s pra não travar a tela
+    // se o listener nunca emitir (rede/regra) — segue o boot, listener
+    // continua vivo e atualiza a UI quando/se emitir.
+    let primeiroSnapshotResolvido = false;
+    await new Promise((resolve) => {
+      const safety = setTimeout(() => {
+        if (!primeiroSnapshotResolvido) {
+          primeiroSnapshotResolvido = true;
+          debug?.("[ocorrencias] timeout de 5s no 1º snapshot — seguindo boot");
+          resolve();
+        }
+      }, 5000);
+
+      ocorrenciasUnsub = q.onSnapshot((snap) => {
+        state.ocorrencias = snap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            ...data,
+            data: tsToIsoDate(data.data),
+            dataConferencia: tsToIsoDate(data.dataConferencia),
+            lancadoEm: tsToIsoDate(data.lancadoEm),
+            criadoEm: tsToIso(data.criadoEm),
+            atualizadoEm: tsToIso(data.atualizadoEm),
+          };
+        });
+
+        // Detecção de deltas: compara ids deste snapshot com os da última vez.
+        const user = currentUser();
+        if (ocorrenciasIdsConhecidos === null) {
+          // 1ª carga: só popula o Set, NUNCA notifica.
+          ocorrenciasIdsConhecidos = new Set(state.ocorrencias.map((o) => o.id));
+        } else {
+          let qtdNovas = 0;
+          for (const o of state.ocorrencias) {
+            if (!ocorrenciasIdsConhecidos.has(o.id) &&
+                isPendingFb(o) && visivelPara(user, o)) {
+              qtdNovas++;
+            }
+          }
+          // Atualiza o Set com TODOS os ids atuais (inclui os não-pendentes/não
+          // visíveis, pra não re-notificar depois caso virem relevantes via update).
+          ocorrenciasIdsConhecidos = new Set(state.ocorrencias.map((o) => o.id));
+          if (qtdNovas > 0) {
+            try { window.onNovasOcorrencias?.(qtdNovas); } catch (e) { debug?.("[ocorrencias] onNovasOcorrencias falhou:", e); }
+          }
+        }
+
+        // SEMPRE: avisa a UI pra reagir (re-render seguro + badge no título).
+        try { window.aoAtualizarOcorrencias?.(); } catch (e) { debug?.("[ocorrencias] aoAtualizarOcorrencias falhou:", e); }
+
+        // Resolve o boot no 1º snapshot (cancela o timeout de segurança).
+        if (!primeiroSnapshotResolvido) {
+          primeiroSnapshotResolvido = true;
+          clearTimeout(safety);
+          resolve();
+        }
+      }, (err) => {
+        debug?.("[ocorrencias] snapshot erro:", err);
+        // Em erro no 1º snapshot, libera o boot mesmo assim (não trava a tela).
+        if (!primeiroSnapshotResolvido) {
+          primeiroSnapshotResolvido = true;
+          clearTimeout(safety);
+          resolve();
+        }
+      });
     });
 
     // Usuários — todos carregam o diretório completo (pro chat poder

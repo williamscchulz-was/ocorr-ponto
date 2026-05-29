@@ -690,6 +690,69 @@ function renderApp() {
       setTimeout(() => toast(`Aniversário hoje: ${nomes}`), 800);
     }
   }
+
+  // Badge de pendentes no título da aba (funciona em demo e em Firebase).
+  atualizarTituloDocumento();
+}
+
+// ============================================================
+// Tempo real — hooks chamados pelo listener de ocorrências (firebase.js).
+// Em modo demo (sem Firebase) esses window.* simplesmente não são chamados;
+// atualizarTituloDocumento roda pelo renderApp nos dois modos.
+// ============================================================
+
+// Badge de pendentes no título da aba: "(3) FioPulse".
+function atualizarTituloDocumento() {
+  const u = currentUser();
+  const base = "FioPulse";
+  if (!u) { document.title = base; return; }
+  const n = pendingForUser(u).length;
+  document.title = n > 0 ? `(${n}) ${base}` : base;
+}
+
+// Re-render seguro do dashboard quando as ocorrências mudam em tempo real.
+// Guardas: só re-renderiza se a tela de ocorrências está ativa, não há modal
+// aberto, e preserva foco/valor da busca se o usuário está digitando.
+window.aoAtualizarOcorrencias = function () {
+  atualizarTituloDocumento();
+  const u = currentUser();
+  if (!u) return;
+  if (state.view.page !== "dashboard") return;
+  if (document.querySelector("#modal-backdrop") || document.querySelector(".modal-backdrop--confirm")) return;
+  const buscaFocada = document.activeElement && document.activeElement.id === "search";
+  const valorBusca = $("#search") ? $("#search").value : null;
+  renderDashboard();
+  // restaura busca + foco se estava digitando
+  if (valorBusca != null) {
+    const novo = $("#search");
+    if (novo) { novo.value = valorBusca; if (buscaFocada) { novo.focus(); novo.setSelectionRange(valorBusca.length, valorBusca.length); } }
+  }
+};
+
+// Notificação quando chega ocorrência nova (pendente, visível) com app aberto.
+window.onNovasOcorrencias = function (qtd) {
+  if (!qtd || qtd < 1) return;
+  const msg = qtd === 1 ? "Nova ocorrência pra conferir" : `${qtd} novas ocorrências pra conferir`;
+  toast(msg, "success");
+  tocarBeepNotificacao();
+};
+
+// Beep curto e discreto via Web Audio (sem arquivo externo).
+// Só toca após a 1ª interação do user no navegador (política de autoplay) —
+// normal e não quebra: o catch engole qualquer erro.
+let _audioCtx = null;
+function tocarBeepNotificacao() {
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = 880;
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.26);
+  } catch (e) { /* sem áudio, sem problema */ }
 }
 
 // ============================================================
