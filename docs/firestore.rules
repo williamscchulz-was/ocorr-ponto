@@ -45,7 +45,10 @@ service cloud.firestore {
     // APENAS o campo fotoBase64 (foto de perfil) — sem poder mexer em role,
     // turno, ativo. Rule garante isolamento mesmo se a UI for burlada.
     match /users/{uid} {
-      allow read: if isAuthed() && (request.auth.uid == uid || isAdmin());
+      // Leitura liberada pra autenticados: o chat precisa do diretório
+      // (nome/papel/foto) pra listar e mandar mensagem pra qualquer um.
+      // Docs não têm segredos (sem senha; PII real fica em banco-horas-saldos).
+      allow read: if isAuthed();
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || (
         request.auth.uid == uid &&

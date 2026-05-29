@@ -558,6 +558,7 @@ function renderApp() {
   renderPresence();
   renderView();
   updateFab();
+  window.atualizarBadgeChat();
 
   // Toast de aniversariantes do dia — uma vez por sessão (post-login).
   // Líder vê só do próprio turno; admin/RH veem todos.
@@ -729,8 +730,8 @@ function renderPresence() {
     abrirPresenceDropdown(online);
   }
 
-  // Se a página de chat está aberta, atualiza a lista (pontos verdes online/offline)
-  if (state.view?.page === "chat" && $("#chat-contatos")) {
+  // Se o widget de chat está aberto, atualiza a lista (pontos verdes online/offline)
+  if (!$("#chat-widget")?.hidden && $("#chat-contatos")) {
     renderChatLista();
   }
 }
@@ -920,7 +921,6 @@ function renderNav() {
   const items = [];
   items.push({ id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
-  items.push({ id: "chat", label: "Mensagens", icon: "message", badge: contarNaoLidas() });
 
   if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
@@ -956,7 +956,6 @@ function renderBottomNav() {
   const left = [
     { id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending },
     { id: "banco-horas", label: "Banco", icon: "clock" },
-    { id: "chat", label: "Mensagens", icon: "message", badge: contarNaoLidas() },
   ];
   if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
     left.push({ id: "funcionarios", label: "Equipe", icon: "users" });
@@ -1010,9 +1009,15 @@ function contarNaoLidas() {
   return (state.mensagensRecebidas || []).filter((m) => !m.lido).length;
 }
 
-// Chamado pelo listener global pra atualizar só o badge sem re-render pesado.
+// Chamado pelo listener global pra atualizar só o badge do FAB de chat.
 window.atualizarBadgeChat = function () {
-  if (currentUser()) { renderNav(); renderBottomNav(); }
+  const n = contarNaoLidas();
+  const b = $("#chat-fab-badge");
+  if (!b) return;
+  if (n > 0) { b.textContent = n > 99 ? "99+" : String(n); b.hidden = false; }
+  else { b.hidden = true; }
+  // Se o widget está aberto, refresca a lista pra refletir novas msgs
+  if (!$("#chat-widget")?.hidden) renderChatLista();
 };
 
 function visibleOcorrencias() {
@@ -1038,13 +1043,8 @@ function renderView() {
   const page = state.view.page;
   const view = $("#view");
 
-  // Ao sair da página de chat, cancela a subscription da conversa aberta
-  // (evita vazar listener do Firestore quando navega pra outra página).
-  if (page !== "chat") pararEscutaConversa();
-
   if (page === "dashboard") return renderDashboard();
   if (page === "banco-horas") return renderBancoHoras();
-  if (page === "chat") return renderChat();
   if (page === "funcionarios") return renderFuncionarios();
   if (page === "pj") return renderControlePJ();
   if (page === "config") return renderConfig();
@@ -5607,7 +5607,16 @@ function montarListaContatosChat() {
     mapa.set(m.de, ex);
   }
 
-  // (b) usuários online agora (exceto eu) — marca online; cria item se faltar
+  // (b) TODOS os usuários do sistema (exceto eu) — pra poder mandar msg
+  // pra qualquer um, online ou offline.
+  for (const usr of (state.users || [])) {
+    if (!usr.id || usr.id === meu) continue;
+    const ex = mapa.get(usr.id) || { uid: usr.id, nome: usr.nome || "?", online: false, naoLidas: 0, ultimaMsg: "", ultimaEm: null };
+    if (!ex.nome || ex.nome === "?") ex.nome = usr.nome || "?";
+    mapa.set(usr.id, ex);
+  }
+
+  // (c) presença — marca quem está online agora (ponto verde)
   for (const p of (state.presence || [])) {
     if (!p.uid || p.uid === meu) continue;
     const ex = mapa.get(p.uid) || { uid: p.uid, nome: p.nome || "?", online: false, naoLidas: 0, ultimaMsg: "", ultimaEm: null };
@@ -5626,48 +5635,41 @@ function montarListaContatosChat() {
   return lista;
 }
 
-function renderChat() {
-  $("#topbar-title").textContent = "Mensagens";
+// ---------- Chat: widget flutuante (FAB estilo WhatsApp) ----------
+// O chat vive num painel sobreposto (não mais numa página/aba). Os IDs
+// internos #chat-contatos e #chat-thread são os MESMOS que as funções de
+// lista/thread targetam, então a lógica de mensagens é reaproveitada inteira.
 
-  // Modo demo: sem backend de chat → aviso, sem quebrar
+function abrirChatWidget() {
+  const w = $("#chat-widget"); if (!w) return;
+  w.hidden = false;
+  document.body.classList.add("chat-widget-aberto");
   if (!chatDisponivel()) {
-    $("#view").innerHTML = `
-      <header class="page-header">
-        <div><h1>Mensagens</h1><p>Conversas internas entre a equipe.</p></div>
-      </header>
-      <div class="chat-empty-state">
-        ${icon("message")}
-        <p>Chat disponível só no modo Firebase.</p>
-      </div>`;
+    w.classList.remove("tem-thread");
+    $("#chat-contatos").innerHTML = `<div class="chat-empty-state">${icon("message")}<p>Chat disponível só no modo Firebase.</p></div>`;
+    $("#chat-thread").innerHTML = "";
     return;
   }
-
-  const peer = state.view.chatPeer || null;
-
-  $("#view").innerHTML = `
-    <div class="chat ${peer ? "chat--thread-aberto" : ""}" id="chat-root">
-      <aside class="chat__sidebar">
-        <div class="chat__sidebar-head">
-          <h2>Conversas</h2>
-          <span class="chat__sidebar-hint">somem após 3 dias</span>
-        </div>
-        <div class="chat__contatos" id="chat-contatos"></div>
-      </aside>
-      <section class="chat__thread" id="chat-thread">
-        ${peer ? "" : `
-          <div class="chat__sem-peer">
-            ${icon("message")}
-            <p>Escolha uma conversa pra começar.</p>
-          </div>`}
-      </section>
-    </div>`;
-
   renderChatLista();
-
-  // Se já há um peer selecionado (ex.: veio do dropdown de presença), abre.
+  const peer = state.view.chatPeer;
   if (peer && peer.uid) {
     abrirConversa(peer.uid, peer.nome);
+  } else {
+    w.classList.remove("tem-thread");
+    $("#chat-thread").innerHTML = `<div class="chat__sem-peer">${icon("message")}<p>Escolha uma conversa.</p></div>`;
   }
+}
+
+function fecharChatWidget() {
+  const w = $("#chat-widget"); if (!w) return;
+  w.hidden = true;
+  document.body.classList.remove("chat-widget-aberto");
+  pararEscutaConversa();
+}
+
+function toggleChatWidget() {
+  const w = $("#chat-widget");
+  if (w && w.hidden) abrirChatWidget(); else fecharChatWidget();
 }
 
 // Renderiza só a coluna esquerda (lista de contatos/conversas).
@@ -5708,8 +5710,6 @@ function renderChatLista() {
       const uid = btn.dataset.uid;
       const nome = btn.dataset.nome;
       state.view.chatPeer = { uid, nome };
-      // Marca o container como "thread aberto" (mobile)
-      $("#chat-root")?.classList.add("chat--thread-aberto");
       renderChatLista(); // atualiza highlight ativo
       abrirConversa(uid, nome);
     });
@@ -5723,6 +5723,9 @@ function abrirConversa(peerUid, peerNome) {
   if (!meu || !chatDisponivel()) return;
 
   const parKey = window.parKeyChat(meu, peerUid);
+
+  // No widget flutuante, a thread cobre a lista de contatos.
+  $("#chat-widget")?.classList.add("tem-thread");
 
   // Render inicial do "carregando" enquanto o 1º snapshot não chega
   const thread = $("#chat-thread");
@@ -5810,9 +5813,11 @@ function wireChatThread(peerUid, peerNome) {
     voltar.addEventListener("click", () => {
       pararEscutaConversa();
       state.view.chatPeer = null;
-      $("#chat-root")?.classList.remove("chat--thread-aberto");
-      // Re-renderiza a página inteira do chat (volta pro estado lista)
-      renderChat();
+      // Volta pra lista de contatos: a thread deixa de cobrir a lista.
+      $("#chat-widget")?.classList.remove("tem-thread");
+      const thread = $("#chat-thread");
+      if (thread) thread.innerHTML = `<div class="chat__sem-peer">${icon("message")}<p>Escolha uma conversa.</p></div>`;
+      renderChatLista();
     });
   }
 
@@ -5860,12 +5865,11 @@ async function enviarDoComposer(peerUid, peerNome) {
   }
 }
 
-// Atalho usado pelo dropdown de presença: abre o chat já no peer escolhido.
+// Atalho usado pelo dropdown de presença: abre o WIDGET de chat já no peer escolhido.
 function abrirChatCom(uid, nome) {
-  state.view.page = "chat";
   state.view.chatPeer = { uid, nome };
   fecharPresenceDropdown();
-  renderApp();
+  abrirChatWidget();
 }
 
 // ---------- Helpers de copy ----------
@@ -5980,6 +5984,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sidebar
   $("#menu-btn").addEventListener("click", openSidebar);
   $("#sidebar-backdrop").addEventListener("click", closeSidebar);
+
+  // Chat flutuante: FAB abre/fecha o painel; X fecha. Elementos estáticos no
+  // index.html (não recriados no re-render), então registra uma única vez.
+  $("#chat-fab")?.addEventListener("click", toggleChatWidget);
+  $("#chat-widget-close")?.addEventListener("click", fecharChatWidget);
 
   // ESC fecha modais e drawer da sidebar mobile
   document.addEventListener("keydown", (e) => {

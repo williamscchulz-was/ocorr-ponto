@@ -1989,45 +1989,59 @@ html.firebase-mode .login__forgot { display: block; }
 .superv-picker__empty { padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px; }
 
 /* ============================================
-   CHAT INTERNO 1:1
+   CHAT INTERNO 1:1 — widget flutuante (estilo WhatsApp)
+   FAB circular no canto inferior direito que abre um painel sobreposto.
+   As classes internas (.chat__contatos, .chat__thread, .chat__bolha*,
+   .chat__composer, etc.) são reaproveitadas das funções de lista/thread;
+   só o contêiner externo mudou (de página full-screen pra painel).
    ============================================ */
 
-.chat {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 0;
-  height: calc(100dvh - 64px);
-  max-height: calc(100dvh - 64px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+/* FAB de chat (estilo WhatsApp) */
+.chat-fab {
+  position: fixed; bottom: 24px; right: 24px; z-index: 900;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--plum); color: #fff;
+  display: grid; place-items: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+  transition: transform .15s, box-shadow .15s;
 }
+.chat-fab:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 10px 28px rgba(0,0,0,.3); }
+.chat-fab .icon { width: 26px; height: 26px; }
+.chat-fab__badge {
+  position: absolute; top: -2px; right: -2px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  background: #dc2626; color: #fff; border-radius: 999px;
+  font-size: 11px; font-weight: 700; display: grid; place-items: center;
+  border: 2px solid var(--surface);
+}
+/* desce o FAB de nova ocorrência pra não colidir com o chat-fab */
+.fab { bottom: 92px !important; }
 
-/* ---- Coluna esquerda: lista de conversas ---- */
-.chat__sidebar {
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border);
-  background: var(--surface-warm);
-  min-height: 0;
+/* Painel flutuante */
+.chat-widget {
+  position: fixed; bottom: 92px; right: 24px; z-index: 901;
+  width: 380px; max-width: calc(100vw - 32px);
+  height: 560px; max-height: calc(100dvh - 120px);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,.28);
+  display: flex; flex-direction: column; overflow: hidden;
+  animation: chatWidgetIn .18s ease-out;
 }
-.chat__sidebar-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: 16px 16px 12px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+@keyframes chatWidgetIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+.chat-widget__head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; background: var(--plum); color: #fff;
 }
-.chat__sidebar-head h2 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0;
-}
-.chat__sidebar-hint { font-size: 11px; color: var(--text-muted); }
+.chat-widget__head strong { font-family: var(--font-display); font-size: 15px; }
+.chat-widget__hint { font-size: 10px; opacity: .7; }
+.chat-widget__close { margin-left: auto; color: #fff; font-size: 24px; line-height: 1; width: 32px; height: 32px; border-radius: 8px; }
+.chat-widget__close:hover { background: rgba(255,255,255,.15); }
+.chat-widget__body { flex: 1; min-height: 0; position: relative; display: flex; }
+/* dentro do widget, contatos e thread ocupam tudo; alterna via classe */
+.chat-widget .chat__contatos { width: 100%; overflow-y: auto; }
+.chat-widget .chat__thread { position: absolute; inset: 0; background: var(--surface); display: none; flex-direction: column; }
+/* quando uma conversa está aberta, a thread cobre a lista (a thread tem botão voltar) */
+.chat-widget.tem-thread .chat__thread { display: flex; }
 
 .chat__contatos {
   flex: 1;
@@ -2159,6 +2173,9 @@ html.firebase-mode .login__forgot { display: block; }
   padding: 4px;
   margin-left: -4px;
 }
+/* No widget flutuante a thread sempre cobre a lista, então o "voltar"
+   precisa aparecer em qualquer largura (não só no mobile). */
+.chat-widget .chat__voltar { display: inline-flex; }
 .chat__voltar .icon { width: 22px; height: 22px; }
 
 .chat__thread-head-info {
@@ -2305,19 +2322,9 @@ html.firebase-mode .login__forgot { display: block; }
 .presence-dropdown__chat:hover { background: var(--plum); color: #fff; }
 .presence-dropdown__chat .icon { width: 15px; height: 15px; }
 
-/* ---- Mobile: painéis viram tela cheia ---- */
+/* ---- Mobile: FAB acima da bottom-nav; painel em tela cheia ---- */
 @media (max-width: 900px) {
-  .chat {
-    grid-template-columns: 1fr;
-    height: calc(100dvh - 56px - 64px);
-    max-height: calc(100dvh - 56px - 64px);
-  }
-  /* Por padrão (sem thread aberto): mostra a lista, esconde a thread */
-  .chat__thread { display: none; }
-  .chat__sidebar { display: flex; }
-  /* Com thread aberto: esconde a lista, mostra a thread em tela cheia */
-  .chat--thread-aberto .chat__sidebar { display: none; }
-  .chat--thread-aberto .chat__thread { display: flex; }
-  .chat__voltar { display: inline-flex; }
+  .chat-fab { bottom: 80px; }       /* acima da bottom-nav */
+  .chat-widget { bottom: 0; right: 0; left: 0; width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; }
   .chat__bolha { max-width: 82%; }
 }

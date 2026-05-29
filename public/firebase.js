@@ -1230,12 +1230,9 @@
         .orderBy("criadoEm", "desc")
         .onSnapshot((snap) => {
           state.mensagensRecebidas = snap.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }));
-          // só re-render leve do nav/badge
+          // só re-render leve do badge do FAB (que, se o widget estiver
+          // aberto, já re-renderiza a lista de conversas internamente)
           try { window.atualizarBadgeChat?.(); } catch {}
-          // se a página de chat está aberta, re-renderiza a lista de conversas
-          try {
-            if (state.view?.page === "chat" && typeof renderChatLista === "function") renderChatLista();
-          } catch {}
         }, (e) => console.warn("[chat] minhas msgs snapshot:", e.message));
     };
 
@@ -1726,10 +1723,16 @@
       };
     });
 
-    // Usuários (só admin vê todos)
-    if (u.role === "admin") {
+    // Usuários — todos carregam o diretório completo (pro chat poder
+    // listar/mandar mensagem pra qualquer um, online ou offline).
+    // Sem segredos nos docs (nome/email/papel/turno/foto). Regra do
+    // Firestore: read liberado pra autenticados.
+    try {
       const usersSnap = await db.collection("users").get();
       state.users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("[users] não foi possível carregar diretório:", e?.message || e);
+      // mantém ao menos o próprio user já populado em wireAuthFlow
     }
   }
 
