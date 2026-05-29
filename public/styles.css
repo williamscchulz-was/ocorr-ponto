@@ -89,106 +89,72 @@ a:hover { color: var(--plum-soft); }
    LOGIN SCREEN
    ============================================ */
 
+/* Login minimalista: coluna única centralizada, sem painel de marca */
 .login {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  background: var(--milk);
-}
-
-.login__brand {
-  background: var(--plum);
-  color: var(--text-on-plum);
-  padding: 48px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  overflow: hidden;
-}
-
-.login__brand::before {
-  content: "";
-  position: absolute;
-  inset: -40% -10% auto auto;
-  width: 60%;
-  aspect-ratio: 1;
-  background: radial-gradient(circle, var(--plum-soft) 0%, transparent 70%);
-  opacity: .5;
-}
-
-.login__logo {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: -0.01em;
-  position: relative;
-  z-index: 1;
-}
-
-.login__logo-mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: var(--milk);
-  color: var(--plum);
-  display: grid;
   place-items: center;
-  font-size: 22px;
-}
-
-.login__pitch {
-  position: relative;
-  z-index: 1;
-}
-
-.login__pitch h1 {
-  font-family: var(--font-display);
-  font-size: clamp(36px, 4vw, 56px);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  margin: 0 0 20px 0;
-  font-weight: 800;
-}
-
-.login__pitch p {
-  font-size: 16px;
-  line-height: 1.6;
-  color: rgba(255, 243, 230, .75);
-  max-width: 420px;
-  margin: 0;
-}
-
-.login__footer {
-  font-size: 13px;
-  color: rgba(255, 243, 230, .5);
-  position: relative;
-  z-index: 1;
+  background: var(--bg);
+  padding: 24px;
 }
 
 .login__form {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 48px;
-  max-width: 480px;
   width: 100%;
-  margin: 0 auto;
+  max-width: 340px;
 }
 
-.login__form h2 {
+/* Marca no topo do form */
+.login__mark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.login__mark-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.login__wordmark {
   font-family: var(--font-display);
-  font-size: 28px;
-  letter-spacing: -0.02em;
-  margin: 0 0 8px 0;
+  font-weight: 700;
+  font-size: 20px;
   color: var(--plum);
+  line-height: 1.1;
+}
+.login__wordmark small {
+  display: block;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .login__form p.lead {
   color: var(--text-muted);
-  margin: 0 0 32px 0;
+  font-size: 13px;
+  margin: 0 0 20px 0;
+}
+
+/* Manter conectado + rodapé */
+.login__remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-body);
+}
+.login__remember input { width: 16px; height: 16px; cursor: pointer; }
+.login__rodape {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 .login__quick {
@@ -247,15 +213,6 @@ a:hover { color: var(--plum-soft); }
   background: var(--border);
 }
 
-@media (max-width: 860px) {
-  .login { grid-template-columns: 1fr; }
-  .login__brand {
-    padding: 28px;
-    min-height: 220px;
-  }
-  .login__pitch h1 { font-size: 32px; }
-  .login__form { padding: 28px; }
-}
 
 /* ============================================
    FORM FIELDS

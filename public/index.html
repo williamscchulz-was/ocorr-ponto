@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=97" />
+  <link rel="stylesheet" href="styles.css?v=98" />
 </head>
 <body>
 
@@ -22,31 +22,17 @@
        LOGIN SCREEN
        ============================================ -->
   <section id="login" class="login">
-    <aside class="login__brand">
-      <div class="login__logo">
-        <div class="login__logo-mark has-logo">
-          <img src="logo-fiobras-mark-white.png" alt="Fiobras" />
-        </div>
-        <div>
-          FioPulse
-          <small style="display:block; font-weight:400; font-size:12px; opacity:0.7; margin-top:2px;">Fiobras · o batimento do RH</small>
-        </div>
-      </div>
-      <div class="login__pitch">
-        <h1>O batimento<br/>do RH Fiobras.</h1>
-        <p>RH registra, líderes conferem, todo mundo enxerga o que importa. Sem planilha, sem retrabalho.</p>
-      </div>
-      <div class="login__footer">
-        © 2026 Fiobras · acesso restrito
-      </div>
-    </aside>
-
     <form class="login__form" id="login-form" autocomplete="off">
-      <h2>Entrar</h2>
+      <div class="login__mark">
+        <img class="login__mark-img" src="logo-fiobras-mark.png" alt="Fiobras" />
+        <div class="login__wordmark">
+          FioPulse
+          <small>Fiobras · o batimento do RH</small>
+        </div>
+      </div>
+
       <p class="lead">Escolha um usuário rápido para testar o sistema:</p>
-
       <div class="login__quick" id="login-quick"></div>
-
       <div class="login__divider">ou entre manualmente</div>
 
       <div class="field">
@@ -60,8 +46,8 @@
 
       <div id="login-error" class="field__error hidden" style="margin-bottom:12px"></div>
 
-      <label class="login__remember" for="login-remember" style="display:flex; align-items:center; gap:8px; margin-bottom:12px; cursor:pointer; font-size:14px;">
-        <input type="checkbox" id="login-remember" style="width:16px; height:16px; cursor:pointer;" />
+      <label class="login__remember" for="login-remember">
+        <input type="checkbox" id="login-remember" />
         <span>Manter conectado neste navegador</span>
       </label>
 
@@ -70,6 +56,8 @@
       <div class="login__forgot">
         <button type="button" id="btn-forgot">Esqueci minha senha</button>
       </div>
+
+      <div class="login__rodape">© 2026 Fiobras · acesso restrito</div>
     </form>
   </section>
 
@@ -154,13 +142,13 @@
   <div id="modal-root"></div>
   <div class="toast-root" id="toast-root"></div>
 
-  <script defer src="data.js?v=97"></script>
-  <script defer src="app.js?v=97"></script>
+  <script defer src="data.js?v=98"></script>
+  <script defer src="app.js?v=98"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=97"></script>
-  <script defer src="google-drive.js?v=97"></script>
+  <script defer src="firebase.js?v=98"></script>
+  <script defer src="google-drive.js?v=98"></script>
 </body>
 </html>
