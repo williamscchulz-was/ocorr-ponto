@@ -3036,3 +3036,82 @@ html.firebase-mode .login__forgot { display: block; }
 /* Padroniza <code> na fonte do sistema (Poppins) — sem monospace solto.
    "Padroniza tudo" inclui a senha temporária. */
 code { font-family: inherit; }
+
+/* ============================================
+   CHAT — redesign social/minimalista/fluido
+   ============================================ */
+/* Lista: busca fixa no topo + linhas roláveis. */
+.chat-widget .chat__contatos {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat__busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+.chat__busca .icon { position: absolute; left: 22px; width: 15px; height: 15px; color: var(--text-muted); pointer-events: none; }
+.chat__busca input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 9px 12px 9px 32px;
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text-body);
+}
+.chat__busca input:focus { outline: none; border-color: var(--plum); }
+.chat__rows { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+.chat__sec {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 12px 16px 4px;
+}
+.chat__contato-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.chat__contato-hora { font-size: 10.5px; color: var(--text-muted); flex-shrink: 0; }
+.chat__contato-preview.is-unread { color: var(--text-body); font-weight: 600; }
+
+/* Thread desliza ao abrir (em vez de aparecer seco). */
+.chat-widget__body { overflow: hidden; }
+.chat-widget .chat__thread {
+  display: flex;
+  transform: translateX(100%);
+  transition: transform 0.26s var(--ease);
+}
+.chat-widget.tem-thread .chat__thread { transform: none; }
+
+/* Separador de dia. */
+.chat__daysep {
+  align-self: center;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 11px;
+  margin: 8px auto;
+}
+
+/* Balões: micro-animação de entrada + agrupamento (consecutivos mais juntos). */
+.chat__bolha { animation: chatBolhaIn 0.2s var(--ease) both; }
+@keyframes chatBolhaIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.chat__bolha--grp { margin-top: -4px; }
+@media (prefers-reduced-motion: reduce) { .chat__bolha { animation: none; } }
+
+/* Botão enviar redondo. */
+.chat__enviar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--plum); color: #fff; border: 0;
+  display: grid; place-items: center; cursor: pointer; flex-shrink: 0;
+  transition: transform 0.14s var(--ease), background 0.15s;
+}
+.chat__enviar:hover { background: var(--plum-soft); }
+.chat__enviar:active { transform: scale(0.9); }
+.chat__enviar .icon { width: 18px; height: 18px; }

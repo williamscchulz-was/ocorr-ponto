@@ -1402,29 +1402,55 @@
     window.escutarMinhasMensagens = function () {
       if (!auth.currentUser) return () => {};
       const meu = auth.currentUser.uid;
-      return db.collection("mensagens")
-        .where("para", "==", meu)
-        .onSnapshot((snap) => {
-          // sort desc no cliente (sem orderBy → sem índice composto)
-          state.mensagensRecebidas = snap.docs
-            .map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }))
-            .sort((a, b) => (b.criadoEm || "").localeCompare(a.criadoEm || ""));
-          try { window.atualizarBadgeChat?.(); } catch {}
-        }, (e) => debug?.("[chat] minhas msgs snapshot:", e.message));
+      let recebidas = [], enviadas = [];
+      let prontoR = false, prontoE = false;
+      const mapDoc = (d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) });
+
+      const rebuild = () => {
+        // Recebidas desc → badge + não-lidas + marcar como lida por peer.
+        state.mensagensRecebidas = [...recebidas]
+          .sort((a, b) => (b.criadoEm || "").localeCompare(a.criadoEm || ""));
+
+        // Resumo por peer (ambas direções) → "Conversas" (quem já troquei msg).
+        const resumo = new Map();
+        const considerar = (m, deMim) => {
+          const peer = deMim ? m.para : m.de;
+          const peerNome = deMim ? (m.paraNome || "?") : (m.deNome || "?");
+          if (!peer || peer === meu) return;
+          let r = resumo.get(peer);
+          if (!r) { r = { uid: peer, nome: peerNome, ultimaMsg: "", ultimaEm: null, deMim: false, naoLidas: 0 }; resumo.set(peer, r); }
+          if ((!r.nome || r.nome === "?") && peerNome) r.nome = peerNome;
+          if (!deMim && !m.lido) r.naoLidas += 1;
+          if (!r.ultimaEm || (m.criadoEm || "") > r.ultimaEm) {
+            r.ultimaEm = m.criadoEm || null; r.ultimaMsg = m.texto || ""; r.deMim = deMim;
+          }
+        };
+        recebidas.forEach((m) => considerar(m, false));
+        enviadas.forEach((m) => considerar(m, true));
+        state.conversas = Array.from(resumo.values())
+          .sort((a, b) => (b.ultimaEm || "").localeCompare(a.ultimaEm || ""));
+
+        try { window.atualizarBadgeChat?.(); } catch {}
+      };
+
+      const onErr = (e) => debug?.("[chat] minhas msgs snapshot:", e.message);
+      const ur = db.collection("mensagens").where("para", "==", meu)
+        .onSnapshot((s) => { recebidas = s.docs.map(mapDoc); prontoR = true; if (prontoE) rebuild(); else rebuild(); }, onErr);
+      const ue = db.collection("mensagens").where("de", "==", meu)
+        .onSnapshot((s) => { enviadas = s.docs.map(mapDoc); prontoE = true; rebuild(); }, onErr);
+      return () => { try { ur(); } catch {} try { ue(); } catch {} };
     };
 
-    // Marca como lida toda msg recebida nesta conversa.
-    window.marcarConversaLida = async function (parKey) {
-      if (!auth.currentUser) return;
+    // Marca como lidas as msgs recebidas de um peer. Usa as msgs já em memória
+    // (state.mensagensRecebidas) → batch update por id, sem query de índice.
+    window.marcarConversaLida = async function (peerUid) {
+      if (!auth.currentUser || !peerUid) return;
       const meu = auth.currentUser.uid;
-      const snap = await db.collection("mensagens")
-        .where("parKey", "==", parKey)
-        .where("para", "==", meu)
-        .where("lido", "==", false)
-        .get();
-      if (snap.empty) return;
+      const alvo = (state.mensagensRecebidas || [])
+        .filter((m) => m.de === peerUid && m.para === meu && !m.lido && m.id);
+      if (!alvo.length) return;
       const batch = db.batch();
-      snap.docs.forEach((d) => batch.update(d.ref, { lido: true }));
+      alvo.forEach((m) => batch.update(db.collection("mensagens").doc(m.id), { lido: true }));
       await batch.commit();
     };
 

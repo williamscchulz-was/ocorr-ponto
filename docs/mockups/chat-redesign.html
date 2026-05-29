@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Chat redesign (social + minimalista + fluido)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --verde:#008835; --verde-deep:#00682B; --verde-soft:#1AA34F;
+    --bg:#F7F9F6; --surface:#fff; --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:#1E2D1A; --muted:#4A6245; --amarelo:#FFCB00;
+    --bolha-peer:#EEF3EC; --bolha-me:#008835;
+    --font:"Poppins",system-ui,sans-serif; --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#cfd8cb;color:var(--text);min-height:100vh;
+       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px 16px;}
+  h1{color:var(--verde-deep);font-weight:700;margin:0;font-size:18px;text-align:center;}
+  p.s{color:#46553f;margin:0;font-size:12.5px;text-align:center;max-width:520px;line-height:1.5;}
+
+  /* painel flutuante do chat */
+  .chat{width:380px;max-width:94vw;height:600px;max-height:82vh;background:var(--surface);
+        border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(0,40,20,.34);
+        display:flex;flex-direction:column;position:relative;}
+  .chat__head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .chat__head strong{font-size:15px;color:var(--verde-deep);flex:1;}
+  .chat__head button{width:30px;height:30px;border:0;background:none;color:var(--muted);border-radius:8px;cursor:pointer;font-size:18px;display:grid;place-items:center;transition:background .15s;}
+  .chat__head button:hover{background:var(--bg);}
+
+  /* ----- LISTA ----- */
+  .list{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .search{padding:10px 14px;flex-shrink:0;}
+  .search input{width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px 9px 34px;font-family:inherit;font-size:13px;background:var(--bg);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%234A6245' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:11px center;}
+  .rows{flex:1;overflow-y:auto;padding-bottom:8px;}
+  .sec{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 16px 4px;}
+  .row{display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;border:0;background:none;width:100%;text-align:left;font-family:inherit;transition:background .14s var(--ease);}
+  .row:hover{background:#FAFCF9;}
+  .row:active{background:var(--bg);}
+  .av{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:600;font-size:14px;position:relative;}
+  .av .dot{position:absolute;right:0;bottom:1px;width:11px;height:11px;border-radius:50%;background:var(--verde-soft);border:2.5px solid #fff;}
+  .rinfo{flex:1;min-width:0;}
+  .rtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .rnome{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rhora{font-size:10.5px;color:var(--muted);flex-shrink:0;}
+  .rsub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+  .rsub.unread{color:var(--text);font-weight:500;}
+  .badge{background:var(--verde);color:#fff;font-size:10.5px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px;flex-shrink:0;}
+
+  /* ----- THREAD ----- */
+  .thread{position:absolute;inset:0;background:var(--surface);display:flex;flex-direction:column;
+          transform:translateX(100%);transition:transform .26s var(--ease);}
+  .thread.show{transform:none;}
+  .thead{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .thead .back{width:30px;height:30px;border:0;background:none;color:var(--muted);cursor:pointer;border-radius:8px;display:grid;place-items:center;}
+  .thead .back:hover{background:var(--bg);}
+  .thead .av{width:36px;height:36px;font-size:12px;}
+  .thead .nome{font-size:14px;font-weight:600;}
+  .thead .st{font-size:11px;color:var(--verde-soft);}
+  .thead .st.off{color:var(--muted);}
+
+  .msgs{flex:1;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:2px;background:var(--bg);}
+  .daysep{align-self:center;font-size:10.5px;color:var(--muted);background:#fff;border:1px solid var(--border);border-radius:20px;padding:3px 11px;margin:8px 0;}
+  .b{max-width:78%;padding:8px 12px;border-radius:16px;font-size:13.5px;line-height:1.35;position:relative;
+     animation:bin .22s var(--ease) both;word-wrap:break-word;}
+  @keyframes bin{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .b.peer{align-self:flex-start;background:var(--bolha-peer);color:var(--text);border-bottom-left-radius:5px;}
+  .b.me{align-self:flex-end;background:var(--bolha-me);color:#fff;border-bottom-right-radius:5px;}
+  /* agrupamento: msgs seguidas do mesmo lado ficam mais juntas e sem "rabinho" no meio */
+  .b.grp{border-radius:16px;}
+  .b .h{font-size:9.5px;opacity:.7;margin-left:10px;float:right;margin-top:4px;}
+  .me .h{color:#eaffe9;}
+
+  .composer{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;background:#fff;}
+  .composer textarea{flex:1;border:1px solid var(--border-strong);border-radius:18px;padding:9px 14px;font-family:inherit;font-size:13.5px;resize:none;max-height:96px;line-height:1.3;}
+  .composer textarea:focus{outline:none;border-color:var(--verde);}
+  .send{width:40px;height:40px;border-radius:50%;border:0;background:var(--verde);color:#fff;cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:transform .14s var(--ease),background .15s;}
+  .send:hover{background:var(--verde-soft);}
+  .send:active{transform:scale(.9);}
+  .send svg{width:18px;height:18px;}
+
+  .legend{max-width:520px;font-size:12px;color:#46553f;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 15px;line-height:1.6;}
+  .legend b{color:var(--verde-deep);}
+</style>
+</head>
+<body>
+  <h1>Chat — social, minimalista, fluido</h1>
+  <p class="s">Clique numa pessoa pra abrir a conversa (desliza). Digite e mande (Enter) — a mensagem entra com micro-animação, sem reconstruir a tela. Use a busca pra filtrar.</p>
+
+  <div class="chat">
+    <div class="chat__head">
+      <strong>Mensagens</strong>
+      <button title="Fechar">&times;</button>
+    </div>
+
+    <!-- LISTA -->
+    <div class="list">
+      <div class="search"><input id="q" placeholder="Buscar pessoa…" /></div>
+      <div class="rows" id="rows"></div>
+    </div>
+
+    <!-- THREAD -->
+    <div class="thread" id="thread">
+      <div class="thead">
+        <button class="back" id="back"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+        <span class="av" id="t-av"></span>
+        <div><div class="nome" id="t-nome"></div><div class="st" id="t-st">online</div></div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <form class="composer" id="composer">
+        <textarea id="inp" rows="1" placeholder="Mensagem"></textarea>
+        <button class="send" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      </form>
+    </div>
+  </div>
+
+  <div class="legend">
+    <b>Lista:</b> "Conversas" (já trocou mensagem — prévia + hora + não-lidas, ordenada pela mais recente) separada de "Pessoas" (nunca conversou). <b>Thread:</b> balões agrupados, separador de dia, render incremental (só anexa a nova), scroll inteligente (não te arranca da leitura), foco preservado. Online = pontinho verde.
+  </div>
+
+  <script>
+    const COR = ["#008835","#0076BE","#B27429","#7B4F9C","#2F6B3F","#C0392B"];
+    const cor = (s)=>COR[[...s].reduce((a,c)=>a+c.charCodeAt(0),0)%COR.length];
+    const ini = (n)=>n.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase();
+    const conversas = [
+      { nome:"Marina Souza", online:true,  hora:"14:38", sub:"Você: beleza, vejo isso já", unread:0 },
+      { nome:"Adelir Padilha", online:true, hora:"11:02", sub:"pode conferir o turno 1?", unread:2 },
+      { nome:"Djoniffer Alves", online:false, hora:"ontem", sub:"Você: valeu!", unread:0 },
+    ];
+    const pessoas = [
+      { nome:"Alexander Lima", online:true }, { nome:"Anderson Mendes", online:false },
+      { nome:"Administrador", online:true }, { nome:"Carla Nunes", online:false },
+    ];
+    const HIST = {
+      "Adelir Padilha":[
+        {d:"Ontem",sep:true},
+        {me:false,t:"oi! consegue olhar as faltas de ontem?",h:"17:40"},
+        {me:true,t:"opa, olho sim",h:"17:42"},
+        {d:"Hoje",sep:true},
+        {me:false,t:"bom dia",h:"10:59"},
+        {me:false,t:"pode conferir o turno 1?",h:"11:02"},
+      ],
+    };
+    let atual = null;
+
+    function rowHTML(p, comMeta){
+      const d = p.online?'<span class="dot"></span>':'';
+      const meta = comMeta ? `
+        <div class="rtop"><span class="rnome">${p.nome}</span><span class="rhora">${p.hora||""}</span></div>
+        <div class="rsub ${p.unread?'unread':''}">${p.sub||(p.online?'online':'')}</div>` : `
+        <div class="rtop"><span class="rnome">${p.nome}</span></div>
+        <div class="rsub">${p.online?'online':'toque pra conversar'}</div>`;
+      return `<button class="row" data-nome="${p.nome}">
+        <span class="av" style="background:${cor(p.nome)}">${ini(p.nome)}${d}</span>
+        <span class="rinfo">${meta}</span>
+        ${p.unread?`<span class="badge">${p.unread}</span>`:''}
+      </button>`;
+    }
+    function pintarLista(filtro=""){
+      const f = filtro.toLowerCase();
+      const cv = conversas.filter(p=>p.nome.toLowerCase().includes(f));
+      const ps = pessoas.filter(p=>p.nome.toLowerCase().includes(f));
+      let html="";
+      if(cv.length){ html+=`<div class="sec">Conversas</div>`+cv.map(p=>rowHTML(p,true)).join(""); }
+      if(ps.length){ html+=`<div class="sec">Pessoas</div>`+ps.map(p=>rowHTML(p,false)).join(""); }
+      if(!html) html=`<div style="padding:30px;text-align:center;color:#4A6245;font-size:13px;">Ninguém encontrado.</div>`;
+      const r=document.getElementById("rows"); r.innerHTML=html;
+      r.querySelectorAll(".row").forEach(b=>b.onclick=()=>abrir(b.dataset.nome));
+    }
+    function abrir(nome){
+      atual=nome;
+      const online = [...conversas,...pessoas].find(p=>p.nome===nome)?.online;
+      document.getElementById("t-nome").textContent=nome;
+      const av=document.getElementById("t-av"); av.style.background=cor(nome); av.textContent=ini(nome);
+      const st=document.getElementById("t-st"); st.textContent=online?"online":"offline"; st.className="st"+(online?"":" off");
+      const m=document.getElementById("msgs"); m.innerHTML="";
+      const hist=HIST[nome]||[{me:false,t:"(comece a conversa)",h:""}];
+      hist.forEach(x=> x.sep ? addSep(x.d) : addBolha(x.me,x.t,x.h,true));
+      document.getElementById("thread").classList.add("show");
+      m.scrollTop=m.scrollHeight;
+      setTimeout(()=>document.getElementById("inp").focus(),200);
+    }
+    function addSep(d){ const e=document.createElement("div"); e.className="daysep"; e.textContent=d; document.getElementById("msgs").appendChild(e); }
+    function addBolha(me,t,h,noAnim){
+      const m=document.getElementById("msgs");
+      const perto = m.scrollHeight-m.scrollTop-m.clientHeight < 90;
+      const e=document.createElement("div"); e.className="b "+(me?"me":"peer"); if(noAnim) e.style.animation="none";
+      e.innerHTML=`${t}${h?`<span class="h">${h}</span>`:''}`;
+      m.appendChild(e);
+      if(me||perto) m.scrollTop=m.scrollHeight; // scroll inteligente
+    }
+    document.getElementById("back").onclick=()=>document.getElementById("thread").classList.remove("show");
+    document.getElementById("composer").onsubmit=(e)=>{
+      e.preventDefault(); const i=document.getElementById("inp"); const t=i.value.trim(); if(!t)return;
+      const agora=new Date(); const h=agora.getHours().toString().padStart(2,"0")+":"+agora.getMinutes().toString().padStart(2,"0");
+      addBolha(true,t,h); i.value=""; i.style.height="auto"; i.focus();
+    };
+    const inp=document.getElementById("inp");
+    inp.addEventListener("input",()=>{inp.style.height="auto";inp.style.height=Math.min(inp.scrollHeight,96)+"px";});
+    inp.addEventListener("keydown",(e)=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();document.getElementById("composer").requestSubmit();}});
+    document.getElementById("q").addEventListener("input",(e)=>pintarLista(e.target.value));
+    pintarLista();
+  </script>
+</body>
+</html>

@@ -10,6 +10,8 @@ const state = {
 // Subscription da conversa de chat aberta no momento (cancelada ao trocar de
 // peer ou sair da página chat) — evita vazar listeners do Firestore.
 let _chatConvUnsub = null;
+// Estado do render incremental da conversa aberta (anexa só msgs novas).
+let _chatRender = null;
 function pararEscutaConversa() {
   if (_chatConvUnsub) { _chatConvUnsub(); _chatConvUnsub = null; }
 }
@@ -6207,49 +6209,24 @@ function peerOnline(uid) {
   return (state.presence || []).some((p) => p.uid === uid && p.status === "ativo");
 }
 
-// Monta a lista de "contatos/conversas" pra coluna esquerda.
-// Une: (a) pessoas de quem recebi msg, (b) usuários online agora (exceto eu).
-// Cada item: { uid, nome, online, naoLidas, ultimaMsg, ultimaEm }.
-function montarListaContatosChat() {
-  const meu = meuUid();
-  const mapa = new Map();
+// Hora curta se for hoje; "ontem"; senão data curta. Usado na lista de conversas.
+function formatHoraOuDia(iso) {
+  if (!iso) return "";
+  const dia = String(iso).slice(0, 10);
+  const hoje = todayIso();
+  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (dia === hoje) return formatHoraCurta(iso);
+  if (dia === ontem) return "ontem";
+  return formatDate(dia);
+}
 
-  // (a) de mensagens recebidas — agrupa por remetente (de/deNome)
-  for (const m of (state.mensagensRecebidas || [])) {
-    if (!m.de || m.de === meu) continue;
-    const ex = mapa.get(m.de) || { uid: m.de, nome: m.deNome || "?", online: false, naoLidas: 0, ultimaMsg: "", ultimaEm: null };
-    if (!m.lido) ex.naoLidas += 1;
-    // mensagensRecebidas vem ordenado desc; a primeira que vemos por uid é a mais recente
-    if (!ex.ultimaEm) { ex.ultimaMsg = m.texto || ""; ex.ultimaEm = m.criadoEm || null; }
-    mapa.set(m.de, ex);
-  }
-
-  // (b) TODOS os usuários do sistema (exceto eu) — pra poder mandar msg
-  // pra qualquer um, online ou offline.
-  for (const usr of (state.users || [])) {
-    if (!usr.id || usr.id === meu) continue;
-    const ex = mapa.get(usr.id) || { uid: usr.id, nome: usr.nome || "?", online: false, naoLidas: 0, ultimaMsg: "", ultimaEm: null };
-    if (!ex.nome || ex.nome === "?") ex.nome = usr.nome || "?";
-    mapa.set(usr.id, ex);
-  }
-
-  // (c) presença — marca quem está online agora (ponto verde)
-  for (const p of (state.presence || [])) {
-    if (!p.uid || p.uid === meu) continue;
-    const ex = mapa.get(p.uid) || { uid: p.uid, nome: p.nome || "?", online: false, naoLidas: 0, ultimaMsg: "", ultimaEm: null };
-    ex.online = p.status === "ativo";
-    if (!ex.nome || ex.nome === "?") ex.nome = p.nome || "?";
-    mapa.set(p.uid, ex);
-  }
-
-  const lista = Array.from(mapa.values());
-  // Ordena: não-lidas primeiro, depois online, depois alfabético
-  lista.sort((a, b) => {
-    if ((b.naoLidas > 0) !== (a.naoLidas > 0)) return (b.naoLidas > 0) ? 1 : -1;
-    if (a.online !== b.online) return a.online ? -1 : 1;
-    return (a.nome || "").localeCompare(b.nome || "");
-  });
-  return lista;
+// Rótulo do separador de dia dentro da thread.
+function labelDiaChat(dia) {
+  const hoje = todayIso();
+  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (dia === hoje) return "Hoje";
+  if (dia === ontem) return "Ontem";
+  return formatDate(dia);
 }
 
 // ---------- Chat: widget flutuante (FAB estilo WhatsApp) ----------
@@ -6289,71 +6266,118 @@ function toggleChatWidget() {
   if (w && w.hidden) abrirChatWidget(); else fecharChatWidget();
 }
 
-// Renderiza só a coluna esquerda (lista de contatos/conversas).
-// Chamável pelo listener global quando chegam novas msgs.
+// Renderiza a coluna esquerda: cria a busca UMA vez (preserva foco em
+// re-renders por presença) e repinta só as linhas via pintarChatRows.
 function renderChatLista() {
   const cont = $("#chat-contatos");
   if (!cont) return;
-  const peer = state.view.chatPeer || null;
-  const lista = montarListaContatosChat();
+  if (!$("#chat-rows")) {
+    cont.innerHTML = `
+      <div class="chat__busca">
+        ${icon("search")}
+        <input id="chat-busca-input" type="search" placeholder="Buscar pessoa…" value="${escapeHtml(state.view.chatBusca || "")}" />
+      </div>
+      <div class="chat__rows" id="chat-rows"></div>`;
+    const inp = $("#chat-busca-input");
+    if (inp) inp.addEventListener("input", (e) => { state.view.chatBusca = e.target.value; pintarChatRows(); });
+  }
+  pintarChatRows();
+}
 
-  if (lista.length === 0) {
-    cont.innerHTML = `<div class="chat__contatos-vazio">Ninguém online pra conversar agora.</div>`;
+// Repinta as linhas: "Conversas" (já trocou msg, de state.conversas) e
+// "Pessoas" (todos os outros users). Filtra pela busca.
+function pintarChatRows() {
+  const rows = $("#chat-rows");
+  if (!rows) return;
+  const meu = meuUid();
+  const peer = state.view.chatPeer || null;
+  const termo = (state.view.chatBusca || "").trim().toLowerCase();
+  const bate = (nome) => !termo || (nome || "").toLowerCase().includes(termo);
+
+  const conversas = (state.conversas || [])
+    .map((c) => ({ ...c, online: peerOnline(c.uid) }))
+    .filter((c) => bate(c.nome));
+
+  const jaConversa = new Set((state.conversas || []).map((c) => c.uid));
+  const pessoas = (state.users || [])
+    .filter((u) => u.id && u.id !== meu && !jaConversa.has(u.id))
+    .map((u) => ({ uid: u.id, nome: u.nome || "?", online: peerOnline(u.id) }))
+    .filter((p) => bate(p.nome))
+    .sort((a, b) => (a.online !== b.online ? (a.online ? -1 : 1) : (a.nome || "").localeCompare(b.nome || "")));
+
+  if (!conversas.length && !pessoas.length) {
+    rows.innerHTML = `<div class="chat__contatos-vazio">${termo ? "Ninguém encontrado." : "Ninguém pra conversar ainda."}</div>`;
     return;
   }
 
-  cont.innerHTML = lista.map((c) => {
-    const ativo = peer && peer.uid === c.uid;
-    const preview = c.ultimaMsg
-      ? escapeHtml(c.ultimaMsg.length > 40 ? c.ultimaMsg.slice(0, 40) + "…" : c.ultimaMsg)
-      : (c.online ? "online" : "");
+  const avatarHtml = (c) => {
     const foto = (state.users || []).find((x) => x.id === c.uid)?.fotoBase64;
-    const avStyle = foto
-      ? `background-image:url(${foto}); background-size:cover; background-position:center;`
+    const style = foto
+      ? `background-image:url(${foto});background-size:cover;background-position:center;`
       : `background:${presenceColor(c.uid)};`;
+    return `<span class="chat__avatar" style="${style}">${foto ? "" : escapeHtml(initials(c.nome || "?"))}${c.online ? `<span class="chat__online-dot"></span>` : ""}</span>`;
+  };
+  const linhaConversa = (c) => {
+    const ativo = peer && peer.uid === c.uid;
+    let prev = c.ultimaMsg ? (c.deMim ? "Você: " : "") + c.ultimaMsg : (c.online ? "online" : "");
+    if (prev.length > 38) prev = prev.slice(0, 38) + "…";
     return `
-      <button class="chat__contato ${c.online ? "chat__contato--online" : ""} ${ativo ? "is-active" : ""}"
-              data-uid="${escapeHtml(c.uid)}" data-nome="${escapeHtml(c.nome)}">
-        <span class="chat__avatar" style="${avStyle}">
-          ${foto ? "" : escapeHtml(initials(c.nome || "?"))}
-          ${c.online ? `<span class="chat__online-dot"></span>` : ""}
-        </span>
+      <button class="chat__contato ${c.online ? "chat__contato--online" : ""} ${ativo ? "is-active" : ""}" data-uid="${escapeHtml(c.uid)}" data-nome="${escapeHtml(c.nome)}">
+        ${avatarHtml(c)}
         <span class="chat__contato-info">
-          <span class="chat__contato-nome">${escapeHtml(c.nome || "?")}</span>
-          <span class="chat__contato-preview">${preview}</span>
+          <span class="chat__contato-top">
+            <span class="chat__contato-nome">${escapeHtml(c.nome || "?")}</span>
+            <span class="chat__contato-hora">${c.ultimaEm ? escapeHtml(formatHoraOuDia(c.ultimaEm)) : ""}</span>
+          </span>
+          <span class="chat__contato-preview ${c.naoLidas ? "is-unread" : ""}">${escapeHtml(prev)}</span>
         </span>
         ${c.naoLidas > 0 ? `<span class="chat__contato-badge">${c.naoLidas > 9 ? "9+" : c.naoLidas}</span>` : ""}
       </button>`;
-  }).join("");
+  };
+  const linhaPessoa = (c) => {
+    const ativo = peer && peer.uid === c.uid;
+    return `
+      <button class="chat__contato ${c.online ? "chat__contato--online" : ""} ${ativo ? "is-active" : ""}" data-uid="${escapeHtml(c.uid)}" data-nome="${escapeHtml(c.nome)}">
+        ${avatarHtml(c)}
+        <span class="chat__contato-info">
+          <span class="chat__contato-nome">${escapeHtml(c.nome || "?")}</span>
+          <span class="chat__contato-preview">${c.online ? "online" : "toque pra conversar"}</span>
+        </span>
+      </button>`;
+  };
 
-  $$("#chat-contatos .chat__contato").forEach((btn) => {
+  let html = "";
+  if (conversas.length) html += `<div class="chat__sec">Conversas</div>` + conversas.map(linhaConversa).join("");
+  if (pessoas.length) html += `<div class="chat__sec">Pessoas</div>` + pessoas.map(linhaPessoa).join("");
+  rows.innerHTML = html;
+
+  rows.querySelectorAll(".chat__contato").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const uid = btn.dataset.uid;
-      const nome = btn.dataset.nome;
+      const uid = btn.dataset.uid, nome = btn.dataset.nome;
       state.view.chatPeer = { uid, nome };
-      renderChatLista(); // atualiza highlight ativo
+      pintarChatRows();
       abrirConversa(uid, nome);
     });
   });
 }
 
-// Abre/assina a conversa com um peer. Cancela a subscription anterior.
+// Abre/assina a conversa com um peer. Monta o esqueleto UMA vez; os snapshots
+// só anexam mensagens novas (render incremental → fluido, sem flicker).
 function abrirConversa(peerUid, peerNome) {
   pararEscutaConversa();
   const meu = meuUid();
   if (!meu || !chatDisponivel()) return;
 
-  const parKey = window.parKeyChat(meu, peerUid);
-
   // No widget flutuante, a thread cobre a lista de contatos.
   $("#chat-widget")?.classList.add("tem-thread");
 
-  // Render inicial do "carregando" enquanto o 1º snapshot não chega
   const thread = $("#chat-thread");
   if (thread) {
     thread.innerHTML = chatThreadShell(peerNome, peerUid, `<div class="chat__msgs-carregando">Carregando…</div>`);
     wireChatThread(peerUid, peerNome);
   }
+  // Estado do render incremental desta conversa.
+  _chatRender = { peerUid, ids: new Set(), lastDia: null, lastDe: null, primeiro: true };
 
   _chatConvUnsub = window.escutarConversa(peerUid, (msgs, err) => {
     if (err) {
@@ -6361,9 +6385,10 @@ function abrirConversa(peerUid, peerNome) {
       if (area) area.innerHTML = `<div class="chat__msgs-vazio">Não foi possível carregar agora. Feche e abra a conversa de novo.</div>`;
       return;
     }
-    renderChatThread(peerUid, peerNome, msgs);
+    if (!_chatRender || _chatRender.peerUid !== peerUid) return; // trocou de conversa
+    pintarMensagens(msgs);
     // Marca como lidas as recebidas desta conversa (best-effort)
-    window.marcarConversaLida(parKey).catch((e) => console.warn("[chat] marcarLida:", e?.message || e));
+    window.marcarConversaLida(peerUid).catch((e) => console.warn("[chat] marcarLida:", e?.message || e));
   });
 }
 
@@ -6393,40 +6418,57 @@ function chatThreadShell(peerNome, peerUid, msgsHtml) {
     </form>`;
 }
 
-// Renderiza a thread completa (balões + composer) e re-wira eventos.
-function renderChatThread(peerUid, peerNome, msgs) {
-  const thread = $("#chat-thread");
-  if (!thread) return;
+// Render INCREMENTAL: anexa só as mensagens ainda não renderizadas em
+// #chat-msgs, com separador de dia + agrupamento de balões consecutivos.
+// Não toca header/composer (foco preservado) e usa scroll inteligente.
+function pintarMensagens(msgs) {
+  const cont = $("#chat-msgs");
+  if (!cont || !_chatRender) return;
   const meu = meuUid();
 
-  let bolhas;
-  if (!msgs || msgs.length === 0) {
-    bolhas = `<div class="chat__msgs-vazio">Nenhuma mensagem ainda. Diga oi!</div>`;
-  } else {
-    bolhas = msgs.map((m) => {
-      const minha = m.de === meu;
-      const hora = formatHoraCurta(m.criadoEm);
-      return `
-        <div class="chat__bolha ${minha ? "chat__bolha--minha" : ""}">
-          <span class="chat__bolha-texto">${escapeHtml(m.texto || "")}</span>
-          ${hora ? `<span class="chat__bolha-hora">${hora}</span>` : ""}
-        </div>`;
-    }).join("");
+  if (_chatRender.primeiro) {
+    cont.innerHTML = "";
+    _chatRender.primeiro = false;
+    if (!msgs || !msgs.length) {
+      cont.innerHTML = `<div class="chat__msgs-vazio">Nenhuma mensagem ainda. Diga oi!</div>`;
+      return;
+    }
+  }
+  // Se estava no estado "vazio" e chegou a 1ª msg, limpa o placeholder.
+  if (msgs && msgs.length && cont.querySelector(".chat__msgs-vazio")) cont.innerHTML = "";
+
+  // Estava perto do fim? (pra decidir o auto-scroll depois de anexar)
+  const perto = (cont.scrollHeight - cont.scrollTop - cont.clientHeight) < 110;
+
+  let anexou = false, ultimaMinha = false;
+  for (const m of (msgs || [])) {
+    if (!m.id || _chatRender.ids.has(m.id)) continue;
+    _chatRender.ids.add(m.id);
+
+    const dia = (m.criadoEm || "").slice(0, 10);
+    if (dia && dia !== _chatRender.lastDia) {
+      const sep = document.createElement("div");
+      sep.className = "chat__daysep";
+      sep.textContent = labelDiaChat(dia);
+      cont.appendChild(sep);
+      _chatRender.lastDia = dia;
+      _chatRender.lastDe = null; // novo dia quebra o agrupamento
+    }
+
+    const minha = m.de === meu;
+    const grp = _chatRender.lastDe === m.de;
+    const hora = formatHoraCurta(m.criadoEm);
+    const b = document.createElement("div");
+    b.className = `chat__bolha ${minha ? "chat__bolha--minha" : ""} ${grp ? "chat__bolha--grp" : ""}`;
+    b.innerHTML = `<span class="chat__bolha-texto">${escapeHtml(m.texto || "")}</span>${hora ? `<span class="chat__bolha-hora">${hora}</span>` : ""}`;
+    cont.appendChild(b);
+
+    _chatRender.lastDe = m.de;
+    anexou = true;
+    ultimaMinha = minha;
   }
 
-  // Preserva o que o usuário já digitou ao re-renderizar
-  const inputAtual = $("#chat-input");
-  const rascunho = inputAtual ? inputAtual.value : "";
-
-  thread.innerHTML = chatThreadShell(peerNome, peerUid, bolhas);
-  wireChatThread(peerUid, peerNome);
-
-  const input = $("#chat-input");
-  if (input && rascunho) { input.value = rascunho; autoGrowTextarea(input); }
-
-  // Auto-scroll pro fim
-  const cont = $("#chat-msgs");
-  if (cont) cont.scrollTop = cont.scrollHeight;
+  if (anexou && (perto || ultimaMinha)) cont.scrollTop = cont.scrollHeight;
 }
 
 // Auto-cresce o textarea conforme o conteúdo (até um teto via CSS max-height).
@@ -6442,12 +6484,11 @@ function wireChatThread(peerUid, peerNome) {
   if (voltar) {
     voltar.addEventListener("click", () => {
       pararEscutaConversa();
+      _chatRender = null;
       state.view.chatPeer = null;
-      // Volta pra lista de contatos: a thread deixa de cobrir a lista.
+      // A thread desliza pra fora (CSS); a lista já está atrás. Só atualiza o highlight.
       $("#chat-widget")?.classList.remove("tem-thread");
-      const thread = $("#chat-thread");
-      if (thread) thread.innerHTML = `<div class="chat__sem-peer">${icon("message")}<p>Escolha uma conversa.</p></div>`;
-      renderChatLista();
+      pintarChatRows();
     });
   }
 
