@@ -254,7 +254,11 @@ const icon = (name) => {
 function toast(msg, variant = "success") {
   const el = document.createElement("div");
   el.className = `toast toast--${variant}`;
-  el.innerHTML = `${icon(variant === "success" ? "check" : "alert")}<span>${msg}</span>`;
+  // role=alert pra leitor de tela anunciar erros (a11y).
+  if (variant === "danger") el.setAttribute("role", "alert");
+  // escapeHtml no msg — toast usa innerHTML e msg às vezes carrega nome de
+  // funcionário (vindo do CSV/pipeline), evita XSS armazenado.
+  el.innerHTML = `${icon(variant === "success" ? "check" : "alert")}<span>${escapeHtml(msg)}</span>`;
   $("#toast-root").appendChild(el);
   setTimeout(() => {
     el.style.transition = "opacity 200ms";
@@ -5964,9 +5968,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let ok = false;
     try {
+      if (navigator.onLine === false) throw new Error("offline");
       ok = await Promise.resolve(login(user, pass));
     } catch (err) {
-      console.error(err);
+      debug?.(err);
+      const erro = $("#login-error");
+      const msg = err?.message === "offline"
+        ? "Sem conexão. Verifique a internet e tente de novo."
+        : "Não foi possível entrar agora. Tente de novo.";
+      if (erro) { erro.textContent = msg; erro.classList.remove("hidden"); }
+      toast(msg, "danger");
     }
 
     if (!ok) {
