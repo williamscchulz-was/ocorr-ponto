@@ -32,15 +32,19 @@ Firestore (projeto ocorr-ponto)  →  app FioPulse
 
 ### Agendamento (Windows Task Scheduler no servidor WKRADAR)
 
-| Tarefa | Hora | Comando |
-|---|---|---|
-| WKRadar Export D_Empregado | 07:40 | `ExportacaoAutomatica.exe Config_Informativos.txt /Silent` |
-| WKRadar Export BH | 07:45 | `ExportacaoAutomatica.exe Config_Banco_de_Horas.txt /Silent` |
-| Fiobras Pipeline RH | 08:00 | `node C:\fiobras-pipeline-rh\run-pipeline.mjs` |
+| Tarefa | Hora | Comando | Estado |
+|---|---|---|---|
+| WKRadar Export D_Empregado | 07:40 | `ExportacaoAutomatica.exe Config_Informativos.txt /Silent` | Ready |
+| ~~WKRadar Export BH~~ | ~~07:45~~ | `ExportacaoAutomatica.exe Config_Banco_de_Horas.txt /Silent` | **Disabled** (2026-05-29) |
+| Fiobras Pipeline RH | 08:00 | `node C:\fiobras-pipeline-rh\run-pipeline.mjs` | Ready |
 
 ⚠️ Tarefas estão em modo **"Interativo apenas"** — só rodam quando o usuário `wkradar` está logado na máquina.
 
-> **📌 Mudança 2026-05-29 (fix do saldo travado):** a pipeline das **08:00** agora reescreve as datas e **re-exporta o BH ela mesma** (passos 0 e 1 do `run-pipeline.mjs`). Por quê: a `DataFinal` não estende sozinha (ver §4), então o export das 07:45 sai com a janela do dia anterior; a pipeline corrige isso atualizando `DataFinal=hoje` e re-rodando o `.exe` antes de parsear. A tarefa **WKRadar Export BH (07:45)** virou **fallback** (se o export interno da pipeline falhar, `process-bh` usa o CSV que ela deixou). A tarefa **D_Empregado (07:40)** continua sendo a única fonte do CSV de cadastro (a pipeline não re-exporta esse — não tem problema de data).
+> **📌 Mudança 2026-05-29 (fix do saldo travado):** a pipeline das **08:00** agora reescreve as datas e **re-exporta o BH ela mesma** (passos 0 e 1 do `run-pipeline.mjs`). Por quê: a `DataFinal` não estende sozinha (ver §4), então um export com data velha congela o saldo; a pipeline corrige atualizando `DataFinal=hoje` e re-rodando o `.exe` antes de parsear. Como isso tornou o export das 07:45 **redundante** (e o `.exe` é instância única — exports simultâneos dão "Acesso negado"), a tarefa **WKRadar Export BH (07:45) foi DESABILITADA** — a pipeline das 08:00 é a **dona única** do export de BH. A tarefa **D_Empregado (07:40)** continua sendo a única fonte do CSV de cadastro (a pipeline não re-exporta esse — não tem problema de data).
+>
+> **Pra reabilitar a 07:45** (se algum dia precisar): `Enable-ScheduledTask -TaskName "WKRadar Export BH"`.
+
+> **⚠️ Instância única:** o `ExportacaoAutomatica.exe` não roda 2x ao mesmo tempo. Se o WK Radar (ou outra exportação) estiver rodando, uma nova tentativa dá **"Processo de exportação automática em andamento... Acesso negado"**. É um aviso benigno — espere o export atual terminar (~6s) e tente de novo. Evite rodar export manual junto do horário das tarefas agendadas.
 
 ---
 
