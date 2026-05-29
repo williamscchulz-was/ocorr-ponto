@@ -6731,7 +6731,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.0.0";
+window.CURRENT_VERSION = "1.1.0";
 let _changelogCarregado = false;
 let _changelogChecado = false;
 

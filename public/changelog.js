@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.0.0", d: "29 mai 2026", current: true, items: [
+    v: "1.1.0", d: "29 mai 2026", current: true, items: [
+      { type: "fix", title: "Usabilidade no celular: topbar, listas, formulários e chat ajustados pra mobile." },
+    ],
+  },
+  {
+    v: "1.0.0", d: "29 mai 2026", items: [
       { type: "feat", title: "Chat novo: conversas separadas de pessoas, com reações e confirmação de leitura." },
       { type: "feat", title: "Auditoria: linha do tempo de quem conferiu, lançou, alterou ou excluiu." },
       { type: "high", title: "Visual minimalista em todo o app + identidade FioPulse." },
