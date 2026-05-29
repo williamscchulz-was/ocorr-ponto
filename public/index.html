@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=131" />
+  <link rel="stylesheet" href="styles.css?v=132" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -113,6 +113,9 @@
       <div class="app__bottom">
         <div class="sidebar-presence" id="sidebar-presence"></div>
 
+        <!-- Acesso às Novidades no desktop (no mobile o pill fica na topbar) -->
+        <button class="version-pill version-pill--side" id="version-pill-side" title="Novidades e histórico de versões">v—</button>
+
         <button class="app__user" id="user-area" title="Perfil e sessão" style="cursor:pointer; text-align:left; width:100%;">
           <div class="avatar" id="user-avatar">--</div>
           <div class="app__user-info">
@@ -187,13 +190,13 @@
   <div id="modal-root"></div>
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
-  <script defer src="data.js?v=131"></script>
-  <script defer src="app.js?v=131"></script>
+  <script defer src="data.js?v=132"></script>
+  <script defer src="app.js?v=132"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=131"></script>
-  <script defer src="google-drive.js?v=131"></script>
+  <script defer src="firebase.js?v=132"></script>
+  <script defer src="google-drive.js?v=132"></script>
 </body>
 </html>

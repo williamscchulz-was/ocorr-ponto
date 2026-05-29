@@ -3196,6 +3196,17 @@ code { font-family: inherit; }
 }
 .version-pill:hover { background: var(--milk-warm); color: var(--plum-deep); }
 .version-pill:active { transform: scale(0.95); }
+/* Variante na barra lateral (desktop) — fundo verde → pill translúcido. */
+.version-pill--side {
+  align-self: flex-start;
+  margin: 2px 0 8px 4px;
+  background: rgba(255, 243, 230, .12);
+  color: rgba(255, 243, 230, .8);
+  border-color: rgba(255, 243, 230, .2);
+}
+.version-pill--side:hover { background: rgba(255, 243, 230, .2); color: #fff; }
+@media (max-width: 900px) { .version-pill--side { display: none; } } /* mobile usa o da topbar */
+.app--rail .version-pill--side { display: none; }
 
 .changelog-overlay {
   position: fixed; inset: 0; z-index: 9970;

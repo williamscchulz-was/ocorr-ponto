@@ -6652,6 +6652,20 @@ function wireChatThread(peerUid, peerNome) {
         if (bolha) aplicarReacao(bolha.dataset.mid, null);
       }
     });
+
+    // Toque-e-segure (long-press) abre a barra de reações no celular.
+    let _lpTimer = null;
+    msgsEl.addEventListener("touchstart", (e) => {
+      const bolha = e.target.closest(".chat__bolha");
+      if (!bolha || e.target.closest("[data-react-trig],.chat__react-bar,[data-react-chip]")) return;
+      _lpTimer = setTimeout(() => {
+        msgsEl.querySelectorAll(".chat__bolha.is-reacting").forEach((b) => b.classList.remove("is-reacting"));
+        bolha.classList.add("is-reacting");
+        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+      }, 450);
+    }, { passive: true });
+    const cancelLP = () => { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } };
+    ["touchmove", "touchend", "touchcancel"].forEach((ev) => msgsEl.addEventListener(ev, cancelLP, { passive: true }));
   }
   // Fecha qualquer barra de reação ao clicar fora (uma vez só, no document).
   if (!window._chatReactDocBound) {
@@ -6796,11 +6810,11 @@ document.addEventListener("DOMContentLoaded", () => {
   renderLoginQuick();
 
   // Novidades: pill na topbar + modal (abre, fecha, Esc, clique fora).
-  const vpill = document.getElementById("version-pill");
-  if (vpill) {
-    vpill.textContent = "v" + window.CURRENT_VERSION;
-    vpill.addEventListener("click", openChangelog);
-  }
+  // Pills de versão (topbar no mobile + sidebar no desktop) → abrem Novidades.
+  $$(".version-pill").forEach((p) => {
+    p.textContent = "v" + window.CURRENT_VERSION;
+    p.addEventListener("click", openChangelog);
+  });
   const clClose = document.getElementById("changelog-close");
   if (clClose) clClose.addEventListener("click", closeChangelog);
   const clOv = document.getElementById("changelog-overlay");

@@ -13,6 +13,7 @@ window.CHANGELOG = [
   {
     v: "1.1.0", d: "29 mai 2026", current: true, items: [
       { type: "fix", title: "Usabilidade no celular: topbar, listas, formulários e chat ajustados pra mobile." },
+      { type: "feat", title: "Toque e segure pra reagir no chat (celular); Novidades acessível também no desktop." },
     ],
   },
   {
