@@ -253,6 +253,67 @@ const icon = (name) => {
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${icons[name] || ""}</svg>`;
 };
 
+// ============================================
+// Micro-interações (sutis). O CSS cuida de hover/press/abas; o JS faz a
+// entrada escalonada, o count-up dos números e a proximidade na sidebar.
+// Tudo respeita prefers-reduced-motion.
+// ============================================
+function prefereMenosMovimento() {
+  return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+// Entrada escalonada: delay incremental nos filhos diretos + marca o container.
+// Usar só no 1º paint de uma tela (não em re-render de busca/filtro).
+function animarEntrada(container) {
+  if (!container || prefereMenosMovimento()) return;
+  [...container.children].forEach((k, i) => {
+    k.style.animationDelay = Math.min(i * 42, 380) + "ms";
+  });
+  container.classList.add("stagger-in");
+}
+
+// Conta de 0 até o valor final em cada .stat__value que seja inteiro puro.
+function animarNumeros(scope) {
+  const root = typeof scope === "string" ? document.querySelector(scope) : (scope || document);
+  if (!root || prefereMenosMovimento()) return;
+  root.querySelectorAll(".stat__value").forEach((el) => {
+    const txt = (el.textContent || "").trim();
+    if (!/^\d{1,7}$/.test(txt)) return; // só inteiros puros (ignora "hoje", "0h00"...)
+    const to = parseInt(txt, 10);
+    if (to <= 0) return;
+    const dur = 700, t0 = performance.now();
+    el.textContent = "0";
+    const tick = (now) => {
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = String(Math.round(to * e));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+// Proximidade na sidebar: itens crescem de leve conforme o cursor se aproxima
+// (eixo vertical). Atribui onpointermove (não addEventListener) p/ não empilhar.
+function ativarProximidadeNav() {
+  const nav = document.getElementById("nav");
+  if (!nav) return;
+  if (prefereMenosMovimento()) { nav.onpointermove = null; return; }
+  nav.onpointermove = (e) => {
+    nav.querySelectorAll(".nav__item").forEach((it) => {
+      const r = it.getBoundingClientRect();
+      const dist = Math.abs(e.clientY - (r.top + r.height / 2));
+      const t = Math.max(0, 1 - dist / 72);
+      it.style.transform = t > 0
+        ? `scale(${(1 + t * 0.05).toFixed(3)}) translateX(${(t * 4).toFixed(1)}px)`
+        : "";
+    });
+  };
+  nav.onpointerleave = () => {
+    nav.querySelectorAll(".nav__item").forEach((it) => { it.style.transform = ""; });
+  };
+}
+
 // ---------- Toast ----------
 
 function toast(msg, variant = "success") {
@@ -1104,6 +1165,8 @@ function renderNav() {
       closeSidebar();
     });
   });
+
+  ativarProximidadeNav();
 }
 
 function renderBottomNav() {
@@ -2187,13 +2250,14 @@ function renderFuncionarios() {
     <div id="func-list"></div>
   `;
 
-  $("#func-search").addEventListener("input", debounce(renderFuncList, 150));
-  $("#func-status-filter").addEventListener("change", renderFuncList);
-  $("#func-turno-filter").addEventListener("change", renderFuncList);
-  renderFuncList();
+  $("#func-search").addEventListener("input", debounce(() => renderFuncList(), 150));
+  $("#func-status-filter").addEventListener("change", () => renderFuncList());
+  $("#func-turno-filter").addEventListener("change", () => renderFuncList());
+  renderFuncList(true);
+  animarNumeros("#view");
 }
 
-function renderFuncList() {
+function renderFuncList(animar) {
   const u = currentUser();
   const search = ($("#func-search")?.value || "").toLowerCase();
   const statusFilter = $("#func-status-filter")?.value || "ativo";
@@ -2281,6 +2345,8 @@ function renderFuncList() {
   $$("#func-list .func-row").forEach((el) => {
     el.addEventListener("click", () => openFuncionarioModal(el.dataset.func));
   });
+
+  if (animar) animarEntrada(document.querySelector("#func-list .func-list"));
 }
 
 // Setores: derivados dinamicamente dos funcionarios atuais (CSV do ERP WK Radar
@@ -3059,10 +3125,11 @@ function renderBancoHoras() {
     $("#btn-import-bh").addEventListener("click", openImportBancoHorasModal);
   }
   $("#bh-search").addEventListener("input", debounce(() => renderBHList(visibles), 150));
-  renderBHList(visibles);
+  renderBHList(visibles, true);
+  animarNumeros("#view");
 }
 
-function renderBHList(funcionarios) {
+function renderBHList(funcionarios, animar) {
   const search = ($("#bh-search")?.value || "").toLowerCase();
   let list = [...funcionarios];
   if (search) {
@@ -3120,6 +3187,8 @@ function renderBHList(funcionarios) {
       </article>
     `;
   }).join("")}</div>`;
+
+  if (animar) animarEntrada(document.querySelector("#bh-list .list"));
 }
 
 function formatSaldoHoras(minutos) {
@@ -3359,12 +3428,12 @@ function renderControlePJ() {
   `;
 
   $("#btn-novo-pj").addEventListener("click", () => openPJModal(null));
-  $("#pj-search").addEventListener("input", debounce(renderPJList, 150));
-  $("#pj-status-filter").addEventListener("change", renderPJList);
-  renderPJList();
+  $("#pj-search").addEventListener("input", debounce(() => renderPJList(), 150));
+  $("#pj-status-filter").addEventListener("change", () => renderPJList());
+  renderPJList(true);
 }
 
-function renderPJList() {
+function renderPJList(animar) {
   const u = currentUser();
   const search = ($("#pj-search")?.value || "").toLowerCase();
   const filter = $("#pj-status-filter")?.value || "";
@@ -3462,6 +3531,8 @@ function renderPJList() {
       openReajusteModal(btn.dataset.reajustar);
     });
   });
+
+  if (animar) animarEntrada(document.querySelector("#pj-list .pj-list"));
 }
 
 function formatMoeda(valor) {
@@ -5086,7 +5157,7 @@ function renderAuditoria() {
     </div>
   `;
 
-  pintarFeedAuditoria();
+  pintarFeedAuditoria(true);
 
   const busca = $("#aud-busca");
   if (busca) {
@@ -5105,7 +5176,7 @@ function renderAuditoria() {
 }
 
 // Repinta só o feed (preserva foco da busca).
-function pintarFeedAuditoria() {
+function pintarFeedAuditoria(animar) {
   const feed = $("#aud-feed");
   if (!feed) return;
 
@@ -5178,6 +5249,8 @@ function pintarFeedAuditoria() {
   $$("#aud-feed .aud__row").forEach((row) => {
     row.addEventListener("click", () => openOcorrenciaDetail(row.dataset.occ));
   });
+
+  if (animar) animarEntrada(feed);
 }
 
 // ---------- Configurações (Admin/RH) ----------

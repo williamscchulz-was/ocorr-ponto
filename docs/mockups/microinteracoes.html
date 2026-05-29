@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Playground · Micro-interações FioPulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#F7F9F6; --surface:#fff; --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:#006328; --text-body:#1E2D1A; --muted:#4A6245;
+    --plum:#008835; --plum-deep:#006328; --plum-soft:#1AA34F;
+    --warning:#B27429; --warning-bg:#F8E4C8; --milk-warm:#EEF3EC;
+    --success:#2F6B3F; --danger:#962F32;
+    --font:"Poppins",system-ui,sans-serif;
+    /* curva "spring" suave — base de todas as transições */
+    --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#dfe3dd;color:var(--text-body);padding:26px 16px 60px;}
+  h1.tt{text-align:center;color:var(--plum-deep);font-weight:700;margin:0 0 2px;font-size:22px;}
+  p.ss{text-align:center;color:#5a6b54;margin:0 0 8px;font-size:13px;}
+  .hint{text-align:center;font-size:12px;color:#5a6b54;margin:0 auto 22px;max-width:620px;line-height:1.5;}
+
+  .sec{max-width:680px;margin:0 auto 20px;background:var(--bg);border-radius:16px;box-shadow:0 14px 44px rgba(0,40,20,.14);padding:20px 22px 24px;}
+  .sec__h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px;}
+  .sec__n{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--plum-deep);}
+  .sec__d{font-size:12.5px;color:var(--muted);margin:0 0 16px;line-height:1.5;}
+  .replay{border:1px solid var(--border-strong);background:var(--surface);border-radius:8px;padding:5px 11px;font-family:inherit;font-size:11.5px;font-weight:600;color:var(--plum-deep);cursor:pointer;transition:transform .12s var(--ease),background .15s;}
+  .replay:hover{background:var(--milk-warm);}
+  .replay:active{transform:scale(.95);}
+
+  /* ---------- 1. Listas vivas ---------- */
+  .list{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .row{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer;
+       transition:background .18s var(--ease), box-shadow .2s var(--ease), transform .2s var(--ease);}
+  .row:last-child{border-bottom:0;}
+  .row:hover{background:#FAFCF9;}
+  .row:active{transform:scale(.995);}
+  .row .info{flex:1;min-width:0;}
+  .row .nome{font-size:14.5px;font-weight:600;color:var(--text-body);}
+  .row .sub{font-size:12px;color:var(--muted);margin-top:3px;}
+  .row .turno{font-size:11.5px;font-weight:600;color:var(--muted);background:var(--milk-warm);border-radius:6px;padding:3px 9px;}
+  .row .chev{width:18px;height:18px;color:#cdd8c6;flex-shrink:0;transition:transform .2s var(--ease), color .18s;}
+  .row:hover .chev{transform:translateX(3px);color:var(--plum-soft);}
+  /* entrada escalonada */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
+  .stagger .row{opacity:0;animation:fadeUp .34s var(--ease) forwards;}
+
+  /* ---------- 2. Botões com tato ---------- */
+  .btns{display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{display:inline-flex;align-items:center;gap:7px;border-radius:10px;padding:10px 16px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid transparent;
+       transition:transform .14s var(--ease), box-shadow .2s var(--ease), background .16s, border-color .16s;}
+  .btn:active{transform:scale(.96);}
+  .btn--primary{background:var(--plum);color:#fff;box-shadow:0 1px 2px rgba(0,40,20,.12);}
+  .btn--primary:hover{background:var(--plum-soft);box-shadow:0 4px 14px rgba(0,136,53,.28);transform:translateY(-1px);}
+  .btn--primary:active{transform:scale(.96);box-shadow:0 1px 2px rgba(0,40,20,.12);}
+  .btn--soft{background:var(--milk-warm);color:var(--plum-deep);}
+  .btn--soft:hover{background:#E3ECDF;}
+  .btn--ghost{background:none;color:var(--muted);border-color:var(--border-strong);}
+  .btn--ghost:hover{background:var(--milk-warm);color:var(--plum-deep);}
+
+  /* ---------- 3. Abas que deslizam ---------- */
+  .tabs{position:relative;display:flex;gap:2px;border-bottom:1px solid var(--border);}
+  .tab{border:0;background:none;font-family:inherit;font-size:13.5px;font-weight:500;color:var(--muted);padding:10px 16px;cursor:pointer;transition:color .18s var(--ease);z-index:1;}
+  .tab.on{color:var(--plum-deep);font-weight:600;}
+  .tab-ink{position:absolute;bottom:-1px;height:2px;background:var(--plum);border-radius:2px;transition:left .28s var(--ease), width .28s var(--ease);}
+
+  /* ---------- 4. Números que sobem ---------- */
+  .stats{display:flex;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .stat{flex:1;padding:14px 16px;border-right:1px solid var(--border);}
+  .stat:last-child{border-right:0;}
+  .stat__l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .stat__v{font-size:24px;font-weight:700;color:var(--plum-deep);margin-top:3px;font-variant-numeric:tabular-nums;}
+
+  /* ---------- 5. Proximidade (opcional) ---------- */
+  .dock{display:flex;gap:10px;justify-content:center;padding:24px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;}
+  .dock .d{width:46px;height:46px;border-radius:12px;background:var(--milk-warm);border:1px solid var(--border);transition:transform .14s var(--ease), background .14s;transform-origin:bottom center;}
+
+  .note{max-width:680px;margin:18px auto 0;font-size:12.5px;color:#41513c;line-height:1.65;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 18px;}
+  .note b{color:var(--plum-deep);}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+  <h1 class="tt">Micro-interações — playground</h1>
+  <p class="ss">Passe o mouse, clique, troque de aba. Tudo sutil de propósito.</p>
+  <p class="hint">A ideia: a interface responder ao toque com leveza — sentir viva sem virar enfeite. Tudo aqui usa a mesma curva suave e respeita "minimalista total". Escolha o que entra.</p>
+
+  <!-- 1 -->
+  <div class="sec">
+    <div class="sec__h"><span class="sec__n">1 · Listas vivas</span><button class="replay" onclick="replayList()">repetir entrada</button></div>
+    <p class="sec__d">Hover: fundo suave + a seta desliza pra direita e ganha cor. Clique: a linha "afunda" 0,5%. Ao carregar: as linhas sobem em cascata (escalonado).</p>
+    <div class="list stagger" id="lista">
+      <div class="row"><div class="info"><div class="nome">Ana Silva</div><div class="sub">cód: 612 · Repasse</div></div><span class="turno">1º Turno</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="row"><div class="info"><div class="nome">Lucas Martins</div><div class="sub">cód: 1139 · Preparação</div></div><span class="turno">2º Turno</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="row"><div class="info"><div class="nome">Mariana Costa</div><div class="sub">cód: 1074 · Laboratório</div></div><span class="turno">3º Turno</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="row"><div class="info"><div class="nome">Pedro Alves</div><div class="sub">cód: 388 · Manutenção</div></div><span class="turno">Geral</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="sec">
+    <div class="sec__h"><span class="sec__n">2 · Botões com tato</span></div>
+    <p class="sec__d">Hover no primário: sobe 1px + sombra verde sutil. Clique em qualquer botão: leve "press" (encolhe 4%) e volta. Dá sensação física.</p>
+    <div class="btns">
+      <button class="btn btn--primary">Salvar</button>
+      <button class="btn btn--soft">Reajustar</button>
+      <button class="btn btn--ghost">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="sec">
+    <div class="sec__h"><span class="sec__n">3 · Abas que deslizam</span></div>
+    <p class="sec__d">O sublinhado verde desliza entre as abas em vez de "pular". Clique pra trocar.</p>
+    <div class="tabs" id="tabs">
+      <button class="tab on">Tipos de Ocorrência</button>
+      <button class="tab">Ações</button>
+      <button class="tab">Usuários</button>
+      <span class="tab-ink" id="ink"></span>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="sec">
+    <div class="sec__h"><span class="sec__n">4 · Números que sobem</span><button class="replay" onclick="replayStats()">repetir</button></div>
+    <p class="sec__d">Os totais das estatísticas "contam" de 0 até o valor ao abrir a tela. Pequeno, mas dá vida ao topo.</p>
+    <div class="stats" id="stats">
+      <div class="stat"><div class="stat__l">Total ativos</div><div class="stat__v" data-to="86">0</div></div>
+      <div class="stat"><div class="stat__l">1º Turno</div><div class="stat__v" data-to="31">0</div></div>
+      <div class="stat"><div class="stat__l">2º Turno</div><div class="stat__v" data-to="29">0</div></div>
+      <div class="stat"><div class="stat__l">Pendentes</div><div class="stat__v" data-to="12">0</div></div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="sec">
+    <div class="sec__h"><span class="sec__n">5 · Proximidade (opcional / mais ousado)</span></div>
+    <p class="sec__d">O efeito do tweet: os elementos crescem conforme o cursor se aproxima. Bonito, mas é mais "playful" — eu usaria com parcimônia (talvez na barra lateral), não em tudo. Passe o mouse:</p>
+    <div class="dock" id="dock">
+      <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Minha recomendação:</b> adotar 1–4 no app inteiro (são sutis, universais e reforçam o minimalismo — você sente o cuidado sem ver "animação"). O item 5 (proximidade) eu deixaria de fora por padrão, ou só num lugar pontual, pra não virar enfeite num sistema de RH. Você escolhe quais quer.
+  </div>
+
+  <script>
+    // 1 — repetir entrada escalonada
+    function replayList(){
+      const rows=document.querySelectorAll("#lista .row");
+      rows.forEach((r,i)=>{r.style.animation="none";r.offsetHeight;r.style.animation="";r.style.animationDelay=(i*45)+"ms";});
+    }
+    document.querySelectorAll("#lista .row").forEach((r,i)=>r.style.animationDelay=(i*45)+"ms");
+
+    // 3 — sublinhado deslizante
+    const tabs=document.getElementById("tabs"), ink=document.getElementById("ink");
+    function moveInk(btn){ink.style.left=btn.offsetLeft+"px";ink.style.width=btn.offsetWidth+"px";}
+    tabs.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+      tabs.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+      t.classList.add("on");moveInk(t);
+    }));
+    requestAnimationFrame(()=>moveInk(tabs.querySelector(".tab.on")));
+
+    // 4 — count-up
+    function countUp(el){
+      const to=+el.dataset.to, dur=750, t0=performance.now();
+      function tick(now){const p=Math.min(1,(now-t0)/dur);const e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e);if(p<1)requestAnimationFrame(tick);}
+      requestAnimationFrame(tick);
+    }
+    function replayStats(){document.querySelectorAll("#stats .stat__v").forEach(el=>{el.textContent="0";countUp(el);});}
+    replayStats();
+
+    // 5 — proximidade
+    const dock=document.getElementById("dock");
+    dock.addEventListener("pointermove",e=>{
+      dock.querySelectorAll(".d").forEach(d=>{
+        const r=d.getBoundingClientRect();
+        const dist=Math.abs(e.clientX-(r.left+r.width/2));
+        const t=Math.max(0,1-dist/130);
+        d.style.transform="scale("+(1+t*0.45)+") translateY("+(-t*8)+"px)";
+        d.style.background=t>0.15?"#E3ECDF":"var(--milk-warm)";
+      });
+    });
+    dock.addEventListener("pointerleave",()=>{dock.querySelectorAll(".d").forEach(d=>{d.style.transform="";d.style.background="";});});
+  </script>
+</body>
+</html>
