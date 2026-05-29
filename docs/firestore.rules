@@ -97,23 +97,33 @@ service cloud.firestore {
     // ----- presence (quem está online agora) -----
     // Leitura: qualquer usuário autenticado (pra renderizar o indicador).
     // Escrita/delete: só o próprio user no próprio documento (uid = doc id).
-    // Campos esperados: { uid, nome, role, page, lastSeen (timestamp) }
+    // Valida conteúdo (S5): role conhecido + nome curto.
     match /presence/{uid} {
       allow read: if isAuthed();
-      allow create, update, delete: if isAuthed() && request.auth.uid == uid;
+      allow create, update: if isAuthed() && request.auth.uid == uid
+        && request.resource.data.role in ['admin', 'rh', 'lider', 'supervisor']
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() <= 100;
+      allow delete: if isAuthed() && request.auth.uid == uid;
     }
 
     // ----- mensagens (chat interno · TTL 3 dias via expiraEm) -----
     match /mensagens/{id} {
       allow read: if isAuthed()
         && (resource.data.de == request.auth.uid || resource.data.para == request.auth.uid);
+      // create (S2): parKey DEVE ser uma das 2 ordens de [de, para] — impede
+      // forjar parKey arbitrário / spam em conversa de terceiros.
       allow create: if isAuthed()
         && request.resource.data.de == request.auth.uid
         && request.resource.data.texto is string
         && request.resource.data.texto.size() > 0
         && request.resource.data.texto.size() <= 2000
         && request.resource.data.para is string
-        && request.resource.data.parKey is string;
+        && request.resource.data.parKey is string
+        && (
+          request.resource.data.parKey == request.auth.uid + '__' + request.resource.data.para
+          || request.resource.data.parKey == request.resource.data.para + '__' + request.auth.uid
+        );
       // destinatário marca como lida (só o campo 'lido')
       allow update: if isAuthed()
         && resource.data.para == request.auth.uid

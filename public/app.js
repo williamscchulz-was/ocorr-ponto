@@ -269,13 +269,30 @@ function toast(msg, variant = "success") {
 
 // ---------- Modal ----------
 
+// Seletor dos elementos focáveis dentro do modal (pro focus trap a11y).
+const FOCAVEIS_SEL =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 function openModal(html, opts = {}) {
   const root = $("#modal-root");
+  // Guarda quem tinha foco antes de abrir pra restaurar no closeModal (a11y).
+  window._modalPrevFocus = document.activeElement;
   root.innerHTML = `
     <div class="modal-backdrop" id="modal-backdrop">
-      <div class="modal" role="dialog" aria-modal="true">${html}</div>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" tabindex="-1">${html}</div>
     </div>
   `;
+  const modal = root.querySelector(".modal");
+  // aria-labelledby: garante que o 1º <h2> do header tenha id="modal-titulo"
+  // pro leitor de tela anunciar o título do diálogo. Os modais variam, então
+  // injetamos o id aqui em vez de em cada template.
+  const h2 = modal.querySelector(".modal__header h2") || modal.querySelector("h2");
+  if (h2) {
+    h2.id = "modal-titulo";
+  } else {
+    // Sem título legível → não referencia um id inexistente.
+    modal.removeAttribute("aria-labelledby");
+  }
   // Clique no backdrop NÃO fecha mais — evita perder form com clique acidental.
   // Fechar só via: ESC, botão X, Cancelar, Salvar, ou Excluir.
   // Para modais de exibição (não-form) podem passar opts.dismissOnBackdrop = true.
@@ -292,7 +309,31 @@ function openModal(html, opts = {}) {
     };
     document.addEventListener("keydown", window._modalEscHandler);
   }
-  if (opts.onMount) opts.onMount(root.querySelector(".modal"));
+  // Focus trap: Tab/Shift+Tab ciclam dentro do modal (não escapam pro fundo).
+  modal.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const focaveis = Array.from(modal.querySelectorAll(FOCAVEIS_SEL))
+      .filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (focaveis.length === 0) { e.preventDefault(); return; }
+    const primeiro = focaveis[0];
+    const ultimo = focaveis[focaveis.length - 1];
+    if (e.shiftKey && document.activeElement === primeiro) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primeiro.focus();
+    }
+  });
+  if (opts.onMount) opts.onMount(modal);
+  // Move o foco pro 1º elemento focável do modal (se o onMount não focou nada).
+  // Os modais que já dão foco manual (ex.: confirmar) continuam funcionando.
+  setTimeout(() => {
+    if (!modal.contains(document.activeElement)) {
+      const alvo = modal.querySelector(FOCAVEIS_SEL) || modal;
+      alvo.focus();
+    }
+  }, 50);
 }
 
 function closeModal() {
@@ -305,6 +346,59 @@ function closeModal() {
   document.querySelectorAll(".collab-toast").forEach((t) => t.remove());
   backdrop.style.animation = "fadeIn 160ms reverse";
   setTimeout(() => ($("#modal-root").innerHTML = ""), 140);
+  // Restaura o foco pra quem estava focado antes do modal abrir (a11y).
+  const prev = window._modalPrevFocus;
+  window._modalPrevFocus = null;
+  if (prev && typeof prev.focus === "function" && document.contains(prev)) {
+    try { prev.focus(); } catch {}
+  }
+}
+
+// Modal de confirmação estilizado (substitui window.confirm).
+// Retorna Promise<boolean>. Uso: if (await confirmar({titulo, msg, perigo:true})) {...}
+//
+// Overlay PRÓPRIO (não usa #modal-root) — assim empilha POR CIMA de um modal
+// já aberto sem destruí-lo. Cancelar volta pro modal pai intacto.
+function confirmar({ titulo = "Confirmar", msg = "", okLabel = "Confirmar", cancelLabel = "Cancelar", perigo = false } = {}) {
+  return new Promise((resolve) => {
+    const prevFocus = document.activeElement;
+    const root = document.createElement("div");
+    root.className = "modal-backdrop modal-backdrop--confirm";
+    root.innerHTML = `
+      <div class="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-titulo">
+        <div class="modal__header">
+          <div><h2 id="confirm-titulo">${escapeHtml(titulo)}</h2></div>
+          <button class="modal__close" data-cancel aria-label="Fechar">${icon("x")}</button>
+        </div>
+        <div class="modal__body"><p style="margin:0; line-height:1.5; color:var(--text-body);">${escapeHtml(msg)}</p></div>
+        <div class="modal__footer">
+          <button class="btn btn--ghost" data-cancel>${escapeHtml(cancelLabel)}</button>
+          <button class="btn ${perigo ? "btn--danger" : "btn--primary"}" data-ok>${escapeHtml(okLabel)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(root);
+
+    let decidido = false;
+    const fechar = (val) => {
+      if (decidido) return;
+      decidido = true;
+      document.removeEventListener("keydown", onKey, true);
+      root.remove();
+      if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch {} }
+      resolve(val);
+    };
+    // ESC cancela; Enter confirma. Captura no topo pra não vazar pro handler
+    // global de ESC (que fecharia o modal pai por baixo).
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fechar(false); }
+      else if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); fechar(true); }
+    };
+    document.addEventListener("keydown", onKey, true);
+    root.addEventListener("click", (e) => { if (e.target === root) fechar(false); }); // clica fora = cancela
+    root.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", () => fechar(false)));
+    root.querySelector("[data-ok]").addEventListener("click", () => fechar(true));
+    setTimeout(() => root.querySelector("[data-ok]")?.focus(), 30);
+  });
 }
 
 // ---------- Login ----------
@@ -348,10 +442,16 @@ function aplicarAvatar(el, user) {
     el.style.backgroundPosition = "center";
     el.style.color = "transparent";
     el.textContent = "";
+    // Foto via background-image é muda pra leitor de tela → rotula como imagem.
+    el.setAttribute("role", "img");
+    el.setAttribute("aria-label", `Foto de ${escapeHtml(user?.nome || "usuário")}`);
   } else {
     el.style.backgroundImage = "";
     el.style.color = "";
     el.textContent = initials(user?.nome || "?");
+    // Iniciais já são texto legível → não precisa de role="img".
+    el.removeAttribute("role");
+    el.removeAttribute("aria-label");
   }
 }
 
@@ -424,7 +524,15 @@ async function openCropFotoModal(file, onConfirm) {
     </div>
   `, {
     onMount: (modal) => {
-      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      // AbortController: os listeners de drag/zoom em window/document vazariam
+      // a cada foto aberta (closeModal não os removia). Aborta tudo ao fechar.
+      const ac = new AbortController();
+      const sig = ac.signal;
+      const fecharCrop = () => { ac.abort(); closeModal(); };
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", fecharCrop));
+      // ESC fecha pelo handler global de modal (chama closeModal direto, sem
+      // passar por fecharCrop) → garante o abort dos listeners de window aqui.
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") ac.abort(); }, { signal: sig, capture: true });
 
       const canvas = $("#crop-canvas");
       const ctx = canvas.getContext("2d");
@@ -465,12 +573,12 @@ async function openCropFotoModal(file, onConfirm) {
         drag = null;
         stage.style.cursor = "grab";
       };
-      stage.addEventListener("mousedown", start);
-      window.addEventListener("mousemove", move);
-      window.addEventListener("mouseup", end);
-      stage.addEventListener("touchstart", start, { passive: true });
-      window.addEventListener("touchmove", move, { passive: false });
-      window.addEventListener("touchend", end);
+      stage.addEventListener("mousedown", start, { signal: sig });
+      window.addEventListener("mousemove", move, { signal: sig });
+      window.addEventListener("mouseup", end, { signal: sig });
+      stage.addEventListener("touchstart", start, { passive: true, signal: sig });
+      window.addEventListener("touchmove", move, { passive: false, signal: sig });
+      window.addEventListener("touchend", end, { signal: sig });
 
       // Zoom (slider: 1.0 = scale base; 4.0 = scale * 4)
       const applyZoom = (z) => {
@@ -483,7 +591,7 @@ async function openCropFotoModal(file, onConfirm) {
         ty = cy - ((cy - ty) / oldScale) * scale;
         render();
       };
-      zoom.addEventListener("input", () => applyZoom(zoom.value));
+      zoom.addEventListener("input", () => applyZoom(zoom.value), { signal: sig });
 
       // Wheel zoom (desktop conveniência)
       stage.addEventListener("wheel", (e) => {
@@ -492,7 +600,7 @@ async function openCropFotoModal(file, onConfirm) {
         const next = Math.min(4, Math.max(1, Number(zoom.value) + delta));
         zoom.value = next;
         applyZoom(next);
-      }, { passive: false });
+      }, { passive: false, signal: sig });
 
       // Confirma: extrai o crop em 256×256
       $("#btn-confirm-crop").addEventListener("click", () => {
@@ -510,9 +618,10 @@ async function openCropFotoModal(file, onConfirm) {
           img.height * scale * ratio
         );
         const base64 = out.toDataURL("image/jpeg", 0.85);
+        ac.abort();
         closeModal();
         onConfirm(base64);
-      });
+      }, { signal: sig });
     },
   });
 }
@@ -638,8 +747,8 @@ function atualizarBannerColabModal(pjId) {
   `;
 }
 
-// Presence indicator (MOCK — não tem realtime backend ainda).
-// Mostra o user atual + alguns colegas como "online" no topbar.
+// Presence indicator — dados reais do Firestore (coleção `presence`, via
+// onSnapshot em firebase.js). Mostra o user atual + colegas online no topbar.
 // Cor do avatar é estável (derivada do id) pra ficar reconhecível.
 function presenceColor(id) {
   const palette = ["#008835", "#0076BE", "#FFCB00", "#E63946", "#7B4F9C", "#F28C28"];
@@ -660,9 +769,12 @@ function buildPresenceAvatar(usr, opts = {}) {
   const photoStyle = foto
     ? `background-image:url(${foto}); background-size:cover; background-position:center;`
     : "";
+  // Foto via background-image é muda pro leitor de tela → role=img + aria-label.
+  // Iniciais já são texto legível, então só rotulamos quando há foto.
+  const a11y = foto ? ` role="img" aria-label="Foto de ${escapeHtml(usr.nome || "usuário")}"` : "";
   return `
     <div class="presence-avatar ${ausente ? "presence-avatar--idle" : ""}"
-         data-uid="${usr.id}"
+         data-uid="${usr.id}"${a11y}
          style="width:${size}px; height:${size}px; background:${bg}; border-color:${borderColor}; font-size:${Math.round(size * 0.36)}px; ${photoStyle}">
       ${foto ? "" : escapeHtml(initials(usr.nome || "?"))}
     </div>`;
@@ -1402,13 +1514,26 @@ function renderOccList() {
 
   const root = $("#occ-list");
   if (list.length === 0) {
+    // Se o vazio é por causa de busca/filtro de turno ativo, oferece limpar.
+    const temFiltroAtivo = !!search || !!turno;
     root.innerHTML = `
       <div class="empty">
         <div class="empty__icon">${icon("inbox")}</div>
         <h3>Nada por aqui</h3>
-        <p>${tab === "pendentes" ? "Nenhuma ocorrência pendente neste filtro." : "Nenhum registro encontrado."}</p>
+        <p>${temFiltroAtivo
+          ? "Nenhum registro com a busca/filtro atual."
+          : (tab === "pendentes" ? "Nenhuma ocorrência pendente neste filtro." : "Nenhum registro encontrado.")}</p>
+        ${temFiltroAtivo ? `<button class="btn btn--ghost" id="btn-limpar-occ">${icon("x")}<span>Limpar filtros</span></button>` : ""}
       </div>
     `;
+    const limpar = $("#btn-limpar-occ");
+    if (limpar) limpar.addEventListener("click", () => {
+      state.view.search = "";
+      state.view.filterTurno = null;
+      if ($("#search")) $("#search").value = "";
+      if ($("#turno-filter")) $("#turno-filter").value = "";
+      renderOccList();
+    });
     return;
   }
 
@@ -1482,18 +1607,18 @@ function openNovaOcorrencia() {
     <form class="modal__body" id="nova-form">
       <div class="field-row">
         <div class="field">
-          <label for="f-data">Data</label>
-          <input type="date" id="f-data" required value="${today}" max="${today}" />
+          <label for="f-data">Data <span style="color:var(--danger)">*</span></label>
+          <input type="date" id="f-data" required aria-required="true" value="${today}" max="${today}" />
         </div>
         <div class="field">
-          <label for="f-horario">Horário</label>
-          <input type="time" id="f-horario" required />
+          <label for="f-horario">Horário <span style="color:var(--danger)">*</span></label>
+          <input type="time" id="f-horario" required aria-required="true" />
         </div>
       </div>
 
       <div class="field">
-        <label for="f-func">Funcionário</label>
-        <select id="f-func" required>
+        <label for="f-func">Funcionário <span style="color:var(--danger)">*</span></label>
+        <select id="f-func" required aria-required="true">
           <option value="">Selecione...</option>
           ${state.funcionarios
             .filter((f) => f.ativo !== false)
@@ -1508,8 +1633,8 @@ function openNovaOcorrencia() {
       </div>
 
       <div class="field">
-        <label for="f-tipo">Tipo de ocorrência</label>
-        <select id="f-tipo" required>
+        <label for="f-tipo">Tipo de ocorrência <span style="color:var(--danger)">*</span></label>
+        <select id="f-tipo" required aria-required="true">
           <option value="">Selecione...</option>
           ${getAllTipos().map((t) => `<option value="${t.id}">${t.label}</option>`).join("")}
         </select>
@@ -1621,7 +1746,7 @@ function openOcorrenciaDetail(id) {
       ${pending && canConfer ? `
         <div class="field">
           <label for="conf-acao">Ação <span style="color:var(--danger)">*</span></label>
-          <select id="conf-acao">
+          <select id="conf-acao" required aria-required="true">
             <option value="">Escolha como tratar a ocorrência...</option>
             ${getAllAcoes().map((a) => `<option value="${a.id}">${a.label}</option>`).join("")}
           </select>
@@ -1699,14 +1824,19 @@ function openOcorrenciaDetail(id) {
   });
 }
 
-function desfazerLancamento(id) {
+async function desfazerLancamento(id) {
   const o = state.ocorrencias.find((x) => x.id === id);
   if (!o) return;
   const u = currentUser();
   if (u.role !== "rh" && u.role !== "admin") return;
   if (!isLancada(o)) return;
 
-  if (!confirm("Desfazer o lançamento? A ocorrência volta pra Conferidas e a marca de lançada some.")) return;
+  if (!(await confirmar({
+    titulo: "Desfazer lançamento?",
+    msg: "A ocorrência volta pra Conferidas e a marca de lançada some.",
+    okLabel: "Desfazer",
+    perigo: true,
+  }))) return;
 
   o.lancada = false;
   o.lancadoEm = null;
@@ -1861,13 +1991,18 @@ function saveEditOcorrencia(id) {
   renderApp();
 }
 
-function deleteOcorrencia(id) {
+async function deleteOcorrencia(id) {
   const o = state.ocorrencias.find((x) => x.id === id);
   if (!o) return;
   const f = getFuncionario(o.funcionarioId);
   const tipo = getTipo(o.tipo);
   const label = `${f?.nome || "?"} · ${tipo?.label || "?"} · ${formatDate(o.data)}`;
-  if (!confirm(`Excluir DEFINITIVAMENTE esta ocorrência?\n\n${label}\n\nIsso some do histórico, sem desfazer.`)) return;
+  if (!(await confirmar({
+    titulo: "Excluir ocorrência?",
+    msg: `${label}. Isso some do histórico, sem desfazer.`,
+    okLabel: "Excluir",
+    perigo: true,
+  }))) return;
 
   state.ocorrencias = state.ocorrencias.filter((x) => x.id !== id);
   store.save(state);
@@ -2050,7 +2185,15 @@ function renderFuncList() {
         <p>${semFiltro
           ? "Os funcionários virão automaticamente do pipeline de RH na próxima execução."
           : (apenasInativos ? "" : "Tente ajustar a busca ou os filtros (turno/status).")}</p>
+        ${semFiltro ? "" : `<button class="btn btn--ghost" id="btn-limpar-func">${icon("x")}<span>Limpar filtros</span></button>`}
       </div>`;
+    const limpar = $("#btn-limpar-func");
+    if (limpar) limpar.addEventListener("click", () => {
+      if ($("#func-search")) $("#func-search").value = "";
+      if ($("#func-turno-filter")) $("#func-turno-filter").value = "";
+      if ($("#func-status-filter")) $("#func-status-filter").value = "ativo";
+      renderFuncList();
+    });
     return;
   }
 
@@ -2233,7 +2376,7 @@ function openFuncionarioModal(id) {
         <form id="func-form" onsubmit="return false">
           <div class="field">
             <label for="func-nome">Nome completo <span style="color:var(--danger)">*</span></label>
-            <input type="text" id="func-nome" required value="${escapeHtml(f?.nome || "")}" ${!isNew ? "readonly style='background:var(--surface-warm); cursor:not-allowed;'" : ""} />
+            <input type="text" id="func-nome" required aria-required="true" value="${escapeHtml(f?.nome || "")}" ${!isNew ? "readonly style='background:var(--surface-warm); cursor:not-allowed;'" : ""} />
             ${!isNew ? `<span class="field__hint">Nome vem do ERP. Para alterar, ajuste lá.</span>` : ""}
           </div>
           <div class="field-row">
@@ -2367,14 +2510,19 @@ function saveFuncionario(id) {
   renderApp();
 }
 
-function deleteFuncionario(id) {
+async function deleteFuncionario(id) {
   const f = state.funcionarios.find((x) => x.id === id);
   if (!f) return;
   const usado = state.ocorrencias.some((o) => o.funcionarioId === id);
   if (usado) {
     return toast("Este funcionário tem ocorrências. Marque como inativo no lugar.", "danger");
   }
-  if (!confirm(`Excluir "${f.nome}" do cadastro?`)) return;
+  if (!(await confirmar({
+    titulo: "Excluir funcionário?",
+    msg: `Remover "${f.nome}" do cadastro.`,
+    okLabel: "Excluir",
+    perigo: true,
+  }))) return;
   state.funcionarios = state.funcionarios.filter((x) => x.id !== id);
   store.save(state);
   closeModal();
@@ -2475,7 +2623,12 @@ function openProfileModal() {
 
       const btnRm = $("#btn-remover-foto");
       if (btnRm) btnRm.addEventListener("click", async () => {
-        if (!confirm("Remover sua foto de perfil?")) return;
+        if (!(await confirmar({
+          titulo: "Remover foto?",
+          msg: "Sua foto de perfil será removida.",
+          okLabel: "Remover",
+          perigo: true,
+        }))) return;
         try {
           await window.atualizarMinhaFoto(null);
           closeModal();
@@ -2671,7 +2824,7 @@ function parseAndPreview(text, label) {
   }
 }
 
-function doImportFuncionarios() {
+async function doImportFuncionarios() {
   const data = window._importData;
   if (!Array.isArray(data) || data.length === 0) return;
 
@@ -2705,7 +2858,12 @@ function doImportFuncionarios() {
 
   let inativados = 0;
   if (markAusentes) {
-    if (!confirm(`Marcar como inativos os funcionários que não estão no JSON? Eles continuam no cadastro, mas saem do form de Nova Ocorrência. Ocorrências antigas mantêm a referência.`)) return;
+    if (!(await confirmar({
+      titulo: "Marcar inativos?",
+      msg: "Os funcionários que não estão no JSON serão marcados como inativos. Eles continuam no cadastro, mas saem do form de Nova Ocorrência. Ocorrências antigas mantêm a referência.",
+      okLabel: "Marcar inativos",
+      perigo: true,
+    }))) return;
     for (const f of state.funcionarios) {
       if (!incomingIds.has(f.id) && f.ativo !== false) {
         f.ativo = false;
@@ -3021,7 +3179,12 @@ async function doImportBancoHoras() {
   const u = currentUser();
   const valid = entries.filter((e) => e.funcionarioId);
   if (valid.length === 0) return toast("Nenhum funcionário com match.", "danger");
-  if (!confirm(`Substituir o saldo de ${valid.length} funcionários? Os saldos anteriores serão sobrescritos.`)) return;
+  if (!(await confirmar({
+    titulo: "Substituir saldos?",
+    msg: `O saldo de ${valid.length} funcionários será substituído. Os saldos anteriores serão sobrescritos.`,
+    okLabel: "Substituir",
+    perigo: true,
+  }))) return;
 
   // Em demo (sem Firebase), guarda em state.bancoHoras (mapa)
   if (typeof window.doImportBancoHorasFirebase === "function") {
@@ -3130,10 +3293,18 @@ function renderPJList() {
         <p>${semFiltro
           ? "Cadastre o primeiro prestador de serviço com contratos, valores e contato."
           : "Ajuste a busca ou o filtro."}</p>
-        ${semFiltro ? `<button class="btn btn--primary" id="btn-novo-pj-2">${icon("plus")}<span>Novo PJ</span></button>` : ""}
+        ${semFiltro
+          ? `<button class="btn btn--primary" id="btn-novo-pj-2">${icon("plus")}<span>Novo PJ</span></button>`
+          : `<button class="btn btn--ghost" id="btn-limpar-pj">${icon("x")}<span>Limpar filtros</span></button>`}
       </div>`;
     const b = $("#btn-novo-pj-2");
     if (b) b.addEventListener("click", () => openPJModal(null));
+    const limpar = $("#btn-limpar-pj");
+    if (limpar) limpar.addEventListener("click", () => {
+      if ($("#pj-search")) $("#pj-search").value = "";
+      if ($("#pj-status-filter")) $("#pj-status-filter").value = "";
+      renderPJList();
+    });
     return;
   }
 
@@ -3354,7 +3525,7 @@ function openPJModal(id) {
       <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Identificação</div>
       <div class="field">
         <label for="pj-nome">Nome / Razão social <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="pj-nome" required maxlength="120" value="${pj?.nome || ""}" placeholder="Ex: Aceres Branding" />
+        <input type="text" id="pj-nome" required aria-required="true" maxlength="120" value="${pj?.nome || ""}" placeholder="Ex: Aceres Branding" />
       </div>
       <div class="field-row">
         <div class="field">
@@ -3376,7 +3547,7 @@ function openPJModal(id) {
       <div class="field-row">
         <div class="field">
           <label for="pj-valor">Valor (R$) <span id="pj-valor-sufixo" class="muted text-xs"></span></label>
-          <input type="number" id="pj-valor" step="0.01" min="0" value="${pj?.valorAtual ?? ""}" placeholder="3500.00" />
+          <input type="number" inputmode="decimal" id="pj-valor" step="0.01" min="0" value="${pj?.valorAtual ?? ""}" placeholder="3500.00" />
         </div>
         <div class="field">
           <label for="pj-periodicidade">Periodicidade</label>
@@ -4242,7 +4413,7 @@ function openReajusteModal(id) {
       <div class="field">
         <label for="reaj-percentual">Percentual de reajuste (%)</label>
         <div class="row" style="gap: 8px; align-items: stretch;">
-          <input type="number" id="reaj-percentual" step="0.01" placeholder="ex: 4.50" style="flex: 1;" />
+          <input type="number" inputmode="decimal" id="reaj-percentual" step="0.01" placeholder="ex: 4.50" style="flex: 1;" />
           <button type="button" class="btn btn--soft" id="btn-buscar-ipca" title="Trazer da API do Banco Central conforme o período acima">${icon("download")}<span>Buscar IPCA</span></button>
         </div>
         <span class="field__hint" id="reaj-fonte"><strong>Digite o % diretamente</strong> (negociado com o PJ) ou clique <strong>"Buscar IPCA"</strong> pra trazer do Banco Central.</span>
@@ -4250,7 +4421,7 @@ function openReajusteModal(id) {
 
       <div class="field">
         <label for="reaj-novo-valor">Novo valor (R$)</label>
-        <input type="number" id="reaj-novo-valor" step="0.01" placeholder="${formatMoeda(valorAtual)}" />
+        <input type="number" inputmode="decimal" id="reaj-novo-valor" step="0.01" placeholder="${formatMoeda(valorAtual)}" />
         <span class="field__hint">Calculado automaticamente quando você preenche o %. Pode ajustar manualmente também.</span>
       </div>
 
@@ -4406,7 +4577,12 @@ function bindAditivosPJ(pjId) {
       btn.addEventListener("click", async (e) => {
         e.stopPropagation();
         const aid = btn.dataset.delAditivo;
-        if (!confirm("Excluir este aditivo? O PDF no Drive não será apagado.")) return;
+        if (!(await confirmar({
+          titulo: "Excluir aditivo?",
+          msg: "O PDF no Drive não será apagado.",
+          okLabel: "Excluir",
+          perigo: true,
+        }))) return;
         if (!window.removerAditivoPJ) {
           return toast("Modo demo: requer Firebase pra persistir.", "danger");
         }
@@ -4699,13 +4875,18 @@ function saveFeriasPJ(pjId) {
   }, 50);
 }
 
-function deletePJFerias(pjId, feriasId) {
+async function deletePJFerias(pjId, feriasId) {
   const pj = (state.pjs || []).find((p) => p.id === pjId);
   if (!pj?.ferias) return;
   const baixa = pj.ferias.find((f) => f.id === feriasId);
   if (!baixa) return;
   const desc = `${baixa.dias} dia${baixa.dias !== 1 ? "s" : ""} ${baixa.tipo === "vendidas" ? "vendidas" : "gozadas"} (${formatDate(baixa.data)})`;
-  if (!confirm(`Excluir a baixa de ${desc}? O saldo aumenta de volta.`)) return;
+  if (!(await confirmar({
+    titulo: "Excluir baixa?",
+    msg: `Remover a baixa de ${desc}. O saldo aumenta de volta.`,
+    okLabel: "Excluir",
+    perigo: true,
+  }))) return;
 
   pj.ferias = pj.ferias.filter((f) => f.id !== feriasId);
   store.save(state);
@@ -4714,10 +4895,15 @@ function deletePJFerias(pjId, feriasId) {
   renderApp();
 }
 
-function deletePJ(id) {
+async function deletePJ(id) {
   const pj = (state.pjs || []).find((p) => p.id === id);
   if (!pj) return;
-  if (!confirm(`Excluir o PJ "${pj.nome}"? O histórico inteiro será perdido.`)) return;
+  if (!(await confirmar({
+    titulo: "Excluir PJ?",
+    msg: `Excluir "${pj.nome}". O histórico inteiro será perdido.`,
+    okLabel: "Excluir",
+    perigo: true,
+  }))) return;
 
   state.pjs = state.pjs.filter((p) => p.id !== id);
   store.save(state);
@@ -4956,14 +5142,24 @@ function saveAcao() {
   renderApp();
 }
 
-function deleteAcao(id) {
+async function deleteAcao(id) {
   const a = (state.acoesCustom || []).find((x) => x.id === id);
   if (!a) return;
   const usada = state.ocorrencias.some((o) => o.acao === id);
   if (usada) {
-    if (!confirm(`"${a.label}" está em uso por ocorrências antigas. Excluir deixa elas com a ação como "—" e some do dropdown. Continuar?`)) return;
+    if (!(await confirmar({
+      titulo: `Excluir "${a.label}"?`,
+      msg: "Está em uso por ocorrências antigas. Excluir deixa elas com a ação como \"—\" e some do dropdown.",
+      okLabel: "Excluir",
+      perigo: true,
+    }))) return;
   } else {
-    if (!confirm(`Excluir a ação "${a.label}"?`)) return;
+    if (!(await confirmar({
+      titulo: "Excluir ação?",
+      msg: `Remover a ação "${a.label}".`,
+      okLabel: "Excluir",
+      perigo: true,
+    }))) return;
   }
   state.acoesCustom = state.acoesCustom.filter((x) => x.id !== id);
   store.save(state);
@@ -5182,14 +5378,24 @@ function saveTipo() {
   renderApp();
 }
 
-function deleteTipo(id) {
+async function deleteTipo(id) {
   const t = (state.tiposCustom || []).find((x) => x.id === id);
   if (!t) return;
   const usado = state.ocorrencias.some((o) => o.tipo === id);
   if (usado) {
-    if (!confirm(`"${t.label}" está em uso por ocorrências antigas. Excluir manterá os registros mas o tipo some do formulário. Continuar?`)) return;
+    if (!(await confirmar({
+      titulo: `Excluir "${t.label}"?`,
+      msg: "Está em uso por ocorrências antigas. Excluir mantém os registros mas o tipo some do formulário.",
+      okLabel: "Excluir",
+      perigo: true,
+    }))) return;
   } else {
-    if (!confirm(`Excluir o tipo "${t.label}"?`)) return;
+    if (!(await confirmar({
+      titulo: "Excluir tipo?",
+      msg: `Remover o tipo "${t.label}".`,
+      okLabel: "Excluir",
+      perigo: true,
+    }))) return;
   }
   state.tiposCustom = state.tiposCustom.filter((x) => x.id !== id);
   store.save(state);
@@ -5258,8 +5464,13 @@ function renderUsuariosInto(selector) {
 
   const reset = $("#reset-btn");
   if (reset) {
-    reset.addEventListener("click", () => {
-      if (confirm("Apagar todos os registros locais e voltar ao seed inicial?")) {
+    reset.addEventListener("click", async () => {
+      if (await confirmar({
+        titulo: "Resetar dados?",
+        msg: "Apaga todos os registros locais e volta ao seed inicial.",
+        okLabel: "Resetar",
+        perigo: true,
+      })) {
         const fresh = store.reset();
         Object.assign(state, fresh);
         state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
@@ -5282,17 +5493,17 @@ function openNovoUsuarioModal() {
     <form class="modal__body" id="user-form" onsubmit="return false">
       <div class="field">
         <label for="user-nome">Nome completo <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="user-nome" required placeholder="Ex: Adelir Padilha" />
+        <input type="text" id="user-nome" required aria-required="true" placeholder="Ex: Adelir Padilha" />
       </div>
       <div class="field">
         <label for="user-email">Email corporativo <span style="color:var(--danger)">*</span></label>
-        <input type="email" id="user-email" required placeholder="adelir@fiobras.com.br" />
+        <input type="email" id="user-email" required aria-required="true" placeholder="adelir@fiobras.com.br" />
         <span class="field__hint">Será o login dele(a). Email pra redefinição vai pra este endereço.</span>
       </div>
       <div class="field-row">
         <div class="field">
           <label for="novo-user-role">Papel <span style="color:var(--danger)">*</span></label>
-          <select id="novo-user-role" required>
+          <select id="novo-user-role" required aria-required="true">
             <option value="rh">RH (cria e edita ocorrências)</option>
             <option value="lider">Líder (confere ocorrências do turno)</option>
             <option value="supervisor">Supervisor (confere funcionários específicos)</option>
@@ -5301,7 +5512,7 @@ function openNovoUsuarioModal() {
         </div>
         <div class="field" id="user-turno-field" style="display:none;">
           <label for="user-turno">Turno <span style="color:var(--danger)">*</span></label>
-          <select id="user-turno">
+          <select id="user-turno" aria-required="true">
             <option value="1">1º Turno (06:00–14:00)</option>
             <option value="2">2º Turno (14:00–22:00)</option>
             <option value="3">3º Turno (22:00–06:00)</option>
@@ -5399,12 +5610,12 @@ function openEditarUsuarioModal(uid) {
     <form class="modal__body" id="edit-user-form" onsubmit="return false">
       <div class="field">
         <label for="edit-nome">Nome completo <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="edit-nome" required value="${escapeHtml(u.nome || "")}" />
+        <input type="text" id="edit-nome" required aria-required="true" value="${escapeHtml(u.nome || "")}" />
       </div>
       <div class="field-row">
         <div class="field">
           <label for="edit-role">Papel <span style="color:var(--danger)">*</span></label>
-          <select id="edit-role" required ${ehVoceMesmo ? "disabled" : ""}>
+          <select id="edit-role" required aria-required="true" ${ehVoceMesmo ? "disabled" : ""}>
             <option value="rh" ${u.role === "rh" ? "selected" : ""}>RH</option>
             <option value="lider" ${u.role === "lider" ? "selected" : ""}>Líder</option>
             <option value="supervisor" ${u.role === "supervisor" ? "selected" : ""}>Supervisor</option>
@@ -5414,7 +5625,7 @@ function openEditarUsuarioModal(uid) {
         </div>
         <div class="field" id="edit-turno-field" style="display:${u.role === "lider" ? "block" : "none"};">
           <label for="edit-turno">Turno <span style="color:var(--danger)">*</span></label>
-          <select id="edit-turno">
+          <select id="edit-turno" aria-required="true">
             <option value="1" ${u.turno == 1 ? "selected" : ""}>1º Turno (06:00–14:00)</option>
             <option value="2" ${u.turno == 2 ? "selected" : ""}>2º Turno (14:00–22:00)</option>
             <option value="3" ${u.turno == 3 ? "selected" : ""}>3º Turno (22:00–06:00)</option>

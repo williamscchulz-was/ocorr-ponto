@@ -1,26 +1,24 @@
 // Service Worker do FioPulse
 //
-// Estratégia:
-//  - HTML/navegação: network-first com fallback no cache (sempre quer
-//    a versão mais nova; só usa cache se o usuário estiver offline).
-//  - Outros assets (JS/CSS/imagens): cache-first com revalidação em
-//    background. Os scripts já vêm com ?v=N pra cache busting natural.
-//
-// Versão do cache: bumpar quando mudar a lógica do SW pra forçar todos
-// os browsers a invalidar o cache antigo na próxima visita.
+// Estratégia (C1 — anti cache velho):
+//  - HTML/navegação + JS/CSS: NETWORK-FIRST. Online sempre pega a versão
+//    nova; cache só serve como fallback offline. Elimina o problema de
+//    assets ?v=N velhos presos no cache.
+//  - Imagens/ícones/fontes: cache-first (mudam raramente, ganho de perf).
+//  - activate purga TODO cache com nome != CACHE atual. Bumpar CACHE a
+//    cada deploy que mexa em SW/estratégia (segue o ?v= do index.html).
 
-const CACHE = "fiopulse-v3";
+const CACHE = "fiopulse-v104";
 
 self.addEventListener("install", () => {
-  // Ativa imediato, sem esperar abas antigas fecharem
-  self.skipWaiting();
+  self.skipWaiting(); // ativa imediato, sem esperar abas antigas
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
@@ -28,37 +26,32 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
 
-  // Só intercepta same-origin (não tenta cachear Firebase, Google, etc.)
+  // Só intercepta same-origin (não cacheia Firebase, Google Fonts, CDNs)
   if (url.origin !== self.location.origin) return;
 
-  const isHTML = e.request.mode === "navigate" ||
-                 url.pathname.endsWith(".html") ||
-                 url.pathname === "/";
+  const p = url.pathname;
+  const ehImagem = /\.(png|jpg|jpeg|svg|webp|ico|gif)$/i.test(p);
 
-  if (isHTML) {
-    // Network-first: sempre tenta buscar a versão mais nova
+  if (ehImagem) {
+    // Imagens: cache-first
     e.respondWith(
-      fetch(e.request)
-        .then((resp) => {
-          const copy = resp.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
+      caches.match(e.request).then((cached) =>
+        cached || fetch(e.request).then((resp) => {
+          if (resp.ok) { const copy = resp.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
           return resp;
         })
-        .catch(() => caches.match(e.request))
+      )
     );
     return;
   }
 
-  // Assets: cache-first com fallback na rede
+  // HTML + JS + CSS + manifest: network-first (cache = fallback offline)
   e.respondWith(
-    caches.match(e.request).then((cached) =>
-      cached || fetch(e.request).then((resp) => {
-        if (resp.ok) {
-          const copy = resp.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
-        }
+    fetch(e.request)
+      .then((resp) => {
+        if (resp.ok) { const copy = resp.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
         return resp;
       })
-    )
+      .catch(() => caches.match(e.request))
   );
 });

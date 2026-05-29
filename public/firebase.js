@@ -69,7 +69,7 @@
         await auth.setPersistence(initialPersistence);
         debug?.("[Auth] persistência inicial:", manterConectadoBoot ? "LOCAL" : "NONE");
       } catch (e) {
-        console.warn("[Auth] setPersistence falhou:", e);
+        debug?.("[Auth] setPersistence falhou:", e);
       }
 
       window.FIREBASE = { app, auth, db };
@@ -97,9 +97,16 @@
       save: () => {},      // no-op: persistência é por documento agora
       init: () => state,    // já populado por wireAuthFlow
       reset: async () => {
-        if (!confirm("Resetar APAGA todos os documentos. Tem certeza?")) return state;
+        if (!(await confirmar({
+          titulo: "Resetar tudo?",
+          msg: "Isso APAGA todos os documentos do Firestore. Não dá pra desfazer.",
+          okLabel: "Resetar",
+          perigo: true,
+        }))) return state;
         const batch = db.batch();
-        const cols = ["ocorrencias", "funcionarios", "users"];
+        // Todas as coleções gravadas por documento — senão o reset deixa
+        // órfãos (saldos, PJs, chat, presença, tipos/ações custom).
+        const cols = ["ocorrencias", "funcionarios", "users", "bancoHoras", "pj", "mensagens", "presence", "tipos", "acoes"];
         for (const c of cols) {
           const snap = await db.collection(c).get();
           snap.docs.forEach((d) => batch.delete(d.ref));
@@ -163,7 +170,7 @@
         toast("Ocorrência registrada!");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao salvar: " + err.message, "danger");
       }
     };
@@ -206,7 +213,7 @@
         toast("Conferência confirmada!");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao salvar: " + err.message, "danger");
       }
     };
@@ -270,7 +277,7 @@
         toast("Ocorrência atualizada.");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao salvar: " + err.message, "danger");
       }
     };
@@ -282,7 +289,12 @@
       const f = getFuncionario(o.funcionarioId);
       const tipo = getTipo(o.tipo);
       const label = `${f?.nome || "?"} · ${tipo?.label || "?"} · ${formatDate(o.data)}`;
-      if (!confirm(`Excluir DEFINITIVAMENTE esta ocorrência?\n\n${label}\n\nIsso some do histórico, sem desfazer.`)) return;
+      if (!(await confirmar({
+        titulo: "Excluir ocorrência?",
+        msg: `${label}. Isso some do histórico, sem desfazer.`,
+        okLabel: "Excluir",
+        perigo: true,
+      }))) return;
 
       try {
         await db.collection("ocorrencias").doc(id).delete();
@@ -291,7 +303,7 @@
         toast("Ocorrência excluída.");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao excluir: " + err.message, "danger");
       }
     };
@@ -328,7 +340,7 @@
         toast("Marcada como lançada!");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro: " + err.message, "danger");
       }
     };
@@ -341,7 +353,12 @@
       if (u.role !== "rh" && u.role !== "admin") return;
       if (!isLancada(o)) return;
 
-      if (!confirm("Desfazer o lançamento? A ocorrência volta pra Conferidas e a marca de lançada some.")) return;
+      if (!(await confirmar({
+        titulo: "Desfazer lançamento?",
+        msg: "A ocorrência volta pra Conferidas e a marca de lançada some.",
+        okLabel: "Desfazer",
+        perigo: true,
+      }))) return;
 
       const novoHist = [...(o.historico || []), {
         por: u.id,
@@ -367,7 +384,7 @@
         toast("Lançamento desfeito. Voltou pra Conferidas.");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro: " + err.message, "danger");
       }
     };
@@ -398,7 +415,7 @@
         toast("Observação atualizada.");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao salvar: " + err.message, "danger");
       }
     };
@@ -434,7 +451,7 @@
         toast("Tipo criado!");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao salvar: " + err.message, "danger");
       }
     };
@@ -473,7 +490,7 @@
         toast(id ? "Funcionário atualizado." : "Funcionário criado.");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao salvar: " + err.message, "danger");
       }
     };
@@ -484,7 +501,12 @@
       if (!f) return;
       const usado = state.ocorrencias.some((o) => o.funcionarioId === id);
       if (usado) return toast("Este funcionário tem ocorrências. Marque como inativo.", "danger");
-      if (!confirm(`Excluir "${f.nome}"?`)) return;
+      if (!(await confirmar({
+        titulo: "Excluir funcionário?",
+        msg: `Remover "${f.nome}" do cadastro.`,
+        okLabel: "Excluir",
+        perigo: true,
+      }))) return;
       try {
         await db.collection("funcionarios").doc(id).delete();
         state.funcionarios = state.funcionarios.filter((x) => x.id !== id);
@@ -510,7 +532,7 @@
         const d = snap.data();
         return { cpf: d.cpf || null, pis: d.pis || null, nomeMae: d.nomeMae || null };
       } catch (e) {
-        console.warn("[saldo-sensivel] read falhou:", e?.message || e);
+        debug?.("[saldo-sensivel] read falhou:", e?.message || e);
         return null;
       }
     };
@@ -590,7 +612,7 @@
         toast(id ? "PJ atualizado." : "PJ cadastrado.");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao salvar: " + err.message, "danger");
       }
     };
@@ -631,7 +653,7 @@
           renderApp();
         }, 50);
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro: " + err.message, "danger");
       }
     };
@@ -643,7 +665,12 @@
       const baixa = pj.ferias.find((f) => f.id === feriasId);
       if (!baixa) return;
       const desc = `${baixa.dias} dia${baixa.dias !== 1 ? "s" : ""} ${baixa.tipo === "vendidas" ? "vendidas" : "gozadas"} (${formatDate(baixa.data)})`;
-      if (!confirm(`Excluir a baixa de ${desc}? O saldo aumenta de volta.`)) return;
+      if (!(await confirmar({
+        titulo: "Excluir baixa?",
+        msg: `Remover a baixa de ${desc}. O saldo aumenta de volta.`,
+        okLabel: "Excluir",
+        perigo: true,
+      }))) return;
 
       const novoFerias = pj.ferias.filter((f) => f.id !== feriasId);
       try {
@@ -701,7 +728,7 @@
         toast(`Reajuste aplicado: ${formatMoeda(valorAntigo)} → ${formatMoeda(novoValor)}`);
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro: " + err.message, "danger");
       }
     };
@@ -755,7 +782,12 @@
     window.deletePJ = async function (id) {
       const pj = (state.pjs || []).find((p) => p.id === id);
       if (!pj) return;
-      if (!confirm(`Excluir o PJ "${pj.nome}"? O histórico inteiro será perdido.`)) return;
+      if (!(await confirmar({
+        titulo: "Excluir PJ?",
+        msg: `Excluir "${pj.nome}". O histórico inteiro será perdido.`,
+        okLabel: "Excluir",
+        perigo: true,
+      }))) return;
       try {
         await db.collection("pj").doc(id).delete();
         state.pjs = state.pjs.filter((p) => p.id !== id);
@@ -821,7 +853,7 @@
         toast(`${total} saldos sincronizados no Firestore.`);
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao importar: " + err.message, "danger");
       }
     };
@@ -833,7 +865,12 @@
       const markAusentes = $("#import-replace").checked;
 
       if (markAusentes) {
-        if (!confirm(`Marcar como inativos os funcionários que não estão no JSON? Eles continuam no Firestore, ocorrências antigas mantêm a referência. Continuar?`)) return;
+        if (!(await confirmar({
+          titulo: "Marcar inativos?",
+          msg: "Os funcionários que não estão no JSON serão marcados como inativos. Eles continuam no Firestore, ocorrências antigas mantêm a referência.",
+          okLabel: "Marcar inativos",
+          perigo: true,
+        }))) return;
       }
 
       const incomingIds = new Set();
@@ -933,7 +970,7 @@
         toast("Ação criada!");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro: " + err.message, "danger");
       }
     };
@@ -998,9 +1035,19 @@
       if (!a) return;
       const usada = state.ocorrencias.some((o) => o.acao === id);
       if (usada) {
-        if (!confirm(`"${a.label}" está em uso. Excluir deixa essas ocorrências com a ação registrada mas a opção some do dropdown. Continuar?`)) return;
+        if (!(await confirmar({
+          titulo: `Excluir "${a.label}"?`,
+          msg: "Está em uso. Excluir deixa essas ocorrências com a ação registrada mas a opção some do dropdown.",
+          okLabel: "Excluir",
+          perigo: true,
+        }))) return;
       } else {
-        if (!confirm(`Excluir "${a.label}"?`)) return;
+        if (!(await confirmar({
+          titulo: "Excluir ação?",
+          msg: `Remover a ação "${a.label}".`,
+          okLabel: "Excluir",
+          perigo: true,
+        }))) return;
       }
       try {
         await db.collection("acoes").doc(id).delete();
@@ -1018,9 +1065,19 @@
       if (!t) return;
       const usado = state.ocorrencias.some((o) => o.tipo === id);
       if (usado) {
-        if (!confirm(`"${t.label}" está em uso. Excluir manterá os registros mas some do form. Continuar?`)) return;
+        if (!(await confirmar({
+          titulo: `Excluir "${t.label}"?`,
+          msg: "Está em uso. Excluir mantém os registros mas o tipo some do form.",
+          okLabel: "Excluir",
+          perigo: true,
+        }))) return;
       } else {
-        if (!confirm(`Excluir "${t.label}"?`)) return;
+        if (!(await confirmar({
+          titulo: "Excluir tipo?",
+          msg: `Remover o tipo "${t.label}".`,
+          okLabel: "Excluir",
+          perigo: true,
+        }))) return;
       }
       try {
         await db.collection("tipos").doc(id).delete();
@@ -1028,7 +1085,7 @@
         toast("Tipo excluído.");
         renderApp();
       } catch (err) {
-        console.error(err);
+        debug?.(err);
         toast("Erro ao excluir: " + err.message, "danger");
       }
     };
@@ -1065,7 +1122,7 @@
           : firebase.auth.Auth.Persistence.NONE;
         await auth.setPersistence(target);
       } catch (e) {
-        console.warn("[Auth] não foi possível ajustar persistência:", e);
+        debug?.("[Auth] não foi possível ajustar persistência:", e);
       }
 
       try {
@@ -1124,7 +1181,7 @@
           await secondary.auth().sendPasswordResetEmail(email);
           resetEnviado = true;
         } catch (e) {
-          console.warn("Não foi possível enviar email de redefinição:", e.message);
+          debug?.("Não foi possível enviar email de redefinição:", e.message);
         }
 
         // Adiciona ao state local pra UI atualizar
@@ -1230,7 +1287,7 @@
           .sort((a, b) => (a.criadoEm || "9999").localeCompare(b.criadoEm || "9999"));
         cb(todas, null);
       };
-      const onErr = (e) => { console.warn("[chat] conversa snapshot:", e.message); cb(null, e); };
+      const onErr = (e) => { debug?.("[chat] conversa snapshot:", e.message); cb(null, e); };
       const unsubA = db.collection("mensagens")
         .where("de", "==", meu).where("para", "==", peerUid)
         .onSnapshot((s) => { enviadas = s.docs.map(mapDoc); prontoA = true; emit(); }, onErr);
@@ -1254,7 +1311,7 @@
             .map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }))
             .sort((a, b) => (b.criadoEm || "").localeCompare(a.criadoEm || ""));
           try { window.atualizarBadgeChat?.(); } catch {}
-        }, (e) => console.warn("[chat] minhas msgs snapshot:", e.message));
+        }, (e) => debug?.("[chat] minhas msgs snapshot:", e.message));
     };
 
     // Marca como lida toda msg recebida nesta conversa.
@@ -1320,7 +1377,7 @@
         await auth.sendPasswordResetEmail(email);
         toast(`Email enviado pra ${email}. Veja na caixa de entrada (e na pasta de spam).`);
       } catch (e) {
-        console.error("[Auth] reset error:", e);
+        debug?.("[Auth] reset error:", e);
         toast(traduzErroAuth(e), "danger");
       }
     };
@@ -1431,7 +1488,7 @@
           lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
       } catch (e) {
-        console.warn("[Presence] heartbeat falhou:", e);
+        debug?.("[Presence] heartbeat falhou:", e);
       }
     }
 
@@ -1468,7 +1525,7 @@
         } else {
           pjDocUltimoAtualizadoEm = atualMs;
         }
-      }, (err) => console.warn("[PJ doc] snapshot erro:", err));
+      }, (err) => debug?.("[PJ doc] snapshot erro:", err));
     };
     window.pararEscutaPJ = function () {
       if (pjDocUnsubscribe) { pjDocUnsubscribe(); pjDocUnsubscribe = null; }
@@ -1502,7 +1559,7 @@
           .filter((p) => p.status !== "offline");
         if (typeof renderPresence === "function") renderPresence();
       }, (err) => {
-        console.warn("[Presence] snapshot erro:", err);
+        debug?.("[Presence] snapshot erro:", err);
       });
     }
 
@@ -1535,7 +1592,7 @@
       if (auth.currentUser) {
         try {
           await db.collection("presence").doc(auth.currentUser.uid).delete();
-        } catch (e) { console.warn("[Presence] cleanup falhou:", e); }
+        } catch (e) { debug?.("[Presence] cleanup falhou:", e); }
       }
     }
 
@@ -1606,14 +1663,14 @@
         renderApp();
 
         // Inicia presença DEPOIS do app renderizar (state.view existe)
-        iniciarPresenca().catch((e) => console.warn("[Presence] init falhou:", e));
+        iniciarPresenca().catch((e) => debug?.("[Presence] init falhou:", e));
 
         // Inicia o listener global do chat (mensagens recebidas → badge)
         if (chatUnsub) { chatUnsub(); chatUnsub = null; }
         try { chatUnsub = window.escutarMinhasMensagens(); }
-        catch (e) { console.warn("[chat] init falhou:", e); }
+        catch (e) { debug?.("[chat] init falhou:", e); }
       } catch (err) {
-        console.error("Erro carregando perfil:", err);
+        debug?.("Erro carregando perfil:", err);
         toast("Erro ao carregar perfil: " + err.message, "danger");
         // Sign out faz onAuthStateChanged disparar de novo com null,
         // que volta pra tela de login e restaura o botão "Entrar".
@@ -1711,7 +1768,7 @@
         debug?.("[bancoHoras] supervisor →", bhSnap.size, "saldos");
       }
     } catch (e) {
-      console.warn("[bh] falha ao ler banco de horas:", e?.message || e);
+      debug?.("[bh] falha ao ler banco de horas:", e?.message || e);
     }
 
     // Controle PJ (admin/RH só)
@@ -1726,9 +1783,13 @@
       }));
     }
 
-    // Ocorrências (filtradas pelas regras conforme papel)
+    // Ocorrências (filtradas pelas regras conforme papel).
+    // limit(500): teto de leitura por boot pra não crescer sem limite conforme
+    // o histórico aumenta (custo de reads + memória). Como o orderBy é data desc,
+    // pega as 500 mais recentes. "Carregar mais" fica pra depois se precisar.
     let q = db.collection("ocorrencias").orderBy("data", "desc");
     if (u.role === "lider") q = q.where("funcionarioTurno", "==", u.turno);
+    q = q.limit(500);
 
     const occSnap = await q.get();
     state.ocorrencias = occSnap.docs.map((d) => {
@@ -1736,9 +1797,9 @@
       return {
         id: d.id,
         ...data,
-        data: tsToDateStr(data.data),
-        dataConferencia: tsToDateStr(data.dataConferencia),
-        lancadoEm: tsToDateStr(data.lancadoEm),
+        data: tsToIsoDate(data.data),
+        dataConferencia: tsToIsoDate(data.dataConferencia),
+        lancadoEm: tsToIsoDate(data.lancadoEm),
         criadoEm: tsToIso(data.criadoEm),
         atualizadoEm: tsToIso(data.atualizadoEm),
       };
@@ -1752,12 +1813,17 @@
       const usersSnap = await db.collection("users").get();
       state.users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (e) {
-      console.warn("[users] não foi possível carregar diretório:", e?.message || e);
+      debug?.("[users] não foi possível carregar diretório:", e?.message || e);
       // mantém ao menos o próprio user já populado em wireAuthFlow
     }
   }
 
-  function tsToDateStr(ts) {
+  // Converte Timestamp/Date/string → ISO curto "YYYY-MM-DD" (consumido por
+  // formatDate(iso) no app.js). NÃO confundir com o tsToDateStr global do
+  // app.js, que devolve formato longo "DD de mês de YYYY" pra exibição direta
+  // de nascimento/admissão. Semânticas diferentes de propósito — daí o nome
+  // distinto pra não shadowar/confundir.
+  function tsToIsoDate(ts) {
     if (!ts) return null;
     if (typeof ts === "string") return ts;
     const d = ts.toDate ? ts.toDate() : new Date(ts);

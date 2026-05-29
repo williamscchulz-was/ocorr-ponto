@@ -1180,6 +1180,9 @@ textarea:focus-visible,
   animation: fadeIn 180ms ease-out;
   padding: 16px;
 }
+/* Overlay de confirmação: empilha ACIMA de qualquer modal aberto */
+.modal-backdrop--confirm { z-index: 9990; }
+.modal--sm { max-width: 400px; width: 100%; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -1504,6 +1507,38 @@ textarea:focus-visible,
   .fab { display: none !important; }
   .app__main { padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important; }
   /* Topbar pode some no mobile pra dar mais espaço — sidebar acessada via "Conta" no nav */
+}
+
+/* Telas estreitas (ex.: 360px): admin tem 6 itens + FAB na barra flutuante.
+   Aperta gaps/padding/fonte pros itens caberem sem estourar nem cortar label. */
+@media (max-width: 380px) {
+  .bottom-nav {
+    left: 8px;
+    right: 8px;
+    padding: 8px 6px;
+    gap: 0;
+  }
+  .bottom-nav__item {
+    padding: 6px 2px;
+    min-width: 0;
+    font-size: 9px;
+    gap: 1px;
+  }
+  .bottom-nav__item .icon {
+    width: 20px;
+    height: 20px;
+  }
+  .bottom-nav__item--fab {
+    flex: 0 0 48px;
+  }
+  .bottom-nav__item--fab .bottom-nav__fab {
+    width: 42px;
+    height: 42px;
+  }
+  /* Badge acompanha o ícone menor pra não vazar pro item vizinho. */
+  .bottom-nav__badge {
+    margin-right: -16px;
+  }
 }
 
 /* ============================================
