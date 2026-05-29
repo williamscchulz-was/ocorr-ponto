@@ -1464,6 +1464,15 @@
       await batch.commit();
     };
 
+    // Reage a uma mensagem (1 reação por pessoa). emoji=null remove a minha.
+    window.reagirMensagem = async function (msgId, emoji) {
+      if (!auth.currentUser || !msgId) return;
+      const campo = "reacoes." + auth.currentUser.uid;
+      const ref = db.collection("mensagens").doc(msgId);
+      if (emoji) await ref.update({ [campo]: String(emoji).slice(0, 16) });
+      else await ref.update({ [campo]: firebase.firestore.FieldValue.delete() });
+    };
+
     // Atualizar a própria foto de perfil. Recebe base64 (data URL) ou null
     // pra remover. Rule do Firestore garante que só o próprio user pode
     // atualizar e que só o campo fotoBase64 pode ser tocado por self-update.

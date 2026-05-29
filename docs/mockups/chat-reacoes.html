@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Reações no chat (iMessage/WhatsApp)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{ --verde:#008835; --verde-deep:#00682B; --bg:#F7F9F6; --surface:#fff;
+    --border:#E7EDE4; --text:#1E2D1A; --muted:#4A6245; --bolha-peer:#EEF3EC; --bolha-me:#008835;
+    --font:"Poppins",system-ui,sans-serif; --ease:cubic-bezier(.2,.8,.2,1); }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#cfd8cb;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px 16px;}
+  h1{color:var(--verde-deep);font-weight:700;margin:0;font-size:18px;text-align:center;}
+  p.s{color:#46553f;margin:0;font-size:12.5px;text-align:center;max-width:520px;line-height:1.5;}
+
+  .chat{width:380px;max-width:94vw;height:520px;background:var(--surface);border-radius:18px;overflow:hidden;
+        box-shadow:0 24px 70px rgba(0,40,20,.34);display:flex;flex-direction:column;}
+  .head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);}
+  .head .av{width:36px;height:36px;border-radius:50%;background:#0076BE;color:#fff;display:grid;place-items:center;font-weight:600;font-size:12px;}
+  .head .nome{font-size:14px;font-weight:600;color:var(--text);}
+  .head .st{font-size:11px;color:var(--verde);}
+  .msgs{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:14px;background:var(--bg);}
+
+  .wrap{position:relative;max-width:80%;}
+  .wrap.me{align-self:flex-end;}
+  .wrap.peer{align-self:flex-start;}
+  .b{padding:9px 13px;border-radius:16px;font-size:13.5px;line-height:1.35;position:relative;cursor:default;}
+  .peer .b{background:var(--bolha-peer);color:var(--text);border-bottom-left-radius:5px;}
+  .me .b{background:var(--bolha-me);color:#fff;border-bottom-right-radius:5px;}
+
+  /* gatilho de reagir (aparece no hover) */
+  .reagir{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;
+    background:var(--surface);border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,40,20,.14);
+    display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .14s var(--ease);font-size:14px;color:var(--muted);}
+  .wrap:hover .reagir{opacity:1;}
+  .peer .reagir{right:-34px;}
+  .me .reagir{left:-34px;}
+
+  /* barra de emojis */
+  .bar{position:absolute;bottom:calc(100% + 6px);display:none;gap:2px;background:var(--surface);
+    border:1px solid var(--border);border-radius:22px;padding:5px 7px;box-shadow:0 8px 26px rgba(0,40,20,.22);z-index:5;
+    animation:barIn .16s var(--ease);}
+  .peer .bar{left:0;} .me .bar{right:0;}
+  .wrap.open .bar{display:flex;}
+  @keyframes barIn{from{opacity:0;transform:translateY(4px) scale(.96);}to{opacity:1;transform:none;}}
+  .bar button{border:0;background:none;font-size:21px;line-height:1;cursor:pointer;padding:3px;border-radius:50%;transition:transform .12s var(--ease),background .12s;}
+  .bar button:hover{transform:scale(1.25);background:var(--bg);}
+
+  /* chip de reação aplicada (estilo WhatsApp: na borda de baixo do balão) */
+  .chip{position:absolute;bottom:-11px;background:var(--surface);border:1px solid var(--border);
+    border-radius:20px;padding:1px 6px;font-size:13px;box-shadow:0 2px 6px rgba(0,40,20,.14);
+    display:flex;align-items:center;gap:2px;cursor:pointer;white-space:nowrap;}
+  .peer .chip{left:8px;} .me .chip{right:8px;}
+  .chip .cnt{font-size:10.5px;color:var(--muted);font-weight:600;}
+
+  .legend{max-width:520px;font-size:12px;color:#46553f;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 15px;line-height:1.6;}
+  .legend b{color:var(--verde-deep);}
+</style>
+</head>
+<body>
+  <h1>Reações no chat</h1>
+  <p class="s">Passe o mouse num balão → aparece o gatilho redondo → clique → escolha a reação. Clicar de novo na sua reação remove. (No celular: toque e segure o balão.)</p>
+
+  <div class="chat">
+    <div class="head"><span class="av">MA</span><div><div class="nome">Marina Souza</div><div class="st">online</div></div></div>
+    <div class="msgs" id="msgs"></div>
+  </div>
+
+  <div class="legend">
+    <b>Como vai funcionar:</b> conjunto básico de 6 reações — <b>👍 (ok)</b>, <b>👎 (negativo)</b>, ❤️ 😂 😮 😢. Uma reação por pessoa por mensagem (clicar de novo troca/remove). Em conversa 1:1 cabem no máximo 2 (você + a pessoa). A reação fica num chip discreto na borda do balão, igual WhatsApp. <b>Exceção combinada:</b> aqui no chat os emojis são o conteúdo da reação — o resto do sistema segue sem emoji.
+  </div>
+
+  <script>
+    const EMOJIS = ["👍","👎","❤️","😂","😮","😢"];
+    const msgs = [
+      { me:false, t:"oi! consegue conferir o turno 1 hoje?", reacoes:{} },
+      { me:true,  t:"opa, vejo já já", reacoes:{ "Marina":"👍" } },
+      { me:false, t:"valeu demais 🙌", reacoes:{} },
+    ];
+    const cont = document.getElementById("msgs");
+    function render(){
+      cont.innerHTML = msgs.map((m,i)=>{
+        const reEls = Object.entries(m.reacoes);
+        const chip = reEls.length ? `<span class="chip" data-rm="${i}">${reEls.map(([k,v])=>v).join("")}${reEls.length>1?`<span class="cnt">${reEls.length}</span>`:""}</span>` : "";
+        const bar = `<div class="bar">${EMOJIS.map(e=>`<button data-i="${i}" data-e="${e}">${e}</button>`).join("")}</div>`;
+        return `<div class="wrap ${m.me?'me':'peer'}" data-w="${i}">
+          <div class="b">${m.t}${chip}</div>
+          <button class="reagir" data-trig="${i}">☺</button>
+          ${bar}
+        </div>`;
+      }).join("");
+      // gatilho abre/fecha a barra
+      cont.querySelectorAll("[data-trig]").forEach(b=>b.onclick=(e)=>{
+        e.stopPropagation();
+        const w=cont.querySelector(`.wrap[data-w="${b.dataset.trig}"]`);
+        const aberto=w.classList.contains("open");
+        cont.querySelectorAll(".wrap").forEach(x=>x.classList.remove("open"));
+        if(!aberto)w.classList.add("open");
+      });
+      // escolher emoji
+      cont.querySelectorAll(".bar button").forEach(b=>b.onclick=(e)=>{
+        e.stopPropagation();
+        const i=+b.dataset.i; const eu="Você";
+        if(msgs[i].reacoes[eu]===b.dataset.e) delete msgs[i].reacoes[eu];
+        else msgs[i].reacoes[eu]=b.dataset.e;
+        render();
+      });
+      // clicar na própria reação remove
+      cont.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{ const i=+c.dataset.rm; if(msgs[i].reacoes["Você"]){delete msgs[i].reacoes["Você"];render();} });
+    }
+    document.body.addEventListener("click",()=>cont.querySelectorAll(".wrap").forEach(x=>x.classList.remove("open")));
+    render();
+  </script>
+</body>
+</html>

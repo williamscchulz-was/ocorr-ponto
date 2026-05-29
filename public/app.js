@@ -251,6 +251,7 @@ const icon = (name) => {
     user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
     undo: '<path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/>',
+    smile: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${icons[name] || ""}</svg>`;
 };
@@ -6484,6 +6485,32 @@ function chatMetaHtml(m, minha) {
   return horaSpan + check;
 }
 
+// Reações do chat (conteúdo emoji — exceção combinada à regra "sem emoji").
+const EMOJIS_REACAO = ["👍", "👎", "❤️", "😂", "😮", "😢"];
+
+// Chip de reações na borda do balão. Escapa os valores (vêm do Firestore).
+function chatReacoesHtml(reacoes) {
+  const vals = Object.values(reacoes || {});
+  if (!vals.length) return "";
+  const uniq = [...new Set(vals)].map(escapeHtml).join("");
+  return uniq + (vals.length > 1 ? `<span class="chat__reacoes-cnt">${vals.length}</span>` : "");
+}
+
+// Barra de emojis (igual em todo balão; revelada ao clicar no gatilho).
+function chatReactBarHtml() {
+  return `<div class="chat__react-bar">${EMOJIS_REACAO.map((e) => `<button type="button" class="chat__react-emoji" data-react-emoji="${e}">${e}</button>`).join("")}</div>`;
+}
+
+// Aplica/alterna a MINHA reação (toggle: a mesma reação remove).
+function aplicarReacao(mid, emoji) {
+  if (!mid || !window.reagirMensagem) return;
+  const meu = meuUid();
+  const m = _chatRender && _chatRender.byId ? _chatRender.byId.get(mid) : null;
+  const atual = (m && m.reacoes && m.reacoes[meu]) || null;
+  const novo = (!emoji || emoji === atual) ? null : emoji;
+  window.reagirMensagem(mid, novo).catch((e) => console.warn("[reacao]", e?.message || e));
+}
+
 // Render INCREMENTAL: anexa só as mensagens ainda não renderizadas em
 // #chat-msgs (com separador de dia + agrupamento), e nas já renderizadas só
 // atualiza a meta (hora que resolveu / leitura). Não toca header/composer
@@ -6492,6 +6519,7 @@ function pintarMensagens(msgs) {
   const cont = $("#chat-msgs");
   if (!cont || !_chatRender) return;
   const meu = meuUid();
+  _chatRender.byId = new Map((msgs || []).map((m) => [m.id, m])); // pro toggle de reação
 
   if (_chatRender.primeiro) {
     cont.innerHTML = "";
@@ -6510,10 +6538,15 @@ function pintarMensagens(msgs) {
     if (!m.id) continue;
     const minha = m.de === meu;
 
-    // Já renderizada: atualiza só a meta (hora resolvida / leitura).
+    // Já renderizada: atualiza meta (hora/leitura) e o chip de reações.
     if (_chatRender.ids.has(m.id)) {
-      const metaEl = cont.querySelector(`[data-mid="${m.id}"] .chat__bolha-meta`);
-      if (metaEl) metaEl.innerHTML = chatMetaHtml(m, minha);
+      const bolhaEl = cont.querySelector(`[data-mid="${m.id}"]`);
+      if (bolhaEl) {
+        const metaEl = bolhaEl.querySelector(".chat__bolha-meta");
+        if (metaEl) metaEl.innerHTML = chatMetaHtml(m, minha);
+        const chipEl = bolhaEl.querySelector(".chat__reacoes");
+        if (chipEl) chipEl.innerHTML = chatReacoesHtml(m.reacoes);
+      }
       continue;
     }
     _chatRender.ids.add(m.id);
@@ -6532,7 +6565,12 @@ function pintarMensagens(msgs) {
     const b = document.createElement("div");
     b.className = `chat__bolha ${minha ? "chat__bolha--minha" : ""} ${grp ? "chat__bolha--grp" : ""}`;
     b.dataset.mid = m.id;
-    b.innerHTML = `<span class="chat__bolha-texto">${escapeHtml(m.texto || "")}</span><span class="chat__bolha-meta">${chatMetaHtml(m, minha)}</span>`;
+    b.innerHTML =
+      `<span class="chat__bolha-texto">${escapeHtml(m.texto || "")}</span>` +
+      `<span class="chat__bolha-meta">${chatMetaHtml(m, minha)}</span>` +
+      `<button type="button" class="chat__reagir" data-react-trig aria-label="Reagir">${icon("smile")}</button>` +
+      chatReactBarHtml() +
+      `<span class="chat__reacoes" data-react-chip>${chatReacoesHtml(m.reacoes)}</span>`;
     cont.appendChild(b);
 
     _chatRender.lastDe = m.de;
@@ -6582,6 +6620,42 @@ function wireChatThread(peerUid, peerNome) {
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       enviarDoComposer(peerUid, peerNome);
+    });
+  }
+
+  // Reações (delegado em #chat-msgs — elemento recriado a cada conversa, sem stack).
+  const msgsEl = $("#chat-msgs");
+  if (msgsEl) {
+    msgsEl.addEventListener("click", (e) => {
+      const trig = e.target.closest("[data-react-trig]");
+      if (trig) {
+        e.stopPropagation();
+        const bolha = trig.closest(".chat__bolha");
+        const abrir = bolha && !bolha.classList.contains("is-reacting");
+        msgsEl.querySelectorAll(".chat__bolha.is-reacting").forEach((b) => b.classList.remove("is-reacting"));
+        if (abrir) bolha.classList.add("is-reacting");
+        return;
+      }
+      const emo = e.target.closest("[data-react-emoji]");
+      if (emo) {
+        e.stopPropagation();
+        const bolha = emo.closest(".chat__bolha");
+        if (bolha) { bolha.classList.remove("is-reacting"); aplicarReacao(bolha.dataset.mid, emo.dataset.reactEmoji); }
+        return;
+      }
+      const chip = e.target.closest("[data-react-chip]");
+      if (chip && chip.textContent.trim()) {
+        const bolha = chip.closest(".chat__bolha");
+        if (bolha) aplicarReacao(bolha.dataset.mid, null);
+      }
+    });
+  }
+  // Fecha qualquer barra de reação ao clicar fora (uma vez só, no document).
+  if (!window._chatReactDocBound) {
+    window._chatReactDocBound = true;
+    document.addEventListener("click", (e) => {
+      if (e.target.closest("[data-react-trig]") || e.target.closest(".chat__react-bar")) return;
+      $$("#chat-msgs .chat__bolha.is-reacting").forEach((b) => b.classList.remove("is-reacting"));
     });
   }
 }

@@ -137,10 +137,15 @@ service cloud.firestore {
           request.resource.data.parKey == request.auth.uid + '__' + request.resource.data.para
           || request.resource.data.parKey == request.resource.data.para + '__' + request.auth.uid
         );
-      // destinatário marca como lida (só o campo 'lido')
-      allow update: if isAuthed()
-        && resource.data.para == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lido']);
+      // update: (a) destinatário marca como lida (só 'lido'); ou
+      //         (b) qualquer um dos 2 participantes reage (só 'reacoes').
+      allow update: if isAuthed() && (
+        (resource.data.para == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lido']))
+        ||
+        ((resource.data.de == request.auth.uid || resource.data.para == request.auth.uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reacoes']))
+      );
       // remetente pode apagar a própria msg (TTL cuida do resto)
       allow delete: if isAuthed() && resource.data.de == request.auth.uid;
     }

@@ -3123,3 +3123,46 @@ code { font-family: inherit; }
 .chat__check svg { width: 15px; height: 13px; }
 .chat__check.is-lido { color: #AEE0FF; }
 .chat__thread-status.is-typing { color: var(--plum-soft); font-style: italic; }
+
+/* Reações: gatilho (hover) + barra de emojis + chip na borda do balão. */
+.chat__bolha { position: relative; }
+.chat__reagir {
+  position: absolute; top: -14px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 40, 20, 0.16);
+  display: grid; place-items: center; cursor: pointer;
+  color: var(--text-muted); opacity: 0; pointer-events: none;
+  transition: opacity 0.14s var(--ease);
+}
+.chat__reagir .icon { width: 14px; height: 14px; }
+.chat__bolha:hover .chat__reagir { opacity: 1; pointer-events: auto; }
+.chat__bolha--minha .chat__reagir { left: -6px; }
+.chat__bolha:not(.chat__bolha--minha) .chat__reagir { right: -6px; }
+
+.chat__react-bar {
+  position: absolute; bottom: calc(100% + 6px); z-index: 6;
+  display: none; gap: 1px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 22px; padding: 4px 6px;
+  box-shadow: 0 8px 26px rgba(0, 40, 20, 0.22);
+}
+.chat__bolha--minha .chat__react-bar { right: 0; }
+.chat__bolha:not(.chat__bolha--minha) .chat__react-bar { left: 0; }
+.chat__bolha.is-reacting .chat__react-bar { display: flex; animation: chatReactBarIn 0.16s var(--ease); }
+@keyframes chatReactBarIn { from { opacity: 0; transform: translateY(4px) scale(0.96); } to { opacity: 1; transform: none; } }
+.chat__react-emoji { border: 0; background: none; font-size: 20px; line-height: 1; cursor: pointer; padding: 2px; border-radius: 50%; transition: transform 0.12s var(--ease), background 0.12s; }
+.chat__react-emoji:hover { transform: scale(1.25); background: var(--bg); }
+
+.chat__reacoes {
+  position: absolute; bottom: -10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 0 5px; min-height: 19px;
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 12px; line-height: 1.6; box-shadow: 0 1px 4px rgba(0, 40, 20, 0.14);
+  cursor: pointer;
+}
+.chat__reacoes:empty { display: none; }
+.chat__bolha--minha .chat__reacoes { right: 8px; }
+.chat__bolha:not(.chat__bolha--minha) .chat__reacoes { left: 8px; }
+.chat__reacoes-cnt { font-size: 10px; color: var(--text-muted); font-weight: 600; }
