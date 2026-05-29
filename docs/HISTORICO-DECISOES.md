@@ -144,3 +144,14 @@ Seguimento da investigação acima. Como o RAID esconde o SMART dos membros (`Ge
 **Ação imediata (grátis, reversível):** habilitar o cache de escrita do volume RAID — Gerenciador de Dispositivos → Unidades de disco → "Intel Raid 1 Volume" → Propriedades → aba **Políticas** → marcar **"Habilitar cache de gravação no dispositivo"**. (Opcional, só por ter nobreak: marcar também "Desativar liberação do buffer".) Reversível desmarcando. Medir resets evt 129 antes/depois pelo logger.
 
 **Continua valendo** a troca dos BX500 por SSD com DRAM/TLC (WD Red SA500 / Samsung 870 EVO / ou enterprise PM893) como correção definitiva — o cache só alivia.
+
+---
+
+## 2026-05-29 · ⚠️ Correção de orientação: cache de escrita — habilitar SÓ a Caixa 1
+
+Correção da entrada anterior (que listava como "opcional" desativar a liberação do buffer). **Retificado:**
+
+- **Caixa 1 "Habilitar cache de gravação no dispositivo" = OK / habilitar.** Risco baixo: SQL Server e Firebird continuam emitindo flush nos commits, então o banco **não corrompe** numa queda; no pior caso perde-se fração de segundo não-commitada. Reversível.
+- **Caixa 2 "Desativar liberação do buffer de cache de gravação do Windows" = NÃO HABILITAR.** Suprime os flushes → numa queda de energia o banco **pode corromper de verdade**. Só seria segura com RAID de verdade com bateria (BBU), **não** com SSD de consumo + nobreak. Deixar SEMPRE desmarcada nesta máquina.
+- **Escudo real numa queda longa:** o nobreak precisa estar configurado pra **desligar o servidor sozinho** quando a bateria estiver fraca (UPS software / energia do Windows) — senão queda longa = tombo mesmo. Backups diários (01:00 e 11:55) são a rede de segurança extra.
+- **Decisão do William (2026-05-29):** habilitar **só a Caixa 1**. Acompanhar resets evt 129 no `_diag\disk-resets.log` nos próximos dias; se persistir sob carga, trocar os BX500.
