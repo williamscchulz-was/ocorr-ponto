@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Histórico de auditoria</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#F7F9F6; --surface:#fff; --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:#006328; --text-body:#1E2D1A; --muted:#4A6245;
+    --plum:#008835; --plum-deep:#006328;
+    --success:#2F6B3F; --success-bg:#E0EAD8;
+    --info:#2F5A6B; --info-bg:#D8E6EA;
+    --warning:#B27429; --warning-bg:#F8E4C8;
+    --danger:#962F32; --danger-bg:#F4D6D2;
+    --font:"Poppins",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#dfe3dd;color:var(--text-body);padding:26px 16px;}
+  h1.t{text-align:center;color:var(--plum-deep);font-weight:700;margin:0 0 2px;font-size:21px;}
+  p.s{text-align:center;color:#5a6b54;margin:0 0 22px;font-size:13px;}
+
+  /* janela fake do app */
+  .win{max-width:840px;margin:0 auto;background:var(--bg);border-radius:16px;overflow:hidden;box-shadow:0 16px 50px rgba(0,40,20,.18);}
+  .topbar{display:flex;align-items:center;gap:12px;padding:16px 22px;background:var(--surface);border-bottom:1px solid var(--border);}
+  .topbar .ttl{font-size:17px;font-weight:600;color:var(--plum-deep);}
+  .topbar .sub{font-size:12px;color:var(--muted);margin-left:2px;}
+  .body{padding:20px 22px 26px;}
+
+  /* barra de filtros */
+  .filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;}
+  .busca{flex:1;min-width:200px;position:relative;}
+  .busca input{width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px 9px 34px;font-family:inherit;font-size:13px;color:var(--text-body);background:var(--surface);}
+  .busca svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted);}
+  .seg{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;}
+  .seg button{border:0;background:none;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--muted);padding:6px 12px;border-radius:7px;cursor:pointer;white-space:nowrap;}
+  .seg button.on{background:var(--plum);color:#fff;font-weight:600;}
+
+  /* timeline agrupada por dia */
+  .dia{margin-bottom:18px;}
+  .dia__h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px 2px;}
+  .feed{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .row{display:flex;gap:13px;align-items:flex-start;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .14s;}
+  .row:last-child{border-bottom:0;}
+  .row:hover{background:#FAFCF9;}
+  .dot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;margin-top:1px;}
+  .dot svg{width:15px;height:15px;}
+  .dot.ok{background:var(--success-bg);color:var(--success);}
+  .dot.info{background:var(--info-bg);color:var(--info);}
+  .dot.warn{background:var(--warning-bg);color:var(--warning);}
+  .dot.dang{background:var(--danger-bg);color:var(--danger);}
+  .dot.neu{background:#EEF3EC;color:var(--muted);}
+  .rc{flex:1;min-width:0;}
+  .rc .acao{font-size:13.5px;font-weight:600;color:var(--text-body);}
+  .rc .acao b{color:var(--plum-deep);}
+  .rc .alvo{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .meta{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+  .meta .quem{font-size:11.5px;font-weight:600;color:var(--text-body);}
+  .meta .hora{font-size:11px;color:var(--muted);}
+
+  .vazio{text-align:center;color:var(--muted);font-size:13px;padding:30px;}
+  .note{max-width:840px;margin:18px auto 0;font-size:12.5px;color:#41513c;line-height:1.65;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 18px;}
+  .note b{color:var(--plum-deep);}
+  .note ul{margin:8px 0 0;padding-left:18px;}
+  .note li{margin-bottom:3px;}
+</style>
+</head>
+<body>
+  <h1 class="t">Histórico de auditoria</h1>
+  <p class="s">Uma linha do tempo única de tudo que foi feito nas ocorrências — quem, o quê e quando. Aproveita o histórico que o sistema já grava (sem custo novo, vale retroativo).</p>
+
+  <div class="win">
+    <div class="topbar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#006328" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>
+      <div><span class="ttl">Auditoria</span> <span class="sub">· últimas atividades</span></div>
+    </div>
+    <div class="body">
+
+      <div class="filtros">
+        <div class="busca">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input placeholder="Buscar por funcionário ou usuário…" />
+        </div>
+        <div class="seg">
+          <button class="on">Tudo</button>
+          <button>Conferências</button>
+          <button>Lançamentos</button>
+          <button>Edições</button>
+          <button>Criações</button>
+        </div>
+      </div>
+
+      <div class="dia">
+        <div class="dia__h">Hoje · 29 mai</div>
+        <div class="feed">
+          <div class="row">
+            <div class="dot info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+            <div class="rc">
+              <div class="acao">Marcou como lançada</div>
+              <div class="alvo">Ana Silva · Atestado médico · 27/05</div>
+            </div>
+            <div class="meta"><span class="quem">RH · Marina</span><span class="hora">14:38</span></div>
+          </div>
+          <div class="row">
+            <div class="dot ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="rc">
+              <div class="acao">Conferiu <b>(Abonado)</b></div>
+              <div class="alvo">Carlos Souza · Falta · 28/05</div>
+            </div>
+            <div class="meta"><span class="quem">Adelir · 1º turno</span><span class="hora">11:02</span></div>
+          </div>
+          <div class="row">
+            <div class="dot neu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <div class="rc">
+              <div class="acao">Atualizou observação</div>
+              <div class="alvo">Joana Lima · Atraso · 28/05</div>
+            </div>
+            <div class="meta"><span class="quem">Adelir · 1º turno</span><span class="hora">10:55</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dia">
+        <div class="dia__h">Ontem · 28 mai</div>
+        <div class="feed">
+          <div class="row">
+            <div class="dot warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></div>
+            <div class="rc">
+              <div class="acao">Admin editou a ocorrência</div>
+              <div class="alvo">Pedro Alves · Hora extra · 26/05</div>
+            </div>
+            <div class="meta"><span class="quem">Administrador</span><span class="hora">17:20</span></div>
+          </div>
+          <div class="row">
+            <div class="dot warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/></svg></div>
+            <div class="rc">
+              <div class="acao">Desfez lançamento</div>
+              <div class="alvo">Pedro Alves · Hora extra · 26/05</div>
+            </div>
+            <div class="meta"><span class="quem">RH · Marina</span><span class="hora">17:05</span></div>
+          </div>
+          <div class="row">
+            <div class="dot ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="rc">
+              <div class="acao">Conferiu <b>(Justificado)</b></div>
+              <div class="alvo">Lucas Martins · Saída antecipada · 27/05</div>
+            </div>
+            <div class="meta"><span class="quem">Alexander · 2º turno</span><span class="hora">09:41</span></div>
+          </div>
+          <div class="row">
+            <div class="dot neu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+            <div class="rc">
+              <div class="acao">Criou ocorrência</div>
+              <div class="alvo">Lucas Martins · Saída antecipada · 27/05</div>
+            </div>
+            <div class="meta"><span class="quem">Alexander · 2º turno</span><span class="hora">08:12</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dia">
+        <div class="dia__h">27 mai</div>
+        <div class="feed">
+          <div class="row">
+            <div class="dot info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+            <div class="rc">
+              <div class="acao">Marcou como lançada</div>
+              <div class="alvo">Daniel Rocha · Falta justificada · 25/05</div>
+            </div>
+            <div class="meta"><span class="quem">RH · Marina</span><span class="hora">16:30</span></div>
+          </div>
+          <div class="row">
+            <div class="dot ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="rc">
+              <div class="acao">Conferiu <b>(Desconto)</b></div>
+              <div class="alvo">Daniel Rocha · Falta justificada · 25/05</div>
+            </div>
+            <div class="meta"><span class="quem">Djoniffer · 3º turno</span><span class="hora">06:18</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Como funciona (sem custo extra):</b> cada ocorrência já guarda um histórico interno de tudo que aconteceu com ela. Esta tela só junta tudo numa linha do tempo única, ordenada do mais recente, com busca e filtros. Vale <b>retroativo</b> — já mostra o que está registrado hoje.
+    <ul>
+      <li><b>Quem vê:</b> só Admin e RH (informação sensível).</li>
+      <li><b>Clicar numa linha</b> abre a ocorrência correspondente.</li>
+      <li><b>Onde fica:</b> sugiro um item novo no menu — "Auditoria" — ou uma aba dentro de Configurações. Você escolhe.</li>
+      <li><b>Único ponto cego:</b> ocorrência <i>excluída</i> some com o histórico junto. Se quiser registrar exclusões também, dá pra gravar um log leve só pra isso (me avise).</li>
+    </ul>
+  </div>
+</body>
+</html>

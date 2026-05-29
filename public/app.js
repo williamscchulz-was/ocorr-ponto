@@ -247,6 +247,8 @@ const icon = (name) => {
     trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
     edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
     user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    undo: '<path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${icons[name] || ""}</svg>`;
 };
@@ -1083,6 +1085,7 @@ function renderNav() {
   }
   if (u.role === "rh" || u.role === "admin") {
     items.push({ id: "pj", label: "Controle PJ", icon: "briefcase" });
+    items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
     items.push({ id: "config", label: "Configurações", icon: "settings" });
   }
 
@@ -1203,6 +1206,13 @@ function renderView() {
   if (page === "banco-horas") return renderBancoHoras();
   if (page === "funcionarios") return renderFuncionarios();
   if (page === "pj") return renderControlePJ();
+  if (page === "auditoria") {
+    if (u.role !== "admin" && u.role !== "rh") {
+      state.view.page = "dashboard";
+      return renderDashboard();
+    }
+    return renderAuditoria();
+  }
   if (page === "config") return renderConfig();
   // legacy: redirects pra config se alguém entrar via URL antigo
   if (page === "tipos" || page === "usuarios") {
@@ -4990,6 +5000,162 @@ async function deletePJ(id) {
   closeModal();
   toast("PJ excluído.");
   renderApp();
+}
+
+// ============================================
+// AUDITORIA (Admin/RH) — linha do tempo global
+// Agrega o historico[] que cada ocorrência já grava
+// (quem · ação · quando) numa única timeline.
+// Sem coleção nova, sem escrita extra, vale retroativo.
+// ============================================
+
+const AUD_FILTROS = [
+  { id: "tudo", label: "Tudo" },
+  { id: "conferencias", label: "Conferências" },
+  { id: "lancamentos", label: "Lançamentos" },
+  { id: "edicoes", label: "Edições" },
+  { id: "criacoes", label: "Criações" },
+];
+
+// Classifica uma ação textual do histórico em categoria + visual (cor + ícone).
+function classificarAcaoAuditoria(acao) {
+  const a = (acao || "").toLowerCase();
+  if (a.includes("conferiu")) return { cat: "conferencias", dot: "ok", ic: "check" };
+  if (a.includes("desfez")) return { cat: "lancamentos", dot: "warn", ic: "undo" };
+  if (a.includes("lançada") || a.includes("lancada") || a.includes("lançou") || a.includes("lancou"))
+    return { cat: "lancamentos", dot: "info", ic: "send" };
+  if (a.includes("criou")) return { cat: "criacoes", dot: "neu", ic: "plus" };
+  if (a.includes("editou") || a.includes("editada")) return { cat: "edicoes", dot: "warn", ic: "edit" };
+  if (a.includes("observa")) return { cat: "edicoes", dot: "neu", ic: "message" };
+  return { cat: "outros", dot: "neu", ic: "clock" };
+}
+
+// Junta todos os historico[] das ocorrências num array plano, ordenado do mais recente.
+function coletarAuditoria() {
+  const itens = [];
+  for (const o of state.ocorrencias) {
+    const hist = Array.isArray(o.historico) ? o.historico : [];
+    for (const h of hist) {
+      if (!h || !h.em) continue;
+      itens.push({ occId: o.id, em: h.em, por: h.por, acao: h.acao || "—", o });
+    }
+  }
+  itens.sort((a, b) => String(b.em).localeCompare(String(a.em)));
+  return itens;
+}
+
+function renderAuditoria() {
+  $("#topbar-title").textContent = "Auditoria";
+  if (!state.view.audCat) state.view.audCat = "tudo";
+  if (state.view.audBusca == null) state.view.audBusca = "";
+
+  $("#view").innerHTML = `
+    <div class="aud">
+      <div class="aud__filtros">
+        <div class="aud__busca">
+          ${icon("search")}
+          <input id="aud-busca" type="search" placeholder="Buscar por funcionário ou usuário…" value="${escapeHtml(state.view.audBusca)}" />
+        </div>
+        <div class="aud__seg" id="aud-seg">
+          ${AUD_FILTROS.map((f) => `<button data-cat="${f.id}" class="${state.view.audCat === f.id ? "on" : ""}">${f.label}</button>`).join("")}
+        </div>
+      </div>
+      <div id="aud-feed"></div>
+    </div>
+  `;
+
+  pintarFeedAuditoria();
+
+  const busca = $("#aud-busca");
+  if (busca) {
+    busca.addEventListener("input", (e) => {
+      state.view.audBusca = e.target.value;
+      pintarFeedAuditoria();
+    });
+  }
+  $$("#aud-seg button").forEach((b) => {
+    b.addEventListener("click", () => {
+      state.view.audCat = b.dataset.cat;
+      $$("#aud-seg button").forEach((x) => x.classList.toggle("on", x.dataset.cat === state.view.audCat));
+      pintarFeedAuditoria();
+    });
+  });
+}
+
+// Repinta só o feed (preserva foco da busca).
+function pintarFeedAuditoria() {
+  const feed = $("#aud-feed");
+  if (!feed) return;
+
+  const cat = state.view.audCat || "tudo";
+  const termo = (state.view.audBusca || "").trim().toLowerCase();
+
+  const itens = coletarAuditoria().filter((it) => {
+    if (cat !== "tudo" && classificarAcaoAuditoria(it.acao).cat !== cat) return false;
+    if (termo) {
+      const quem = (getUser(it.por)?.nome || it.por || "").toLowerCase();
+      const func = (it.o.funcionarioNome || getFuncionario(it.o.funcionarioId)?.nome || "").toLowerCase();
+      if (!quem.includes(termo) && !func.includes(termo)) return false;
+    }
+    return true;
+  });
+
+  if (!itens.length) {
+    feed.innerHTML = `<div class="aud__vazio">Nenhuma atividade encontrada.</div>`;
+    return;
+  }
+
+  // Agrupa por dia (chave AAAA-MM-DD a partir do timestamp ISO).
+  const hoje = todayIso();
+  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const grupos = [];
+  let atual = null;
+  for (const it of itens) {
+    const dia = String(it.em).slice(0, 10);
+    if (!atual || atual.dia !== dia) { atual = { dia, itens: [] }; grupos.push(atual); }
+    atual.itens.push(it);
+  }
+
+  const labelDia = (dia) =>
+    dia === hoje ? `Hoje · ${formatDate(dia)}`
+      : dia === ontem ? `Ontem · ${formatDate(dia)}`
+        : formatDate(dia);
+  const hora = (em) => {
+    try { return new Date(em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+    catch (e) { return ""; }
+  };
+
+  feed.innerHTML = grupos.map((g) => `
+    <div class="aud__dia">
+      <div class="aud__dia-h">${labelDia(g.dia)}</div>
+      <div class="aud__feed">
+        ${g.itens.map((it) => {
+          const cl = classificarAcaoAuditoria(it.acao);
+          const quem = getUser(it.por)?.nome || it.por || "—";
+          const func = it.o.funcionarioNome || getFuncionario(it.o.funcionarioId)?.nome || "—";
+          const tipo = getTipo(it.o.tipo)?.label || "—";
+          const acaoHtml = escapeHtml(it.acao).replace(/\(([^)]+)\)/, "(<b>$1</b>)");
+          return `
+            <button class="aud__row" data-occ="${escapeHtml(it.occId)}">
+              <span class="aud__dot aud__dot--${cl.dot}">${icon(cl.ic)}</span>
+              <span class="aud__rc">
+                <span class="aud__acao">${acaoHtml}</span>
+                <span class="aud__alvo">${escapeHtml(func)} · ${escapeHtml(tipo)} · ${formatDate(it.o.data)}</span>
+              </span>
+              <span class="aud__meta">
+                <span class="aud__quem">${escapeHtml(quem)}</span>
+                <span class="aud__hora">${hora(it.em)}</span>
+              </span>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `).join("");
+
+  $$("#aud-feed .aud__row").forEach((row) => {
+    row.addEventListener("click", () => openOcorrenciaDetail(row.dataset.occ));
+  });
 }
 
 // ---------- Configurações (Admin/RH) ----------
