@@ -1208,20 +1208,36 @@
       });
     };
 
-    // Escuta UMA conversa (parKey). cb recebe array de msgs ordenadas asc.
-    // SEM orderBy no Firestore (evita dependência de índice composto que
-    // deixava o chat "Carregando…" enquanto o índice buildava) — ordena no
-    // cliente. Conversas têm poucas msgs (retenção 3 dias), sort é trivial.
-    // 2º arg do cb = erro (ou null) pra UI mostrar estado de falha.
-    window.escutarConversa = function (parKey, cb) {
-      return db.collection("mensagens")
-        .where("parKey", "==", parKey)
-        .onSnapshot((snap) => {
-          const msgs = snap.docs
-            .map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }))
-            .sort((a, b) => (a.criadoEm || "9999").localeCompare(b.criadoEm || "9999"));
-          cb(msgs, null);
-        }, (e) => { console.warn("[chat] conversa snapshot:", e.message); cb(null, e); });
+    // Escuta UMA conversa com o peer. cb(msgs, err).
+    //
+    // IMPORTANTE: regras do Firestore NÃO são filtros — uma query só é aceita
+    // se for *provadamente segura* pelas constraints. A regra de /mensagens é
+    // (de==eu || para==eu), então uma query por parKey NÃO é provável segura
+    // (Firestore não sabe que parKey codifica os participantes) → permission
+    // denied. Por isso usamos DUAS queries alinhadas à regra e juntamos:
+    //   A) enviadas:  de==eu  E para==peer   (segura por de==eu)
+    //   B) recebidas: de==peer E para==eu     (segura por para==eu)
+    // Sem orderBy (ordena no cliente) → sem índice composto.
+    window.escutarConversa = function (peerUid, cb) {
+      if (!auth.currentUser) { cb(null, new Error("não autenticado")); return () => {}; }
+      const meu = auth.currentUser.uid;
+      let enviadas = [], recebidas = [];
+      let prontoA = false, prontoB = false;
+      const mapDoc = (d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) });
+      const emit = () => {
+        if (!prontoA || !prontoB) return; // espera os 2 primeiros snapshots (evita piscar)
+        const todas = [...enviadas, ...recebidas]
+          .sort((a, b) => (a.criadoEm || "9999").localeCompare(b.criadoEm || "9999"));
+        cb(todas, null);
+      };
+      const onErr = (e) => { console.warn("[chat] conversa snapshot:", e.message); cb(null, e); };
+      const unsubA = db.collection("mensagens")
+        .where("de", "==", meu).where("para", "==", peerUid)
+        .onSnapshot((s) => { enviadas = s.docs.map(mapDoc); prontoA = true; emit(); }, onErr);
+      const unsubB = db.collection("mensagens")
+        .where("de", "==", peerUid).where("para", "==", meu)
+        .onSnapshot((s) => { recebidas = s.docs.map(mapDoc); prontoB = true; emit(); }, onErr);
+      return () => { try { unsubA(); } catch {} try { unsubB(); } catch {} };
     };
 
     // Escuta TODAS as mensagens recebidas por mim (pra badge de não-lidas + lista

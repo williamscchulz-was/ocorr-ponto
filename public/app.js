@@ -5739,7 +5739,7 @@ function abrirConversa(peerUid, peerNome) {
     wireChatThread(peerUid, peerNome);
   }
 
-  _chatConvUnsub = window.escutarConversa(parKey, (msgs, err) => {
+  _chatConvUnsub = window.escutarConversa(peerUid, (msgs, err) => {
     if (err) {
       const area = $("#chat-msgs");
       if (area) area.innerHTML = `<div class="chat__msgs-vazio">Não foi possível carregar agora. Feche e abra a conversa de novo.</div>`;
