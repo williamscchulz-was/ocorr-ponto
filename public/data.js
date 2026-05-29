@@ -51,6 +51,7 @@ const TIPOS_PJ = [
   "Manutenção",
   "Consultoria",
   "Gestão / Gerência",
+  "Supervisão",
   "Segurança",
   "Logística",
   "Outro",

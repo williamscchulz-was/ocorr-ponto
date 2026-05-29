@@ -793,6 +793,31 @@
       local.aditivos = (local.aditivos || []).filter((a) => a.id !== aditivoId);
     };
 
+    // Remove um lançamento do historicoValores por índice e recalcula o
+    // valorAtual pelo lançamento mais recente que sobrar (corrige erros de OCR).
+    window.removerValorHistorico = async function (pjId, index) {
+      const u = currentUser();
+      const local = (state.pjs || []).find((p) => p.id === pjId);
+      if (!local || !Array.isArray(local.historicoValores)) throw new Error("PJ ou histórico não encontrado");
+      if (index < 0 || index >= local.historicoValores.length) throw new Error("Índice inválido");
+
+      const novo = local.historicoValores.filter((_, i) => i !== index);
+      // valorAtual = valor do lançamento mais recente (por data) que restou.
+      let novoValorAtual = local.valorAtual;
+      if (novo.length) {
+        const maisRecente = [...novo].sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")))[0];
+        if (maisRecente && typeof maisRecente.valor === "number") novoValorAtual = maisRecente.valor;
+      }
+
+      await db.collection("pj").doc(pjId).update({
+        historicoValores: novo,
+        valorAtual: novoValorAtual,
+        atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        atualizadoPor: u?.id || "?",
+      });
+      Object.assign(local, { historicoValores: novo, valorAtual: novoValorAtual });
+    };
+
     // Override deletePJ → /pj
     window.deletePJ = async function (id) {
       const pj = (state.pjs || []).find((p) => p.id === id);

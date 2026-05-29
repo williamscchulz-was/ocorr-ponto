@@ -854,24 +854,10 @@ function atualizarBannerColabModal(pjId) {
     return;
   }
   banner.style.display = "flex";
-  const avatares = outros
-    .slice(0, 4)
-    .map(
-      (p) => `
-      <div class="presence__avatar"
-           style="background:${presenceColor(p.uid)}; border-color:#fff;"
-           title="${escapeHtml(p.nome)}">
-        ${initials(p.nome || "?")}
-      </div>`
-    )
-    .join("");
   const nomes = outros.map((p) => (p.nome || "").split(" ")[0]).join(", ");
   banner.innerHTML = `
-    <div class="presence__avatars" style="margin-right:10px">${avatares}</div>
-    <div>
-      <strong>${escapeHtml(nomes)}</strong> também ${outros.length > 1 ? "estão" : "está"} editando este PJ agora.
-      <span class="text-xs muted" style="display:block;">Cuidado pra não sobrescrever — combina pelo Slack se mexer no mesmo campo.</span>
-    </div>
+    <span class="colab-dot" aria-hidden="true"></span>
+    <span><strong>${escapeHtml(nomes)}</strong> também ${outros.length > 1 ? "estão" : "está"} editando agora</span>
   `;
 }
 
@@ -3693,6 +3679,12 @@ function openPJModal(id) {
         </button>
       </div>
 
+      ${(window.driveUploadDisponivel && window.GOOGLE_DRIVE_CONFIG && window.GOOGLE_DRIVE_CONFIG.folderId) ? `
+        <a href="https://drive.google.com/drive/folders/${escapeHtml(window.GOOGLE_DRIVE_CONFIG.folderId)}" target="_blank" rel="noopener" class="pj-ct-pasta">
+          ${icon("file")}<span>Abrir pasta de contratos no Drive</span>
+        </a>
+      ` : ""}
+
       ${!isNew ? `
         <div class="pj-adv-head">
           <div class="pj-adv-t">Aditivos <span id="pj-aditivos-count" class="pj-adv-count"></span></div>
@@ -3829,12 +3821,16 @@ function openPJModal(id) {
         <div class="divider"></div>
         <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Histórico de valores</div>
         <div class="timeline">
-          ${pj.historicoValores.slice().reverse().map((h, i) => `
+          ${pj.historicoValores.slice().reverse().map((h, i) => {
+            const origIdx = pj.historicoValores.length - 1 - i;
+            const cu = currentUser();
+            const podeApagar = cu && (cu.role === "admin" || cu.role === "rh");
+            return `
             <div class="timeline__item ${i === 0 ? "" : "done"}">
-              <div class="timeline__item-title">${formatMoeda(h.valor)}</div>
+              <div class="timeline__item-title"><span>${formatMoeda(h.valor)}</span>${podeApagar ? `<button type="button" class="hv-del" data-del-valor="${origIdx}" title="Excluir este lançamento (erro de OCR, etc.)">${icon("trash")}</button>` : ""}</div>
               <div class="timeline__item-meta">${formatDateFull(h.data)} · ${escapeHtml(getUser(h.por)?.nome || h.por || "—")}${h.motivo ? " · " + escapeHtml(h.motivo) : ""}</div>
-            </div>
-          `).join("")}
+            </div>`;
+          }).join("")}
         </div>
       ` : ""}
 
@@ -3880,6 +3876,29 @@ function openPJModal(id) {
         } else {
           revelarContratoEdit();
         }
+      });
+
+      // Excluir um lançamento do histórico de valores (ex.: erro de OCR).
+      $$("#pj-form [data-del-valor]").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          const idx = Number(btn.dataset.delValor);
+          if (!(await confirmar({
+            titulo: "Excluir do histórico?",
+            msg: "Remove este lançamento de valor. O valor atual passa a ser o lançamento mais recente que sobrar.",
+            okLabel: "Excluir",
+            perigo: true,
+          }))) return;
+          if (!window.removerValorHistorico) return toast("Modo demo: requer Firebase pra persistir.", "danger");
+          try {
+            await window.removerValorHistorico(id, idx);
+            toast("Lançamento removido do histórico.");
+            if (window.pararEscutaPJ) window.pararEscutaPJ();
+            openPJModal(id);
+          } catch (err) {
+            toast("Erro: " + (err?.message || err), "danger");
+          }
+        });
       });
 
       // EDIÇÃO COLABORATIVA REAL (Firestore-backed)
