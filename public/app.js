@@ -5238,29 +5238,27 @@ function renderAcoesInto(selector) {
   const padrao = all.filter((a) => padraoIds.has(a.id));
   const custom = all.filter((a) => !padraoIds.has(a.id));
 
-  $(selector).innerHTML = `
-    <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
-      <div>
-        <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--plum); font-weight: 700;">Ações</h2>
-        <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Como o líder pode encaminhar uma ocorrência. Use pra refletir as práticas internas da empresa.</p>
+  const acaoRow = (a, isCustom) => `
+    <article class="cfg-row cfg-row--click" data-acao="${a.id}">
+      <div class="cfg-main">
+        <div class="cfg-name">${escapeHtml(a.label)}</div>
+        ${isCustom ? `<div class="cfg-sub">criado por ${escapeHtml(getUser(a.criadoPor)?.nome || a.criadoPor || "—")}</div>` : ""}
       </div>
+      <button class="cfg-iconbtn" data-edit-acao="${a.id}" title="Editar" aria-label="Editar ${escapeHtml(a.label)}">${icon("edit")}</button>
+      ${isCustom ? `<button class="cfg-iconbtn cfg-iconbtn--dang" data-delete-acao="${a.id}" title="Excluir" aria-label="Excluir ${escapeHtml(a.label)}">${icon("trash")}</button>` : ""}
+    </article>
+  `;
+
+  $(selector).innerHTML = `
+    <div class="cfg-actbar">
+      <p>Como o líder pode encaminhar uma ocorrência. Use pra refletir as práticas internas da empresa.</p>
       <button class="btn btn--primary" id="btn-nova-acao">${icon("plus")}<span>Nova ação</span></button>
     </div>
 
-    <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Padrão do sistema</div>
-    <div class="list" style="margin-bottom:24px;">
-      ${padrao.map((a) => `
-        <article class="occ" style="grid-template-columns: 1fr auto; cursor:default;">
-          <div class="occ__main">
-            <div class="occ__name">${a.label}</div>
-            <div class="occ__sub">id: ${a.id}${!a.padrao ? " · editado" : ""}</div>
-          </div>
-          <button class="btn btn--ghost btn--sm" data-edit-acao="${a.id}" title="Editar">${icon("edit")}</button>
-        </article>
-      `).join("")}
-    </div>
+    <div class="cfg-grp">Padrão do sistema</div>
+    <div class="cfg-list">${padrao.map((a) => acaoRow(a, false)).join("")}</div>
 
-    <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Personalizadas</div>
+    <div class="cfg-grp">Personalizadas</div>
     ${custom.length === 0 ? `
       <div class="empty">
         <div class="empty__icon">${icon("check")}</div>
@@ -5268,31 +5266,25 @@ function renderAcoesInto(selector) {
         <p>Crie ações extras se as 4 padrão não cobrirem alguma prática interna.</p>
         <button class="btn btn--soft" id="btn-nova-acao-2">${icon("plus")}<span>Criar primeira</span></button>
       </div>
-    ` : `
-      <div class="list">
-        ${custom.map((a) => `
-          <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default;" data-acao="${a.id}">
-            <div class="occ__main">
-              <div class="occ__name">${a.label}</div>
-              <div class="occ__sub">id: ${a.id} · criado por ${getUser(a.criadoPor)?.nome || a.criadoPor || "—"}</div>
-            </div>
-            <button class="btn btn--ghost btn--sm" data-edit-acao="${a.id}" title="Editar">${icon("edit")}</button>
-            <button class="btn btn--ghost btn--sm" data-delete-acao="${a.id}" title="Excluir">${icon("trash")}</button>
-          </article>
-        `).join("")}
-      </div>
-    `}
+    ` : `<div class="cfg-list">${custom.map((a) => acaoRow(a, true)).join("")}</div>`}
   `;
 
   $("#btn-nova-acao").addEventListener("click", openNovaAcaoModal);
   const btn2 = $("#btn-nova-acao-2");
   if (btn2) btn2.addEventListener("click", openNovaAcaoModal);
 
-  $$("[data-delete-acao]").forEach((b) => {
-    b.addEventListener("click", () => deleteAcao(b.dataset.deleteAcao));
+  // Linha inteira abre a edição; os botões internos têm handler próprio.
+  $$(`${selector} .cfg-row[data-acao]`).forEach((el) => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      openEditAcaoModal(el.dataset.acao);
+    });
   });
-  $$("[data-edit-acao]").forEach((b) => {
-    b.addEventListener("click", () => openEditAcaoModal(b.dataset.editAcao));
+  $$(`${selector} [data-edit-acao]`).forEach((b) => {
+    b.addEventListener("click", (e) => { e.stopPropagation(); openEditAcaoModal(b.dataset.editAcao); });
+  });
+  $$(`${selector} [data-delete-acao]`).forEach((b) => {
+    b.addEventListener("click", (e) => { e.stopPropagation(); deleteAcao(b.dataset.deleteAcao); });
   });
 }
 
@@ -5448,30 +5440,30 @@ function renderTiposInto(selector) {
   const padrao = all.filter((t) => padraoIds.has(t.id));
   const custom = all.filter((t) => !padraoIds.has(t.id));
 
-  $(selector).innerHTML = `
-    <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
-      <div>
-        <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--plum); font-weight: 700;">Tipos de Ocorrência</h2>
-        <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Motivos disponíveis no formulário de nova ocorrência.</p>
+  const toneLabel = (tone) => TONES.find((to) => to.id === tone)?.label || tone;
+  const tipoRow = (t, isCustom) => `
+    <article class="cfg-row cfg-row--click" data-tipo="${t.id}">
+      <span class="cfg-dot cfg-dot--${t.tone}"></span>
+      <div class="cfg-main">
+        <div class="cfg-name">${escapeHtml(t.label)}</div>
+        ${isCustom ? `<div class="cfg-sub">criado por ${escapeHtml(getUser(t.criadoPor)?.nome || t.criadoPor || "—")}</div>` : ""}
       </div>
+      <span class="cfg-tone">${escapeHtml(toneLabel(t.tone))}</span>
+      <button class="cfg-iconbtn" data-edit-tipo="${t.id}" title="Editar" aria-label="Editar ${escapeHtml(t.label)}">${icon("edit")}</button>
+      ${isCustom ? `<button class="cfg-iconbtn cfg-iconbtn--dang" data-delete="${t.id}" title="Excluir" aria-label="Excluir ${escapeHtml(t.label)}">${icon("trash")}</button>` : ""}
+    </article>
+  `;
+
+  $(selector).innerHTML = `
+    <div class="cfg-actbar">
+      <p>Motivos disponíveis no formulário de nova ocorrência.</p>
       <button class="btn btn--primary" id="btn-novo-tipo">${icon("plus")}<span>Novo tipo</span></button>
     </div>
 
-    <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Padrão do sistema</div>
-    <div class="list" style="margin-bottom:24px;">
-      ${padrao.map((t) => `
-        <article class="occ" style="grid-template-columns: 1fr auto auto; cursor:default;">
-          <div class="occ__main">
-            <div class="occ__name">${t.label}</div>
-            <div class="occ__sub">id: ${t.id}${!t.padrao ? " · editado" : ""}</div>
-          </div>
-          <span class="badge badge--${t.tone}">${TONES.find((to) => to.id === t.tone)?.label || t.tone}</span>
-          <button class="btn btn--ghost btn--sm" data-edit-tipo="${t.id}" title="Editar">${icon("edit")}</button>
-        </article>
-      `).join("")}
-    </div>
+    <div class="cfg-grp">Padrão do sistema</div>
+    <div class="cfg-list">${padrao.map((t) => tipoRow(t, false)).join("")}</div>
 
-    <div class="text-xs muted" style="margin-bottom:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Personalizados</div>
+    <div class="cfg-grp">Personalizados</div>
     ${custom.length === 0 ? `
       <div class="empty">
         <div class="empty__icon">${icon("tag")}</div>
@@ -5479,32 +5471,25 @@ function renderTiposInto(selector) {
         <p>Crie tipos extras se os padrão não cobrirem alguma situação específica do seu time.</p>
         <button class="btn btn--soft" id="btn-novo-tipo-2">${icon("plus")}<span>Criar primeiro tipo</span></button>
       </div>
-    ` : `
-      <div class="list">
-        ${custom.map((t) => `
-          <article class="occ" style="grid-template-columns: 1fr auto auto auto; cursor:default;" data-tipo="${t.id}">
-            <div class="occ__main">
-              <div class="occ__name">${t.label}</div>
-              <div class="occ__sub">id: ${t.id} · criado por ${getUser(t.criadoPor)?.nome || t.criadoPor || "—"}</div>
-            </div>
-            <span class="badge badge--${t.tone}">${TONES.find((to) => to.id === t.tone)?.label || t.tone}</span>
-            <button class="btn btn--ghost btn--sm" data-edit-tipo="${t.id}" title="Editar">${icon("edit")}</button>
-            <button class="btn btn--ghost btn--sm" data-delete="${t.id}" title="Excluir">${icon("trash")}</button>
-          </article>
-        `).join("")}
-      </div>
-    `}
+    ` : `<div class="cfg-list">${custom.map((t) => tipoRow(t, true)).join("")}</div>`}
   `;
 
   $("#btn-novo-tipo").addEventListener("click", openNovoTipoModal);
   const btn2 = $("#btn-novo-tipo-2");
   if (btn2) btn2.addEventListener("click", openNovoTipoModal);
 
-  $$("[data-delete]").forEach((b) => {
-    b.addEventListener("click", () => deleteTipo(b.dataset.delete));
+  // Linha inteira abre a edição; os botões internos têm handler próprio.
+  $$(`${selector} .cfg-row[data-tipo]`).forEach((el) => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      openEditTipoModal(el.dataset.tipo);
+    });
   });
-  $$("[data-edit-tipo]").forEach((b) => {
-    b.addEventListener("click", () => openEditTipoModal(b.dataset.editTipo));
+  $$(`${selector} [data-edit-tipo]`).forEach((b) => {
+    b.addEventListener("click", (e) => { e.stopPropagation(); openEditTipoModal(b.dataset.editTipo); });
+  });
+  $$(`${selector} [data-delete]`).forEach((b) => {
+    b.addEventListener("click", (e) => { e.stopPropagation(); deleteTipo(b.dataset.delete); });
   });
 }
 
@@ -5669,26 +5654,20 @@ function renderUsuariosInto(selector) {
   const isFirebaseMode = typeof window.inviteUser === "function";
 
   $(selector).innerHTML = `
-    <div class="row row--between" style="margin: 16px 0 12px; flex-wrap: wrap; gap: 12px;">
-      <div>
-        <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--plum); font-weight: 700;">Usuários do sistema</h2>
-        <p style="margin: 4px 0 0; color: var(--text-muted); font-size: 13px;">Quem acessa, com qual papel e qual turno.</p>
-      </div>
+    <div class="cfg-actbar">
+      <p>Quem acessa, com qual papel e qual turno.${isFirebaseMode ? " Clique numa linha pra editar." : ""}</p>
       <button class="btn btn--primary" id="btn-novo-user" ${!isFirebaseMode ? `disabled title="Disponível apenas em modo Firebase"` : ""}>${icon("plus")}<span>Novo usuário</span></button>
     </div>
 
-    <div class="list">
+    <div class="cfg-list">
       ${state.users.map((u) => `
-        <article class="occ" data-edit-user="${u.id}"
-                 style="grid-template-columns: 44px 1fr auto; cursor:${isFirebaseMode ? "pointer" : "default"}; opacity:${u.ativo === false ? "0.55" : "1"};"
+        <article class="cfg-row ${isFirebaseMode ? "cfg-row--click" : ""}" data-edit-user="${u.id}"
+                 style="opacity:${u.ativo === false ? "0.55" : "1"};"
                  title="${isFirebaseMode ? "Clique para editar" : ""}">
           <div class="avatar" data-uid="${u.id}">${initials(u.nome || u.email || "?")}</div>
-          <div class="occ__main">
-            <div class="occ__name">
-              ${escapeHtml(u.nome || "(sem nome)")}
-              ${u.ativo === false ? `<span class="badge badge--neutral" style="margin-left:6px; font-size:10px;">INATIVO</span>` : ""}
-            </div>
-            <div class="occ__sub">${escapeHtml(u.email || "@" + u.id)}</div>
+          <div class="cfg-main">
+            <div class="cfg-name">${escapeHtml(u.nome || "(sem nome)")}${u.ativo === false ? ` <span class="cfg-tone">inativo</span>` : ""}</div>
+            <div class="cfg-sub">${escapeHtml(u.email || "@" + u.id)}</div>
           </div>
           <span class="badge badge--${u.role === "admin" ? "danger" : u.role === "rh" ? "info" : "neutral"}">${roleLabel(u)}</span>
         </article>

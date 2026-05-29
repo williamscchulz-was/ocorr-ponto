@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Configurações minimalista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#F7F9F6; --surface:#fff; --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:#006328; --text-body:#1E2D1A; --muted:#4A6245;
+    --plum:#008835; --plum-deep:#006328;
+    --danger:#962F32; --warning:#B27429; --info:#2F5A6B; --success:#2F6B3F;
+    --info-bg:#D8E6EA; --danger-bg:#F4D6D2; --milk-warm:#EEF3EC;
+    --font:"Poppins",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#dfe3dd;color:var(--text-body);padding:24px 16px;}
+  h1.tt{text-align:center;color:var(--plum-deep);font-weight:700;margin:0 0 2px;font-size:21px;}
+  p.ss{text-align:center;color:#5a6b54;margin:0 0 18px;font-size:13px;}
+  .cmp{font-size:12px;color:#8a4b1f;background:#FBEFDD;border:1px solid #E8CFA8;border-radius:10px;padding:10px 14px;max-width:880px;margin:0 auto 18px;line-height:1.55;}
+
+  .win{max-width:880px;margin:0 auto 22px;background:var(--bg);border-radius:16px;overflow:hidden;box-shadow:0 16px 50px rgba(0,40,20,.16);padding:22px 24px 26px;}
+  .vlabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--plum-deep);margin:0 0 14px;}
+
+  /* page header (uma vez só) */
+  .ph h1{margin:0;font-size:21px;color:var(--text-body);font-weight:700;}
+  .ph p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
+
+  /* tabs underline */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:18px 0 0;}
+  .tab{border:0;background:none;font-family:inherit;font-size:13.5px;font-weight:500;color:var(--muted);padding:10px 14px;cursor:pointer;position:relative;}
+  .tab.on{color:var(--plum-deep);font-weight:600;}
+  .tab.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;background:var(--plum);border-radius:2px;}
+
+  /* barra de ação da aba: descrição fina + botão (sem h2 duplicado) */
+  .actbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:18px 0 14px;flex-wrap:wrap;}
+  .actbar p{margin:0;font-size:12.5px;color:var(--muted);max-width:60ch;}
+  .novo{display:inline-flex;align-items:center;gap:7px;background:var(--plum);color:#fff;border:0;border-radius:10px;padding:9px 15px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;}
+  .novo svg{width:15px;height:15px;}
+
+  /* grupos */
+  .grp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:18px 2px 8px;}
+  .grp:first-of-type{margin-top:6px;}
+  .list{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .row{display:flex;align-items:center;gap:13px;padding:13px 16px;border-bottom:1px solid var(--border);transition:background .14s;}
+  .row:last-child{border-bottom:0;}
+  .row.click{cursor:pointer;}
+  .row.click:hover{background:#FAFCF9;}
+
+  .dotc{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .dotc.danger{background:var(--danger);}
+  .dotc.warning{background:var(--warning);}
+  .dotc.info{background:var(--info);}
+  .dotc.success{background:var(--success);}
+  .dotc.neutral{background:#9aa897;}
+
+  .rmain{flex:1;min-width:0;}
+  .rname{font-size:14px;font-weight:600;color:var(--text-body);}
+  .rsub{font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .tone{font-size:11px;color:var(--muted);flex-shrink:0;}
+
+  /* botões de ação discretos (icon-only) */
+  .iconbtn{width:30px;height:30px;border-radius:8px;border:0;background:none;color:#9fb098;display:grid;place-items:center;cursor:pointer;flex-shrink:0;transition:.14s;}
+  .iconbtn:hover{background:var(--milk-warm);color:var(--plum-deep);}
+  .iconbtn.dang:hover{background:var(--danger-bg);color:var(--danger);}
+  .iconbtn svg{width:15px;height:15px;}
+
+  /* usuários */
+  .av{width:36px;height:36px;border-radius:50%;background:var(--milk-warm);color:var(--plum-deep);display:grid;place-items:center;font-weight:700;font-size:12px;flex-shrink:0;}
+  .av.admin{background:#0076BE;color:#fff;}
+  .rtag{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;border-radius:6px;padding:2px 8px;flex-shrink:0;}
+  .rtag.admin{background:var(--danger-bg);color:var(--danger);}
+  .rtag.rh{background:var(--info-bg);color:var(--info);}
+  .rtag.neu{background:var(--milk-warm);color:var(--muted);}
+
+  .note{max-width:880px;margin:0 auto;font-size:12.5px;color:#41513c;line-height:1.65;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 18px;}
+  .note b{color:var(--plum-deep);}
+  .note ul{margin:8px 0 0;padding-left:18px;}
+  .note li{margin-bottom:4px;}
+</style>
+</head>
+<body>
+  <h1 class="tt">Configurações — versão minimalista</h1>
+  <p class="ss">Menos repetição, menos ruído técnico. Mesmas ações.</p>
+  <div class="cmp"><b>O que muda do atual:</b> sai o título verde grandão repetido dentro de cada aba (já tem o "Configurações" no topo). Sai o "id: xxx" técnico das linhas. A cor do tipo vira um pontinho discreto. Editar/excluir viram ícones de baixo contraste à direita. "Padrão" e "Personalizados" continuam separados, mas com fios finos e leves.</div>
+
+  <!-- ===================== ABA TIPOS ===================== -->
+  <div class="win">
+    <div class="vlabel">Aba "Tipos de Ocorrência"</div>
+
+    <div class="ph"><h1>Configurações</h1><p>Ajustes do sistema. Apenas administradores e RH.</p></div>
+    <div class="tabs">
+      <button class="tab on">Tipos de Ocorrência</button>
+      <button class="tab">Ações</button>
+      <button class="tab">Usuários</button>
+    </div>
+
+    <div class="actbar">
+      <p>Motivos disponíveis no formulário de nova ocorrência.</p>
+      <button class="novo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Novo tipo</button>
+    </div>
+
+    <div class="grp">Padrão do sistema</div>
+    <div class="list">
+      <div class="row click">
+        <span class="dotc warning"></span>
+        <div class="rmain"><div class="rname">Atraso</div></div>
+        <span class="tone">Atenção</span>
+        <button class="iconbtn" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+      </div>
+      <div class="row click">
+        <span class="dotc danger"></span>
+        <div class="rmain"><div class="rname">Falta</div></div>
+        <span class="tone">Crítico</span>
+        <button class="iconbtn" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+      </div>
+      <div class="row click">
+        <span class="dotc info"></span>
+        <div class="rmain"><div class="rname">Atestado médico</div></div>
+        <span class="tone">Informativo</span>
+        <button class="iconbtn" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+      </div>
+      <div class="row click">
+        <span class="dotc success"></span>
+        <div class="rmain"><div class="rname">Hora extra</div></div>
+        <span class="tone">Positivo</span>
+        <button class="iconbtn" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+      </div>
+    </div>
+
+    <div class="grp">Personalizados</div>
+    <div class="list">
+      <div class="row click">
+        <span class="dotc neutral"></span>
+        <div class="rmain"><div class="rname">Folga compensada</div><div class="rsub">criado por Marina</div></div>
+        <span class="tone">Neutro</span>
+        <button class="iconbtn" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+        <button class="iconbtn dang" title="Excluir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ABA USUÁRIOS ===================== -->
+  <div class="win">
+    <div class="vlabel">Aba "Usuários"</div>
+
+    <div class="ph"><h1>Configurações</h1><p>Ajustes do sistema. Apenas administradores e RH.</p></div>
+    <div class="tabs">
+      <button class="tab">Tipos de Ocorrência</button>
+      <button class="tab">Ações</button>
+      <button class="tab on">Usuários</button>
+    </div>
+
+    <div class="actbar">
+      <p>Quem acessa, com qual papel e qual turno. Clique numa linha pra editar.</p>
+      <button class="novo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Novo usuário</button>
+    </div>
+
+    <div class="list" style="margin-top:6px;">
+      <div class="row click">
+        <span class="av admin">AD</span>
+        <div class="rmain"><div class="rname">Administrador</div><div class="rsub">admin@fiobras.com.br</div></div>
+        <span class="rtag admin">Admin</span>
+      </div>
+      <div class="row click">
+        <span class="av">MA</span>
+        <div class="rmain"><div class="rname">Marina Souza</div><div class="rsub">marina@fiobras.com.br</div></div>
+        <span class="rtag rh">RH</span>
+      </div>
+      <div class="row click">
+        <span class="av">AP</span>
+        <div class="rmain"><div class="rname">Adelir Padilha</div><div class="rsub">adelir@fiobras.com.br</div></div>
+        <span class="rtag neu">Líder · 1º turno</span>
+      </div>
+      <div class="row click">
+        <span class="av">AL</span>
+        <div class="rmain"><div class="rname">Alexander Lima</div><div class="rsub">alexander@fiobras.com.br</div></div>
+        <span class="rtag neu">Líder · 2º turno</span>
+      </div>
+      <div class="row click">
+        <span class="av">AN</span>
+        <div class="rmain"><div class="rname">Anderson Mendes</div><div class="rsub">anderson@fiobras.com.br</div></div>
+        <span class="rtag neu">Supervisor</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Resumo do que muda:</b>
+    <ul>
+      <li>Sai o <b>título verde repetido</b> dentro de cada aba. Fica só o "Configurações" do topo + as abas. A descrição da aba vira uma linha fina ao lado do botão.</li>
+      <li>Sai o <b>"id: xxx"</b> das linhas (informação interna; continua visível no modal de editar, se precisar).</li>
+      <li>A <b>cor/tom</b> do tipo vira um pontinho + a palavra discreta, no lugar do badge colorido grande.</li>
+      <li><b>Editar/Excluir</b> viram ícones discretos à direita (ganham cor no hover). A linha inteira também abre a edição.</li>
+      <li>A aba <b>Ações</b> segue o mesmo padrão da de Tipos (só não tem cor).</li>
+    </ul>
+  </div>
+</body>
+</html>
