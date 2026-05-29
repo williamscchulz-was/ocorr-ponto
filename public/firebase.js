@@ -1749,6 +1749,8 @@
               saldoFormatado: f.saldoAtualFmt,
               atualizadoEm,
               ultimaDataIso: f.ultimaDataIso,
+              // lançamentos diários (saldo cumulativo por dia) pro gráfico do perfil
+              lancamentos: Array.isArray(f.lancamentos) ? f.lancamentos : [],
             };
           }
           state.pipelineMeta = {

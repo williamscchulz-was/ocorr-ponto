@@ -2080,6 +2080,28 @@ html.firebase-mode .login__forgot { display: block; }
   align-items: center;
   gap: 10px;
 }
+/* Banco de horas no perfil (gráfico de barras do mês) */
+.bh-perfil {
+  background: #FAFCF9;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.bh-perfil__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.bh-grafico { display: block; width: 100%; height: auto; }
+.bh-perfil__meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.bh-perfil__meta strong { color: var(--text); }
 .func-perfil-demitido__icon {
   display: inline-flex;
   flex-shrink: 0;

@@ -2287,12 +2287,51 @@ const SETORES = SETORES_FALLBACK;
 // Renderizado ANTES do form de edição quando o funcionário já existe.
 // Os campos vêm do pipeline RH; UI defensiva pra funcionários antigos
 // (cadastrados antes do enriquecimento) que podem não ter todos os campos.
+// Gráfico de barras do banco de horas: saldo cumulativo por dia do mês.
+// lancamentos = [{dataIso, saldoMin, saldoFmt}]. Verde acima do zero,
+// vermelho abaixo. Retorna SVG (string) ou "" se não há dados suficientes.
+function graficoBarrasBH(lancamentos) {
+  const dados = (lancamentos || []).map((l) => Number(l.saldoMin) || 0);
+  if (dados.length < 2) return "";
+  const W = 420, H = 120, P = 6;
+  const min = Math.min(...dados, 0), max = Math.max(...dados, 0);
+  const rng = (max - min) || 1;
+  const x = (i) => P + i * (W - 2 * P) / (dados.length - 1);
+  const y = (v) => P + (1 - (v - min) / rng) * (H - 2 * P);
+  const y0 = y(0);
+  const bw = (W - 2 * P) / dados.length * 0.62;
+  const bars = dados.map((v, i) => {
+    const cx = x(i), top = Math.min(y(v), y0), h = Math.max(Math.abs(y(v) - y0), 1.5);
+    const cor = v >= 0 ? "var(--success)" : "var(--danger)";
+    return `<rect x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${cor}" opacity=".88"/>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" class="bh-grafico" preserveAspectRatio="none"><line x1="${P}" y1="${y0.toFixed(1)}" x2="${W - P}" y2="${y0.toFixed(1)}" stroke="var(--border-strong)" stroke-width="1"/>${bars}</svg>`;
+}
+
 function renderFuncPerfilSecoes(f) {
   if (!f) return "";
   const nascStr = tsToDateStr(f.nascimento);
   const admStr = tsToDateStr(f.admissao);
   const demStr = tsToDateStr(f.demissao);
   const inativo = f.ativo === false;
+
+  // Banco de horas: gráfico do mês (só admin/RH têm lancamentos via pipeline-rh/cur).
+  const bh = (state.bancoHoras || {})[f.id];
+  const lanc = (bh && Array.isArray(bh.lancamentos)) ? bh.lancamentos : [];
+  const temGraficoBH = lanc.length >= 2;
+  let bhPico = 0, bhVale = 0, bhMesLabel = "";
+  if (temGraficoBH) {
+    const mins = lanc.map((l) => Number(l.saldoMin) || 0);
+    bhPico = Math.max(...mins, 0);
+    bhVale = Math.min(...mins, 0);
+    const ultima = lanc[lanc.length - 1]?.dataIso || bh.ultimaDataIso;
+    if (ultima) {
+      const NOMES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      const m = parseInt(String(ultima).slice(5, 7), 10);
+      if (m >= 1 && m <= 12) bhMesLabel = " · " + NOMES[m - 1];
+    }
+  }
+  const bhTone = !bh ? "neutral" : (bh.minutos > 0 ? "success" : bh.minutos < 0 ? "danger" : "neutral");
 
   // Header com avatar grande + nome + cargo/setor/turno
   const turnoLabel = f.turno && TURNOS[f.turno] ? TURNOS[f.turno].label : null;
@@ -2355,6 +2394,23 @@ function renderFuncPerfilSecoes(f) {
         </div>
       </div>
     </div>
+
+    ${temGraficoBH ? `
+    <div class="func-perfil-secao">
+      <div class="func-perfil-secao__titulo">Banco de horas${bhMesLabel}</div>
+      <div class="bh-perfil">
+        <div class="bh-perfil__top">
+          <span class="text-xs muted">Saldo atual</span>
+          <span class="bh-saldo bh-saldo--${bhTone}">${escapeHtml(bh.saldoFormatado || formatSaldoHoras(bh.minutos))}</span>
+        </div>
+        ${graficoBarrasBH(lanc)}
+        <div class="bh-perfil__meta">
+          <span>Pico <strong>${formatSaldoHoras(bhPico)}</strong></span>
+          <span>Vale <strong>${formatSaldoHoras(bhVale)}</strong></span>
+        </div>
+      </div>
+    </div>
+    ` : ""}
 
     <div class="func-perfil-secao">
       <div class="func-perfil-secao__titulo">Trabalho</div>
