@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Login FioPulse minimalista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+<style>
+  :root {
+    --verde: #008835;
+    --verde-soft: #1AA34F;
+    --verde-deep: #006328;
+    --milk: #F5F8F4;
+    --surface: #FFFFFF;
+    --border: #D2E2CD;
+    --text: #1E2D1A;
+    --muted: #5D7858;
+    --font: "Poppins", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: #eceee9;
+    color: var(--text);
+    padding: 32px;
+  }
+  .page-title {
+    text-align: center;
+    color: var(--verde-deep);
+    margin: 0 0 4px;
+    font-weight: 800;
+  }
+  .page-sub {
+    text-align: center;
+    color: var(--muted);
+    margin: 0 0 32px;
+    font-size: 14px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 28px;
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+  .variant {
+    display: flex;
+    flex-direction: column;
+  }
+  .variant__label {
+    font-weight: 700;
+    color: var(--verde-deep);
+    margin: 0 0 4px;
+    font-size: 15px;
+  }
+  .variant__desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 12px;
+    min-height: 32px;
+  }
+  /* "Tela" simulada */
+  .screen {
+    background: var(--milk);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    height: 520px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.08);
+    display: grid;
+    place-items: center;
+    padding: 28px;
+    position: relative;
+  }
+
+  /* ===== Marca (logo SVG inline + wordmark) ===== */
+  .mark-img {
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .mark-img svg { width: 100%; height: 100%; }
+  .wordmark {
+    font-weight: 700; font-size: 20px; color: var(--verde); line-height: 1.1;
+  }
+  .wordmark small {
+    display: block; font-weight: 400; font-size: 11px; color: var(--muted); margin-top: 2px;
+  }
+
+  /* ===== Form base ===== */
+  .form { width: 100%; max-width: 300px; }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 600; color: var(--verde); margin-bottom: 5px;
+  }
+  .field input {
+    width: 100%; padding: 11px 13px; font: inherit; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--text);
+  }
+  .field input::placeholder { color: #9bb098; }
+  .remember {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); margin-bottom: 14px;
+  }
+  .remember input { width: 15px; height: 15px; }
+  .btn {
+    width: 100%; padding: 12px; border: 0; border-radius: 10px;
+    background: var(--verde); color: #fff; font: inherit; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  .btn:hover { background: var(--verde-soft); }
+  .forgot { text-align: right; margin-top: 10px; }
+  .forgot a { color: var(--verde); font-size: 12px; font-weight: 600; text-decoration: none; }
+  .rodape { margin-top: 24px; text-align: center; font-size: 11px; color: var(--muted); opacity: .75; }
+
+  /* ===== A: marca lateral (LIVE atual) ===== */
+  .vA .mark { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+
+  /* ===== B: centralizado vertical ===== */
+  .vB .inner { text-align: center; }
+  .vB .mark { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 26px; }
+  .vB .mark-img { width: 52px; height: 52px; }
+  .vB .wordmark { font-size: 22px; }
+  .vB .field label { text-align: left; }
+  .vB .remember { justify-content: center; }
+  .vB .forgot { text-align: center; }
+
+  /* ===== C: card flutuante ===== */
+  .vC.screen {
+    background: linear-gradient(160deg, #e8f0e5 0%, #f5f8f4 60%);
+    place-items: center;
+  }
+  .vC .card {
+    background: #fff; border: 1px solid var(--border); border-radius: 16px;
+    padding: 30px 28px; width: 100%; max-width: 320px;
+    box-shadow: 0 12px 32px rgba(0,80,40,.10);
+  }
+  .vC .mark { display: flex; align-items: center; gap: 11px; margin-bottom: 22px; }
+  .vC .accent {
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--verde) 0%, var(--verde-soft) 100%);
+  }
+</style>
+</head>
+<body>
+  <h1 class="page-title">Login FioPulse — 3 opções minimalistas</h1>
+  <p class="page-sub">Mesmo conteúdo (e-mail, senha, manter conectado, entrar). Muda só o arranjo da marca + chrome. Escolha uma pra eu aplicar no app.</p>
+
+  <div class="grid">
+
+    <!-- A -->
+    <div class="variant vA">
+      <div class="variant__label">A · Marca lateral (é o que está no ar agora)</div>
+      <div class="variant__desc">Logo + nome lado a lado no topo, form abaixo. Coluna única à esquerda do bloco.</div>
+      <div class="screen">
+        <form class="form" onsubmit="return false">
+          <div class="mark">
+            <span class="mark-img">SVG_MARK</span>
+            <div class="wordmark">FioPulse<small>Fiobras · o batimento do RH</small></div>
+          </div>
+          <div class="field"><label>E-mail</label><input type="email" placeholder="seu@fiobras.com.br" /></div>
+          <div class="field"><label>Senha</label><input type="password" placeholder="sua senha" /></div>
+          <label class="remember"><input type="checkbox" checked /> Manter conectado neste navegador</label>
+          <button class="btn">Entrar</button>
+          <div class="forgot"><a href="#">Esqueci minha senha</a></div>
+          <div class="rodape">© 2026 Fiobras · acesso restrito</div>
+        </form>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="variant vB">
+      <div class="variant__label">B · Centralizado vertical</div>
+      <div class="variant__desc">Tudo no centro: logo maior acima do nome, form centralizado. Mais "app", bem clean e arejado.</div>
+      <div class="screen">
+        <form class="form inner" onsubmit="return false">
+          <div class="mark">
+            <span class="mark-img">SVG_MARK</span>
+            <div class="wordmark">FioPulse<small>Fiobras · o batimento do RH</small></div>
+          </div>
+          <div class="field"><label>E-mail</label><input type="email" placeholder="seu@fiobras.com.br" /></div>
+          <div class="field"><label>Senha</label><input type="password" placeholder="sua senha" /></div>
+          <label class="remember"><input type="checkbox" checked /> Manter conectado</label>
+          <button class="btn">Entrar</button>
+          <div class="forgot"><a href="#">Esqueci minha senha</a></div>
+          <div class="rodape">© 2026 Fiobras · acesso restrito</div>
+        </form>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="variant vC">
+      <div class="variant__label">C · Card flutuante</div>
+      <div class="variant__desc">Form num cartão branco com sombra suave, sobre fundo verde-claro, com um fiozinho de cor no topo. Minimal com um toque de marca.</div>
+      <div class="screen vC">
+        <div class="accent"></div>
+        <div class="card">
+          <div class="mark">
+            <span class="mark-img">SVG_MARK</span>
+            <div class="wordmark">FioPulse<small>Fiobras · o batimento do RH</small></div>
+          </div>
+          <form class="form" onsubmit="return false" style="max-width:none;">
+            <div class="field"><label>E-mail</label><input type="email" placeholder="seu@fiobras.com.br" /></div>
+            <div class="field"><label>Senha</label><input type="password" placeholder="sua senha" /></div>
+            <label class="remember"><input type="checkbox" checked /> Manter conectado</label>
+            <button class="btn">Entrar</button>
+            <div class="forgot"><a href="#">Esqueci minha senha</a></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Marca: SVG inline (aproximação do mark da Fiobras em verde) — mockup standalone.
+    var SVG = '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<circle cx="24" cy="24" r="22" fill="#008835"/>' +
+      '<path d="M14 30c4-10 16-10 20-2-6-3-12-1-14 4-1-2-4-3-6-2z" fill="#fff"/>' +
+      '<circle cx="32" cy="17" r="3" fill="#FFCB00"/></svg>';
+    document.querySelectorAll('.mark-img').forEach(function(el){ el.innerHTML = SVG; });
+  </script>
+</body>
+</html>
