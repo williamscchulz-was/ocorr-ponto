@@ -1479,6 +1479,27 @@
       await batch.commit();
     };
 
+    // Marca TODAS as recebidas não-lidas como lidas (limpa o badge de uma vez,
+    // inclusive qualquer mensagem órfã sem conversa abrível). Batches de 400.
+    window.marcarTodasLidas = async function () {
+      if (!auth.currentUser) return { ok: false, n: 0 };
+      const alvo = (state.mensagensRecebidas || []).filter((m) => !m.lido && m.id);
+      let n = 0;
+      try {
+        for (let i = 0; i < alvo.length; i += 400) {
+          const batch = db.batch();
+          alvo.slice(i, i + 400).forEach((m) => {
+            batch.update(db.collection("mensagens").doc(m.id), { lido: true });
+            n++;
+          });
+          await batch.commit();
+        }
+        return { ok: true, n };
+      } catch (e) {
+        return { ok: false, n, err: e.message || String(e) };
+      }
+    };
+
     // Reage a uma mensagem (1 reação por pessoa). emoji=null remove a minha.
     window.reagirMensagem = async function (msgId, emoji) {
       if (!auth.currentUser || !msgId) return;

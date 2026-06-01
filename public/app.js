@@ -6671,9 +6671,20 @@ function renderChatLista() {
         ${icon("search")}
         <input id="chat-busca-input" type="search" placeholder="Buscar pessoa…" value="${escapeHtml(state.view.chatBusca || "")}" />
       </div>
+      <button id="chat-mark-all" class="chat__markall" hidden>${icon("check")}<span>Marcar todas como lidas</span></button>
       <div class="chat__rows" id="chat-rows"></div>`;
     const inp = $("#chat-busca-input");
     if (inp) inp.addEventListener("input", (e) => { state.view.chatBusca = e.target.value; pintarChatRows(); });
+    const mb = $("#chat-mark-all");
+    if (mb) mb.addEventListener("click", async () => {
+      if (typeof window.marcarTodasLidas !== "function") return;
+      mb.disabled = true;
+      const r = await window.marcarTodasLidas();
+      if (r && r.ok) toast(r.n ? "Tudo marcado como lido." : "Nada pendente.");
+      else toast("Não consegui marcar agora. Tenta de novo.", "danger");
+      mb.disabled = false;
+      // O listener do Firestore atualiza badge + lista ao confirmar.
+    });
   }
   pintarChatRows();
 }
@@ -6683,6 +6694,8 @@ function renderChatLista() {
 function pintarChatRows() {
   const rows = $("#chat-rows");
   if (!rows) return;
+  const mb = $("#chat-mark-all");
+  if (mb) mb.hidden = contarNaoLidas() <= 0;
   const meu = meuUid();
   const peer = state.view.chatPeer || null;
   const termo = (state.view.chatBusca || "").trim().toLowerCase();
