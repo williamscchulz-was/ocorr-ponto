@@ -4566,6 +4566,9 @@ function analisarTextoContrato(texto) {
   if (ehPorHora) {
     // Procura valor PRÓXIMO a indicadores de "hora". Não é o maior.
     const padroesHora = [
+      // "R$ X (por extenso) por hora / /h / hora trabalhada" — tolera o valor
+      // escrito entre parênteses entre o número e a palavra "hora".
+      /R\$\s*([\d.]*\d+(?:,\d{2})?)\s*(?:\([^)]*\))?\s*(?:\/\s*h(?:ora|r)?\b|por\s+hora|hora\s+(?:\w+\s+){0,2}trabalhada)/i,
       /R\$\s*([\d.]*\d+(?:,\d{2})?)\s*\/\s*h(?:ora|r)?\b/i,
       /R\$\s*([\d.]*\d+(?:,\d{2})?)\s+por\s+hora/i,
       /R\$\s*([\d.]*\d+(?:,\d{2})?)[\s\S]{0,30}?(?:por\s+)?hora\s+trabalhada/i,
@@ -4592,8 +4595,15 @@ function analisarTextoContrato(texto) {
     // Mensal/outros: 1º tenta o valor PERTO de "mensal/honorários/remuneração/
     // valor do contrato" (mais confiável); só então cai no maior valor solto.
     const perto = [
+      // 1) "R$ X (por extenso) mensais/por mês" — tolera o valor entre parênteses
+      //    entre o número e a palavra "mensal". Pega o valor da periodicidade.
+      /R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)\s*(?:\([^)]*\))?\s*(?:mensa(?:l|is)|por\s+m[êe]s|ao\s+m[êe]s|\/\s*m[êe]s)/i,
+      // 2) perto de palavra-chave de remuneração ("a título de remuneração,
+      //    o valor mensal de R$ X").
       /(?:valor\s+mensal|mensalidade|remunera[çc][ãa]o|honor[áa]rios?|valor\s+(?:do\s+)?contrato|import[âa]ncia)[\s\S]{0,70}?R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/i,
-      /R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)[\s\S]{0,30}?(?:mensa(?:l|is)|por\s+m[êe]s|\/\s*m[êe]s)/i,
+      // 3) âncora no verbo de pagamento ("a CONTRATANTE pagará ... R$ X"),
+      //    evitando capturar adiantamento/multa que usem outros verbos.
+      /pagar[áa][\s\S]{0,90}?R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/i,
     ];
     for (const re of perto) {
       const m = texto.match(re);
