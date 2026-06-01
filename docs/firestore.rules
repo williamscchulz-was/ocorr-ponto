@@ -187,7 +187,10 @@ service cloud.firestore {
       // Fallbacks preservam exatamente o comportamento atual.
       allow update: if
         isAdmin()
-        || (temCap('ocorrencias.lancar', isRH()) && isRH() && podeAtualizarApenasObservacao())
+        // GH edita observação SEMPRE (não depende do toggle de lançamento).
+        || (isRH() && rhEditaObs())
+        // GH marca/desfaz lançamento → gated pelo toggle ocorrencias.lancar.
+        || (isRH() && temCap('ocorrencias.lancar', isRH()) && rhLanca())
         || (temCap('ocorrencias.conferir', isLider())
             && liderDoMesmoTurno(resource.data.funcionarioTurno)
             && podeConferirOuAtualizarObs())
@@ -220,10 +223,16 @@ service cloud.firestore {
 
     // ----- Helpers de atualização -----
 
-    function podeAtualizarApenasObservacao() {
+    // GH editando só a observação (anotação benigna) — sempre permitido,
+    // independe do toggle de lançamento.
+    function rhEditaObs() {
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['observacao', 'historico', 'atualizadoEm',
-                  'lancada', 'lancadoEm', 'lancadoPor']);
+        .hasOnly(['observacao', 'historico', 'atualizadoEm']);
+    }
+    // GH mexendo no status de lançamento — gated pela capability ocorrencias.lancar.
+    function rhLanca() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['lancada', 'lancadoEm', 'lancadoPor', 'historico', 'atualizadoEm']);
     }
 
     function podeConferirOuAtualizarObs() {
