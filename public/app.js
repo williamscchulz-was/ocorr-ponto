@@ -6025,10 +6025,10 @@ function permissoesMatrizHtml() {
   `).join("");
 
   return `
-    <details class="perm-matrix" open>
+    <details class="perm-matrix">
       <summary>
         <span class="perm-matrix__t">Papéis &amp; acessos</span>
-        <span class="perm-matrix__h">o que cada papel pode fazer — referência</span>
+        <span class="perm-matrix__h">o que cada papel pode fazer — toque pra ver</span>
       </summary>
       <div class="perm-table-wrap">
         <table class="perm-table">
