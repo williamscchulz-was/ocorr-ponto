@@ -1233,9 +1233,12 @@ function pendingForUser(u) {
 
 // ---------- Chat: contadores / badge ----------
 
-// Total de mensagens recebidas não-lidas (todas as conversas).
+// Total de não-lidas — soma POR CONVERSA (mesma fonte da lista de conversas).
+// Antes contava state.mensagensRecebidas cru, o que incluía mensagens sem
+// remetente válido / pra si mesmo (que não viram conversa abrível) → badge
+// "fantasma" aceso sem nenhuma conversa pendente. Agora badge ⇔ conversa pendente.
 function contarNaoLidas() {
-  return (state.mensagensRecebidas || []).filter((m) => !m.lido).length;
+  return (state.conversas || []).reduce((acc, c) => acc + (c.naoLidas || 0), 0);
 }
 
 // Chamado pelo listener global pra atualizar só o badge do FAB de chat.
