@@ -7314,7 +7314,29 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// PWA: register service worker if available (silent fail in file://)
+// PWA: registra o service worker + AUTO-UPDATE.
+// Quando um deploy troca o sw.js, o novo SW assume (skipWaiting + clients.claim
+// no sw.js) e dispara "controllerchange" → recarregamos UMA vez pra pegar o
+// HTML/JS novos. Assim o usuário nunca fica preso numa versão velha.
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  let recarregando = false;
+  // Só auto-recarrega em ATUALIZAÇÃO. No 1º acesso o controller é null e a
+  // posse inicial NÃO deve recarregar (senão vira loop no primeiro load).
+  let tinhaController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!tinhaController) { tinhaController = true; return; }
+    if (recarregando) return;
+    recarregando = true;
+    try { toast("Atualizando para a versão nova…"); } catch (e) {}
+    setTimeout(() => location.reload(), 600);
+  });
+
+  navigator.serviceWorker.register("sw.js").then((reg) => {
+    // Procura deploy novo ao focar a aba e a cada 30 min (pega atualização
+    // feita com o app já aberto). update() busca o sw.js (no-cache); se mudou,
+    // instala o novo → controllerchange acima → reload.
+    const checar = () => { try { reg.update(); } catch (e) {} };
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) checar(); });
+    setInterval(checar, 30 * 60 * 1000);
+  }).catch(() => {});
 }
