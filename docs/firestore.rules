@@ -39,18 +39,46 @@ service cloud.firestore {
         || isSupervisor();
     }
 
+    // ----- Permissões data-driven (matriz editável) -----
+    // Lê /config/permissoes (mapa { papel: { capability: valor } }). Se o doc
+    // não existir OU não tiver a (papel, capability), cai no `fallback` — que é
+    // SEMPRE a regra hardcoded de hoje. Logo: doc ausente/parcial = comportamento
+    // idêntico ao atual. Admin é tratado à parte (sempre liberado) por quem chama.
+    // valores "ligados": true | 'turno' | 'atrib'.
+    function permDoc() {
+      return exists(/databases/$(database)/documents/config/permissoes)
+        ? get(/databases/$(database)/documents/config/permissoes).data
+        : {};
+    }
+    function temCap(cap, fallback) {
+      let m = permDoc();
+      let role = userDoc().role;
+      return isAuthed() && (
+        (role in m && cap in m[role])
+          ? (m[role][cap] == true || m[role][cap] == 'turno' || m[role][cap] == 'atrib')
+          : fallback
+      );
+    }
+
+    // ----- config (matriz de permissões + futuras configs do sistema) -----
+    // Leitura: qualquer autenticado (o app monta o can() a partir daqui; sem
+    // segredos). Escrita: só admin (gerencia a matriz).
+    match /config/{doc} {
+      allow read: if isAuthed();
+      allow write: if isAdmin();
+    }
+
     // ----- users -----
     // Admin lê todos; user lê só o próprio doc.
-    // Admin cria/deleta/edita qualquer campo. O próprio user pode atualizar
-    // APENAS o campo fotoBase64 (foto de perfil) — sem poder mexer em role,
-    // turno, ativo. Rule garante isolamento mesmo se a UI for burlada.
+    // Admin (ou quem tiver sistema.usuarios) cria/deleta/edita qualquer campo.
+    // O próprio user pode atualizar APENAS o campo fotoBase64 (foto de perfil)
+    // — sem poder mexer em role, turno, ativo.
     match /users/{uid} {
       // Leitura liberada pra autenticados: o chat precisa do diretório
       // (nome/papel/foto) pra listar e mandar mensagem pra qualquer um.
-      // Docs não têm segredos (sem senha; PII real fica em banco-horas-saldos).
       allow read: if isAuthed();
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (
+      allow create, delete: if isAdmin() || temCap('sistema.usuarios', false);
+      allow update: if isAdmin() || temCap('sistema.usuarios', false) || (
         request.auth.uid == uid &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoBase64'])
       );
@@ -59,48 +87,46 @@ service cloud.firestore {
     // ----- funcionarios -----
     match /funcionarios/{id} {
       allow read: if isAuthed();
-      allow create, update, delete: if isAdmin() || isRH();
+      allow create, update, delete: if isAdmin() || temCap('func.editar', isRH());
     }
 
     // ----- tipos (motivos customizados criados pela equipe) -----
-    // Todos logados leem (pra popular o dropdown). Admin/RH criam/excluem.
+    // Todos logados leem (pra popular o dropdown). Quem tem sistema.config edita.
     match /tipos/{id} {
       allow read: if isAuthed();
-      allow create, update, delete: if isAdmin() || isRH();
+      allow create, update, delete: if isAdmin() || temCap('sistema.config', isRH());
     }
 
     // ----- acoes (ações customizadas — encaminhamento pelo líder) -----
-    // Mesma lógica de tipos.
     match /acoes/{id} {
       allow read: if isAuthed();
-      allow create, update, delete: if isAdmin() || isRH();
+      allow create, update, delete: if isAdmin() || temCap('sistema.config', isRH());
     }
 
     // ----- bancoHoras (saldo de horas por funcionário · denormalizado por doc) -----
-    // Admin/RH leem tudo (na prática usam /pipeline-rh/cur direto agora).
-    // Líder lê apenas docs do próprio turno — query DEVE incluir
-    // .where("funcionarioTurno", "==", u.turno) pro Firestore aceitar a lista.
-    // Escrita: pipeline RH (servidor) ou admin/RH via UI.
+    // Líder lê apenas docs do próprio turno; supervisor lê amplo (UI filtra).
+    // Escrita: pipeline RH (servidor) ou quem tiver bancoHoras.importar.
     match /bancoHoras/{funcionarioId} {
       allow read: if isAdmin() || isRH()
                   || (isLider() && resource.data.funcionarioTurno == userDoc().turno)
                   || isSupervisor();
-      allow create, update, delete: if isAdmin() || isRH();
+      allow create, update, delete: if isAdmin() || temCap('bancoHoras.importar', isRH());
     }
 
     // ----- pj (controle de prestadores de serviço) -----
-    // Apenas admin e RH leem/escrevem. Líderes não têm acesso.
+    // ver/editar/excluir controlados pela matriz (fallback = admin/RH de hoje).
+    // Reajuste é um update do doc pj → coberto por pj.editar.
     match /pj/{id} {
-      allow read, create, update, delete: if isAdmin() || isRH();
+      allow read: if isAdmin() || temCap('pj.ver', isRH());
+      allow create, update: if isAdmin() || temCap('pj.editar', isRH());
+      allow delete: if isAdmin() || temCap('pj.excluir', isRH());
     }
 
     // ----- auditoria (log global IMUTÁVEL) -----
-    // Registra eventos que sumiriam do histórico normal — hoje: exclusões de
-    // ocorrência e de PJ (o doc some e leva o historico[] junto). Admin/RH leem
-    // e criam; ninguém edita/apaga (integridade do log de auditoria).
+    // Admin/quem tem auditoria.ver leem e criam; ninguém edita/apaga.
     match /auditoria/{id} {
-      allow read: if isAdmin() || isRH();
-      allow create: if (isAdmin() || isRH())
+      allow read: if isAdmin() || temCap('auditoria.ver', isRH());
+      allow create: if (isAdmin() || temCap('auditoria.ver', isRH()))
         && request.resource.data.por == request.auth.uid
         && request.resource.data.acao is string
         && request.resource.data.acao.size() <= 200;
@@ -108,9 +134,6 @@ service cloud.firestore {
     }
 
     // ----- presence (quem está online agora) -----
-    // Leitura: qualquer usuário autenticado (pra renderizar o indicador).
-    // Escrita/delete: só o próprio user no próprio documento (uid = doc id).
-    // Valida conteúdo (S5): role conhecido + nome curto.
     match /presence/{uid} {
       allow read: if isAuthed();
       allow create, update: if isAuthed() && request.auth.uid == uid
@@ -124,8 +147,6 @@ service cloud.firestore {
     match /mensagens/{id} {
       allow read: if isAuthed()
         && (resource.data.de == request.auth.uid || resource.data.para == request.auth.uid);
-      // create (S2): parKey DEVE ser uma das 2 ordens de [de, para] — impede
-      // forjar parKey arbitrário / spam em conversa de terceiros.
       allow create: if isAuthed()
         && request.resource.data.de == request.auth.uid
         && request.resource.data.texto is string
@@ -137,8 +158,6 @@ service cloud.firestore {
           request.resource.data.parKey == request.auth.uid + '__' + request.resource.data.para
           || request.resource.data.parKey == request.resource.data.para + '__' + request.auth.uid
         );
-      // update: (a) destinatário marca como lida (só 'lido'); ou
-      //         (b) qualquer um dos 2 participantes reage (só 'reacoes').
       allow update: if isAuthed() && (
         (resource.data.para == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lido']))
@@ -146,7 +165,6 @@ service cloud.firestore {
         ((resource.data.de == request.auth.uid || resource.data.para == request.auth.uid)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reacoes']))
       );
-      // remetente pode apagar a própria msg (TTL cuida do resto)
       allow delete: if isAuthed() && resource.data.de == request.auth.uid;
     }
 
@@ -154,11 +172,8 @@ service cloud.firestore {
     match /ocorrencias/{id} {
       allow read: if podeVerOcorrencia(resource.data);
 
-      // Criar: RH ou admin. Campos obrigatórios e turno coerente.
-      // funcionarioTurno aceita 1, 2, 3 (turnos numerados) e "geral"
-      // (quadro de horário comercial sem turno fixo). null não é
-      // aceito pra forçar o RH a definir o turno do funcionário antes.
-      allow create: if (isRH() || isAdmin())
+      // Criar: quem tem ocorrencias.criar (fallback = RH de hoje) ou admin.
+      allow create: if (isAdmin() || temCap('ocorrencias.criar', isRH()))
         && request.resource.data.criadoPor == request.auth.uid
         && request.resource.data.acao == null
         && request.resource.data.dataConferencia == null
@@ -167,37 +182,37 @@ service cloud.firestore {
         && request.resource.data.tipo is string
         && request.resource.data.horario is string;
 
+      // Update: admin sempre; RH lança/edita obs (cap ocorrencias.lancar);
+      // líder/supervisor conferem no seu escopo (cap ocorrencias.conferir).
+      // Fallbacks preservam exatamente o comportamento atual.
       allow update: if
         isAdmin()
-        || (isRH() && podeAtualizarApenasObservacao())
-        || (liderDoMesmoTurno(resource.data.funcionarioTurno)
+        || (temCap('ocorrencias.lancar', isRH()) && isRH() && podeAtualizarApenasObservacao())
+        || (temCap('ocorrencias.conferir', isLider())
+            && liderDoMesmoTurno(resource.data.funcionarioTurno)
             && podeConferirOuAtualizarObs())
-        || (isSupervisor()
+        || (temCap('ocorrencias.conferir', isSupervisor())
+            && isSupervisor()
             && supervisorVe(resource.data.funcionarioId)
             && podeConferirOuAtualizarObs());
 
-      allow delete: if isAdmin() || isRH();
+      allow delete: if isAdmin() || temCap('ocorrencias.excluir', isRH());
     }
 
     // ----- banco-horas-saldos -----
-    // Snapshot rico com CPF/PIS · só admin + RH leem · escrita via Admin SDK
+    // Snapshot rico com CPF/PIS · SEMPRE só admin + RH (dado sensível, fixo).
     match /banco-horas-saldos/{funcId} {
       allow read: if isAdmin() || isRH();
       allow write: if false;
     }
 
     // ----- banco-horas -----
-    // Histórico mensal de lançamentos diários · admin + RH leem
     match /banco-horas/{docId} {
       allow read: if isAdmin() || isRH();
       allow write: if false;
     }
 
     // ----- pipeline-rh (estrutura cur/hist · espelho do Comercial · SEM PII) -----
-    // ⚠️ É um doc único com TODOS os funcionários ativos num array — não
-    // dá pra filtrar por turno via rule. Por isso: admin+RH only.
-    // Líder NÃO lê daqui; lê de /bancoHoras filtrado pelo turno (ver abaixo).
-    // Docs: pipeline-rh/cur (mês corrente + meta) e pipeline-rh/hist (meses fechados).
     match /pipeline-rh/{docId} {
       allow read: if isAdmin() || isRH();
       allow write: if false;
@@ -205,9 +220,6 @@ service cloud.firestore {
 
     // ----- Helpers de atualização -----
 
-    // RH pode mexer em: observacao, historico, atualizadoEm, e nos
-    // campos de lançamento (lancada/lancadoEm/lancadoPor). Não pode
-    // alterar data/funcionário/tipo/horário/ação/conferência.
     function podeAtualizarApenasObservacao() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['observacao', 'historico', 'atualizadoEm',

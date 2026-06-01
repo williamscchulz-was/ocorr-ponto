@@ -1337,6 +1337,21 @@
       }
     };
 
+    // Salva a matriz de permissões (mapa completo por papel). Admin only — a
+    // regra do Firestore também exige admin, então a UI não é a única barreira.
+    window.salvarPermissoes = async function (mapa) {
+      const me = currentUser();
+      if (!me || me.role !== "admin") return { ok: false, err: "Apenas admin pode editar permissões." };
+      if (!mapa || typeof mapa !== "object") return { ok: false, err: "Mapa inválido." };
+      try {
+        await db.collection("config").doc("permissoes").set(mapa);
+        state.permissoes = mapa;
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, err: e.message || String(e) };
+      }
+    };
+
     // ===== Chat interno =====
     const MSG_RETENCAO_MS = 3 * 24 * 60 * 60 * 1000; // 3 dias
 
@@ -2068,6 +2083,16 @@
     } catch (e) {
       debug?.("[users] não foi possível carregar diretório:", e?.message || e);
       // mantém ao menos o próprio user já populado em wireAuthFlow
+    }
+
+    // Permissões (matriz editável). Doc único /config/permissoes. Ausência →
+    // state.permissoes = null e o app cai no PERM_DEFAULT (= regras de hoje).
+    try {
+      const permSnap = await db.collection("config").doc("permissoes").get();
+      state.permissoes = permSnap.exists ? (permSnap.data() || null) : null;
+    } catch (e) {
+      debug?.("[permissoes] não carregou (usa default):", e?.message || e);
+      state.permissoes = null;
     }
   }
 

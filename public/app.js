@@ -1150,14 +1150,12 @@ function renderNav() {
   items.push({ id: "dashboard", label: "Ocorrências", icon: "clipboard", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
 
-  if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
+  if (can("func.ver")) {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
   }
-  if (u.role === "rh" || u.role === "admin") {
-    items.push({ id: "pj", label: "Controle PJ", icon: "briefcase" });
-    items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
-    items.push({ id: "config", label: "Configurações", icon: "settings" });
-  }
+  if (can("pj.ver")) items.push({ id: "pj", label: "Controle PJ", icon: "briefcase" });
+  if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
+  if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
   $("#nav").innerHTML = items.map((it) => `
     <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
@@ -1181,20 +1179,20 @@ function renderNav() {
 function renderBottomNav() {
   const u = currentUser();
   const pending = pendingForUser(u).length;
-  const canCreate = u.role === "rh" || u.role === "admin";
+  const canCreate = can("ocorrencias.criar");
 
   // Itens à esquerda do FAB
   const left = [
     { id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending },
     { id: "banco-horas", label: "Banco", icon: "clock" },
   ];
-  if (u.role === "rh" || u.role === "admin" || u.role === "supervisor") {
+  if (can("func.ver")) {
     left.push({ id: "funcionarios", label: "Equipe", icon: "users" });
   }
 
   // Itens à direita do FAB
   const right = [];
-  if (u.role === "rh" || u.role === "admin") {
+  if (can("sistema.config")) {
     right.push({ id: "config", label: "Ajustes", icon: "settings" });
   }
   // Conta/logout sempre presente
@@ -1259,7 +1257,7 @@ function visibleOcorrencias() {
 function updateFab() {
   const u = currentUser();
   const fab = $("#fab");
-  if (u.role === "rh" || u.role === "admin") {
+  if (can("ocorrencias.criar")) {
     fab.classList.add("show");
     fab.onclick = () => openNovaOcorrencia();
   } else {
@@ -1279,7 +1277,7 @@ function renderView() {
   if (page === "funcionarios") return renderFuncionarios();
   if (page === "pj") return renderControlePJ();
   if (page === "auditoria") {
-    if (u.role !== "admin" && u.role !== "rh") {
+    if (!can("auditoria.ver")) {
       state.view.page = "dashboard";
       return renderDashboard();
     }
@@ -1305,6 +1303,7 @@ function podeVerFuncionario(u, f) {
 // Decide se o user pode VER uma ocorrência (via funcionário dela).
 function podeVerOcorrenciaUI(u, o) {
   if (!u || !o) return false;
+  if (!can("ocorrencias.ver", u)) return false;
   if (u.role === "admin" || u.role === "rh") return true;
   if (u.role === "lider") {
     const f = getFuncionario(o.funcionarioId);
@@ -1317,6 +1316,7 @@ function podeVerOcorrenciaUI(u, o) {
 // admin sempre; lider/supervisor só do escopo deles; rh não confere (cria).
 function podeConferirUI(u, o) {
   if (!u || !o) return false;
+  if (!can("ocorrencias.conferir", u)) return false;
   if (u.role === "admin") return true;
   if (u.role === "lider" || u.role === "supervisor") return podeVerOcorrenciaUI(u, o);
   return false;
@@ -1503,7 +1503,7 @@ function renderDashboard() {
       </div>
       <div class="row">
         ${
-          u.role === "rh" || u.role === "admin"
+          can("ocorrencias.criar")
             ? `<button class="btn btn--primary" id="btn-nova">${icon("plus")}<span>Nova ocorrência</span></button>`
             : ""
         }
@@ -1676,7 +1676,7 @@ function renderOccCard(o) {
   const f = getFuncionario(o.funcionarioId);
   const tipo = getTipo(o.tipo);
   const pending = isPending(o);
-  const podeLancar = !pending && !isLancada(o) && (u.role === "rh" || u.role === "admin");
+  const podeLancar = !pending && !isLancada(o) && can("ocorrencias.lancar");
 
   return `
     <article class="occ" data-id="${o.id}">
@@ -1713,8 +1713,8 @@ function renderOccCard(o) {
 
 function openNovaOcorrencia() {
   const u = currentUser();
-  // Só RH e admin criam ocorrências. Líder e supervisor apenas conferem.
-  if (u.role !== "rh" && u.role !== "admin") return;
+  // Só quem tem a capacidade de criar (default: GH e admin).
+  if (!can("ocorrencias.criar")) return;
 
   const today = todayIso();
 
@@ -1924,14 +1924,14 @@ function openOcorrenciaDetail(id) {
     </div>
 
     <div class="modal__footer">
-      ${(u.role === "admin" || u.role === "rh") ? `<button class="btn btn--danger" id="btn-del-occ" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
+      ${can("ocorrencias.excluir") ? `<button class="btn btn--danger" id="btn-del-occ" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Fechar</button>
-      ${u.role === "admin" ? `<button class="btn btn--soft" id="btn-edit-occ">${icon("edit")}<span>Editar tudo</span></button>` : ""}
+      ${can("ocorrencias.editarTudo") ? `<button class="btn btn--soft" id="btn-edit-occ">${icon("edit")}<span>Editar tudo</span></button>` : ""}
       ${canEdit && !pending ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
       ${pending && canConfer ? `<button class="btn btn--primary" id="btn-confer">${icon("check")}<span>Confirmar conferência</span></button>` : ""}
       ${pending && u.role === "rh" ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
-      ${!pending && !isLancada(o) && (u.role === "rh" || u.role === "admin") ? `<button class="btn btn--primary" id="btn-lancar">${icon("check")}<span>Marcar como lançada</span></button>` : ""}
-      ${isLancada(o) && (u.role === "rh" || u.role === "admin") ? `<button class="btn btn--soft" id="btn-desfazer-lancar">${icon("clock")}<span>Desfazer lançamento</span></button>` : ""}
+      ${!pending && !isLancada(o) && can("ocorrencias.lancar") ? `<button class="btn btn--primary" id="btn-lancar">${icon("check")}<span>Marcar como lançada</span></button>` : ""}
+      ${isLancada(o) && can("ocorrencias.lancar") ? `<button class="btn btn--soft" id="btn-desfazer-lancar">${icon("clock")}<span>Desfazer lançamento</span></button>` : ""}
     </div>
   `, {
     onMount: (modal) => {
@@ -1950,7 +1950,7 @@ async function desfazerLancamento(id) {
   const o = state.ocorrencias.find((x) => x.id === id);
   if (!o) return;
   const u = currentUser();
-  if (u.role !== "rh" && u.role !== "admin") return;
+  if (!can("ocorrencias.lancar")) return;
   if (!isLancada(o)) return;
 
   if (!(await confirmar({
@@ -1979,7 +1979,7 @@ function marcarComoLancada(id) {
   const o = state.ocorrencias.find((x) => x.id === id);
   if (!o) return;
   const u = currentUser();
-  if (u.role !== "rh" && u.role !== "admin") return;
+  if (!can("ocorrencias.lancar")) return;
   if (isPending(o)) return toast("Confira a ocorrência antes de marcar como lançada.", "danger");
 
   o.lancada = true;
@@ -2001,7 +2001,7 @@ function openEditOcorrenciaModal(id) {
   const o = state.ocorrencias.find((x) => x.id === id);
   if (!o) return;
   const u = currentUser();
-  if (u.role !== "admin") return;
+  if (!can("ocorrencias.editarTudo")) return;
 
   const today = todayIso();
   openModal(`
@@ -2072,7 +2072,7 @@ function saveEditOcorrencia(id) {
   const o = state.ocorrencias.find((x) => x.id === id);
   if (!o) return;
   const u = currentUser();
-  if (u.role !== "admin") return;
+  if (!can("ocorrencias.editarTudo")) return;
 
   const data = $("#ef-data").value;
   const horario = $("#ef-horario").value;
@@ -2547,7 +2547,7 @@ function openFuncionarioModal(id) {
   const u = currentUser();
   const ehAdmin = u && u.role === "admin";
   // Só admin/RH editam o cadastro. Supervisor abre em modo leitura (vê o perfil).
-  const podeEditarFunc = u && (u.role === "admin" || u.role === "rh");
+  const podeEditarFunc = u && can("func.editar", u);
 
   openModal(`
     <div class="modal__header">
@@ -2622,7 +2622,7 @@ function openFuncionarioModal(id) {
       if (podeEditarFunc && !isNew && $("#btn-del-func")) $("#btn-del-func").addEventListener("click", () => deleteFuncionario(id));
 
       // Carrega PII async (admin/RH só) — UI mostra placeholder enquanto carrega.
-      if (!isNew && (u.role === "admin" || u.role === "rh") && typeof window.lerSaldoSensivel === "function" && f?.codigo) {
+      if (!isNew && can("func.dadosSensiveis", u) && typeof window.lerSaldoSensivel === "function" && f?.codigo) {
         const pii = $("#func-perfil-pii");
         if (pii) {
           pii.innerHTML = `
@@ -3210,6 +3210,7 @@ function formatSaldoHoras(minutos) {
 }
 
 function openImportBancoHorasModal() {
+  if (!can("bancoHoras.importar")) return toast("Sem permissão para importar banco de horas.", "danger");
   openModal(`
     <div class="modal__header">
       <div>
@@ -3403,7 +3404,7 @@ function loadXLSX() {
 
 function renderControlePJ() {
   const u = currentUser();
-  if (u.role !== "admin" && u.role !== "rh") {
+  if (!can("pj.ver")) {
     state.view.page = "dashboard";
     return renderApp();
   }
@@ -3493,7 +3494,7 @@ function renderPJList(animar) {
     const periodicidade = periodObj?.label || p.periodicidade || "";
 
     const precisaReajuste = pjPrecisaReajuste(p);
-    const userPodeReajustar = u && (u.role === "admin" || u.role === "rh");
+    const userPodeReajustar = u && can("pj.reajuste", u);
     // "Reajustar" aparece só nas linhas que realmente precisam (a exceção, não a
     // regra). Reajuste fora de ciclo vive no detalhe (botão no modal do PJ).
     const mostrarReajustar = userPodeReajustar && p.status === "ativo" && precisaReajuste;
@@ -3859,7 +3860,7 @@ function openPJModal(id) {
           ${pj.historicoValores.slice().reverse().map((h, i) => {
             const origIdx = pj.historicoValores.length - 1 - i;
             const cu = currentUser();
-            const podeApagar = cu && (cu.role === "admin" || cu.role === "rh");
+            const podeApagar = cu && can("pj.editar", cu);
             return `
             <div class="timeline__item ${i === 0 ? "" : "done"}">
               <div class="timeline__item-title"><span>${formatMoeda(h.valor)}</span>${podeApagar ? `<button type="button" class="hv-del" data-del-valor="${origIdx}" title="Excluir este lançamento (erro de OCR, etc.)">${icon("trash")}</button>` : ""}</div>
@@ -3872,8 +3873,8 @@ function openPJModal(id) {
     </form>
 
     <div class="modal__footer">
-      ${!isNew ? `<button class="btn btn--danger" id="btn-del-pj" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
-      ${(!isNew && pj && (currentUser().role === "admin" || currentUser().role === "rh") && pj.status === "ativo")
+      ${!isNew && can("pj.excluir") ? `<button class="btn btn--danger" id="btn-del-pj" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
+      ${(!isNew && pj && can("pj.reajuste") && pj.status === "ativo")
         ? `<button class="btn btn--soft" id="btn-reajustar-pj">${icon("plus")}<span>Reajustar</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Cancelar</button>
       <button class="btn btn--primary" id="btn-save-pj">${icon("check")}<span>${isNew ? "Cadastrar" : "Salvar"}</span></button>
@@ -4721,7 +4722,7 @@ function openReajusteModal(id) {
   const pj = (state.pjs || []).find((p) => p.id === id);
   if (!pj) return;
   const u = currentUser();
-  if (u.role !== "admin" && u.role !== "rh") return;
+  if (!can("pj.reajuste")) return;
 
   const valorAtual = Number(pj.valorAtual) || 0;
   const anoVigente = ultimoAnoReajusteVigente();
@@ -5494,7 +5495,7 @@ function pintarFeedAuditoria(animar) {
 
 function renderConfig() {
   const u = currentUser();
-  if (u.role !== "admin" && u.role !== "rh") {
+  if (!can("sistema.config")) {
     state.view.page = "dashboard";
     return renderApp();
   }
@@ -5507,7 +5508,7 @@ function renderConfig() {
     { id: "tipos", label: "Tipos de Ocorrência", icon: "tag" },
     { id: "acoes", label: "Ações", icon: "check" },
   ];
-  if (u.role === "admin") tabs.push({ id: "usuarios", label: "Permissões", icon: "shield" });
+  if (can("sistema.usuarios")) tabs.push({ id: "usuarios", label: "Permissões", icon: "shield" });
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -5536,7 +5537,7 @@ function renderConfig() {
   });
 
   // Render do conteúdo da tab
-  if (state.view.configTab === "usuarios" && u.role === "admin") {
+  if (state.view.configTab === "usuarios" && can("sistema.usuarios")) {
     renderUsuariosInto("#config-content");
   } else if (state.view.configTab === "acoes") {
     renderAcoesInto("#config-content");
@@ -5549,7 +5550,7 @@ function renderConfig() {
 
 function renderAcoesInto(selector) {
   const u = currentUser();
-  if (u.role !== "admin" && u.role !== "rh") return;
+  if (!can("sistema.config")) return;
 
   // Padrão = ids originais do código; Custom = ids criados via UI (custom-*).
   const padraoIds = new Set(ACOES.map((a) => a.id));
@@ -5741,7 +5742,7 @@ const TONES = [
 function renderTipos() { renderTiposInto("#view"); }
 function renderTiposInto(selector) {
   const u = currentUser();
-  if (u.role !== "admin" && u.role !== "rh") return;
+  if (!can("sistema.config")) return;
 
   // Padrão = ids originais do código (mesmo se foram editados/overrided).
   // Custom = ids criados via UI (custom-*).
@@ -5948,41 +5949,101 @@ async function deleteTipo(id) {
   renderApp();
 }
 
-// ---------- Permissões: matriz papéis × acessos (referência read-only) ----------
-// As regras refletem os checks fixos do código. Decisão de produto: papéis
-// são fixos (não editáveis aqui); o admin gerencia papel + escopo na lista.
-const PERM_MATRIZ = [
+// ---------- Permissões data-driven ----------
+// Capabilities canônicas (chave estável + rótulo). scoped=true → para líder/
+// supervisor o valor pode ser "turno"/"atrib" (escopo), não só ligado/desligado.
+const PERM_CAPS = [
   { area: "Ocorrências", caps: [
-    { n: "Ver lançamentos", a: "full", g: "full", l: "turno", s: "atrib" },
-    { n: "Criar / lançar nova", a: "full", g: "full", l: "no", s: "no" },
-    { n: "Conferir (validar)", a: "full", g: "full", l: "turno", s: "atrib" },
-    { n: "Marcar como lançada", a: "full", g: "full", l: "no", s: "no" },
-    { n: "Editar o lançamento inteiro", a: "full", g: "no", l: "no", s: "no" },
-    { n: "Excluir", a: "full", g: "full", l: "no", s: "no" },
+    { k: "ocorrencias.ver", n: "Ver lançamentos", scoped: true },
+    { k: "ocorrencias.criar", n: "Criar / lançar nova" },
+    { k: "ocorrencias.conferir", n: "Conferir (validar)", scoped: true },
+    { k: "ocorrencias.lancar", n: "Marcar como lançada" },
+    { k: "ocorrencias.editarTudo", n: "Editar o lançamento inteiro" },
+    { k: "ocorrencias.excluir", n: "Excluir" },
   ]},
   { area: "Banco de Horas", caps: [
-    { n: "Ver saldos", a: "full", g: "full", l: "turno", s: "atrib" },
-    { n: "Importar planilha", a: "full", g: "full", l: "no", s: "no" },
+    { k: "bancoHoras.ver", n: "Ver saldos", scoped: true },
+    { k: "bancoHoras.importar", n: "Importar planilha" },
   ]},
   { area: "Controle PJ", caps: [
-    { n: "Ver contratos", a: "full", g: "full", l: "no", s: "no" },
-    { n: "Criar / editar contrato", a: "full", g: "full", l: "no", s: "no" },
-    { n: "Aplicar reajuste (IPCA)", a: "full", g: "full", l: "no", s: "no" },
-    { n: "Excluir", a: "full", g: "full", l: "no", s: "no" },
+    { k: "pj.ver", n: "Ver contratos" },
+    { k: "pj.editar", n: "Criar / editar contrato" },
+    { k: "pj.reajuste", n: "Aplicar reajuste (IPCA)" },
+    { k: "pj.excluir", n: "Excluir" },
   ]},
   { area: "Funcionários", caps: [
-    { n: "Ver ficha", a: "full", g: "full", l: "no", s: "atrib" },
-    { n: "Editar turno / setor", a: "full", g: "full", l: "no", s: "no" },
-    { n: "Ver dados sensíveis (saldo)", a: "full", g: "full", l: "no", s: "no" },
+    { k: "func.ver", n: "Ver ficha", scoped: true },
+    { k: "func.editar", n: "Editar turno / setor" },
+    { k: "func.dadosSensiveis", n: "Ver dados sensíveis (saldo)" },
   ]},
   { area: "Auditoria", caps: [
-    { n: "Ver histórico de alterações", a: "full", g: "full", l: "no", s: "no" },
+    { k: "auditoria.ver", n: "Ver histórico de alterações" },
   ]},
   { area: "Sistema", caps: [
-    { n: "Configurações (tipos, ações)", a: "full", g: "full", l: "no", s: "no" },
-    { n: "Gerenciar usuários e permissões", a: "full", g: "no", l: "no", s: "no" },
+    { k: "sistema.config", n: "Configurações (tipos, ações)" },
+    { k: "sistema.usuarios", n: "Gerenciar usuários e permissões" },
   ]},
 ];
+
+// Default = espelho EXATO das regras de hoje. Admin não entra (sempre total).
+// Valores: true | false | "turno" (escopo líder) | "atrib" (funcionários do supervisor).
+const PERM_DEFAULT = {
+  rh: {
+    "ocorrencias.ver": true, "ocorrencias.criar": true, "ocorrencias.conferir": true,
+    "ocorrencias.lancar": true, "ocorrencias.editarTudo": false, "ocorrencias.excluir": true,
+    "bancoHoras.ver": true, "bancoHoras.importar": true,
+    "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
+    "func.ver": true, "func.editar": true, "func.dadosSensiveis": true,
+    "auditoria.ver": true, "sistema.config": true, "sistema.usuarios": false,
+  },
+  lider: {
+    "ocorrencias.ver": "turno", "ocorrencias.criar": false, "ocorrencias.conferir": "turno",
+    "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
+    "bancoHoras.ver": "turno", "bancoHoras.importar": false,
+    "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
+    "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,
+    "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
+  },
+  supervisor: {
+    "ocorrencias.ver": "atrib", "ocorrencias.criar": false, "ocorrencias.conferir": "atrib",
+    "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
+    "bancoHoras.ver": "atrib", "bancoHoras.importar": false,
+    "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
+    "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false,
+    "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
+  },
+};
+
+// Mapa efetivo de um papel = default + overrides salvos (state.permissoes).
+function permEfetivo(role) {
+  const base = PERM_DEFAULT[role] || {};
+  const over = (state.permissoes && state.permissoes[role]) || null;
+  return over ? { ...base, ...over } : { ...base };
+}
+
+// can(cap) — o papel TEM a capacidade? (admin sempre). O escopo em si
+// (turno/funcionários) continua aplicado pelas funções existentes; aqui só
+// dizemos se há acesso. "turno"/"atrib" contam como ter acesso.
+function can(cap, user) {
+  user = user || currentUser();
+  if (!user || !user.role) return false;
+  if (user.role === "admin") return true;
+  const v = permEfetivo(user.role)[cap];
+  return v === true || v === "turno" || v === "atrib";
+}
+
+// Persiste o mapa de permissões (debounced) em /config/permissoes. Em modo
+// demo (sem firebase) fica só em memória. Admin only — garantido na regra.
+let _permSaveTimer = null;
+function salvarPermissoesDebounced() {
+  clearTimeout(_permSaveTimer);
+  _permSaveTimer = setTimeout(async () => {
+    if (typeof window.salvarPermissoes !== "function") return;
+    const res = await window.salvarPermissoes(state.permissoes);
+    if (res && res.ok) toast("Permissões salvas.");
+    else toast("Erro ao salvar permissões: " + (res?.err || "?"), "danger");
+  }, 600);
+}
 
 const ACCESS_PREVIEW = {
   admin: ["Vê e edita tudo, em todos os turnos", "Gerencia usuários e permissões", "Exclui e edita lançamentos por completo"],
@@ -6002,25 +6063,43 @@ function escopoUsuario(u) {
   return "";
 }
 
-function permCell(val, locked) {
-  if (val === "full") return `<span class="perm-cell ${locked ? "perm-cell--lock" : ""}">${icon("check")}</span>`;
-  if (val === "turno") return `<span class="perm-cell"><span class="perm-pill perm-pill--turno">turno</span></span>`;
-  if (val === "atrib") return `<span class="perm-cell"><span class="perm-pill perm-pill--atrib">atribuídos</span></span>`;
-  return `<span class="perm-cell"><span class="perm-cell--no">–</span></span>`;
+// Valor "ligado" de uma capacidade para um papel (respeita o escopo natural:
+// líder → "turno", supervisor → "atrib" nas capacidades escopadas).
+function permOnValue(role, cap) {
+  if (role === "lider" || role === "supervisor") {
+    const def = PERM_CAPS.flatMap((g) => g.caps).find((c) => c.k === cap);
+    if (def && def.scoped) return role === "lider" ? "turno" : "atrib";
+  }
+  return true;
+}
+function permCellInner(val) {
+  if (val === "turno") return `<span class="perm-pill perm-pill--turno">turno</span>`;
+  if (val === "atrib") return `<span class="perm-pill perm-pill--atrib">atribuídos</span>`;
+  if (val === true) return icon("check");
+  return `<span class="perm-cell--no">–</span>`;
+}
+function pintarPermCell(cell, val) {
+  cell.classList.toggle("perm-cell--off", !val);
+  cell.innerHTML = permCellInner(val);
+}
+function permCell(role, cap, val, locked) {
+  if (locked) return `<span class="perm-cell perm-cell--lock">${icon("check")}</span>`;
+  return `<span class="perm-cell perm-cell--edit ${val ? "" : "perm-cell--off"}" role="button" tabindex="0" data-prole="${role}" data-pcap="${cap}" title="Clique pra ligar/desligar">${permCellInner(val)}</span>`;
 }
 
 function permissoesMatrizHtml() {
   const users = state.users || [];
   const n = (r) => users.filter((u) => u.role === r).length;
-  const rows = PERM_MATRIZ.map((g) => `
+  const ef = { rh: permEfetivo("rh"), lider: permEfetivo("lider"), supervisor: permEfetivo("supervisor") };
+  const rows = PERM_CAPS.map((g) => `
     <tr class="perm-grp"><td colspan="5">${g.area}</td></tr>
     ${g.caps.map((c) => `
       <tr class="perm-row">
         <td class="perm-name">${c.n}</td>
-        <td class="perm-c">${permCell(c.a, true)}</td>
-        <td class="perm-c">${permCell(c.g)}</td>
-        <td class="perm-c">${permCell(c.l)}</td>
-        <td class="perm-c">${permCell(c.s)}</td>
+        <td class="perm-c">${permCell("admin", c.k, true, true)}</td>
+        <td class="perm-c">${permCell("rh", c.k, ef.rh[c.k])}</td>
+        <td class="perm-c">${permCell("lider", c.k, ef.lider[c.k])}</td>
+        <td class="perm-c">${permCell("supervisor", c.k, ef.supervisor[c.k])}</td>
       </tr>`).join("")}
   `).join("");
 
@@ -6028,7 +6107,7 @@ function permissoesMatrizHtml() {
     <details class="perm-matrix">
       <summary>
         <span class="perm-matrix__t">Papéis &amp; acessos</span>
-        <span class="perm-matrix__h">o que cada papel pode fazer — toque pra ver</span>
+        <span class="perm-matrix__h">toque pra abrir — clique numa célula pra ligar/desligar</span>
       </summary>
       <div class="perm-table-wrap">
         <table class="perm-table">
@@ -6088,6 +6167,26 @@ function renderUsuariosInto(selector) {
       </div>
     ` : ""}
   `;
+
+  // Matriz de permissões: clicar numa célula liga/desliga (admin). Persiste o
+  // mapa completo; o default cobre o que faltar. Admin é sempre total (locked).
+  const ehAdminPerm = currentUser()?.role === "admin";
+  $$(`${selector} .perm-cell--edit`).forEach((cell) => {
+    const toggle = () => {
+      if (!ehAdminPerm) return;
+      const role = cell.dataset.prole, cap = cell.dataset.pcap;
+      const atual = permEfetivo(role)[cap];
+      const ligado = atual === true || atual === "turno" || atual === "atrib";
+      const novoVal = ligado ? false : permOnValue(role, cap);
+      const mapa = { rh: permEfetivo("rh"), lider: permEfetivo("lider"), supervisor: permEfetivo("supervisor") };
+      mapa[role][cap] = novoVal;
+      state.permissoes = mapa;
+      pintarPermCell(cell, novoVal);
+      salvarPermissoesDebounced();
+    };
+    cell.addEventListener("click", toggle);
+    cell.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+  });
 
   const novo = $("#btn-novo-user");
   if (novo && isFirebaseMode) novo.addEventListener("click", openNovoUsuarioModal);
@@ -6980,7 +7079,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.3.0";
+window.CURRENT_VERSION = "1.4.0";
 let _changelogCarregado = false;
 let _changelogChecado = false;
 

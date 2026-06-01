@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.3.0", d: "1 jun 2026", current: true, items: [
+    v: "1.4.0", d: "1 jun 2026", current: true, items: [
+      { type: "feat", title: "Permissões editáveis: admin liga/desliga na matriz o que cada papel (GH, Líder, Supervisor) pode fazer." },
+    ],
+  },
+  {
+    v: "1.3.0", d: "1 jun 2026", items: [
       { type: "feat", title: "Painel de Permissões: matriz do que cada papel (Admin, GH, Líder, Supervisor) faz + escopo por usuário (turno / funcionários)." },
     ],
   },
