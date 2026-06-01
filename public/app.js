@@ -7179,8 +7179,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Novidades: pill na topbar + modal (abre, fecha, Esc, clique fora).
   // Pills de versão (topbar no mobile + sidebar no desktop) → abrem Novidades.
+  // Build = ?v= do app.js que o navegador REALMENTE carregou. Reflete a versão
+  // de verdade (mata a dúvida de "tô no novo ou no cache velho?"). Derivado em
+  // runtime do src do script — sem bump manual extra.
+  const buildVer = (() => {
+    try {
+      const s = [...document.scripts].find((x) => /app\.js\?v=/.test(x.src || ""));
+      const m = s && s.src.match(/[?&]v=(\d+)/);
+      return m ? m[1] : null;
+    } catch (e) { return null; }
+  })();
   $$(".version-pill").forEach((p) => {
-    p.textContent = "v" + window.CURRENT_VERSION;
+    p.textContent = "v" + window.CURRENT_VERSION + (buildVer ? " · " + buildVer : "");
+    p.title = "Novidades · build " + (buildVer || "?");
     p.addEventListener("click", openChangelog);
   });
   const clClose = document.getElementById("changelog-close");
