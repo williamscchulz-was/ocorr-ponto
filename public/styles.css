@@ -2890,6 +2890,10 @@ html.firebase-mode .login__forgot { display: block; }
   font-size: 11px; font-weight: 700; display: grid; place-items: center;
   border: 2px solid var(--surface);
 }
+/* O display:grid acima sobrepõe o atributo [hidden] (autor > UA), então sem
+   isto o badge ficava sempre visível como um pontinho vazio mesmo com 0
+   não-lidas. Faz o hidden esconder de verdade. */
+.chat-fab__badge[hidden] { display: none !important; }
 /* desce o FAB de nova ocorrência pra não colidir com o chat-fab */
 .fab { bottom: 92px !important; }
 
