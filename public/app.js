@@ -7079,7 +7079,25 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.4.0";
+window.CURRENT_VERSION = "1.5.0";
+
+// Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
+// a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
+// pelo firebase.js (auth resolveu) e pelo modo demo; há ainda um fallback duro
+// inline no <head> (8s) caso este script nem carregue.
+window.hideSplash = function hideSplash() {
+  var sp = document.getElementById("splash");
+  if (!sp || sp.dataset.splashHiding) return;
+  sp.dataset.splashHiding = "1";
+  var MIN = 2900;
+  var t0 = window.__splashT0 || Date.now();
+  var wait = Math.max(0, MIN - (Date.now() - t0));
+  setTimeout(function () {
+    sp.classList.add("splash--out");
+    try { document.documentElement.classList.remove("sessao-restaurando"); } catch (e) {}
+    setTimeout(function () { if (sp && sp.parentNode) sp.style.display = "none"; }, 650);
+  }, wait);
+};
 let _changelogCarregado = false;
 let _changelogChecado = false;
 
@@ -7162,7 +7180,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // (scripts deferred rodam em ordem antes do DOMContentLoaded, então a
   // classe firebase-mode já foi setada por firebase.js se a config existir.)
   if (!document.documentElement.classList.contains("firebase-mode")) {
-    document.documentElement.classList.remove("sessao-restaurando");
+    window.hideSplash();
   }
 
   // Em modo Firebase: ajusta labels/placeholders pra login real (email + senha)

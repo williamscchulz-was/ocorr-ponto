@@ -73,7 +73,7 @@
       // quando manterConectado=1. Salvaguarda: se o auth travar (rede), esconde
       // o splash após 7s pra não prender o usuário (cai no login).
       if (manterConectadoBoot) {
-        setTimeout(() => document.documentElement.classList.remove("sessao-restaurando"), 7000);
+        setTimeout(() => { if (window.hideSplash) window.hideSplash(); }, 7000);
       } else {
         document.documentElement.classList.remove("sessao-restaurando");
       }
@@ -1790,7 +1790,8 @@
 
     // Splash de restauração de sessão: esconde o overlay "Entrando…".
     function esconderSplash() {
-      document.documentElement.classList.remove("sessao-restaurando");
+      if (window.hideSplash) window.hideSplash();
+      else document.documentElement.classList.remove("sessao-restaurando");
     }
 
     // Observador de autenticação

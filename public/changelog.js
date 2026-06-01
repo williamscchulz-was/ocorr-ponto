@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.4.0", d: "1 jun 2026", current: true, items: [
+    v: "1.5.0", d: "1 jun 2026", current: true, items: [
+      { type: "high", title: "Nova tela de abertura: a marca da Fiobras se desenha sozinha quando o app carrega." },
+    ],
+  },
+  {
+    v: "1.4.0", d: "1 jun 2026", items: [
       { type: "feat", title: "Permissões editáveis: admin liga/desliga na matriz o que cada papel (GH, Líder, Supervisor) pode fazer." },
     ],
   },
