@@ -11,7 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.1.0", d: "29 mai 2026", current: true, items: [
+    v: "1.2.0", d: "1 jun 2026", current: true, items: [
+      { type: "high", title: "Leitura de contrato repaginada: cena de scan animada + cartão revisando o que foi encontrado." },
+      { type: "feat", title: "Extração mais esperta: reconhece CPF além de CNPJ e prioriza o valor mensal/honorários." },
+    ],
+  },
+  {
+    v: "1.1.0", d: "29 mai 2026", items: [
       { type: "fix", title: "Usabilidade no celular: topbar, listas, formulários e chat ajustados pra mobile." },
       { type: "feat", title: "Toque e segure pra reagir no chat (celular); Novidades acessível também no desktop." },
     ],

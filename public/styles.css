@@ -1386,6 +1386,143 @@ textarea:focus-visible,
   to { transform: rotate(360deg); }
 }
 
+/* ---- Cena de leitura do contrato (scan animado) ---- */
+.fb-scan { display: grid; place-items: center; }
+.fb-doc {
+  width: 116px;
+  height: 146px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--border, #e7ede4);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 40, 20, 0.12);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.fb-ln {
+  display: block;
+  height: 7px;
+  border-radius: 3px;
+  background: var(--milk-warm, #eef3ec);
+}
+.fb-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 34px;
+  top: -34px;
+  background: linear-gradient(180deg, rgba(0, 136, 53, 0) 0%, rgba(0, 136, 53, 0.2) 60%, rgba(0, 136, 53, 0.52) 100%);
+  border-bottom: 2px solid var(--primary, #008835);
+  box-shadow: 0 0 18px rgba(0, 136, 53, 0.5);
+  animation: fbBeam 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+@keyframes fbBeam {
+  0% { top: -34px; }
+  100% { top: 150px; }
+}
+
+/* ---- Cartão de revisão do que a leitura encontrou ---- */
+.fb-res {
+  width: 100%;
+  max-width: 380px;
+  text-align: left;
+  animation: fbResIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes fbResIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.fb-res__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.fb-res__chk {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--success-bg, #e0ead8);
+  color: var(--success, #2f6b3f);
+  display: grid;
+  place-items: center;
+}
+.fb-res__chk svg { width: 18px; height: 18px; }
+.fb-res__top b { font-size: 15px; color: var(--text, #1e2d1a); display: block; }
+.fb-res__top span { font-size: 12px; color: var(--muted, #4a6245); }
+.fb-res__fields {
+  border: 1px solid var(--border, #e7ede4);
+  border-radius: 12px;
+  padding: 2px 12px;
+  margin-bottom: 16px;
+  background: #fff;
+}
+.fb-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--border, #e7ede4);
+  animation: fbFieldIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.fb-field:last-child { border-bottom: 0; }
+.fb-field:nth-child(2) { animation-delay: 0.05s; }
+.fb-field:nth-child(3) { animation-delay: 0.1s; }
+.fb-field:nth-child(4) { animation-delay: 0.15s; }
+.fb-field:nth-child(5) { animation-delay: 0.2s; }
+@keyframes fbFieldIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: none; }
+}
+.fb-field__ic {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: var(--milk-warm, #eef3ec);
+  color: var(--primary, #008835);
+  display: grid;
+  place-items: center;
+}
+.fb-field__ic svg { width: 16px; height: 16px; }
+.fb-field__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fb-field__lbl {
+  font-size: 11px;
+  color: var(--muted, #4a6245);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.fb-field__val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #1e2d1a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fb-field__val.vazio { color: var(--muted, #4a6245); font-weight: 400; font-style: italic; }
+.fb-field__st { flex-shrink: 0; }
+.fb-dot-ok {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--success-bg, #e0ead8);
+  color: var(--success, #2f6b3f);
+  display: grid;
+  place-items: center;
+}
+.fb-dot-ok svg { width: 11px; height: 11px; }
+.fb-field__pend { font-size: 10.5px; color: var(--muted, #4a6245); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fb-beam { animation: none; opacity: 0.45; top: 56px; }
+  .fb-res, .fb-field { animation: none; }
+}
+
 .modal__header {
   padding: 24px 28px 16px;
   display: flex;

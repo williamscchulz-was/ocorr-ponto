@@ -65,9 +65,24 @@ const ehUrlSegura = (url) => {
 
 // Valida CNPJ via dígitos verificadores. Aceita string com ou sem máscara.
 // Retorna true se válido OU se vazio (campo opcional). False se inválido.
+const ehCPFValido = (raw) => {
+  const cpf = String(raw).replace(/\D/g, "");
+  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+  let s = 0;
+  for (let i = 0; i < 9; i++) s += parseInt(cpf[i], 10) * (10 - i);
+  let d1 = (s * 10) % 11; if (d1 === 10) d1 = 0;
+  if (d1 !== parseInt(cpf[9], 10)) return false;
+  s = 0;
+  for (let i = 0; i < 10; i++) s += parseInt(cpf[i], 10) * (11 - i);
+  let d2 = (s * 10) % 11; if (d2 === 10) d2 = 0;
+  return d2 === parseInt(cpf[10], 10);
+};
+
+// Aceita CNPJ (14) OU CPF (11) — prestador PJ ou PF/MEI. Vazio = OK (opcional).
 const ehCNPJValido = (raw) => {
   if (!raw || !String(raw).trim()) return true; // vazio = OK (opcional)
   const cnpj = String(raw).replace(/\D/g, "");
+  if (cnpj.length === 11) return ehCPFValido(cnpj); // CPF de prestador PF/MEI
   if (cnpj.length !== 14) return false;
   if (/^(\d)\1+$/.test(cnpj)) return false; // 00000000000000, etc
 
@@ -3750,8 +3765,8 @@ function openPJModal(id) {
       </div>
       <div class="field-row">
         <div class="field">
-          <label for="pj-cnpj">CNPJ</label>
-          <input type="text" id="pj-cnpj" maxlength="20" value="${pj?.cnpj || ""}" placeholder="00.000.000/0001-00" />
+          <label for="pj-cnpj">CNPJ / CPF</label>
+          <input type="text" id="pj-cnpj" maxlength="20" value="${pj?.cnpj || ""}" placeholder="CNPJ ou CPF do prestador" />
         </div>
         <div class="field">
           <label for="pj-tipo">Tipo de serviço</label>
@@ -4041,7 +4056,8 @@ function openPJModal(id) {
           uploadBtn.disabled = true;
 
           let textoDoPDF = "";
-          let resultadoExtracao = null;
+          let dadosFinais = null;
+          let mostrouResultado = false;
           const ehPDF = file.type === "application/pdf";
 
           // Steps visíveis ao usuário (ordem fixa, atualiza conforme avança)
@@ -4057,10 +4073,7 @@ function openPJModal(id) {
               updateFormBlocker("Lendo PDF...", 0);
               try {
                 textoDoPDF = await extrairTextoDoPDF(file);
-                resultadoExtracao = aplicarExtracaoTextoNoForm(textoDoPDF);
-                if (resultadoExtracao.preenchidos.length) {
-                  toast(`Detectei do contrato: ${resultadoExtracao.preenchidos.join(", ")}. Confira antes de salvar.`);
-                }
+                dadosFinais = aplicarExtracaoTextoNoForm(textoDoPDF).dados;
               } catch (err) {
                 console.warn("[pdf.js] falhou:", err);
               }
@@ -4113,11 +4126,7 @@ function openPJModal(id) {
                 const textoOCR = await window.extrairTextoViaDriveOCR(uploadResult.id);
                 if (textoOCR && textoOCR.trim().length > 100) {
                   const resOCR = aplicarExtracaoTextoNoForm(textoOCR);
-                  if (resOCR.preenchidos.length) {
-                    toast(`OCR detectou: ${resOCR.preenchidos.join(", ")}. Confira antes de salvar.`);
-                  } else {
-                    toast("OCR rodou mas não achou padrões reconhecíveis. Preenche manual.", "danger");
-                  }
+                  dadosFinais = { ...(dadosFinais || {}), ...resOCR.dados };
                 }
               } catch (err) {
                 console.warn("[Drive OCR] falhou:", err);
@@ -4150,16 +4159,22 @@ function openPJModal(id) {
               }
             }
 
-            // 4) Concluído
+            // 4) Concluído — mostra o cartão de revisão do que foi extraído
             const lastStep = ehPDF ? 3 : 1;
             updateFormBlocker("Pronto!", lastStep);
-            if (uploadResult) {
+            const temDados = dadosFinais
+              && Object.values(dadosFinais).some((v) => v != null && v !== "");
+            if (temDados) {
+              await new Promise((r) => setTimeout(r, 350));
+              mostrarResultadoOCR(dadosFinais);
+              mostrouResultado = true;
+            } else if (uploadResult) {
               toast("Arquivo enviado! Confira os campos e clique Salvar pra gravar.");
+              await new Promise((r) => setTimeout(r, 400));
             }
-            // Pequena pausa pra usuário ver "Pronto!" antes de fechar
-            await new Promise((r) => setTimeout(r, 400));
           } finally {
-            hideFormBlocker();
+            // Se mostrou o cartão de revisão, deixa aberto até o usuário fechar
+            if (!mostrouResultado) hideFormBlocker();
             uploadBtn.disabled = false;
             uploadBtn.innerHTML = origHTML;
             fileInput.value = "";
@@ -4182,7 +4197,7 @@ function savePJ(id) {
 
   const cnpjRaw = $("#pj-cnpj").value.trim();
   if (!ehCNPJValido(cnpjRaw)) {
-    return toast("CNPJ inválido — confere os 14 dígitos.", "danger");
+    return toast("CNPJ/CPF inválido — confira os dígitos.", "danger");
   }
 
   const valorRaw = $("#pj-valor").value;
@@ -4310,7 +4325,14 @@ function showFormBlocker(initialMsg = "Processando...", steps = []) {
   blocker.setAttribute("role", "alert");
   blocker.setAttribute("aria-live", "assertive");
   blocker.innerHTML = `
-    <div class="form-blocker__spinner"></div>
+    <div class="fb-scan" aria-hidden="true">
+      <div class="fb-doc">
+        <span class="fb-ln" style="width:58%"></span><span class="fb-ln" style="width:86%"></span>
+        <span class="fb-ln" style="width:72%"></span><span class="fb-ln" style="width:90%"></span>
+        <span class="fb-ln" style="width:64%"></span><span class="fb-ln" style="width:48%"></span>
+        <span class="fb-beam"></span>
+      </div>
+    </div>
     <div class="form-blocker__msg" id="form-blocker-msg">${initialMsg}</div>
     <div class="form-blocker__hint">Não feche essa janela</div>
     ${steps.length ? `
@@ -4335,6 +4357,70 @@ function updateFormBlocker(msg, activeStepIdx = null) {
 }
 function hideFormBlocker() {
   document.getElementById("form-blocker")?.remove();
+}
+
+// Cartão de revisão do que a leitura/OCR encontrou. Renderiza DENTRO do
+// form-blocker (substitui a cena de scan). Os campos já foram preenchidos
+// por aplicarExtracaoTextoNoForm — aqui o usuário só confere e fecha.
+function mostrarResultadoOCR(dados) {
+  const blocker = document.getElementById("form-blocker");
+  if (!blocker || !dados) return;
+
+  const PERIOD_LABEL = {
+    hora: "Por hora", trimestral: "Trimestral",
+    semestral: "Semestral", anual: "Anual", mensal: "Mensal",
+  };
+  const PATHS = {
+    doc: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+    user: '<circle cx="12" cy="8" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+    cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>',
+    cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  };
+  const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${PATHS[k]}</svg>`;
+  const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+  const valorTxt = dados.valor
+    ? formatMoeda(dados.valor) + (dados.periodicidade === "hora" ? " /h" : "")
+    : null;
+
+  const campos = [
+    { ic: "doc", lbl: "CNPJ / CPF", val: dados.cnpj || null },
+    { ic: "user", lbl: "Nome / razão social", val: dados.nome || null },
+    { ic: "cash", lbl: "Valor", val: valorTxt },
+    { ic: "clock", lbl: "Periodicidade", val: dados.periodicidade ? PERIOD_LABEL[dados.periodicidade] : null },
+    { ic: "cal", lbl: "Início do contrato", val: dados.dataInicio ? formatDate(dados.dataInicio) : null },
+  ];
+  const achou = campos.filter((c) => c.val).length;
+
+  blocker.innerHTML = `
+    <div class="fb-res">
+      <div class="fb-res__top">
+        <span class="fb-res__chk">${checkSvg}</span>
+        <div>
+          <b>Li o contrato</b>
+          <span>${achou
+            ? `Achei ${achou} ${achou === 1 ? "campo" : "campos"} — confere e ajusta o que faltar.`
+            : "Não reconheci os campos sozinho — preenche na mão."}</span>
+        </div>
+      </div>
+      <div class="fb-res__fields">
+        ${campos.map((c) => `
+          <div class="fb-field">
+            <span class="fb-field__ic">${svg(c.ic)}</span>
+            <span class="fb-field__main">
+              <span class="fb-field__lbl">${c.lbl}</span>
+              <span class="fb-field__val${c.val ? "" : " vazio"}">${c.val ? escapeHtml(c.val) : "não encontrado"}</span>
+            </span>
+            <span class="fb-field__st">${c.val
+              ? `<span class="fb-dot-ok">${checkSvg}</span>`
+              : `<span class="fb-field__pend">preencher</span>`}</span>
+          </div>`).join("")}
+      </div>
+      <button type="button" class="btn btn--primary btn--block" id="fb-res-ok">Conferir campos</button>
+    </div>
+  `;
+  blocker.querySelector("#fb-res-ok")?.addEventListener("click", hideFormBlocker);
 }
 
 // ---------- Extração automática de dados do contrato (PDF) ----------
@@ -4448,6 +4534,20 @@ function analisarTextoContrato(texto) {
     r.cnpj = cnpjEscolhido.formatado;
   }
 
+  // CPF (prestador PF / MEI) — só se nenhum CNPJ válido foi escolhido.
+  // Vai pro mesmo campo (rotulado "CNPJ / CPF"). Prefere um próximo a
+  // CONTRATADO/PRESTADOR; senão o primeiro CPF formatado do documento.
+  if (!r.cnpj) {
+    const cpfs = [...texto.matchAll(/\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b/g)];
+    let cpf = null;
+    for (const mc of matchesContratado) {
+      const achado = cpfs.find((c) => c.index >= mc.index && c.index <= mc.index + 400);
+      if (achado) { cpf = achado[1]; break; }
+    }
+    if (!cpf && cpfs.length) cpf = cpfs[0][1];
+    if (cpf) r.cnpj = cpf;
+  }
+
   debug("[Contrato] CNPJs encontrados:", cnpjsUnicos.map((c) => c.formatado));
   debug("[Contrato] CNPJ escolhido:", r.cnpj || "(nenhum válido — só CNPJ ignorado ou nenhum CNPJ)");
 
@@ -4489,11 +4589,26 @@ function analisarTextoContrato(texto) {
       if (valoresHora.length) r.valor = Math.min(...valoresHora);
     }
   } else {
-    // Mensal / outros: pega o MAIOR valor monetário entre R$ 100 e R$ 1.000.000
-    const valores = [...texto.matchAll(/R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/g)]
-      .map((m) => Number(m[1].replace(/\./g, "").replace(",", ".")))
-      .filter((v) => Number.isFinite(v) && v >= 100 && v <= 1_000_000);
-    if (valores.length > 0) r.valor = Math.max(...valores);
+    // Mensal/outros: 1º tenta o valor PERTO de "mensal/honorários/remuneração/
+    // valor do contrato" (mais confiável); só então cai no maior valor solto.
+    const perto = [
+      /(?:valor\s+mensal|mensalidade|remunera[çc][ãa]o|honor[áa]rios?|valor\s+(?:do\s+)?contrato|import[âa]ncia)[\s\S]{0,70}?R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/i,
+      /R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)[\s\S]{0,30}?(?:mensa(?:l|is)|por\s+m[êe]s|\/\s*m[êe]s)/i,
+    ];
+    for (const re of perto) {
+      const m = texto.match(re);
+      if (m) {
+        const v = Number(m[1].replace(/\./g, "").replace(",", "."));
+        if (Number.isFinite(v) && v >= 100 && v <= 1_000_000) { r.valor = v; break; }
+      }
+    }
+    // Fallback: maior valor monetário entre R$ 100 e R$ 1.000.000.
+    if (!r.valor) {
+      const valores = [...texto.matchAll(/R\$\s*([\d.]+,\d{2}|\d+,\d{2}|[\d.]+)/g)]
+        .map((m) => Number(m[1].replace(/\./g, "").replace(",", ".")))
+        .filter((v) => Number.isFinite(v) && v >= 100 && v <= 1_000_000);
+      if (valores.length > 0) r.valor = Math.max(...valores);
+    }
   }
 
   // ---------- Nome / razão social do prestador ----------
@@ -6745,7 +6860,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.1.0";
+window.CURRENT_VERSION = "1.2.0";
 let _changelogCarregado = false;
 let _changelogChecado = false;
 
