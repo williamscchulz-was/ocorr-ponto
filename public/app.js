@@ -5507,7 +5507,7 @@ function renderConfig() {
     { id: "tipos", label: "Tipos de Ocorrência", icon: "tag" },
     { id: "acoes", label: "Ações", icon: "check" },
   ];
-  if (u.role === "admin") tabs.push({ id: "usuarios", label: "Usuários", icon: "users" });
+  if (u.role === "admin") tabs.push({ id: "usuarios", label: "Permissões", icon: "shield" });
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -5948,6 +5948,111 @@ async function deleteTipo(id) {
   renderApp();
 }
 
+// ---------- Permissões: matriz papéis × acessos (referência read-only) ----------
+// As regras refletem os checks fixos do código. Decisão de produto: papéis
+// são fixos (não editáveis aqui); o admin gerencia papel + escopo na lista.
+const PERM_MATRIZ = [
+  { area: "Ocorrências", caps: [
+    { n: "Ver lançamentos", a: "full", g: "full", l: "turno", s: "atrib" },
+    { n: "Criar / lançar nova", a: "full", g: "full", l: "no", s: "no" },
+    { n: "Conferir (validar)", a: "full", g: "full", l: "turno", s: "atrib" },
+    { n: "Marcar como lançada", a: "full", g: "full", l: "no", s: "no" },
+    { n: "Editar o lançamento inteiro", a: "full", g: "no", l: "no", s: "no" },
+    { n: "Excluir", a: "full", g: "full", l: "no", s: "no" },
+  ]},
+  { area: "Banco de Horas", caps: [
+    { n: "Ver saldos", a: "full", g: "full", l: "turno", s: "atrib" },
+    { n: "Importar planilha", a: "full", g: "full", l: "no", s: "no" },
+  ]},
+  { area: "Controle PJ", caps: [
+    { n: "Ver contratos", a: "full", g: "full", l: "no", s: "no" },
+    { n: "Criar / editar contrato", a: "full", g: "full", l: "no", s: "no" },
+    { n: "Aplicar reajuste (IPCA)", a: "full", g: "full", l: "no", s: "no" },
+    { n: "Excluir", a: "full", g: "full", l: "no", s: "no" },
+  ]},
+  { area: "Funcionários", caps: [
+    { n: "Ver ficha", a: "full", g: "full", l: "no", s: "atrib" },
+    { n: "Editar turno / setor", a: "full", g: "full", l: "no", s: "no" },
+    { n: "Ver dados sensíveis (saldo)", a: "full", g: "full", l: "no", s: "no" },
+  ]},
+  { area: "Auditoria", caps: [
+    { n: "Ver histórico de alterações", a: "full", g: "full", l: "no", s: "no" },
+  ]},
+  { area: "Sistema", caps: [
+    { n: "Configurações (tipos, ações)", a: "full", g: "full", l: "no", s: "no" },
+    { n: "Gerenciar usuários e permissões", a: "full", g: "no", l: "no", s: "no" },
+  ]},
+];
+
+const ACCESS_PREVIEW = {
+  admin: ["Vê e edita tudo, em todos os turnos", "Gerencia usuários e permissões", "Exclui e edita lançamentos por completo"],
+  rh: ["Cria, lança e exclui ocorrências (todos os turnos)", "Controle PJ, reajustes e auditoria", "Não gerencia usuários"],
+  lider: ["Confere ocorrências do seu turno", "Vê banco de horas do turno", "Não cria nem exclui"],
+  supervisor: ["Confere só os funcionários atribuídos", "Vê fichas e banco de horas desses funcionários", "Não cria, não exclui, não vê PJ"],
+};
+
+function escopoUsuario(u) {
+  if (u.role === "admin") return "Acesso total";
+  if (u.role === "rh") return "Todos os turnos";
+  if (u.role === "lider") return u.turno === "geral" ? "Horário geral" : (u.turno ? `Turno ${u.turno}` : "Turno —");
+  if (u.role === "supervisor") {
+    const n = (u.funcionariosVisiveis || []).length;
+    return `${n} ${n === 1 ? "funcionário" : "funcionários"}`;
+  }
+  return "";
+}
+
+function permCell(val, locked) {
+  if (val === "full") return `<span class="perm-cell ${locked ? "perm-cell--lock" : ""}">${icon("check")}</span>`;
+  if (val === "turno") return `<span class="perm-cell"><span class="perm-pill perm-pill--turno">turno</span></span>`;
+  if (val === "atrib") return `<span class="perm-cell"><span class="perm-pill perm-pill--atrib">atribuídos</span></span>`;
+  return `<span class="perm-cell"><span class="perm-cell--no">–</span></span>`;
+}
+
+function permissoesMatrizHtml() {
+  const users = state.users || [];
+  const n = (r) => users.filter((u) => u.role === r).length;
+  const rows = PERM_MATRIZ.map((g) => `
+    <tr class="perm-grp"><td colspan="5">${g.area}</td></tr>
+    ${g.caps.map((c) => `
+      <tr class="perm-row">
+        <td class="perm-name">${c.n}</td>
+        <td class="perm-c">${permCell(c.a, true)}</td>
+        <td class="perm-c">${permCell(c.g)}</td>
+        <td class="perm-c">${permCell(c.l)}</td>
+        <td class="perm-c">${permCell(c.s)}</td>
+      </tr>`).join("")}
+  `).join("");
+
+  return `
+    <details class="perm-matrix" open>
+      <summary>
+        <span class="perm-matrix__t">Papéis &amp; acessos</span>
+        <span class="perm-matrix__h">o que cada papel pode fazer — referência</span>
+      </summary>
+      <div class="perm-table-wrap">
+        <table class="perm-table">
+          <thead>
+            <tr>
+              <th class="perm-corner">O que pode fazer</th>
+              <th class="perm-rcol perm-rcol--admin"><span>Admin</span><small>${n("admin")} ${n("admin") === 1 ? "pessoa" : "pessoas"}</small></th>
+              <th class="perm-rcol perm-rcol--gh"><span>GH</span><small>${n("rh")} ${n("rh") === 1 ? "pessoa" : "pessoas"}</small></th>
+              <th class="perm-rcol perm-rcol--lider"><span>Líder</span><small>${n("lider")} ${n("lider") === 1 ? "pessoa" : "pessoas"}</small></th>
+              <th class="perm-rcol perm-rcol--super"><span>Supervisor</span><small>${n("supervisor")} ${n("supervisor") === 1 ? "pessoa" : "pessoas"}</small></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="perm-legend">
+        <span><span class="perm-lg-chk">${icon("check")}</span> liberado</span>
+        <span><span class="perm-pill perm-pill--turno">turno</span> restrito ao turno</span>
+        <span><span class="perm-pill perm-pill--atrib">atribuídos</span> só do supervisor</span>
+        <span><span class="perm-cell--no">–</span> sem acesso</span>
+      </div>
+    </details>`;
+}
+
 // ---------- Usuários (Admin) ----------
 
 function renderUsuarios() { renderUsuariosInto("#view"); }
@@ -5955,8 +6060,9 @@ function renderUsuariosInto(selector) {
   const isFirebaseMode = typeof window.inviteUser === "function";
 
   $(selector).innerHTML = `
+    ${permissoesMatrizHtml()}
     <div class="cfg-actbar">
-      <p>Quem acessa, com qual papel e qual turno.${isFirebaseMode ? " Clique numa linha pra editar." : ""}</p>
+      <p>Quem acessa, com qual papel e qual escopo.${isFirebaseMode ? " Clique numa linha pra editar." : ""}</p>
       <button class="btn btn--primary" id="btn-novo-user" ${!isFirebaseMode ? `disabled title="Disponível apenas em modo Firebase"` : ""}>${icon("plus")}<span>Novo usuário</span></button>
     </div>
 
@@ -5968,7 +6074,7 @@ function renderUsuariosInto(selector) {
           <div class="avatar" data-uid="${u.id}">${initials(u.nome || u.email || "?")}</div>
           <div class="cfg-main">
             <div class="cfg-name">${escapeHtml(u.nome || "(sem nome)")}${u.ativo === false ? ` <span class="cfg-tone">inativo</span>` : ""}</div>
-            <div class="cfg-sub">${escapeHtml(u.email || "@" + u.id)}</div>
+            <div class="cfg-sub">${escapeHtml(u.email || "@" + u.id)} · ${escopoUsuario(u)}</div>
           </div>
           <span class="badge badge--${u.role === "admin" ? "danger" : u.role === "rh" ? "info" : "neutral"}">${roleLabel(u)}</span>
         </article>
@@ -6180,6 +6286,8 @@ function openEditarUsuarioModal(uid) {
         <span class="field__hint"><span id="superv-count">0</span> selecionados</span>
       </div>
 
+      <div class="perm-preview" id="edit-access-preview"></div>
+
       <div class="divider"></div>
 
       <label class="row" style="gap:10px; align-items:center; cursor:pointer; padding:8px 0;">
@@ -6258,6 +6366,8 @@ function openEditarUsuarioModal(uid) {
         turnoField.style.display = r === "lider" ? "block" : "none";
         supervField.style.display = r === "supervisor" ? "block" : "none";
         if (r === "supervisor") renderSupervPicker($("#superv-search")?.value || "");
+        const pv = $("#edit-access-preview");
+        if (pv) pv.innerHTML = `<div class="perm-preview__t">Acesso resultante</div><ul>${(ACCESS_PREVIEW[r] || []).map((t) => `<li>${icon("check")}<span>${escapeHtml(t)}</span></li>`).join("")}</ul>`;
       };
 
       roleSel.addEventListener("change", aplicarVisibilidadePapel);
@@ -6870,7 +6980,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.2.0";
+window.CURRENT_VERSION = "1.3.0";
 let _changelogCarregado = false;
 let _changelogChecado = false;
 

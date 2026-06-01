@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Painel de Permissões (FioPulse)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#F7F9F6; --surface:#fff; --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:#006328; --text-body:#1E2D1A; --muted:#4A6245;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --danger:#962F32; --warning:#B27429; --info:#2F5A6B; --success:#2F6B3F;
+    --info-bg:#D8E6EA; --danger-bg:#F4D6D2; --warning-bg:#F8E4C8; --success-bg:#E0EAD8;
+    --milk-warm:#EEF3EC; --azul:#0076BE; --amarelo:#FFCB00;
+    --font:"Poppins",system-ui,sans-serif; --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:#dfe3dd;color:var(--text-body);padding:26px 16px 60px;}
+  h1.tt{text-align:center;color:var(--plum-deep);font-weight:700;margin:0 0 2px;font-size:21px;}
+  p.ss{text-align:center;color:#5a6b54;margin:0 0 20px;font-size:13px;}
+
+  .win{max-width:1000px;margin:0 auto 22px;background:var(--bg);border-radius:18px;overflow:hidden;box-shadow:0 18px 55px rgba(0,40,20,.18);padding:24px 26px 28px;}
+
+  /* page header */
+  .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+  .ph h1{margin:0;font-size:22px;color:var(--text-body);font-weight:700;}
+  .ph p{margin:3px 0 0;font-size:12.5px;color:var(--muted);}
+  .ph .who{font-size:11px;color:var(--muted);background:var(--milk-warm);border:1px solid var(--border);border-radius:20px;padding:5px 11px;white-space:nowrap;}
+
+  /* tabs */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:18px 0 0;}
+  .tab{border:0;background:none;font-family:inherit;font-size:13.5px;font-weight:500;color:var(--muted);padding:10px 14px;cursor:pointer;position:relative;}
+  .tab.on{color:var(--plum-deep);font-weight:600;}
+  .tab.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;background:var(--plum);border-radius:2px;}
+  .pane{display:none;} .pane.on{display:block;animation:fade .25s var(--ease);}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  /* role summary cards */
+  .roles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 8px;}
+  .rc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 13px;position:relative;overflow:hidden;}
+  .rc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);}
+  .rc h4{margin:0;font-size:13.5px;color:var(--text-body);display:flex;align-items:center;gap:7px;}
+  .rc .dot{width:8px;height:8px;border-radius:50%;background:var(--c);}
+  .rc small{display:block;color:var(--muted);font-size:11px;margin-top:3px;line-height:1.4;}
+  .rc .cnt{font-size:11px;color:var(--muted);margin-top:7px;}
+  .rc .cnt b{color:var(--text-body);}
+
+  /* matrix */
+  .mtx-wrap{margin-top:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface);}
+  table.mtx{width:100%;border-collapse:collapse;font-size:13px;}
+  table.mtx th,table.mtx td{padding:0;}
+  .mtx thead th{position:sticky;top:0;background:var(--surface);}
+  .mtx thead .corner{text-align:left;padding:13px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+  .mtx thead .rcol{padding:11px 8px 12px;border-left:1px solid var(--border);width:130px;text-align:center;}
+  .mtx thead .rcol .rh{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .mtx thead .rcol .rh .nm{font-size:12.5px;font-weight:700;color:var(--text-body);display:flex;align-items:center;gap:6px;}
+  .mtx thead .rcol .rh .nm .dot{width:7px;height:7px;border-radius:50%;background:var(--c);}
+  .mtx thead .rcol .rh .lk{font-size:10px;color:var(--muted);}
+  .mtx thead .rcol .top{height:3px;background:var(--c);margin:-11px -8px 9px;}
+
+  .mtx tr.grp td{background:var(--milk-warm);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:7px 16px;}
+  .mtx tbody tr.cap{border-top:1px solid var(--border);}
+  .mtx tbody tr.cap:hover{background:#FAFCF9;}
+  .mtx td.cap-name{padding:11px 16px;color:var(--text-body);font-weight:500;}
+  .mtx td.cap-name small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:1px;}
+  .mtx td.cell{text-align:center;border-left:1px solid var(--border);vertical-align:middle;}
+
+  /* cell states */
+  .pcell{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;border-radius:8px;cursor:pointer;transition:.13s var(--ease);user-select:none;}
+  .pcell.editable:hover{background:var(--milk-warm);}
+  .pcell .chk{width:20px;height:20px;border-radius:6px;background:var(--success-bg);color:var(--success);display:grid;place-items:center;}
+  .pcell .chk svg{width:13px;height:13px;}
+  .pcell.off .chk{background:transparent;color:#c7d2c0;box-shadow:none;}
+  .pcell .dash{color:#c0ccb8;font-size:16px;line-height:1;}
+  .pill{font-size:10px;font-weight:600;border-radius:20px;padding:3px 9px;white-space:nowrap;}
+  .pill.turno{background:var(--warning-bg);color:var(--warning);}
+  .pill.atrib{background:var(--info-bg);color:var(--info);}
+  .pcell.locked{cursor:default;}
+  .pcell.locked .chk{background:transparent;color:var(--plum-soft);}
+
+  .mtx-foot{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:11px 16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);background:var(--surface);}
+  .mtx-foot .lg{display:inline-flex;align-items:center;gap:6px;}
+  .mtx-foot .lg .chk{width:16px;height:16px;border-radius:5px;background:var(--success-bg);color:var(--success);display:grid;place-items:center;}
+  .mtx-foot .lg .chk svg{width:10px;height:10px;}
+  .save-hint{margin-top:12px;font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:7px;}
+  .save-hint .save{background:var(--plum);color:#fff;border:0;border-radius:9px;padding:8px 15px;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;}
+
+  /* users list */
+  .actbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:18px 0 14px;flex-wrap:wrap;}
+  .actbar p{margin:0;font-size:12.5px;color:var(--muted);}
+  .novo{display:inline-flex;align-items:center;gap:7px;background:var(--plum);color:#fff;border:0;border-radius:10px;padding:9px 15px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+  .novo svg{width:15px;height:15px;}
+  .list{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .row{display:flex;align-items:center;gap:13px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .14s;}
+  .row:last-child{border-bottom:0;}
+  .row:hover{background:#FAFCF9;}
+  .row.sel{background:#F1F7EE;box-shadow:inset 3px 0 0 var(--plum);}
+  .av{width:38px;height:38px;border-radius:50%;background:var(--milk-warm);color:var(--plum-deep);display:grid;place-items:center;font-weight:700;font-size:12.5px;flex-shrink:0;}
+  .av.admin{background:var(--danger);color:#fff;}
+  .av.gh{background:var(--azul);color:#fff;}
+  .rmain{flex:1;min-width:0;}
+  .rname{font-size:14px;font-weight:600;color:var(--text-body);}
+  .rsub{font-size:11.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .scope{font-size:11.5px;color:var(--muted);flex-shrink:0;display:flex;align-items:center;gap:6px;}
+  .scope svg{width:13px;height:13px;opacity:.7;}
+  .rtag{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;border-radius:6px;padding:3px 9px;flex-shrink:0;}
+  .rtag.admin{background:var(--danger-bg);color:var(--danger);}
+  .rtag.gh{background:var(--info-bg);color:var(--info);}
+  .rtag.lider{background:var(--success-bg);color:var(--success);}
+  .rtag.super{background:var(--warning-bg);color:var(--warning);}
+
+  /* editor (drawer mock) */
+  .drawer{margin-top:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;}
+  .drawer__head{display:flex;align-items:center;gap:11px;padding:14px 18px;border-bottom:1px solid var(--border);background:#FBFDFA;}
+  .drawer__head .av{width:34px;height:34px;}
+  .drawer__head b{font-size:14.5px;}
+  .drawer__head span{font-size:11.5px;color:var(--muted);display:block;}
+  .drawer__body{padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .fld label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--plum-deep);margin-bottom:6px;}
+  .fld select{width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text-body);}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;}
+  .seg button{border:1px solid var(--border-strong);background:var(--surface);border-radius:9px;padding:8px 13px;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;transition:.13s;}
+  .seg button.on{background:var(--plum);color:#fff;border-color:var(--plum);}
+
+  .multi{border:1px solid var(--border-strong);border-radius:10px;overflow:hidden;}
+  .multi__search{display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--border);color:var(--muted);}
+  .multi__search input{border:0;outline:0;font-family:inherit;font-size:13px;flex:1;background:none;color:var(--text-body);}
+  .multi__search svg{width:14px;height:14px;}
+  .multi__list{max-height:172px;overflow-y:auto;}
+  .opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;}
+  .opt:last-child{border-bottom:0;}
+  .opt:hover{background:#FAFCF9;}
+  .opt .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-strong);display:grid;place-items:center;flex-shrink:0;color:#fff;}
+  .opt.ck .box{background:var(--plum);border-color:var(--plum);}
+  .opt .box svg{width:11px;height:11px;opacity:0;}
+  .opt.ck .box svg{opacity:1;}
+  .opt .who2{flex:1;}
+  .opt .who2 small{display:block;color:var(--muted);font-size:11px;}
+  .multi__foot{padding:8px 12px;font-size:11px;color:var(--muted);background:#FBFDFA;border-top:1px solid var(--border);}
+
+  .preview{grid-column:1/3;background:#F1F7EE;border:1px solid var(--success-bg);border-radius:12px;padding:14px 16px;}
+  .preview h5{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--plum-deep);text-transform:uppercase;letter-spacing:.04em;}
+  .preview ul{margin:0;padding-left:2px;list-style:none;font-size:12.5px;color:var(--text-body);}
+  .preview li{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;line-height:1.4;}
+  .preview li svg{width:14px;height:14px;color:var(--success);flex-shrink:0;margin-top:2px;}
+  .preview li.no svg{color:#c0ccb8;}
+  .drawer__foot{display:flex;justify-content:flex-end;gap:8px;padding:13px 18px;border-top:1px solid var(--border);}
+  .btn-g{background:var(--milk-warm);color:var(--muted);border:0;border-radius:10px;padding:10px 16px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-p{background:var(--plum);color:#fff;border:0;border-radius:10px;padding:10px 18px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+
+  .note{max-width:1000px;margin:22px auto 0;font-size:12.5px;color:#41513c;line-height:1.7;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;}
+  .note b{color:var(--plum-deep);}
+  .note ul{margin:8px 0 0;padding-left:18px;} .note li{margin-bottom:5px;}
+  .tag{display:inline-block;background:var(--plum);color:#fff;font-size:10px;font-weight:700;border-radius:5px;padding:1px 7px;margin-right:5px;vertical-align:middle;}
+
+  @media(max-width:760px){
+    .roles{grid-template-columns:1fr 1fr;}
+    .drawer__body{grid-template-columns:1fr;} .preview{grid-column:1;}
+    .mtx thead .corner{font-size:0;} .mtx thead .rcol{width:auto;}
+    table.mtx{font-size:12px;}
+  }
+</style>
+</head>
+<body>
+  <h1 class="tt">Painel de Permissões — FioPulse</h1>
+  <p class="ss">Quem acessa o quê, num lugar só. Matriz de papéis + gestão de usuários com escopo. (Apenas administradores enxergam esta tela.)</p>
+
+  <div class="win">
+    <div class="ph">
+      <div><h1>Permissões</h1><p>Controle de acesso por papel e por pessoa.</p></div>
+      <span class="who">10 usuários · 4 papéis</span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-pane="papeis">Papéis &amp; acessos</button>
+      <button class="tab" data-pane="usuarios">Usuários</button>
+    </div>
+
+    <!-- ============ PANE PAPÉIS ============ -->
+    <div class="pane on" id="pane-papeis">
+      <div class="roles">
+        <div class="rc" style="--c:var(--danger)"><h4><span class="dot"></span>Administrador</h4><small>Acesso total e gestão de usuários.</small><div class="cnt"><b>1</b> usuário</div></div>
+        <div class="rc" style="--c:var(--azul)"><h4><span class="dot"></span>GH</h4><small>Gestão de Pessoas. Cria, lança e exclui.</small><div class="cnt"><b>3</b> usuários</div></div>
+        <div class="rc" style="--c:var(--plum)"><h4><span class="dot"></span>Líder</h4><small>Confere só o próprio turno.</small><div class="cnt"><b>4</b> usuários</div></div>
+        <div class="rc" style="--c:var(--warning)"><h4><span class="dot"></span>Supervisor</h4><small>Confere só funcionários atribuídos.</small><div class="cnt"><b>2</b> usuários</div></div>
+      </div>
+
+      <div class="mtx-wrap">
+        <table class="mtx">
+          <thead>
+            <tr>
+              <th class="corner">O que pode fazer</th>
+              <th class="rcol" style="--c:var(--danger)"><div class="top"></div><div class="rh"><span class="nm"><span class="dot"></span>Admin</span><span class="lk">fixo</span></div></th>
+              <th class="rcol" style="--c:var(--azul)"><div class="top"></div><div class="rh"><span class="nm"><span class="dot"></span>GH</span></div></th>
+              <th class="rcol" style="--c:var(--plum)"><div class="top"></div><div class="rh"><span class="nm"><span class="dot"></span>Líder</span></div></th>
+              <th class="rcol" style="--c:var(--warning)"><div class="top"></div><div class="rh"><span class="nm"><span class="dot"></span>Supervisor</span></div></th>
+            </tr>
+          </thead>
+          <tbody id="mtx-body"></tbody>
+        </table>
+        <div class="mtx-foot">
+          <span class="lg"><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> liberado</span>
+          <span class="lg"><span class="pill turno">turno</span> restrito ao turno do líder</span>
+          <span class="lg"><span class="pill atrib">atribuídos</span> só funcionários do supervisor</span>
+          <span class="lg"><span class="dash" style="color:#c0ccb8;font-size:15px">–</span> sem acesso</span>
+        </div>
+      </div>
+      <div class="save-hint">
+        <span>Clique numa célula de GH, Líder ou Supervisor para ligar/desligar. Admin é sempre total.</span>
+        <button class="save" style="margin-left:auto">Salvar permissões</button>
+      </div>
+    </div>
+
+    <!-- ============ PANE USUÁRIOS ============ -->
+    <div class="pane" id="pane-usuarios">
+      <div class="actbar">
+        <p>Quem acessa, com qual papel e qual escopo. Clique numa linha pra editar.</p>
+        <button class="novo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Novo usuário</button>
+      </div>
+
+      <div class="list" id="users-list"></div>
+
+      <!-- editor inline (aparece ao clicar) -->
+      <div class="drawer" id="drawer">
+        <div class="drawer__head">
+          <div class="av super">CL</div>
+          <div><b>Carlos Lima</b><span>carlos.lima@fiobras.com.br</span></div>
+        </div>
+        <div class="drawer__body">
+          <div class="fld">
+            <label>Papel</label>
+            <select id="role-pick">
+              <option>Administrador — acesso total</option>
+              <option>GH — cria, lança e exclui</option>
+              <option>Líder — confere o turno</option>
+              <option selected>Supervisor — confere atribuídos</option>
+            </select>
+            <div style="margin-top:14px" id="scope-turno-wrap" hidden>
+              <label>Turno</label>
+              <div class="seg"><button>1º</button><button class="on">2º</button><button>3º</button><button>Geral</button></div>
+            </div>
+          </div>
+
+          <div class="fld" id="scope-func-wrap">
+            <label>Funcionários visíveis</label>
+            <div class="multi">
+              <div class="multi__search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar funcionário..." /></div>
+              <div class="multi__list" id="func-list"></div>
+              <div class="multi__foot" id="func-count">3 de 142 selecionados</div>
+            </div>
+          </div>
+
+          <div class="preview" id="preview">
+            <h5>Acesso resultante</h5>
+            <ul id="preview-list"></ul>
+          </div>
+        </div>
+        <div class="drawer__foot">
+          <button class="btn-g">Cancelar</button>
+          <button class="btn-p">Salvar usuário</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>A ideia:</b> hoje as permissões existem só no código (escondidas). Este painel traz tudo pra superfície, em dois níveis:
+    <ul>
+      <li><span class="tag">1</span><b>Matriz de papéis × acessos</b> — uma visão clara do que cada papel faz em cada área (Ocorrências, Banco de Horas, PJ, Funcionários, Auditoria, Sistema). As células podem virar <b>ligáveis</b> (permissões editáveis e salvas) ou ficar como <b>referência fixa</b> (só leitura) — você decide.</li>
+      <li><span class="tag">2</span><b>Usuários com escopo</b> — cada pessoa mostra papel + escopo direto na lista (Turno 2 · 8 funcionários). Ao editar, o escopo certo aparece (turno pro líder, multiseleção de funcionários pro supervisor) e um <b>resumo do acesso</b> mostra na hora o que aquela pessoa vai enxergar.</li>
+    </ul>
+    <b>Decisão pra você:</b> a matriz deve ser <b>editável</b> (mais poderoso — exige trocar os checks fixos do código por consulta a um mapa salvo) ou <b>referência fixa + escopos editáveis</b> (mais leve — papéis continuam fixos, mas você gerencia papel e escopo)?
+  </div>
+
+<script>
+  // tabs
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on'); document.getElementById('pane-'+t.dataset.pane).classList.add('on');
+  });
+
+  // ---- matriz ----
+  const CHK = '<span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
+  const DASH = '<span class="dash">–</span>';
+  const MATRIX = [
+    {area:'Ocorrências', caps:[
+      {n:'Ver lançamentos', admin:'full', gh:'full', lider:'turno', super:'atrib'},
+      {n:'Criar / lançar nova', admin:'full', gh:'full', lider:'no', super:'no'},
+      {n:'Conferir (validar)', admin:'full', gh:'full', lider:'turno', super:'atrib'},
+      {n:'Marcar como lançada', admin:'full', gh:'full', lider:'no', super:'no'},
+      {n:'Editar o lançamento inteiro', admin:'full', gh:'no', lider:'no', super:'no'},
+      {n:'Excluir', admin:'full', gh:'full', lider:'no', super:'no'},
+    ]},
+    {area:'Banco de Horas', caps:[
+      {n:'Ver saldos', admin:'full', gh:'full', lider:'turno', super:'atrib'},
+      {n:'Importar planilha', admin:'full', gh:'full', lider:'no', super:'no'},
+    ]},
+    {area:'Controle PJ', caps:[
+      {n:'Ver contratos', admin:'full', gh:'full', lider:'no', super:'no'},
+      {n:'Criar / editar contrato', admin:'full', gh:'full', lider:'no', super:'no'},
+      {n:'Aplicar reajuste (IPCA)', admin:'full', gh:'full', lider:'no', super:'no'},
+      {n:'Excluir', admin:'full', gh:'full', lider:'no', super:'no'},
+    ]},
+    {area:'Funcionários', caps:[
+      {n:'Ver ficha', admin:'full', gh:'full', lider:'no', super:'atrib'},
+      {n:'Editar turno / setor', admin:'full', gh:'full', lider:'no', super:'no'},
+      {n:'Ver dados sensíveis (saldo)', admin:'full', gh:'full', lider:'no', super:'no'},
+    ]},
+    {area:'Auditoria', caps:[
+      {n:'Ver histórico de alterações', admin:'full', gh:'full', lider:'no', super:'no'},
+    ]},
+    {area:'Sistema', caps:[
+      {n:'Configurações (tipos, ações)', admin:'full', gh:'full', lider:'no', super:'no'},
+      {n:'Gerenciar usuários e permissões', admin:'full', gh:'no', lider:'no', super:'no'},
+    ]},
+  ];
+  const cellHtml = (role, val) => {
+    if (role==='admin') return `<span class="pcell locked" title="Admin é sempre total">${CHK}</span>`;
+    if (val==='full') return `<span class="pcell editable" data-on="full">${CHK}</span>`;
+    if (val==='turno') return `<span class="pcell editable" data-on="turno"><span class="pill turno">turno</span></span>`;
+    if (val==='atrib') return `<span class="pcell editable" data-on="atrib"><span class="pill atrib">atribuídos</span></span>`;
+    return `<span class="pcell editable off" data-on="full">${DASH}</span>`;
+  };
+  const body = document.getElementById('mtx-body');
+  MATRIX.forEach(g=>{
+    body.insertAdjacentHTML('beforeend', `<tr class="grp"><td colspan="5">${g.area}</td></tr>`);
+    g.caps.forEach(c=>{
+      body.insertAdjacentHTML('beforeend', `<tr class="cap">
+        <td class="cap-name">${c.n}</td>
+        <td class="cell">${cellHtml('admin',c.admin)}</td>
+        <td class="cell">${cellHtml('gh',c.gh)}</td>
+        <td class="cell">${cellHtml('lider',c.lider)}</td>
+        <td class="cell">${cellHtml('super',c.super)}</td>
+      </tr>`);
+    });
+  });
+  // toggle on/off (cosmético) — alterna entre o valor "on" e desligado
+  body.querySelectorAll('.pcell.editable').forEach(c=>{
+    c.onclick=()=>{
+      const on = c.dataset.on;
+      if (c.classList.contains('off')) {
+        c.classList.remove('off');
+        c.innerHTML = on==='turno' ? '<span class="pill turno">turno</span>' : on==='atrib' ? '<span class="pill atrib">atribuídos</span>' : CHK;
+      } else {
+        c.classList.add('off'); c.innerHTML = DASH;
+      }
+    };
+  });
+
+  // ---- usuários ----
+  const USERS = [
+    {ini:'AP', nome:'Ana Paula Reis', email:'ana.reis@fiobras.com.br', role:'admin', tag:'Admin', scope:'Acesso total', icon:'shield'},
+    {ini:'MS', nome:'Marina Souza', email:'marina.souza@fiobras.com.br', role:'gh', tag:'GH', scope:'Todos os turnos', icon:'globe'},
+    {ini:'DA', nome:'Diego Antunes', email:'diego.antunes@fiobras.com.br', role:'gh', tag:'GH', scope:'Todos os turnos', icon:'globe'},
+    {ini:'RK', nome:'Rafael Klug', email:'rafael.klug@fiobras.com.br', role:'lider', tag:'Líder', scope:'Turno 1', icon:'clock'},
+    {ini:'BM', nome:'Bianca Mattos', email:'bianca.mattos@fiobras.com.br', role:'lider', tag:'Líder', scope:'Turno 2', icon:'clock'},
+    {ini:'CL', nome:'Carlos Lima', email:'carlos.lima@fiobras.com.br', role:'super', tag:'Supervisor', scope:'8 funcionários', icon:'users'},
+  ];
+  const ICONS = {
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>',
+    users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+  };
+  const ul = document.getElementById('users-list');
+  USERS.forEach((u,i)=>{
+    ul.insertAdjacentHTML('beforeend', `<div class="row ${u.role==='super'?'sel':''}" data-i="${i}">
+      <div class="av ${u.role==='admin'?'admin':u.role==='gh'?'gh':''}">${u.ini}</div>
+      <div class="rmain"><div class="rname">${u.nome}</div><div class="rsub">${u.email}</div></div>
+      <span class="scope"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[u.icon]}</svg>${u.scope}</span>
+      <span class="rtag ${u.role}">${u.tag}</span>
+    </div>`);
+  });
+  const drawer = document.getElementById('drawer');
+  ul.querySelectorAll('.row').forEach(r=>r.onclick=()=>{
+    ul.querySelectorAll('.row').forEach(x=>x.classList.remove('sel'));
+    r.classList.add('sel');
+    drawer.scrollIntoView({behavior:'smooth', block:'nearest'});
+  });
+
+  // funcionários multiselect (fake)
+  const FUNCS = [
+    {n:'Adelir Padilha', s:'cód 612 · Produção', ck:true},
+    {n:'Marcos Vieira', s:'cód 880 · Preparação', ck:true},
+    {n:'Joana Reuter', s:'cód 1074 · Laboratório', ck:true},
+    {n:'Tiago Bom', s:'cód 339 · Produção', ck:false},
+    {n:'Eduarda Lenz', s:'cód 455 · Expedição', ck:false},
+    {n:'Paulo Sá', s:'cód 720 · Produção', ck:false},
+  ];
+  const fl = document.getElementById('func-list');
+  const cntEl = document.getElementById('func-count');
+  function renderFuncs(){
+    fl.innerHTML = FUNCS.map((f,i)=>`<div class="opt ${f.ck?'ck':''}" data-i="${i}">
+      <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+      <span class="who2">${f.n}<small>${f.s}</small></span>
+    </div>`).join('');
+    fl.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{ const f=FUNCS[o.dataset.i]; f.ck=!f.ck; renderFuncs(); upd(); });
+    const sel = FUNCS.filter(f=>f.ck).length + 5; // +5 fictícios fora da amostra
+    cntEl.textContent = sel + ' de 142 selecionados';
+  }
+  // preview por papel
+  const PREVIEW = {
+    'Administrador — acesso total':['Vê e edita tudo, em todos os turnos','Gerencia usuários e permissões','Exclui e edita lançamentos por completo'],
+    'GH — cria, lança e exclui':['Cria, lança e exclui ocorrências (todos os turnos)','Controle PJ, reajustes e auditoria','Não gerencia usuários'],
+    'Líder — confere o turno':['Confere ocorrências do seu turno','Vê banco de horas do turno','Não cria nem exclui'],
+    'Supervisor — confere atribuídos':['Confere só os funcionários atribuídos','Vê fichas e banco de horas desses funcionários','Não cria, não exclui, não vê PJ'],
+  };
+  const roleSel = document.getElementById('role-pick');
+  const turnoWrap = document.getElementById('scope-turno-wrap');
+  const funcWrap = document.getElementById('scope-func-wrap');
+  const pvList = document.getElementById('preview-list');
+  function upd(){
+    const v = roleSel.value;
+    turnoWrap.hidden = !v.startsWith('Líder');
+    funcWrap.style.display = v.startsWith('Supervisor') ? 'block' : 'none';
+    pvList.innerHTML = (PREVIEW[v]||[]).map(t=>`<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>${t}</li>`).join('');
+  }
+  roleSel.onchange = upd;
+  renderFuncs(); upd();
+</script>
+</body>
+</html>

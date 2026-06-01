@@ -1523,6 +1523,130 @@ textarea:focus-visible,
   .fb-res, .fb-field { animation: none; }
 }
 
+/* ---- Painel de permissões: matriz papéis × acessos (read-only) ---- */
+.perm-matrix {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+.perm-matrix > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.perm-matrix > summary::-webkit-details-marker { display: none; }
+.perm-matrix > summary::before {
+  content: "";
+  width: 7px; height: 7px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(-45deg);
+  transition: transform .18s var(--ease);
+  align-self: center;
+}
+.perm-matrix[open] > summary::before { transform: rotate(45deg); }
+.perm-matrix__t { font-weight: 700; font-size: 14px; color: var(--text-body); }
+.perm-matrix__h { font-size: 12px; color: var(--text-muted); }
+.perm-table-wrap { overflow-x: auto; border-top: 1px solid var(--border); }
+.perm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.perm-corner {
+  text-align: left;
+  padding: 11px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.perm-rcol {
+  width: 120px;
+  text-align: center;
+  padding: 9px 6px 11px;
+  border-left: 1px solid var(--border);
+  border-top: 3px solid var(--c, var(--border));
+}
+.perm-rcol span { display: block; font-weight: 700; font-size: 12.5px; color: var(--text-body); }
+.perm-rcol small { font-size: 10.5px; color: var(--text-muted); }
+.perm-rcol--admin { --c: var(--danger); }
+.perm-rcol--gh { --c: var(--fiobras-blue); }
+.perm-rcol--lider { --c: var(--plum); }
+.perm-rcol--super { --c: var(--warning); }
+.perm-grp td {
+  background: var(--milk-warm);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  padding: 6px 16px;
+}
+.perm-row { border-top: 1px solid var(--border); }
+.perm-row:hover { background: #FAFCF9; }
+.perm-name { padding: 10px 16px; color: var(--text-body); font-weight: 500; }
+.perm-c { text-align: center; border-left: 1px solid var(--border); }
+.perm-cell { display: inline-grid; place-items: center; width: 26px; height: 26px; }
+.perm-cell svg { width: 16px; height: 16px; color: var(--success); }
+.perm-cell--lock svg { color: var(--plum-soft); }
+.perm-cell--no { color: #c0ccb8; font-size: 15px; line-height: 1; }
+.perm-pill {
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+.perm-pill--turno { background: var(--warning-bg); color: var(--warning); }
+.perm-pill--atrib { background: var(--info-bg); color: var(--info); }
+.perm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.perm-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.perm-lg-chk { display: inline-grid; place-items: center; }
+.perm-lg-chk svg { width: 14px; height: 14px; color: var(--success); }
+
+/* Preview "Acesso resultante" no editor de usuário */
+.perm-preview {
+  background: #F1F7EE;
+  border: 1px solid var(--success-bg);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-top: 4px;
+}
+.perm-preview__t {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--plum-deep);
+  margin-bottom: 7px;
+}
+.perm-preview ul { margin: 0; padding: 0; list-style: none; }
+.perm-preview li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-body);
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+.perm-preview li:last-child { margin-bottom: 0; }
+.perm-preview li svg { width: 14px; height: 14px; color: var(--success); flex-shrink: 0; margin-top: 2px; }
+
 .modal__header {
   padding: 24px 28px 16px;
   display: flex;

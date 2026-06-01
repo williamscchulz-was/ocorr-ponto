@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.2.0", d: "1 jun 2026", current: true, items: [
+    v: "1.3.0", d: "1 jun 2026", current: true, items: [
+      { type: "feat", title: "Painel de Permissões: matriz do que cada papel (Admin, GH, Líder, Supervisor) faz + escopo por usuário (turno / funcionários)." },
+    ],
+  },
+  {
+    v: "1.2.0", d: "1 jun 2026", items: [
       { type: "high", title: "Leitura de contrato repaginada: cena de scan animada + cartão revisando o que foi encontrado." },
       { type: "feat", title: "Extração mais esperta: reconhece CPF além de CNPJ e prioriza o valor mensal/honorários." },
     ],
