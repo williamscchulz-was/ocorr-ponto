@@ -1,10 +1,10 @@
 # FioPulse · Fiobras
 
-> O batimento do RH Fiobras. Controle de ponto, banco de horas e PJs em tempo real.
+> O batimento do GH Fiobras. Controle de ponto, banco de horas e PJs em tempo real.
 
-PWA interno da Fiobras pra substituir a planilha Excel de controle de ponto. RH registra ocorrências, líderes conferem, todo mundo vê o que importa — sem retrabalho, com colaboração em tempo real.
+PWA interno da Fiobras pra substituir a planilha Excel de controle de ponto. GH (Gestão de Pessoas) registra ocorrências, líderes conferem, todo mundo vê o que importa — sem retrabalho, com colaboração em tempo real.
 
-🔗 **Produção:** [gh.fiobras.com.br](https://gh.fiobras.com.br) (em provisionamento) · [weave-fiobras.web.app](https://weave-fiobras.web.app)
+🔗 **Produção:** [gh.fiobras.com.br](https://gh.fiobras.com.br) · [weave-fiobras.web.app](https://weave-fiobras.web.app)
 
 ## Funcionalidades
 
@@ -86,8 +86,9 @@ O hosting target `weave` está configurado no `.firebaserc` apontando pro site `
 | Papel | Acesso |
 |-------|--------|
 | **Admin** | Tudo — incluindo aba Dados (zerar base), gerência de usuários, todas as configurações |
-| **RH** | Registra ocorrências, gerencia PJs, edita funcionários, configura tipos/ações |
+| **GH** | Registra ocorrências, gerencia PJs, edita funcionários, configura tipos/ações |
 | **Líder de Turno** | Vê apenas ocorrências e banco de horas do próprio turno; confere ocorrências |
+| **Supervisor** | Vê e confere apenas os funcionários atribuídos a ele |
 
 ## Status
 
@@ -97,8 +98,12 @@ O hosting target `weave` está configurado no `.firebaserc` apontando pro site `
 - [x] Presença + edição colaborativa em tempo real
 - [x] Rebrand Weave → FioPulse
 - [x] Auditoria + fixes P0 (XSS, defer, PII) e P1 (dead code, polish UX, CNPJ)
+- [x] Chat interno — conversas, reações, confirmação de leitura, marcar todas como lidas
+- [x] Painel de permissões editável (matriz papéis × acessos, na UI e nas regras do Firestore)
+- [x] OCR de contrato repaginado (cena de scan + cartão de revisão) + extração mais robusta
+- [x] Splash com logo "se desenhando" + auto-update (o PWA se atualiza sozinho)
+- [x] Custom domain `gh.fiobras.com.br` no ar
 - [ ] Pipeline WKRADAR consumindo JSONs do Storage (em curso)
-- [ ] Custom domain `gh.fiobras.com.br` (DNS configurado, aguardando verificação Firebase)
 - [ ] Modal de confirmação destrutiva (substituir `confirm()` nativo)
 - [ ] CSP header no `firebase.json`
 
