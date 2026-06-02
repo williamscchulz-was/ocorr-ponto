@@ -17,6 +17,7 @@ public/firebase.config.local.js
 # Service account / chaves
 *-service-account.json
 firebase-adminsdk-*.json
+*firebase-adminsdk*.json
 service-account.json
 service-account-*.json
 
