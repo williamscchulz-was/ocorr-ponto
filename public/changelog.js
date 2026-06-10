@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.6.1", d: "10 jun 2026", current: true, items: [
+    v: "1.6.2", d: "10 jun 2026", current: true, items: [
+      { type: "feat", title: "Primeira visita às listas ganha um instante de carregamento elegante; no resto do uso, tudo segue instantâneo." },
+    ],
+  },
+  {
+    v: "1.6.1", d: "10 jun 2026", items: [
       { type: "feat", title: "Erros de formulário agora aparecem no próprio campo, em vez de um aviso que some." },
       { type: "feat", title: "Listas navegáveis pelo teclado: Tab percorre, Enter abre o item." },
     ],
