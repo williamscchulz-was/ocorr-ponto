@@ -1296,10 +1296,39 @@ function updateFab() {
 
 // ---------- Views ----------
 
+// Teatro calibrado (aprovado no mock skeleton-premium): na 1ª visita da aba
+// (por sessão) mostra skeleton por 300ms antes do conteúdo pré-carregado
+// entrar em cascata. Visitas seguintes renderizam direto — o app nunca fica
+// mais lento que instantâneo no uso repetido. prefers-reduced-motion pula tudo.
+const _skelVisto = new Set();
+const _SKEL_PAGES = { "banco-horas": "Banco de Horas", "funcionarios": "Funcionários", "pj": "Controle PJ" };
+
+function skeletonViewHtml() {
+  const stat = `<div class="stat" aria-hidden="true"><div class="sk-c" style="height:10px;width:60%"></div><div class="sk-c" style="height:26px;width:40%;margin-top:10px"></div></div>`;
+  return `
+    <header class="page-header" aria-hidden="true">
+      <div>
+        <div class="sk-c" style="height:24px;width:200px"></div>
+        <div class="sk-c" style="height:11px;width:290px;margin-top:10px"></div>
+      </div>
+    </header>
+    <div class="stats">${stat.repeat(4)}</div>
+    ${skeletonOccHtml(6)}
+  `;
+}
+
 function renderView() {
   const u = currentUser();
   const page = state.view.page;
   const view = $("#view");
+
+  if (_SKEL_PAGES[page] && !_skelVisto.has(page) && !prefereMenosMovimento()) {
+    _skelVisto.add(page);
+    $("#topbar-title").textContent = _SKEL_PAGES[page];
+    view.innerHTML = skeletonViewHtml();
+    setTimeout(() => { if (state.view.page === page) renderView(); }, 300);
+    return;
+  }
 
   if (page === "dashboard") return renderDashboard();
   if (page === "banco-horas") return renderBancoHoras();
