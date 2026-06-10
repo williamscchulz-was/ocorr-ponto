@@ -1714,7 +1714,7 @@ function renderOccCard(o) {
   const podeLancar = !pending && !isLancada(o) && can("ocorrencias.lancar");
 
   return `
-    <article class="occ" data-id="${o.id}">
+    <article class="occ" data-id="${o.id}" role="button" tabindex="0">
       <div class="occ__date">
         <strong>${formatDay(o.data)}</strong>
         <span>${formatMonth(o.data)}</span>
@@ -2376,7 +2376,7 @@ function renderFuncList(animar) {
           : `<span class="func-turno">${escapeHtml(TURNOS[f.turno].label)}</span>`);
 
     return `
-      <article class="func-row ${alertaSemTurno ? "func-row--semturno" : ""} ${inativo ? "func-row--inativo" : ""}" data-func="${f.id}">
+      <article class="func-row ${alertaSemTurno ? "func-row--semturno" : ""} ${inativo ? "func-row--inativo" : ""}" data-func="${f.id}" role="button" tabindex="0">
         <div class="func-info">
           <div class="func-nome">${escapeHtml(f.nome)}</div>
           <div class="func-sub">${subHtml}</div>
@@ -3543,7 +3543,7 @@ function renderPJList(animar) {
     const subHtml = subParts.join(`<span class="dot"></span>`);
 
     return `
-      <article class="pj-row ${precisaReajuste ? "pj-row--pend" : ""}" data-pj="${p.id}">
+      <article class="pj-row ${precisaReajuste ? "pj-row--pend" : ""}" data-pj="${p.id}" role="button" tabindex="0">
         <div class="pj-info">
           <div class="pj-nome">
             ${escapeHtml(p.nome || "(sem nome)")}
@@ -5594,7 +5594,7 @@ function renderAcoesInto(selector) {
   const custom = all.filter((a) => !padraoIds.has(a.id));
 
   const acaoRow = (a, isCustom) => `
-    <article class="cfg-row cfg-row--click" data-acao="${a.id}">
+    <article class="cfg-row cfg-row--click" data-acao="${a.id}" role="button" tabindex="0">
       <div class="cfg-main">
         <div class="cfg-name">${escapeHtml(a.label)}</div>
         ${isCustom ? `<div class="cfg-sub">criado por ${escapeHtml(getUser(a.criadoPor)?.nome || a.criadoPor || "—")}</div>` : ""}
@@ -5788,7 +5788,7 @@ function renderTiposInto(selector) {
 
   const toneLabel = (tone) => TONES.find((to) => to.id === tone)?.label || tone;
   const tipoRow = (t, isCustom) => `
-    <article class="cfg-row cfg-row--click" data-tipo="${t.id}">
+    <article class="cfg-row cfg-row--click" data-tipo="${t.id}" role="button" tabindex="0">
       <span class="cfg-dot cfg-dot--${t.tone}"></span>
       <div class="cfg-main">
         <div class="cfg-name">${escapeHtml(t.label)}</div>
@@ -6182,7 +6182,7 @@ function renderUsuariosInto(selector) {
 
     <div class="cfg-list">
       ${state.users.map((u) => `
-        <article class="cfg-row ${isFirebaseMode ? "cfg-row--click" : ""}" data-edit-user="${u.id}"
+        <article class="cfg-row ${isFirebaseMode ? "cfg-row--click" : ""}" data-edit-user="${u.id}" ${isFirebaseMode ? 'role="button" tabindex="0"' : ""}
                  style="opacity:${u.ativo === false ? "0.55" : "1"};"
                  title="${isFirebaseMode ? "Clique para editar" : ""}">
           <div class="avatar" data-uid="${u.id}">${initials(u.nome || u.email || "?")}</div>
@@ -7420,3 +7420,15 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("offline", atualizar);
   atualizar();
 })();
+
+// Acessibilidade: linhas de lista (role="button" tabindex="0") abrem com
+// Enter/Espaço, não só clique de mouse. Delegação global — vale pra qualquer
+// linha renderizada depois.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const alvo = e.target;
+  if (alvo && alvo.matches && alvo.matches(".occ, .func-row, .pj-row, .cfg-row--click")) {
+    e.preventDefault();
+    alvo.click();
+  }
+});

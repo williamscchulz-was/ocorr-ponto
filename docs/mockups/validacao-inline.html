@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockup · Validação inline de formulário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#F7F9F6; --surface:#fff; --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:#1E2D1A; --muted:#4A6245; --plum:#008835; --plum-deep:#006328;
+    --danger:#962F32; --danger-bg:#F4D6D2; --milk-warm:#EEF3EC; --font:"Poppins",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:#dfe3dd;color:var(--text);padding:28px 16px 60px;}
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{color:var(--plum-deep);font-weight:700;font-size:20px;text-align:center;}
+  p.s{text-align:center;color:#46553f;font-size:13px;margin:4px 0 22px;}
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:640px){.ba{grid-template-columns:1fr;}}
+  .pane{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;}
+  .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:8px 14px;border-bottom:1px solid var(--border);}
+  .tag.a{color:var(--danger);background:#fcf2f1;} .tag.d{color:var(--plum-deep);background:#f1f7ee;}
+  .body{padding:18px;min-height:210px;position:relative;}
+  label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--plum-deep);margin-bottom:6px;}
+  .inp{width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);}
+  .inp:focus{outline:2px solid var(--plum);outline-offset:1px;border-color:var(--plum);}
+  .inp.err{border-color:var(--danger);background:#fdf6f5;}
+  .field{margin-bottom:14px;}
+  .ferr{display:flex;align-items:center;gap:6px;color:var(--danger);font-size:12px;font-weight:500;margin-top:6px;}
+  .ferr svg{width:13px;height:13px;flex-shrink:0;}
+  .btn{border:0;border-radius:10px;padding:10px 16px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;background:var(--plum);color:#fff;}
+  /* toast fake */
+  .toast{position:absolute;left:18px;right:18px;bottom:14px;background:#fff;border-left:3px solid var(--danger);box-shadow:0 8px 24px rgba(0,40,20,.18);border-radius:10px;padding:11px 13px;font-size:12.5px;color:var(--text);opacity:0;transform:translateY(8px);transition:.2s;}
+  .toast.show{opacity:1;transform:none;}
+  .note{font-size:12px;color:#41513c;background:#fff;border:1px solid var(--border);border-radius:10px;padding:13px 16px;margin-top:18px;line-height:1.6;}
+  .note b{color:var(--plum-deep);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Validação inline de formulário</h1>
+  <p class="s">Erro ancorado no campo, em vez de um toast que some. Clique "Salvar" com o campo vazio nos dois.</p>
+  <div class="ba">
+    <div class="pane">
+      <div class="tag a">Antes — toast que some</div>
+      <div class="body" id="b1">
+        <div class="field"><label>Nome / razão social</label><input class="inp" id="i1" placeholder="Aceres Branding Ltda" /></div>
+        <div class="field"><label>CNPJ / CPF</label><input class="inp" placeholder="00.000.000/0001-00" /></div>
+        <button class="btn" id="s1">Salvar</button>
+        <div class="toast" id="t1">CNPJ/CPF inválido — confira os dígitos.</div>
+      </div>
+    </div>
+    <div class="pane">
+      <div class="tag d">Depois — erro no campo</div>
+      <div class="body">
+        <div class="field"><label>Nome / razão social</label><input class="inp" id="i2" placeholder="Aceres Branding Ltda" /><div id="e2"></div></div>
+        <div class="field"><label>CNPJ / CPF</label><input class="inp" id="i3" placeholder="00.000.000/0001-00" /><div id="e3"></div></div>
+        <button class="btn" id="s2">Salvar</button>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Como funciona:</b> reaproveita o componente <code>.field__error</code> que já existe no app (login e edição de usuário). No <code>Salvar</code>, em vez de <code>toast("X inválido")</code>, mostra a mensagem embaixo do campo + borda vermelha + foca o primeiro campo com erro. Some assim que o usuário corrige. Sem novo design — só consistência (hoje PJ e nova ocorrência usam toast).</div>
+</div>
+<script>
+  const errSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  document.getElementById('s1').onclick=()=>{const t=document.getElementById('t1');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);};
+  document.getElementById('s2').onclick=()=>{
+    let primeiro=null;
+    [['i2','e2','Informe o nome do prestador.'],['i3','e3','CNPJ/CPF inválido — confira os dígitos.']].forEach(([i,e,m])=>{
+      const inp=document.getElementById(i),box=document.getElementById(e);
+      if(!inp.value.trim()){inp.classList.add('err');box.innerHTML='<div class="ferr">'+errSvg+m+'</div>';if(!primeiro)primeiro=inp;}
+      else{inp.classList.remove('err');box.innerHTML='';}
+    });
+    if(primeiro)primeiro.focus();
+  };
+  ['i2','i3'].forEach(i=>document.getElementById(i).addEventListener('input',function(){this.classList.remove('err');const e=this.nextElementSibling;if(e)e.innerHTML='';}));
+</script>
+</body>
+</html>

@@ -104,7 +104,7 @@ O hosting target `weave` está configurado no `.firebaserc` apontando pro site `
 - [x] Splash com logo "se desenhando" + auto-update (o PWA se atualiza sozinho)
 - [x] Custom domain `gh.fiobras.com.br` no ar
 - [ ] Pipeline WKRADAR consumindo JSONs do Storage (em curso)
-- [ ] Modal de confirmação destrutiva (substituir `confirm()` nativo)
+- [x] Modal de confirmação destrutiva (`confirmar()` substituiu o `confirm()` nativo)
 - [ ] CSP header no `firebase.json`
 
 ## Licença

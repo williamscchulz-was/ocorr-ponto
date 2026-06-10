@@ -40,5 +40,6 @@ visual antes de mexer no app**. Workflow: mocka aqui → aprova → aplica em
 
 ### Auditoria
 - `audit-ux.html` — reconstrução de UX: skeleton de carga, estados (vazio / erro / offline / sucesso inline), microinterações, specs de motion e design system. Referência pra decidir o que aplicar.
+- `validacao-inline.html` — validação de formulário ancorada no campo (erro embaixo + borda vermelha) × toast que some. Reaproveita o `.field__error` existente.
 
 _"No app" = aprovado e já aplicado em produção; os demais são estudos/referência._

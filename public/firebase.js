@@ -95,7 +95,8 @@
       console.info("[Firebase] ativo, projeto:", cfg.projectId);
     } catch (err) {
       console.error("[Firebase] erro ao iniciar:", err);
-      alert("Falha ao iniciar Firebase. Veja o console (F12). Voltando ao modo demo.");
+      const msg = "Falha ao iniciar o Firebase — voltando ao modo demo. (F12 pra detalhes)";
+      if (window.toast) window.toast(msg, "danger"); else alert(msg);
     }
   }
 
