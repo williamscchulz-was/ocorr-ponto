@@ -6,12 +6,6 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "9876", "--directory", "mockup"],
       "port": 9876
-    },
-    {
-      "name": "fiopulse",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "5179", "--directory", "public"],
-      "port": 5179
     }
   ]
 }
