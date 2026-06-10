@@ -11,7 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.6.0", d: "10 jun 2026", current: true, items: [
+    v: "1.6.1", d: "10 jun 2026", current: true, items: [
+      { type: "feat", title: "Erros de formulário agora aparecem no próprio campo, em vez de um aviso que some." },
+      { type: "feat", title: "Listas navegáveis pelo teclado: Tab percorre, Enter abre o item." },
+    ],
+  },
+  {
+    v: "1.6.0", d: "10 jun 2026", items: [
       { type: "feat", title: "Toques de UX: skeleton ao carregar, aviso de 'sem conexão', e a ocorrência desliza pra fora ao ser lançada." },
     ],
   },

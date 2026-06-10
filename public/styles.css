@@ -369,6 +369,12 @@ a:hover { color: var(--plum-soft); }
   color: var(--danger);
   font-weight: 500;
 }
+/* Validação inline: erro injetado embaixo do campo + borda vermelha. */
+.field__error.js-campo-erro { margin-top: 6px; }
+.input--erro, .input--erro:focus {
+  border-color: var(--danger) !important;
+  background: #FDF6F5;
+}
 
 .field-row {
   display: grid;

@@ -350,6 +350,32 @@ function toast(msg, variant = "success") {
   }, 2400);
 }
 
+// Validação inline: mostra a mensagem ancorada no campo (reusa .field__error),
+// foca e destaca o campo, e limpa sozinho quando o usuário corrige. Retorna
+// false pra usar como `return campoInvalido("#sel", "msg")` no lugar de
+// `return toast(msg, "danger")`. Se o campo não existir, cai no toast.
+function campoInvalido(inputSel, msg) {
+  const inp = typeof inputSel === "string" ? $(inputSel) : inputSel;
+  if (!inp) { toast(msg, "danger"); return false; }
+  inp.classList.add("input--erro");
+  const host = inp.closest(".field") || inp.parentElement || inp;
+  let slot = host.querySelector(".field__error.js-campo-erro");
+  if (!slot) {
+    slot = document.createElement("div");
+    slot.className = "field__error js-campo-erro";
+    host.appendChild(slot);
+  }
+  slot.textContent = msg;
+  slot.classList.remove("hidden");
+  try { inp.focus(); } catch (e) {}
+  inp.addEventListener("input", function limpa() {
+    inp.classList.remove("input--erro");
+    slot.remove();
+    inp.removeEventListener("input", limpa);
+  });
+  return false;
+}
+
 // ---------- Modal ----------
 
 // Seletor dos elementos focáveis dentro do modal (pro focus trap a11y).
@@ -1831,10 +1857,10 @@ function saveNovaOcorrencia() {
   const tipo = $("#f-tipo").value;
   const observacao = $("#f-obs").value.trim();
 
-  if (!data || !horario || !funcionarioId || !tipo) {
-    toast("Preencha todos os campos obrigatórios.", "danger");
-    return;
-  }
+  if (!data) return campoInvalido("#f-data", "Informe a data.");
+  if (!horario) return campoInvalido("#f-horario", "Informe o horário.");
+  if (!funcionarioId) return campoInvalido("#f-func", "Selecione o funcionário.");
+  if (!tipo) return campoInvalido("#f-tipo", "Selecione o tipo.");
 
   const u = currentUser();
   const novo = {
@@ -2116,9 +2142,10 @@ function saveEditOcorrencia(id) {
   const acao = $("#ef-acao").value || null;
   const observacao = $("#ef-obs").value.trim();
 
-  if (!data || !horario || !funcionarioId || !tipo) {
-    return toast("Preencha data, funcionário, tipo e horário.", "danger");
-  }
+  if (!data) return campoInvalido("#ef-data", "Informe a data.");
+  if (!horario) return campoInvalido("#ef-horario", "Informe o horário.");
+  if (!funcionarioId) return campoInvalido("#ef-func", "Selecione o funcionário.");
+  if (!tipo) return campoInvalido("#ef-tipo", "Selecione o tipo.");
 
   const func = getFuncionario(funcionarioId);
   const dataConferencia = acao ? (o.dataConferencia || todayIso()) : null;
@@ -2174,10 +2201,7 @@ function confirmConferencia(id) {
   const acao = $("#conf-acao").value;
   const obs = $("#conf-obs").value.trim();
 
-  if (!acao) {
-    toast("Selecione a ação antes de confirmar.", "danger");
-    return;
-  }
+  if (!acao) return campoInvalido("#conf-acao", "Selecione a ação antes de confirmar.");
 
   const u = currentUser();
   o.acao = acao;
@@ -2708,7 +2732,7 @@ function openFuncionarioModal(id) {
 
 function saveFuncionario(id) {
   const nome = $("#func-nome").value.trim();
-  if (!nome || nome.length < 3) return toast("Nome muito curto.", "danger");
+  if (!nome || nome.length < 3) return campoInvalido("#func-nome", "Nome muito curto.");
 
   const turnoStr = $("#func-turno").value;
   const dados = {
@@ -4224,16 +4248,16 @@ function openPJModal(id) {
 function savePJ(id) {
   const u = currentUser();
   const nome = $("#pj-nome").value.trim();
-  if (!nome || nome.length < 2) return toast("Informe o nome do PJ.", "danger");
+  if (!nome || nome.length < 2) return campoInvalido("#pj-nome", "Informe o nome do PJ.");
 
   const contratoUrl = $("#pj-contrato-url").value.trim();
   if (!ehUrlSegura(contratoUrl)) {
-    return toast("Link do contrato precisa ser https:// — recuse 'javascript:' ou outros.", "danger");
+    return campoInvalido("#pj-contrato-url", "Link do contrato precisa ser https:// — recuse 'javascript:' ou outros.");
   }
 
   const cnpjRaw = $("#pj-cnpj").value.trim();
   if (!ehCNPJValido(cnpjRaw)) {
-    return toast("CNPJ/CPF inválido — confira os dígitos.", "danger");
+    return campoInvalido("#pj-cnpj", "CNPJ/CPF inválido — confira os dígitos.");
   }
 
   const valorRaw = $("#pj-valor").value;
@@ -4911,8 +4935,8 @@ function aplicarReajuste(id) {
   const pct = Number($("#reaj-percentual").value);
   const motivo = $("#reaj-motivo").value.trim() || `Reajuste IPCA jan/${ultimoAnoReajusteVigente()}`;
 
-  if (!Number.isFinite(novoValor) || novoValor <= 0) return toast("Informe o novo valor.", "danger");
-  if (novoValor === pj.valorAtual) return toast("Valor novo é igual ao atual — sem reajuste a aplicar.", "danger");
+  if (!Number.isFinite(novoValor) || novoValor <= 0) return campoInvalido("#reaj-novo-valor", "Informe o novo valor.");
+  if (novoValor === pj.valorAtual) return campoInvalido("#reaj-novo-valor", "Valor novo é igual ao atual — sem reajuste a aplicar.");
 
   const valorAntigo = pj.valorAtual;
   pj.valorAtual = novoValor;
@@ -5071,9 +5095,9 @@ function bindAditivosPJ(pjId) {
     const desc = $("#aditivo-desc").value.trim();
     const url = $("#aditivo-url").value.trim();
 
-    if (!data) return toast("Informe a data do aditivo.", "danger");
-    if (!desc || desc.length < 3) return toast("Descreva o aditivo (mínimo 3 caracteres).", "danger");
-    if (url && !ehUrlSegura(url)) return toast("URL inválida — use https://", "danger");
+    if (!data) return campoInvalido("#aditivo-data", "Informe a data do aditivo.");
+    if (!desc || desc.length < 3) return campoInvalido("#aditivo-desc", "Descreva o aditivo (mínimo 3 caracteres).");
+    if (url && !ehUrlSegura(url)) return campoInvalido("#aditivo-url", "URL inválida — use https://");
 
     if (!window.adicionarAditivoPJ) {
       return toast("Modo demo: requer Firebase pra persistir.", "danger");
@@ -5259,7 +5283,7 @@ function saveFeriasPJ(pjId) {
   const dias = Number($("#ferias-dias").value);
   const data = $("#ferias-data").value || new Date().toISOString().slice(0, 10);
   const observacao = $("#ferias-obs").value.trim();
-  if (!dias || dias <= 0) return toast("Informe a quantidade de dias.", "danger");
+  if (!dias || dias <= 0) return campoInvalido("#ferias-dias", "Informe a quantidade de dias.");
 
   const novo = {
     id: "fer-" + Date.now(),
@@ -5670,7 +5694,7 @@ function openEditAcaoModal(id) {
 
 function updateAcao(id) {
   const label = $("#edit-acao-label").value.trim();
-  if (!label || label.length < 3) return toast("Nome muito curto.", "danger");
+  if (!label || label.length < 3) return campoInvalido("#edit-acao-label", "Nome muito curto.");
 
   if (!state.acoesCustom) state.acoesCustom = [];
   const existing = state.acoesCustom.find((x) => x.id === id);
@@ -5716,11 +5740,11 @@ function openNovaAcaoModal() {
 
 function saveAcao() {
   const label = $("#acao-label").value.trim();
-  if (!label) return toast("Informe o nome da ação.", "danger");
-  if (label.length < 3) return toast("Nome muito curto.", "danger");
+  if (!label) return campoInvalido("#acao-label", "Informe o nome da ação.");
+  if (label.length < 3) return campoInvalido("#acao-label", "Nome muito curto.");
 
   const id = "custom-" + slugify(label);
-  if (getAcao(id)) return toast("Já existe uma ação com nome parecido.", "danger");
+  if (getAcao(id)) return campoInvalido("#acao-label", "Já existe uma ação com nome parecido.");
 
   const u = currentUser();
   const nova = {
@@ -5873,7 +5897,7 @@ function openEditTipoModal(id) {
 function updateTipo(id) {
   const label = $("#edit-tipo-label").value.trim();
   const tone = $("#edit-tipo-tone").value;
-  if (!label || label.length < 3) return toast("Nome muito curto.", "danger");
+  if (!label || label.length < 3) return campoInvalido("#edit-tipo-label", "Nome muito curto.");
 
   // Override no state.tiposCustom (Firestore /tipos no modo Firebase)
   if (!state.tiposCustom) state.tiposCustom = [];
@@ -5935,11 +5959,11 @@ function slugify(s) {
 function saveTipo() {
   const label = $("#tipo-label").value.trim();
   const tone = $("#tipo-tone").value;
-  if (!label) return toast("Informe o nome do tipo.", "danger");
+  if (!label) return campoInvalido("#tipo-label", "Informe o nome do tipo.");
 
   const id = "custom-" + slugify(label);
-  if (getTipo(id)) return toast("Já existe um tipo com nome parecido.", "danger");
-  if (label.length < 3) return toast("Nome muito curto.", "danger");
+  if (getTipo(id)) return campoInvalido("#tipo-label", "Já existe um tipo com nome parecido.");
+  if (label.length < 3) return campoInvalido("#tipo-label", "Nome muito curto.");
 
   const u = currentUser();
   const novo = {
@@ -7127,7 +7151,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.6.0";
+window.CURRENT_VERSION = "1.6.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
