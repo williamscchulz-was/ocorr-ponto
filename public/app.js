@@ -1602,6 +1602,19 @@ function renderDashboard() {
   renderOccList();
 }
 
+// Skeleton (shimmer) da lista de ocorrências. Só aparece se o 1º snapshot do
+// Firestore ainda não chegou (rede lenta / timeout de boot) — em boot normal os
+// dados já vieram antes do render, então não pisca à toa.
+function skeletonOccHtml(n = 6) {
+  const linha = `
+    <div class="sk-occ" aria-hidden="true">
+      <div class="sk-c sk-occ__d"></div>
+      <div><div class="sk-c sk-occ__n"></div><div class="sk-c sk-occ__s"></div></div>
+      <div class="sk-c sk-occ__b"></div>
+    </div>`;
+  return `<div class="list" role="status" aria-label="Carregando ocorrências">${linha.repeat(n)}</div>`;
+}
+
 function renderOccList() {
   const u = currentUser();
   const tab = state.view.filterTab;
@@ -1638,17 +1651,26 @@ function renderOccList() {
   });
 
   const root = $("#occ-list");
+
+  // Carga ainda não chegou (rede lenta / timeout de boot) → skeleton.
+  if (state.ocorrenciasProntas === false) {
+    root.innerHTML = skeletonOccHtml(6);
+    return;
+  }
+
   if (list.length === 0) {
     // Se o vazio é por causa de busca/filtro de turno ativo, oferece limpar.
     const temFiltroAtivo = !!search || !!turno;
+    const podeCriar = !temFiltroAtivo && tab === "pendentes" && can("ocorrencias.criar");
     root.innerHTML = `
       <div class="empty">
         <div class="empty__icon">${icon("inbox")}</div>
-        <h3>Nada por aqui</h3>
+        <h3>${temFiltroAtivo ? "Nada por aqui" : "Tudo em dia"}</h3>
         <p>${temFiltroAtivo
           ? "Nenhum registro com a busca/filtro atual."
-          : (tab === "pendentes" ? "Nenhuma ocorrência pendente neste filtro." : "Nenhum registro encontrado.")}</p>
+          : (tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando o GH lançar algo, aparece aqui." : "Nenhum registro encontrado.")}</p>
         ${temFiltroAtivo ? `<button class="btn btn--ghost" id="btn-limpar-occ">${icon("x")}<span>Limpar filtros</span></button>` : ""}
+        ${podeCriar ? `<button class="btn btn--primary" id="btn-empty-nova">${icon("plus")}<span>Nova ocorrência</span></button>` : ""}
       </div>
     `;
     const limpar = $("#btn-limpar-occ");
@@ -1659,6 +1681,8 @@ function renderOccList() {
       if ($("#turno-filter")) $("#turno-filter").value = "";
       renderOccList();
     });
+    const nova = $("#btn-empty-nova");
+    if (nova) nova.addEventListener("click", openNovaOcorrencia);
     return;
   }
 
@@ -1669,7 +1693,15 @@ function renderOccList() {
   $$("#occ-list [data-quick-lancar]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      marcarComoLancada(btn.dataset.quickLancar);
+      const id = btn.dataset.quickLancar;
+      const card = btn.closest(".occ");
+      // Confirma deslizando a linha pra fora; o re-render vem logo depois.
+      if (card) {
+        card.classList.add("occ--saindo");
+        setTimeout(() => marcarComoLancada(id), 320);
+      } else {
+        marcarComoLancada(id);
+      }
     });
   });
 }
@@ -6780,7 +6812,7 @@ function abrirConversa(peerUid, peerNome) {
 
   const thread = $("#chat-thread");
   if (thread) {
-    thread.innerHTML = chatThreadShell(peerNome, peerUid, `<div class="chat__msgs-carregando">Carregando…</div>`);
+    thread.innerHTML = chatThreadShell(peerNome, peerUid, `<div class="sk-chat" role="status" aria-label="Carregando mensagens"><div class="sk-bubble sk-bubble--in"></div><div class="sk-bubble sk-bubble--out"></div><div class="sk-bubble sk-bubble--in" style="width:42%"></div><div class="sk-bubble sk-bubble--out" style="width:54%"></div></div>`);
     wireChatThread(peerUid, peerNome);
   }
   // Estado do render incremental desta conversa.
@@ -7095,7 +7127,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.5.0";
+window.CURRENT_VERSION = "1.6.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -7364,3 +7396,27 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
     setInterval(checar, 30 * 60 * 1000);
   }).catch(() => {});
 }
+
+// Banner de conexão: avisa quando a internet cai (o Firestore segue servindo
+// do cache). Aparece no topo e some sozinho quando volta. Autocontido.
+(function initBannerRede() {
+  let banner = null;
+  const atualizar = () => {
+    const offline = navigator.onLine === false;
+    if (offline && !banner) {
+      banner = document.createElement("div");
+      banner.className = "net-banner";
+      banner.setAttribute("role", "status");
+      banner.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/></svg><span>Sem conexão — mostrando dados em cache.</span>`;
+      document.body.appendChild(banner);
+      requestAnimationFrame(() => banner.classList.add("show"));
+    } else if (!offline && banner) {
+      banner.classList.remove("show");
+      const b = banner; banner = null;
+      setTimeout(() => b.remove(), 320);
+    }
+  };
+  window.addEventListener("online", atualizar);
+  window.addEventListener("offline", atualizar);
+  atualizar();
+})();

@@ -2011,6 +2011,50 @@ textarea:focus-visible,
   margin: 0 0 16px;
 }
 
+/* ---- Skeleton de carga (shimmer) — só aparece se o snapshot ainda não chegou ---- */
+.sk-occ {
+  display: grid; grid-template-columns: 48px 1fr 78px; gap: 14px; align-items: center;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.sk-occ:last-child { border-bottom: 0; }
+.sk-c {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef3ec 25%, #e3ece1 37%, #eef3ec 63%);
+  background-size: 400% 100%; animation: skShimmer 1.3s ease-in-out infinite;
+}
+.sk-occ__d { height: 38px; }
+.sk-occ__n { height: 12px; width: 44%; }
+.sk-occ__s { height: 9px; width: 66%; margin-top: 8px; }
+.sk-occ__b { height: 22px; border-radius: 999px; }
+@keyframes skShimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* skeleton de bolhas do chat (no lugar de "Carregando…") */
+.sk-chat { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.sk-bubble {
+  height: 34px; border-radius: 15px;
+  background: linear-gradient(90deg, #eef3ec 25%, #e3ece1 37%, #eef3ec 63%);
+  background-size: 400% 100%; animation: skShimmer 1.3s ease-in-out infinite;
+}
+.sk-bubble--in { align-self: flex-start; width: 58%; }
+.sk-bubble--out { align-self: flex-end; width: 48%; }
+@media (prefers-reduced-motion: reduce) { .sk-c, .sk-bubble { animation: none; } }
+
+/* ---- Banner de conexão (offline) ---- */
+.net-banner {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 9998;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  background: var(--warning-bg); color: #7a4d12; border-bottom: 1px solid #e8cfa8;
+  font-size: 12.5px; font-weight: 600; padding: 8px 14px;
+  transform: translateY(-100%); transition: transform .28s var(--ease, ease);
+}
+.net-banner.show { transform: translateY(0); }
+.net-banner svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* ---- Sucesso inline: a ocorrência "lançada" desliza e some antes do re-render ---- */
+.occ--saindo { animation: occSaindo .32s var(--ease, ease) forwards; pointer-events: none; }
+@keyframes occSaindo { to { opacity: 0; transform: translateX(18px) scale(.98); } }
+@media (prefers-reduced-motion: reduce) { .occ--saindo { animation: none; opacity: .4; } }
+
 /* ============================================
    TOAST
    ============================================ */

@@ -2030,11 +2030,13 @@
     // poder await-ar o boot. Timeout de segurança de 5s pra não travar a tela
     // se o listener nunca emitir (rede/regra) — segue o boot, listener
     // continua vivo e atualiza a UI quando/se emitir.
+    state.ocorrenciasProntas = false; // skeleton até o 1º snapshot chegar
     let primeiroSnapshotResolvido = false;
     await new Promise((resolve) => {
       const safety = setTimeout(() => {
         if (!primeiroSnapshotResolvido) {
           primeiroSnapshotResolvido = true;
+          state.ocorrenciasProntas = true; // destrava a UI mesmo sem snapshot
           debug?.("[ocorrencias] timeout de 5s no 1º snapshot — seguindo boot");
           resolve();
         }
@@ -2075,6 +2077,7 @@
           }
         }
 
+        state.ocorrenciasProntas = true;
         // SEMPRE: avisa a UI pra reagir (re-render seguro + badge no título).
         try { window.aoAtualizarOcorrencias?.(); } catch (e) { debug?.("[ocorrencias] aoAtualizarOcorrencias falhou:", e); }
 
@@ -2086,6 +2089,7 @@
         }
       }, (err) => {
         debug?.("[ocorrencias] snapshot erro:", err);
+        state.ocorrenciasProntas = true; // não fica preso no skeleton se der erro
         // Em erro no 1º snapshot, libera o boot mesmo assim (não trava a tela).
         if (!primeiroSnapshotResolvido) {
           primeiroSnapshotResolvido = true;

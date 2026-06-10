@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.5.0", d: "1 jun 2026", current: true, items: [
+    v: "1.6.0", d: "10 jun 2026", current: true, items: [
+      { type: "feat", title: "Toques de UX: skeleton ao carregar, aviso de 'sem conexão', e a ocorrência desliza pra fora ao ser lançada." },
+    ],
+  },
+  {
+    v: "1.5.0", d: "1 jun 2026", items: [
       { type: "high", title: "Nova tela de abertura: a marca da Fiobras se desenha sozinha quando o app carrega." },
     ],
   },
