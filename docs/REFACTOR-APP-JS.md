@@ -1,4 +1,7 @@
-# Plano — modularizar o `app.js` (sem aplicar ainda)
+# Plano — modularizar o `app.js`
+
+> **Status:** Fase 1 EXECUTADA em 10/jun/2026 (commit `37235b8`, v1.6.2) —
+> 26 helpers puros movidos pra `public/utils.js`. Fases 2 e 3 seguem como abaixo.
 
 **Problema:** `public/app.js` tem ~7.000 linhas e mistura três responsabilidades
 num arquivo só: UI/render, regra de negócio e fiação de eventos. Funciona (e é
