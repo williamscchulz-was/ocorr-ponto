@@ -38,4 +38,7 @@ visual antes de mexer no app**. Workflow: mocka aqui → aprova → aplica em
 - `chat-redesign.html` — chat estilo rede social. **No app.**
 - `chat-reacoes.html` — reações em mensagens (estilo iMessage/WhatsApp). **No app.**
 
+### Auditoria
+- `audit-ux.html` — reconstrução de UX: skeleton de carga, estados (vazio / erro / offline / sucesso inline), microinterações, specs de motion e design system. Referência pra decidir o que aplicar.
+
 _"No app" = aprovado e já aplicado em produção; os demais são estudos/referência._

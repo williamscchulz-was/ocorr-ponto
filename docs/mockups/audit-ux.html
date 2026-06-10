@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Auditoria UX · FioPulse — reconstrução visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bg:#F7F9F6; --surface:#fff; --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:#1E2D1A; --muted:#4A6245; --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --milk-warm:#EEF3EC; --amarelo:#FFCB00; --azul:#0076BE;
+    --danger:#962F32; --danger-bg:#F4D6D2; --warning:#B27429; --warning-bg:#F8E4C8;
+    --success:#2F6B3F; --success-bg:#E0EAD8; --info:#2F5A6B; --info-bg:#D8E6EA;
+    --radius:12px; --ease:cubic-bezier(.2,.8,.2,1);
+    --font:"Poppins",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:#dfe3dd;color:var(--text);padding:28px 16px 70px;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  h1.tt{color:var(--plum-deep);font-weight:700;font-size:24px;text-align:center;}
+  p.ss{text-align:center;color:#46553f;font-size:13px;margin:4px 0 22px;}
+
+  .sec{background:var(--bg);border-radius:18px;box-shadow:0 14px 44px rgba(0,40,20,.14);padding:22px 24px 26px;margin-bottom:22px;}
+  .sec>h2{font-size:16px;color:var(--plum-deep);font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:9px;}
+  .sec>h2 .n{width:24px;height:24px;border-radius:7px;background:var(--plum);color:#fff;display:grid;place-items:center;font-size:12px;flex-shrink:0;}
+  .sec>.lead{font-size:12.5px;color:var(--muted);margin:0 0 16px 33px;}
+
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:720px){.ba{grid-template-columns:1fr;}}
+  .pane{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;}
+  .pane__tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+  .pane__tag.antes{color:var(--danger);background:#fcf2f1;}
+  .pane__tag.depois{color:var(--success);background:#f1f7ee;}
+  .pane__body{padding:14px;min-height:230px;}
+  .just{font-size:11.5px;color:var(--muted);margin:9px 0 0 2px;}
+  .just b{color:var(--plum-deep);}
+
+  /* ---- linhas/listas ---- */
+  .row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);}
+  .row:last-child{border-bottom:0;}
+  .av{width:38px;height:38px;border-radius:50%;background:var(--milk-warm);color:var(--plum-deep);display:grid;place-items:center;font-weight:700;font-size:12px;flex-shrink:0;}
+  .ri{flex:1;min-width:0;} .rn{font-size:14px;font-weight:600;} .rs{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .tag{font-size:10.5px;font-weight:600;border-radius:6px;padding:3px 8px;background:var(--milk-warm);color:var(--muted);}
+
+  /* ---- SKELETON ---- */
+  .sk{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--border);}
+  .sk__c{border-radius:8px;background:linear-gradient(90deg,#eef3ec 25%,#e2ebe0 37%,#eef3ec 63%);background-size:400% 100%;animation:sh 1.3s ease-in-out infinite;}
+  .sk__av{width:38px;height:38px;border-radius:50%;flex-shrink:0;}
+  .sk__l1{height:11px;width:42%;} .sk__l2{height:9px;width:64%;margin-top:7px;}
+  .sk__tag{height:18px;width:42px;border-radius:6px;}
+  @keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
+  @media (prefers-reduced-motion: reduce){.sk__c{animation:none;}}
+
+  /* ---- empty/error/success ---- */
+  .state{display:grid;place-items:center;text-align:center;padding:26px 16px;min-height:210px;}
+  .state__ic{width:60px;height:60px;border-radius:18px;display:grid;place-items:center;margin-bottom:12px;}
+  .state__ic svg{width:28px;height:28px;}
+  .state h3{font-size:16px;color:var(--text);} .state p{font-size:12.5px;color:var(--muted);max-width:34ch;margin-top:4px;}
+  .state .cta{margin-top:14px;display:inline-flex;gap:8px;}
+  .ic-neutral{background:var(--milk-warm);color:var(--plum-deep);}
+  .ic-error{background:var(--danger-bg);color:var(--danger);}
+  .ic-ok{background:var(--success-bg);color:var(--success);}
+
+  /* botões */
+  .btn{border:0;border-radius:10px;padding:9px 15px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:transform .12s var(--ease),box-shadow .2s var(--ease),background .14s;}
+  .btn svg{width:15px;height:15px;}
+  .btn--p{background:var(--plum);color:#fff;}
+  .btn--p:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,136,53,.26);}
+  .btn--p:active{transform:scale(.96);}
+  .btn--soft{background:var(--milk-warm);color:var(--plum-deep);}
+  .btn--soft:hover{background:var(--success-bg);}
+  .btn--ghost{background:none;color:var(--muted);border:1px solid var(--border-strong);}
+  .btn--ghost:hover{background:var(--milk-warm);}
+  .btn--danger{background:var(--danger);color:#fff;} .btn--danger:active{transform:scale(.96);}
+  .btn:active{transform:scale(.96);}
+
+  .ctrl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+
+  /* offline banner */
+  .offline{display:flex;align-items:center;gap:10px;background:var(--warning-bg);color:#7a4d12;border:1px solid #e8cfa8;border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:500;}
+  .offline svg{width:16px;height:16px;flex-shrink:0;}
+
+  /* success row collapse */
+  .done-row{transition:opacity .35s var(--ease),transform .35s var(--ease),max-height .35s var(--ease);overflow:hidden;max-height:64px;}
+  .done-row.go{opacity:0;transform:translateX(14px);max-height:0;padding-top:0;padding-bottom:0;}
+  .checkpop{width:22px;height:22px;border-radius:50%;background:var(--success-bg);color:var(--success);display:grid;place-items:center;}
+  .checkpop svg{width:13px;height:13px;animation:pop .3s var(--ease);}
+  @keyframes pop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+
+  /* motion table */
+  table.mt{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .mt th{background:var(--milk-warm);text-align:left;padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+  .mt td{padding:9px 12px;border-top:1px solid var(--border);}
+  .mt code{background:var(--milk-warm);padding:1px 6px;border-radius:5px;font-size:11.5px;}
+
+  /* design system strip */
+  .ds{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+  .ds .card{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:14px;}
+  .ds h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;}
+  .ds .stack{display:flex;flex-direction:column;gap:9px;align-items:flex-start;}
+  .inp{width:100%;border:1px solid var(--border-strong);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:13px;background:var(--surface);color:var(--text);}
+  .inp:focus{outline:2px solid var(--plum);outline-offset:1px;border-color:var(--plum);}
+  .bd{font-size:11px;font-weight:600;border-radius:999px;padding:3px 10px;display:inline-flex;gap:5px;align-items:center;}
+  .bd--warn{background:var(--warning-bg);color:var(--warning);} .bd--ok{background:var(--success-bg);color:var(--success);}
+  .bd--dang{background:var(--danger-bg);color:var(--danger);} .bd--info{background:var(--info-bg);color:var(--info);}
+  .bd .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .tip{position:relative;display:inline-block;}
+  .tip__b{background:var(--text);color:#fff;font-size:11px;border-radius:7px;padding:6px 10px;}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;}
+  .sw{width:34px;height:34px;border-radius:8px;border:1px solid rgba(0,0,0,.06);}
+
+  .note{font-size:12px;color:#41513c;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 15px;margin-top:6px;}
+  .note b{color:var(--plum-deep);}
+  .score{display:inline-flex;align-items:center;gap:8px;background:var(--success-bg);color:var(--success);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="tt">Auditoria UX · FioPulse</h1>
+  <p class="ss">Reconstrução visual das melhorias propostas — <b>mockup</b>, ainda não aplicado. Score atual <span class="score">8.2 / 10</span></p>
+
+  <!-- 1 · SKELETON -->
+  <div class="sec">
+    <h2><span class="n">1</span>Skeleton de carregamento</h2>
+    <p class="lead">Hoje as listas aparecem em branco até o Firestore responder (e o chat mostra só "Carregando…"). Skeleton dá percepção de velocidade e evita o "pulo" do layout.</p>
+    <div class="ba">
+      <div class="pane">
+        <div class="pane__tag antes">Antes — branco/flash</div>
+        <div class="pane__body"><div id="antes-load" style="display:grid;place-items:center;min-height:200px;color:#c0ccb8;font-size:12px;">(vazio enquanto carrega)</div></div>
+      </div>
+      <div class="pane">
+        <div class="pane__tag depois">Depois — shimmer</div>
+        <div class="pane__body">
+          <div class="ctrl"><button class="btn btn--soft" id="replay-sk">↻ Recarregar demo</button></div>
+          <div id="sk-host"></div>
+        </div>
+      </div>
+    </div>
+    <p class="just"><b>Por quê:</b> 3 telas de lista (Ocorrências, Funcionários, PJ) + chat ganham skeleton. ~6 linhas shimmer, troca pra conteúdo no 1º snapshot. Respeita <code>prefers-reduced-motion</code>.</p>
+  </div>
+
+  <!-- 2 · ESTADOS -->
+  <div class="sec">
+    <h2><span class="n">2</span>Estados: vazio · erro/offline · sucesso</h2>
+    <p class="lead">O vazio já existe (bom); falta um estado de <b>erro/offline</b> com "tentar de novo" e um <b>feedback de sucesso</b> inline além do toast.</p>
+    <div class="ba">
+      <div class="pane">
+        <div class="pane__tag antes">Vazio — atual (texto)</div>
+        <div class="pane__body"><div class="state"><div class="state__ic ic-neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><h3>Nada por aqui</h3><p>Nenhuma ocorrência pendente neste filtro.</p></div></div>
+      </div>
+      <div class="pane">
+        <div class="pane__tag depois">Vazio — enriquecido (com ação)</div>
+        <div class="pane__body"><div class="state"><div class="state__ic ic-neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><h3>Tudo conferido</h3><p>Nenhuma ocorrência pendente. Quando o GH lançar algo novo, aparece aqui.</p><div class="cta"><button class="btn btn--p"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova ocorrência</button></div></div></div>
+      </div>
+    </div>
+    <div class="ba" style="margin-top:14px;">
+      <div class="pane">
+        <div class="pane__tag antes">Erro de carga — atual (toast some)</div>
+        <div class="pane__body"><div class="state"><div class="state__ic ic-neutral" style="opacity:.5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/></svg></div><p style="color:#c0ccb8">tela em branco + toast vermelho que desaparece</p></div></div>
+      </div>
+      <div class="pane">
+        <div class="pane__tag depois">Erro/offline — com "tentar de novo"</div>
+        <div class="pane__body">
+          <div class="offline" style="margin-bottom:12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12" y2="20"/></svg>Sem conexão — mostrando o que estava em cache.</div>
+          <div class="state" style="min-height:120px;"><div class="state__ic ic-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>Não consegui carregar</h3><p>Verifique a conexão e tente de novo.</p><div class="cta"><button class="btn btn--soft" id="retry-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Tentar de novo</button></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="just"><b>Sucesso inline:</b> ao marcar "lançada", a linha confirma com check e recolhe (em vez de só um toast). Clique pra ver:</p>
+    <div class="pane" style="margin-top:8px;"><div class="pane__body" style="min-height:0;">
+      <div class="row done-row" id="succ-row">
+        <div class="av">AC</div>
+        <div class="ri"><div class="rn">Ana Carolina — Atraso</div><div class="rs">cód 612 · 1º turno · conferida</div></div>
+        <button class="btn btn--p" id="succ-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Lançar</button>
+      </div>
+      <div id="succ-empty" style="display:none;padding:14px 8px;color:var(--success);font-size:13px;font-weight:600;display:none;align-items:center;gap:8px;"><span class="checkpop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Lançada! (e some da lista de pendentes)</div>
+    </div></div>
+  </div>
+
+  <!-- 3 · MICROINTERAÇÕES -->
+  <div class="sec">
+    <h2><span class="n">3</span>Microinterações (passa o mouse / clica)</h2>
+    <p class="lead">Várias já existem no app (botão "afunda", aba com tinta, stagger). Aqui ficam vivas pra referência + as novas (linha que "afunda" no clique, hover de elevação).</p>
+    <div class="ds">
+      <div class="card"><h4>Hover — botão</h4><div class="stack"><button class="btn btn--p">Sobe + sombra</button><span class="just">translateY(-1px) + shadow, 120ms</span></div></div>
+      <div class="card"><h4>Click — feedback</h4><div class="stack"><button class="btn btn--soft">Afunda (scale .96)</button><span class="just">"press" tátil em todo botão</span></div></div>
+      <div class="card"><h4>Hover — linha/card</h4><div class="stack" style="width:100%"><div class="row" style="border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:background .14s,transform .14s var(--ease);" onmouseover="this.style.background='#FAFCF9';this.style.transform='translateX(3px)'" onmouseout="this.style.background='';this.style.transform=''"><div class="av">PJ</div><div class="ri"><div class="rn">Aceres Branding</div><div class="rs">R$ 3.500 · mensal</div></div><span class="tag">ativo</span></div></div></div>
+      <div class="card"><h4>Loading — botão</h4><div class="stack"><button class="btn btn--p" id="ld-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg>Salvar</button><span class="just">spinner inline + disabled</span></div></div>
+    </div>
+  </div>
+
+  <!-- 4 · MOTION -->
+  <div class="sec">
+    <h2><span class="n">4</span>Motion — especificações</h2>
+    <p class="lead">Curva única <code>cubic-bezier(.2,.8,.2,1)</code> (já usada no app como <code>--ease</code>). Tudo one-shot, barato.</p>
+    <table class="mt">
+      <thead><tr><th>Elemento</th><th>Gatilho</th><th>Duração</th><th>Easing</th><th>Comportamento</th></tr></thead>
+      <tbody>
+        <tr><td>Skeleton</td><td>carga</td><td>1.3s loop</td><td>ease-in-out</td><td>shimmer horizontal até dados chegarem</td></tr>
+        <tr><td>Modal</td><td>abrir</td><td>180ms</td><td>ease-out</td><td>fade + slide-up 12px</td></tr>
+        <tr><td>Toast</td><td>ação</td><td>240ms</td><td>--ease</td><td>slide-up, auto-some em ~4s</td></tr>
+        <tr><td>Linha "lançada"</td><td>sucesso</td><td>350ms</td><td>--ease</td><td>check pop + recolhe (max-height→0)</td></tr>
+        <tr><td>Aba</td><td>trocar</td><td>280ms</td><td>--ease</td><td>tinta do sublinhado cresce do centro</td></tr>
+        <tr><td>Lista (entrada)</td><td>render</td><td>340ms</td><td>--ease</td><td>fade-up escalonado por item</td></tr>
+      </tbody>
+    </table>
+    <p class="just"><b>Acessibilidade:</b> bloco <code>@media (prefers-reduced-motion: reduce)</code> zera animações (já presente no app).</p>
+  </div>
+
+  <!-- 5 · DESIGN SYSTEM -->
+  <div class="sec">
+    <h2><span class="n">5</span>Design system (estado atual, consolidado)</h2>
+    <p class="lead">O app já tem tokens centralizados no <code>:root</code>. Esta tira serve de referência viva — nada novo a inventar, só padronizar onde divergir.</p>
+    <div class="ds">
+      <div class="card"><h4>Cores da marca</h4><div class="swatches"><div class="sw" style="background:#008835" title="verde"></div><div class="sw" style="background:#FFCB00" title="amarelo"></div><div class="sw" style="background:#0076BE" title="azul"></div><div class="sw" style="background:#EEF3EC" title="milk-warm"></div><div class="sw" style="background:#1E2D1A" title="texto"></div></div></div>
+      <div class="card"><h4>Botões</h4><div class="stack"><button class="btn btn--p">Primário</button><button class="btn btn--soft">Soft</button><button class="btn btn--ghost">Ghost</button><button class="btn btn--danger">Perigo</button></div></div>
+      <div class="card"><h4>Inputs / select</h4><div class="stack" style="width:100%"><input class="inp" placeholder="Buscar funcionário..." /><select class="inp"><option>Todos os turnos</option><option>1º turno</option></select></div></div>
+      <div class="card"><h4>Badges</h4><div class="stack"><span class="bd bd--warn"><span class="dot"></span>Atenção</span><span class="bd bd--ok"><span class="dot"></span>Lançada</span><span class="bd bd--dang"><span class="dot"></span>Crítico</span><span class="bd bd--info"><span class="dot"></span>Info</span></div></div>
+      <div class="card"><h4>Tooltip</h4><div class="stack"><span class="tip"><span class="tip__b">IPCA acumulado 12 meses</span></span></div></div>
+      <div class="card"><h4>Card</h4><div class="stack" style="width:100%"><div style="border:1px solid var(--border);border-radius:10px;padding:12px;width:100%"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Funcionários ativos</div><div style="font-size:24px;font-weight:700;color:var(--plum-deep)">139</div></div></div></div>
+    </div>
+  </div>
+
+  <div class="note"><b>Lembrete:</b> isto é só mockup — nada foi aplicado no app. Os números/nomes são fictícios. A aplicação respeita o fluxo: aprovar → implementar componente a componente (skeleton, estados, sucesso inline), sem mexer no que já está bom.</div>
+</div>
+
+<script>
+  // skeleton replay → vira conteúdo
+  const skHost=document.getElementById('sk-host');
+  function skRows(){return Array.from({length:5}).map(()=>`<div class="sk"><div class="sk__c sk__av"></div><div style="flex:1"><div class="sk__c sk__l1"></div><div class="sk__c sk__l2"></div></div><div class="sk__c sk__tag"></div></div>`).join('');}
+  function realRows(){const d=[['AC','Ana Carolina','Atraso · 1º T'],['LM','Lucas Martins','Falta · 2º T'],['MC','Mariana Costa','Atestado · 3º T'],['RK','Rafael Klug','Hora extra · 1º T'],['BS','Bianca Souza','Atraso · 2º T']];return d.map(r=>`<div class="row"><div class="av">${r[0]}</div><div class="ri"><div class="rn">${r[1]}</div><div class="rs">${r[2]}</div></div><span class="tag">conferir</span></div>`).join('');}
+  function runSk(){skHost.innerHTML=skRows();setTimeout(()=>{skHost.innerHTML=realRows();},1500);}
+  document.getElementById('replay-sk').onclick=runSk; runSk();
+
+  // retry demo
+  document.getElementById('retry-btn').onclick=function(){const b=this;const old=b.innerHTML;b.disabled=true;b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg>Tentando...';b.querySelector('svg').style.animation='spin .8s linear infinite';setTimeout(()=>{b.disabled=false;b.innerHTML=old;},1400);};
+
+  // success row collapse
+  document.getElementById('succ-btn').onclick=function(){const row=document.getElementById('succ-row');row.classList.add('go');setTimeout(()=>{row.style.display='none';const e=document.getElementById('succ-empty');e.style.display='flex';},360);};
+
+  // loading button
+  document.getElementById('ld-btn').onclick=function(){const b=this;const old=b.innerHTML;b.disabled=true;b.querySelector('svg').style.animation='spin .8s linear infinite';setTimeout(()=>{b.disabled=false;b.innerHTML=old;},1400);};
+
+  const st=document.createElement('style');st.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(st);
+</script>
+</body>
+</html>
