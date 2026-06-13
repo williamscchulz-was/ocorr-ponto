@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse — Marca & refino visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* === Tokens oficiais FioPulse (embutidos para consistência entre mockups) === */
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+  --warning:#B27429; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+  --info:#2F5A6B; --info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+  --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+  --shadow-xs:0 1px 1px rgba(0,40,20,.03); --shadow-sm:0 1px 2px rgba(0,40,20,.05);
+  --shadow:0 4px 16px rgba(0,40,20,.07); --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+  --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+
+  /* === Tokens NOVOS propostos por este lote de refino === */
+  --row-hover:#FAFCF9;                       /* substitui o #FAFCF9 hardcoded em 9 listas */
+  --radius-pill:999px;                       /* fecha a escala de raios dos chips */
+  --shadow-pop:0 16px 50px rgba(0,40,20,.16);/* sombra única para cartões flutuantes */
+  --focus-ring:0 0 0 4px rgba(0,136,53,.18); /* halo do anel de foco */
+  /* superfície escura (sidebar verde) — brancos unificados, sem cast pêssego */
+  --on-plum-hairline:rgba(255,255,255,.12);
+  --on-plum-muted:rgba(255,255,255,.62);
+  --on-plum-hover:rgba(255,255,255,.10);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text-body);
+  font-family:var(--font); font-weight:400; line-height:1.55;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  padding:48px 24px 96px;
+}
+.wrap{max-width:1080px;margin:0 auto}
+
+/* ---- Cabeçalho de documento ---- */
+.kicker{
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--text-muted); font-weight:600; margin:0 0 14px;
+  display:flex; align-items:center; gap:8px;
+}
+.kicker .dot{ /* separador padronizado: currentColor a 40% — sem #c2cdba órfão */
+  width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.4;display:inline-block;
+}
+h1.title{
+  font-size:30px; line-height:1.15; font-weight:600; letter-spacing:-.01em;
+  color:var(--plum-deep); margin:0 0 12px;
+}
+.why{
+  font-size:15px; color:var(--text-muted); max-width:70ch; margin:0 0 8px;
+}
+.brand{font-family:var(--font-brand);letter-spacing:.02em}
+
+/* ---- Estrutura de seções ---- */
+.section{margin-top:44px}
+.section__head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.section__num{
+  font-size:12px;font-weight:600;color:var(--plum);
+  border:1px solid var(--border-strong);border-radius:var(--radius-pill);
+  width:26px;height:26px;display:grid;place-items:center;flex:0 0 auto;
+}
+.section__title{font-size:18px;font-weight:600;color:var(--plum-deep);margin:0}
+.section__sub{font-size:13.5px;color:var(--text-muted);margin:4px 0 0 38px;max-width:78ch}
+
+/* ---- Cartão de comparação antes/depois ---- */
+.compare{
+  display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;
+}
+@media (max-width:760px){.compare{grid-template-columns:1fr}}
+.panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px 20px 22px;position:relative;
+}
+.panel--now{border-color:var(--danger-bg)}
+.panel--prop{border-color:var(--border-strong)}
+.tag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  padding:5px 11px;border-radius:var(--radius-pill);margin-bottom:16px;
+}
+.tag--now{background:var(--danger-bg);color:var(--danger)}
+.tag--prop{background:var(--success-bg);color:var(--success)}
+.tag svg{width:13px;height:13px}
+
+/* ---- ícones SVG genéricos: stroke, currentColor ---- */
+.ico{width:20px;height:20px;flex:0 0 auto;display:inline-block;vertical-align:middle}
+svg{stroke-linecap:round;stroke-linejoin:round}
+
+.note{
+  font-size:12.5px;color:var(--text-muted);margin-top:14px;line-height:1.6;
+  padding-left:12px;border-left:2px solid var(--border-strong);
+}
+.note code{
+  font-family:ui-monospace,"SFMono-Regular",Menlo,monospace;font-size:11.5px;
+  background:var(--milk-warm);padding:1px 6px;border-radius:6px;color:var(--plum-deep);
+}
+.metric{font-family:ui-monospace,"SFMono-Regular",Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ============================================================
+   1) REAÇÕES DO CHAT
+   ============================================================ */
+.chat-stage{
+  background:var(--surface-warm);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:16px;
+}
+.msg{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  border-top-left-radius:4px;padding:12px 14px;max-width:340px;box-shadow:var(--shadow-xs);
+}
+.msg__who{font-size:11.5px;font-weight:600;color:var(--plum);margin-bottom:3px}
+.msg__txt{font-size:13.5px;color:var(--text-body);line-height:1.45}
+.msg__time{font-size:10.5px;color:var(--text-muted);margin-top:6px;text-align:right}
+
+/* barra de reações — comum aos dois estados (mesmo hover scale 1.25) */
+.react-bar{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.react-btn{
+  width:34px;height:34px;border-radius:var(--radius-pill);
+  border:1px solid var(--border);background:var(--surface);
+  display:grid;place-items:center;cursor:pointer;
+  transition:transform var(--transition),background var(--transition),border-color var(--transition);
+}
+.react-btn:hover{transform:scale(1.25);background:var(--milk-warm)}
+.react-btn:focus-visible{outline:2.5px solid var(--plum-deep);outline-offset:2px;box-shadow:var(--focus-ring)}
+/* ANTES: emoji literal — viola regra dura (zero emoji na UI) */
+.react-btn--emoji{font-size:17px;line-height:1}
+/* DEPOIS: SVG stroke 24px, currentColor */
+.react-btn--svg svg{width:20px;height:20px;color:var(--text-muted)}
+.react-btn--svg:hover svg{color:var(--plum-deep)}
+
+/* chips de contagem */
+.react-counts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.count-chip{
+  display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;
+  border-radius:var(--radius-pill);border:1px solid var(--border);background:var(--surface);
+  font-size:12px;color:var(--text-muted);
+}
+.count-chip svg{width:14px;height:14px}
+.count-chip .n{font-variant-numeric:tabular-nums;font-weight:600}
+.count-chip--active{border-color:var(--plum);background:var(--success-bg);color:var(--plum-deep)}
+.count-chip--active svg{color:var(--plum)}
+.count-chip--emoji{font-size:13px;gap:4px}
+
+/* ============================================================
+   2) SIDEBAR VERDE
+   ============================================================ */
+.side{
+  width:230px;border-radius:var(--radius-lg);overflow:hidden;
+  background:linear-gradient(180deg,var(--plum) 0%,var(--plum-deep) 100%);
+  color:var(--text-on-plum);padding:18px 0 16px;
+}
+.side__brand{
+  display:flex;align-items:center;gap:9px;padding:0 18px 16px;font-family:var(--font-brand);
+  font-size:15px;letter-spacing:.02em;
+}
+.side__brand .logo{
+  width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--fiobras-yellow);color:var(--plum-deep);
+}
+.side__brand .logo svg{width:16px;height:16px}
+.side__hr{height:1px;margin:0 18px 14px}
+.side__label{
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:0 18px;margin-bottom:8px;
+}
+.side__item{
+  display:flex;align-items:center;gap:11px;padding:9px 18px;font-size:13.5px;cursor:pointer;
+  border-left:3px solid transparent;transition:background var(--transition);
+}
+.side__item svg{width:18px;height:18px;flex:0 0 auto;opacity:.92}
+.side__item--active{
+  border-left-color:var(--fiobras-yellow);background:rgba(255,255,255,.10);font-weight:600;
+}
+.side__user{display:flex;align-items:center;gap:9px;padding:12px 18px 0;margin-top:6px;font-size:12px}
+.side__user .av{
+  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:rgba(255,255,255,.16);font-weight:600;font-size:12px;
+}
+
+/* ANTES: cast pêssego + dois brancos diferentes */
+.side--now .side__hr{background:rgba(255,243,230,.20)}
+.side--now .side__label{color:rgba(255,243,230,.55)}
+.side--now .side__item{color:rgba(255,243,230,.78)}
+.side--now .side__item--active{color:#FFFFFF}      /* branco frio aqui... */
+.side--now .side__item:hover:not(.side__item--active){background:rgba(255,243,230,.09)}
+.side--now .side__user{color:rgba(255,243,230,.66)}
+
+/* DEPOIS: tokens de superfície escura, brancos unificados, sem pêssego */
+.side--prop .side__hr{background:var(--on-plum-hairline)}
+.side--prop .side__label{color:var(--on-plum-muted)}
+.side--prop .side__item{color:rgba(255,255,255,.9)}
+.side--prop .side__item--active{color:#FFFFFF}
+.side--prop .side__item:hover:not(.side__item--active){background:var(--on-plum-hover)}
+.side--prop .side__user{color:var(--on-plum-muted)}
+/* foco na sidebar escura: anel branco */
+.side--prop .side__item:focus-visible{outline:2.5px solid #FFFFFF;outline-offset:-3px}
+
+.swatch-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.swatch{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-muted)}
+.swatch i{width:16px;height:16px;border-radius:4px;border:1px solid rgba(0,40,20,.15);display:inline-block}
+
+/* ============================================================
+   3) HOVER & RAIO & DOT
+   ============================================================ */
+.rows{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.row{
+  display:flex;align-items:center;gap:12px;padding:11px 14px;font-size:13.5px;
+  border-top:1px solid var(--border);transition:background var(--transition);
+}
+.row:first-child{border-top:none}
+.row:hover{background:var(--row-hover)}
+.row .nm{font-weight:500;color:var(--text-body)}
+.row .meta{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:12px;margin-left:auto}
+.dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.4;display:inline-block}
+.av-sm{
+  width:30px;height:30px;border-radius:50%;background:var(--milk-warm);color:var(--plum-deep);
+  display:grid;place-items:center;font-size:11px;font-weight:600;flex:0 0 auto;
+}
+.chip{
+  display:inline-flex;align-items:center;height:22px;padding:0 10px;font-size:11.5px;font-weight:600;
+  border-radius:var(--radius-pill);
+}
+.chip--pend{background:var(--warning-bg);color:#7A4A12}
+.chip--conf{background:var(--info-bg);color:var(--info)}
+.chip--lanc{background:var(--success-bg);color:var(--success)}
+
+.radii{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+.radii .demo{font-size:11px;color:var(--text-muted);text-align:center}
+.radii .box{height:36px;width:84px;display:grid;place-items:center;border:1px dashed var(--border-strong);margin-bottom:6px;background:var(--surface)}
+.radii .r6{border-radius:6px}.radii .r10{border-radius:10px}.radii .r14{border-radius:14px}.radii .r15{border-radius:15px}
+.radii .ok{border-radius:8px;border-style:solid;border-color:var(--plum)}
+.radii .pill{border-radius:var(--radius-pill);border-style:solid;border-color:var(--plum)}
+
+/* ============================================================
+   4) MARCADOR DEMOGRAFIA
+   ============================================================ */
+details.demo{
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;
+}
+details.demo + details.demo{margin-top:10px}
+details.demo > summary{
+  list-style:none;display:flex;align-items:center;gap:10px;
+  min-height:46px;padding:0 14px;cursor:pointer;font-size:13.5px;font-weight:500;color:var(--text-body);
+}
+details.demo > summary::-webkit-details-marker{display:none}
+details.demo .body{padding:0 14px 14px;font-size:12.5px;color:var(--text-muted)}
+
+/* ANTES: marcador ▸ tipográfico a 10px (proibido + a11y) */
+summary.now-mark{font-size:13.5px}
+summary.now-mark::before{content:"\25B8";font-size:10px;color:var(--text-muted);width:14px;text-align:center}
+
+/* DEPOIS: chevron SVG 14px girando 90deg em [open], área-alvo ≥44px */
+summary.prop-mark .chev{
+  width:14px;height:14px;color:var(--text-muted);flex:0 0 auto;
+  transition:transform var(--transition);
+}
+details.demo[open] summary.prop-mark .chev{transform:rotate(90deg);color:var(--plum)}
+summary.prop-mark:focus-visible{outline:2.5px solid var(--plum-deep);outline-offset:-2px;box-shadow:var(--focus-ring)}
+
+.count-badge{
+  margin-left:auto;font-size:11.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;
+}
+
+/* ============================================================
+   5) SOMBRAS
+   ============================================================ */
+.shadow-grid{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px}
+.float-card{
+  width:200px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:16px;
+}
+.float-card .ttl{font-size:13px;font-weight:600;color:var(--plum-deep);margin-bottom:4px}
+.float-card .sub{font-size:11.5px;color:var(--text-muted)}
+.float-card .big{font-size:24px;font-weight:600;color:var(--plum-deep);font-variant-numeric:tabular-nums;margin-top:8px}
+/* ANTES: três sombras divergentes (uma com preto puro) */
+.sh-black{box-shadow:0 18px 44px rgba(0,0,0,.28)}
+.sh-green-strong{box-shadow:0 14px 40px rgba(0,136,53,.22)}
+.sh-green-soft{box-shadow:0 8px 24px rgba(0,99,40,.12)}
+/* DEPOIS: token único */
+.sh-pop{box-shadow:var(--shadow-pop)}
+
+/* ============================================================
+   6) CONTRASTE AA  &  7) ANEL DE FOCO  — usam .chip e inputs abaixo
+   ============================================================ */
+.aa-row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-top:6px}
+.aa-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;flex:1;min-width:240px;
+}
+.aa-badge{
+  display:inline-flex;align-items:center;height:24px;padding:0 11px;border-radius:var(--radius-pill);
+  font-size:12px;font-weight:600;background:var(--warning-bg);
+}
+.aa-now{color:#B27429}            /* reprova AA */
+.aa-prop{color:#7A4A12}           /* passa AA, mantém âmbar Fiobras */
+.aa-verdict{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-top:12px}
+.aa-verdict svg{width:15px;height:15px}
+.aa-fail{color:var(--danger)}
+.aa-pass{color:var(--success)}
+.aa-meta{font-size:12px;color:var(--text-muted);margin-top:7px}
+.aa-meta b{color:var(--text-body);font-weight:600}
+
+/* anel de foco — campos */
+.field{margin-top:6px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px}
+.field input{
+  width:100%;max-width:300px;height:40px;padding:0 13px;font-family:var(--font);font-size:13.5px;
+  color:var(--text-body);background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+  outline:none;transition:box-shadow var(--transition),border-color var(--transition);
+}
+/* ANTES: outline verde fino caindo em fallback (--primary não existe) */
+.field--now input:focus{
+  border-color:var(--plum);
+  outline:1px solid var(--primary, var(--plum)); /* token inexistente -> fallback fraco */
+  outline-offset:0;
+}
+/* DEPOIS: 2.5px plum-deep + halo, via token --focus-ring */
+.field--prop input:focus{
+  border-color:var(--plum-deep);
+  outline:2.5px solid var(--plum-deep);outline-offset:2px;
+  box-shadow:var(--focus-ring);
+}
+.hint{font-size:11.5px;color:var(--text-muted);margin-top:8px}
+
+/* foco demonstrado também sobre superfície escura */
+.dark-field{background:var(--plum-deep);border-radius:var(--radius);padding:16px;margin-top:14px}
+.dark-field label{color:rgba(255,255,255,.7);font-size:12px;font-weight:600;display:block;margin-bottom:6px}
+.dark-field input{
+  width:100%;max-width:280px;height:38px;padding:0 12px;font-family:var(--font);font-size:13px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-sm);
+  color:#fff;outline:none;
+}
+.dark-field input::placeholder{color:rgba(255,255,255,.5)}
+.dark-field input:focus{outline:2.5px solid #FFFFFF;outline-offset:2px;box-shadow:0 0 0 4px rgba(255,255,255,.22)}
+
+/* utilidades */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:11.5px;color:var(--text-muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+  .react-btn:hover{transform:none}
+  details.demo[open] summary.prop-mark .chev{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ CABEÇALHO DE DOCUMENTO ============ -->
+  <header>
+    <p class="kicker">FioPulse <span class="dot"></span> Auditoria <span class="dot"></span> Lote de refino visual</p>
+    <h1 class="title">Marca &amp; refino visual</h1>
+    <p class="why">
+      O lote de maior retorno por esforço: remove a única quebra de regra dura que ainda restou
+      (emojis literais nas reações do chat), neutraliza o cast pêssego da sidebar verde, e fecha as
+      escalas de hover, raio, sombra e foco em tokens. Cada par mostra <b>Hoje</b> contra <b>Proposto</b>
+      para você comparar lado a lado.
+    </p>
+  </header>
+
+  <!-- ============ 1) REAÇÕES DO CHAT ============ -->
+  <section class="section">
+    <div class="section__head">
+      <span class="section__num">1</span>
+      <h2 class="section__title">Reações do chat — a única quebra dura desta tela</h2>
+    </div>
+    <p class="section__sub">
+      Os emojis nativos coloridos destoam do app, que é inteiramente monocromático, e violam a regra
+      "zero emoji na UI". Trocamos por SVG stroke 24px em <code style="font-family:inherit;font-size:inherit;background:none;padding:0">currentColor</code>;
+      ícone ativo em verde. Hover mantém o scale 1.25.
+    </p>
+
+    <div class="compare">
+      <!-- HOJE -->
+      <div class="panel panel--now">
+        <span class="tag tag--now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4.3 1.8 19a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg>
+          Hoje
+        </span>
+        <div class="chat-stage">
+          <div class="msg">
+            <div class="msg__who">Camila Andrade (GH)</div>
+            <div class="msg__txt">Lancei a falta da Roberta no sistema. Confere aí o turno B?</div>
+            <div class="msg__time">14:32</div>
+          </div>
+          <!-- emojis literais renderizados como glifos coloridos -->
+          <div class="react-bar" aria-label="Reagir à mensagem (estado atual, com emoji)">
+            <button class="react-btn react-btn--emoji" aria-label="Curtir">👍</button>
+            <button class="react-btn react-btn--emoji" aria-label="Não curtir">👎</button>
+            <button class="react-btn react-btn--emoji" aria-label="Amei">❤️</button>
+            <button class="react-btn react-btn--emoji" aria-label="Haha">😂</button>
+            <button class="react-btn react-btn--emoji" aria-label="Uau">😮</button>
+            <button class="react-btn react-btn--emoji" aria-label="Triste">😢</button>
+          </div>
+          <div class="react-counts">
+            <span class="count-chip count-chip--emoji">👍 <span class="n">3</span></span>
+            <span class="count-chip count-chip--emoji">❤️ <span class="n">1</span></span>
+          </div>
+        </div>
+        <p class="note">Glifos coloridos do sistema operacional: cada plataforma renderiza diferente,
+        quebram o monocromático e infringem a regra dura. <code>👍👎❤️😂😮😢</code></p>
+      </div>
+
+      <!-- PROPOSTO -->
+      <div class="panel panel--prop">
+        <span class="tag tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          Proposto
+        </span>
+        <div class="chat-stage">
+          <div class="msg">
+            <div class="msg__who">Camila Andrade (GH)</div>
+            <div class="msg__txt">Lancei a falta da Roberta no sistema. Confere aí o turno B?</div>
+            <div class="msg__time">14:32</div>
+          </div>
+          <!-- 6 reações em SVG stroke 24px, currentColor -->
+          <div class="react-bar" aria-label="Reagir à mensagem (proposto, SVG monocromático)">
+            <button class="react-btn react-btn--svg" aria-label="Positivo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4-7a2 2 0 0 1 2 2v3h5a2 2 0 0 1 2 2.3l-1.3 6A2 2 0 0 1 16.7 20H7"/></svg>
+            </button>
+            <button class="react-btn react-btn--svg" aria-label="Negativo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 13V4h3a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3Zm0 0-4 7a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2.3l1.3-6A2 2 0 0 1 7.3 4H17"/></svg>
+            </button>
+            <button class="react-btn react-btn--svg" aria-label="Amei">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 21.4l8.8-8.7a5 5 0 0 0 0-7.1Z"/></svg>
+            </button>
+            <button class="react-btn react-btn--svg" aria-label="Ok">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            </button>
+            <button class="react-btn react-btn--svg" aria-label="Urgente">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+            </button>
+            <button class="react-btn react-btn--svg" aria-label="Remover reação">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <!-- chips de contagem: mesmo icon() 14px + contador tabular; ativo em verde -->
+          <div class="react-counts">
+            <span class="count-chip count-chip--active">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3Zm0 0 4-7a2 2 0 0 1 2 2v3h5a2 2 0 0 1 2 2.3l-1.3 6A2 2 0 0 1 16.7 20H7"/></svg>
+              <span class="n">3</span>
+            </span>
+            <span class="count-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 21.4l8.8-8.7a5 5 0 0 0 0-7.1Z"/></svg>
+              <span class="n">1</span>
+            </span>
+          </div>
+        </div>
+        <p class="note">Mesma família de stroke do resto do app. Variante reduzida para RH disponível:
+        <b>ok</b> = check, <b>visto</b> = eye, <b>urgente</b> = alert. Chip ativo herda o verde <code style="font-family:inherit;font-size:inherit;background:none;padding:0">--plum</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2) SIDEBAR VERDE ============ -->
+  <section class="section">
+    <div class="section__head">
+      <span class="section__num">2</span>
+      <h2 class="section__title">Sidebar verde — brancos unificados, sem cast pêssego</h2>
+    </div>
+    <p class="section__sub">
+      As divisórias e o texto secundário hoje usam overlays <code>rgba(255,243,230,a)</code> (creme antigo),
+      criando um leve tom pêssego, e há dois brancos diferentes na mesma barra. Tokens de superfície escura
+      neutralizam tudo para branco puro.
+    </p>
+
+    <div class="compare">
+      <!-- HOJE -->
+      <div class="panel panel--now">
+        <span class="tag tag--now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4.3 1.8 19a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg>
+          Hoje
+        </span>
+        <nav class="side side--now" aria-label="Navegação (estado atual)">
+          <div class="side__brand"><span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 18V6h11M4 12h8"/><circle cx="18" cy="16" r="3"/></svg></span><span class="brand">FioPulse</span></div>
+          <div class="side__hr"></div>
+          <div class="side__label">Operação</div>
+          <div class="side__item side__item--active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3v10Zm10 8h8v-6h-8v6ZM3 21h8v-4H3v4Zm10-10h8V3h-8v8Z"/></svg> Ocorrências</div>
+          <div class="side__item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg> Funcionários</div>
+          <div class="side__item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Banco de horas</div>
+          <div class="side__hr" style="margin-top:14px"></div>
+          <div class="side__user"><span class="av">CA</span> <span>Camila Andrade · GH</span></div>
+        </nav>
+        <p class="note">Overlay quente <code>rgba(255,243,230,…)</code> nas hairlines e textos = cast pêssego.
+        O item ativo usa branco frio <code>#FFFFFF</code>, divergindo dos demais.</p>
+      </div>
+
+      <!-- PROPOSTO -->
+      <div class="panel panel--prop">
+        <span class="tag tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          Proposto
+        </span>
+        <nav class="side side--prop" aria-label="Navegação (proposto)">
+          <div class="side__brand"><span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 18V6h11M4 12h8"/><circle cx="18" cy="16" r="3"/></svg></span><span class="brand">FioPulse</span></div>
+          <div class="side__hr"></div>
+          <div class="side__label">Operação</div>
+          <div class="side__item side__item--active" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3v10Zm10 8h8v-6h-8v6ZM3 21h8v-4H3v4Zm10-10h8V3h-8v8Z"/></svg> Ocorrências</div>
+          <div class="side__item" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg> Funcionários</div>
+          <div class="side__item" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Banco de horas</div>
+          <div class="side__hr" style="margin-top:14px"></div>
+          <div class="side__user"><span class="av">CA</span> <span>Camila Andrade · GH</span></div>
+        </nav>
+        <div class="swatch-row">
+          <span class="swatch"><i style="background:rgba(0,99,40,1)"></i> --on-plum-hairline <span class="metric">.12</span></span>
+          <span class="swatch"><i style="background:rgba(0,99,40,1);opacity:.62"></i> --on-plum-muted <span class="metric">.62</span></span>
+        </div>
+        <p class="note">Todos os brancos são <code>rgba(255,255,255,a)</code> puros. Foco de teclado
+        (Tab) usa anel branco interno — visível sobre o verde. Experimente com Tab.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3) HOVER & RAIO & DOT ============ -->
+  <section class="section">
+    <div class="section__head">
+      <span class="section__num">3</span>
+      <h2 class="section__title">Hover, raio &amp; separador — fechando as escalas</h2>
+    </div>
+    <p class="section__sub">
+      O <code>#FAFCF9</code> do hover está hardcoded em 9 listas → vira o token <code>--row-hover</code>.
+      Os chips tinham raios fora de escala (6/10/14/15px) → escala fechada (8px ou pill 999px). O separador
+      <code>.dot</code> agora é sempre currentColor a 40% (some o <code>#c2cdba</code> órfão).
+    </p>
+
+    <div class="panel panel--prop" style="margin-top:18px">
+      <span class="tag tag--prop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+        Proposto · passe o mouse nas linhas
+      </span>
+      <div class="rows" role="list">
+        <div class="row" role="listitem">
+          <span class="av-sm">RB</span>
+          <span class="nm">Roberta Bittencourt</span>
+          <span class="meta">Turno B <span class="dot"></span> Falta injustificada <span class="chip chip--pend">Pendente</span></span>
+        </div>
+        <div class="row" role="listitem">
+          <span class="av-sm">MT</span>
+          <span class="nm">Marcos Teixeira</span>
+          <span class="meta">Turno A <span class="dot"></span> Atraso <span class="chip chip--conf">Conferida</span></span>
+        </div>
+        <div class="row" role="listitem">
+          <span class="av-sm">JS</span>
+          <span class="nm">Juliana Sampaio</span>
+          <span class="meta">Turno C <span class="dot"></span> Esqueceu o crachá <span class="chip chip--lanc">Lançada</span></span>
+        </div>
+      </div>
+      <div class="radii">
+        <div class="demo"><div class="box r6">6px</div>antes</div>
+        <div class="demo"><div class="box r10">10px</div>antes</div>
+        <div class="demo"><div class="box r14">14px</div>antes</div>
+        <div class="demo"><div class="box r15">15px</div>antes</div>
+        <div class="demo"><div class="box ok">8px</div>proposto</div>
+        <div class="demo"><div class="box pill">pill</div>proposto</div>
+      </div>
+      <p class="note">A linha usa <code>background:var(--row-hover)</code> com transição <code style="font-family:inherit;font-size:inherit;background:none;padding:0">--transition</code>.
+      O separador entre metadados é o <code>.dot</code> padronizado — mesma cor do texto, 40% de opacidade.</p>
+    </div>
+  </section>
+
+  <!-- ============ 4) MARCADOR DEMOGRAFIA ============ -->
+  <section class="section">
+    <div class="section__head">
+      <span class="section__num">4</span>
+      <h2 class="section__title">Marcador da demografia — chevron SVG, não símbolo ▸</h2>
+    </div>
+    <p class="section__sub">
+      O resumo expansível da Demografia usa hoje o caractere <code>&#9656;</code> a 10px (símbolo tipográfico
+      proibido, e área de toque pequena). Vira um chevron SVG 14px que gira 90° ao abrir, com alvo ≥44px.
+    </p>
+
+    <div class="compare">
+      <!-- HOJE -->
+      <div class="panel panel--now">
+        <span class="tag tag--now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4.3 1.8 19a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg>
+          Hoje
+        </span>
+        <details class="demo">
+          <summary class="now-mark">Distribuição por turno</summary>
+          <div class="body">Turno A: 48 · Turno B: 51 · Turno C: 33</div>
+        </details>
+        <details class="demo">
+          <summary class="now-mark">Faixa etária</summary>
+          <div class="body">18–29: 41 · 30–44: 67 · 45+: 24</div>
+        </details>
+        <p class="note">Marcador <code>&#9656;</code> renderizado como texto a 10px. Caractere proibido pela regra
+        dura e área de toque abaixo de 44px.</p>
+      </div>
+
+      <!-- PROPOSTO -->
+      <div class="panel panel--prop">
+        <span class="tag tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          Proposto · clique para abrir
+        </span>
+        <details class="demo" open>
+          <summary class="prop-mark">
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+            Distribuição por turno
+            <span class="count-badge metric">132</span>
+          </summary>
+          <div class="body">Turno A: 48 · Turno B: 51 · Turno C: 33</div>
+        </details>
+        <details class="demo">
+          <summary class="prop-mark">
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+            Faixa etária
+            <span class="count-badge metric">132</span>
+          </summary>
+          <div class="body">18–29: 41 · 30–44: 67 · 45+: 24</div>
+        </details>
+        <p class="note">Chevron SVG 14px gira 90° em <code>[open]</code> via <code style="font-family:inherit;font-size:inherit;background:none;padding:0">--transition</code>;
+        a linha inteira (≥46px) é o alvo de clique e recebe o anel de foco no Tab.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5) SOMBRAS ============ -->
+  <section class="section">
+    <div class="section__head">
+      <span class="section__num">5</span>
+      <h2 class="section__title">Sombras — uma única escala, sem preto puro</h2>
+    </div>
+    <p class="section__sub">
+      Cartões flutuantes hoje carregam três sombras divergentes (uma com <code>rgba(0,0,0,.28)</code>).
+      Todos passam a usar <code>--shadow-pop: 0 16px 50px rgba(0,40,20,.16)</code>. <code>rgba(0,0,0,…)</code> fica banido.
+    </p>
+
+    <div class="panel panel--now" style="margin-top:18px">
+      <span class="tag tag--now">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4.3 1.8 19a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg>
+        Hoje · três sombras diferentes
+      </span>
+      <div class="shadow-grid">
+        <div class="float-card sh-black"><div class="ttl">Pendentes</div><div class="sub">aguardando conferência</div><div class="big">12</div></div>
+        <div class="float-card sh-green-strong"><div class="ttl">Conferidas</div><div class="sub">prontas p/ lançar</div><div class="big">7</div></div>
+        <div class="float-card sh-green-soft"><div class="ttl">Lançadas hoje</div><div class="sub">no sistema de ponto</div><div class="big">28</div></div>
+      </div>
+      <p class="note"><code>rgba(0,0,0,.28)</code> (esfumado cinza, frio), <code>rgba(0,136,53,.22)</code> e
+      <code>rgba(0,99,40,.12)</code> — três pesos, dois matizes, nenhuma na escala.</p>
+    </div>
+
+    <div class="panel panel--prop" style="margin-top:18px">
+      <span class="tag tag--prop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+        Proposto · todas com --shadow-pop
+      </span>
+      <div class="shadow-grid">
+        <div class="float-card sh-pop"><div class="ttl">Pendentes</div><div class="sub">aguardando conferência</div><div class="big">12</div></div>
+        <div class="float-card sh-pop"><div class="ttl">Conferidas</div><div class="sub">prontas p/ lançar</div><div class="big">7</div></div>
+        <div class="float-card sh-pop"><div class="ttl">Lançadas hoje</div><div class="sub">no sistema de ponto</div><div class="big">28</div></div>
+      </div>
+      <p class="note">Único valor verde-tinto <code>rgba(0,40,20,.16)</code> — coerente com a marca, repetível, e já
+      é o <code style="font-family:inherit;font-size:inherit;background:none;padding:0">--shadow-lg</code> existente, só renomeado para uso de "pop".</p>
+    </div>
+  </section>
+
+  <!-- ============ 6) CONTRASTE AA ============ -->
+  <section class="section">
+    <div class="section__head">
+      <span class="section__num">6</span>
+      <h2 class="section__title">Badge "Pendente" — passar no contraste AA</h2>
+    </div>
+    <p class="section__sub">
+      O texto âmbar <code>#B27429</code> sobre <code>#F8E4C8</code> dá 3.12:1 e reprova no AA. Escurecemos o
+      texto para <code>#7A4A12</code> (~4.9:1), mantendo o âmbar Fiobras. A palavra "Pendente" segue como canal
+      não-cromático.
+    </p>
+
+    <div class="aa-row">
+      <!-- HOJE -->
+      <div class="aa-card">
+        <div class="tag tag--now" style="margin-bottom:14px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4.3 1.8 19a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg>
+          Hoje
+        </div>
+        <span class="aa-badge aa-now">Pendente</span>
+        <div class="aa-meta">Texto <b>#B27429</b> · fundo <b>#F8E4C8</b></div>
+        <div class="aa-meta">Contraste <b class="metric">3.12 : 1</b></div>
+        <div class="aa-verdict aa-fail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          AA reprova
+        </div>
+      </div>
+
+      <!-- PROPOSTO -->
+      <div class="aa-card">
+        <div class="tag tag--prop" style="margin-bottom:14px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          Proposto
+        </div>
+        <span class="aa-badge aa-prop">Pendente</span>
+        <div class="aa-meta">Texto <b>#7A4A12</b> · fundo <b>#F8E4C8</b></div>
+        <div class="aa-meta">Contraste <b class="metric">4.9 : 1</b></div>
+        <div class="aa-verdict aa-pass">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          AA passa
+        </div>
+      </div>
+    </div>
+    <p class="note">Mesmo fundo âmbar <code>--warning-bg</code>; só o texto escurece. A leitura "Pendente"
+    garante que daltônicos diferenciem o status sem depender da cor.</p>
+  </section>
+
+  <!-- ============ 7) ANEL DE FOCO ============ -->
+  <section class="section">
+    <div class="section__head">
+      <span class="section__num">7</span>
+      <h2 class="section__title">Anel de foco — token --focus-ring que não some</h2>
+    </div>
+    <p class="section__sub">
+      O foco hoje usa <code>--primary</code> (token inexistente) e cai num fallback verde fino, fraco
+      (4.59:1). Proposto: outline 2.5px <code>--plum-deep</code> (~7:1) + halo <code>box-shadow 0 0 0 4px rgba(0,136,53,.18)</code>.
+      Clique nos campos para comparar.
+    </p>
+
+    <div class="compare">
+      <!-- HOJE -->
+      <div class="panel panel--now">
+        <span class="tag tag--now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01"/><path d="M10.3 4.3 1.8 19a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg>
+          Hoje
+        </span>
+        <div class="field field--now">
+          <label for="now-input">Buscar funcionário</label>
+          <input id="now-input" type="text" placeholder="Clique aqui — foco fraco" value="Roberta Bit">
+        </div>
+        <p class="hint">Outline 1px verde <code>#008835</code> sobre branco = 4.59:1, fino e fácil de
+        perder de vista. Vem de <code>--primary</code> que não existe no tema.</p>
+      </div>
+
+      <!-- PROPOSTO -->
+      <div class="panel panel--prop">
+        <span class="tag tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          Proposto
+        </span>
+        <div class="field field--prop">
+          <label for="prop-input">Buscar funcionário</label>
+          <input id="prop-input" type="text" placeholder="Clique aqui — foco forte" value="Roberta Bit">
+        </div>
+        <p class="hint">Outline 2.5px <code>#006328</code> (~7:1) + halo translúcido. Token único
+        <code style="font-family:inherit;font-size:inherit;background:none;padding:0">--focus-ring</code>.</p>
+
+        <!-- foco também sobre a superfície escura -->
+        <div class="dark-field">
+          <label for="dark-input">Mesmo campo na sidebar verde</label>
+          <input id="dark-input" type="text" placeholder="Clique — anel branco">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="sr-only">Documento de design FioPulse: sete pares antes/depois propondo refinos de marca e acessibilidade.</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoria de Design — FioPulse · índice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+  --warning:#7A4A12; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+  --info:#2F5A6B; --info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+  --radius-sm:8px; --radius:12px; --radius-lg:18px;
+  --shadow-sm:0 1px 2px rgba(0,40,20,.05); --shadow:0 4px 16px rgba(0,40,20,.07);
+  --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-body);line-height:1.55;
+  padding:48px 24px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--plum);font-weight:600;display:flex;align-items:center;gap:10px}
+.kicker b{font-family:var(--font-brand);font-weight:400;letter-spacing:.02em;color:var(--text)}
+h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:14px 0 0;color:var(--text)}
+.meta{color:var(--text-muted);font-size:13px;margin-top:8px}
+.lead{margin-top:22px;font-size:15px;color:var(--text-body);max-width:74ch;background:var(--surface);
+  border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 var(--radius) var(--radius) 0;padding:18px 22px}
+.lead b{font-weight:600;color:var(--text)}
+
+.counts{display:flex;gap:12px;margin:26px 0 8px;flex-wrap:wrap}
+.count{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;min-width:120px}
+.count .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.count .l{font-size:11px;color:var(--text-muted);margin-top:6px;letter-spacing:.04em;text-transform:uppercase}
+.count--p0 .v{color:var(--danger)} .count--p1 .v{color:var(--warning)} .count--p2 .v{color:var(--text-muted)}
+.count--mock .v{color:var(--plum)}
+
+h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;
+  margin:40px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media (max-width:680px){.grid{grid-template-columns:1fr}}
+.card{display:block;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px 22px;text-decoration:none;color:inherit;transition:transform var(--transition),box-shadow var(--transition),border-color var(--transition);position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--plum);opacity:0;transition:opacity var(--transition)}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--border-strong)}
+.card:hover::before{opacity:1}
+.card .n{font-size:11px;font-weight:700;color:var(--plum);font-variant-numeric:tabular-nums}
+.card h3{font-size:16.5px;font-weight:700;color:var(--text);margin:6px 0 8px;letter-spacing:-.01em}
+.card p{font-size:13px;color:var(--text-muted)}
+.card .tag{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:11.5px;font-weight:600;color:var(--plum)}
+.card .tag svg{width:15px;height:15px}
+.card .ideias{font-size:11px;color:var(--text-muted);margin-top:10px;font-variant-numeric:tabular-nums}
+
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;font-size:13.5px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--border)}
+th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);font-weight:600;background:var(--surface-warm)}
+tr:last-child td{border-bottom:0}
+td.pri{font-weight:700;font-variant-numeric:tabular-nums;width:54px}
+.pill{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill--alto{background:var(--success-bg);color:var(--success)}
+.pill--medio{background:var(--info-bg);color:var(--info)}
+.pill--baixo{background:var(--milk-warm);color:var(--text-muted)}
+.p0{color:var(--danger)} .p1{color:var(--warning)} .p2{color:var(--text-muted)}
+.naomock{font-size:13px;color:var(--text-muted);margin-top:6px}
+.naomock li{margin:8px 0;padding-left:2px}
+.naomock b{color:var(--text-body);font-weight:600}
+.foot{margin-top:48px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:18px}
+.note{font-size:12.5px;color:var(--text-muted);background:var(--warning-bg);border-radius:var(--radius-sm);padding:12px 16px;margin-top:14px}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker"><b>FioPulse</b> · Auditoria de Design</div>
+  <h1>Auditoria sênior de UX, micro-interações e refino</h1>
+  <p class="meta">13 jun 2026 · base v1.6.2 (build 147) · 7 lentes · 59 achados · 8 páginas de mockup</p>
+
+  <p class="lead">O FioPulse já está num patamar premium (skeleton, undo-slide ao lançar, validação inline, splash que se desenha). A auditoria concentra os ganhos em <b>três frentes</b>: (1) <b>refino visual sistêmico</b> — contraste do badge "Pendente", foco visível que some por token errado, números sem alinhamento tabular, sidebar verde pintada com brancos creme legados — tudo P0/P1 de esforço baixo; (2) <b>hierarquia</b> do Dashboard e das listas — quatro stats de mesmo peso roubam a primazia da ação; (3) a de maior impacto operacional: <b>rede de segurança</b> — nenhuma ação tem desfazer, e o import de Banco de Horas faz replace cego de 130 saldos. Maior retorno por esforço: padronizar tokens e adotar "ação otimista + desfazer no toast" como padrão.</p>
+
+  <div class="counts">
+    <div class="count count--p0"><div class="v">16</div><div class="l">P0 · agora</div></div>
+    <div class="count count--p1"><div class="v">30</div><div class="l">P1 · em seguida</div></div>
+    <div class="count count--p2"><div class="v">13</div><div class="l">P2 · refino</div></div>
+    <div class="count count--mock"><div class="v">8</div><div class="l">mockups</div></div>
+  </div>
+
+  <h2>As 8 páginas de mockup</h2>
+  <div class="grid" id="grid"></div>
+
+  <h2>Prioridade — P0 (ganho alto, fazer primeiro)</h2>
+  <table id="tp0"><thead><tr><th>Pri</th><th>Achado</th><th>Impacto</th><th>Esforço</th></tr></thead><tbody></tbody></table>
+
+  <h2>Prioridade — P1</h2>
+  <table id="tp1"><thead><tr><th>Pri</th><th>Achado</th><th>Impacto</th><th>Esforço</th></tr></thead><tbody></tbody></table>
+
+  <h2>Prioridade — P2 (refino fino)</h2>
+  <table id="tp2"><thead><tr><th>Pri</th><th>Achado</th><th>Impacto</th><th>Esforço</th></tr></thead><tbody></tbody></table>
+
+  <h2>Não-mockáveis (código / acessibilidade / performance)</h2>
+  <ul class="naomock" id="naomock"></ul>
+
+  <p class="note"><b>Observação do William:</b> as reações do chat usam emoji por uma exceção que você mesmo aprovou (EMOJIS_REACAO). A auditoria sinaliza isso como quebra de regra porque não conhece a exceção — manter ou trocar por SVG é decisão sua.</p>
+
+  <div class="foot">Mockups standalone, sem dependência (só Poppins do Google Fonts). Tokens oficiais Fiobras.
+  Workflow: 17 agentes, 7 lentes sêniores. Nada foi aplicado ao app — fluxo mock → aprovação → implementação.</div>
+</div>
+
+<script>
+// SVG de seta-canto (ícone "abrir"), sem emoji
+const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>';
+
+const cards = [
+  ["audit2-dashboard-hierarquia.html","Dashboard repensado","Hierarquia e foco na ação: um KPI dominante (Pendentes), stats secundários rebaixados, linha pendente que salta, data desinflada, toolbar sticky.",9],
+  ["audit2-listas-densidade.html","Listas & densidade","Funcionários: 7 stats viram 2; contagem por turno vai pro filtro; âncoras estilo agenda; tokens de tipo em px inteiros; tabular-nums.",9],
+  ["audit2-microinteracoes-motion.html","Micro-interações premium","Motion coeso: transição de view/aba, toast com barra de progresso + pausa, saída de modal espelhada, nó da conferência completando, easing de toggle.",10],
+  ["audit2-fluxos-undo.html","Fluxos seguros","Rede de segurança: desfazer no toast (padrão Gmail), conferência com radio-cards, import de BH com diff e aviso de perda, reajuste com recap.",5],
+  ["audit2-formularios-busca.html","Formulários & busca","Toque e teclado: botão limpar na busca, inputs 16px (sem zoom iOS), bottom-sheet acima do teclado, filtros que não se espremem no celular.",5],
+  ["audit2-mobile-navegacao.html","Mobile & navegação","Chat-FAB que some sobre modais e respeita a bottom-nav e a safe-area; rótulos legíveis; drawer com swipe-to-close real.",6],
+  ["audit2-marca-refino-visual.html","Marca & refino visual","Reações em SVG, sidebar com tokens próprios, sombras unificadas, foco AA, badge Pendente com contraste que passa.",8],
+  ["audit2-conteudo-microcopy.html","Conteúdo & microcopy","Voz consistente: sem copy de demo, GH unificado, jargão traduzido, datas com ano, empty states unificados, toasts em frase.",8],
+];
+document.getElementById("grid").innerHTML = cards.map((c,i)=>
+  `<a class="card" href="${c[0]}"><div class="n">${String(i+1).padStart(2,"0")}</div>
+   <h3>${c[1]}</h3><p>${c[2]}</p>
+   <span class="tag">Abrir mockup ${arrow}</span>
+   <div class="ideias">${c[3]} ideias demonstradas</div></a>`).join("");
+
+const pri = [
+  ["P0","Emojis literais nas reações do chat (regra dura)","alto","baixo"],
+  ["P0","Badge Pendente (amarelo) reprova contraste AA","alto","baixo"],
+  ["P0","Foco visível some por token errado (--primary/--verde)","alto","baixo"],
+  ["P0","Ausência de tabular-nums em todos os números","alto","baixo"],
+  ["P0","Quatro stats com peso idêntico — nenhum é o KPI","alto","baixo"],
+  ["P0","'Conferidas' significa dois números na mesma tela","alto","baixo"],
+  ["P0","Zoom-on-focus do iOS: inputs abaixo de 16px","alto","baixo"],
+  ["P0","Chat-FAB flutua por cima de modais e drawer","alto","baixo"],
+  ["P0","Chat-FAB colide com a bottom-nav suspensa","alto","baixo"],
+  ["P0","Toggle switches invisíveis ao teclado e ao leitor de tela","alto","baixo"],
+  ["P0","Busca e filtro de turno sem nome acessível","alto","baixo"],
+  ["P0","Login e splash com copy de demo em produção","alto","baixo"],
+  ["P0","Lançar rápido é 1-tap destrutivo sem rede de segurança","alto","medio"],
+  ["P0","Nenhuma operação tem desfazer (ação otimista + undo)","alto","medio"],
+  ["P0","Import de Banco de Horas faz replace cego sem diff","alto","alto"],
+  ["P0","(extra) padronizar tokens de tipo/cor/sombra/foco","alto","baixo"],
+];
+const p1 = [
+  ["P1","Stats roubam a primazia do conteúdo acionável","alto","medio"],
+  ["P1","Conferência: líder escolhe Ação num select cego","alto","medio"],
+  ["P1","Funcionários: 7 stats antes de uma lista de 130+","alto","medio"],
+  ["P1","Troca de view é corte seco (sem transição)","alto","medio"],
+  ["P1","Nó da timeline de conferência não completa","alto","alto"],
+  ["P1","Teclado virtual cobre campos do bottom-sheet","alto","medio"],
+  ["P1","Sidebar verde com overlays do tema creme antigo","medio","medio"],
+  ["P1","Linha de ocorrência pendente não é privilegiada","medio","baixo"],
+  ["P1","Campo de busca sem botão limpar","medio","baixo"],
+  ["P1","Rótulos da bottom-nav a 9px — ilegíveis","medio","baixo"],
+  ["P1","Chat-widget fullscreen ignora safe-area inferior","medio","baixo"],
+  ["P1","Cards de usuário focáveis mas não acionáveis por teclado","medio","baixo"],
+  ["P1","Botões só-ícone sem nome acessível","medio","baixo"],
+  ["P1","Toolbar de filtros quebra mal no celular","medio","baixo"],
+  ["P1","Mensagens de sistema vazam jargão técnico","medio","baixo"],
+  ["P1","Nomenclatura GH vs RH inconsistente","medio","baixo"],
+  ["P1","Datas sem ano nas listas","medio","baixo"],
+  ["P1","Hint da stat Pendentes impreciso por papel","medio","baixo"],
+  ["P1","Reajuste de PJ aplica valor permanente sem confirmação","medio","baixo"],
+  ["P1","Marcador de expandir é caractere em vez de chevron SVG","medio","baixo"],
+  ["P1","Coluna de data domina cada linha de ocorrência","medio","medio"],
+  ["P1","Tabs e toolbar somem ao rolar listas longas","medio","medio"],
+  ["P1","Lista de 130+ funcionários sem âncoras de varredura","medio","medio"],
+  ["P1","Troca de aba sem motion no corpo","medio","medio"],
+  ["P1","Toast sem barra de progresso nem pausa no hover","medio","medio"],
+  ["P1","Modal fecha com o painel sumindo no lugar","medio","medio"],
+  ["P1","Quem cria a ocorrência não vê o saldo/contexto do funcionário","medio","medio"],
+  ["P1","Listas re-renderizam tudo a cada tecla, sem paginação","medio","medio"],
+  ["P1","Reações de chat sem rótulo viram fala ininteligível no SR","medio","baixo"],
+  ["P1","Empty states com vocabulário de 'nada' fragmentado","medio","medio"],
+];
+const p2 = [
+  ["P2","Escala tipográfica fracionária ad-hoc (tokenizar)","medio","medio"],
+  ["P2","Sombras flutuantes fora da escala --shadow-*","medio","medio"],
+  ["P2","Falta hover lift coeso e realce de retorno nas linhas","medio","medio"],
+  ["P2","Drawer sem swipe-to-close e backdrop legado","medio","medio"],
+  ["P2","Bottom-nav espremida a 360px (alvos sub-44px)","medio","medio"],
+  ["P2","Hover de linha #FAFCF9 hardcoded em 9 listas","baixo","baixo"],
+  ["P2","Raios de canto e cor de dot inconsistentes entre listas","baixo","baixo"],
+  ["P2","Toggle switch com timing linear sem easing","baixo","baixo"],
+  ["P2","Toast de import com sintaxe de log em vez de frase","baixo","baixo"],
+  ["P2","FAB de Nova ocorrência sem entrada e sem reação ao scroll","baixo","medio"],
+  ["P2","Count-up dos stats sem stagger nem easing de chegada","baixo","medio"],
+  ["P2","Splash/loading sem rótulo de estado","baixo","medio"],
+  ["P2","Listas re-renderizam por innerHTML total (perf)","baixo","medio"],
+];
+const row = (r)=>`<tr><td class="pri ${r[0].toLowerCase()}">${r[0]}</td><td>${r[1]}</td>
+  <td><span class="pill pill--${r[2]}">${r[2]}</span></td>
+  <td><span class="pill pill--${r[3]}">${r[3]}</span></td></tr>`;
+document.querySelector("#tp0 tbody").innerHTML = pri.map(row).join("");
+document.querySelector("#tp1 tbody").innerHTML = p1.map(row).join("");
+document.querySelector("#tp2 tbody").innerHTML = p2.map(row).join("");
+
+const naomock = [
+  ["Hover de linha #FAFCF9 repetido em 9 listas","refator de tokens puro (criar --row-hover), nada muda na tela."],
+  ["Busca e filtro de turno sem aria-label","criar utility .sr-only e rotular #search/#func-search/#bh-search/#pj-search/#turno-filter."],
+  ["Toggle switches invisíveis ao teclado/SR","trocar display:none por esconder-acessível + foco no slider; visual idêntico."],
+  ["Cards de usuário não acionáveis por teclado","adicionar role=button ao handler global de teclado (Enter/Espaço)."],
+  ["Botões só-ícone sem aria-label","hambúrguer, FAB, version-pills."],
+  ["Reações de chat sem rótulo no SR","após trocar emoji por SVG, dar aria-label PT-BR em cada gatilho/chip."],
+  ["Listas re-renderizam por innerHTML total","render incremental por id preservando foco/scroll (perf)."],
+];
+document.getElementById("naomock").innerHTML = naomock.map(n=>`<li><b>${n[0]}</b> — ${n[1]}</li>`).join("");
+</script>
+</body>
+</html>

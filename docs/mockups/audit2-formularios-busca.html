@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FioPulse — Formulários &amp; busca: toque, zoom e limpar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   FioPulse — tokens oficiais (embutidos para consistência entre mockups)
+   ============================================================ */
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+  --warning:#B27429; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+  --info:#2F5A6B; --info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+  --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+  --shadow-xs:0 1px 1px rgba(0,40,20,.03); --shadow-sm:0 1px 2px rgba(0,40,20,.05);
+  --shadow:0 4px 16px rgba(0,40,20,.07); --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+  --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+}
+
+*{box-sizing:border-box;}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0; background:var(--bg); color:var(--text-body);
+  font-family:var(--font); font-size:16px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  padding:40px 24px 96px;
+}
+
+/* ---------- Cabeçalho de documento de design ---------- */
+.doc{ max-width:1080px; margin:0 auto; }
+.doc__head{ margin-bottom:48px; }
+.kicker{
+  font-family:var(--font-brand); font-size:11px; letter-spacing:.18em;
+  color:var(--text-muted); text-transform:uppercase; margin:0 0 14px;
+}
+.kicker .dot{ color:var(--plum); }
+h1{
+  font-size:30px; line-height:1.18; font-weight:600; color:var(--text);
+  margin:0 0 14px; letter-spacing:-.01em; max-width:18ch;
+}
+.why{
+  font-size:15px; color:var(--text-muted); max-width:62ch; margin:0;
+  border-left:2px solid var(--plum); padding-left:14px;
+}
+
+/* ---------- Seções ---------- */
+section{ margin-top:56px; }
+.sec__head{ display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+.sec__num{
+  font-family:var(--font-brand); font-size:12px; color:var(--plum);
+  border:1px solid var(--border-strong); border-radius:999px;
+  padding:3px 9px; line-height:1;
+}
+h2{ font-size:20px; font-weight:600; color:var(--text); margin:0; letter-spacing:-.01em; }
+.sec__sub{ font-size:14px; color:var(--text-muted); margin:8px 0 24px; max-width:70ch; }
+
+/* ---------- Layout antes/depois ---------- */
+.ba{ display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+@media (max-width:760px){ .ba{ grid-template-columns:1fr; } }
+.panel{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm);
+  position:relative;
+}
+.panel--now{ }
+.panel--next{ border-color:var(--border-strong); }
+.tag{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+  padding:4px 10px; border-radius:999px; margin-bottom:16px;
+}
+.tag--now{ background:var(--surface-warm); color:var(--text-muted); }
+.tag--next{ background:var(--success-bg); color:var(--success); }
+.tag svg{ width:13px; height:13px; }
+
+/* ---------- Moldura de celular ---------- */
+.phones{ display:flex; gap:28px; flex-wrap:wrap; }
+.phone{
+  width:390px; max-width:100%; background:var(--surface);
+  border:1px solid var(--border-strong); border-radius:var(--radius-xl);
+  box-shadow:var(--shadow); overflow:hidden; position:relative;
+}
+.phone__notch{
+  height:30px; background:var(--surface-warm); display:flex; align-items:center;
+  justify-content:center; border-bottom:1px solid var(--border);
+}
+.phone__notch::after{
+  content:""; width:54px; height:5px; border-radius:999px; background:var(--milk-edge);
+}
+.phone__caption{
+  font-size:12px; color:var(--text-muted); text-align:center; margin-top:10px;
+}
+.phone__body{ padding:18px 16px 22px; position:relative; }
+
+/* App bar dentro do telefone */
+.appbar{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:16px;
+}
+.appbar__title{ font-size:16px; font-weight:600; color:var(--text); }
+.wordmark{
+  font-family:var(--font-brand); font-size:13px; color:var(--plum);
+  letter-spacing:.02em;
+}
+
+/* ============================================================
+   TOOLBAR + BUSCA
+   ============================================================ */
+.toolbar{ display:flex; gap:10px; }
+.toolbar__search{ position:relative; flex:1; min-width:0; }
+.toolbar__search .icon-search{
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  width:18px; height:18px; color:var(--text-muted); pointer-events:none;
+}
+/* Inputs a 16px = sem zoom-on-focus no iOS. Toque alto (44px). */
+.toolbar__search input{
+  width:100%; height:44px; font-family:var(--font); font-size:16px;
+  color:var(--text-body); background:var(--surface);
+  border:1px solid var(--border-strong); border-radius:var(--radius);
+  padding:0 12px 0 38px; outline:none; transition:border-color var(--transition), box-shadow var(--transition);
+}
+.toolbar__search input::placeholder{ color:var(--text-muted); }
+.toolbar__search input:focus{
+  border-color:var(--plum); box-shadow:0 0 0 3px rgba(0,136,53,.12);
+}
+/* DEPOIS: botão limpar embutido. Touch target 44px, ícone 16px centrado. */
+.toolbar__search .clear{
+  position:absolute; right:2px; top:50%; transform:translateY(-50%);
+  width:44px; height:44px; border:none; background:transparent; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; padding:0;
+  color:var(--text-muted); border-radius:999px;
+  transition:color var(--transition), background var(--transition), opacity 120ms;
+}
+.toolbar__search .clear svg{ width:16px; height:16px; }
+.toolbar__search .clear:hover{ color:var(--text-body); background:var(--surface-warm); }
+.toolbar__search .clear:focus-visible{ outline:2px solid var(--plum); outline-offset:-3px; }
+/* visível só quando há texto (controlado por .has-value no wrapper) */
+.toolbar__search .clear[hidden]{ display:none; }
+.toolbar__search.has-value input{ padding-right:46px; }
+
+.select{
+  height:44px; font-family:var(--font); font-size:16px; color:var(--text-body);
+  background:var(--surface); border:1px solid var(--border-strong);
+  border-radius:var(--radius); padding:0 30px 0 12px; outline:none;
+  -webkit-appearance:none; appearance:none; cursor:pointer; min-width:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%234A6245' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 8px center;
+}
+.select:focus{ border-color:var(--plum); box-shadow:0 0 0 3px rgba(0,136,53,.12); }
+
+/* ANTES: toolbar quebrando mal — flex-wrap, selects competindo, texto cortado */
+.toolbar--bad{ flex-wrap:wrap; }
+.toolbar--bad .toolbar__search{ flex:1 1 140px; min-width:120px; }
+.toolbar--bad .select{
+  flex:1 1 110px; max-width:128px; min-width:96px;
+  text-overflow:ellipsis; white-space:nowrap; overflow:hidden;
+}
+
+/* DEPOIS: toolbar mobile em 2 linhas limpas */
+.toolbar--good{ flex-direction:column; gap:0; }
+.toolbar--good .toolbar__search{ flex:none; width:100%; margin-bottom:8px; }
+.toolbar--good .toolbar__grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+}
+.toolbar--good .select{ width:100%; }
+
+/* ============================================================
+   LISTA + CONTEXTO DE RESULTADO
+   ============================================================ */
+.result-line{
+  display:flex; align-items:center; gap:8px;
+  font-size:13px; color:var(--text-muted);
+  padding:14px 2px 10px; border-bottom:1px solid var(--border);
+}
+.result-line strong{ color:var(--text-body); font-weight:600; }
+.list{ list-style:none; margin:0; padding:0; }
+.row{
+  display:flex; align-items:center; gap:12px;
+  padding:13px 2px; border-bottom:1px solid var(--border);
+}
+.row__avatar{
+  width:38px; height:38px; border-radius:999px; flex:none;
+  background:var(--surface-warm); color:var(--plum-deep);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:600;
+}
+.row__main{ flex:1; min-width:0; }
+.row__name{ font-size:14px; font-weight:500; color:var(--text-body); }
+.row__meta{ font-size:12px; color:var(--text-muted); }
+.row__bal{ font-size:13px; font-weight:600; }
+.row__bal.pos{ color:var(--success); }
+.row__bal.neg{ color:var(--danger); }
+.show-more{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+  margin-top:14px; height:44px; cursor:pointer;
+  font-family:var(--font); font-size:14px; font-weight:500;
+  color:var(--plum-deep); background:transparent;
+  border:1px solid var(--border-strong); border-radius:var(--radius);
+  transition:background var(--transition), border-color var(--transition);
+}
+.show-more svg{ width:16px; height:16px; }
+.show-more:hover{ background:var(--surface-warm); border-color:var(--plum-soft); }
+.btn--ghost{ }
+
+/* stagger de entrada só no 1º render (não na busca) */
+.row.enter{ animation:rowIn 320ms var(--ease) backwards; }
+@keyframes rowIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+
+/* ============================================================
+   COMPARAÇÃO DE INPUTS (zoom iOS)
+   ============================================================ */
+.zoom-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+@media (max-width:560px){ .zoom-grid{ grid-template-columns:1fr; } }
+.zoom-card{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-sm);
+}
+.zoom-card .field-label{
+  font-size:13px; font-weight:600; color:var(--text-body); margin-bottom:8px;
+  display:flex; align-items:center; gap:8px;
+}
+.zoom-card .px{
+  font-family:var(--font); font-size:11px; color:var(--text-muted);
+  border:1px solid var(--border-strong); border-radius:999px; padding:2px 8px;
+}
+.demo-input{
+  width:100%; height:44px; font-family:var(--font);
+  color:var(--text-body); background:var(--surface);
+  border:1px solid var(--border-strong); border-radius:var(--radius);
+  padding:0 14px; outline:none;
+}
+.demo-input.is15{ font-size:15px; }
+.demo-input.is16{ font-size:16px; }
+.demo-input:focus{ border-color:var(--plum); box-shadow:0 0 0 3px rgba(0,136,53,.12); }
+.flag{
+  margin-top:10px; font-size:12px; display:flex; align-items:flex-start; gap:7px;
+}
+.flag svg{ width:15px; height:15px; flex:none; margin-top:1px; }
+.flag--bad{ color:var(--danger); }
+.flag--ok{ color:var(--success); }
+
+.targets{
+  margin-top:18px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:18px 20px; box-shadow:var(--shadow-sm);
+}
+.targets h3{ font-size:13px; font-weight:600; color:var(--text); margin:0 0 12px; }
+.targets ul{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.targets li{
+  display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-body);
+}
+.targets li svg{ width:16px; height:16px; color:var(--plum); flex:none; }
+.targets code{
+  font-family:ui-monospace,"SFMono-Regular",Menlo,monospace; font-size:12px;
+  background:var(--surface-warm); color:var(--plum-deep);
+  padding:2px 7px; border-radius:6px;
+}
+.targets .note{ font-size:12px; color:var(--text-muted); margin:12px 0 0; }
+.targets .note code{ background:transparent; padding:0; }
+
+/* ============================================================
+   BOTTOM-SHEET + TECLADO
+   ============================================================ */
+.sheet-stage{
+  position:relative; height:560px; background:var(--milk-warm);
+  border-radius:0 0 var(--radius-xl) var(--radius-xl);
+  overflow:hidden;
+}
+/* o app por baixo (esmaecido) */
+.sheet-backdrop{
+  position:absolute; inset:0; background:rgba(0,40,20,.28);
+}
+.sheet{
+  position:absolute; left:0; right:0; bottom:0;
+  background:var(--surface); border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow:var(--shadow-lg); display:flex; flex-direction:column;
+  overflow:hidden;
+}
+/* ANTES: max-height em vh — teclado cobre o footer */
+.sheet--vh{ max-height:92%; } /* representa 92vh dentro do palco */
+/* DEPOIS: max-height em dvh — encolhe acima do teclado (palco - teclado) */
+.sheet--dvh{ max-height:55%; } /* representa 92dvh: sobe acima do teclado simulado */
+
+.sheet__grip{ display:flex; justify-content:center; padding:9px 0 4px; }
+.sheet__grip::after{ content:""; width:42px; height:4px; border-radius:999px; background:var(--milk-edge); }
+.sheet__head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:6px 18px 12px; border-bottom:1px solid var(--border);
+}
+.sheet__title{ font-size:16px; font-weight:600; color:var(--text); }
+.sheet__close{
+  width:34px; height:34px; border:none; background:var(--surface-warm); cursor:pointer;
+  border-radius:999px; display:flex; align-items:center; justify-content:center; color:var(--text-muted);
+}
+.sheet__close svg{ width:16px; height:16px; }
+.sheet__body{ padding:16px 18px; overflow-y:auto; flex:1; }
+/* DEPOIS: campos com scroll-margin pra centralizar no scrollIntoView */
+.sheet--dvh .field{ scroll-margin-bottom:24px; scroll-margin-top:12px; }
+
+.field{ margin-bottom:16px; }
+.field > label{
+  display:block; font-size:13px; font-weight:500; color:var(--text-body); margin-bottom:6px;
+}
+.field input, .field select, .field textarea{
+  width:100%; min-height:44px; font-family:var(--font); font-size:16px;
+  color:var(--text-body); background:var(--surface);
+  border:1px solid var(--border-strong); border-radius:var(--radius);
+  padding:10px 12px; outline:none;
+}
+.field textarea{ resize:none; }
+.field input:focus, .field select:focus, .field textarea:focus{
+  border-color:var(--plum); box-shadow:0 0 0 3px rgba(0,136,53,.12);
+}
+/* campo focado em destaque (representa o que scrollIntoView centralizou) */
+.field.is-focused input{ border-color:var(--plum); box-shadow:0 0 0 3px rgba(0,136,53,.12); }
+.field__error{
+  display:flex; align-items:center; gap:6px;
+  font-size:12px; color:var(--danger); margin-top:6px;
+}
+.field__error svg{ width:14px; height:14px; flex:none; }
+.field input.has-error, .field select.has-error{ border-color:var(--danger); box-shadow:0 0 0 3px rgba(150,47,50,.12); }
+
+.sheet__footer{
+  border-top:1px solid var(--border); padding:14px 18px;
+  display:flex; gap:10px; background:var(--surface);
+}
+/* DEPOIS: padding extra no rodapé pra não colar no último campo / teclado */
+.sheet--dvh .sheet__footer{ padding-bottom:22px; }
+.btn{
+  flex:1; height:46px; border-radius:var(--radius); font-family:var(--font);
+  font-size:15px; font-weight:600; cursor:pointer; border:1px solid transparent;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn--primary{ background:var(--plum); color:var(--text-on-plum); }
+.btn--primary:hover{ background:var(--plum-deep); }
+.btn--secondary{ background:var(--surface); color:var(--text-body); border-color:var(--border-strong); flex:0 0 auto; padding:0 18px; }
+
+/* teclado virtual simulado (retângulo cinza ~45% inferior) */
+.keyboard{
+  position:absolute; left:0; right:0; bottom:0; height:45%;
+  background:linear-gradient(180deg,#E4E9E1,#D7DED4);
+  border-top:1px solid var(--border-strong);
+  display:flex; flex-direction:column; justify-content:center; gap:7px; padding:12px 10px;
+  z-index:3;
+}
+.keyboard .krow{ display:flex; gap:5px; justify-content:center; }
+.keyboard .key{
+  flex:1; max-width:30px; height:32px; background:var(--surface);
+  border-radius:6px; box-shadow:var(--shadow-xs);
+}
+.keyboard .key.wide{ max-width:120px; }
+.keyboard .klabel{
+  text-align:center; font-size:11px; color:var(--text-muted); margin-top:2px;
+}
+/* marca de "coberto" no antes */
+.covered-mark{
+  position:absolute; left:50%; transform:translateX(-50%); z-index:4;
+  background:var(--danger); color:#fff; font-size:11px; font-weight:600;
+  padding:5px 11px; border-radius:999px; display:flex; align-items:center; gap:6px;
+  box-shadow:var(--shadow-sm); white-space:nowrap;
+}
+.covered-mark svg{ width:13px; height:13px; }
+
+/* nota de seção */
+.note-inline{
+  margin-top:14px; font-size:13px; color:var(--text-muted);
+  display:flex; align-items:flex-start; gap:8px; max-width:64ch;
+}
+.note-inline svg{ width:16px; height:16px; color:var(--plum); flex:none; margin-top:2px; }
+
+/* legenda CSS embaixo dos painéis */
+.css-note{
+  margin-top:12px; font-family:ui-monospace,"SFMono-Regular",Menlo,monospace;
+  font-size:12px; color:var(--text-muted); background:var(--surface-warm);
+  border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px;
+}
+.css-note b{ color:var(--plum-deep); font-weight:600; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ====================== CABEÇALHO ====================== -->
+  <header class="doc__head">
+    <p class="kicker">FIOPULSE <span class="dot">·</span> AUDITORIA</p>
+    <h1>Formulários &amp; busca — toque, zoom e limpar</h1>
+    <p class="why">
+      No celular, pequenos atritos se somam: limpar a busca apagando letra por letra,
+      a tela dando zoom sozinha ao focar um campo, o teclado cobrindo o botão Salvar e
+      filtros que se espremem em larguras irregulares. Cada ajuste aqui devolve um toque,
+      um segundo ou um campo que ficou escondido — sem mudar nada do que o app faz.
+    </p>
+  </header>
+
+  <!-- ====================== 1. BUSCA COM LIMPAR ====================== -->
+  <section>
+    <div class="sec__head">
+      <span class="sec__num">01</span>
+      <h2>Busca com botão limpar</h2>
+    </div>
+    <p class="sec__sub">
+      O campo de busca já tem lupa à esquerda. Falta um caminho rápido para zerar a
+      consulta — hoje só apagando manualmente. O botão limpar aparece apenas quando há texto.
+    </p>
+
+    <div class="ba">
+      <!-- ANTES -->
+      <div class="panel panel--now">
+        <span class="tag tag--now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+        <div class="toolbar">
+          <div class="toolbar__search">
+            <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" value="Marina" aria-label="Buscar funcionário" readonly>
+          </div>
+        </div>
+        <div class="note-inline">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Sem botão limpar: o usuário segura o backspace ou seleciona tudo para recomeçar a busca.
+        </div>
+      </div>
+
+      <!-- DEPOIS — dois estados (vazio e preenchido) -->
+      <div class="panel panel--next">
+        <span class="tag tag--next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+
+        <!-- Estado preenchido: x visível. Interativo de verdade. -->
+        <div class="toolbar" style="margin-bottom:14px;">
+          <div class="toolbar__search has-value" id="search1">
+            <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" value="Marina" aria-label="Buscar funcionário" placeholder="Buscar funcionário">
+            <button type="button" class="clear" aria-label="Limpar busca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Estado vazio: sem x -->
+        <div class="toolbar">
+          <div class="toolbar__search" id="search2">
+            <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" value="" aria-label="Buscar funcionário" placeholder="Buscar funcionário">
+            <button type="button" class="clear" aria-label="Limpar busca" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="note-inline">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6h6"/><path d="M20 20v-6h-6"/><path d="M20 9a8 8 0 0 0-14-3M4 15a8 8 0 0 0 14 3"/></svg>
+          Toque o "x": ele limpa, esconde-se e devolve o foco ao input (teclado segue aberto).
+          Touch target de 44px, ícone de 16px.
+        </div>
+        <div class="css-note">
+          <b>.toolbar__search .clear</b> — absoluto à direita, <b>width:44px</b> (alvo de toque),
+          visível só com <b>.has-value</b>; ao limpar, <b>input.focus()</b>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 2. CONTEXTO DE RESULTADO ====================== -->
+  <section>
+    <div class="sec__head">
+      <span class="sec__num">02</span>
+      <h2>Contexto de resultado &amp; “Mostrar mais”</h2>
+    </div>
+    <p class="sec__sub">
+      Em listas grandes (130+ funcionários), renderizamos só ~50 itens e mostramos
+      quantos estão visíveis. O resto entra por “Mostrar mais”, em append — a busca
+      não re-dispara a animação de entrada (stagger), que roda só no 1º render.
+    </p>
+
+    <div class="phones">
+      <div>
+        <div class="phone">
+          <div class="phone__notch"></div>
+          <div class="phone__body">
+            <div class="appbar">
+              <span class="appbar__title">Funcionários</span>
+              <span class="wordmark">FioPulse</span>
+            </div>
+
+            <div class="toolbar toolbar--good">
+              <div class="toolbar__search has-value" id="search3">
+                <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" value="" placeholder="Buscar funcionário" aria-label="Buscar funcionário">
+                <button type="button" class="clear" aria-label="Limpar busca" hidden>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- linha de contexto -->
+            <div class="result-line" id="ctxLine">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;color:var(--text-muted)"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              Mostrando <strong id="ctxShown">12</strong> de <strong id="ctxTotal">134</strong>
+            </div>
+
+            <ul class="list" id="empList"></ul>
+
+            <button type="button" class="show-more btn--ghost" id="showMore">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              Mostrar mais (<span id="moreCount">84</span>)
+            </button>
+          </div>
+        </div>
+        <p class="phone__caption">Toque “Mostrar mais” — itens entram em append, sem re-animar a lista.</p>
+      </div>
+
+      <div style="flex:1; min-width:260px; max-width:440px;">
+        <div class="targets" style="margin-top:0;">
+          <h3>Decisões</h3>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Render inicial limitado a ~50 itens — a rolagem inicial fica leve.</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> “Mostrando X de Y” dá contexto antes de o usuário rolar até o fim.</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> “Mostrar mais” faz <em>append</em> — não recria a lista do zero.</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> O stagger de entrada roda só no 1º render; digitar na busca não re-anima.</li>
+          </ul>
+          <p class="note">
+            Antes: a lista re-renderizava todos os 134 itens a cada tecla e sem paginação —
+            travadas e re-stagger a cada letra.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 3. ZOOM iOS ====================== -->
+  <section>
+    <div class="sec__head">
+      <span class="sec__num">03</span>
+      <h2>Zoom-on-focus do iOS: 16px mata o zoom</h2>
+    </div>
+    <p class="sec__sub">
+      O Safari no iOS dá zoom automático ao focar qualquer input com fonte abaixo de 16px,
+      desalinhando o layout. Subir todos os campos para 16px resolve sem JS e sem
+      <code>maximum-scale</code> (que prejudica acessibilidade).
+    </p>
+
+    <div class="zoom-grid">
+      <div class="zoom-card">
+        <div class="field-label">Input a 15px <span class="px">15px</span></div>
+        <input class="demo-input is15" type="text" value="Marina Albuquerque" aria-label="Exemplo 15 pixels">
+        <div class="flag flag--bad">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Dispara zoom no Safari iOS ao focar.
+        </div>
+      </div>
+
+      <div class="zoom-card">
+        <div class="field-label">Input a 16px <span class="px">16px</span></div>
+        <input class="demo-input is16" type="text" value="Marina Albuquerque" aria-label="Exemplo 16 pixels">
+        <div class="flag flag--ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Sem zoom — a viewport fica estável.
+        </div>
+      </div>
+    </div>
+
+    <div class="targets">
+      <h3>Alvos para 16px</h3>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <code>.field input / select / textarea</code></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <code>.toolbar__search input</code></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <code>.toolbar select</code></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <code>.chat__composer textarea</code></li>
+      </ul>
+      <p class="note">
+        Se 15/14px for desejável no desktop por densidade, condicione com
+        <code>@media (pointer:fine){ ... font-size:15px }</code> — mantendo 16px no toque.
+      </p>
+    </div>
+  </section>
+
+  <!-- ====================== 4. BOTTOM-SHEET + TECLADO ====================== -->
+  <section>
+    <div class="sec__head">
+      <span class="sec__num">04</span>
+      <h2>Bottom-sheet acima do teclado</h2>
+    </div>
+    <p class="sec__sub">
+      A folha de “Nova ocorrência” dimensionada em <code>vh</code> ignora o teclado virtual:
+      ele cobre o último campo e o botão Salvar. Em <code>dvh</code> a folha encolhe acima do
+      teclado e <code>scrollIntoView</code> centraliza o campo focado.
+    </p>
+
+    <div class="phones">
+      <!-- ANTES -->
+      <div>
+        <div class="phone">
+          <div class="phone__notch"></div>
+          <div class="sheet-stage">
+            <div class="sheet-backdrop"></div>
+            <div class="sheet sheet--vh">
+              <div class="sheet__grip"></div>
+              <div class="sheet__head">
+                <span class="sheet__title">Nova ocorrência</span>
+                <button class="sheet__close" aria-label="Fechar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div class="sheet__body">
+                <div class="field">
+                  <label>Funcionário</label>
+                  <input type="text" value="Rafael Quintino" readonly>
+                </div>
+                <div class="field">
+                  <label>Tipo de ocorrência</label>
+                  <select><option>Esqueceu o crachá</option></select>
+                </div>
+                <div class="field">
+                  <label>Data</label>
+                  <input type="text" value="13/06/2026" readonly>
+                </div>
+                <div class="field">
+                  <label>Observação</label>
+                  <textarea rows="3" readonly>Entrada registrada pelo líder.</textarea>
+                </div>
+              </div>
+              <div class="sheet__footer">
+                <button class="btn btn--secondary">Cancelar</button>
+                <button class="btn btn--primary">Salvar</button>
+              </div>
+            </div>
+            <!-- teclado simulado por cima -->
+            <div class="keyboard">
+              <div class="krow"><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span></div>
+              <div class="krow"><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span></div>
+              <div class="krow"><span class="key wide"></span><span class="key"></span><span class="key"></span><span class="key wide"></span></div>
+              <div class="klabel">teclado virtual</div>
+            </div>
+            <div class="covered-mark" style="bottom:calc(45% + 8px);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              “Salvar” e o último campo ficam atrás do teclado
+            </div>
+          </div>
+        </div>
+        <p class="phone__caption">Hoje — <code>max-height:92vh</code> não conta o teclado.</p>
+        <div class="css-note"><b>.sheet { max-height: 92vh }</b> — o footer cai sob o teclado.</div>
+      </div>
+
+      <!-- DEPOIS -->
+      <div>
+        <div class="phone">
+          <div class="phone__notch"></div>
+          <div class="sheet-stage">
+            <div class="sheet-backdrop"></div>
+            <div class="sheet sheet--dvh">
+              <div class="sheet__grip"></div>
+              <div class="sheet__head">
+                <span class="sheet__title">Nova ocorrência</span>
+                <button class="sheet__close" aria-label="Fechar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div class="sheet__body">
+                <div class="field">
+                  <label>Tipo de ocorrência</label>
+                  <select><option>Falta injustificada</option></select>
+                </div>
+                <!-- campo focado, centralizado por scrollIntoView, com erro visível -->
+                <div class="field is-focused">
+                  <label>Data</label>
+                  <input type="text" value="" placeholder="dd/mm/aaaa" class="has-error" aria-invalid="true">
+                  <div class="field__error">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Informe a data da ocorrência.
+                  </div>
+                </div>
+              </div>
+              <div class="sheet__footer">
+                <button class="btn btn--secondary">Cancelar</button>
+                <button class="btn btn--primary">Salvar</button>
+              </div>
+            </div>
+            <!-- teclado simulado — a folha está ACIMA dele -->
+            <div class="keyboard">
+              <div class="krow"><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span></div>
+              <div class="krow"><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span><span class="key"></span></div>
+              <div class="krow"><span class="key wide"></span><span class="key"></span><span class="key"></span><span class="key wide"></span></div>
+              <div class="klabel">teclado virtual</div>
+            </div>
+          </div>
+        </div>
+        <p class="phone__caption">Proposto — <code>max-height:92dvh</code>, footer e erro visíveis acima do teclado.</p>
+        <div class="css-note">
+          <b>.sheet { max-height: 92dvh }</b> · <b>.field { scroll-margin-bottom:24px }</b> ·
+          footer com padding extra · <b>scrollIntoView</b> centraliza o campo focado.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 5. TOOLBAR MOBILE ====================== -->
+  <section>
+    <div class="sec__head">
+      <span class="sec__num">05</span>
+      <h2>Toolbar de filtros em 2 colunas</h2>
+    </div>
+    <p class="sec__sub">
+      No celular a toolbar em <code>flex-wrap</code> deixa a busca e dois selects competindo por
+      largura — os selects encolhem para menos de 130px e o texto corta. Abaixo de 540px,
+      a busca ocupa a 1ª linha inteira e os selects vão para um grid de 2 colunas.
+    </p>
+
+    <div class="phones">
+      <!-- ANTES -->
+      <div>
+        <div class="phone">
+          <div class="phone__notch"></div>
+          <div class="phone__body">
+            <div class="appbar">
+              <span class="appbar__title">Funcionários</span>
+              <span class="wordmark">FioPulse</span>
+            </div>
+            <div class="toolbar toolbar--bad">
+              <div class="toolbar__search">
+                <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" placeholder="Buscar" aria-label="Buscar" readonly>
+              </div>
+              <select class="select" aria-label="Status"><option>Status: Ativo</option></select>
+              <select class="select" aria-label="Turno"><option>Turno: 1º Turno</option></select>
+            </div>
+            <p style="font-size:12px;color:var(--danger);margin:12px 2px 0;display:flex;gap:7px;align-items:flex-start;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none;margin-top:1px;"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Selects abaixo de 130px — rótulos cortados (“Status: Ati…”, “Turno: 1º…”).
+            </p>
+          </div>
+        </div>
+        <p class="phone__caption">Hoje — <code>flex-wrap</code> e larguras irregulares.</p>
+      </div>
+
+      <!-- DEPOIS -->
+      <div>
+        <div class="phone">
+          <div class="phone__notch"></div>
+          <div class="phone__body">
+            <div class="appbar">
+              <span class="appbar__title">Funcionários</span>
+              <span class="wordmark">FioPulse</span>
+            </div>
+            <div class="toolbar toolbar--good">
+              <div class="toolbar__search has-value" id="search4">
+                <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" value="" placeholder="Buscar funcionário" aria-label="Buscar funcionário">
+                <button type="button" class="clear" aria-label="Limpar busca" hidden>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div class="toolbar__grid">
+                <select class="select" aria-label="Status"><option>Status: Ativo</option></select>
+                <select class="select" aria-label="Turno"><option>Turno: 1º Turno</option></select>
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--success);margin:12px 2px 0;display:flex;gap:7px;align-items:flex-start;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex:none;margin-top:1px;"><polyline points="20 6 9 17 4 12"/></svg>
+              Busca em largura total na 1ª linha; selects 1fr 1fr na 2ª, rótulos inteiros.
+            </p>
+          </div>
+        </div>
+        <p class="phone__caption">Proposto — <code>@media ≤540px</code>: 2 linhas limpas.</p>
+        <div class="css-note">
+          busca <b>width:100%</b> · selects <b>grid-template-columns:1fr 1fr; gap:8px</b> ·
+          padding 12px · <b>font-size:16px</b>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   Interatividade mínima — toda lógica em JS, sem libs externas.
+   Respeita prefers-reduced-motion (CSS já neutraliza animações).
+   ============================================================ */
+(function(){
+  "use strict";
+
+  /* ---- 1) Busca com limpar: x aparece/esconde conforme o valor ---- */
+  document.querySelectorAll(".toolbar__search").forEach(function(wrap){
+    var input = wrap.querySelector("input");
+    var clear = wrap.querySelector(".clear");
+    if(!input) return;
+
+    function sync(){
+      var has = input.value.trim().length > 0;
+      wrap.classList.toggle("has-value", has);
+      if(clear) clear.hidden = !has;
+    }
+    input.addEventListener("input", sync);
+
+    if(clear){
+      clear.addEventListener("click", function(){
+        input.value = "";
+        sync();
+        input.focus();              // foco volta ao input ao limpar
+        wrap.dispatchEvent(new CustomEvent("fp:cleared"));
+      });
+    }
+    sync();
+  });
+
+  /* ---- 2) Lista de funcionários + "Mostrar mais" (append, sem re-stagger) ---- */
+  var NAMES = [
+    ["Marina Albuquerque","1º Turno","+12h30",1],
+    ["Rafael Quintino","1º Turno","-04h10",0],
+    ["Beatriz Salgado","2º Turno","+02h05",1],
+    ["Otávio Guimarães","3º Turno","+00h00",1],
+    ["Carla Botelho","1º Turno","-01h45",0],
+    ["Henrique Vasconcelos","2º Turno","+08h20",1],
+    ["Letícia Maranhão","1º Turno","+03h15",1],
+    ["Diego Florentino","3º Turno","-02h30",0],
+    ["Patrícia Rangel","2º Turno","+05h40",1],
+    ["Gustavo Peçanha","1º Turno","+00h25",1],
+    ["Aline Sobral","2º Turno","-03h05",0],
+    ["Eduardo Tavares","3º Turno","+09h50",1]
+  ];
+  var TOTAL = 134;
+  var INITIAL = 12;          // representa o limite de render (~50 em produção)
+  var BATCH = 12;            // append por lote
+  var shown = 0;
+
+  var listEl   = document.getElementById("empList");
+  var shownEl  = document.getElementById("ctxShown");
+  var totalEl  = document.getElementById("ctxTotal");
+  var moreBtn  = document.getElementById("showMore");
+  var moreCt   = document.getElementById("moreCount");
+  var reduce   = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function initials(name){
+    var p = name.split(" ");
+    return (p[0][0] + (p[p.length-1][0]||"")).toUpperCase();
+  }
+
+  function makeRow(rec, animate, idx){
+    var li = document.createElement("li");
+    li.className = "row" + (animate && !reduce ? " enter" : "");
+    if(animate && !reduce){ li.style.animationDelay = (idx * 40) + "ms"; }
+    var bal = rec[2], pos = rec[3] === 1;
+    li.innerHTML =
+      '<div class="row__avatar">'+ initials(rec[0]) +'</div>'+
+      '<div class="row__main"><div class="row__name">'+ rec[0] +'</div>'+
+      '<div class="row__meta">'+ rec[1] +' · Banco de horas</div></div>'+
+      '<div class="row__bal '+ (pos?"pos":"neg") +'">'+ bal +'</div>';
+    return li;
+  }
+
+  function append(count, animate){
+    if(totalEl) totalEl.textContent = TOTAL;
+    for(var i=0; i<count; i++){
+      var rec = NAMES[(shown) % NAMES.length];
+      // gera nomes "novos" simples para os lotes seguintes mantendo realismo
+      listEl.appendChild(makeRow(rec, animate, i));
+      shown++;
+    }
+    if(shownEl) shownEl.textContent = shown;
+    var remaining = TOTAL - shown;
+    if(remaining <= 0){
+      moreBtn.style.display = "none";
+    } else {
+      moreCt.textContent = remaining;
+    }
+  }
+
+  if(listEl){
+    append(INITIAL, true);                 // 1º render: stagger
+    moreBtn.addEventListener("click", function(){
+      var next = Math.min(BATCH, TOTAL - shown);
+      append(next, false);                 // append: SEM re-stagger
+    });
+  }
+})();
+</script>
+</body>
+</html>

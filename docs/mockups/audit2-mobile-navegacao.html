@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse — Mobile & navegação: chat-FAB, bottom-nav e drawer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Tokens oficiais Fiobras — embutidos para consistência entre mockups.
+   ============================================================ */
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+  --warning:#B27429; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+  --info:#2F5A6B; --info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+  --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+  --shadow-xs:0 1px 1px rgba(0,40,20,.03); --shadow-sm:0 1px 2px rgba(0,40,20,.05);
+  --shadow:0 4px 16px rgba(0,40,20,.07); --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+  --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text-body);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+}
+
+/* ---------- Cabeçalho de documento de design ---------- */
+.doc{max-width:1180px;margin:0 auto;padding:48px 28px 96px;}
+.kicker{
+  font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-muted);display:flex;align-items:center;gap:8px;margin-bottom:14px;
+}
+.kicker .dot{width:4px;height:4px;border-radius:50%;background:var(--plum);}
+h1.doc__title{
+  font-size:30px;font-weight:600;line-height:1.18;color:var(--text);margin:0 0 14px;
+  letter-spacing:-.01em;max-width:760px;
+}
+.doc__why{
+  font-size:15px;color:var(--text-muted);max-width:680px;margin:0 0 8px;line-height:1.6;
+}
+.doc__why b{color:var(--text-body);font-weight:600;}
+
+/* ---------- Seções ---------- */
+.section{margin-top:64px;}
+.section__head{display:flex;align-items:flex-start;gap:14px;margin-bottom:8px;}
+.section__num{
+  flex:0 0 auto;width:30px;height:30px;border-radius:9px;
+  background:var(--plum);color:var(--text-on-plum);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:600;margin-top:2px;
+}
+.section__title{font-size:20px;font-weight:600;color:var(--text);margin:0;letter-spacing:-.01em;}
+.section__desc{font-size:14px;color:var(--text-muted);margin:6px 0 0;max-width:780px;line-height:1.55;}
+.section__body{margin-top:28px;}
+
+/* ---------- Par ANTES / DEPOIS ---------- */
+.pair{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;}
+.frame-block{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.tag{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 12px;border-radius:999px;
+}
+.tag--hoje{background:var(--danger-bg);color:var(--danger);}
+.tag--prop{background:var(--success-bg);color:var(--success);}
+.tag svg{width:13px;height:13px;}
+
+/* ============================================================
+   Moldura de celular ~390px com safe-area desenhada
+   (notch no topo, home-indicator no rodapé).
+   ============================================================ */
+.phone{
+  --notch-h:44px;          /* env(safe-area-inset-top) simulado */
+  --home-h:24px;           /* env(safe-area-inset-bottom) simulado */
+  width:300px;height:600px;
+  border-radius:42px;
+  background:#0B130E;       /* corpo do aparelho */
+  padding:9px;
+  box-shadow:var(--shadow-lg);
+  position:relative;
+  flex:0 0 auto;
+}
+.phone__screen{
+  position:relative;width:100%;height:100%;
+  border-radius:34px;overflow:hidden;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+}
+/* faixa de status / notch — zona não-utilizável de cima */
+.statusbar{
+  position:absolute;top:0;left:0;right:0;height:var(--notch-h);z-index:60;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 18px 6px;pointer-events:none;
+  color:#0B130E;font-size:11px;font-weight:600;
+}
+.statusbar--onplum{color:rgba(255,255,255,.95);}
+.statusbar .notch{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:118px;height:26px;background:#0B130E;border-radius:0 0 16px 16px;
+}
+.statusbar .right{display:flex;align-items:center;gap:5px;}
+.statusbar .right svg{width:15px;height:11px;}
+/* home indicator — barra de gesto inferior */
+.homebar{
+  position:absolute;bottom:0;left:0;right:0;height:var(--home-h);z-index:60;
+  display:flex;align-items:flex-start;justify-content:center;padding-top:9px;
+  pointer-events:none;
+}
+.homebar i{width:118px;height:5px;border-radius:3px;background:rgba(11,19,14,.32);}
+.homebar--onplum i{background:rgba(255,255,255,.55);}
+
+/* zonas de safe-area pintadas (modo "design") */
+.safezone{position:absolute;left:0;right:0;z-index:55;pointer-events:none;
+  background:repeating-linear-gradient(45deg,rgba(150,47,50,.10) 0 6px,transparent 6px 12px);}
+.safezone--top{top:0;height:var(--notch-h);}
+.safezone--bottom{bottom:0;height:var(--home-h);}
+.safezone-ok{background:repeating-linear-gradient(45deg,rgba(47,107,63,.10) 0 6px,transparent 6px 12px);}
+
+/* conteúdo de app abaixo da statusbar */
+.appwrap{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;}
+.appscroll{flex:1;overflow:hidden;position:relative;}
+
+/* topo de app genérico */
+.topbar{
+  padding:calc(var(--notch-h) + 8px) 16px 12px;
+  display:flex;align-items:center;gap:12px;background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+.topbar .iconbtn{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;color:var(--text);background:var(--surface-warm);border:1px solid var(--border);}
+.topbar .iconbtn svg{width:20px;height:20px;}
+.topbar .ttl{font-size:15px;font-weight:600;color:var(--text);}
+.topbar .sub{font-size:11px;color:var(--text-muted);}
+
+/* lista fake */
+.fakelist{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:11px 13px;display:flex;align-items:center;gap:11px;
+}
+.card .av{width:34px;height:34px;border-radius:9px;background:var(--surface-warm);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;color:var(--text);flex:0 0 auto;}
+.card .nm{font-size:13px;font-weight:600;color:var(--text-body);line-height:1.2;}
+.card .mt{font-size:11px;color:var(--text-muted);}
+.pill{font-size:10px;font-weight:600;padding:3px 8px;border-radius:999px;margin-left:auto;}
+.pill--warn{background:var(--warning-bg);color:var(--warning);}
+.pill--ok{background:var(--success-bg);color:var(--success);}
+.pill--info{background:var(--info-bg);color:var(--info);}
+
+/* ============================================================
+   CHAT-FAB
+   ============================================================ */
+.chat-fab{
+  position:absolute;width:56px;height:56px;border-radius:50%;
+  background:var(--plum);color:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 22px rgba(0,99,40,.32);border:none;z-index:50;cursor:pointer;
+}
+.chat-fab svg{width:25px;height:25px;}
+.chat-fab .badge{
+  position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 4px;
+  background:var(--fiobras-yellow);color:var(--plum-deep);border-radius:999px;
+  font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--surface);
+}
+/* posição HOJE (problemática): canto, sobre footer / nav */
+.chat-fab--legacy{right:16px;bottom:16px;}
+.chat-fab--legacy-nav{right:16px;bottom:80px;}   /* sobrepõe item da nav */
+/* posição PROPOSTA: acima da bottom-nav, com safe-area */
+.chat-fab--fixed{
+  right:16px;
+  bottom:calc(16px + var(--home-h) + 68px + 12px);
+}
+
+/* ============================================================
+   BOTTOM-SHEET (Nova ocorrência)
+   ============================================================ */
+.scrim{position:absolute;inset:0;background:rgba(0,40,20,.38);z-index:30;}
+.sheet{
+  position:absolute;left:0;right:0;bottom:0;z-index:40;
+  background:var(--surface);border-radius:22px 22px 0 0;
+  box-shadow:0 -10px 40px rgba(0,40,20,.22);
+  display:flex;flex-direction:column;max-height:78%;
+}
+.sheet__grip{width:40px;height:4px;border-radius:3px;background:var(--border-strong);
+  margin:9px auto 4px;}
+.sheet__head{padding:4px 18px 10px;}
+.sheet__head h3{font-size:15px;font-weight:600;color:var(--text);margin:0;}
+.sheet__head p{font-size:11px;color:var(--text-muted);margin:2px 0 0;}
+.sheet__body{padding:4px 18px 14px;display:flex;flex-direction:column;gap:11px;overflow:hidden;}
+.fld label{font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;}
+.fld .inp{height:38px;border:1px solid var(--border-strong);border-radius:10px;background:var(--milk);
+  display:flex;align-items:center;padding:0 12px;font-size:13px;color:var(--text-body);}
+.fld .inp.placeholder{color:var(--text-muted);}
+.sheet__footer{
+  display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);
+  /* safe-area para não esconder os botões sob o home indicator */
+  padding-bottom:calc(12px + var(--home-h));
+}
+.btn{flex:1;height:42px;border-radius:11px;font-size:13px;font-weight:600;border:1px solid var(--border-strong);
+  background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn--primary{background:var(--plum);color:#fff;border-color:var(--plum);}
+
+/* ============================================================
+   BOTTOM-NAV
+   ============================================================ */
+.bnav{
+  display:flex;background:var(--surface);border-top:1px solid var(--border);
+  position:absolute;left:0;right:0;bottom:0;z-index:20;
+}
+.bnav__inner{display:flex;flex:1;}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--text-muted);text-decoration:none;background:none;border:none;cursor:pointer;
+}
+.bnav-item svg{stroke:currentColor;}
+.bnav-item.active{color:var(--plum);}
+.bnav-item .lab{display:block;text-align:center;white-space:nowrap;}
+
+/* HOJE: 9px, gap 0, alvos espremidos */
+.bnav--legacy{padding-bottom:var(--home-h);}
+.bnav--legacy .bnav-item{gap:0;padding:7px 0;min-height:38px;}
+.bnav--legacy .bnav-item svg{width:18px;height:18px;}
+.bnav--legacy .bnav-item .lab{font-size:9px;letter-spacing:0;line-height:1.05;max-width:46px;
+  overflow:hidden;text-overflow:ellipsis;}
+
+/* PROPOSTO (a): 11px, gap 2, alvo >=44px, safe-area */
+.bnav--prop{padding-bottom:var(--home-h);}
+.bnav--prop .bnav-item{gap:2px;padding:8px 0;min-height:44px;}
+.bnav--prop .bnav-item svg{width:22px;height:22px;}
+.bnav--prop .bnav-item .lab{font-size:11px;letter-spacing:-.01em;line-height:1.1;}
+
+/* PROPOSTO (b) compacto a 360px: 4 destinos + só ícones */
+.bnav--compact{padding-bottom:var(--home-h);}
+.bnav--compact .bnav-item{gap:0;padding:11px 0;min-height:48px;}
+.bnav--compact .bnav-item svg{width:24px;height:24px;}
+
+/* slot central do FAB dentro da nav (variante b) */
+.bnav-fabslot{flex:0 0 auto;width:64px;display:flex;align-items:flex-start;justify-content:center;
+  position:relative;}
+.bnav-fabslot .fab{position:absolute;top:-22px;width:54px;height:54px;border-radius:50%;
+  background:var(--plum);color:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 20px rgba(0,99,40,.32);border:3px solid var(--surface);}
+.bnav-fabslot .fab svg{width:24px;height:24px;}
+
+/* régua de medida do alvo de toque */
+.tapruler{position:absolute;z-index:25;border:1px dashed var(--danger);border-radius:6px;
+  pointer-events:none;}
+.tapruler .cap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:999px;white-space:nowrap;}
+.tapruler--ok{border-color:var(--success);}
+.tapruler--ok .cap{background:var(--success);}
+
+/* ============================================================
+   CHAT WIDGET FULLSCREEN
+   ============================================================ */
+.chatfs{position:absolute;inset:0;z-index:45;display:flex;flex-direction:column;background:var(--milk);}
+.chatfs__head{background:var(--plum);color:#fff;display:flex;align-items:center;gap:11px;padding:12px 16px;}
+.chatfs__head .av{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex:0 0 auto;}
+.chatfs__head .nm{font-size:14px;font-weight:600;line-height:1.15;}
+.chatfs__head .st{font-size:11px;color:rgba(255,255,255,.78);}
+.chatfs__head .x{margin-left:auto;width:32px;height:32px;border-radius:9px;display:flex;
+  align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.14);border:none;}
+.chatfs__head .x svg{width:18px;height:18px;}
+.chatfs__body{flex:1;padding:14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;}
+.bubble{max-width:78%;padding:8px 11px;border-radius:14px;font-size:12px;line-height:1.4;}
+.bubble--in{background:var(--surface);border:1px solid var(--border);color:var(--text-body);
+  align-self:flex-start;border-bottom-left-radius:5px;}
+.bubble--out{background:var(--plum);color:#fff;align-self:flex-end;border-bottom-right-radius:5px;}
+.bubble .tm{display:block;font-size:9px;opacity:.7;margin-top:3px;}
+.composer{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--surface);
+  border-top:1px solid var(--border);}
+.composer .field{flex:1;height:38px;border:1px solid var(--border-strong);border-radius:999px;
+  background:var(--milk);display:flex;align-items:center;padding:0 14px;font-size:12px;color:var(--text-muted);}
+.composer .send{width:40px;height:40px;border-radius:50%;background:var(--plum);color:#fff;
+  display:flex;align-items:center;justify-content:center;border:none;flex:0 0 auto;}
+.composer .send svg{width:19px;height:19px;}
+/* HOJE: head colado no notch, composer atrás do home indicator (sem safe-area) */
+.chatfs--prop .chatfs__head{padding-top:calc(12px + var(--notch-h));}
+.chatfs--prop .composer{padding-bottom:calc(10px + var(--home-h));}
+
+/* ============================================================
+   DRAWER lateral
+   ============================================================ */
+.drawer-host{position:absolute;inset:0;z-index:35;overflow:hidden;}
+.drawer-backdrop{position:absolute;inset:0;}
+.drawer-backdrop--legacy{background:rgba(31,11,28,.5);}      /* roxo legado */
+.drawer-backdrop--prop{background:rgba(0,40,20,.45);}        /* verde Fiobras */
+.drawer{
+  position:absolute;top:0;bottom:0;left:0;background:var(--plum);color:#fff;
+  display:flex;flex-direction:column;box-shadow:6px 0 30px rgba(0,40,20,.3);
+  padding-top:calc(8px + var(--notch-h));
+}
+.drawer--legacy{width:70%;}
+.drawer--prop{width:82%;}
+.drawer__brand{font-family:var(--font-brand);font-size:16px;letter-spacing:.02em;padding:6px 18px 14px;}
+.drawer__profile{display:flex;align-items:center;gap:11px;padding:0 18px 14px;
+  border-bottom:1px solid rgba(255,255,255,.16);}
+.drawer__profile .av{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;}
+.drawer__profile .nm{font-size:13px;font-weight:600;}
+.drawer__profile .rl{font-size:11px;color:rgba(255,255,255,.72);}
+.drawer__nav{padding:10px 10px;display:flex;flex-direction:column;gap:2px;flex:1;}
+.drawer__nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:11px;
+  color:rgba(255,255,255,.9);text-decoration:none;font-size:13px;font-weight:500;min-height:44px;}
+.drawer__nav a.active{background:rgba(255,255,255,.16);color:#fff;}
+.drawer__nav a svg{width:20px;height:20px;stroke:currentColor;}
+/* seta de gesto desenhada como ANOTAÇÃO fora da UI (não na tela) */
+.gesturehint{position:absolute;z-index:70;display:flex;align-items:center;gap:6px;
+  font-size:10px;font-weight:600;color:var(--plum-deep);background:var(--success-bg);
+  border:1px solid var(--border-strong);border-radius:999px;padding:5px 10px;box-shadow:var(--shadow-sm);}
+.gesturehint svg{width:15px;height:15px;}
+
+/* ---------- Anotações / callouts fora das molduras ---------- */
+.note{
+  max-width:300px;font-size:12.5px;color:var(--text-muted);line-height:1.55;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:13px 15px;
+}
+.note h4{font-size:12px;font-weight:600;color:var(--text);margin:0 0 7px;display:flex;align-items:center;gap:7px;}
+.note h4 svg{width:15px;height:15px;color:var(--plum);}
+.note ul{margin:0;padding-left:16px;}
+.note li{margin:3px 0;}
+.note code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  background:var(--milk-warm);border:1px solid var(--border);border-radius:6px;padding:1px 5px;color:var(--text);}
+.callrow{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;}
+
+/* legenda de safe-area */
+.legend{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;font-size:12px;color:var(--text-muted);}
+.legend span{display:inline-flex;align-items:center;gap:7px;}
+.legend .sw{width:22px;height:13px;border-radius:4px;border:1px solid var(--border-strong);}
+.legend .sw--danger{background:repeating-linear-gradient(45deg,rgba(150,47,50,.18) 0 4px,transparent 4px 8px);}
+.legend .sw--ok{background:repeating-linear-gradient(45deg,rgba(47,107,63,.18) 0 4px,transparent 4px 8px);}
+
+.toggle-row{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.toggle{font-size:12px;font-weight:600;padding:8px 14px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--border-strong);background:var(--surface);color:var(--text-muted);
+  transition:var(--transition);}
+.toggle[aria-pressed="true"]{background:var(--plum);color:#fff;border-color:var(--plum);}
+.toggle:focus-visible{outline:2px solid var(--plum-soft);outline-offset:2px;}
+
+.cap-under{font-size:12px;color:var(--text-muted);text-align:center;max-width:260px;margin-top:2px;}
+.cap-under b{color:var(--text-body);font-weight:600;}
+
+footer.doc__foot{margin-top:80px;border-top:1px solid var(--border);padding-top:22px;
+  font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+footer .brand{font-family:var(--font-brand);font-size:13px;color:var(--text);}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition-duration:1ms !important;animation-duration:1ms !important;}
+}
+@media (max-width:560px){
+  .phone{width:270px;height:540px;}
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ===== Cabeçalho do documento ===== -->
+  <div class="kicker"><span>FIOPULSE</span><span class="dot"></span><span>AUDITORIA</span><span class="dot"></span><span>MOBILE</span></div>
+  <h1 class="doc__title">Mobile &amp; navegação — chat-FAB, bottom-nav e drawer</h1>
+  <p class="doc__why">
+    No celular as camadas e os alvos de toque estão desalinhados: o <b>chat-FAB</b> flutua sobre
+    modais e colide com a bottom-nav, o chat em tela cheia ignora notch e home-indicator, e os
+    rótulos da barra estão a 9px (abaixo do legível). O ganho: <b>menos misclick</b>, alvos a
+    <b>44px</b>, tudo respeitando a <b>safe-area</b> do aparelho — e o drawer fechando por gesto.
+  </p>
+
+  <div class="legend">
+    <span><span class="sw sw--danger"></span> Zona de safe-area / notch / home-indicator (não desenhar conteúdo tocável aqui)</span>
+    <span><span class="sw sw--ok"></span> Safe-area respeitada pelo padding proposto</span>
+  </div>
+
+  <!-- ============================================================
+       1 — CHAT-FAB vs OVERLAYS
+       ============================================================ -->
+  <section class="section">
+    <div class="section__head">
+      <div class="section__num">1</div>
+      <div>
+        <h2 class="section__title">Chat-FAB por cima de overlays</h2>
+        <p class="section__desc">
+          Com o bottom-sheet de <b>Nova ocorrência</b> aberto, o FAB verde fica flutuando sobre o
+          rodapé <b>Salvar / Cancelar</b> — dois alvos de toque grandes no mesmo canto. A correção é
+          esconder o FAB enquanto há modal: <code>body.has-modal .chat-fab{display:none}</code>.
+        </p>
+      </div>
+    </div>
+
+    <div class="section__body pair">
+      <!-- ANTES -->
+      <div class="frame-block">
+        <span class="tag tag--hoje">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+        <div class="phone">
+          <div class="phone__screen">
+            <div class="safezone safezone--top"></div>
+            <div class="statusbar"><div class="notch"></div><span>9:41</span><div class="right">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 13h3v6H2zM7 9h3v10H7zM12 5h3v14h-3zM17 2h3v17h-3z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+            </div></div>
+
+            <!-- conteúdo de fundo difuso -->
+            <div class="appwrap">
+              <div class="topbar" style="opacity:.55;">
+                <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div>
+                <div><div class="ttl">Ocorrências</div><div class="sub">14 pendentes</div></div>
+              </div>
+            </div>
+
+            <!-- scrim + sheet -->
+            <div class="scrim"></div>
+            <div class="sheet">
+              <div class="sheet__grip"></div>
+              <div class="sheet__head"><h3>Nova ocorrência</h3><p>1º turno · registrar para conferência</p></div>
+              <div class="sheet__body">
+                <div class="fld"><label>Funcionário</label><div class="inp">Ana Beatriz Moraes</div></div>
+                <div class="fld"><label>Tipo</label><div class="inp">Atraso</div></div>
+                <div class="fld"><label>Data</label><div class="inp placeholder">12/06/2026</div></div>
+              </div>
+              <div class="sheet__footer">
+                <button class="btn">Cancelar</button>
+                <button class="btn btn--primary">Salvar</button>
+              </div>
+            </div>
+
+            <!-- FAB legado SOBRE o footer (problema) -->
+            <button class="chat-fab chat-fab--legacy" aria-label="Abrir chat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 9 9 0 0 1-4-.9L3 21l1.9-4a8.38 8.38 0 0 1-.9-4 8.5 8.5 0 0 1 8.5-8 8.38 8.38 0 0 1 8.5 8z"/></svg>
+              <span class="badge">2</span>
+            </button>
+            <!-- régua: FAB cobre a zona do botão Salvar -->
+            <div class="tapruler" style="right:10px;bottom:10px;width:68px;height:68px;"><span class="cap">colide c/ Salvar</span></div>
+
+            <div class="homebar"><i></i></div>
+          </div>
+        </div>
+        <p class="cap-under">FAB no <b>canto inferior-direito</b> cobre o botão Salvar — risco de misclick.</p>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="frame-block">
+        <span class="tag tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+        <div class="phone">
+          <div class="phone__screen">
+            <div class="safezone safezone--top safezone-ok"></div>
+            <div class="statusbar"><div class="notch"></div><span>9:41</span><div class="right">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 13h3v6H2zM7 9h3v10H7zM12 5h3v14h-3zM17 2h3v17h-3z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+            </div></div>
+
+            <div class="appwrap">
+              <div class="topbar" style="opacity:.55;">
+                <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div>
+                <div><div class="ttl">Ocorrências</div><div class="sub">14 pendentes</div></div>
+              </div>
+            </div>
+
+            <div class="scrim"></div>
+            <div class="sheet">
+              <div class="sheet__grip"></div>
+              <div class="sheet__head"><h3>Nova ocorrência</h3><p>1º turno · registrar para conferência</p></div>
+              <div class="sheet__body">
+                <div class="fld"><label>Funcionário</label><div class="inp">Ana Beatriz Moraes</div></div>
+                <div class="fld"><label>Tipo</label><div class="inp">Atraso</div></div>
+                <div class="fld"><label>Data</label><div class="inp placeholder">12/06/2026</div></div>
+              </div>
+              <div class="sheet__footer">
+                <button class="btn">Cancelar</button>
+                <button class="btn btn--primary">Salvar</button>
+              </div>
+            </div>
+            <!-- FAB OCULTO via body.has-modal — sem régua, sem colisão -->
+            <div class="homebar"><i></i></div>
+          </div>
+        </div>
+        <p class="cap-under">FAB <b>oculto</b> enquanto há modal: o rodapé Salvar/Cancelar fica livre.</p>
+      </div>
+
+      <div class="note">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Decisão</h4>
+        <ul>
+          <li>Qualquer overlay (sheet, modal, conferência) marca <code>body.has-modal</code>.</li>
+          <li>Regra única <code>.has-modal .chat-fab{display:none}</code> cobre todos os casos — nada de z-index na corrida.</li>
+          <li>O chat continua acessível: reaparece ao fechar o modal.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       2 — CHAT-FAB vs BOTTOM-NAV
+       ============================================================ -->
+  <section class="section">
+    <div class="section__head">
+      <div class="section__num">2</div>
+      <div>
+        <h2 class="section__title">Chat-FAB colidindo com a bottom-nav</h2>
+        <p class="section__desc">
+          Em <code>bottom:80px</code> fixo o FAB cobre o último destino (<b>Conta</b>). Reancorado em
+          <code>calc(16px + env(safe-area-inset-bottom) + 68px + 12px)</code> ele sobe acima da barra (68px),
+          fora do home-indicator, sem tampar alvo nenhum.
+        </p>
+      </div>
+    </div>
+
+    <div class="section__body pair">
+      <!-- ANTES -->
+      <div class="frame-block">
+        <span class="tag tag--hoje">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+        <div class="phone">
+          <div class="phone__screen">
+            <div class="statusbar"><div class="notch"></div><span>9:41</span><div class="right">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 13h3v6H2zM7 9h3v10H7zM12 5h3v14h-3zM17 2h3v17h-3z"/></svg>
+            </div></div>
+            <div class="appwrap">
+              <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div><div><div class="ttl">Ocorrências</div><div class="sub">14 pendentes · 1º turno</div></div></div>
+              <div class="appscroll">
+                <div class="fakelist">
+                  <div class="card"><div class="av">AM</div><div><div class="nm">Ana B. Moraes</div><div class="mt">Atraso · 07:12</div></div><span class="pill pill--warn">Pendente</span></div>
+                  <div class="card"><div class="av">CR</div><div><div class="nm">Caio Ribeiro</div><div class="mt">Esqueceu o crachá</div></div><span class="pill pill--ok">Conferida</span></div>
+                  <div class="card"><div class="av">JL</div><div><div class="nm">Júlia Lemos</div><div class="mt">Falta injustificada</div></div><span class="pill pill--warn">Pendente</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FAB legado em bottom:80px — sobre a barra -->
+            <button class="chat-fab chat-fab--legacy-nav" aria-label="Abrir chat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 9 9 0 0 1-4-.9L3 21l1.9-4a8.38 8.38 0 0 1-.9-4 8.5 8.5 0 0 1 8.5-8 8.38 8.38 0 0 1 8.5 8z"/></svg>
+              <span class="badge">2</span>
+            </button>
+
+            <!-- bottom-nav legado (4px labels) -->
+            <nav class="bnav bnav--legacy" aria-label="Navegação">
+              <div class="bnav__inner">
+                <button class="bnav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="lab">Ocorrências</span></button>
+                <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lab">Equipe</span></button>
+                <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><span class="lab">Banco</span></button>
+                <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.6.99V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15H4.5a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 6.31 9.6l-.06-.06A2 2 0 1 1 9.08 6.7l.06.06A1.65 1.65 0 0 0 11 7.09V7a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 2.78 1.18l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 15z"/></svg><span class="lab">Configurações</span></button>
+                <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span class="lab">Conta</span></button>
+              </div>
+            </nav>
+            <div class="homebar"><i></i></div>
+          </div>
+        </div>
+        <p class="cap-under">FAB em <b>bottom:80px</b> tampa o destino “Conta”; barra a 9px ilegível.</p>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="frame-block">
+        <span class="tag tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+        <div class="phone">
+          <div class="phone__screen">
+            <div class="statusbar"><div class="notch"></div><span>9:41</span><div class="right">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 13h3v6H2zM7 9h3v10H7zM12 5h3v14h-3zM17 2h3v17h-3z"/></svg>
+            </div></div>
+            <div class="appwrap">
+              <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div><div><div class="ttl">Ocorrências</div><div class="sub">14 pendentes · 1º turno</div></div></div>
+              <div class="appscroll">
+                <div class="fakelist">
+                  <div class="card"><div class="av">AM</div><div><div class="nm">Ana B. Moraes</div><div class="mt">Atraso · 07:12</div></div><span class="pill pill--warn">Pendente</span></div>
+                  <div class="card"><div class="av">CR</div><div><div class="nm">Caio Ribeiro</div><div class="mt">Esqueceu o crachá</div></div><span class="pill pill--ok">Conferida</span></div>
+                  <div class="card"><div class="av">JL</div><div><div class="nm">Júlia Lemos</div><div class="mt">Falta injustificada</div></div><span class="pill pill--warn">Pendente</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FAB reancorado acima da nav + safe-area -->
+            <button class="chat-fab chat-fab--fixed" aria-label="Abrir chat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 9 9 0 0 1-4-.9L3 21l1.9-4a8.38 8.38 0 0 1-.9-4 8.5 8.5 0 0 1 8.5-8 8.38 8.38 0 0 1 8.5 8z"/></svg>
+              <span class="badge">2</span>
+            </button>
+
+            <nav class="bnav bnav--prop" aria-label="Navegação">
+              <div class="bnav__inner">
+                <button class="bnav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="lab">Ocorrências</span></button>
+                <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lab">Equipe</span></button>
+                <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><span class="lab">Banco</span></button>
+                <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span class="lab">Conta</span></button>
+              </div>
+            </nav>
+            <!-- régua OK ao redor do FAB: nada por baixo -->
+            <div class="tapruler tapruler--ok" style="right:12px;bottom:104px;width:60px;height:60px;"><span class="cap">livre · acima da barra</span></div>
+            <div class="homebar"><i></i></div>
+          </div>
+        </div>
+        <p class="cap-under">FAB sobe acima da barra de 68px; “Conta” fica acessível.</p>
+      </div>
+
+      <div class="note">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Cálculo da âncora</h4>
+        <ul>
+          <li><code>16px</code> respiro do canto.</li>
+          <li><code>+ env(safe-area-inset-bottom)</code> limpa o home-indicator.</li>
+          <li><code>+ 68px</code> altura real da bottom-nav.</li>
+          <li><code>+ 12px</code> folga entre FAB e barra.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       3 — CHAT FULLSCREEN + SAFE-AREA
+       ============================================================ -->
+  <section class="section">
+    <div class="section__head">
+      <div class="section__num">3</div>
+      <div>
+        <h2 class="section__title">Chat em tela cheia ignorando a safe-area</h2>
+        <p class="section__desc">
+          A <code>100dvh</code> coloca o head verde embaixo do notch e o composer atrás do
+          home-indicator. Basta <code>padding-top: env(safe-area-inset-top)</code> no head e
+          <code>padding-bottom: env(safe-area-inset-bottom)</code> no composer.
+        </p>
+      </div>
+    </div>
+
+    <div class="section__body pair">
+      <!-- ANTES -->
+      <div class="frame-block">
+        <span class="tag tag--hoje">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+        <div class="phone">
+          <div class="phone__screen">
+            <div class="safezone safezone--top"></div>
+            <div class="safezone safezone--bottom"></div>
+            <div class="statusbar statusbar--onplum"><div class="notch"></div><span>9:41</span><div class="right">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 13h3v6H2zM7 9h3v10H7zM12 5h3v14h-3zM17 2h3v17h-3z"/></svg>
+            </div></div>
+
+            <div class="chatfs">
+              <div class="chatfs__head">
+                <div class="av">GH</div>
+                <div><div class="nm">Suporte GH</div><div class="st">online agora</div></div>
+                <button class="x" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+              <div class="chatfs__body">
+                <div class="bubble bubble--in">Bom dia! A ocorrência da Júlia já foi conferida?<span class="tm">07:58</span></div>
+                <div class="bubble bubble--out">Ainda não, vou lançar agora.<span class="tm">08:01</span></div>
+                <div class="bubble bubble--in">Beleza, obrigada.<span class="tm">08:02</span></div>
+              </div>
+              <div class="composer">
+                <div class="field">Mensagem…</div>
+                <button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+              </div>
+            </div>
+            <div class="homebar homebar--onplum"><i></i></div>
+          </div>
+        </div>
+        <p class="cap-under">Head colado no <b>notch</b>; composer parte atrás do <b>home-indicator</b>.</p>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="frame-block">
+        <span class="tag tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+        <div class="phone">
+          <div class="phone__screen">
+            <div class="safezone safezone--top safezone-ok"></div>
+            <div class="safezone safezone--bottom safezone-ok"></div>
+            <div class="statusbar statusbar--onplum"><div class="notch"></div><span>9:41</span><div class="right">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 13h3v6H2zM7 9h3v10H7zM12 5h3v14h-3zM17 2h3v17h-3z"/></svg>
+            </div></div>
+
+            <div class="chatfs chatfs--prop">
+              <div class="chatfs__head">
+                <div class="av">GH</div>
+                <div><div class="nm">Suporte GH</div><div class="st">online agora</div></div>
+                <button class="x" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+              <div class="chatfs__body">
+                <div class="bubble bubble--in">Bom dia! A ocorrência da Júlia já foi conferida?<span class="tm">07:58</span></div>
+                <div class="bubble bubble--out">Ainda não, vou lançar agora.<span class="tm">08:01</span></div>
+                <div class="bubble bubble--in">Beleza, obrigada.<span class="tm">08:02</span></div>
+              </div>
+              <div class="composer">
+                <div class="field">Mensagem…</div>
+                <button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+              </div>
+            </div>
+            <div class="homebar homebar--onplum"><i></i></div>
+          </div>
+        </div>
+        <p class="cap-under">Head começa <b>abaixo do notch</b>; composer acima do home-indicator.</p>
+      </div>
+
+      <div class="note">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="9" y1="18" x2="15" y2="18"/></svg>Decisão</h4>
+        <ul>
+          <li>Container do chat usa <code>100dvh</code> (não <code>100vh</code>) — segue a barra dinâmica do navegador.</li>
+          <li>O verde da marca cobre toda a altura, mas o <b>conteúdo</b> respeita os insets.</li>
+          <li>O <code>x</code> de fechar nunca cai sob a status bar.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       4 — BOTTOM-NAV LEGÍVEL
+       ============================================================ -->
+  <section class="section">
+    <div class="section__head">
+      <div class="section__num">4</div>
+      <div>
+        <h2 class="section__title">Rótulos da bottom-nav legíveis e alvos a 44px</h2>
+        <p class="section__desc">
+          A 9px com <code>gap:0</code> os rótulos “Ocorrências” e “Configurações” ficam grudados nos ícones.
+          A proposta (a) sobe para <b>11px</b>, <code>letter-spacing -.01em</code>, <code>gap:2px</code>, ícone 22px,
+          alvo <b>≥44px</b>. A (b), a <b>360px</b>, reduz a 4 destinos com FAB central e mantém só ícones (<code>aria-label</code> preservado).
+        </p>
+      </div>
+    </div>
+
+    <div class="section__body">
+      <div class="callrow">
+
+        <!-- HOJE -->
+        <div class="frame-block">
+          <span class="tag tag--hoje">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Hoje · 9px
+          </span>
+          <div class="phone">
+            <div class="phone__screen">
+              <div class="statusbar"><div class="notch"></div><span>9:41</span></div>
+              <div class="appwrap">
+                <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div><div><div class="ttl">Funcionários</div><div class="sub">132 ativos</div></div></div>
+                <div class="appscroll"><div class="fakelist">
+                  <div class="card"><div class="av">RS</div><div><div class="nm">Rafael Souza</div><div class="mt">+12h30 banco</div></div><span class="pill pill--ok">Ativo</span></div>
+                  <div class="card"><div class="av">PM</div><div><div class="nm">Patrícia Mendes</div><div class="mt">−02h15 banco</div></div><span class="pill pill--info">2º turno</span></div>
+                </div></div>
+              </div>
+              <nav class="bnav bnav--legacy" aria-label="Navegação">
+                <div class="bnav__inner">
+                  <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="lab">Ocorrências</span></button>
+                  <button class="bnav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lab">Equipe</span></button>
+                  <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><span class="lab">Banco</span></button>
+                  <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.6.99V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15H4.5a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 6.31 9.6l-.06-.06A2 2 0 1 1 9.08 6.7l.06.06A1.65 1.65 0 0 0 11 7.09V7a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 2.78 1.18l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 15z"/></svg><span class="lab">Configurações</span></button>
+                  <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span class="lab">Conta</span></button>
+                </div>
+              </nav>
+              <div class="homebar"><i></i></div>
+            </div>
+          </div>
+          <p class="cap-under">Rótulos truncados, ícone 18px, alvo <b>38px</b> (sub-44).</p>
+        </div>
+
+        <!-- PROPOSTO (a) -->
+        <div class="frame-block">
+          <span class="tag tag--prop">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Proposto (a) · 11px
+          </span>
+          <div class="phone">
+            <div class="phone__screen">
+              <div class="statusbar"><div class="notch"></div><span>9:41</span></div>
+              <div class="appwrap">
+                <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div><div><div class="ttl">Funcionários</div><div class="sub">132 ativos</div></div></div>
+                <div class="appscroll"><div class="fakelist">
+                  <div class="card"><div class="av">RS</div><div><div class="nm">Rafael Souza</div><div class="mt">+12h30 banco</div></div><span class="pill pill--ok">Ativo</span></div>
+                  <div class="card"><div class="av">PM</div><div><div class="nm">Patrícia Mendes</div><div class="mt">−02h15 banco</div></div><span class="pill pill--info">2º turno</span></div>
+                </div></div>
+              </div>
+              <nav class="bnav bnav--prop" aria-label="Navegação">
+                <div class="bnav__inner">
+                  <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="lab">Ocorrências</span></button>
+                  <button class="bnav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="lab">Equipe</span></button>
+                  <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><span class="lab">Banco</span></button>
+                  <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.6.99V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15H4.5a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 6.31 9.6l-.06-.06A2 2 0 1 1 9.08 6.7l.06.06A1.65 1.65 0 0 0 11 7.09V7a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 2.78 1.18l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 15z"/></svg><span class="lab">Ajustes</span></button>
+                  <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span class="lab">Conta</span></button>
+                </div>
+              </nav>
+              <div class="homebar"><i></i></div>
+            </div>
+          </div>
+          <p class="cap-under">11px legível, gap 2px, ícone 22px, alvo <b>44px</b>.</p>
+        </div>
+
+        <!-- PROPOSTO (b) 360px compacto -->
+        <div class="frame-block">
+          <span class="tag tag--prop">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Proposto (b) · 360px
+          </span>
+          <!-- moldura mais estreita simulando 360px -->
+          <div class="phone" style="width:270px;">
+            <div class="phone__screen">
+              <div class="statusbar"><div class="notch"></div><span>9:41</span></div>
+              <div class="appwrap">
+                <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div><div><div class="ttl">Funcionários</div><div class="sub">132 ativos</div></div></div>
+                <div class="appscroll"><div class="fakelist">
+                  <div class="card"><div class="av">RS</div><div><div class="nm">Rafael Souza</div><div class="mt">+12h30 banco</div></div></div>
+                  <div class="card"><div class="av">PM</div><div><div class="nm">Patrícia Mendes</div><div class="mt">−02h15 banco</div></div></div>
+                </div></div>
+              </div>
+              <!-- 4 destinos: Ocorrências · Equipe · [FAB] · Conta. Banco/Ajustes vão p/ Conta. -->
+              <nav class="bnav bnav--compact" aria-label="Navegação">
+                <button class="bnav-item active" aria-label="Ocorrências"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></button>
+                <button class="bnav-item" aria-label="Equipe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></button>
+                <div class="bnav-fabslot"><button class="fab" aria-label="Nova ocorrência"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+                <button class="bnav-item" aria-label="Conta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></button>
+              </nav>
+              <div class="homebar"><i></i></div>
+            </div>
+          </div>
+          <p class="cap-under">4 destinos + FAB central; <b>Banco/Ajustes</b> migram p/ Conta.</p>
+        </div>
+
+      </div>
+
+      <div class="note" style="max-width:none;margin-top:22px;">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>Por que dois desenhos</h4>
+        <ul>
+          <li>A variante (a) atende a grande maioria dos aparelhos (≥390px) com rótulo legível.</li>
+          <li>A (b) entra só abaixo de ~360px via media query: descarta o que não cabe e protege o alvo de 44px em vez de espremer 5 itens.</li>
+          <li>Em ambos, <code>aria-label</code> nunca some — o leitor de tela sempre anuncia o destino, mesmo sem rótulo visível.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       5 — DRAWER
+       ============================================================ -->
+  <section class="section">
+    <div class="section__head">
+      <div class="section__num">5</div>
+      <div>
+        <h2 class="section__title">Drawer com swipe-to-close e backdrop verde</h2>
+        <p class="section__desc">
+          O drawer cobria só 70% com uma faixa estreita de backdrop <b>roxo legado</b> (<code>rgba(31,11,28,.5)</code>).
+          A proposta amplia a área tocável, troca o backdrop pelo <b>verde Fiobras</b> (<code>rgba(0,40,20,.45)</code>)
+          e adiciona <b>swipe-left-to-close</b> — o painel acompanha o dedo via <code>transform</code> durante o arraste.
+        </p>
+      </div>
+    </div>
+
+    <div class="section__body pair">
+      <!-- ANTES -->
+      <div class="frame-block">
+        <span class="tag tag--hoje">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+        <div class="phone">
+          <div class="phone__screen">
+            <div class="statusbar statusbar--onplum"><div class="notch"></div><span>9:41</span></div>
+            <div class="appwrap">
+              <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div><div><div class="ttl">Ocorrências</div></div></div>
+              <div class="appscroll"><div class="fakelist">
+                <div class="card"><div class="av">AM</div><div><div class="nm">Ana B. Moraes</div><div class="mt">Atraso</div></div></div>
+              </div></div>
+            </div>
+
+            <div class="drawer-host">
+              <div class="drawer-backdrop drawer-backdrop--legacy"></div>
+              <aside class="drawer drawer--legacy" aria-label="Menu">
+                <div class="drawer__brand">FioPulse</div>
+                <div class="drawer__profile"><div class="av">WS</div><div><div class="nm">William Schulz</div><div class="rl">Líder · 1º turno</div></div></div>
+                <nav class="drawer__nav">
+                  <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Ocorrências</a>
+                  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Funcionários</a>
+                  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Banco de horas</a>
+                </nav>
+              </aside>
+            </div>
+            <div class="homebar homebar--onplum"><i></i></div>
+          </div>
+        </div>
+        <p class="cap-under">70% de largura, backdrop <b>roxo legado</b>, sem gesto de fechar.</p>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="frame-block">
+        <span class="tag tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+        <div class="phone" id="drawer-demo">
+          <div class="phone__screen">
+            <div class="statusbar statusbar--onplum"><div class="notch"></div><span>9:41</span></div>
+            <div class="appwrap">
+              <div class="topbar"><div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></div><div><div class="ttl">Ocorrências</div></div></div>
+              <div class="appscroll"><div class="fakelist">
+                <div class="card"><div class="av">AM</div><div><div class="nm">Ana B. Moraes</div><div class="mt">Atraso</div></div></div>
+              </div></div>
+            </div>
+
+            <div class="drawer-host" id="drawer-host">
+              <div class="drawer-backdrop drawer-backdrop--prop" id="drawer-backdrop"></div>
+              <aside class="drawer drawer--prop" id="drawer-panel" aria-label="Menu">
+                <div class="drawer__brand">FioPulse</div>
+                <div class="drawer__profile"><div class="av">WS</div><div><div class="nm">William Schulz</div><div class="rl">Líder · 1º turno</div></div></div>
+                <nav class="drawer__nav">
+                  <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Ocorrências</a>
+                  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Funcionários</a>
+                  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Banco de horas</a>
+                  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg>Controle PJ</a>
+                </nav>
+              </aside>
+            </div>
+            <div class="homebar homebar--onplum"><i></i></div>
+          </div>
+        </div>
+        <!-- seta de gesto como ANOTAÇÃO, FORA da UI -->
+        <p class="cap-under" id="drawer-cap">82% de largura, backdrop <b>verde</b>; arraste o painel ou toque fora.</p>
+      </div>
+
+      <div class="note">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><polyline points="11 6 5 12 11 18"/></svg>Gesto swipe-left-to-close</h4>
+        <ul>
+          <li>O painel segue o dedo: <code>transform: translateX(-Δx)</code> durante o arraste.</li>
+          <li>Soltou além de ~40% da largura → fecha; aquém → volta animado.</li>
+          <li>Backdrop verde escurece junto, reforçando a marca em vez do roxo legado.</li>
+          <li>Arraste interativo: puxe o painel para a esquerda nesta moldura para ver o gesto.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="doc__foot">
+    <span class="brand">FioPulse</span>
+    <span>Mockup de auditoria · mobile &amp; navegação · paleta oficial Fiobras · zero emoji · SVG stroke</span>
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   Drawer DEPOIS — swipe-left-to-close interativo de verdade.
+   O painel acompanha o dedo/cursor via transform; soltar além
+   de 40% fecha. Respeita prefers-reduced-motion (sem transição).
+   ============================================================ */
+(function(){
+  var panel = document.getElementById('drawer-panel');
+  var backdrop = document.getElementById('drawer-backdrop');
+  var host = document.getElementById('drawer-host');
+  var cap = document.getElementById('drawer-cap');
+  if(!panel || !backdrop || !host) return;
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var width = function(){ return panel.getBoundingClientRect().width; };
+  var dragging = false, startX = 0, dx = 0, opened = true;
+
+  function setTransition(on){
+    var t = (on && !reduce) ? 'transform 220ms cubic-bezier(.2,.8,.2,1), opacity 220ms ease' : 'none';
+    panel.style.transition = t;
+    backdrop.style.transition = t;
+  }
+  function render(offset){
+    var w = width();
+    var clamped = Math.max(0, Math.min(offset, w));
+    panel.style.transform = 'translateX(' + (-clamped) + 'px)';
+    backdrop.style.opacity = String(1 - (clamped / w) * 0.9);
+  }
+  function open(){
+    opened = true; setTransition(true);
+    panel.style.transform = 'translateX(0)';
+    backdrop.style.opacity = '1';
+    backdrop.style.pointerEvents = 'auto';
+    if(cap) cap.innerHTML = '82% de largura, backdrop <b>verde</b>; arraste o painel ou toque fora.';
+  }
+  function close(){
+    opened = false; setTransition(true);
+    panel.style.transform = 'translateX(-' + width() + 'px)';
+    backdrop.style.opacity = '0';
+    backdrop.style.pointerEvents = 'none';
+    if(cap) cap.innerHTML = 'Fechado por <b>swipe</b>. Toque para reabrir o menu.';
+  }
+
+  function pointerDown(e){
+    if(!opened) return;
+    dragging = true; startX = (e.touches ? e.touches[0].clientX : e.clientX); dx = 0;
+    setTransition(false);
+  }
+  function pointerMove(e){
+    if(!dragging) return;
+    var x = (e.touches ? e.touches[0].clientX : e.clientX);
+    dx = startX - x;                 // arraste para a ESQUERDA = positivo
+    if(dx < 0) dx = 0;               // não deixa puxar para a direita além do aberto
+    render(dx);
+    if(e.cancelable) e.preventDefault();
+  }
+  function pointerUp(){
+    if(!dragging) return;
+    dragging = false;
+    if(dx > width() * 0.40){ close(); } else { open(); }
+  }
+
+  panel.addEventListener('mousedown', pointerDown);
+  panel.addEventListener('touchstart', pointerDown, {passive:true});
+  window.addEventListener('mousemove', pointerMove);
+  window.addEventListener('touchmove', pointerMove, {passive:false});
+  window.addEventListener('mouseup', pointerUp);
+  window.addEventListener('touchend', pointerUp);
+
+  // toque fora (backdrop) fecha; clique no host fechado reabre
+  backdrop.addEventListener('click', close);
+  host.addEventListener('click', function(e){
+    if(!opened && e.target === host){ open(); }
+  });
+
+  // estado inicial: aberto
+  setTransition(false); render(0); setTransition(true);
+})();
+</script>
+</body>
+</html>

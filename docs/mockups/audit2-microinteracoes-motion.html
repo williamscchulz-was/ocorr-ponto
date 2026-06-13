@@ -1,0 +1,1059 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse — Micro-interações premium · motion coeso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
+<style>
+/* ───────────────────────────────────────────────────────────────────────────
+   Tokens oficiais FioPulse (cópia exata do app — consistência entre mockups).
+   Toda cor/raio/sombra/transição vem daqui. Nada hardcoded fora destes vars.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+  --warning:#B27429; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+  --info:#2F5A6B; --info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+  --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+  --shadow-xs:0 1px 1px rgba(0,40,20,.03); --shadow-sm:0 1px 2px rgba(0,40,20,.05);
+  --shadow:0 4px 16px rgba(0,40,20,.07); --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+  --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+  /* curva de overshoot do toggle (micro-bounce ao assentar o knob) */
+  --ease-overshoot:cubic-bezier(.34,1.56,.64,1);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text-body);
+  font-family:var(--font); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+
+/* ── Layout do documento ──────────────────────────────────────────────────── */
+.wrap{max-width:1080px; margin:0 auto; padding:40px 28px 96px}
+
+.doc-head{margin-bottom:8px}
+.kicker{
+  font-size:11.5px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--text-muted); font-weight:600; margin:0 0 14px;
+  display:flex; align-items:center; gap:8px;
+}
+.kicker .dot{width:4px; height:4px; border-radius:50%; background:var(--accent)}
+.brand{font-family:var(--font-brand); letter-spacing:.02em; color:var(--plum-deep)}
+h1.title{
+  font-size:30px; font-weight:600; line-height:1.15; margin:0 0 12px;
+  color:var(--plum-deep); letter-spacing:-.01em;
+}
+.why{
+  font-size:15px; color:var(--text-muted); margin:0; max-width:64ch; line-height:1.6;
+}
+
+/* ── Barra de controle global (reduced-motion) ────────────────────────────── */
+.globalbar{
+  position:sticky; top:0; z-index:50; margin:28px 0 36px;
+  background:rgba(247,249,246,.86); backdrop-filter:saturate(140%) blur(8px);
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:14px 18px; display:flex; align-items:center; gap:16px;
+  box-shadow:var(--shadow-sm);
+}
+.globalbar .gb-icon{
+  width:38px; height:38px; flex:0 0 38px; border-radius:10px;
+  background:var(--surface-warm); border:1px solid var(--border);
+  display:grid; place-items:center; color:var(--plum);
+}
+.globalbar .gb-txt{flex:1 1 auto; min-width:0}
+.globalbar .gb-txt strong{display:block; font-size:14px; color:var(--text); font-weight:600}
+.globalbar .gb-txt span{display:block; font-size:12.5px; color:var(--text-muted)}
+.gb-state{
+  font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  padding:5px 10px; border-radius:999px; white-space:nowrap;
+  background:var(--success-bg); color:var(--success);
+}
+body.rm .gb-state{background:var(--info-bg); color:var(--info)}
+
+/* Switch reutilizável (também é o objeto do card 6) ─────────────────────────── */
+.switch{position:relative; display:inline-flex; align-items:center; cursor:pointer; user-select:none}
+.switch input{position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer}
+.switch .track{
+  width:48px; height:28px; border-radius:999px; background:var(--border-strong);
+  position:relative; transition:background var(--transition);
+}
+.switch .knob{
+  position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%;
+  background:#fff; box-shadow:var(--shadow-sm);
+  transition:transform 280ms var(--ease-overshoot);
+}
+.switch input:checked + .track{background:var(--plum)}
+.switch input:checked + .track .knob{transform:translateX(20px)}
+.switch input:focus-visible + .track{outline:2px solid var(--plum-soft); outline-offset:2px}
+
+/* ── Grid de cards de demo ────────────────────────────────────────────────── */
+.grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:22px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:22px 22px 20px; box-shadow:var(--shadow-xs); display:flex; flex-direction:column;
+}
+.card.span2{grid-column:1 / -1}
+.card-head{display:flex; align-items:flex-start; gap:12px; margin-bottom:16px}
+.card-num{
+  flex:0 0 30px; width:30px; height:30px; border-radius:9px; display:grid; place-items:center;
+  font-size:13px; font-weight:600; color:var(--plum-deep);
+  background:var(--surface-warm); border:1px solid var(--border);
+}
+.card-head h2{font-size:16px; font-weight:600; margin:0; color:var(--text); line-height:1.25}
+.card-head p{font-size:12.5px; color:var(--text-muted); margin:3px 0 0; line-height:1.45}
+
+.demo-zone{
+  background:var(--surface-warm); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px; margin-bottom:14px;
+}
+.legend{
+  font-size:12.5px; color:var(--text-muted); line-height:1.5; margin:0;
+  display:flex; gap:8px; align-items:flex-start;
+}
+.legend svg{flex:0 0 16px; margin-top:2px; color:var(--plum-soft)}
+
+/* ── Botões ───────────────────────────────────────────────────────────────── */
+.btn{
+  font-family:var(--font); font-size:13.5px; font-weight:500; cursor:pointer;
+  border-radius:var(--radius-sm); padding:9px 16px; border:1px solid var(--border-strong);
+  background:var(--surface); color:var(--text); display:inline-flex; align-items:center; gap:8px;
+  transition:background var(--transition), border-color var(--transition), transform var(--transition);
+}
+.btn:hover{background:var(--surface-warm); border-color:var(--milk-edge)}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible{outline:2px solid var(--plum-soft); outline-offset:2px}
+.btn--primary{background:var(--plum); color:var(--text-on-plum); border-color:var(--plum)}
+.btn--primary:hover{background:var(--plum-deep); border-color:var(--plum-deep)}
+.btn--ghost{background:transparent; border-color:transparent; color:var(--plum-deep); padding:9px 10px}
+.btn--ghost:hover{background:var(--surface-warm)}
+.btn-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.btn svg{width:16px; height:16px}
+
+/* ── Comparador HOJE / PROPOSTO ───────────────────────────────────────────── */
+.compare{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:520px){.compare{grid-template-columns:1fr}}
+.compare > div{
+  border:1px solid var(--border); border-radius:var(--radius); padding:14px; background:var(--surface);
+}
+.tag{
+  display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase; padding:4px 9px; border-radius:999px; margin-bottom:12px;
+}
+.tag--now{background:var(--milk-warm); color:var(--text-muted); border:1px solid var(--border)}
+.tag--new{background:var(--success-bg); color:var(--success)}
+.tag svg{width:13px; height:13px}
+
+/* =========================================================================
+   1 · TROCA DE VIEW
+   ========================================================================= */
+.viewport{
+  position:relative; min-height:148px; border-radius:var(--radius); overflow:hidden;
+}
+.view-nav{display:flex; gap:6px; margin-bottom:12px}
+.view-nav .seg{
+  font-size:12.5px; font-weight:500; padding:7px 13px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--border); background:var(--surface); color:var(--text-muted);
+  transition:background var(--transition), color var(--transition), border-color var(--transition);
+}
+.view-nav .seg[aria-selected="true"]{background:var(--plum); color:#fff; border-color:var(--plum)}
+.view-panel{padding:2px}
+/* Proposto: fade + sobe 6px com a curva de saída */
+.view-panel.enter{animation:viewEnter 200ms var(--ease)}
+@keyframes viewEnter{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+.mini-stat{display:flex; gap:10px; margin-bottom:12px}
+.mini-stat .box{
+  flex:1; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 12px;
+}
+.mini-stat .box .k{font-size:11px; color:var(--text-muted)}
+.mini-stat .box .v{font-size:20px; font-weight:600; color:var(--plum-deep)}
+.mini-row{
+  display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px;
+  background:var(--surface); border:1px solid var(--border); font-size:13px; margin-bottom:7px;
+}
+.mini-row .av{
+  width:26px; height:26px; border-radius:50%; flex:0 0 26px; display:grid; place-items:center;
+  font-size:11px; font-weight:600; color:var(--plum-deep); background:var(--surface-warm);
+}
+.mini-row .meta{flex:1; min-width:0}
+.mini-row .meta b{font-weight:500; font-size:13px; display:block; color:var(--text-body)}
+.mini-row .meta small{font-size:11px; color:var(--text-muted)}
+.pill{font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:999px}
+.pill--warn{background:var(--warning-bg); color:var(--warning)}
+.pill--ok{background:var(--success-bg); color:var(--success)}
+
+/* =========================================================================
+   2 · TROCA DE ABA  (ink underline + slide direcional)
+   ========================================================================= */
+.tabs{display:flex; gap:0; position:relative; border-bottom:1px solid var(--border); margin-bottom:12px}
+.tab{
+  appearance:none; border:0; background:transparent; font-family:var(--font);
+  font-size:13px; font-weight:500; color:var(--text-muted); cursor:pointer;
+  padding:10px 14px; position:relative; transition:color var(--transition);
+}
+.tab[aria-selected="true"]{color:var(--plum-deep)}
+.tab .cnt{font-size:11px; color:var(--text-muted); margin-left:5px}
+.ink{
+  position:absolute; bottom:-1px; height:2px; background:var(--plum); border-radius:2px;
+  transform-origin:center;
+  transition:left 200ms var(--ease), width 200ms var(--ease);
+}
+/* o ink "cresce do centro": animamos um scaleX no início da troca */
+.ink.grow{animation:inkGrow 200ms var(--ease)}
+@keyframes inkGrow{from{transform:scaleX(.35)} to{transform:scaleX(1)}}
+.tab-body{min-height:120px}
+.tab-list .mini-row{opacity:1}
+.tab-list.slide-l{animation:slideL 200ms var(--ease)}
+.tab-list.slide-r{animation:slideR 200ms var(--ease)}
+@keyframes slideL{from{opacity:0; transform:translateX(-8px)} to{opacity:1; transform:none}}
+@keyframes slideR{from{opacity:0; transform:translateX(8px)} to{opacity:1; transform:none}}
+
+/* =========================================================================
+   3 · TOAST
+   ========================================================================= */
+.toast-stage{position:relative; min-height:96px}
+.toast{
+  position:absolute; left:50%; bottom:8px; transform:translateX(-50%);
+  width:min(360px, 100%); background:var(--plum-deep); color:#fff;
+  border-radius:var(--radius); box-shadow:var(--shadow-lg); overflow:hidden;
+  display:flex; align-items:center; gap:12px; padding:13px 15px;
+}
+.toast .t-ico{
+  width:26px; height:26px; flex:0 0 26px; border-radius:50%; display:grid; place-items:center;
+  background:rgba(255,255,255,.14);
+}
+.toast .t-ico svg{width:15px; height:15px}
+.toast .t-msg{flex:1; min-width:0}
+.toast .t-msg b{display:block; font-size:13px; font-weight:600}
+.toast .t-msg small{display:block; font-size:11.5px; opacity:.78}
+.toast .t-undo{
+  background:transparent; border:0; color:var(--fiobras-yellow); font-family:var(--font);
+  font-size:12px; font-weight:600; letter-spacing:.04em; cursor:pointer; padding:6px 8px; border-radius:8px;
+}
+.toast .t-undo:hover{background:rgba(255,255,255,.1)}
+.toast .t-prog{
+  position:absolute; left:0; bottom:0; height:2px; width:100%;
+  background:var(--fiobras-yellow); opacity:.92; transform-origin:left center;
+}
+/* entrada: sobe deslizando */
+.toast.enter{animation:toastIn 220ms var(--ease)}
+@keyframes toastIn{from{opacity:0; transform:translate(-50%, 16px)} to{opacity:1; transform:translate(-50%,0)}}
+/* saída: espelha a entrada */
+.toast.leave{animation:toastOut 200ms var(--ease) forwards}
+@keyframes toastOut{from{opacity:1; transform:translate(-50%,0)} to{opacity:0; transform:translate(-50%, 8px)}}
+/* a barra encolhe scaleX 1→0 na duração; pausa no hover do toast */
+.toast .t-prog.run{animation:progShrink var(--dur,4000ms) linear forwards}
+.toast:hover .t-prog.run{animation-play-state:paused}
+@keyframes progShrink{from{transform:scaleX(1)} to{transform:scaleX(0)}}
+
+/* =========================================================================
+   4 · MODAL / BOTTOM-SHEET
+   ========================================================================= */
+.overlay{
+  position:absolute; inset:0; background:rgba(0,40,20,.32); border-radius:var(--radius);
+  display:grid; place-items:center; opacity:0; pointer-events:none;
+  transition:opacity 200ms var(--ease);
+}
+.overlay.open{opacity:1; pointer-events:auto}
+.modal-stage{position:relative; min-height:220px; overflow:hidden}
+.modal{
+  width:min(320px,90%); background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:18px;
+}
+.modal h3{font-size:15px; margin:0 0 4px; color:var(--text)}
+.modal p{font-size:12.5px; color:var(--text-muted); margin:0 0 14px}
+.modal .row{display:flex; gap:8px; justify-content:flex-end}
+.modal.enter{animation:modalIn 220ms var(--ease)}
+@keyframes modalIn{from{opacity:0; transform:translateY(18px) scale(.98)} to{opacity:1; transform:none}}
+/* SAÍDA espelhada: some no lugar (não some pra baixo da tela) */
+.modal.leave{animation:modalOut 190ms var(--ease) forwards}
+@keyframes modalOut{from{opacity:1; transform:none} to{opacity:0; transform:translateY(14px)}}
+
+/* bottom-sheet (mobile): entra subindo, SAI descendo 0→100% */
+.sheet-frame{
+  position:relative; width:240px; height:200px; margin:0 auto; border-radius:22px; overflow:hidden;
+  border:1px solid var(--border); background:var(--surface-warm);
+}
+.sheet-frame .scrim{position:absolute; inset:0; background:rgba(0,40,20,.28); opacity:0; pointer-events:none; transition:opacity 200ms var(--ease)}
+.sheet-frame .scrim.open{opacity:1}
+.sheet{
+  position:absolute; left:0; right:0; bottom:0; background:var(--surface);
+  border-radius:18px 18px 0 0; box-shadow:var(--shadow-lg); padding:14px 16px 18px;
+  transform:translateY(100%);
+}
+.sheet .grab{width:34px; height:4px; border-radius:99px; background:var(--border-strong); margin:0 auto 12px}
+.sheet h4{font-size:13px; margin:0 0 4px; color:var(--text)}
+.sheet p{font-size:11.5px; color:var(--text-muted); margin:0 0 12px}
+.sheet.up{animation:sheetUp 240ms var(--ease) forwards}
+.sheet.down{animation:sheetDown 220ms var(--ease) forwards}
+@keyframes sheetUp{from{transform:translateY(100%)} to{transform:translateY(0)}}
+@keyframes sheetDown{from{transform:translateY(0)} to{transform:translateY(100%)}}
+
+/* =========================================================================
+   5 · TIMELINE DA CONFERÊNCIA  (momento-chave)
+   ========================================================================= */
+.timeline{position:relative; padding-left:6px}
+.tl-node{display:flex; gap:14px; position:relative; padding-bottom:18px}
+.tl-node:last-child{padding-bottom:0}
+.tl-node .rail{position:relative; flex:0 0 18px; display:flex; justify-content:center}
+.tl-node .rail::before{
+  content:""; position:absolute; top:18px; bottom:-2px; width:2px; background:var(--border-strong);
+}
+.tl-node:last-child .rail::before{display:none}
+.tl-dot{
+  width:18px; height:18px; border-radius:50%; background:var(--surface);
+  border:2px solid var(--border-strong); z-index:1; margin-top:1px;
+  transition:background var(--transition), border-color var(--transition);
+}
+.tl-dot.done{background:var(--success); border-color:var(--success)}
+.tl-dot.pop{animation:dotPop 320ms var(--ease)}
+@keyframes dotPop{
+  0%{transform:scale(1); box-shadow:0 0 0 0 rgba(47,107,63,.5)}
+  45%{transform:scale(1.3)}
+  100%{transform:scale(1); box-shadow:0 0 0 6px rgba(47,107,63,0)}
+}
+.tl-body{flex:1; min-width:0; padding-top:0}
+.tl-body .tt{font-size:13px; font-weight:500; color:var(--text-body); transition:color var(--transition)}
+.tl-body .tt.muted{color:var(--text-muted); font-weight:400}
+.tl-body small{display:block; font-size:11px; color:var(--text-muted); margin-top:1px}
+.tl-body .swap{animation:fadeSwap 280ms var(--ease)}
+@keyframes fadeSwap{from{opacity:0} to{opacity:1}}
+/* linha-fantasma que desliza pra fora (simula .occ--saindo) */
+.ghost-occ{
+  margin-top:14px; display:flex; align-items:center; gap:10px; padding:10px 12px;
+  background:var(--surface); border:1px solid var(--border); border-radius:10px; font-size:12.5px;
+  color:var(--text-body); overflow:hidden;
+}
+.ghost-occ .gk{font-weight:500}
+.ghost-occ.saindo{animation:occOut 460ms var(--ease) forwards}
+@keyframes occOut{
+  0%{opacity:1; transform:translateX(0); max-height:60px}
+  60%{opacity:0; transform:translateX(36px)}
+  100%{opacity:0; transform:translateX(36px); max-height:0; margin-top:0; padding-top:0; padding-bottom:0; border-width:0}
+}
+
+/* =========================================================================
+   6 · TOGGLE (overshoot vs linear)  — usa .switch lá de cima
+   ========================================================================= */
+.switch.linear .track{transition:background 200ms linear}
+.switch.linear .knob{transition:transform 200ms linear}
+.toggle-cmp{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.toggle-cmp .cell{text-align:center}
+.toggle-cmp .cell .lab{font-size:11px; color:var(--text-muted); margin-top:9px; display:block}
+
+/* =========================================================================
+   7 · COUNT-UP COM STAGGER
+   ========================================================================= */
+.stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+@media (max-width:520px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:13px;
+  opacity:1;
+}
+.stat.armed{opacity:0}
+.stat.rise{animation:statRise 360ms var(--ease) forwards; animation-delay:var(--d,0ms)}
+@keyframes statRise{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+.stat .num{font-size:24px; font-weight:600; color:var(--plum-deep); line-height:1; letter-spacing:-.01em}
+.stat .lbl{font-size:11px; color:var(--text-muted); margin-top:6px}
+
+/* =========================================================================
+   8 · HOVER / RETURN DE LINHA
+   ========================================================================= */
+.rows .lrow{
+  display:flex; align-items:center; gap:12px; padding:11px 13px; border-radius:10px;
+  background:var(--surface); border:1px solid var(--border); margin-bottom:8px; position:relative;
+  box-shadow:inset 0 0 0 0 transparent;
+  transition:transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+.rows .lrow:hover{
+  transform:translateY(-2px); border-color:var(--milk-edge);
+  box-shadow:inset 3px 0 0 0 var(--plum-soft), var(--shadow-sm);
+}
+.rows .lrow.flash{animation:rowFlash 900ms var(--ease)}
+@keyframes rowFlash{from{background:var(--milk-warm)} to{background:var(--surface)}}
+.rows .lrow .av{
+  width:28px; height:28px; border-radius:50%; flex:0 0 28px; display:grid; place-items:center;
+  font-size:11px; font-weight:600; color:var(--plum-deep); background:var(--surface-warm);
+}
+.rows .lrow .meta{flex:1; min-width:0}
+.rows .lrow .meta b{font-weight:500; font-size:13px; display:block; color:var(--text-body)}
+.rows .lrow .meta small{font-size:11px; color:var(--text-muted)}
+
+.foot{margin-top:42px; padding-top:22px; border-top:1px solid var(--border); color:var(--text-muted); font-size:12px; line-height:1.6}
+.foot b{color:var(--text); font-weight:600}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   reduced-motion: respeitado de DUAS formas →
+   (a) media query nativa do SO; (b) classe .rm aplicada pelo switch global.
+   Em ambos: zera duração de TODA animação/transição → mostra estado final.
+   ─────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important}
+}
+body.rm *{
+  animation-duration:.001ms !important;
+  animation-delay:0ms !important;
+  transition-duration:.001ms !important;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── Cabeçalho de documento de design ──────────────────────────────── -->
+  <header class="doc-head">
+    <p class="kicker"><span class="dot"></span> <span class="brand">FIOPULSE</span> · AUDITORIA</p>
+    <h1 class="title">Micro-interações premium — motion coeso</h1>
+    <p class="why">
+      Por quê: hoje cada animação fala um dialeto diferente — durações e curvas soltas, saídas que
+      não espelham as entradas, count-up sem cadência. Um vocabulário único de motion (entradas e
+      saídas espelhadas, uma curva de easing, timing previsível) faz o app parecer feito por uma só
+      mão e respeitando quem prefere menos movimento. Abaixo, cada interação com o estado
+      <em>Hoje</em> e o <em>Proposto</em> — clicável de verdade.
+    </p>
+  </header>
+
+  <!-- ── Controle global: simular prefers-reduced-motion ───────────────── -->
+  <div class="globalbar" role="region" aria-label="Controle global de movimento">
+    <div class="gb-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12h4l3 8 4-16 3 8h4"/>
+      </svg>
+    </div>
+    <div class="gb-txt">
+      <strong>Simular “prefers-reduced-motion”</strong>
+      <span>Liga/desliga todo o movimento da página. Ligado: cada demo pula direto ao estado final.</span>
+    </div>
+    <span class="gb-state" id="rmState">Movimento ativo</span>
+    <label class="switch" title="Simular prefers-reduced-motion">
+      <input type="checkbox" id="rmToggle" aria-label="Simular prefers-reduced-motion">
+      <span class="track"><span class="knob"></span></span>
+    </label>
+  </div>
+
+  <!-- ── Grid de demos ─────────────────────────────────────────────────── -->
+  <div class="grid">
+
+    <!-- 1 · TROCA DE VIEW ------------------------------------------------- -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-num">1</span>
+        <div>
+          <h2>Troca de view</h2>
+          <p>Navegar entre telas principais (Dashboard ↔ Funcionários).</p>
+        </div>
+      </div>
+
+      <div class="demo-zone">
+        <div class="view-nav" role="tablist" aria-label="View">
+          <span class="seg" role="tab" aria-selected="true" data-view="dash">Dashboard</span>
+          <span class="seg" role="tab" aria-selected="false" data-view="func">Funcionários</span>
+        </div>
+        <div class="viewport">
+          <div class="view-panel" id="viewPanel"></div>
+        </div>
+      </div>
+
+      <p class="legend">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        <span><b style="color:var(--text)">Hoje:</b> a troca é um corte seco. <b style="color:var(--text)">Proposto:</b> fade 0→1 + sobe 6px em 200ms (curva de saída). Onde o navegador suportar, a <b style="color:var(--text)">View Transitions API</b> é o caminho preferido — orquestra o cross-fade pelo próprio motor.</span>
+      </p>
+    </section>
+
+    <!-- 2 · TROCA DE ABA -------------------------------------------------- -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-num">2</span>
+        <div>
+          <h2>Troca de aba</h2>
+          <p>Filtrar a lista: Pendentes · Conferidas · Lançadas.</p>
+        </div>
+      </div>
+
+      <div class="demo-zone">
+        <div class="tabs" id="tabsBar" role="tablist" aria-label="Status">
+          <button class="tab" role="tab" aria-selected="true"  data-idx="0">Pendentes <span class="cnt">7</span></button>
+          <button class="tab" role="tab" aria-selected="false" data-idx="1">Conferidas <span class="cnt">3</span></button>
+          <button class="tab" role="tab" aria-selected="false" data-idx="2">Lançadas <span class="cnt">12</span></button>
+          <span class="ink" id="ink"></span>
+        </div>
+        <div class="tab-body">
+          <div class="tab-list" id="tabList"></div>
+        </div>
+      </div>
+
+      <p class="legend">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        <span><b style="color:var(--text)">Hoje:</b> o corpo re-renderiza sem motion e o sublinhado “teleporta”. <b style="color:var(--text)">Proposto:</b> a lista entra com translateX(±8px) na direção do índice e o ink cresce do centro junto (200ms) — não termina depois do conteúdo.</span>
+      </p>
+    </section>
+
+    <!-- 3 · TOAST --------------------------------------------------------- -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-num">3</span>
+        <div>
+          <h2>Toast</h2>
+          <p>Confirmação efêmera, com barra de progresso e pausa no hover.</p>
+        </div>
+      </div>
+
+      <div class="demo-zone">
+        <div class="btn-row" style="margin-bottom:12px">
+          <button class="btn btn--primary" id="toastBtn">Disparar toast</button>
+          <button class="btn" id="toastUndoBtn">Com “Desfazer” (6s)</button>
+        </div>
+        <div class="toast-stage" id="toastStage" aria-live="polite"></div>
+      </div>
+
+      <p class="legend">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        <span><b style="color:var(--text)">Hoje:</b> timing fixo, sem barra nem pausa — some no meio da leitura. <b style="color:var(--text)">Proposto:</b> sobe deslizando (220ms), barra amarela de 2px encolhe na duração e <b style="color:var(--text)">pausa ao passar o mouse</b>; sai espelhando a entrada. A variante “Desfazer” estende para 6s.</span>
+      </p>
+    </section>
+
+    <!-- 4 · MODAL / BOTTOM-SHEET ------------------------------------------ -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-num">4</span>
+        <div>
+          <h2>Modal &amp; bottom-sheet</h2>
+          <p>Saída sempre espelha a entrada.</p>
+        </div>
+      </div>
+
+      <div class="demo-zone">
+        <div class="btn-row" style="margin-bottom:14px">
+          <button class="btn btn--primary" id="modalBtn">Abrir modal (desktop)</button>
+          <button class="btn" id="sheetBtn">Abrir bottom-sheet (mobile)</button>
+        </div>
+
+        <div class="modal-stage" id="modalStage">
+          <!-- modal centralizado -->
+          <div class="overlay" id="modalOverlay">
+            <div class="modal" id="modalEl" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+              <h3 id="mTitle">Nova ocorrência</h3>
+              <p>Atraso · Marcos Vinícius (2º turno).</p>
+              <div class="row">
+                <button class="btn btn--ghost" data-close>Cancelar</button>
+                <button class="btn btn--primary" data-close>Salvar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- frame de celular para o bottom-sheet -->
+        <div class="sheet-frame" id="sheetFrame" aria-hidden="false">
+          <div class="scrim" id="sheetScrim"></div>
+          <div class="sheet" id="sheetEl" role="dialog" aria-modal="true" aria-labelledby="sTitle">
+            <span class="grab" aria-hidden="true"></span>
+            <h4 id="sTitle">Ações da ocorrência</h4>
+            <p>Conferir · Editar · Devolver ao RH.</p>
+            <div class="btn-row">
+              <button class="btn btn--ghost" data-sheet-close>Fechar</button>
+              <button class="btn btn--primary" data-sheet-close>Conferir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="legend">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        <span><b style="color:var(--text)">Hoje:</b> o painel some no lugar sem direção. <b style="color:var(--text)">Proposto:</b> o modal entra com slideUp e <b style="color:var(--text)">sai espelhado</b> (opacity 1→0 + desce 14px); o bottom-sheet entra subindo e <b style="color:var(--text)">sai descendo</b> (translateY 0→100%).</span>
+      </p>
+    </section>
+
+    <!-- 5 · TIMELINE DA CONFERÊNCIA (span 2, momento-chave) --------------- -->
+    <section class="card span2">
+      <div class="card-head">
+        <span class="card-num">5</span>
+        <div>
+          <h2>Timeline da conferência — o momento-chave</h2>
+          <p>O líder confere a ocorrência do próprio turno; o nó encena a conclusão antes de a linha sair da lista.</p>
+        </div>
+      </div>
+
+      <div class="compare">
+        <!-- HOJE -->
+        <div>
+          <span class="tag tag--now">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            Hoje
+          </span>
+          <div class="timeline" id="tlNow"></div>
+          <div class="btn-row" style="margin-top:14px">
+            <button class="btn" id="tlNowBtn">Conferir</button>
+          </div>
+        </div>
+        <!-- PROPOSTO -->
+        <div>
+          <span class="tag tag--new">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Proposto
+          </span>
+          <div class="timeline" id="tlNew"></div>
+          <div class="btn-row" style="margin-top:14px">
+            <button class="btn btn--primary" id="tlNewBtn">Conferir</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="legend" style="margin-top:14px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        <span><b style="color:var(--text)">Hoje:</b> o nó não completa — o estado muda sem encenação e a lista some seca. <b style="color:var(--text)">Proposto:</b> o nó vai branco→verde com scale 1→1.3→1 (320ms), um ring var(--success) expande e some, o título troca para “Conferida por João Silva” com fade e só após ~400ms a linha-fantasma desliza pra fora (.occ--saindo).</span>
+      </p>
+    </section>
+
+    <!-- 6 · TOGGLE (overshoot vs linear) ---------------------------------- -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-num">6</span>
+        <div>
+          <h2>Toggle switch</h2>
+          <p>Knob com micro-overshoot ao assentar vs. timing linear.</p>
+        </div>
+      </div>
+
+      <div class="demo-zone">
+        <div class="toggle-cmp">
+          <div class="cell">
+            <span class="tag tag--now" style="margin:0 0 12px">Hoje · linear</span><br>
+            <label class="switch linear"><input type="checkbox" aria-label="Toggle linear"><span class="track"><span class="knob"></span></span></label>
+            <span class="lab">200ms linear — chega “duro”.</span>
+          </div>
+          <div class="cell">
+            <span class="tag tag--new" style="margin:0 0 12px">Proposto · overshoot</span><br>
+            <label class="switch"><input type="checkbox" aria-label="Toggle com overshoot"><span class="track"><span class="knob"></span></span></label>
+            <span class="lab">cubic-bezier(.34,1.56,.64,1) — pequeno bounce ao fim.</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="legend">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        <span>O knob da versão proposta ultrapassa levemente e volta; o fundo muda com a curva padrão. Clique nos dois para sentir a diferença de “acabamento”.</span>
+      </p>
+    </section>
+
+    <!-- 7 · COUNT-UP COM STAGGER ------------------------------------------ -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-num">7</span>
+        <div>
+          <h2>Count-up com stagger</h2>
+          <p>Stats do dashboard que assentam em cascata.</p>
+        </div>
+      </div>
+
+      <div class="demo-zone">
+        <div class="stat-grid" id="statGrid">
+          <div class="stat" data-to="42"><div class="num">0</div><div class="lbl">Pendentes</div></div>
+          <div class="stat" data-to="118"><div class="num">0</div><div class="lbl">Conferidas</div></div>
+          <div class="stat" data-to="96"><div class="num">0</div><div class="lbl">Lançadas</div></div>
+          <div class="stat" data-to="7" data-suffix="d"><div class="num">0</div><div class="lbl">Atrasadas</div></div>
+        </div>
+        <div class="btn-row" style="margin-top:14px">
+          <button class="btn btn--primary" id="countBtn">Reproduzir entrada</button>
+        </div>
+      </div>
+
+      <p class="legend">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        <span><b style="color:var(--text)">Hoje:</b> os 4 cards sobem juntos e o número conta sem freio. <b style="color:var(--text)">Proposto:</b> fade-up escalonado e cada número só começa ~120ms depois da sua célula assentar, com easeOutQuart — os últimos dígitos “freiam”.</span>
+      </p>
+    </section>
+
+    <!-- 8 · HOVER / RETURN DE LINHA --------------------------------------- -->
+    <section class="card">
+      <div class="card-head">
+        <span class="card-num">8</span>
+        <div>
+          <h2>Hover &amp; realce de retorno</h2>
+          <p>Linha responde ao mouse e se reapresenta ao voltar de um modal.</p>
+        </div>
+      </div>
+
+      <div class="demo-zone">
+        <div class="rows" id="rowList"></div>
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn" id="returnBtn">Voltar de modal (realça linha 2)</button>
+        </div>
+      </div>
+
+      <p class="legend">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        <span><b style="color:var(--text)">Hoje:</b> sem lift no hover e o retorno “perde” o item editado. <b style="color:var(--text)">Proposto:</b> hover dá lift sutil + barra lateral (box-shadow inset 3px); ao voltar de um modal a linha pisca milk→transparente (900ms) e recebe scrollIntoView.</span>
+      </p>
+    </section>
+
+  </div>
+
+  <footer class="foot">
+    <b>Como ler este documento.</b> Cada card mostra a interação real (clique, hover, foco). O switch no topo
+    simula <code>prefers-reduced-motion</code>: ligado, toda animação cai para ~0ms e o usuário vê só o estado
+    final — sem flashes, sem deslizes. Nada aqui é emoji: os ícones são SVG inline (stroke, viewBox 0 0 24 24).
+    Paleta e tipografia seguem o manual Fiobras (verde #008835, Poppins; wordmark em Michroma).
+  </footer>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   FioPulse · galeria de motion — lógica das demos
+   Decisões de design comentadas inline. Uma única curva (--ease) governa as
+   entradas; saídas SEMPRE espelham a entrada; reduced-motion é detectado tanto
+   pela media query quanto pelo switch global (classe .rm no body).
+   ════════════════════════════════════════════════════════════════════════ */
+(function(){
+  "use strict";
+  var body = document.body;
+
+  /* — Helper: estamos em modo "sem movimento"? (media query OU switch global) */
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function reduced(){ return body.classList.contains('rm') || mq.matches; }
+
+  /* — Helper: re-dispara uma animação CSS removendo/recolocando a classe.
+       Sem isso, clicar de novo não reinicia o keyframe. */
+  function replay(el, cls){
+    el.classList.remove(cls);
+    void el.offsetWidth; /* força reflow → reinicia a animação */
+    el.classList.add(cls);
+  }
+
+  /* ── Switch global: simular prefers-reduced-motion ─────────────────────── */
+  var rmToggle = document.getElementById('rmToggle');
+  var rmState  = document.getElementById('rmState');
+  rmToggle.addEventListener('change', function(){
+    body.classList.toggle('rm', rmToggle.checked);
+    rmState.textContent = rmToggle.checked ? 'Movimento reduzido' : 'Movimento ativo';
+  });
+
+  /* ════════ 1 · TROCA DE VIEW ════════════════════════════════════════════
+     Corte seco vira fade+rise de 200ms. A View Transitions API é o caminho
+     preferido em produção; aqui simulamos o efeito equivalente com keyframe. */
+  var VIEWS = {
+    dash: '<div class="mini-stat">' +
+            '<div class="box"><div class="k">Pendentes</div><div class="v">7</div></div>' +
+            '<div class="box"><div class="k">Conferidas</div><div class="v">3</div></div>' +
+            '<div class="box"><div class="k">Lançadas</div><div class="v">12</div></div>' +
+          '</div>' +
+          '<div class="mini-row"><span class="av">RA</span><div class="meta"><b>Atraso · Rafael Antunes</b><small>1º turno · 13min</small></div><span class="pill pill--warn">Pendente</span></div>' +
+          '<div class="mini-row"><span class="av">CL</span><div class="meta"><b>Esqueceu o crachá · Camila Lopes</b><small>1º turno</small></div><span class="pill pill--warn">Pendente</span></div>',
+    func: '<div class="mini-row"><span class="av">JS</span><div class="meta"><b>João Silva</b><small>Líder · 2º turno</small></div><span class="pill pill--ok">+12h30</span></div>' +
+          '<div class="mini-row"><span class="av">MV</span><div class="meta"><b>Marcos Vinícius</b><small>Produção · 2º turno</small></div><span class="pill pill--ok">+04h10</span></div>' +
+          '<div class="mini-row"><span class="av">PB</span><div class="meta"><b>Patrícia Bastos</b><small>Qualidade · 1º turno</small></div><span class="pill pill--warn">-02h00</span></div>' +
+          '<div class="mini-row"><span class="av">EduF</span><div class="meta"><b>Eduardo Farias</b><small>Logística · 3º turno</small></div><span class="pill pill--ok">+00h45</span></div>'
+  };
+  var viewPanel = document.getElementById('viewPanel');
+  function showView(key){
+    viewPanel.innerHTML = VIEWS[key];
+    if(!reduced()) replay(viewPanel, 'enter'); /* fade+rise; em reduced cai pra 0ms */
+  }
+  showView('dash');
+  document.querySelectorAll('.view-nav .seg').forEach(function(seg){
+    seg.addEventListener('click', function(){
+      document.querySelectorAll('.view-nav .seg').forEach(function(s){ s.setAttribute('aria-selected','false'); });
+      seg.setAttribute('aria-selected','true');
+      showView(seg.dataset.view);
+    });
+  });
+
+  /* ════════ 2 · TROCA DE ABA ══════════════════════════════════════════════
+     Slide direcional (±8px conforme o índice cresce/diminui) + ink que cresce
+     do centro JUNTO com o conteúdo, terminando ao mesmo tempo. */
+  var TABS = [
+    [ ['RA','Atraso · Rafael Antunes','1º turno · 13min','warn','Pendente'],
+      ['CL','Esqueceu o crachá · Camila Lopes','1º turno','warn','Pendente'],
+      ['TN','Falta injustificada · Tiago Neri','1º turno','warn','Pendente'] ],
+    [ ['JS','Atraso · João Silva','2º turno','ok','Conferida'],
+      ['MV','Saída antecipada · Marcos Vinícius','2º turno','ok','Conferida'] ],
+    [ ['PB','Atraso · Patrícia Bastos','1º turno','ok','Lançada'],
+      ['EduF','Falta injustificada · Eduardo Farias','3º turno','ok','Lançada'],
+      ['LM','Esqueceu o crachá · Letícia Moraes','2º turno','ok','Lançada'],
+      ['RC','Atraso · Renato Cardoso','1º turno','ok','Lançada'] ]
+  ];
+  var tabsBar = document.getElementById('tabsBar');
+  var tabBtns = Array.prototype.slice.call(tabsBar.querySelectorAll('.tab'));
+  var ink     = document.getElementById('ink');
+  var tabList = document.getElementById('tabList');
+  var curTab  = 0;
+
+  function renderTab(idx, dir){
+    tabList.innerHTML = TABS[idx].map(function(r){
+      var pill = r[3]==='warn' ? 'pill--warn' : 'pill--ok';
+      return '<div class="mini-row"><span class="av">'+r[0]+'</span>' +
+             '<div class="meta"><b>'+r[1]+'</b><small>'+r[2]+'</small></div>' +
+             '<span class="pill '+pill+'">'+r[4]+'</span></div>';
+    }).join('');
+    if(!reduced() && dir){
+      replay(tabList, dir > 0 ? 'slide-r' : 'slide-l'); /* direção segue o índice */
+    } else {
+      tabList.classList.remove('slide-r','slide-l');
+    }
+  }
+  function moveInk(idx, animate){
+    var btn = tabBtns[idx];
+    ink.style.left  = btn.offsetLeft + 'px';
+    ink.style.width = btn.offsetWidth + 'px';
+    if(animate && !reduced()) replay(ink, 'grow'); /* cresce do centro */
+    else ink.classList.remove('grow');
+  }
+  tabBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var idx = +btn.dataset.idx;
+      if(idx === curTab) return;
+      var dir = idx - curTab;
+      tabBtns.forEach(function(b){ b.setAttribute('aria-selected','false'); });
+      btn.setAttribute('aria-selected','true');
+      curTab = idx;
+      renderTab(idx, dir);
+      moveInk(idx, true);
+    });
+  });
+  /* init (sem animar a primeira pintura) */
+  renderTab(0, 0);
+  requestAnimationFrame(function(){ moveInk(0, false); });
+  window.addEventListener('resize', function(){ moveInk(curTab, false); });
+
+  /* ════════ 3 · TOAST ══════════════════════════════════════════════════════
+     Sobe deslizando; barra de 2px encolhe scaleX 1→0 na duração; hover pausa
+     (animation-play-state via CSS); sai espelhando. Variante "Desfazer" = 6s. */
+  var toastStage = document.getElementById('toastStage');
+  var toastTimer = null, leaveTimer = null;
+
+  function fireToast(opts){
+    opts = opts || {};
+    var dur = opts.undo ? 6000 : 4000;
+    clearTimeout(toastTimer); clearTimeout(leaveTimer);
+    toastStage.innerHTML = '';
+
+    var t = document.createElement('div');
+    t.className = 'toast';
+    t.style.setProperty('--dur', dur + 'ms');
+    t.innerHTML =
+      '<span class="t-ico" aria-hidden="true">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' +
+      '</span>' +
+      '<span class="t-msg"><b>' + (opts.undo ? 'Ocorrência lançada' : 'Ocorrência conferida') + '</b>' +
+        '<small>' + (opts.undo ? 'Atraso · Rafael Antunes' : 'Por João Silva · agora') + '</small></span>' +
+      (opts.undo ? '<button class="t-undo" type="button">DESFAZER</button>' : '') +
+      '<span class="t-prog"></span>';
+    toastStage.appendChild(t);
+
+    var prog = t.querySelector('.t-prog');
+
+    if(reduced()){
+      /* sem movimento: toast aparece e some sem deslize nem barra correndo */
+      prog.style.display = 'none';
+      toastTimer = setTimeout(function(){ if(t.parentNode) t.remove(); }, dur);
+    } else {
+      t.classList.add('enter');
+      requestAnimationFrame(function(){ prog.classList.add('run'); }); /* barra começa a encolher */
+      toastTimer = setTimeout(function(){ dismissToast(t); }, dur);
+    }
+
+    /* hover pausa o auto-dismiss (a barra congela via CSS play-state) */
+    t.addEventListener('mouseenter', function(){
+      if(reduced()) return;
+      clearTimeout(toastTimer);
+    });
+    t.addEventListener('mouseleave', function(){
+      if(reduced()) return;
+      /* retoma com tempo proporcional ao que falta na barra */
+      var cs = getComputedStyle(prog);
+      var m = cs.transform === 'none' ? 1 : (new DOMMatrix(cs.transform)).a; /* scaleX restante */
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function(){ dismissToast(t); }, Math.max(400, dur * m));
+    });
+
+    var undo = t.querySelector('.t-undo');
+    if(undo){ undo.addEventListener('click', function(){ clearTimeout(toastTimer); dismissToast(t); }); }
+  }
+  function dismissToast(t){
+    if(!t || !t.parentNode) return;
+    if(reduced()){ t.remove(); return; }
+    t.classList.remove('enter'); t.classList.add('leave'); /* espelha a entrada */
+    leaveTimer = setTimeout(function(){ if(t.parentNode) t.remove(); }, 210);
+  }
+  document.getElementById('toastBtn').addEventListener('click', function(){ fireToast(); });
+  document.getElementById('toastUndoBtn').addEventListener('click', function(){ fireToast({undo:true}); });
+
+  /* ════════ 4 · MODAL / BOTTOM-SHEET ═══════════════════════════════════════
+     Modal: entra slideUp, SAI espelhado (some no lugar + desce 14px).
+     Sheet: entra subindo, SAI descendo translateY 0→100%. */
+  var modalOverlay = document.getElementById('modalOverlay');
+  var modalEl      = document.getElementById('modalEl');
+  document.getElementById('modalBtn').addEventListener('click', function(){
+    modalOverlay.classList.add('open');
+    modalEl.classList.remove('leave');
+    if(!reduced()) replay(modalEl, 'enter');
+  });
+  function closeModal(){
+    if(reduced()){ modalOverlay.classList.remove('open'); return; }
+    modalEl.classList.remove('enter');
+    replay(modalEl, 'leave');
+    setTimeout(function(){ modalOverlay.classList.remove('open'); modalEl.classList.remove('leave'); }, 200);
+  }
+  modalOverlay.querySelectorAll('[data-close]').forEach(function(b){ b.addEventListener('click', closeModal); });
+  modalOverlay.addEventListener('click', function(e){ if(e.target === modalOverlay) closeModal(); });
+
+  var sheetScrim = document.getElementById('sheetScrim');
+  var sheetEl    = document.getElementById('sheetEl');
+  document.getElementById('sheetBtn').addEventListener('click', function(){
+    sheetScrim.classList.add('open');
+    sheetEl.classList.remove('down');
+    if(reduced()){ sheetEl.style.transform = 'translateY(0)'; }
+    else { sheetEl.style.transform = ''; replay(sheetEl, 'up'); }
+  });
+  function closeSheet(){
+    sheetScrim.classList.remove('open');
+    if(reduced()){ sheetEl.style.transform = 'translateY(100%)'; sheetEl.classList.remove('up'); return; }
+    sheetEl.classList.remove('up');
+    replay(sheetEl, 'down'); /* desce 0→100% — espelha a entrada */
+  }
+  document.querySelectorAll('[data-sheet-close]').forEach(function(b){ b.addEventListener('click', closeSheet); });
+  /* estado inicial do sheet: escondido embaixo */
+  sheetEl.style.transform = 'translateY(100%)';
+
+  /* ════════ 5 · TIMELINE DA CONFERÊNCIA ════════════════════════════════════ */
+  var TL_HTML =
+    '<div class="tl-node"><div class="rail"><span class="tl-dot done"></span></div>' +
+      '<div class="tl-body"><div class="tt">Registrada</div><small>RH · 08:12</small></div></div>' +
+    '<div class="tl-node"><div class="rail"><span class="tl-dot done"></span></div>' +
+      '<div class="tl-body"><div class="tt">Em análise</div><small>1º turno · 08:30</small></div></div>' +
+    '<div class="tl-node"><div class="rail"><span class="tl-dot" data-last></span></div>' +
+      '<div class="tl-body"><div class="tt muted" data-title>Aguardando conferência do líder</div><small data-sub>—</small></div></div>';
+
+  function buildTimeline(id){ document.getElementById(id).innerHTML = TL_HTML; }
+  buildTimeline('tlNow'); buildTimeline('tlNew');
+
+  /* HOJE: o nó NÃO completa — o estado muda seco e a linha some sem encenação. */
+  document.getElementById('tlNowBtn').addEventListener('click', function(){
+    var tl  = document.getElementById('tlNow');
+    var dot = tl.querySelector('[data-last]');
+    var ttl = tl.querySelector('[data-title]');
+    var sub = tl.querySelector('[data-sub]');
+    dot.classList.add('done');                 /* sem pop, sem ring */
+    ttl.classList.remove('muted');
+    ttl.textContent = 'Conferida por João Silva';
+    sub.textContent = 'agora';
+    this.disabled = true; this.textContent = 'Conferida';
+  });
+
+  /* PROPOSTO: pop + ring + troca de título com fade; ~400ms depois a linha sai. */
+  var tlNewBtn = document.getElementById('tlNewBtn');
+  tlNewBtn.addEventListener('click', function(){
+    var tl  = document.getElementById('tlNew');
+    var dot = tl.querySelector('[data-last]');
+    var ttl = tl.querySelector('[data-title]');
+    var sub = tl.querySelector('[data-sub]');
+    tlNewBtn.disabled = true; tlNewBtn.textContent = 'Conferida';
+
+    dot.classList.add('done');
+    if(!reduced()) replay(dot, 'pop');         /* branco→verde, scale 1→1.3→1 + ring */
+
+    ttl.classList.remove('muted');
+    ttl.textContent = 'Conferida por João Silva';
+    sub.textContent = 'agora';
+    if(!reduced()){ replay(ttl, 'swap'); replay(sub, 'swap'); }
+
+    /* linha-fantasma desliza pra fora só DEPOIS da encenação do nó (~400ms) */
+    var ghost = document.createElement('div');
+    ghost.className = 'ghost-occ';
+    ghost.innerHTML =
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' +
+      '<span class="gk">Atraso · Rafael Antunes</span><span style="color:var(--text-muted)">sai da lista de pendentes</span>';
+    tl.parentNode.appendChild(ghost);
+    var delay = reduced() ? 0 : 400;
+    setTimeout(function(){
+      if(reduced()){ ghost.remove(); }        /* sem movimento: apenas some */
+      else {
+        replay(ghost, 'saindo');
+        setTimeout(function(){ if(ghost.parentNode) ghost.remove(); }, 480);
+      }
+    }, delay);
+  });
+
+  /* ════════ 6 · TOGGLE ═════════════════════════════════════════════════════
+     Puramente CSS: .switch usa --ease-overshoot no knob; .switch.linear usa
+     linear. Nada a fazer em JS além de deixar o usuário clicar. */
+
+  /* ════════ 7 · COUNT-UP COM STAGGER ═══════════════════════════════════════
+     Cada card faz fade-up escalonado (80ms entre eles) e o número só começa a
+     contar ~120ms depois que a célula assenta, com easeOutQuart. */
+  var statGrid = document.getElementById('statGrid');
+  var stats = Array.prototype.slice.call(statGrid.querySelectorAll('.stat'));
+
+  function easeOutQuart(t){ return 1 - Math.pow(1 - t, 4); } /* últimos dígitos freiam */
+
+  function countTo(el, to, suffix){
+    var numEl = el.querySelector('.num');
+    if(reduced()){ numEl.textContent = to + (suffix||''); return; }
+    var dur = 900, start = null;
+    function step(ts){
+      if(start === null) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      numEl.textContent = Math.round(easeOutQuart(p) * to) + (suffix||'');
+      if(p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function playCounts(){
+    stats.forEach(function(el, i){
+      var to = +el.dataset.to, suffix = el.dataset.suffix || '';
+      el.querySelector('.num').textContent = '0' + suffix;
+      if(reduced()){
+        el.classList.remove('armed','rise');
+        countTo(el, to, suffix);
+        return;
+      }
+      el.classList.add('armed'); el.classList.remove('rise');
+      var cellDelay = i * 80;                 /* fade-up escalonado */
+      el.style.setProperty('--d', cellDelay + 'ms');
+      void el.offsetWidth;
+      el.classList.remove('armed'); el.classList.add('rise');
+      /* número arranca 120ms DEPOIS de a célula assentar */
+      setTimeout(function(){ countTo(el, to, suffix); }, cellDelay + 120);
+    });
+  }
+  document.getElementById('countBtn').addEventListener('click', playCounts);
+  playCounts(); /* roda uma vez ao abrir */
+
+  /* ════════ 8 · HOVER / RETURN DE LINHA ════════════════════════════════════ */
+  var ROWS = [
+    ['RA','Atraso · Rafael Antunes','1º turno · 13min'],
+    ['MV','Saída antecipada · Marcos Vinícius','2º turno'],
+    ['CL','Esqueceu o crachá · Camila Lopes','1º turno'],
+    ['TN','Falta injustificada · Tiago Neri','1º turno']
+  ];
+  var rowList = document.getElementById('rowList');
+  rowList.innerHTML = ROWS.map(function(r){
+    return '<div class="lrow"><span class="av">'+r[0]+'</span>' +
+           '<div class="meta"><b>'+r[1]+'</b><small>'+r[2]+'</small></div></div>';
+  }).join('');
+  document.getElementById('returnBtn').addEventListener('click', function(){
+    var target = rowList.children[1]; /* "linha 2" */
+    if(!target) return;
+    if(!reduced()){
+      replay(target, 'flash');                 /* pisca milk→transparente */
+      target.scrollIntoView({behavior:'smooth', block:'nearest'});
+    } else {
+      target.scrollIntoView({block:'nearest'}); /* sem flash nem smooth */
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

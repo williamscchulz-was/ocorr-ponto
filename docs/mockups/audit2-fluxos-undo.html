@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Fluxos seguros — undo, diff de import e conferência guiada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Tokens oficiais Fiobras (embutidos para consistência entre mockups) ===== */
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+  --warning:#B27429; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+  --info:#2F5A6B; --info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+  --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+  --shadow-xs:0 1px 1px rgba(0,40,20,.03); --shadow-sm:0 1px 2px rgba(0,40,20,.05);
+  --shadow:0 4px 16px rgba(0,40,20,.07); --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+  --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--text-body);
+  font-family:var(--font); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+
+/* ===== Cabeçalho de documento de design ===== */
+.page{max-width:1080px; margin:0 auto; padding:56px 28px 96px;}
+.kicker{
+  font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--text-muted); font-weight:600; margin:0 0 14px;
+  display:flex; align-items:center; gap:8px;
+}
+.kicker .dot{width:4px; height:4px; border-radius:50%; background:var(--plum); display:inline-block;}
+.wordmark{font-family:var(--font-brand); letter-spacing:.02em; color:var(--plum-deep);}
+h1.title{
+  font-size:30px; line-height:1.18; font-weight:600; color:var(--plum-deep);
+  margin:0 0 14px; letter-spacing:-.01em; max-width:24ch;
+}
+.why{
+  font-size:15px; color:var(--text-muted); max-width:74ch; margin:0;
+  line-height:1.6;
+}
+.why strong{color:var(--text-body); font-weight:600;}
+
+/* ===== Blocos ===== */
+.block{
+  margin-top:52px; padding-top:40px; border-top:1px solid var(--border);
+}
+.block:first-of-type{border-top:none; margin-top:40px; padding-top:0;}
+.block__head{display:flex; align-items:flex-start; gap:14px; margin-bottom:26px;}
+.block__num{
+  flex:0 0 auto; width:34px; height:34px; border-radius:10px;
+  background:var(--surface-warm); border:1px solid var(--border-strong);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:600; font-size:14px; color:var(--plum-deep);
+}
+.block__titles{flex:1; min-width:0;}
+.block__title{font-size:19px; font-weight:600; color:var(--plum-deep); margin:0 0 4px; letter-spacing:-.01em;}
+.block__sub{font-size:13.5px; color:var(--text-muted); margin:0; line-height:1.5;}
+
+/* ===== Grade Antes/Depois ===== */
+.compare{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+@media (max-width:780px){ .compare{grid-template-columns:1fr;} }
+.pane{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:20px; position:relative; box-shadow:var(--shadow-xs);
+}
+.pane--today{ background:#FCFDFB; }
+.pane--prop{ border-color:var(--border-strong); }
+.pane__tag{
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  padding:5px 11px; border-radius:999px; margin-bottom:16px;
+}
+.pane__tag--today{ background:var(--danger-bg); color:var(--danger); }
+.pane__tag--prop{ background:var(--success-bg); color:var(--success); }
+.pane__tag svg{width:14px; height:14px;}
+
+/* ===== Linha de ocorrência (lista) ===== */
+.occ-row{
+  display:flex; align-items:center; gap:14px;
+  padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--surface); transition:transform var(--transition), opacity var(--transition), box-shadow var(--transition);
+}
+.occ-row + .occ-row{margin-top:10px;}
+.occ-row.is-launching{ transform:translateX(110%); opacity:0; }
+.occ-row__avatar{
+  flex:0 0 auto; width:40px; height:40px; border-radius:50%;
+  background:var(--surface-warm); border:1px solid var(--border-strong);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:600; font-size:13px; color:var(--plum-deep);
+}
+.occ-row__body{flex:1; min-width:0;}
+.occ-row__name{font-weight:600; font-size:14px; color:var(--text-body); margin:0 0 2px;}
+.occ-row__meta{font-size:12.5px; color:var(--text-muted); margin:0; display:flex; gap:8px; flex-wrap:wrap;}
+.occ-row__meta .sep{opacity:.45;}
+.tag-type{
+  font-size:11px; font-weight:600; padding:2px 8px; border-radius:6px;
+  background:var(--info-bg); color:var(--info);
+}
+.tag-type--falta{ background:var(--danger-bg); color:var(--danger); }
+.tag-type--atraso{ background:var(--warning-bg); color:var(--warning); }
+
+button{font-family:inherit;}
+.btn{
+  font-family:inherit; font-weight:600; font-size:13.5px;
+  border-radius:var(--radius-sm); padding:9px 16px; cursor:pointer;
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--text-body);
+  transition:background var(--transition), border-color var(--transition), transform var(--transition);
+}
+.btn:hover{background:var(--surface-warm);}
+.btn:active{transform:scale(.97);}
+.btn--primary{ background:var(--plum); border-color:var(--plum); color:var(--text-on-plum); }
+.btn--primary:hover{ background:var(--plum-deep); }
+.btn--primary:disabled{ background:var(--milk-edge); border-color:var(--milk-edge); color:var(--text-muted); cursor:not-allowed; }
+.btn--launch{ flex:0 0 auto; padding:8px 14px; }
+.btn--sm{padding:7px 12px; font-size:12.5px;}
+
+/* ===== Toast ===== */
+.toast-stage{
+  position:relative; min-height:64px; margin-top:18px;
+  display:flex; justify-content:center; align-items:flex-end;
+}
+.toast{
+  display:inline-flex; align-items:center; gap:14px;
+  background:var(--plum-deep); color:var(--text-on-plum);
+  padding:12px 16px 12px 18px; border-radius:var(--radius);
+  font-size:13.5px; font-weight:500; box-shadow:var(--shadow-lg);
+  transform:translateY(18px); opacity:0; pointer-events:none;
+  transition:transform 240ms var(--ease), opacity 240ms var(--ease);
+  max-width:100%;
+}
+.toast.is-shown{ transform:translateY(0); opacity:1; pointer-events:auto; }
+.toast__icon{display:flex;} .toast__icon svg{width:18px; height:18px; stroke:var(--fiobras-yellow);}
+.toast__undo{
+  background:transparent; border:none; color:var(--fiobras-yellow);
+  font-family:inherit; font-weight:700; font-size:12.5px; letter-spacing:.06em;
+  text-transform:uppercase; cursor:pointer; padding:4px 6px; border-radius:6px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.toast__undo:hover{ background:rgba(255,255,255,.12); }
+.toast__progress{
+  position:absolute; left:0; bottom:0; height:3px; width:100%;
+  background:var(--fiobras-yellow); transform-origin:left;
+  border-radius:0 0 var(--radius) var(--radius);
+}
+
+/* ===== Conferência: select vs radio-cards ===== */
+.fake-select{
+  width:100%; appearance:none; -webkit-appearance:none;
+  border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+  background:var(--surface); color:var(--text-muted);
+  font-family:inherit; font-size:14px; padding:11px 38px 11px 13px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%234A6245' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat:no-repeat; background-position:right 12px center;
+}
+.label-sm{font-size:12.5px; font-weight:600; color:var(--text-muted); margin:0 0 9px; display:block;}
+.radio-card{
+  display:flex; align-items:flex-start; gap:13px;
+  border:1px solid var(--border); border-radius:var(--radius);
+  padding:13px 15px; cursor:pointer; background:var(--surface);
+  transition:border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+.radio-card + .radio-card{margin-top:10px;}
+.radio-card:hover{ background:var(--surface-warm); }
+.radio-card.is-selected{
+  border-color:var(--plum); background:#F4FAF5;
+  box-shadow:0 0 0 1px var(--plum) inset;
+}
+.radio-card__dot{
+  flex:0 0 auto; width:20px; height:20px; border-radius:50%; margin-top:1px;
+  border:2px solid var(--border-strong); position:relative; transition:border-color var(--transition);
+}
+.radio-card.is-selected .radio-card__dot{ border-color:var(--plum); }
+.radio-card.is-selected .radio-card__dot::after{
+  content:""; position:absolute; inset:3px; border-radius:50%; background:var(--plum);
+}
+.radio-card__txt{flex:1; min-width:0;}
+.radio-card__label{font-weight:600; font-size:14px; color:var(--text-body); display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.radio-card__conseq{font-size:12.5px; color:var(--text-muted); margin:3px 0 0; line-height:1.45;}
+.pill-freq{
+  font-size:10.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+  background:var(--success-bg); color:var(--success); padding:2px 8px; border-radius:999px;
+}
+
+/* ===== Import diff ===== */
+.diff-stats{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:16px;}
+.stat{
+  background:var(--surface-warm); border:1px solid var(--border); border-radius:var(--radius);
+  padding:13px 14px;
+}
+.stat__n{font-size:23px; font-weight:700; color:var(--plum-deep); line-height:1; margin:0 0 5px;}
+.stat__l{font-size:12px; color:var(--text-muted); margin:0; line-height:1.35;}
+.varlist{margin:8px 0 0; padding:0; list-style:none;}
+.varlist li{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  font-size:12.5px; padding:6px 0; border-top:1px dashed var(--border);
+}
+.varlist li:first-child{border-top:none;}
+.varlist .nm{color:var(--text-body); font-weight:500;}
+.bh{font-variant-numeric:tabular-nums; font-weight:600; font-size:12px; padding:1px 7px; border-radius:6px;}
+.bh--pos{ background:var(--success-bg); color:var(--success); }
+.bh--neg{ background:var(--danger-bg); color:var(--danger); }
+.bh--zero{ background:var(--milk-edge); color:var(--text-muted); }
+.arrow{display:inline-flex; vertical-align:middle; margin:0 5px;}
+.arrow svg{width:15px; height:15px; stroke:var(--text-muted);}
+
+.danger-block{
+  border:1px solid var(--fiobras-yellow); background:var(--warning-bg);
+  border-radius:var(--radius); padding:15px 16px; margin-top:6px;
+}
+.danger-block__head{display:flex; align-items:flex-start; gap:10px;}
+.danger-block__head svg{width:20px; height:20px; flex:0 0 auto; stroke:var(--warning); margin-top:1px;}
+/* Texto do bloco amarelo escurecido p/ passar contraste AA (achado de AA) */
+.danger-block__title{font-weight:700; font-size:13.5px; color:var(--warning); margin:0;}
+.danger-block__title strong{color:#7A4E12;}
+.danger-block__names{font-size:12.5px; color:#7A4E12; margin:7px 0 0; line-height:1.5;}
+.confirm-check{
+  display:flex; align-items:flex-start; gap:11px; margin-top:14px;
+  padding-top:13px; border-top:1px solid rgba(122,78,18,.22); cursor:pointer;
+}
+.confirm-check input{
+  flex:0 0 auto; width:20px; height:20px; margin-top:1px; accent-color:var(--warning); cursor:pointer;
+}
+.confirm-check span{font-size:13px; color:#5C3B0E; font-weight:600; line-height:1.45;}
+.import-actions{display:flex; gap:10px; margin-top:16px; align-items:center; flex-wrap:wrap;}
+.merge-note{font-size:11.5px; color:var(--text-muted); margin:12px 0 0; line-height:1.5; display:flex; gap:8px;}
+.merge-note svg{width:15px; height:15px; flex:0 0 auto; stroke:var(--text-muted); margin-top:1px;}
+
+/* ===== PJ reajuste ===== */
+.field{margin-bottom:6px;}
+.field__label{font-size:12.5px; font-weight:600; color:var(--text-muted); margin:0 0 7px; display:block;}
+.field__input-wrap{position:relative; display:flex; align-items:center;}
+.field__input{
+  width:100%; font-family:inherit; font-size:14px;
+  border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+  padding:11px 13px; background:var(--surface); color:var(--text-body);
+  transition:border-color var(--transition), box-shadow var(--transition);
+}
+.field__input:focus{ outline:none; border-color:var(--plum); box-shadow:0 0 0 3px rgba(0,136,53,.14); }
+.field__suffix{position:absolute; right:13px; color:var(--text-muted); font-size:13px; pointer-events:none;}
+.field--error .field__input{ border-color:var(--danger); box-shadow:0 0 0 3px rgba(150,47,50,.12); }
+.field__error{
+  display:none; align-items:center; gap:7px;
+  font-size:12.5px; color:var(--danger); font-weight:500; margin:8px 0 0;
+}
+.field--error .field__error{ display:flex; }
+.field__error svg{width:15px; height:15px; flex:0 0 auto; stroke:var(--danger);}
+
+.confirm-modal{
+  border:1px solid var(--border-strong); border-radius:var(--radius-lg);
+  background:var(--surface); padding:0; overflow:hidden; box-shadow:var(--shadow);
+}
+.confirm-modal__head{
+  padding:16px 20px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:12px;
+}
+.confirm-modal__head .ic{
+  width:34px; height:34px; border-radius:9px; background:var(--surface-warm);
+  border:1px solid var(--border-strong); display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+}
+.confirm-modal__head .ic svg{width:18px; height:18px; stroke:var(--plum-deep);}
+.confirm-modal__title{font-size:15px; font-weight:600; color:var(--plum-deep); margin:0;}
+.confirm-modal__body{padding:18px 20px;}
+.recap{
+  display:flex; align-items:center; justify-content:center; gap:16px;
+  background:var(--surface-warm); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; margin-bottom:14px; flex-wrap:wrap;
+}
+.recap__col{text-align:center;}
+.recap__lbl{font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted); margin:0 0 5px; font-weight:600;}
+.recap__val{font-size:17px; font-weight:700; color:var(--text-body); margin:0; font-variant-numeric:tabular-nums;}
+.recap__val--old{color:var(--text-muted); font-weight:600;}
+.recap__val--new{color:var(--plum-deep);}
+.recap__delta{font-size:12px; font-weight:600; color:var(--success); margin:4px 0 0;}
+.recap__arrow svg{width:22px; height:22px; stroke:var(--text-muted);}
+.recap__vig{font-size:12.5px; color:var(--text-muted); text-align:center; margin:0;}
+.confirm-modal__foot{display:flex; justify-content:flex-end; gap:10px; padding:14px 20px; border-top:1px solid var(--border); background:#FCFDFB;}
+
+/* ===== Contexto na criação ===== */
+.select-real{
+  width:100%; appearance:none; -webkit-appearance:none;
+  border:1px solid var(--border-strong); border-radius:var(--radius-sm);
+  background:var(--surface); color:var(--text-body);
+  font-family:inherit; font-size:14px; padding:11px 38px 11px 13px; cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%234A6245' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat:no-repeat; background-position:right 12px center;
+}
+.detail-grid{
+  display:grid; grid-template-columns:repeat(2,1fr); gap:1px;
+  background:var(--border); border:1px solid var(--border); border-radius:var(--radius);
+  overflow:hidden; margin-top:14px;
+  max-height:0; opacity:0; transition:max-height 320ms var(--ease), opacity 220ms var(--ease), margin-top 220ms var(--ease);
+}
+.detail-grid.is-shown{ max-height:240px; opacity:1; }
+.detail-cell{background:var(--surface); padding:12px 14px;}
+.detail-cell__lbl{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--text-muted); margin:0 0 5px; font-weight:600;}
+.detail-cell__val{font-size:14px; font-weight:600; color:var(--text-body); margin:0; display:flex; align-items:center; gap:7px;}
+.detail-cell__val .bh{font-size:13px;}
+.field__hint{
+  display:none; align-items:flex-start; gap:8px; margin-top:12px;
+  background:var(--warning-bg); border:1px solid var(--fiobras-yellow); border-radius:var(--radius-sm);
+  padding:10px 12px; font-size:12.5px; color:#7A4E12; font-weight:600; line-height:1.45;
+}
+.field__hint.is-shown{ display:flex; }
+.field__hint svg{width:16px; height:16px; flex:0 0 auto; stroke:var(--warning); margin-top:1px;}
+
+.hint-row{font-size:11.5px; color:var(--text-muted); margin:14px 0 0; line-height:1.55; display:flex; gap:8px;}
+.hint-row svg{width:15px; height:15px; flex:0 0 auto; stroke:var(--plum); margin-top:2px;}
+
+.modal-mock__head{font-size:13px; font-weight:600; color:var(--text-body); margin:0 0 14px; display:flex; align-items:center; gap:9px;}
+.modal-mock__head svg{width:17px; height:17px; stroke:var(--plum-deep);}
+
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;}
+
+/* ===== Respeitar reduced-motion ===== */
+@media (prefers-reduced-motion: reduce){
+  *{ transition-duration:.001ms !important; scroll-behavior:auto !important; }
+  .toast{ transform:none; }
+  .occ-row.is-launching{ transform:none; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <h2 class="sr-only">Mockup de fluxos seguros do FioPulse: desfazer no toast, conferência guiada, diff de import de banco de horas, confirmação de reajuste PJ e contexto na criação de ocorrência.</h2>
+
+  <!-- ===== Cabeçalho de documento de design ===== -->
+  <p class="kicker"><span class="dot"></span><span class="wordmark">FIOPULSE</span> · AUDITORIA</p>
+  <h1 class="title">Fluxos seguros — undo, diff de import e conferência guiada</h1>
+  <p class="why">
+    Estes são os fluxos de maior risco trabalhista e financeiro do app. A diretriz é simples:
+    <strong>toda ação destrutiva ganha uma rede de segurança</strong> — desfazer no toast para o que é
+    reversível, confirmação com comparativo para o que não é — e <strong>ninguém decide no escuro</strong>:
+    a conferência explica a consequência de cada ação, o import mostra o diff antes de substituir, e quem
+    cria a ocorrência vê o contexto do funcionário na hora.
+  </p>
+
+  <!-- ============================================================= -->
+  <!-- BLOCO 1 — UNDO NO TOAST                                       -->
+  <!-- ============================================================= -->
+  <section class="block">
+    <div class="block__head">
+      <div class="block__num">1</div>
+      <div class="block__titles">
+        <h2 class="block__title">Lançar com desfazer</h2>
+        <p class="block__sub">Hoje, "Lançar" remove a linha na hora e o toast some em 2,4 s — sem volta. Proposto: padrão Gmail (ação otimista reversível). A linha só sai de fato depois que a janela de 6 s expira.</p>
+      </div>
+    </div>
+
+    <div class="compare">
+      <!-- ANTES -->
+      <div class="pane pane--today">
+        <span class="pane__tag pane__tag--today">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+
+        <div class="occ-row" id="rowToday">
+          <div class="occ-row__avatar">RA</div>
+          <div class="occ-row__body">
+            <p class="occ-row__name">Rafael Almeida</p>
+            <p class="occ-row__meta"><span class="tag-type tag-type--atraso">Atraso</span><span class="sep">·</span><span>12 jun</span><span class="sep">·</span><span>1º turno</span></p>
+          </div>
+          <button class="btn btn--primary btn--launch" onclick="launchToday()">Lançar</button>
+        </div>
+
+        <div class="toast-stage">
+          <div class="toast" id="toastToday">
+            <span class="toast__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span>Marcada como lançada!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="pane pane--prop">
+        <span class="pane__tag pane__tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+
+        <div class="occ-row" id="rowProp">
+          <div class="occ-row__avatar">RA</div>
+          <div class="occ-row__body">
+            <p class="occ-row__name">Rafael Almeida</p>
+            <p class="occ-row__meta"><span class="tag-type tag-type--atraso">Atraso</span><span class="sep">·</span><span>12 jun</span><span class="sep">·</span><span>1º turno</span></p>
+          </div>
+          <button class="btn btn--primary btn--launch" id="btnLaunchProp" onclick="launchProp()">Lançar</button>
+        </div>
+
+        <div class="toast-stage">
+          <div class="toast" id="toastProp">
+            <span class="toast__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span>Lançada</span>
+            <button class="toast__undo" onclick="undoProp()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+              Desfazer
+            </button>
+            <span class="toast__progress" id="toastProgress"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      Aplicar o mesmo padrão a conferir, desfazer-lançamento e editar. Reservar o modal de confirmação só para excluir definitivo e para o replace de Banco de Horas (Bloco 3).
+    </p>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- BLOCO 2 — CONFERÊNCIA GUIADA                                  -->
+  <!-- ============================================================= -->
+  <section class="block">
+    <div class="block__head">
+      <div class="block__num">2</div>
+      <div class="block__titles">
+        <h2 class="block__title">Conferência guiada</h2>
+        <p class="block__sub">O líder não deveria decidir o tratamento de uma ocorrência a partir de rótulos crus. Cada ação descreve a consequência; a mais usada para o tipo vem no topo, pré-selecionada.</p>
+      </div>
+    </div>
+
+    <div class="compare">
+      <!-- ANTES -->
+      <div class="pane pane--today">
+        <span class="pane__tag pane__tag--today">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+        <label class="label-sm">Como tratar a ocorrência</label>
+        <!-- Select cego: rótulos sem consequência -->
+        <select class="fake-select" aria-label="Escolha como tratar a ocorrência">
+          <option>Escolha como tratar a ocorrência…</option>
+          <option>Abono</option>
+          <option>Desconto</option>
+          <option>Advertência</option>
+        </select>
+        <p class="block__sub" style="margin-top:14px;">O líder precisa lembrar de cor o que cada opção faz no pagamento e no banco de horas. Erros silenciosos.</p>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="pane pane--prop">
+        <span class="pane__tag pane__tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+        <label class="label-sm">Como tratar — Falta Injustificada · Bruno Tavares</label>
+
+        <!-- radio-cards: ação default (mais frequente p/ o tipo) no topo e pré-selecionada -->
+        <div role="radiogroup" aria-label="Como tratar a ocorrência">
+          <div class="radio-card is-selected" role="radio" aria-checked="true" tabindex="0" onclick="pickAction(this)">
+            <span class="radio-card__dot"></span>
+            <span class="radio-card__txt">
+              <span class="radio-card__label">Desconto <span class="pill-freq">Mais usado p/ falta</span></span>
+              <span class="radio-card__conseq">Abate do salário e do banco de horas.</span>
+            </span>
+          </div>
+          <div class="radio-card" role="radio" aria-checked="false" tabindex="0" onclick="pickAction(this)">
+            <span class="radio-card__dot"></span>
+            <span class="radio-card__txt">
+              <span class="radio-card__label">Abono</span>
+              <span class="radio-card__conseq">Não desconta, não afeta o banco de horas.</span>
+            </span>
+          </div>
+          <div class="radio-card" role="radio" aria-checked="false" tabindex="0" onclick="pickAction(this)">
+            <span class="radio-card__dot"></span>
+            <span class="radio-card__txt">
+              <span class="radio-card__label">Advertência</span>
+              <span class="radio-card__conseq">Registra a notificação; não mexe no pagamento.</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- BLOCO 3 — IMPORT DE BANCO DE HORAS (maior dano)               -->
+  <!-- ============================================================= -->
+  <section class="block">
+    <div class="block__head">
+      <div class="block__num">3</div>
+      <div class="block__titles">
+        <h2 class="block__title">Import de Banco de Horas — preview com diff</h2>
+        <p class="block__sub">O fluxo de maior dano: hoje a planilha substitui tudo às cegas. Proposto: mostrar o que muda — saldos novos, variações grandes e, em destaque, quem perde saldo — com confirmação obrigatória antes de substituir.</p>
+      </div>
+    </div>
+
+    <div class="compare">
+      <!-- ANTES -->
+      <div class="pane pane--today">
+        <span class="pane__tag pane__tag--today">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+        <div class="modal-mock__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importar Banco de Horas
+        </div>
+        <p class="block__sub" style="margin-bottom:16px;">banco_horas_jun.xlsx · 126 linhas lidas</p>
+        <button class="btn btn--primary" style="width:100%;">Importar e substituir tudo</button>
+        <p class="block__sub" style="margin-top:14px;">Replace total. Quem não está na planilha tem o saldo zerado, e ninguém vê isso antes de confirmar.</p>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="pane pane--prop">
+        <span class="pane__tag pane__tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+        <div class="modal-mock__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Pré-visualizar importação
+        </div>
+
+        <div class="diff-stats">
+          <div class="stat">
+            <p class="stat__n">38</p>
+            <p class="stat__l">funcionários com saldo novo</p>
+          </div>
+          <div class="stat">
+            <p class="stat__n">7</p>
+            <p class="stat__l">com variação maior que 2 h</p>
+          </div>
+        </div>
+
+        <label class="label-sm">Maiores variações</label>
+        <ul class="varlist">
+          <li>
+            <span class="nm">Maria Souza</span>
+            <span>
+              <span class="bh bh--pos">+08:00</span>
+              <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+              <span class="bh bh--neg">-02:30</span>
+            </span>
+          </li>
+          <li>
+            <span class="nm">João Pereira</span>
+            <span>
+              <span class="bh bh--neg">-04:15</span>
+              <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+              <span class="bh bh--pos">+06:40</span>
+            </span>
+          </li>
+          <li>
+            <span class="nm">Ana Beatriz Lima</span>
+            <span>
+              <span class="bh bh--pos">+12:30</span>
+              <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+              <span class="bh bh--pos">+03:10</span>
+            </span>
+          </li>
+        </ul>
+
+        <!-- Bloco amarelo de perda — texto escurecido p/ contraste AA -->
+        <div class="danger-block" style="margin-top:16px;">
+          <div class="danger-block__head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <p class="danger-block__title"><strong>4 funcionários</strong> tinham saldo e sumiram da planilha — vão zerar</p>
+          </div>
+          <p class="danger-block__names">Diego Fontes (+09:20), Patrícia Nunes (-01:45), Otávio Ramos (+05:00), Letícia Carvalho (+02:15).</p>
+
+          <label class="confirm-check">
+            <input type="checkbox" id="bhConfirm" onchange="toggleReplace()">
+            <span>Entendo que 4 funcionários perdem o saldo anterior.</span>
+          </label>
+        </div>
+
+        <div class="import-actions">
+          <button class="btn btn--primary" id="btnReplace" disabled>Substituir</button>
+          <button class="btn">Cancelar</button>
+        </div>
+
+        <p class="merge-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Por padrão é merge: códigos ausentes na planilha são preservados, não zerados. Um snapshot anterior fica guardado para "Reverter última importação".
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- BLOCO 4 — REAJUSTE PJ                                          -->
+  <!-- ============================================================= -->
+  <section class="block">
+    <div class="block__head">
+      <div class="block__num">4</div>
+      <div class="block__titles">
+        <h2 class="block__title">Reajuste de PJ — confirmar com comparativo</h2>
+        <p class="block__sub">Reajuste mexe em contrato. Antes de gravar, mostra de→para com o percentual e a vigência. A validação inline pega o erro clássico de vírgula (45 em vez de 4,5).</p>
+      </div>
+    </div>
+
+    <div class="compare">
+      <!-- ANTES (campo com validação inline) -->
+      <div class="pane pane--today">
+        <span class="pane__tag pane__tag--today">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje vs. validação
+        </span>
+        <p class="block__sub" style="margin-bottom:16px;">O campo grava qualquer valor. Digite <strong>45</strong> abaixo para ver a guarda que o valor cego não tem.</p>
+
+        <div class="field" id="pctField">
+          <label class="field__label" for="pctInput">Reajuste anual (IPCA)</label>
+          <div class="field__input-wrap">
+            <input class="field__input" id="pctInput" type="text" inputmode="decimal" value="4,50" oninput="checkPct(this.value)" aria-describedby="pctErr">
+            <span class="field__suffix">%</span>
+          </div>
+          <p class="field__error" id="pctErr">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Reajuste acima de 20% — confira o valor.
+          </p>
+        </div>
+      </div>
+
+      <!-- DEPOIS (modal de confirmação) -->
+      <div class="pane pane--prop">
+        <span class="pane__tag pane__tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+
+        <div class="confirm-modal">
+          <div class="confirm-modal__head">
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+            <p class="confirm-modal__title">Confirmar reajuste de Carlos Mendes</p>
+          </div>
+          <div class="confirm-modal__body">
+            <div class="recap">
+              <div class="recap__col">
+                <p class="recap__lbl">Valor atual</p>
+                <p class="recap__val recap__val--old">R$ 8.500,00</p>
+              </div>
+              <span class="recap__arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+              <div class="recap__col">
+                <p class="recap__lbl">Novo valor</p>
+                <p class="recap__val recap__val--new">R$ 8.882,50</p>
+                <p class="recap__delta">+4,50%</p>
+              </div>
+            </div>
+            <p class="recap__vig">Vigência a partir de 15/01/2026.</p>
+          </div>
+          <div class="confirm-modal__foot">
+            <button class="btn">Cancelar</button>
+            <button class="btn btn--primary">Aplicar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- BLOCO 5 — CONTEXTO NA CRIAÇÃO                                  -->
+  <!-- ============================================================= -->
+  <section class="block">
+    <div class="block__head">
+      <div class="block__num">5</div>
+      <div class="block__titles">
+        <h2 class="block__title">Contexto na criação da ocorrência</h2>
+        <p class="block__sub">Quem registra precisa enxergar o funcionário. Ao selecioná-lo, aparece um mini-card com setor, turno, saldo de BH (colorido) e pendências do mês — e um aviso se já existir ocorrência do mesmo tipo na data.</p>
+      </div>
+    </div>
+
+    <div class="compare">
+      <!-- ANTES -->
+      <div class="pane pane--today">
+        <span class="pane__tag pane__tag--today">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Hoje
+        </span>
+        <div class="modal-mock__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova ocorrência
+        </div>
+        <label class="label-sm">Funcionário</label>
+        <select class="select-real" aria-label="Funcionário">
+          <option>Selecione o funcionário…</option>
+          <option>Bruno Tavares</option>
+          <option>Camila Reis</option>
+        </select>
+        <p class="block__sub" style="margin-top:14px;">Só o nome. Sem saldo, sem turno, sem saber se já há ocorrência igual na mesma data.</p>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="pane pane--prop">
+        <span class="pane__tag pane__tag--prop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto
+        </span>
+        <div class="modal-mock__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova ocorrência
+        </div>
+        <label class="label-sm" for="empSelect">Funcionário</label>
+        <select class="select-real" id="empSelect" onchange="showContext(this.value)" aria-describedby="empContext">
+          <option value="">Selecione o funcionário…</option>
+          <option value="bruno">Bruno Tavares</option>
+          <option value="camila">Camila Reis</option>
+        </select>
+
+        <!-- mini-card de contexto (client-side) -->
+        <div class="detail-grid" id="empContext">
+          <div class="detail-cell">
+            <p class="detail-cell__lbl">Setor</p>
+            <p class="detail-cell__val" id="ctxSetor">Tecelagem</p>
+          </div>
+          <div class="detail-cell">
+            <p class="detail-cell__lbl">Turno</p>
+            <p class="detail-cell__val" id="ctxTurno">1º turno</p>
+          </div>
+          <div class="detail-cell">
+            <p class="detail-cell__lbl">Saldo de banco de horas</p>
+            <p class="detail-cell__val"><span class="bh" id="ctxBh">-06:20</span></p>
+          </div>
+          <div class="detail-cell">
+            <p class="detail-cell__lbl">Pendentes este mês</p>
+            <p class="detail-cell__val" id="ctxPend">2 ocorrências</p>
+          </div>
+        </div>
+
+        <!-- aviso amarelo de duplicidade na mesma data -->
+        <div class="field__hint" id="dupHint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span id="dupHintText">Já existe Falta em 12 jun para este funcionário.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ============================================================
+   BLOCO 1 — Undo no toast (padrão Gmail: otimista reversível)
+   ------------------------------------------------------------
+   ANTES: a linha some imediatamente, toast sem ação some em 2,4 s.
+   DEPOIS: toast com DESFAZER por 6 s; a linha só desliza pra fora
+   APÓS o timeout. Desfazer cancela o slide e esconde o toast.
+   ============================================================ */
+var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* --- Hoje: remoção imediata, toast efêmero sem desfazer --- */
+var todayHideTimer = null;
+function launchToday(){
+  var row = document.getElementById('rowToday');
+  var toast = document.getElementById('toastToday');
+  row.classList.add('is-launching');              // some na hora — sem volta
+  toast.classList.add('is-shown');
+  clearTimeout(todayHideTimer);
+  todayHideTimer = setTimeout(function(){
+    toast.classList.remove('is-shown');
+    /* rearma o demo */
+    setTimeout(function(){ row.classList.remove('is-launching'); }, 400);
+  }, 2400);                                        // 2,4 s e o toast some
+}
+
+/* --- Proposto: ação reversível, slide só depois da janela de 6 s --- */
+var propTimer = null;
+function launchProp(){
+  var toast = document.getElementById('toastProp');
+  var btn = document.getElementById('btnLaunchProp');
+  var prog = document.getElementById('toastProgress');
+  btn.disabled = true;                             // evita duplo-lançamento
+  toast.classList.add('is-shown');
+
+  /* barra de progresso desenha a janela de 6 s (a menos que reduced-motion) */
+  if(!reduceMotion){
+    prog.style.transition = 'none';
+    prog.style.transform = 'scaleX(1)';
+    /* força reflow p/ reiniciar a animação */
+    void prog.offsetWidth;
+    prog.style.transition = 'transform 6000ms linear';
+    prog.style.transform = 'scaleX(0)';
+  } else {
+    prog.style.transition = 'none';
+    prog.style.transform = 'scaleX(0)';
+  }
+
+  clearTimeout(propTimer);
+  propTimer = setTimeout(commitProp, 6000);        // só commita depois de 6 s
+}
+
+function commitProp(){
+  var row = document.getElementById('rowProp');
+  var toast = document.getElementById('toastProp');
+  row.classList.add('is-launching');               // agora sim desliza pra fora
+  toast.classList.remove('is-shown');
+  setTimeout(resetProp, 600);                       // rearma o demo
+}
+
+function undoProp(){
+  clearTimeout(propTimer);                          // cancela o commit
+  var toast = document.getElementById('toastProp');
+  toast.classList.remove('is-shown');
+  resetProp(true);                                  // linha continua na lista
+}
+
+function resetProp(keepRow){
+  var row = document.getElementById('rowProp');
+  var btn = document.getElementById('btnLaunchProp');
+  row.classList.remove('is-launching');
+  btn.disabled = false;
+}
+
+/* ============================================================
+   BLOCO 2 — Conferência guiada (radio-cards acessíveis)
+   ============================================================ */
+function pickAction(card){
+  var group = card.closest('[role="radiogroup"]');
+  group.querySelectorAll('.radio-card').forEach(function(c){
+    c.classList.remove('is-selected');
+    c.setAttribute('aria-checked','false');
+  });
+  card.classList.add('is-selected');
+  card.setAttribute('aria-checked','true');
+}
+/* teclado: Enter/Espaço selecionam o card focado */
+document.querySelectorAll('.radio-card').forEach(function(c){
+  c.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pickAction(c); }
+  });
+});
+
+/* ============================================================
+   BLOCO 3 — Import: checkbox obrigatório habilita "Substituir"
+   ============================================================ */
+function toggleReplace(){
+  var ok = document.getElementById('bhConfirm').checked;
+  document.getElementById('btnReplace').disabled = !ok;
+}
+
+/* ============================================================
+   BLOCO 4 — Reajuste PJ: validação inline (pega vírgula errada)
+   ------------------------------------------------------------
+   Aceita "4,5" / "4.5". >20% dispara o erro ancorado no campo.
+   ============================================================ */
+function checkPct(raw){
+  var field = document.getElementById('pctField');
+  var n = parseFloat(String(raw).replace('.', '').replace(',', '.'));
+  /* nota: troquei pra normalizar tanto vírgula quanto ponto-milhar simples */
+  var clean = parseFloat(String(raw).replace(',', '.'));
+  if(!isNaN(clean) && clean > 20){
+    field.classList.add('field--error');
+  } else {
+    field.classList.remove('field--error');
+  }
+}
+
+/* ============================================================
+   BLOCO 5 — Contexto na criação (tudo client-side)
+   ============================================================ */
+var EMP = {
+  bruno:  { setor:'Tecelagem', turno:'1º turno', bh:'-06:20', bhClass:'bh--neg', pend:'2 ocorrências',
+            dup:true,  dupText:'Já existe Falta em 12 jun para este funcionário.' },
+  camila: { setor:'Acabamento', turno:'2º turno', bh:'+14:45', bhClass:'bh--pos', pend:'0 ocorrências',
+            dup:false, dupText:'' }
+};
+
+function showContext(key){
+  var grid = document.getElementById('empContext');
+  var hint = document.getElementById('dupHint');
+  if(!key || !EMP[key]){
+    grid.classList.remove('is-shown');
+    hint.classList.remove('is-shown');
+    return;
+  }
+  var e = EMP[key];
+  document.getElementById('ctxSetor').textContent = e.setor;
+  document.getElementById('ctxTurno').textContent = e.turno;
+  document.getElementById('ctxPend').textContent = e.pend;
+  var bh = document.getElementById('ctxBh');
+  bh.textContent = e.bh;
+  bh.className = 'bh ' + e.bhClass;                 // saldo colorido (pos/neg)
+  grid.classList.add('is-shown');
+
+  if(e.dup){
+    document.getElementById('dupHintText').textContent = e.dupText;
+    hint.classList.add('is-shown');
+  } else {
+    hint.classList.remove('is-shown');
+  }
+}
+</script>
+</body>
+</html>

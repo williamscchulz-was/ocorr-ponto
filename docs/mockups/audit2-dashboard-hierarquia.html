@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FioPulse — Dashboard repensado: hierarquia e foco na ação</title>
+<!-- Fontes: Poppins (corpo) + Michroma (só wordmark FioPulse) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS OFICIAIS FIOBRAS — embutidos para consistência entre mockups
+   ============================================================ */
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+  --warning:#B27429; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+  --info:#2F5A6B; --info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+  --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+  --shadow-xs:0 1px 1px rgba(0,40,20,.03); --shadow-sm:0 1px 2px rgba(0,40,20,.05);
+  --shadow:0 4px 16px rgba(0,40,20,.07); --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+  --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text-body);
+  line-height:1.5;
+  padding:40px 28px 96px;
+}
+
+/* ===== Cabeçalho do documento de design ===== */
+.doc-head{max-width:1180px;margin:0 auto 36px}
+.kicker{
+  font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text-muted);display:flex;align-items:center;gap:8px;
+}
+.kicker .brand{font-family:var(--font-brand);letter-spacing:.04em;color:var(--plum)}
+.doc-head h1{
+  font-size:30px;font-weight:800;letter-spacing:-.02em;color:var(--text);
+  margin:10px 0 8px;line-height:1.15;
+}
+.doc-head .why{
+  font-size:15px;color:var(--text-muted);max-width:760px;
+}
+.doc-head .why b{color:var(--text-body);font-weight:600}
+
+/* ===== Grade dos dois painéis empilhados ===== */
+.stage{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
+
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+.panel__tag{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 22px;border-bottom:1px solid var(--border);
+  background:var(--surface-warm);
+}
+.panel__tag .lbl{
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  display:flex;align-items:center;gap:9px;
+}
+.panel__tag .lbl .dot{width:8px;height:8px;border-radius:50%}
+.panel--before .lbl .dot{background:var(--text-muted)}
+.panel--after  .lbl .dot{background:var(--plum)}
+.panel--before .lbl{color:var(--text-muted)}
+.panel--after  .lbl{color:var(--plum-deep)}
+.panel__tag .sub{font-size:12px;color:var(--text-muted)}
+
+/* container que simula o viewport do app */
+.app{padding:24px 26px 30px;position:relative}
+
+/* ===== Header de saudação do app ===== */
+.greet{margin-bottom:18px}
+.greet h2{font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.greet p{font-size:13px;color:var(--text-muted);margin-top:2px}
+
+/* ============================================================
+   ANTES — bloco de stats: 4 cards de PESO IDÊNTICO
+   Problema demonstrado: nenhum é o KPI primário; todos competem.
+   ============================================================ */
+.stats-flat{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;
+}
+.stat-flat{
+  background:var(--surface-warm);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px 16px;
+}
+.stat-flat .v{font-size:24px;font-weight:700;color:var(--text);line-height:1}
+.stat-flat .v.is-green{color:var(--plum)} /* só Pendentes ganha cor — insuficiente p/ hierarquia */
+.stat-flat .l{font-size:12px;color:var(--text-muted);margin-top:7px;font-weight:500}
+
+/* ===== Tabs ===== */
+.tabs{
+  display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:14px;
+}
+.tab{
+  font-size:13px;font-weight:600;color:var(--text-muted);
+  padding:9px 14px;border-bottom:2px solid transparent;cursor:pointer;
+  white-space:nowrap;transition:color var(--transition);
+}
+.tab:hover{color:var(--text-body)}
+.tab.is-active{color:var(--plum-deep);border-bottom-color:var(--plum)}
+.tab .count{
+  font-size:11px;color:var(--text-muted);font-weight:600;margin-left:5px;
+}
+.tab.is-active .count{color:var(--plum)}
+
+/* ===== Toolbar de busca ===== */
+.toolbar{display:flex;gap:10px;margin-bottom:16px}
+.search{
+  flex:1;display:flex;align-items:center;gap:9px;
+  border:1px solid var(--border-strong);border-radius:var(--radius);
+  padding:9px 13px;background:var(--surface);color:var(--text-muted);font-size:13px;
+}
+.search svg{flex:none;color:var(--text-muted)}
+.toolbar .seg{
+  display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text-muted);
+  border:1px solid var(--border-strong);border-radius:var(--radius);padding:9px 13px;white-space:nowrap;
+}
+
+/* ===== Linhas de ocorrência ===== */
+.occ-list{display:flex;flex-direction:column;gap:8px}
+.occ{
+  display:grid;align-items:center;
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface);
+  transition:box-shadow var(--transition),transform var(--transition);
+}
+.occ:hover{box-shadow:var(--shadow-sm)}
+
+/* --- ANTES: coluna de data GIGANTE rouba o olhar --- */
+.occ--before{grid-template-columns:74px 1fr auto auto;gap:14px;padding:14px 16px}
+.occ--before .date{
+  text-align:center;border-right:1px solid var(--border);padding-right:14px;
+}
+.occ--before .date .d{font-size:22px;font-weight:800;color:var(--plum);line-height:1} /* dia 22/800 verde — domina */
+.occ--before .date .m{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.occ__who{min-width:0}
+.occ__who .nm{font-size:14px;font-weight:600;color:var(--text-body)}
+.occ__who .ty{font-size:12px;color:var(--text-muted);margin-top:2px}
+.occ__meta{font-size:12px;color:var(--text-muted);text-align:right;white-space:nowrap}
+
+.badge{
+  font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  padding:4px 9px;border-radius:999px;white-space:nowrap;display:inline-block;
+}
+.badge--pend{background:var(--warning-bg);color:var(--warning)}
+.badge--conf{background:var(--info-bg);color:var(--info)}
+.badge--lanc{background:var(--success-bg);color:var(--success)}
+
+/* ===== Anotações (balões) — vivem FORA da UI simulada ===== */
+.note{
+  position:relative;font-size:12px;line-height:1.4;
+  border-radius:var(--radius-sm);padding:9px 12px;font-weight:500;
+}
+.note--bad{
+  background:var(--danger-bg);color:var(--danger);
+  border:1px solid #E4B9B6;margin-top:14px;display:flex;gap:9px;align-items:flex-start;
+}
+.note--bad svg{flex:none;margin-top:1px}
+.note--bad b{font-weight:700}
+.note--bad .arrow{font-weight:700} /* seta tipográfica permitida SÓ em anotação */
+
+/* ============================================================
+   DEPOIS — faixa de stats magra + KPI dominante
+   ============================================================ */
+.stats-lean{margin-bottom:16px}
+/* KPI dominante: Pendentes */
+.kpi{
+  display:flex;align-items:center;justify-content:space-between;
+  background:color-mix(in srgb, var(--success-bg) 35%, var(--surface));
+  border:1px solid var(--border);
+  /* barra-guia verde à esquerda via box-shadow inset (não desloca layout) */
+  box-shadow:inset 3px 0 0 var(--plum);
+  border-radius:var(--radius);
+  padding:14px 18px;margin-bottom:10px;
+}
+.kpi__left{display:flex;align-items:baseline;gap:12px}
+.kpi__v{font-size:30px;font-weight:800;color:var(--plum);line-height:1;letter-spacing:-.02em} /* 30/800 verde — KPI primário */
+.kpi__l{font-size:13px;font-weight:600;color:var(--text-body)}
+.kpi__cta{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:12.5px;font-weight:600;color:var(--plum-deep);
+  border:1px solid var(--border-strong);border-radius:999px;
+  padding:6px 13px;background:var(--surface);cursor:pointer;
+  transition:background var(--transition),border-color var(--transition);
+}
+.kpi__cta:hover{background:var(--success-bg);border-color:var(--plum-soft)}
+.kpi__cta svg{transition:transform var(--transition)}
+.kpi__cta:hover svg{transform:translateX(2px)}
+
+/* faixa magra dos 3 secundários — rebaixados a meta-info */
+.meta-strip{
+  display:flex;align-items:center;gap:0;
+  background:var(--surface-warm);
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px 16px; /* padding magro pedido na spec */
+}
+.meta-item{flex:1;display:flex;flex-direction:column;gap:1px;padding-right:14px}
+.meta-item + .meta-item{border-left:1px solid var(--border);padding-left:16px}
+.meta-item .mv{font-size:18px;font-weight:700;color:var(--text-body);line-height:1.05} /* 18px — secundário */
+.meta-item .ml{font-size:11px;color:var(--text-muted);font-weight:500}
+.meta-item .mhint{font-size:10px;color:var(--text-muted);opacity:.85;margin-top:1px}
+
+/* ===== Wrapper sticky de tabs + toolbar (DEPOIS) ===== */
+.sticky-wrap{
+  position:relative;
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 14px 14px;margin-bottom:16px;
+  background:var(--surface);
+  box-shadow:0 1px 0 rgba(0,40,20,.04); /* hairline shadow sugerindo "grudado" */
+}
+.sticky-flag{
+  position:absolute;top:-10px;right:14px;
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--plum);color:var(--text-on-plum);
+  padding:4px 10px;border-radius:999px;box-shadow:var(--shadow-sm);
+}
+.sticky-flag svg{color:var(--text-on-plum)}
+.sticky-wrap .tabs{margin-bottom:12px}
+.sticky-wrap .toolbar{margin-bottom:0}
+
+/* --- DEPOIS: data rebaixada; coluna estreita 56px --- */
+.occ--after{grid-template-columns:56px 1fr auto auto;gap:14px;padding:13px 16px}
+.occ--after .date{text-align:center}
+.occ--after .date .d{font-size:15px;font-weight:700;color:var(--text-muted);line-height:1} /* 15/700 muted — não compete */
+.occ--after .date .m{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;opacity:.8}
+
+/* Linha PENDENTE privilegiada: barra âmbar + fundo quente */
+.occ--after.is-pend{
+  background:color-mix(in srgb, var(--warning-bg) 22%, var(--surface));
+  box-shadow:inset 3px 0 0 var(--warning);
+}
+.occ--after.is-pend:hover{box-shadow:inset 3px 0 0 var(--warning),var(--shadow-sm)}
+
+/* ===== FAB (DEPOIS) ===== */
+.fab{
+  position:absolute;right:26px;bottom:26px;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--plum);color:var(--text-on-plum);
+  border:none;display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 8px 22px rgba(0,99,40,.32);
+  animation:fab-pop 620ms var(--ease) both;
+}
+.fab:hover{background:var(--plum-soft)}
+.fab svg{width:24px;height:24px}
+/* entra com overshoot (pop) */
+@keyframes fab-pop{
+  0%{transform:scale(.4) translateY(8px);opacity:0}
+  60%{transform:scale(1.12) translateY(0);opacity:1}
+  100%{transform:scale(1) translateY(0);opacity:1}
+}
+.fab-note{
+  position:absolute;right:90px;bottom:34px;max-width:178px;
+  font-size:11px;line-height:1.4;color:var(--text-muted);text-align:right;
+}
+.fab-note .arrow{color:var(--plum);font-weight:700}
+
+/* ===== Anotação positiva (verde, DEPOIS) ===== */
+.note--good{
+  background:var(--success-bg);color:var(--success);
+  border:1px solid #C9DDBF;margin-top:14px;display:flex;gap:9px;align-items:flex-start;
+}
+.note--good svg{flex:none;margin-top:1px}
+.note--good b{font-weight:700}
+
+/* ===== Legenda das mudanças (rodapé do painel DEPOIS) ===== */
+.legend{
+  max-width:1180px;margin:6px auto 0;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:22px 24px;box-shadow:var(--shadow-sm);
+}
+.legend h3{
+  font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:14px;
+}
+.legend ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:11px 26px}
+.legend li{display:flex;gap:10px;font-size:13px;color:var(--text-body);line-height:1.45}
+.legend li .ic{
+  flex:none;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;
+  background:var(--success-bg);color:var(--success);margin-top:1px;
+}
+.legend li b{font-weight:600;color:var(--text)}
+.legend li .arrow{color:var(--text-muted);font-weight:600}
+
+/* ===== Responsivo ===== */
+@media (max-width:760px){
+  .stats-flat{grid-template-columns:repeat(2,1fr)}
+  .legend ul{grid-template-columns:1fr}
+  .fab-note{display:none}
+}
+
+/* ===== Respeita prefers-reduced-motion ===== */
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     CABEÇALHO DO DOCUMENTO DE DESIGN
+     ============================================================ -->
+<header class="doc-head">
+  <div class="kicker">
+    <span class="brand">FioPulse</span><span>·</span><span>Auditoria de UX</span>
+  </div>
+  <h1>Dashboard repensado — hierarquia e foco na ação</h1>
+  <p class="why">
+    Hoje os <b>4 stats têm peso igual</b> e a coluna de data domina cada linha — o olho se perde antes de
+    chegar no que importa. A proposta cria <b>um único KPI dominante (Pendentes)</b>, rebaixa o resto a
+    meta-info, privilegia visualmente a linha pendente e resolve a confusão de "Conferidas" significar
+    dois números na mesma tela.
+  </p>
+</header>
+
+<main class="stage">
+
+  <!-- ============================================================
+       PAINEL: ANTES (Hoje)
+       ============================================================ -->
+  <section class="panel panel--before">
+    <div class="panel__tag">
+      <span class="lbl"><span class="dot"></span>Antes · Hoje</span>
+      <span class="sub">stats roubam a primazia do conteúdo acionável</span>
+    </div>
+    <div class="app">
+
+      <div class="greet">
+        <h2>Bom dia, líder</h2>
+        <p>Turno 1 · 13 de junho de 2026</p>
+      </div>
+
+      <!-- 4 cards de peso IDÊNTICO: nenhum é o KPI primário -->
+      <div class="stats-flat">
+        <div class="stat-flat">
+          <div class="v is-green">24</div>
+          <div class="l">Pendentes</div>
+        </div>
+        <div class="stat-flat">
+          <div class="v">12</div>
+          <div class="l">Conferidas</div>
+        </div>
+        <div class="stat-flat">
+          <div class="v">186</div>
+          <div class="l">Total do mês</div>
+        </div>
+        <div class="stat-flat">
+          <div class="v">131</div>
+          <div class="l">Funcionários ativos</div>
+        </div>
+      </div>
+
+      <!-- Tabs: nota que "Conferidas" aqui marca 7 -->
+      <div class="tabs">
+        <div class="tab is-active">Pendentes<span class="count">24</span></div>
+        <div class="tab">Conferidas<span class="count">7</span></div>
+        <div class="tab">Lançadas<span class="count">155</span></div>
+        <div class="tab">Todas<span class="count">186</span></div>
+      </div>
+
+      <!-- Toolbar de busca -->
+      <div class="toolbar">
+        <div class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          Buscar por nome, matrícula ou tipo
+        </div>
+        <div class="seg">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+          Filtros
+        </div>
+      </div>
+
+      <!-- Linhas: data gigante domina; pendente não se distingue -->
+      <div class="occ-list">
+        <div class="occ occ--before">
+          <div class="date"><div class="d">22</div><div class="m">mai</div></div>
+          <div class="occ__who"><div class="nm">Mariana Couto Andrade</div><div class="ty">Atraso · 00h47</div></div>
+          <div class="occ__meta">Mat. 4821</div>
+          <div><span class="badge badge--pend">Pendente</span></div>
+        </div>
+        <div class="occ occ--before">
+          <div class="date"><div class="d">21</div><div class="m">mai</div></div>
+          <div class="occ__who"><div class="nm">Rogério Tavares Lima</div><div class="ty">Esqueceu o crachá</div></div>
+          <div class="occ__meta">Mat. 3390</div>
+          <div><span class="badge badge--conf">Conferida</span></div>
+        </div>
+        <div class="occ occ--before">
+          <div class="date"><div class="d">21</div><div class="m">mai</div></div>
+          <div class="occ__who"><div class="nm">Selma Aparecida Nunes</div><div class="ty">Falta injustificada</div></div>
+          <div class="occ__meta">Mat. 5107</div>
+          <div><span class="badge badge--lanc">Lançada</span></div>
+        </div>
+      </div>
+
+      <!-- Balão de inconsistência: mesmo rótulo, números divergentes -->
+      <div class="note note--bad">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+        <span><b>Mesmo rótulo, números diferentes:</b> stat "Conferidas" mostra <b>12</b> <span class="arrow">&rarr;</span> aba "Conferidas" mostra <b>7</b>. O usuário não sabe qual é a verdade.</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAINEL: DEPOIS (Proposto)
+       ============================================================ -->
+  <section class="panel panel--after">
+    <div class="panel__tag">
+      <span class="lbl"><span class="dot"></span>Depois · Proposto</span>
+      <span class="sub">um KPI dominante, ação privilegiada, rótulos sem ambiguidade</span>
+    </div>
+    <div class="app">
+
+      <div class="greet">
+        <h2>Bom dia, líder</h2>
+        <p>Turno 1 · 13 de junho de 2026</p>
+      </div>
+
+      <!-- Faixa de stats magra: KPI dominante + meta-strip -->
+      <div class="stats-lean">
+        <!-- KPI primário: Pendentes (30/800, barra verde, micro-CTA "ver") -->
+        <div class="kpi">
+          <div class="kpi__left">
+            <span class="kpi__v">24</span>
+            <span class="kpi__l">Pendentes de conferência</span>
+          </div>
+          <button class="kpi__cta">
+            ver
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <!-- Secundários rebaixados a meta-info -->
+        <div class="meta-strip">
+          <div class="meta-item">
+            <span class="mv">12</span>
+            <span class="ml">Resolvidas</span>
+            <span class="mhint">conferidas + lançadas</span>
+          </div>
+          <div class="meta-item">
+            <span class="mv">186</span>
+            <span class="ml">Total do mês</span>
+          </div>
+          <div class="meta-item">
+            <span class="mv">131</span>
+            <span class="ml">Funcionários ativos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wrapper sticky de tabs + toolbar -->
+      <div class="sticky-wrap">
+        <span class="sticky-flag">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          fixa ao rolar
+        </span>
+        <!-- Aba mantém "Conferidas" — desambiguada da stat "Resolvidas" -->
+        <div class="tabs">
+          <div class="tab is-active">Pendentes<span class="count">24</span></div>
+          <div class="tab">Conferidas<span class="count">7</span></div>
+          <div class="tab">Lançadas<span class="count">155</span></div>
+          <div class="tab">Todas<span class="count">186</span></div>
+        </div>
+        <div class="toolbar">
+          <div class="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            Buscar por nome, matrícula ou tipo
+          </div>
+          <div class="seg">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+            Filtros
+          </div>
+        </div>
+      </div>
+
+      <!-- Linhas: pendente privilegiada (barra âmbar); data rebaixada -->
+      <div class="occ-list">
+        <div class="occ occ--after is-pend">
+          <div class="date"><div class="d">22</div><div class="m">mai</div></div>
+          <div class="occ__who"><div class="nm">Mariana Couto Andrade</div><div class="ty">Atraso · 00h47</div></div>
+          <div class="occ__meta">Mat. 4821</div>
+          <div><span class="badge badge--pend">Pendente</span></div>
+        </div>
+        <div class="occ occ--after">
+          <div class="date"><div class="d">21</div><div class="m">mai</div></div>
+          <div class="occ__who"><div class="nm">Rogério Tavares Lima</div><div class="ty">Esqueceu o crachá</div></div>
+          <div class="occ__meta">Mat. 3390</div>
+          <div><span class="badge badge--conf">Conferida</span></div>
+        </div>
+        <div class="occ occ--after">
+          <div class="date"><div class="d">21</div><div class="m">mai</div></div>
+          <div class="occ__who"><div class="nm">Selma Aparecida Nunes</div><div class="ty">Falta injustificada</div></div>
+          <div class="occ__meta">Mat. 5107</div>
+          <div><span class="badge badge--lanc">Lançada</span></div>
+        </div>
+      </div>
+
+      <!-- Nota positiva: rótulos desambiguados -->
+      <div class="note note--good">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        <span><b>Rótulos desambiguados:</b> a stat agora é "Resolvidas" (conferidas + lançadas = 12), enquanto a aba continua "Conferidas" (7). Dois conceitos, dois nomes.</span>
+      </div>
+
+      <!-- FAB com nota de motion -->
+      <div class="fab-note"><span class="arrow">&larr;</span> entra com pop (overshoot) e recua ao rolar a lista</div>
+      <button class="fab" aria-label="Nova ocorrência">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LEGENDA — cada mudança em 1 linha
+       ============================================================ -->
+  <div class="legend">
+    <h3>O que muda</h3>
+    <ul>
+      <li>
+        <span class="ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>KPI único.</b> Pendentes vira card dominante (30px verde) <span class="arrow">&rarr;</span> guia o olhar pra ação.</span>
+      </li>
+      <li>
+        <span class="ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>Stats rebaixados.</b> Os outros 3 viram meta-info magra (18px) <span class="arrow">&rarr;</span> deixam de competir.</span>
+      </li>
+      <li>
+        <span class="ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>Data discreta.</b> Coluna cai pra 56px, dia 15px muted <span class="arrow">&rarr;</span> nome e tipo passam à frente.</span>
+      </li>
+      <li>
+        <span class="ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>Pendente em destaque.</b> Barra âmbar à esquerda + fundo quente <span class="arrow">&rarr;</span> separa o que exige ação.</span>
+      </li>
+      <li>
+        <span class="ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>"Resolvidas" ≠ "Conferidas".</b> Stat e aba ganham nomes distintos <span class="arrow">&rarr;</span> fim da ambiguidade.</span>
+      </li>
+      <li>
+        <span class="ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>Tabs+toolbar sticky.</b> Ficam fixas no topo ao rolar <span class="arrow">&rarr;</span> trocar de aba sem voltar.</span>
+      </li>
+      <li>
+        <span class="ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>FAB com entrada.</b> Pop com overshoot e recuo ao rolar <span class="arrow">&rarr;</span> deixa de surgir do nada.</span>
+      </li>
+      <li>
+        <span class="ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>Micro-CTA "ver".</b> Atalho direto do KPI pra aba Pendentes <span class="arrow">&rarr;</span> 1 clique até a ação.</span>
+      </li>
+    </ul>
+  </div>
+
+</main>
+
+<script>
+/* ------------------------------------------------------------------
+   Interatividade leve — troca de aba é só demonstrativa.
+   Respeita prefers-reduced-motion via CSS (transições já anuladas lá).
+   ------------------------------------------------------------------ */
+document.querySelectorAll('.tabs').forEach(function(group){
+  group.addEventListener('click', function(e){
+    var tab = e.target.closest('.tab');
+    if(!tab) return;
+    group.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('is-active'); });
+    tab.classList.add('is-active');
+  });
+});
+
+/* Micro-CTA "ver" do KPI ativa a aba Pendentes do painel DEPOIS */
+document.querySelector('.kpi__cta').addEventListener('click', function(){
+  var afterTabs = document.querySelector('.panel--after .tabs');
+  afterTabs.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('is-active'); });
+  afterTabs.querySelector('.tab').classList.add('is-active');
+  afterTabs.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'center'});
+});
+</script>
+
+</body>
+</html>

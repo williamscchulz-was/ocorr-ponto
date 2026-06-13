@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · Auditoria de conteúdo & microcopy</title>
+
+<!-- Fontes da marca: Poppins (corpo) + Michroma (só no wordmark FioPulse) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Michroma&display=swap" rel="stylesheet">
+
+<style>
+/* ── Tokens oficiais FioPulse (idênticos aos outros mockups, p/ consistência) ── */
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+  --warning:#B27429; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+  --info:#2F5A6B; --info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+  --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+  --shadow-xs:0 1px 1px rgba(0,40,20,.03); --shadow-sm:0 1px 2px rgba(0,40,20,.05);
+  --shadow:0 4px 16px rgba(0,40,20,.07); --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+  --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+  /* monoespaçada só para os trechos ANTES — sinaliza "string crua de código" */
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--text-body);
+  font-family:var(--font); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+
+/* ── Layout de documento de design ── */
+.doc{max-width:1080px; margin:0 auto; padding:48px 24px 96px;}
+
+header.page-head{margin-bottom:40px;}
+.kicker{
+  font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--plum); margin-bottom:14px; display:flex; align-items:center; gap:8px;
+}
+.kicker .dot{width:4px; height:4px; border-radius:50%; background:var(--accent);}
+.brand{font-family:var(--font-brand); letter-spacing:.02em;}
+h1.title{
+  font-size:34px; line-height:1.12; font-weight:700; color:var(--text);
+  margin:0 0 14px; letter-spacing:-.02em;
+}
+.why{
+  font-size:16px; color:var(--text-muted); max-width:760px; margin:0;
+  border-left:2px solid var(--border-strong); padding-left:16px;
+}
+
+/* ── Seções numeradas ── */
+section{margin-top:48px;}
+.sec-head{display:flex; align-items:baseline; gap:14px; margin-bottom:18px;}
+.sec-num{
+  font-size:13px; font-weight:700; color:var(--plum);
+  background:var(--success-bg); border-radius:var(--radius-sm);
+  min-width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;
+  flex:none;
+}
+.sec-title{font-size:21px; font-weight:600; color:var(--text); margin:0; letter-spacing:-.01em;}
+.sec-sub{font-size:14px; color:var(--text-muted); margin:2px 0 0;}
+.sec-head .txt{flex:1;}
+
+/* ── Cartões antes/depois ── */
+.cards{display:grid; gap:16px;}
+.ba{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-xs); overflow:hidden;
+}
+.ba__ctx{
+  font-size:12.5px; color:var(--text-muted); padding:12px 18px 0;
+  display:flex; align-items:center; gap:8px;
+}
+.ba__ctx svg{width:15px; height:15px; color:var(--accent); flex:none;}
+.ba__grid{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); margin-top:12px;}
+@media(max-width:680px){ .ba__grid{grid-template-columns:1fr;} }
+.ba__col{background:var(--surface); padding:16px 18px 18px;}
+.ba__tag{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  margin-bottom:10px;
+}
+.ba__tag svg{width:13px; height:13px;}
+.tag-before{color:var(--danger);}
+.tag-after{color:var(--success);}
+.str-before{
+  font-family:var(--mono); font-size:13px; line-height:1.5; color:var(--danger);
+  background:var(--danger-bg); border-radius:var(--radius-sm); padding:9px 12px;
+  display:block; word-break:break-word;
+}
+.str-after{
+  font-size:14px; line-height:1.55; color:var(--text-body);
+  background:var(--success-bg); border-radius:var(--radius-sm); padding:9px 12px;
+  display:block; font-weight:500;
+}
+.str-after .acc{color:var(--success); font-weight:600;}
+.note{
+  font-size:12.5px; color:var(--text-muted); margin:10px 18px 16px; line-height:1.5;
+  display:flex; gap:8px;
+}
+.note svg{width:15px; height:15px; color:var(--plum); flex:none; margin-top:2px;}
+.note code{font-family:var(--mono); font-size:12px; background:var(--surface-warm); padding:1px 5px; border-radius:5px; color:var(--text);}
+.arrow{color:var(--text-muted);} /* seta tipográfica → só em ANOTAÇÃO, nunca dentro de tela simulada */
+
+/* ── Tabelas de padronização ── */
+table.std{width:100%; border-collapse:collapse; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden;
+  box-shadow:var(--shadow-xs); font-size:13.5px;}
+table.std th{
+  text-align:left; font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--text-muted); padding:11px 16px; background:var(--surface-warm);
+  border-bottom:1px solid var(--border);
+}
+table.std td{padding:11px 16px; border-bottom:1px solid var(--border); vertical-align:top;}
+table.std tr:last-child td{border-bottom:none;}
+.cell-before{font-family:var(--mono); font-size:12.5px; color:var(--danger);}
+.cell-after{color:var(--text-body); font-weight:500;}
+.cell-after .acc{color:var(--success); font-weight:600;}
+.cell-role{font-weight:600; color:var(--text); white-space:nowrap;}
+
+/* ── Telas simuladas (preview do DEPOIS) ── */
+.preview-wrap{margin-top:6px;}
+.preview-label{
+  font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;
+}
+.preview-label .pill{
+  background:var(--success-bg); color:var(--success); border-radius:999px;
+  padding:2px 9px; font-size:10px; letter-spacing:.06em;
+}
+.frame{
+  background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow); overflow:hidden;
+}
+
+/* mini login simulado */
+.login-sim{
+  background:linear-gradient(180deg,var(--surface) 0%,var(--milk-warm) 100%);
+  padding:34px 30px 30px; text-align:center;
+}
+.login-logo{display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:4px;}
+.login-logo .mark{
+  width:30px; height:30px; border-radius:9px; flex:none;
+  background:radial-gradient(120% 120% at 30% 20%,var(--plum-soft),var(--plum-deep));
+  display:flex; align-items:center; justify-content:center;
+}
+.login-logo .mark svg{width:18px; height:18px; color:#fff;}
+.login-logo .wm{font-family:var(--font-brand); font-size:19px; color:var(--text); letter-spacing:.01em;}
+.login-sub{font-size:12px; color:var(--text-muted); margin:0 0 22px;}
+.login-lead{font-size:14px; color:var(--text-body); margin:0 0 18px; font-weight:500;}
+.login-field{text-align:left; margin-bottom:13px;}
+.login-field label{display:block; font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:5px; letter-spacing:.02em;}
+.login-input{
+  width:100%; border:1px solid var(--border-strong); border-radius:var(--radius); background:var(--surface);
+  padding:11px 13px; font-family:var(--font); font-size:14px; color:var(--text-body);
+  transition:border-color var(--transition),box-shadow var(--transition);
+}
+.login-input::placeholder{color:#9DB39A;}
+.login-input:focus{outline:none; border-color:var(--plum); box-shadow:0 0 0 3px var(--success-bg);}
+.login-input.pwd{letter-spacing:.18em;}
+.login-btn{
+  width:100%; margin-top:7px; border:none; border-radius:var(--radius);
+  background:var(--plum); color:var(--text-on-plum); font-family:var(--font);
+  font-size:14px; font-weight:600; padding:12px; cursor:pointer;
+  transition:background var(--transition),transform var(--transition);
+}
+.login-btn:hover{background:var(--plum-deep);}
+.login-btn:active{transform:translateY(1px);}
+.login-forgot{margin-top:14px; font-size:12px; color:var(--text-muted);}
+.login-forgot a{color:var(--plum); text-decoration:none;}
+.login-forgot a:hover{text-decoration:underline;}
+
+/* mini splash simulado */
+.splash-sim{
+  background:linear-gradient(180deg,var(--plum-deep) 0%,#04471d 100%);
+  padding:46px 30px 38px; text-align:center; color:#fff;
+}
+.splash-mark{
+  width:54px; height:54px; margin:0 auto 16px;
+}
+.splash-mark svg{width:54px; height:54px;}
+.splash-wm{font-family:var(--font-brand); font-size:22px; letter-spacing:.02em; margin-bottom:18px;}
+.splash-status{
+  font-size:12px; color:rgba(255,255,255,.66); letter-spacing:.02em;
+  display:inline-flex; align-items:center; gap:8px; min-height:18px;
+}
+.splash-dots{display:inline-flex; gap:4px;}
+.splash-dots span{
+  width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.7);
+  animation:pulse 1.3s var(--ease) infinite;
+}
+.splash-dots span:nth-child(2){animation-delay:.18s;}
+.splash-dots span:nth-child(3){animation-delay:.36s;}
+@keyframes pulse{0%,60%,100%{opacity:.3;transform:scale(.8);}30%{opacity:1;transform:scale(1);}}
+.splash-toggle{
+  display:flex; gap:8px; justify-content:center; margin-top:14px; flex-wrap:wrap;
+}
+.splash-toggle button{
+  font-family:var(--font); font-size:11.5px; font-weight:500; cursor:pointer;
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--text-muted);
+  border-radius:999px; padding:6px 13px; transition:all var(--transition);
+}
+.splash-toggle button.on{background:var(--plum); color:#fff; border-color:var(--plum);}
+
+/* mini lista de ocorrências (datas) */
+.occ-row{
+  display:flex; align-items:center; gap:14px; padding:13px 16px;
+  border-bottom:1px solid var(--border); background:var(--surface);
+}
+.occ-row:last-child{border-bottom:none;}
+.occ-date{
+  font-size:12px; font-weight:600; color:var(--text-muted); white-space:nowrap;
+  min-width:64px; font-variant-numeric:tabular-nums;
+}
+.occ-date .yr{color:var(--accent);}
+.occ-main{flex:1;}
+.occ-name{font-size:14px; font-weight:600; color:var(--text); margin:0;}
+.occ-type{font-size:12.5px; color:var(--text-muted); margin:1px 0 0;}
+.occ-status{
+  font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  padding:4px 10px; border-radius:999px;
+}
+.st-pend{color:var(--warning); background:var(--warning-bg);}
+.st-conf{color:var(--info); background:var(--info-bg);}
+
+/* empty state simulado */
+.empty-sim{padding:46px 30px; text-align:center;}
+.empty-icon{
+  width:56px; height:56px; margin:0 auto 16px; border-radius:50%;
+  background:var(--surface-warm); display:flex; align-items:center; justify-content:center;
+}
+.empty-icon svg{width:26px; height:26px; color:var(--text-muted);}
+.empty-title{font-size:17px; font-weight:600; color:var(--text); margin:0 0 6px;}
+.empty-body{font-size:13.5px; color:var(--text-muted); margin:0 auto 18px; max-width:300px;}
+.empty-cta{
+  display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--text);
+  font-family:var(--font); font-size:13px; font-weight:600; border-radius:var(--radius);
+  padding:9px 16px; transition:all var(--transition);
+}
+.empty-cta:hover{border-color:var(--plum); color:var(--plum); background:var(--success-bg);}
+.empty-cta svg{width:15px; height:15px;}
+
+/* toast simulado */
+.toast-sim{
+  display:flex; align-items:flex-start; gap:11px; padding:13px 16px;
+  background:var(--surface); border:1px solid var(--border-strong);
+  border-left:3px solid var(--success); border-radius:var(--radius);
+  box-shadow:var(--shadow); max-width:440px;
+}
+.toast-sim.warn{border-left-color:var(--warning);}
+.toast-ic{flex:none; width:20px; height:20px;}
+.toast-ic svg{width:20px; height:20px; color:var(--success);}
+.toast-sim.warn .toast-ic svg{color:var(--warning);}
+.toast-txt{font-size:13.5px; color:var(--text-body); line-height:1.45;}
+
+.two-up{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
+@media(max-width:680px){ .two-up{grid-template-columns:1fr;} }
+
+.legend{
+  display:flex; gap:18px; flex-wrap:wrap; margin-top:8px; font-size:12px; color:var(--text-muted);
+}
+.legend span{display:inline-flex; align-items:center; gap:7px;}
+.legend i{width:11px; height:11px; border-radius:3px; display:inline-block;}
+.i-before{background:var(--danger-bg); border:1px solid var(--danger);}
+.i-after{background:var(--success-bg); border:1px solid var(--success);}
+
+footer.foot{
+  margin-top:64px; padding-top:24px; border-top:1px solid var(--border);
+  font-size:12px; color:var(--text-muted); line-height:1.6;
+}
+footer.foot strong{color:var(--text);}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important; scroll-behavior:auto !important;}
+  .splash-dots span{opacity:.7;}
+}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ─────────── CABEÇALHO DE DOCUMENTO ─────────── -->
+  <header class="page-head">
+    <div class="kicker"><span class="brand">FIOPULSE</span><span class="dot"></span>AUDITORIA DE CONTEÚDO</div>
+    <h1 class="title">Conteúdo &amp; microcopy — voz consistente e sem jargão</h1>
+    <p class="why">
+      Hoje a interface mistura copy de protótipo (“usuário rápido para testar”), nomenclatura
+      inconsistente (GH vs RH) e vaza vocabulário técnico (“modo Firebase”, “JSON”, “Import:”).
+      O objetivo: cada frase soa como a voz de uma pessoa do GH falando com um líder de turno —
+      direta, no idioma do trabalho, sem termos de bastidor. O ganho é confiança: texto que
+      parece feito pra produção, não deixado de um teste.
+    </p>
+    <div class="legend">
+      <span><i class="i-before"></i> Hoje (string em produção)</span>
+      <span><i class="i-after"></i> Proposto</span>
+    </div>
+  </header>
+
+  <!-- ─────────── 1. LOGIN / SPLASH ─────────── -->
+  <section id="s1">
+    <div class="sec-head">
+      <span class="sec-num">1</span>
+      <div class="txt">
+        <h2 class="sec-title">Login e splash sem voz de demonstração</h2>
+        <p class="sec-sub">A tela de entrada ainda convida a “testar o sistema”. Em produção isso confunde quem entra pra trabalhar.</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="ba">
+        <div class="ba__ctx">
+          <!-- ícone: cursor de texto -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 4h8M8 20h8"/></svg>
+          Frase de chamada (lead) da tela de login
+        </div>
+        <div class="ba__grid">
+          <div class="ba__col">
+            <span class="ba__tag tag-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Hoje</span>
+            <code class="str-before">Escolha um usuário rápido para testar o sistema:</code>
+          </div>
+          <div class="ba__col">
+            <span class="ba__tag tag-after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Proposto</span>
+            <span class="str-after">Entre com seu usuário e senha</span>
+          </div>
+        </div>
+        <div class="note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          O bloco de “usuários rápidos” não some do código — fica atrás de uma flag <code>DEMO_MODE</code> e só aparece fora de produção.
+        </div>
+      </div>
+
+      <div class="ba">
+        <div class="ba__ctx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 4h8M8 20h8"/></svg>
+          Placeholders dos campos
+        </div>
+        <div class="ba__grid">
+          <div class="ba__col">
+            <span class="ba__tag tag-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Hoje</span>
+            <code class="str-before">usuário → "ex: rh1"<br>senha → "senha do usuário"</code>
+          </div>
+          <div class="ba__col">
+            <span class="ba__tag tag-after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Proposto</span>
+            <span class="str-after">usuário <span class="acc">nome@fiobras.com.br</span><br>senha em branco (mostra ••••••)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ba">
+        <div class="ba__ctx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 4h8M8 20h8"/></svg>
+          Subtítulo da marca (login + splash)
+        </div>
+        <div class="ba__grid">
+          <div class="ba__col">
+            <span class="ba__tag tag-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Hoje</span>
+            <code class="str-before">Fiobras · o batimento do GH</code>
+          </div>
+          <div class="ba__col">
+            <span class="ba__tag tag-after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Proposto</span>
+            <span class="str-after">Controle de ponto <span class="acc">·</span> Fiobras</span>
+          </div>
+        </div>
+        <div class="note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          “o batimento do GH” é um trocadilho de bastidor que ninguém entende no primeiro acesso. Diz o que o app faz.
+        </div>
+      </div>
+    </div>
+
+    <!-- Tela de login simulada com o DEPOIS -->
+    <div class="preview-wrap" style="margin-top:20px;">
+      <div class="preview-label"><span class="pill">Proposto</span> tela de login renderizada</div>
+      <div class="frame" style="max-width:380px;">
+        <div class="login-sim">
+          <div class="login-logo">
+            <span class="mark">
+              <!-- pulso/onda simples, SVG inline -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2-6 4 14 3-9 2 4h4"/></svg>
+            </span>
+            <span class="wm">FioPulse</span>
+          </div>
+          <p class="login-sub">Controle de ponto · Fiobras</p>
+          <p class="login-lead">Entre com seu usuário e senha</p>
+          <div class="login-field">
+            <label for="ls-user">Usuário</label>
+            <input class="login-input" id="ls-user" type="text" placeholder="nome@fiobras.com.br" />
+          </div>
+          <div class="login-field">
+            <label for="ls-pwd">Senha</label>
+            <input class="login-input pwd" id="ls-pwd" type="password" placeholder="••••••" />
+          </div>
+          <button class="login-btn">Entrar</button>
+          <div class="login-forgot"><a href="#s1" onclick="return false;">Esqueci minha senha</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 2. GH vs RH ─────────── -->
+  <section id="s2">
+    <div class="sec-head">
+      <span class="sec-num">2</span>
+      <div class="txt">
+        <h2 class="sec-title">GH é o termo único de tela — “RH” só no código</h2>
+        <p class="sec-sub">O setor se chama GH (Gestão de Gente). A UI ora diz GH, ora vaza “rh” dos identificadores internos.</p>
+      </div>
+    </div>
+
+    <table class="std">
+      <thead>
+        <tr><th>Onde aparece</th><th>Hoje</th><th>Proposto</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Texto de processo</td>
+          <td class="cell-before">pipeline de GH</td>
+          <td class="cell-after">fila do <span class="acc">GH</span> (ou: ocorrências a registrar)</td>
+        </tr>
+        <tr>
+          <td>Placeholder de login</td>
+          <td class="cell-before">"ex: rh1"</td>
+          <td class="cell-after"><span class="acc">nome@fiobras.com.br</span></td>
+        </tr>
+        <tr>
+          <td>Rótulos de papel / botões</td>
+          <td class="cell-before">mistura “RH” e “GH”</td>
+          <td class="cell-after">sempre <span class="acc">GH</span> na tela</td>
+        </tr>
+        <tr>
+          <td>Identificador de role (código)</td>
+          <td class="cell-before">role: "rh"</td>
+          <td class="cell-after">mantém <code style="font-family:var(--mono);font-size:12px;">role: "rh"</code> — nunca exibido</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="note" style="margin-left:0;margin-right:0;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      Regra de fonte da verdade num glossário curto: <strong>GH</strong> = o que o usuário lê; <code>rh</code> = só id de role no banco/permissões. Quem traduz string nova consulta o glossário, não adivinha.
+    </div>
+  </section>
+
+  <!-- ─────────── 3. JARGÃO ─────────── -->
+  <section id="s3">
+    <div class="sec-head">
+      <span class="sec-num">3</span>
+      <div class="txt">
+        <h2 class="sec-title">Mensagens de sistema falam de ação, não de tecnologia</h2>
+        <p class="sec-sub">“Modo Firebase” e “JSON” são detalhe de implementação. O usuário precisa saber o que fazer.</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="ba">
+        <div class="ba__ctx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15v2M6 8V6a6 6 0 1112 0v2"/><rect x="4" y="8" width="16" height="12" rx="2"/></svg>
+          Recuperação de senha indisponível
+        </div>
+        <div class="ba__grid">
+          <div class="ba__col">
+            <span class="ba__tag tag-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Hoje</span>
+            <code class="str-before">Recuperação de senha só funciona em modo Firebase.</code>
+          </div>
+          <div class="ba__col">
+            <span class="ba__tag tag-after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Proposto</span>
+            <span class="str-after">Recuperação por e-mail indisponível neste acesso. <span class="acc">Fale com o administrador</span> para redefinir sua senha.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ba">
+        <div class="ba__ctx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+          Chat indisponível
+        </div>
+        <div class="ba__grid">
+          <div class="ba__col">
+            <span class="ba__tag tag-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Hoje</span>
+            <code class="str-before">Chat disponível só no modo Firebase.</code>
+          </div>
+          <div class="ba__col">
+            <span class="ba__tag tag-after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Proposto</span>
+            <span class="str-after">Chat indisponível neste acesso.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ba">
+        <div class="ba__ctx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+          Aviso de import (funcionários ausentes)
+        </div>
+        <div class="ba__grid">
+          <div class="ba__col">
+            <span class="ba__tag tag-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Hoje</span>
+            <code class="str-before">Os funcionários que não estão no JSON serão marcados como inativos.</code>
+          </div>
+          <div class="ba__col">
+            <span class="ba__tag tag-after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Proposto</span>
+            <span class="str-after">Os funcionários que <span class="acc">não estão na lista importada</span> serão marcados como inativos.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 4. DATAS ─────────── -->
+  <section id="s4">
+    <div class="sec-head">
+      <span class="sec-num">4</span>
+      <div class="txt">
+        <h2 class="sec-title">Datas mostram o ano quando ele não é o atual</h2>
+        <p class="sec-sub">“05 jan” sozinho é ambíguo numa lista que mistura anos. Mostre o ano só quando ele diverge — sem poluir o ano corrente.</p>
+      </div>
+    </div>
+
+    <div class="two-up">
+      <div class="preview-wrap">
+        <div class="preview-label"><svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg> Hoje — ambíguo</div>
+        <div class="frame">
+          <div class="occ-row">
+            <span class="occ-date">05 jan</span>
+            <div class="occ-main"><p class="occ-name">Adelir Padilha</p><p class="occ-type">Falta Injustificada</p></div>
+            <span class="occ-status st-pend">Pendente</span>
+          </div>
+          <div class="occ-row">
+            <span class="occ-date">22 nov</span>
+            <div class="occ-main"><p class="occ-name">Marivone Krüger</p><p class="occ-type">Atraso</p></div>
+            <span class="occ-status st-conf">Conferida</span>
+          </div>
+          <div class="occ-row">
+            <span class="occ-date">13 jun</span>
+            <div class="occ-main"><p class="occ-name">Sérgio Hoffmann</p><p class="occ-type">Esqueceu o Crachá</p></div>
+            <span class="occ-status st-pend">Pendente</span>
+          </div>
+        </div>
+        <div class="note" style="margin-left:0;margin-right:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          “05 jan” e “22 nov” são de 2025, “13 jun” é de hoje (2026) — mas a tela não diferencia.
+        </div>
+      </div>
+
+      <div class="preview-wrap">
+        <div class="preview-label"><span class="pill">Proposto</span> ano só quando diverge</div>
+        <div class="frame">
+          <div class="occ-row">
+            <span class="occ-date">05 jan <span class="yr">25</span></span>
+            <div class="occ-main"><p class="occ-name">Adelir Padilha</p><p class="occ-type">Falta Injustificada</p></div>
+            <span class="occ-status st-pend">Pendente</span>
+          </div>
+          <div class="occ-row">
+            <span class="occ-date">22 nov <span class="yr">25</span></span>
+            <div class="occ-main"><p class="occ-name">Marivone Krüger</p><p class="occ-type">Atraso</p></div>
+            <span class="occ-status st-conf">Conferida</span>
+          </div>
+          <div class="occ-row">
+            <span class="occ-date">13 jun</span>
+            <div class="occ-main"><p class="occ-name">Sérgio Hoffmann</p><p class="occ-type">Esqueceu o Crachá</p></div>
+            <span class="occ-status st-pend">Pendente</span>
+          </div>
+        </div>
+        <div class="note" style="margin-left:0;margin-right:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Regra: <code>fmtData(d)</code> anexa <code>'YY</code> só se <code>ano(d) !== anoAtual</code>. “13 jun” fica curto no ano corrente.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 5. TOAST DE IMPORT ─────────── -->
+  <section id="s5">
+    <div class="sec-head">
+      <span class="sec-num">5</span>
+      <div class="txt">
+        <h2 class="sec-title">Toast de import com voz de frase, não de log</h2>
+        <p class="sec-sub">“Import: 5 novos · 12 atualizados · 3 inativados.” lê como uma linha de console. Diga em português corrido.</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="ba">
+        <div class="ba__ctx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+          Resultado de importação com mudanças
+        </div>
+        <div class="ba__grid">
+          <div class="ba__col">
+            <span class="ba__tag tag-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Hoje</span>
+            <code class="str-before">Import: 5 novos · 12 atualizados · 3 inativados.</code>
+          </div>
+          <div class="ba__col">
+            <span class="ba__tag tag-after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Proposto</span>
+            <span class="str-after"><span class="acc">Pronto:</span> 5 funcionários adicionados e 12 atualizados, 3 marcados como inativos.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ba">
+        <div class="ba__ctx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+          Importação sem nenhuma mudança (0 / 0)
+        </div>
+        <div class="ba__grid">
+          <div class="ba__col">
+            <span class="ba__tag tag-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Hoje</span>
+            <code class="str-before">Import: 0 novos · 0 atualizados.</code>
+          </div>
+          <div class="ba__col">
+            <span class="ba__tag tag-after"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Proposto</span>
+            <span class="str-after">Nenhuma mudança — todos os funcionários já estavam atualizados.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- toasts renderizados -->
+    <div class="preview-wrap" style="margin-top:18px;">
+      <div class="preview-label"><span class="pill">Proposto</span> toasts renderizados</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="toast-sim">
+          <span class="toast-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg></span>
+          <span class="toast-txt">Pronto: 5 funcionários adicionados e 12 atualizados, 3 marcados como inativos.</span>
+        </div>
+        <div class="toast-sim warn">
+          <span class="toast-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span>
+          <span class="toast-txt">Nenhuma mudança — todos os funcionários já estavam atualizados.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 6. EMPTY STATES ─────────── -->
+  <section id="s6">
+    <div class="sec-head">
+      <span class="sec-num">6</span>
+      <div class="txt">
+        <h2 class="sec-title">Empty states: um título para busca vazia, títulos próprios para lista vazia</h2>
+        <p class="sec-sub">Hoje quatro frases diferentes dizem “nada encontrado”. Separe os dois casos: filtro sem resultado vs. lista genuinamente vazia.</p>
+      </div>
+    </div>
+
+    <table class="std">
+      <thead>
+        <tr><th>Caso</th><th>Hoje (variações soltas)</th><th>Proposto</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell-role">Busca / filtro sem resultado</td>
+          <td class="cell-before">“Nada por aqui” · “Nenhum resultado” · “Nenhum funcionário” · “Sem resultados”</td>
+          <td class="cell-after">Título único <span class="acc">“Nenhum resultado”</span> + corpo “Tente outra busca ou ajuste os filtros.” + botão <span class="acc">Limpar filtros</span></td>
+        </tr>
+        <tr>
+          <td class="cell-role">Lista genuinamente vazia</td>
+          <td class="cell-before">misturada com a de busca</td>
+          <td class="cell-after">título próprio do contexto: <span class="acc">“Tudo em dia”</span> (ocorrências), <span class="acc">“Nenhum PJ cadastrado”</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="two-up" style="margin-top:18px;">
+      <div class="preview-wrap">
+        <div class="preview-label"><span class="pill">Proposto</span> busca sem resultado</div>
+        <div class="frame">
+          <div class="empty-sim">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </div>
+            <h3 class="empty-title">Nenhum resultado</h3>
+            <p class="empty-body">Tente outra busca ou ajuste os filtros.</p>
+            <button class="empty-cta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+              Limpar filtros
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-wrap">
+        <div class="preview-label"><span class="pill">Proposto</span> lista vazia (contexto próprio)</div>
+        <div class="frame">
+          <div class="empty-sim">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </div>
+            <h3 class="empty-title">Tudo em dia</h3>
+            <p class="empty-body">Nenhuma ocorrência aberta no momento.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 7. SPLASH STATUS ─────────── -->
+  <section id="s7">
+    <div class="sec-head">
+      <span class="sec-num">7</span>
+      <div class="txt">
+        <h2 class="sec-title">Splash com rótulo de estado</h2>
+        <p class="sec-sub">O logo se desenhar é bonito, mas não diz se o app travou ou está trabalhando. Uma linha discreta resolve.</p>
+      </div>
+    </div>
+
+    <div class="two-up">
+      <div class="preview-wrap">
+        <div class="preview-label"><span class="pill">Proposto</span> splash com status</div>
+        <div class="frame">
+          <div class="splash-sim">
+            <div class="splash-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2.5-7 4 17 3-11 1.8 5H22"/></svg>
+            </div>
+            <div class="splash-wm">FioPulse</div>
+            <div class="splash-status" id="splashStatus">
+              <span id="splashLabel">Entrando…</span>
+              <span class="splash-dots"><span></span><span></span><span></span></span>
+            </div>
+          </div>
+        </div>
+        <div class="splash-toggle">
+          <button class="on" data-label="Entrando…">Restaurando sessão</button>
+          <button data-label="Sincronizando dados…">Primeira carga</button>
+        </div>
+      </div>
+
+      <div class="preview-wrap">
+        <div class="preview-label">o que cada estado diz</div>
+        <table class="std">
+          <thead><tr><th>Situação</th><th>Rótulo</th></tr></thead>
+          <tbody>
+            <tr><td>Restaurando sessão salva</td><td class="cell-after">“Entrando…”</td></tr>
+            <tr><td>Primeira carga (busca dados)</td><td class="cell-after">“Sincronizando dados…”</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-left:0;margin-right:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          Texto muted ~12px, sem ofuscar o logo. Com <code>prefers-reduced-motion</code>, os pontos param e o rótulo fica estático.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 8. HINT PENDENTES POR PAPEL ─────────── -->
+  <section id="s8">
+    <div class="sec-head">
+      <span class="sec-num">8</span>
+      <div class="txt">
+        <h2 class="sec-title">Hint da stat “Pendentes” fala a verdade de cada papel</h2>
+        <p class="sec-sub">Hoje o código dá “aguardando sua conferência” a líder E supervisor — mas supervisor não confere nada.</p>
+      </div>
+    </div>
+
+    <table class="std">
+      <thead>
+        <tr><th>Papel</th><th>Hoje</th><th>Proposto — hint da stat</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell-role">Líder</td>
+          <td class="cell-before">“aguardando sua conferência”</td>
+          <td class="cell-after"><span class="acc">aguardando sua conferência</span></td>
+        </tr>
+        <tr>
+          <td class="cell-role">Supervisor</td>
+          <td class="cell-before">“aguardando sua conferência” (errado — supervisor não confere)</td>
+          <td class="cell-after">aguardando <span class="acc">conferência do líder</span></td>
+        </tr>
+        <tr>
+          <td class="cell-role">GH / admin</td>
+          <td class="cell-before">“aguardando líder”</td>
+          <td class="cell-after">aguardando <span class="acc">líder</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="two-up" style="margin-top:18px;">
+      <div class="preview-wrap">
+        <div class="preview-label"><span class="pill">Proposto</span> pendentes vazio — visão GH</div>
+        <div class="frame">
+          <div class="empty-sim">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9 15h6"/></svg>
+            </div>
+            <h3 class="empty-title">Nenhuma ocorrência pendente</h3>
+            <p class="empty-body">Use “Nova ocorrência” para registrar.</p>
+            <button class="empty-cta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Nova ocorrência
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-wrap">
+        <div class="preview-label"><span class="pill">Proposto</span> pendentes vazio — visão Líder</div>
+        <div class="frame">
+          <div class="empty-sim">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </div>
+            <h3 class="empty-title">Nada para conferir agora</h3>
+            <p class="empty-body">As ocorrências do seu turno aparecem aqui quando o GH registra.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <strong>Princípio editorial.</strong> A voz do FioPulse é a de uma pessoa do GH conversando com um líder de turno:
+    direta, no idioma do trabalho (ponto, ocorrência, conferência), sem termos de bastidor (Firebase, JSON, pipeline, log).
+    Cada string nova passa por três perguntas — (1) Uma pessoa fora da TI entende? (2) Diz o que aconteceu ou o que fazer?
+    (3) Usa “GH” na tela e “rh” só no código? — antes de ir pra produção.
+    <br><br>
+    Mockup de auditoria · sem dados reais · zero emoji · paleta e tokens oficiais Fiobras.
+  </footer>
+
+</div>
+
+<script>
+// ── Toggle do rótulo de status do splash (interação real, demonstra os dois estados) ──
+(function(){
+  var label = document.getElementById('splashLabel');
+  var btns = document.querySelectorAll('.splash-toggle button');
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      label.textContent = b.getAttribute('data-label');
+    });
+  });
+})();
+</script>
+</body>
+</html>

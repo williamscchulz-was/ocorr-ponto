@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Auditoria UX · FioPulse — Listas &amp; densidade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Poppins corpo; Michroma só pro wordmark FioPulse. Únicas dependências externas. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Michroma&display=swap" />
+<style>
+  /* ====== TOKENS OFICIAIS FIOBRAS (mesmos em todos os mockups) ====== */
+  :root{
+    --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+    --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+    --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+    --accent:#C8A165; --success:#2F6B3F; --success-bg:#E0EAD8;
+    --warning:#B27429; --warning-bg:#F8E4C8; --danger:#962F32; --danger-bg:#F4D6D2;
+    --info:#2F5A6B; --info-bg:#D8E6EA;
+    --font:"Poppins",ui-sans-serif,system-ui,sans-serif; --font-brand:"Michroma",var(--font);
+    --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+    --shadow-xs:0 1px 1px rgba(0,40,20,.03); --shadow-sm:0 1px 2px rgba(0,40,20,.05);
+    --shadow:0 4px 16px rgba(0,40,20,.07); --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+    --transition:180ms cubic-bezier(.4,0,.2,1); --ease:cubic-bezier(.2,.8,.2,1);
+
+    /* ====== ESCALA TIPOGRÁFICA PROPOSTA — px inteiros, sem frações ad-hoc ====== */
+    --fs-row-title:14px;   /* nome de funcionário / título de ocorrência   */
+    --fs-row-sub:12px;     /* sub-linha: setor · turno                     */
+    --fs-tag:11px;         /* chips: turno, saldo BH                       */
+    --fs-stat-value:20px;  /* número grande de stat                        */
+    --fs-label:10px;       /* labels uppercase, cabeçalhos de inicial      */
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:#dfe3dd;color:var(--text-body);padding:28px 16px 70px;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  /* ---- cabeçalho de documento de design ---- */
+  .doc-head{text-align:center;margin-bottom:24px;}
+  .kicker{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--plum-soft);}
+  .kicker .brand{font-family:var(--font-brand);letter-spacing:.02em;}
+  h1.tt{color:var(--plum-deep);font-weight:700;font-size:25px;margin:6px 0 0;}
+  p.why{color:#46553f;font-size:13px;margin:8px auto 0;max-width:62ch;line-height:1.6;}
+
+  /* ---- seção (cartão de doc) ---- */
+  .sec{background:var(--bg);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:22px 24px 26px;margin-bottom:22px;}
+  .sec>h2{font-size:16px;color:var(--plum-deep);font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:9px;}
+  .sec>h2 .n{width:24px;height:24px;border-radius:7px;background:var(--plum);color:#fff;display:grid;place-items:center;font-size:12px;flex-shrink:0;}
+  .sec>.lead{font-size:12.5px;color:var(--text-muted);margin:0 0 16px 33px;line-height:1.55;}
+
+  /* ---- before/after grid ---- */
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:760px){.ba{grid-template-columns:1fr;}}
+  .pane{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;display:flex;flex-direction:column;}
+  .pane__tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+  .pane__tag.hoje{color:var(--danger);background:#fcf2f1;}
+  .pane__tag.prop{color:var(--success);background:#f1f7ee;}
+  .pane__tag .dotmark{width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .pane__body{padding:14px;flex:1;}
+  .just{font-size:11.5px;color:var(--text-muted);margin:10px 0 0;line-height:1.55;}
+  .just b{color:var(--plum-deep);}
+
+  /* ============ SEÇÃO 1: STATS ============ */
+  .ph{margin-bottom:10px;}
+  .ph h3{margin:0;font-size:14px;color:var(--text-body);font-weight:600;}
+  .ph p{margin:1px 0 0;font-size:11px;color:var(--text-muted);}
+
+  /* ANTES: 7 células estreitas, mesma linguagem em fileira apertada */
+  .stats7{display:flex;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:10px 0;}
+  .stats7 .st{flex:1;padding:9px 8px;border-right:1px solid var(--border);min-width:0;}
+  .stats7 .st:last-child{border-right:0;}
+  .st__l{font-size:var(--fs-label);color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .st__v{font-size:18px;font-weight:700;color:var(--plum-deep);margin-top:2px;font-variant-numeric:tabular-nums;}
+  .st__v.sm{font-size:12px;}
+
+  /* DEPOIS: 2 stats acionáveis. "Sem turno" destacado em amarelo (único com CTA). */
+  .stats2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0;}
+  .card2{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;}
+  .card2 .l{font-size:var(--fs-label);color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
+  .card2 .v{font-size:var(--fs-stat-value);font-weight:700;color:var(--plum-deep);margin-top:3px;font-variant-numeric:tabular-nums;}
+  .card2 .h{font-size:var(--fs-label);color:var(--text-muted);margin-top:2px;}
+  /* card de ação: borda amarela + chip CTA, pois é o único stat que pede uma ação */
+  .card2.act{border-color:var(--fiobras-yellow);background:#FFFBEC;box-shadow:inset 3px 0 0 var(--fiobras-yellow);}
+  .card2.act .v{color:var(--warning);}
+  .cta-chip{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:10.5px;font-weight:600;color:var(--warning);background:var(--warning-bg);border-radius:var(--radius-sm);padding:4px 9px;cursor:pointer;border:0;font-family:inherit;transition:background var(--transition),transform .12s var(--ease);}
+  .cta-chip:hover{background:#F2D9B4;}
+  .cta-chip:active{transform:scale(.96);}
+  .cta-chip svg{width:13px;height:13px;}
+
+  /* toolbar (depois): contagem por turno mora DENTRO do select */
+  .tb{display:flex;gap:10px;margin:12px 0 8px;flex-wrap:wrap;}
+  .tb .srch{flex:1;min-width:150px;position:relative;display:flex;align-items:center;}
+  .tb .srch svg{position:absolute;left:11px;width:15px;height:15px;color:var(--text-muted);}
+  .tb .srch input{width:100%;border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px 9px 33px;font-family:inherit;font-size:12.5px;background:var(--surface);color:var(--text-body);}
+  .tb select{border:1px solid var(--border-strong);border-radius:10px;padding:9px 12px;font-family:inherit;font-size:12.5px;background:var(--surface);color:var(--text-body);font-variant-numeric:tabular-nums;cursor:pointer;}
+  .tb select:focus,.tb .srch input:focus{outline:2px solid var(--plum-soft);outline-offset:1px;}
+  .foot-upd{font-size:11px;color:var(--text-muted);text-align:right;margin-top:10px;font-variant-numeric:tabular-nums;}
+
+  /* ============ SEÇÃO 2: LISTA COM ÂNCORAS ============ */
+  .agenda{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;max-height:430px;overflow-y:auto;}
+  /* "trilho" de varredura: hairline contínua na margem esquerda alinhada às iniciais */
+  .agenda::before{content:"";position:absolute;left:34px;top:0;bottom:0;width:1px;background:var(--border);z-index:0;}
+  .alpha{position:sticky;top:0;z-index:2;font-size:var(--fs-label);font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:6px 18px;background:var(--surface-warm);border-bottom:1px solid var(--border);border-top:1px solid var(--border);backdrop-filter:saturate(1.1);}
+  .agenda .alpha:first-child{border-top:0;}
+  .func-row{display:flex;align-items:center;gap:12px;padding:11px 18px 11px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--transition);position:relative;z-index:1;background:var(--surface);}
+  .func-row:last-child{border-bottom:0;}
+  .func-row:hover{background:#FAFCF9;}
+  .func-row:focus-visible{outline:2px solid var(--plum-soft);outline-offset:-2px;}
+  .func-row.semturno{box-shadow:inset 3px 0 0 var(--fiobras-yellow);}
+  .fr-info{flex:1;min-width:0;}
+  .fr-nome{font-size:var(--fs-row-title);font-weight:600;color:var(--text-body);}
+  .fr-sub{font-size:var(--fs-row-sub);color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  /* SEPARADOR PADRONIZADO: currentColor opacity .4 (igual em todas as listas) */
+  .dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.4;flex-shrink:0;}
+  /* chips com raio padronizado em 8px (radius-sm) — fim do mix de 6/10px entre listas */
+  .chip{font-size:var(--fs-tag);font-weight:600;border-radius:var(--radius-sm);padding:3px 9px;background:var(--surface-warm);color:var(--text-muted);flex-shrink:0;}
+  .chip.turno{color:var(--plum-deep);}
+  .chip.turno.sem{color:var(--warning);background:var(--warning-bg);display:inline-flex;align-items:center;gap:5px;}
+  .chip.turno.sem .d{width:5px;height:5px;border-radius:50%;background:var(--warning);}
+  .chip.bh{font-variant-numeric:tabular-nums;background:var(--milk-warm);color:var(--plum-deep);}
+  .chip.bh.neg{color:var(--danger);background:var(--danger-bg);}
+  .chev{width:17px;height:17px;color:#b9c6b1;flex-shrink:0;}
+
+  /* ============ SEÇÃO 3: TIPOGRAFIA & NÚMEROS ============ */
+  .tk-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;font-size:12.5px;}
+  .tk-table th,.tk-table td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--border);}
+  .tk-table th{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;background:var(--surface-warm);}
+  .tk-table tr:last-child td{border-bottom:0;}
+  .tk-table code{font-family:ui-monospace,"SFMono-Regular",Menlo,monospace;font-size:11.5px;color:var(--plum-deep);background:var(--milk-warm);border-radius:6px;padding:2px 7px;}
+  .tk-table .px{font-weight:700;color:var(--text-body);font-variant-numeric:tabular-nums;}
+  .tk-table .use{color:var(--text-muted);}
+
+  .grid3{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
+  @media(max-width:760px){.grid3{grid-template-columns:1fr;}}
+  .demo{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;}
+  .demo__tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+  .demo__tag.hoje{color:var(--danger);background:#fcf2f1;}
+  .demo__tag.prop{color:var(--success);background:#f1f7ee;}
+  .demo__tag .dotmark{width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .demo__body{padding:16px;}
+
+  /* jitter de ritmo: dois rótulos "14px" vs "14.5px" lado a lado */
+  .ritmo{display:flex;flex-direction:column;gap:0;}
+  .ritmo .ln{display:flex;align-items:baseline;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--border);}
+  .ritmo .ln:last-child{border-bottom:0;}
+  .ritmo .nm{font-weight:600;color:var(--text-body);}
+  .ritmo .lbl{font-size:10px;color:var(--text-muted);font-variant-numeric:tabular-nums;background:var(--milk-warm);border-radius:6px;padding:2px 7px;}
+  .nm.occ{font-size:14px;}      /* .occ__name hoje = 14px   */
+  .nm.func145{font-size:14.5px;} /* .func-nome hoje = 14.5px — fração ad-hoc */
+  .nm.unif{font-size:14px;}      /* proposto: ambos 14px      */
+
+  /* tabular-nums: duas colunas de saldos empilhados */
+  .nums{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .nums .col{padding:14px 16px;}
+  .nums .col+.col{border-left:1px solid var(--border);}
+  .nums .col h4{font-size:var(--fs-label);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;margin-bottom:10px;}
+  .nums .val{font-size:18px;font-weight:600;line-height:1.7;color:var(--text-body);}
+  .nums .val.neg{color:var(--danger);}
+  .nums .prop-col{background:#f7faf5;}
+  .nums .prop-col .val{font-variant-numeric:tabular-nums;} /* coluna alinhada */
+  .nums .prop-col h4{color:var(--success);}
+
+  /* mini count-up */
+  .cu-wrap{margin-top:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;}
+  .cu-grid{display:grid;grid-template-columns:1fr 1fr;}
+  .cu-cell{padding:16px;}
+  .cu-cell+.cu-cell{border-left:1px solid var(--border);}
+  .cu-cell h4{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-weight:600;}
+  .cu-cell h4 .who{font-weight:700;}
+  .cu-num{font-size:34px;font-weight:700;color:var(--plum-deep);margin-top:6px;min-width:3ch;display:inline-block;}
+  .cu-prop .cu-num{font-variant-numeric:tabular-nums;}
+  .cu-note{font-size:11px;color:var(--text-muted);line-height:1.5;margin-top:6px;}
+  .cu-bar{display:flex;gap:9px;align-items:center;padding:12px 16px;border-top:1px solid var(--border);background:var(--surface-warm);}
+  .btn{border:1px solid var(--border-strong);background:var(--surface);border-radius:10px;padding:8px 14px;font-family:inherit;font-size:12px;font-weight:600;color:var(--plum-deep);cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:background var(--transition),transform .12s var(--ease);}
+  .btn svg{width:14px;height:14px;}
+  .btn:hover{background:var(--milk-warm);}
+  .btn:active{transform:scale(.96);}
+  .rm-hint{font-size:10.5px;color:var(--text-muted);margin-left:auto;}
+
+  .note{font-size:12px;color:#41513c;line-height:1.6;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;margin-top:14px;}
+  .note b{color:var(--plum-deep);}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{scroll-behavior:auto !important;}
+    .cta-chip,.btn,.func-row{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2 class="sr-only">Proposta de redesenho da tela Funcionários do FioPulse: menos stats, âncoras alfabéticas e tipografia tokenizada.</h2>
+
+  <!-- Cabeçalho estilo documento de design -->
+  <header class="doc-head">
+    <div class="kicker"><span class="brand">FioPulse</span> · Auditoria</div>
+    <h1 class="tt">Listas &amp; densidade — Funcionários e tokens de tipo</h1>
+    <p class="why">Por quê: 130+ funcionários numa lista plana, precedida por 7 stats e medida com uma escala
+      tipográfica fracionária, fazem a varredura cansar. Menos stats acionáveis, âncoras de inicial sticky e
+      números tabulares devolvem ritmo e previsibilidade ao olho.</p>
+  </header>
+
+  <!-- ============ SEÇÃO 1 ============ -->
+  <section class="sec">
+    <h2><span class="n">1</span> Funcionários: dos 7 stats a 2-3 acionáveis</h2>
+    <p class="lead">Hoje o usuário rola por sete cartões antes de chegar à lista. Só um deles —
+      <b>Sem turno</b> — pede uma ação. As contagens por turno são filtro, não placar: vão pra dentro do select.</p>
+
+    <div class="ba">
+      <!-- HOJE -->
+      <div class="pane">
+        <div class="pane__tag hoje"><span class="dotmark"></span>Hoje</div>
+        <div class="pane__body">
+          <div class="ph"><h3>Funcionários</h3><p>7 stats ocupam ~220px antes da lista</p></div>
+          <div class="stats7">
+            <div class="st"><div class="st__l">Total ativos</div><div class="st__v">134</div></div>
+            <div class="st"><div class="st__l">Sem turno</div><div class="st__v">3</div></div>
+            <div class="st"><div class="st__l">1º turno</div><div class="st__v">42</div></div>
+            <div class="st"><div class="st__l">2º turno</div><div class="st__v">38</div></div>
+            <div class="st"><div class="st__l">3º turno</div><div class="st__v">19</div></div>
+            <div class="st"><div class="st__l">Geral</div><div class="st__v">32</div></div>
+            <div class="st"><div class="st__l">Atualizado</div><div class="st__v sm">08:10</div></div>
+          </div>
+          <!-- a lista só começa aqui embaixo, fora do dobra -->
+          <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:14px 0 4px;border-top:1px dashed var(--border);">a lista de 134 funcionários começa só aqui</div>
+        </div>
+        <div style="padding:0 14px 14px;">
+          <p class="just">Seis dos sete são apenas informativos. Empurram a busca e a primeira linha
+          para fora da primeira tela; o olho paga o pedágio toda visita.</p>
+        </div>
+      </div>
+
+      <!-- PROPOSTO -->
+      <div class="pane">
+        <div class="pane__tag prop"><span class="dotmark"></span>Proposto</div>
+        <div class="pane__body">
+          <div class="ph"><h3>Funcionários</h3><p>2 stats; contagem por turno mora no filtro</p></div>
+          <div class="stats2">
+            <div class="card2">
+              <div class="l">Total ativos</div>
+              <div class="v">134</div>
+              <div class="h">+ 2 inativos</div>
+            </div>
+            <div class="card2 act">
+              <div class="l">Sem turno definido</div>
+              <div class="v">3</div>
+              <button class="cta-chip" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+                Resolver agora
+              </button>
+            </div>
+          </div>
+          <div class="tb">
+            <div class="srch">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input placeholder="Buscar por nome ou código…" aria-label="Buscar funcionário" />
+            </div>
+            <!-- contagem por turno DENTRO de cada opção do filtro -->
+            <select aria-label="Filtrar por turno">
+              <option>Todos os turnos (134)</option>
+              <option>1º Turno (42)</option>
+              <option>2º Turno (38)</option>
+              <option>3º Turno (19)</option>
+              <option>Geral (32)</option>
+              <option>Sem turno (3)</option>
+            </select>
+          </div>
+          <div class="foot-upd">Atualizado hoje, 08:10</div>
+        </div>
+        <div style="padding:0 14px 14px;">
+          <p class="just"><b>Sem turno</b> em amarelo porque é o único acionável; as contagens viram
+          rótulos do filtro; <b>última atualização</b> vira texto fino no rodapé, não cartão.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SEÇÃO 2 ============ -->
+  <section class="sec">
+    <h2><span class="n">2</span> Lista com âncoras de varredura</h2>
+    <p class="lead">Cabeçalhos de inicial <b>sticky</b> — estilo agenda telefônica — dão pontos de
+      parada. Um trilho hairline na margem alinha o olho e divide a lista plana em blocos navegáveis.</p>
+
+    <div class="agenda" role="list" aria-label="Funcionários ordenados por nome">
+      <div class="alpha">A</div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Adriana Furtado</div>
+          <div class="fr-sub">Expedição<span class="dot"></span><span class="chip turno">2º Turno</span></div>
+        </div>
+        <span class="chip bh">+12:30</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Antônio Vasques</div>
+          <div class="fr-sub">Tinturaria<span class="dot"></span><span class="chip turno">1º Turno</span></div>
+        </div>
+        <span class="chip bh neg">-04:15</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <div class="alpha">B</div>
+      <div class="func-row semturno" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Bruno Carvalho</div>
+          <div class="fr-sub">Expedição<span class="dot"></span><span class="chip turno sem"><span class="d"></span>Sem turno</span></div>
+        </div>
+        <span class="chip bh">+00:00</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Beatriz Nogueira</div>
+          <div class="fr-sub">Qualidade<span class="dot"></span><span class="chip turno">Geral</span></div>
+        </div>
+        <span class="chip bh">+120:45</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <div class="alpha">C</div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Camila Rezende</div>
+          <div class="fr-sub">Preparação<span class="dot"></span><span class="chip turno">1º Turno</span></div>
+        </div>
+        <span class="chip bh neg">-09:05</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Carlos Eduardo Pinho</div>
+          <div class="fr-sub">Manutenção<span class="dot"></span><span class="chip turno">3º Turno</span></div>
+        </div>
+        <span class="chip bh">+02:40</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <div class="alpha">D</div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Daniela Sampaio</div>
+          <div class="fr-sub">Repasse<span class="dot"></span><span class="chip turno">2º Turno</span></div>
+        </div>
+        <span class="chip bh">+38:10</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Diego Albuquerque</div>
+          <div class="fr-sub">Tinturaria<span class="dot"></span><span class="chip turno">1º Turno</span></div>
+        </div>
+        <span class="chip bh neg">-01:50</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <div class="alpha">F</div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Fernanda Quintela</div>
+          <div class="fr-sub">Qualidade<span class="dot"></span><span class="chip turno">Geral</span></div>
+        </div>
+        <span class="chip bh">+07:25</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Felipe Moura</div>
+          <div class="fr-sub">Expedição<span class="dot"></span><span class="chip turno">2º Turno</span></div>
+        </div>
+        <span class="chip bh">+15:00</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <div class="alpha">G</div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Gabriela Tavares</div>
+          <div class="fr-sub">Preparação<span class="dot"></span><span class="chip turno">1º Turno</span></div>
+        </div>
+        <span class="chip bh neg">-22:35</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="func-row" role="listitem" tabindex="0">
+        <div class="fr-info">
+          <div class="fr-nome">Gustavo Bandeira</div>
+          <div class="fr-sub">Manutenção<span class="dot"></span><span class="chip turno">3º Turno</span></div>
+        </div>
+        <span class="chip bh">+04:05</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+    <p class="just"><b>Role a lista:</b> os cabeçalhos A, B, C… grudam no topo enquanto o bloco passa.
+      O trilho hairline e os blocos curtos transformam uma rolagem longa em saltos previsíveis.</p>
+  </section>
+
+  <!-- ============ SEÇÃO 3 ============ -->
+  <section class="sec">
+    <h2><span class="n">3</span> Escala tipográfica &amp; números tabulares</h2>
+    <p class="lead">Hoje os tamanhos variam em frações ad-hoc (10.5/11.5/12.5/13.5/14.5) espalhadas pelo
+      CSS. A proposta fixa cinco tokens em px inteiros e liga <code style="font-family:ui-monospace,monospace;font-size:11px;background:var(--milk-warm);border-radius:6px;padding:1px 6px;color:var(--plum-deep)">tabular-nums</code> em todo número.</p>
+
+    <table class="tk-table">
+      <thead><tr><th>Token</th><th>Tamanho</th><th>Aplicado a</th></tr></thead>
+      <tbody>
+        <tr><td><code>--fs-row-title</code></td><td class="px">14px</td><td class="use">nome de funcionário, título da ocorrência</td></tr>
+        <tr><td><code>--fs-row-sub</code></td><td class="px">12px</td><td class="use">sub-linha: setor · turno</td></tr>
+        <tr><td><code>--fs-tag</code></td><td class="px">11px</td><td class="use">chips de turno e de saldo BH</td></tr>
+        <tr><td><code>--fs-stat-value</code></td><td class="px">20px</td><td class="use">número grande dos stats</td></tr>
+        <tr><td><code>--fs-label</code></td><td class="px">10px</td><td class="use">labels uppercase, cabeçalho de inicial</td></tr>
+      </tbody>
+    </table>
+
+    <!-- jitter de ritmo: hoje vs proposto -->
+    <div class="grid3">
+      <div class="demo">
+        <div class="demo__tag hoje"><span class="dotmark"></span>Hoje · ritmo desigual</div>
+        <div class="demo__body">
+          <div class="ritmo">
+            <div class="ln"><span class="nm occ">Atraso — Carlos Eduardo Pinho</span><span class="lbl">.occ__name · 14px</span></div>
+            <div class="ln"><span class="nm func145">Carlos Eduardo Pinho</span><span class="lbl">.func-nome · 14.5px</span></div>
+          </div>
+          <p class="just">Meio pixel de diferença entre duas listas vizinhas: o nome "salta" de altura
+            ao alternar entre Ocorrências e Funcionários. Sutil, mas o olho registra a inconsistência.</p>
+        </div>
+      </div>
+      <div class="demo">
+        <div class="demo__tag prop"><span class="dotmark"></span>Proposto · ritmo idêntico</div>
+        <div class="demo__body">
+          <div class="ritmo">
+            <div class="ln"><span class="nm unif">Atraso — Carlos Eduardo Pinho</span><span class="lbl">--fs-row-title · 14px</span></div>
+            <div class="ln"><span class="nm unif">Carlos Eduardo Pinho</span><span class="lbl">--fs-row-title · 14px</span></div>
+          </div>
+          <p class="just">Um único token governa o título de linha em <b>todas</b> as listas. Mesma altura,
+            mesma cor de dot, mesmo raio de chip — densidade consistente entre telas.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- tabular-nums: saldos empilhados -->
+    <h3 style="font-size:13px;color:var(--text-body);font-weight:600;margin:18px 0 8px;">Alinhamento de números — saldos de banco de horas</h3>
+    <div class="nums">
+      <div class="col">
+        <h4>Hoje · fonte proporcional</h4>
+        <div class="val">+12:30</div>
+        <div class="val neg">-04:15</div>
+        <div class="val">+120:45</div>
+        <div class="val neg">-9:05</div>
+      </div>
+      <div class="col prop-col">
+        <h4>Proposto · tabular-nums</h4>
+        <div class="val">+12:30</div>
+        <div class="val neg">-04:15</div>
+        <div class="val">+120:45</div>
+        <div class="val neg">-9:05</div>
+      </div>
+    </div>
+    <p class="just">À esquerda, cada algarismo tem largura própria — a coluna serrilha e os <code style="font-family:ui-monospace,monospace;font-size:11px;background:var(--milk-warm);border-radius:6px;padding:1px 6px;color:var(--plum-deep)">:</code> nunca
+      alinham. À direita, <code style="font-family:ui-monospace,monospace;font-size:11px;background:var(--milk-warm);border-radius:6px;padding:1px 6px;color:var(--plum-deep)">font-variant-numeric:tabular-nums</code> dá largura fixa a todo dígito: a coluna fica reta.</p>
+
+    <!-- mini count-up -->
+    <div class="cu-wrap">
+      <div class="cu-grid">
+        <div class="cu-cell">
+          <h4>Hoje · <span class="who">sem</span> tnum</h4>
+          <div class="cu-num" id="cuHoje">0</div>
+          <div class="cu-note">A célula treme a cada dígito: a largura muda de 1 para 3 dígitos e o número dança lateralmente.</div>
+        </div>
+        <div class="cu-cell cu-prop">
+          <h4>Proposto · <span class="who">com</span> tnum</h4>
+          <div class="cu-num" id="cuProp">0</div>
+          <div class="cu-note">Largura fixa por dígito: o count-up de 0 a 134 sobe estável, sem jitter horizontal.</div>
+        </div>
+      </div>
+      <div class="cu-bar">
+        <button class="btn" id="cuBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+          Rodar count-up de 0 a 134
+        </button>
+        <span class="rm-hint" id="rmHint">respeita prefers-reduced-motion</span>
+      </div>
+    </div>
+
+    <p class="note"><b>Padronização incluída:</b> separador <b>.dot</b> agora é <code style="font-family:ui-monospace,monospace;font-size:11px;background:var(--milk-warm);border-radius:6px;padding:1px 6px;color:var(--plum-deep)">currentColor</code> com opacity .4
+      (uma só regra, todas as listas), e o raio dos chips é fixo em <b>8px</b> — fim do mix de 6/10px que
+      variava entre Ocorrências, Funcionários e Controle PJ.</p>
+  </section>
+</div>
+
+<script>
+  // ===== Count-up: hoje (sem tnum, treme) vs proposto (com tnum, estável) =====
+  // A diferença visual já vem do CSS (.cu-prop .cu-num tem tabular-nums).
+  // O JS só anima os dois contadores em paralelo de 0 a 134.
+  (function(){
+    var TARGET = 134, DUR = 1100;
+    var elHoje = document.getElementById('cuHoje');
+    var elProp = document.getElementById('cuProp');
+    var btn = document.getElementById('cuBtn');
+    var rmHint = document.getElementById('rmHint');
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function setVal(v){ elHoje.textContent = v; elProp.textContent = v; }
+
+    function run(){
+      // Respeita prefers-reduced-motion: mostra o valor final estático, sem animar.
+      if (reduce){ setVal(TARGET); return; }
+      var t0 = null;
+      function frame(ts){
+        if (t0 === null) t0 = ts;
+        var p = Math.min(1, (ts - t0) / DUR);
+        // easeOutCubic, depois arredonda — nada de float vazando pra tela
+        var eased = 1 - Math.pow(1 - p, 3);
+        setVal(Math.round(eased * TARGET));
+        if (p < 1) requestAnimationFrame(frame);
+      }
+      setVal(0);
+      requestAnimationFrame(frame);
+    }
+
+    if (reduce){
+      // Em reduced-motion já deixa o valor final na tela e ajusta o rótulo do botão.
+      setVal(TARGET);
+      rmHint.textContent = 'reduced-motion ativo: valor final estático';
+      btn.querySelector('svg').style.display = 'none';
+      btn.lastChild.textContent = ' Mostrar valor final (134)';
+    }
+
+    btn.addEventListener('click', run);
+  })();
+</script>
+</body>
+</html>
