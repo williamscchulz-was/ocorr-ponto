@@ -354,12 +354,31 @@
           historico: novoHist,
         });
         closeModal();
-        toast("Marcada como lançada!");
+        toast("Marcada como lançada.", "success", { duration: 6000, action: { label: "Desfazer", onClick: () => reverterLancada(id) } });
         renderApp();
       } catch (err) {
         debug?.(err);
         toast("Erro: " + err.message, "danger");
       }
+    };
+
+    // Undo rápido (sem confirm) do "Desfazer" no toast de lançamento → /ocorrencias.
+    window.reverterLancada = async function (id) {
+      const o = state.ocorrencias.find((x) => x.id === id);
+      if (!o || !isLancada(o)) return;
+      const u = currentUser();
+      const novoHist = [...(o.historico || []), {
+        por: u.id, em: new Date().toISOString(), acao: "Desfez lançamento (undo)",
+      }];
+      try {
+        await db.collection("ocorrencias").doc(id).update({
+          lancada: false, lancadoEm: null, lancadoPor: null,
+          historico: novoHist, atualizadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        Object.assign(o, { lancada: false, lancadoEm: null, lancadoPor: null, historico: novoHist });
+        toast("Lançamento desfeito.");
+        renderApp();
+      } catch (err) { toast("Erro ao desfazer: " + err.message, "danger"); }
     };
 
     // Override desfazerLancamento → /ocorrencias (volta pra Conferida)

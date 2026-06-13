@@ -1899,7 +1899,24 @@ function marcarComoLancada(id) {
 
   store.save(state);
   closeModal();
-  toast("Marcada como lançada!");
+  toast("Marcada como lançada.", "success", { duration: 6000, action: { label: "Desfazer", onClick: () => reverterLancada(id) } });
+  renderApp();
+}
+
+// Undo rápido (sem confirm) do "Desfazer" no toast de lançamento. Versão demo;
+// firebase.js sobrescreve window.reverterLancada com a que grava em /ocorrencias.
+function reverterLancada(id) {
+  const o = state.ocorrencias.find((x) => x.id === id);
+  if (!o || !isLancada(o)) return;
+  const u = currentUser();
+  o.lancada = false;
+  o.lancadoEm = null;
+  o.lancadoPor = null;
+  o.historico = [...(o.historico || []), {
+    por: u?.id, em: new Date().toISOString(), acao: "Desfez lançamento (undo)",
+  }];
+  store.save(state);
+  toast("Lançamento desfeito.");
   renderApp();
 }
 
@@ -3241,9 +3258,20 @@ async function doImportBancoHoras() {
   const u = currentUser();
   const valid = entries.filter((e) => e.funcionarioId);
   if (valid.length === 0) return toast("Nenhum funcionário com match.", "danger");
+  // Diff de segurança (auditoria 2): aponta quem tem saldo HOJE e não está na
+  // planilha — esses ficariam zerados pela substituição. Sem isso, o replace
+  // apaga saldos em silêncio (o dano silencioso mais grave do app).
+  const idsNovos = new Set(valid.map((e) => e.funcionarioId));
+  const atuais = state.bancoHoras || {};
+  const vaoZerar = Object.keys(atuais).filter((id) => !idsNovos.has(id) && (atuais[id]?.minutos || 0) !== 0);
+  const nomesZerar = vaoZerar.map((id) => getFuncionario(id)?.nome || id).slice(0, 6);
+  let msgImport = `O saldo de ${valid.length} funcionário(s) será substituído pelo da planilha.`;
+  if (vaoZerar.length) {
+    msgImport += ` Atenção: ${vaoZerar.length} com saldo hoje não estão na planilha e ficarão zerados (${nomesZerar.join(", ")}${vaoZerar.length > nomesZerar.length ? `, +${vaoZerar.length - nomesZerar.length}` : ""}).`;
+  }
   if (!(await confirmar({
     titulo: "Substituir saldos?",
-    msg: `O saldo de ${valid.length} funcionários será substituído. Os saldos anteriores serão sobrescritos.`,
+    msg: msgImport,
     okLabel: "Substituir",
     perigo: true,
   }))) return;
