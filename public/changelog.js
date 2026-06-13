@@ -11,7 +11,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.7.0", d: "13 jun 2026", current: true, items: [
+    v: "1.8.0", d: "13 jun 2026", current: true, items: [
+      { type: "high", title: "Chat mais rápido: a lista de conversas para de se redesenhar a cada batimento de presença — sem mais perder a rolagem ou o foco." },
+      { type: "fix", title: "Correções no chat: a foto não quebra mais o layout, 'digitando…' não vaza pra conversa errada, enviar sem internet avisa (em vez de fingir que mandou), e os horários acertam à noite." },
+      { type: "feat", title: "Chat acessível: ESC fecha, o leitor de tela anuncia mensagens novas e as reações têm nome." },
+    ],
+  },
+  {
+    v: "1.7.0", d: "13 jun 2026", items: [
       { type: "high", title: "Auditoria de design: contraste e foco mais legíveis, números alinhados em colunas, e o botão de chat não cobre mais as janelas." },
       { type: "feat", title: "No dashboard, a contagem 'Conferidas' virou 'Resolvidas' (conferidas + lançadas) — sem mais confusão com a aba." },
       { type: "feat", title: "Hierarquia mais clara: o número que pede ação ganha destaque, a ocorrência pendente recebe uma marca, e Funcionários abre direto na lista (contagem por turno foi pro filtro)." },

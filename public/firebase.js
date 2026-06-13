@@ -1417,7 +1417,11 @@
       const mapDoc = (d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) });
       const emit = () => {
         if (!prontoA || !prontoB) return; // espera os 2 primeiros snapshots (evita piscar)
-        const todas = [...enviadas, ...recebidas]
+        // Dedupe por id (defesa): hoje A e B são disjuntas, mas se um dia
+        // coincidirem (ex.: self-chat) não duplica a bolha.
+        const porId = new Map();
+        for (const m of [...enviadas, ...recebidas]) porId.set(m.id, m);
+        const todas = [...porId.values()]
           .sort((a, b) => (a.criadoEm || "9999").localeCompare(b.criadoEm || "9999"));
         cb(todas, null);
       };
