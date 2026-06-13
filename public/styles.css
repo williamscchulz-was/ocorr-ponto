@@ -1025,6 +1025,12 @@ textarea:focus-visible,
   overflow: hidden;
 }
 
+/* Entrada de view (auditoria 2): cabeçalho e stats sobem suave a cada troca de
+   tela. Recriados no innerHTML, então a animação roda a cada render de view. */
+.page-header, .stats { animation: viewIn 240ms var(--ease) both; }
+@keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .page-header, .stats { animation: none; } }
+
 .stat {
   flex: 1 1 0;
   min-width: 0;
@@ -1387,6 +1393,8 @@ textarea:focus-visible,
 .modal--sm { max-width: 400px; width: 100%; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* Saída do modal espelha a entrada: desce e some no lugar (auditoria 2). */
+@keyframes modalOut { to { opacity: 0; transform: translateY(14px); } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 .modal {
@@ -2115,6 +2123,8 @@ textarea:focus-visible,
 }
 
 .toast {
+  position: relative;
+  overflow: hidden;
   background: var(--plum);
   color: var(--milk);
   padding: 12px 18px;
@@ -2131,6 +2141,22 @@ textarea:focus-visible,
 
 .toast--success { background: var(--success); }
 .toast--danger { background: var(--danger); }
+
+/* Barra de progresso do toast (auditoria 2): mostra o tempo restante e PAUSA
+   no hover. O fim da barra dispara o fechamento (ver toast() no app.js). */
+.toast__bar {
+  position: absolute; left: 0; bottom: 0; height: 2px; width: 100%;
+  background: var(--fiobras-yellow); transform-origin: left;
+  animation-name: toastBar; animation-timing-function: linear; animation-fill-mode: forwards;
+}
+@keyframes toastBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.toast:hover .toast__bar { animation-play-state: paused; }
+.toast__acao {
+  margin-left: 4px; padding: 2px 4px; background: none; border: 0; cursor: pointer;
+  color: var(--fiobras-yellow); font-weight: 700; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.toast__acao:hover { text-decoration: underline; }
 
 /* ============================================
    UTILS
@@ -2153,7 +2179,7 @@ textarea:focus-visible,
   inset: 0;
   background: var(--border-strong);
   border-radius: 999px;
-  transition: 200ms;
+  transition: background 200ms var(--ease);
 }
 .toggle__slider::before {
   content: "";
@@ -2164,9 +2190,11 @@ textarea:focus-visible,
   bottom: 3px;
   background: white;
   border-radius: 50%;
-  transition: 200ms;
+  /* micro-overshoot ao chegar no fim (auditoria 2) — felt, not seen */
+  transition: transform 240ms cubic-bezier(.34, 1.56, .64, 1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
+@media (prefers-reduced-motion: reduce) { .toggle__slider, .toggle__slider::before { transition: none; } }
 .toggle input:checked + .toggle__slider {
   background: var(--plum);
 }

@@ -123,20 +123,43 @@ function ativarProximidadeNav() {
 
 // ---------- Toast ----------
 
-function toast(msg, variant = "success") {
+function toast(msg, variant = "success", opts = {}) {
+  // opts: { duration (ms), action: { label, onClick } }. A barra amarela mostra
+  // o tempo restante e PAUSA no hover (o fim da barra é o gatilho de fechar, então
+  // pausar adia o fechamento). O botão de ação (ex.: "Desfazer") fecha ao clicar.
+  // Sob prefers-reduced-motion não há barra — cai num timer simples. Retorna a
+  // função de fechar pra quem quiser fechar antes (ex.: após commit do undo).
+  const { duration = 2600, action = null } = opts;
+  const semMov = prefereMenosMovimento();
   const el = document.createElement("div");
   el.className = `toast toast--${variant}`;
   // role=alert pra leitor de tela anunciar erros (a11y).
   if (variant === "danger") el.setAttribute("role", "alert");
   // escapeHtml no msg — toast usa innerHTML e msg às vezes carrega nome de
   // funcionário (vindo do CSV/pipeline), evita XSS armazenado.
-  el.innerHTML = `${icon(variant === "success" ? "check" : "alert")}<span>${escapeHtml(msg)}</span>`;
+  const acaoHtml = action ? `<button class="toast__acao" type="button">${escapeHtml(action.label)}</button>` : "";
+  const barHtml = semMov ? "" : `<i class="toast__bar" style="animation-duration:${duration}ms"></i>`;
+  el.innerHTML = `${icon(variant === "success" ? "check" : "alert")}<span>${escapeHtml(msg)}</span>${acaoHtml}${barHtml}`;
   $("#toast-root").appendChild(el);
-  setTimeout(() => {
-    el.style.transition = "opacity 200ms";
+  let fechado = false;
+  const fechar = () => {
+    if (fechado) return;
+    fechado = true;
+    el.style.transition = "opacity 200ms, transform 200ms";
     el.style.opacity = "0";
+    el.style.transform = "translateY(8px)";
     setTimeout(() => el.remove(), 200);
-  }, 2400);
+  };
+  const bar = el.querySelector(".toast__bar");
+  if (bar) bar.addEventListener("animationend", fechar);
+  else setTimeout(fechar, duration);
+  if (action) {
+    el.querySelector(".toast__acao")?.addEventListener("click", () => {
+      try { action.onClick(); } catch (e) {}
+      fechar();
+    });
+  }
+  return fechar;
 }
 
 // Validação inline: mostra a mensagem ancorada no campo (reusa .field__error),
@@ -244,6 +267,8 @@ function closeModal() {
   if (window.pararEscutaPJ) window.pararEscutaPJ();
   // Limpa qualquer toast colab residual
   document.querySelectorAll(".collab-toast").forEach((t) => t.remove());
+  const painel = backdrop.querySelector(".modal");
+  if (painel && !prefereMenosMovimento()) painel.style.animation = "modalOut 150ms var(--ease) forwards";
   backdrop.style.animation = "fadeIn 160ms reverse";
   setTimeout(() => ($("#modal-root").innerHTML = ""), 140);
   // Restaura o foco pra quem estava focado antes do modal abrir (a11y).
