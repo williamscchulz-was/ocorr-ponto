@@ -1360,10 +1360,10 @@ function renderDashboard() {
     </header>
 
     <div class="stats">
-      <div class="stat stat--accent">
+      <div class="stat stat--accent stat--kpi">
         <div class="stat__label">Pendentes</div>
         <div class="stat__value">${pending.length}</div>
-        <div class="stat__hint">${u.role === "lider" || u.role === "supervisor" ? "aguardando sua conferência" : "aguardando líder"}</div>
+        <div class="stat__hint">${u.role === "lider" ? "aguardando sua conferência" : u.role === "supervisor" ? "aguardando o líder conferir" : "aguardando líder"}</div>
       </div>
       <div class="stat">
         <div class="stat__label">Resolvidas</div>
@@ -1560,7 +1560,7 @@ function renderOccCard(o) {
   const podeLancar = !pending && !isLancada(o) && can("ocorrencias.lancar");
 
   return `
-    <article class="occ" data-id="${o.id}" role="button" tabindex="0">
+    <article class="occ ${pending ? "occ--pendente" : ""}" data-id="${o.id}" role="button" tabindex="0">
       <div class="occ__date">
         <strong>${formatDay(o.data)}</strong>
         <span>${formatMonth(o.data)}</span>
@@ -2090,7 +2090,7 @@ function renderFuncionarios() {
       );
       return `
     <div class="stats">
-      <div class="stat stat--accent">
+      <div class="stat stat--accent stat--kpi">
         <div class="stat__label">Total ativos</div>
         <div class="stat__value">${totalAtivos}</div>
         <div class="stat__hint">${totalInativos > 0 ? `+ ${totalInativos} inativo${totalInativos > 1 ? "s" : ""}` : "todos ativos"}</div>
@@ -2100,19 +2100,8 @@ function renderFuncionarios() {
         <div class="stat__value">${semTurno}</div>
         <div class="stat__hint">${semTurno > 0 ? "ajustar antes de líderes verem" : "tudo certo"}</div>
       </div>
-      ${[1, 2, 3, "geral"].map((t) => `
-        <div class="stat">
-          <div class="stat__label">${TURNOS[t].label}</div>
-          <div class="stat__value">${ativos.filter((f) => f.turno === t).length}</div>
-          <div class="stat__hint">${TURNOS[t].horario}</div>
-        </div>
-      `).join("")}
-      <div class="stat">
-        <div class="stat__label">Última atualização</div>
-        <div class="stat__value" style="font-size: 16px;">${ultima.value}</div>
-        <div class="stat__hint">${ultima.hint}</div>
-      </div>
-    </div>`;
+    </div>
+    <p class="lista-rodape">Atualizado ${ultima.value} · ${ultima.hint}</p>`;
     })()}
 
     <div class="toolbar">
@@ -2126,12 +2115,12 @@ function renderFuncionarios() {
         <option value="todos">Todos (ativos + inativos)</option>
       </select>
       <select id="func-turno-filter" aria-label="Filtrar por turno">
-        <option value="">Todos os turnos</option>
-        <option value="sem">Sem turno</option>
-        <option value="1">1º Turno</option>
-        <option value="2">2º Turno</option>
-        <option value="3">3º Turno</option>
-        <option value="geral">Geral</option>
+        <option value="">Todos os turnos (${totalAtivos})</option>
+        <option value="sem">Sem turno (${semTurno})</option>
+        <option value="1">1º Turno (${ativos.filter((f) => f.turno === 1).length})</option>
+        <option value="2">2º Turno (${ativos.filter((f) => f.turno === 2).length})</option>
+        <option value="3">3º Turno (${ativos.filter((f) => f.turno === 3).length})</option>
+        <option value="geral">Geral (${ativos.filter((f) => f.turno === "geral").length})</option>
       </select>
     </div>
 

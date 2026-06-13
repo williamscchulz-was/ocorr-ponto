@@ -73,7 +73,7 @@
   --verde: var(--plum);
   --focus-ring: var(--plum-deep);
   --warning-ink: #7A4A12; /* texto âmbar sobre --warning-bg: passa AA (~4.9:1) */
-  --row-hover: #FAFCF9;
+  --row-hover: var(--row-hover);
 }
 
 * { box-sizing: border-box; }
@@ -1082,6 +1082,19 @@ textarea:focus-visible,
 }
 .stat--accent .stat__value { color: var(--plum); }
 
+/* KPI dominante (auditoria 2): a métrica primária ocupa mais espaço, número
+   maior e uma barra-guia à esquerda — guia o olho pra ela antes das demais. */
+.stat--kpi { flex: 1.7 1 0; }
+.stat--kpi .stat__value { font-size: 32px; }
+.stat--kpi::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--plum);
+}
+@media (max-width: 700px) {
+  .stat--kpi { flex: 1 1 100%; }
+  .stat--kpi .stat__value { font-size: 28px; }
+}
+
 /* Mobile: 2 colunas. flex-basis 50% força o wrap; o colapso de bordas
    (margin -1px) cuida das divisórias entre as linhas que surgem. */
 @media (max-width: 700px) {
@@ -1223,7 +1236,7 @@ textarea:focus-visible,
   border-radius: 0;
   padding: 14px 18px;
   display: grid;
-  grid-template-columns: 80px 1fr auto auto auto;
+  grid-template-columns: 64px 1fr auto auto auto;
   align-items: center;
   gap: 16px;
   transition: background var(--transition);
@@ -1235,11 +1248,16 @@ textarea:focus-visible,
 .occ:last-child { border-bottom: 0; }
 
 .occ:hover {
-  background: #FAFCF9;
+  background: var(--row-hover);
   border-color: var(--border);
   box-shadow: none;
   transform: none;
 }
+/* Linha pendente privilegiada (auditoria 2): barra âmbar à esquerda separa o
+   que exige ação. Mesma linguagem do .pj-row--pend / .func-row--semturno. */
+.occ--pendente { box-shadow: inset 3px 0 0 var(--warning); }
+/* Rodapé fino de lista (ex.: "Atualizado há 5m") — info fria, fora dos cards. */
+.lista-rodape { font-size: 11.5px; color: var(--text-muted); text-align: right; margin: 10px 4px 0; font-variant-numeric: tabular-nums; }
 
 .occ__date {
   text-align: center;
@@ -1251,9 +1269,9 @@ textarea:focus-visible,
 .occ__date strong {
   display: block;
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--plum);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-muted);
   line-height: 1;
 }
 
@@ -1322,7 +1340,7 @@ textarea:focus-visible,
   }
   .occ__time { display: none; }
   .occ__date { padding-right: 12px; }
-  .occ__date strong { font-size: 18px; }
+  .occ__date strong { font-size: 15px; }
 }
 
 /* ============================================
@@ -1644,7 +1662,7 @@ textarea:focus-visible,
   padding: 6px 16px;
 }
 .perm-row { border-top: 1px solid var(--border); }
-.perm-row:hover { background: #FAFCF9; }
+.perm-row:hover { background: var(--row-hover); }
 .perm-name { padding: 10px 16px; color: var(--text-body); font-weight: 500; }
 .perm-c { text-align: center; border-left: 1px solid var(--border); }
 .perm-cell { display: inline-grid; place-items: center; width: 26px; height: 26px; }
@@ -2481,7 +2499,7 @@ html.firebase-mode .login__forgot { display: block; }
 }
 /* Banco de horas no perfil (gráfico de barras do mês) */
 .bh-perfil {
-  background: #FAFCF9;
+  background: var(--row-hover);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 14px;
@@ -2596,7 +2614,7 @@ html.firebase-mode .login__forgot { display: block; }
   transition: background var(--transition);
 }
 .aud__row:last-child { border-bottom: 0; }
-.aud__row:hover { background: #FAFCF9; }
+.aud__row:hover { background: var(--row-hover); }
 .aud__row--static { cursor: default; }
 .aud__row--static:hover { background: transparent; }
 .aud__dot {
@@ -2670,7 +2688,7 @@ html.firebase-mode .login__forgot { display: block; }
   position: relative;
 }
 .pj-row:last-child { border-bottom: 0; }
-.pj-row:hover { background: #FAFCF9; }
+.pj-row:hover { background: var(--row-hover); }
 .pj-row--pend { box-shadow: inset 3px 0 0 var(--warning); }
 .pj-info { flex: 1; min-width: 0; }
 .pj-nome {
@@ -2800,7 +2818,7 @@ html.firebase-mode .login__forgot { display: block; }
 }
 .cfg-row:last-child { border-bottom: 0; }
 .cfg-row--click { cursor: pointer; }
-.cfg-row--click:hover { background: #FAFCF9; }
+.cfg-row--click:hover { background: var(--row-hover); }
 .cfg-row .avatar { width: 36px; height: 36px; font-size: 12px; flex-shrink: 0; }
 .cfg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .cfg-dot--danger { background: var(--danger); }
@@ -2849,7 +2867,7 @@ html.firebase-mode .login__forgot { display: block; }
   transition: background var(--transition);
 }
 .func-row:last-child { border-bottom: 0; }
-.func-row:hover { background: #FAFCF9; }
+.func-row:hover { background: var(--row-hover); }
 .func-row--semturno { box-shadow: inset 3px 0 0 var(--warning); }
 .func-row--inativo { opacity: 0.6; }
 .func-info { flex: 1; min-width: 0; }
@@ -3346,7 +3364,7 @@ body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
 .pj-ct-chip {
   display: flex; align-items: center; gap: 12px;
   border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 12px 14px; background: #FAFCF9;
+  padding: 12px 14px; background: var(--row-hover);
 }
 .pj-ct-ic { width: 40px; height: 40px; border-radius: 10px; background: var(--surface-warm); display: grid; place-items: center; color: var(--plum-deep); flex-shrink: 0; }
 .pj-ct-ic .icon { width: 20px; height: 20px; }
@@ -3370,7 +3388,7 @@ body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
 .pj-ct-drop {
   display: block; width: 100%; border: 1.5px dashed var(--border-strong);
   border-radius: var(--radius); padding: 22px 16px; text-align: center;
-  background: #FAFCF9; cursor: pointer; font-family: inherit;
+  background: var(--row-hover); cursor: pointer; font-family: inherit;
   transition: border-color var(--transition), background var(--transition);
 }
 .pj-ct-drop:hover { border-color: var(--plum-soft); background: var(--surface-warm); }
