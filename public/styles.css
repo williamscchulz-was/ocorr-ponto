@@ -66,6 +66,14 @@
   --transition: 180ms cubic-bezier(.4, 0, .2, 1);
   /* curva "spring" suave das micro-interações (felt, not seen) */
   --ease: cubic-bezier(.2, .8, .2, 1);
+
+  /* Aliases p/ refs legadas var(--primary)/var(--verde) resolverem ao token
+     real (antes caíam no fallback). Foco e contraste reforçados na auditoria 2. */
+  --primary: var(--plum);
+  --verde: var(--plum);
+  --focus-ring: var(--plum-deep);
+  --warning-ink: #7A4A12; /* texto âmbar sobre --warning-bg: passa AA (~4.9:1) */
+  --row-hover: #FAFCF9;
 }
 
 * { box-sizing: border-box; }
@@ -597,15 +605,21 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--primary, #008835);
+  outline: 2.5px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(0, 136, 53, .18);
 }
 /* No header escuro, usa cor clara pra contraste */
 .app__sidebar button:focus-visible,
 .app__sidebar a:focus-visible,
 .topbar button:focus-visible {
   outline-color: var(--milk, #fffaf2);
+}
+
+/* iOS dá zoom ao focar input com fonte <16px. Garante 16px no mobile. */
+@media (max-width: 900px) {
+  input, select, textarea { font-size: 16px; }
 }
 
 /* Pulse animado ao lado do nome FioPulse na sidebar */
@@ -1049,6 +1063,11 @@ textarea:focus-visible,
   line-height: 1;
 }
 
+/* Números tabulares: largura fixa de dígito — não "treme" no count-up nem
+   desalinha saldos/contadores entre linhas vizinhas (auditoria 2). */
+.stat__value, .tab__count, .nav__badge, .badge,
+.occ, .pj-row, .func-row { font-variant-numeric: tabular-nums; }
+
 .stat__hint {
   font-size: 11px;
   color: var(--text-muted);
@@ -1322,7 +1341,7 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 
-.badge--warning { background: var(--warning-bg); color: var(--warning); }
+.badge--warning { background: var(--warning-bg); color: var(--warning-ink); }
 .badge--success { background: var(--success-bg); color: var(--success); }
 .badge--danger { background: var(--danger-bg); color: var(--danger); }
 .badge--info { background: var(--info-bg); color: var(--info); }
@@ -2946,6 +2965,9 @@ html.firebase-mode .login__forgot { display: block; }
 .chat-fab__badge[hidden] { display: none !important; }
 /* desce o FAB de nova ocorrência pra não colidir com o chat-fab */
 .fab { bottom: 92px !important; }
+/* FABs (z-index 900) ficam acima do backdrop do modal (200); some-os enquanto
+   há modal aberto pra não flutuarem por cima do diálogo (auditoria 2). */
+body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
 
 /* Painel flutuante */
 .chat-widget {
@@ -3256,7 +3278,7 @@ html.firebase-mode .login__forgot { display: block; }
 
 /* ---- Mobile: FAB acima da bottom-nav; painel em tela cheia ---- */
 @media (max-width: 900px) {
-  .chat-fab { bottom: 80px; }       /* acima da bottom-nav */
+  .chat-fab { bottom: calc(80px + env(safe-area-inset-bottom)); } /* acima da bottom-nav + safe-area */
   .chat-widget { bottom: 0; right: 0; left: 0; width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; }
   .chat__bolha { max-width: 82%; }
 }

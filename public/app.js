@@ -175,6 +175,7 @@ function openModal(html, opts = {}) {
   const root = $("#modal-root");
   // Guarda quem tinha foco antes de abrir pra restaurar no closeModal (a11y).
   window._modalPrevFocus = document.activeElement;
+  document.body.classList.add("modal-aberto"); // some os FABs por baixo do modal
   root.innerHTML = `
     <div class="modal-backdrop" id="modal-backdrop">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" tabindex="-1">${html}</div>
@@ -237,6 +238,7 @@ function openModal(html, opts = {}) {
 function closeModal() {
   const backdrop = $("#modal-backdrop");
   if (!backdrop) return;
+  document.body.classList.remove("modal-aberto");
   // Sinaliza fim da edição de PJ (limpa pjEditing no presence + cancela sub)
   if (window.setarPJEditando) window.setarPJEditando(null);
   if (window.pararEscutaPJ) window.pararEscutaPJ();
@@ -1364,9 +1366,9 @@ function renderDashboard() {
         <div class="stat__hint">${u.role === "lider" || u.role === "supervisor" ? "aguardando sua conferência" : "aguardando líder"}</div>
       </div>
       <div class="stat">
-        <div class="stat__label">Conferidas</div>
+        <div class="stat__label">Resolvidas</div>
         <div class="stat__value">${done.length}</div>
-        <div class="stat__hint">no período visível</div>
+        <div class="stat__hint">conferidas + lançadas</div>
       </div>
       <div class="stat">
         <div class="stat__label">Total mês</div>
@@ -1401,10 +1403,10 @@ function renderDashboard() {
     <div class="toolbar">
       <div class="toolbar__search">
         ${icon("search")}
-        <input type="text" id="search" placeholder="Buscar por funcionário ou tipo..." value="${state.view.search}" />
+        <input type="text" id="search" placeholder="Buscar por funcionário ou tipo..." aria-label="Buscar ocorrências por funcionário ou tipo" value="${state.view.search}" />
       </div>
       ${u.role !== "lider" ? `
-        <select id="turno-filter">
+        <select id="turno-filter" aria-label="Filtrar ocorrências por turno">
           <option value="">Todos os turnos</option>
           <option value="1" ${state.view.filterTurno === "1" ? "selected" : ""}>1º Turno</option>
           <option value="2" ${state.view.filterTurno === "2" ? "selected" : ""}>2º Turno</option>
@@ -2116,14 +2118,14 @@ function renderFuncionarios() {
     <div class="toolbar">
       <div class="toolbar__search">
         ${icon("search")}
-        <input type="text" id="func-search" placeholder="Buscar por nome ou código..." />
+        <input type="text" id="func-search" placeholder="Buscar por nome ou código..." aria-label="Buscar funcionário por nome ou código" />
       </div>
-      <select id="func-status-filter">
+      <select id="func-status-filter" aria-label="Filtrar por status">
         <option value="ativo" selected>Apenas ativos</option>
         <option value="inativo">Apenas inativos</option>
         <option value="todos">Todos (ativos + inativos)</option>
       </select>
-      <select id="func-turno-filter">
+      <select id="func-turno-filter" aria-label="Filtrar por turno">
         <option value="">Todos os turnos</option>
         <option value="sem">Sem turno</option>
         <option value="1">1º Turno</option>
@@ -3000,7 +3002,7 @@ function renderBancoHoras() {
     <div class="toolbar">
       <div class="toolbar__search">
         ${icon("search")}
-        <input type="text" id="bh-search" placeholder="Buscar funcionário..." />
+        <input type="text" id="bh-search" placeholder="Buscar funcionário..." aria-label="Buscar funcionário no banco de horas" />
       </div>
     </div>
 
@@ -3292,7 +3294,7 @@ function renderControlePJ() {
     <div class="toolbar">
       <div class="toolbar__search">
         ${icon("search")}
-        <input type="text" id="pj-search" placeholder="Buscar por nome, CNPJ ou tipo..." />
+        <input type="text" id="pj-search" placeholder="Buscar por nome, CNPJ ou tipo..." aria-label="Buscar PJ por nome, CNPJ ou tipo" />
       </div>
       <select id="pj-status-filter">
         <option value="">Todos os status</option>
@@ -6920,7 +6922,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.6.2";
+window.CURRENT_VERSION = "1.7.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

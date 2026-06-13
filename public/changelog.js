@@ -11,7 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.6.2", d: "10 jun 2026", current: true, items: [
+    v: "1.7.0", d: "13 jun 2026", current: true, items: [
+      { type: "high", title: "Auditoria de design: contraste e foco mais legíveis, números alinhados em colunas, e o botão de chat não cobre mais as janelas." },
+      { type: "feat", title: "No dashboard, a contagem 'Conferidas' virou 'Resolvidas' (conferidas + lançadas) — sem mais confusão com a aba." },
+    ],
+  },
+  {
+    v: "1.6.2", d: "10 jun 2026", items: [
       { type: "feat", title: "Primeira visita às listas ganha um instante de carregamento elegante; no resto do uso, tudo segue instantâneo." },
     ],
   },
