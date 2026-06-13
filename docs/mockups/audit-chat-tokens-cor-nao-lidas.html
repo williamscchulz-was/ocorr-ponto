@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FioPulse · Chat — Tokens de cor (não-lidas + check de leitura)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+    --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:var(--milk);--surface:#FFFFFF;
+    --border:#E7EDE4;--border-strong:#D8E2D3;--text:var(--plum-deep);--text-body:#1E2D1A;
+    --text-muted:#4A6245;--success:#2F6B3F;--danger:#962F32;
+    --font:"Poppins",system-ui,sans-serif;--radius:12px;--radius-sm:8px;
+    --transition:180ms cubic-bezier(.4,0,.2,1);--ease:cubic-bezier(.2,.8,.2,1);
+
+    /* ===== TOKENS NOVOS PROPOSTOS (este mockup decide o valor) ===== */
+    /* SEÇÃO 1 — não-lidas (FAB + linha de conversa usam o MESMO par) */
+    --chat-unread-bg:var(--fiobras-yellow);
+    --chat-unread-fg:var(--plum-deep);
+    /* SEÇÃO 2 — check de leitura (duplo) sobre o balão verde */
+    --chat-check-lido:rgba(255,255,255,.95);
+    /* SEÇÃO 3 — meta (hora + check enviado) nas minhas bolhas */
+    --chat-meta-hora:rgba(255,255,255,.9);
+    --chat-check-sent:rgba(255,255,255,.85);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--text-body);font-family:var(--font);
+    -webkit-font-smoothing:antialiased;line-height:1.5;padding:40px 24px 96px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  /* ---------- Cabeçalho de doc de design ---------- */
+  .doc-head{margin-bottom:40px;}
+  .kicker{
+    font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--plum-soft);display:inline-flex;align-items:center;gap:8px;
+  }
+  .kicker svg{width:16px;height:16px;stroke:var(--plum);}
+  .doc-head h1{
+    font-size:28px;font-weight:600;color:var(--plum-deep);margin:12px 0 8px;line-height:1.2;
+    letter-spacing:-.01em;
+  }
+  .doc-head .why{font-size:14px;color:var(--text-muted);max-width:680px;margin:0;}
+  .doc-head .why b{color:var(--text-body);font-weight:600;}
+
+  /* ---------- Seções ---------- */
+  .sec{margin-top:48px;}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;}
+  .sec-num{
+    font-size:12px;font-weight:700;color:var(--plum);background:var(--milk-warm);
+    border:1px solid var(--border-strong);border-radius:999px;
+    width:26px;height:26px;display:inline-grid;place-items:center;flex-shrink:0;
+  }
+  .sec h2{font-size:19px;font-weight:600;color:var(--plum-deep);margin:0;}
+  .sec-desc{font-size:13.5px;color:var(--text-muted);margin:6px 0 22px 38px;max-width:760px;}
+  .sec-desc code{
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    background:var(--milk-warm);padding:1px 6px;border-radius:5px;color:var(--plum-deep);
+  }
+
+  /* ---------- Grid de propostas ---------- */
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;display:flex;flex-direction:column;gap:16px;position:relative;
+  }
+  .card.is-now{background:var(--milk-warm);border-style:dashed;}
+  .card.is-pick{border-color:var(--plum);box-shadow:0 0 0 1px var(--plum);}
+  .card-tag{
+    position:absolute;top:-10px;left:16px;font-size:10.5px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:999px;
+  }
+  .card-tag.now{background:var(--milk);color:var(--danger);border:1px solid var(--border-strong);}
+  .card-tag.opt{background:var(--plum-deep);color:#fff;}
+  .card-tag.pick{background:var(--fiobras-yellow);color:var(--plum-deep);}
+  .card h3{font-size:14px;font-weight:600;color:var(--plum-deep);margin:6px 0 0;}
+  .card .sub{font-size:12px;color:var(--text-muted);margin:-10px 0 0;}
+
+  /* ---------- Swatches ---------- */
+  .swatch-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .swatch{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--text-muted);}
+  .swatch .chip{
+    width:26px;height:26px;border-radius:8px;border:1px solid rgba(0,0,0,.08);flex-shrink:0;
+  }
+  .swatch .chip.ring{box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);}
+  .swatch code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--text-body);}
+
+  /* ---------- Componentes reais do chat ---------- */
+  /* FAB */
+  .demo-fab-wrap{display:flex;align-items:center;gap:14px;}
+  .chat-fab{
+    position:relative;width:56px;height:56px;border-radius:50%;border:none;cursor:default;
+    background:var(--plum);color:#fff;display:grid;place-items:center;flex-shrink:0;
+    box-shadow:0 8px 22px rgba(0,40,20,.28);
+  }
+  .chat-fab .icon{width:26px;height:26px;stroke:#fff;}
+  .chat-fab__badge{
+    position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;padding:0 5px;
+    border-radius:999px;font-size:11px;font-weight:700;display:grid;place-items:center;
+    border:2px solid var(--surface);
+  }
+  /* HOJE: vermelho cru off-brand */
+  .badge-now{background:#dc2626;color:#fff;}
+  /* PROPOSTO: token único */
+  .badge-token{background:var(--chat-unread-bg);color:var(--chat-unread-fg);}
+  .badge-A{background:var(--fiobras-yellow);color:var(--plum-deep);}
+  .badge-B{background:var(--plum);color:#fff;}
+  .fab-note{font-size:11.5px;color:var(--text-muted);}
+
+  /* Linha de conversa */
+  .chat__contato{
+    display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:none;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+    text-align:left;cursor:default;font-family:var(--font);
+  }
+  .chat__avatar{
+    width:42px;height:42px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;
+    color:#fff;font-size:14px;font-weight:600;position:relative;
+  }
+  .chat__online-dot{
+    position:absolute;bottom:1px;right:1px;width:11px;height:11px;border-radius:50%;
+    background:var(--plum-soft);border:2px solid var(--surface);
+  }
+  .chat__contato-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .chat__contato-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .chat__contato-nome{font-size:14px;font-weight:600;color:var(--text-body);}
+  .chat__contato-hora{font-size:10.5px;color:var(--text-muted);flex-shrink:0;}
+  .chat__contato-preview{
+    font-size:12.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .chat__contato-preview.is-unread{color:var(--text-body);font-weight:600;}
+  .chat__contato-badge{
+    flex-shrink:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+    font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  }
+  .badge-now-row{background:var(--plum);color:#fff;}
+
+  .pair-label{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.03em;}
+  .pair{display:flex;flex-direction:column;gap:12px;}
+
+  /* ---------- Bolhas (check / meta) ---------- */
+  .bubble-stage{
+    background:var(--milk-warm);border-radius:var(--radius);padding:18px;display:flex;
+    flex-direction:column;gap:10px;align-items:flex-end;
+  }
+  .chat__bolha{
+    max-width:78%;align-self:flex-start;background:#fff;border:1px solid var(--border);
+    border-radius:14px;border-bottom-left-radius:4px;padding:8px 12px;display:flex;
+    flex-direction:column;gap:2px;box-shadow:0 1px 2px rgba(0,40,20,.05);
+  }
+  .chat__bolha--minha{
+    align-self:flex-end;background:var(--plum);border-color:var(--plum);color:#fff;
+    border-bottom-left-radius:14px;border-bottom-right-radius:4px;
+  }
+  .chat__bolha-texto{font-size:14px;line-height:1.4;}
+  .chat__bolha-meta{display:flex;align-items:center;justify-content:flex-end;gap:3px;margin-top:2px;line-height:1;}
+  .chat__bolha-hora{font-size:10px;align-self:flex-end;}
+  .chat__bolha--minha .chat__bolha-hora{opacity:.6;}
+  .chat__check{display:inline-flex;}
+  .chat__check svg{width:15px;height:13px;}
+  .chat__check.read svg{width:18px;height:13px;}
+
+  /* variantes de check pra comparação */
+  .check-sent-now{color:rgba(255,255,255,.6);}
+  .check-read-now{color:#AEE0FF;}
+  .check-sent-new{color:var(--chat-check-sent);}
+  .check-read-white{color:rgba(255,255,255,.95);}
+  .check-read-yellow{color:var(--fiobras-yellow);}
+  .check-read-blue{color:#CDEBFF;}
+  .hora-now{opacity:.8;}
+  .hora-new{opacity:.9;}
+
+  .contrast-tag{
+    font-size:10.5px;font-weight:600;font-family:ui-monospace,Menlo,Consolas,monospace;
+    padding:2px 7px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;
+  }
+  .contrast-ok{background:#E7F3EA;color:var(--success);}
+  .contrast-bad{background:#F7E7E7;color:var(--danger);}
+  .contrast-mid{background:#FDF3DA;color:#7A5B00;}
+
+  .check-demo{
+    background:var(--plum);border-radius:10px;padding:14px 16px;display:flex;
+    align-items:center;gap:14px;justify-content:space-between;
+  }
+  .check-demo-label{font-size:12px;color:#fff;font-weight:500;}
+  .check-demo-icons{display:flex;align-items:center;gap:18px;}
+  .check-demo-icons .chat__check{align-items:center;}
+
+  /* before/after */
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .ba .col{display:flex;flex-direction:column;gap:8px;}
+  .ba .col-h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+  .ba .col-h.now{color:var(--danger);}
+  .ba .col-h.new{color:var(--plum);}
+
+  /* legenda de razão de contraste */
+  .ratio-list{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+  .ratio-row{
+    display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-body);
+    padding:8px 10px;background:var(--milk);border:1px solid var(--border);border-radius:8px;
+  }
+  .ratio-row .name{flex:1;min-width:0;}
+  .ratio-row .name small{display:block;color:var(--text-muted);font-size:10.5px;font-weight:400;}
+  .ratio-row .preview{
+    width:46px;height:30px;border-radius:7px;background:var(--plum);display:grid;
+    place-items:center;flex-shrink:0;
+  }
+  .rec-pill{
+    font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    background:var(--plum-deep);color:#fff;padding:2px 8px;border-radius:999px;flex-shrink:0;
+  }
+
+  /* ---------- Frames de dispositivo ---------- */
+  .frames{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start;}
+  .frame-block{display:flex;flex-direction:column;gap:12px;}
+  .frame-cap{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+
+  .phone{
+    width:390px;max-width:100%;border:10px solid #11221A;border-radius:38px;
+    background:#11221A;box-shadow:0 18px 50px rgba(0,40,20,.22);overflow:hidden;
+  }
+  .phone-notch{height:24px;background:#11221A;display:grid;place-items:center;}
+  .phone-notch span{width:96px;height:6px;border-radius:999px;background:#2a3c33;}
+  .phone-screen{background:var(--milk);height:680px;display:flex;flex-direction:column;position:relative;}
+
+  .desktop-win{
+    width:560px;max-width:100%;border:1px solid var(--border-strong);border-radius:14px;
+    overflow:hidden;background:var(--surface);box-shadow:0 18px 50px rgba(0,40,20,.14);
+  }
+  .desktop-bar{
+    height:36px;background:var(--milk-warm);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:7px;padding:0 14px;
+  }
+  .desktop-bar i{width:11px;height:11px;border-radius:50%;background:var(--border-strong);}
+  .desktop-bar .url{
+    margin-left:10px;font-size:11px;color:var(--text-muted);background:var(--surface);
+    border:1px solid var(--border);border-radius:6px;padding:3px 10px;
+  }
+
+  /* Widget do chat (compartilhado phone/desktop) */
+  .chat-widget{display:flex;flex-direction:column;height:100%;background:var(--surface);}
+  .cw-head{
+    background:var(--plum);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;
+  }
+  .cw-head .icon{width:20px;height:20px;stroke:#fff;}
+  .cw-head h4{font-size:15px;font-weight:600;margin:0;flex:1;}
+  .cw-head .cw-x{background:rgba(255,255,255,.16);border:none;border-radius:8px;width:30px;height:30px;display:grid;place-items:center;cursor:default;}
+  .cw-head .cw-x .icon{width:16px;height:16px;}
+
+  .cw-busca{padding:12px 14px 8px;}
+  .cw-busca-box{
+    display:flex;align-items:center;gap:8px;background:var(--milk);border:1px solid var(--border);
+    border-radius:999px;padding:8px 14px;
+  }
+  .cw-busca-box .icon{width:16px;height:16px;stroke:var(--text-muted);}
+  .cw-busca-box span{font-size:13px;color:var(--text-muted);}
+
+  .cw-sec{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);padding:8px 16px 4px;}
+  .cw-rows{flex:1;overflow:hidden;padding:0 10px 10px;display:flex;flex-direction:column;gap:4px;}
+  .cw-rows .chat__contato{border:none;background:transparent;border-radius:var(--radius-sm);}
+  .cw-rows .chat__contato.is-active{background:var(--milk-warm);}
+
+  /* Thread no frame */
+  .cw-thread{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .cw-thread-head{
+    display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);
+    background:var(--surface);
+  }
+  .cw-thread-head .chat__avatar{width:36px;height:36px;font-size:12px;}
+  .cw-thread-nome{font-size:14px;font-weight:600;color:var(--text-body);}
+  .cw-thread-status{font-size:11px;color:var(--plum-soft);}
+  .cw-thread-status.typing{font-style:italic;}
+  .cw-back{background:none;border:none;display:grid;place-items:center;width:28px;height:28px;cursor:default;}
+  .cw-back .icon{width:18px;height:18px;stroke:var(--text-muted);}
+  .cw-msgs{flex:1;overflow:hidden;padding:14px;display:flex;flex-direction:column;gap:7px;background:var(--milk);}
+  .chat__daysep{align-self:center;font-size:10.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);padding:2px 12px;border-radius:999px;margin:4px 0;}
+  .chat__bolha--grp{margin-top:-4px;}
+
+  .cw-typing{align-self:flex-start;display:flex;gap:4px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px;padding:10px 14px;}
+  .cw-typing i{width:6px;height:6px;border-radius:50%;background:var(--text-muted);animation:tdot 1.2s infinite;}
+  .cw-typing i:nth-child(2){animation-delay:.2s;}
+  .cw-typing i:nth-child(3){animation-delay:.4s;}
+  @keyframes tdot{0%,60%,100%{opacity:.3;transform:translateY(0);}30%{opacity:1;transform:translateY(-3px);}}
+
+  .cw-composer{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border);background:var(--surface);}
+  .cw-composer .box{flex:1;background:var(--milk);border:1px solid var(--border);border-radius:999px;padding:9px 16px;font-size:13px;color:var(--text-muted);}
+  .cw-send{width:38px;height:38px;border-radius:50%;background:var(--plum);border:none;display:grid;place-items:center;flex-shrink:0;cursor:default;}
+  .cw-send .icon{width:18px;height:18px;stroke:#fff;}
+
+  /* reações (emoji = exceção aprovada) */
+  .chat__reacoes{align-self:flex-start;background:#fff;border:1px solid var(--border);border-radius:999px;padding:1px 7px;font-size:12px;margin-top:-3px;box-shadow:0 1px 3px rgba(0,40,20,.08);}
+  .chat__bolha--minha + .chat__reacoes{align-self:flex-end;}
+
+  /* nota de rodapé / tokens finais */
+  .tokens-final{margin-top:54px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;}
+  .tokens-final h2{font-size:16px;font-weight:600;color:var(--plum-deep);margin:0 0 4px;}
+  .tokens-final p{font-size:12.5px;color:var(--text-muted);margin:0 0 16px;}
+  .tok-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));}
+  .tok{display:flex;align-items:center;gap:11px;background:var(--milk);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+  .tok .sw{width:30px;height:30px;border-radius:7px;flex-shrink:0;border:1px solid rgba(0,0,0,.08);display:grid;place-items:center;}
+  .tok code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:var(--plum-deep);display:block;}
+  .tok small{font-size:11px;color:var(--text-muted);display:block;margin-top:2px;}
+
+  @media (max-width:560px){
+    body{padding:24px 12px 80px;}
+    .ba{grid-template-columns:1fr;}
+    .desktop-win{width:100%;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===================== CABEÇALHO DE DOC ===================== -->
+  <header class="doc-head">
+    <span class="kicker">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      FioPulse · Chat
+    </span>
+    <h1>Unificar a cor de não-lidas e o check de leitura nos tokens da marca</h1>
+    <p class="why">
+      Hoje o chat usa <b>duas cores diferentes pra mesma coisa</b> (não-lida) e dois azuis fora da
+      paleta. Esta página coloca <b>Hoje vs. Proposto</b> lado a lado — swatches e componentes reais —
+      pra você escolher um único par <code>--chat-unread-*</code>, um único <code>--chat-check-lido</code>,
+      e subir o contraste da meta sobre o balão verde.
+    </p>
+  </header>
+
+  <!-- ===================== SEÇÃO 1 — NÃO-LIDAS ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="sec-num">1</span>
+      <h2>Não-lidas — uma cor só, em token</h2>
+    </div>
+    <p class="sec-desc">
+      Hoje o badge do FAB é <code>#dc2626</code> (vermelho cru, fora da paleta) e o badge da linha de
+      conversa é <code>--plum</code> (verde): <b>duas cores pro mesmo sinal</b>. Proposta: criar
+      <code>--chat-unread-bg</code> / <code>--chat-unread-fg</code> e usar o mesmo par nos dois lugares.
+      Duas opções de cor abaixo.
+    </p>
+
+    <div class="grid">
+
+      <!-- HOJE -->
+      <div class="card is-now">
+        <span class="card-tag now">Hoje</span>
+        <h3>Vermelho no FAB + verde na linha</h3>
+        <p class="sub">Inconsistente — duas cores, e o vermelho não existe na marca.</p>
+        <div class="swatch-row">
+          <span class="swatch"><span class="chip" style="background:#dc2626"></span><code>#dc2626</code></span>
+          <span class="swatch"><span class="chip" style="background:var(--plum)"></span><code>--plum</code></span>
+        </div>
+        <div class="pair">
+          <div class="pair-label">FAB</div>
+          <div class="demo-fab-wrap">
+            <button class="chat-fab"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="chat-fab__badge badge-now">3</span></button>
+            <span class="fab-note">vermelho #dc2626</span>
+          </div>
+          <div class="pair-label">Linha de conversa</div>
+          <div class="chat__contato">
+            <span class="chat__avatar" style="background:var(--fiobras-blue)">CM</span>
+            <span class="chat__contato-info">
+              <span class="chat__contato-top"><span class="chat__contato-nome">Camila Moraes</span><span class="chat__contato-hora">09:41</span></span>
+              <span class="chat__contato-preview is-unread">Pode validar o ajuste do 2º turno?</span>
+            </span>
+            <span class="chat__contato-badge badge-now-row">3</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPÇÃO A — amarelo -->
+      <div class="card is-pick">
+        <span class="card-tag pick">Opção A · recomendada</span>
+        <h3>Amarelo de marca + texto verde</h3>
+        <p class="sub"><code>--chat-unread-bg:#FFCB00</code> · <code>--chat-unread-fg:--plum-deep</code> — é o "sinal de atenção" Fiobras, alto contraste.</p>
+        <div class="swatch-row">
+          <span class="swatch"><span class="chip" style="background:#FFCB00"></span><code>#FFCB00</code></span>
+          <span class="swatch"><span class="chip" style="background:#006328"></span><code>--plum-deep</code></span>
+        </div>
+        <div class="pair">
+          <div class="pair-label">FAB</div>
+          <div class="demo-fab-wrap">
+            <button class="chat-fab"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="chat-fab__badge badge-A">3</span></button>
+            <span class="fab-note">amarelo + verde</span>
+          </div>
+          <div class="pair-label">Linha de conversa</div>
+          <div class="chat__contato">
+            <span class="chat__avatar" style="background:var(--fiobras-blue)">CM</span>
+            <span class="chat__contato-info">
+              <span class="chat__contato-top"><span class="chat__contato-nome">Camila Moraes</span><span class="chat__contato-hora">09:41</span></span>
+              <span class="chat__contato-preview is-unread">Pode validar o ajuste do 2º turno?</span>
+            </span>
+            <span class="chat__contato-badge badge-A">3</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPÇÃO B — verde -->
+      <div class="card">
+        <span class="card-tag opt">Opção B</span>
+        <h3>Verde de marca nos dois</h3>
+        <p class="sub"><code>--chat-unread-bg:--plum</code> · <code>--chat-unread-fg:#fff</code> — discreto, igual ao badge atual da linha.</p>
+        <div class="swatch-row">
+          <span class="swatch"><span class="chip" style="background:var(--plum)"></span><code>--plum</code></span>
+          <span class="swatch"><span class="chip" style="background:#fff"></span><code>#fff</code></span>
+        </div>
+        <div class="pair">
+          <div class="pair-label">FAB</div>
+          <div class="demo-fab-wrap">
+            <button class="chat-fab"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="chat-fab__badge badge-B">3</span></button>
+            <span class="fab-note">verde + branco</span>
+          </div>
+          <div class="pair-label">Linha de conversa</div>
+          <div class="chat__contato">
+            <span class="chat__avatar" style="background:var(--fiobras-blue)">CM</span>
+            <span class="chat__contato-info">
+              <span class="chat__contato-top"><span class="chat__contato-nome">Camila Moraes</span><span class="chat__contato-hora">09:41</span></span>
+              <span class="chat__contato-preview is-unread">Pode validar o ajuste do 2º turno?</span>
+            </span>
+            <span class="chat__contato-badge badge-B">3</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== SEÇÃO 2 — CHECK DE LEITURA ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="sec-num">2</span>
+      <h2>Check de leitura — sair do azul iMessage</h2>
+    </div>
+    <p class="sec-desc">
+      O <code>.chat__check.is-lido</code> hoje é <code>#AEE0FF</code> (azul iMessage) sobre o balão verde —
+      destoa. Check simples = enviado; check duplo = lido. Três candidatos pro
+      <code>--chat-check-lido</code> sobre fundo <code>--plum #008835</code>, com a razão de contraste de
+      cada (alvo &ge; 3:1 pra componente gráfico).
+    </p>
+
+    <div class="grid">
+
+      <!-- HOJE -->
+      <div class="card is-now">
+        <span class="card-tag now">Hoje</span>
+        <h3>Azul iMessage <code>#AEE0FF</code></h3>
+        <p class="sub">Cor importada de fora da marca; só ~1.9:1 sobre o verde.</p>
+        <div class="check-demo">
+          <span class="check-demo-label">enviado / lido</span>
+          <span class="check-demo-icons">
+            <span class="chat__check check-sent-now">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="chat__check read check-read-now">
+              <svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg>
+            </span>
+          </span>
+        </div>
+        <span class="contrast-tag contrast-bad">contraste do lido ≈ 1.9:1 · abaixo do alvo</span>
+      </div>
+
+      <!-- CANDIDATOS -->
+      <div class="card is-pick">
+        <span class="card-tag pick">Candidatos · recomendado: branco</span>
+        <h3>3 opções sobre o balão verde</h3>
+        <p class="sub">Mesma forma do check duplo, cores diferentes. Razão de contraste calculada vs. <code>#008835</code>.</p>
+        <div class="ratio-list">
+
+          <div class="ratio-row">
+            <span class="preview">
+              <span class="chat__check read check-read-white">
+                <svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg>
+              </span>
+            </span>
+            <span class="name">Branco quase opaco<small>rgba(255,255,255,.95) — sóbrio, minimalista</small></span>
+            <span class="rec-pill">Recomendado</span>
+            <span class="contrast-tag contrast-ok">≈ 4.8:1</span>
+          </div>
+
+          <div class="ratio-row">
+            <span class="preview">
+              <span class="chat__check read check-read-yellow">
+                <svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg>
+              </span>
+            </span>
+            <span class="name">Amarelo de marca<small>#FFCB00 — vibrante, mas "ruidoso" como check</small></span>
+            <span class="contrast-tag contrast-ok">≈ 4.1:1</span>
+          </div>
+
+          <div class="ratio-row">
+            <span class="preview">
+              <span class="chat__check read check-read-blue">
+                <svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg>
+              </span>
+            </span>
+            <span class="name">Azul mais saturado<small>#CDEBFF — substitui o iMessage e passa no contraste</small></span>
+            <span class="contrast-tag contrast-mid">≈ 3.6:1</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== SEÇÃO 3 — CONTRASTE DA META ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="sec-num">3</span>
+      <h2>Contraste da meta nas minhas bolhas</h2>
+    </div>
+    <p class="sec-desc">
+      Na minha bolha (verde), a hora hoje é <code>opacity .8</code> (~3.3:1 — abaixo de 4.5:1 pra texto) e
+      o check de enviado é <code>rgba(255,255,255,.6)</code> (~2.2:1). Proposta: hora &rarr;
+      <code>rgba(255,255,255,.9)</code> e check enviado &rarr; <code>&ge;.8</code>.
+    </p>
+
+    <div class="card" style="border-color:var(--border-strong)">
+      <div class="ba">
+
+        <!-- ANTES -->
+        <div class="col">
+          <span class="col-h now">Hoje</span>
+          <div class="bubble-stage">
+            <div class="chat__bolha--minha chat__bolha">
+              <span class="chat__bolha-texto">Combinado, fecho o relatório.</span>
+              <span class="chat__bolha-meta">
+                <span class="chat__bolha-hora hora-now">09:43</span>
+                <span class="chat__check check-sent-now">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              </span>
+            </div>
+            <div class="chat__bolha--minha chat__bolha">
+              <span class="chat__bolha-texto">Já marquei como lido.</span>
+              <span class="chat__bolha-meta">
+                <span class="chat__bolha-hora hora-now">09:44</span>
+                <span class="chat__check read check-read-now">
+                  <svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg>
+                </span>
+              </span>
+            </div>
+          </div>
+          <div class="swatch-row">
+            <span class="contrast-tag contrast-bad">hora ≈ 3.3:1</span>
+            <span class="contrast-tag contrast-bad">check enviado ≈ 2.2:1</span>
+          </div>
+        </div>
+
+        <!-- DEPOIS -->
+        <div class="col">
+          <span class="col-h new">Proposto</span>
+          <div class="bubble-stage">
+            <div class="chat__bolha--minha chat__bolha">
+              <span class="chat__bolha-texto">Combinado, fecho o relatório.</span>
+              <span class="chat__bolha-meta">
+                <span class="chat__bolha-hora hora-new">09:43</span>
+                <span class="chat__check check-sent-new">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              </span>
+            </div>
+            <div class="chat__bolha--minha chat__bolha">
+              <span class="chat__bolha-texto">Já marquei como lido.</span>
+              <span class="chat__bolha-meta">
+                <span class="chat__bolha-hora hora-new">09:44</span>
+                <span class="chat__check read check-read-white">
+                  <svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg>
+                </span>
+              </span>
+            </div>
+          </div>
+          <div class="swatch-row">
+            <span class="contrast-tag contrast-ok">hora ≈ 4.5:1</span>
+            <span class="contrast-tag contrast-ok">check enviado ≈ 4.0:1</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FRAMES — widget completo aplicado ===================== -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="sec-num">→</span>
+      <h2>Widget completo com os tokens propostos</h2>
+    </div>
+    <p class="sec-desc">
+      Tudo junto aplicado: badge amarelo de marca (Opção A) no FAB e na lista, check de leitura branco,
+      meta com contraste corrigido. Mobile (~390px) e desktop.
+    </p>
+
+    <div class="frames">
+
+      <!-- MOBILE — lista -->
+      <div class="frame-block">
+        <span class="frame-cap">Mobile · lista de conversas</span>
+        <div class="phone">
+          <div class="phone-notch"><span></span></div>
+          <div class="phone-screen">
+            <div class="chat-widget">
+              <div class="cw-head">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <h4>Conversas</h4>
+                <button class="cw-x"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+              </div>
+              <div class="cw-busca"><div class="cw-busca-box"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span>Buscar pessoa…</span></div></div>
+              <div class="cw-sec">Conversas</div>
+              <div class="cw-rows">
+                <div class="chat__contato is-active">
+                  <span class="chat__avatar" style="background:var(--fiobras-blue)">CM<span class="chat__online-dot"></span></span>
+                  <span class="chat__contato-info">
+                    <span class="chat__contato-top"><span class="chat__contato-nome">Camila Moraes</span><span class="chat__contato-hora">09:41</span></span>
+                    <span class="chat__contato-preview is-unread">Pode validar o ajuste do 2º turno?</span>
+                  </span>
+                  <span class="chat__contato-badge badge-token">3</span>
+                </div>
+                <div class="chat__contato">
+                  <span class="chat__avatar" style="background:var(--plum-soft)">RF</span>
+                  <span class="chat__contato-info">
+                    <span class="chat__contato-top"><span class="chat__contato-nome">Rafael Fontes</span><span class="chat__contato-hora">08:57</span></span>
+                    <span class="chat__contato-preview">Você: beleza, obrigado</span>
+                  </span>
+                </div>
+                <div class="chat__contato">
+                  <span class="chat__avatar" style="background:#9B7BC4">DL</span>
+                  <span class="chat__contato-info">
+                    <span class="chat__contato-top"><span class="chat__contato-nome">Daniela Lima</span><span class="chat__contato-hora">ontem</span></span>
+                    <span class="chat__contato-preview is-unread">Bom dia! Recebeu o atestado?</span>
+                  </span>
+                  <span class="chat__contato-badge badge-token">1</span>
+                </div>
+                <div class="cw-sec">Pessoas</div>
+                <div class="chat__contato">
+                  <span class="chat__avatar" style="background:var(--plum)">TS<span class="chat__online-dot"></span></span>
+                  <span class="chat__contato-info">
+                    <span class="chat__contato-nome">Tiago Severo</span>
+                    <span class="chat__contato-preview">online</span>
+                  </span>
+                </div>
+                <div class="chat__contato">
+                  <span class="chat__avatar" style="background:#C48B3B">MB</span>
+                  <span class="chat__contato-info">
+                    <span class="chat__contato-nome">Marina Brito</span>
+                    <span class="chat__contato-preview">toque pra conversar</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MOBILE — thread -->
+      <div class="frame-block">
+        <span class="frame-cap">Mobile · conversa</span>
+        <div class="phone">
+          <div class="phone-notch"><span></span></div>
+          <div class="phone-screen">
+            <div class="chat-widget">
+              <div class="cw-thread">
+                <div class="cw-thread-head">
+                  <button class="cw-back"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+                  <span class="chat__avatar" style="background:var(--fiobras-blue)">CM<span class="chat__online-dot"></span></span>
+                  <span>
+                    <span class="cw-thread-nome" style="display:block">Camila Moraes</span>
+                    <span class="cw-thread-status typing">digitando…</span>
+                  </span>
+                </div>
+                <div class="cw-msgs">
+                  <div class="chat__daysep">Hoje</div>
+                  <div class="chat__bolha">
+                    <span class="chat__bolha-texto">Pode validar o ajuste do 2º turno?</span>
+                    <span class="chat__bolha-meta"><span class="chat__bolha-hora" style="color:var(--text-muted)">09:41</span></span>
+                  </div>
+                  <div class="chat__bolha--minha chat__bolha">
+                    <span class="chat__bolha-texto">Validado. Subi a correção agora.</span>
+                    <span class="chat__bolha-meta">
+                      <span class="chat__bolha-hora hora-new">09:43</span>
+                      <span class="chat__check check-sent-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                    </span>
+                  </div>
+                  <div class="chat__bolha--minha chat__bolha chat__bolha--grp">
+                    <span class="chat__bolha-texto">Já marquei como lido.</span>
+                    <span class="chat__bolha-meta">
+                      <span class="chat__bolha-hora hora-new">09:43</span>
+                      <span class="chat__check read check-read-white"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span>
+                    </span>
+                  </div>
+                  <div class="chat__reacoes">👍</div>
+                  <div class="cw-typing"><i></i><i></i><i></i></div>
+                </div>
+                <div class="cw-composer">
+                  <span class="box">Escreva uma mensagem</span>
+                  <button class="cw-send"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESKTOP -->
+      <div class="frame-block">
+        <span class="frame-cap">Desktop · painel</span>
+        <div class="desktop-win">
+          <div class="desktop-bar"><i></i><i></i><i></i><span class="url">fiopulse · chat</span></div>
+          <div style="display:flex;height:540px;">
+            <div style="width:46%;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);">
+              <div class="cw-head"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h4>Conversas</h4></div>
+              <div class="cw-busca"><div class="cw-busca-box"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span>Buscar pessoa…</span></div></div>
+              <div class="cw-sec">Conversas</div>
+              <div class="cw-rows">
+                <div class="chat__contato is-active">
+                  <span class="chat__avatar" style="background:var(--fiobras-blue)">CM<span class="chat__online-dot"></span></span>
+                  <span class="chat__contato-info">
+                    <span class="chat__contato-top"><span class="chat__contato-nome">Camila Moraes</span><span class="chat__contato-hora">09:41</span></span>
+                    <span class="chat__contato-preview is-unread">Pode validar o ajuste do 2º turno?</span>
+                  </span>
+                  <span class="chat__contato-badge badge-token">3</span>
+                </div>
+                <div class="chat__contato">
+                  <span class="chat__avatar" style="background:#9B7BC4">DL</span>
+                  <span class="chat__contato-info">
+                    <span class="chat__contato-top"><span class="chat__contato-nome">Daniela Lima</span><span class="chat__contato-hora">ontem</span></span>
+                    <span class="chat__contato-preview is-unread">Bom dia! Recebeu o atestado?</span>
+                  </span>
+                  <span class="chat__contato-badge badge-token">1</span>
+                </div>
+                <div class="chat__contato">
+                  <span class="chat__avatar" style="background:var(--plum-soft)">RF</span>
+                  <span class="chat__contato-info">
+                    <span class="chat__contato-top"><span class="chat__contato-nome">Rafael Fontes</span><span class="chat__contato-hora">08:57</span></span>
+                    <span class="chat__contato-preview">Você: beleza, obrigado</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;">
+              <div class="cw-thread">
+                <div class="cw-thread-head">
+                  <span class="chat__avatar" style="background:var(--fiobras-blue)">CM<span class="chat__online-dot"></span></span>
+                  <span><span class="cw-thread-nome" style="display:block">Camila Moraes</span><span class="cw-thread-status">online</span></span>
+                </div>
+                <div class="cw-msgs">
+                  <div class="chat__daysep">Hoje</div>
+                  <div class="chat__bolha">
+                    <span class="chat__bolha-texto">Pode validar o ajuste do 2º turno?</span>
+                    <span class="chat__bolha-meta"><span class="chat__bolha-hora" style="color:var(--text-muted)">09:41</span></span>
+                  </div>
+                  <div class="chat__bolha--minha chat__bolha">
+                    <span class="chat__bolha-texto">Validado. Subi a correção agora.</span>
+                    <span class="chat__bolha-meta">
+                      <span class="chat__bolha-hora hora-new">09:43</span>
+                      <span class="chat__check check-sent-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                    </span>
+                  </div>
+                  <div class="chat__bolha--minha chat__bolha chat__bolha--grp">
+                    <span class="chat__bolha-texto">Qualquer coisa me chama.</span>
+                    <span class="chat__bolha-meta">
+                      <span class="chat__bolha-hora hora-new">09:44</span>
+                      <span class="chat__check read check-read-white"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span>
+                    </span>
+                  </div>
+                  <div class="chat__reacoes" style="align-self:flex-end">❤️</div>
+                </div>
+                <div class="cw-composer">
+                  <span class="box">Escreva uma mensagem</span>
+                  <button class="cw-send"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== TOKENS FINAIS ===================== -->
+  <section class="tokens-final">
+    <h2>Tokens a adicionar (proposta recomendada)</h2>
+    <p>Um par único pra não-lidas e um pro check; a meta usa as opacidades corrigidas direto nas regras existentes.</p>
+    <div class="tok-grid">
+      <div class="tok">
+        <span class="sw" style="background:var(--fiobras-yellow)"></span>
+        <span><code>--chat-unread-bg: #FFCB00</code><small>FAB + linha — amarelo de marca (Opção A)</small></span>
+      </div>
+      <div class="tok">
+        <span class="sw" style="background:var(--plum-deep)"></span>
+        <span><code>--chat-unread-fg: --plum-deep</code><small>texto do badge de não-lidas</small></span>
+      </div>
+      <div class="tok">
+        <span class="sw" style="background:var(--plum)"><span class="chat__check read check-read-white" style="display:inline-flex"><svg viewBox="0 0 28 24" style="width:18px;height:13px" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span>
+        <span><code>--chat-check-lido: rgba(255,255,255,.95)</code><small>check duplo de leitura — branco sóbrio</small></span>
+      </div>
+      <div class="tok">
+        <span class="sw" style="background:var(--plum)"></span>
+        <span><code>hora .9 · check enviado .85</code><small>contraste da meta corrigido (&ge;3:1 gráfico / 4.5:1 texto)</small></span>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

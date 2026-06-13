@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · Chat — bolhas, agrupamento, recibos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:var(--milk);--surface:#FFFFFF;
+  --border:#E7EDE4;--border-strong:#D8E2D3;--text:var(--plum-deep);--text-body:#1E2D1A;
+  --text-muted:#4A6245;--success:#2F6B3F;--danger:#962F32;--font:"Poppins",system-ui,sans-serif;
+  --radius:12px;--radius-sm:8px;--transition:180ms cubic-bezier(.4,0,.2,1);--ease:cubic-bezier(.2,.8,.2,1);
+  --online:#22C55E;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:var(--font);background:var(--milk-warm);color:var(--text-body);
+  line-height:1.5;-webkit-font-smoothing:antialiased;padding:40px 24px 80px;
+}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
+/* ---------- doc shell ---------- */
+.doc{max-width:1080px;margin:0 auto}
+.doc__head{margin:0 0 34px;padding:0 4px}
+.kicker{
+  font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--plum);margin:0 0 10px;display:flex;align-items:center;gap:8px;
+}
+.kicker::before{content:"";width:22px;height:2px;background:var(--fiobras-yellow);border-radius:2px}
+.doc__title{font-size:28px;font-weight:700;color:var(--text);margin:0 0 10px;letter-spacing:-.01em}
+.doc__why{font-size:14.5px;color:var(--text-muted);max-width:760px;margin:0;line-height:1.6}
+.doc__why b{color:var(--text-body);font-weight:600}
+
+.section{margin:46px 0 0}
+.section__bar{display:flex;align-items:baseline;gap:12px;margin:0 0 18px;padding:0 4px}
+.section__n{
+  font-size:11px;font-weight:700;color:#fff;background:var(--plum);
+  width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.section__t{font-size:17px;font-weight:600;color:var(--text);margin:0}
+.section__d{font-size:13px;color:var(--text-muted);margin:0}
+
+/* ---------- compare grid ---------- */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){.compare{grid-template-columns:1fr}}
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 18px 20px;
+}
+.card__tag{
+  display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;margin:0 0 14px;
+}
+.card__tag--now{background:#FBEDED;color:var(--danger)}
+.card__tag--new{background:#E7F4EC;color:var(--plum)}
+.card__tag .ico{width:13px;height:13px}
+.note{font-size:12.5px;color:var(--text-muted);margin:14px 0 0;line-height:1.55}
+.note b{color:var(--text-body);font-weight:600}
+
+/* ============================================================
+   CHAT — base (modela o app real: .chat__bolha etc.)
+   ============================================================ */
+.thread-stage{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 12px 16px;display:flex;flex-direction:column;gap:0;
+}
+.chat__daysep{
+  text-align:center;font-size:11px;font-weight:600;color:var(--text-muted);
+  margin:14px auto 12px;background:var(--milk-warm);border:1px solid var(--border);
+  padding:3px 12px;border-radius:999px;align-self:center;
+}
+.chat__daysep:first-child{margin-top:4px}
+
+.chat__bolha{
+  position:relative;max-width:74%;align-self:flex-start;background:#fff;
+  border:1px solid var(--border);border-radius:14px;
+  padding:8px 12px;display:flex;flex-direction:column;gap:2px;margin-top:8px;
+  box-shadow:0 1px 2px rgba(0,40,20,.07);
+}
+.chat__bolha--grp{margin-top:3px}
+.chat__bolha--minha{
+  align-self:flex-end;background:var(--plum);border-color:var(--plum);color:#fff;
+  box-shadow:none;
+}
+/* PROPOSTO: cauda só no último do run (.is-tail) */
+.chat__bolha.is-tail{border-bottom-left-radius:4px}
+.chat__bolha--minha.is-tail{border-bottom-left-radius:14px;border-bottom-right-radius:4px}
+
+.chat__bolha-texto{font-size:14px;line-height:1.42;word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap}
+.chat__bolha-texto a{color:var(--fiobras-blue);text-decoration:underline;text-underline-offset:2px}
+.chat__bolha--minha .chat__bolha-texto a{color:#fff;text-decoration:underline;text-underline-offset:2px}
+
+.chat__bolha-meta{display:flex;align-items:center;justify-content:flex-end;gap:3px;margin-top:2px;line-height:1}
+.chat__bolha-hora{font-size:10px;opacity:.55}
+.chat__bolha--minha .chat__bolha-hora{opacity:.82}
+/* PROPOSTO: meta escondida nos intermediários do run/minuto */
+.chat__bolha:not(.is-tail) .chat__bolha-meta{display:none}
+
+.chat__check{display:inline-flex;color:rgba(255,255,255,.62)}
+.chat__check svg{width:15px;height:13px}
+.chat__check.is-lido{color:#AEE0FF}
+
+/* reações — chip agrupado por emoji */
+.chat__reacoes{
+  position:absolute;bottom:-11px;background:var(--surface);border:1px solid var(--border);
+  border-radius:999px;padding:1px 7px;min-height:20px;display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;line-height:1.6;box-shadow:0 1px 4px rgba(0,40,20,.14);
+}
+.chat__bolha--minha .chat__reacoes{right:10px}
+.chat__bolha:not(.chat__bolha--minha) .chat__reacoes{left:10px}
+.chat__reacao-grp{display:inline-flex;align-items:center;gap:2px}
+.chat__reacao-grp .emo{font-size:13px;line-height:1}
+.chat__reacao-grp .cnt{font-size:10px;font-weight:700;color:var(--text-muted)}
+
+/* online dot */
+.chat__online-dot{
+  width:11px;height:11px;border-radius:50%;background:var(--online);
+  border:2.5px solid var(--surface);display:inline-block;
+}
+
+/* ---------- device frame (mobile ~390px) ---------- */
+.phone{
+  width:390px;max-width:100%;margin:0 auto;background:#0E1A12;border-radius:38px;
+  padding:10px;box-shadow:0 18px 50px rgba(0,40,20,.22);
+}
+.phone__screen{background:var(--bg);border-radius:30px;overflow:hidden;position:relative}
+.phone__notch{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:120px;height:22px;background:#0E1A12;border-radius:0 0 14px 14px;z-index:5;
+}
+
+/* ---------- widget (estilo app real) ---------- */
+.chat-widget{display:flex;flex-direction:column;height:680px;background:var(--surface)}
+.chat-widget__head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 16px 12px;background:var(--surface);border-bottom:1px solid var(--border);
+  padding-top:26px;
+}
+.chat-widget__head strong{font-size:16px;font-weight:600;color:var(--text)}
+.chat-widget__close{
+  border:0;background:none;font-size:22px;line-height:1;color:var(--text-muted);
+  width:30px;height:30px;border-radius:8px;cursor:pointer;
+}
+.chat-widget__close:hover{background:var(--milk-warm)}
+.chat-widget__body{flex:1;display:flex;min-height:0}
+
+/* thread head */
+.chat__thread{flex:1;display:flex;flex-direction:column;min-height:0;width:100%}
+.chat__thread-head{
+  display:flex;align-items:center;gap:11px;padding:11px 14px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+}
+.chat__voltar{
+  border:0;background:none;cursor:pointer;color:var(--text-muted);
+  width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.chat__voltar:hover{background:var(--milk-warm)}
+.chat__voltar svg{width:20px;height:20px}
+.chat__avatar{
+  width:38px;height:38px;border-radius:50%;flex:0 0 auto;position:relative;
+  display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:600;
+}
+.chat__avatar .chat__online-dot{position:absolute;right:-1px;bottom:-1px}
+.chat__thread-head-info{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.chat__thread-nome{font-size:14.5px;font-weight:600;color:var(--text-body)}
+.chat__thread-status{font-size:11.5px;color:var(--text-muted)}
+.chat__thread-status.is-online{color:var(--plum-soft);font-weight:600}
+.chat__thread-status.is-typing{color:var(--plum-soft);font-style:italic;font-weight:500}
+
+.chat__msgs{
+  flex:1;overflow-y:auto;padding:8px 14px 18px;display:flex;flex-direction:column;
+  background:var(--bg);
+}
+
+/* typing indicator */
+.chat__typing{
+  align-self:flex-start;background:#fff;border:1px solid var(--border);border-radius:14px;
+  border-bottom-left-radius:4px;padding:11px 13px;margin-top:8px;
+  box-shadow:0 1px 2px rgba(0,40,20,.07);display:inline-flex;gap:4px;align-items:center;
+}
+.chat__typing span{width:6px;height:6px;border-radius:50%;background:var(--text-muted);opacity:.5;animation:tdot 1.2s var(--ease) infinite}
+.chat__typing span:nth-child(2){animation-delay:.18s}
+.chat__typing span:nth-child(3){animation-delay:.36s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:.9}}
+
+/* composer */
+.chat__composer{
+  display:flex;align-items:flex-end;gap:8px;padding:10px 12px;
+  background:var(--surface);border-top:1px solid var(--border);
+}
+.chat__composer textarea{
+  flex:1;border:1px solid var(--border-strong);border-radius:20px;resize:none;
+  font-family:var(--font);font-size:14px;color:var(--text-body);padding:9px 14px;
+  background:var(--bg);outline:none;line-height:1.4;
+}
+.chat__composer textarea:focus{border-color:var(--plum-soft);background:#fff}
+.chat__enviar{
+  width:40px;height:40px;border-radius:50%;border:0;background:var(--plum);color:#fff;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.chat__enviar svg{width:18px;height:18px}
+
+/* ---------- desktop floating panel ---------- */
+.desk-stage{
+  position:relative;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+  height:560px;overflow:hidden;
+}
+.desk-stage__page{
+  position:absolute;inset:0;padding:22px;
+  background:
+    linear-gradient(var(--milk-warm),var(--milk-warm)) ,
+    var(--bg);
+}
+.desk-ghost{height:14px;border-radius:7px;background:var(--milk-warm);margin:0 0 12px}
+.desk-ghost.w1{width:38%}.desk-ghost.w2{width:62%}.desk-ghost.w3{width:50%}.desk-ghost.w4{width:30%}
+.desk-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);height:90px;margin:18px 0;opacity:.6}
+
+.chat-fab{
+  position:absolute;right:22px;bottom:22px;width:56px;height:56px;border-radius:50%;
+  background:var(--plum);color:#fff;border:0;display:inline-flex;align-items:center;justify-content:center;
+  box-shadow:0 10px 26px rgba(0,99,40,.34);z-index:3;
+}
+.chat-fab svg{width:24px;height:24px}
+.chat-fab__badge{
+  position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;border-radius:999px;
+  background:var(--fiobras-yellow);color:var(--plum-deep);font-size:11px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid var(--bg);
+}
+.desk-panel{
+  position:absolute;right:22px;bottom:90px;width:520px;height:440px;z-index:4;
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  box-shadow:0 22px 60px rgba(0,40,20,.24);display:flex;flex-direction:column;
+}
+.desk-panel .chat-widget__head{padding-top:14px}
+.desk-panel__body{flex:1;display:flex;min-height:0}
+
+/* contatos column (desktop) */
+.chat__contatos{
+  width:204px;flex:0 0 204px;border-right:1px solid var(--border);background:var(--surface);
+  display:flex;flex-direction:column;min-height:0;
+}
+.chat__busca{display:flex;align-items:center;gap:7px;padding:10px 12px;border-bottom:1px solid var(--border)}
+.chat__busca svg{width:15px;height:15px;color:var(--text-muted);flex:0 0 auto}
+.chat__busca input{
+  flex:1;border:0;outline:none;background:none;font-family:var(--font);font-size:12.5px;color:var(--text-body);
+}
+.chat__sec{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);padding:11px 12px 5px}
+.chat__rows{overflow-y:auto;flex:1}
+.chat__contato{
+  width:100%;display:flex;align-items:center;gap:9px;padding:8px 12px;border:0;background:none;
+  cursor:pointer;text-align:left;
+}
+.chat__contato:hover{background:var(--milk-warm)}
+.chat__contato.is-active{background:var(--milk-warm)}
+.chat__contato .chat__avatar{width:34px;height:34px;font-size:12px}
+.chat__contato-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.chat__contato-top{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.chat__contato-nome{font-size:12.5px;font-weight:600;color:var(--text-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat__contato-hora{font-size:10px;color:var(--text-muted);flex:0 0 auto}
+.chat__contato-preview{font-size:11.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat__contato-preview.is-unread{color:var(--text-body);font-weight:600}
+.chat__contato-badge{
+  flex:0 0 auto;min-width:18px;height:18px;border-radius:999px;background:var(--plum);color:#fff;
+  font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;
+}
+.desk-panel .chat__thread{border-left:0}
+.desk-panel .chat__msgs{padding-bottom:14px}
+
+/* legend chips inside cards */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+.legend__item{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:5px 10px}
+.legend__sw{width:13px;height:13px;border-radius:4px;flex:0 0 auto}
+
+/* old reaction chip (Hoje) for the compare */
+.chip-old{
+  display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);
+  border-radius:999px;padding:2px 9px;font-size:13px;box-shadow:0 1px 4px rgba(0,40,20,.14);
+}
+.chip-old .cnt{font-size:10px;font-weight:700;color:var(--text-muted)}
+
+@media (prefers-reduced-motion: reduce){
+  .chat__typing span{animation:none}
+}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Mockup de design do chat do FioPulse: bolhas estilo WhatsApp com agrupamento por autor, cauda só no último balão, recibos de leitura, reações agrupadas por emoji e estados de presença.</h2>
+
+<div class="doc">
+
+  <header class="doc__head">
+    <p class="kicker">FioPulse · Chat</p>
+    <h1 class="doc__title">Bolhas estilo WhatsApp — agrupamento, recibo e reações</h1>
+    <p class="doc__why">
+      Por quê: o chat de hoje desenha <b>cauda e hora/check em todo balão</b>, o que polui runs longos
+      e cria ruído visual; o chip de reações usa <b>ícones únicos + total</b> (<code>👍❤️ 3</code>) — ambíguo.
+      A proposta agrupa balões consecutivos do mesmo autor (cauda + meta só no <b>último</b>), troca o chip por
+      <b>contagem por emoji</b>, deixa o balão recebido <b>flat</b> (sombra hairline, sem borda) e dá ao ponto online
+      um <b>verde mais vivo com aro branco</b>. Foco: chat rápido e UX impecável.
+    </p>
+  </header>
+
+  <!-- ===================== SECTION 1: agrupamento + cauda ===================== -->
+  <section class="section">
+    <div class="section__bar">
+      <span class="section__n">1</span>
+      <div>
+        <h2 class="section__t">Agrupamento &amp; cauda assimétrica</h2>
+        <p class="section__d">A cauda (raio 4px) aparece só no último balão do run; intermediários ficam com raio uniforme.</p>
+      </div>
+    </div>
+    <div class="compare">
+      <div class="card">
+        <span class="card__tag card__tag--now">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          Hoje
+        </span>
+        <div class="thread-stage">
+          <div class="chat__bolha is-tail"><span class="chat__bolha-texto">Bom dia, líder.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:02</span></span></div>
+          <div class="chat__bolha is-tail"><span class="chat__bolha-texto">A Cláudia faltou ontem no 1º turno.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:02</span></span></div>
+          <div class="chat__bolha is-tail"><span class="chat__bolha-texto">Vou lançar a ocorrência.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:03</span></span></div>
+          <div class="chat__bolha chat__bolha--minha is-tail"><span class="chat__bolha-texto">Pode lançar, valeu.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:04</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span></div>
+        </div>
+        <p class="note">Cada balão repete <b>cauda + hora</b>. Em runs de 3-4 mensagens a coluna vira escada e a hora se repete em sequência (08:02 / 08:02).</p>
+      </div>
+
+      <div class="card" style="border:2px solid var(--plum)">
+        <span class="card__tag card__tag--new">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Proposto — recomendado
+        </span>
+        <div class="thread-stage">
+          <div class="chat__bolha"><span class="chat__bolha-texto">Bom dia, líder.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:02</span></span></div>
+          <div class="chat__bolha chat__bolha--grp"><span class="chat__bolha-texto">A Cláudia faltou ontem no 1º turno.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:02</span></span></div>
+          <div class="chat__bolha chat__bolha--grp is-tail"><span class="chat__bolha-texto">Vou lançar a ocorrência.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:03</span></span></div>
+          <div class="chat__bolha chat__bolha--minha is-tail"><span class="chat__bolha-texto">Pode lançar, valeu.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:04</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span></div>
+        </div>
+        <p class="note"><b>Cauda só no .is-tail</b> (último do run); intermediários com raio uniforme 14px e <b>meta escondida</b>. Bloco lê como uma unidade — uma hora por minuto, uma cauda por autor.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 2: balão recebido flat vs com borda ===================== -->
+  <section class="section">
+    <div class="section__bar">
+      <span class="section__n">2</span>
+      <div>
+        <h2 class="section__t">Balão recebido: flat vs com borda</h2>
+        <p class="section__d">Recomendado: variante B — sem borda, só sombra hairline (premium flat). Meu balão é flat plain, sem sombra.</p>
+      </div>
+    </div>
+    <div class="compare">
+      <div class="card">
+        <span class="card__tag card__tag--now">A · com borda + sombra (hoje)</span>
+        <div class="thread-stage">
+          <div class="chat__bolha is-tail" style="border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,40,20,.12)"><span class="chat__bolha-texto">Recebido com borda 1px + sombra.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">09:10</span></span></div>
+          <div class="chat__bolha chat__bolha--minha is-tail"><span class="chat__bolha-texto">Meu balão plum, flat.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">09:11</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span></div>
+        </div>
+        <p class="note">A borda + a sombra juntas "dobram" o contorno do balão claro sobre o fundo claro — fica abafado.</p>
+      </div>
+
+      <div class="card" style="border:2px solid var(--plum)">
+        <span class="card__tag card__tag--new">B · só sombra hairline (recomendado)</span>
+        <div class="thread-stage">
+          <div class="chat__bolha is-tail" style="border:0;box-shadow:0 1px 2px rgba(0,40,20,.08)"><span class="chat__bolha-texto">Recebido sem borda, só sombra fina.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">09:10</span></span></div>
+          <div class="chat__bolha chat__bolha--minha is-tail"><span class="chat__bolha-texto">Meu balão plum, flat.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">09:11</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span></div>
+        </div>
+        <p class="note"><code>box-shadow:0 1px 2px rgba(0,40,20,.08)</code> sem borda. Mais leve, mais "premium", e o branco do balão já separa do fundo <code>--milk</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 3: reações + links ===================== -->
+  <section class="section">
+    <div class="section__bar">
+      <span class="section__n">3</span>
+      <div>
+        <h2 class="section__t">Chip de reações &amp; links clicáveis</h2>
+        <p class="section__d">Reações agrupadas por emoji com contagem; URLs viram links (branco nas minhas bolhas).</p>
+      </div>
+    </div>
+    <div class="compare">
+      <div class="card">
+        <span class="card__tag card__tag--now">Hoje — uniq + total ambíguo</span>
+        <div class="thread-stage" style="padding-bottom:26px">
+          <div class="chat__bolha is-tail" style="margin-bottom:8px">
+            <span class="chat__bolha-texto">Escala do fim de semana fechada.</span>
+            <span class="chat__bolha-meta"><span class="chat__bolha-hora">17:40</span></span>
+            <span class="chat__reacoes"><span class="chip-old" style="position:static;border:0;box-shadow:none;padding:0;gap:3px"><span class="emo">👍</span><span class="emo">❤️</span><span class="cnt">3</span></span></span>
+          </div>
+        </div>
+        <p class="note"><code>👍❤️ 3</code> não diz quantos de cada. Três pessoas — mas foram 2 👍 e 1 ❤️? O total isolado esconde a distribuição.</p>
+      </div>
+
+      <div class="card" style="border:2px solid var(--plum)">
+        <span class="card__tag card__tag--new">Proposto — contagem por emoji</span>
+        <div class="thread-stage" style="padding-bottom:26px">
+          <div class="chat__bolha is-tail" style="border:0;box-shadow:0 1px 2px rgba(0,40,20,.08);margin-bottom:8px">
+            <span class="chat__bolha-texto">Escala do fim de semana fechada.</span>
+            <span class="chat__bolha-meta"><span class="chat__bolha-hora">17:40</span></span>
+            <span class="chat__reacoes">
+              <span class="chat__reacao-grp"><span class="emo">👍</span><span class="cnt">2</span></span>
+              <span class="chat__reacao-grp"><span class="emo">❤️</span><span class="cnt">1</span></span>
+            </span>
+          </div>
+        </div>
+        <p class="note"><code>Map&lt;emoji,count&gt;</code> → <b>👍2 ❤️1</b>. Lê a distribuição num relance. Some por emoji em vez de <code>[...new Set()]</code> + total.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <span class="card__tag card__tag--new">Links clicáveis (XSS-safe: escapeHtml antes, depois linkifica)</span>
+      <div class="thread-stage">
+        <div class="chat__bolha is-tail" style="border:0;box-shadow:0 1px 2px rgba(0,40,20,.08)">
+          <span class="chat__bolha-texto">Manual atualizado: <a href="#" rel="noopener noreferrer" target="_blank">https://fiobras.app/ponto/manual</a></span>
+          <span class="chat__bolha-meta"><span class="chat__bolha-hora">10:22</span></span>
+        </div>
+        <div class="chat__bolha chat__bolha--minha is-tail">
+          <span class="chat__bolha-texto">Conferindo aqui: <a href="#" rel="noopener noreferrer" target="_blank">https://fiobras.app/ponto/manual</a></span>
+          <span class="chat__bolha-meta"><span class="chat__bolha-hora">10:24</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span>
+        </div>
+      </div>
+      <p class="note">URLs <code>http(s)</code> envoltas em <code>&lt;a target=_blank rel=noopener noreferrer&gt;</code> com sublinhado. Na bolha recebida o link é <b>azul Fiobras</b>; na minha (plum) é <b>branco</b> pra manter contraste. O texto passa por <code>escapeHtml</code> antes — só depois a regex linkifica.</p>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 4: thread completa no celular ===================== -->
+  <section class="section">
+    <div class="section__bar">
+      <span class="section__n">4</span>
+      <div>
+        <h2 class="section__t">Thread completa — celular (~390px)</h2>
+        <p class="section__d">Tudo junto: separador de dia, agrupamento, recibo, reações por emoji, link, presença online e "digitando…".</p>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="phone__screen">
+        <div class="phone__notch"></div>
+        <div class="chat-widget">
+          <div class="chat-widget__head">
+            <strong>Mensagens</strong>
+            <button class="chat-widget__close" aria-label="Fechar">&times;</button>
+          </div>
+          <div class="chat-widget__body">
+            <section class="chat__thread">
+              <div class="chat__thread-head">
+                <button class="chat__voltar" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <span class="chat__avatar" style="background:var(--fiobras-blue)">MS<span class="chat__online-dot"></span></span>
+                <span class="chat__thread-head-info">
+                  <span class="chat__thread-nome">Marcos Silveira</span>
+                  <span class="chat__thread-status is-online">online</span>
+                </span>
+              </div>
+              <div class="chat__msgs">
+                <div class="chat__daysep">Ontem</div>
+
+                <!-- run recebido (2) -->
+                <div class="chat__bolha" style="border:0;box-shadow:0 1px 2px rgba(0,40,20,.08)"><span class="chat__bolha-texto">Boa tarde! Fechei a escala do 1º turno.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">16:48</span></span></div>
+                <div class="chat__bolha chat__bolha--grp is-tail" style="border:0;box-shadow:0 1px 2px rgba(0,40,20,.08)"><span class="chat__bolha-texto">Falta só confirmar o atestado da Rosana.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">16:48</span></span></div>
+
+                <!-- run meu (2) com reações por emoji no último -->
+                <div class="chat__bolha chat__bolha--minha"><span class="chat__bolha-texto">Perfeito, obrigado!</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">16:52</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span></div>
+                <div class="chat__bolha chat__bolha--minha chat__bolha--grp is-tail" style="margin-bottom:14px"><span class="chat__bolha-texto">O atestado já está no sistema.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">16:52</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span>
+                  <span class="chat__reacoes">
+                    <span class="chat__reacao-grp"><span class="emo">👍</span><span class="cnt">2</span></span>
+                    <span class="chat__reacao-grp"><span class="emo">❤️</span><span class="cnt">1</span></span>
+                  </span>
+                </div>
+
+                <div class="chat__daysep">Hoje</div>
+
+                <!-- recebido com link -->
+                <div class="chat__bolha is-tail" style="border:0;box-shadow:0 1px 2px rgba(0,40,20,.08)"><span class="chat__bolha-texto">Bom dia! Segue o manual novo: <a href="#" rel="noopener noreferrer" target="_blank">https://fiobras.app/ponto/manual</a></span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:05</span></span></div>
+
+                <!-- run meu (1) entregue mas não lido -->
+                <div class="chat__bolha chat__bolha--minha is-tail"><span class="chat__bolha-texto">Vou repassar pra equipe agora.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:07</span><span class="chat__check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></span></div>
+
+                <!-- digitando -->
+                <div class="chat__typing" aria-label="Marcos está digitando"><span></span><span></span><span></span></div>
+              </div>
+              <form class="chat__composer" onsubmit="return false">
+                <textarea rows="1" placeholder="Escreva uma mensagem"></textarea>
+                <button type="submit" class="chat__enviar" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+              </form>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 5: desktop floating panel ===================== -->
+  <section class="section">
+    <div class="section__bar">
+      <span class="section__n">5</span>
+      <div>
+        <h2 class="section__t">Painel flutuante — desktop</h2>
+        <p class="section__d">FAB com badge de não-lidas (amarelo Fiobras) abre o painel com lista de conversas + thread. Header com presença explícita.</p>
+      </div>
+    </div>
+
+    <div class="desk-stage">
+      <div class="desk-stage__page">
+        <div class="desk-ghost w1"></div>
+        <div class="desk-ghost w2"></div>
+        <div class="desk-card"></div>
+        <div class="desk-ghost w3"></div>
+        <div class="desk-ghost w4"></div>
+        <div class="desk-card" style="height:64px"></div>
+      </div>
+
+      <button class="chat-fab" aria-label="Abrir mensagens">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span class="chat-fab__badge">3</span>
+      </button>
+
+      <div class="desk-panel">
+        <div class="chat-widget__head">
+          <strong>Mensagens</strong>
+          <button class="chat-widget__close" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="desk-panel__body">
+          <div class="chat__contatos">
+            <div class="chat__busca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+              <input type="search" placeholder="Buscar pessoa…" />
+            </div>
+            <div class="chat__rows">
+              <div class="chat__sec">Conversas</div>
+              <button class="chat__contato is-active">
+                <span class="chat__avatar" style="background:var(--fiobras-blue)">MS<span class="chat__online-dot"></span></span>
+                <span class="chat__contato-info">
+                  <span class="chat__contato-top"><span class="chat__contato-nome">Marcos Silveira</span><span class="chat__contato-hora">08:07</span></span>
+                  <span class="chat__contato-preview">digitando…</span>
+                </span>
+              </button>
+              <button class="chat__contato">
+                <span class="chat__avatar" style="background:var(--plum-soft)">RG</span>
+                <span class="chat__contato-info">
+                  <span class="chat__contato-top"><span class="chat__contato-nome">Renata Gomes</span><span class="chat__contato-hora">07:51</span></span>
+                  <span class="chat__contato-preview is-unread">Você: bom dia, confirma a troca?</span>
+                </span>
+                <span class="chat__contato-badge">2</span>
+              </button>
+              <button class="chat__contato">
+                <span class="chat__avatar" style="background:#A98E2B">PA</span>
+                <span class="chat__contato-info">
+                  <span class="chat__contato-top"><span class="chat__contato-nome">Paulo Andrade</span><span class="chat__contato-hora">Ontem</span></span>
+                  <span class="chat__contato-preview is-unread">Atestado anexado.</span>
+                </span>
+                <span class="chat__contato-badge">1</span>
+              </button>
+              <div class="chat__sec">Pessoas</div>
+              <button class="chat__contato">
+                <span class="chat__avatar" style="background:var(--plum)">CL<span class="chat__online-dot"></span></span>
+                <span class="chat__contato-info">
+                  <span class="chat__contato-nome">Cláudia Lima</span>
+                  <span class="chat__contato-preview">online</span>
+                </span>
+              </button>
+              <button class="chat__contato">
+                <span class="chat__avatar" style="background:#7A7468">JT</span>
+                <span class="chat__contato-info">
+                  <span class="chat__contato-nome">Júlio Tavares</span>
+                  <span class="chat__contato-preview">toque pra conversar</span>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <section class="chat__thread">
+            <div class="chat__thread-head">
+              <span class="chat__avatar" style="background:var(--fiobras-blue)">MS<span class="chat__online-dot"></span></span>
+              <span class="chat__thread-head-info">
+                <span class="chat__thread-nome">Marcos Silveira</span>
+                <span class="chat__thread-status is-typing">digitando…</span>
+              </span>
+            </div>
+            <div class="chat__msgs">
+              <div class="chat__daysep">Hoje</div>
+              <div class="chat__bolha is-tail" style="border:0;box-shadow:0 1px 2px rgba(0,40,20,.08)"><span class="chat__bolha-texto">Bom dia! Segue o manual: <a href="#" rel="noopener noreferrer" target="_blank">https://fiobras.app/ponto/manual</a></span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:05</span></span></div>
+              <div class="chat__bolha chat__bolha--minha"><span class="chat__bolha-texto">Recebido, obrigado!</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:06</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span></div>
+              <div class="chat__bolha chat__bolha--minha chat__bolha--grp is-tail" style="margin-bottom:14px"><span class="chat__bolha-texto">Vou repassar pra equipe.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">08:07</span><span class="chat__check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></span>
+                <span class="chat__reacoes"><span class="chat__reacao-grp"><span class="emo">👍</span><span class="cnt">1</span></span></span>
+              </div>
+              <div class="chat__typing"><span></span><span></span><span></span></div>
+            </div>
+            <form class="chat__composer" onsubmit="return false">
+              <textarea rows="1" placeholder="Escreva uma mensagem"></textarea>
+              <button type="submit" class="chat__enviar" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION 6: presença + recibos cheat sheet ===================== -->
+  <section class="section">
+    <div class="section__bar">
+      <span class="section__n">6</span>
+      <div>
+        <h2 class="section__t">Presença &amp; recibo de leitura</h2>
+        <p class="section__d">Ponto online mais vivo com aro branco; estado offline explícito; check simples (enviado) vs duplo (lido).</p>
+      </div>
+    </div>
+    <div class="compare">
+      <div class="card">
+        <span class="card__tag card__tag--new">Presença no header</span>
+        <div class="legend">
+          <span class="legend__item"><span class="chat__online-dot" style="position:static"></span> ponto <code>#22C55E</code> + aro branco 2.5px</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
+          <div class="chat__thread-head" style="border:1px solid var(--border);border-radius:10px">
+            <span class="chat__avatar" style="background:var(--plum)">CL<span class="chat__online-dot"></span></span>
+            <span class="chat__thread-head-info"><span class="chat__thread-nome">Cláudia Lima</span><span class="chat__thread-status is-online">online</span></span>
+          </div>
+          <div class="chat__thread-head" style="border:1px solid var(--border);border-radius:10px">
+            <span class="chat__avatar" style="background:#7A7468">JT</span>
+            <span class="chat__thread-head-info"><span class="chat__thread-nome">Júlio Tavares</span><span class="chat__thread-status">offline</span></span>
+          </div>
+        </div>
+        <p class="note"><b>online</b> em <code>--plum-soft</code> peso 600; <b>offline</b> em <code>--text-muted</code>. <b>digitando…</b> em <code>--plum-soft</code> itálico (já existe).</p>
+      </div>
+
+      <div class="card">
+        <span class="card__tag card__tag--new">Recibo (só nas minhas bolhas)</span>
+        <div class="thread-stage" style="gap:0">
+          <div class="chat__bolha chat__bolha--minha is-tail"><span class="chat__bolha-texto">Enviado, ainda não lido.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">11:01</span><span class="chat__check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></span></div>
+          <div class="chat__bolha chat__bolha--minha is-tail"><span class="chat__bolha-texto">Lido pelo destinatário.</span><span class="chat__bolha-meta"><span class="chat__bolha-hora">11:03</span><span class="chat__check is-lido"><svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span></span></div>
+        </div>
+        <div class="legend">
+          <span class="legend__item"><span style="color:rgba(0,0,0,.32);display:inline-flex"><svg viewBox="0 0 24 24" width="16" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> check simples = enviado</span>
+          <span class="legend__item"><span style="color:var(--fiobras-blue);display:inline-flex"><svg viewBox="0 0 28 24" width="18" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg></span> check duplo = lido</span>
+        </div>
+        <p class="note">Check só nas minhas bolhas e — pelo agrupamento — só no <b>.is-tail</b>. Cor de "lido": <code>#AEE0FF</code> (azulado) sobre o plum.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
