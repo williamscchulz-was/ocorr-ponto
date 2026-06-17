@@ -104,6 +104,18 @@
   - Hoje (sem a coluna): `situacao=null`/`afastado=false` em 100% — inofensivo. Testado: 142 funcs, 0 warnings.
 - **Pendente:** RH/admin adicionar a coluna "Situação" ao relatório D_Empregado no WK Radar (UI). Depois disso, o pipeline lê os valores reais; aí confirmamos a classificação `afastado` (em especial casos como "Férias") e validamos os writes.
 
+### ✅ Concluído no mesmo dia (2026-06-17)
+
+- **Campo adicionado pelo admin** no relatório D_Empregado: **"Situação do Emp."** (grupo "Outros" do designer). Export regenerado → CSV passou de 24 → 25 colunas. Config íntegro (sem variante "2", `EmpregadosSelecionados=""` preservado, Latin-1/CRLF ok).
+- **Valores distintos reais** (142 funcs): `Trabalhando`(87), `Rescisão`(47), `Aposentadoria por Invalidez`(5), `Férias`(2), `Licença Médica`(1).
+- **Classificação `afastado` final:**
+  - `false`: **Trabalhando** (normal), **Rescisão** (é DESLIGADO — já coberto por `ativo=false`, não é "afastado"), **Férias** (temporário; conta pra tempo de casa — decisão: manter no ranking).
+  - `true`: **Aposentadoria por Invalidez**, **Licença Médica** (+ defaults: afastamentos futuros desconhecidos caem em `true`).
+  - Correção vs. regra provisória: "Rescisão" tinha caído em `true` por engano (todo valor ≠ normal); ajustado pra `false` porque rescisão = demissão.
+- **Resultado:** 6 funcionários `afastado=true`. Caso-alvo capturado: `f-1133` (Licença Médica, `ativo=true`) — afastado sem desligamento, que antes passava como ativo nos rankings.
+- **Gravado em:** `funcionarios/{codigo}` (142 docs, merge — `bhExempt`/`turno` preservados, confirmado nos 5 de invalidez que têm `bhExempt=true`) + `pipeline-rh/cur` (84) + `pipeline-rh/hist`. Schema só ganhou `situacao`+`afastado`; `ativo` inalterado.
+- **Automação:** a tarefa `WKRadar Export D_Empregado` (07:40) já usa o modelo atualizado → daqui pra frente a coluna sai sozinha todo dia e o pipeline das 08:00 parseia+sobe sem intervenção. O parser mapeia por NOME, então é robusto a reordenação.
+
 ---
 
 ## 2026-05-29 · 🔬 Investigação: RAID a 100% "do nada" — causa EXTERNA (controlador/SSD), não o pipeline
