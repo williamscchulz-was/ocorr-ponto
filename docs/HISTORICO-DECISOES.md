@@ -137,6 +137,12 @@
 - **Matriz aplicada:** Banco de Horas e Demografia **sem diretor**; ranking **sem afastado + sem diretor**; quadro/contagem e aniversários **mantêm todos**. Flags lidas direto do Firestore (`afastado`/`diretor`/`situacao`), ausência = false.
 - Dados confirmados no Firestore: 95 ativos · 6 afastados · 3 diretores · 86 operacionais. Sem pendência de pipeline — todas as coleções (`funcionarios`, `pipeline-rh`, `bancoHoras`) carregam os flags.
 
+### Flag `aprendiz` (menor aprendiz) — 2026-06-17
+
+- **Campo novo `aprendiz` (boolean)**, derivado do cargo (`/aprendiz/i`), nas 3 coleções. Hoje 7 (4 ativos). Decisão do William: **mesmo tratamento do diretor** — conta no quadro + listagem + aniversário; **fora de BH (já era regime sem BH), demografia e ranking**.
+- Contagens novas: ranking-operacional = **82** (`ativo && !afastado && !diretor && !aprendiz`); demografia = **88** (`ativo && !diretor && !aprendiz`).
+- Missão pro PC: `wkradar-missions/pending/2026-06-17-tag-menor-aprendiz.md` (badge "Menor Aprendiz" + somar `aprendiz` aos filtros de exclusão; mockup exigido).
+
 ---
 
 ## 2026-05-29 · 🔬 Investigação: RAID a 100% "do nada" — causa EXTERNA (controlador/SSD), não o pipeline
