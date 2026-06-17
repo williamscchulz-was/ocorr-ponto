@@ -93,6 +93,19 @@
 
 ---
 
+## 2026-06-17 · Situação do vínculo (afastado/encostado/aposentado) — preparação do pipeline
+
+- **Necessidade:** o FioPulse precisa saber quem está AFASTADO/encostado/aposentado por invalidez pra tirar de rankings/contagens (ex.: tempo de casa). Hoje só existe `ativo` (= demitido sim/não); quem está afastado mas não desligado aparece como `ativo:true`.
+- **Verificação na fonte:** li os cabeçalhos reais dos 2 exports (D_Empregado 24 cols; BH 17 cols). **NENHUM tem coluna de situação/status/afastado/categoria.** Não é o pipeline descartando — a coluna **nunca esteve no CSV**. O mais próximo é `Demitido` (S/N), que só capta desligamento. → A coluna precisa ser ADICIONADA ao relatório D_Empregado no WK Radar.
+- **Preparação do pipeline (feito):**
+  - `process-empregado.mjs` **refatorado pra mapear colunas por NOME** (não mais por posição fixa de 24). Assim adicionar/reordenar coluna no WK **não quebra** o parser nem perde enriquecimento (antes: throw se ≠24 colunas). Validação virou soft (warn).
+  - Detecção da coluna de situação por nome flexível (`Situação`/`Categoria`/`Vínculo`/`Status`/…). Adicionados ao parsed: `situacao` (rótulo cru) e `afastado` (boolean derivado: true quando a situação ≠ "trabalhando normalmente"). Lista `SITUACOES_NORMAIS` editável quando soubermos os valores reais.
+  - `upload-to-firestore.mjs` grava `situacao`+`afastado` em **`funcionarios/{codigo}`** (merge:true → preserva `bhExempt`/`turno`) e em **`pipeline-rh/cur`+`hist`**. Schema só ADICIONA campos; `ativo` mantém significado (demitido s/n).
+  - Hoje (sem a coluna): `situacao=null`/`afastado=false` em 100% — inofensivo. Testado: 142 funcs, 0 warnings.
+- **Pendente:** RH/admin adicionar a coluna "Situação" ao relatório D_Empregado no WK Radar (UI). Depois disso, o pipeline lê os valores reais; aí confirmamos a classificação `afastado` (em especial casos como "Férias") e validamos os writes.
+
+---
+
 ## 2026-05-29 · 🔬 Investigação: RAID a 100% "do nada" — causa EXTERNA (controlador/SSD), não o pipeline
 
 > Investigação **read-only** (sem varrer disco — só métricas/perf/Event Log), continuando o incidente do grep órfão (acima). Objetivo: achar a causa **recorrente e externa** dos picos de 100% no RAID 1 SSD de sistema.
