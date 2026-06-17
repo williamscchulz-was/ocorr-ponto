@@ -9,6 +9,10 @@ requer: MOCKUP do badge antes de implementar
 
 # Missão — Tag "Menor Aprendiz" (app FioPulse)
 
+> ⚠️ **STATUS (2026-06-17): CÓDIGO JÁ IMPLEMENTADO E PUSHADO pelo WKRADAR** (commit `c8741fc`, v1.9.1) — autorizado pelo William. `node --check` OK, cache bumpado (`fiopulse-v158` / `?v=158`), changelog 1.9.1.
+> **FALTA SÓ O DEPLOY:** não tenho `firebase login` no servidor do pipeline. **PC: `git pull` + `firebase deploy --only hosting`** e mover esta missão pra `done/`. (Se quiser revisar o diff antes, é o commit c8741fc em `public/app.js`, `changelog.js`, `sw.js`, `index.html`.)
+> Implementação: espelhei exatamente o padrão do `diretor` (badge `badge--neutral` "Menor Aprendiz" na lista + selo no perfil + opção "Aprendizes" no filtro + `f.aprendiz !== true` nos filtros de BH/demografia/ranking). Os checklists abaixo já estão feitos no código.
+
 Continuação direta da v1.9.0 (tags afastado/diretor, já em produção). Agora o **menor aprendiz** ganha tag e **o mesmo tratamento de exclusão do diretor**.
 
 ## Dado novo (já no Firestore)

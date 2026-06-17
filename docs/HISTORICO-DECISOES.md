@@ -142,6 +142,7 @@
 - **Campo novo `aprendiz` (boolean)**, derivado do cargo (`/aprendiz/i`), nas 3 coleções. Hoje 7 (4 ativos). Decisão do William: **mesmo tratamento do diretor** — conta no quadro + listagem + aniversário; **fora de BH (já era regime sem BH), demografia e ranking**.
 - Contagens novas: ranking-operacional = **82** (`ativo && !afastado && !diretor && !aprendiz`); demografia = **88** (`ativo && !diretor && !aprendiz`).
 - Missão pro PC: `wkradar-missions/pending/2026-06-17-tag-menor-aprendiz.md` (badge "Menor Aprendiz" + somar `aprendiz` aos filtros de exclusão; mockup exigido).
+- **Implementação no app feita pelo WKRADAR** (autorizado pelo William, commit `c8741fc`, **v1.9.1**): badge `badge--neutral` "Menor Aprendiz" na lista + selo no perfil + opção "Aprendizes" no filtro de status + `f.aprendiz !== true` nos filtros de BH/demografia/ranking (espelho do `diretor`). Bump `CURRENT_VERSION=1.9.1`, `CACHE=fiopulse-v158`, `?v=158`; changelog 1.9.1. `node --check` OK nos 3 JS. **Deploy pendente:** sem `firebase login` no servidor do pipeline → PC roda `firebase deploy --only hosting` (aviso no bridge). Nota: 1ª vez que o Claude WKRADAR mexeu direto no `public/` do app — normalmente é domínio do PC; foi exceção autorizada.
 
 ---
 
