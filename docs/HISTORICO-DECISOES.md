@@ -116,6 +116,14 @@
 - **Gravado em:** `funcionarios/{codigo}` (142 docs, merge — `bhExempt`/`turno` preservados, confirmado nos 5 de invalidez que têm `bhExempt=true`) + `pipeline-rh/cur` (84) + `pipeline-rh/hist`. Schema só ganhou `situacao`+`afastado`; `ativo` inalterado.
 - **Automação:** a tarefa `WKRadar Export D_Empregado` (07:40) já usa o modelo atualizado → daqui pra frente a coluna sai sozinha todo dia e o pipeline das 08:00 parseia+sobe sem intervenção. O parser mapeia por NOME, então é robusto a reordenação.
 
+### Ajuste: afastado (não demitido) CONTA no quadro — `ativo=true`
+
+- **Motivo:** o admin tinha desativado manualmente os aposentados por invalidez (ex.: Nivaldo Clasen, f-140) pra tirá-los de contagens — workaround de antes do `afastado` existir. Mas eles **contam no quadro** (não são demitidos); o "INATIVO" era enganoso.
+- **Regra nova no `upload-to-firestore.mjs`:** `afastado === true && !demitido` → força `ativo=true` (mesmo com inativo manual antigo). O `afastado` passa a ser o que exclui de rankings/visões; `ativo` volta a significar só "no quadro / não demitido". Demitido (ex.: Denis f-778, situacao "Rescisão") segue `ativo=false`. Não-afastados com inativo manual (sem situação de afastamento) continuam preservados.
+- **Efeito:** 5 aposentados por invalidez voltaram a `ativo=true` (+5 no headcount → 95 ativos), todos com `afastado=true` + `situacao`. Validado no Firestore.
+- **Heartbeat:** o cálculo de "ativos sem BH" agora também exclui `afastado` (eles legitimamente não têm BH) — evita falso alarme.
+- **Falta no app (PC):** trocar o banner binário "Funcionário INATIVO" por exibir a **situação** quando `afastado=true` (ex.: "Afastado · Aposentadoria por Invalidez"), e reservar "INATIVO" só pra `ativo=false` (demitido). Headcount usa `ativo`; rankings usam `afastado!==true`.
+
 ---
 
 ## 2026-05-29 · 🔬 Investigação: RAID a 100% "do nada" — causa EXTERNA (controlador/SSD), não o pipeline
