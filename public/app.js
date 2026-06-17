@@ -1258,8 +1258,16 @@ function renderAniversariantesWidget(u) {
 // tem admissão registrada. Card recolhível com o mesmo visual de .dashboard-demografia.
 function renderRankingTempoCasaWidget(u) {
   if (u.role !== "admin") return "";
+  // Fora do ranking: diretoria — por cargo "diretor" ou pelos nomes da família
+  // (Landolino, William Alexander, Jules Rimet Schulz). A disputa de antiguidade
+  // é do operacional. (Afastados sairiam aqui também, mas o pipeline de GH não
+  // marca afastamento — ver com o dono.)
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const DIRETORIA = [["landolino", "schulz"], ["william", "alexander", "schulz"], ["jules", "rimet", "schulz"]];
+  const ehDiretoria = (f) => norm(f.cargo).includes("diretor")
+    || DIRETORIA.some((toks) => toks.every((t) => norm(f.nome).includes(t)));
   const comDias = (state.funcionarios || [])
-    .filter((f) => f.ativo !== false && Number.isFinite(Number(f.diasNaEmpresa)) && Number(f.diasNaEmpresa) > 0)
+    .filter((f) => f.ativo !== false && !ehDiretoria(f) && Number.isFinite(Number(f.diasNaEmpresa)) && Number(f.diasNaEmpresa) > 0)
     .sort((a, b) => Number(b.diasNaEmpresa) - Number(a.diasNaEmpresa))
     .slice(0, 10);
   if (comDias.length === 0) return "";
