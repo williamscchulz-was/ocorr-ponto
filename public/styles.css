@@ -2195,6 +2195,14 @@ textarea:focus-visible,
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 @media (prefers-reduced-motion: reduce) { .toggle__slider, .toggle__slider::before { transition: none; } }
+
+/* Linha de ajuste on/off (auditoria): título + descrição à esquerda, toggle à
+   direita. Usada no modal de funcionário (ativo / isento do banco de horas).
+   Resolve o desalinhamento antigo (checkbox herdava .field input width:100%). */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--border); }
+.toggle-row:first-of-type { border-top: 0; }
+.toggle-row__info strong { display: block; font-size: 14px; font-weight: 600; color: var(--text-body); }
+.toggle-row__info span { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .toggle input:checked + .toggle__slider {
   background: var(--plum);
 }

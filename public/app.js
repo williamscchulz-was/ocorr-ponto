@@ -2541,20 +2541,20 @@ function openFuncionarioModal(id) {
               ${f?.setor && !getSetores().includes(f.setor) ? `<option value="${escapeHtml(f.setor)}" selected>${escapeHtml(f.setor)} (legado)</option>` : ""}
             </select>
           </div>
-          <div class="field">
-            <label class="row" style="gap:8px; cursor:pointer;">
-              <input type="checkbox" id="func-ativo" ${f?.ativo !== false ? "checked" : ""} />
-              <span>Funcionário ativo</span>
-            </label>
-            <span class="field__hint">Inativos não aparecem no formulário de nova ocorrência.</span>
+          <div class="toggle-row">
+            <div class="toggle-row__info">
+              <strong>Funcionário ativo</strong>
+              <span>Inativos não aparecem no formulário de nova ocorrência.</span>
+            </div>
+            <label class="toggle"><input type="checkbox" id="func-ativo" ${f?.ativo !== false ? "checked" : ""} /><span class="toggle__slider"></span></label>
           </div>
           ${ehAdmin ? `
-            <div class="field">
-              <label class="row" style="gap:8px; cursor:pointer;">
-                <input type="checkbox" id="func-bhexempt" ${f?.bhExempt ? "checked" : ""} />
-                <span>Isento do banco de horas (pipeline ignora)</span>
-              </label>
-              <span class="field__hint">Marque pra funcionários que não devem ter saldo calculado (ex.: trainees, estagiários especiais).</span>
+            <div class="toggle-row">
+              <div class="toggle-row__info">
+                <strong>Isento do banco de horas</strong>
+                <span>O pipeline ignora o saldo — pra afastados, diretoria, estagiários.</span>
+              </div>
+              <label class="toggle"><input type="checkbox" id="func-bhexempt" ${f?.bhExempt ? "checked" : ""} /><span class="toggle__slider"></span></label>
             </div>
           ` : ""}
         </form>
