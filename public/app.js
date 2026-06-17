@@ -1267,7 +1267,7 @@ function renderRankingTempoCasaWidget(u) {
   const ehDiretoria = (f) => f.diretor === true || norm(f.cargo).includes("diretor")
     || DIRETORIA.some((toks) => toks.every((t) => norm(f.nome).includes(t)));
   const comDias = (state.funcionarios || [])
-    .filter((f) => f.ativo !== false && f.afastado !== true && !ehDiretoria(f) && Number.isFinite(Number(f.diasNaEmpresa)) && Number(f.diasNaEmpresa) > 0)
+    .filter((f) => f.ativo !== false && f.afastado !== true && !ehDiretoria(f) && f.aprendiz !== true && Number.isFinite(Number(f.diasNaEmpresa)) && Number(f.diasNaEmpresa) > 0)
     .sort((a, b) => Number(b.diasNaEmpresa) - Number(a.diasNaEmpresa))
     .slice(0, 10);
   if (comDias.length === 0) return "";
@@ -1292,8 +1292,8 @@ function renderRankingTempoCasaWidget(u) {
 
 function renderDemografiaWidget(u) {
   if (u.role !== "admin") return "";
-  // Diretoria fora da demografia (conta no quadro, mas não nas métricas do operacional).
-  const pool = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true);
+  // Diretoria e menores aprendizes fora da demografia (contam no quadro, mas não nas métricas do operacional).
+  const pool = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true && f.aprendiz !== true);
   if (pool.length === 0) return "";
 
   // Idade média
@@ -2198,6 +2198,7 @@ function renderFuncionarios() {
         <option value="operacional">Operacionais</option>
         <option value="afastado">Afastados</option>
         <option value="diretor">Diretores</option>
+        <option value="aprendiz">Aprendizes</option>
         <option value="inativo">Apenas inativos</option>
         <option value="todos">Todos</option>
       </select>
@@ -2234,9 +2235,10 @@ function renderFuncList(animar) {
 
   // Filtro por status (default = só ativos). afastado/diretor são ortogonais a ativo.
   if (statusFilter === "ativo") list = list.filter((f) => f.ativo !== false);
-  else if (statusFilter === "operacional") list = list.filter((f) => f.ativo !== false && f.afastado !== true && f.diretor !== true);
+  else if (statusFilter === "operacional") list = list.filter((f) => f.ativo !== false && f.afastado !== true && f.diretor !== true && f.aprendiz !== true);
   else if (statusFilter === "afastado") list = list.filter((f) => f.afastado === true);
   else if (statusFilter === "diretor") list = list.filter((f) => f.diretor === true);
+  else if (statusFilter === "aprendiz") list = list.filter((f) => f.aprendiz === true);
   else if (statusFilter === "inativo") list = list.filter((f) => f.ativo === false);
   // "todos" não filtra
 
@@ -2300,6 +2302,7 @@ function renderFuncList(animar) {
     // Marcadores ortogonais: contam no quadro, mas são categoria à parte.
     const marcadores =
       (f.diretor === true ? `<span class="badge badge--info">Diretor</span>` : "") +
+      (f.aprendiz === true ? `<span class="badge badge--neutral">Menor Aprendiz</span>` : "") +
       (f.afastado === true && !inativo ? `<span class="badge badge--warning">Afastado</span>` : "");
 
     return `
@@ -2399,7 +2402,7 @@ function renderFuncPerfilSecoes(f) {
     <div class="func-perfil-header">
       <div class="avatar avatar--lg" style="width:56px; height:56px; font-size:20px;">${initials(f.nome)}</div>
       <div style="flex:1; min-width:0;">
-        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}${f.diretor === true ? ` <span class="func-selo-diretoria">Diretoria</span>` : ""}</div>
+        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}${f.diretor === true ? ` <span class="func-selo-diretoria">Diretoria</span>` : ""}${f.aprendiz === true ? ` <span class="badge badge--neutral">Menor Aprendiz</span>` : ""}</div>
         <div class="func-perfil-header__sub">
           ${escapeHtml(f.cargo || "sem cargo")} · ${escapeHtml(f.setor || "sem setor")}${turnoLabel ? " · " + escapeHtml(turnoLabel) : ""}
         </div>
@@ -3046,7 +3049,7 @@ function renderBancoHoras() {
   $("#topbar-title").textContent = "Banco de Horas";
 
   // Escopo de visibilidade: admin/rh = todos, líder = turno, supervisor = lista
-  let visibles = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true && podeVerFuncionario(u, f));
+  let visibles = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true && f.aprendiz !== true && podeVerFuncionario(u, f));
 
   const totalFunc = visibles.length;
   // Por enquanto saldo vem do state (placeholder). Depois vem do Firestore /bancoHoras
@@ -7108,7 +7111,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.9.0";
+window.CURRENT_VERSION = "1.9.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
