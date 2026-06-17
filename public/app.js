@@ -6777,7 +6777,10 @@ function chatThreadShell(peerNome, peerUid, msgsHtml) {
     <form class="chat__composer" id="chat-composer">
       <textarea id="chat-input" rows="1" maxlength="2000" placeholder="Escreva uma mensagem"></textarea>
       <button type="submit" class="chat__enviar" aria-label="Enviar">${icon("send")}</button>
-    </form>`;
+    </form>
+    <button type="button" class="chat__descer" id="chat-descer" aria-label="Descer para a última mensagem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+    </button>`;
 }
 
 // Check de envio (1) e de leitura (2 riscos) — só nas minhas mensagens.
@@ -6834,6 +6837,8 @@ function aplicarReacao(mid, emoji) {
 function pintarMensagens(msgs) {
   const cont = $("#chat-msgs");
   if (!cont || !_chatRender) return;
+  // remove ecos otimistas pendentes — esta emissão traz a versão real do servidor
+  cont.querySelectorAll(".chat__bolha[data-temp]").forEach((e) => e.remove());
   const meu = meuUid();
   _chatRender.byId = new Map((msgs || []).map((m) => [m.id, m])); // pro toggle de reação
 
@@ -6939,8 +6944,16 @@ function wireChatThread(peerUid, peerNome) {
     });
   }
 
-  // Reações (delegado em #chat-msgs — elemento recriado a cada conversa, sem stack).
+  // Botão "descer": aparece ao rolar pra cima, leva pro fim da conversa.
   const msgsEl = $("#chat-msgs");
+  const descerBtn = $("#chat-descer");
+  if (msgsEl && descerBtn) {
+    const pertoFim = () => (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 120;
+    msgsEl.addEventListener("scroll", () => descerBtn.classList.toggle("is-visible", !pertoFim()));
+    descerBtn.addEventListener("click", () => { msgsEl.scrollTop = msgsEl.scrollHeight; descerBtn.classList.remove("is-visible"); });
+  }
+
+  // Reações (delegado em #chat-msgs — elemento recriado a cada conversa, sem stack).
   if (msgsEl) {
     msgsEl.addEventListener("click", (e) => {
       const trig = e.target.closest("[data-react-trig]");
@@ -7005,6 +7018,20 @@ async function enviarDoComposer(peerUid, peerNome) {
   input.focus();
   pararDigitando();
 
+  // Eco otimista: mostra a bolha JÁ (pendente); o snapshot real a substitui
+  // (pintarMensagens remove [data-temp] na próxima emissão).
+  const msgsEl = $("#chat-msgs");
+  if (msgsEl) {
+    const tmp = document.createElement("div");
+    tmp.className = "chat__bolha chat__bolha--minha chat__bolha--pendente";
+    tmp.setAttribute("data-temp", "1");
+    tmp.innerHTML = `<span class="chat__bolha-texto">${escapeHtml(texto)}</span>` +
+      `<span class="chat__bolha-meta"><span class="chat__bolha-hora">enviando…</span></span>`;
+    msgsEl.querySelector(".chat__msgs-vazio")?.remove();
+    msgsEl.appendChild(tmp);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
   try {
     await window.enviarMensagem(peerUid, peerNome, texto);
   } catch (err) {
@@ -7012,6 +7039,7 @@ async function enviarDoComposer(peerUid, peerNome) {
     toast(err.message || "Erro ao enviar mensagem.", "danger");
     input.value = texto;
     autoGrowTextarea(input);
+    $$("#chat-msgs [data-temp]").forEach((e) => e.remove());
   }
 }
 
@@ -7060,7 +7088,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.8.1";
+window.CURRENT_VERSION = "1.8.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

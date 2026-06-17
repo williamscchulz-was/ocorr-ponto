@@ -73,7 +73,13 @@
   --verde: var(--plum);
   --focus-ring: var(--plum-deep);
   --warning-ink: #7A4A12; /* texto âmbar sobre --warning-bg: passa AA (~4.9:1) */
-  --row-hover: var(--row-hover);
+  --row-hover: #FAFCF9; /* corrigido: o replace_all do lote hierarquia tinha tornado isto circular */
+
+  /* Chat (auditoria): cor ÚNICA de não-lidas (FAB + linha) e check de leitura
+     na paleta da marca — antes eram 3 cores (vermelho cru + azul iMessage). */
+  --chat-unread-bg: var(--fiobras-yellow);
+  --chat-unread-fg: var(--plum-deep);
+  --chat-check-lido: rgba(255, 255, 255, .95);
 }
 
 * { box-sizing: border-box; }
@@ -3038,7 +3044,7 @@ html.firebase-mode .login__forgot { display: block; }
 .chat-fab__badge {
   position: absolute; top: -2px; right: -2px;
   min-width: 20px; height: 20px; padding: 0 5px;
-  background: #dc2626; color: #fff; border-radius: 999px;
+  background: var(--chat-unread-bg); color: var(--chat-unread-fg); border-radius: 999px;
   font-size: 11px; font-weight: 700; display: grid; place-items: center;
   border: 2px solid var(--surface);
 }
@@ -3164,8 +3170,8 @@ body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: var(--plum);
-  color: #fff;
+  background: var(--chat-unread-bg);
+  color: var(--chat-unread-fg);
   font-size: 11px;
   font-weight: 700;
   display: flex;
@@ -3281,7 +3287,7 @@ body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
   opacity: 0.6;
   align-self: flex-end;
 }
-.chat__bolha--minha .chat__bolha-hora { opacity: 0.8; }
+.chat__bolha--minha .chat__bolha-hora { opacity: 0.9; }
 
 /* ---- Composer ---- */
 .chat__composer {
@@ -3599,9 +3605,25 @@ code { font-family: inherit; }
 /* Meta do balão (hora + check de envio / duplo de leitura) e status "digitando". */
 .chat__bolha-meta { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 2px; line-height: 1; }
 .chat__bolha-meta .chat__bolha-hora { float: none; margin: 0; }
-.chat__check { display: inline-flex; color: rgba(255, 255, 255, 0.6); }
+.chat__check { display: inline-flex; color: rgba(255, 255, 255, 0.85); }
 .chat__check svg { width: 15px; height: 13px; }
-.chat__check.is-lido { color: #AEE0FF; }
+.chat__check.is-lido { color: var(--chat-check-lido); }
+
+/* Eco otimista: a bolha aparece JÁ ao enviar, marcada como pendente; o snapshot
+   real a substitui. + botão "descer" quando se rola pra cima na conversa. */
+.chat__bolha--pendente { opacity: .72; }
+.chat__descer {
+  position: absolute; right: 14px; bottom: 74px; z-index: 4;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--surface); color: var(--plum); border: 1px solid var(--border-strong);
+  box-shadow: 0 4px 14px rgba(0, 40, 20, .16); display: grid; place-items: center;
+  opacity: 0; transform: translateY(8px) scale(.9); pointer-events: none;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.chat__descer.is-visible { opacity: 1; transform: none; pointer-events: auto; }
+.chat__descer .icon { width: 20px; height: 20px; }
+.chat__thread { position: relative; }
+@media (prefers-reduced-motion: reduce) { .chat__descer { transition: none; } }
 .chat__thread-status.is-typing { color: var(--plum-soft); font-style: italic; }
 
 /* Reações: gatilho (hover) + barra de emojis + chip na borda do balão. */
