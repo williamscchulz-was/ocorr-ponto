@@ -2568,6 +2568,26 @@ html.firebase-mode .login__forgot { display: block; }
   align-items: center;
   gap: 10px;
 }
+/* Banner âmbar de AFASTADO — "atenção", não "erro" (afastado conta no quadro). */
+.func-perfil-afastado {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  color: var(--warning-ink);
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.func-perfil-afastado__icon { display: inline-flex; flex-shrink: 0; }
+/* Selo "Diretoria" ao lado do nome no perfil (institucional, não é alerta). */
+.func-selo-diretoria {
+  display: inline-block; vertical-align: middle;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
+  background: var(--info-bg); color: var(--info);
+  border-radius: 999px; padding: 2px 9px; margin-left: 6px;
+}
 /* Banco de horas no perfil (gráfico de barras do mês) */
 .bh-perfil {
   background: var(--row-hover);

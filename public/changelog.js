@@ -11,7 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.8.2", d: "13 jun 2026", current: true, items: [
+    v: "1.9.0", d: "17 jun 2026", current: true, items: [
+      { type: "feat", title: "Afastados e diretores têm marcação própria: badge na lista, banner/selo no perfil e filtro de status (Operacionais · Afastados · Diretores)." },
+      { type: "note", title: "Diretores saem de banco de horas, demografia e ranking; afastados saem do ranking. Os dois seguem contando no quadro e nos aniversários." },
+    ],
+  },
+  {
+    v: "1.8.2", d: "13 jun 2026", items: [
       { type: "feat", title: "Chat: a mensagem aparece na hora ao enviar (com 'enviando…'), botão pra descer rápido na conversa, e cores de não-lida/leitura na paleta da marca." },
       { type: "fix", title: "Corrigido o realce ao passar o mouse nas listas — tinha sumido por um token de cor quebrado." },
     ],

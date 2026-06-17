@@ -1264,10 +1264,10 @@ function renderRankingTempoCasaWidget(u) {
   // marca afastamento — ver com o dono.)
   const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const DIRETORIA = [["landolino", "schulz"], ["william", "alexander", "schulz"], ["jules", "rimet", "schulz"]];
-  const ehDiretoria = (f) => norm(f.cargo).includes("diretor")
+  const ehDiretoria = (f) => f.diretor === true || norm(f.cargo).includes("diretor")
     || DIRETORIA.some((toks) => toks.every((t) => norm(f.nome).includes(t)));
   const comDias = (state.funcionarios || [])
-    .filter((f) => f.ativo !== false && !ehDiretoria(f) && Number.isFinite(Number(f.diasNaEmpresa)) && Number(f.diasNaEmpresa) > 0)
+    .filter((f) => f.ativo !== false && f.afastado !== true && !ehDiretoria(f) && Number.isFinite(Number(f.diasNaEmpresa)) && Number(f.diasNaEmpresa) > 0)
     .sort((a, b) => Number(b.diasNaEmpresa) - Number(a.diasNaEmpresa))
     .slice(0, 10);
   if (comDias.length === 0) return "";
@@ -1292,7 +1292,8 @@ function renderRankingTempoCasaWidget(u) {
 
 function renderDemografiaWidget(u) {
   if (u.role !== "admin") return "";
-  const pool = (state.funcionarios || []).filter((f) => f.ativo !== false);
+  // Diretoria fora da demografia (conta no quadro, mas não nas métricas do operacional).
+  const pool = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true);
   if (pool.length === 0) return "";
 
   // Idade média
@@ -2194,8 +2195,11 @@ function renderFuncionarios() {
       </div>
       <select id="func-status-filter" aria-label="Filtrar por status">
         <option value="ativo" selected>Apenas ativos</option>
+        <option value="operacional">Operacionais</option>
+        <option value="afastado">Afastados</option>
+        <option value="diretor">Diretores</option>
         <option value="inativo">Apenas inativos</option>
-        <option value="todos">Todos (ativos + inativos)</option>
+        <option value="todos">Todos</option>
       </select>
       <select id="func-turno-filter" aria-label="Filtrar por turno">
         <option value="">Todos os turnos (${totalAtivos})</option>
@@ -2228,8 +2232,11 @@ function renderFuncList(animar) {
   // Escopo de visibilidade por papel (supervisor vê só a lista dele; líder, só turno)
   list = list.filter((f) => podeVerFuncionario(u, f));
 
-  // Filtro por status (default = só ativos)
+  // Filtro por status (default = só ativos). afastado/diretor são ortogonais a ativo.
   if (statusFilter === "ativo") list = list.filter((f) => f.ativo !== false);
+  else if (statusFilter === "operacional") list = list.filter((f) => f.ativo !== false && f.afastado !== true && f.diretor !== true);
+  else if (statusFilter === "afastado") list = list.filter((f) => f.afastado === true);
+  else if (statusFilter === "diretor") list = list.filter((f) => f.diretor === true);
   else if (statusFilter === "inativo") list = list.filter((f) => f.ativo === false);
   // "todos" não filtra
 
@@ -2290,6 +2297,10 @@ function renderFuncList(animar) {
       : (semTurno
           ? `<span class="func-turno func-turno--sem"><span class="func-turno__dot"></span>Sem turno</span>`
           : `<span class="func-turno">${escapeHtml(TURNOS[f.turno].label)}</span>`);
+    // Marcadores ortogonais: contam no quadro, mas são categoria à parte.
+    const marcadores =
+      (f.diretor === true ? `<span class="badge badge--info">Diretor</span>` : "") +
+      (f.afastado === true && !inativo ? `<span class="badge badge--warning">Afastado</span>` : "");
 
     return `
       <article class="func-row ${alertaSemTurno ? "func-row--semturno" : ""} ${inativo ? "func-row--inativo" : ""}" data-func="${f.id}" role="button" tabindex="0">
@@ -2297,6 +2308,7 @@ function renderFuncList(animar) {
           <div class="func-nome">${escapeHtml(f.nome)}</div>
           <div class="func-sub">${subHtml}</div>
         </div>
+        ${marcadores}
         ${tag}
         <svg class="icon func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </article>`;
@@ -2387,7 +2399,7 @@ function renderFuncPerfilSecoes(f) {
     <div class="func-perfil-header">
       <div class="avatar avatar--lg" style="width:56px; height:56px; font-size:20px;">${initials(f.nome)}</div>
       <div style="flex:1; min-width:0;">
-        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}</div>
+        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}${f.diretor === true ? ` <span class="func-selo-diretoria">Diretoria</span>` : ""}</div>
         <div class="func-perfil-header__sub">
           ${escapeHtml(f.cargo || "sem cargo")} · ${escapeHtml(f.setor || "sem setor")}${turnoLabel ? " · " + escapeHtml(turnoLabel) : ""}
         </div>
@@ -2407,6 +2419,14 @@ function renderFuncPerfilSecoes(f) {
       <div class="func-perfil-demitido">
         <span class="func-perfil-demitido__icon">${icon("alert")}</span>
         <strong>Funcionário INATIVO</strong>
+      </div>
+    ` : f.afastado === true ? `
+      <div class="func-perfil-afastado">
+        <span class="func-perfil-afastado__icon">${icon("alert")}</span>
+        <div>
+          <strong>Afastado${f.situacao ? ` · ${escapeHtml(f.situacao)}` : ""}</strong>
+          <div class="text-xs" style="margin-top:2px;">Conta no quadro; fora de rankings e banco de horas.</div>
+        </div>
       </div>
     ` : ""}
 
@@ -3026,7 +3046,7 @@ function renderBancoHoras() {
   $("#topbar-title").textContent = "Banco de Horas";
 
   // Escopo de visibilidade: admin/rh = todos, líder = turno, supervisor = lista
-  let visibles = (state.funcionarios || []).filter((f) => f.ativo !== false && podeVerFuncionario(u, f));
+  let visibles = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true && podeVerFuncionario(u, f));
 
   const totalFunc = visibles.length;
   // Por enquanto saldo vem do state (placeholder). Depois vem do Firestore /bancoHoras
@@ -7088,7 +7108,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.8.2";
+window.CURRENT_VERSION = "1.9.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
