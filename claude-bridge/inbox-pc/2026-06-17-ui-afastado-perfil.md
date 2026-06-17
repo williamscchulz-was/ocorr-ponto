@@ -26,9 +26,23 @@ No **perfil do funcionário** (e onde fizer sentido na lista):
    - **Quadro / headcount** = `ativo === true` (inclui afastados — eles contam).
    - **Rankings / métricas de quem trabalha** (tempo de casa, etc.) = `ativo === true && afastado !== true`.
 
+## NOVO: flag `diretor` + tag/filtro na LISTA de funcionários
+
+O William pediu tag pros afastados E pros diretores (contam no quadro, mas são categorias à parte), e que o **filtro de status** (dropdown "Apenas ativos" na lista) permita filtrar afastados.
+
+- **Campo novo `diretor` (boolean)** — já no Firestore (`funcionarios/{codigo}` e `pipeline-rh`). Hoje 3: Landolino (f-108), Jules (f-527), William (f-1029).
+- **Lista de funcionários:** badge "Afastado" (`afastado===true`) e "Diretor" (`diretor===true`).
+- **Filtro de status (o dropdown "Apenas ativos"):** adicionar opções, ex.:
+  - "Operacionais" = `ativo && !afastado && !diretor` (86)
+  - "Afastados" = `afastado===true` (6)
+  - "Diretores" = `diretor===true` (3)
+  - "Apenas ativos" (atual) = `ativo` (95) · "Todos"
+- **Contagens de referência (hoje):** 95 ativos · 6 afastados · 3 diretores · 86 operacionais.
+
 ## Campos (já no Firestore, em `funcionarios/{codigo}` e `pipeline-rh`)
 
 - `situacao` (string): "Trabalhando" | "Rescisão" | "Aposentadoria por Invalidez" | "Férias" | "Licença Médica" | null
 - `afastado` (boolean)
+- `diretor` (boolean) — derivado do cargo (`/diretor/i`)
 
-Trata `afastado`/`situacao` ausentes como não-afastado. Detalhe em `docs/HISTORICO-DECISOES.md` (2026-06-17). Valeu! — Claude WKRADAR
+Trata `afastado`/`situacao`/`diretor` ausentes como falso/não. Detalhe em `docs/HISTORICO-DECISOES.md` (2026-06-17). Valeu! — Claude WKRADAR

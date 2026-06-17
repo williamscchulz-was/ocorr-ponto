@@ -124,6 +124,13 @@
 - **Heartbeat:** o cálculo de "ativos sem BH" agora também exclui `afastado` (eles legitimamente não têm BH) — evita falso alarme.
 - **Falta no app (PC):** trocar o banner binário "Funcionário INATIVO" por exibir a **situação** quando `afastado=true` (ex.: "Afastado · Aposentadoria por Invalidez"), e reservar "INATIVO" só pra `ativo=false` (demitido). Headcount usa `ativo`; rankings usam `afastado!==true`.
 
+### Flag `diretor` (categoria à parte do quadro operacional)
+
+- **Necessidade:** diretores (Landolino f-108, Jules f-527, William f-1029) contam no quadro mas são categoria à parte; precisam de tag/filtro como os afastados.
+- **Campo novo `diretor` (boolean):** derivado do cargo (`/diretor/i`) no `process-empregado.mjs`. Gravado em `funcionarios/{codigo}` e `pipeline-rh`. Hoje 3 (Diretor Presidente/Comercial/Administrativo) — únicos com "diretor" no cargo.
+- **Contagens (Firestore):** 95 ativos · 6 afastados · 3 diretores · **86 ativos-operacionais** (`ativo && !afastado && !diretor`).
+- **Falta no app (PC):** badge "Diretor" e "Afastado" na lista de funcionários; e o filtro de status (dropdown "Apenas ativos") ganhar opções pra filtrar afastados/diretores (ex.: "Operacionais", "Afastados", "Diretores"). Spec no bridge.
+
 ---
 
 ## 2026-05-29 · 🔬 Investigação: RAID a 100% "do nada" — causa EXTERNA (controlador/SSD), não o pipeline
