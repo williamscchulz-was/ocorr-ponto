@@ -131,6 +131,12 @@
 - **Contagens (Firestore):** 95 ativos · 6 afastados · 3 diretores · **86 ativos-operacionais** (`ativo && !afastado && !diretor`).
 - **Falta no app (PC):** badge "Diretor" e "Afastado" na lista de funcionários; e o filtro de status (dropdown "Apenas ativos") ganhar opções pra filtrar afastados/diretores (ex.: "Operacionais", "Afastados", "Diretores"). Spec no bridge.
 
+### ✅ App entregue — FioPulse v1.9.0 (PC, 2026-06-17)
+
+- Missão `2026-06-17-tags-afastado-diretor` **concluída e em produção** (movida pra `wkradar-missions/done/`). Claude PC implementou: badges (Afastado/Diretor) + banner/selo no perfil + filtro de status + exclusões por tela.
+- **Matriz aplicada:** Banco de Horas e Demografia **sem diretor**; ranking **sem afastado + sem diretor**; quadro/contagem e aniversários **mantêm todos**. Flags lidas direto do Firestore (`afastado`/`diretor`/`situacao`), ausência = false.
+- Dados confirmados no Firestore: 95 ativos · 6 afastados · 3 diretores · 86 operacionais. Sem pendência de pipeline — todas as coleções (`funcionarios`, `pipeline-rh`, `bancoHoras`) carregam os flags.
+
 ---
 
 ## 2026-05-29 · 🔬 Investigação: RAID a 100% "do nada" — causa EXTERNA (controlador/SSD), não o pipeline
