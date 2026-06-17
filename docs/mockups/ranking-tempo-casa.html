@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Ranking de tempo de casa (Top 10)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;
+  --radius:12px; --radius-lg:18px; --radius-sm:8px;
+  --transition:180ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-body);padding:40px 22px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--plum);font-weight:600}
+h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:12px 0 6px;color:var(--text)}
+.lead{color:var(--text-muted);font-size:13.5px;max-width:66ch;line-height:1.6;margin-bottom:8px}
+.lead b{color:var(--text-body);font-weight:600}
+
+.switch{display:inline-flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px;margin:18px 0 22px}
+.switch button{font:inherit;font-size:12.5px;font-weight:600;border:0;background:none;color:var(--text-muted);padding:6px 16px;border-radius:999px;cursor:pointer}
+.switch button.on{background:var(--plum);color:#fff}
+
+/* ---- Card no estilo .dashboard-demografia ---- */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:18px 20px 8px;margin-bottom:22px;
+}
+.card__head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.card__head svg{width:18px;height:18px;color:var(--plum);flex:none}
+.card__head h2{font-size:14px;font-weight:700;color:var(--text)}
+.card__head .muted{font-size:11.5px;color:var(--text-muted);font-weight:500}
+.card__sub{font-size:11.5px;color:var(--text-muted);margin:0 0 12px 28px}
+
+.rk{display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:14px;padding:11px 4px;border-top:1px solid var(--border)}
+.rk:first-of-type{border-top:0}
+.rk__pos{font-size:13px;font-weight:700;color:var(--text-muted);text-align:center;font-variant-numeric:tabular-nums}
+.rk--1 .rk__pos,.rk--2 .rk__pos,.rk--3 .rk__pos{color:var(--plum)}
+.rk--1 .rk__pos{font-size:15px;font-weight:800}
+.rk__main{min-width:0}
+.rk__nome{font-size:14px;font-weight:500;color:var(--text-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk__meta{font-size:11.5px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rk__dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.4}
+.rk__val{text-align:right;white-space:nowrap}
+.rk__anos{font-family:var(--font);font-size:16px;font-weight:800;color:var(--plum);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.rk--1 .rk__anos{font-size:19px}
+.rk__meses{font-size:11px;color:var(--text-muted);margin-top:3px}
+
+/* barra proporcional (variante "com barra") */
+.bars .rk{grid-template-columns:26px 1fr auto}
+.bars .rk__bar{grid-column:2 / 4;height:4px;border-radius:999px;background:var(--milk-warm);margin-top:9px;overflow:hidden}
+.bars .rk__bar > span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--plum-soft),var(--plum))}
+.enxuta .rk__bar{display:none}
+
+.nota{font-size:12.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px;line-height:1.6}
+.nota b{color:var(--text-body);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">FioPulse · proposta de card</div>
+  <h1>Ranking — Tempo de casa (Top 10)</h1>
+  <p class="lead">Um card no mesmo estilo da <b>Demografia</b>, no dashboard do admin: os 10 funcionários ativos
+  de casa mais antiga, do maior pro menor. Usa os dados que já existem (<b>diasNaEmpresa</b> + admissão), então
+  é só montar a visão. Escolhe a densidade:</p>
+
+  <div class="switch" id="switch">
+    <button class="on" data-v="bars">Com barra</button>
+    <button data-v="enxuta">Enxuta</button>
+  </div>
+
+  <div class="card bars" id="card">
+    <div class="card__head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+      <h2>Ranking — Tempo de casa</h2>
+      <span class="muted">Top 10 · 95 ativos</span>
+    </div>
+    <p class="card__sub">Funcionários ativos com admissão registrada, do mais antigo ao mais novo.</p>
+    <div id="lista"></div>
+  </div>
+
+  <p class="nota"><b>Como funciona:</b> ordena os ativos por <b>diasNaEmpresa</b> (desc), pega os 10 primeiros e
+  formata com o mesmo <code>tempoDeCasa()</code> que a Demografia já usa. A barra é proporcional ao 1º colocado.
+  Fácil trocar pra Top 5/15 ou virar "ver todos". Some pra quem não tem admissão registrada. Zero emoji, tabular-nums
+  nos números, recolhível como o card de Demografia.</p>
+</div>
+
+<script>
+// Dados fictícios realistas (nome · setor · turno · admissão · diasNaEmpresa)
+const DADOS = [
+  ["Aldo Bittencourt","Tecelagem","1º Turno","02/03/2006", 7410],
+  ["Marisa Koch","Administrativo","Geral","18/07/2007", 6890],
+  ["Joacir Vargas","Manutenção","3º Turno","09/01/2009", 6360],
+  ["Tânia Reblin","Fiação","2º Turno","25/05/2010", 5870],
+  ["Anderson Luz","Tecelagem","1º Turno","14/11/2011", 5320],
+  ["Rosenildo Maas","Expedição","2º Turno","03/08/2013", 4710],
+  ["Isabele Cardoso","Qualidade","Geral","22/02/2015", 4150],
+  ["Roberto Stahl","Fiação","3º Turno","10/06/2017", 3290],
+  ["Djoniffer Krieck","Tecelagem","3º Turno","19/09/2019", 2470],
+  ["Carlos Zoz","Acabamento","3º Turno","05/04/2021", 1900],
+];
+// espelha o tempoDeCasa() do utils.js
+function tempoDeCasa(dias){
+  if(!dias||dias<1) return {anos:"—",meses:""};
+  const anos=Math.floor(dias/365), meses=Math.floor((dias%365)/30);
+  return {anos: anos>0?anos+(anos===1?" ano":" anos"):meses+(meses===1?" mês":" meses"),
+          meses: anos>0&&meses>0?("e "+meses+(meses===1?" mês":" meses")):""};
+}
+const max = Math.max(...DADOS.map(d=>d[4]));
+const ini = (n)=>n.split(" ").map(p=>p[0]).slice(0,2).join("").toUpperCase();
+document.getElementById("lista").innerHTML = DADOS.map((d,i)=>{
+  const t = tempoDeCasa(d[4]);
+  const pct = Math.round(d[4]/max*100);
+  return `<div class="rk rk--${i+1}">
+    <div class="rk__pos">${i+1}</div>
+    <div class="rk__main">
+      <div class="rk__nome">${d[0]}</div>
+      <div class="rk__meta"><span>${d[1]}</span><span class="rk__dot"></span><span>${d[2]}</span><span class="rk__dot"></span><span>desde ${d[3]}</span></div>
+      <div class="rk__bar"><span style="width:${pct}%"></span></div>
+    </div>
+    <div class="rk__val"><div class="rk__anos">${t.anos}</div>${t.meses?`<div class="rk__meses">${t.meses}</div>`:""}</div>
+  </div>`;
+}).join("");
+
+document.getElementById("switch").addEventListener("click",(e)=>{
+  const b=e.target.closest("button"); if(!b) return;
+  document.querySelectorAll("#switch button").forEach(x=>x.classList.toggle("on",x===b));
+  document.getElementById("card").className = "card "+b.dataset.v;
+});
+</script>
+</body>
+</html>
