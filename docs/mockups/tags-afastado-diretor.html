@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — tags e filtro de Afastado + Diretor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--milk-edge:#D8E2D3;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:var(--milk);--surface:#FFFFFF;
+  --border:#E7EDE4;--border-strong:#D8E2D3;--text:var(--plum-deep);--text-body:#1E2D1A;--text-muted:#4A6245;
+  --success:#2F6B3F;--success-bg:#E0EAD8;--warning:#B27429;--warning-bg:#F8E4C8;--warning-ink:#7A4A12;
+  --danger:#962F32;--danger-bg:#F4D6D2;--info:#2F5A6B;--info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--radius:12px;--radius-lg:18px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-body);padding:40px 22px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--plum);font-weight:600}
+h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:12px 0 6px;color:var(--text)}
+.lead{color:var(--text-muted);font-size:13.5px;line-height:1.6;margin-bottom:6px;max-width:64ch}
+.lead b{color:var(--text-body);font-weight:600}
+h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin:34px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--border)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+
+/* ----- badges (reusa as classes reais .badge / .badge--*) ----- */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.badge--warning{background:var(--warning-bg);color:var(--warning-ink)}
+.badge--info{background:var(--info-bg);color:var(--info)}
+.badge--neutral{background:var(--milk-warm);color:var(--text-muted)}
+
+/* ----- linha de funcionário (estilo .func-row) ----- */
+.func-row{display:flex;align-items:center;gap:13px;padding:12px 16px;border-top:1px solid var(--border)}
+.func-row:first-child{border-top:0}
+.func-row--inativo{opacity:.55}
+.av{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:600}
+.fr-main{min-width:0;flex:1}
+.fr-nome{font-size:14px;font-weight:500;color:var(--text-body)}
+.fr-sub{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+.fr-tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+/* ----- toolbar/filtro ----- */
+.toolbar{display:flex;gap:10px;align-items:center;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px}
+.toolbar__search{flex:1;display:flex;align-items:center;gap:8px;background:var(--milk);border:1px solid var(--border);border-radius:999px;padding:8px 14px;color:var(--text-muted);font-size:13px}
+.toolbar__search svg{width:16px;height:16px}
+.sel{position:relative}
+.sel__btn{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:9px 12px;font:inherit;font-size:13px;font-weight:500;color:var(--text-body);cursor:pointer}
+.sel__btn svg{width:15px;height:15px;color:var(--text-muted)}
+.sel__menu{margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 16px 40px rgba(0,40,20,.14);overflow:hidden;max-width:320px}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 16px;border-top:1px solid var(--border);cursor:pointer;font-size:13.5px}
+.opt:first-child{border-top:0}
+.opt:hover{background:var(--milk-warm)}
+.opt.is-sel{background:var(--milk-warm)}
+.opt .l{display:flex;align-items:center;gap:9px}
+.opt .l b{font-weight:600;color:var(--text-body)}
+.opt .l span{color:var(--text-muted);font-size:12px}
+.opt .n{font-size:12px;font-weight:700;color:var(--text-muted);font-variant-numeric:tabular-nums;background:var(--milk-warm);border-radius:999px;padding:1px 9px;min-width:34px;text-align:center}
+.opt.is-sel .n{background:var(--success-bg);color:var(--success)}
+.opt .check{width:16px;height:16px;color:var(--plum)}
+
+/* ----- matriz ----- */
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;font-size:13px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--border)}
+th{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);font-weight:600;background:var(--surface-warm,#EEF3EC)}
+tr:last-child td{border-bottom:0}
+td.tela{font-weight:600;color:var(--text-body)}
+.yes{color:var(--success);font-weight:600}
+.no{color:var(--danger)}
+.muted{color:var(--text-muted)}
+.nota{font-size:12.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px;line-height:1.6;margin-top:14px}
+.nota b{color:var(--text-body);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">FioPulse · proposta (dados já no Firestore)</div>
+  <h1>Tags e filtro — Afastado + Diretor</h1>
+  <p class="lead">Funcionários ganharam 3 flags: <b>afastado</b> (encostado de verdade — hoje 6),
+  <b>diretor</b> (hoje 3) e <b>situacao</b> (rótulo do RH). Eles <b>contam no quadro</b> (95 ativos) mas
+  saem de algumas telas. Abaixo: como ficam na lista, no filtro, e a regra por tela.</p>
+
+  <h2>1 · Badges na lista de funcionários</h2>
+  <div class="card">
+    <div class="func-row">
+      <span class="av" style="background:var(--plum-soft)">AS</span>
+      <div class="fr-main"><div class="fr-nome">Ana Souza</div><div class="fr-sub">Tecelagem · 1º Turno</div></div>
+      <div class="fr-tags"></div>
+    </div>
+    <div class="func-row">
+      <span class="av" style="background:var(--fiobras-blue)">NC</span>
+      <div class="fr-main"><div class="fr-nome">Nivaldo Clasen</div><div class="fr-sub">Administração · 1º Turno</div></div>
+      <div class="fr-tags"><span class="badge badge--warning"><span class="dot"></span>Afastado</span></div>
+    </div>
+    <div class="func-row">
+      <span class="av" style="background:#9B7BC4">MF</span>
+      <div class="fr-main"><div class="fr-nome">Marlene Fogaça</div><div class="fr-sub">Preparação · 2º Turno</div></div>
+      <div class="fr-tags"><span class="badge badge--warning"><span class="dot"></span>Afastado</span></div>
+    </div>
+    <div class="func-row">
+      <span class="av" style="background:var(--plum-deep)">WS</span>
+      <div class="fr-main"><div class="fr-nome">William Alexander Schulz</div><div class="fr-sub">Diretoria · Geral</div></div>
+      <div class="fr-tags"><span class="badge badge--info"><span class="dot"></span>Diretor</span></div>
+    </div>
+    <div class="func-row func-row--inativo">
+      <span class="av" style="background:var(--text-muted)">JP</span>
+      <div class="fr-main"><div class="fr-nome">João Prado</div><div class="fr-sub">Demitido em 12/03/2026</div></div>
+      <div class="fr-tags"><span class="badge badge--neutral">Inativo</span></div>
+    </div>
+  </div>
+  <p class="nota"><b>Cores:</b> Afastado em <b>âmbar</b> (atenção, não erro — mesmo tom do badge "Pendente");
+  Diretor em <b>azul</b> (institucional, calmo); Inativo cinza. Reusa as classes <code>.badge--warning</code> /
+  <code>.badge--info</code> que já existem — zero CSS novo de cor.</p>
+
+  <h2>2 · Filtro de status (dropdown "Apenas ativos")</h2>
+  <div class="toolbar">
+    <div class="toolbar__search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Buscar por nome ou código…</div>
+    <button class="sel__btn">Apenas ativos <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+  </div>
+  <div class="sel__menu">
+    <div class="opt"><span class="l"><b>Operacionais</b><span>ativos, sem afastados nem diretores</span></span><span class="n">86</span></div>
+    <div class="opt is-sel"><span class="l"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><b>Apenas ativos</b><span>todo o quadro</span></span><span class="n">95</span></div>
+    <div class="opt"><span class="l"><b>Afastados</b><span>licença, aposentadoria por invalidez…</span></span><span class="n">6</span></div>
+    <div class="opt"><span class="l"><b>Diretores</b><span>Landolino, Jules, William</span></span><span class="n">3</span></div>
+    <div class="opt"><span class="l"><b>Inativos</b><span>demitidos</span></span><span class="n muted">—</span></div>
+    <div class="opt"><span class="l"><b>Todos</b></span></div>
+  </div>
+  <p class="nota">Mantém o atual <b>"Apenas ativos" (95)</b> como padrão e adiciona os recortes. As contagens
+  saem dos próprios dados (atualizam sozinhas todo dia).</p>
+
+  <h2>3 · Quem entra em cada tela (a regra)</h2>
+  <table>
+    <thead><tr><th>Tela / uso</th><th>Operacional (86)</th><th>Afastado (6)</th><th>Diretor (3)</th></tr></thead>
+    <tbody>
+      <tr><td class="tela">Quadro / headcount</td><td class="yes">entra</td><td class="yes">entra</td><td class="yes">entra</td></tr>
+      <tr><td class="tela">Lista de funcionários</td><td class="yes">entra</td><td class="yes">+ badge</td><td class="yes">+ badge</td></tr>
+      <tr><td class="tela">Aniversariantes</td><td class="yes">entra</td><td class="yes">entra</td><td class="yes">entra</td></tr>
+      <tr><td class="tela">Banco de Horas</td><td class="yes">entra</td><td class="yes">entra</td><td class="no">fora</td></tr>
+      <tr><td class="tela">Demografia</td><td class="yes">entra</td><td class="yes">entra</td><td class="no">fora</td></tr>
+      <tr><td class="tela">Ranking tempo de casa</td><td class="yes">entra</td><td class="no">fora</td><td class="no">fora</td></tr>
+    </tbody>
+  </table>
+  <p class="nota"><b>Resumo:</b> Diretor entra só em <b>quadro + lista + aniversário</b>. Afastado entra em
+  tudo <b>menos ranking</b>. O banner de perfil do afastado está no mock <code>perfil-afastado-banner.html</code>.</p>
+</div>
+</body>
+</html>

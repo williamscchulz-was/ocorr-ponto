@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — banner de status no perfil (afastado / diretor / inativo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:var(--milk);--surface:#FFFFFF;
+  --border:#E7EDE4;--border-strong:#D8E2D3;--text:var(--plum-deep);--text-body:#1E2D1A;--text-muted:#4A6245;
+  --warning:#B27429;--warning-bg:#F8E4C8;--warning-ink:#7A4A12;--danger:#962F32;--danger-bg:#F4D6D2;
+  --info:#2F5A6B;--info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--radius:12px;--radius-lg:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-body);padding:40px 22px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--plum);font-weight:600}
+h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:12px 0 6px;color:var(--text)}
+.lead{color:var(--text-muted);font-size:13.5px;line-height:1.6;margin-bottom:8px;max-width:60ch}
+.lead b{color:var(--text-body);font-weight:600}
+.tag{display:inline-block;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:3px 10px;border-radius:999px;margin:24px 0 10px;background:var(--milk-warm);color:var(--text-muted)}
+
+.perfil{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+/* banner de status no topo do perfil */
+.pf-banner{display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:13px;font-weight:600}
+.pf-banner svg{width:17px;height:17px;flex:none}
+.pf-banner--afastado{background:var(--warning-bg);color:var(--warning-ink)}
+.pf-banner--inativo{background:var(--danger-bg);color:var(--danger)}
+.pf-banner small{font-weight:500;opacity:.85}
+.pf-head{display:flex;align-items:center;gap:14px;padding:18px}
+.pf-av{width:56px;height:56px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-size:18px;font-weight:700;position:relative}
+.pf-info{min-width:0;flex:1}
+.pf-nome{font-size:17px;font-weight:700;color:var(--text-body);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pf-cargo{font-size:12.5px;color:var(--text-muted);margin-top:3px}
+.selo{font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--info-bg);color:var(--info);letter-spacing:.02em}
+.nota{font-size:12.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px;line-height:1.6;margin-top:26px}
+.nota b{color:var(--text-body);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">FioPulse · proposta de perfil</div>
+  <h1>Banner de status no perfil</h1>
+  <p class="lead">Hoje o admin desativava os aposentados por invalidez só pra tirá-los das contagens — e o
+  perfil mostrava <b>"Funcionário INATIVO"</b> (vermelho), como se fossem demitidos. Agora o pipeline marca
+  <b>afastado</b> separado de <b>demitido</b>. O perfil reflete isso:</p>
+
+  <span class="tag">1 · Ativo normal — sem banner</span>
+  <div class="perfil">
+    <div class="pf-head">
+      <span class="pf-av" style="background:var(--plum-soft)">AS</span>
+      <div class="pf-info"><div class="pf-nome">Ana Souza</div><div class="pf-cargo">Tecelã · Tecelagem · 1º Turno</div></div>
+    </div>
+  </div>
+
+  <span class="tag">2 · Afastado (conta no quadro) — banner âmbar</span>
+  <div class="perfil">
+    <div class="pf-banner pf-banner--afastado">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Afastado <small>· Aposentadoria por Invalidez</small>
+    </div>
+    <div class="pf-head">
+      <span class="pf-av" style="background:var(--fiobras-blue)">NC</span>
+      <div class="pf-info"><div class="pf-nome">Nivaldo Clasen</div><div class="pf-cargo">Auxiliar · Administração · 1º Turno</div></div>
+    </div>
+  </div>
+
+  <span class="tag">3 · Afastado · Licença Médica</span>
+  <div class="perfil">
+    <div class="pf-banner pf-banner--afastado">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Afastado <small>· Licença Médica</small>
+    </div>
+    <div class="pf-head">
+      <span class="pf-av" style="background:#9B7BC4">MF</span>
+      <div class="pf-info"><div class="pf-nome">Marlene Fogaça</div><div class="pf-cargo">Operadora · Preparação · 2º Turno</div></div>
+    </div>
+  </div>
+
+  <span class="tag">4 · Diretor — selo discreto, sem banner</span>
+  <div class="perfil">
+    <div class="pf-head">
+      <span class="pf-av" style="background:var(--plum-deep)">WS</span>
+      <div class="pf-info"><div class="pf-nome">William Alexander Schulz <span class="selo">Diretoria</span></div><div class="pf-cargo">Diretor · Geral</div></div>
+    </div>
+  </div>
+
+  <span class="tag">5 · Inativo (demitido) — banner vermelho, como hoje</span>
+  <div class="perfil">
+    <div class="pf-banner pf-banner--inativo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      Funcionário inativo <small>· demitido em 12/03/2026</small>
+    </div>
+    <div class="pf-head">
+      <span class="pf-av" style="background:var(--text-muted)">JP</span>
+      <div class="pf-info"><div class="pf-nome">João Prado</div><div class="pf-cargo">Auxiliar · Expedição · 3º Turno</div></div>
+    </div>
+  </div>
+
+  <p class="nota"><b>Regra do banner:</b> <code>ativo===false</code> → vermelho "inativo" (só demitido).
+  Senão, <code>afastado===true</code> → âmbar "Afastado · {situacao}". Senão, sem banner.
+  <b>Diretor</b> não usa banner — só um selo "Diretoria" ao lado do nome (institucional, não é alerta).
+  Reusa os tons âmbar/vermelho/azul que já existem; nada de cor nova.</p>
+</div>
+</body>
+</html>
