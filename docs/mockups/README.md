@@ -54,4 +54,13 @@ Comece pelo índice: **`audit2-index.html`** — resumo executivo + tabela de pr
 - `audit2-marca-refino-visual.html` — reações em SVG, sidebar tokenizada, sombras unificadas, foco AA, badge Pendente com contraste OK.
 - `audit2-conteudo-microcopy.html` — sem copy de demo, GH unificado, jargão traduzido, datas com ano, empty states, toasts em frase.
 
+### Auditoria do chat — jun/2026 (63 achados, 117 testes)
+- `audit-chat-bolhas-agrupamento.html` — bolhas estilo WhatsApp: agrupamento por autor, cauda no último, recibos, reações. **No app** (já existia + tokens).
+- `audit-chat-composer-eco-otimista.html` — eco otimista (bolha "enviando…" na hora) + botão descer. **No app.**
+- `audit-chat-tokens-cor-nao-lidas.html` — não-lidas (amarelo de marca) + check de leitura (branco) em token. **No app.**
+
+### Avulsos — jun/2026
+- `ranking-tempo-casa.html` — card Top 10 tempo de casa (par da Demografia). **No app** (enxuta, sem diretoria).
+- `checkbox-funcionario.html` — alinhar checkboxes do modal de funcionário (vira toggle). **No app** (opção B).
+
 _"No app" = aprovado e já aplicado em produção; os demais são estudos/referência._
