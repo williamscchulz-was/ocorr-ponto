@@ -1253,6 +1253,35 @@ function renderAniversariantesWidget(u) {
 // Widget de demografia agregada — admin only, collapsed por default.
 // Idade média, distribuição por sexo, escolaridade resumida e tempo médio de casa.
 // Tolerante a campos faltando: só conta quem tem o campo.
+// Ranking enxuto: Top 10 ativos por tempo de casa (par da Demografia, só admin).
+// Reusa diasNaEmpresa + tempoDeCasa() (mesma fonte da Demografia). Some quem não
+// tem admissão registrada. Card recolhível com o mesmo visual de .dashboard-demografia.
+function renderRankingTempoCasaWidget(u) {
+  if (u.role !== "admin") return "";
+  const comDias = (state.funcionarios || [])
+    .filter((f) => f.ativo !== false && Number.isFinite(Number(f.diasNaEmpresa)) && Number(f.diasNaEmpresa) > 0)
+    .sort((a, b) => Number(b.diasNaEmpresa) - Number(a.diasNaEmpresa))
+    .slice(0, 10);
+  if (comDias.length === 0) return "";
+  const linhas = comDias.map((f, i) => {
+    const meta = [f.setor, TURNOS[f.turno]?.label].filter(Boolean).join(" · ");
+    return `
+      <div class="rk rk--${i + 1}">
+        <div class="rk__pos">${i + 1}</div>
+        <div class="rk__main">
+          <div class="rk__nome">${escapeHtml(f.nome || "?")}</div>
+          ${meta ? `<div class="rk__meta">${escapeHtml(meta)}</div>` : ""}
+        </div>
+        <div class="rk__val">${escapeHtml(tempoDeCasa(Number(f.diasNaEmpresa)))}</div>
+      </div>`;
+  }).join("");
+  return `
+    <details class="dashboard-demografia">
+      <summary>Ranking — Tempo de casa <span class="muted text-xs">(Top ${comDias.length})</span></summary>
+      <div class="dashboard-ranking">${linhas}</div>
+    </details>`;
+}
+
 function renderDemografiaWidget(u) {
   if (u.role !== "admin") return "";
   const pool = (state.funcionarios || []).filter((f) => f.ativo !== false);
@@ -1412,6 +1441,7 @@ function renderDashboard() {
 
     ${renderAniversariantesWidget(u)}
     ${renderDemografiaWidget(u)}
+    ${renderRankingTempoCasaWidget(u)}
 
     <div class="tabs" id="tabs">
       <button class="tab ${state.view.filterTab === "pendentes" ? "active" : ""}" data-tab="pendentes">
@@ -7022,7 +7052,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.8.0";
+window.CURRENT_VERSION = "1.8.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
