@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — micro-interações premium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:#F7F9F6;--surface:#fff;
+  --border:#E7EDE4;--border-strong:#D8E2D3;--text:var(--plum-deep);--text-body:#1E2D1A;--text-muted:#4A6245;
+  --success:#2F6B3F;--success-bg:#E0EAD8;--warning-bg:#F8E4C8;--warning-ink:#7A4A12;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--radius:12px;--radius-lg:18px;
+  --ease:cubic-bezier(.2,.8,.2,1);--transition:180ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-body);padding:40px 22px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:680px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--plum);font-weight:600}
+h1{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:10px 0 6px;color:var(--plum-deep)}
+.lead{color:var(--text-muted);font-size:13.5px;line-height:1.6;margin-bottom:10px;max-width:64ch}
+h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin:34px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.demo{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.hint{font-size:12px;color:var(--text-muted);margin-top:10px}
+.btn{font:inherit;font-size:13px;font-weight:600;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--plum);color:#fff}
+.btn--ghost{background:none;border:1px solid var(--border-strong);color:var(--text-body)}
+
+/* 1 — ink deslizante */
+.tabs{position:relative;display:flex;gap:2px}
+.tab{padding:10px 16px;font:inherit;font-size:14px;font-weight:600;color:var(--text-muted);background:none;border:0;cursor:pointer;position:relative}
+.tab.on{color:var(--plum-deep)}
+.tab .cnt{font-size:11px;color:var(--text-muted);background:var(--milk-warm);border-radius:999px;padding:1px 7px;margin-left:6px;font-weight:700}
+.tabs__base{height:1px;background:var(--border);margin-top:-1px}
+.tabs__ink{position:absolute;bottom:0;height:2.5px;background:var(--plum);border-radius:2px;transition:left .3s var(--ease),width .3s var(--ease)}
+.painel{padding:18px 4px;font-size:14px;color:var(--text-muted);animation:fadeUp .25s var(--ease)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* 2 — celebração ao zerar */
+.lista{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;transition:opacity .3s,transform .3s}
+.item.out{opacity:0;transform:translateX(16px)}
+. chk,.item .chk{width:22px;height:22px;flex:none;border:1.6px solid var(--border-strong);border-radius:6px;background:#fff;cursor:pointer;position:relative}
+.item .nome{font-size:14px;font-weight:500}
+.cel{display:none;flex-direction:column;align-items:center;gap:10px;padding:26px 16px;text-align:center;position:relative;overflow:hidden}
+.cel.show{display:flex}
+.cel__ring{position:absolute;top:18px;width:64px;height:64px;border-radius:50%;background:var(--plum);opacity:.18;animation:pulse 1.1s var(--ease)}
+@keyframes pulse{0%{transform:scale(.4);opacity:.35}100%{transform:scale(2.6);opacity:0}}
+.cel__circ{width:64px;height:64px;border-radius:50%;background:var(--success-bg);display:grid;place-items:center;position:relative;z-index:2}
+.cel__circ svg{width:34px;height:34px;stroke:var(--success);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cel__circ path{stroke-dasharray:30;stroke-dashoffset:30;animation:draw .5s .15s var(--ease) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.cel__t{font-size:16px;font-weight:700;color:var(--plum-deep)}
+.cel__s{font-size:12.5px;color:var(--text-muted)}
+
+/* 3 — número rola */
+.statbox{display:flex;align-items:flex-end;gap:18px}
+.stat__v{font-family:var(--font);font-size:40px;font-weight:800;color:var(--plum);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat__l{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px}
+.flash{animation:flash .5s var(--ease)}
+@keyframes flash{0%{color:var(--plum-soft)}100%{color:var(--plum)}}
+
+/* 4 — profundidade ao rolar (frame de celular) */
+.phone{width:300px;height:460px;border:9px solid #11221A;border-radius:34px;overflow:hidden;position:relative;background:var(--milk);margin-top:4px}
+.ptop{position:sticky;top:0;z-index:3;background:var(--surface);padding:14px 16px;font-weight:700;color:var(--plum-deep);display:flex;align-items:center;justify-content:space-between;transition:box-shadow .2s}
+.ptop--elev{box-shadow:0 4px 14px rgba(0,40,20,.10)}
+.pscroll{height:100%;overflow-y:auto}
+.prow{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px}
+.pfab{position:absolute;right:14px;bottom:16px;width:48px;height:48px;border-radius:50%;background:var(--plum);color:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,40,20,.25);transition:transform .25s var(--ease),opacity .25s;z-index:4}
+.pfab svg{width:22px;height:22px;stroke:#fff;stroke-width:2.4;fill:none;stroke-linecap:round}
+.pfab--rec{transform:translateY(80px) scale(.6);opacity:0}
+
+.nota{font-size:12.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 12px 12px 0;padding:12px 16px;line-height:1.6;margin-top:26px}
+.nota b{color:var(--text-body);font-weight:600}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">FioPulse · micro-interações premium</div>
+  <h1>Quatro toques novos</h1>
+  <p class="lead">Tudo sutil, na curva suave da marca, respeitando "reduzir movimento". Interaja com cada um:</p>
+
+  <h2>1 · Ink deslizante nas abas</h2>
+  <div class="demo">
+    <div class="tabs" id="tabs">
+      <button class="tab on">Pendentes <span class="cnt">13</span></button>
+      <button class="tab">Conferidas <span class="cnt">7</span></button>
+      <button class="tab">Lançadas <span class="cnt">23</span></button>
+      <button class="tab">Todas <span class="cnt">43</span></button>
+      <span class="tabs__ink" id="ink"></span>
+    </div>
+    <div class="tabs__base"></div>
+    <div class="painel" id="painel">Mostrando: Pendentes</div>
+    <p class="hint">Clica nas abas — a barrinha viaja em vez de pular.</p>
+  </div>
+
+  <h2>2 · Celebração ao zerar</h2>
+  <div class="demo">
+    <div class="lista" id="lista">
+      <div class="item"><span class="chk" data-c></span><span class="nome">Carlos Zoz · Atraso</span></div>
+      <div class="item"><span class="chk" data-c></span><span class="nome">Ana Souza · Falta</span></div>
+      <div class="item"><span class="chk" data-c></span><span class="nome">Bruno Lima · Esqueceu crachá</span></div>
+    </div>
+    <div class="cel" id="cel">
+      <span class="cel__ring"></span>
+      <span class="cel__circ"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <span class="cel__t">Tudo em dia!</span>
+      <span class="cel__s">Nenhuma pendência por aqui.</span>
+      <button class="btn btn--ghost" id="reset" style="margin-top:6px">Repetir</button>
+    </div>
+    <p class="hint">Marque as 3 — ao zerar, o "Tudo em dia" entra com o check se desenhando + pulso verde.</p>
+  </div>
+
+  <h2>3 · Números que rolam ao mudar</h2>
+  <div class="demo">
+    <div class="statbox">
+      <div><div class="stat__l">Pendentes</div><div class="stat__v" id="num">13</div></div>
+      <button class="btn" id="lancar">Lançar uma</button>
+      <button class="btn btn--ghost" id="repor">Repor</button>
+    </div>
+    <p class="hint">O número anima do valor antigo pro novo (não troca seco).</p>
+  </div>
+
+  <h2>4 · Profundidade ao rolar + FAB recolhe <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(+ háptico no celular)</span></h2>
+  <div class="demo">
+    <div class="phone">
+      <div class="pscroll" id="pscroll">
+        <div class="ptop" id="ptop">Ocorrências <span style="font-size:11px;color:var(--text-muted);font-weight:500">junho</span></div>
+        <div id="prows"></div>
+      </div>
+      <div class="pfab" id="pfab"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    </div>
+    <p class="hint">Role dentro do "celular": a topbar ganha sombra e o FAB recolhe ao descer (volta ao subir). No celular de verdade, marcar/conferir dá uma vibração curtinha (háptico) — tente abrir este mock no telefone.</p>
+  </div>
+
+  <p class="nota"><b>Onde entra no app:</b> (1) abas do dashboard; (2) estados "Tudo em dia" de Ocorrências e Obrigações;
+  (3) os stats do topo; (4) toda lista rolável + o FAB, e háptico em marcar lançada/conferir/marcar obrigação.
+  Tudo curto, sutil e desligado em "reduzir movimento".</p>
+</div>
+
+<script>
+// 1 — ink
+const tabs = document.getElementById("tabs");
+const ink = document.getElementById("ink");
+const painel = document.getElementById("painel");
+function moveInk(btn){ ink.style.left = btn.offsetLeft + "px"; ink.style.width = btn.offsetWidth + "px"; }
+function initInk(){ moveInk(tabs.querySelector(".tab.on")); }
+tabs.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  tabs.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); moveInk(b);
+  painel.style.animation="none"; void painel.offsetWidth; painel.style.animation="";
+  painel.textContent = "Mostrando: " + b.textContent.replace(/\d+/,"").trim();
+}));
+window.addEventListener("load", initInk); initInk();
+
+// 2 — celebração
+const lista = document.getElementById("lista");
+const cel = document.getElementById("cel");
+function vibra(ms){ try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
+lista.querySelectorAll("[data-c]").forEach(chk=>{
+  chk.addEventListener("click",()=>{
+    const item = chk.closest(".item");
+    chk.style.background="var(--plum)"; chk.style.borderColor="var(--plum)";
+    chk.innerHTML='<svg viewBox="0 0 24 24" style="position:absolute;left:4px;top:4px;width:12px;height:12px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"/></svg>';
+    vibra(10);
+    setTimeout(()=>{ item.classList.add("out"); }, 220);
+    setTimeout(()=>{ item.style.display="none";
+      if([...lista.querySelectorAll(".item")].every(i=>i.style.display==="none")){ cel.classList.add("show"); }
+    }, 520);
+  });
+});
+document.getElementById("reset").addEventListener("click",()=>{
+  cel.classList.remove("show");
+  lista.querySelectorAll(".item").forEach(i=>{ i.style.display=""; i.classList.remove("out");
+    const c=i.querySelector("[data-c]"); c.innerHTML=""; c.style.background="#fff"; c.style.borderColor="var(--border-strong)"; });
+});
+
+// 3 — número rola
+const num = document.getElementById("num");
+let val = 13;
+function rolaPara(alvo){
+  const ini = val, dur = 450, t0 = performance.now();
+  num.classList.remove("flash"); void num.offsetWidth; num.classList.add("flash");
+  function tick(now){ const p = Math.min(1,(now-t0)/dur); const e = 1-Math.pow(1-p,3);
+    num.textContent = Math.round(ini+(alvo-ini)*e); if(p<1) requestAnimationFrame(tick); else val=alvo; }
+  requestAnimationFrame(tick);
+}
+document.getElementById("lancar").addEventListener("click",()=>{ if(val>0){ rolaPara(val-1); vibra(10); } });
+document.getElementById("repor").addEventListener("click",()=>rolaPara(13));
+
+// 4 — scroll depth + fab
+const prows = document.getElementById("prows");
+prows.innerHTML = Array.from({length:14},(_,i)=>`<div class="prow">Ocorrência ${i+1} · funcionário ${i+1}</div>`).join("");
+const ps = document.getElementById("pscroll"), ptop = document.getElementById("ptop"), pfab = document.getElementById("pfab");
+let lastY = 0;
+ps.addEventListener("scroll",()=>{
+  const y = ps.scrollTop;
+  ptop.classList.toggle("ptop--elev", y > 4);
+  if (y > lastY + 6 && y > 40) pfab.classList.add("pfab--rec");      // descendo → recolhe
+  else if (y < lastY - 6) pfab.classList.remove("pfab--rec");        // subindo → volta
+  lastY = y;
+});
+pfab.addEventListener("click",()=>vibra(10));
+</script>
+</body>
+</html>
