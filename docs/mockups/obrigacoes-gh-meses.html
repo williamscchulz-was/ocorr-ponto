@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Obrigações por mês (mês atual + ver mais)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:var(--milk);--surface:#FFFFFF;
+  --border:#E7EDE4;--border-strong:#D8E2D3;--text:var(--plum-deep);--text-body:#1E2D1A;--text-muted:#4A6245;
+  --success:#2F6B3F;--success-bg:#E0EAD8;--warning:#B27429;--warning-bg:#F8E4C8;--warning-ink:#7A4A12;
+  --danger:#962F32;--danger-bg:#F4D6D2;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--radius:12px;--radius-lg:18px;--radius-sm:8px;
+  --transition:180ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-body);padding:36px 22px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:680px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--plum);font-weight:600}
+h1{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:10px 0 4px;color:var(--text)}
+.lead{color:var(--text-muted);font-size:13px;line-height:1.6;margin-bottom:18px;max-width:62ch}
+
+.page-header{display:flex;align-items:center;justify-content:space-between;margin:22px 0 14px}
+.page-header h2{font-size:18px;font-weight:700;color:var(--text)}
+.page-header p{font-size:12px;color:var(--text-muted);margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:600;border:0;border-radius:var(--radius-sm);padding:9px 14px;cursor:pointer}
+.btn--primary{background:var(--plum);color:#fff}
+.btn--ghost{background:none;border:1px solid var(--border-strong);color:var(--text-body)}
+.btn svg{width:16px;height:16px}
+
+/* grupo de mês */
+.mes{margin-bottom:14px}
+.mes__cab{display:flex;align-items:center;gap:10px;margin:0 2px 8px}
+.mes__nome{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.mes--atual .mes__nome{color:var(--plum)}
+.mes__hoje{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--success-bg);color:var(--success);padding:2px 9px;border-radius:999px}
+.mes__cont{font-size:11px;color:var(--text-muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.mes__lista{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.mes--atual .mes__lista{border-color:var(--border-strong);box-shadow:0 1px 2px rgba(0,40,20,.05)}
+
+.ob{display:flex;align-items:center;gap:13px;padding:11px 16px;border-top:1px solid var(--border)}
+.ob:first-child{border-top:0}
+.ob__chk{width:22px;height:22px;flex:none;border:1.6px solid var(--border-strong);border-radius:6px;background:var(--surface);cursor:pointer;position:relative;transition:var(--transition)}
+.ob__chk:hover{border-color:var(--plum-soft)}
+.ob.is-feita .ob__chk{background:var(--plum);border-color:var(--plum)}
+.ob.is-feita .ob__chk::after{content:"";position:absolute;left:7px;top:3px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.ob__chk--futuro{border-style:dashed;cursor:default;opacity:.6}
+.ob__main{min-width:0;flex:1}
+.ob__nome{font-size:14px;font-weight:500;color:var(--text-body)}
+.ob.is-feita .ob__nome{color:var(--text-muted);text-decoration:line-through}
+.ob__meta{font-size:11.5px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.5}
+.st{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;flex:none}
+.st--ok{background:var(--success-bg);color:var(--success)}
+.st--pend{background:var(--warning-bg);color:var(--warning-ink)}
+.st--atras{background:var(--danger-bg);color:var(--danger)}
+.st--fut{background:var(--milk-warm);color:var(--text-muted)}
+.ob__edit{flex:none;background:none;border:0;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:6px;display:inline-flex}
+.ob__edit svg{width:16px;height:16px}
+
+.vermais{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:6px 0 4px;padding:11px;background:none;border:1px dashed var(--border-strong);border-radius:var(--radius);color:var(--plum);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.vermais svg{width:16px;height:16px;transition:transform var(--transition)}
+.vermais.is-open svg{transform:rotate(180deg)}
+.outros{display:none}
+.outros.is-open{display:block}
+.nota{font-size:12.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px;line-height:1.6;margin-top:18px}
+.nota b{color:var(--text-body);font-weight:600}
+@media (prefers-reduced-motion:reduce){.vermais svg{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">FioPulse · ajuste da tela de Obrigações</div>
+  <h1>Obrigações agrupadas por mês</h1>
+  <p class="lead">A tela mostra o <b>mês atual</b> em destaque (as mensais de sempre + o que é específico do mês),
+  e um <b>"ver os outros meses"</b> que abre o resto agrupado — sem virar uma lista gigante. O card do dashboard
+  continua igual. Os checkboxes do mês atual são clicáveis.</p>
+
+  <div class="page-header">
+    <div><h2>Obrigações</h2><p>As rotinas do GH. O sistema acompanha e zera no período seguinte.</p></div>
+    <button class="btn btn--primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova obrigação</button>
+  </div>
+
+  <!-- MÊS ATUAL -->
+  <div class="mes mes--atual">
+    <div class="mes__cab">
+      <span class="mes__nome">Junho</span>
+      <span class="mes__hoje">este mês</span>
+      <span class="mes__cont" id="cont-junho"></span>
+    </div>
+    <div class="mes__lista" id="lista-junho"></div>
+  </div>
+
+  <button class="vermais" id="vermais">
+    <span id="vermais-txt">Ver os outros meses</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+
+  <div class="outros" id="outros"></div>
+
+  <p class="nota"><b>Como agrupa:</b> as <b>mensais</b> (todo mês) aparecem no mês atual; as <b>anuais/únicas</b>
+  caem no mês da data delas. Meses sem nada não aparecem. Marcar/editar funciona igual — só ficou organizado por mês,
+  com o atual aberto e o resto a um toque.</p>
+</div>
+
+<script>
+// mensais (todo mês) — aparecem no mês atual (junho)
+const MENSAIS = [
+  { nome:"eSocial — eventos periódicos", dia:7, feita:true },
+  { nome:"Fechar e enviar banco de horas", dia:5, feita:true },
+  { nome:"Pagar prestadores PJ", dia:10, feita:false },
+  { nome:"Guias FGTS", dia:20, feita:false },
+  { nome:"Conferir ocorrências do mês", dia:25, feita:false },
+];
+// anuais por mês (mês 1-12)
+const ANUAIS = {
+  1:  [{ nome:"Atualização PJs — atualização monetária", dia:15 }, { nome:"Reajuste IPCA dos contratos", dia:15 }],
+  2:  [{ nome:"RAIS / DIRF", dia:28 }],
+  11: [{ nome:"13º salário — 1ª parcela", dia:30 }],
+  12: [{ nome:"Programar férias coletivas", dia:15 }, { nome:"13º salário — 2ª parcela", dia:20 }],
+};
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const HOJE = 18, MES_ATUAL = 6; // junho, dia 18
+
+function chkMensal(o,i){
+  const st = o.feita ? "ok" : (HOJE>o.dia ? "atras" : "pend");
+  const rot = {ok:"Feita",atras:"Atrasada",pend:"Pendente"}[st];
+  return `<div class="ob ${o.feita?"is-feita":""}" data-i="${i}">
+    <div class="ob__chk"></div>
+    <div class="ob__main"><div class="ob__nome">${o.nome}</div>
+      <div class="ob__meta"><span>Todo mês</span><span class="dot"></span><span>vence dia ${o.dia}</span></div></div>
+    <span class="st st--${st}">${rot}</span>
+    <button class="ob__edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+  </div>`;
+}
+function obAnual(o,mes){
+  return `<div class="ob">
+    <div class="ob__chk ob__chk--futuro"></div>
+    <div class="ob__main"><div class="ob__nome">${o.nome}</div>
+      <div class="ob__meta"><span>Todo ano</span><span class="dot"></span><span>${String(o.dia).padStart(2,"0")}/${String(mes).padStart(2,"0")}</span></div></div>
+    <span class="st st--fut">${mes===MES_ATUAL?"":"próxima"}</span>
+    <button class="ob__edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+  </div>`;
+}
+
+function pintarJunho(){
+  const anuaisDoMes = (ANUAIS[MES_ATUAL]||[]).map((o)=>obAnual(o,MES_ATUAL)).join("");
+  document.getElementById("lista-junho").innerHTML = MENSAIS.map(chkMensal).join("") + anuaisDoMes;
+  const abertas = MENSAIS.filter(o=>!o.feita).length;
+  document.getElementById("cont-junho").textContent = abertas ? `${abertas} em aberto` : "tudo feito";
+  document.querySelectorAll("#lista-junho .ob[data-i]").forEach(el=>{
+    el.querySelector(".ob__chk").addEventListener("click",()=>{ MENSAIS[+el.dataset.i].feita=!MENSAIS[+el.dataset.i].feita; pintarJunho(); });
+  });
+}
+pintarJunho();
+
+// outros meses: a partir do próximo, dá a volta no ano; só meses com anuais
+const ordem = [];
+for(let k=1;k<=12;k++){ const m=((MES_ATUAL-1+k)%12)+1; if(ANUAIS[m]) ordem.push(m); }
+document.getElementById("outros").innerHTML = ordem.map(m=>`
+  <div class="mes">
+    <div class="mes__cab"><span class="mes__nome">${MESES[m-1]}</span><span class="mes__cont">${ANUAIS[m].length} obrigação${ANUAIS[m].length>1?"ões":""}</span></div>
+    <div class="mes__lista">${ANUAIS[m].map(o=>obAnual(o,m)).join("")}</div>
+  </div>`).join("");
+
+const vm=document.getElementById("vermais");
+vm.addEventListener("click",()=>{
+  const open=document.getElementById("outros").classList.toggle("is-open");
+  vm.classList.toggle("is-open",open);
+  document.getElementById("vermais-txt").textContent = open ? "Ocultar os outros meses" : "Ver os outros meses";
+});
+</script>
+</body>
+</html>
