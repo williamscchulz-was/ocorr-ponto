@@ -602,6 +602,10 @@ a:hover { color: var(--plum-soft); }
 }
 .nav__item.active .nav__badge { background: var(--milk); color: var(--plum-deep); }
 .nav__item:not(.active) .nav__badge { background: rgba(255, 243, 230, .15); color: var(--milk); }
+/* Obrigações: cor semântica (vermelho = atrasada · âmbar = pendente no prazo).
+   !important pra vencer as duas regras de cor acima na sidebar verde. */
+.nav__badge--atras { background: var(--danger) !important; color: #fff !important; }
+.nav__badge--pend { background: var(--fiobras-yellow) !important; color: var(--plum-deep) !important; }
 
 /* Acessibilidade: focus-visible em todos os interativos pra teclado/screen-reader */
 *:focus { outline: none; } /* baseline limpo */

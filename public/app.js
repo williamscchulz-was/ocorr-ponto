@@ -996,7 +996,16 @@ function renderNav() {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
   }
   if (can("pj.ver")) items.push({ id: "pj", label: "Controle PJ", icon: "briefcase" });
-  if (can("obrigacoes.gerenciar")) items.push({ id: "obrigacoes", label: "Obrigações", icon: "calendar" });
+  if (can("obrigacoes.gerenciar")) {
+    const ob = { id: "obrigacoes", label: "Obrigações", icon: "calendar" };
+    // Aviso: conta as do mês ainda não feitas; vermelho se há atrasada, senão âmbar.
+    const abertas = obrigacoesDoMes().map((o) => obrigacaoStatus(o).status).filter((s) => s !== "ok");
+    if (abertas.length) {
+      ob.badge = abertas.length;
+      ob.badgeClass = abertas.includes("atras") ? "nav__badge--atras" : "nav__badge--pend";
+    }
+    items.push(ob);
+  }
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
@@ -1004,7 +1013,7 @@ function renderNav() {
     <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
       ${icon(it.icon)}
       <span>${it.label}</span>
-      ${it.badge ? `<span class="nav__badge">${it.badge}</span>` : ""}
+      ${it.badge ? `<span class="nav__badge ${it.badgeClass || ""}">${it.badge}</span>` : ""}
     </button>
   `).join("");
 
