@@ -2619,6 +2619,24 @@ html.firebase-mode .login__forgot { display: block; }
 .ob__edit:hover { background: var(--row-hover); color: var(--plum); }
 .ob__edit .icon { width: 16px; height: 16px; }
 @media (prefers-reduced-motion: reduce) { .ob__chk { transition: none; } }
+
+/* Tela de Obrigações agrupada por mês (mês atual em destaque + "ver mais") */
+.mes { margin-bottom: 14px; }
+.mes__cab { display: flex; align-items: center; gap: 10px; margin: 0 2px 8px; }
+.mes__nome { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.mes--atual .mes__nome { color: var(--plum); }
+.mes__hoje { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: var(--success-bg); color: var(--success); padding: 2px 9px; border-radius: 999px; }
+.mes__cont { font-size: 11px; color: var(--text-muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.mes__lista { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.mes--atual .mes__lista { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.ob__chk--futuro { border-style: dashed; cursor: default; opacity: .6; }
+.ob .st--fut { background: var(--milk-warm); color: var(--text-muted); }
+.vermais { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 4px 0; padding: 11px; background: none; border: 1px dashed var(--border-strong); border-radius: var(--radius); color: var(--plum); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.vermais svg { width: 16px; height: 16px; transition: transform var(--transition); }
+.vermais.is-open svg { transform: rotate(180deg); }
+.outros { display: none; }
+.outros.is-open { display: block; }
+@media (prefers-reduced-motion: reduce) { .vermais svg { transition: none; } }
 /* Banco de horas no perfil (gráfico de barras do mês) */
 .bh-perfil {
   background: var(--row-hover);

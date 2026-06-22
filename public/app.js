@@ -3138,29 +3138,97 @@ function renderObrigacoesWidget(u) {
     </div>`;
 }
 
+// Mês (1-12) de uma obrigação datada (anual/única); mensal não tem mês fixo.
+function obrigMesDe(o) {
+  if (o.recorrencia === "anual") return Number(o.mes) || 1;
+  if (o.recorrencia === "unica" && o.data) return Number(o.data.slice(5, 7));
+  return null;
+}
+// Linha "futura" (anual/única de outro mês): só visualiza, não marca adiantado.
+function obrigLinhaFutura(o) {
+  return `
+    <div class="ob ob--futura">
+      <span class="ob__chk ob__chk--futuro" aria-hidden="true"></span>
+      <div class="ob__main">
+        <div class="ob__nome">${escapeHtml(o.titulo)}</div>
+        <div class="ob__meta"><span>${OBRIG_REC[o.recorrencia] || ""}</span><span class="dot"></span><span>${obrigVencTxt(o)}</span></div>
+      </div>
+      <span class="st st--fut">próxima</span>
+      <button class="ob__edit" data-obrig-edit="${o.id}" aria-label="Editar obrigação">${icon("edit")}</button>
+    </div>`;
+}
+
+let _obrigVerMais = false;
+const MESES_NOME = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
 function renderObrigacoes() {
   const u = currentUser();
   if (!can("obrigacoes.gerenciar")) { state.view.page = "dashboard"; return renderApp(); }
   $("#topbar-title").textContent = "Obrigações";
-  const lista = (state.obrigacoes || []).filter((o) => o.ativo !== false)
-    .slice().sort((a, b) => (a.titulo || "").localeCompare(b.titulo || ""));
-  $("#view").innerHTML = `
+  const todas = (state.obrigacoes || []).filter((o) => o.ativo !== false);
+  const cab = `
     <header class="page-header">
       <div>
         <h1>Obrigações</h1>
         <p>As rotinas do GH. O sistema acompanha mês a mês e zera no período seguinte.</p>
       </div>
       <button class="btn btn--primary" data-obrig-nova>${icon("plus")}<span>Nova obrigação</span></button>
-    </header>
-    ${lista.length === 0 ? `
+    </header>`;
+
+  if (todas.length === 0) {
+    $("#view").innerHTML = cab + `
       <div class="empty">
         <div class="empty__icon">${icon("calendar")}</div>
         <h3>Nenhuma obrigação cadastrada</h3>
         <p>Cadastre as rotinas que se repetem (fechar folha, banco de horas, eSocial, pagar PJ...) e acompanhe aqui.</p>
         <button class="btn btn--primary" data-obrig-nova>${icon("plus")}<span>Nova obrigação</span></button>
+      </div>`;
+    return;
+  }
+
+  const mesAtual = new Date().getMonth() + 1;
+  // Mês atual: mensais (todo mês) + anuais/únicas que caem no mês.
+  const doMes = todas.filter((o) => o.recorrencia === "mensal" || obrigMesDe(o) === mesAtual)
+    .sort((a, b) => (Number(a.dia) || Number((a.data || "").slice(8, 10)) || 0) - (Number(b.dia) || Number((b.data || "").slice(8, 10)) || 0));
+  // Outros meses: anuais/únicas datadas em mês != atual, agrupadas (volta o ano).
+  const outras = todas.filter((o) => o.recorrencia !== "mensal" && obrigMesDe(o) && obrigMesDe(o) !== mesAtual);
+  const meses = [...new Set(outras.map(obrigMesDe))]
+    .sort((a, b) => ((a - mesAtual + 12) % 12) - ((b - mesAtual + 12) % 12));
+  const abertas = doMes.filter((o) => obrigacaoStatus(o).status !== "ok").length;
+
+  $("#view").innerHTML = cab + `
+    <div class="mes mes--atual">
+      <div class="mes__cab">
+        <span class="mes__nome">${MESES_NOME[mesAtual - 1]}</span>
+        <span class="mes__hoje">este mês</span>
+        <span class="mes__cont">${abertas ? `${abertas} em aberto` : "tudo feito"}</span>
       </div>
-    ` : `<div class="card ob-lista">${lista.map((o) => obrigLinhaHtml(o, true)).join("")}</div>`}
+      <div class="mes__lista">${doMes.map((o) => obrigLinhaHtml(o, true)).join("")}</div>
+    </div>
+    ${meses.length ? `
+      <button class="vermais" id="ob-vermais">
+        <span>Ver os outros meses</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="outros" id="ob-outros">
+        ${meses.map((m) => `
+          <div class="mes">
+            <div class="mes__cab"><span class="mes__nome">${MESES_NOME[m - 1]}</span></div>
+            <div class="mes__lista">${outras.filter((o) => obrigMesDe(o) === m).map((o) => obrigLinhaFutura(o)).join("")}</div>
+          </div>`).join("")}
+      </div>` : ""}
   `;
+
+  const vm = $("#ob-vermais");
+  if (vm) {
+    if (_obrigVerMais) { $("#ob-outros").classList.add("is-open"); vm.classList.add("is-open"); vm.querySelector("span").textContent = "Ocultar os outros meses"; }
+    vm.addEventListener("click", () => {
+      _obrigVerMais = !_obrigVerMais;
+      $("#ob-outros").classList.toggle("is-open", _obrigVerMais);
+      vm.classList.toggle("is-open", _obrigVerMais);
+      vm.querySelector("span").textContent = _obrigVerMais ? "Ocultar os outros meses" : "Ver os outros meses";
+    });
+  }
 }
 
 function openObrigacaoModal(id) {
