@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — badge de Obrigações no menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--bg:#F7F9F6;--surface:#fff;--border:#E7EDE4;
+  --text-body:#1E2D1A;--text-muted:#4A6245;--danger:#962F32;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-body);padding:40px 22px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:740px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--plum);font-weight:600}
+h1{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:10px 0 6px;color:var(--plum-deep)}
+.lead{color:var(--text-muted);font-size:13.5px;line-height:1.6;margin-bottom:8px;max-width:64ch}
+.lead b{color:var(--text-body);font-weight:600}
+.cols{display:flex;gap:20px;flex-wrap:wrap;margin-top:22px}
+.col{flex:1;min-width:210px}
+.col h3{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;text-align:center}
+
+/* mini-sidebar (verde, como o app) */
+.side{background:linear-gradient(180deg,#0a7a30,#006328);border-radius:16px;padding:14px 10px;box-shadow:0 16px 40px rgba(0,40,20,.18)}
+.brand{color:#fff;font-weight:700;font-size:15px;padding:6px 12px 14px;display:flex;align-items:center;gap:8px}
+.brand small{display:block;font-weight:400;font-size:9.5px;color:#bfe6cd}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#dcefe2;font-size:14px;font-weight:500;position:relative}
+.nav-item svg{width:19px;height:19px;stroke:currentColor;flex:none}
+.nav-item.active{background:rgba(255,255,255,.14);color:#fff;font-weight:600}
+.nav-item .lbl{flex:1}
+.nav-badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:700;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+/* default (ocorrências, claro sobre o verde) */
+.nav-badge--def{background:rgba(255,255,255,.18);color:#fff}
+/* obrigações */
+.nav-badge--pend{background:var(--fiobras-yellow);color:var(--plum-deep)}
+.nav-badge--atras{background:var(--danger);color:#fff}
+
+.cap{font-size:12px;color:var(--text-muted);text-align:center;margin-top:10px;line-height:1.5}
+.cap b{color:var(--text-body)}
+.nota{font-size:12.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 12px 12px 0;padding:12px 16px;line-height:1.6;margin-top:26px}
+.nota b{color:var(--text-body);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">FioPulse · aviso de pendência</div>
+  <h1>Badge de Obrigações no menu</h1>
+  <p class="lead">Um número no item <b>Obrigações</b> (igual o de Ocorrências), sempre visível em qualquer tela.
+  Conta as <b>abertas do mês</b>; <b>vermelho</b> se tem atrasada, <b>âmbar</b> se só pendente, e <b>some</b> quando
+  está tudo feito. Três estados:</p>
+
+  <div class="cols">
+    <div class="col">
+      <h3>Tem atrasada</h3>
+      <div class="side">
+        <div class="brand">FioPulse<small style="margin-left:0">GH</small></div>
+        <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M9 10h6M9 14h6"/></svg><span class="lbl">Ocorrências</span><span class="nav-badge nav-badge--def">13</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="lbl">Banco de Horas</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Obrigações</span><span class="nav-badge nav-badge--atras">2</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Configurações</span></div>
+      </div>
+      <p class="cap"><b>2 atrasadas</b> → vermelho. Grita que passou do prazo.</p>
+    </div>
+
+    <div class="col">
+      <h3>Só pendente (no prazo)</h3>
+      <div class="side">
+        <div class="brand">FioPulse<small style="margin-left:0">GH</small></div>
+        <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M9 10h6M9 14h6"/></svg><span class="lbl">Ocorrências</span><span class="nav-badge nav-badge--def">13</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="lbl">Banco de Horas</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Obrigações</span><span class="nav-badge nav-badge--pend">3</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Configurações</span></div>
+      </div>
+      <p class="cap"><b>3 no prazo</b> → âmbar. Lembra sem alarmar.</p>
+    </div>
+
+    <div class="col">
+      <h3>Tudo feito</h3>
+      <div class="side">
+        <div class="brand">FioPulse<small style="margin-left:0">GH</small></div>
+        <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M9 10h6M9 14h6"/></svg><span class="lbl">Ocorrências</span><span class="nav-badge nav-badge--def">13</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="lbl">Banco de Horas</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="lbl">Obrigações</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="lbl">Configurações</span></div>
+      </div>
+      <p class="cap">Sem número — nada pendente no mês.</p>
+    </div>
+  </div>
+
+  <p class="nota"><b>Conta:</b> obrigações do mês ainda não feitas (pendentes + atrasadas). <b>Cor:</b> vermelho se
+  alguma atrasou, senão âmbar. <b>Some</b> com tudo feito. No celular o número aparece no menu lateral (o item
+  Obrigações não fica na barra de baixo). Reusa o mesmo componente de badge que o "Ocorrências" já usa.</p>
+</div>
+</body>
+</html>
