@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Obrigações do GH (checklist recorrente)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:var(--milk);--surface:#FFFFFF;
+  --border:#E7EDE4;--border-strong:#D8E2D3;--text:var(--plum-deep);--text-body:#1E2D1A;--text-muted:#4A6245;
+  --success:#2F6B3F;--success-bg:#E0EAD8;--warning:#B27429;--warning-bg:#F8E4C8;--warning-ink:#7A4A12;
+  --danger:#962F32;--danger-bg:#F4D6D2;--info:#2F5A6B;--info-bg:#D8E6EA;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--radius:12px;--radius-lg:18px;--radius-sm:8px;
+  --transition:180ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text-body);padding:40px 22px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--plum);font-weight:600}
+h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:12px 0 6px;color:var(--text)}
+.lead{color:var(--text-muted);font-size:13.5px;line-height:1.6;margin-bottom:8px;max-width:64ch}
+.lead b{color:var(--text-body);font-weight:600}
+h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin:34px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--border)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+
+/* ---- card do dashboard ---- */
+.ob-card__head{display:flex;align-items:center;gap:10px;padding:16px 18px 4px}
+.ob-card__head svg{width:18px;height:18px;color:var(--plum);flex:none}
+.ob-card__head h3{font-size:14px;font-weight:700;color:var(--text)}
+.ob-card__resumo{margin-left:auto;font-size:12px;font-weight:600;display:flex;gap:8px}
+.pill{padding:2px 9px;border-radius:999px;font-variant-numeric:tabular-nums}
+.pill--pend{background:var(--warning-bg);color:var(--warning-ink)}
+.pill--atras{background:var(--danger-bg);color:var(--danger)}
+.pill--ok{background:var(--success-bg);color:var(--success)}
+.ob-sub{font-size:11.5px;color:var(--text-muted);padding:0 18px 8px}
+
+.ob{display:flex;align-items:center;gap:13px;padding:11px 18px;border-top:1px solid var(--border)}
+.ob__chk{width:22px;height:22px;flex:none;border:1.6px solid var(--border-strong);border-radius:6px;background:var(--surface);cursor:pointer;position:relative;transition:var(--transition)}
+.ob__chk:hover{border-color:var(--plum-soft)}
+.ob.is-feita .ob__chk{background:var(--plum);border-color:var(--plum)}
+.ob.is-feita .ob__chk::after{content:"";position:absolute;left:7px;top:3px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.ob__main{min-width:0;flex:1}
+.ob__nome{font-size:14px;font-weight:500;color:var(--text-body)}
+.ob.is-feita .ob__nome{color:var(--text-muted);text-decoration:line-through}
+.ob__meta{font-size:11.5px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.ob__rec{display:inline-flex;align-items:center;gap:4px}
+.dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.5}
+.st{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;flex:none}
+.st--pend{background:var(--warning-bg);color:var(--warning-ink)}
+.st--atras{background:var(--danger-bg);color:var(--danger)}
+.st--ok{background:var(--success-bg);color:var(--success)}
+.st--prox{background:var(--milk-warm);color:var(--text-muted)}
+
+.btn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:600;border:0;border-radius:var(--radius-sm);padding:9px 14px;cursor:pointer}
+.btn--primary{background:var(--plum);color:#fff}
+.btn svg{width:16px;height:16px}
+.screen-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.screen-head h3{font-size:18px;font-weight:700;color:var(--text)}
+.screen-head p{font-size:12.5px;color:var(--text-muted);margin-top:2px}
+
+/* ---- form nova obrigação ---- */
+.form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.form h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--plum);margin-bottom:6px}
+.field input,.field select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font:inherit;font-size:14px;color:var(--text-body)}
+.field input:focus,.field select:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(0,136,53,.12)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:11.5px;color:var(--text-muted);margin-top:5px}
+.nota{font-size:12.5px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px;line-height:1.6;margin-top:16px}
+.nota b{color:var(--text-body);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">FioPulse · proposta (GH / admin)</div>
+  <h1>Obrigações do GH — checklist recorrente</h1>
+  <p class="lead">As tarefas que se repetem todo mês/ano. Marcou "feita" em junho, em <b>julho volta a pendente
+  sozinha</b>. Atrasada (passou do vencimento e não foi feita) fica em vermelho. Abaixo: o card no dashboard,
+  a tela de gerenciar, e o cadastro. Os checkboxes são clicáveis — testa.</p>
+
+  <h2>1 · Card no dashboard (GH e admin)</h2>
+  <div class="card">
+    <div class="ob-card__head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <h3>Obrigações de junho</h3>
+      <span class="ob-card__resumo" id="resumo"></span>
+    </div>
+    <div class="ob-sub">o que vence neste mês — marque ao concluir</div>
+    <div id="lista-mes"></div>
+  </div>
+
+  <h2>2 · Tela "Obrigações" (gerenciar)</h2>
+  <div class="screen-head">
+    <div><h3>Obrigações</h3><p>Cadastre as rotinas do GH; o sistema acompanha mês a mês.</p></div>
+    <button class="btn btn--primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova obrigação</button>
+  </div>
+  <div class="card" id="lista-todas"></div>
+  <p class="nota"><b>Histórico:</b> cada item guarda quando foi marcado em cada período — dá pra ver, por exemplo,
+  se o banco de horas fechou em dia todos os meses. (Fica num toque em "ver histórico" no item.)</p>
+
+  <h2>3 · Cadastrar / editar obrigação</h2>
+  <div class="form">
+    <h3>Nova obrigação</h3>
+    <div class="field">
+      <label>Título</label>
+      <input type="text" value="Fechar e enviar banco de horas" />
+    </div>
+    <div class="field">
+      <label>Descrição <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+      <input type="text" placeholder="Detalhe, link, lembrete…" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Recorrência</label>
+        <select><option>Todo mês</option><option>Todo ano</option><option>Uma vez (data única)</option></select>
+      </div>
+      <div class="field">
+        <label>Vence no dia</label>
+        <select><option>5</option><option>7</option><option>10</option><option>15</option><option>20</option><option>25</option><option>último dia útil</option></select>
+        <div class="hint">Mensal: dia do mês. Anual/única: você escolhe a data.</div>
+      </div>
+    </div>
+    <button class="btn btn--primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Salvar obrigação</button>
+  </div>
+
+  <p class="nota"><b>Como o status é calculado:</b> <span class="st st--ok" style="margin:0 2px">Feita</span> quando
+  marcada no período atual · <span class="st st--pend" style="margin:0 2px">Pendente</span> antes do vencimento ·
+  <span class="st st--atras" style="margin:0 2px">Atrasada</span> quando passou do dia e não foi feita. Tudo respeita
+  as permissões que já existem (só GH/admin veem e marcam). Zero emoji, tabular-nums, paleta da marca.</p>
+</div>
+
+<script>
+// "hoje" fictício = 18 de junho. Obrigações do mês:
+const OBRIG = [
+  { nome:"eSocial — eventos periódicos", rec:"Mensal", dia:7,  feita:true },
+  { nome:"Fechar e enviar banco de horas", rec:"Mensal", dia:5,  feita:true },
+  { nome:"Pagar prestadores PJ", rec:"Mensal", dia:10, feita:false },
+  { nome:"Conferir ocorrências do mês", rec:"Mensal", dia:25, feita:false },
+  { nome:"Guias FGTS", rec:"Mensal", dia:20, feita:false },
+];
+// extras que aparecem só na tela de gerenciar (anuais fora do mês)
+const ANUAIS = [
+  { nome:"Reajuste IPCA dos PJ", rec:"Anual", quando:"15 jan", prox:"próxima: jan/2027" },
+  { nome:"Programar férias coletivas", rec:"Anual", quando:"dez", prox:"próxima: dez/2026" },
+  { nome:"13º salário (1ª parcela)", rec:"Anual", quando:"nov", prox:"próxima: nov/2026" },
+];
+const HOJE = 18;
+const statusDe = (o) => o.feita ? "ok" : (HOJE > o.dia ? "atras" : "pend");
+const rotulo = { ok:"Feita", atras:"Atrasada", pend:"Pendente" };
+
+function pintar(){
+  const cont = document.getElementById("lista-mes");
+  cont.innerHTML = OBRIG.map((o,i)=>{
+    const st = statusDe(o);
+    return `<div class="ob ${o.feita?"is-feita":""}" data-i="${i}">
+      <div class="ob__chk" role="checkbox" aria-checked="${o.feita}" tabindex="0" aria-label="Marcar ${o.nome}"></div>
+      <div class="ob__main">
+        <div class="ob__nome">${o.nome}</div>
+        <div class="ob__meta"><span class="ob__rec">${o.rec}</span><span class="dot"></span><span>vence dia ${o.dia}</span></div>
+      </div>
+      <span class="st st--${st}">${rotulo[st]}</span>
+    </div>`;
+  }).join("");
+
+  const abertas = OBRIG.filter(o=>!o.feita);
+  const atras = abertas.filter(o=>HOJE>o.dia).length;
+  const pend = abertas.length - atras;
+  const feitas = OBRIG.length - abertas.length;
+  document.getElementById("resumo").innerHTML =
+    (atras?`<span class="pill pill--atras">${atras} atrasada${atras>1?"s":""}</span>`:"") +
+    (pend?`<span class="pill pill--pend">${pend} pendente${pend>1?"s":""}</span>`:"") +
+    `<span class="pill pill--ok">${feitas} feita${feitas!==1?"s":""}</span>`;
+
+  cont.querySelectorAll(".ob").forEach(el=>{
+    const toggle = ()=>{ OBRIG[+el.dataset.i].feita = !OBRIG[+el.dataset.i].feita; pintar(); };
+    el.querySelector(".ob__chk").addEventListener("click", toggle);
+  });
+}
+pintar();
+
+// tela de gerenciar: mensais (com status do mês) + anuais (próxima ocorrência)
+document.getElementById("lista-todas").innerHTML =
+  OBRIG.map(o=>{
+    const st = statusDe(o);
+    return `<div class="ob">
+      <div class="ob__main"><div class="ob__nome">${o.nome}</div>
+        <div class="ob__meta"><span>${o.rec}</span><span class="dot"></span><span>vence dia ${o.dia}</span></div></div>
+      <span class="st st--${st}">${rotulo[st]}</span></div>`;
+  }).join("") +
+  ANUAIS.map(o=>`<div class="ob">
+      <div class="ob__main"><div class="ob__nome">${o.nome}</div>
+        <div class="ob__meta"><span>${o.rec} · ${o.quando}</span></div></div>
+      <span class="st st--prox">${o.prox}</span></div>`).join("");
+</script>
+</body>
+</html>
