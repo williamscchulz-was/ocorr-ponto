@@ -996,6 +996,7 @@ function renderNav() {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
   }
   if (can("pj.ver")) items.push({ id: "pj", label: "Controle PJ", icon: "briefcase" });
+  if (can("obrigacoes.gerenciar")) items.push({ id: "obrigacoes", label: "Obrigações", icon: "calendar" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
@@ -1153,6 +1154,10 @@ function renderView() {
   if (page === "banco-horas") return renderBancoHoras();
   if (page === "funcionarios") return renderFuncionarios();
   if (page === "pj") return renderControlePJ();
+  if (page === "obrigacoes") {
+    if (!can("obrigacoes.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
+    return renderObrigacoes();
+  }
   if (page === "auditoria") {
     if (!can("auditoria.ver")) {
       state.view.page = "dashboard";
@@ -1448,6 +1453,7 @@ function renderDashboard() {
       </div>
     </div>
 
+    ${renderObrigacoesWidget(u)}
     ${renderAniversariantesWidget(u)}
     ${renderDemografiaWidget(u)}
     ${renderRankingTempoCasaWidget(u)}
@@ -3043,6 +3049,254 @@ async function doImportFuncionarios() {
 }
 
 // ---------- Banco de Horas (todos) ----------
+
+// ============================================================
+// Obrigações do GH — checklist recorrente (mensal / anual / única).
+// "Feito" é por período (conclusoes["2026-06"]) → reseta sozinho no período
+// seguinte sem perder histórico. Só GH/admin (cap obrigacoes.gerenciar).
+// Demo: store.save; Firebase: window.* sobrescreve (grava em /obrigacoes).
+// ============================================================
+const OBRIG_REC = { mensal: "Todo mês", anual: "Todo ano", unica: "Data única" };
+const OBRIG_ST = { ok: "Feita", pend: "Pendente", atras: "Atrasada" };
+
+function obrigacaoPeriodo(o) {
+  const d = new Date();
+  if (o.recorrencia === "anual") return String(d.getFullYear());
+  if (o.recorrencia === "unica") return "unica";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // mensal
+}
+function obrigacaoVencimento(o) {
+  const h = new Date();
+  if (o.recorrencia === "mensal") {
+    const ult = new Date(h.getFullYear(), h.getMonth() + 1, 0).getDate();
+    return new Date(h.getFullYear(), h.getMonth(), Math.min(Number(o.dia) || 1, ult));
+  }
+  if (o.recorrencia === "anual") return new Date(h.getFullYear(), (Number(o.mes) || 1) - 1, Number(o.dia) || 1);
+  if (o.data) return new Date(o.data + "T23:59:59");
+  return null;
+}
+function obrigacaoStatus(o) {
+  const per = obrigacaoPeriodo(o);
+  const feita = !!(o.conclusoes && o.conclusoes[per]);
+  if (feita) return { per, feita, status: "ok" };
+  const venc = obrigacaoVencimento(o);
+  return { per, feita, status: (venc && new Date() > venc) ? "atras" : "pend" };
+}
+function obrigVencTxt(o) {
+  if (o.recorrencia === "mensal") return `vence dia ${Number(o.dia) || 1}`;
+  if (o.recorrencia === "anual") return `${String(Number(o.dia) || 1).padStart(2, "0")}/${String(Number(o.mes) || 1).padStart(2, "0")}`;
+  if (o.data) return formatDate(o.data);
+  return "";
+}
+function obrigacoesDoMes() {
+  const h = new Date();
+  const mes = h.getMonth() + 1;
+  const ym = `${h.getFullYear()}-${String(mes).padStart(2, "0")}`;
+  return (state.obrigacoes || []).filter((o) => o.ativo !== false && (
+    o.recorrencia === "mensal" ||
+    (o.recorrencia === "anual" && (Number(o.mes) || 1) === mes) ||
+    (o.recorrencia === "unica" && (o.data || "").slice(0, 7) === ym)
+  ));
+}
+function obrigLinhaHtml(o, comEdit) {
+  const s = obrigacaoStatus(o);
+  return `
+    <div class="ob ${s.feita ? "is-feita" : ""}">
+      <button class="ob__chk" data-obrig-toggle="${o.id}" role="checkbox" aria-checked="${s.feita}" aria-label="Marcar ${escapeHtml(o.titulo)}"></button>
+      <div class="ob__main">
+        <div class="ob__nome">${escapeHtml(o.titulo)}${comEdit && o.descricao ? ` <span class="muted text-xs">· ${escapeHtml(o.descricao)}</span>` : ""}</div>
+        <div class="ob__meta"><span>${OBRIG_REC[o.recorrencia] || ""}</span><span class="dot"></span><span>${obrigVencTxt(o)}</span></div>
+      </div>
+      <span class="st st--${s.status}">${OBRIG_ST[s.status]}</span>
+      ${comEdit ? `<button class="ob__edit" data-obrig-edit="${o.id}" aria-label="Editar obrigação">${icon("edit")}</button>` : ""}
+    </div>`;
+}
+
+// Card no dashboard (GH/admin) — obrigações que vencem neste mês.
+function renderObrigacoesWidget(u) {
+  if (!can("obrigacoes.gerenciar")) return "";
+  const itens = obrigacoesDoMes();
+  if (itens.length === 0) return "";
+  let atras = 0, pend = 0, feitas = 0;
+  for (const o of itens) {
+    const st = obrigacaoStatus(o).status;
+    if (st === "ok") feitas++; else if (st === "atras") atras++; else pend++;
+  }
+  const mesLabel = new Date().toLocaleDateString("pt-BR", { month: "long" });
+  const resumo =
+    (atras ? `<span class="ob-pill ob-pill--atras">${atras} atrasada${atras > 1 ? "s" : ""}</span>` : "") +
+    (pend ? `<span class="ob-pill ob-pill--pend">${pend} pendente${pend > 1 ? "s" : ""}</span>` : "") +
+    `<span class="ob-pill ob-pill--ok">${feitas} feita${feitas !== 1 ? "s" : ""}</span>`;
+  return `
+    <div class="ob-card">
+      <div class="ob-card__head" data-obrig-abrir role="button" tabindex="0" title="Abrir Obrigações">
+        ${icon("calendar")}
+        <h3>Obrigações de ${mesLabel}</h3>
+        <span class="ob-card__resumo">${resumo}</span>
+      </div>
+      <div class="ob-lista">${itens.map((o) => obrigLinhaHtml(o, false)).join("")}</div>
+    </div>`;
+}
+
+function renderObrigacoes() {
+  const u = currentUser();
+  if (!can("obrigacoes.gerenciar")) { state.view.page = "dashboard"; return renderApp(); }
+  $("#topbar-title").textContent = "Obrigações";
+  const lista = (state.obrigacoes || []).filter((o) => o.ativo !== false)
+    .slice().sort((a, b) => (a.titulo || "").localeCompare(b.titulo || ""));
+  $("#view").innerHTML = `
+    <header class="page-header">
+      <div>
+        <h1>Obrigações</h1>
+        <p>As rotinas do GH. O sistema acompanha mês a mês e zera no período seguinte.</p>
+      </div>
+      <button class="btn btn--primary" data-obrig-nova>${icon("plus")}<span>Nova obrigação</span></button>
+    </header>
+    ${lista.length === 0 ? `
+      <div class="empty">
+        <div class="empty__icon">${icon("calendar")}</div>
+        <h3>Nenhuma obrigação cadastrada</h3>
+        <p>Cadastre as rotinas que se repetem (fechar folha, banco de horas, eSocial, pagar PJ...) e acompanhe aqui.</p>
+        <button class="btn btn--primary" data-obrig-nova>${icon("plus")}<span>Nova obrigação</span></button>
+      </div>
+    ` : `<div class="card ob-lista">${lista.map((o) => obrigLinhaHtml(o, true)).join("")}</div>`}
+  `;
+}
+
+function openObrigacaoModal(id) {
+  if (!can("obrigacoes.gerenciar")) return;
+  const o = id ? (state.obrigacoes || []).find((x) => x.id === id) : null;
+  const rec = o?.recorrencia || "mensal";
+  openModal(`
+    <div class="modal__header">
+      <div><h2>${o ? "Editar obrigação" : "Nova obrigação"}</h2><p>Rotina recorrente do GH.</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="obrig-form" onsubmit="return false">
+      <div class="field">
+        <label for="ob-titulo">Título</label>
+        <input type="text" id="ob-titulo" value="${o ? escapeHtml(o.titulo) : ""}" placeholder="Ex.: Fechar e enviar banco de horas" />
+      </div>
+      <div class="field">
+        <label for="ob-desc">Descrição <span class="muted text-xs">(opcional)</span></label>
+        <input type="text" id="ob-desc" value="${o ? escapeHtml(o.descricao || "") : ""}" placeholder="Detalhe, link ou lembrete" />
+      </div>
+      <div class="field">
+        <label for="ob-rec">Recorrência</label>
+        <select id="ob-rec">
+          <option value="mensal" ${rec === "mensal" ? "selected" : ""}>Todo mês</option>
+          <option value="anual" ${rec === "anual" ? "selected" : ""}>Todo ano</option>
+          <option value="unica" ${rec === "unica" ? "selected" : ""}>Uma vez (data única)</option>
+        </select>
+      </div>
+      <div class="field" id="ob-f-mensal">
+        <label for="ob-dia">Vence no dia (do mês)</label>
+        <input type="number" id="ob-dia" min="1" max="31" value="${o?.dia || 5}" />
+      </div>
+      <div class="field-row" id="ob-f-anual">
+        <div class="field">
+          <label for="ob-mes">Mês</label>
+          <select id="ob-mes">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => `<option value="${m}" ${Number(o?.mes) === m ? "selected" : ""}>${m}</option>`).join("")}</select>
+        </div>
+        <div class="field">
+          <label for="ob-diaa">Dia</label>
+          <input type="number" id="ob-diaa" min="1" max="31" value="${o?.dia || 15}" />
+        </div>
+      </div>
+      <div class="field" id="ob-f-unica">
+        <label for="ob-data">Data</label>
+        <input type="date" id="ob-data" value="${o?.data || ""}" />
+      </div>
+    </form>
+    <div class="modal__footer">
+      ${o ? `<button class="btn btn--danger" data-obrig-del="${o.id}">${icon("trash")}<span>Excluir</span></button>` : ""}
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="ob-save">${icon("check")}<span>Salvar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const recSel = $("#ob-rec");
+      const sync = () => {
+        const v = recSel.value;
+        $("#ob-f-mensal").style.display = v === "mensal" ? "" : "none";
+        $("#ob-f-anual").style.display = v === "anual" ? "" : "none";
+        $("#ob-f-unica").style.display = v === "unica" ? "" : "none";
+      };
+      recSel.addEventListener("change", sync); sync();
+      $("#ob-save").addEventListener("click", () => salvarObrigacaoForm(id));
+      const del = modal.querySelector("[data-obrig-del]");
+      if (del) del.addEventListener("click", () => removerObrigacao(del.dataset.obrigDel));
+      setTimeout(() => $("#ob-titulo")?.focus(), 60);
+    },
+  });
+}
+
+function salvarObrigacaoForm(id) {
+  const titulo = $("#ob-titulo").value.trim();
+  if (!titulo || titulo.length < 3) return campoInvalido("#ob-titulo", "Dê um título à obrigação (mín. 3 letras).");
+  const rec = $("#ob-rec").value;
+  const dados = { titulo, descricao: $("#ob-desc").value.trim(), recorrencia: rec };
+  if (rec === "mensal") dados.dia = Math.min(31, Math.max(1, Number($("#ob-dia").value) || 1));
+  else if (rec === "anual") { dados.mes = Number($("#ob-mes").value) || 1; dados.dia = Math.min(31, Math.max(1, Number($("#ob-diaa").value) || 1)); }
+  else { const d = $("#ob-data").value; if (!d) return campoInvalido("#ob-data", "Escolha a data."); dados.data = d; }
+  salvarObrigacao(dados, id);
+}
+
+// --- CRUD (versão demo; firebase.js sobrescreve window.* pra gravar no Firestore) ---
+function salvarObrigacao(dados, id) {
+  if (!state.obrigacoes) state.obrigacoes = [];
+  if (id) {
+    const o = state.obrigacoes.find((x) => x.id === id);
+    if (o) Object.assign(o, dados);
+  } else {
+    state.obrigacoes.push({ id: "ob-" + Date.now(), ativo: true, conclusoes: {}, ...dados });
+  }
+  store.save(state);
+  closeModal();
+  toast("Obrigação salva.");
+  renderApp();
+}
+async function removerObrigacao(id) {
+  const o = (state.obrigacoes || []).find((x) => x.id === id);
+  if (!o) return;
+  if (!(await confirmar({ titulo: "Excluir obrigação?", msg: `Remover "${o.titulo}".`, okLabel: "Excluir", perigo: true }))) return;
+  state.obrigacoes = (state.obrigacoes || []).filter((x) => x.id !== id);
+  store.save(state);
+  closeModal();
+  toast("Obrigação excluída.");
+  renderApp();
+}
+function marcarObrigacao(id, periodo, feito) {
+  const o = (state.obrigacoes || []).find((x) => x.id === id);
+  if (!o) return;
+  o.conclusoes = o.conclusoes || {};
+  if (feito) o.conclusoes[periodo] = { por: currentUser()?.id || null, em: new Date().toISOString() };
+  else delete o.conclusoes[periodo];
+  store.save(state);
+  renderApp();
+}
+function toggleObrigacao(id) {
+  const o = (state.obrigacoes || []).find((x) => x.id === id);
+  if (!o) return;
+  const per = obrigacaoPeriodo(o);
+  marcarObrigacao(id, per, !(o.conclusoes && o.conclusoes[per]));
+}
+
+// Handler delegado único (sobrevive aos re-renders do #view).
+if (!window._obrigBound) {
+  window._obrigBound = true;
+  document.addEventListener("click", (e) => {
+    const tg = e.target.closest("[data-obrig-toggle]");
+    if (tg) { e.preventDefault(); toggleObrigacao(tg.dataset.obrigToggle); return; }
+    const ed = e.target.closest("[data-obrig-edit]");
+    if (ed) { e.stopPropagation(); openObrigacaoModal(ed.dataset.obrigEdit); return; }
+    const nv = e.target.closest("[data-obrig-nova]");
+    if (nv) { openObrigacaoModal(); return; }
+    const ab = e.target.closest("[data-obrig-abrir]");
+    if (ab) { state.view.page = "obrigacoes"; renderApp(); return; }
+  });
+}
 
 function renderBancoHoras() {
   const u = currentUser();
@@ -5943,6 +6197,9 @@ const PERM_CAPS = [
   { area: "Auditoria", caps: [
     { k: "auditoria.ver", n: "Ver histórico de alterações" },
   ]},
+  { area: "Obrigações", caps: [
+    { k: "obrigacoes.gerenciar", n: "Ver e gerenciar a agenda de obrigações" },
+  ]},
   { area: "Sistema", caps: [
     { k: "sistema.config", n: "Configurações (tipos, ações)" },
     { k: "sistema.usuarios", n: "Gerenciar usuários e permissões" },
@@ -5957,7 +6214,7 @@ const PERM_DEFAULT = {
     "ocorrencias.lancar": true, "ocorrencias.editarTudo": false, "ocorrencias.excluir": true,
     "bancoHoras.ver": true, "bancoHoras.importar": true,
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
-    "func.ver": true, "func.editar": true, "func.dadosSensiveis": true,
+    "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
     "auditoria.ver": true, "sistema.config": true, "sistema.usuarios": false,
   },
   lider: {
@@ -5965,7 +6222,7 @@ const PERM_DEFAULT = {
     "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
     "bancoHoras.ver": "turno", "bancoHoras.importar": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
-    "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,
+    "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   supervisor: {
@@ -5973,7 +6230,7 @@ const PERM_DEFAULT = {
     "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
     "bancoHoras.ver": "atrib", "bancoHoras.importar": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
-    "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false,
+    "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
 };
@@ -7111,7 +7368,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.9.1";
+window.CURRENT_VERSION = "1.10.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

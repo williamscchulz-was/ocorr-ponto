@@ -2588,6 +2588,37 @@ html.firebase-mode .login__forgot { display: block; }
   background: var(--info-bg); color: var(--info);
   border-radius: 999px; padding: 2px 9px; margin-left: 6px;
 }
+
+/* ===== Obrigações do GH (checklist recorrente: card no dashboard + tela) ===== */
+.ob-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin: 0 0 20px; }
+.ob-card__head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 10px; cursor: pointer; }
+.ob-card__head svg { width: 18px; height: 18px; color: var(--plum); flex: none; }
+.ob-card__head h3 { font-size: 14px; font-weight: 700; color: var(--text); }
+.ob-card__head:hover h3 { color: var(--plum-deep); }
+.ob-card__resumo { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.ob-pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.ob-pill--atras { background: var(--danger-bg); color: var(--danger); }
+.ob-pill--pend { background: var(--warning-bg); color: var(--warning-ink); }
+.ob-pill--ok { background: var(--success-bg); color: var(--success); }
+.ob-lista { display: flex; flex-direction: column; }
+.ob { display: flex; align-items: center; gap: 13px; padding: 11px 18px; border-top: 1px solid var(--border); }
+.ob:first-child { border-top: 0; }
+.ob__chk { width: 22px; height: 22px; flex: none; border: 1.6px solid var(--border-strong); border-radius: 6px; background: var(--surface); cursor: pointer; position: relative; transition: var(--transition); padding: 0; }
+.ob__chk:hover { border-color: var(--plum-soft); }
+.ob.is-feita .ob__chk { background: var(--plum); border-color: var(--plum); }
+.ob.is-feita .ob__chk::after { content: ""; position: absolute; left: 7px; top: 3px; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
+.ob__main { min-width: 0; flex: 1; }
+.ob__nome { font-size: 14px; font-weight: 500; color: var(--text-body); }
+.ob.is-feita .ob__nome { color: var(--text-muted); text-decoration: line-through; }
+.ob__meta { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.ob .st { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; flex: none; }
+.ob .st--ok { background: var(--success-bg); color: var(--success); }
+.ob .st--pend { background: var(--warning-bg); color: var(--warning-ink); }
+.ob .st--atras { background: var(--danger-bg); color: var(--danger); }
+.ob__edit { flex: none; background: none; border: 0; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 6px; display: inline-flex; }
+.ob__edit:hover { background: var(--row-hover); color: var(--plum); }
+.ob__edit .icon { width: 16px; height: 16px; }
+@media (prefers-reduced-motion: reduce) { .ob__chk { transition: none; } }
 /* Banco de horas no perfil (gráfico de barras do mês) */
 .bh-perfil {
   background: var(--row-hover);

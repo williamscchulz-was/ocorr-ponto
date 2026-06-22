@@ -103,6 +103,14 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || temCap('sistema.config', isRH());
     }
 
+    // ----- obrigacoes (checklist recorrente do GH) -----
+    // Todos logados leem (card/tela gated na UI por obrigacoes.gerenciar; sem
+    // segredos). Escrita (cadastrar/editar/marcar conclusão): GH/admin.
+    match /obrigacoes/{id} {
+      allow read: if isAuthed();
+      allow create, update, delete: if isAdmin() || temCap('obrigacoes.gerenciar', isRH());
+    }
+
     // ----- bancoHoras (saldo de horas por funcionário · denormalizado por doc) -----
     // Líder lê apenas docs do próprio turno; supervisor lê amplo (UI filtra).
     // Escrita: pipeline RH (servidor) ou quem tiver bancoHoras.importar.

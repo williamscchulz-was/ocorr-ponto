@@ -11,7 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.9.1", d: "17 jun 2026", current: true, items: [
+    v: "1.10.0", d: "18 jun 2026", current: true, items: [
+      { type: "high", title: "Novo: Obrigações do GH — checklist das rotinas (fechar folha, banco de horas, eSocial, pagar PJ…) que zera sozinha a cada mês/ano." },
+      { type: "feat", title: "Card no dashboard mostra o que vence no mês, o que está pendente e o que atrasou; marca como feito em um toque." },
+    ],
+  },
+  {
+    v: "1.9.1", d: "17 jun 2026", items: [
       { type: "feat", title: "Menores aprendizes têm badge \"Menor Aprendiz\" na lista e filtro de status próprio." },
       { type: "note", title: "Aprendizes saem de banco de horas, demografia e ranking (como a diretoria); seguem contando no quadro e nos aniversários." },
     ],

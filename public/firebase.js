@@ -122,7 +122,7 @@
         const batch = db.batch();
         // Todas as coleções gravadas por documento — senão o reset deixa
         // órfãos (saldos, PJs, chat, presença, tipos/ações custom).
-        const cols = ["ocorrencias", "funcionarios", "users", "bancoHoras", "pj", "mensagens", "presence", "tipos", "acoes"];
+        const cols = ["ocorrencias", "funcionarios", "users", "bancoHoras", "pj", "mensagens", "presence", "tipos", "acoes", "obrigacoes"];
         for (const c of cols) {
           const snap = await db.collection(c).get();
           snap.docs.forEach((d) => batch.delete(d.ref));
@@ -1208,6 +1208,56 @@
         toast("Erro ao excluir: " + err.message, "danger");
       }
     };
+
+    // ---- Obrigações do GH → /obrigacoes (CRUD + marcar conclusão por período) ----
+    window.salvarObrigacao = async function (dados, id) {
+      const u = currentUser();
+      try {
+        if (id) {
+          await db.collection("obrigacoes").doc(id).set(
+            { ...dados, atualizadoPor: u.id, atualizadoEm: firebase.firestore.FieldValue.serverTimestamp() },
+            { merge: true });
+          const o = (state.obrigacoes || []).find((x) => x.id === id);
+          if (o) Object.assign(o, dados);
+        } else {
+          const ref = await db.collection("obrigacoes").add({
+            ...dados, ativo: true, conclusoes: {}, criadoPor: u.id,
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          if (!state.obrigacoes) state.obrigacoes = [];
+          state.obrigacoes.push({ id: ref.id, ativo: true, conclusoes: {}, ...dados });
+        }
+        closeModal(); toast("Obrigação salva."); renderApp();
+      } catch (err) { toast("Erro: " + err.message, "danger"); }
+    };
+    window.removerObrigacao = async function (id) {
+      const o = (state.obrigacoes || []).find((x) => x.id === id);
+      if (!o) return;
+      if (!(await confirmar({ titulo: "Excluir obrigação?", msg: `Remover "${o.titulo}".`, okLabel: "Excluir", perigo: true }))) return;
+      try {
+        await db.collection("obrigacoes").doc(id).delete();
+        state.obrigacoes = (state.obrigacoes || []).filter((x) => x.id !== id);
+        closeModal(); toast("Obrigação excluída."); renderApp();
+      } catch (err) { toast("Erro: " + err.message, "danger"); }
+    };
+    window.marcarObrigacao = async function (id, periodo, feito) {
+      const o = (state.obrigacoes || []).find((x) => x.id === id);
+      if (!o) return;
+      const u = currentUser();
+      o.conclusoes = o.conclusoes || {};
+      // FieldPath (não string com ponto): o período "2026-06" começa com dígito.
+      const fp = new firebase.firestore.FieldPath("conclusoes", periodo);
+      try {
+        if (feito) {
+          o.conclusoes[periodo] = { por: u.id, em: new Date().toISOString() };
+          await db.collection("obrigacoes").doc(id).update(fp, { por: u.id, em: firebase.firestore.FieldValue.serverTimestamp() });
+        } else {
+          delete o.conclusoes[periodo];
+          await db.collection("obrigacoes").doc(id).update(fp, firebase.firestore.FieldValue.delete());
+        }
+        renderApp();
+      } catch (err) { toast("Erro: " + err.message, "danger"); }
+    };
   }
 
   // ----------------------------------------
@@ -1931,6 +1981,12 @@
       ...d.data(),
       criadoEm: tsToIso(d.data().criadoEm),
     }));
+
+    // Obrigações do GH (checklist recorrente) — autenticados leem; só GH/admin grava.
+    try {
+      const obSnap = await db.collection("obrigacoes").get();
+      state.obrigacoes = obSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (e) { state.obrigacoes = state.obrigacoes || []; debug?.("[obrigacoes] load:", e?.message || e); }
 
     // Banco de Horas — fontes diferentes por papel pra isolamento por turno:
     //
