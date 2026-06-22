@@ -11,7 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.10.0", d: "18 jun 2026", current: true, items: [
+    v: "1.11.0", d: "18 jun 2026", current: true, items: [
+      { type: "feat", title: "Toques premium: a barrinha das abas desliza, os números animam quando mudam, e o 'Tudo em dia' chega com uma comemoração discreta." },
+      { type: "feat", title: "No celular: vibração curtinha ao lançar/conferir/marcar, topbar com sombra ao rolar e o botão + que recolhe ao descer." },
+    ],
+  },
+  {
+    v: "1.10.0", d: "18 jun 2026", items: [
       { type: "high", title: "Novo: Obrigações do GH — checklist das rotinas (fechar folha, banco de horas, eSocial, pagar PJ…) que zera sozinha a cada mês/ano." },
       { type: "feat", title: "Card no dashboard mostra o que vence no mês, o que está pendente e o que atrasou; marca como feito em um toque." },
     ],

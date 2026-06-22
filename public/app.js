@@ -79,25 +79,55 @@ function animarEntrada(container) {
   container.classList.add("stagger-in");
 }
 
-// Conta de 0 até o valor final em cada .stat__value que seja inteiro puro.
+// Conta os .stat__value: na 1ª vez sobe de 0; depois ROLA do valor anterior pro
+// novo quando muda (não troca seco) — "felt" de que o sistema respondeu.
+const _statPrev = {};
 function animarNumeros(scope) {
   const root = typeof scope === "string" ? document.querySelector(scope) : (scope || document);
-  if (!root || prefereMenosMovimento()) return;
+  if (!root) return;
+  const page = (state.view && state.view.page) || "";
   root.querySelectorAll(".stat__value").forEach((el) => {
     const txt = (el.textContent || "").trim();
     if (!/^\d{1,7}$/.test(txt)) return; // só inteiros puros (ignora "hoje", "0h00"...)
     const to = parseInt(txt, 10);
-    if (to <= 0) return;
-    const dur = 700, t0 = performance.now();
-    el.textContent = "0";
+    const label = ((el.parentElement && el.parentElement.querySelector(".stat__label")?.textContent) || "").trim();
+    const key = page + "|" + label;
+    const from = _statPrev[key] != null ? _statPrev[key] : 0;
+    _statPrev[key] = to;
+    if (prefereMenosMovimento() || from === to) { el.textContent = String(to); return; }
+    const dur = from === 0 ? 700 : 450, t0 = performance.now();
     const tick = (now) => {
       const p = Math.min(1, (now - t0) / dur);
       const e = 1 - Math.pow(1 - p, 3);
-      el.textContent = String(Math.round(to * e));
+      el.textContent = String(Math.round(from + (to - from) * e));
       if (p < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
   });
+}
+
+// Háptico curtinho (mobile) — confirma ações-chave. No-op onde não há suporte.
+function vibrar(ms) { try { if (navigator.vibrate && !prefereMenosMovimento()) navigator.vibrate(ms || 10); } catch (e) {} }
+
+// Profundidade ao rolar: a topbar (mobile) ganha sombra e o FAB recolhe ao descer
+// (volta ao subir). Liga uma vez; capture:true pega o scroll de qualquer container.
+if (!window._scrollFxBound) {
+  window._scrollFxBound = true;
+  let _lastY = 0;
+  window.addEventListener("scroll", (e) => {
+    const t = e.target;
+    const y = (t === document || t === document.documentElement || t === document.body || t === window)
+      ? (window.scrollY || document.documentElement.scrollTop || 0)
+      : (t.scrollTop || 0);
+    const tb = document.querySelector(".topbar");
+    if (tb) tb.classList.toggle("topbar--elev", y > 4);
+    const fab = document.querySelector(".fab");
+    if (fab) {
+      if (y > _lastY + 6 && y > 60) fab.classList.add("fab--rec");
+      else if (y < _lastY - 6) fab.classList.remove("fab--rec");
+    }
+    _lastY = y;
+  }, { passive: true, capture: true });
 }
 
 // Proximidade na sidebar: itens crescem de leve conforme o cursor se aproxima
@@ -1480,6 +1510,7 @@ function renderDashboard() {
       <button class="tab ${state.view.filterTab === "todas" ? "active" : ""}" data-tab="todas">
         Todas <span class="tab__count">${visible.length}</span>
       </button>
+      <span class="tabs__ink" aria-hidden="true"></span>
     </div>
 
     <div class="toolbar">
@@ -1504,10 +1535,21 @@ function renderDashboard() {
   // Wire up
   if ($("#btn-nova")) $("#btn-nova").addEventListener("click", openNovaOcorrencia);
 
+  // Ink deslizante: troca de aba move só a lista (não re-renderiza o dashboard),
+  // então a barrinha transiciona da aba antiga pra nova em vez de pular.
+  const _ink = $("#tabs .tabs__ink");
+  const moverInk = () => {
+    const at = $("#tabs .tab.active");
+    if (_ink && at) { _ink.style.left = at.offsetLeft + "px"; _ink.style.width = at.offsetWidth + "px"; }
+  };
+  requestAnimationFrame(moverInk);
   $$("#tabs .tab").forEach((t) => {
     t.addEventListener("click", () => {
+      if (t.classList.contains("active")) return;
       state.view.filterTab = t.dataset.tab;
-      renderDashboard();
+      $$("#tabs .tab").forEach((x) => x.classList.toggle("active", x === t));
+      moverInk();
+      renderOccList();
     });
   });
 
@@ -1592,7 +1634,9 @@ function renderOccList() {
     const podeCriar = !temFiltroAtivo && tab === "pendentes" && can("ocorrencias.criar");
     root.innerHTML = `
       <div class="empty">
-        <div class="empty__icon">${icon("inbox")}</div>
+        ${temFiltroAtivo
+          ? `<div class="empty__icon">${icon("inbox")}</div>`
+          : `<div class="empty__cel"><span class="empty__cel-ring" aria-hidden="true"></span><span class="empty__cel-circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></div>`}
         <h3>${temFiltroAtivo ? "Nada por aqui" : "Tudo em dia"}</h3>
         <p>${temFiltroAtivo
           ? "Nenhum registro com a busca/filtro atual."
@@ -1623,6 +1667,7 @@ function renderOccList() {
       e.stopPropagation();
       const id = btn.dataset.quickLancar;
       const card = btn.closest(".occ");
+      vibrar();
       // Confirma deslizando a linha pra fora; o re-render vem logo depois.
       if (card) {
         card.classList.add("occ--saindo");
@@ -2121,6 +2166,7 @@ function confirmConferencia(id) {
   const obs = $("#conf-obs").value.trim();
 
   if (!acao) return campoInvalido("#conf-acao", "Selecione a ação antes de confirmar.");
+  vibrar();
 
   const u = currentUser();
   o.acao = acao;
@@ -3357,6 +3403,7 @@ function toggleObrigacao(id) {
   const o = (state.obrigacoes || []).find((x) => x.id === id);
   if (!o) return;
   const per = obrigacaoPeriodo(o);
+  vibrar();
   marcarObrigacao(id, per, !(o.conclusoes && o.conclusoes[per]));
 }
 
@@ -7445,7 +7492,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.10.0";
+window.CURRENT_VERSION = "1.11.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

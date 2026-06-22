@@ -3487,6 +3487,37 @@ body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
 }
 @keyframes mi-tabInk { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
+/* Ink DESLIZANTE (só no #tabs do dashboard) — desliza entre abas em vez de
+   crescer do centro. As abas de Configurações seguem com o ::after acima. */
+#tabs { position: relative; }
+#tabs .tab.active::after { display: none; }
+#tabs .tabs__ink {
+  position: absolute; bottom: -1px; left: 0; width: 0; height: 2px;
+  background: var(--plum); border-radius: 2px;
+  transition: left .3s var(--ease), width .3s var(--ease);
+}
+@media (prefers-reduced-motion: reduce) { #tabs .tabs__ink { transition: none; } }
+
+/* Celebração "tudo em dia" (inbox-zero): check que se desenha + pulso verde. */
+.empty__cel { position: relative; display: grid; place-items: center; width: 72px; height: 72px; margin: 0 auto 6px; }
+.empty__cel-ring { position: absolute; width: 64px; height: 64px; border-radius: 50%; background: var(--plum); opacity: .16; animation: emptyCelPulse 1.1s var(--ease); }
+.empty__cel-circ { width: 64px; height: 64px; border-radius: 50%; background: var(--success-bg); color: var(--success); display: grid; place-items: center; position: relative; z-index: 2; }
+.empty__cel-circ svg { width: 34px; height: 34px; }
+.empty__cel-circ path { stroke-dasharray: 30; stroke-dashoffset: 30; animation: emptyCelDraw .5s .15s var(--ease) forwards; }
+@keyframes emptyCelPulse { 0% { transform: scale(.4); opacity: .32; } 100% { transform: scale(2.6); opacity: 0; } }
+@keyframes emptyCelDraw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .empty__cel-ring { animation: none; opacity: 0; }
+  .empty__cel-circ path { animation: none; stroke-dashoffset: 0; }
+}
+
+/* Profundidade ao rolar: topbar ganha sombra; FAB recolhe ao descer. */
+.topbar { transition: box-shadow .2s ease; }
+.topbar--elev { box-shadow: 0 4px 16px rgba(0, 40, 20, .18); }
+.fab { transition: transform .26s var(--ease), opacity .26s ease, background 120ms; }
+.fab--rec { transform: translateY(96px) scale(.7); opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .fab { transition: none; } .fab--rec { transform: none; opacity: 1; pointer-events: auto; } }
+
 /* 5 · Proximidade na barra lateral — base; o JS aplica o scale por distância */
 .nav__item {
   transition: background var(--transition), color var(--transition), transform .15s var(--ease);
