@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=170" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=170" />
+  <link rel="stylesheet" href="styles.css?v=171" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=171" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -67,7 +67,7 @@
     <div class="acesso__split">
       <button class="acesso__half acesso__half--colab" id="acesso-colab" type="button">
         <span class="acesso__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-        <span class="acesso__t">Portal do Colaborador<span class="acesso__selo">Prévia · sem login</span><span class="acesso__sub">Ponto, comunicados e documentos.</span></span>
+        <span class="acesso__t">Portal do Colaborador<span class="acesso__sub">Entre com seu CPF. Ponto, comunicados e documentos.</span></span>
         <span class="acesso__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
       </button>
       <button class="acesso__half acesso__half--gestor" id="acesso-gestor" type="button">
@@ -302,16 +302,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=170"></script>
-  <script defer src="data.js?v=170"></script>
+  <script defer src="utils.js?v=171"></script>
+  <script defer src="data.js?v=171"></script>
   <!-- roadmap.js: dados estáticos do Roadmap do Portal (window.ROADMAP). -->
-  <script defer src="roadmap.js?v=170"></script>
-  <script defer src="app.js?v=170"></script>
+  <script defer src="roadmap.js?v=171"></script>
+  <script defer src="app.js?v=171"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=170"></script>
-  <script defer src="google-drive.js?v=170"></script>
+  <script defer src="firebase.js?v=171"></script>
+  <script defer src="google-drive.js?v=171"></script>
 </body>
 </html>
