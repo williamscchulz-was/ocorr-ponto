@@ -1960,16 +1960,23 @@
         $("#login").classList.add("hidden");
         $("#app").classList.remove("hidden");
         esconderSplash(); // troca splash → app direto (login nunca pisca)
-        state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
+        const ehColab = userInState.role === "colaborador";
+        state.view = ehColab
+          ? { page: "colab-home" }
+          : { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
         renderApp();
 
-        // Inicia presença DEPOIS do app renderizar (state.view existe)
-        iniciarPresenca().catch((e) => debug?.("[Presence] init falhou:", e));
+        // F3 (Fundação SELF): presença e chat NÃO são ligados para o colaborador — privacidade
+        // + as rules de presence/mensagens não o contemplam (evita permission-denied na F5).
+        if (!ehColab) {
+          // Inicia presença DEPOIS do app renderizar (state.view existe)
+          iniciarPresenca().catch((e) => debug?.("[Presence] init falhou:", e));
 
-        // Inicia o listener global do chat (mensagens recebidas → badge)
-        if (chatUnsub) { chatUnsub(); chatUnsub = null; }
-        try { chatUnsub = window.escutarMinhasMensagens(); }
-        catch (e) { debug?.("[chat] init falhou:", e); }
+          // Inicia o listener global do chat (mensagens recebidas → badge)
+          if (chatUnsub) { chatUnsub(); chatUnsub = null; }
+          try { chatUnsub = window.escutarMinhasMensagens(); }
+          catch (e) { debug?.("[chat] init falhou:", e); }
+        }
       } catch (err) {
         debug?.("Erro carregando perfil:", err);
         toast("Erro ao carregar perfil: " + err.message, "danger");
@@ -1983,6 +1990,23 @@
 
   async function carregarDadosCompletos(db) {
     const u = currentUser();
+
+    // F3 (Fundação SELF): o colaborador NÃO roda .get() amplo (vazaria a base inteira e, após
+    // endurecer as rules na F5, tomaria permission-denied e travaria o boot). Carrega só o próprio
+    // funcionário — compatível com as rules de HOJE e com as endurecidas. As telas self usam
+    // coleções próprias (banco-horas-self, documentos, etc.) nas fases seguintes.
+    if (u && u.role === "colaborador") {
+      state.funcionarios = []; state.tiposCustom = []; state.acoesCustom = [];
+      state.obrigacoes = []; state.bancoHoras = {}; state.pipelineMeta = null;
+      state.ocorrencias = state.ocorrencias || [];
+      if (u.funcionarioId) {
+        try {
+          const meu = await db.collection("funcionarios").doc(u.funcionarioId).get();
+          if (meu.exists) state.funcionarios = [{ id: meu.id, ...meu.data() }];
+        } catch (e) { debug?.("[colab] meu funcionario:", e?.message || e); }
+      }
+      return;
+    }
 
     // Funcionários (todos podem ler)
     const funcSnap = await db.collection("funcionarios").get();
