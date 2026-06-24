@@ -970,6 +970,27 @@ window.ROADMAP = {
       ]
     },
     {
+      id: "ocultar-chat-portal-colaborador",
+      numero: null,
+      nome: "Ocultar o chat (ferramenta de gestor) do Portal do Colaborador",
+      fase: "fase1",
+      prioridade: "alta",
+      complexidade: "muito_facil",
+      status: "concluido",
+      concluidoEm: "2026-06-24",
+      classificacao: "adapta",
+      descricao: "O Portal do Colaborador não expõe o chat interno (ferramenta dos gestores). Os listeners de chat e presença já eram pulados pro colaborador (firebase.js, if(!ehColab)), mas o botão flutuante (#chat-fab) e o FAB de nova ocorrência (#fab) ainda apareciam porque a classe modo-colab só era aplicada na prévia, não no login real. Agora renderPortalColaborador aplica modo-colab (o CSS esconde #fab e #chat-fab) e a faixa de prévia migrou para a classe modo-preview, que só entra na prévia; a classe é removida ao deslogar ou ao renderizar um gestor.",
+      objetivo: "Colaborador não acessa o chat interno de gestores; portal limpo, só com o que é dele.",
+      dependencias: ["renderPortalColaborador", "portal-colaborador.css (.modo-colab)", "fix do login do colaborador"],
+      criteriosAceite: [
+        "No login real do colaborador, o botão de chat (#chat-fab) e o FAB não aparecem.",
+        "Nenhum listener de chat ou presença é iniciado pro colaborador.",
+        "Gestores continuam com o chat normal.",
+        "Ao deslogar, a classe modo-colab é removida.",
+        "A faixa de prévia não aparece no login real (só na prévia, via modo-preview)."
+      ]
+    },
+    {
       id: "alfa-grupo-selecao",
       numero: null,
       nome: "Definição do grupo alfa (5 pessoas) e ponto de contato no RH",

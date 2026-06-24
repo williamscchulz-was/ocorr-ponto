@@ -685,7 +685,7 @@ function entrarPreviewColaborador() {
   state.users = [{ id: PREVIEW_COLAB_ID, nome: "Maria Aparecida Silva", role: "colaborador", preview: true }];
   state.currentUserId = PREVIEW_COLAB_ID;
   state.view = { page: "colab-roadmap" };
-  document.documentElement.classList.add("modo-colab");
+  document.documentElement.classList.add("modo-colab", "modo-preview");
   $("#acesso")?.classList.add("hidden");
   $("#login")?.classList.add("hidden");
   $("#app")?.classList.remove("hidden");
@@ -693,7 +693,7 @@ function entrarPreviewColaborador() {
 }
 function sairPreviewColaborador(silent) {
   if (state.currentUserId === PREVIEW_COLAB_ID) { state.currentUserId = null; state.users = []; }
-  document.documentElement.classList.remove("modo-colab");
+  document.documentElement.classList.remove("modo-colab", "modo-preview");
   if (!silent) mostrarAcesso();
 }
 window.sairPreviewColaborador = sairPreviewColaborador;
@@ -728,6 +728,10 @@ function cpRoadmapStats() {
 
 // ---- Shell do colaborador (chrome reaproveitado) ----
 function renderPortalColaborador(u) {
+  // Modo colaborador: esconde o chrome de gestor (chat #chat-fab, FAB #fab, presença).
+  // A faixa de prévia (modo-preview) só entra na prévia sem login, nunca no login real.
+  document.documentElement.classList.add("modo-colab");
+  document.documentElement.classList.toggle("modo-preview", !!u.preview);
   aplicarAvatar($("#user-avatar"), u);
   $("#user-name").textContent = u.nome;
   $("#user-role").textContent = u.preview ? "Colaborador · prévia" : "Colaborador";
@@ -938,6 +942,8 @@ function renderApp() {
   const u = currentUser();
   if (!u) { mostrarAcesso(); return; }
   if (u.role === "colaborador") return renderPortalColaborador(u);
+  // Gestor nunca usa o modo colaborador (limpa classe que possa ter sobrado).
+  document.documentElement.classList.remove("modo-colab", "modo-preview");
 
   // Sidebar user (avatar com foto se houver, senão iniciais)
   aplicarAvatar($("#user-avatar"), u);
