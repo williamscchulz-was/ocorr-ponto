@@ -623,11 +623,13 @@ function mostrarAcesso() {
   sairPreviewColaborador(true);
   $("#app")?.classList.add("hidden");
   $("#login")?.classList.add("hidden");
+  $("#login-colab")?.classList.add("hidden");
   $("#acesso")?.classList.remove("hidden");
 }
 function mostrarLoginGestor() {
   $("#acesso")?.classList.add("hidden");
   $("#app")?.classList.add("hidden");
+  $("#login-colab")?.classList.add("hidden");
   $("#login")?.classList.remove("hidden");
   setTimeout(() => $("#login-user")?.focus(), 60);
 }
@@ -635,6 +637,12 @@ function mostrarLoginColaborador() {
   $("#acesso")?.classList.add("hidden");
   $("#login")?.classList.add("hidden");
   $("#app")?.classList.add("hidden");
+  // Reseta botão/inputs caso uma tentativa anterior tenha deixado "Entrando..." travado.
+  const cb = document.querySelector('#login-colab-form button[type="submit"]');
+  if (cb) { cb.disabled = false; cb.textContent = "Entrar"; }
+  const cc = $("#colab-cpf"), cs = $("#colab-senha");
+  if (cc) cc.disabled = false;
+  if (cs) cs.disabled = false;
   $("#login-colab")?.classList.remove("hidden");
   setTimeout(() => $("#colab-cpf")?.focus(), 60);
 }

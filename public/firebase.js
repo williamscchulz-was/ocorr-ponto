@@ -1311,8 +1311,9 @@
     };
 
     // Login do COLABORADOR por CPF: monta o e-mail sintético e entra. Erros vão pro
-    // campo da tela #login-colab (não o #login-error do gestor). Sessão por aba (NONE):
-    // o colaborador no celular não usa "manter conectado" (mais seguro).
+    // campo da tela #login-colab (não o #login-error do gestor). Sessão por aba (SESSION):
+    // sobrevive a um refresh durante o 1º acesso, mas zera ao fechar a aba (mais seguro que
+    // LOCAL no celular; mais robusto que NONE, que cairia num refresh no meio da troca).
     window.loginColaborador = async function (cpf, senha) {
       const err = $("#colab-login-error");
       if (err) err.classList.add("hidden");
@@ -1321,7 +1322,7 @@
       if (dig.length !== 11) { setErr("Digite um CPF completo (11 números)."); return false; }
       if (!senha) { setErr("Digite sua senha."); return false; }
       const email = dig + "@colaborador.fiobras.local";
-      try { await auth.setPersistence(firebase.auth.Auth.Persistence.NONE); } catch (e) {}
+      try { await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION); } catch (e) {}
       try {
         await auth.signInWithEmailAndPassword(email, senha);
         return true; // onAuthStateChanged assume daqui (carrega + renderiza)
@@ -1641,6 +1642,8 @@
         const credential = firebase.auth.EmailAuthProvider.credential(user.email, atual);
         await user.reauthenticateWithCredential(credential);
         await user.updatePassword(nova);
+        // Defensivo: refresh do token após a troca, pra não sobrar estado de auth obsoleto.
+        try { await user.getIdToken(true); } catch (e) {}
         return { ok: true };
       } catch (e) {
         return { ok: false, err: traduzErroAuth(e) };
@@ -1988,6 +1991,7 @@
 
         $("#acesso")?.classList.add("hidden");
         $("#login").classList.add("hidden");
+        $("#login-colab")?.classList.add("hidden"); // login do colaborador (CPF) é tela separada — sem isto fica por cima travada em "Entrando..."
         $("#app").classList.remove("hidden");
         esconderSplash(); // troca splash → app direto (login nunca pisca)
         const ehColab = userInState.role === "colaborador";
