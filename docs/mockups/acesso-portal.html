@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mock — Tela de acesso (split imersivo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:#F7F9F6;--surface:#FFFFFF;
+  --border:#E7EDE4;--border-strong:#D8E2D3;--text:#1C2A18;--text-body:#1E2D1A;--text-muted:#5A6B54;
+  --warning-bg:#F8E4C8;--warning-ink:#7A4A12;--blue-bg:#DBEAF6;--blue-ink:#0A5C90;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--radius:14px;--radius-lg:20px;--radius-sm:9px;
+  --transition:200ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#dfe3dd;color:var(--text-body);-webkit-font-smoothing:antialiased;padding:24px}
+.note-top{max-width:430px;margin:0 auto 16px;font-size:12.5px;color:#46553f;background:#fff;border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:10px;padding:11px 15px;line-height:1.6}
+.note-top b{color:var(--plum-deep)}
+
+.phone{max-width:430px;margin:0 auto;background:var(--bg);border:1px solid var(--border);border-radius:26px;box-shadow:0 18px 50px rgba(0,40,20,.13);overflow:hidden;min-height:720px;position:relative;display:flex;flex-direction:column}
+.scr{flex:1;display:none;flex-direction:column}
+.scr.is-on{display:flex}
+.scr--pad{padding:42px 26px 26px}
+
+/* ===== SPLIT (acesso) ===== */
+.brandbar{display:flex;align-items:center;justify-content:center;gap:11px;padding:22px 0 18px;background:var(--surface)}
+.brandbar img{width:36px;height:36px;object-fit:contain}
+.brandbar .w{font-weight:800;font-size:18px;color:var(--plum);letter-spacing:-.02em;line-height:1}
+.brandbar .w small{display:block;font-weight:400;font-size:10px;color:var(--text-muted);margin-top:2px}
+.split{flex:1;display:flex;flex-direction:column}
+.half{flex:1;display:flex;align-items:center;gap:16px;padding:30px 26px;cursor:pointer;border:0;font:inherit;text-align:left;width:100%;transition:filter var(--transition)}
+.half:hover{filter:brightness(.97)}
+.half:active{filter:brightness(.94)}
+.half__ic{flex:none;width:54px;height:54px;border-radius:15px;display:flex;align-items:center;justify-content:center}
+.half__ic svg{width:27px;height:27px;stroke-width:1.9}
+.half__t{flex:1;font-size:18px;font-weight:700;display:flex;flex-direction:column;gap:6px;min-width:0}
+.half__t .sub{font-size:13px;font-weight:400;opacity:.92}
+.half--colab{background:linear-gradient(150deg,var(--plum-soft),var(--plum-deep));color:#fff}
+.half--colab .half__ic{background:rgba(255,255,255,.18);color:#fff}
+.half--colab .arr{color:rgba(255,255,255,.85)}
+.half--colab .selo{background:rgba(255,255,255,.92);color:var(--plum-deep);align-self:flex-start}
+.half--gestor{background:var(--surface);color:var(--text)}
+.half--gestor .half__ic{background:var(--milk-warm);color:var(--plum-deep)}
+.half--gestor .arr{color:var(--border-strong)}
+.half--gestor .half__t .sub{color:var(--text-muted);opacity:1}
+.arr{flex:none}.arr svg{width:21px;height:21px;stroke-width:2.2}
+.selo{font-size:9.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.splitrod{padding:13px;background:var(--surface);border-top:1px solid var(--border)}
+.rod{text-align:center;font-size:10.5px;color:var(--text-muted)}
+
+/* marca (login/prévia) */
+.mark{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:26px}
+.mark__img{width:54px;height:54px;object-fit:contain}
+.mark__word{font-weight:800;font-size:22px;color:var(--plum);letter-spacing:-.02em;text-align:center;line-height:1.1}
+.mark__word small{display:block;font-weight:400;font-size:11.5px;color:var(--text-muted);margin-top:3px}
+
+.voltar{display:inline-flex;align-items:center;gap:6px;background:none;border:0;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 4px;margin-bottom:6px;align-self:flex-start}
+.voltar svg{width:17px;height:17px;stroke-width:2.2}
+.voltar:hover{color:var(--plum)}
+
+/* login (replica fiel) */
+.lead{font-size:12.5px;color:var(--text-muted);text-align:center;margin-bottom:12px}
+.quick{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.quick button{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-body);border-radius:999px;padding:6px 13px;cursor:pointer}
+.quick button:hover{border-color:var(--plum-soft);color:var(--plum-deep)}
+.divider{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text-muted);margin:6px 0 16px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-body);margin-bottom:6px}
+.field input{width:100%;font:inherit;font-size:14px;padding:11px 13px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-body)}
+.field input:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(0,136,53,.14)}
+.remember{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-body);margin:4px 0 18px;cursor:pointer}
+.remember input{width:17px;height:17px;accent-color:var(--plum)}
+.btn-entrar{width:100%;font:inherit;font-size:15px;font-weight:700;border:0;border-radius:var(--radius-sm);padding:13px;background:var(--plum);color:#fff;cursor:pointer;transition:background var(--transition)}
+.btn-entrar:hover{background:var(--plum-deep)}
+.forgot{text-align:center;margin-top:14px}
+.forgot button{background:none;border:0;color:var(--text-muted);font:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline}
+
+/* prévia colaborador */
+.prev-banner{display:flex;align-items:center;gap:9px;background:var(--warning-bg);color:var(--warning-ink);font-size:12px;font-weight:600;padding:9px 14px;border-radius:999px;margin-bottom:22px;justify-content:center}
+.prev-banner svg{width:15px;height:15px;flex:none}
+.prev-box{background:var(--surface);border:1px dashed var(--border-strong);border-radius:var(--radius);padding:26px 20px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6}
+.prev-box b{color:var(--text-body);display:block;font-size:14px;margin-bottom:6px}
+.prev-box .small{font-size:11.5px;margin-top:10px}
+.mt-auto{margin-top:auto}
+</style>
+</head>
+<body>
+<div class="note-top">
+  <b>Mock — Fase 0 (sem login), estilo split.</b> Toque na metade <b>verde</b> (Colaborador) → modo prévia.
+  Toque na metade <b>branca</b> (Gestor) → login de hoje, intacto, com "Voltar".
+</div>
+
+<div class="phone">
+
+  <!-- ===== ACESSO (split) ===== -->
+  <section class="scr is-on" id="scr-acesso">
+    <div class="brandbar">
+      <img src="../../public/logo-fiobras-mark.png" alt="Fiobras">
+      <div class="w">FioPulse<small>Fiobras · o batimento do GH</small></div>
+    </div>
+    <div class="split">
+      <button class="half half--colab" id="go-colab">
+        <span class="half__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span class="half__t">Portal do Colaborador<span class="selo">Prévia · sem login</span><span class="sub">Ponto, comunicados e documentos.</span></span>
+        <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>
+      <button class="half half--gestor" id="go-gestor">
+        <span class="half__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+        <span class="half__t">Gestor / Administrador<span class="sub">GH, líderes e supervisores.</span></span>
+        <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>
+    </div>
+    <div class="splitrod"><div class="rod">© 2026 Fiobras · acesso restrito</div></div>
+  </section>
+
+  <!-- ===== LOGIN (gestor) ===== -->
+  <section class="scr scr--pad" id="scr-login">
+    <button class="voltar" data-volta><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>
+    <div class="mark">
+      <img class="mark__img" src="../../public/logo-fiobras-mark.png" alt="Fiobras">
+      <div class="mark__word">FioPulse<small>Fiobras · o batimento do GH</small></div>
+    </div>
+    <p class="lead">Escolha um usuário rápido para testar o sistema:</p>
+    <div class="quick"><button>rh1</button><button>lider1</button><button>admin</button></div>
+    <div class="divider">ou entre manualmente</div>
+    <div class="field"><label>Usuário</label><input type="text" placeholder="ex: rh1"></div>
+    <div class="field"><label>Senha</label><input type="password" placeholder="senha do usuário"></div>
+    <label class="remember"><input type="checkbox">Manter conectado neste navegador</label>
+    <button class="btn-entrar">Entrar</button>
+    <div class="forgot"><button>Esqueci minha senha</button></div>
+    <div class="rod mt-auto" style="padding-top:24px">© 2026 Fiobras · acesso restrito</div>
+  </section>
+
+  <!-- ===== PRÉVIA (colaborador) ===== -->
+  <section class="scr scr--pad" id="scr-colab">
+    <button class="voltar" data-volta><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>
+    <div class="prev-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Modo prévia — sem login. Dados ilustrativos.</div>
+    <div class="mark">
+      <img class="mark__img" src="../../public/logo-fiobras-mark.png" alt="Fiobras">
+      <div class="mark__word">Portal do Colaborador<small>Fiobras · o batimento do GH</small></div>
+    </div>
+    <div class="prev-box">
+      <b>Aqui entra o Portal do Colaborador</b>
+      Início, Meu Ponto, Comunicados, Documentos e o Roadmap do Portal — no mesmo shell do app,
+      ramificado por papel, sem exigir login na Fase 0.
+      <div class="small">Próximo mockup: <b>shell + navegação + dashboard inicial</b> do colaborador.</div>
+    </div>
+    <div class="rod mt-auto" style="padding-top:24px">© 2026 Fiobras · acesso restrito</div>
+  </section>
+
+</div>
+
+<script>
+function show(id){document.querySelectorAll(".scr").forEach(s=>s.classList.remove("is-on"));document.getElementById(id).classList.add("is-on");}
+document.getElementById("go-colab").addEventListener("click",()=>show("scr-colab"));
+document.getElementById("go-gestor").addEventListener("click",()=>show("scr-login"));
+document.querySelectorAll("[data-volta]").forEach(b=>b.addEventListener("click",()=>show("scr-acesso")));
+</script>
+</body>
+</html>
