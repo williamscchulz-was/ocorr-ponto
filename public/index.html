@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=169" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=169" />
+  <link rel="stylesheet" href="styles.css?v=170" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=170" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -131,6 +131,44 @@
     <div class="login__rodape">© 2026 Fiobras · acesso restrito</div>
   </section>
 
+  <!-- ============================================
+       LOGIN COLABORADOR (CPF) — começa escondido; revelado pela tela de acesso
+       ============================================ -->
+  <section id="login-colab" class="login hidden">
+    <form class="login__form" id="login-colab-form" autocomplete="off">
+      <button type="button" class="login__voltar" id="login-colab-voltar" aria-label="Voltar à tela de acesso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar
+      </button>
+      <div class="login__mark">
+        <img class="login__mark-img" src="logo-fiobras-mark.png" alt="Fiobras" />
+        <div class="login__wordmark">Portal do Colaborador<small>Fiobras · o batimento do GH</small></div>
+      </div>
+
+      <div class="field">
+        <label for="colab-cpf">CPF</label>
+        <input type="text" id="colab-cpf" inputmode="numeric" autocomplete="username" placeholder="000.000.000-00" maxlength="14" />
+      </div>
+      <div class="field">
+        <label for="colab-senha">Senha</label>
+        <div class="field-senha">
+          <input type="password" id="colab-senha" autocomplete="current-password" placeholder="sua senha" />
+          <button type="button" class="field-senha__olho" id="colab-olho" aria-label="Mostrar senha" title="Mostrar senha">
+            <svg class="icon icon-olho" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="icon icon-olho-off hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="colab-login-error" class="field__error hidden" style="margin-bottom:12px"></div>
+
+      <button type="submit" class="btn btn--primary btn--block btn--lg">Entrar</button>
+
+      <div class="colab-dica">Primeiro acesso? Sua senha é a sua data de nascimento, só números: dia, mês e ano. Ex.: 14 de julho de 1990 vira 14071990.</div>
+      <button type="button" class="login__demo" id="colab-demo">Ver demonstração (sem login)</button>
+    </form>
+    <div class="login__rodape">© 2026 Fiobras · acesso restrito</div>
+  </section>
 
   <!-- ============================================
        APP SHELL
@@ -237,20 +275,43 @@
     </div>
   </div>
 
+  <!-- Troca obrigatória de senha no 1º acesso do colaborador (bloqueante) -->
+  <div id="troca-overlay" class="troca-ov" hidden>
+    <div class="troca-card">
+      <div class="troca-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Primeiro acesso · crie sua senha
+      </div>
+      <h2 class="troca-card__t">Bem-vindo(a)!</h2>
+      <p class="troca-card__p">Por segurança, crie uma senha só sua. Você vai usar ela nos próximos acessos.</p>
+      <div class="field">
+        <label for="troca-nova">Nova senha</label>
+        <input type="password" id="troca-nova" autocomplete="new-password" placeholder="crie uma senha" />
+      </div>
+      <div class="troca-regra" id="troca-regra">Pelo menos 6 caracteres, e diferente da data de nascimento</div>
+      <div class="field">
+        <label for="troca-conf">Confirmar senha</label>
+        <input type="password" id="troca-conf" autocomplete="new-password" placeholder="repita a senha" />
+      </div>
+      <div id="troca-error" class="field__error hidden" style="margin-bottom:12px"></div>
+      <button class="btn btn--primary btn--block btn--lg" id="troca-salvar" disabled>Salvar e entrar</button>
+    </div>
+  </div>
+
   <div id="modal-root"></div>
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=169"></script>
-  <script defer src="data.js?v=169"></script>
+  <script defer src="utils.js?v=170"></script>
+  <script defer src="data.js?v=170"></script>
   <!-- roadmap.js: dados estáticos do Roadmap do Portal (window.ROADMAP). -->
-  <script defer src="roadmap.js?v=169"></script>
-  <script defer src="app.js?v=169"></script>
+  <script defer src="roadmap.js?v=170"></script>
+  <script defer src="app.js?v=170"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=169"></script>
-  <script defer src="google-drive.js?v=169"></script>
+  <script defer src="firebase.js?v=170"></script>
+  <script defer src="google-drive.js?v=170"></script>
 </body>
 </html>

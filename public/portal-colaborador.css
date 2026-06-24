@@ -165,3 +165,24 @@
 .cp-mod-sec li::before{content:"";flex:none;width:15px;height:15px;margin-top:2px;border-radius:4px;border:1.6px solid #D8E2D3}
 .cp-mod-deps li::before{border-radius:50%;border-style:dashed}
 @media (prefers-reduced-motion:reduce){.cp-pbar__fill,.cp-road__fill,.acesso__half,.cp-atalho,.cp-tile{transition:none}}
+
+/* ---- Login do colaborador (CPF) — extras ---- */
+.colab-dica{font-size:12px;color:#5A6B54;line-height:1.5;background:#EEF3EC;border-radius:11px;padding:11px 13px;margin-top:14px}
+.colab-dica b{color:#1E2D1A}
+.login__demo{display:block;width:100%;margin-top:14px;background:none;border:0;color:#5A6B54;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline}
+.login__demo:hover{color:#008835}
+
+/* ---- Troca obrigatória de senha (overlay bloqueante) ---- */
+.troca-ov{position:fixed;inset:0;background:rgba(12,28,16,.55);display:flex;align-items:center;justify-content:center;padding:22px;z-index:60}
+.troca-ov[hidden]{display:none}
+.troca-card{background:#fff;width:100%;max-width:382px;border-radius:18px;padding:24px 22px;box-shadow:0 18px 50px rgba(0,40,20,.3);animation:troca-up .26s cubic-bezier(.4,0,.2,1)}
+@keyframes troca-up{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.troca-banner{display:flex;align-items:center;gap:8px;justify-content:center;background:#F8E4C8;color:#7A4A12;font-size:11.5px;font-weight:600;padding:8px 12px;border-radius:999px;margin-bottom:16px}
+.troca-banner svg{width:15px;height:15px;flex:none}
+.troca-card__t{font-size:19px;font-weight:800;color:#1C2A18;text-align:center;letter-spacing:-.01em}
+.troca-card__p{font-size:13px;color:#5A6B54;line-height:1.5;text-align:center;margin:4px 0 18px}
+.troca-regra{font-size:11.5px;color:#5A6B54;margin:-6px 0 14px;display:flex;align-items:center;gap:6px}
+.troca-regra::before{content:"";width:14px;height:14px;border-radius:50%;border:1.8px solid #D8E2D3;flex:none}
+.troca-regra.ok{color:#006328}
+.troca-regra.ok::before{background:#008835;border-color:#008835}
+@media (prefers-reduced-motion:reduce){.troca-card{animation:none}}

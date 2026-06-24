@@ -1310,6 +1310,36 @@
       await auth.signOut();
     };
 
+    // Login do COLABORADOR por CPF: monta o e-mail sintético e entra. Erros vão pro
+    // campo da tela #login-colab (não o #login-error do gestor). Sessão por aba (NONE):
+    // o colaborador no celular não usa "manter conectado" (mais seguro).
+    window.loginColaborador = async function (cpf, senha) {
+      const err = $("#colab-login-error");
+      if (err) err.classList.add("hidden");
+      const dig = String(cpf || "").replace(/\D/g, "");
+      const setErr = (m) => { if (err) { err.textContent = m; err.classList.remove("hidden"); } };
+      if (dig.length !== 11) { setErr("Digite um CPF completo (11 números)."); return false; }
+      if (!senha) { setErr("Digite sua senha."); return false; }
+      const email = dig + "@colaborador.fiobras.local";
+      try { await auth.setPersistence(firebase.auth.Auth.Persistence.NONE); } catch (e) {}
+      try {
+        await auth.signInWithEmailAndPassword(email, senha);
+        return true; // onAuthStateChanged assume daqui (carrega + renderiza)
+      } catch (e) {
+        setErr(traduzErroAuth(e));
+        return false;
+      }
+    };
+
+    // Zera precisaTrocarSenha no próprio doc (após a troca obrigatória). A rule
+    // self-update já permite este campo. Só o próprio uid.
+    window.zerarPrecisaTrocarSenha = async function () {
+      const user = auth.currentUser;
+      if (!user) return { ok: false, err: "Não está logado." };
+      try { await db.collection("users").doc(user.uid).update({ precisaTrocarSenha: false }); return { ok: true }; }
+      catch (e) { return { ok: false, err: e.message }; }
+    };
+
     // Convida usuário novo (admin only).
     // Usa instância SECUNDÁRIA do Firebase Auth pra não deslogar o admin atual.
     window.inviteUser = async function ({ email, nome, role, turno }) {

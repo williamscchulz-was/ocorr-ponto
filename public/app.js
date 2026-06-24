@@ -631,6 +631,48 @@ function mostrarLoginGestor() {
   $("#login")?.classList.remove("hidden");
   setTimeout(() => $("#login-user")?.focus(), 60);
 }
+function mostrarLoginColaborador() {
+  $("#acesso")?.classList.add("hidden");
+  $("#login")?.classList.add("hidden");
+  $("#app")?.classList.add("hidden");
+  $("#login-colab")?.classList.remove("hidden");
+  setTimeout(() => $("#colab-cpf")?.focus(), 60);
+}
+
+// Troca obrigatória de senha no 1º acesso do colaborador (overlay bloqueante).
+// Reautentica com a senha que ele acabou de usar (= nascimento, em window.__colabSenhaLogin),
+// grava a nova e zera precisaTrocarSenha. Só some quando a troca dá certo.
+function mostrarTrocaSenha() {
+  const ov = document.getElementById("troca-overlay");
+  if (!ov) return;
+  ov.hidden = false;
+  const nova = $("#troca-nova"), conf = $("#troca-conf"), btn = $("#troca-salvar"),
+        regra = $("#troca-regra"), erro = $("#troca-error");
+  const nascimento = window.__colabSenhaLogin || "";
+  const valida = () => {
+    const okLen = nova.value.length >= 6 && nova.value !== nascimento;
+    regra.classList.toggle("ok", okLen);
+    btn.disabled = !(okLen && conf.value.length >= 6);
+  };
+  nova.value = ""; conf.value = ""; erro.classList.add("hidden");
+  nova.oninput = valida; conf.oninput = valida; valida();
+  btn.textContent = "Salvar e entrar";
+  btn.onclick = async () => {
+    erro.classList.add("hidden");
+    if (nova.value !== conf.value) { erro.textContent = "As senhas não conferem."; erro.classList.remove("hidden"); return; }
+    btn.disabled = true; btn.textContent = "Salvando...";
+    const res = await window.alterarMinhaSenha(nascimento, nova.value);
+    if (!res || !res.ok) {
+      erro.textContent = (res && res.err) || "Não foi possível trocar a senha.";
+      erro.classList.remove("hidden"); btn.disabled = false; btn.textContent = "Salvar e entrar"; return;
+    }
+    await window.zerarPrecisaTrocarSenha();
+    const u = currentUser(); if (u) u.precisaTrocarSenha = false;
+    window.__colabSenhaLogin = null;
+    ov.hidden = true; vibrar(20);
+    renderApp(); // re-render já sem a pendência
+  };
+}
 // Chamado pelo firebase.js quando não há sessão (boot/logout). Mostra a escolha
 // por padrão; vai direto ao login só se algo pediu (ex.: erro de perfil no Auth).
 window.__portaoSemSessao = function () {
@@ -688,11 +730,13 @@ function cpRoadmapStats() {
 function renderPortalColaborador(u) {
   aplicarAvatar($("#user-avatar"), u);
   $("#user-name").textContent = u.nome;
-  $("#user-role").textContent = "Colaborador · prévia";
+  $("#user-role").textContent = u.preview ? "Colaborador · prévia" : "Colaborador";
   if ($("#presence")) $("#presence").innerHTML = "";
   renderNavColaborador();
   renderBottomNavColaborador();
   renderViewColaborador();
+  // 1º acesso real (não prévia): troca obrigatória de senha, bloqueante.
+  if (!u.preview && u.precisaTrocarSenha) mostrarTrocaSenha();
 }
 
 const COLAB_NAV = [
@@ -7978,11 +8022,54 @@ document.addEventListener("DOMContentLoaded", () => {
   // Logout
   $("#user-area").addEventListener("click", openProfileModal);
 
-  // Tela de acesso (Fase 0): escolha de portal. Gestor revela o login;
-  // Colaborador entra na prévia visual (sem auth). Voltar retorna à escolha.
+  // Tela de acesso: Gestor revela o login do gestor; Colaborador vai pro login por CPF.
   $("#acesso-gestor")?.addEventListener("click", mostrarLoginGestor);
-  $("#acesso-colab")?.addEventListener("click", entrarPreviewColaborador);
+  $("#acesso-colab")?.addEventListener("click", mostrarLoginColaborador);
   $("#login-voltar")?.addEventListener("click", mostrarAcesso);
+
+  // Login do colaborador (CPF): voltar, ver demonstração (prévia sem login), olho,
+  // máscara de CPF e submit (monta o e-mail sintético via window.loginColaborador).
+  $("#login-colab-voltar")?.addEventListener("click", mostrarAcesso);
+  $("#colab-demo")?.addEventListener("click", entrarPreviewColaborador);
+  $("#colab-olho")?.addEventListener("click", () => {
+    const inp = $("#colab-senha"), b = $("#colab-olho");
+    if (!inp || !b) return;
+    const mostrar = inp.type === "password";
+    inp.type = mostrar ? "text" : "password";
+    b.querySelector(".icon-olho")?.classList.toggle("hidden", mostrar);
+    b.querySelector(".icon-olho-off")?.classList.toggle("hidden", !mostrar);
+  });
+  const _colabCpf = $("#colab-cpf");
+  if (_colabCpf) _colabCpf.addEventListener("input", () => {
+    let v = _colabCpf.value.replace(/\D/g, "").slice(0, 11);
+    v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    _colabCpf.value = v;
+  });
+  $("#login-colab-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn.disabled) return;
+    const cpf = $("#colab-cpf").value, senha = $("#colab-senha").value;
+    window.__colabSenhaLogin = senha; // guardado pra reautenticar na troca obrigatória
+    const orig = btn.innerHTML;
+    btn.disabled = true; btn.textContent = "Entrando...";
+    $("#colab-cpf").disabled = true; $("#colab-senha").disabled = true;
+    let ok = false;
+    try {
+      if (navigator.onLine === false) throw new Error("offline");
+      if (typeof window.loginColaborador === "function") ok = await window.loginColaborador(cpf, senha);
+      else { const er = $("#colab-login-error"); if (er) { er.textContent = "Login indisponível (sem Firebase)."; er.classList.remove("hidden"); } }
+    } catch (err) {
+      const er = $("#colab-login-error");
+      if (er) { er.textContent = err?.message === "offline" ? "Sem conexão. Verifique a internet e tente de novo." : "Não foi possível entrar agora. Tente de novo."; er.classList.remove("hidden"); }
+    }
+    if (!ok) {
+      btn.disabled = false; btn.innerHTML = orig;
+      $("#colab-cpf").disabled = false; $("#colab-senha").disabled = false;
+      window.__colabSenhaLogin = null;
+    }
+    // se ok: onAuthStateChanged assume; botão fica "Entrando..." até o app renderizar.
+  });
 
   // Reset de senha (só ativo em modo Firebase via window.firebaseResetSenha)
   const forgot = $("#btn-forgot");
