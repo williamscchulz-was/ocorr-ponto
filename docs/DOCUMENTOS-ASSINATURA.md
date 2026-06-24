@@ -746,4 +746,53 @@ Cada fatia é entregável e testável isoladamente. Aprovar e implementar **uma 
 
 ---
 
+## 10. Upload consolidado e roteamento por CPF (relatórios do RH)
+
+> Item "upload de relatórios/informações". Registro de design — **não implementar agora**
+> (vem depois da fundação SELF). Baseado na análise dos arquivos reais de 05/2026 (só estrutura,
+> sem PII): **Recibos de Pagamento** = 103 págs, texto extraível, **CPF formatado + 1 funcionário
+> por página**, 92 funcionários distintos (alguns com 2 págs). **Cartão Ponto** = 83 págs, texto
+> extraível, 1 funcionário/página (rótulos Empregado/Nome/Cargo/CTPS/Setor), **SEM CPF/PIS/matrícula**.
+
+**Requisito:** o RH sobe UM PDF consolidado por competência (todos) e o sistema fatia e entrega a
+cada colaborador só as páginas dele, no repositório de Documentos (acesso SELF).
+
+**Achado que muda o requisito:** "rotear por CPF" só vale pro **recibo/holerite** (tem CPF). O
+**cartão ponto NÃO tem CPF** — o identificador é **Nome (+ CTPS)**. Decisão nº 1: casar o cartão por
+nome (frágil: homônimo/acento/abreviação) **ou** pedir à origem (folha/relógio) incluir CPF/matrícula
+no cabeçalho do cartão (recomendado — elimina o matching frágil).
+
+**Pipeline de processamento (ambos são texto → sem OCR):**
+1. RH sobe o consolidado (escolhe competência + tipo: `recibo` | `cartao-ponto`).
+2. Fatia em chunks por funcionário: agrupa páginas consecutivas do mesmo identificador (recibo: mesmo
+   CPF; cartão: mesmo nome/CTPS).
+3. Extrai o identificador de cada chunk (texto, sem OCR).
+4. Casa identificador → `funcionarioId`: CPF via `banco-horas-saldos.cpf` (mapa cpf→codigo); nome via
+   normalização (sem acento/caixa) contra `funcionarios.nome`, CTPS de desempate se houver.
+5. **Conferência OBRIGATÓRIA antes de publicar:** relatório "N chunks · X casados · Y não-casados/
+   ambíguos"; o RH revisa e confirma. **Nada publica sem casamento confirmado** (risco gravíssimo:
+   entregar holerite/salário pra pessoa errada = vazamento de PII).
+6. Cada chunk vira um documento por funcionário (holerite/espelho da competência) com acesso SELF; o
+   consolidado original fica restrito admin/RH (ou é descartado após processar).
+
+**Onde roda (decisão nº 2):**
+- **Cloud Function (Blaze)** — recomendado pro robusto: fatiar 100+ págs + casar + gravar com acesso
+  restrito longe do navegador.
+- **Client-side (navegador do RH)** — viável sem Blaze (pdf-lib + pdf.js), mais frágil em lote; o
+  consolidado passa pelo browser do RH.
+- **Upstream (pipeline WKRADAR)** — se a folha já emitir por funcionário (com CPF/matrícula), some o
+  matching. Melhor opção se a origem permitir.
+
+**PII / LGPD (crítico):** o consolidado (todos) **nunca** é legível por colaborador — só o chunk dele;
+chunks no Storage/Drive com regra por `funcionarioId`; matching errado = vazamento → conferência +
+evento de auditoria (quem subiu, quando, quantos casaram); retenção por finalidade; consolidado
+descartável após processar.
+
+**Decisões abertas:** (1) cartão ponto sem CPF — casar por nome ou pedir CPF/matrícula à origem?
+(2) onde processar (Function/Blaze vs client vs pipeline)? (3) confirmar que os 92 CPFs do recibo têm
+funcionário correspondente em `banco-horas-saldos`. Status: **planejado**, a desenhar em profundidade
+quando chegar a vez no roadmap.
+
+---
+
 *Fim da especificação. Implementação não iniciada — aprovar fatia a fatia.*
