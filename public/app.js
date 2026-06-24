@@ -642,7 +642,7 @@ const PREVIEW_COLAB_ID = "__preview-colab";
 function entrarPreviewColaborador() {
   state.users = [{ id: PREVIEW_COLAB_ID, nome: "Maria Aparecida Silva", role: "colaborador", preview: true }];
   state.currentUserId = PREVIEW_COLAB_ID;
-  state.view = { page: "colab-home" };
+  state.view = { page: "colab-roadmap" };
   document.documentElement.classList.add("modo-colab");
   $("#acesso")?.classList.add("hidden");
   $("#login")?.classList.add("hidden");
