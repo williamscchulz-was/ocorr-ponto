@@ -1498,11 +1498,13 @@ function podeVerFuncionario(u, f) {
   if (u.role === "admin" || u.role === "rh") return true;
   if (u.role === "lider") return f.turno === u.turno;
   if (u.role === "supervisor") return (u.funcionariosVisiveis || []).includes(f.id);
+  if (u.role === "colaborador") return f.id === u.funcionarioId; // escopo SELF
   return false;
 }
 // Decide se o user pode VER uma ocorrência (via funcionário dela).
 function podeVerOcorrenciaUI(u, o) {
   if (!u || !o) return false;
+  if (u.role === "colaborador") return o.funcionarioId === u.funcionarioId; // SELF: antes do can() (colaborador não tem ocorrencias.ver)
   if (!can("ocorrencias.ver", u)) return false;
   if (u.role === "admin" || u.role === "rh") return true;
   if (u.role === "lider") {
@@ -6608,6 +6610,13 @@ const PERM_CAPS = [
     { k: "sistema.config", n: "Configurações (tipos, ações)" },
     { k: "sistema.usuarios", n: "Gerenciar usuários e permissões" },
   ]},
+  // Portal do Colaborador (Fase 1) — caps exclusivas do papel 'colaborador'.
+  // Sem 'scoped': o escopo SELF é resolvido por query+rule (funcionarioId), não por turno/atrib.
+  { area: "Portal", caps: [
+    { k: "self.ver", n: "Ver os próprios dados (ponto, banco de horas, documentos)" },
+    { k: "self.assinar", n: "Assinar documentos próprios (aceite N1)" },
+    { k: "etica.enviar", n: "Abrir o canal de ética/denúncia" },
+  ]},
 ];
 
 // Default = espelho EXATO das regras de hoje. Admin não entra (sempre total).
@@ -6636,6 +6645,18 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
+  },
+  // Colaborador (Portal). Tudo de gestor explicitamente false (impede override acidental);
+  // só as caps self ligadas. can() já daria false sem este bloco, mas explícito documenta a intenção.
+  colaborador: {
+    "ocorrencias.ver": false, "ocorrencias.criar": false, "ocorrencias.conferir": false,
+    "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
+    "bancoHoras.ver": false, "bancoHoras.importar": false,
+    "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
+    "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,
+    "auditoria.ver": false, "obrigacoes.gerenciar": false,
+    "sistema.config": false, "sistema.usuarios": false,
+    "self.ver": true, "self.assinar": true, "etica.enviar": true,
   },
 };
 
@@ -6675,6 +6696,7 @@ const ACCESS_PREVIEW = {
   rh: ["Cria, lança e exclui ocorrências (todos os turnos)", "Controle PJ, reajustes e auditoria", "Não gerencia usuários"],
   lider: ["Confere ocorrências do seu turno", "Vê banco de horas do turno", "Não cria nem exclui"],
   supervisor: ["Confere só os funcionários atribuídos", "Vê fichas e banco de horas desses funcionários", "Não cria, não exclui, não vê PJ"],
+  colaborador: ["Vê só os próprios dados", "Assina documentos próprios", "Sem acesso a dados de colegas"],
 };
 
 function escopoUsuario(u) {
