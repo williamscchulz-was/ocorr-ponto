@@ -14,7 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=162" />
+  <link rel="stylesheet" href="styles.css?v=163" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=163" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -54,10 +55,39 @@
   </div>
 
   <!-- ============================================
-       LOGIN SCREEN
+       TELA DE ACESSO (Fase 0 — Portal do Colaborador)
+       Escolha de portal ANTES do login. Sem sessão → esta tela.
+       Gestor revela o #login (intacto); Colaborador entra em modo prévia (sem auth).
        ============================================ -->
-  <section id="login" class="login">
+  <section id="acesso" class="acesso">
+    <div class="acesso__brand">
+      <img src="logo-fiobras-mark.png" alt="Fiobras" />
+      <div class="acesso__w">FioPulse<small>Fiobras · o batimento do GH</small></div>
+    </div>
+    <div class="acesso__split">
+      <button class="acesso__half acesso__half--colab" id="acesso-colab" type="button">
+        <span class="acesso__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span class="acesso__t">Portal do Colaborador<span class="acesso__selo">Prévia · sem login</span><span class="acesso__sub">Ponto, comunicados e documentos.</span></span>
+        <span class="acesso__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>
+      <button class="acesso__half acesso__half--gestor" id="acesso-gestor" type="button">
+        <span class="acesso__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+        <span class="acesso__t">Gestor / Administrador<span class="acesso__sub">GH, líderes e supervisores.</span></span>
+        <span class="acesso__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>
+    </div>
+    <div class="acesso__rod">© 2026 Fiobras · acesso restrito</div>
+  </section>
+
+  <!-- ============================================
+       LOGIN SCREEN (gestor) — começa escondido; revelado pela tela de acesso
+       ============================================ -->
+  <section id="login" class="login hidden">
     <form class="login__form" id="login-form" autocomplete="off">
+      <button type="button" class="login__voltar" id="login-voltar" aria-label="Voltar à tela de acesso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Voltar
+      </button>
       <div class="login__mark">
         <img class="login__mark-img" src="logo-fiobras-mark.png" alt="Fiobras" />
         <div class="login__wordmark">
@@ -147,6 +177,11 @@
     </aside>
 
     <main class="app__main">
+      <!-- Faixa de prévia (Portal do Colaborador, Fase 0 sem auth) — só visível em .modo-colab -->
+      <div class="preview-banner" id="preview-banner" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Modo prévia — sem login. Dados ilustrativos.
+      </div>
       <div class="topbar">
         <button class="topbar__menu" id="menu-btn" aria-label="Abrir menu de navegação">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -206,14 +241,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=162"></script>
-  <script defer src="data.js?v=162"></script>
-  <script defer src="app.js?v=162"></script>
+  <script defer src="utils.js?v=163"></script>
+  <script defer src="data.js?v=163"></script>
+  <!-- roadmap.js: dados estáticos do Roadmap do Portal (window.ROADMAP). -->
+  <script defer src="roadmap.js?v=163"></script>
+  <script defer src="app.js?v=163"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=162"></script>
-  <script defer src="google-drive.js?v=162"></script>
+  <script defer src="firebase.js?v=163"></script>
+  <script defer src="google-drive.js?v=163"></script>
 </body>
 </html>

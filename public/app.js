@@ -383,6 +383,7 @@ function roleLabel(user) {
   if (user.role === "rh") return "GH";
   if (user.role === "lider") return `Líder ${user.turno}º Turno`;
   if (user.role === "supervisor") return "Supervisor";
+  if (user.role === "colaborador") return "Colaborador";
   return user.role;
 }
 
@@ -605,16 +606,294 @@ function logout() {
   window.__niverToastShown = false;
   store.save({ ...state, view: undefined });
   $("#app").classList.add("hidden");
-  $("#login").classList.remove("hidden");
-  $("#login-user").value = "";
-  $("#login-pass").value = "";
+  const lu = $("#login-user"); if (lu) lu.value = "";
+  const lp = $("#login-pass"); if (lp) lp.value = "";
+  mostrarAcesso();
+}
+
+// ============================================================
+// PORTAL DO COLABORADOR — Fase 0 (tela de acesso + prévia visual SEM auth).
+// Reaproveita o shell; o caminho do gestor fica intacto: o early-return em
+// renderApp só dispara para role==='colaborador', que nenhum usuário real é,
+// e o usuário-prévia só existe em memória (nunca é salvo nem autenticado).
+// ============================================================
+
+// Portões de tela: #acesso (escolha) · #login (gestor) · #app (sistema).
+function mostrarAcesso() {
+  sairPreviewColaborador(true);
+  $("#app")?.classList.add("hidden");
+  $("#login")?.classList.add("hidden");
+  $("#acesso")?.classList.remove("hidden");
+}
+function mostrarLoginGestor() {
+  $("#acesso")?.classList.add("hidden");
+  $("#app")?.classList.add("hidden");
+  $("#login")?.classList.remove("hidden");
+  setTimeout(() => $("#login-user")?.focus(), 60);
+}
+// Chamado pelo firebase.js quando não há sessão (boot/logout). Mostra a escolha
+// por padrão; vai direto ao login só se algo pediu (ex.: erro de perfil no Auth).
+window.__portaoSemSessao = function () {
+  if (window.__forcarLoginGestor) { window.__forcarLoginGestor = false; mostrarLoginGestor(); }
+  else mostrarAcesso();
+};
+
+const PREVIEW_COLAB_ID = "__preview-colab";
+function entrarPreviewColaborador() {
+  state.users = [{ id: PREVIEW_COLAB_ID, nome: "Maria Aparecida Silva", role: "colaborador", preview: true }];
+  state.currentUserId = PREVIEW_COLAB_ID;
+  state.view = { page: "colab-home" };
+  document.documentElement.classList.add("modo-colab");
+  $("#acesso")?.classList.add("hidden");
+  $("#login")?.classList.add("hidden");
+  $("#app")?.classList.remove("hidden");
+  renderApp();
+}
+function sairPreviewColaborador(silent) {
+  if (state.currentUserId === PREVIEW_COLAB_ID) { state.currentUserId = null; state.users = []; }
+  document.documentElement.classList.remove("modo-colab");
+  if (!silent) mostrarAcesso();
+}
+window.sairPreviewColaborador = sairPreviewColaborador;
+
+// Ícones inline (stroke) do portal — evita depender das chaves do icon() do app.
+function cpIcon(name) {
+  const P = {
+    home: '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>',
+    megafone: '<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+    file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+    roadmap: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+  };
+  return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
+}
+
+// Mapas de exibição do Roadmap (cores em hex — não dependem de tokens do app).
+const CP_PRIO = { critica: { t: "Crítica", c: "crit" }, alta: { t: "Alta", c: "alta" }, media: { t: "Média", c: "media" }, baixa: { t: "Baixa", c: "baixa" }, muito_baixa: { t: "Muito baixa", c: "mbaixa" } };
+const CP_CX = { muito_facil: { t: "Muito fácil", n: 1 }, facil: { t: "Fácil", n: 2 }, medio: { t: "Médio", n: 3 }, dificil: { t: "Difícil", n: 4 }, muito_dificil: { t: "Muito difícil", n: 5 } };
+const CP_STA = { concluido: { t: "Concluído", c: "ok" }, em_andamento: { t: "Em andamento", c: "prog" }, planejado: { t: "Planejado", c: "plan" }, pendente: { t: "Pendente", c: "block" } };
+const CP_ACC = { ok: "#008835", prog: "#0076be", plan: "#D8E2D3", block: "#962F32" };
+const CP_CLA = { reaproveita: "Reaproveita", adapta: "Adapta", cria: "Cria do zero" };
+function cpMeter(n) { let h = ""; for (let i = 1; i <= 5; i++) h += `<i class="${i <= n ? "on" : ""}"></i>`; return `<span class="cp-meter">${h}</span>`; }
+function cpRoadmapStats() {
+  const it = (window.ROADMAP && window.ROADMAP.itens) || [];
+  const by = (k) => it.filter((x) => x.status === k).length;
+  const total = it.length, done = by("concluido");
+  return { total, done, pct: total ? Math.round((done / total) * 100) : 0, prog: by("em_andamento"), plan: by("planejado") + by("pendente") };
+}
+
+// ---- Shell do colaborador (chrome reaproveitado) ----
+function renderPortalColaborador(u) {
+  aplicarAvatar($("#user-avatar"), u);
+  $("#user-name").textContent = u.nome;
+  $("#user-role").textContent = "Colaborador · prévia";
+  if ($("#presence")) $("#presence").innerHTML = "";
+  renderNavColaborador();
+  renderBottomNavColaborador();
+  renderViewColaborador();
+}
+
+const COLAB_NAV = [
+  { id: "colab-home", label: "Início", icon: "home" },
+  { id: "colab-ponto", label: "Meu Ponto", icon: "clock" },
+  { id: "colab-comunicados", label: "Comunicados", icon: "megafone" },
+  { id: "colab-documentos", label: "Documentos", icon: "file" },
+  { id: "colab-roadmap", label: "Roadmap do Portal", icon: "roadmap" },
+];
+
+function renderNavColaborador() {
+  $("#nav").innerHTML = COLAB_NAV.map((it) => `
+    <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
+      ${cpIcon(it.icon)}<span>${it.label}</span>
+    </button>`).join("") + `
+    <button class="nav__item nav__item--sair" data-acao="sair-previa">
+      ${cpIcon("logout")}<span>Sair da prévia</span>
+    </button>`;
+  $$("#nav .nav__item").forEach((btn) => btn.addEventListener("click", () => {
+    if (btn.dataset.acao === "sair-previa") return sairPreviewColaborador(false);
+    state.view.page = btn.dataset.page; renderApp(); closeSidebar();
+  }));
+}
+
+function renderBottomNavColaborador() {
+  const items = [
+    { id: "colab-home", label: "Início", icon: "home" },
+    { id: "colab-ponto", label: "Ponto", icon: "clock" },
+    { id: "colab-comunicados", label: "Avisos", icon: "megafone" },
+    { id: "colab-documentos", label: "Docs", icon: "file" },
+    { id: "__conta", label: "Conta", icon: "user" },
+  ];
+  $("#bottom-nav").innerHTML = items.map((it) => `
+    <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}">
+      ${cpIcon(it.icon)}<span>${it.label}</span>
+    </button>`).join("");
+  $$("#bottom-nav .bottom-nav__item").forEach((btn) => btn.addEventListener("click", () => {
+    const page = btn.dataset.page;
+    if (page === "__conta") return openSidebar();
+    state.view.page = page; renderApp();
+  }));
+}
+
+function bindColabNav(scope) {
+  scope.querySelectorAll("[data-nav]").forEach((el) => el.addEventListener("click", () => {
+    state.view.page = el.dataset.nav; renderApp();
+  }));
+}
+
+function renderViewColaborador() {
+  const page = state.view.page;
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-comunicados": "Comunicados", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap do Portal" };
+  $("#topbar-title").textContent = titulos[page] || "Portal";
+  if (page === "colab-roadmap") return renderPortalRoadmap();
+  if (page === "colab-ponto") return renderColabStub("Meu Ponto", "Aqui você verá seu saldo de banco de horas e o espelho de ponto. Em construção.", "clock");
+  if (page === "colab-comunicados") return renderColabStub("Comunicados", "Os avisos e comunicados do GH aparecerão aqui. Em construção.", "megafone");
+  if (page === "colab-documentos") return renderColabStub("Documentos", "Seus holerites, recibos e documentos para assinar ficarão aqui. Em construção.", "file");
+  return renderColaboradorHome();
+}
+
+function renderColabStub(titulo, msg, ic) {
+  $("#view").innerHTML = `
+    <header class="page-header"><div><h1>${escapeHtml(titulo)}</h1></div></header>
+    <div class="cp-stub">
+      <div class="cp-stub__ic">${cpIcon(ic)}</div>
+      <p>${escapeHtml(msg)}</p>
+      <span class="cp-stub__tag">Próximas fases do Portal</span>
+    </div>`;
+}
+
+function renderColaboradorHome() {
+  const view = $("#view");
+  const rm = cpRoadmapStats();
+  view.innerHTML = `
+    <div class="cp-hi"><h1>Olá, Maria</h1><p>Bom te ver por aqui.</p></div>
+    <div class="cp-idc">
+      <div class="cp-idc__av">MA</div>
+      <div class="cp-idc__main">
+        <div class="cp-idc__nome">Maria Aparecida Silva</div>
+        <div class="cp-idc__cargo">Costureira · Costura</div>
+        <div class="cp-idc__meta">
+          <span class="cp-tagm">1º turno</span>
+          <span class="cp-tagm">Há 6 anos na Fiobras</span>
+          <span class="cp-tagm">Aniversário 14/07</span>
+        </div>
+      </div>
+    </div>
+    <div class="cp-kpis">
+      <div class="cp-kpi">
+        <div class="cp-kpi__lab">${cpIcon("clock")}<span>Banco de horas</span></div>
+        <div class="cp-kpi__val pos">+02:30</div>
+        <div class="cp-kpi__hint">saldo atual</div>
+      </div>
+      <button class="cp-kpi cp-kpi--act" data-nav="colab-documentos">
+        <div class="cp-kpi__lab">${cpIcon("file")}<span>Documentos</span></div>
+        <div class="cp-kpi__val"><span class="cp-pill">1 a assinar</span></div>
+        <div class="cp-kpi__hint">toque para ver</div>
+      </button>
+    </div>
+    <div class="cp-sec"><h2>Atalhos</h2></div>
+    <div class="cp-atalhos">
+      <button class="cp-atalho" data-nav="colab-ponto"><span class="cp-atalho__ic">${cpIcon("clock")}</span><span class="cp-atalho__t">Meu Ponto</span><span class="cp-atalho__s">Saldo e espelho</span></button>
+      <button class="cp-atalho" data-nav="colab-comunicados"><span class="cp-badge">2 novos</span><span class="cp-atalho__ic">${cpIcon("megafone")}</span><span class="cp-atalho__t">Comunicados</span><span class="cp-atalho__s">Avisos do GH</span></button>
+      <button class="cp-atalho" data-nav="colab-documentos"><span class="cp-badge cp-badge--warn">1 a assinar</span><span class="cp-atalho__ic">${cpIcon("file")}</span><span class="cp-atalho__t">Documentos</span><span class="cp-atalho__s">Holerites e termos</span></button>
+      <button class="cp-atalho" data-nav="colab-roadmap"><span class="cp-atalho__ic">${cpIcon("roadmap")}</span><span class="cp-atalho__t">Roadmap</span><span class="cp-atalho__s">Evolução do portal</span></button>
+    </div>
+    <div class="cp-sec"><h2>Comunicado em destaque</h2></div>
+    <button class="cp-com" data-nav="colab-comunicados">
+      <div class="cp-com__top"><span class="cp-com__tag">${cpIcon("megafone")}<span>Fixado</span></span><span class="cp-com__new"></span></div>
+      <div class="cp-com__t">Mudança no horário do refeitório</div>
+      <div class="cp-com__p">A partir de segunda (30/06), o 1º turno almoça das 11h20 às 12h10. Confira a nova escala completa e confirme a leitura.</div>
+    </button>
+    <div class="cp-sec"><h2>Aniversariantes do mês</h2></div>
+    <div class="cp-aniv">
+      <div class="cp-aniv__row"><span class="cp-aniv__av">JC</span><span class="cp-aniv__nome">João Carlos Ferreira</span><span class="cp-aniv__hoje">hoje</span></div>
+      <div class="cp-aniv__row"><span class="cp-aniv__av">AS</span><span class="cp-aniv__nome">Ana Souza</span><span class="cp-aniv__data">26/06</span></div>
+      <div class="cp-aniv__row"><span class="cp-aniv__av">RL</span><span class="cp-aniv__nome">Rafael Lima</span><span class="cp-aniv__data">29/06</span></div>
+    </div>
+    <div class="cp-sec"><h2>Roadmap do Portal</h2></div>
+    <button class="cp-rmcard" data-nav="colab-roadmap">
+      <div class="cp-rmcard__top"><span class="cp-rmcard__t">Evolução do portal</span><span class="cp-rmcard__link">ver tudo ›</span></div>
+      <div class="cp-pbar"><div class="cp-pbar__fill" style="width:${rm.pct}%"></div></div>
+      <div class="cp-rmcard__pills">
+        <span class="cp-rmp cp-rmp--ok">${rm.done} concluídas</span>
+        <span class="cp-rmp cp-rmp--prog">${rm.prog} em andamento</span>
+        <span class="cp-rmp cp-rmp--plan">${rm.plan} planejadas</span>
+      </div>
+    </button>
+  `;
+  bindColabNav(view);
+  if (typeof animarEntrada === "function") animarEntrada(view);
+}
+
+// ---- Roadmap do Portal (linha do tempo horizontal) ----
+function cpTileHtml(it) {
+  const st = CP_STA[it.status], pr = CP_PRIO[it.prioridade];
+  const num = it.numero != null ? `<span class="cp-tile__num">#${it.numero}</span>` : "<span></span>";
+  return `<button class="cp-tile" type="button" data-id="${it.id}" style="--acc:${CP_ACC[st.c]}">
+    <span class="cp-tile__top">${num}<span class="cp-chip cp-chip--${pr.c}">${pr.t}</span></span>
+    <span class="cp-tile__nome">${escapeHtml(it.nome)}</span>
+    <span class="cp-tile__bot"><span class="cp-tst cp-tst--${st.c}">${st.t}</span><span class="cp-dot"></span><span>${CP_CX[it.complexidade].t}</span></span>
+  </button>`;
+}
+function cpStationHtml(f, idx, foco) {
+  const items = window.ROADMAP.itens.filter((i) => i.fase === f.id);
+  const done = items.filter((i) => i.status === "concluido").length;
+  const pct = items.length ? Math.round((done / items.length) * 100) : 0;
+  return `<div class="cp-col ${foco ? "cp-col--foco" : ""}">
+    <div class="cp-col__head">
+      <div class="cp-node" style="--pct:${pct}%">${foco ? '<span class="cp-pin">você está aqui</span>' : ""}<span class="cp-node__in">${idx}</span></div>
+      <div class="cp-col__nome">${escapeHtml(f.nome)}</div>
+      ${foco ? '<span class="cp-col__tag">em foco</span>' : ""}
+      <div class="cp-col__sub">${escapeHtml(f.subtitulo)}</div>
+      <div class="cp-col__count">${done}/${items.length} · ${pct}%</div>
+    </div>
+    <div class="cp-col__cards">${items.map(cpTileHtml).join("")}</div>
+  </div>`;
+}
+function renderPortalRoadmap() {
+  const view = $("#view");
+  const R = window.ROADMAP;
+  if (!R || !R.itens) { view.innerHTML = `<div class="cp-stub"><p>Roadmap indisponível.</p></div>`; return; }
+  const s = cpRoadmapStats();
+  view.innerHTML = `
+    <header class="page-header"><div><h1>Roadmap do Portal</h1><p class="muted">O que já existe, o que está sendo construído e o que vem por aí.</p></div></header>
+    <div class="cp-rm-gp"><div class="cp-rm-gp__top"><span>Progresso geral</span><b>${s.done} de ${s.total} · ${s.pct}%</b></div><div class="cp-pbar"><div class="cp-pbar__fill" style="width:${s.pct}%"></div></div></div>
+    <p class="cp-rm-hint">← arraste → para percorrer as fases</p>
+    <div class="cp-rm-scroller"><div class="cp-rm-track">
+      <div class="cp-road"><div class="cp-road__fill" style="width:${s.pct}%"></div></div>
+      ${R.fases.map((f, i) => cpStationHtml(f, i, i === 0)).join("")}
+    </div></div>`;
+  view.querySelectorAll(".cp-tile[data-id]").forEach((b) => b.addEventListener("click", () => openRoadmapDetalhe(b.dataset.id)));
+}
+function openRoadmapDetalhe(id) {
+  const R = window.ROADMAP; if (!R) return;
+  const it = R.itens.find((x) => x.id === id); if (!it) return;
+  const st = CP_STA[it.status], pr = CP_PRIO[it.prioridade], cx = CP_CX[it.complexidade];
+  const num = it.numero != null ? `#${it.numero} · ` : "";
+  const deps = (it.dependencias || []).map((d) => `<li>${escapeHtml(d)}</li>`).join("") || "<li>—</li>";
+  const crit = (it.criteriosAceite || []).map((c) => `<li>${escapeHtml(c)}</li>`).join("") || "<li>—</li>";
+  openModal(`
+    <div class="modal__header">
+      <div><p class="cp-mod-kicker">${num}${CP_CLA[it.classificacao] || ""}</p><h2>${escapeHtml(it.nome)}</h2></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body cp-mod">
+      <div class="cp-mod-chips"><span class="cp-st cp-st--${st.c}">${st.t}</span><span class="cp-chip cp-chip--${pr.c}">${pr.t}</span><span class="cp-mod-cx">${cpMeter(cx.n)} ${cx.t}</span></div>
+      <div class="cp-mod-sec"><h4>Descrição</h4><p>${escapeHtml(it.descricao)}</p></div>
+      <div class="cp-mod-sec"><h4>Objetivo</h4><p>${escapeHtml(it.objetivo)}</p></div>
+      <div class="cp-mod-sec cp-mod-deps"><h4>Dependências</h4><ul>${deps}</ul></div>
+      <div class="cp-mod-sec"><h4>Critérios de aceite</h4><ul>${crit}</ul></div>
+    </div>
+  `, { onMount: (m) => m.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal)) });
 }
 
 // ---------- App Shell ----------
 
 function renderApp() {
   const u = currentUser();
-  if (!u) { logout(); return; }
+  if (!u) { mostrarAcesso(); return; }
+  if (u.role === "colaborador") return renderPortalColaborador(u);
 
   // Sidebar user (avatar com foto se houver, senão iniciais)
   aplicarAvatar($("#user-avatar"), u);
@@ -2756,6 +3035,7 @@ async function deleteFuncionario(id) {
 }
 
 function openProfileModal() {
+  if (currentUser()?.preview) return sairPreviewColaborador(false);
   const u = currentUser();
   if (!u) return;
   const isFirebaseMode = typeof window.alterarMinhaSenha === "function";
@@ -7492,7 +7772,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.11.0";
+window.CURRENT_VERSION = "1.12.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -7626,6 +7906,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Auto-restore session if user was logged in
   if (state.currentUserId && getUser(state.currentUserId)) {
+    $("#acesso")?.classList.add("hidden");
     $("#login").classList.add("hidden");
     $("#app").classList.remove("hidden");
     state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
@@ -7674,6 +7955,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Logout
   $("#user-area").addEventListener("click", openProfileModal);
+
+  // Tela de acesso (Fase 0): escolha de portal. Gestor revela o login;
+  // Colaborador entra na prévia visual (sem auth). Voltar retorna à escolha.
+  $("#acesso-gestor")?.addEventListener("click", mostrarLoginGestor);
+  $("#acesso-colab")?.addEventListener("click", entrarPreviewColaborador);
+  $("#login-voltar")?.addEventListener("click", mostrarAcesso);
 
   // Reset de senha (só ativo em modo Firebase via window.firebaseResetSenha)
   const forgot = $("#btn-forgot");

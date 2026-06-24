@@ -11,7 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.11.0", d: "18 jun 2026", current: true, items: [
+    v: "1.12.0", d: "24 jun 2026", current: true, items: [
+      { type: "high", title: "Novo: ao abrir o sistema você escolhe \"Portal do Colaborador\" ou \"Portal do Gestor/Administrador\". O acesso do gestor continua igual — só ganhou um toque a mais." },
+      { type: "feat", title: "Prévia do Portal do Colaborador (ainda sem login): início com identidade, banco de horas, comunicados, documentos e o Roadmap do Portal." },
+    ],
+  },
+  {
+    v: "1.11.0", d: "18 jun 2026", items: [
       { type: "feat", title: "Toques premium: a barrinha das abas desliza, os números animam quando mudam, e o 'Tudo em dia' chega com uma comemoração discreta." },
       { type: "feat", title: "No celular: vibração curtinha ao lançar/conferir/marcar, topbar com sombra ao rolar e o botão + que recolhe ao descer." },
     ],

@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mock — Portal do Colaborador · shell + início</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-yellow:#FFCB00;--fiobras-blue:#0076BE;--bg:#F7F9F6;--surface:#FFFFFF;
+  --border:#E7EDE4;--border-strong:#D8E2D3;--text:#1C2A18;--text-body:#1E2D1A;--text-muted:#5A6B54;
+  --success:#2F6B3F;--success-bg:#E0EAD8;--warning:#B27429;--warning-bg:#F8E4C8;--warning-ink:#7A4A12;
+  --danger:#962F32;--danger-bg:#F4D6D2;--blue-bg:#DBEAF6;--blue-ink:#0A5C90;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--radius:14px;--radius-lg:18px;--radius-sm:9px;
+  --transition:180ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#dfe3dd;color:var(--text-body);-webkit-font-smoothing:antialiased;padding:24px}
+.note-top{max-width:430px;margin:0 auto 16px;font-size:12.5px;color:#46553f;background:#fff;border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:10px;padding:11px 15px;line-height:1.6}
+.note-top b{color:var(--plum-deep)}
+
+.phone{max-width:430px;margin:0 auto;height:812px;background:var(--bg);border:1px solid var(--border);border-radius:26px;box-shadow:0 18px 50px rgba(0,40,20,.13);overflow:hidden;display:flex;flex-direction:column;position:relative}
+
+/* faixa prévia */
+.prevbar{flex:none;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--warning-bg);color:var(--warning-ink);font-size:11px;font-weight:600;padding:6px 12px}
+.prevbar svg{width:13px;height:13px;flex:none}
+
+/* topbar */
+.topbar{flex:none;display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar__menu{background:none;border:0;color:var(--text-body);cursor:pointer;padding:2px;display:flex}
+.topbar__menu svg{width:23px;height:23px;stroke-width:2}
+.topbar__title{font-size:16px;font-weight:700;color:var(--text)}
+.topbar__sp{margin-left:auto}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--plum);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+
+/* view scrollável */
+.view{flex:1;overflow-y:auto;padding:18px 16px 22px;scrollbar-width:thin}
+
+/* saudação */
+.hi{margin-bottom:14px}
+.hi h1{font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+.hi p{font-size:12.5px;color:var(--text-muted);margin-top:2px}
+
+/* cartão de identidade */
+.idc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;gap:14px;align-items:center;box-shadow:0 1px 2px rgba(0,40,20,.05);margin-bottom:16px}
+.idc__av{width:54px;height:54px;border-radius:50%;flex:none;background:linear-gradient(150deg,var(--plum-soft),var(--plum-deep));color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+.idc__main{min-width:0;flex:1}
+.idc__nome{font-size:15.5px;font-weight:700;color:var(--text)}
+.idc__cargo{font-size:12.5px;color:var(--text-muted);margin-top:1px}
+.idc__meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.tagm{font-size:10.5px;font-weight:600;color:var(--text-muted);background:var(--milk-warm);padding:3px 9px;border-radius:999px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;box-shadow:0 1px 2px rgba(0,40,20,.05)}
+.kpi__lab{font-size:11px;color:var(--text-muted);font-weight:600;display:flex;align-items:center;gap:6px}
+.kpi__lab svg{width:14px;height:14px}
+.kpi__val{font-size:21px;font-weight:800;color:var(--text);margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kpi__val.pos{color:var(--success)}
+.kpi__hint{font-size:11px;color:var(--text-muted);margin-top:1px}
+.kpi--act{cursor:pointer}
+.kpi--act .kpi__val{color:var(--warning-ink);font-size:15px;display:flex;align-items:center;gap:7px}
+.kpi--act .kpi__val .pill{font-size:10px;font-weight:700;background:var(--warning-bg);color:var(--warning-ink);padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em}
+
+/* seção título */
+.sec-h{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 10px}
+.sec-h h2{font-size:13px;font-weight:700;color:var(--text);letter-spacing:.01em}
+.sec-h a{font-size:11.5px;color:var(--plum);font-weight:600;text-decoration:none}
+
+/* atalhos */
+.atalhos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.atalho{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;text-align:left;font:inherit;color:inherit;display:flex;flex-direction:column;gap:9px;transition:border-color var(--transition),box-shadow var(--transition),transform var(--transition)}
+.atalho:hover{border-color:var(--border-strong);box-shadow:0 3px 10px rgba(0,40,20,.07);transform:translateY(-2px)}
+.atalho__ic{width:40px;height:40px;border-radius:11px;background:var(--milk-warm);color:var(--plum-deep);display:flex;align-items:center;justify-content:center}
+.atalho__ic svg{width:21px;height:21px;stroke-width:1.9}
+.atalho__t{font-size:13.5px;font-weight:600;color:var(--text)}
+.atalho__s{font-size:11px;color:var(--text-muted);margin-top:-4px}
+.badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--blue-bg);color:var(--blue-ink)}
+.badge--warn{background:var(--warning-bg);color:var(--warning-ink)}
+
+/* comunicado fixado */
+.com{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:0 var(--radius) var(--radius) 0;padding:14px 16px;margin-bottom:18px;cursor:pointer}
+.com__top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.com__tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--plum);display:flex;align-items:center;gap:5px}
+.com__tag svg{width:13px;height:13px}
+.com__new{width:7px;height:7px;border-radius:50%;background:var(--fiobras-blue);margin-left:auto}
+.com__t{font-size:14px;font-weight:700;color:var(--text)}
+.com__p{font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* aniversariantes */
+.aniv{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:18px}
+.aniv__row{display:flex;align-items:center;gap:11px;padding:11px 15px;border-top:1px solid var(--border)}
+.aniv__row:first-child{border-top:0}
+.aniv__av{width:34px;height:34px;border-radius:50%;flex:none;background:var(--milk-warm);color:var(--plum-deep);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.aniv__nome{font-size:13px;font-weight:600;color:var(--text-body)}
+.aniv__data{font-size:11.5px;color:var(--text-muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.aniv__hoje{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:999px;margin-left:auto}
+
+/* card roadmap */
+.rm{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer}
+.rm__top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.rm__t{font-size:13.5px;font-weight:700;color:var(--text)}
+.rm__link{font-size:11px;color:var(--plum);font-weight:600}
+.pbar{height:7px;border-radius:999px;background:var(--milk-warm);overflow:hidden;border:1px solid var(--border)}
+.pbar__fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--plum),var(--plum-soft))}
+.rm__pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.rmp{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px}
+.rmp--ok{background:var(--success-bg);color:var(--success)}
+.rmp--prog{background:var(--blue-bg);color:var(--blue-ink)}
+.rmp--plan{background:var(--milk-warm);color:var(--text-muted)}
+
+/* bottom-nav */
+.bottom-nav{flex:none;display:flex;background:var(--surface);border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.bn{flex:1;background:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;color:var(--text-muted);font:inherit;font-size:10px;font-weight:600;position:relative;transition:color var(--transition)}
+.bn svg{width:22px;height:22px;stroke-width:1.9}
+.bn.is-on{color:var(--plum)}
+.bn__dot{position:absolute;top:3px;right:calc(50% - 16px);min-width:15px;height:15px;padding:0 4px;border-radius:999px;background:var(--fiobras-blue);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.bn__dot--warn{background:var(--warning-ink)}
+</style>
+</head>
+<body>
+<div class="note-top">
+  <b>Mock — Início do Portal do Colaborador (Fase 0).</b> Mesmo shell do app, ramificado por papel:
+  topbar, navegação inferior própria (sem o + de nova ocorrência), e o início com cartão de identidade,
+  saldo, atalhos, comunicado fixado e aniversariantes. Dados ilustrativos, sem login.
+</div>
+
+<div class="phone">
+  <div class="prevbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Modo prévia — sem login. Dados ilustrativos.</div>
+
+  <div class="topbar">
+    <button class="topbar__menu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <div class="topbar__title">Início</div>
+    <span class="topbar__sp"></span>
+    <div class="avatar">MA</div>
+  </div>
+
+  <div class="view">
+    <div class="hi">
+      <h1>Olá, Maria</h1>
+      <p>Bom te ver por aqui.</p>
+    </div>
+
+    <div class="idc">
+      <div class="idc__av">MA</div>
+      <div class="idc__main">
+        <div class="idc__nome">Maria Aparecida Silva</div>
+        <div class="idc__cargo">Costureira · Costura</div>
+        <div class="idc__meta">
+          <span class="tagm">1º turno</span>
+          <span class="tagm">Há 6 anos na Fiobras</span>
+          <span class="tagm">Aniversário 14/07</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi__lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Banco de horas</div>
+        <div class="kpi__val pos">+02:30</div>
+        <div class="kpi__hint">saldo atual</div>
+      </div>
+      <div class="kpi kpi--act">
+        <div class="kpi__lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Documentos</div>
+        <div class="kpi__val"><span class="pill">1 a assinar</span></div>
+        <div class="kpi__hint">toque para ver</div>
+      </div>
+    </div>
+
+    <div class="sec-h"><h2>Atalhos</h2></div>
+    <div class="atalhos">
+      <button class="atalho">
+        <span class="atalho__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <span class="atalho__t">Meu Ponto</span>
+        <span class="atalho__s">Saldo e espelho</span>
+      </button>
+      <button class="atalho">
+        <span class="badge">2 novos</span>
+        <span class="atalho__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>
+        <span class="atalho__t">Comunicados</span>
+        <span class="atalho__s">Avisos do GH</span>
+      </button>
+      <button class="atalho">
+        <span class="badge badge--warn">1 a assinar</span>
+        <span class="atalho__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        <span class="atalho__t">Documentos</span>
+        <span class="atalho__s">Holerites e termos</span>
+      </button>
+      <button class="atalho">
+        <span class="atalho__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+        <span class="atalho__t">Roadmap</span>
+        <span class="atalho__s">Evolução do portal</span>
+      </button>
+    </div>
+
+    <div class="sec-h"><h2>Comunicado em destaque</h2><a>ver todos</a></div>
+    <div class="com">
+      <div class="com__top"><span class="com__tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5z"/><path d="M9 3v4M15 3v4"/></svg>Fixado</span><span class="com__new"></span></div>
+      <div class="com__t">Mudança no horário do refeitório</div>
+      <div class="com__p">A partir de segunda (30/06), o 1º turno almoça das 11h20 às 12h10. Confira a nova escala completa e confirme a leitura.</div>
+    </div>
+
+    <div class="sec-h"><h2>Aniversariantes do mês</h2></div>
+    <div class="aniv">
+      <div class="aniv__row"><span class="aniv__av">JC</span><span class="aniv__nome">João Carlos Ferreira</span><span class="aniv__hoje">hoje</span></div>
+      <div class="aniv__row"><span class="aniv__av">AS</span><span class="aniv__nome">Ana Souza</span><span class="aniv__data">26/06</span></div>
+      <div class="aniv__row"><span class="aniv__av">RL</span><span class="aniv__nome">Rafael Lima</span><span class="aniv__data">29/06</span></div>
+    </div>
+
+    <div class="sec-h"><h2>Roadmap do Portal</h2></div>
+    <div class="rm">
+      <div class="rm__top"><span class="rm__t">Evolução do portal</span><span class="rm__link">ver tudo &rsaquo;</span></div>
+      <div class="pbar"><div class="pbar__fill" style="width:0%"></div></div>
+      <div class="rm__pills">
+        <span class="rmp rmp--ok">0 concluídas</span>
+        <span class="rmp rmp--prog">4 em andamento</span>
+        <span class="rmp rmp--plan">45 planejadas</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="bn is-on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/></svg>Início</button>
+    <button class="bn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Ponto</button>
+    <button class="bn"><span class="bn__dot">2</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Avisos</button>
+    <button class="bn"><span class="bn__dot bn__dot--warn">1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Docs</button>
+    <button class="bn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg>Conta</button>
+  </nav>
+</div>
+</body>
+</html>

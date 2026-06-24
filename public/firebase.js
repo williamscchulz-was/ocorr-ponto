@@ -1895,8 +1895,12 @@
         await limparPresenca();
         state.currentUserId = null;
         $("#app")?.classList.add("hidden");
-        $("#login")?.classList.remove("hidden");
-        esconderSplash(); // sem sessão → mostra login (sem flash de novo)
+        // Sem sessão → tela de ACESSO (escolha de portal). Mantém o login do
+        // gestor a um toque, sem regressão. Fallback pro #login se o app.js
+        // ainda não definiu o portão (ex.: erro de carga).
+        if (window.__portaoSemSessao) window.__portaoSemSessao();
+        else $("#login")?.classList.remove("hidden");
+        esconderSplash(); // sem sessão → mostra a escolha (sem flash)
         restoreLoginButton();
         // Cancela timer de inatividade
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
@@ -1913,6 +1917,7 @@
             "Seu usuário existe no Auth mas não tem perfil cadastrado. " +
             "Peça ao admin pra criar /users/" + fbUser.uid + " no Firestore.";
           $("#login-error").classList.remove("hidden");
+          window.__forcarLoginGestor = true; // erro de perfil → volta ao login, não à escolha
           await auth.signOut();
           return;
         }
@@ -1936,6 +1941,7 @@
 
         await carregarDadosCompletos(db);
 
+        $("#acesso")?.classList.add("hidden");
         $("#login").classList.add("hidden");
         $("#app").classList.remove("hidden");
         esconderSplash(); // troca splash → app direto (login nunca pisca)
@@ -1954,6 +1960,7 @@
         toast("Erro ao carregar perfil: " + err.message, "danger");
         // Sign out faz onAuthStateChanged disparar de novo com null,
         // que volta pra tela de login e restaura o botão "Entrar".
+        window.__forcarLoginGestor = true;
         await auth.signOut().catch(() => {});
       }
     });
