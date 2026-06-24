@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mock — Onboarding 1º acesso (carrossel + checklist)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --fiobras-blue:#0076BE;--bg:#F7F9F6;--surface:#FFFFFF;--border:#E7EDE4;--border-strong:#D8E2D3;
+  --text:#1C2A18;--text-body:#1E2D1A;--text-muted:#5A6B54;--success:#2F6B3F;--success-bg:#E0EAD8;
+  --warning-bg:#F8E4C8;--warning-ink:#7A4A12;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--transition:260ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#dfe3dd;color:var(--text-body);-webkit-font-smoothing:antialiased;padding:24px}
+.note-top{max-width:430px;margin:0 auto 16px;font-size:12.5px;color:#46553f;background:#fff;border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:10px;padding:11px 15px;line-height:1.6}
+.note-top b{color:var(--plum-deep)}
+.phone{max-width:430px;margin:0 auto;height:760px;background:linear-gradient(172deg,var(--milk-warm) 0%,var(--bg) 55%);border:1px solid var(--border);border-radius:26px;box-shadow:0 18px 50px rgba(0,40,20,.13);overflow:hidden;display:flex;flex-direction:column;position:relative}
+
+/* === CARROSSEL (A) === */
+.carr{flex:1;display:flex;flex-direction:column}
+.carr.hide{display:none}
+.top{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 4px}
+.dots{display:flex;gap:6px}
+.dots i{width:7px;height:7px;border-radius:999px;background:var(--border-strong);transition:var(--transition)}
+.dots i.on{background:var(--plum);width:22px}
+.skip{background:none;border:0;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px}
+.skip.hide{visibility:hidden}
+.body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:20px;padding:20px 30px}
+.ic{width:104px;height:104px;border-radius:30px;display:flex;align-items:center;justify-content:center;background:var(--surface);box-shadow:0 10px 30px rgba(0,40,20,.1);color:var(--plum);transition:opacity var(--transition),transform var(--transition)}
+.ic svg{width:50px;height:50px;stroke-width:1.6}
+.t{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em;transition:opacity var(--transition)}
+.p{font-size:14px;color:var(--text-muted);line-height:1.6;max-width:28ch;transition:opacity var(--transition)}
+.body.fade .ic,.body.fade .t,.body.fade .p{opacity:0;transform:translateY(4px)}
+.foot{padding:18px 24px}
+.next{width:100%;background:var(--plum);color:#fff;border:0;border-radius:12px;font:inherit;font-size:15px;font-weight:700;padding:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background var(--transition)}
+.next:hover{background:var(--plum-deep)}
+.next svg{width:17px;height:17px;stroke-width:2.5}
+.voltar{display:block;width:100%;background:none;border:0;color:var(--text-muted);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:10px 0 0;visibility:hidden}
+.voltar.show{visibility:visible}
+
+/* === CHECKLIST (C) === */
+.chk{flex:1;display:none;flex-direction:column;padding:34px 22px 22px;animation:slidein .35s var(--transition)}
+.chk.on{display:flex}
+@keyframes slidein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.chk__h h2{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+.chk__h p{font-size:12.5px;color:var(--text-muted);margin-top:4px;line-height:1.5}
+.chk__bar{height:7px;border-radius:999px;background:var(--milk-warm);border:1px solid var(--border);overflow:hidden;margin:16px 0 6px}
+.chk__bar i{display:block;height:100%;background:linear-gradient(90deg,var(--plum),var(--plum-soft));transition:width .4s var(--transition)}
+.chk__prog{font-size:11.5px;color:var(--plum-deep);font-weight:700;margin-bottom:12px}
+.chk__list{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.ci{display:flex;align-items:center;gap:12px;padding:14px 15px;border-top:1px solid var(--border);cursor:pointer;text-align:left;width:100%;background:none;font:inherit;color:inherit;transition:background var(--transition)}
+.ci:first-child{border-top:0}
+.ci:hover{background:#FAFCF9}
+.ci__bx{width:23px;height:23px;flex:none;border:1.8px solid var(--border-strong);border-radius:7px;position:relative;transition:var(--transition)}
+.ci.on .ci__bx{background:var(--plum);border-color:var(--plum)}
+.ci.on .ci__bx::after{content:"";position:absolute;left:7.5px;top:3px;width:5px;height:11px;border:solid #fff;border-width:0 2.4px 2.4px 0;transform:rotate(45deg)}
+.ci__m{flex:1;min-width:0}
+.ci__t{font-size:13.5px;font-weight:600;color:var(--text)}
+.ci.on .ci__t{color:var(--text-muted);text-decoration:line-through}
+.ci__s{font-size:11px;color:var(--text-muted);margin-top:1px}
+.ci__chev{flex:none;color:var(--border-strong)}
+.ci__chev svg{width:17px;height:17px;stroke-width:2}
+.chk__nota{font-size:11.5px;color:var(--text-muted);margin-top:14px;display:flex;gap:7px;align-items:flex-start;line-height:1.5}
+.chk__nota svg{width:15px;height:15px;flex:none;margin-top:1px;color:var(--plum-deep)}
+.chk__btn{margin-top:auto;background:var(--plum);color:#fff;border:0;border-radius:12px;font:inherit;font-size:15px;font-weight:700;padding:14px;cursor:pointer}
+.chk__btn:hover{background:var(--plum-deep)}
+</style>
+</head>
+<body>
+<div class="note-top"><b>Mock — Onboarding do 1º acesso (A+C).</b> Carrossel de boas-vindas → no fim, cai no
+<b>checklist de primeiros passos</b> (que fica salvo em Ajuda). "Pular" no carrossel vai direto pro checklist.</div>
+
+<div class="phone">
+  <!-- CARROSSEL -->
+  <div class="carr" id="carr">
+    <div class="top"><div class="dots" id="dots"></div><button class="skip" id="skip">Pular</button></div>
+    <div class="body" id="body"><div class="ic" id="ic"></div><div class="t" id="t"></div><div class="p" id="p"></div></div>
+    <div class="foot"><button class="next" id="next"></button><button class="voltar" id="voltar">Voltar</button></div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="chk" id="chk">
+    <div class="chk__h"><h2>Vamos começar, Maria</h2><p>Uns passos rápidos pra deixar tudo em dia. Sem pressa — fica salvo em Ajuda.</p></div>
+    <div class="chk__bar"><i id="ck-bar" style="width:25%"></i></div>
+    <div class="chk__prog" id="ck-prog">1 de 4 concluído</div>
+    <div class="chk__list" id="ck-list">
+      <button class="ci on" data-fixed="1"><span class="ci__bx"></span><span class="ci__m"><span class="ci__t">Criar sua senha</span><span class="ci__s">Feito agora no primeiro acesso</span></span></button>
+      <button class="ci"><span class="ci__bx"></span><span class="ci__m"><span class="ci__t">Conferir seus dados</span><span class="ci__s">Nome, cargo, turno e aniversário</span></span><span class="ci__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></button>
+      <button class="ci"><span class="ci__bx"></span><span class="ci__m"><span class="ci__t">Ler e assinar o Código de Ética</span><span class="ci__s">Leva 2 minutos · vai pra Documentos</span></span><span class="ci__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></button>
+      <button class="ci"><span class="ci__bx"></span><span class="ci__m"><span class="ci__t">Conhecer o app</span><span class="ci__s">Rever a apresentação quando quiser</span></span><span class="ci__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></button>
+    </div>
+    <div class="chk__nota"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Esses passos ficam em <b>Ajuda</b> — você retoma quando quiser.</span></div>
+    <button class="chk__btn" id="ck-ir">Ir pro Início</button>
+  </div>
+</div>
+
+<script>
+// ---- A: carrossel ----
+const SLIDES = [
+  { ic: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>', t: "Bem-vinda, Maria!", p: "Este é o Portal do Colaborador da Fiobras — agora no seu bolso. Vamos te mostrar o que dá pra fazer aqui." },
+  { ic: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>', t: "Seu ponto, na palma da mão", p: "Acompanhe seu banco de horas e o espelho de ponto, sempre atualizados — sem precisar perguntar pra ninguém." },
+  { ic: '<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>', t: "Fique por dentro", p: "Comunicados e avisos do GH chegam aqui, com confirmação de leitura. Nada se perde no boca a boca." },
+  { ic: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>', t: "Seus documentos", p: "Contrato, holerites e o que precisa de assinatura — num lugar só, com registro de quando você assinou." },
+  { ic: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>', t: "Vamos aos primeiros passos", p: "Pra fechar, deixei uns passos rápidos pra você começar com tudo em dia." },
+];
+let i = 0;
+const dots = document.getElementById("dots");
+dots.innerHTML = SLIDES.map(() => "<i></i>").join("");
+const body = document.getElementById("body");
+function paint() {
+  body.classList.add("fade");
+  setTimeout(() => {
+    document.getElementById("ic").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">' + SLIDES[i].ic + "</svg>";
+    document.getElementById("t").textContent = SLIDES[i].t;
+    document.getElementById("p").textContent = SLIDES[i].p;
+    [...dots.children].forEach((d, k) => d.classList.toggle("on", k === i));
+    const last = i === SLIDES.length - 1;
+    document.getElementById("next").innerHTML = last ? "Ver primeiros passos" : 'Continuar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+    document.getElementById("skip").classList.toggle("hide", last);
+    document.getElementById("voltar").classList.toggle("show", i > 0);
+    body.classList.remove("fade");
+  }, 130);
+}
+function paraChecklist() { document.getElementById("carr").classList.add("hide"); document.getElementById("chk").classList.add("on"); }
+document.getElementById("next").addEventListener("click", () => { if (i === SLIDES.length - 1) return paraChecklist(); i++; paint(); });
+document.getElementById("voltar").addEventListener("click", () => { if (i > 0) { i--; paint(); } });
+document.getElementById("skip").addEventListener("click", paraChecklist);
+paint();
+
+// ---- C: checklist ----
+const list = document.getElementById("ck-list");
+list.querySelectorAll(".ci").forEach((ci) => { if (!ci.dataset.fixed) ci.addEventListener("click", () => { ci.classList.toggle("on"); upd(); }); });
+function upd() {
+  const n = list.querySelectorAll(".ci.on").length, t = list.querySelectorAll(".ci").length;
+  document.getElementById("ck-prog").textContent = n + " de " + t + " concluído";
+  document.getElementById("ck-bar").style.width = Math.round(n / t * 100) + "%";
+}
+</script>
+</body>
+</html>

@@ -940,6 +940,26 @@ window.ROADMAP = {
         "Moderador remove impróprio.",
         "Leitura paginada."
       ]
+    },
+    {
+      id: "onboarding-1o-acesso",
+      numero: null,
+      nome: "Onboarding do 1º acesso (carrossel + checklist)",
+      fase: "fase1",
+      prioridade: "media",
+      complexidade: "facil",
+      status: "planejado",
+      classificacao: "cria",
+      descricao: "No primeiro acesso (após a troca de senha), um carrossel de boas vindas de 5 telas (ponto, comunicados, documentos) seguido de um checklist de primeiros passos (conferir dados, assinar o Código de Ética, conhecer o app) que fica salvo em Ajuda. Aprovado em docs/mockups/onboarding-carrossel.html.",
+      objetivo: "Acolher o colaborador novo e levar ele a completar o essencial sem inventar fluxo: reaproveita a assinatura, o perfil e o próprio carrossel.",
+      dependencias: ["Login por CPF (#4)", "Troca obrigatória de senha (#6)", "users/{uid}.onboardingVisto", "Assinatura do Código de Ética"],
+      criteriosAceite: [
+        "Carrossel só aparece com onboardingVisto != true; ao concluir grava onboardingVisto=true e não repete.",
+        "Pular leva direto ao checklist; Voltar/Continuar navegam o carrossel.",
+        "Estado do checklist é DERIVADO (senha trocada, ética assinada, app visto); só onboardingVisto é gravado.",
+        "Checklist acessível em Ajuda até concluir; não bloqueia o uso do portal.",
+        "Sem emoji, sem traço na copy; aprovado em mock."
+      ]
     }
   ]
 };
