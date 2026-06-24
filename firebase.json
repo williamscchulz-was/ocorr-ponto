@@ -66,5 +66,10 @@
   "firestore": {
     "rules": "docs/firestore.rules",
     "indexes": "docs/firestore.indexes.json"
+  },
+  "emulators": {
+    "firestore": { "port": 8080 },
+    "ui": { "enabled": false },
+    "singleProjectMode": false
   }
 }
