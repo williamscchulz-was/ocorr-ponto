@@ -2,6 +2,9 @@ window.ROADMAP = {
   fases: [
     { id: "fase0",  nome: "Fase 0",        subtitulo: "Acesso + estrutura visual (sem login)" },
     { id: "fase1",  nome: "Fase 1 — MVP",  subtitulo: "Autenticação, SELF, consultas, comunicados, documentos" },
+    { id: "alfa",   nome: "Alfa",          subtitulo: "Teste interno com 5, smoke SELF e recuo seguro" },
+    { id: "beta",   nome: "Beta",          subtitulo: "Piloto de 20, gates, adoção e privacidade" },
+    { id: "live",   nome: "Live",          subtitulo: "Lançamento geral, suporte e monitoramento contínuo" },
     { id: "fase2",  nome: "Fase 2",        subtitulo: "Operação e engajamento (sem billing)" },
     { id: "futuro", nome: "Futuro",        subtitulo: "Origem ERP, billing Blaze ou provedor externo" }
   ],
@@ -964,6 +967,253 @@ window.ROADMAP = {
         "Estado do checklist é DERIVADO (senha trocada, ética assinada, app visto); só onboardingVisto é gravado.",
         "Checklist acessível em Ajuda até concluir; não bloqueia o uso do portal.",
         "Sem emoji, sem traço na copy; aprovado em mock."
+      ]
+    },
+    {
+      id: "alfa-grupo-selecao",
+      numero: null,
+      nome: "Definição do grupo alfa (5 pessoas) e ponto de contato no RH",
+      fase: "alfa",
+      prioridade: "alta",
+      complexidade: "muito_facil",
+      status: "planejado",
+      descricao: "Selecionar 5 colaboradores para o teste interno do Portal, com perfis variados (alguém com facilidade digital, alguém com pouca familiaridade, líderes de turno) dentro dos 86 logins ativos, evitando diretoria, invalidez e aprendiz (sem acesso). Registrar nome, setor, turno e CPF de cada participante e combinar de viva voz que é uma versão de teste e que bugs e dúvidas são esperados. Definir um responsável do RH como ponto de contato e montar um canal simples de feedback (grupo de mensagens ou planilha única com data, pessoa, tela, o que esperava e o que aconteceu). O RH consolida em uma lista priorizada (bug, dúvida recorrente, sugestão) que alimenta o backlog antes do beta.",
+      objetivo: "Começar o rollout por um grupo pequeno e controlado, com gente que representa a realidade da fábrica, e transformar o atrito relatado em correções concretas antes de abrir para mais pessoas.",
+      dependencias: ["Provisão de logins (WKRADAR)", "Login por CPF (#4)", "Troca obrigatória de senha (#6)"],
+      criteriosAceite: [
+        "Lista nominal de 5 participantes alfa registrada, com setor, turno e CPF.",
+        "Nenhum participante de diretoria, invalidez ou aprendiz na lista.",
+        "Cada participante avisado pessoalmente de que é versão de teste antes do primeiro acesso.",
+        "Um responsável do RH nomeado como ponto de contato e canal de feedback comunicado aos 5.",
+        "Relatos consolidados em lista priorizada (bug, dúvida, sugestão) com pelo menos uma resposta do RH no prazo combinado, antes de iniciar o beta."
+      ]
+    },
+    {
+      id: "alfa-smoke-caminho-critico",
+      numero: null,
+      nome: "Smoke test do caminho crítico (login por CPF até consultas)",
+      fase: "alfa",
+      prioridade: "critica",
+      complexidade: "medio",
+      status: "planejado",
+      descricao: "Roteiro de fumaça rodado a cada deploy do Portal, cobrindo o fluxo de ponta a ponta do colaborador: login por CPF (email sintético), troca obrigatória de senha, abertura da home, Minhas ocorrências, Meu banco de horas e abertura de um PDF (holerite ou espelho). Cada passo tem resultado esperado anotado (carrega, sem acesso negado, sem dado de terceiro). Rodado no celular e no PC do quiosque antes de liberar para os 5 do alfa. O checklist vive em docs (versionado), não no app.",
+      objetivo: "Garantir que o caminho que todo colaborador percorre no primeiro acesso funciona antes de expor a primeira pessoa, pegando regressão de login, regras e consulta cedo e barato.",
+      dependencias: ["Login por CPF (#4)", "Troca obrigatória de senha (#6)", "Endurecer regras de funcionarios e users (#2)", "Minhas ocorrências (#13)", "Meu banco de horas (#14)"],
+      criteriosAceite: [
+        "Roteiro escrito com os 6 passos e o resultado esperado de cada um, versionado em docs.",
+        "Rodada completa registra data, executor, dispositivo (celular e PC do quiosque) e resultado por passo.",
+        "Nenhum passo retorna acesso negado no fluxo do próprio colaborador.",
+        "Nenhuma tela do roteiro exibe dado de terceiro (verificação visual item a item).",
+        "Liberação do grupo alfa só ocorre com os 6 passos verdes."
+      ]
+    },
+    {
+      id: "alfa-checklist-self",
+      numero: null,
+      nome: "Checklist de segurança SELF (cada um só vê o seu)",
+      fase: "alfa",
+      prioridade: "critica",
+      complexidade: "medio",
+      status: "planejado",
+      descricao: "Roteiro de verificação executado com o grupo alfa provando que cada colaborador acessa somente os próprios dados. Para cada coleção (funcionarios, ocorrências, banco de horas, holerites, documentos), tentar ler de um funcionário de terceiro e confirmar que o acesso é negado, e conferir que a tela nunca lista dado alheio. Inclui a varredura de minimização: inspecionar a aba de rede e o conteúdo da página para confirmar que CPF, PIS e data de nascimento de qualquer pessoa não chegam ao cliente do colaborador, e que o documento do próprio usuário carrega apenas o mínimo (vínculo e flags). Espelhar os casos no emulator (próprio liberado, terceiro negado) e repetir contra produção com contas alfa reais.",
+      objetivo: "Provar, antes de ampliar o acesso, que o escopo SELF segura na prática e em produção, não só no emulator, e que o que não aparece na tela também não trafega na rede. O risco número um é o nascimento, que é a semente da senha de todos.",
+      dependencias: ["Endurecer regras de funcionarios e users (#2)", "Vínculo uid e funcionarioId (#11)", "Minhas ocorrências (#13)", "Meu banco de horas sem PII (#14)", "Suíte de regras no emulator"],
+      criteriosAceite: [
+        "Para cada coleção SELF, a leitura de um funcionário de terceiro é negada (emulator e produção).",
+        "Conta alfa sem vínculo não lê nenhum funcionário (proteção contra vínculo ausente verificada).",
+        "Nenhum CPF, PIS ou nascimento de terceiro aparece na tela ou no tráfego de rede do colaborador.",
+        "Resultado registrado por coleção (próprio liberado, terceiro negado) com data e ambiente; achado de dado em excesso vira correção bloqueante antes do beta.",
+        "Suíte do emulator passa 100 por cento antes de liberar o alfa."
+      ]
+    },
+    {
+      id: "alfa-kill-switch",
+      numero: null,
+      nome: "Botão de desligar o Portal (kill switch)",
+      fase: "alfa",
+      prioridade: "critica",
+      complexidade: "medio",
+      status: "planejado",
+      descricao: "Flag de habilitação do modo Colaborador lida no login a partir de um documento de configuração público e sem PII, por exemplo config/portalColaborador com {ativo, mensagem}. Com ativo igual a false, o login de colaborador cai em uma tela honesta de Portal em manutenção (mensagem configurável), enquanto o caminho do gestor segue intacto. Permite desligar o Portal em segundos, sem novo deploy e sem afetar o sistema de ponto dos gestores.",
+      objetivo: "Ter um interruptor único para conter incidente (vazamento, bug de regra, sobrecarga) sem derrubar o app inteiro nem esperar build e deploy.",
+      dependencias: ["Papel colaborador e escopo SELF (#1)", "Fluxo de login (onAuthStateChanged)", "config/portalColaborador (leitura pública, escrita só admin)"],
+      criteriosAceite: [
+        "Com a flag desligada, o colaborador vê a tela de manutenção e não acessa nenhuma consulta.",
+        "Com a flag desligada, login e navegação do gestor continuam idênticos.",
+        "Alternar a flag reflete no próximo login, sem novo deploy.",
+        "Mensagem de manutenção é configurável e exibida sem emoji e sem traço.",
+        "Mudança da flag fica registrada na auditoria (quem ligou ou desligou e quando)."
+      ]
+    },
+    {
+      id: "alfa-plano-recuo",
+      numero: null,
+      nome: "Plano de recuo do Portal (passo a passo ensaiado)",
+      fase: "alfa",
+      prioridade: "alta",
+      complexidade: "facil",
+      status: "planejado",
+      descricao: "Procedimento escrito e ensaiado uma vez no grupo alfa para reverter o Portal a um estado seguro: ordem de ação (primeiro o botão de desligar, depois reverter o deploy do hosting, depois reverter as regras se necessário), comando de redeploy da última versão boa conhecida, e critério de quando reverter regras em vez de só desligar a flag. Reforça que inativar nunca apaga dado (a trilha é append only), então reverter regras não causa perda de histórico.",
+      objetivo: "Transformar deu problema em uma sequência conhecida e rápida, sem improviso, preservando dados e auditoria.",
+      dependencias: ["Botão de desligar o Portal (kill switch)", "Hosting (versão anterior)", "Regras do Firestore versionadas"],
+      criteriosAceite: [
+        "Documento de recuo versionado com a ordem das ações e o comando exato de redeploy da versão anterior.",
+        "Ensaio registrado: Portal desligado e religado com sucesso no grupo alfa.",
+        "Critério objetivo de quando desligar a flag, quando reverter regras e quando reverter o hosting.",
+        "Confirmado por escrito que o recuo não apaga histórico nem auditoria.",
+        "Tempo do ensaio (do incidente até o Portal seguro) anotado como referência."
+      ]
+    },
+    {
+      id: "beta-material-treinamento",
+      numero: null,
+      nome: "Material de primeiro acesso e treinamento curto do piloto (20 pessoas)",
+      fase: "beta",
+      prioridade: "alta",
+      complexidade: "facil",
+      status: "planejado",
+      descricao: "Selecionar o grupo piloto de cerca de 20 pessoas (de preferência um turno ou setor inteiro, para o boca a boca jogar a favor) e produzir um material curto e visual de primeiro acesso (um cartão ou folha A5 e uma versão para celular) em linguagem simples: entre com o CPF, a senha inicial é a sua data de nascimento no formato ddmmaaaa (oito dígitos, sem barras), e na primeira vez o sistema pede para criar uma senha nova só sua. Incluir onde acessar (link ou QR Code), o que fazer se não conseguir entrar (procurar o RH) e o aviso de que é um sistema da empresa. Rodar um treinamento curto presencial de poucos minutos por turma, cobrindo primeiro acesso, troca de senha e consultas.",
+      objetivo: "Remover a dúvida número um do primeiro acesso (qual é a senha e como ela funciona) com uma explicação que qualquer colaborador entende sozinho, validando o Portal com um grupo maior já organizado por turno ou setor.",
+      dependencias: ["Login por CPF (#4)", "Troca obrigatória de senha (#6)", "Aprendizados do grupo alfa"],
+      criteriosAceite: [
+        "Grupo piloto de cerca de 20 pessoas definido, idealmente um turno ou setor inteiro.",
+        "Material explica CPF, senha inicial igual ao nascimento em ddmmaaaa e troca obrigatória, em frases curtas, com forma de acesso (link ou QR Code) e o que fazer ao não conseguir entrar.",
+        "Validado com pelo menos um participante alfa de baixa familiaridade digital, que entendeu sem ajuda.",
+        "Treinamento curto realizado com cada turma, cobrindo primeiro acesso, troca de senha e consultas.",
+        "Versão para impressão (cartão ou A5) e versão legível no celular, sem traço e sem emoji."
+      ]
+    },
+    {
+      id: "beta-rollout-gradual",
+      numero: null,
+      nome: "Rollout gradual controlado (alfa 5, beta 20, depois geral)",
+      fase: "beta",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "planejado",
+      descricao: "Liberação por lista de pessoas, não por percentual abstrato: alfa com 5, beta com 20 (um turno ou setor), depois geral. O controle de quem já foi liberado é operacional (provisão e ativação de conta pelo pipeline WKRADAR e pelo RH), não um experimento no cliente. Cada onda só abre depois que os critérios da onda anterior batem. Diretoria, afastados por invalidez e aprendizes seguem fora do acesso em todas as ondas. Quem não tem celular tem acesso garantido por quiosque ou PC compartilhado.",
+      objetivo: "Conter o raio de impacto de qualquer falha a um grupo pequeno e crescer só com sinal verde, em vez de expor 86 pessoas de uma vez.",
+      dependencias: ["Smoke test do caminho crítico", "Provisão de logins WKRADAR (86 ativos)", "Critérios de saída mensuráveis das fases"],
+      criteriosAceite: [
+        "Lista nominal de cada onda (5, depois 20) definida e registrada antes de liberar.",
+        "A onda seguinte só é liberada depois que o critério da anterior bate.",
+        "Diretoria, invalidez e aprendiz permanecem sem acesso em todas as ondas.",
+        "Quem não tem celular na onda tem acesso garantido por quiosque ou PC compartilhado.",
+        "O status de qual onda está ativa fica visível para RH e direção."
+      ]
+    },
+    {
+      id: "beta-monitoramento-adocao",
+      numero: null,
+      nome: "Monitoramento de adoção e saúde (logins, erros, resets)",
+      fase: "beta",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "planejado",
+      descricao: "Painel operacional simples para RH e direção com os sinais que decidem avançar ou recuar: quantos da onda entraram pelo menos uma vez, quantos concluíram a troca de senha, quantos resets administrativos foram pedidos, contagem de bugs abertos por gravidade e qualquer pico de acesso negado. Os números saem do que já existe (usuários com flags, auditoria de resets, provisão do pipeline); não cria coleta nova de dado de comportamento além do operacional.",
+      objetivo: "Dar visibilidade objetiva da adoção e da saúde do Portal para sustentar os critérios de saída de cada fase, em vez de decidir por impressão.",
+      dependencias: ["users (precisaTrocarSenha e ativo)", "Reset administrativo pelo RH (auditoria)", "Provisão WKRADAR", "Coleta de bugs da onda"],
+      criteriosAceite: [
+        "O painel mostra, por onda: quantos entraram, quantos trocaram a senha, número de resets e número de bugs por gravidade.",
+        "Os números derivam de dados já existentes (flags, auditoria, pipeline), sem coleta nova de PII.",
+        "O RH consegue ler o painel sem ajuda técnica.",
+        "Pico anormal de acesso negado ou de resets fica visível para acionar o botão de desligar.",
+        "Os indicadores do painel são exatamente os usados nos critérios de saída das fases."
+      ]
+    },
+    {
+      id: "beta-criterios-saida",
+      numero: null,
+      nome: "Critérios de saída mensuráveis (alfa, beta, live)",
+      fase: "beta",
+      prioridade: "alta",
+      complexidade: "facil",
+      status: "planejado",
+      descricao: "Critérios objetivos e escritos para encerrar cada fase, calibrados ao tamanho real das ondas. Alfa: smoke com os 6 passos verdes, zero bug crítico aberto, checklist de segurança SELF concluído. Beta: pelo menos 80 por cento dos 20 entraram e trocaram a senha, zero bug crítico, fila de suporte do primeiro acesso estável (sem acúmulo de resets sem resposta). Live: comunicação oficial publicada, FAQ disponível, monitoramento contínuo de pé. Os critérios referenciam o painel de monitoramento e ficam versionados em docs.",
+      objetivo: "Substituir parece pronto por condições claras de avanço, evitando escalar para mais gente com problema em aberto.",
+      dependencias: ["Smoke test do caminho crítico", "Monitoramento de adoção e saúde", "Checklist de segurança SELF (alfa)"],
+      criteriosAceite: [
+        "Cada fase (alfa, beta, live) tem critérios de saída escritos, numéricos onde possível, versionados em docs.",
+        "Nenhuma fase encerra com bug crítico em aberto.",
+        "O critério do beta exige percentual mínimo de login e de troca de senha do grupo de 20.",
+        "O critério do live exige comunicação oficial, FAQ e monitoramento contínuo ativos.",
+        "Cada avanço de fase fica registrado com a data e a confirmação de que o critério bateu."
+      ]
+    },
+    {
+      id: "beta-privacidade-inativacao",
+      numero: null,
+      nome: "Aceite de privacidade por versão e teste da inativação automática",
+      fase: "beta",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "planejado",
+      descricao: "No primeiro acesso do grupo piloto, apresentar a política de privacidade do Portal (quais dados o RH trata, finalidade, retenção, canal do titular) e registrar o aceite por versão, reusando o padrão de assinatura com trilha (uid, identificação da versão, hora do servidor, dispositivo); trocar a versão do texto reabre o aceite pendente. No mesmo piloto, exercitar com um caso controlado o pipeline de inativação: ao marcar o funcionário como inativo ou demitido pelo WKRADAR, o cadastro de acesso do colaborador cai para inativo e o login passa a ser bloqueado no acesso seguinte; confirmar que o histórico e a trilha de quem saiu continuam legíveis para admin e RH (nada apagado) e medir o atraso entre a saída do quadro e o corte de acesso.",
+      objetivo: "Cumprir a base legal e o dever de informação da LGPD com consentimento versionado e auditável, e provar que quem sai do quadro perde o acesso automaticamente com o dado retido, ainda no piloto antes da carga geral.",
+      dependencias: ["Troca obrigatória de senha (#6)", "Assinatura com trilha (#30)", "Coleção de documentos (#29)", "Provisão de logins (#5 e #10)", "Inativação automática ao sair do quadro"],
+      criteriosAceite: [
+        "O colaborador do piloto vê a política e o aceite é gravado com versão, hora do servidor e dispositivo; sem o aceite da versão vigente o item fica pendente, e publicar nova versão reabre o aceite.",
+        "O evento de aceite é imutável e aparece na auditoria.",
+        "Conta marcada como inativa pelo pipeline não consegue entrar no acesso seguinte, com atraso medido e dentro do ciclo diário.",
+        "Histórico e auditoria de quem saiu do quadro continuam legíveis para admin e RH; nada é apagado e o bloqueio fica registrado.",
+        "Diretoria, invalidez e aprendiz confirmados sem login ativo."
+      ]
+    },
+    {
+      id: "live-comunicacao-oficial",
+      numero: null,
+      nome: "Comunicação oficial de lançamento (mural, WhatsApp e Portal)",
+      fase: "live",
+      prioridade: "alta",
+      complexidade: "muito_facil",
+      status: "planejado",
+      descricao: "Anunciar o lançamento geral para os 86 colaboradores ativos em canais coordenados: comunicado oficial no próprio Portal, cartaz no mural e mensagem no WhatsApp, todos com a mesma mensagem curta (o que é o Portal, como acessar pela primeira vez com CPF e nascimento, e onde pedir ajuda). Reaproveitar o material de primeiro acesso já validado no beta e citar nominalmente o canal de suporte do RH. Combinar uma data e uma mensagem única para não gerar versões conflitantes. Nenhum exemplo ou captura mostra CPF, PIS ou nascimento real; toda imagem usa dado fictício ou mascarado.",
+      objetivo: "Dar ao Portal um lançamento oficial e reconhecível, em vez de algo que aparece sem aviso, garantindo que todo colaborador saiba que existe, para que serve e como entrar, sem o próprio material virar fonte de vazamento.",
+      dependencias: ["Treinamento e métricas de adoção do piloto", "Material de primeiro acesso (piloto)", "Comunicados (#21 e #22)"],
+      criteriosAceite: [
+        "Lançamento anunciado em Portal, mural e WhatsApp com a mesma mensagem.",
+        "A mensagem explica o que é o Portal, como fazer o primeiro acesso e onde pedir ajuda.",
+        "Material de primeiro acesso validado no beta reaproveitado na comunicação.",
+        "Canal de suporte do RH citado nominalmente em todos os canais.",
+        "Nenhum exemplo ou captura mostra CPF, PIS ou nascimento real; tudo fictício ou mascarado, sem traço e sem emoji."
+      ]
+    },
+    {
+      id: "live-faq-suporte-quiosque",
+      numero: null,
+      nome: "FAQ, suporte humano, reset pelo RH e acesso por quiosque",
+      fase: "live",
+      prioridade: "alta",
+      complexidade: "facil",
+      status: "planejado",
+      descricao: "Estruturar o suporte contínuo do primeiro acesso: um FAQ curto com as dúvidas reais coletadas no alfa e no beta (esqueci a senha, não lembro meu nascimento, troquei e esqueci de novo, não consigo entrar, não tenho celular) e um procedimento humano claro para o RH, incluindo o reset administrativo (voltar a senha para o nascimento em ddmmaaaa com troca obrigatória no acesso seguinte), já que o esqueci a senha automático não existe no modo Colaborador. Para quem não tem celular, instrução de uso do PC compartilhado ou quiosque, com o passo explícito de encerrar a sessão (botão Sair) ao terminar. Definir quem no RH faz o reset, em quanto tempo, e registrar cada reset. Incluir um roteiro objetivo para acolher resistência (não quero usar celular, prefiro perguntar pessoalmente) sem forçar.",
+      objetivo: "Garantir que ninguém fique travado no primeiro acesso nem fique de fora por falta de celular, e que o esqueci a senha tenha uma resposta humana rápida e registrada, sustentando a adoção depois do entusiasmo inicial.",
+      dependencias: ["Recuperação de senha por reset administrativo do RH", "Gestão admin de contas de colaborador (#9)", "Onboarding do primeiro acesso (carrossel)", "Comunicação oficial de lançamento"],
+      criteriosAceite: [
+        "FAQ curto publicado com as dúvidas reais de primeiro acesso do alfa e do beta, cobrindo esqueci a senha (reset do RH), sem celular (quiosque ou PC) e não consigo entrar.",
+        "Procedimento de reset administrativo documentado (quem faz, prazo, como o colaborador volta a entrar) e cada reset registrado na auditoria.",
+        "Roteiro de uso do PC compartilhado inclui o passo de sair da sessão ao terminar.",
+        "O FAQ explica que o colaborador vê apenas os próprios dados e indica o canal para dúvidas de privacidade.",
+        "Material validado com o grupo beta antes do lançamento geral, sem traço e sem emoji."
+      ]
+    },
+    {
+      id: "live-monitoramento-retencao",
+      numero: null,
+      nome: "Monitoramento contínuo SELF e política de retenção rodando",
+      fase: "live",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "planejado",
+      descricao: "Depois do lançamento geral, acompanhamento contínuo dos sinais de segurança SELF: contas ativas em relação ao quadro, picos de acesso negado (tentativa de ler fora do escopo), resets administrativos e inativações processadas pelo pipeline. A política de retenção e inativação passa a rodar em regime: quem sai do quadro perde acesso, os dados ficam retidos pelo prazo definido e a auditoria registra cada evento. Revisão periódica do RH confere que ninguém fora do quadro tem acesso.",
+      objetivo: "Manter o escopo SELF íntegro em produção ao longo do tempo, com a política de retenção e inativação em operação e revisão recorrente.",
+      dependencias: ["Inativação automática ao sair do quadro", "Recuperação de senha por reset do RH", "Auditoria append only"],
+      criteriosAceite: [
+        "Painel ou rotina do RH cruza contas ativas com o quadro e sinaliza divergência.",
+        "Tentativas de acesso fora do escopo (acesso negado) ficam visíveis para revisão.",
+        "Resets administrativos e inativações do pipeline ficam rastreáveis na auditoria.",
+        "Política de retenção e inativação documentada e em execução (prazos definidos, dado retido, nada apagado indevidamente).",
+        "Revisão periódica confirma que ninguém fora do quadro mantém acesso."
       ]
     }
   ]

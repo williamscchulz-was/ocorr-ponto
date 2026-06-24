@@ -43,7 +43,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background
 .hint b{color:var(--plum)}
 
 /* ===== SCROLLER HORIZONTAL ===== */
-.scroller{overflow-x:auto;overflow-y:hidden;padding:34px 22px 14px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.scroller{overflow-x:auto;overflow-y:hidden;padding:34px 22px 14px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scroll-snap-type:x proximity;scroll-padding-left:22px}
 .track{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(246px,300px);gap:20px;width:max-content;min-width:100%;padding-top:8px}
 
 /* estrada horizontal atrás dos nós */
@@ -53,7 +53,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background
 .road-flag{position:absolute;top:20px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);background:var(--bg);padding:2px 6px;z-index:1}
 .road-flag--ini{left:0}.road-flag--fim{right:0}
 
-.col{position:relative;z-index:1;display:flex;flex-direction:column}
+.col{position:relative;z-index:1;display:flex;flex-direction:column;scroll-snap-align:start}
 .col__head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
 .node{width:48px;height:48px;border-radius:50%;background:conic-gradient(var(--plum) var(--pct,0%),var(--milk-warm) 0);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,40,20,.12);position:relative}
 .node__in{width:38px;height:38px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--text)}
@@ -111,6 +111,10 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background
 .modal__sec li{font-size:13px;line-height:1.5;color:var(--text-body);display:flex;gap:8px;align-items:flex-start}
 .modal__sec li::before{content:"";flex:none;width:15px;height:15px;margin-top:2px;border-radius:4px;border:1.6px solid var(--border-strong)}
 .modal__deps li::before{border-radius:50%;border-style:dashed}
+@media (max-width:560px){
+  .scroller{scroll-snap-type:x mandatory}
+  .track{grid-auto-columns:minmax(82vw,300px);gap:14px}
+}
 @media (prefers-reduced-motion:reduce){.pbar__fill,.road__fill,.modal,.tile{transition:none;animation:none}}
 </style>
 </head>
@@ -118,10 +122,10 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background
 <div class="wrap">
   <div class="kicker">FioPulse · Portal do Colaborador</div>
   <h1>Roadmap do Portal — linha do tempo</h1>
-  <p class="lead">A trilha agora corre na <b>horizontal</b>: a estrada vai da <b>partida</b> (esquerda) ao
-  <b>portal completo</b> (direita), com as 4 fases como estações. Embaixo de cada estação ficam os
-  <b>cartões</b> das funcionalidades. A estrada fica verde conforme as entregas avançam. Clique num cartão
-  para o detalhe. Dados reais de <code>docs/PORTAL-COLABORADOR.md</code>.</p>
+  <p class="lead">A trilha corre na <b>horizontal</b>: a estrada vai da <b>partida</b> (esquerda) ao
+  <b>portal completo</b> (direita), com as fases como estações, agora incluindo o ciclo de lançamento
+  <b>Alfa, Beta e Live</b>. Embaixo de cada estação ficam os <b>cartões</b> das funcionalidades. A estrada
+  fica verde conforme as entregas avançam. Clique num cartão para o detalhe.</p>
 
   <div class="page-header">
     <div><h2>Roadmap do Portal do Colaborador</h2><p>O que já existe, o que está sendo construído e o que vem por aí.</p></div>
@@ -138,7 +142,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background
     <span><i class="lg block"></i>Pendente (origem/billing)</span>
     <span style="margin-left:auto">borda do cartão = status · <span class="meter" style="margin:0 3px"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>complexidade</span>
   </div>
-  <p class="hint"><b>&larr; arraste &rarr;</b> para percorrer as fases (Fase 1 — MVP é a maior).</p>
+  <p class="hint" id="pos-hint"><b>&larr; arraste &rarr;</b> para percorrer as fases.</p>
 </div>
 
 <div class="scroller">
@@ -150,10 +154,10 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background
 </div>
 
 <div class="wrap">
-  <p class="nota"><b>Nota deste mock:</b> 49 itens do plano distribuídos pelas fases ao longo da linha do tempo.
-  Começa honesto em <b>0% concluído</b> (Fase 0 em andamento — daí o "você está aqui"). Conforme cada feature
-  entra no ar, o status muda em <code>roadmap.js</code> e a estrada avança. Três versões pra comparar:
-  lista (<code>roadmap-portal.html</code>), trilha vertical (<code>roadmap-portal-mapa.html</code>) e esta horizontal.</p>
+  <p class="nota"><b>Nota deste mock:</b> os itens do plano distribuídos pelas fases ao longo da linha do tempo,
+  agora incluindo o ciclo de lançamento <b>Alfa, Beta e Live</b> entre a Fase 1 (MVP) e a Fase 2. O destaque
+  "você está aqui" cai na fase em andamento. Conforme cada entrega vai ao ar, o status muda em
+  <code>roadmap.js</code> e a estrada avança.</p>
 </div>
 
 <div class="ov" id="ov" role="dialog" aria-modal="true" aria-labelledby="m-ttl"><div class="modal"><div id="modal-body"></div></div></div>
@@ -192,12 +196,33 @@ function colHtml(f,idx,foco){
   </div>`;
 }
 const track=document.getElementById("track");
-track.insertAdjacentHTML("beforeend",ROADMAP.fases.map((f,i)=>colHtml(f,i,i===0)).join(""));
+const focoIdx=(()=>{
+  const itensDe=id=>ROADMAP.itens.filter(x=>x.fase===id);
+  for(let i=0;i<ROADMAP.fases.length;i++){if(itensDe(ROADMAP.fases[i].id).some(x=>x.status==="em_andamento"))return i;}
+  for(let i=0;i<ROADMAP.fases.length;i++){const it=itensDe(ROADMAP.fases[i].id);if(it.length&&it.some(x=>x.status!=="concluido"))return i;}
+  return 0;
+})();
+track.insertAdjacentHTML("beforeend",ROADMAP.fases.map((f,i)=>colHtml(f,i,i===focoIdx)).join(""));
 
 const total=ROADMAP.itens.length,done=ROADMAP.itens.filter(i=>i.status==="concluido").length;
 const pctG=total?Math.round(done/total*100):0;
 document.getElementById("g-txt").textContent=`${done} de ${total} · ${pctG}%`;
 requestAnimationFrame(()=>{document.getElementById("g-fill").style.width=pctG+"%";document.getElementById("road-fill").style.width=pctG+"%";});
+
+// posiciona na fase atual e atualiza o indicador "fase X de N"
+const scroller=document.querySelector(".scroller");
+const colsEl=[...track.querySelectorAll(".col")];
+const posHint=document.getElementById("pos-hint");
+function atualizaPos(){
+  if(!posHint||!colsEl.length)return;
+  const mid=scroller.scrollLeft+scroller.clientWidth/2;
+  let best=0,bd=Infinity;
+  colsEl.forEach((c,i)=>{const cc=c.offsetLeft+c.offsetWidth/2,d=Math.abs(cc-mid);if(d<bd){bd=d;best=i;}});
+  const f=ROADMAP.fases[best];
+  posHint.innerHTML=`<b>Fase ${best+1} de ${ROADMAP.fases.length}</b> · ${esc(f.nome)} &nbsp; <span style="opacity:.65">&larr; arraste &rarr;</span>`;
+}
+scroller.addEventListener("scroll",()=>requestAnimationFrame(atualizaPos),{passive:true});
+requestAnimationFrame(()=>{const c=colsEl[focoIdx];if(c)scroller.scrollLeft=Math.max(0,c.offsetLeft-24);atualizaPos();});
 
 const ov=document.getElementById("ov");
 function abrir(id){
