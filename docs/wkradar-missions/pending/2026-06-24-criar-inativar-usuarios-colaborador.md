@@ -60,10 +60,14 @@ Se o funcionário virou `ativo === false` e existe o `users/{uid}` colaborador d
    a trava do app é a 1ª linha, isto é defesa em profundidade).
 3. Auditoria: `acao: "Inativou login de colaborador"`. **Nunca apagar** o usuário nem histórico (conformidade).
 
-### 3. Readmissão (decisão pendente — sugestão)
-Se um demitido (`ativo:false`) volta a `ativo:true` e já tem `users` doc: reativar (`ativo:true`,
-`disabled:false`) + **resetar senha pra nascimento e `precisaTrocarSenha:true`** (pode ter passado tempo).
-Confirmar com William se prefere manter a senha antiga.
+### 3. Readmissão (DECISÃO do William, 24/06)
+Tratar como **acesso novo / começo do zero**: **resetar a senha** pra nascimento (`DDMMAAAA`) +
+`precisaTrocarSenha:true`, e **não herdar o histórico de uso anterior** do portal (estado do colaborador
+zerado). Restrição técnica: o e-mail sintético é o CPF (único no Auth) → reaproveita-se o **mesmo uid
+"resetado"** (não dá pra ter 2 Auth users com o mesmo CPF). **A trilha de auditoria do vínculo anterior
+é preservada por lei** (compliance), separada do login — o login fica "novo", mas o registro histórico
+de auditoria NÃO é apagado. (Se quiser zerar `users/{uid}` mantendo só os campos do vínculo + flags,
+ok; o histórico imutável vive em `/auditoria`.)
 
 ## Regras de ouro
 - **Idempotência:** matching por e-mail sintético (CPF) **e/ou** por `users` doc com
@@ -76,14 +80,13 @@ Confirmar com William se prefere manter a senha antiga.
 - **Sem CPF ou sem nascimento** → não dá pra criar login → pular + listar no relatório.
 - **CPF duplicado** entre funcionários → pular ambos + reportar (problema de dado a corrigir).
 - **`bhExempt===true`** → decisão: ganham login? (provável que sim — são funcionários). Confirmar.
-- **Diretoria** (`diretor===true`: Landolino, Jules, William): **decisão do William** — criar login de
-  colaborador pra eles ou não? (São donos; talvez não precisem.) **Default sugerido: NÃO criar pra `diretor===true`** até ele decidir.
+- **Diretoria** (`diretor===true`: Landolino, Jules, William): **NÃO criar login** (DECISÃO do William,
+  24/06). Pular sempre `diretor===true` — não cria conta nem grava `users` pra eles.
 
 ## Pré-requisito de DADOS (confirmar)
 - **CPF:** já existe (`banco-horas-saldos/{codigo}.cpf`). ✔
-- **Nascimento (DDMMAAAA):** é a senha inicial. **Confirmar que está disponível na fonte/Firestore**
-  (não está no schema documentado de `banco-horas-saldos` — `cpf`/`pis` estão, nascimento não). Se a
-  fonte do ERP tem a data de nascimento, expor ela pro pipeline; senão, é bloqueante pra senha inicial.
+- **Nascimento (DDMMAAAA):** é a senha inicial. ✔ **Confirmado pelo William (24/06): já está disponível
+  no pipeline.** Usar como senha inicial (formato `DDMMAAAA`, 8 dígitos).
 
 ## Entrega
 1. Pipeline passa a criar/inativar nas rodadas (idempotente). 1ª rodada = backfill.
