@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mock — Login do Colaborador (CPF) + troca obrigatória</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+  --bg:#F7F9F6;--surface:#FFFFFF;--border:#E7EDE4;--border-strong:#D8E2D3;
+  --text:#1C2A18;--text-body:#1E2D1A;--text-muted:#5A6B54;
+  --warning-bg:#F8E4C8;--warning-ink:#7A4A12;--danger:#962F32;
+  --font:"Poppins",ui-sans-serif,system-ui,sans-serif;--radius-sm:9px;--transition:180ms cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#dfe3dd;color:var(--text-body);-webkit-font-smoothing:antialiased;padding:24px}
+.note-top{max-width:430px;margin:0 auto 16px;font-size:12.5px;color:#46553f;background:#fff;border:1px solid var(--border);border-left:3px solid var(--plum);border-radius:10px;padding:11px 15px;line-height:1.6}
+.note-top b{color:var(--plum-deep)}
+.phone{max-width:430px;margin:0 auto;background:linear-gradient(165deg,var(--milk-warm) 0%,var(--bg) 60%);border:1px solid var(--border);border-radius:26px;box-shadow:0 18px 50px rgba(0,40,20,.13);overflow:hidden;min-height:720px;display:flex;flex-direction:column;position:relative}
+.scr{flex:1;display:none;flex-direction:column;padding:40px 28px 26px}
+.scr.on{display:flex}
+.voltar{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:none;border:0;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:4px;margin-bottom:8px}
+.voltar svg{width:16px;height:16px}
+.voltar:hover{color:var(--plum)}
+.mark{display:flex;flex-direction:column;align-items:center;gap:11px;margin-bottom:8px}
+.mark img{width:52px;height:52px;object-fit:contain}
+.mark__w{font-weight:800;font-size:21px;color:var(--plum);letter-spacing:-.02em;text-align:center;line-height:1.1}
+.mark__w small{display:block;font-weight:400;font-size:11px;color:var(--text-muted);margin-top:3px}
+.titulo{text-align:center;font-size:15px;font-weight:700;color:var(--text);margin:14px 0 20px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-body);margin-bottom:6px}
+.field input{width:100%;font:inherit;font-size:16px;padding:12px 13px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-body);letter-spacing:.02em}
+.field input:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(0,136,53,.14)}
+.field--senha{position:relative}
+.field--senha input{padding-right:44px}
+.olho{position:absolute;right:8px;bottom:7px;background:none;border:0;color:var(--text-muted);cursor:pointer;padding:6px;display:flex}
+.olho svg{width:20px;height:20px}
+.erro{font-size:12px;color:var(--danger);margin:-8px 0 12px;display:none}
+.erro.on{display:block}
+.btn{width:100%;font:inherit;font-size:15px;font-weight:700;border:0;border-radius:var(--radius-sm);padding:13px;background:var(--plum);color:#fff;cursor:pointer;transition:background var(--transition)}
+.btn:hover{background:var(--plum-deep)}
+.btn:disabled{background:var(--border-strong);cursor:not-allowed}
+.dica{display:flex;gap:9px;align-items:flex-start;background:var(--milk-warm);border-radius:11px;padding:11px 13px;margin-top:16px;font-size:12px;color:var(--text-muted);line-height:1.5}
+.dica svg{width:16px;height:16px;flex:none;margin-top:1px;color:var(--plum-deep)}
+.dica b{color:var(--text-body)}
+.rod{margin-top:auto;padding-top:24px;text-align:center;font-size:10.5px;color:var(--text-muted)}
+/* troca obrigatoria */
+.banner{display:flex;align-items:center;gap:8px;background:var(--warning-bg);color:var(--warning-ink);font-size:12px;font-weight:600;padding:9px 13px;border-radius:999px;justify-content:center;margin-bottom:18px}
+.banner svg{width:15px;height:15px;flex:none}
+.regra{font-size:11.5px;color:var(--text-muted);margin:-8px 0 14px;display:flex;align-items:center;gap:6px}
+.regra svg{width:13px;height:13px;flex:none}
+.regra.ok{color:var(--plum-deep)}
+.sucesso{display:none;flex-direction:column;align-items:center;text-align:center;gap:12px;margin-top:30px}
+.sucesso.on{display:flex}
+.sucesso__ic{width:60px;height:60px;border-radius:50%;background:var(--milk-warm);color:var(--plum);display:flex;align-items:center;justify-content:center}
+.sucesso__ic svg{width:30px;height:30px;stroke-width:2.4}
+.sucesso h3{font-size:17px;color:var(--text)}
+.sucesso p{font-size:13px;color:var(--text-muted);line-height:1.5;max-width:30ch}
+</style>
+</head>
+<body>
+<div class="note-top"><b>Mock — Login do Colaborador (Fase 1, #4/#6).</b> CPF + senha. 1º acesso: senha = data de
+nascimento (ddmmaaaa) → cai na <b>troca obrigatória</b>. Digite um CPF e a senha "14071990" pra simular o 1º acesso.</div>
+
+<div class="phone">
+
+  <!-- LOGIN -->
+  <section class="scr on" id="scr-login">
+    <button class="voltar" data-volta><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>
+    <div class="mark">
+      <img src="../../public/logo-fiobras-mark.png" alt="Fiobras">
+      <div class="mark__w">FioPulse<small>Fiobras · o batimento do GH</small></div>
+    </div>
+    <div class="titulo">Portal do Colaborador</div>
+
+    <div class="field">
+      <label for="cpf">CPF</label>
+      <input id="cpf" inputmode="numeric" autocomplete="username" placeholder="000.000.000-00" maxlength="14">
+    </div>
+    <div class="field field--senha">
+      <label for="senha">Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" placeholder="sua senha">
+      <button class="olho" id="olho" type="button" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
+    <div class="erro" id="erro-login">CPF ou senha inválidos.</div>
+    <button class="btn" id="btn-entrar">Entrar</button>
+
+    <div class="dica">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span><b>Primeiro acesso?</b> Sua senha é a sua <b>data de nascimento</b> — dia, mês e ano, só números. Ex.: 14/07/1990 → <b>14071990</b>. No primeiro acesso o sistema pede pra você criar uma senha sua.</span>
+    </div>
+    <div class="rod">© 2026 Fiobras · acesso restrito</div>
+  </section>
+
+  <!-- TROCA OBRIGATÓRIA -->
+  <section class="scr" id="scr-troca">
+    <div class="banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Primeiro acesso — crie sua senha</div>
+    <div class="mark" style="margin-bottom:18px">
+      <img src="../../public/logo-fiobras-mark.png" alt="Fiobras">
+      <div class="mark__w" style="font-size:18px">Bem-vindo(a)!</div>
+    </div>
+
+    <div id="troca-form">
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:center">Por segurança, crie uma senha só sua. Você vai usar ela nos próximos acessos.</p>
+      <div class="field field--senha">
+        <label for="nova">Nova senha</label>
+        <input id="nova" type="password" placeholder="crie uma senha">
+        <button class="olho" id="olho2" type="button" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <div class="regra" id="r-len"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>Pelo menos 6 caracteres, e diferente da data de nascimento</div>
+      <div class="field field--senha">
+        <label for="conf">Confirmar senha</label>
+        <input id="conf" type="password" placeholder="repita a senha">
+      </div>
+      <div class="erro" id="erro-troca">As senhas não conferem.</div>
+      <button class="btn" id="btn-salvar" disabled>Salvar e entrar</button>
+    </div>
+
+    <div class="sucesso" id="sucesso">
+      <div class="sucesso__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h3>Senha criada!</h3>
+      <p>Pronto. Agora você entra no Portal do Colaborador com a sua nova senha.</p>
+    </div>
+    <div class="rod">© 2026 Fiobras · acesso restrito</div>
+  </section>
+
+</div>
+
+<script>
+const NASCIMENTO = "14071990"; // simula a senha inicial = data de nascimento
+function show(id){ document.querySelectorAll(".scr").forEach(s=>s.classList.remove("on")); document.getElementById(id).classList.add("on"); }
+
+// máscara de CPF
+const cpf = document.getElementById("cpf");
+cpf.addEventListener("input", () => {
+  let v = cpf.value.replace(/\D/g, "").slice(0, 11);
+  v = v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  cpf.value = v;
+});
+// olho
+function toggleOlho(inp, btn){ const m = inp.type === "password"; inp.type = m ? "text" : "password"; }
+document.getElementById("olho").addEventListener("click", () => toggleOlho(document.getElementById("senha")));
+document.getElementById("olho2").addEventListener("click", () => toggleOlho(document.getElementById("nova")));
+
+// entrar
+document.getElementById("btn-entrar").addEventListener("click", () => {
+  const dig = cpf.value.replace(/\D/g, "");
+  const senha = document.getElementById("senha").value;
+  const erro = document.getElementById("erro-login");
+  if (dig.length !== 11) { erro.textContent = "Digite um CPF completo (11 dígitos)."; erro.classList.add("on"); return; }
+  if (!senha) { erro.textContent = "Digite sua senha."; erro.classList.add("on"); return; }
+  erro.classList.remove("on");
+  // 1º acesso (senha == nascimento) → troca obrigatória; senão iria pro Início
+  if (senha === NASCIMENTO) { show("scr-troca"); }
+  else { erro.textContent = "No mock, use a senha 14071990 (simula o 1º acesso)."; erro.classList.add("on"); }
+});
+
+// validação da nova senha
+const nova = document.getElementById("nova"), conf = document.getElementById("conf"), btnSalvar = document.getElementById("btn-salvar"), rLen = document.getElementById("r-len");
+function valida(){
+  const okLen = nova.value.length >= 6 && nova.value !== NASCIMENTO;
+  rLen.classList.toggle("ok", okLen);
+  rLen.querySelector("svg").innerHTML = okLen ? '<path d="M20 6 9 17l-5-5"/>' : '<circle cx="12" cy="12" r="9"/>';
+  btnSalvar.disabled = !(okLen && conf.value.length >= 6);
+}
+nova.addEventListener("input", valida); conf.addEventListener("input", valida);
+document.getElementById("btn-salvar").addEventListener("click", () => {
+  const erro = document.getElementById("erro-troca");
+  if (nova.value !== conf.value) { erro.classList.add("on"); return; }
+  erro.classList.remove("on");
+  document.getElementById("troca-form").style.display = "none";
+  document.getElementById("sucesso").classList.add("on");
+});
+document.querySelectorAll("[data-volta]").forEach(b => b.addEventListener("click", () => history.length > 1 ? show("scr-login") : show("scr-login")));
+</script>
+</body>
+</html>
