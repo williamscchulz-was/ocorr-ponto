@@ -18,7 +18,7 @@ let env;
 before(async () => {
   env = await initializeTestEnvironment({
     projectId: "fiopulse-rules-test",
-    firestore: { rules: readFileSync("docs/firestore.rules", "utf8"), host: "127.0.0.1", port: 8080 },
+    firestore: { rules: readFileSync("docs/firestore.rules", "utf8") },
   });
   // Semeia dados ignorando as rules (estado inicial).
   await env.withSecurityRulesDisabled(async (ctx) => {
