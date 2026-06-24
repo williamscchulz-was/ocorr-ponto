@@ -208,3 +208,17 @@ Correção da entrada anterior (que listava como "opcional" desativar a liberaç
 - **Caixa 2 "Desativar liberação do buffer de cache de gravação do Windows" = NÃO HABILITAR.** Suprime os flushes → numa queda de energia o banco **pode corromper de verdade**. Só seria segura com RAID de verdade com bateria (BBU), **não** com SSD de consumo + nobreak. Deixar SEMPRE desmarcada nesta máquina.
 - **Escudo real numa queda longa:** o nobreak precisa estar configurado pra **desligar o servidor sozinho** quando a bateria estiver fraca (UPS software / energia do Windows) — senão queda longa = tombo mesmo. Backups diários (01:00 e 11:55) são a rede de segurança extra.
 - **Decisão do William (2026-05-29):** habilitar **só a Caixa 1**. Acompanhar resets evt 129 no `_diag\disk-resets.log` nos próximos dias; se persistir sob carga, trocar os BX500.
+
+---
+
+## 2026-06-24 · Pipeline cria/inativa logins de COLABORADOR (Portal do Colaborador)
+
+- **Missão do PC** (`criar-inativar-usuarios-colaborador`): o pipeline passa a provisionar as contas de Auth dos colaboradores via Admin SDK (login por CPF). 100% pipeline, sem UI.
+- **Script novo `sync-colaborador-users.mjs`** (idempotente), plugado no `run-pipeline.mjs` como **passo 5/7 best-effort** (após upload, antes do heartbeat). Identidade: email sintético `{cpf}@colaborador.fiobras.local`, senha inicial = nascimento `DDMMAAAA`, `precisaTrocarSenha:true`. Grava `users/{uid}` (role colaborador, funcionarioId, codigo, nome, ativo, criadoPor:"pipeline") **sem PII** (CPF/PIS/nascimento NÃO entram em users — LGPD). Auditoria por criação/inativação. Fontes: `funcionarios` (ativo/diretor/situacao autoritativos) + `parsed-empregado.json` (cpf+nascimento).
+- **Decisões do William (hoje):**
+  - **Diretoria** (`diretor===true`): NÃO cria login.
+  - **Aposentadoria por Invalidez** (os bhExempt "de verdade" — 122/140/384/420/470): NÃO cria.
+  - **Afastado não-invalidez** (ex.: Licença Médica): cria (afastado acessa o portal).
+  - **Readmissão:** reset senha pra nascimento + `precisaTrocarSenha` + "login novo / sem ver histórico antigo". A parte de senha/reativação está no pipeline; **"não ver histórico" é app-side** (escopo por `funcionarioId`) → pendente alinhar com o PC (gravar `readmitidoEm`? depende se o ERP reusa código). Não bloqueia (0 readmissões hoje).
+- **1ª rodada (backfill), em produção:** **90 criados**, 0 inativados, 0 erros; pulados 3 diretoria + 5 invalidez; 0 sem CPF / 0 sem nascimento / 0 CPF duplicado. Idempotência confirmada (2ª passada: 0 criados, 90 "já existiam"). Relatório no bridge (`inbox-pc/2026-06-24-relatorio-1a-rodada-colaboradores.md`).
+- **Pré-requisito de dados:** data de nascimento confirmada disponível (`funcionarios.nascimento` + `banco-horas-saldos.dataNascimento`, 100%); CPF de `parsed-empregado.json`/`banco-horas-saldos`. Missão movida pra `done/`.
