@@ -1923,6 +1923,16 @@
         }
 
         const userData = userSnap.data();
+        // F2 (Fundação SELF): conta inativa não entra. Ausência de 'ativo' = ativo
+        // (ativo !== false) → regressão zero para os gestores atuais (sem o campo).
+        // Nota: isto barra a ENTRADA; token já emitido sobrevive ~1h (revogação real = Admin SDK, futuro).
+        if (userData.ativo === false) {
+          $("#login-error").textContent = "Seu acesso está inativo. Procure o GH.";
+          $("#login-error").classList.remove("hidden");
+          window.__forcarLoginGestor = true;
+          await auth.signOut();
+          return;
+        }
         const userInState = {
           id: fbUser.uid,
           nome: userData.nome,
@@ -1933,6 +1943,11 @@
           funcionariosVisiveis: userData.funcionariosVisiveis || [],
           // Foto de perfil do próprio usuário (avatar na sidebar)
           fotoBase64: userData.fotoBase64 || null,
+          // F2: vínculo uid<->funcionarioId (escopo SELF do colaborador). Gestores não têm
+          // esses campos → null, sem efeito. Lido aqui, NUNCA escrito pelo app (onboarding = #5).
+          funcionarioId: userData.funcionarioId || null,
+          codigo: userData.codigo || null,
+          precisaTrocarSenha: userData.precisaTrocarSenha === true,
         };
 
         // Popula state.users com pelo menos esse user
