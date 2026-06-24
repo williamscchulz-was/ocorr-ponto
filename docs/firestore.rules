@@ -23,6 +23,19 @@ service cloud.firestore {
     function isSupervisor() {
       return isAuthed() && userDoc().role == 'supervisor';
     }
+    // ----- Portal do Colaborador (Fundação SELF) -----
+    function isColaborador() {
+      return isAuthed() && userDoc().role == 'colaborador';
+    }
+    // Vínculo SELF: funcionarioId gravado em users/{uid}. Ausente => '' (fail-safe: nunca casa
+    // com id real => leitura negada). Defense-in-depth: a UI já filtra; isto é a rede de baixo.
+    function meuFuncionarioId() {
+      return isColaborador() && ('funcionarioId' in userDoc()) && userDoc().funcionarioId is string
+        ? userDoc().funcionarioId : '';
+    }
+    function euSouODono(funcId) {
+      return meuFuncionarioId() != '' && funcId == meuFuncionarioId();
+    }
     function supervisorVe(funcId) {
       return isSupervisor()
         && userDoc().funcionariosVisiveis is list
@@ -74,19 +87,24 @@ service cloud.firestore {
     // O próprio user pode atualizar APENAS o campo fotoBase64 (foto de perfil)
     // — sem poder mexer em role, turno, ativo.
     match /users/{uid} {
-      // Leitura liberada pra autenticados: o chat precisa do diretório
-      // (nome/papel/foto) pra listar e mandar mensagem pra qualquer um.
-      allow read: if isAuthed();
+      // Gestores leem o diretório inteiro (o chat precisa de nome/papel/foto de todos) —
+      // INALTERADO. Colaborador lê SÓ o próprio doc (não tem diretório/chat nesta fase).
+      allow read: if isAdmin() || isRH() || isLider() || isSupervisor()
+                  || (isColaborador() && request.auth.uid == uid);
       allow create, delete: if isAdmin() || temCap('sistema.usuarios', false);
+      // Self-update: além de fotoBase64, o colaborador zera precisaTrocarSenha (troca no 1º acesso).
+      // Continua impedindo mexer em role/turno/ativo/funcionarioId.
       allow update: if isAdmin() || temCap('sistema.usuarios', false) || (
         request.auth.uid == uid &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoBase64'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoBase64', 'precisaTrocarSenha'])
       );
     }
 
     // ----- funcionarios -----
     match /funcionarios/{id} {
-      allow read: if isAuthed();
+      // Gestores leem amplo (INALTERADO); colaborador só o próprio funcionário (escopo SELF).
+      allow read: if isAdmin() || isRH() || isLider() || isSupervisor()
+                  || (isColaborador() && euSouODono(id));
       allow create, update, delete: if isAdmin() || temCap('func.editar', isRH());
     }
 
@@ -178,7 +196,8 @@ service cloud.firestore {
 
     // ----- ocorrencias -----
     match /ocorrencias/{id} {
-      allow read: if podeVerOcorrencia(resource.data);
+      allow read: if podeVerOcorrencia(resource.data)
+        || (isColaborador() && euSouODono(resource.data.funcionarioId)); // colaborador vê só as próprias
 
       // Criar: quem tem ocorrencias.criar (fallback = RH de hoje) ou admin.
       allow create: if (isAdmin() || temCap('ocorrencias.criar', isRH()))
