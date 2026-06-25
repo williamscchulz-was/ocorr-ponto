@@ -704,6 +704,7 @@ function cpIcon(name) {
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     chevron: '<polyline points="9 18 15 12 9 6"/>',
+    lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -727,6 +728,12 @@ function cpToggleTema() {
   document.documentElement.classList.toggle("cp-dark", escuro);
   try { localStorage.setItem("fiopulse:tema", escuro ? "escuro" : "claro"); } catch {}
   cpAtualizarBotaoTema();
+}
+// Aparência (segmented na Conta): auto = segue o sistema; claro/escuro = fixo.
+function cpSetTema(modo) {
+  try { if (modo === "auto") localStorage.removeItem("fiopulse:tema"); else localStorage.setItem("fiopulse:tema", modo); } catch {}
+  cpAplicarTema();
+  renderApp();
 }
 function cpInjetarToggleTema() {
   const tb = document.querySelector(".topbar"); if (!tb) return;
@@ -778,7 +785,7 @@ const COLAB_NAV = [
   { id: "colab-ponto", label: "Meu Ponto", icon: "clock" },
   { id: "colab-comunicados", label: "Comunicados", icon: "megafone" },
   { id: "colab-documentos", label: "Documentos", icon: "file" },
-  { id: "colab-roadmap", label: "Roadmap do Portal", icon: "roadmap" },
+  { id: "colab-conta", label: "Conta", icon: "user" },
 ];
 
 function renderNavColaborador() {
@@ -806,16 +813,14 @@ function renderBottomNavColaborador() {
     { id: "colab-ponto", label: "Ponto", icon: "clock" },
     { id: "colab-comunicados", label: "Avisos", icon: "megafone" },
     { id: "colab-documentos", label: "Docs", icon: "file" },
-    { id: "__conta", label: "Conta", icon: "user" },
+    { id: "colab-conta", label: "Conta", icon: "user" },
   ];
   $("#bottom-nav").innerHTML = items.map((it) => `
     <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}">
       <span class="cp-bn-ic">${cpIcon(it.icon)}</span><span class="cp-bn-lab">${it.label}</span>
     </button>`).join("");
   $$("#bottom-nav .bottom-nav__item").forEach((btn) => btn.addEventListener("click", () => {
-    const page = btn.dataset.page;
-    if (page === "__conta") return openSidebar();
-    state.view.page = page; renderApp();
+    state.view.page = btn.dataset.page; renderApp();
   }));
 }
 
@@ -827,8 +832,9 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-comunicados": "Comunicados", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap do Portal" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-comunicados": "Comunicados", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap do Portal", "colab-conta": "Conta" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
+  if (page === "colab-conta") return renderColabConta();
   if (page === "colab-roadmap") return renderPortalRoadmap();
   if (page === "colab-ponto") return renderColabStub("Meu Ponto", "Aqui você verá seu saldo de banco de horas e o espelho de ponto. Em construção.", "clock");
   if (page === "colab-comunicados") return renderColabStub("Comunicados", "Os avisos e comunicados do GH aparecerão aqui. Em construção.", "megafone");
@@ -893,6 +899,65 @@ function renderColaboradorHome() {
       ${atalhos.map((a) => `<button class="cp-atalho" data-nav="${a.page}"><span class="cp-atalho__ic">${cpIcon(a.icon)}</span><span class="cp-atalho__t">${a.t}</span><span class="cp-atalho__s">${a.s}</span></button>`).join("")}
     </div>
   `;
+  bindColabNav(view);
+  if (typeof animarEntrada === "function") animarEntrada(view);
+}
+
+// Conta do colaborador: dados do cadastro (SELF, sem PII) + aparência + trocar senha + sair.
+function renderColabConta() {
+  const view = $("#view");
+  const u = currentUser();
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const nome = (f && f.nome) || (u && u.nome) || "";
+  const cargoSetor = [f && f.cargo, f && f.setor].filter(Boolean).join(" · ") || "—";
+  const bh = state.meuSaldoBH || null;
+  const bhMin = bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null;
+  const bhStr = bh ? (bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null)) : null;
+  let pref = null; try { pref = localStorage.getItem("fiopulse:tema"); } catch {}
+  const tema = pref === "claro" ? "claro" : pref === "escuro" ? "escuro" : "auto";
+  const ts = (v) => (typeof tsToDateStr === "function" ? tsToDateStr(v) : null);
+  const dash = (v) => (v == null || v === "" ? "—" : v);
+  const dados = f ? [
+    ["Idade", f.idade ? `${f.idade} anos` : null],
+    ["Nascimento", ts(f.nascimento)],
+    ["Sexo", f.sexo],
+    ["Estado civil", f.estadoCivil],
+    ["Cargo", f.cargo],
+    ["Admissão", ts(f.admissao)],
+    ["Tempo de casa", f.diasNaEmpresa ? tempoDeCasa(f.diasNaEmpresa) : null],
+  ] : [];
+  view.innerHTML = `
+    <div class="cp-prof">
+      <div class="cp-prof__av">${escapeHtml(initials(nome || "?"))}</div>
+      <div class="cp-prof__n">${escapeHtml(nome || "—")}</div>
+      <div class="cp-prof__c">${escapeHtml(cargoSetor)}</div>
+    </div>
+    <div class="cp-glab">Meus dados</div>
+    <div class="cp-grp">
+      <button class="cp-conta-row" data-acao="dados-toggle"><span class="cp-conta-row__ic">${cpIcon("user")}</span><span class="cp-conta-row__t">Dados pessoais</span><span class="cp-conta-row__v">${cpIcon("chevron")}</span></button>
+      <div class="cp-dados hidden" id="cp-dados">${dados.map(([k, v]) => `<div class="cp-dados__row"><span>${k}</span><span>${escapeHtml(String(dash(v)))}</span></div>`).join("") || '<div class="cp-dados__row"><span>Sem dados de cadastro</span><span>—</span></div>'}</div>
+      <button class="cp-conta-row" data-nav="colab-ponto"><span class="cp-conta-row__ic">${cpIcon("clock")}</span><span class="cp-conta-row__t">Meu banco de horas</span><span class="cp-conta-row__v">${bhStr ? `<span class="num">${escapeHtml(bhStr)}</span>` : ""}${cpIcon("chevron")}</span></button>
+    </div>
+    <div class="cp-glab">Preferências</div>
+    <div class="cp-grp">
+      <div class="cp-seg-h"><span class="cp-conta-row__ic">${cpIcon("moon")}</span><span class="cp-conta-row__t">Aparência</span></div>
+      <div class="cp-seg" id="cp-seg-tema">
+        <button data-tema="auto" class="${tema === "auto" ? "on" : ""}">Automático</button>
+        <button data-tema="claro" class="${tema === "claro" ? "on" : ""}">Claro</button>
+        <button data-tema="escuro" class="${tema === "escuro" ? "on" : ""}">Escuro</button>
+      </div>
+    </div>
+    <div class="cp-glab">Segurança</div>
+    <div class="cp-grp">
+      <button class="cp-conta-row" data-acao="trocar-senha"><span class="cp-conta-row__ic">${cpIcon("lock")}</span><span class="cp-conta-row__t">Trocar senha</span><span class="cp-conta-row__v">${cpIcon("chevron")}</span></button>
+      <button class="cp-conta-row" data-acao="sair"><span class="cp-conta-row__ic red">${cpIcon("logout")}</span><span class="cp-conta-row__t red">Sair</span></button>
+    </div>
+    <div class="cp-foot">FioPulse · Portal do Colaborador · ${typeof CURRENT_VERSION !== "undefined" ? escapeHtml(CURRENT_VERSION) : ""}</div>
+  `;
+  view.querySelector('[data-acao="dados-toggle"]')?.addEventListener("click", () => $("#cp-dados")?.classList.toggle("hidden"));
+  view.querySelector('[data-acao="trocar-senha"]')?.addEventListener("click", () => { if (typeof openProfileModal === "function") openProfileModal(); });
+  view.querySelector('[data-acao="sair"]')?.addEventListener("click", () => (window.logout ? window.logout() : logout()));
+  view.querySelectorAll("#cp-seg-tema button").forEach((b) => b.addEventListener("click", () => cpSetTema(b.dataset.tema)));
   bindColabNav(view);
   if (typeof animarEntrada === "function") animarEntrada(view);
 }

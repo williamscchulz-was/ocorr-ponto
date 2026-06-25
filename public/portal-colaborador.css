@@ -98,6 +98,35 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
 .modo-colab .bottom-nav__item.active .cp-bn-ic{background:var(--plum-soft);color:#fff}
 .modo-colab .bottom-nav__item .icon{width:23px;height:23px}
 
+/* ---- Conta do colaborador ---- */
+.cp-prof{display:flex;flex-direction:column;align-items:center;text-align:center;margin:6px 0 18px}
+.cp-prof__av{width:64px;height:64px;border-radius:50%;background:var(--plum-soft);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+.cp-prof__n{font-size:16px;font-weight:700;margin-top:11px;color:var(--text-body)}
+.cp-prof__c{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+.cp-glab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin:16px 4px 8px}
+.cp-grp{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.cp-conta-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-top:1px solid var(--border);cursor:pointer;width:100%;text-align:left;font:inherit;background:none;color:var(--text-body)}
+.cp-grp .cp-conta-row:first-child{border-top:0}
+.cp-conta-row__ic{width:34px;height:34px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--surface-warm);color:var(--plum)}
+.cp-conta-row__ic svg{width:18px;height:18px}
+.cp-conta-row__ic.red{background:var(--danger-bg);color:var(--danger)}
+.cp-conta-row__t{font-size:13px;font-weight:500;color:var(--text-body)}
+.cp-conta-row__t.red{color:var(--danger)}
+.cp-conta-row__v{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--text-muted);font-size:12px}
+.cp-conta-row__v svg{width:18px;height:18px}
+.cp-conta-row__v .num{font-variant-numeric:tabular-nums;font-weight:700;color:var(--warning)}
+.cp-seg-h{display:flex;align-items:center;gap:12px;padding:13px 14px 0}
+.cp-seg{display:flex;background:var(--surface-warm);border:1px solid var(--border);border-radius:11px;padding:3px;margin:10px 14px 13px}
+.cp-seg button{flex:1;border:0;border-radius:8px;padding:8px 0;font:inherit;font-size:11.5px;font-weight:500;background:none;color:var(--text-muted);cursor:pointer}
+.cp-seg button.on{background:var(--plum-soft);color:#fff;font-weight:600}
+.cp-dados{padding:2px 14px 12px;border-top:1px solid var(--border)}
+.cp-dados__row{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:6px 0;color:var(--text-body)}
+.cp-dados__row span:first-child{color:var(--text-muted)}
+.cp-foot{text-align:center;font-size:10px;color:var(--text-muted);margin-top:18px}
+
+/* Modal (detalhe roadmap / perfil) tematizado no colaborador, pra não destoar no dark */
+.modo-colab .modal{background:var(--surface);color:var(--text-body)}
+
 /* ---- Início do colaborador ---- */
 .cp-hi{margin-bottom:14px}
 .cp-hi h1{font-size:20px;font-weight:800;color:var(--plum-deep);letter-spacing:-.01em}
