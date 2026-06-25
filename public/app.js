@@ -705,6 +705,13 @@ function cpIcon(name) {
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     chevron: '<polyline points="9 18 15 12 9 6"/>',
     lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    spinner: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+    chevrondown: '<polyline points="6 9 12 15 18 9"/>',
+    mappin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+    expand: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
+    collapse: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -995,37 +1002,134 @@ function cpRoadmapFocoIdx() {
   for (let i = 0; i < R.fases.length; i++) { const it = itensDe(R.fases[i].id); if (it.length && it.some((x) => x.status !== "concluido")) return i; }
   return 0;
 }
+// Roadmap do Portal — MAPA MENTAL (trilho de metrô vertical). Dados do window.ROADMAP,
+// contagens derivadas em runtime, expandir/recolher, rail SVG Bézier. Tema via cp-dark.
+const _CP_PRI = { critica: "Crítica", alta: "Alta", media: "Média", baixa: "Baixa", muito_baixa: "Muito baixa" };
 function renderPortalRoadmap() {
   const view = $("#view");
   const R = window.ROADMAP;
   if (!R || !R.itens) { view.innerHTML = `<div class="cp-stub"><p>Roadmap indisponível.</p></div>`; return; }
-  const s = cpRoadmapStats();
-  const foco = cpRoadmapFocoIdx();
-  view.innerHTML = `
-    <header class="page-header"><div><h1>Roadmap do Portal</h1><p class="muted">O que já existe, o que está sendo construído e o que vem por aí.</p></div></header>
-    <div class="cp-rm-gp"><div class="cp-rm-gp__top"><span>Progresso geral</span><b>${s.done} de ${s.total} · ${s.pct}%</b></div><div class="cp-pbar"><div class="cp-pbar__fill" style="width:${s.pct}%"></div></div></div>
-    <p class="cp-rm-hint" id="cp-rm-hint">← arraste → para percorrer as fases</p>
-    <div class="cp-rm-scroller"><div class="cp-rm-track">
-      <div class="cp-road"><div class="cp-road__fill" style="width:${s.pct}%"></div></div>
-      ${R.fases.map((f, i) => cpStationHtml(f, i, i === foco)).join("")}
-    </div></div>`;
-  view.querySelectorAll(".cp-tile[data-id]").forEach((b) => b.addEventListener("click", () => openRoadmapDetalhe(b.dataset.id)));
-  // Foco na fase atual + indicador "fase X de N" que acompanha o arraste.
-  const scroller = view.querySelector(".cp-rm-scroller");
-  const cols = [...view.querySelectorAll(".cp-col")];
-  const hint = view.querySelector("#cp-rm-hint");
-  const atualizaHint = () => {
-    if (!hint || !cols.length || !scroller) return;
-    const mid = scroller.scrollLeft + scroller.clientWidth / 2;
-    let best = 0, bd = Infinity;
-    cols.forEach((c, i) => { const cc = c.offsetLeft + c.offsetWidth / 2, d = Math.abs(cc - mid); if (d < bd) { bd = d; best = i; } });
-    const f = R.fases[best];
-    hint.innerHTML = `Fase ${best + 1} de ${R.fases.length} · ${escapeHtml(f.nome)} &nbsp; <span style="opacity:.6">← arraste →</span>`;
+  const focoIdx = cpRoadmapFocoIdx();
+  const conta = (its) => { const c = { concluido: 0, em_andamento: 0, planejado: 0, pendente: 0, total: its.length }; its.forEach((i) => { if (i.status in c) c[i.status]++; }); return c; };
+  const G = conta(R.itens);
+  const fases = R.fases.map((f, i) => {
+    const itens = R.itens.filter((x) => x.fase === f.id);
+    const c = conta(itens);
+    const estado = (itens.length && c.concluido === itens.length) ? "concluida" : (i === focoIdx ? "em_foco" : "planejada");
+    return { f, itens, c, estado };
+  });
+  const leafHtml = (it, ix) => {
+    const side = ix % 2 === 0 ? "r" : "l";
+    const num = it.numero != null ? `#${it.numero}` : "—";
+    const numCls = it.numero != null ? "" : " empty";
+    let ico;
+    if (it.status === "concluido") ico = `<span class="fp-lico">${cpIcon("check")}</span>`;
+    else if (it.status === "em_andamento") ico = `<span class="fp-lico">${cpIcon("spinner")}</span>`;
+    else ico = `<span class="fp-lico ${it.status}"></span>`;
+    const priCls = it.prioridade === "critica" ? "pri-crit" : "pri";
+    const tribPath = side === "r" ? "M0,30 C14,30 16,30 30,30" : "M30,30 C16,30 14,30 0,30";
+    return `<div class="fp-leaf ${side} fp-st-${it.status}" tabindex="0">`
+      + `<svg class="fp-trib-svg" viewBox="0 0 30 60" preserveAspectRatio="none" aria-hidden="true"><path d="${tribPath}" fill="none" stroke="var(--lcol)" stroke-width="1.6" stroke-linecap="round" opacity=".55"/></svg>`
+      + ico
+      + `<span class="fp-lnum${numCls}">${escapeHtml(num)}</span>`
+      + `<span class="fp-ltext">${escapeHtml(it.nome)}</span>`
+      + `<span class="fp-meta"><span class="fp-tag ${priCls}">${_CP_PRI[it.prioridade] || ""}</span><span class="fp-tag cx">${(CP_CX[it.complexidade] || {}).t || ""}</span></span>`
+      + `</div>`;
   };
-  if (scroller) {
-    scroller.addEventListener("scroll", () => requestAnimationFrame(atualizaHint), { passive: true });
-    requestAnimationFrame(() => { const c = cols[foco]; if (c) scroller.scrollLeft = Math.max(0, c.offsetLeft - 8); atualizaHint(); });
-  }
+  const stationHtml = ({ f, itens, c, estado }) => {
+    const pct = c.total ? Math.round(c.concluido / c.total * 100) : 0;
+    const solid = estado === "concluida", foc = estado === "em_foco";
+    const ringCol = solid ? "var(--done)" : foc ? "var(--prog)" : "var(--plan)";
+    const ringPct = solid ? 100 : pct;
+    const ringInner = solid ? cpIcon("check") : `<b>${ringPct}%</b>`;
+    const ringCls = "fp-ring" + (solid ? " solid" : "") + (foc ? " foc" : "");
+    const badge = solid ? '<span class="fp-sb sb-done">Concluída</span>'
+      : foc ? `<span class="fp-here">${cpIcon("mappin")}Você está aqui</span>`
+        : '<span class="fp-sb sb-plan">Planejada</span>';
+    const countLabel = foc
+      ? `<b>${c.concluido}</b>·<em>${c.em_andamento}</em>·${c.planejado} de ${c.total}`
+      : `<b>${c.concluido}</b>/${c.total}`;
+    const donePct = c.total ? c.concluido / c.total * 100 : 0;
+    const progPct = c.total ? c.em_andamento / c.total * 100 : 0;
+    return `<div class="fp-station" data-id="${f.id}">`
+      + `<div class="fp-node-dot"><div class="${ringCls}" style="--ringcol:${ringCol};--pct:${ringPct}">${ringInner}</div></div>`
+      + `<div class="fp-phase${foc ? " open focus" : ""}" data-phase>`
+      + `<div class="fp-phead" role="button" tabindex="0" aria-expanded="${foc}">`
+      + `<div class="fp-pmain"><div class="fp-pname"><h3>${escapeHtml(f.nome)}</h3>${badge}</div><p class="fp-psub">${escapeHtml(f.subtitulo)}</p></div>`
+      + `<span class="fp-count">${countLabel}</span><span class="fp-chev">${cpIcon("chevrondown")}</span>`
+      + `</div>`
+      + `<div class="fp-pbar"><i style="left:0;width:${donePct}%;background:var(--done)"></i><i style="left:${donePct}%;width:${progPct}%;background:var(--prog)"></i></div>`
+      + `<div class="fp-leaves"><div><div class="fp-leaflist">${itens.map(leafHtml).join("")}</div></div></div>`
+      + `</div></div>`;
+  };
+  const stat = (n, col, dotStyle, label) => `<div class="fp-stat"><div class="n" style="color:${col}">${n}</div><div class="l"><span class="fp-dot" style="${dotStyle}"></span>${label}</div></div>`;
+  view.innerHTML = `<div class="fp-root">
+    <div class="fp-summary">
+      ${stat(G.concluido, "var(--success)", "background:var(--success)", "Concluídas")}
+      ${stat(G.em_andamento, "var(--warning)", "background:var(--warning)", "Em andamento")}
+      ${stat(G.planejado, "var(--text-body)", "background:transparent;border:1.5px solid var(--text-muted)", "Planejadas")}
+      ${stat(G.pendente, "var(--text-body)", "background:transparent;border:1.5px dashed var(--text-muted)", "Pendentes")}
+      <div class="fp-stat tot"><div class="n">${G.total}</div><div class="l">Itens no total</div></div>
+    </div>
+    <div class="fp-controls">
+      <div class="fp-legend">
+        <span><i class="fp-lg" style="background:var(--success)"></i>Concluído</span>
+        <span><i class="fp-lg" style="background:var(--warning)"></i>Em andamento</span>
+        <span><i class="fp-lg" style="background:transparent;border:1.5px solid var(--text-muted)"></i>Planejado</span>
+        <span><i class="fp-lg" style="background:transparent;border:1.5px dashed var(--text-muted)"></i>Pendente</span>
+      </div>
+      <div class="fp-btns">
+        <button class="fp-btn" data-acao="expandir">${cpIcon("expand")}Expandir tudo</button>
+        <button class="fp-btn" data-acao="recolher">${cpIcon("collapse")}Recolher tudo</button>
+      </div>
+    </div>
+    <div class="fp-canvas"><div class="fp-stage">
+      <svg class="fp-rail" id="fp-rail" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="fp-flow" id="fp-flow">
+        <div class="fp-rootnode"><div class="fp-orb">${cpIcon("users")}</div><div class="fp-rootlabel"><b>Portal do Colaborador</b><span>raiz da jornada</span></div></div>
+        ${fases.map(stationHtml).join("")}
+      </div>
+    </div></div>
+    <div class="fp-hint">${cpIcon("info")}Toque numa fase para abrir os itens; passe o mouse num item para ver prioridade e complexidade</div>
+  </div>`;
+  // ---- interações + trilho ----
+  const flow = view.querySelector("#fp-flow");
+  const railSvg = view.querySelector("#fp-rail");
+  const rootEl = view.querySelector(".fp-root");
+  const drawRail = () => {
+    if (!flow || !railSvg) return;
+    const W = flow.offsetWidth, H = flow.offsetHeight;
+    if (!W || !H) return;
+    railSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const fr = flow.getBoundingClientRect();
+    const orbEl = flow.querySelector(".fp-orb"); if (!orbEl) return;
+    const o = orbEl.getBoundingClientRect();
+    const nodes = [{ x: o.left - fr.left + o.width / 2, y: o.top - fr.top + o.height / 2 }];
+    flow.querySelectorAll(".fp-ring").forEach((r) => { const b = r.getBoundingClientRect(); nodes.push({ x: b.left - fr.left + b.width / 2, y: b.top - fr.top + b.height / 2 }); });
+    if (nodes.length < 2) return;
+    const seg = (a, b) => { const my = (a.y + b.y) / 2; return `M${a.x} ${a.y} C ${a.x} ${my} ${b.x} ${my} ${b.x} ${b.y} `; };
+    let full = "", done = "";
+    for (let i = 0; i < nodes.length - 1; i++) { const s = seg(nodes[i], nodes[i + 1]); full += s; if (i <= focoIdx) done += s; }
+    const cs = getComputedStyle(rootEl);
+    const rail = cs.getPropertyValue("--rail").trim() || "#283027";
+    const railon = cs.getPropertyValue("--railon").trim() || "#1AA34F";
+    railSvg.innerHTML = `<path d="${full}" fill="none" stroke="${rail}" stroke-width="3.4" stroke-linecap="round"/><path d="${done}" fill="none" stroke="${railon}" stroke-width="3.4" stroke-linecap="round"/>`;
+  };
+  const togglePhase = (ph) => { if (ph) { ph.classList.toggle("open"); requestAnimationFrame(drawRail); } };
+  flow.querySelectorAll(".fp-phead").forEach((h) => {
+    h.addEventListener("click", () => togglePhase(h.closest("[data-phase]")));
+    h.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); togglePhase(h.closest("[data-phase]")); } });
+  });
+  flow.querySelectorAll(".fp-leaf").forEach((l) => l.addEventListener("click", () => l.classList.toggle("show")));
+  view.querySelector('[data-acao="expandir"]')?.addEventListener("click", () => { flow.querySelectorAll("[data-phase]").forEach((p) => p.classList.add("open")); setTimeout(drawRail, 360); });
+  view.querySelector('[data-acao="recolher"]')?.addEventListener("click", () => { flow.querySelectorAll("[data-phase]").forEach((p) => p.classList.remove("open")); setTimeout(drawRail, 360); });
+  flow.addEventListener("transitionend", (e) => { if (e.propertyName === "grid-template-rows") requestAnimationFrame(drawRail); });
+  if (window.__fpRailResize) window.removeEventListener("resize", window.__fpRailResize);
+  window.__fpRailResize = () => requestAnimationFrame(drawRail);
+  window.addEventListener("resize", window.__fpRailResize);
+  requestAnimationFrame(drawRail);
+  setTimeout(drawRail, 120);
+  setTimeout(drawRail, 440);
 }
 function openRoadmapDetalhe(id) {
   const R = window.ROADMAP; if (!R) return;

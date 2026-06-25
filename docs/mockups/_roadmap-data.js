@@ -787,7 +787,7 @@ window.ROADMAP = {
     },
     {
       id: "integracao-erp-holerites",
-      numero: 16,
+      numero: "16a",
       nome: "Integração automática ERP/WKRADAR de holerites",
       fase: "futuro",
       prioridade: "baixa",
@@ -805,7 +805,7 @@ window.ROADMAP = {
     },
     {
       id: "espelho-ponto-real-batidas",
-      numero: 16,
+      numero: "16b",
       nome: "Espelho de ponto REAL (batidas) via origem",
       fase: "futuro",
       prioridade: "baixa",
