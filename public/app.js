@@ -612,15 +612,14 @@ function logout() {
 }
 
 // ============================================================
-// PORTAL DO COLABORADOR — Fase 0 (tela de acesso + prévia visual SEM auth).
+// PORTAL DO COLABORADOR — tela de acesso + shell do colaborador (login real por CPF).
 // Reaproveita o shell; o caminho do gestor fica intacto: o early-return em
-// renderApp só dispara para role==='colaborador', que nenhum usuário real é,
-// e o usuário-prévia só existe em memória (nunca é salvo nem autenticado).
+// renderApp só dispara para role==='colaborador'.
 // ============================================================
 
 // Portões de tela: #acesso (escolha) · #login (gestor) · #app (sistema).
 function mostrarAcesso() {
-  sairPreviewColaborador(true);
+  document.documentElement.classList.remove("modo-colab");
   $("#app")?.classList.add("hidden");
   $("#login")?.classList.add("hidden");
   $("#login-colab")?.classList.add("hidden");
@@ -643,6 +642,9 @@ function mostrarLoginColaborador() {
   const cc = $("#colab-cpf"), cs = $("#colab-senha");
   if (cc) cc.disabled = false;
   if (cs) cs.disabled = false;
+  // Restaura a preferência de login automático.
+  const rem = $("#colab-remember");
+  if (rem) { try { rem.checked = localStorage.getItem("fiopulse:manterConectado") === "1"; } catch {} }
   $("#login-colab")?.classList.remove("hidden");
   setTimeout(() => $("#colab-cpf")?.focus(), 60);
 }
@@ -688,26 +690,6 @@ window.__portaoSemSessao = function () {
   else mostrarAcesso();
 };
 
-const PREVIEW_COLAB_ID = "__preview-colab";
-function entrarPreviewColaborador() {
-  state.users = [{ id: PREVIEW_COLAB_ID, nome: "Maria Aparecida Silva", role: "colaborador", preview: true }];
-  state.currentUserId = PREVIEW_COLAB_ID;
-  // Funcionário de exemplo só pra prévia visual (a home real lê state.funcionarios[0]).
-  state.funcionarios = [{ id: PREVIEW_COLAB_ID, nome: "Maria Aparecida Silva", cargo: "Costureira", setor: "Costura", turno: "1", diasNaEmpresa: 2310, aniversarioDia: 14, aniversarioMes: 7 }];
-  state.view = { page: "colab-roadmap" };
-  document.documentElement.classList.add("modo-colab", "modo-preview");
-  $("#acesso")?.classList.add("hidden");
-  $("#login")?.classList.add("hidden");
-  $("#app")?.classList.remove("hidden");
-  renderApp();
-}
-function sairPreviewColaborador(silent) {
-  if (state.currentUserId === PREVIEW_COLAB_ID) { state.currentUserId = null; state.users = []; state.funcionarios = []; }
-  document.documentElement.classList.remove("modo-colab", "modo-preview");
-  if (!silent) mostrarAcesso();
-}
-window.sairPreviewColaborador = sairPreviewColaborador;
-
 // Ícones inline (stroke) do portal — evita depender das chaves do icon() do app.
 function cpIcon(name) {
   const P = {
@@ -740,18 +722,16 @@ function cpRoadmapStats() {
 // ---- Shell do colaborador (chrome reaproveitado) ----
 function renderPortalColaborador(u) {
   // Modo colaborador: esconde o chrome de gestor (chat #chat-fab, FAB #fab, presença).
-  // A faixa de prévia (modo-preview) só entra na prévia sem login, nunca no login real.
   document.documentElement.classList.add("modo-colab");
-  document.documentElement.classList.toggle("modo-preview", !!u.preview);
   aplicarAvatar($("#user-avatar"), u);
   $("#user-name").textContent = u.nome;
-  $("#user-role").textContent = u.preview ? "Colaborador · prévia" : "Colaborador";
+  $("#user-role").textContent = "Colaborador";
   if ($("#presence")) $("#presence").innerHTML = "";
   renderNavColaborador();
   renderBottomNavColaborador();
   renderViewColaborador();
-  // 1º acesso real (não prévia): troca obrigatória de senha, bloqueante.
-  if (!u.preview && u.precisaTrocarSenha) mostrarTrocaSenha();
+  // 1º acesso: troca obrigatória de senha, bloqueante.
+  if (u.precisaTrocarSenha) mostrarTrocaSenha();
 }
 
 const COLAB_NAV = [
@@ -767,11 +747,11 @@ function renderNavColaborador() {
     <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
       ${cpIcon(it.icon)}<span>${it.label}</span>
     </button>`).join("") + `
-    <button class="nav__item nav__item--sair" data-acao="sair-previa">
-      ${cpIcon("logout")}<span>Sair da prévia</span>
+    <button class="nav__item nav__item--sair" data-acao="sair">
+      ${cpIcon("logout")}<span>Sair</span>
     </button>`;
   $$("#nav .nav__item").forEach((btn) => btn.addEventListener("click", () => {
-    if (btn.dataset.acao === "sair-previa") return sairPreviewColaborador(false);
+    if (btn.dataset.acao === "sair") return (window.logout ? window.logout() : logout());
     state.view.page = btn.dataset.page; renderApp(); closeSidebar();
   }));
 }
@@ -962,7 +942,7 @@ function renderApp() {
   if (!u) { mostrarAcesso(); return; }
   if (u.role === "colaborador") return renderPortalColaborador(u);
   // Gestor nunca usa o modo colaborador (limpa classe que possa ter sobrado).
-  document.documentElement.classList.remove("modo-colab", "modo-preview");
+  document.documentElement.classList.remove("modo-colab");
 
   // Sidebar user (avatar com foto se houver, senão iniciais)
   aplicarAvatar($("#user-avatar"), u);
@@ -3106,7 +3086,6 @@ async function deleteFuncionario(id) {
 }
 
 function openProfileModal() {
-  if (currentUser()?.preview) return sairPreviewColaborador(false);
   const u = currentUser();
   if (!u) return;
   const isFirebaseMode = typeof window.alterarMinhaSenha === "function";
@@ -8052,10 +8031,9 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#acesso-colab")?.addEventListener("click", mostrarLoginColaborador);
   $("#login-voltar")?.addEventListener("click", mostrarAcesso);
 
-  // Login do colaborador (CPF): voltar, ver demonstração (prévia sem login), olho,
-  // máscara de CPF e submit (monta o e-mail sintético via window.loginColaborador).
+  // Login do colaborador (CPF): voltar, olho, máscara de CPF e submit
+  // (monta o e-mail sintético via window.loginColaborador).
   $("#login-colab-voltar")?.addEventListener("click", mostrarAcesso);
-  $("#colab-demo")?.addEventListener("click", entrarPreviewColaborador);
   $("#colab-olho")?.addEventListener("click", () => {
     const inp = $("#colab-senha"), b = $("#colab-olho");
     if (!inp || !b) return;

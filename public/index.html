@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=175" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=175" />
+  <link rel="stylesheet" href="styles.css?v=176" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=176" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -162,10 +162,14 @@
 
       <div id="colab-login-error" class="field__error hidden" style="margin-bottom:12px"></div>
 
+      <label class="login__remember" for="colab-remember">
+        <input type="checkbox" id="colab-remember" />
+        <span>Login automático neste aparelho</span>
+      </label>
+
       <button type="submit" class="btn btn--primary btn--block btn--lg">Entrar</button>
 
-      <div class="colab-dica">Primeiro acesso? Sua senha é a sua data de nascimento, só números: dia, mês e ano. Ex.: 14 de julho de 1990 vira 14071990.</div>
-      <button type="button" class="login__demo" id="colab-demo">Ver demonstração (sem login)</button>
+      <div class="colab-dica">Primeiro acesso? Sua senha é a <b>data de nascimento</b>, só números. Ex.: 14071990</div>
     </form>
     <div class="login__rodape">© 2026 Fiobras · acesso restrito</div>
   </section>
@@ -215,11 +219,6 @@
     </aside>
 
     <main class="app__main">
-      <!-- Faixa de prévia (Portal do Colaborador, Fase 0 sem auth) — só visível em .modo-colab -->
-      <div class="preview-banner" id="preview-banner" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Modo prévia — sem login. Dados ilustrativos.
-      </div>
       <div class="topbar">
         <button class="topbar__menu" id="menu-btn" aria-label="Abrir menu de navegação">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -302,16 +301,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=175"></script>
-  <script defer src="data.js?v=175"></script>
+  <script defer src="utils.js?v=176"></script>
+  <script defer src="data.js?v=176"></script>
   <!-- roadmap.js: dados estáticos do Roadmap do Portal (window.ROADMAP). -->
-  <script defer src="roadmap.js?v=175"></script>
-  <script defer src="app.js?v=175"></script>
+  <script defer src="roadmap.js?v=176"></script>
+  <script defer src="app.js?v=176"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=175"></script>
-  <script defer src="google-drive.js?v=175"></script>
+  <script defer src="firebase.js?v=176"></script>
+  <script defer src="google-drive.js?v=176"></script>
 </body>
 </html>

@@ -1311,9 +1311,10 @@
     };
 
     // Login do COLABORADOR por CPF: monta o e-mail sintético e entra. Erros vão pro
-    // campo da tela #login-colab (não o #login-error do gestor). Sessão por aba (SESSION):
-    // sobrevive a um refresh durante o 1º acesso, mas zera ao fechar a aba (mais seguro que
-    // LOCAL no celular; mais robusto que NONE, que cairia num refresh no meio da troca).
+    // campo da tela #login-colab (não o #login-error do gestor). "Login automático" (checkbox
+    // #colab-remember): marcado → LOCAL (login automático, sobrevive a fechar o app); desmarcado
+    // → NONE (sessão só na memória, mais seguro em aparelho compartilhado/quiosque). Mesma chave
+    // localStorage do gestor, pra o boot restaurar a sessão automaticamente quando LOCAL.
     window.loginColaborador = async function (cpf, senha) {
       const err = $("#colab-login-error");
       if (err) err.classList.add("hidden");
@@ -1322,7 +1323,11 @@
       if (dig.length !== 11) { setErr("Digite um CPF completo (11 números)."); return false; }
       if (!senha) { setErr("Digite sua senha."); return false; }
       const email = dig + "@colaborador.fiobras.local";
-      try { await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION); } catch (e) {}
+      const auto = !!$("#colab-remember")?.checked;
+      try { localStorage.setItem("fiopulse:manterConectado", auto ? "1" : "0"); } catch {}
+      try {
+        await auth.setPersistence(auto ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.NONE);
+      } catch (e) {}
       try {
         await auth.signInWithEmailAndPassword(email, senha);
         return true; // onAuthStateChanged assume daqui (carrega + renderiza)
