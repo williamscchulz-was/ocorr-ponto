@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Meu Banco de Horas (colaborador)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#1A211A;font-family:"Poppins",ui-sans-serif,system-ui,sans-serif;padding:18px;display:flex;justify-content:center}
+.note{position:fixed;top:8px;left:8px;right:8px;font-size:11.5px;color:#CFE0C6;background:#0E130E;border:1px solid #283027;border-radius:8px;padding:8px 12px;line-height:1.5;z-index:5}
+.bp{position:relative;width:330px;background:#0E130E;border:1px solid #283027;border-radius:28px;overflow:hidden;color:#E9F0E5;box-shadow:0 18px 50px rgba(0,0,0,.5);margin-top:54px}
+.bp *{box-sizing:border-box}
+.bt{display:flex;align-items:center;gap:10px;padding:13px 14px;background:#141A14;border-bottom:1px solid #222A21}
+.bt .bk{font-size:21px;color:#CFE0C6;cursor:pointer}
+.bt b{font-size:14.5px;font-weight:600}
+.bt .tg{margin-left:auto;width:30px;height:30px;border-radius:50%;background:#1E261D;border:1px solid #2C362B;color:#CFE0C6;display:flex;align-items:center;justify-content:center;font-size:15px}
+.bv{padding:18px 16px 96px}
+.hero{text-align:center;padding:6px 0 14px}
+.hero .l{font-size:11.5px;color:#94A38D;font-weight:500}
+.hero .v{font-size:46px;font-weight:600;letter-spacing:-.02em;color:#E8B468;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:2px}
+.hero .h{font-size:10.5px;color:#7E8C78;margin-top:3px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.st{background:#161D15;border:1px solid #232C22;border-radius:13px;padding:11px 13px}
+.st .sl{font-size:10px;color:#94A38D;font-weight:500}
+.st .sv{font-size:15px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+.st .sv.pos{color:#4FD080}
+.st .sv.neg{color:#E8B468}
+.card{background:#161D15;border:1px solid #232C22;border-radius:16px;padding:14px 14px 12px;margin-bottom:16px}
+.ch-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ch-h b{font-size:12.5px;font-weight:600}
+.ch-lg{display:flex;gap:10px;font-size:9.5px;color:#94A38D}
+.ch-lg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+.chart{display:flex;align-items:stretch;gap:2px;height:104px}
+.c2{flex:1;height:100px;display:flex;flex-direction:column}
+.up{height:22px;display:flex;align-items:flex-end;justify-content:center;border-bottom:1px solid #2A332A}
+.dn{flex:1;display:flex;align-items:flex-start;justify-content:center}
+.b{width:7px}
+.bp-pos{background:#2FB85F;border-radius:2px 2px 0 0}
+.bp-neg{background:#C99238;border-radius:0 0 2px 2px}
+.ch-x{display:flex;justify-content:space-between;font-size:9px;color:#7E8C78;margin-top:5px;padding:0 2px}
+.lst-h{font-size:12.5px;font-weight:600;margin:4px 2px 9px}
+.lan{background:#161D15;border:1px solid #232C22;border-radius:14px;overflow:hidden}
+.lr{display:flex;align-items:center;padding:11px 14px;border-top:1px solid #1E261D}
+.lr:first-child{border-top:0}
+.lr .dd{font-size:12px;font-weight:500;color:#E4ECDF}
+.lr .ds{font-size:10px;color:#94A38D;margin-top:1px}
+.lr .ds.hoje{color:#6FD08C}
+.lr .ls{margin-left:auto;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:#E8B468}
+.lr .delta{font-size:10px;color:#7E8C78;margin-left:8px;min-width:42px;text-align:right}
+.lr .delta.up{color:#4FD080}
+.nav{position:absolute;left:30px;right:30px;bottom:16px;height:56px;background:#171E16;border:1px solid #2A332A;border-radius:28px;box-shadow:0 12px 28px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:space-around;padding:0 6px}
+.nav .it{color:#8A9884}
+.nav .ic{position:relative;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.nav .ic i{font-size:22px}
+.nav .on{color:#5FCB85}
+.nav .on .ic{background:#1AA34F;color:#06210F}
+.nav .nd{position:absolute;top:3px;right:5px;width:8px;height:8px;border-radius:50%;background:#1E9AE6;border:2px solid #171E16}
+</style>
+</head>
+<body>
+<div class="note"><b>Meu Banco de Horas (escuro).</b> Saldo da Jenifer (real), gráfico = saldo diário de junho (verde crédito / âmbar débito), lançamentos com Δ do dia. Liga em <code>pipeline-rh/cur.funcionarios[].lancamentos[]</code> + <code>saldoAtualFmt</code>. Light = mesmos tokens da home. Ícones Tabler ilustrativos.</div>
+<div class="bp">
+  <div class="bt"><i class="ti ti-arrow-left bk"></i><b>Banco de horas</b><span class="tg"><i class="ti ti-sun"></i></span></div>
+  <div class="bv">
+    <div class="hero"><div class="l">Saldo atual</div><div class="v">-00:24</div><div class="h">atualizado hoje · 08:00</div></div>
+    <div class="stats">
+      <div class="st"><div class="sl">Início do mês</div><div class="sv pos">+00:28</div></div>
+      <div class="st"><div class="sl">Pior dia (09/06)</div><div class="sv neg">-01:52</div></div>
+    </div>
+    <div class="card">
+      <div class="ch-h"><b>Junho</b><span class="ch-lg"><span><i style="background:#2FB85F"></i>crédito</span><span><i style="background:#C99238"></i>débito</span></span></div>
+      <div class="chart">
+        <div class="c2"><div class="up"><div class="b bp-pos" style="height:18px"></div></div><div class="dn"></div></div>
+        <div class="c2"><div class="up"><div class="b bp-pos" style="height:18px"></div></div><div class="dn"></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:48px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:48px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:67px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:67px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:67px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:67px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:72px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:64px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:66px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:66px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:66px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:66px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:66px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:56px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:50px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:38px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:34px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:34px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:34px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:27px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:15px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:15px"></div></div></div>
+        <div class="c2"><div class="up"></div><div class="dn"><div class="b bp-neg" style="height:15px;opacity:.55"></div></div></div>
+      </div>
+      <div class="ch-x"><span>01</span><span>09</span><span>17</span><span>25</span></div>
+    </div>
+    <div class="lst-h">Lançamentos</div>
+    <div class="lan">
+      <div class="lr"><div><div class="dd">Hoje</div><div class="ds hoje">25/06 · quinta</div></div><span class="delta">—</span><span class="ls">-00:24</span></div>
+      <div class="lr"><div><div class="dd">Ontem</div><div class="ds">24/06 · quarta</div></div><span class="delta">—</span><span class="ls">-00:24</span></div>
+      <div class="lr"><div><div class="dd">Segunda</div><div class="ds">23/06</div></div><span class="delta up">+18</span><span class="ls">-00:24</span></div>
+      <div class="lr"><div><div class="dd">Domingo</div><div class="ds">22/06</div></div><span class="delta up">+11</span><span class="ls">-00:42</span></div>
+      <div class="lr"><div><div class="dd">Sábado</div><div class="ds">21/06</div></div><span class="delta">—</span><span class="ls">-00:53</span></div>
+      <div class="lr"><div><div class="dd">Sexta</div><div class="ds">20/06</div></div><span class="delta">—</span><span class="ls">-00:53</span></div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="it"><span class="ic"><i class="ti ti-home"></i></span></div>
+    <div class="it on"><span class="ic"><i class="ti ti-clock-hour-4"></i></span></div>
+    <div class="it"><span class="ic"><span class="nd"></span><i class="ti ti-bell"></i></span></div>
+    <div class="it"><span class="ic"><span class="nd" style="background:#C98A2A"></span><i class="ti ti-folder"></i></span></div>
+    <div class="it"><span class="ic"><i class="ti ti-user"></i></span></div>
+  </nav>
+</div>
+</body>
+</html>
