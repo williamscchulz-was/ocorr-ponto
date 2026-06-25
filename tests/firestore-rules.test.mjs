@@ -142,6 +142,8 @@ test("colaborador registra leitura no comunicado do seu segmento", async () =>
   assertSucceeds(setDoc(doc(colab(), "comunicados/cTodos/leituras/uColab"), { uid: "uColab", funcionarioId: "f-100", confirmado: true, em: serverTimestamp(), userAgent: "t" })));
 test("colaborador NÃO registra leitura em comunicado fora do segmento (CORREÇÃO 6)", async () =>
   assertFails(setDoc(doc(colab(), "comunicados/cTurno1/leituras/uColab"), { uid: "uColab", funcionarioId: "f-100", confirmado: true, em: serverTimestamp(), userAgent: "t" })));
+test("colaborador NÃO grava leitura com campo extra alem do schema (hasOnly barra PII)", async () =>
+  assertFails(setDoc(doc(colabT2(), "comunicados/cTodos/leituras/uColabT2"), { uid: "uColabT2", funcionarioId: "f-400", confirmado: true, em: serverTimestamp(), userAgent: "t", cpf: "000.000.000-00" })));
 
 // ---- documentos institucionais (Pacote Gestor · institucional/pessoal + assinatura/versão) ----
 test("colaborador LÊ documento institucional publicado 'todos'", async () =>

@@ -317,6 +317,7 @@ service cloud.firestore {
         allow create: if isAuthed()
                     && request.auth.uid == uid
                     && request.resource.data.uid == uid
+                    && request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'confirmado', 'em', 'userAgent'])
                     && (isAdmin() || temCap('comunicados.gerenciar', isRH())
                         || casaSegmento(get(/databases/$(database)/documents/comunicados/$(id)).data.segmento));
         allow update, delete: if false;
@@ -372,6 +373,7 @@ service cloud.firestore {
         allow create: if isAuthed()
                     && request.auth.uid == uid
                     && request.resource.data.uid == uid
+                    && request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'versaoAssinada', 'hashSha256', 'aceiteTexto', 'em', 'userAgent'])
                     && request.resource.data.versaoAssinada is number
                     && request.resource.data.versaoAssinada
                          == get(/databases/$(database)/documents/documentos/$(id)).data.versao
@@ -386,6 +388,7 @@ service cloud.firestore {
                     || (isAuthed() && request.auth.uid == uid);
         allow create: if isAuthed() && request.auth.uid == uid
                     && request.resource.data.uid == uid
+                    && request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'confirmado', 'em', 'userAgent'])
                     && (isAdmin() || temCap('documentos.gerenciar', isRH())
                         || podeVerDoc(get(/databases/$(database)/documents/documentos/$(id)).data));
         allow update, delete: if false;

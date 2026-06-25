@@ -3958,7 +3958,7 @@ code { font-family: inherit; }
 }
 .com-sw::after {
   content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
-  border-radius: 50%; background: #fff; transition: left var(--transition);
+  border-radius: 50%; background: var(--surface); transition: left var(--transition);
 }
 .com-sw.is-on { background: var(--plum); }
 .com-sw.is-on::after { left: 21px; }
@@ -3984,7 +3984,7 @@ code { font-family: inherit; }
 .com-tab .icon { width: 14px; height: 14px; }
 .com-tab i { font-style: normal; background: var(--surface-warm); border-radius: 7px; padding: 1px 7px; font-size: 11px; }
 .com-tab.is-on { border-color: var(--plum); color: var(--plum); background: var(--success-bg); }
-.com-tab.is-on i { background: var(--plum); color: #fff; }
+.com-tab.is-on i { background: var(--plum); color: var(--text-on-plum); }
 .com-people { display: flex; flex-direction: column; }
 .com-person {
   display: flex; align-items: center; gap: 11px; padding: 9px 2px;
