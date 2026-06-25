@@ -253,3 +253,31 @@ Investigando `E:\WKRadar\Backup` (HD ocioso, fora do RAID — leitura segura), a
 2. **Reavaliar rodar 2×/dia.** 1×/dia à noite provavelmente basta → corta pela metade a carga no RAID e a escrita no E:.
 3. **Encurtar retenção** (ex.: 21→10 dias) libera ~1,4 TB no E: (92% é zona de perigo).
 4. Não alterar config de backup sem aval (é recuperação/compliance do ERP). Schedule/retenção podem estar dentro do WKBackup ou do ERP.
+
+---
+
+## 2026-06-25 · 🧹 Automação de limpeza de backups antigos (retenção 14 dias, 02:00 diário)
+
+Continuando os achados do dia (E: a 92%, pasta backup ~2,9 TB, kits de 72 GB × 2/dia), o William pediu uma automação pra apagar backups com mais de 14 dias.
+
+### Spec definida
+- **Decisão pela data no NOME** do item (padrão `*-AAAA-MM-DD-HH-MM`), nunca pelos arquivos internos (que têm datas variadas).
+- **Apaga pasta inteira, recursivo, permanente** (sem Lixeira).
+- **Retenção: 14 dias.** Schedule: **1× por dia, às 02:00** (fora do expediente).
+- **Trava de segurança:** o script só toca em itens cujo nome bata o regex `-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})(?:\.log)?$`. Qualquer outra coisa no Root (inclusive a pasta `_scripts\` e os próprios `_limpeza*.{log,txt}`) é IGNORADA.
+
+### Artefatos criados (em `E:\WKRadar\Backup\_scripts\` — fora do projeto pipeline-rh)
+- `limpa-backup-antigo.ps1` — o script. Modo dry-run por padrão (lista e salva snapshot em `_limpeza-dryrun.txt`); com `-Apply` apaga de verdade e loga em `_limpeza.log`. Aceita `-RetentionDays N` e `-MeasureSize` (opcional, lento).
+- `REGISTRAR-tarefa-agendada-ADMIN.ps1` — registra a tarefa "WKRADAR - Limpa Backup Antigo" como SYSTEM, diária 02:00. Rodar **uma vez** numa janela admin.
+
+### Validação (dry-run em 25/06 14:51)
+- 290 itens no Root → **85 candidatos** (= 12 kits completos + 1 log órfão de 04/06) → 2 ignorados (`_scripts\` e o próprio snapshot — auto-proteção confirmada).
+- Corte: itens com data anterior a 11/06 → preserva 14 dias completos a partir de 11/06.
+- Estimativa de liberação na primeira execução: ~12 kits × ~72 GB ≈ **~864 GB** (E: hoje 92%/301 GB livres → vai pra ~30%/~1,1 TB livre depois).
+- Execuções subsequentes: ~144 GB/dia entra, ~144 GB/dia sai (estável).
+
+### Execução real
+- Apagamento de hoje rodando em background sob o usuário do William (a tarefa SYSTEM ainda não foi registrada — exige admin). Próximas execuções serão pela tarefa agendada.
+
+### Conexão com a missão do RAID 100%
+A limpeza por si só **não muda** a leitura pesada do RAID feita pelo `WKBackup.exe` 2×/dia (gatilho do evt 129). O que ela resolve é o **espaço no E:** (que estava virando problema). Mover/diminuir backups continua na fila de recomendações futuras pra atacar o RAID.
