@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Modal de assinatura (colaborador)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#1A211A;font-family:"Poppins",ui-sans-serif,system-ui,sans-serif;padding:18px;display:flex;justify-content:center}
+.stage{position:relative;width:330px;height:600px;background:#0E130E;border:1px solid #283027;border-radius:28px;overflow:hidden;color:#E9F0E5;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.stage *{box-sizing:border-box}
+.bg-top{display:flex;align-items:center;gap:10px;padding:13px 14px;background:#141A14;border-bottom:1px solid #222A21}
+.bg-top .mn{font-size:21px;color:#5b6656}
+.bg-top b{font-size:14.5px;font-weight:600;color:#9aa893}
+.bg-list{padding:14px}
+.bg-row{height:54px;background:#13190F;border:1px solid #1c241b;border-radius:12px;margin-bottom:10px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.62)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#161D15;border-top:1px solid #2A332A;border-radius:22px 22px 0 0;padding:8px 18px 20px;box-shadow:0 -10px 40px rgba(0,0,0,.5)}
+.handle{width:38px;height:4px;border-radius:999px;background:#394437;margin:6px auto 14px}
+.sh-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.sh-h__t{font-size:15px;font-weight:600;color:#EDF3EA}
+.sh-h__s{font-size:11px;color:#94A38D;margin-top:2px}
+.sh-h__x{margin-left:auto;width:30px;height:30px;border-radius:50%;background:#1E261D;border:1px solid #2C362B;color:#CFE0C6;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;flex:none}
+.doc{background:#10160F;border:1px solid #222A21;border-radius:12px;padding:13px 14px;max-height:150px;overflow:hidden;position:relative}
+.doc p{font-size:11.5px;color:#AEBEA7;line-height:1.6;margin:0 0 9px}
+.doc::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(to bottom,rgba(16,22,15,0),#10160F)}
+.chk{display:flex;align-items:center;gap:11px;margin:14px 2px;cursor:pointer}
+.chk__box{width:22px;height:22px;border-radius:7px;background:#1AA34F;color:#06210F;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.chk__l{font-size:12.5px;font-weight:500;color:#E4ECDF}
+.trail{display:flex;align-items:center;gap:8px;background:#13201A;border:1px solid #20382A;border-radius:11px;padding:9px 12px;margin-bottom:14px}
+.trail i{font-size:17px;color:#6FD08C}
+.trail span{font-size:10.5px;color:#9FC0AC;line-height:1.4}
+.btn{width:100%;border:0;border-radius:12px;background:#1AA34F;color:#06210F;font-family:inherit;font-size:13.5px;font-weight:600;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="bg-top"><i class="ti ti-arrow-left mn"></i><b>Documentos</b></div>
+  <div class="bg-list"><div class="bg-row"></div><div class="bg-row"></div><div class="bg-row"></div></div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sh-h"><div><div class="sh-h__t">Termo — Código de ética</div><div class="sh-h__s">Documento · exige a sua assinatura</div></div><span class="sh-h__x"><i class="ti ti-x"></i></span></div>
+    <div class="doc">
+      <p>A Fiobras conduz seus negócios com ética, respeito e integridade em todas as relações de trabalho.</p>
+      <p>Este código estabelece os princípios de conduta esperados de todos os colaboradores: respeito mútuo, zelo pelo patrimônio, sigilo das informações e combate a qualquer forma de assédio ou discriminação.</p>
+      <p>O descumprimento está sujeito às medidas disciplinares previstas em política interna e na legislação aplicável.</p>
+    </div>
+    <label class="chk"><span class="chk__box"><i class="ti ti-check"></i></span><span class="chk__l">Li e estou de acordo com este documento.</span></label>
+    <div class="trail"><i class="ti ti-shield-check"></i><span>Ao assinar, registramos o seu usuário, a data e a hora — vira comprovante de aceite. (O botão Assinar só habilita após marcar a caixa.)</span></div>
+    <button class="btn"><i class="ti ti-signature"></i> Assinar documento</button>
+  </div>
+</div>
+</body>
+</html>
