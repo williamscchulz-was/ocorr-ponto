@@ -281,3 +281,11 @@ Continuando os achados do dia (E: a 92%, pasta backup ~2,9 TB, kits de 72 GB × 
 
 ### Conexão com a missão do RAID 100%
 A limpeza por si só **não muda** a leitura pesada do RAID feita pelo `WKBackup.exe` 2×/dia (gatilho do evt 129). O que ela resolve é o **espaço no E:** (que estava virando problema). Mover/diminuir backups continua na fila de recomendações futuras pra atacar o RAID.
+
+### Aprendizado (2026-06-25 14:56) — precisa SYSTEM/admin
+
+Tentativa de rodar `-Apply` com o usuário comum do William deu **"Acesso negado"** nos 85 itens (0 apagados, espaço inalterado). Causa: `WKBackup.exe` cria os arquivos como **SYSTEM** com ACL restrita; usuário não-elevado não tem DELETE. **Comportamento esperado e seguro** (proteção do NTFS).
+
+Implicação: a limpeza **só funciona** rodando como SYSTEM (via tarefa agendada) ou numa janela admin. O script agora detecta esse caso e imprime uma mensagem clara no resumo.
+
+**Plano:** William roda `REGISTRAR-tarefa-agendada-ADMIN.ps1` numa janela admin (cria a tarefa SYSTEM). Pra liberar os ~864 GB AGORA sem esperar 02:00, ele pode disparar a tarefa manualmente no Task Scheduler depois de criada (botão "Executar"), ou rodar `limpa-backup-antigo.ps1 -Apply` na própria janela admin.
