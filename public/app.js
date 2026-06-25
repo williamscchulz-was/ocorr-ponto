@@ -703,6 +703,7 @@ function cpIcon(name) {
     info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    chevron: '<polyline points="9 18 15 12 9 6"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -781,15 +782,20 @@ const COLAB_NAV = [
 ];
 
 function renderNavColaborador() {
+  const esc = document.documentElement.classList.contains("cp-dark");
   $("#nav").innerHTML = COLAB_NAV.map((it) => `
     <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
       ${cpIcon(it.icon)}<span>${it.label}</span>
     </button>`).join("") + `
+    <button class="nav__item nav__item--tema" data-acao="tema">
+      ${cpIcon(esc ? "sun" : "moon")}<span>${esc ? "Tema claro" : "Tema escuro"}</span>
+    </button>
     <button class="nav__item nav__item--sair" data-acao="sair">
       ${cpIcon("logout")}<span>Sair</span>
     </button>`;
   $$("#nav .nav__item").forEach((btn) => btn.addEventListener("click", () => {
     if (btn.dataset.acao === "sair") return (window.logout ? window.logout() : logout());
+    if (btn.dataset.acao === "tema") { cpToggleTema(); renderApp(); return; }
     state.view.page = btn.dataset.page; renderApp(); closeSidebar();
   }));
 }
@@ -804,7 +810,7 @@ function renderBottomNavColaborador() {
   ];
   $("#bottom-nav").innerHTML = items.map((it) => `
     <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}">
-      ${cpIcon(it.icon)}<span>${it.label}</span>
+      <span class="cp-bn-ic">${cpIcon(it.icon)}</span><span class="cp-bn-lab">${it.label}</span>
     </button>`).join("");
   $$("#bottom-nav .bottom-nav__item").forEach((btn) => btn.addEventListener("click", () => {
     const page = btn.dataset.page;
@@ -856,9 +862,20 @@ function renderColaboradorHome() {
   if (turnoLabel) metas.push(turnoLabel);
   if (tempo) metas.push(`Há ${tempo} na Fiobras`);
   if (aniv) metas.push(`Aniversário ${aniv}`);
-  const rm = cpRoadmapStats();
+  // Banco de horas (saldo SELF, se já carregado em state.meuSaldoBH; senão "em breve")
+  const bh = state.meuSaldoBH || null;
+  const bhMin = bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null;
+  let bhStr = null;
+  if (bh) bhStr = bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null);
+  const bhNeg = bhMin != null && bhMin < 0;
+  const atalhos = [
+    { page: "colab-ponto", icon: "clock", t: "Meu ponto", s: "Saldo e espelho" },
+    { page: "colab-comunicados", icon: "megafone", t: "Comunicados", s: "Avisos do GH" },
+    { page: "colab-documentos", icon: "file", t: "Documentos", s: "Termos e recibos" },
+    { page: "colab-roadmap", icon: "roadmap", t: "Roadmap", s: "Evolução do portal" },
+  ];
   view.innerHTML = `
-    <div class="cp-hi"><h1>Olá, ${escapeHtml(primeiro)}</h1><p>Bem vindo ao seu portal.</p></div>
+    <div class="cp-hi"><h1>Olá, ${escapeHtml(primeiro)}</h1><p>Bom te ver por aqui.</p></div>
     <div class="cp-idc">
       <div class="cp-idc__av">${escapeHtml(initials(nome || "?"))}</div>
       <div class="cp-idc__main">
@@ -867,20 +884,14 @@ function renderColaboradorHome() {
         ${metas.length ? `<div class="cp-idc__meta">${metas.map((m) => `<span class="cp-tagm">${escapeHtml(m)}</span>`).join("")}</div>` : ""}
       </div>
     </div>
-    <div class="cp-aviso">
-      <span class="cp-aviso__ic">${cpIcon("info")}</span>
-      <span class="cp-aviso__tx"><b>Seu portal está começando.</b> Por aqui você confere seus dados de cadastro e acompanha a evolução no Roadmap. Banco de horas, comunicados e documentos chegam nas próximas fases.</span>
-    </div>
-    <div class="cp-sec"><h2>Roadmap do Portal</h2></div>
-    <button class="cp-rmcard" data-nav="colab-roadmap">
-      <div class="cp-rmcard__top"><span class="cp-rmcard__t">Evolução do portal</span><span class="cp-rmcard__link">ver tudo ›</span></div>
-      <div class="cp-pbar"><div class="cp-pbar__fill" style="width:${rm.pct}%"></div></div>
-      <div class="cp-rmcard__pills">
-        <span class="cp-rmp cp-rmp--ok">${rm.done} concluídas</span>
-        <span class="cp-rmp cp-rmp--prog">${rm.prog} em andamento</span>
-        <span class="cp-rmp cp-rmp--plan">${rm.plan} planejadas</span>
-      </div>
+    <button class="cp-bh${bhNeg ? " cp-bh--neg" : ""}" data-nav="colab-ponto">
+      <span class="cp-bh__l">${cpIcon("clock")}<span>Banco de horas</span></span>
+      <span class="cp-bh__v">${bhStr ? escapeHtml(bhStr) : '<span class="cp-bh__soon">em breve</span>'}${cpIcon("chevron")}</span>
     </button>
+    <div class="cp-sec"><h2>Atalhos</h2></div>
+    <div class="cp-atalhos">
+      ${atalhos.map((a) => `<button class="cp-atalho" data-nav="${a.page}"><span class="cp-atalho__ic">${cpIcon(a.icon)}</span><span class="cp-atalho__t">${a.t}</span><span class="cp-atalho__s">${a.s}</span></button>`).join("")}
+    </div>
   `;
   bindColabNav(view);
   if (typeof animarEntrada === "function") animarEntrada(view);

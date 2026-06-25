@@ -2044,6 +2044,15 @@
           if (meu.exists) state.funcionarios = [{ id: meu.id, ...meu.data() }];
         } catch (e) { debug?.("[colab] meu funcionario:", e?.message || e); }
       }
+      // Saldo SELF do banco de horas (sem PII), por código. Coleção banco-horas-self é populada
+      // pelo pipeline; a rule SELF é deploy separado (autorizado). Sem rule/dado -> null -> "em breve".
+      state.meuSaldoBH = null;
+      if (u.codigo) {
+        try {
+          const bh = await db.collection("banco-horas-self").doc(String(u.codigo)).get();
+          if (bh.exists) state.meuSaldoBH = bh.data();
+        } catch (e) { debug?.("[colab] saldo BH self:", e?.message || e); }
+      }
       return;
     }
 
