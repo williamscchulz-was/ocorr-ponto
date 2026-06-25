@@ -36,13 +36,17 @@ before(async () => {
     await setDoc(doc(db, "banco-horas-self/200"), { saldoMin: -24, saldoFormatado: "-00:24" });
 
     // ----- Pacote Gestor: colaborador com turno/setor denormalizado (segmentação) -----
-    await setDoc(doc(db, "users/uColabT1"), { role: "colaborador", funcionarioId: "f-300", codigo: 300, nome: "Tonho", turno: 1, setor: "Produção" });
+    await setDoc(doc(db, "users/uColabT1"), { role: "colaborador", funcionarioId: "f-300", codigo: 300, nome: "Tonho", turno: 1, setor: "PRODUÇÃO" });
     await setDoc(doc(db, "funcionarios/f-300"), { nome: "Tonho" });
+    // turno 2 + setor real em MAIÚSCULAS (shapes de produção, bridge WKRADAR 2026-06-26)
+    await setDoc(doc(db, "users/uColabT2"), { role: "colaborador", funcionarioId: "f-400", codigo: 400, nome: "Bia", turno: 2, setor: "PREPARAÇÃO" });
+    await setDoc(doc(db, "funcionarios/f-400"), { nome: "Bia" });
 
-    // comunicados (segmentos: todos / turno:[1] / despublicado)
-    await setDoc(doc(db, "comunicados/cTodos"),   { titulo: "Geral", corpo: "x", ativo: true,  segmento: { tipo: "todos", valores: [] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 80 });
-    await setDoc(doc(db, "comunicados/cTurno1"),  { titulo: "T1",    corpo: "x", ativo: true,  segmento: { tipo: "turno", valores: [1] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 20 });
-    await setDoc(doc(db, "comunicados/cInativo"), { titulo: "Off",   corpo: "x", ativo: false, segmento: { tipo: "todos", valores: [] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 80 });
+    // comunicados (segmentos: todos / turno:[1] / setor:[PREPARAÇÃO] / despublicado)
+    await setDoc(doc(db, "comunicados/cTodos"),     { titulo: "Geral", corpo: "x", ativo: true,  segmento: { tipo: "todos", valores: [] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 80 });
+    await setDoc(doc(db, "comunicados/cTurno1"),    { titulo: "T1",    corpo: "x", ativo: true,  segmento: { tipo: "turno", valores: [1] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 20 });
+    await setDoc(doc(db, "comunicados/cSetorPrep"), { titulo: "Prep",  corpo: "x", ativo: true,  segmento: { tipo: "setor", valores: ["PREPARAÇÃO"] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 29 });
+    await setDoc(doc(db, "comunicados/cInativo"),   { titulo: "Off",   corpo: "x", ativo: false, segmento: { tipo: "todos", valores: [] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 80 });
 
     // documentos (institucional publicado / rascunho / pessoal meu / pessoal de terceiro)
     const anexo = (n) => ({ url: "https://drive.google.com/file/d/" + n, nome: n + ".pdf", hashSha256: n });
@@ -58,6 +62,7 @@ after(async () => { await env.cleanup(); });
 const colab    = () => env.authenticatedContext("uColab").firestore();
 const colabSV  = () => env.authenticatedContext("uColabSemVinc").firestore();
 const colabT1  = () => env.authenticatedContext("uColabT1").firestore();
+const colabT2  = () => env.authenticatedContext("uColabT2").firestore();
 const rh       = () => env.authenticatedContext("uRh").firestore();
 
 // ---- funcionarios ----
@@ -119,6 +124,12 @@ test("colaborador do turno 1 LÊ comunicado turno:[1]", async () =>
   assertSucceeds(getDoc(doc(colabT1(), "comunicados/cTurno1"))));
 test("colaborador SEM turno NÃO lê comunicado turno:[1] (fail-safe)", async () =>
   assertFails(getDoc(doc(colab(), "comunicados/cTurno1"))));
+test("colaborador do turno 2 NÃO lê comunicado turno:[1] (turno-2 != turno-1, shapes reais)", async () =>
+  assertFails(getDoc(doc(colabT2(), "comunicados/cTurno1"))));
+test("colaborador do setor PREPARAÇÃO LÊ comunicado setor:[PREPARAÇÃO] (maiúsculas reais)", async () =>
+  assertSucceeds(getDoc(doc(colabT2(), "comunicados/cSetorPrep"))));
+test("colaborador de outro setor NÃO lê comunicado setor:[PREPARAÇÃO]", async () =>
+  assertFails(getDoc(doc(colabT1(), "comunicados/cSetorPrep"))));
 test("RH lê qualquer comunicado, inclusive despublicado (gestor)", async () =>
   assertSucceeds(getDoc(doc(rh(), "comunicados/cInativo"))));
 test("colaborador NÃO cria comunicado (sem cap)", async () =>
