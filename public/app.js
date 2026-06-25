@@ -907,20 +907,45 @@ function cpStationHtml(f, idx, foco) {
     <div class="cp-col__cards">${items.map(cpTileHtml).join("")}</div>
   </div>`;
 }
+function cpRoadmapFocoIdx() {
+  const R = window.ROADMAP;
+  const itensDe = (id) => R.itens.filter((x) => x.fase === id);
+  // Fase em foco = a primeira com algo em andamento; senão a primeira não 100% concluída.
+  for (let i = 0; i < R.fases.length; i++) if (itensDe(R.fases[i].id).some((x) => x.status === "em_andamento")) return i;
+  for (let i = 0; i < R.fases.length; i++) { const it = itensDe(R.fases[i].id); if (it.length && it.some((x) => x.status !== "concluido")) return i; }
+  return 0;
+}
 function renderPortalRoadmap() {
   const view = $("#view");
   const R = window.ROADMAP;
   if (!R || !R.itens) { view.innerHTML = `<div class="cp-stub"><p>Roadmap indisponível.</p></div>`; return; }
   const s = cpRoadmapStats();
+  const foco = cpRoadmapFocoIdx();
   view.innerHTML = `
     <header class="page-header"><div><h1>Roadmap do Portal</h1><p class="muted">O que já existe, o que está sendo construído e o que vem por aí.</p></div></header>
     <div class="cp-rm-gp"><div class="cp-rm-gp__top"><span>Progresso geral</span><b>${s.done} de ${s.total} · ${s.pct}%</b></div><div class="cp-pbar"><div class="cp-pbar__fill" style="width:${s.pct}%"></div></div></div>
-    <p class="cp-rm-hint">← arraste → para percorrer as fases</p>
+    <p class="cp-rm-hint" id="cp-rm-hint">← arraste → para percorrer as fases</p>
     <div class="cp-rm-scroller"><div class="cp-rm-track">
       <div class="cp-road"><div class="cp-road__fill" style="width:${s.pct}%"></div></div>
-      ${R.fases.map((f, i) => cpStationHtml(f, i, i === 0)).join("")}
+      ${R.fases.map((f, i) => cpStationHtml(f, i, i === foco)).join("")}
     </div></div>`;
   view.querySelectorAll(".cp-tile[data-id]").forEach((b) => b.addEventListener("click", () => openRoadmapDetalhe(b.dataset.id)));
+  // Foco na fase atual + indicador "fase X de N" que acompanha o arraste.
+  const scroller = view.querySelector(".cp-rm-scroller");
+  const cols = [...view.querySelectorAll(".cp-col")];
+  const hint = view.querySelector("#cp-rm-hint");
+  const atualizaHint = () => {
+    if (!hint || !cols.length || !scroller) return;
+    const mid = scroller.scrollLeft + scroller.clientWidth / 2;
+    let best = 0, bd = Infinity;
+    cols.forEach((c, i) => { const cc = c.offsetLeft + c.offsetWidth / 2, d = Math.abs(cc - mid); if (d < bd) { bd = d; best = i; } });
+    const f = R.fases[best];
+    hint.innerHTML = `Fase ${best + 1} de ${R.fases.length} · ${escapeHtml(f.nome)} &nbsp; <span style="opacity:.6">← arraste →</span>`;
+  };
+  if (scroller) {
+    scroller.addEventListener("scroll", () => requestAnimationFrame(atualizaHint), { passive: true });
+    requestAnimationFrame(() => { const c = cols[foco]; if (c) scroller.scrollLeft = Math.max(0, c.offsetLeft - 8); atualizaHint(); });
+  }
 }
 function openRoadmapDetalhe(id) {
   const R = window.ROADMAP; if (!R) return;

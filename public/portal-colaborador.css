@@ -113,11 +113,11 @@
 .cp-rm-gp__top{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;color:#5A6B54;margin-bottom:5px}
 .cp-rm-gp__top b{font-size:13px;font-weight:700;color:#006328;font-variant-numeric:tabular-nums}
 .cp-rm-hint{font-size:11px;color:#5A6B54;margin:12px 2px 0}
-.cp-rm-scroller{overflow-x:auto;overflow-y:hidden;padding:34px 0 14px;-webkit-overflow-scrolling:touch}
+.cp-rm-scroller{overflow-x:auto;overflow-y:hidden;padding:34px 0 14px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
 .cp-rm-track{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,290px);gap:18px;width:max-content;min-width:100%;padding-top:8px}
 .cp-road{position:absolute;left:0;right:0;top:32px;height:4px;border-radius:2px;background:#EEF3EC;overflow:hidden;z-index:0}
 .cp-road__fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#008835,#1AA34F);transition:width .9s cubic-bezier(.4,0,.2,1)}
-.cp-col{position:relative;z-index:1;display:flex;flex-direction:column}
+.cp-col{position:relative;z-index:1;display:flex;flex-direction:column;scroll-snap-align:start}
 .cp-col__head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
 .cp-node{width:46px;height:46px;border-radius:50%;background:conic-gradient(#008835 var(--pct,0%),#EEF3EC 0);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,40,20,.12);position:relative}
 .cp-node__in{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#006328}
@@ -164,6 +164,10 @@
 .cp-mod-sec li{font-size:13px;line-height:1.5;color:#1E2D1A;display:flex;gap:8px;align-items:flex-start}
 .cp-mod-sec li::before{content:"";flex:none;width:15px;height:15px;margin-top:2px;border-radius:4px;border:1.6px solid #D8E2D3}
 .cp-mod-deps li::before{border-radius:50%;border-style:dashed}
+@media (max-width:480px){
+  .cp-rm-scroller{scroll-snap-type:x mandatory}
+  .cp-rm-track{grid-auto-columns:82vw;gap:14px}
+}
 @media (prefers-reduced-motion:reduce){.cp-pbar__fill,.cp-road__fill,.acesso__half,.cp-atalho,.cp-tile{transition:none}}
 
 /* ---- Login do colaborador (CPF) — extras ---- */
