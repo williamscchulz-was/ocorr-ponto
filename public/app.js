@@ -4414,7 +4414,7 @@ function renderDocumentos() {
       <div class="empty">
         <div class="empty__icon">${icon("file")}</div>
         <h3>Nenhum documento publicado</h3>
-        <p>Publique o primeiro documento institucional. Voce acompanha leitura e assinatura por aqui.</p>
+        <p>Publique o primeiro documento institucional. Você acompanha leitura e assinatura por aqui.</p>
         <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Criar primeiro documento</span></button>
       </div>`;
     return;
@@ -4499,6 +4499,7 @@ function openDocumentoModal(id) {
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body" id="doc-form" onsubmit="return false">
+      ${(d && d.status === "publicado" && d.exigeAssinatura) ? `<div class="doc-warn">${icon("alert")}<span>Documento publicado com assinatura. Para trocar conteúdo ou segmento use Nova versão (reabre a assinatura). Aqui você ajusta só a descrição.</span></div>` : ""}
       <div class="field">
         <label for="doc-titulo">Titulo</label>
         <input type="text" id="doc-titulo" maxlength="140" value="${d ? escapeHtml(d.titulo) : ""}" placeholder="Ex.: Codigo de conduta 2026" />
