@@ -235,3 +235,21 @@ Correção da entrada anterior (que listava como "opcional" desativar a liberaç
 - **Pedido do PC:** provisionar 1 login de teste do Portal pro William Schulz (diretor) — ele queria testar o portal antes do alfa. Como diretoria = "sem acesso" (não cria + revoga), criar simples não bastava (a sync diária revogaria).
 - **Solução:** `ALLOWLIST_PORTAL = ['1029']` no `sync-colaborador-users.mjs` — códigos nela **bypassam** a exclusão por categoria (criam e **nunca são revogados**). William (f-1029) provisionado: `role:colaborador`, `ativo:true`, `precisaTrocarSenha:true`, sem PII no `users`. Match inequívoco (único "William Schulz" diretor; o "William Pereira Sehn" cód 1244 é outro, já tem login do backfill). Idempotência confirmada (re-run: 0 criados/0 revogados). Total colaboradores ativos: **87**. Reporte sem PII no bridge (`inbox-pc/2026-06-24-provisionado-login-teste-william.md`).
 - **🐞 Bug aberto (do lado do app/PC):** colaborador (Jenifer f-671) loga, **troca a senha com sucesso, mas NÃO entra no app**. Dado 100% correto (verificado: ativo, precisaTrocarSenha já false, funcionario existe). Logo é o **fluxo de boot pós-troca** — suspeita: `permission-denied` (boot do colaborador rodando leitura ampla que as rules SELF bloqueiam) ou home real do colaborador não ligada. Diagnóstico fino em andamento (workflow). William vai bater no mesmo até o PC corrigir.
+
+---
+
+## 2026-06-25 · 🔗 WKBackup é gatilho-chave do RAID 100% + alerta de espaço no E:
+
+Investigando `E:\WKRadar\Backup` (HD ocioso, fora do RAID — leitura segura), achado que **liga as duas pontas** com a investigação do RAID 100% (29/05):
+
+- **O `WKBackup.exe` lê o banco INTEIRO do ERP do RAID SSD (D:) via VSS e copia pro E:.** Por execução: **~72 GB / ~430 mil arquivos** (o grosso é "Fiobras 2012" = **64 GB em 317.349 arquivos minúsculos**). Duração **~53 min** (11:55→12:48 no log de 25/06). **Roda 2×/dia (11:55 e 18:30)** → ~144 GB/dia lidos do RAID + escritos no E:.
+- **Por que importa pro 100%:** ler ~317 mil arquivos pequenos do SSD é o **pior caso de I/O aleatório** pros BX500 QLC. 2×/dia por ~1h **em horário de expediente** = forte gatilho dos resets de controlador (evt 129). Os 4 resets das ~12h (histograma 90d) caem na janela do backup; as VSS shadow copies noturnas dos eventos 51 são desse backup.
+- **Backup saudável:** log termina "concluído com Sucesso, 0 perdidos". Os ~17 mil "erros" do log são **falso positivo** (nomes de pasta `NFe\Emissao\Erro(s)`). Logs de 156 MB = verbosos (registram cada arquivo), não é bug.
+- **⚠️ Espaço no E::** 92% usado, **301 GB livres** (eram 640 em 29/05 → −340 GB em 27 dias). Pasta de backup ≈ **2,9 TB** (~41 execuções × 72 GB), dominante no E:. Retenção observada ~21 dias (mais antigo 04/06).
+- **Agendamento:** Windows Task Scheduler só tem o gatilho das **11:55** (tarefa "WKRADAR - Backup", sem repetição). O das **18:30 NÃO está no Task Scheduler** → provável **agendador interno do ERP WK** (ou tarefa só visível com admin). A confirmar.
+
+**Recomendações (alavancam o RAID 100% + espaço), a validar com William/WK antes de mexer:**
+1. **Mover o(s) backup(s) pra madrugada** (fora do expediente, escalonado do Windows Backup das 01:00) → tira ~2h/dia de leitura pesada do RAID de cima dos usuários do ERP = menos stall diurno.
+2. **Reavaliar rodar 2×/dia.** 1×/dia à noite provavelmente basta → corta pela metade a carga no RAID e a escrita no E:.
+3. **Encurtar retenção** (ex.: 21→10 dias) libera ~1,4 TB no E: (92% é zona de perigo).
+4. Não alterar config de backup sem aval (é recuperação/compliance do ERP). Schedule/retenção podem estar dentro do WKBackup ou do ERP.
