@@ -242,6 +242,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ----- banco-horas-self (saldo SELF do colaborador · SEM PII · doc por código) -----
+    // Populado pelo pipeline (servidor). Colaborador lê SÓ o próprio (codigo == seu codigo);
+    // admin/RH leem qualquer um. string() coage o codigo do users/{uid} (pode vir number) pro id.
+    match /banco-horas-self/{codigo} {
+      allow read: if isAdmin() || isRH()
+                  || (isColaborador() && 'codigo' in userDoc() && string(userDoc().codigo) == codigo);
+      allow write: if false;
+    }
+
     // ----- pipeline-rh (estrutura cur/hist · espelho do Comercial · SEM PII) -----
     match /pipeline-rh/{docId} {
       allow read: if isAdmin() || isRH();

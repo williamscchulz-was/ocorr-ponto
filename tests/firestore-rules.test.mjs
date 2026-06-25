@@ -23,8 +23,8 @@ before(async () => {
   // Semeia dados ignorando as rules (estado inicial).
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, "users/uColab"),        { role: "colaborador", funcionarioId: "f-100", nome: "Maria" });
-    await setDoc(doc(db, "users/uColab2"),       { role: "colaborador", funcionarioId: "f-200", nome: "Ana" });
+    await setDoc(doc(db, "users/uColab"),        { role: "colaborador", funcionarioId: "f-100", codigo: 100, nome: "Maria" });
+    await setDoc(doc(db, "users/uColab2"),       { role: "colaborador", funcionarioId: "f-200", codigo: 200, nome: "Ana" });
     await setDoc(doc(db, "users/uColabSemVinc"), { role: "colaborador", nome: "Sem Vinculo" });
     await setDoc(doc(db, "users/uRh"),           { role: "rh", nome: "GH" });
     await setDoc(doc(db, "funcionarios/f-100"), { nome: "Maria", nascimento: "1990-07-14" });
@@ -32,6 +32,8 @@ before(async () => {
     await setDoc(doc(db, "ocorrencias/o100"), { funcionarioId: "f-100", funcionarioTurno: 1, tipo: "falta" });
     await setDoc(doc(db, "ocorrencias/o200"), { funcionarioId: "f-200", funcionarioTurno: 2, tipo: "falta" });
     await setDoc(doc(db, "banco-horas-saldos/f-100"), { cpf: "000.000.000-00", saldoMin: 150 });
+    await setDoc(doc(db, "banco-horas-self/100"), { saldoMin: 30, saldoFormatado: "+00:30" });
+    await setDoc(doc(db, "banco-horas-self/200"), { saldoMin: -24, saldoFormatado: "-00:24" });
   });
 });
 
@@ -78,3 +80,15 @@ test("colaborador NÃO lê banco-horas-saldos (PII, nem o próprio)", async () =
   assertFails(getDoc(doc(colab(), "banco-horas-saldos/f-100"))));
 test("RH lê banco-horas-saldos (sem regressão)", async () =>
   assertSucceeds(getDoc(doc(rh(), "banco-horas-saldos/f-100"))));
+
+// ---- banco-horas-self (saldo SELF, SEM PII · doc por código) ----
+test("colaborador LÊ o próprio banco-horas-self (codigo coagido)", async () =>
+  assertSucceeds(getDoc(doc(colab(), "banco-horas-self/100"))));
+test("colaborador NÃO lê banco-horas-self de terceiro", async () =>
+  assertFails(getDoc(doc(colab(), "banco-horas-self/200"))));
+test("colaborador SEM código não lê banco-horas-self (fail-safe)", async () =>
+  assertFails(getDoc(doc(colabSV(), "banco-horas-self/100"))));
+test("RH lê banco-horas-self (sem regressão)", async () =>
+  assertSucceeds(getDoc(doc(rh(), "banco-horas-self/100"))));
+test("colaborador NÃO escreve banco-horas-self", async () =>
+  assertFails(setDoc(doc(colab(), "banco-horas-self/100"), { saldoMin: 999 })));
