@@ -8,7 +8,7 @@
 //  - activate purga TODO cache com nome != CACHE atual. Bumpar CACHE a
 //    cada deploy que mexa em SW/estratégia (segue o ?v= do index.html).
 
-const CACHE = "fiopulse-v176";
+const CACHE = "fiopulse-v177";
 
 self.addEventListener("install", () => {
   self.skipWaiting(); // ativa imediato, sem esperar abas antigas

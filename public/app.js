@@ -701,8 +701,44 @@ function cpIcon(name) {
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/>',
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
     info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
+}
+
+// ---- Tema (claro/escuro) do Portal do Colaborador ----
+// Padrão: segue o sistema (prefers-color-scheme). Se o colaborador escolher, lembra em localStorage.
+// Só vale no colaborador: o dark mode no CSS é gated por html.modo-colab.cp-dark.
+function cpAplicarTema() {
+  let pref = null; try { pref = localStorage.getItem("fiopulse:tema"); } catch {}
+  const escuro = pref ? pref === "escuro" : !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("cp-dark", escuro);
+}
+function cpAtualizarBotaoTema() {
+  const btn = document.getElementById("cp-tema-btn"); if (!btn) return;
+  const escuro = document.documentElement.classList.contains("cp-dark");
+  btn.innerHTML = cpIcon(escuro ? "sun" : "moon");
+  btn.title = escuro ? "Mudar para tema claro" : "Mudar para tema escuro";
+}
+function cpToggleTema() {
+  const escuro = !document.documentElement.classList.contains("cp-dark");
+  document.documentElement.classList.toggle("cp-dark", escuro);
+  try { localStorage.setItem("fiopulse:tema", escuro ? "escuro" : "claro"); } catch {}
+  cpAtualizarBotaoTema();
+}
+function cpInjetarToggleTema() {
+  const tb = document.querySelector(".topbar"); if (!tb) return;
+  let btn = document.getElementById("cp-tema-btn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.id = "cp-tema-btn"; btn.className = "cp-tema"; btn.type = "button";
+    btn.style.marginLeft = "auto";
+    btn.setAttribute("aria-label", "Alternar tema claro ou escuro");
+    btn.addEventListener("click", cpToggleTema);
+    tb.appendChild(btn);
+  }
+  cpAtualizarBotaoTema();
 }
 
 // Mapas de exibição do Roadmap (cores em hex — não dependem de tokens do app).
@@ -723,6 +759,8 @@ function cpRoadmapStats() {
 function renderPortalColaborador(u) {
   // Modo colaborador: esconde o chrome de gestor (chat #chat-fab, FAB #fab, presença).
   document.documentElement.classList.add("modo-colab");
+  cpAplicarTema();
+  cpInjetarToggleTema();
   aplicarAvatar($("#user-avatar"), u);
   $("#user-name").textContent = u.nome;
   $("#user-role").textContent = "Colaborador";
