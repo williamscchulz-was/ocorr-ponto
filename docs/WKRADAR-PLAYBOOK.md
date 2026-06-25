@@ -208,4 +208,18 @@ Repo app:     C:\ocorr-ponto-repo\ (github.com/williamscchulz-was/ocorr-ponto)
 
 ---
 
+## 9. Denormalização p/ segmentação (users/{uid}.setor + .turno) — 2026-06-26
+
+O Portal segmenta Comunicados/Documentos por **turno** e **setor** via rule `casaSegmento` (escrita/testada pelo app, Emulator verde). O **pipeline** alimenta 2 campos não-PII em `users/{uid}` a partir de `funcionarios`:
+- `setor` = `funcionarios.setor` (departamento) || `null`
+- `turno` = `funcionarios.turno`, **tipo canônico preservado SEM coerção**
+
+**Mapa canônico de turno:** `1=Matutino` · `2=Vespertino` · `3=Noturno` (números) · `'geral'=Todos` (string) · `null`=sem turno. Em produção convivem `number` (1/2/3) e `string` ('geral') — **não converter** (a rule compara por tipo; coagir quebra a segmentação).
+
+**Onde:** `sync-colaborador-users.mjs` grava na criação/reativação e mantém fresco a cada run (self-heal). `backfill-users-segmentacao.mjs` é o one-shot que populou os já-existentes (idempotente, sem disco, sem PII).
+
+**Regra de ouro:** `users` nunca recebe CPF/PIS/nascimento — só `setor`/`turno` (não-PII) entram pra segmentação. Setores reais vêm em MAIÚSCULAS (ex.: PREPARAÇÃO, REPASSE, DIRETOS BENEFICIAMENTO).
+
+---
+
 *Esse playbook é vivo. Quando aprender algo novo sobre o WK Radar, adicione aqui.*

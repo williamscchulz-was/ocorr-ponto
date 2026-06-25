@@ -289,3 +289,23 @@ Tentativa de rodar `-Apply` com o usuário comum do William deu **"Acesso negado
 Implicação: a limpeza **só funciona** rodando como SYSTEM (via tarefa agendada) ou numa janela admin. O script agora detecta esse caso e imprime uma mensagem clara no resumo.
 
 **Plano:** William roda `REGISTRAR-tarefa-agendada-ADMIN.ps1` numa janela admin (cria a tarefa SYSTEM). Pra liberar os ~864 GB AGORA sem esperar 02:00, ele pode disparar a tarefa manualmente no Task Scheduler depois de criada (botão "Executar"), ou rodar `limpa-backup-antigo.ps1 -Apply` na própria janela admin.
+
+---
+
+## 2026-06-26 — Denormalização setor/turno em users/{uid} (pré-requisito da segmentação de Comunicados/Documentos)
+
+**O quê:** o Pacote Gestor (Comunicados + Documentos institucionais) segmenta por turno e por setor, mas a rule `casaSegmento` lê `users/{uid}.setor` e `users/{uid}.turno` — campos que não existiam. Sem eles, qualquer comunicado segmentado (≠ "todos") negava todo mundo.
+
+**Solução (lado pipeline, WKRADAR):**
+- `sync-colaborador-users.mjs`: denormaliza em `users/{uid}` **só 2 campos não-PII** — `setor` (= `funcionarios.setor`/departamento) e `turno` (= `funcionarios.turno`, **tipo canônico preservado, SEM coerção**). Grava na criação e na reativação, e **mantém fresco a cada run** (self-heal: reescreve se o setor/turno do funcionário mudou).
+- `backfill-users-segmentacao.mjs` (one-shot): populou os **91 colaboradores** já existentes. Idempotente (re-dry = 0 atualizados / 91 já ok), lê só Firestore (funcionarios + users), sem varrer disco, sem PII.
+
+**Mapa canônico de turno (CONTRATO com a rule):** `1=Matutino, 2=Vespertino, 3=Noturno` (números) · `'geral'=Todos` (string) · `null`=sem turno. Confirmado em produção: convivem `number` (1/2/3) e `string` ('geral') — o pipeline passa adiante **sem converter** (a rule compara por tipo).
+
+**LGPD:** `users` segue sem CPF/PIS/nascimento; `setor`/`turno` não são PII.
+
+**Não mexeu em rule:** a rule de segmentação já estava escrita/testada pelo PC (Emulator verde). O pipeline só alimenta os campos.
+
+**Raciocínio:** denormalizar em `users` (em vez de a rule cruzar com `funcionarios`) mantém a regra barata (1 get do próprio doc) e evita o colaborador ler `funcionarios` de terceiros. Self-heal evita segmentação velha quando alguém troca de turno/setor.
+
+**Achado pro PC:** os setores reais vêm em MAIÚSCULAS (PREPARAÇÃO, REPASSE, DIRETOS BENEFICIAMENTO, ADMINISTRAÇÃO, ...). O dropdown de setor do compositor tem que usar esses valores exatos (o mock usava "Produção"/"Administrativo", que não casam) — montar a partir dos setores distintos reais.
