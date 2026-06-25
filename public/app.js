@@ -692,6 +692,8 @@ const PREVIEW_COLAB_ID = "__preview-colab";
 function entrarPreviewColaborador() {
   state.users = [{ id: PREVIEW_COLAB_ID, nome: "Maria Aparecida Silva", role: "colaborador", preview: true }];
   state.currentUserId = PREVIEW_COLAB_ID;
+  // Funcionário de exemplo só pra prévia visual (a home real lê state.funcionarios[0]).
+  state.funcionarios = [{ id: PREVIEW_COLAB_ID, nome: "Maria Aparecida Silva", cargo: "Costureira", setor: "Costura", turno: "1", diasNaEmpresa: 2310, aniversarioDia: 14, aniversarioMes: 7 }];
   state.view = { page: "colab-roadmap" };
   document.documentElement.classList.add("modo-colab", "modo-preview");
   $("#acesso")?.classList.add("hidden");
@@ -700,7 +702,7 @@ function entrarPreviewColaborador() {
   renderApp();
 }
 function sairPreviewColaborador(silent) {
-  if (state.currentUserId === PREVIEW_COLAB_ID) { state.currentUserId = null; state.users = []; }
+  if (state.currentUserId === PREVIEW_COLAB_ID) { state.currentUserId = null; state.users = []; state.funcionarios = []; }
   document.documentElement.classList.remove("modo-colab", "modo-preview");
   if (!silent) mostrarAcesso();
 }
@@ -716,6 +718,7 @@ function cpIcon(name) {
     roadmap: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/>',
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -821,51 +824,34 @@ function renderColabStub(titulo, msg, ic) {
 
 function renderColaboradorHome() {
   const view = $("#view");
+  const u = currentUser();
+  // Dados reais do próprio funcionário (carregado no boot: state.funcionarios[0] = só o doc dele).
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const nome = (f && f.nome) || (u && u.nome) || "";
+  const primeiro = nome.trim().split(/\s+/)[0] || "";
+  const cargoSetor = [f && f.cargo, f && f.setor].filter(Boolean).join(" · ") || "—";
+  const turnoLabel = (f && f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label : null;
+  const tempo = (f && f.diasNaEmpresa) ? tempoDeCasa(f.diasNaEmpresa) : null;
+  const aniv = (f && f.aniversarioDia && f.aniversarioMes)
+    ? `${String(f.aniversarioDia).padStart(2, "0")}/${String(f.aniversarioMes).padStart(2, "0")}` : null;
+  const metas = [];
+  if (turnoLabel) metas.push(turnoLabel);
+  if (tempo) metas.push(`Há ${tempo} na Fiobras`);
+  if (aniv) metas.push(`Aniversário ${aniv}`);
   const rm = cpRoadmapStats();
   view.innerHTML = `
-    <div class="cp-hi"><h1>Olá, Maria</h1><p>Bom te ver por aqui.</p></div>
+    <div class="cp-hi"><h1>Olá, ${escapeHtml(primeiro)}</h1><p>Bem vindo ao seu portal.</p></div>
     <div class="cp-idc">
-      <div class="cp-idc__av">MA</div>
+      <div class="cp-idc__av">${escapeHtml(initials(nome || "?"))}</div>
       <div class="cp-idc__main">
-        <div class="cp-idc__nome">Maria Aparecida Silva</div>
-        <div class="cp-idc__cargo">Costureira · Costura</div>
-        <div class="cp-idc__meta">
-          <span class="cp-tagm">1º turno</span>
-          <span class="cp-tagm">Há 6 anos na Fiobras</span>
-          <span class="cp-tagm">Aniversário 14/07</span>
-        </div>
+        <div class="cp-idc__nome">${escapeHtml(nome || "—")}</div>
+        <div class="cp-idc__cargo">${escapeHtml(cargoSetor)}</div>
+        ${metas.length ? `<div class="cp-idc__meta">${metas.map((m) => `<span class="cp-tagm">${escapeHtml(m)}</span>`).join("")}</div>` : ""}
       </div>
     </div>
-    <div class="cp-kpis">
-      <div class="cp-kpi">
-        <div class="cp-kpi__lab">${cpIcon("clock")}<span>Banco de horas</span></div>
-        <div class="cp-kpi__val pos">+02:30</div>
-        <div class="cp-kpi__hint">saldo atual</div>
-      </div>
-      <button class="cp-kpi cp-kpi--act" data-nav="colab-documentos">
-        <div class="cp-kpi__lab">${cpIcon("file")}<span>Documentos</span></div>
-        <div class="cp-kpi__val"><span class="cp-pill">1 a assinar</span></div>
-        <div class="cp-kpi__hint">toque para ver</div>
-      </button>
-    </div>
-    <div class="cp-sec"><h2>Atalhos</h2></div>
-    <div class="cp-atalhos">
-      <button class="cp-atalho" data-nav="colab-ponto"><span class="cp-atalho__ic">${cpIcon("clock")}</span><span class="cp-atalho__t">Meu Ponto</span><span class="cp-atalho__s">Saldo e espelho</span></button>
-      <button class="cp-atalho" data-nav="colab-comunicados"><span class="cp-badge">2 novos</span><span class="cp-atalho__ic">${cpIcon("megafone")}</span><span class="cp-atalho__t">Comunicados</span><span class="cp-atalho__s">Avisos do GH</span></button>
-      <button class="cp-atalho" data-nav="colab-documentos"><span class="cp-badge cp-badge--warn">1 a assinar</span><span class="cp-atalho__ic">${cpIcon("file")}</span><span class="cp-atalho__t">Documentos</span><span class="cp-atalho__s">Holerites e termos</span></button>
-      <button class="cp-atalho" data-nav="colab-roadmap"><span class="cp-atalho__ic">${cpIcon("roadmap")}</span><span class="cp-atalho__t">Roadmap</span><span class="cp-atalho__s">Evolução do portal</span></button>
-    </div>
-    <div class="cp-sec"><h2>Comunicado em destaque</h2></div>
-    <button class="cp-com" data-nav="colab-comunicados">
-      <div class="cp-com__top"><span class="cp-com__tag">${cpIcon("megafone")}<span>Fixado</span></span><span class="cp-com__new"></span></div>
-      <div class="cp-com__t">Mudança no horário do refeitório</div>
-      <div class="cp-com__p">A partir de segunda (30/06), o 1º turno almoça das 11h20 às 12h10. Confira a nova escala completa e confirme a leitura.</div>
-    </button>
-    <div class="cp-sec"><h2>Aniversariantes do mês</h2></div>
-    <div class="cp-aniv">
-      <div class="cp-aniv__row"><span class="cp-aniv__av">JC</span><span class="cp-aniv__nome">João Carlos Ferreira</span><span class="cp-aniv__hoje">hoje</span></div>
-      <div class="cp-aniv__row"><span class="cp-aniv__av">AS</span><span class="cp-aniv__nome">Ana Souza</span><span class="cp-aniv__data">26/06</span></div>
-      <div class="cp-aniv__row"><span class="cp-aniv__av">RL</span><span class="cp-aniv__nome">Rafael Lima</span><span class="cp-aniv__data">29/06</span></div>
+    <div class="cp-aviso">
+      <span class="cp-aviso__ic">${cpIcon("info")}</span>
+      <span class="cp-aviso__tx"><b>Seu portal está começando.</b> Por aqui você confere seus dados de cadastro e acompanha a evolução no Roadmap. Banco de horas, comunicados e documentos chegam nas próximas fases.</span>
     </div>
     <div class="cp-sec"><h2>Roadmap do Portal</h2></div>
     <button class="cp-rmcard" data-nav="colab-roadmap">
