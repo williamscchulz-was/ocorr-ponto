@@ -22,7 +22,7 @@
 | 1 | **Início (home)** | `colaborador-home-mobile.html` · `colaborador-home-desktop.html` | ✅ aprovada |
 | 2 | **Meu Banco de Horas** | `colaborador-banco-horas.html` | ✅ desenhada |
 | 3 | **Comunicados (lista + leitura)** | `colaborador-comunicados.html` | ✅ desenhada |
-| 4 | Documentos / assinatura | — | a desenhar |
+| 4 | **Documentos / assinatura** | `colaborador-documentos-v2.html` (lista) + modal | ✅ desenhada |
 | 5 | Holerites | — | a desenhar |
 | 6 | Conta / perfil | — | a desenhar |
 | 7 | Acesso + login (CPF) | — | a desenhar |
@@ -38,3 +38,7 @@ Abre ao tocar no card de BH (vive dentro de "Ponto"). Topbar com voltar. **Hero*
 ### 3. Comunicados
 Tab "Avisos". Filtro Todos / Não lidos. **Fixado** em destaque (borda verde). Comunicado que exige confirmação mostra botão **"Confirmo que li"** (grava recibo → prova de leitura). Não-lido = pontinho azul; lido = discreto + "Lido em DD/MM". Chip de segmento (Todos / 1º turno / setor).
 **Bind (a criar no back):** coleção `comunicados/{id}` (titulo, corpo, segmento, fixado, requerConfirmacao, publicadoEm) + recibo `comunicados/{id}/leituras/{uid}` (hora-servidor). Hoje = placeholder.
+
+### 4. Documentos / assinatura
+Tab "Docs". **Pendente de assinatura em destaque** (âmbar) com "Ler e assinar". Filtro Todos / Holerites / Recibos / Termos. Lista: holerites + espelho + recibos (PDF, baixar) e termos com selo "Assinado em DD/MM". **Modal de assinatura** (bottom-sheet): texto do documento + checkbox "Li e estou de acordo" + botão "Assinar" + nota de **trilha** (usuário + data/hora). (`colaborador-documentos-v2.html`; o `colaborador-documentos.html` é o preview antigo do PC.)
+**Bind (a criar no back):** `documentos/{id}` (tipo, funcionarioId, url Drive, hashSha256, status, exigeAssinatura) + `documentos/{id}/assinaturas/{uid}` (hash, uid, hora-servidor, userAgent) — roadmap #29/#30. Holerites/espelho por upload do RH (#18/#15). Hoje = placeholder.

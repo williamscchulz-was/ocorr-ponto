@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Documentos (colaborador · v2 responsivo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#1A211A;font-family:"Poppins",ui-sans-serif,system-ui,sans-serif;padding:18px;display:flex;justify-content:center}
+.dp{position:relative;width:330px;background:#0E130E;border:1px solid #283027;border-radius:28px;overflow:hidden;color:#E9F0E5;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.dp *{box-sizing:border-box}
+.dt{display:flex;align-items:center;gap:10px;padding:13px 14px;background:#141A14;border-bottom:1px solid #222A21}
+.dt .mn{font-size:21px;color:#CFE0C6}
+.dt b{font-size:14.5px;font-weight:600}
+.dt .tg{margin-left:auto;width:30px;height:30px;border-radius:50%;background:#1E261D;border:1px solid #2C362B;color:#CFE0C6;display:flex;align-items:center;justify-content:center;font-size:15px}
+.dt .av{width:32px;height:32px;border-radius:50%;background:#1AA34F;color:#06210F;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.dv{padding:15px 14px 96px}
+.pend{background:#1C1710;border:1px solid #4A3A1C;border-radius:15px;padding:14px 15px;margin-bottom:16px}
+.pend__h{display:flex;align-items:center;gap:7px;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#E8B468}
+.pend__t{font-size:14px;font-weight:600;color:#F0E6D6;margin-top:6px}
+.pend__p{font-size:11px;color:#B79B76;line-height:1.5;margin-top:4px}
+.pend__b{margin-top:11px;width:100%;border:0;border-radius:11px;background:#1AA34F;color:#06210F;font-family:inherit;font-size:12.5px;font-weight:600;padding:11px;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+.flt{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+.fl{font-size:10.5px;font-weight:500;padding:6px 12px;border-radius:999px;background:#161D15;border:1px solid #232C22;color:#94A38D;cursor:pointer}
+.fl.on{background:#193220;border-color:#235235;color:#6FD08C;font-weight:600}
+.lst{background:#161D15;border:1px solid #232C22;border-radius:14px;overflow:hidden}
+.dr{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid #1E261D;cursor:pointer}
+.dr:first-child{border-top:0}
+.dr__ic{width:38px;height:38px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px;background:#1E261D;color:#9FB397}
+.dr__ic.pdf{background:#2A1A1A;color:#E08A7A}
+.dr__t{font-size:12.5px;font-weight:500;color:#E4ECDF}
+.dr__s{font-size:10.5px;color:#94A38D;margin-top:1px}
+.dr__r{margin-left:auto;display:flex;align-items:center;gap:4px}
+.dr__dl{color:#7E8C78;font-size:20px}
+.dr__ok{font-size:10px;font-weight:600;color:#6FD08C;display:flex;align-items:center;gap:4px;background:#16261B;padding:4px 9px;border-radius:999px}
+.nav{position:absolute;left:30px;right:30px;bottom:16px;height:56px;background:#171E16;border:1px solid #2A332A;border-radius:28px;box-shadow:0 12px 28px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:space-around;padding:0 6px}
+.nav .it{color:#8A9884}
+.nav .ic{position:relative;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.nav .ic i{font-size:22px}
+.nav .on{color:#5FCB85}
+.nav .on .ic{background:#1AA34F;color:#06210F}
+.nav .nd{position:absolute;top:3px;right:5px;width:8px;height:8px;border-radius:50%;background:#1E9AE6;border:2px solid #171E16}
+</style>
+</head>
+<body>
+<div class="dp">
+  <div class="dt"><i class="ti ti-menu-2 mn"></i><b>Documentos</b><span class="tg"><i class="ti ti-sun"></i></span><span class="av">JG</span></div>
+  <div class="dv">
+    <div class="pend">
+      <div class="pend__h"><i class="ti ti-writing-sign"></i> Aguardando sua assinatura</div>
+      <div class="pend__t">Termo — Código de ética</div>
+      <div class="pend__p">Leia e assine. Sua assinatura fica registrada com data e hora (aceite com trilha).</div>
+      <button class="pend__b"><i class="ti ti-signature"></i> Ler e assinar</button>
+    </div>
+    <div class="flt"><span class="fl on">Todos</span><span class="fl">Holerites</span><span class="fl">Recibos</span><span class="fl">Termos</span></div>
+    <div class="lst">
+      <div class="dr"><span class="dr__ic pdf"><i class="ti ti-file-text"></i></span><div><div class="dr__t">Holerite — Junho 2026</div><div class="dr__s">PDF · disponível</div></div><span class="dr__r"><i class="ti ti-download dr__dl"></i></span></div>
+      <div class="dr"><span class="dr__ic pdf"><i class="ti ti-file-text"></i></span><div><div class="dr__t">Holerite — Maio 2026</div><div class="dr__s">PDF · disponível</div></div><span class="dr__r"><i class="ti ti-download dr__dl"></i></span></div>
+      <div class="dr"><span class="dr__ic"><i class="ti ti-clock-hour-4"></i></span><div><div class="dr__t">Espelho de ponto — Maio 2026</div><div class="dr__s">PDF · disponível</div></div><span class="dr__r"><i class="ti ti-download dr__dl"></i></span></div>
+      <div class="dr"><span class="dr__ic"><i class="ti ti-file-check"></i></span><div><div class="dr__t">Termo — LGPD / privacidade</div><div class="dr__s">Assinado em 12/05/2026</div></div><span class="dr__r"><span class="dr__ok"><i class="ti ti-check"></i> Assinado</span></span></div>
+      <div class="dr"><span class="dr__ic pdf"><i class="ti ti-file-text"></i></span><div><div class="dr__t">Recibo de férias 2025</div><div class="dr__s">PDF · disponível</div></div><span class="dr__r"><i class="ti ti-download dr__dl"></i></span></div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="it"><span class="ic"><i class="ti ti-home"></i></span></div>
+    <div class="it"><span class="ic"><i class="ti ti-clock-hour-4"></i></span></div>
+    <div class="it"><span class="ic"><span class="nd"></span><i class="ti ti-bell"></i></span></div>
+    <div class="it on"><span class="ic"><i class="ti ti-folder"></i></span></div>
+    <div class="it"><span class="ic"><i class="ti ti-user"></i></span></div>
+  </nav>
+</div>
+</body>
+</html>
