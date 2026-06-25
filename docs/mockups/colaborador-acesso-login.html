@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Acesso + Login (colaborador)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#1A211A;font-family:"Poppins",ui-sans-serif,system-ui,sans-serif;padding:18px}
+.lwrap{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+.col{display:flex;flex-direction:column;align-items:center;gap:9px}
+.col .cap{font-size:12px;color:#9FB397;font-weight:500}
+.lp{position:relative;width:300px;min-height:520px;background:#0E130E;border:1px solid #283027;border-radius:28px;overflow:hidden;color:#E9F0E5;box-shadow:0 18px 50px rgba(0,0,0,.5);display:flex;flex-direction:column}
+.lp *{box-sizing:border-box}
+.lhead{display:flex;align-items:center;padding:14px 16px}
+.lhead .bk{font-size:21px;color:#CFE0C6;cursor:pointer}
+.lhead .tg{margin-left:auto;width:30px;height:30px;border-radius:50%;background:#1E261D;border:1px solid #2C362B;color:#CFE0C6;display:flex;align-items:center;justify-content:center;font-size:15px}
+.lbody{flex:1;padding:8px 22px 24px;display:flex;flex-direction:column}
+.brand{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:22px}
+.brand .lf{width:54px;height:54px;border-radius:16px;background:#1AA34F;color:#06210F;display:flex;align-items:center;justify-content:center;font-size:30px}
+.brand .nm{font-size:20px;font-weight:600;margin-top:12px}
+.brand .sb{font-size:11.5px;color:#94A38D;margin-top:2px}
+.ask{font-size:12.5px;color:#AEBEA7;font-weight:500;margin-bottom:12px;text-align:center}
+.opt{display:flex;align-items:center;gap:13px;background:#161D15;border:1px solid #232C22;border-radius:16px;padding:15px;margin-bottom:11px;cursor:pointer}
+.opt.prim{border-color:#235235;background:#13201A}
+.opt__ic{width:44px;height:44px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;font-size:23px;background:#1E261D;color:#9FB397}
+.opt.prim .opt__ic{background:#1AA34F;color:#06210F}
+.opt__t{font-size:13.5px;font-weight:600;color:#EDF3EA}
+.opt__s{font-size:11px;color:#94A38D;margin-top:1px}
+.opt__go{margin-left:auto;color:#7E8C78;font-size:20px}
+.lfoot{text-align:center;font-size:10px;color:#5C6A57;margin-top:auto;padding-top:18px}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:11.5px;font-weight:500;color:#AEBEA7;margin-bottom:6px}
+.inp{display:flex;align-items:center;gap:8px;background:#10160F;border:1px solid #2A332A;border-radius:12px;padding:12px 14px}
+.inp input{flex:1;background:none;border:0;outline:0;color:#E9F0E5;font-family:inherit;font-size:14px}
+.inp input::placeholder{color:#5C6A57}
+.inp i{font-size:18px;color:#7E8C78}
+.entrar{width:100%;border:0;border-radius:12px;background:#1AA34F;color:#06210F;font-family:inherit;font-size:14px;font-weight:600;padding:13px;cursor:pointer;margin-top:4px}
+.hint{display:flex;gap:9px;background:#13201A;border:1px solid #20382A;border-radius:11px;padding:11px 13px;margin-top:16px}
+.hint i{font-size:18px;color:#6FD08C;flex:none}
+.hint span{font-size:10.5px;color:#9FC0AC;line-height:1.5}
+.demo{text-align:center;font-size:11.5px;color:#5FCB85;font-weight:500;margin-top:16px;text-decoration:underline;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="lwrap">
+  <div class="col">
+    <span class="cap">1 · Acesso</span>
+    <div class="lp">
+      <div class="lhead"><span style="flex:1"></span><span class="tg"><i class="ti ti-sun"></i></span></div>
+      <div class="lbody">
+        <div class="brand"><span class="lf"><i class="ti ti-leaf"></i></span><span class="nm">FioPulse</span><span class="sb">Fiobras · o batimento do GH</span></div>
+        <div class="ask">Como você quer entrar?</div>
+        <div class="opt prim"><span class="opt__ic"><i class="ti ti-user"></i></span><div><div class="opt__t">Portal do Colaborador</div><div class="opt__s">Entre com seu CPF</div></div><i class="ti ti-chevron-right opt__go"></i></div>
+        <div class="opt"><span class="opt__ic"><i class="ti ti-shield-lock"></i></span><div><div class="opt__t">Portal do Gestor</div><div class="opt__s">GH, líderes e administração</div></div><i class="ti ti-chevron-right opt__go"></i></div>
+        <div class="lfoot">© 2026 Fiobras · acesso restrito</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <span class="cap">2 · Login do colaborador</span>
+    <div class="lp">
+      <div class="lhead"><i class="ti ti-arrow-left bk"></i><span style="flex:1"></span><span class="tg"><i class="ti ti-sun"></i></span></div>
+      <div class="lbody">
+        <div class="brand"><span class="lf"><i class="ti ti-leaf"></i></span><span class="nm">Portal do Colaborador</span><span class="sb">Fiobras · o batimento do GH</span></div>
+        <div class="fld"><label>CPF</label><div class="inp"><i class="ti ti-id"></i><input value="000.000.000-00" readonly></div></div>
+        <div class="fld"><label>Senha</label><div class="inp"><i class="ti ti-lock"></i><input type="text" value="••••••••" readonly><i class="ti ti-eye"></i></div></div>
+        <button class="entrar">Entrar</button>
+        <div class="hint"><i class="ti ti-info-circle"></i><span>Primeiro acesso? Sua senha é a sua <b>data de nascimento</b>, só números: dia, mês e ano. Ex.: 14 de julho de 1990 vira <b>14071990</b>.</span></div>
+        <div class="demo">Ver demonstração (sem login)</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -23,9 +23,9 @@
 | 2 | **Meu Banco de Horas** | `colaborador-banco-horas.html` | ✅ desenhada |
 | 3 | **Comunicados (lista + leitura)** | `colaborador-comunicados.html` | ✅ desenhada |
 | 4 | **Documentos / assinatura** | `colaborador-documentos-v2.html` (lista) + modal | ✅ desenhada |
-| 5 | Holerites | — | a desenhar |
-| 6 | Conta / perfil | — | a desenhar |
-| 7 | Acesso + login (CPF) | — | a desenhar |
+| 5 | Holerites | (dentro de Documentos) | parcial |
+| 6 | **Conta / perfil** | `colaborador-conta.html` | ✅ desenhada |
+| 7 | **Acesso + login (CPF)** | `colaborador-acesso-login.html` | ✅ desenhada |
 
 ### 1. Início (home)
 Saudação + cartão de identidade (nome, cargo · setor, chips: turno, tempo de casa, aniversário — sem PII) · **Banco de horas minimalista** (só o saldo; verde positivo / âmbar negativo) · **"Precisa da sua atenção"** (documento a assinar, comunicados novos) · atalhos (Meu ponto · Holerites · Comunicados · Documentos) · comunicado fixado · aniversariantes.
@@ -42,3 +42,11 @@ Tab "Avisos". Filtro Todos / Não lidos. **Fixado** em destaque (borda verde). C
 ### 4. Documentos / assinatura
 Tab "Docs". **Pendente de assinatura em destaque** (âmbar) com "Ler e assinar". Filtro Todos / Holerites / Recibos / Termos. Lista: holerites + espelho + recibos (PDF, baixar) e termos com selo "Assinado em DD/MM". **Modal de assinatura** (bottom-sheet, `colaborador-assinatura-modal.html`): texto do documento (com fade "role pra ler") + checkbox "Li e estou de acordo" (**o botão Assinar só habilita após marcar**) + botão "Assinar" + nota de **trilha** (usuário + data/hora = comprovante de aceite; é aceite com trilha, não jurídico pleno — N3 é futuro). (`colaborador-documentos-v2.html` = lista; o `colaborador-documentos.html` é o preview antigo do PC.)
 **Bind (a criar no back):** `documentos/{id}` (tipo, funcionarioId, url Drive, hashSha256, status, exigeAssinatura) + `documentos/{id}/assinaturas/{uid}` (hash, uid, hora-servidor, userAgent) — roadmap #29/#30. Holerites/espelho por upload do RH (#18/#15). Hoje = placeholder.
+
+### 6. Conta / perfil (`colaborador-conta.html`)
+Tab "Conta". Cabeçalho com avatar + nome + cargo·setor. Grupos: **Meus dados** (Dados pessoais → idade/sexo/etc. read-only; Meu banco de horas → saldo), **Preferências** (Aparência = segmented **Automático / Claro / Escuro** [resolve o dark com toggle]; Notificações = switch), **Segurança** (Trocar senha; **Sair**). Rodapé com versão.
+**Bind:** `funcionarios/{meuId}` (sem PII de terceiros; o próprio pode ver os próprios dados). Trocar senha = `updatePassword` (reauth). Tema salvo em localStorage.
+
+### 7. Acesso + Login (`colaborador-acesso-login.html`)
+**Acesso (split):** marca FioPulse + 2 cartões: "Portal do Colaborador" (card primário, entra por CPF) e "Portal do Gestor" (GH/líderes/admin → fluxo de login atual). **Login do colaborador:** CPF (máscara) + senha (com olho) + Entrar; **dica de 1º acesso** ("senha = data de nascimento DDMMAAAA"); "Ver demonstração (sem login)"; voltar; toggle de tema. **Troca obrigatória de senha** no 1º acesso = modal bloqueante (mesmo padrão do bottom-sheet de assinatura).
+**Bind:** `cpfParaEmail(cpf)` → `{cpf}@colaborador.fiobras.local` → `signInWithEmailAndPassword`. `precisaTrocarSenha` força o modal. **⚠️ Lembrar do fix do diagnóstico:** pós-login renderizar a home REAL (não o mock) e aplicar `modo-colab` (esconde chat/FAB de gestor).

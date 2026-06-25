@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Conta (colaborador)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#1A211A;font-family:"Poppins",ui-sans-serif,system-ui,sans-serif;padding:18px;display:flex;justify-content:center}
+.cp{position:relative;width:330px;background:#0E130E;border:1px solid #283027;border-radius:28px;overflow:hidden;color:#E9F0E5;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.cp *{box-sizing:border-box}
+.ct{display:flex;align-items:center;gap:10px;padding:13px 14px;background:#141A14;border-bottom:1px solid #222A21}
+.ct .mn{font-size:21px;color:#CFE0C6}
+.ct b{font-size:14.5px;font-weight:600}
+.cv{padding:18px 14px 96px}
+.prof{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:18px}
+.prof__av{width:64px;height:64px;border-radius:50%;background:#1AA34F;color:#06210F;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600}
+.prof__n{font-size:16px;font-weight:600;margin-top:11px}
+.prof__c{font-size:11.5px;color:#94A38D;margin-top:2px}
+.glab{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#7E8C78;margin:16px 4px 8px}
+.grp{background:#161D15;border:1px solid #232C22;border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-top:1px solid #1E261D;cursor:pointer}
+.row:first-child{border-top:0}
+.row__ic{width:34px;height:34px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:18px;background:#1E261D;color:#9FB397}
+.row__ic.red{background:#2A1616;color:#E08A7A}
+.row__t{font-size:13px;font-weight:500;color:#E4ECDF}
+.row__t.red{color:#E89086}
+.row__v{margin-left:auto;display:flex;align-items:center;gap:6px;color:#7E8C78;font-size:12px}
+.row__v .go{font-size:18px}
+.row__v .num{font-variant-numeric:tabular-nums;font-weight:600;color:#E8B468}
+.seg{display:flex;gap:5px;padding:10px 12px 12px}
+.seg button{flex:1;border:0;border-radius:9px;padding:8px 0;font-family:inherit;font-size:11px;font-weight:500;background:#1E261D;color:#9FB397;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
+.seg button.on{background:#1AA34F;color:#06210F;font-weight:600}
+.seg-h{display:flex;align-items:center;gap:12px;padding:13px 14px 0}
+.sw{margin-left:auto;width:40px;height:23px;border-radius:999px;background:#1AA34F;position:relative;flex:none}
+.sw::after{content:"";position:absolute;top:2.5px;right:2.5px;width:18px;height:18px;border-radius:50%;background:#06210F}
+.foot{text-align:center;font-size:10px;color:#5C6A57;margin-top:18px}
+.nav{position:absolute;left:30px;right:30px;bottom:16px;height:56px;background:#171E16;border:1px solid #2A332A;border-radius:28px;box-shadow:0 12px 28px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:space-around;padding:0 6px}
+.nav .it{color:#8A9884}
+.nav .ic{position:relative;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.nav .ic i{font-size:22px}
+.nav .on{color:#5FCB85}
+.nav .on .ic{background:#1AA34F;color:#06210F}
+.nav .nd{position:absolute;top:3px;right:5px;width:8px;height:8px;border-radius:50%;background:#1E9AE6;border:2px solid #171E16}
+</style>
+</head>
+<body>
+<div class="cp">
+  <div class="ct"><i class="ti ti-menu-2 mn"></i><b>Conta</b></div>
+  <div class="cv">
+    <div class="prof"><div class="prof__av">JG</div><div class="prof__n">Jenifer Caroline Gulart</div><div class="prof__c">Coordenadora de gestão de pessoas · Administração</div></div>
+    <div class="glab">Meus dados</div>
+    <div class="grp">
+      <div class="row"><span class="row__ic"><i class="ti ti-user"></i></span><span class="row__t">Dados pessoais</span><span class="row__v"><i class="ti ti-chevron-right go"></i></span></div>
+      <div class="row"><span class="row__ic"><i class="ti ti-clock-hour-4"></i></span><span class="row__t">Meu banco de horas</span><span class="row__v"><span class="num">-00:24</span><i class="ti ti-chevron-right go"></i></span></div>
+    </div>
+    <div class="glab">Preferências</div>
+    <div class="grp">
+      <div class="seg-h"><span class="row__ic"><i class="ti ti-brightness-half"></i></span><span class="row__t">Aparência</span></div>
+      <div class="seg"><button class="on"><i class="ti ti-device-mobile"></i> Automático</button><button><i class="ti ti-sun"></i> Claro</button><button><i class="ti ti-moon"></i> Escuro</button></div>
+      <div class="row" style="border-top:1px solid #1E261D"><span class="row__ic"><i class="ti ti-bell"></i></span><span class="row__t">Notificações</span><span class="sw"></span></div>
+    </div>
+    <div class="glab">Segurança</div>
+    <div class="grp">
+      <div class="row"><span class="row__ic"><i class="ti ti-lock"></i></span><span class="row__t">Trocar senha</span><span class="row__v"><i class="ti ti-chevron-right go"></i></span></div>
+      <div class="row"><span class="row__ic red"><i class="ti ti-logout"></i></span><span class="row__t red">Sair</span></div>
+    </div>
+    <div class="foot">FioPulse · Portal do Colaborador · v1.12.0</div>
+  </div>
+  <nav class="nav">
+    <div class="it"><span class="ic"><i class="ti ti-home"></i></span></div>
+    <div class="it"><span class="ic"><i class="ti ti-clock-hour-4"></i></span></div>
+    <div class="it"><span class="ic"><span class="nd"></span><i class="ti ti-bell"></i></span></div>
+    <div class="it"><span class="ic"><span class="nd" style="background:#C98A2A"></span><i class="ti ti-folder"></i></span></div>
+    <div class="it on"><span class="ic"><i class="ti ti-user"></i></span></div>
+  </nav>
+</div>
+</body>
+</html>
