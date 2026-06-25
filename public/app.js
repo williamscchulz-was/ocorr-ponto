@@ -6872,6 +6872,12 @@ const PERM_CAPS = [
   { area: "Obrigações", caps: [
     { k: "obrigacoes.gerenciar", n: "Ver e gerenciar a agenda de obrigações" },
   ]},
+  // Comunicação (Pacote Gestor) — canal 1→N (comunicados) + documentos institucionais.
+  // Aditivo: só RH/admin ligados por padrão; líder/supervisor/colaborador = false.
+  { area: "Comunicação", caps: [
+    { k: "comunicados.gerenciar", n: "Criar e gerenciar comunicados" },
+    { k: "documentos.gerenciar", n: "Publicar e gerenciar documentos institucionais" },
+  ]},
   { area: "Sistema", caps: [
     { k: "sistema.config", n: "Configurações (tipos, ações)" },
     { k: "sistema.usuarios", n: "Gerenciar usuários e permissões" },
@@ -6894,6 +6900,7 @@ const PERM_DEFAULT = {
     "bancoHoras.ver": true, "bancoHoras.importar": true,
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
     "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
+    "comunicados.gerenciar": true, "documentos.gerenciar": true,
     "auditoria.ver": true, "sistema.config": true, "sistema.usuarios": false,
   },
   lider: {
@@ -6902,6 +6909,7 @@ const PERM_DEFAULT = {
     "bancoHoras.ver": "turno", "bancoHoras.importar": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
+    "comunicados.gerenciar": false, "documentos.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   supervisor: {
@@ -6910,6 +6918,7 @@ const PERM_DEFAULT = {
     "bancoHoras.ver": "atrib", "bancoHoras.importar": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
+    "comunicados.gerenciar": false, "documentos.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   // Colaborador (Portal). Tudo de gestor explicitamente false (impede override acidental);
@@ -6921,6 +6930,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,
     "auditoria.ver": false, "obrigacoes.gerenciar": false,
+    "comunicados.gerenciar": false, "documentos.gerenciar": false,
     "sistema.config": false, "sistema.usuarios": false,
     "self.ver": true, "self.assinar": true, "etica.enviar": true,
   },

@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { test, before, after } from "node:test";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 let env;
 
@@ -34,6 +34,22 @@ before(async () => {
     await setDoc(doc(db, "banco-horas-saldos/f-100"), { cpf: "000.000.000-00", saldoMin: 150 });
     await setDoc(doc(db, "banco-horas-self/100"), { saldoMin: 30, saldoFormatado: "+00:30" });
     await setDoc(doc(db, "banco-horas-self/200"), { saldoMin: -24, saldoFormatado: "-00:24" });
+
+    // ----- Pacote Gestor: colaborador com turno/setor denormalizado (segmentação) -----
+    await setDoc(doc(db, "users/uColabT1"), { role: "colaborador", funcionarioId: "f-300", codigo: 300, nome: "Tonho", turno: 1, setor: "Produção" });
+    await setDoc(doc(db, "funcionarios/f-300"), { nome: "Tonho" });
+
+    // comunicados (segmentos: todos / turno:[1] / despublicado)
+    await setDoc(doc(db, "comunicados/cTodos"),   { titulo: "Geral", corpo: "x", ativo: true,  segmento: { tipo: "todos", valores: [] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 80 });
+    await setDoc(doc(db, "comunicados/cTurno1"),  { titulo: "T1",    corpo: "x", ativo: true,  segmento: { tipo: "turno", valores: [1] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 20 });
+    await setDoc(doc(db, "comunicados/cInativo"), { titulo: "Off",   corpo: "x", ativo: false, segmento: { tipo: "todos", valores: [] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(), alcanceEstimado: 80 });
+
+    // documentos (institucional publicado / rascunho / pessoal meu / pessoal de terceiro)
+    const anexo = (n) => ({ url: "https://drive.google.com/file/d/" + n, nome: n + ".pdf", hashSha256: n });
+    await setDoc(doc(db, "documentos/dPub"),      { escopo: "institucional", status: "publicado", segmento: { tipo: "todos", valores: [] }, exigeAssinatura: true,  versao: 1, criadoPor: "uRh", autorNome: "GH", criadoEm: new Date(), anexo: anexo("a"), titulo: "Conduta" });
+    await setDoc(doc(db, "documentos/dRascunho"), { escopo: "institucional", status: "rascunho",  segmento: { tipo: "todos", valores: [] }, exigeAssinatura: false, versao: 1, criadoPor: "uRh", autorNome: "GH", criadoEm: new Date(), anexo: anexo("b"), titulo: "Rascunho" });
+    await setDoc(doc(db, "documentos/dPesMeu"),   { escopo: "pessoal", status: "publicado", funcionarioId: "f-100", exigeAssinatura: true, versao: 1, criadoPor: "uRh", autorNome: "GH", criadoEm: new Date(), anexo: anexo("c"), titulo: "Meu" });
+    await setDoc(doc(db, "documentos/dPesOutro"), { escopo: "pessoal", status: "publicado", funcionarioId: "f-200", exigeAssinatura: true, versao: 1, criadoPor: "uRh", autorNome: "GH", criadoEm: new Date(), anexo: anexo("d"), titulo: "Outro" });
   });
 });
 
@@ -41,6 +57,7 @@ after(async () => { await env.cleanup(); });
 
 const colab    = () => env.authenticatedContext("uColab").firestore();
 const colabSV  = () => env.authenticatedContext("uColabSemVinc").firestore();
+const colabT1  = () => env.authenticatedContext("uColabT1").firestore();
 const rh       = () => env.authenticatedContext("uRh").firestore();
 
 // ---- funcionarios ----
@@ -92,3 +109,51 @@ test("RH lê banco-horas-self (sem regressão)", async () =>
   assertSucceeds(getDoc(doc(rh(), "banco-horas-self/100"))));
 test("colaborador NÃO escreve banco-horas-self", async () =>
   assertFails(setDoc(doc(colab(), "banco-horas-self/100"), { saldoMin: 999 })));
+
+// ---- comunicados (Pacote Gestor · leitura segmentada + write gated) ----
+test("colaborador LÊ comunicado 'todos' ativo", async () =>
+  assertSucceeds(getDoc(doc(colab(), "comunicados/cTodos"))));
+test("colaborador NÃO lê comunicado despublicado (ativo=false)", async () =>
+  assertFails(getDoc(doc(colab(), "comunicados/cInativo"))));
+test("colaborador do turno 1 LÊ comunicado turno:[1]", async () =>
+  assertSucceeds(getDoc(doc(colabT1(), "comunicados/cTurno1"))));
+test("colaborador SEM turno NÃO lê comunicado turno:[1] (fail-safe)", async () =>
+  assertFails(getDoc(doc(colab(), "comunicados/cTurno1"))));
+test("RH lê qualquer comunicado, inclusive despublicado (gestor)", async () =>
+  assertSucceeds(getDoc(doc(rh(), "comunicados/cInativo"))));
+test("colaborador NÃO cria comunicado (sem cap)", async () =>
+  assertFails(setDoc(doc(colab(), "comunicados/cX"), { titulo: "x", corpo: "y", ativo: true, segmento: { tipo: "todos", valores: [] }, autorUid: "uColab", publicadoEm: serverTimestamp() })));
+test("RH cria comunicado com publicadoEm = server-time", async () =>
+  assertSucceeds(setDoc(doc(rh(), "comunicados/cNovo"), { titulo: "x", corpo: "y", ativo: true, segmento: { tipo: "todos", valores: [] }, autorUid: "uRh", autorNome: "GH", publicadoEm: serverTimestamp() })));
+test("RH NÃO cria comunicado com publicadoEm forjado (não server-time)", async () =>
+  assertFails(setDoc(doc(rh(), "comunicados/cForja"), { titulo: "x", corpo: "y", ativo: true, segmento: { tipo: "todos", valores: [] }, autorUid: "uRh", autorNome: "GH", publicadoEm: new Date(2020, 0, 1) })));
+test("colaborador registra leitura no comunicado do seu segmento", async () =>
+  assertSucceeds(setDoc(doc(colab(), "comunicados/cTodos/leituras/uColab"), { uid: "uColab", funcionarioId: "f-100", confirmado: true, em: serverTimestamp(), userAgent: "t" })));
+test("colaborador NÃO registra leitura em comunicado fora do segmento (CORREÇÃO 6)", async () =>
+  assertFails(setDoc(doc(colab(), "comunicados/cTurno1/leituras/uColab"), { uid: "uColab", funcionarioId: "f-100", confirmado: true, em: serverTimestamp(), userAgent: "t" })));
+
+// ---- documentos institucionais (Pacote Gestor · institucional/pessoal + assinatura/versão) ----
+test("colaborador LÊ documento institucional publicado 'todos'", async () =>
+  assertSucceeds(getDoc(doc(colab(), "documentos/dPub"))));
+test("colaborador NÃO lê documento em rascunho", async () =>
+  assertFails(getDoc(doc(colab(), "documentos/dRascunho"))));
+test("colaborador LÊ documento pessoal próprio (escopo pessoal)", async () =>
+  assertSucceeds(getDoc(doc(colab(), "documentos/dPesMeu"))));
+test("colaborador NÃO lê documento pessoal de terceiro", async () =>
+  assertFails(getDoc(doc(colab(), "documentos/dPesOutro"))));
+test("RH lê qualquer documento, inclusive rascunho (gestor)", async () =>
+  assertSucceeds(getDoc(doc(rh(), "documentos/dRascunho"))));
+test("colaborador NÃO cria documento (sem cap)", async () =>
+  assertFails(setDoc(doc(colab(), "documentos/dX"), { escopo: "institucional", status: "rascunho", segmento: { tipo: "todos", valores: [] }, versao: 1, criadoPor: "uColab", criadoEm: serverTimestamp() })));
+test("RH cria documento institucional (sem funcionarioId, criadoEm server-time)", async () =>
+  assertSucceeds(setDoc(doc(rh(), "documentos/dNovo"), { escopo: "institucional", status: "rascunho", segmento: { tipo: "todos", valores: [] }, exigeAssinatura: false, versao: 1, criadoPor: "uRh", autorNome: "GH", criadoEm: serverTimestamp(), anexo: { url: "https://drive.google.com/n", nome: "n.pdf", hashSha256: "n" }, titulo: "Novo" })));
+test("RH NÃO cria documento institucional COM funcionarioId (escopo inválido)", async () =>
+  assertFails(setDoc(doc(rh(), "documentos/dBad"), { escopo: "institucional", status: "rascunho", segmento: { tipo: "todos", valores: [] }, funcionarioId: "f-100", versao: 1, criadoPor: "uRh", criadoEm: serverTimestamp() })));
+test("colaborador assina documento com versaoAssinada == versão atual", async () =>
+  assertSucceeds(setDoc(doc(colab(), "documentos/dPub/assinaturas/uColab"), { uid: "uColab", funcionarioId: "f-100", versaoAssinada: 1, hashSha256: "a", aceiteTexto: "Li e estou de acordo", em: serverTimestamp(), userAgent: "t" })));
+test("colaborador NÃO assina com versaoAssinada != versão atual (CORREÇÃO 7)", async () =>
+  assertFails(setDoc(doc(colabT1(), "documentos/dPub/assinaturas/uColabT1"), { uid: "uColabT1", funcionarioId: "f-300", versaoAssinada: 2, hashSha256: "a", aceiteTexto: "x", em: serverTimestamp(), userAgent: "t" })));
+test("RH NÃO troca segmento de doc publicado+assinatura por update direto (CORREÇÃO 4)", async () =>
+  assertFails(updateDoc(doc(rh(), "documentos/dPub"), { segmento: { tipo: "turno", valores: [1] } })));
+test("RH faz novaVersao (versao 1→2 + troca anexo) em doc publicado+assinatura", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "documentos/dPub"), { versao: 2, anexo: { url: "https://drive.google.com/v2", nome: "a2.pdf", hashSha256: "xyz" }, versaoEm: serverTimestamp(), versaoPor: "uRh" })));

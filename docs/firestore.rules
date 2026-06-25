@@ -73,6 +73,34 @@ service cloud.firestore {
       );
     }
 
+    // ----- Pacote Gestor: segmentação (comunicados + documentos institucionais) -----
+    // Colaborador casa com o segmento? 'todos' sempre; 'turno' por users.turno (canônico:
+    // number 1|2|3 OU string 'geral'); 'setor' por users.setor denormalizado.
+    // Ausência/null/tipo errado => false (fail-safe: nega). userDoc() é avaliado 1x e
+    // passado como argumento (1 get por avaliação, conforme objetivo de custo).
+    // DEPENDÊNCIA DE DADOS: users/{uid}.turno e .setor são denormalizados pelo pipeline
+    // (sync-colaborador-users.mjs do WKRADAR). Até lá, só 'todos' resolve; turno/setor negam.
+    function casaTurno(seg, u) {
+      return ('turno' in u)
+          && (u.turno is number || u.turno is string)
+          && seg.valores.hasAny([u.turno]);
+    }
+    function casaSetor(seg, u) {
+      return ('setor' in u)
+          && u.setor is string
+          && seg.valores.hasAny([u.setor]);
+    }
+    function casaSegmento(seg) {
+      return seg.tipo == 'todos'
+        || (seg.tipo == 'turno' && casaTurno(seg, userDoc()))
+        || (seg.tipo == 'setor' && casaSetor(seg, userDoc()));
+    }
+    // institucional por segmento OU pessoal por dono (SELF)
+    function podeVerDoc(d) {
+      return (d.escopo == 'institucional' && casaSegmento(d.segmento))
+          || (d.escopo == 'pessoal' && d.funcionarioId == meuFuncionarioId());
+    }
+
     // ----- config (matriz de permissões + futuras configs do sistema) -----
     // Leitura: qualquer autenticado (o app monta o can() a partir daqui; sem
     // segredos). Escrita: só admin (gerencia a matriz).
@@ -255,6 +283,113 @@ service cloud.firestore {
     match /pipeline-rh/{docId} {
       allow read: if isAdmin() || isRH();
       allow write: if false;
+    }
+
+    // ===== Pacote Gestor (ADITIVO) — Comunicados + Documentos institucionais =====
+
+    // ----- comunicados (canal oficial 1→N originado no gestor) -----
+    // Leitura: gestor com a cap vê todos; colaborador vê só ativos do seu segmento.
+    // Escrita: gated por comunicados.gerenciar (fallback RH). publicadoEm é server-time
+    // no create e imutável no update; autorUid imutável. Soft-delete (ativo=false) é o
+    // caminho normal; delete físico só admin.
+    match /comunicados/{id} {
+      allow read: if isAdmin() || temCap('comunicados.gerenciar', isRH())
+                  || (isColaborador()
+                      && resource.data.ativo == true
+                      && casaSegmento(resource.data.segmento));
+
+      allow create: if (isAdmin() || temCap('comunicados.gerenciar', isRH()))
+                    && request.resource.data.autorUid == request.auth.uid
+                    && request.resource.data.publicadoEm == request.time
+                    && request.resource.data.ativo is bool;
+
+      allow update: if (isAdmin() || temCap('comunicados.gerenciar', isRH()))
+                    && request.resource.data.publicadoEm == resource.data.publicadoEm
+                    && request.resource.data.autorUid == resource.data.autorUid;
+
+      allow delete: if isAdmin();
+
+      // leituras/{uid}: 1 por pessoa (self-write), amarrada ao segmento do pai
+      // (não infla X/Y com quem não vê o doc). Append-only.
+      match /leituras/{uid} {
+        allow read: if isAdmin() || temCap('comunicados.gerenciar', isRH())
+                    || (isAuthed() && request.auth.uid == uid);
+        allow create: if isAuthed()
+                    && request.auth.uid == uid
+                    && request.resource.data.uid == uid
+                    && (isAdmin() || temCap('comunicados.gerenciar', isRH())
+                        || casaSegmento(get(/databases/$(database)/documents/comunicados/$(id)).data.segmento));
+        allow update, delete: if false;
+      }
+    }
+
+    // ----- documentos (institucional por segmento + pessoal por dono coexistindo) -----
+    // institucional = sem funcionarioId, com segmento; pessoal = com funcionarioId, sem segmento.
+    // criadoEm/criadoPor/escopo imutáveis. Em doc publicado+exigeAssinatura, segmento/anexo
+    // imutáveis por update direto (CORREÇÃO 4): a ÚNICA forma de trocar anexo é novaVersao
+    // (versao incrementa em 1). Subcoleções amarradas ao pai; versaoAssinada == versao atual.
+    match /documentos/{id} {
+      allow read: if isAdmin() || temCap('documentos.gerenciar', isRH())
+        || (isColaborador() && resource.data.status == 'publicado' && (
+             (resource.data.escopo == 'institucional' && casaSegmento(resource.data.segmento))
+             || (resource.data.escopo == 'pessoal' && resource.data.funcionarioId == meuFuncionarioId())
+           ));
+
+      allow create: if (isAdmin() || temCap('documentos.gerenciar', isRH()))
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.criadoEm == request.time
+        && (
+          (request.resource.data.escopo == 'institucional'
+            && !('funcionarioId' in request.resource.data))
+          || (request.resource.data.escopo == 'pessoal'
+            && request.resource.data.funcionarioId is string)
+        );
+
+      allow update: if (isAdmin() || temCap('documentos.gerenciar', isRH()))
+        && request.resource.data.criadoEm == resource.data.criadoEm
+        && request.resource.data.criadoPor == resource.data.criadoPor
+        && request.resource.data.escopo == resource.data.escopo
+        && (
+          // só trava quando já publicado E exige assinatura; senão update livre (gated)
+          !(resource.data.status == 'publicado' && resource.data.exigeAssinatura == true)
+          || (
+            request.resource.data.segmento == resource.data.segmento
+            && (
+              // anexo imutável, EXCETO quando é uma novaVersao (versao incrementa em 1)
+              request.resource.data.anexo == resource.data.anexo
+              || request.resource.data.versao == resource.data.versao + 1
+            )
+          )
+        );
+
+      allow delete: if isAdmin();
+
+      // assinaturas/{uid}: aceite N1 create-only. versaoAssinada DEVE == versao atual
+      // do doc pai (CORREÇÃO 7); amarrada ao segmento/dono do pai (CORREÇÃO 6).
+      match /assinaturas/{uid} {
+        allow read: if isAdmin() || temCap('documentos.gerenciar', isRH())
+                    || (isAuthed() && request.auth.uid == uid);
+        allow create: if isAuthed()
+                    && request.auth.uid == uid
+                    && request.resource.data.uid == uid
+                    && request.resource.data.versaoAssinada is number
+                    && request.resource.data.versaoAssinada
+                         == get(/databases/$(database)/documents/documentos/$(id)).data.versao
+                    && (isAdmin() || temCap('documentos.gerenciar', isRH())
+                        || podeVerDoc(get(/databases/$(database)/documents/documentos/$(id)).data));
+        allow update, delete: if false;
+      }
+
+      // leituras/{uid}: visualização sem assinatura (docs exigeAssinatura=false). Append-only.
+      match /leituras/{uid} {
+        allow read: if isAdmin() || temCap('documentos.gerenciar', isRH())
+                    || (isAuthed() && request.auth.uid == uid);
+        allow create: if isAuthed() && request.auth.uid == uid
+                    && request.resource.data.uid == uid
+                    && (isAdmin() || temCap('documentos.gerenciar', isRH())
+                        || podeVerDoc(get(/databases/$(database)/documents/documentos/$(id)).data));
+        allow update, delete: if false;
+      }
     }
 
     // ----- Helpers de atualização -----
