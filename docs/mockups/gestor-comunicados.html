@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0;background:#1A211A;padding:18px">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+
+<style>
+  .fp-com *{box-sizing:border-box;margin:0;padding:0;font-family:'Poppins',sans-serif}
+  .fp-com{
+    --bg:#0E130E; --surf:#141A14; --card:#161D15; --bd:#232C22; --bd2:#283027;
+    --green:#1AA34F; --green-l:#5FCB85; --green-l2:#4FD080; --amber:#E8B468;
+    --txt:#E9F0E5; --txt-w:#94A38D; --txt-w2:#7E8C78;
+    color:var(--txt); background:var(--bg); border-radius:16px; overflow:hidden;
+    max-height:680px; display:flex; flex-direction:column; position:relative;
+    -webkit-font-smoothing:antialiased;
+  }
+  .fp-com.light{
+    --bg:#F6F9F4; --surf:#FFFFFF; --card:#FFFFFF; --bd:#E3EBE0; --bd2:#E3EBE0;
+    --green:#0E8C3F; --green-l:#0E8C3F; --green-l2:#0E8C3F; --amber:#C98A2A;
+    --txt:#16201A; --txt-w:#5B6B57; --txt-w2:#5B6B57;
+  }
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  /* foco por teclado padronizado em todos os interativos (P5) */
+  .fp-com :focus-visible{outline:2px solid var(--green-l2);outline-offset:2px;border-radius:10px}
+  .light .fp-com :focus-visible{outline-color:var(--green)}
+
+  .fp-shell{display:flex;flex:1;min-height:0}
+  .fp-side{width:62px;background:var(--surf);border-right:1px solid var(--bd);
+    display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px;flex-shrink:0}
+  .fp-logo{width:34px;height:34px;border-radius:10px;background:var(--green);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;margin-bottom:8px}
+  .fp-nav{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    color:var(--txt-w);font-size:21px;cursor:pointer;transition:.18s;border:1px solid transparent;
+    background:transparent}
+  .fp-nav:hover{color:var(--txt);background:var(--card)}
+  .fp-nav.on{color:var(--green-l2);background:var(--card);border-color:var(--bd2)}
+  .light .fp-nav.on{color:var(--green)}
+
+  .fp-main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .fp-top{height:58px;flex-shrink:0;background:var(--surf);border-bottom:1px solid var(--bd);
+    display:flex;align-items:center;justify-content:space-between;padding:0 18px;gap:12px}
+  .fp-top .crumb{display:flex;align-items:center;gap:9px;min-width:0}
+  .fp-top .crumb i{color:var(--green-l2);font-size:20px}
+  .light .fp-top .crumb i{color:var(--green)}
+  .fp-top .crumb b{font-weight:600;font-size:15px;white-space:nowrap}
+  .fp-top .crumb span{color:var(--txt-w);font-size:12.5px;white-space:nowrap}
+  .fp-top .right{display:flex;align-items:center;gap:8px}
+  .icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--bd2);background:transparent;
+    color:var(--txt-w);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s}
+  .icon-btn:hover{color:var(--txt);border-color:var(--green-l2)}
+  .who{display:flex;align-items:center;gap:8px;padding-left:4px}
+  .who .av{width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600}
+  .who .nm{font-size:12.5px;line-height:1.2}
+  .who .nm b{font-weight:500;display:block}
+  .who .nm span{color:var(--txt-w);font-size:11px}
+
+  .fp-body{flex:1;overflow-y:auto;padding:18px 18px 28px}
+  .fp-body::-webkit-scrollbar{width:8px}
+  .fp-body::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:8px}
+
+  .head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:6px}
+  .head h1{font-size:21px;font-weight:600;letter-spacing:-.3px}
+  .head p{color:var(--txt-w);font-size:13px;margin-top:3px;max-width:42ch}
+  .btn-primary{background:var(--green);color:#fff;border:none;border-radius:11px;
+    padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer;display:inline-flex;
+    align-items:center;gap:7px;transition:.18s;white-space:nowrap;flex-shrink:0;box-shadow:0 1px 0 rgba(0,0,0,.18)}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-primary i{font-size:17px}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:16px 0 18px}
+  .stat{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 14px}
+  .stat .l{color:var(--txt-w);font-size:11.5px;display:flex;align-items:center;gap:5px}
+  .stat .v{font-size:22px;font-weight:600;margin-top:5px}
+  .stat .v small{font-size:12px;font-weight:400;color:var(--txt-w)}
+  .stat .v.g{color:var(--green-l2)} .light .stat .v.g{color:var(--green)}
+  .stat .v.a{color:var(--amber)}
+
+  .sec-label{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--txt-w2);
+    margin:6px 2px 10px;display:flex;align-items:center;gap:7px;font-weight:500}
+  .sec-label .ln{flex:1;height:1px;background:var(--bd)}
+
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:15px;padding:15px 16px;
+    margin-bottom:11px;transition:.18s;position:relative}
+  .card:hover{border-color:var(--bd2)}
+  .card.pin{border-color:rgba(95,203,133,.35);background:
+    linear-gradient(180deg,rgba(26,163,79,.06),transparent 60%),var(--card)}
+  .light .card.pin{border-color:rgba(14,140,63,.3);background:
+    linear-gradient(180deg,rgba(14,140,63,.05),transparent 60%),var(--card)}
+  .c-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .c-title{font-size:15px;font-weight:500;line-height:1.35;letter-spacing:-.2px}
+  .c-pin{color:var(--green-l2);font-size:16px;flex-shrink:0;margin-top:1px}
+  .light .c-pin{color:var(--green)}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}
+  .badge{font-size:11px;padding:3px 9px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;
+    font-weight:500;border:1px solid transparent;line-height:1.4}
+  .badge i{font-size:13px}
+  .badge.seg{background:rgba(95,203,133,.12);color:var(--green-l);border-color:rgba(95,203,133,.22)}
+  .light .badge.seg{background:rgba(14,140,63,.09);color:var(--green);border-color:rgba(14,140,63,.18)}
+  .badge.conf{background:rgba(232,180,104,.13);color:var(--amber);border-color:rgba(232,180,104,.25)}
+  .badge.pinb{background:rgba(95,203,133,.12);color:var(--green-l);border-color:rgba(95,203,133,.22)}
+  .light .badge.pinb{background:rgba(14,140,63,.09);color:var(--green)}
+  .c-body{color:var(--txt-w);font-size:12.8px;line-height:1.55;margin-bottom:11px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* c-foot padronizado: meta | read | c-actions são IRMÃOS em todos os cards */
+  .c-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    border-top:1px solid var(--bd);padding-top:10px;flex-wrap:wrap}
+  .meta{display:flex;align-items:center;gap:7px;color:var(--txt-w2);font-size:11.5px}
+  .meta .av{width:22px;height:22px;border-radius:50%;background:var(--bd2);color:var(--txt);
+    display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
+  .read{display:flex;align-items:center;gap:9px}
+  .read .pct{color:var(--txt-w);font-size:11.5px;display:flex;align-items:center;gap:5px}
+  .read .pct b{color:var(--txt);font-weight:500}
+  .bar{width:78px;height:6px;border-radius:6px;background:var(--bd2);overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--green);border-radius:6px}
+  .c-actions{display:flex;gap:6px;margin-left:auto}
+  .mini{width:30px;height:30px;border-radius:9px;border:1px solid var(--bd2);background:transparent;
+    color:var(--txt-w);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s}
+  .mini:hover{color:var(--txt);border-color:var(--green-l2)}
+
+  .overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:none;
+    align-items:flex-start;justify-content:center;padding:24px 16px;z-index:30;overflow-y:auto}
+  .overlay.show{display:flex}
+  .modal{background:var(--surf);border:1px solid var(--bd2);border-radius:16px;width:100%;max-width:560px;
+    overflow:hidden;animation:pop .2s ease}
+  @keyframes pop{from{transform:translateY(8px) scale(.985);opacity:0}to{transform:none;opacity:1}}
+  .m-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--bd)}
+  .m-head h2{font-size:15.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .m-head h2 i{color:var(--green-l2)} .light .m-head h2 i{color:var(--green)}
+  .m-body{padding:16px 18px;display:flex;flex-direction:column;gap:15px;max-height:62vh;overflow-y:auto}
+  .fld label{font-size:12px;font-weight:500;color:var(--txt);display:flex;align-items:center;gap:6px;margin-bottom:7px}
+  .fld label small{color:var(--txt-w2);font-weight:400}
+  .inp,.ta,.sel{width:100%;background:var(--bg);border:1px solid var(--bd2);border-radius:11px;
+    color:var(--txt);font-size:13px;padding:10px 12px;transition:.18s;font-family:inherit;outline:none}
+  .light .inp,.light .ta,.light .sel{background:#F6F9F4}
+  .inp:focus,.ta:focus,.sel:focus{border-color:var(--green-l2);box-shadow:0 0 0 3px rgba(26,163,79,.15)}
+  .ta{resize:vertical;min-height:96px;line-height:1.55}
+  .seg-row{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{flex:1;min-width:96px;background:var(--bg);border:1px solid var(--bd2);border-radius:11px;
+    padding:9px;font-size:12.5px;color:var(--txt-w);cursor:pointer;text-align:center;transition:.18s;
+    display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;font-weight:500}
+  .light .chip{background:#F6F9F4}
+  .chip i{font-size:15px}
+  .chip.on{border-color:var(--green);color:var(--green-l2);background:rgba(26,163,79,.1)}
+  .light .chip.on{color:var(--green)}
+  .seg-detail{display:none} .seg-detail.show{display:block}
+  .tog{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--bg);border:1px solid var(--bd2);border-radius:12px;padding:11px 13px}
+  .light .tog{background:#F6F9F4}
+  .tog .t{display:flex;align-items:center;gap:10px}
+  .tog .t i{font-size:18px;color:var(--txt-w);width:20px;text-align:center}
+  .tog .t .tt{font-size:13px;font-weight:500} .tog .t .ts{font-size:11.5px;color:var(--txt-w2)}
+  /* switch como <button role=switch> (padronizado com Documentos) */
+  .sw{width:42px;height:24px;border-radius:13px;background:var(--bd2);position:relative;
+    cursor:pointer;transition:.18s;flex-shrink:0;border:none;padding:0;display:block}
+  .sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+    background:#fff;transition:.18s}
+  .sw[aria-checked="true"]{background:var(--green)} .sw[aria-checked="true"]::after{left:21px}
+  .preview{background:var(--card);border:1px dashed var(--bd2);border-radius:13px;padding:13px 14px}
+  .preview .pl{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--txt-w2);margin-bottom:8px;font-weight:500}
+  .preview .pt{font-size:14px;font-weight:500;line-height:1.35}
+  .preview .pb{font-size:12.5px;color:var(--txt-w);line-height:1.55;margin-top:6px;white-space:pre-wrap}
+  .preview .pbadges{margin-top:9px}
+  .m-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:13px 18px;border-top:1px solid var(--bd);background:var(--surf);flex-wrap:wrap}
+  .m-foot .note{font-size:11px;color:var(--txt-w2);display:flex;align-items:center;gap:6px;flex:1;min-width:160px}
+  .m-foot .acts{display:flex;gap:8px}
+  .btn-ghost{background:transparent;border:1px solid var(--bd2);color:var(--txt-w);border-radius:11px;
+    padding:9px 15px;font-size:13px;cursor:pointer;font-weight:500;transition:.18s}
+  .btn-ghost:hover{color:var(--txt);border-color:var(--green-l2)}
+
+  .panel .m-body{gap:0}
+  .pl-tabs{display:flex;gap:6px;margin-bottom:14px}
+  .pl-tab{flex:1;padding:8px;border-radius:10px;border:1px solid var(--bd2);background:transparent;
+    color:var(--txt-w);font-size:12.5px;cursor:pointer;font-weight:500;transition:.18s;
+    display:flex;align-items:center;justify-content:center;gap:6px}
+  .pl-tab.on{background:rgba(26,163,79,.1);border-color:var(--green);color:var(--green-l2)}
+  .light .pl-tab.on{color:var(--green)}
+  .pl-tab .n{background:var(--bd2);border-radius:7px;padding:1px 7px;font-size:11px}
+  .pl-tab.on .n{background:var(--green);color:#fff}
+  .person{display:flex;align-items:center;gap:11px;padding:9px 2px;border-bottom:1px solid var(--bd)}
+  .person:last-child{border-bottom:none}
+  .person .av{width:32px;height:32px;border-radius:50%;background:var(--bd2);color:var(--txt);
+    display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;flex-shrink:0}
+  .person .info{flex:1;min-width:0}
+  .person .info b{font-weight:500;font-size:13px;display:block}
+  .person .info span{font-size:11px;color:var(--txt-w2)}
+  .person .tag{font-size:11px;display:flex;align-items:center;gap:5px;flex-shrink:0}
+  .person .tag.ok{color:var(--green-l2)} .light .person .tag.ok{color:var(--green)}
+  .person .tag.pend{color:var(--amber)}
+  .pl-list{display:none} .pl-list.show{display:block}
+
+  /* bottom-nav real (mobile) — escondida no desktop, vira a navegação <=560px */
+  .fp-bottom{display:none}
+  @media(max-width:560px){
+    .fp-side{display:none}
+    .head{flex-direction:column}
+    .btn-primary{width:100%;justify-content:center}
+    .who .nm{display:none}
+    .fp-top .crumb span{display:none}
+    .fp-body{padding-bottom:74px}
+    .fp-bottom{display:flex;position:absolute;left:0;right:0;bottom:0;z-index:25;
+      background:var(--surf);border-top:1px solid var(--bd);
+      padding:7px 6px env(safe-area-inset-bottom,7px);justify-content:space-around;align-items:stretch}
+    .bn{flex:1;background:transparent;border:none;cursor:pointer;color:var(--txt-w);
+      display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;
+      font-size:10px;font-family:inherit;border-radius:10px;transition:.18s}
+    .bn i{font-size:20px}
+    .bn.on{color:var(--green-l2)} .light .bn.on{color:var(--green)}
+  }
+</style>
+
+<h2 class="sr-only">Tela do gestor para compor e publicar comunicados internos, com lista de publicados, modal de composição e painel de leituras.</h2>
+
+<!--
+  SEGMENTAÇÃO (critério A.5.3) — vocabulário canônico de TURNO unificado (P1):
+  mapa único usado no composer, no schema e no casaSegmento da rule:
+    1 = Matutino, 2 = Vespertino, 3 = Noturno, 'geral' = Todos.
+  O composer emite segmento.{tipo, valores:[codigo]} com esses códigos (data-val nos <option>),
+  nunca as strings de UI. No fluxo real (server), alcanceEstimado (Y) e a lista de leituras
+  DEVEM derivar de casaSegmento(comunicado, userDoc) — a UI só exibe; a verdade é a rule.
+-->
+
+<div class="fp-com" id="fpcom">
+  <div class="fp-shell">
+    <nav class="fp-side" aria-label="Navegação do gestor">
+      <div class="fp-logo" aria-hidden="true"><i class="ti ti-activity-heartbeat"></i></div>
+      <button class="fp-nav" title="Início" aria-label="Início"><i class="ti ti-home"></i></button>
+      <button class="fp-nav" title="Banco de horas" aria-label="Banco de horas"><i class="ti ti-clock-hour-4"></i></button>
+      <button class="fp-nav" title="Equipe" aria-label="Equipe"><i class="ti ti-users"></i></button>
+      <button class="fp-nav on" title="Comunicados" aria-label="Comunicados" aria-current="page"><i class="ti ti-speakerphone"></i></button>
+      <button class="fp-nav" title="Documentos" aria-label="Documentos"><i class="ti ti-files"></i></button>
+      <button class="fp-nav" style="margin-top:auto" title="Ajustes" aria-label="Ajustes"><i class="ti ti-settings"></i></button>
+    </nav>
+
+    <div class="fp-main">
+      <header class="fp-top">
+        <div class="crumb">
+          <i class="ti ti-speakerphone" aria-hidden="true"></i>
+          <b>Comunicados</b>
+          <span>· comunicados.gerenciar</span>
+        </div>
+        <div class="right">
+          <button class="icon-btn" id="themeBtn" aria-label="Alternar tema claro/escuro"><i class="ti ti-moon"></i></button>
+          <div class="who">
+            <div class="av">CS</div>
+            <div class="nm"><b>Carla — RH</b><span>Administradora</span></div>
+          </div>
+        </div>
+      </header>
+
+      <div class="fp-body">
+        <div class="head">
+          <div>
+            <h1>Comunicados</h1>
+            <p>Componha e publique avisos para a equipe. A publicação parte do seu login de gestor.</p>
+          </div>
+          <button class="btn-primary" onclick="openComposer()"><i class="ti ti-plus"></i>Novo comunicado</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="l"><i class="ti ti-stack-2"></i>Publicados</div><div class="v">12</div></div>
+          <div class="stat"><div class="l"><i class="ti ti-pin"></i>Fixados</div><div class="v g">1</div></div>
+          <div class="stat"><div class="l"><i class="ti ti-checks"></i>Confirmação</div><div class="v">3 <small>ativos</small></div></div>
+          <div class="stat"><div class="l"><i class="ti ti-clock-exclamation"></i>Pendências</div><div class="v a">17</div></div>
+        </div>
+
+        <div class="sec-label"><i class="ti ti-pin"></i>Fixado<div class="ln"></div></div>
+
+        <article class="card pin">
+          <div class="c-top">
+            <div class="c-title">Parada programada do refeitório — manutenção elétrica</div>
+            <i class="ti ti-pin-filled c-pin" aria-hidden="true"></i>
+          </div>
+          <div class="badges">
+            <span class="badge seg"><i class="ti ti-users-group"></i>Todos</span>
+            <span class="badge conf"><i class="ti ti-writing-sign"></i>Requer confirmação</span>
+            <span class="badge pinb"><i class="ti ti-pin"></i>Fixado</span>
+          </div>
+          <div class="c-body">Nos dias 26 e 27/06 o refeitório ficará fechado das 11h às 14h para manutenção elétrica. Almoço será servido na sala de treinamento do bloco B. Leia e confirme ciência até sexta-feira.</div>
+          <div class="c-foot">
+            <div class="meta"><span class="av">CS</span>Carla Santos · hoje, 08:14</div>
+            <div class="read">
+              <span class="pct"><b>61</b> de 82 confirmaram</span>
+              <div class="bar"><i style="width:74%"></i></div>
+            </div>
+            <div class="c-actions">
+              <button class="mini" onclick="openPanel()" aria-label="Ver leituras"><i class="ti ti-eye"></i></button>
+              <button class="mini" aria-label="Editar"><i class="ti ti-pencil"></i></button>
+            </div>
+          </div>
+        </article>
+
+        <div class="sec-label"><i class="ti ti-history"></i>Recentes<div class="ln"></div></div>
+
+        <article class="card">
+          <div class="c-top"><div class="c-title">Nova escala do turno noturno — vigência julho</div></div>
+          <div class="badges">
+            <span class="badge seg"><i class="ti ti-moon"></i>Turno · Noturno</span>
+            <span class="badge conf"><i class="ti ti-writing-sign"></i>Requer confirmação</span>
+          </div>
+          <div class="c-body">A partir de 01/07 a passagem de turno passa a ser às 23h00. Confiram a nova grade no quadro e confirmem ciência. Dúvidas com a liderança direta.</div>
+          <div class="c-foot">
+            <div class="meta"><span class="av">CS</span>Carla Santos · ontem, 17:02</div>
+            <div class="read">
+              <span class="pct"><b>9</b> de 14 confirmaram</span>
+              <div class="bar"><i style="width:64%"></i></div>
+            </div>
+            <div class="c-actions">
+              <button class="mini" onclick="openPanel()" aria-label="Ver leituras"><i class="ti ti-eye"></i></button>
+              <button class="mini" aria-label="Editar"><i class="ti ti-pencil"></i></button>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="c-top"><div class="c-title">Treinamento NR-12 — inscrições abertas</div></div>
+          <div class="badges">
+            <span class="badge seg"><i class="ti ti-building-factory-2"></i>Setor · Produção</span>
+          </div>
+          <div class="c-body">Inscrições para o treinamento de segurança em máquinas (NR-12) abertas até 30/06. Procurem o RH para reservar vaga. Turmas de manhã e tarde.</div>
+          <div class="c-foot">
+            <div class="meta"><span class="av">RH</span>RH Fiobras · 20/06, 10:30</div>
+            <div class="read">
+              <span class="pct"><b>38</b> de 45 leram</span>
+              <div class="bar"><i style="width:84%"></i></div>
+            </div>
+            <div class="c-actions">
+              <button class="mini" onclick="openPanel()" aria-label="Ver leituras"><i class="ti ti-eye"></i></button>
+              <button class="mini" aria-label="Editar"><i class="ti ti-pencil"></i></button>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="c-top"><div class="c-title">Confraternização junina — sexta às 16h</div></div>
+          <div class="badges">
+            <span class="badge seg"><i class="ti ti-users-group"></i>Todos</span>
+          </div>
+          <div class="c-body">Nossa festa junina será nesta sexta-feira a partir das 16h no pátio coberto. Haverá comidas típicas e sorteios. Tragam a família!</div>
+          <div class="c-foot">
+            <div class="meta"><span class="av">CS</span>Carla Santos · 18/06, 09:00</div>
+            <div class="read">
+              <span class="pct"><b>80</b> de 82 leram</span>
+              <div class="bar"><i style="width:98%"></i></div>
+            </div>
+            <div class="c-actions">
+              <button class="mini" onclick="openPanel()" aria-label="Ver leituras"><i class="ti ti-eye"></i></button>
+              <button class="mini" aria-label="Editar"><i class="ti ti-pencil"></i></button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- bottom-nav real (mobile) — espelha o rail; só aparece <=560px -->
+      <nav class="fp-bottom" aria-label="Navegação (mobile)">
+        <button class="bn"><i class="ti ti-home"></i>Início</button>
+        <button class="bn"><i class="ti ti-clock-hour-4"></i>Horas</button>
+        <button class="bn"><i class="ti ti-users"></i>Equipe</button>
+        <button class="bn on" aria-current="page"><i class="ti ti-speakerphone"></i>Avisos</button>
+        <button class="bn"><i class="ti ti-files"></i>Docs</button>
+      </nav>
+    </div>
+  </div>
+
+  <div class="overlay" id="composer" role="dialog" aria-modal="true" aria-label="Novo comunicado">
+    <div class="modal">
+      <div class="m-head">
+        <h2><i class="ti ti-speakerphone"></i>Novo comunicado</h2>
+        <button class="icon-btn" onclick="closeComposer()" aria-label="Fechar"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="m-body">
+        <div class="fld">
+          <label for="fTitle"><i class="ti ti-heading" style="font-size:15px"></i>Título</label>
+          <input class="inp" id="fTitle" placeholder="Ex.: Parada programada do refeitório" oninput="syncPreview()">
+        </div>
+        <div class="fld">
+          <label for="fBody">Corpo <small>· texto simples, quebras de linha preservadas</small></label>
+          <textarea class="ta" id="fBody" placeholder="Escreva o aviso. Use quebras de linha para separar parágrafos." oninput="syncPreview()"></textarea>
+        </div>
+        <div class="fld">
+          <label><i class="ti ti-target" style="font-size:15px"></i>Segmento</label>
+          <div class="seg-row" role="group" aria-label="Segmento do comunicado">
+            <button type="button" class="chip on" data-seg="todos" aria-pressed="true" onclick="pickSeg(this)"><i class="ti ti-users-group"></i>Todos</button>
+            <button type="button" class="chip" data-seg="turno" aria-pressed="false" onclick="pickSeg(this)"><i class="ti ti-clock-hour-9"></i>Por turno</button>
+            <button type="button" class="chip" data-seg="setor" aria-pressed="false" onclick="pickSeg(this)"><i class="ti ti-building-factory-2"></i>Por setor</button>
+          </div>
+          <div class="seg-detail" id="segTurno" style="margin-top:9px">
+            <!-- value = código canônico do schema/rule (1|2|3); o texto é só rótulo de UI -->
+            <select class="sel" id="fTurno" onchange="syncPreview()" aria-label="Turno alvo">
+              <option value="1">Turno matutino</option>
+              <option value="2">Turno vespertino</option>
+              <option value="3">Turno noturno</option>
+            </select>
+          </div>
+          <div class="seg-detail" id="segSetor" style="margin-top:9px">
+            <select class="sel" id="fSetor" onchange="syncPreview()" aria-label="Setor alvo">
+              <option value="Produção">Setor · Produção</option>
+              <option value="Administrativo">Setor · Administrativo</option>
+              <option value="Logística">Setor · Logística</option>
+              <option value="Manutenção">Setor · Manutenção</option>
+            </select>
+          </div>
+        </div>
+        <div class="tog">
+          <div class="t"><i class="ti ti-pin"></i><div><div class="tt" id="lblPin">Fixar no topo</div><div class="ts">Mantém o aviso destacado acima dos demais</div></div></div>
+          <button type="button" class="sw" id="fPin" role="switch" aria-checked="false" aria-labelledby="lblPin" onclick="tog('fPin')"></button>
+        </div>
+        <div class="tog">
+          <div class="t"><i class="ti ti-writing-sign"></i><div><div class="tt" id="lblConf">Requer confirmação de leitura</div><div class="ts">Gera trilha de ciência por funcionário (N1)</div></div></div>
+          <button type="button" class="sw" id="fConf" role="switch" aria-checked="false" aria-labelledby="lblConf" onclick="tog('fConf')"></button>
+        </div>
+        <div class="preview">
+          <div class="pl">Pré-visualização</div>
+          <div class="pt" id="pTitle">Título do comunicado</div>
+          <div class="pbadges badges" id="pBadges"><span class="badge seg"><i class="ti ti-users-group"></i>Todos</span></div>
+          <div class="pb" id="pBody">O corpo do comunicado aparecerá aqui conforme você escreve.</div>
+        </div>
+      </div>
+      <div class="m-foot">
+        <div class="note"><i class="ti ti-shield-check"></i>Publica como Carla — RH · alcance (Y) e leituras seguem casaSegmento no server</div>
+        <div class="acts">
+          <button class="btn-ghost" onclick="closeComposer()">Cancelar</button>
+          <button class="btn-primary" onclick="publish()"><i class="ti ti-send"></i>Publicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="panel" role="dialog" aria-modal="true" aria-label="Leituras do comunicado">
+    <div class="modal panel">
+      <div class="m-head">
+        <h2><i class="ti ti-eye"></i>Leituras · Parada do refeitório</h2>
+        <button class="icon-btn" onclick="closePanel()" aria-label="Fechar"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="m-body">
+        <div class="pl-tabs">
+          <button class="pl-tab on" onclick="plTab(this,'plOk')"><i class="ti ti-check"></i>Confirmaram <span class="n">61</span></button>
+          <button class="pl-tab" onclick="plTab(this,'plPend')"><i class="ti ti-clock"></i>Pendentes <span class="n">21</span></button>
+        </div>
+        <div class="pl-list show" id="plOk">
+          <div class="person"><div class="av">AM</div><div class="info"><b>Ana Martins</b><span>Produção · Matutino</span></div><div class="tag ok"><i class="ti ti-circle-check"></i>hoje 08:31</div></div>
+          <div class="person"><div class="av">BL</div><div class="info"><b>Bruno Lima</b><span>Logística · Vespertino</span></div><div class="tag ok"><i class="ti ti-circle-check"></i>hoje 08:40</div></div>
+          <div class="person"><div class="av">CF</div><div class="info"><b>Cleber Faria</b><span>Manutenção · Matutino</span></div><div class="tag ok"><i class="ti ti-circle-check"></i>hoje 09:02</div></div>
+          <div class="person"><div class="av">DR</div><div class="info"><b>Diana Reis</b><span>Administrativo · Matutino</span></div><div class="tag ok"><i class="ti ti-circle-check"></i>hoje 09:15</div></div>
+        </div>
+        <div class="pl-list" id="plPend">
+          <div class="person"><div class="av">EP</div><div class="info"><b>Eduardo Pinto</b><span>Produção · Noturno</span></div><div class="tag pend"><i class="ti ti-clock-pause"></i>aguardando</div></div>
+          <div class="person"><div class="av">FS</div><div class="info"><b>Fabiana Souza</b><span>Logística · Noturno</span></div><div class="tag pend"><i class="ti ti-clock-pause"></i>aguardando</div></div>
+          <div class="person"><div class="av">GA</div><div class="info"><b>Gustavo Alves</b><span>Manutenção · Vespertino</span></div><div class="tag pend"><i class="ti ti-clock-pause"></i>aguardando</div></div>
+        </div>
+      </div>
+      <div class="m-foot">
+        <div class="note"><i class="ti ti-info-circle"></i>Trilha de ciência N1 · server timestamp · lista filtrada por casaSegmento</div>
+        <div class="acts"><button class="btn-ghost" onclick="closePanel()">Fechar</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root=document.getElementById('fpcom');
+  var tbtn=document.getElementById('themeBtn');
+  var lastFocus=null;
+
+  tbtn.addEventListener('click',function(){
+    root.classList.toggle('light');
+    tbtn.querySelector('i').className=root.classList.contains('light')?'ti ti-sun':'ti ti-moon';
+  });
+
+  // Mapa canônico de turno (P1) — UI <-> schema/rule. 'geral' = Todos.
+  var TURNO_LABEL={'1':'Matutino','2':'Vespertino','3':'Noturno'};
+
+  function openOverlay(id){
+    lastFocus=document.activeElement;
+    var ov=document.getElementById(id); ov.classList.add('show');
+    var f=ov.querySelector('.inp,button,select,textarea'); if(f) f.focus();
+  }
+  function closeOverlay(id){
+    document.getElementById(id).classList.remove('show');
+    if(lastFocus&&lastFocus.focus) lastFocus.focus();
+  }
+
+  window.openComposer=function(){openOverlay('composer');syncPreview();};
+  window.closeComposer=function(){closeOverlay('composer');};
+  window.openPanel=function(){openOverlay('panel');};
+  window.closePanel=function(){closeOverlay('panel');};
+
+  // switches como role=switch, operáveis por teclado
+  window.tog=function(id){
+    var el=document.getElementById(id);
+    var on=el.getAttribute('aria-checked')==='true';
+    el.setAttribute('aria-checked',(!on).toString());
+    syncPreview();
+  };
+
+  var seg='todos';
+  window.pickSeg=function(el){
+    document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');c.setAttribute('aria-pressed','false');});
+    el.classList.add('on'); el.setAttribute('aria-pressed','true'); seg=el.dataset.seg;
+    document.getElementById('segTurno').classList.toggle('show',seg==='turno');
+    document.getElementById('segSetor').classList.toggle('show',seg==='setor');
+    syncPreview();
+  };
+  // navegação por setas entre os chips de segmento (P5/a11y)
+  (function(){
+    var chips=Array.prototype.slice.call(document.querySelectorAll('.seg-row .chip'));
+    chips.forEach(function(c,i){
+      c.addEventListener('keydown',function(e){
+        if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+          e.preventDefault();
+          var n=(i+(e.key==='ArrowRight'?1:chips.length-1))%chips.length;
+          chips[n].focus();
+        }
+      });
+    });
+  })();
+
+  window.plTab=function(btn,id){
+    document.querySelectorAll('.pl-tab').forEach(function(t){t.classList.remove('on');});
+    btn.classList.add('on');
+    document.querySelectorAll('.pl-list').forEach(function(l){l.classList.remove('show');});
+    document.getElementById(id).classList.add('show');
+  };
+
+  // resolve o segmento canônico {tipo, valores:[...]}
+  function currentSegment(){
+    if(seg==='turno') return {tipo:'turno',valores:[document.getElementById('fTurno').value]};
+    if(seg==='setor') return {tipo:'setor',valores:[document.getElementById('fSetor').value]};
+    return {tipo:'geral',valores:['geral']};
+  }
+
+  window.syncPreview=function(){
+    var t=document.getElementById('fTitle').value.trim();
+    var b=document.getElementById('fBody').value.trim();
+    document.getElementById('pTitle').textContent=t||'Título do comunicado';
+    document.getElementById('pBody').textContent=b||'O corpo do comunicado aparecerá aqui conforme você escreve.';
+    var bd='';
+    if(seg==='todos') bd+='<span class="badge seg"><i class="ti ti-users-group"></i>Todos</span>';
+    else if(seg==='turno') bd+='<span class="badge seg"><i class="ti ti-clock-hour-9"></i>Turno · '+TURNO_LABEL[document.getElementById('fTurno').value]+'</span>';
+    else bd+='<span class="badge seg"><i class="ti ti-building-factory-2"></i>Setor · '+document.getElementById('fSetor').value+'</span>';
+    if(document.getElementById('fConf').getAttribute('aria-checked')==='true') bd+='<span class="badge conf"><i class="ti ti-writing-sign"></i>Requer confirmação</span>';
+    if(document.getElementById('fPin').getAttribute('aria-checked')==='true') bd+='<span class="badge pinb"><i class="ti ti-pin"></i>Fixado</span>';
+    document.getElementById('pBadges').innerHTML=bd;
+  };
+
+  window.publish=function(){
+    var t=document.getElementById('fTitle').value.trim();
+    if(!t){document.getElementById('fTitle').focus();return;}
+    var s=currentSegment();
+    var fixado=document.getElementById('fPin').getAttribute('aria-checked')==='true';
+    var requer=document.getElementById('fConf').getAttribute('aria-checked')==='true';
+    closeComposer();
+    sendPrompt('Publicar o comunicado "'+t+'" no FioPulse: gravar comunicados/{id} com '+
+      'segmento={tipo:"'+s.tipo+'", valores:'+JSON.stringify(s.valores)+'} (vocabulário canônico turno 1|2|3, geral=Todos), '+
+      'fixado='+fixado+', requerConfirmacao='+requer+', ativo=true, '+
+      'publicadoEm=serverTimestamp, autorUid/autorNome do gestor logado. '+
+      'O alcanceEstimado (Y) e a subcoleção leituras devem derivar de casaSegmento (server), não da UI.');
+  };
+
+  // fechar por clique no overlay
+  document.querySelectorAll('.overlay').forEach(function(o){
+    o.addEventListener('click',function(e){if(e.target===o){o.classList.remove('show');if(lastFocus&&lastFocus.focus)lastFocus.focus();}});
+  });
+  // fechar por ESC (P5)
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape') return;
+    var open=root.querySelector('.overlay.show');
+    if(open){open.classList.remove('show');if(lastFocus&&lastFocus.focus)lastFocus.focus();}
+  });
+})();
+</script>
+</body>
+</html>

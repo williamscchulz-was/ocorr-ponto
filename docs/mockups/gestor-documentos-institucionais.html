@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0;background:#1A211A;padding:18px">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+<style>
+#fp-docs{--bg:#0E130E;--surface:#141A14;--card:#161D15;--bd:#232C22;--bd2:#283027;--green:#1AA34F;--green-t:#5FCB85;--green-2:#4FD080;--amber:#E8B468;--tx:#E9F0E5;--tx-w:#94A38D;--tx-w2:#7E8C78;--neutral:#94A38D;
+font-family:'Poppins',system-ui,sans-serif;color:var(--tx);background:var(--bg);border-radius:16px;overflow:hidden;line-height:1.5;-webkit-font-smoothing:antialiased;max-width:100%;}
+#fp-docs[data-theme="light"]{--bg:#F6F9F4;--surface:#FFFFFF;--card:#FFFFFF;--bd:#E3EBE0;--bd2:#E3EBE0;--green:#0E8C3F;--green-t:#0E8C3F;--green-2:#0E8C3F;--amber:#C98A2A;--tx:#16201A;--tx-w:#5B6B57;--tx-w2:#5B6B57;--neutral:#4B5A47;}
+#fp-docs *{box-sizing:border-box;margin:0;padding:0;}
+#fp-docs .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+#fp-docs button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+#fp-docs :focus-visible{outline:2px solid var(--green-2);outline-offset:2px;border-radius:6px;}
+#fp-docs[data-theme="light"] :focus-visible{outline-color:var(--green);}
+#fp-docs .shell{display:flex;min-height:560px;}
+#fp-docs .rail{width:62px;flex:none;background:var(--surface);border-right:1px solid var(--bd);padding:14px 0;display:flex;flex-direction:column;align-items:center;gap:5px;}
+#fp-docs .rail .brand{width:34px;height:34px;border-radius:10px;background:var(--green);display:grid;place-items:center;color:#fff;font-size:19px;margin-bottom:10px;}
+#fp-docs .rail .nav{position:relative;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;color:var(--tx-w);font-size:20px;transition:.15s;}
+#fp-docs .rail .nav:hover{background:var(--card);color:var(--tx);}
+#fp-docs .rail .nav.on{background:rgba(26,163,79,.14);color:var(--green-t);}
+#fp-docs[data-theme="light"] .rail .nav.on{background:rgba(14,140,63,.10);color:var(--green);}
+#fp-docs .rail .nav .tip{position:absolute;left:50px;top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--bd2);color:var(--tx);font-size:11.5px;font-weight:500;padding:4px 9px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:5;}
+#fp-docs .rail .nav:hover .tip,#fp-docs .rail .nav:focus-visible .tip{opacity:1;}
+#fp-docs .rail .spacer{flex:1;}
+#fp-docs .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+#fp-docs .topbar{background:var(--surface);border-bottom:1px solid var(--bd);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+#fp-docs .topbar .crumb{font-size:12px;color:var(--tx-w2);font-weight:500;}
+#fp-docs .topbar h1{font-size:17px;font-weight:600;letter-spacing:.2px;}
+#fp-docs .icobtn{width:34px;height:34px;border-radius:10px;border:1px solid var(--bd2);display:grid;place-items:center;color:var(--tx-w);font-size:17px;transition:.15s;}
+#fp-docs .icobtn:hover{color:var(--tx);border-color:var(--green);}
+#fp-docs .body{padding:20px;overflow-y:auto;flex:1;}
+#fp-docs .head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+#fp-docs .head h2{font-size:19px;font-weight:600;letter-spacing:.2px;}
+#fp-docs .head p{font-size:13px;color:var(--tx-w);margin-top:3px;max-width:380px;}
+#fp-docs .btn{display:inline-flex;align-items:center;gap:7px;background:var(--green);color:#fff;font-weight:500;font-size:13.5px;padding:10px 15px;border-radius:11px;transition:.15s;white-space:nowrap;}
+#fp-docs .btn:hover{filter:brightness(1.07);}
+#fp-docs .btn.ghost{background:transparent;color:var(--tx-w);border:1px solid var(--bd2);}
+#fp-docs .btn.ghost:hover{color:var(--tx);border-color:var(--green);}
+#fp-docs .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:18px;}
+#fp-docs .metric{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:13px 15px;}
+#fp-docs .metric .lab{font-size:11.5px;color:var(--tx-w2);font-weight:500;display:flex;align-items:center;gap:6px;}
+#fp-docs .metric .val{font-size:23px;font-weight:600;margin-top:5px;}
+#fp-docs .metric .val small{font-size:13px;color:var(--tx-w);font-weight:400;}
+#fp-docs .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;}
+#fp-docs .chip{font-size:12px;font-weight:500;padding:6px 12px;border-radius:999px;border:1px solid var(--bd2);color:var(--tx-w);transition:.15s;}
+#fp-docs .chip:hover{color:var(--tx);border-color:var(--green);}
+#fp-docs .chip.on{background:rgba(26,163,79,.16);color:var(--green-t);border-color:transparent;}
+#fp-docs[data-theme="light"] .chip.on{background:rgba(14,140,63,.10);color:var(--green);}
+#fp-docs .list{display:grid;gap:13px;}
+#fp-docs .doc{background:var(--card);border:1px solid var(--bd);border-radius:15px;padding:16px 17px;transition:.15s;cursor:pointer;}
+#fp-docs .doc:hover{border-color:var(--green);}
+#fp-docs .doc.draft{border-style:dashed;border-color:rgba(232,180,104,.5);}
+#fp-docs[data-theme="light"] .doc.draft{border-color:rgba(201,138,42,.55);}
+#fp-docs .doc .row1{display:flex;align-items:flex-start;gap:12px;}
+#fp-docs .doc .ic{width:42px;height:42px;flex:none;border-radius:12px;display:grid;place-items:center;font-size:21px;}
+#fp-docs .doc .tt{flex:1;min-width:0;}
+#fp-docs .doc .tt h3{font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#fp-docs .doc .tt .sub{font-size:12px;color:var(--tx-w);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+#fp-docs .doc .tt .sub i{font-size:14px;vertical-align:-2px;margin-right:3px;}
+#fp-docs .seal{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;letter-spacing:.3px;text-transform:lowercase;}
+#fp-docs .status{font-size:10px;font-weight:600;padding:3px 8px;border-radius:999px;letter-spacing:.4px;text-transform:uppercase;display:inline-flex;align-items:center;gap:4px;}
+#fp-docs .status.pub{background:rgba(26,163,79,.16);color:var(--green-t);}
+#fp-docs[data-theme="light"] .status.pub{background:rgba(14,140,63,.1);color:var(--green);}
+#fp-docs .status.draft{background:rgba(232,180,104,.18);color:var(--amber);}
+#fp-docs[data-theme="light"] .status.draft{background:rgba(201,138,42,.16);color:var(--amber);}
+#fp-docs .ver{font-size:11px;font-weight:500;color:var(--tx-w2);border:1px solid var(--bd2);border-radius:7px;padding:2px 7px;}
+#fp-docs .tag{font-size:10.5px;font-weight:500;color:var(--tx-w);background:var(--surface);border:1px solid var(--bd2);border-radius:7px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px;}
+#fp-docs .tag.sign{color:var(--green-t);border-color:rgba(95,203,133,.35);}
+#fp-docs[data-theme="light"] .tag.sign{color:var(--green);border-color:rgba(14,140,63,.3);}
+#fp-docs .adh{margin-top:14px;}
+#fp-docs .adh .lab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx-w);margin-bottom:6px;}
+#fp-docs .adh .lab b{color:var(--tx);font-weight:500;}
+#fp-docs .bar{height:7px;border-radius:999px;background:var(--bd2);overflow:hidden;}
+#fp-docs .bar span{display:block;height:100%;border-radius:999px;background:var(--green);transition:width .5s;}
+#fp-docs .bar span.low{background:var(--amber);}
+#fp-docs .empty{text-align:center;padding:54px 20px;color:var(--tx-w);}
+#fp-docs .empty .eic{width:64px;height:64px;margin:0 auto 16px;border-radius:18px;background:var(--card);border:1px solid var(--bd);display:grid;place-items:center;font-size:30px;color:var(--green-t);}
+#fp-docs[data-theme="light"] .empty .eic{color:var(--green);}
+#fp-docs .empty h3{font-size:16px;font-weight:600;color:var(--tx);margin-bottom:6px;}
+#fp-docs .empty p{font-size:13px;max-width:330px;margin:0 auto 18px;}
+#fp-docs .ov{display:none;background:rgba(5,8,5,.62);position:absolute;inset:0;z-index:30;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;}
+#fp-docs .ov.show{display:flex;}
+#fp-docs .modal{background:var(--surface);border:1px solid var(--bd2);border-radius:16px;width:100%;max-width:540px;overflow:hidden;}
+#fp-docs .modal .mh{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+#fp-docs .modal .mh h3{font-size:15.5px;font-weight:600;}
+#fp-docs .modal .mb{padding:18px 20px;display:flex;flex-direction:column;gap:16px;max-height:62vh;overflow-y:auto;}
+#fp-docs .fld label{display:block;font-size:12px;font-weight:500;color:var(--tx-w);margin-bottom:7px;}
+#fp-docs .fld input[type=text],#fp-docs .fld textarea,#fp-docs .fld select{width:100%;background:var(--card);border:1px solid var(--bd2);border-radius:11px;color:var(--tx);font-family:inherit;font-size:13.5px;padding:10px 12px;transition:.15s;}
+#fp-docs .fld textarea{min-height:84px;resize:vertical;line-height:1.55;}
+#fp-docs .fld input:focus,#fp-docs .fld textarea:focus,#fp-docs .fld select:focus{outline:none;border-color:var(--green);}
+#fp-docs .fld input::placeholder,#fp-docs .fld textarea::placeholder{color:var(--tx-w2);}
+#fp-docs .typewrap{display:flex;gap:7px;flex-wrap:wrap;}
+#fp-docs .seg{display:flex;background:var(--card);border:1px solid var(--bd2);border-radius:11px;padding:3px;gap:3px;}
+#fp-docs .seg button{flex:1;font-size:12.5px;font-weight:500;color:var(--tx-w);padding:8px;border-radius:8px;transition:.15s;}
+#fp-docs .seg button.on{background:var(--green);color:#fff;}
+#fp-docs .hashbox{margin-top:9px;background:var(--card);border:1px dashed var(--bd2);border-radius:11px;padding:10px 12px;font-size:11.5px;color:var(--tx-w);display:flex;align-items:center;gap:8px;}
+#fp-docs .hashbox i{color:var(--green-t);font-size:16px;}
+#fp-docs[data-theme="light"] .hashbox i{color:var(--green);}
+#fp-docs .hashbox code{font-family:ui-monospace,monospace;color:var(--tx);font-size:11px;word-break:break-all;}
+#fp-docs .toggle{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--bd2);border-radius:12px;padding:12px 14px;}
+#fp-docs .toggle .tl b{font-size:13px;font-weight:500;}
+#fp-docs .toggle .tl p{font-size:11.5px;color:var(--tx-w2);margin-top:2px;}
+#fp-docs .sw{width:42px;height:24px;border-radius:999px;background:var(--bd2);position:relative;flex:none;transition:.2s;}
+#fp-docs .sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;}
+#fp-docs .sw.on{background:var(--green);}
+#fp-docs .sw.on::after{left:21px;}
+#fp-docs .warn{display:none;align-items:flex-start;gap:9px;background:rgba(232,180,104,.12);border:1px solid rgba(232,180,104,.3);border-radius:11px;padding:11px 13px;font-size:12px;color:var(--amber);}
+#fp-docs .warn.show{display:flex;}
+#fp-docs .warn i{font-size:17px;margin-top:1px;}
+#fp-docs .mf{padding:14px 20px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:10px;}
+#fp-docs .twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+#fp-docs .panel .ph{padding:16px 20px;border-bottom:1px solid var(--bd);}
+#fp-docs .panel .ph .top{display:flex;align-items:center;justify-content:space-between;}
+#fp-docs .panel .ph h3{font-size:15px;font-weight:600;}
+#fp-docs .panel .ph .meta{font-size:12px;color:var(--tx-w);margin-top:4px;}
+#fp-docs .progwrap{padding:18px 20px 6px;}
+#fp-docs .progwrap .big{font-size:28px;font-weight:600;}
+#fp-docs .progwrap .big small{font-size:13px;color:var(--tx-w);font-weight:400;}
+#fp-docs .pend{padding:8px 20px 18px;}
+#fp-docs .pend .lab{font-size:11.5px;font-weight:600;color:var(--tx-w2);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 8px;}
+#fp-docs .person{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--bd);}
+#fp-docs .person:last-child{border-bottom:none;}
+#fp-docs .av{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(26,163,79,.16);color:var(--green-t);}
+#fp-docs[data-theme="light"] .av{background:rgba(14,140,63,.1);color:var(--green);}
+#fp-docs .person .pn{flex:1;min-width:0;}
+#fp-docs .person .pn b{font-size:13px;font-weight:500;display:block;}
+#fp-docs .person .pn span{font-size:11.5px;color:var(--tx-w2);}
+#fp-docs .person.done .av{background:rgba(95,203,133,.16);}
+#fp-docs .rem{font-size:11.5px;font-weight:500;color:var(--green-t);border:1px solid var(--bd2);border-radius:8px;padding:5px 10px;transition:.15s;}
+#fp-docs .rem:hover{border-color:var(--green);}
+#fp-docs[data-theme="light"] .rem{color:var(--green);}
+#fp-docs .badge-done{font-size:11px;color:var(--green-t);display:flex;align-items:center;gap:4px;}
+#fp-docs[data-theme="light"] .badge-done{color:var(--green);}
+#fp-docs .bottomnav{display:none;background:var(--surface);border-top:1px solid var(--bd);padding:7px 6px;justify-content:space-around;}
+#fp-docs .bottomnav .bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--tx-w);font-size:9.5px;font-weight:500;padding:5px 2px;border-radius:9px;transition:.15s;}
+#fp-docs .bottomnav .bn i{font-size:20px;}
+#fp-docs .bottomnav .bn.on{color:var(--green-t);}
+#fp-docs[data-theme="light"] .bottomnav .bn.on{color:var(--green);}
+#fp-docs .hide{display:none!important;}
+@media(max-width:620px){
+#fp-docs .rail{display:none;}
+#fp-docs .bottomnav{display:flex;}
+#fp-docs .metrics{grid-template-columns:1fr;}
+#fp-docs .twocol{grid-template-columns:1fr;}
+#fp-docs .body{padding:16px;}
+}
+</style>
+
+<div id="fp-docs" data-theme="dark">
+<span class="sr-only">Tela do gestor para publicar e gerenciar documentos institucionais da empresa, com lista de documentos, status rascunho ou publicado, percentual de adesao, modal de composicao e painel de pendentes.</span>
+<div class="shell">
+
+  <nav class="rail" aria-label="Navegacao principal">
+    <span class="brand" aria-hidden="true"><i class="ti ti-pulse"></i></span>
+    <button class="nav" aria-label="Painel"><i class="ti ti-layout-dashboard"></i><span class="tip">Painel</span></button>
+    <button class="nav" aria-label="Equipe"><i class="ti ti-users"></i><span class="tip">Equipe</span></button>
+    <button class="nav" aria-label="Comunicados"><i class="ti ti-speakerphone"></i><span class="tip">Comunicados</span></button>
+    <button class="nav on" aria-current="page" aria-label="Documentos"><i class="ti ti-file-certificate"></i><span class="tip">Documentos</span></button>
+    <button class="nav" aria-label="Banco de horas"><i class="ti ti-clock-hour-4"></i><span class="tip">Banco de horas</span></button>
+    <span class="spacer"></span>
+    <button class="nav" aria-label="Ajustes"><i class="ti ti-settings"></i><span class="tip">Ajustes</span></button>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="crumb">RH / Admin</div>
+        <h1>Documentos institucionais</h1>
+      </div>
+      <div style="display:flex;gap:9px;">
+        <button class="icobtn" id="themeBtn" aria-label="Alternar tema claro e escuro"><i class="ti ti-sun"></i></button>
+      </div>
+    </div>
+
+    <div class="body">
+      <div id="content">
+        <div class="head">
+          <div>
+            <h2>Documentos da empresa</h2>
+            <p>Publique regras, conduta, cultura e politicas. Acompanhe quem leu e assinou.</p>
+          </div>
+          <button class="btn" id="newBtn"><i class="ti ti-plus"></i>Novo documento</button>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><div class="lab"><i class="ti ti-files"></i>Publicados</div><div class="val">6</div></div>
+          <div class="metric"><div class="lab"><i class="ti ti-writing-sign"></i>Assinatura pendente</div><div class="val">23 <small>pessoas</small></div></div>
+          <div class="metric"><div class="lab"><i class="ti ti-chart-arcs"></i>Adesao media</div><div class="val">82<small>%</small></div></div>
+        </div>
+
+        <div class="filters" id="filters">
+          <button class="chip on" data-f="todos">Todos</button>
+          <button class="chip" data-f="rascunho">Rascunhos</button>
+          <button class="chip" data-f="regras">Regras</button>
+          <button class="chip" data-f="conduta">Conduta</button>
+          <button class="chip" data-f="cultura">Cultura</button>
+          <button class="chip" data-f="privacidade">Privacidade</button>
+          <button class="chip" data-f="termo">Termos</button>
+        </div>
+
+        <div class="list" id="list"></div>
+      </div>
+
+      <div id="emptyState" class="empty hide">
+        <div class="eic"><i class="ti ti-file-off"></i></div>
+        <h3>Nenhum documento publicado ainda</h3>
+        <p>Quando voce publicar o primeiro documento institucional, ele aparece aqui com o acompanhamento de leitura e assinatura.</p>
+        <button class="btn" id="emptyNew" style="margin:0 auto;"><i class="ti ti-plus"></i>Criar primeiro documento</button>
+      </div>
+    </div>
+
+    <nav class="bottomnav" aria-label="Navegacao">
+      <button class="bn"><i class="ti ti-layout-dashboard"></i>Painel</button>
+      <button class="bn"><i class="ti ti-speakerphone"></i>Comunicados</button>
+      <button class="bn on" aria-current="page"><i class="ti ti-file-certificate"></i>Documentos</button>
+      <button class="bn"><i class="ti ti-clock-hour-4"></i>Horas</button>
+      <button class="bn"><i class="ti ti-settings"></i>Ajustes</button>
+    </nav>
+  </div>
+</div>
+
+<div class="ov" id="composer">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Novo documento institucional">
+    <div class="mh"><h3>Novo documento institucional</h3><button class="icobtn" data-close aria-label="Fechar"><i class="ti ti-x"></i></button></div>
+    <div class="mb">
+      <div class="fld"><label>Titulo</label><input type="text" placeholder="Ex.: Codigo de conduta 2026"></div>
+
+      <div class="fld"><label>Tipo</label>
+        <div class="typewrap" id="typeChips">
+          <button class="chip on">regras</button>
+          <button class="chip">conduta</button>
+          <button class="chip">cultura</button>
+          <button class="chip">privacidade</button>
+          <button class="chip">termo</button>
+          <button class="chip">outro</button>
+        </div>
+      </div>
+
+      <div class="fld"><label>Conteudo</label>
+        <div class="seg" id="modeSeg"><button class="on" data-mode="texto">Texto</button><button data-mode="link">Anexo Drive</button></div>
+        <div id="modeTexto" style="margin-top:10px;"><textarea placeholder="Escreva o corpo do documento..."></textarea></div>
+        <div id="modeLink" style="margin-top:10px;" class="hide">
+          <input type="text" placeholder="https://drive.google.com/file/d/...">
+          <div class="hashbox"><i class="ti ti-shield-check"></i><div>Hash do arquivo (SHA-256) calculado na publicacao<br><code>a3f1c9b2e84d5f60 7c21ad9e0b4488f1 ...</code></div></div>
+        </div>
+      </div>
+
+      <div class="twocol">
+        <div class="fld"><label>Segmento</label>
+          <select id="segSel"><option value="todos">Todos os colaboradores</option><option value="turno">Por turno</option><option value="setor">Por setor</option></select>
+        </div>
+        <div class="fld" id="segDetailWrap"><label>&nbsp;</label>
+          <select id="segDetail" disabled><option>Aplica a toda a empresa</option></select>
+        </div>
+      </div>
+
+      <div class="toggle">
+        <div class="tl"><b>Exige assinatura / ciencia</b><p>Registra trilha N1 com data, hora e versao por colaborador.</p></div>
+        <button class="sw on" id="signSw" role="switch" aria-checked="true" aria-label="Exige assinatura"></button>
+      </div>
+
+      <div class="fld"><label>Versao</label><input type="text" id="verInput" value="2.0" style="max-width:140px;"></div>
+      <div class="warn show" id="verWarn"><i class="ti ti-alert-triangle"></i><div>Trocar a versao reabre a assinatura: todos os colaboradores do segmento precisarao dar ciencia novamente.</div></div>
+    </div>
+    <div class="mf">
+      <button class="btn ghost" data-close>Salvar rascunho</button>
+      <button class="btn"><i class="ti ti-send"></i>Publicar</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="adhPanel">
+  <div class="modal panel" role="dialog" aria-modal="true" aria-label="Adesao do documento">
+    <div class="ph">
+      <div class="top"><h3 id="adhTitle">Codigo de conduta 2026</h3><button class="icobtn" data-close aria-label="Fechar"><i class="ti ti-x"></i></button></div>
+      <div class="meta" id="adhMeta">Versao 2.0 - todos os colaboradores - exige assinatura</div>
+    </div>
+    <div class="progwrap">
+      <div class="big" id="adhBig">71% <small>assinaram - 22 de 31</small></div>
+      <div class="bar" style="margin-top:10px;"><span id="adhBar" style="width:71%"></span></div>
+    </div>
+    <div class="pend">
+      <div class="lab">Pendentes (9)</div>
+      <div class="person"><div class="av">RS</div><div class="pn"><b>Rafael Souza</b><span>Noturno - Tecelagem</span></div><button class="rem"><i class="ti ti-bell"></i> Lembrar</button></div>
+      <div class="person"><div class="av">CM</div><div class="pn"><b>Carla Mendes</b><span>Matutino - Acabamento</span></div><button class="rem"><i class="ti ti-bell"></i> Lembrar</button></div>
+      <div class="person"><div class="av">JP</div><div class="pn"><b>Joao Pereira</b><span>Vespertino - Tinturaria</span></div><button class="rem"><i class="ti ti-bell"></i> Lembrar</button></div>
+      <div class="person"><div class="av">AL</div><div class="pn"><b>Ana Lima</b><span>Noturno - Tecelagem</span></div><button class="rem"><i class="ti ti-bell"></i> Lembrar</button></div>
+      <div class="lab">Concluidos recentes</div>
+      <div class="person done"><div class="av">MB</div><div class="pn"><b>Marcos Brito</b><span>Assinou ha 2h - v2.0</span></div><span class="badge-done"><i class="ti ti-check"></i> Assinado</span></div>
+      <div class="person done"><div class="av">FT</div><div class="pn"><b>Fernanda Tavares</b><span>Assinou ontem - v2.0</span></div><span class="badge-done"><i class="ti ti-check"></i> Assinado</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+  var root=document.getElementById('fp-docs');
+  var TURNOS={1:"Matutino",2:"Vespertino",3:"Noturno",geral:"Geral"};
+  var docs=[
+    {t:"Manual de regras internas",type:"regras",ic:"ti-gavel",seg:"Todos os colaboradores",segIc:"ti-users",ver:"3.1",sign:true,status:"publicado",read:108,total:124},
+    {t:"Codigo de conduta 2026",type:"conduta",ic:"ti-shield-check",seg:"Todos os colaboradores",segIc:"ti-users",ver:"2.0",sign:true,status:"publicado",read:22,total:31},
+    {t:"Manual da cultura Fiobras",type:"cultura",ic:"ti-heart-handshake",seg:"Todos os colaboradores",segIc:"ti-users",ver:"1.4",sign:false,status:"publicado",read:119,total:124},
+    {t:"Politica de privacidade e LGPD",type:"privacidade",ic:"ti-lock",seg:"Todos os colaboradores",segIc:"ti-users",ver:"2.2",sign:true,status:"publicado",read:101,total:124},
+    {t:"Termo de uso de EPI",type:"termo",ic:"ti-file-text",seg:"Setor: Producao",segIc:"ti-building-factory",ver:"1.0",sign:true,status:"publicado",read:54,total:88},
+    {t:"Politica de home office",type:"outro",ic:"ti-home",seg:"Turno: "+TURNOS.geral,segIc:"ti-clock-hour-4",ver:"1.1",sign:false,status:"rascunho",read:0,total:21}
+  ];
+  var sealColor={
+    regras:["rgba(95,203,133,.16)","#5FCB85"],
+    conduta:["rgba(95,203,133,.16)","#5FCB85"],
+    cultura:["rgba(232,180,104,.16)","#E8B468"],
+    privacidade:["rgba(148,163,141,.18)","#5FCB85"],
+    termo:["rgba(148,163,141,.20)","#B6C2B0"],
+    outro:["rgba(148,163,141,.20)","#B6C2B0"]
+  };
+  var sealColorLight={
+    regras:["rgba(14,140,63,.12)","#0E8C3F"],conduta:["rgba(14,140,63,.12)","#0E8C3F"],
+    cultura:["rgba(201,138,42,.14)","#C98A2A"],privacidade:["rgba(75,90,71,.14)","#0E8C3F"],
+    termo:["rgba(75,90,71,.16)","#3C4A38"],outro:["rgba(75,90,71,.16)","#3C4A38"]
+  };
+  var labels={regras:"regras",conduta:"conduta",cultura:"cultura",privacidade:"privacidade",termo:"termo",outro:"outro"};
+  var filter="todos";
+
+  function render(){
+    var light=root.getAttribute('data-theme')==='light';
+    var pal=light?sealColorLight:sealColor;
+    var list=document.getElementById('list');
+    var items=docs.filter(function(d){
+      if(filter==="todos")return true;
+      if(filter==="rascunho")return d.status==="rascunho";
+      return d.type===filter;
+    });
+    if(!items.length){list.innerHTML='<div style="text-align:center;color:var(--tx-w);padding:30px;font-size:13px;">Nenhum documento neste filtro.</div>';return;}
+    list.innerHTML=items.map(function(d){
+      var draft=d.status==="rascunho";
+      var pct=draft?0:Math.round(d.read/d.total*100);
+      var c=pal[d.type];
+      var low=pct<70?" low":"";
+      var verb=d.sign?"assinaram":"leram";
+      var statusBadge=draft
+        ? '<span class="status draft"><i class="ti ti-pencil"></i>Rascunho</span>'
+        : '<span class="status pub"><i class="ti ti-circle-check"></i>Publicado</span>';
+      var adesao=draft
+        ? '<div class="adh"><div class="lab"><span>Adesao</span><b>Aguardando publicacao</b></div><div class="bar"><span style="width:0%"></span></div></div>'
+        : '<div class="adh"><div class="lab"><span>Adesao</span><b>'+pct+'% - '+d.read+' de '+d.total+' '+verb+'</b></div><div class="bar"><span class="'+low.trim()+'" style="width:'+pct+'%"></span></div></div>';
+      return '<div class="doc'+(draft?' draft':'')+'" tabindex="0" role="button" aria-label="Abrir adesao de '+d.t+'" data-doc="'+d.t+'" data-meta="Versao '+d.ver+' - '+d.seg+(d.sign?' - exige assinatura':'')+'" data-pct="'+pct+'" data-read="'+d.read+'" data-total="'+d.total+'" data-verb="'+verb+'" data-draft="'+draft+'">'+
+        '<div class="row1">'+
+          '<div class="ic" style="background:'+c[0]+';color:'+c[1]+'"><i class="ti '+d.ic+'"></i></div>'+
+          '<div class="tt"><h3>'+d.t+
+            ' '+statusBadge+
+            ' <span class="seal" style="background:'+c[0]+';color:'+c[1]+'">'+labels[d.type]+'</span></h3>'+
+            '<div class="sub">'+
+              '<span class="tag"><i class="ti '+d.segIc+'"></i>'+d.seg+'</span>'+
+              '<span class="ver">v'+d.ver+'</span>'+
+              (d.sign?'<span class="tag sign"><i class="ti ti-writing-sign"></i>assinatura</span>':'<span class="tag"><i class="ti ti-eye"></i>ciencia</span>')+
+            '</div>'+
+          '</div>'+
+          '<i class="ti ti-chevron-right" style="color:var(--tx-w2);font-size:18px;"></i>'+
+        '</div>'+
+        adesao+
+      '</div>';
+    }).join('');
+    list.querySelectorAll('.doc').forEach(function(el){
+      function openDoc(){
+        if(el.dataset.draft==='true'){open('composer');return;}
+        document.getElementById('adhTitle').textContent=el.dataset.doc;
+        document.getElementById('adhMeta').textContent=el.dataset.meta;
+        document.getElementById('adhBig').innerHTML=el.dataset.pct+'% <small>'+el.dataset.verb+' - '+el.dataset.read+' de '+el.dataset.total+'</small>';
+        document.getElementById('adhBar').style.width=el.dataset.pct+'%';
+        open('adhPanel');
+      }
+      el.addEventListener('click',openDoc);
+      el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openDoc();}});
+    });
+  }
+
+  function open(id){document.getElementById(id).classList.add('show');}
+  function closeAll(){root.querySelectorAll('.ov').forEach(function(o){o.classList.remove('show');});}
+  root.querySelectorAll('[data-close]').forEach(function(b){b.addEventListener('click',closeAll);});
+  root.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o)closeAll();});});
+  root.addEventListener('keydown',function(e){if(e.key==='Escape')closeAll();});
+
+  document.getElementById('newBtn').addEventListener('click',function(){open('composer');});
+  document.getElementById('emptyNew').addEventListener('click',function(){open('composer');});
+
+  document.getElementById('filters').addEventListener('click',function(e){
+    var b=e.target.closest('.chip');if(!b)return;
+    this.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
+    b.classList.add('on');filter=b.dataset.f;render();
+  });
+
+  document.getElementById('typeChips').addEventListener('click',function(e){
+    var b=e.target.closest('.chip');if(!b)return;
+    this.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});b.classList.add('on');
+  });
+
+  document.getElementById('modeSeg').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    this.querySelectorAll('button').forEach(function(c){c.classList.remove('on');});b.classList.add('on');
+    var link=b.dataset.mode==='link';
+    document.getElementById('modeLink').classList.toggle('hide',!link);
+    document.getElementById('modeTexto').classList.toggle('hide',link);
+  });
+
+  var segSel=document.getElementById('segSel'),segDetail=document.getElementById('segDetail');
+  segSel.addEventListener('change',function(){
+    if(this.value==='turno'){segDetail.disabled=false;segDetail.innerHTML='<option value="1">'+TURNOS[1]+'</option><option value="2">'+TURNOS[2]+'</option><option value="3">'+TURNOS[3]+'</option><option value="geral">'+TURNOS.geral+'</option>';}
+    else if(this.value==='setor'){segDetail.disabled=false;segDetail.innerHTML='<option>Producao</option><option>Tecelagem</option><option>Acabamento</option><option>Administrativo</option>';}
+    else{segDetail.disabled=true;segDetail.innerHTML='<option>Aplica a toda a empresa</option>';}
+  });
+
+  var signSw=document.getElementById('signSw');
+  signSw.addEventListener('click',function(){
+    var on=this.classList.toggle('on');this.setAttribute('aria-checked',on);
+    document.getElementById('verWarn').classList.toggle('show',on);
+  });
+  document.getElementById('verInput').addEventListener('input',function(){
+    if(signSw.classList.contains('on'))document.getElementById('verWarn').classList.add('show');
+  });
+
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var light=root.getAttribute('data-theme')==='light';
+    root.setAttribute('data-theme',light?'dark':'light');
+    this.querySelector('i').className=light?'ti ti-sun':'ti ti-moon';
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

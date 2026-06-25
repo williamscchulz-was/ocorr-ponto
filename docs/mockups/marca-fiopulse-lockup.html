@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0;background:#1A211A;padding:18px">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.1.0/dist/tabler-icons.min.css">
+<style>
+  .fp-wrap{font-family:'Poppins',system-ui,sans-serif;color:var(--fp-tx);--fp-bg:#0E130E;--fp-surf:#141A14;--fp-card:#161D15;--fp-bd:#232C22;--fp-bd2:#283027;--fp-green:#1AA34F;--fp-glow:#5FCB85;--fp-glow2:#4FD080;--fp-amber:#E8B468;--fp-tx:#E9F0E5;--fp-tw:#94A38D;--fp-tw2:#7E8C78;background:var(--fp-bg);border-radius:18px;padding:22px 20px 28px;transition:background .3s;}
+  .fp-wrap.light{--fp-bg:#F6F9F4;--fp-surf:#FFFFFF;--fp-card:#FFFFFF;--fp-bd:#E3EBE0;--fp-bd2:#E3EBE0;--fp-green:#0E8C3F;--fp-glow:#0E8C3F;--fp-glow2:#0E8C3F;--fp-amber:#C98A2A;--fp-tx:#16201A;--fp-tw:#5B6B57;--fp-tw2:#5B6B57;}
+  .fp-wrap *{box-sizing:border-box;}
+  .fp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;}
+  .fp-top h2{font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;margin:0;color:var(--fp-tx);letter-spacing:.2px;}
+  .fp-top p{margin:2px 0 0;font-size:12px;color:var(--fp-tw);font-weight:400;}
+  .fp-toggle{display:inline-flex;align-items:center;gap:6px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:500;color:var(--fp-tw);background:var(--fp-card);border:1px solid var(--fp-bd);border-radius:10px;padding:7px 11px;cursor:pointer;transition:.18s;}
+  .fp-toggle:hover{color:var(--fp-tx);border-color:var(--fp-green);}
+  .fp-toggle:focus-visible{outline:2px solid var(--fp-green);outline-offset:2px;}
+  .fp-toggle i{font-size:15px;}
+  .fp-sec-lbl{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--fp-tw2);margin:24px 0 10px;}
+  .fp-sec-lbl::after{content:"";flex:1;height:1px;background:var(--fp-bd);}
+  .fp-sec-lbl.rec{color:var(--fp-glow);}
+  .fp-card{background:var(--fp-card);border:1px solid var(--fp-bd);border-radius:15px;overflow:hidden;margin-bottom:14px;transition:.2s;}
+  .fp-card.rec{border-color:var(--fp-green);}
+  .fp-card-head{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid var(--fp-bd);gap:10px;}
+  .fp-card-head .nm{font-size:13px;font-weight:600;color:var(--fp-tx);display:flex;align-items:center;gap:8px;}
+  .fp-pill{font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .fp-pill.cur{color:var(--fp-amber);border:1px solid var(--fp-amber);background:transparent;}
+  .fp-pill.rec{color:#fff;background:var(--fp-green);}
+  .fp-pill.alt{color:var(--fp-glow);border:1px solid var(--fp-bd2);background:transparent;}
+  .fp-ctxrow{display:grid;grid-template-columns:1fr;gap:0;}
+  .fp-ctx{padding:0;border-top:1px solid var(--fp-bd);}
+  .fp-ctx:first-child{border-top:none;}
+  .fp-ctx-tag{font-size:10px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--fp-tw2);padding:9px 15px 0;}
+  /* lockup primitives */
+  .lk{display:flex;align-items:center;gap:11px;}
+  .lk-sq{flex:none;display:flex;align-items:center;justify-content:center;background:var(--fp-green);color:#fff;border-radius:11px;}
+  .lk-sq.s40{width:40px;height:40px;font-size:21px;border-radius:11px;}
+  .lk-sq.s36{width:36px;height:36px;font-size:19px;border-radius:10px;}
+  .lk-sq.s32{width:32px;height:32px;font-size:17px;border-radius:9px;}
+  .lk-sq.s28{width:28px;height:28px;font-size:15px;border-radius:8px;}
+  .lk-sq.s20{width:20px;height:20px;font-size:12px;border-radius:6px;}
+  .lk-wd{font-family:'Poppins',sans-serif;line-height:1.05;}
+  .lk-wd .nm{font-weight:600;letter-spacing:-.3px;color:var(--fp-tx);}
+  .lk-wd .nm b{font-weight:700;}
+  .lk-wd .sub{font-weight:400;color:var(--fp-tw);letter-spacing:.1px;}
+  /* login mock */
+  .mk-login{background:var(--fp-surf);border:1px solid var(--fp-bd);border-radius:0;padding:22px 18px 18px;text-align:center;}
+  .mk-login .lk{justify-content:center;flex-direction:column;gap:12px;}
+  .mk-login .lk-wd{text-align:center;}
+  .mk-field{height:30px;border:1px solid var(--fp-bd);border-radius:8px;margin:14px auto 0;max-width:230px;background:var(--fp-bg);}
+  .mk-btn{height:30px;border-radius:8px;margin:9px auto 0;max-width:230px;background:var(--fp-green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;}
+  /* sidebar mock */
+  .mk-side{background:var(--fp-surf);border:1px solid var(--fp-bd);border-radius:0;padding:14px 13px;display:flex;flex-direction:column;gap:9px;min-height:128px;}
+  .mk-navrow{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--fp-tw);font-family:'Poppins',sans-serif;font-weight:500;padding:5px 7px;border-radius:7px;}
+  .mk-navrow i{font-size:14px;}
+  .mk-navrow.on{background:var(--fp-bg);color:var(--fp-tx);}
+  .mk-navrow.on i{color:var(--fp-green);}
+  .mk-sidediv{height:1px;background:var(--fp-bd);margin:3px -3px;}
+  /* topbar mock */
+  .mk-topbar{background:var(--fp-surf);border:1px solid var(--fp-bd);border-radius:0;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;}
+  .mk-topbar .rt{display:flex;align-items:center;gap:11px;color:var(--fp-tw);font-size:15px;}
+  .mk-topbar .av{width:24px;height:24px;border-radius:50%;background:var(--fp-bd2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--fp-glow);font-family:'Poppins',sans-serif;}
+  .fp-note{font-size:11.5px;color:var(--fp-tw);padding:10px 15px 13px;line-height:1.5;border-top:1px solid var(--fp-bd);font-weight:400;}
+  .fp-note b{color:var(--fp-tx);font-weight:600;}
+  .fp-grid2{display:grid;grid-template-columns:1fr;gap:0;}
+  @media(min-width:560px){.fp-grid2{grid-template-columns:1fr 1fr;}.fp-grid2 .fp-ctx:nth-child(2){border-top:none;border-left:1px solid var(--fp-bd);}}
+  .pulse-svg{display:block;}
+  /* divergence strip */
+  .fp-div{background:var(--fp-card);border:1px solid var(--fp-bd2);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+  .fp-div-h{font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--fp-amber);display:flex;align-items:center;gap:7px;margin-bottom:11px;}
+  .fp-div-row{display:grid;grid-template-columns:1fr;gap:9px;}
+  @media(min-width:520px){.fp-div-row{grid-template-columns:repeat(3,1fr);}}
+  .fp-div-item{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--fp-tw);font-weight:500;}
+  .fp-div-item .scr{color:var(--fp-tx);font-weight:600;}
+  .fp-div-item code{font-family:ui-monospace,monospace;font-size:10px;color:var(--fp-tw2);}
+  /* blocker block */
+  .fp-block{background:var(--fp-card);border:1px solid var(--fp-amber);border-radius:12px;padding:13px 15px;margin-top:18px;}
+  .fp-block-h{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--fp-amber);display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+  .fp-block ul{margin:0;padding-left:18px;}
+  .fp-block li{font-size:11.5px;color:var(--fp-tw);line-height:1.55;margin-bottom:5px;}
+  .fp-block li b{color:var(--fp-tx);font-weight:600;}
+  .fp-fav{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:var(--fp-green);border-radius:4px;vertical-align:-3px;margin:0 3px;}
+</style>
+
+<div class="fp-wrap" id="fpWrap">
+  <div class="fp-top">
+    <div>
+      <h2>FioPulse — estudo de lockup</h2>
+      <p>Atual + 4 propostas (A–D), em contexto, dark/light</p>
+    </div>
+    <button class="fp-toggle" id="fpToggle" aria-pressed="false" aria-label="Alternar tema claro e escuro">
+      <i class="ti ti-moon" id="fpToggleIcon" aria-hidden="true"></i><span id="fpToggleTxt">Escuro</span>
+    </button>
+  </div>
+
+  <div class="fp-div">
+    <div class="fp-div-h"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Ícone da marca diverge entre as telas hoje</div>
+    <div class="fp-div-row">
+      <div class="fp-div-item"><span class="lk-sq s20"><i class="ti ti-pulse" aria-hidden="true"></i></span><span><span class="scr">Documentos</span><br><code>ti-pulse</code></span></div>
+      <div class="fp-div-item"><span class="lk-sq s20"><i class="ti ti-activity-heartbeat" aria-hidden="true"></i></span><span><span class="scr">Comunicados</span><br><code>ti-activity-heartbeat</code></span></div>
+      <div class="fp-div-item"><span class="lk-sq s20"><i class="ti ti-leaf" aria-hidden="true"></i></span><span><span class="scr">Marca / login</span><br><code>ti-leaf</code></span></div>
+    </div>
+  </div>
+
+  <div class="fp-sec-lbl">Atual</div>
+  <div class="fp-card">
+    <div class="fp-card-head">
+      <span class="nm"><i class="ti ti-leaf" style="color:var(--fp-green)" aria-hidden="true"></i>Lockup atual</span>
+      <span class="fp-pill cur">Hoje</span>
+    </div>
+    <div class="fp-ctx-tag">Header de login</div>
+    <div class="fp-ctx" style="border-top:none">
+      <div class="mk-login">
+        <span class="lk-sq s40"><i class="ti ti-leaf" aria-hidden="true"></i></span>
+        <div class="lk-wd">
+          <div class="nm" style="font-size:21px"><b>FioPulse</b></div>
+          <div class="sub" style="font-size:11.5px;margin-top:3px">Fiobras · o batimento do GH</div>
+        </div>
+        <div class="mk-field"></div>
+        <div class="mk-btn">Entrar</div>
+      </div>
+    </div>
+    <div class="fp-note"><b>Crítica do cliente:</b> a tagline "Fiobras · o batimento do GH" é longa demais e empurra a hierarquia; o conjunto fica carregado e sem refino. Além disso o ícone de folha não conversa com o nome "Pulse" nem com o ícone de pulso/batimento usado na casca das outras telas.</div>
+  </div>
+
+  <div class="fp-sec-lbl">Proposta A — tagline curta</div>
+  <div class="fp-card">
+    <div class="fp-card-head">
+      <span class="nm"><i class="ti ti-typography" aria-hidden="true"></i>Wordmark + "RH da Fiobras"</span>
+      <span class="fp-pill alt">A</span>
+    </div>
+    <div class="fp-grid2">
+      <div class="fp-ctx">
+        <div class="fp-ctx-tag">Topo da sidebar</div>
+        <div class="mk-side">
+          <div class="lk" style="padding:0 2px 7px;border-bottom:1px solid var(--fp-bd)">
+            <span class="lk-sq s32"><i class="ti ti-leaf" aria-hidden="true"></i></span>
+            <div class="lk-wd"><div class="nm" style="font-size:16px"><b>FioPulse</b></div><div class="sub" style="font-size:10px;margin-top:1px">RH da Fiobras</div></div>
+          </div>
+          <div class="mk-navrow on"><i class="ti ti-clock-hour-4" aria-hidden="true"></i>Banco de horas</div>
+          <div class="mk-navrow"><i class="ti ti-users" aria-hidden="true"></i>Funcionários</div>
+        </div>
+      </div>
+      <div class="fp-ctx">
+        <div class="fp-ctx-tag">Topbar do app</div>
+        <div class="mk-topbar">
+          <div class="lk">
+            <span class="lk-sq s28"><i class="ti ti-leaf" aria-hidden="true"></i></span>
+            <div class="lk-wd"><div class="nm" style="font-size:14px"><b>FioPulse</b></div><div class="sub" style="font-size:9.5px;margin-top:1px">RH da Fiobras</div></div>
+          </div>
+          <div class="rt"><i class="ti ti-bell" aria-hidden="true"></i><span class="av">WC</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="fp-note">Mantém estrutura, troca a tagline por <b>"RH da Fiobras"</b> — direto, sem jargão "GH". Wordmark mais pesado (700) para fixar o nome. Mais limpo, baixo risco. <b>Não resolve</b> a divergência de ícone (segue na folha).</div>
+  </div>
+
+  <div class="fp-sec-lbl">Proposta B — sem tagline</div>
+  <div class="fp-card">
+    <div class="fp-card-head">
+      <span class="nm"><i class="ti ti-square-rounded" aria-hidden="true"></i>Só o wordmark</span>
+      <span class="fp-pill alt">B</span>
+    </div>
+    <div class="fp-grid2">
+      <div class="fp-ctx">
+        <div class="fp-ctx-tag">Header de login</div>
+        <div class="mk-login">
+          <div class="lk" style="flex-direction:row;gap:11px;justify-content:center">
+            <span class="lk-sq s40"><i class="ti ti-leaf" aria-hidden="true"></i></span>
+            <div class="lk-wd"><div class="nm" style="font-size:24px"><b>FioPulse</b></div></div>
+          </div>
+          <div class="mk-field"></div>
+          <div class="mk-btn">Entrar</div>
+        </div>
+      </div>
+      <div class="fp-ctx">
+        <div class="fp-ctx-tag">Topbar do app</div>
+        <div class="mk-topbar">
+          <div class="lk">
+            <span class="lk-sq s28"><i class="ti ti-leaf" aria-hidden="true"></i></span>
+            <div class="lk-wd"><div class="nm" style="font-size:15px"><b>FioPulse</b></div></div>
+          </div>
+          <div class="rt"><i class="ti ti-bell" aria-hidden="true"></i><span class="av">WC</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="fp-note">Remove a tagline de vez. Lockup mínimo, equilibrado horizontalmente. Ótimo em espaços apertados (topbar/favicon), mas perde o contexto "RH/Fiobras" no login e <b>mantém a folha</b> — divergência de ícone segue aberta.</div>
+  </div>
+
+  <div class="fp-sec-lbl rec">Proposta C — motivo de pulso (recomendada)</div>
+  <div class="fp-card rec">
+    <div class="fp-card-head">
+      <span class="nm"><i class="ti ti-activity-heartbeat" style="color:var(--fp-glow)" aria-hidden="true"></i>Onda de batimento no ícone</span>
+      <span class="fp-pill rec">C · recomendada</span>
+    </div>
+    <div class="fp-ctx">
+      <div class="fp-ctx-tag">Header de login</div>
+      <div class="mk-login">
+        <div class="lk" style="flex-direction:row;gap:12px;justify-content:center">
+          <span class="lk-sq s40">
+            <svg class="pulse-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <div class="lk-wd"><div class="nm" style="font-size:23px"><b>FioPulse</b></div><div class="sub" style="font-size:11px;margin-top:2px">o batimento do RH</div></div>
+        </div>
+        <div class="mk-field"></div>
+        <div class="mk-btn">Entrar</div>
+      </div>
+    </div>
+    <div class="fp-grid2">
+      <div class="fp-ctx">
+        <div class="fp-ctx-tag">Topo da sidebar</div>
+        <div class="mk-side">
+          <div class="lk" style="padding:0 2px 7px;border-bottom:1px solid var(--fp-bd)">
+            <span class="lk-sq s32">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <div class="lk-wd"><div class="nm" style="font-size:16px"><b>FioPulse</b></div><div class="sub" style="font-size:10px;margin-top:1px">o batimento do RH</div></div>
+          </div>
+          <div class="mk-navrow on"><i class="ti ti-clock-hour-4" aria-hidden="true"></i>Banco de horas</div>
+          <div class="mk-navrow"><i class="ti ti-users" aria-hidden="true"></i>Funcionários</div>
+        </div>
+      </div>
+      <div class="fp-ctx">
+        <div class="fp-ctx-tag">Topbar do app</div>
+        <div class="mk-topbar">
+          <div class="lk">
+            <span class="lk-sq s28"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div class="lk-wd"><div class="nm" style="font-size:14px"><b>FioPulse</b></div></div>
+          </div>
+          <div class="rt"><i class="ti ti-bell" aria-hidden="true"></i><span class="av">WC</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="fp-note"><b>O que muda:</b> a folha vira uma <b>linha de ECG/pulso</b> dentro do mesmo quadrado verde — conecta o ícone ao nome "Pulse" e ao domínio de RH/ponto. Tagline encurtada para <b>"o batimento do RH"</b> (5 → 3 palavras) e some na topbar. <b>Unifica o ícone da casca:</b> ao adotar este pulso, Documentos (<code>ti-pulse</code>), Comunicados (<code>ti-activity-heartbeat</code>) e a marca passam a usar o MESMO símbolo de batimento — acaba a divergência das três telas. Verde da marca preservado.</div>
+  </div>
+
+  <div class="fp-sec-lbl">Proposta D — pulso no wordmark</div>
+  <div class="fp-card">
+    <div class="fp-card-head">
+      <span class="nm"><i class="ti ti-wave-sine" aria-hidden="true"></i>Onda costurada ao nome</span>
+      <span class="fp-pill alt">D</span>
+    </div>
+    <div class="fp-ctx">
+      <div class="fp-ctx-tag">Header de login</div>
+      <div class="mk-login">
+        <div class="lk" style="flex-direction:column;gap:7px">
+          <div class="lk" style="gap:10px">
+            <span class="lk-sq s36"><i class="ti ti-leaf" aria-hidden="true"></i></span>
+            <div class="lk-wd"><div class="nm" style="font-size:22px">Fio<b style="color:var(--fp-glow)">Pulse</b></div></div>
+          </div>
+          <svg width="150" height="14" viewBox="0 0 150 14" fill="none" aria-hidden="true" style="opacity:.9">
+            <path d="M0 7h44l5-5.5 6 11 5-8 4 5h82" stroke="var(--fp-green)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="mk-field"></div>
+        <div class="mk-btn">Entrar</div>
+      </div>
+    </div>
+    <div class="fp-note">Mantém o ícone de folha, mas grafa <b>Fio<span style="color:var(--fp-glow)">Pulse</span></b> com "Pulse" em verde-claro e uma <b>linha de pulso fina sob o wordmark</b>. Sem tagline. <b>Descartada:</b> depende de cor no texto — no tema claro o verde-claro #5FCB85 colapsa para o verde-marca #0E8C3F (alterne o tema acima para ver) e perde justamente o contraste de cor que era o ponto. Frágil em monocromia/impressão. A folha também não resolve a divergência de ícone.</div>
+  </div>
+
+  <div class="fp-block">
+    <div class="fp-block-h"><i class="ti ti-lock" aria-hidden="true"></i>Antes de fechar (bloqueante)</div>
+    <ul>
+      <li><b>Favicon 16px:</b> testar a path do pulso <span class="fp-fav"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span> em tamanho real — confirmar que a onda permanece legível e não vira borrão a 16px.</li>
+      <li><b>Variante monocromática:</b> produzir o pulso em 1 cor (sobre verde e sobre fundo claro/escuro) para impressão, modo alto-contraste e usos sem cor.</li>
+      <li><b>Casca:</b> ao adotar a Proposta C, padronizar o ícone de pulso nas telas Documentos e Comunicados para fechar a unificação.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var w=document.getElementById('fpWrap'),b=document.getElementById('fpToggle'),
+      i=document.getElementById('fpToggleIcon'),t=document.getElementById('fpToggleTxt');
+  b.addEventListener('click',function(){
+    var light=w.classList.toggle('light');
+    i.className=light?'ti ti-sun':'ti ti-moon';
+    t.textContent=light?'Claro':'Escuro';
+    b.setAttribute('aria-pressed',light?'true':'false');
+  });
+})();
+</script>
+</body>
+</html>

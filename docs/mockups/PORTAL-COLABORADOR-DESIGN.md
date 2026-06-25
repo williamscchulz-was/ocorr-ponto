@@ -5,7 +5,7 @@
 
 ## Design system (vale para todas as telas)
 
-- **Identidade FioPulse:** verde `#1AA34F` (marca), Poppins, "o batimento do GH". **Sem emoji.**
+- **Identidade FioPulse:** verde `#1AA34F` (marca), Poppins. **Sem emoji.** Marca = **Proposta C aprovada (2026-06-26)**: ícone de **pulso/ECG** (quadrado verde + linha de batimento, path `M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22`) + tagline **"o batimento do RH"** (não mais "GH"). Unificar o mark em login/sidebar/topbar/favicon e nas telas. Ref: `marca-fiopulse-lockup.html` + bridge `2026-06-26-marca-proposta-C-aprovada.md`.
 - **Responsivo (regra de ouro):**
   - **Mobile:** bottom nav **fixa** (`position:fixed` + `env(safe-area-inset-bottom)`), **só ícone** (sem rótulo), ativo num **círculo verde**, notificação = **pontinho** discreto (sem número). Sub-telas usam topbar com **seta de voltar**.
   - **Desktop:** **sidebar fixa à esquerda** (ícone + rótulo), ativo com fundo verde-suave, **sem bottom nav**. Toggle de tema + usuário no rodapé da sidebar. Conteúdo ocupa a largura.
