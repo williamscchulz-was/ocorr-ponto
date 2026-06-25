@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Home do Colaborador (mobile · claro/escuro)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#E2E8DE;font-family:"Poppins",ui-sans-serif,system-ui,sans-serif;padding:16px}
+.note{max-width:660px;margin:0 auto 16px;font-size:13px;color:#46553f;background:#fff;border:1px solid #E0E8DC;border-left:3px solid #1AA34F;border-radius:10px;padding:12px 16px;line-height:1.6}
+.note b{color:#0E6328}
+.cmp{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+.col{display:flex;flex-direction:column;align-items:center;gap:9px}
+.col .cap{font-size:12px;color:#5A6B54;font-weight:500}
+.ph{position:relative;width:300px;background:var(--bg);border:1px solid var(--bd);border-radius:26px;overflow:hidden;color:var(--tx)}
+.ph *{box-sizing:border-box}
+.ph--light{--bg:#F6F9F4;--card:#fff;--bd:#E7EEE3;--tx:#1C2A18;--mut:#6B7A64;--chip:#EDF3EA;--chiptx:#46553F;--green:#0E8C3F;--gfaint:#E2F0E5;--av:#1AA34F;--avtx:#fff;--navbg:#fff;--navbd:#EBF1E8;--navsh:0 8px 22px rgba(0,40,20,.10);--warnbg:#F7E8D1;--warnic:#9A6A22;--infobg:#DCEBF8;--infoic:#1A6CA8;--neg:#B0712A;--csh:0 1px 2px rgba(0,40,20,.05);--topbg:#fff;--topbd:#EEF3EC;--tgbg:#F1F5EF;--tgbd:#E4EBE1;--tgic:#5A6B54;--acc:#0E8FE0}
+.ph--dark{--bg:#0E130E;--card:#161D15;--bd:#232C22;--tx:#EDF3EA;--mut:#8A9884;--chip:#1E261D;--chiptx:#AEBEA7;--green:#5FCB85;--gfaint:#193220;--av:#1AA34F;--avtx:#06210F;--navbg:#171E16;--navbd:#2A332A;--navsh:0 12px 28px rgba(0,0,0,.5);--warnbg:#3A2E18;--warnic:#E8B468;--infobg:#16314A;--infoic:#7BBDF0;--neg:#E8B468;--csh:none;--topbg:#141A14;--topbd:#222A21;--tgbg:#1E261D;--tgbd:#2C362B;--tgic:#CFE0C6;--acc:#1E9AE6}
+.tp{display:flex;align-items:center;gap:9px;padding:12px 14px;background:var(--topbg);border-bottom:1px solid var(--topbd)}
+.tp .mn{font-size:21px;color:var(--mut)}
+.tp b{font-size:14.5px;font-weight:600}
+.tg{margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--tgbg);border:1px solid var(--tgbd);color:var(--tgic);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer}
+.av{width:32px;height:32px;border-radius:50%;background:var(--av);color:var(--avtx);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.vw{padding:15px 14px 92px}
+.hi{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.hi small{display:block;font-size:11.5px;font-weight:400;color:var(--mut);margin-top:1px}
+.id{display:flex;gap:11px;align-items:center;margin:12px 0;background:var(--card);border:1px solid var(--bd);border-radius:15px;padding:13px;box-shadow:var(--csh)}
+.id__av{width:44px;height:44px;border-radius:50%;flex:none;background:var(--av);color:var(--avtx);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600}
+.id__n{font-size:13.5px;font-weight:600}
+.id__c{font-size:11px;color:var(--mut);margin-top:1px;line-height:1.3}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.chip{font-size:10px;font-weight:500;color:var(--chiptx);background:var(--chip);padding:3px 8px;border-radius:999px}
+.bh{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--bd);border-radius:15px;padding:15px;margin-bottom:13px;box-shadow:var(--csh)}
+.bh__l{font-size:11.5px;color:var(--mut);font-weight:500;display:flex;align-items:center;gap:7px}
+.bh__l i{font-size:16px}
+.bh__v{font-size:27px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:7px;color:var(--neg)}
+.bh__v i{font-size:18px;color:var(--mut)}
+.sec{font-size:11.5px;font-weight:600;color:var(--tx);margin:15px 2px 8px}
+.rw{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:8px;box-shadow:var(--csh)}
+.rw__ic{width:32px;height:32px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:17px}
+.rw__ic.w{background:var(--warnbg);color:var(--warnic)}
+.rw__ic.i{background:var(--infobg);color:var(--infoic)}
+.rw__t{font-size:12.5px;font-weight:500}
+.rw__s{font-size:10.5px;color:var(--mut);margin-top:1px}
+.rw__go{margin-left:auto;color:var(--mut);opacity:.55;font-size:17px}
+.gr{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.at{background:var(--card);border:1px solid var(--bd);border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:7px;box-shadow:var(--csh)}
+.at__ic{width:36px;height:36px;border-radius:10px;background:var(--gfaint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:19px}
+.at__t{font-size:12.5px;font-weight:500}
+.at__s{font-size:10px;color:var(--mut);margin-top:-3px}
+.nav{position:absolute;left:30px;right:30px;bottom:16px;height:56px;background:var(--navbg);border:1px solid var(--navbd);border-radius:28px;box-shadow:var(--navsh);display:flex;align-items:center;justify-content:space-around;padding:0 6px}
+.nav .it{cursor:pointer;color:var(--mut)}
+.nav .ic{position:relative;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.nav .ic i{font-size:22px}
+.nav .on{color:var(--green)}
+.nav .on .ic{background:var(--av);color:var(--avtx)}
+.nav .nd{position:absolute;top:3px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--acc);border:2px solid var(--navbg)}
+</style>
+</head>
+<body>
+<div class="note"><b>Home do Portal do Colaborador — mobile (claro/escuro).</b> Nav só-ícone, fixa no rodapé (no app real: <code>position:fixed</code> + safe-area). Ativo em círculo verde, notificação = pontinho. BH minimalista (só o saldo; verde se positivo, âmbar se negativo). Dados de identidade/saldo/aniversariantes vêm do real; comunicados/documentos são placeholder (coleções ainda não existem). Ícones aqui são Tabler (ilustrativos) — usar o set SVG do app.</div>
+<div class="cmp">
+
+  <div class="col">
+    <span class="cap">Claro</span>
+    <div class="ph ph--light">
+      <div class="tp"><i class="ti ti-menu-2 mn"></i><b>Início</b><button class="tg" aria-label="Tema"><i class="ti ti-moon"></i></button><span class="av">JG</span></div>
+      <div class="vw">
+        <div class="hi">Olá, Jenifer<small>Bom te ver por aqui.</small></div>
+        <div class="id"><div class="id__av">JG</div><div style="min-width:0"><div class="id__n">Jenifer Caroline Gulart</div><div class="id__c">Coordenadora de gestão de pessoas · Administração</div><div class="chips"><span class="chip">Turno geral</span><span class="chip">14 anos de casa</span><span class="chip">Aniversário 21/12</span></div></div></div>
+        <div class="bh"><span class="bh__l"><i class="ti ti-clock-hour-4"></i> Banco de horas</span><span class="bh__v">-00:24 <i class="ti ti-chevron-right"></i></span></div>
+        <div class="sec">Precisa da sua atenção</div>
+        <div class="rw"><span class="rw__ic w"><i class="ti ti-file-pencil"></i></span><div><div class="rw__t">1 documento a assinar</div><div class="rw__s">Código de ética</div></div><i class="ti ti-chevron-right rw__go"></i></div>
+        <div class="rw"><span class="rw__ic i"><i class="ti ti-bell"></i></span><div><div class="rw__t">2 comunicados novos</div><div class="rw__s">Do GH</div></div><i class="ti ti-chevron-right rw__go"></i></div>
+        <div class="sec">Atalhos</div>
+        <div class="gr">
+          <div class="at"><span class="at__ic"><i class="ti ti-clock-hour-4"></i></span><span class="at__t">Meu ponto</span><span class="at__s">Saldo e espelho</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-receipt-2"></i></span><span class="at__t">Holerites</span><span class="at__s">Contracheques</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-bell"></i></span><span class="at__t">Comunicados</span><span class="at__s">Avisos do GH</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-folder"></i></span><span class="at__t">Documentos</span><span class="at__s">Termos e recibos</span></div>
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="it on"><span class="ic"><i class="ti ti-home"></i></span></div>
+        <div class="it"><span class="ic"><i class="ti ti-clock-hour-4"></i></span></div>
+        <div class="it"><span class="ic"><span class="nd"></span><i class="ti ti-bell"></i></span></div>
+        <div class="it"><span class="ic"><span class="nd" style="background:var(--warnic)"></span><i class="ti ti-folder"></i></span></div>
+        <div class="it"><span class="ic"><i class="ti ti-user"></i></span></div>
+      </nav>
+    </div>
+  </div>
+
+  <div class="col">
+    <span class="cap">Escuro</span>
+    <div class="ph ph--dark">
+      <div class="tp"><i class="ti ti-menu-2 mn"></i><b>Início</b><button class="tg" aria-label="Tema"><i class="ti ti-sun"></i></button><span class="av">JG</span></div>
+      <div class="vw">
+        <div class="hi">Olá, Jenifer<small>Bom te ver por aqui.</small></div>
+        <div class="id"><div class="id__av">JG</div><div style="min-width:0"><div class="id__n">Jenifer Caroline Gulart</div><div class="id__c">Coordenadora de gestão de pessoas · Administração</div><div class="chips"><span class="chip">Turno geral</span><span class="chip">14 anos de casa</span><span class="chip">Aniversário 21/12</span></div></div></div>
+        <div class="bh"><span class="bh__l"><i class="ti ti-clock-hour-4"></i> Banco de horas</span><span class="bh__v">-00:24 <i class="ti ti-chevron-right"></i></span></div>
+        <div class="sec">Precisa da sua atenção</div>
+        <div class="rw"><span class="rw__ic w"><i class="ti ti-file-pencil"></i></span><div><div class="rw__t">1 documento a assinar</div><div class="rw__s">Código de ética</div></div><i class="ti ti-chevron-right rw__go"></i></div>
+        <div class="rw"><span class="rw__ic i"><i class="ti ti-bell"></i></span><div><div class="rw__t">2 comunicados novos</div><div class="rw__s">Do GH</div></div><i class="ti ti-chevron-right rw__go"></i></div>
+        <div class="sec">Atalhos</div>
+        <div class="gr">
+          <div class="at"><span class="at__ic"><i class="ti ti-clock-hour-4"></i></span><span class="at__t">Meu ponto</span><span class="at__s">Saldo e espelho</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-receipt-2"></i></span><span class="at__t">Holerites</span><span class="at__s">Contracheques</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-bell"></i></span><span class="at__t">Comunicados</span><span class="at__s">Avisos do GH</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-folder"></i></span><span class="at__t">Documentos</span><span class="at__s">Termos e recibos</span></div>
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="it on"><span class="ic"><i class="ti ti-home"></i></span></div>
+        <div class="it"><span class="ic"><i class="ti ti-clock-hour-4"></i></span></div>
+        <div class="it"><span class="ic"><span class="nd"></span><i class="ti ti-bell"></i></span></div>
+        <div class="it"><span class="ic"><span class="nd" style="background:var(--warnic)"></span><i class="ti ti-folder"></i></span></div>
+        <div class="it"><span class="ic"><i class="ti ti-user"></i></span></div>
+      </nav>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

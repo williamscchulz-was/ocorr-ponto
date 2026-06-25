@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Home do Colaborador (desktop · claro/escuro)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#E2E8DE;font-family:"Poppins",ui-sans-serif,system-ui,sans-serif;padding:20px}
+.note{max-width:1000px;margin:0 auto 16px;font-size:13px;color:#46553f;background:#fff;border:1px solid #E0E8DC;border-left:3px solid #1AA34F;border-radius:10px;padding:12px 16px;line-height:1.6}
+.note b{color:#0E6328}
+.dwrap{display:flex;flex-direction:column;gap:14px;max-width:1000px;margin:0 auto}
+.dcap{font-size:12px;color:#5A6B54;font-weight:500;margin:6px 0 -4px 4px}
+.dt{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:16px;overflow:hidden;color:var(--tx)}
+.dt *{box-sizing:border-box}
+.dt--light{--bg:#F6F9F4;--card:#fff;--bd:#E7EEE3;--tx:#1C2A18;--mut:#6B7A64;--chip:#EDF3EA;--chiptx:#46553F;--green:#0E8C3F;--gfaint:#E6F1E8;--av:#1AA34F;--avtx:#fff;--sbbg:#fff;--sbbd:#EAF0E7;--warnbg:#F7E8D1;--warnic:#9A6A22;--infobg:#DCEBF8;--infoic:#1A6CA8;--neg:#B0712A;--csh:0 1px 2px rgba(0,40,20,.05);--chrome:#EEF3EC;--dot1:#0E8FE0}
+.dt--dark{--bg:#0E130E;--card:#161D15;--bd:#232C22;--tx:#EDF3EA;--mut:#8A9884;--chip:#1E261D;--chiptx:#AEBEA7;--green:#5FCB85;--gfaint:#193220;--av:#1AA34F;--avtx:#06210F;--sbbg:#121712;--sbbd:#222A21;--warnbg:#3A2E18;--warnic:#E8B468;--infobg:#16314A;--infoic:#7BBDF0;--neg:#E8B468;--csh:none;--chrome:#1A211A;--dot1:#1E9AE6}
+.chr{display:flex;gap:6px;align-items:center;padding:9px 13px;background:var(--chrome);border-bottom:1px solid var(--bd)}
+.chr span{width:9px;height:9px;border-radius:50%;background:var(--mut);opacity:.45}
+.body{display:flex;min-height:430px}
+.sb{width:188px;flex:none;background:var(--sbbg);border-right:1px solid var(--sbbd);display:flex;flex-direction:column;padding:16px 12px}
+.sb-br{display:flex;align-items:center;gap:9px;padding:4px 8px 16px}
+.sb-br .lf{width:30px;height:30px;border-radius:9px;background:var(--av);color:var(--avtx);display:flex;align-items:center;justify-content:center;font-size:18px}
+.sb-br b{font-size:13.5px;font-weight:600}
+.sb-br small{display:block;font-size:9.5px;color:var(--mut);font-weight:400}
+.sb-nav{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.sb-it{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:11px;color:var(--mut);font-size:12.5px;font-weight:500;cursor:pointer;position:relative}
+.sb-it i{font-size:20px}
+.sb-it.on{background:var(--gfaint);color:var(--green);font-weight:600}
+.sb-it .nd{position:absolute;left:24px;top:8px;width:7px;height:7px;border-radius:50%;background:var(--dot1);border:2px solid var(--sbbg)}
+.sb-bt{margin-top:auto;display:flex;flex-direction:column;gap:9px;padding-top:12px;border-top:1px solid var(--sbbd)}
+.sb-tg{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:11px;color:var(--mut);font-size:12px;font-weight:500;cursor:pointer}
+.sb-tg i{font-size:18px}
+.sb-us{display:flex;align-items:center;gap:9px;padding:6px 8px}
+.sb-us .av{width:32px;height:32px;border-radius:50%;background:var(--av);color:var(--avtx);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.sb-us .nm{font-size:12px;font-weight:600;line-height:1.2}
+.sb-us .rl{font-size:10px;color:var(--mut)}
+.mn{flex:1;min-width:0;padding:20px 22px}
+.hd{font-size:20px;font-weight:600;letter-spacing:-.01em}
+.hd small{display:block;font-size:12px;font-weight:400;color:var(--mut);margin-top:1px}
+.id{display:flex;gap:13px;align-items:center;margin:16px 0;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;box-shadow:var(--csh)}
+.id__av{width:46px;height:46px;border-radius:50%;flex:none;background:var(--av);color:var(--avtx);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600}
+.id__n{font-size:14px;font-weight:600}
+.id__c{font-size:11.5px;color:var(--mut);margin-top:1px}
+.chips{display:inline-flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.chip{font-size:10px;font-weight:500;color:var(--chiptx);background:var(--chip);padding:3px 9px;border-radius:999px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bh{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;box-shadow:var(--csh)}
+.bh__l{font-size:11.5px;color:var(--mut);font-weight:500;display:flex;align-items:center;gap:7px}
+.bh__l i{font-size:16px}
+.bh__v{font-size:30px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--neg);margin-top:7px}
+.bh__h{font-size:10.5px;color:var(--mut);margin-top:3px}
+.pcard{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:11px;box-shadow:var(--csh);display:flex;flex-direction:column;gap:8px}
+.rw{display:flex;align-items:center;gap:10px}
+.rw__ic{width:32px;height:32px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:17px}
+.rw__ic.w{background:var(--warnbg);color:var(--warnic)}
+.rw__ic.i{background:var(--infobg);color:var(--infoic)}
+.rw__t{font-size:12px;font-weight:500}
+.rw__s{font-size:10.5px;color:var(--mut)}
+.sec{font-size:12px;font-weight:600;margin:18px 2px 9px}
+.gr4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.at{background:var(--card);border:1px solid var(--bd);border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--csh)}
+.at__ic{width:34px;height:34px;border-radius:10px;background:var(--gfaint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px}
+.at__t{font-size:12px;font-weight:500}
+.com{background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--av);border-radius:0 13px 13px 0;padding:13px 15px;box-shadow:var(--csh)}
+.com__tag{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--green);display:flex;align-items:center;gap:5px}
+.com__t{font-size:13px;font-weight:600;margin-top:5px}
+.com__p{font-size:11px;color:var(--mut);line-height:1.5;margin-top:3px}
+.aniv{background:var(--card);border:1px solid var(--bd);border-radius:13px;padding:6px 14px;box-shadow:var(--csh)}
+.aniv__r{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--chip)}
+.aniv__r:first-child{border-top:0}
+.aniv__av{width:30px;height:30px;border-radius:50%;flex:none;background:var(--gfaint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:600}
+.aniv__n{font-size:11.5px;font-weight:500}
+.aniv__d{margin-left:auto;font-size:10.5px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="note"><b>Home do Portal do Colaborador — desktop (claro/escuro).</b> Mesma navegação do mobile, mas como <b>sidebar fixa à esquerda</b> (ícone + rótulo), sem barra embaixo. Toggle de tema + usuário no rodapé da sidebar. Conteúdo ocupa a largura. Dados de identidade/saldo/aniversariantes reais; comunicados/documentos placeholder. Ícones Tabler ilustrativos — usar o set do app.</div>
+<div class="dwrap">
+
+  <div class="dcap">Desktop · claro</div>
+  <div class="dt dt--light">
+    <div class="chr"><span></span><span></span><span></span></div>
+    <div class="body">
+      <aside class="sb">
+        <div class="sb-br"><span class="lf"><i class="ti ti-leaf"></i></span><span><b>FioPulse</b><small>Portal do colaborador</small></span></div>
+        <nav class="sb-nav">
+          <div class="sb-it on"><i class="ti ti-home"></i>Início</div>
+          <div class="sb-it"><i class="ti ti-clock-hour-4"></i>Meu ponto</div>
+          <div class="sb-it"><span class="nd"></span><i class="ti ti-bell"></i>Avisos</div>
+          <div class="sb-it"><span class="nd" style="background:var(--warnic)"></span><i class="ti ti-folder"></i>Documentos</div>
+          <div class="sb-it"><i class="ti ti-user"></i>Conta</div>
+        </nav>
+        <div class="sb-bt">
+          <div class="sb-tg"><i class="ti ti-moon"></i>Tema escuro</div>
+          <div class="sb-us"><span class="av">JG</span><span><span class="nm">Jenifer Gulart</span><span class="rl">Colaboradora</span></span></div>
+        </div>
+      </aside>
+      <main class="mn">
+        <div class="hd">Olá, Jenifer<small>Bom te ver por aqui.</small></div>
+        <div class="id"><div class="id__av">JG</div><div><div class="id__n">Jenifer Caroline Gulart</div><div class="id__c">Coordenadora de gestão de pessoas · Administração</div><div class="chips"><span class="chip">Turno geral</span><span class="chip">14 anos de casa</span><span class="chip">Aniversário 21/12</span></div></div></div>
+        <div class="two">
+          <div class="bh"><div class="bh__l"><i class="ti ti-clock-hour-4"></i> Banco de horas</div><div class="bh__v">-00:24</div><div class="bh__h">saldo atual · atualizado hoje</div></div>
+          <div class="pcard">
+            <div class="rw"><span class="rw__ic w"><i class="ti ti-file-pencil"></i></span><div><div class="rw__t">1 documento a assinar</div><div class="rw__s">Código de ética</div></div></div>
+            <div class="rw"><span class="rw__ic i"><i class="ti ti-bell"></i></span><div><div class="rw__t">2 comunicados novos</div><div class="rw__s">Do GH</div></div></div>
+          </div>
+        </div>
+        <div class="sec">Atalhos</div>
+        <div class="gr4">
+          <div class="at"><span class="at__ic"><i class="ti ti-clock-hour-4"></i></span><span class="at__t">Meu ponto</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-receipt-2"></i></span><span class="at__t">Holerites</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-bell"></i></span><span class="at__t">Comunicados</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-folder"></i></span><span class="at__t">Documentos</span></div>
+        </div>
+        <div class="sec">Comunicado e aniversariantes</div>
+        <div class="two">
+          <div class="com"><div class="com__tag"><i class="ti ti-pin"></i> Fixado</div><div class="com__t">Mudança no horário do refeitório</div><div class="com__p">A partir de segunda (30/06), o 1º turno almoça das 11h20 às 12h10.</div></div>
+          <div class="aniv"><div class="aniv__r"><span class="aniv__av">RR</span><span class="aniv__n">Rosenildo Reiter</span><span class="aniv__d">13/06</span></div><div class="aniv__r"><span class="aniv__av">RL</span><span class="aniv__n">Roberto Lisboa</span><span class="aniv__d">20/06</span></div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="dcap">Desktop · escuro</div>
+  <div class="dt dt--dark">
+    <div class="chr"><span></span><span></span><span></span></div>
+    <div class="body">
+      <aside class="sb">
+        <div class="sb-br"><span class="lf"><i class="ti ti-leaf"></i></span><span><b>FioPulse</b><small>Portal do colaborador</small></span></div>
+        <nav class="sb-nav">
+          <div class="sb-it on"><i class="ti ti-home"></i>Início</div>
+          <div class="sb-it"><i class="ti ti-clock-hour-4"></i>Meu ponto</div>
+          <div class="sb-it"><span class="nd"></span><i class="ti ti-bell"></i>Avisos</div>
+          <div class="sb-it"><span class="nd" style="background:var(--warnic)"></span><i class="ti ti-folder"></i>Documentos</div>
+          <div class="sb-it"><i class="ti ti-user"></i>Conta</div>
+        </nav>
+        <div class="sb-bt">
+          <div class="sb-tg"><i class="ti ti-sun"></i>Tema claro</div>
+          <div class="sb-us"><span class="av">JG</span><span><span class="nm">Jenifer Gulart</span><span class="rl">Colaboradora</span></span></div>
+        </div>
+      </aside>
+      <main class="mn">
+        <div class="hd">Olá, Jenifer<small>Bom te ver por aqui.</small></div>
+        <div class="id"><div class="id__av">JG</div><div><div class="id__n">Jenifer Caroline Gulart</div><div class="id__c">Coordenadora de gestão de pessoas · Administração</div><div class="chips"><span class="chip">Turno geral</span><span class="chip">14 anos de casa</span><span class="chip">Aniversário 21/12</span></div></div></div>
+        <div class="two">
+          <div class="bh"><div class="bh__l"><i class="ti ti-clock-hour-4"></i> Banco de horas</div><div class="bh__v">-00:24</div><div class="bh__h">saldo atual · atualizado hoje</div></div>
+          <div class="pcard">
+            <div class="rw"><span class="rw__ic w"><i class="ti ti-file-pencil"></i></span><div><div class="rw__t">1 documento a assinar</div><div class="rw__s">Código de ética</div></div></div>
+            <div class="rw"><span class="rw__ic i"><i class="ti ti-bell"></i></span><div><div class="rw__t">2 comunicados novos</div><div class="rw__s">Do GH</div></div></div>
+          </div>
+        </div>
+        <div class="sec">Atalhos</div>
+        <div class="gr4">
+          <div class="at"><span class="at__ic"><i class="ti ti-clock-hour-4"></i></span><span class="at__t">Meu ponto</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-receipt-2"></i></span><span class="at__t">Holerites</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-bell"></i></span><span class="at__t">Comunicados</span></div>
+          <div class="at"><span class="at__ic"><i class="ti ti-folder"></i></span><span class="at__t">Documentos</span></div>
+        </div>
+        <div class="sec">Comunicado e aniversariantes</div>
+        <div class="two">
+          <div class="com"><div class="com__tag"><i class="ti ti-pin"></i> Fixado</div><div class="com__t">Mudança no horário do refeitório</div><div class="com__p">A partir de segunda (30/06), o 1º turno almoça das 11h20 às 12h10.</div></div>
+          <div class="aniv"><div class="aniv__r"><span class="aniv__av">RR</span><span class="aniv__n">Rosenildo Reiter</span><span class="aniv__d">13/06</span></div><div class="aniv__r"><span class="aniv__av">RL</span><span class="aniv__n">Roberto Lisboa</span><span class="aniv__d">20/06</span></div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
