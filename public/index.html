@@ -9,13 +9,12 @@
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
-  <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=183" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=183" />
+  <link rel="stylesheet" href="styles.css?v=184" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=184" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -50,7 +49,7 @@
         <path class="stroke" d="m 287.3575,440.3 c -30.8689,-28.8993 -71.1318,-39.5361 -110.0523,-34.8035 38.6524,-35.4847 77.7242,-37.1498 121.4319,-10.9333 z m 21.696,-88.961 C 228.9408,323.0652 146.1868,379.1825 120.767,456.9159 L 97.8088,444.7666 C 128.5526,357.6379 225.0214,280.9955 319.2095,308.7838 Z" fill="none" stroke="url(#spl-azul)" pathLength="1" style="--delay:0s"/>
       </svg>
       <div class="splash__word">Fio<b>Pulse</b></div>
-      <div class="splash__sub">Fiobras · o batimento do GH</div>
+      <div class="splash__sub">Fiobras · o batimento do RH</div>
     </div>
   </div>
 
@@ -61,8 +60,8 @@
        ============================================ -->
   <section id="acesso" class="acesso">
     <div class="acesso__brand">
-      <img src="logo-fiobras-mark.png" alt="Fiobras" />
-      <div class="acesso__w">FioPulse<small>Fiobras · o batimento do GH</small></div>
+      <svg class="fp-mark" width="54" height="54" viewBox="0 0 40 40" fill="none" role="img" aria-label="FioPulse"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="acesso__w">FioPulse<small>Fiobras · o batimento do RH</small></div>
     </div>
     <div class="acesso__split">
       <button class="acesso__half acesso__half--colab" id="acesso-colab" type="button">
@@ -89,10 +88,10 @@
         Voltar
       </button>
       <div class="login__mark">
-        <img class="login__mark-img" src="logo-fiobras-mark.png" alt="Fiobras" />
+        <svg class="login__mark-img fp-mark" viewBox="0 0 40 40" fill="none" role="img" aria-label="FioPulse"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <div class="login__wordmark">
           FioPulse
-          <small>Fiobras · o batimento do GH</small>
+          <small>Fiobras · o batimento do RH</small>
         </div>
       </div>
 
@@ -141,8 +140,8 @@
         Voltar
       </button>
       <div class="login__mark">
-        <img class="login__mark-img" src="logo-fiobras-mark.png" alt="Fiobras" />
-        <div class="login__wordmark">Portal do Colaborador<small>Fiobras · o batimento do GH</small></div>
+        <svg class="login__mark-img fp-mark" viewBox="0 0 40 40" fill="none" role="img" aria-label="FioPulse"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="login__wordmark">Portal do Colaborador<small>Fiobras · o batimento do RH</small></div>
       </div>
 
       <div class="field">
@@ -186,11 +185,11 @@
       </button>
       <div class="app__brand">
         <div class="app__brand-mark has-logo">
-          <img src="logo-fiobras-mark-white.png" alt="Fiobras" />
+          <svg class="fp-mark" width="36" height="36" viewBox="0 0 40 40" fill="none" role="img" aria-label="FioPulse"><rect width="40" height="40" rx="10" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="app__brand-text">
           FioPulse<span class="brand-pulse" aria-hidden="true"></span>
-          <small>Fiobras · o batimento do GH</small>
+          <small>Fiobras · o batimento do RH</small>
         </div>
       </div>
 
@@ -301,16 +300,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=183"></script>
-  <script defer src="data.js?v=183"></script>
+  <script defer src="utils.js?v=184"></script>
+  <script defer src="data.js?v=184"></script>
   <!-- roadmap.js: dados estáticos do Roadmap do Portal (window.ROADMAP). -->
-  <script defer src="roadmap.js?v=183"></script>
-  <script defer src="app.js?v=183"></script>
+  <script defer src="roadmap.js?v=184"></script>
+  <script defer src="app.js?v=184"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=183"></script>
-  <script defer src="google-drive.js?v=183"></script>
+  <script defer src="firebase.js?v=184"></script>
+  <script defer src="google-drive.js?v=184"></script>
 </body>
 </html>

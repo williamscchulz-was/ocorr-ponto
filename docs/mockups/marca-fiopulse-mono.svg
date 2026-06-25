@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="FioPulse">
+  <!-- Variante monocromática (1 cor, currentColor): impressao, alto-contraste, usos sem cor.
+       Funciona sobre claro (currentColor escuro), escuro/verde (currentColor branco). -->
+  <rect x="1" y="1" width="38" height="38" rx="10" fill="none" stroke="currentColor" stroke-width="2"/>
+  <path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
