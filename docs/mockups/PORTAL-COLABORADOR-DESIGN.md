@@ -21,7 +21,7 @@
 |---|---|---|---|
 | 1 | **Início (home)** | `colaborador-home-mobile.html` · `colaborador-home-desktop.html` | ✅ aprovada |
 | 2 | **Meu Banco de Horas** | `colaborador-banco-horas.html` | ✅ desenhada |
-| 3 | Comunicados (lista + leitura) | — | a desenhar |
+| 3 | **Comunicados (lista + leitura)** | `colaborador-comunicados.html` | ✅ desenhada |
 | 4 | Documentos / assinatura | — | a desenhar |
 | 5 | Holerites | — | a desenhar |
 | 6 | Conta / perfil | — | a desenhar |
@@ -34,3 +34,7 @@ Saudação + cartão de identidade (nome, cargo · setor, chips: turno, tempo de
 ### 2. Meu Banco de Horas
 Abre ao tocar no card de BH (vive dentro de "Ponto"). Topbar com voltar. **Hero** com o saldo atual grande (âmbar se negativo). 2 mini-stats (início do mês / pior dia). **Gráfico do mês** = saldo diário (barras: verde crédito acima da linha zero, âmbar débito abaixo). **Lançamentos** = lista por dia (data + saldo + Δ do dia).
 **Bind:** `pipeline-rh/cur.funcionarios[].lancamentos[]` (cada `{dataIso, saldoMin, saldoFmt}`) pro gráfico + lista; `saldoAtualFmt` pro hero. Δ = saldo do dia − saldo do dia anterior.
+
+### 3. Comunicados
+Tab "Avisos". Filtro Todos / Não lidos. **Fixado** em destaque (borda verde). Comunicado que exige confirmação mostra botão **"Confirmo que li"** (grava recibo → prova de leitura). Não-lido = pontinho azul; lido = discreto + "Lido em DD/MM". Chip de segmento (Todos / 1º turno / setor).
+**Bind (a criar no back):** coleção `comunicados/{id}` (titulo, corpo, segmento, fixado, requerConfirmacao, publicadoEm) + recibo `comunicados/{id}/leituras/{uid}` (hora-servidor). Hoje = placeholder.
