@@ -1583,6 +1583,7 @@ function renderNav() {
     items.push(ob);
   }
   if (can("comunicados.gerenciar")) items.push({ id: "comunicados", label: "Comunicados", icon: "megafone" });
+  if (can("documentos.gerenciar")) items.push({ id: "documentos", label: "Documentos", icon: "file" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
@@ -1623,6 +1624,9 @@ function renderBottomNav() {
   const right = [];
   if (can("comunicados.gerenciar")) {
     right.push({ id: "comunicados", label: "Avisos", icon: "megafone" });
+  }
+  if (can("documentos.gerenciar")) {
+    right.push({ id: "documentos", label: "Docs", icon: "file" });
   }
   if (can("sistema.config")) {
     right.push({ id: "config", label: "Ajustes", icon: "settings" });
@@ -1750,6 +1754,10 @@ function renderView() {
   if (page === "comunicados") {
     if (!can("comunicados.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderComunicados();
+  }
+  if (page === "documentos") {
+    if (!can("documentos.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
+    return renderDocumentos();
   }
   if (page === "auditoria") {
     if (!can("auditoria.ver")) {
@@ -4339,6 +4347,398 @@ if (!window._comBound) {
     if (fx) { e.stopPropagation(); fixarComunicadoUI(fx.dataset.comFixar); return; }
     const lt = e.target.closest("[data-com-leituras]");
     if (lt) { e.stopPropagation(); abrirLeiturasComunicado(lt.dataset.comLeituras); return; }
+  });
+}
+
+// ===== Documentos institucionais (Pacote Gestor) =====
+// Documento publicado pelo gestor para um segmento, com assinatura/aceite N1 opcional.
+// Versionado: novaVersao reabre a assinatura pendente. Reusa os helpers de segmentacao
+// da Fatia B (comFuncsDoSegmento/comAlcance/comSegLabel/comData/comIniciais).
+
+const DOC_TIPOS = [
+  { k: "regras", n: "Regras", icon: "clipboard" },
+  { k: "conduta", n: "Conduta", icon: "shield" },
+  { k: "cultura", n: "Cultura", icon: "smile" },
+  { k: "privacidade", n: "Privacidade", icon: "lock" },
+  { k: "termo", n: "Termo", icon: "file" },
+  { k: "outro", n: "Outro", icon: "file" },
+];
+function docTipoMeta(k) { return DOC_TIPOS.find((t) => t.k === k) || DOC_TIPOS[DOC_TIPOS.length - 1]; }
+
+// Documentos institucionais carregados (ignora os pessoais, que sao outra tela).
+function docAtivos() { return (state.documentos || []).filter((d) => d.escopo === "institucional"); }
+
+// Adesao de um documento: X assinaram (da versao atual) ou leram, de Y do segmento.
+function docAdesao(d) {
+  const seg = d.segmento || { tipo: "todos", valores: [] };
+  const Y = (typeof d.alcanceEstimado === "number" && d.status === "publicado") ? d.alcanceEstimado : comAlcance(seg);
+  const assina = !!d.exigeAssinatura;
+  const X = assina
+    ? (d.assinaturas || []).filter((a) => a.versaoAssinada === d.versao).length
+    : (d.leituras || []).length;
+  const pct = Y > 0 ? Math.min(100, Math.round((X / Y) * 100)) : 0;
+  return { X, Y, pct, verbo: assina ? "assinaram" : "leram" };
+}
+
+function docMetrics() {
+  const pubs = docAtivos().filter((d) => d.status === "publicado");
+  let pendentes = 0, somaPct = 0;
+  for (const d of pubs) {
+    const a = docAdesao(d);
+    if (d.exigeAssinatura) pendentes += Math.max(0, a.Y - a.X);
+    somaPct += a.pct;
+  }
+  return { publicados: pubs.length, pendentes, media: pubs.length ? Math.round(somaPct / pubs.length) : 0 };
+}
+
+function renderDocumentos() {
+  if (!can("documentos.gerenciar")) { state.view.page = "dashboard"; return renderApp(); }
+  $("#topbar-title").textContent = "Documentos";
+  const filtro = state.view.docFiltro || "todos";
+  let lista = docAtivos().slice().sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
+  if (filtro === "rascunho") lista = lista.filter((d) => d.status === "rascunho");
+  else if (filtro !== "todos") lista = lista.filter((d) => d.tipo === filtro);
+  const m = docMetrics();
+
+  const cab = `
+    <header class="page-header">
+      <div>
+        <h1>Documentos institucionais</h1>
+        <p>Publique regras, conduta, cultura e politicas. Acompanhe quem leu e assinou.</p>
+      </div>
+      <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Novo documento</span></button>
+    </header>`;
+
+  if (docAtivos().length === 0) {
+    $("#view").innerHTML = cab + `
+      <div class="empty">
+        <div class="empty__icon">${icon("file")}</div>
+        <h3>Nenhum documento publicado</h3>
+        <p>Publique o primeiro documento institucional. Voce acompanha leitura e assinatura por aqui.</p>
+        <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Criar primeiro documento</span></button>
+      </div>`;
+    return;
+  }
+
+  const stat = (label, value, icn) => `
+    <div class="stat"><div class="stat__label">${icon(icn)} ${label}</div><div class="stat__value">${value}</div></div>`;
+  const filtros = [["todos", "Todos"], ["rascunho", "Rascunhos"], ...DOC_TIPOS.map((t) => [t.k, t.n])];
+
+  $("#view").innerHTML = cab + `
+    <div class="stats">
+      ${stat("Publicados", m.publicados, "file")}
+      ${stat("Assinatura pendente", m.pendentes, "edit")}
+      ${stat("Adesao media", m.media + "%", "check")}
+    </div>
+    <div class="doc-filtros">
+      ${filtros.map(([k, n]) => `<button class="doc-chip ${filtro === k ? "is-on" : ""}" data-doc-filtro="${k}">${escapeHtml(n)}</button>`).join("")}
+    </div>
+    <div class="doc-list">
+      ${lista.length ? lista.map(docCardHtml).join("") : `<div class="empty empty--mini"><p>Nenhum documento neste filtro.</p></div>`}
+    </div>`;
+}
+
+function docCardHtml(d) {
+  const tm = docTipoMeta(d.tipo);
+  const seg = d.segmento || { tipo: "todos", valores: [] };
+  const rascunho = d.status !== "publicado";
+  const a = docAdesao(d);
+  const statusBadge = rascunho
+    ? `<span class="badge badge--warning">${icon("edit")}<span>Rascunho</span></span>`
+    : `<span class="badge badge--success">${icon("check")}<span>Publicado</span></span>`;
+  const adesao = rascunho
+    ? `<div class="doc-adh"><div class="doc-adh__l"><span>Adesao</span><b>Aguardando publicacao</b></div><div class="com-bar"><i style="width:0%"></i></div></div>`
+    : `<div class="doc-adh"><div class="doc-adh__l"><span>Adesao</span><b>${a.pct}% · ${a.X} de ${a.Y} ${a.verbo}</b></div><div class="com-bar"><i style="width:${a.pct}%"></i></div></div>`;
+  return `
+    <article class="doc-card ${rascunho ? "doc-card--rascunho" : ""}" data-doc-id="${d.id}">
+      <div class="doc-card__row">
+        <span class="doc-seal">${icon(tm.icon)}</span>
+        <div class="doc-card__tt">
+          <h3>${escapeHtml(d.titulo || "(sem titulo)")} ${statusBadge}<span class="doc-seal-tag">${escapeHtml(tm.n)}</span></h3>
+          <div class="doc-card__sub">
+            <span class="doc-tag">${comSegLabel(seg)}</span>
+            <span class="doc-ver">v${d.versao || 1}</span>
+            ${d.exigeAssinatura ? `<span class="doc-tag doc-tag--sign">${icon("edit")}<span>assinatura</span></span>` : `<span class="doc-tag">${icon("eye")}<span>ciencia</span></span>`}
+            ${d.anexo && d.anexo.url ? `<span class="doc-tag">${icon("file")}<span>anexo</span></span>` : ""}
+          </div>
+        </div>
+        <div class="com-actions">
+          ${rascunho
+            ? `<button class="com-mini" data-doc-publicar="${d.id}" aria-label="Publicar">${icon("upload")}</button>`
+            : `<button class="com-mini" data-doc-adesao="${d.id}" aria-label="Ver adesao">${icon("eye")}</button>
+               <button class="com-mini" data-doc-versao="${d.id}" aria-label="Nova versao">${icon("upload")}</button>`}
+          <button class="com-mini" data-doc-editar="${d.id}" aria-label="Editar">${icon("edit")}</button>
+        </div>
+      </div>
+      ${adesao}
+    </article>`;
+}
+
+function docSegmentoDoForm(segTipo) {
+  if (segTipo === "turno") {
+    const v = $("#doc-turno").value;
+    return { tipo: "turno", valores: [v === "geral" ? "geral" : Number(v)] };
+  }
+  if (segTipo === "setor") return { tipo: "setor", valores: [$("#doc-setor").value] };
+  return { tipo: "todos", valores: [] };
+}
+
+function openDocumentoModal(id) {
+  if (!can("documentos.gerenciar")) return;
+  const d = id ? (state.documentos || []).find((x) => x.id === id) : null;
+  const seg = d?.segmento || { tipo: "todos", valores: [] };
+  const setores = getSetores();
+  const turnoVal = seg.tipo === "turno" ? (seg.valores || [])[0] : 1;
+  const setorVal = seg.tipo === "setor" ? (seg.valores || [])[0] : (setores[0] || "");
+  const tipoAtual = d?.tipo || "regras";
+  const temAnexo = !!(d?.anexo && d.anexo.url);
+
+  openModal(`
+    <div class="modal__header">
+      <div><h2>${d ? "Editar documento" : "Novo documento institucional"}</h2><p>Regras, conduta, cultura e politicas para um segmento.</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="doc-form" onsubmit="return false">
+      <div class="field">
+        <label for="doc-titulo">Titulo</label>
+        <input type="text" id="doc-titulo" maxlength="140" value="${d ? escapeHtml(d.titulo) : ""}" placeholder="Ex.: Codigo de conduta 2026" />
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <div class="com-seg" role="group" aria-label="Tipo de documento">
+          ${DOC_TIPOS.map((t) => `<button type="button" class="com-seg__chip ${t.k === tipoAtual ? "is-on" : ""}" data-doc-tipo="${t.k}">${icon(t.icon)}<span>${t.n}</span></button>`).join("")}
+        </div>
+      </div>
+      <div class="field">
+        <label>Conteudo</label>
+        <div class="com-seg" role="group" aria-label="Modo de conteudo">
+          <button type="button" class="com-seg__chip ${temAnexo ? "" : "is-on"}" data-doc-modo="texto">${icon("edit")}<span>Texto</span></button>
+          <button type="button" class="com-seg__chip ${temAnexo ? "is-on" : ""}" data-doc-modo="anexo">${icon("file")}<span>Anexo Drive</span></button>
+        </div>
+        <div class="com-seg__detail" id="doc-modo-texto" style="${temAnexo ? "display:none" : ""}">
+          <textarea id="doc-corpo" rows="4" placeholder="Escreva o corpo do documento.">${d ? escapeHtml(d.descricao || "") : ""}</textarea>
+        </div>
+        <div class="com-seg__detail" id="doc-modo-anexo" style="${temAnexo ? "" : "display:none"}">
+          <input type="text" id="doc-anexo-url" value="${temAnexo ? escapeHtml(d.anexo.url) : ""}" placeholder="https://drive.google.com/file/d/..." />
+          <div class="doc-hashnote">${icon("shield")}<span>Link https do Drive. O hash SHA-256 de integridade entra quando o arquivo for anexado por upload (proxima fase).</span></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Segmento</label>
+        <div class="com-seg" role="group" aria-label="Segmento do documento">
+          <button type="button" class="com-seg__chip ${seg.tipo === "todos" ? "is-on" : ""}" data-doc-seg="todos">${icon("users")}<span>Todos</span></button>
+          <button type="button" class="com-seg__chip ${seg.tipo === "turno" ? "is-on" : ""}" data-doc-seg="turno">${icon("clock")}<span>Por turno</span></button>
+          <button type="button" class="com-seg__chip ${seg.tipo === "setor" ? "is-on" : ""}" data-doc-seg="setor">${icon("briefcase")}<span>Por setor</span></button>
+        </div>
+        <div class="com-seg__detail" id="doc-seg-turno" style="${seg.tipo === "turno" ? "" : "display:none"}">
+          <select id="doc-turno">
+            <option value="1" ${turnoVal === 1 ? "selected" : ""}>Turno matutino (1)</option>
+            <option value="2" ${turnoVal === 2 ? "selected" : ""}>Turno vespertino (2)</option>
+            <option value="3" ${turnoVal === 3 ? "selected" : ""}>Turno noturno (3)</option>
+            <option value="geral" ${turnoVal === "geral" ? "selected" : ""}>Geral / Administrativo</option>
+          </select>
+        </div>
+        <div class="com-seg__detail" id="doc-seg-setor" style="${seg.tipo === "setor" ? "" : "display:none"}">
+          <select id="doc-setor">
+            ${setores.map((s) => `<option value="${escapeHtml(s)}" ${s === setorVal ? "selected" : ""}>Setor · ${escapeHtml(s)}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="com-toggle">
+        <div class="com-toggle__t">${icon("edit")}<div><b>Exige assinatura / ciencia</b><span>Registra trilha N1 com data, hora e versao por colaborador</span></div></div>
+        <button type="button" class="com-sw ${d?.exigeAssinatura ? "is-on" : ""}" id="doc-assina" role="switch" aria-checked="${d?.exigeAssinatura ? "true" : "false"}" aria-label="Exige assinatura"></button>
+      </div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--soft" id="doc-rascunho">${icon("check")}<span>Salvar rascunho</span></button>
+      <button class="btn btn--primary" id="doc-publicar">${icon("upload")}<span>Publicar</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      let segTipo = seg.tipo, tipo = tipoAtual, modo = temAnexo ? "anexo" : "texto";
+      const groupPick = (sel, attr, set) => modal.querySelectorAll(sel).forEach((ch) => ch.addEventListener("click", () => {
+        ch.parentElement.querySelectorAll(".com-seg__chip").forEach((c2) => c2.classList.remove("is-on"));
+        ch.classList.add("is-on"); set(ch.dataset[attr]);
+      }));
+      groupPick("[data-doc-tipo]", "docTipo", (v) => { tipo = v; });
+      groupPick("[data-doc-modo]", "docModo", (v) => {
+        modo = v;
+        $("#doc-modo-texto").style.display = v === "texto" ? "" : "none";
+        $("#doc-modo-anexo").style.display = v === "anexo" ? "" : "none";
+      });
+      modal.querySelectorAll("[data-doc-seg]").forEach((ch) => ch.addEventListener("click", () => {
+        modal.querySelectorAll("[data-doc-seg]").forEach((c2) => c2.classList.remove("is-on"));
+        ch.classList.add("is-on"); segTipo = ch.dataset.docSeg;
+        $("#doc-seg-turno").style.display = segTipo === "turno" ? "" : "none";
+        $("#doc-seg-setor").style.display = segTipo === "setor" ? "" : "none";
+      }));
+      $("#doc-assina").addEventListener("click", () => {
+        const el = $("#doc-assina"); const on = el.getAttribute("aria-checked") === "true";
+        el.setAttribute("aria-checked", String(!on)); el.classList.toggle("is-on", !on);
+      });
+      $("#doc-rascunho").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo }), false));
+      $("#doc-publicar").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo }), true));
+      setTimeout(() => $("#doc-titulo")?.focus(), 60);
+    },
+  });
+}
+
+function salvarDocumentoForm(id, getState, publicar) {
+  const { segTipo, tipo, modo } = getState();
+  const titulo = $("#doc-titulo").value.trim();
+  if (!titulo || titulo.length < 3) return campoInvalido("#doc-titulo", "De um titulo ao documento (min. 3 letras).");
+  const seg = docSegmentoDoForm(segTipo);
+  const dados = { titulo, tipo, segmento: seg, exigeAssinatura: $("#doc-assina").getAttribute("aria-checked") === "true", alcanceEstimado: comAlcance(seg) };
+  if (modo === "anexo") {
+    const url = $("#doc-anexo-url").value.trim();
+    if (!url) return campoInvalido("#doc-anexo-url", "Cole o link do Drive ou troque para Texto.");
+    if (!ehUrlSegura(url)) return campoInvalido("#doc-anexo-url", "Link invalido. Use uma URL https.");
+    dados.anexo = { url, nome: titulo, hashSha256: "" };
+    dados.descricao = "";
+  } else {
+    dados.descricao = $("#doc-corpo").value.trim();
+    dados.anexo = null;
+  }
+  if (window.criarDocumentoInstitucional && !id) return void window.criarDocumentoInstitucional(dados, publicar);
+  if (window.editarDocumento && id) return void window.editarDocumento(id, dados, publicar);
+  salvarDocumentoLocal(dados, id, publicar);
+}
+
+function salvarDocumentoLocal(dados, id, publicar) {
+  if (!state.documentos) state.documentos = [];
+  const u = currentUser();
+  if (id) {
+    const d = state.documentos.find((x) => x.id === id);
+    if (d) Object.assign(d, dados, publicar ? { status: "publicado", publicadoEm: d.publicadoEm || nowIso() } : {});
+  } else {
+    state.documentos.unshift({
+      id: "doc-" + Date.now(), escopo: "institucional", status: publicar ? "publicado" : "rascunho",
+      versao: 1, assinaturas: [], leituras: [], autorNome: u?.nome || "RH", criadoPor: u?.id || null,
+      criadoEm: nowIso(), publicadoEm: publicar ? nowIso() : null, ...dados,
+    });
+  }
+  store.save(state);
+  closeModal();
+  toast(publicar ? "Documento publicado." : "Rascunho salvo.");
+  renderApp();
+}
+
+function publicarDocumentoUI(id) {
+  const d = (state.documentos || []).find((x) => x.id === id);
+  if (!d) return;
+  if (window.publicarDocumento) return void window.publicarDocumento(id);
+  d.status = "publicado"; d.publicadoEm = d.publicadoEm || nowIso(); store.save(state); toast("Documento publicado."); renderApp();
+}
+
+function novaVersaoDocumentoUI(id) {
+  const d = (state.documentos || []).find((x) => x.id === id);
+  if (!d) return;
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Nova versao</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} &rarr; v${(d.versao || 1) + 1}</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="doc-nv-form" onsubmit="return false">
+      <div class="doc-warn">${icon("alert")}<span>Trocar a versao reabre a assinatura: os colaboradores do segmento precisarao dar ciencia de novo.</span></div>
+      <div class="field">
+        <label for="doc-nv-url">Novo anexo (link do Drive)</label>
+        <input type="text" id="doc-nv-url" value="${d.anexo && d.anexo.url ? escapeHtml(d.anexo.url) : ""}" placeholder="https://drive.google.com/file/d/..." />
+      </div>
+      <div class="field">
+        <label for="doc-nv-motivo">Motivo <span class="muted text-xs">(opcional)</span></label>
+        <input type="text" id="doc-nv-motivo" placeholder="O que mudou nesta versao" />
+      </div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="doc-nv-save">${icon("upload")}<span>Publicar v${(d.versao || 1) + 1}</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      $("#doc-nv-save").addEventListener("click", () => {
+        const url = $("#doc-nv-url").value.trim();
+        if (url && !ehUrlSegura(url)) return campoInvalido("#doc-nv-url", "Link invalido. Use uma URL https.");
+        const patch = { url: url || (d.anexo && d.anexo.url) || "", nome: d.titulo, hashSha256: "", motivo: $("#doc-nv-motivo").value.trim() };
+        if (window.novaVersaoDocumento) return void window.novaVersaoDocumento(id, patch);
+        d.versao = (d.versao || 1) + 1; d.anexo = { url: patch.url, nome: patch.nome, hashSha256: "" }; d.versaoEm = nowIso();
+        store.save(state); closeModal(); toast("Nova versao publicada. Assinatura reaberta."); renderApp();
+      });
+    },
+  });
+}
+
+function abrirAdesaoDocumento(id) {
+  const d = (state.documentos || []).find((x) => x.id === id);
+  if (!d) return;
+  const seg = d.segmento || { tipo: "todos", valores: [] };
+  const a = docAdesao(d);
+  const assina = !!d.exigeAssinatura;
+  const fontes = assina ? (d.assinaturas || []).filter((x) => x.versaoAssinada === d.versao) : (d.leituras || []);
+  const feitoIds = new Set(fontes.map((x) => x.funcionarioId));
+  const elegiveis = comFuncsDoSegmento(seg);
+  const feitos = elegiveis.filter((f) => feitoIds.has(f.id));
+  const pendentes = elegiveis.filter((f) => !feitoIds.has(f.id));
+  const linha = (f, ok) => {
+    const x = fontes.find((y) => y.funcionarioId === f.id);
+    const quando = ok && x ? comData(x.em) : "";
+    const sub = [(typeof TURNOS !== "undefined" && TURNOS[f.turno]?.label) || "", f.setor || ""].filter(Boolean).join(" · ");
+    return `<div class="com-person">
+      <span class="com-person__av">${escapeHtml(comIniciais(f.nome))}</span>
+      <div class="com-person__info"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
+      <span class="com-person__tag ${ok ? "is-ok" : "is-pend"}">${ok ? `${icon("check")}${escapeHtml(quando)}` : "pendente"}</span>
+    </div>`;
+  };
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Adesao</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "exige assinatura" : "ciencia"}</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="doc-big">${a.pct}% <small>${a.verbo} · ${a.X} de ${a.Y}</small></div>
+      <div class="com-bar" style="margin:6px 0 16px"><i style="width:${a.pct}%"></i></div>
+      <div class="com-tabs">
+        <button class="com-tab is-on" data-doc-tab="ok">${icon("check")}<span>${assina ? "Assinaram" : "Leram"}</span> <i>${feitos.length}</i></button>
+        <button class="com-tab" data-doc-tab="pend">${icon("clock")}<span>Pendentes</span> <i>${pendentes.length}</i></button>
+      </div>
+      <div class="com-people" id="doc-people-ok">${feitos.length ? feitos.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguem ${a.verbo} ainda.</p>`}</div>
+      <div class="com-people" id="doc-people-pend" style="display:none">${pendentes.length ? pendentes.map((f) => linha(f, false)).join("") : `<p class="muted" style="padding:14px 2px">Todos em dia.</p>`}</div>
+    </div>
+    <div class="modal__footer">
+      <span class="muted text-xs">Trilha N1 · aceite com data/hora-servidor + versao (nao e validade juridica plena)</span>
+      <button class="btn btn--ghost" data-close>Fechar</button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      modal.querySelectorAll("[data-doc-tab]").forEach((tb) => tb.addEventListener("click", () => {
+        modal.querySelectorAll(".com-tab").forEach((t) => t.classList.remove("is-on"));
+        tb.classList.add("is-on");
+        const ok = tb.dataset.docTab === "ok";
+        $("#doc-people-ok").style.display = ok ? "" : "none";
+        $("#doc-people-pend").style.display = ok ? "none" : "";
+      }));
+    },
+  });
+}
+
+if (!window._docBound) {
+  window._docBound = true;
+  document.addEventListener("click", (e) => {
+    const nv = e.target.closest("[data-doc-novo]");
+    if (nv) { openDocumentoModal(); return; }
+    const fl = e.target.closest("[data-doc-filtro]");
+    if (fl) { state.view.docFiltro = fl.dataset.docFiltro; renderApp(); return; }
+    const ed = e.target.closest("[data-doc-editar]");
+    if (ed) { e.stopPropagation(); openDocumentoModal(ed.dataset.docEditar); return; }
+    const pb = e.target.closest("[data-doc-publicar]");
+    if (pb) { e.stopPropagation(); publicarDocumentoUI(pb.dataset.docPublicar); return; }
+    const ad = e.target.closest("[data-doc-adesao]");
+    if (ad) { e.stopPropagation(); abrirAdesaoDocumento(ad.dataset.docAdesao); return; }
+    const vr = e.target.closest("[data-doc-versao]");
+    if (vr) { e.stopPropagation(); novaVersaoDocumentoUI(vr.dataset.docVersao); return; }
   });
 }
 

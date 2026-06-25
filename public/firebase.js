@@ -1048,6 +1048,144 @@
       }
     };
 
+    // ===== Documentos institucionais (Pacote Gestor) — escreve /documentos =====
+    // criadoEm server-time (rule exige == request.time); escopo institucional sem
+    // funcionarioId. novaVersao = unica forma de trocar anexo em doc publicado+assinatura
+    // (versao incrementa em 1). Subcoleções amarradas ao pai e com schema hasOnly.
+    async function recarregarDocumentos() {
+      try {
+        const snap = await db.collection("documentos").orderBy("criadoEm", "desc").limit(200).get();
+        const arr = [];
+        for (const dd of snap.docs) {
+          const dat = dd.data();
+          const o = { id: dd.id, ...dat, criadoEm: tsToIso(dat.criadoEm), publicadoEm: tsToIso(dat.publicadoEm), versaoEm: tsToIso(dat.versaoEm), assinaturas: [], leituras: [] };
+          try { const asn = await dd.ref.collection("assinaturas").get(); o.assinaturas = asn.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) })); } catch (e) { /* sem acesso */ }
+          try { const lt = await dd.ref.collection("leituras").get(); o.leituras = lt.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) })); } catch (e) { /* sem acesso */ }
+          arr.push(o);
+        }
+        state.documentos = arr;
+      } catch (e) { debug?.("[documentos] load:", e?.message || e); state.documentos = state.documentos || []; }
+    }
+    window.recarregarDocumentos = recarregarDocumentos;
+
+    window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
+      const u = currentUser();
+      const seg = dados.segmento || { tipo: "todos", valores: [] };
+      const doc = {
+        escopo: "institucional",
+        titulo: String(dados.titulo || "").slice(0, 140),
+        descricao: String(dados.descricao || ""),
+        tipo: dados.tipo || "outro",
+        segmento: seg,
+        anexo: (dados.anexo && ehUrlSegura(dados.anexo.url)) ? dados.anexo : null,
+        versao: 1,
+        exigeAssinatura: !!dados.exigeAssinatura,
+        status: "rascunho",
+        alcanceEstimado: Number(dados.alcanceEstimado) || 0,
+        criadoPor: (auth.currentUser && auth.currentUser.uid) || u?.id || null,
+        autorNome: u?.nome || "RH",
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        publicadoEm: null, versaoEm: null, versaoPor: null,
+      };
+      try {
+        const ref = await db.collection("documentos").add(doc);
+        window.registrarAuditoria?.({ tipo: "documento", acao: "Criou documento", alvo: doc.titulo });
+        if (publicarAgora) {
+          await ref.update({ status: "publicado", publicadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+          window.registrarAuditoria?.({ tipo: "documento", acao: "Publicou documento", alvo: doc.titulo });
+        }
+        await recarregarDocumentos();
+        closeModal(); toast(publicarAgora ? "Documento publicado." : "Rascunho salvo."); renderApp();
+      } catch (e) { debug?.("[documento criar]", e?.message || e); toast("Erro ao salvar: " + e.message, "danger"); }
+    };
+
+    window.editarDocumento = async function (id, patch, publicarAgora) {
+      const up = {
+        titulo: String(patch.titulo || "").slice(0, 140),
+        descricao: String(patch.descricao || ""),
+        tipo: patch.tipo || "outro",
+        segmento: patch.segmento || { tipo: "todos", valores: [] },
+        anexo: (patch.anexo && ehUrlSegura(patch.anexo.url)) ? patch.anexo : null,
+        exigeAssinatura: !!patch.exigeAssinatura,
+        alcanceEstimado: Number(patch.alcanceEstimado) || 0,
+      };
+      try {
+        const ref = db.collection("documentos").doc(id);
+        await ref.update(up);
+        if (publicarAgora) {
+          await ref.update({ status: "publicado", publicadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+          window.registrarAuditoria?.({ tipo: "documento", acao: "Publicou documento", alvo: up.titulo });
+        } else {
+          window.registrarAuditoria?.({ tipo: "documento", acao: "Editou documento", alvo: up.titulo });
+        }
+        await recarregarDocumentos();
+        closeModal(); toast(publicarAgora ? "Documento publicado." : "Rascunho salvo."); renderApp();
+      } catch (e) { debug?.("[documento editar]", e?.message || e); toast("Erro ao salvar: " + e.message, "danger"); }
+    };
+
+    window.publicarDocumento = async function (id) {
+      const d = (state.documentos || []).find((x) => x.id === id);
+      try {
+        await db.collection("documentos").doc(id).update({
+          status: "publicado",
+          publicadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          alcanceEstimado: d ? (Number(d.alcanceEstimado) || 0) : 0,
+        });
+        window.registrarAuditoria?.({ tipo: "documento", acao: "Publicou documento", alvo: d?.titulo || id });
+        await recarregarDocumentos();
+        toast("Documento publicado."); renderApp();
+      } catch (e) { toast("Erro: " + e.message, "danger"); }
+    };
+
+    window.novaVersaoDocumento = async function (id, patch) {
+      const d = (state.documentos || []).find((x) => x.id === id);
+      const nova = ((d && d.versao) || 1) + 1;
+      try {
+        await db.collection("documentos").doc(id).update({
+          versao: nova,
+          anexo: { url: patch.url || "", nome: patch.nome || (d && d.titulo) || "", hashSha256: patch.hashSha256 || "" },
+          versaoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          versaoPor: (auth.currentUser && auth.currentUser.uid) || null,
+        });
+        window.registrarAuditoria?.({ tipo: "documento", acao: "Nova versao (v" + nova + ")", alvo: d?.titulo || id });
+        await recarregarDocumentos();
+        closeModal(); toast("Nova versao publicada. Assinatura reaberta."); renderApp();
+      } catch (e) { toast("Erro: " + e.message, "danger"); }
+    };
+
+    // App do colaborador (fase futura): aceite N1 e leitura de documento.
+    window.registrarAssinaturaDocumento = async function (docId, opts = {}) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!uid) return { ok: false, err: "sem sessao" };
+      const u = currentUser();
+      const d = (state.documentos || []).find((x) => x.id === docId);
+      try {
+        await db.collection("documentos").doc(docId).collection("assinaturas").doc(uid).set({
+          uid,
+          funcionarioId: (u && u.funcionarioId) || null,
+          versaoAssinada: d ? (d.versao || 1) : (opts.versao || 1),
+          hashSha256: (d && d.anexo && d.anexo.hashSha256) || "",
+          aceiteTexto: opts.aceiteTexto || "Li e estou de acordo",
+          em: firebase.firestore.FieldValue.serverTimestamp(),
+          userAgent: String(navigator.userAgent || "").slice(0, 200),
+        });
+        window.registrarAuditoria?.({ tipo: "documento", acao: "Assinou documento (N1)", alvo: (d?.titulo || docId) + " v" + (d?.versao || 1) });
+        return { ok: true };
+      } catch (e) { return { ok: false, err: e.message }; }
+    };
+    window.registrarLeituraDocumento = async function (docId, opts = {}) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!uid) return { ok: false, err: "sem sessao" };
+      const u = currentUser();
+      try {
+        const ref = db.collection("documentos").doc(docId).collection("leituras").doc(uid);
+        const snap = await ref.get();
+        if (snap.exists) return { ok: true };
+        await ref.set({ uid, funcionarioId: (u && u.funcionarioId) || null, confirmado: !!opts.confirmar, em: firebase.firestore.FieldValue.serverTimestamp(), userAgent: String(navigator.userAgent || "").slice(0, 200) });
+        return { ok: true };
+      } catch (e) { return { ok: false, err: e.message }; }
+    };
+
     // Import Banco de Horas: substituição completa em /bancoHoras
     window.doImportBancoHorasFirebase = async function (entries) {
       const u = currentUser();
@@ -2017,6 +2155,7 @@
       if (chatUnsub) { chatUnsub(); chatUnsub = null; }
       state.mensagensRecebidas = [];
       state.comunicados = [];
+      state.documentos = [];
       // Para o listener vivo das ocorrências e reseta a detecção de deltas
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
@@ -2217,6 +2356,11 @@
     state.comunicados = state.comunicados || [];
     if (typeof can === "function" && can("comunicados.gerenciar")) {
       await recarregarComunicados();
+    }
+    // Documentos institucionais (Pacote Gestor) — idem, gated por documentos.gerenciar.
+    state.documentos = state.documentos || [];
+    if (typeof can === "function" && can("documentos.gerenciar")) {
+      await recarregarDocumentos();
     }
 
     // Banco de Horas — fontes diferentes por papel pra isolamento por turno:
