@@ -1,0 +1,200 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="file:///C:/projetos/ocorr-ponto/public/styles.css?v=185">
+<style>
+body{margin:0;background:var(--bg);font-family:Poppins,sans-serif;padding:26px;display:flex;flex-direction:column;gap:30px}
+.h-wrap{max-width:780px;margin:0 auto;width:100%}
+.h-lbl{font:600 12px Poppins;color:var(--text-muted);text-transform:uppercase;letter-spacing:.7px;margin:0 0 12px 2px;display:flex;align-items:center;gap:8px}
+.h-lbl::after{content:"";flex:1;height:1px;background:var(--border)}
+.h-modal{max-width:560px}
+.h-modal .modal{position:static;box-shadow:var(--shadow-lg)}
+</style></head><body>
+<div class="h-wrap"><div class="h-lbl">Tela Comunicados (lista do gestor)</div>
+    <header class="page-header">
+      <div>
+        <h1>Comunicados</h1>
+        <p>Componha e publique avisos para a equipe. A publicacao parte do seu login de gestor.</p>
+      </div>
+      <button class="btn btn--primary" data-com-nova=""><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span>Novo comunicado</span></button>
+    </header>
+    <div class="stats">
+      
+    <div class="stat"><div class="stat__label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"></path><path d="M16 9a3.5 3.5 0 0 1 0 6"></path><path d="M19 6.5a7 7 0 0 1 0 11"></path></svg> Publicados</div><div class="stat__value">3</div></div>
+      
+    <div class="stat"><div class="stat__label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"></path><line x1="12" y1="15" x2="12" y2="21"></line></svg> Fixados</div><div class="stat__value">1</div></div>
+      
+    <div class="stat"><div class="stat__label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Com confirmacao</div><div class="stat__value">2</div></div>
+    </div>
+    <div class="com-seclabel"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"></path><line x1="12" y1="15" x2="12" y2="21"></line></svg><span>Fixado</span></div>
+      <div class="com-list">
+    <article class="com-card com-card--pin" data-com-id="c1">
+      <div class="com-card__top">
+        <h3 class="com-card__title">Parada programada do refeitorio (manutencao eletrica)</h3>
+        <span class="com-pinmark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"></path><line x1="12" y1="15" x2="12" y2="21"></line></svg></span>
+      </div>
+      <div class="com-badges">
+        <span class="badge badge--success"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>Todos</span></span>
+        <span class="badge badge--warning"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Requer confirmacao</span></span>
+        <span class="badge badge--neutral"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"></path><line x1="12" y1="15" x2="12" y2="21"></line></svg><span>Fixado</span></span>
+      </div>
+      <div class="com-card__body">Nos dias 26 e 27/06 o refeitorio fica fechado das 11h as 14h para manutencao eletrica. Almoco sera servido na sala de treinamento do bloco B. Confirmem ciencia ate sexta.</div>
+      <div class="com-foot">
+        <div class="com-meta">Carla RH · 25/06 15:35</div>
+        <div class="com-read">
+          <span class="com-read__pct"><b>2</b> de 15 confirmaram</span>
+          <span class="com-bar"><i style="width:13%"></i></span>
+        </div>
+        <div class="com-actions">
+          <button class="com-mini" data-com-leituras="c1" aria-label="Ver leituras"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          <button class="com-mini" data-com-fixar="c1" aria-label="Desafixar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"></path><line x1="12" y1="15" x2="12" y2="21"></line></svg></button>
+          <button class="com-mini" data-com-editar="c1" aria-label="Editar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+        </div>
+      </div>
+    </article></div>
+    <div class="com-seclabel"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Recentes</span></div>
+      <div class="com-list">
+    <article class="com-card " data-com-id="c2">
+      <div class="com-card__top">
+        <h3 class="com-card__title">Nova escala do turno noturno (vigencia julho)</h3>
+        
+      </div>
+      <div class="com-badges">
+        <span class="badge badge--success"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Turno · 3º Turno</span></span>
+        <span class="badge badge--warning"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Requer confirmacao</span></span>
+        
+      </div>
+      <div class="com-card__body">A partir de 01/07 a passagem de turno passa a ser as 23h00. Confiram a nova grade no quadro.</div>
+      <div class="com-foot">
+        <div class="com-meta">Carla RH · 24/06 15:35</div>
+        <div class="com-read">
+          <span class="com-read__pct"><b>1</b> de 5 confirmaram</span>
+          <span class="com-bar"><i style="width:20%"></i></span>
+        </div>
+        <div class="com-actions">
+          <button class="com-mini" data-com-leituras="c2" aria-label="Ver leituras"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          <button class="com-mini" data-com-fixar="c2" aria-label="Fixar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"></path><line x1="12" y1="15" x2="12" y2="21"></line></svg></button>
+          <button class="com-mini" data-com-editar="c2" aria-label="Editar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+        </div>
+      </div>
+    </article>
+    <article class="com-card " data-com-id="c3">
+      <div class="com-card__top">
+        <h3 class="com-card__title">Treinamento NR-12 — inscricoes abertas</h3>
+        
+      </div>
+      <div class="com-badges">
+        <span class="badge badge--success"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="13.5" rx="2.2"></rect><path d="M8 7V5.2A2.2 2.2 0 0 1 10.2 3h3.6A2.2 2.2 0 0 1 16 5.2V7"></path><path d="M2.5 12.5h19"></path></svg><span>Setor · Produção</span></span>
+        
+        
+      </div>
+      <div class="com-card__body">Inscricoes para o treinamento de seguranca em maquinas (NR-12) abertas ate 30/06. Procurem o RH para reservar vaga.</div>
+      <div class="com-foot">
+        <div class="com-meta">RH Fiobras · 23/06 15:35</div>
+        <div class="com-read">
+          <span class="com-read__pct"><b>1</b> de 6 leram</span>
+          <span class="com-bar"><i style="width:17%"></i></span>
+        </div>
+        <div class="com-actions">
+          <button class="com-mini" data-com-leituras="c3" aria-label="Ver leituras"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          <button class="com-mini" data-com-fixar="c3" aria-label="Fixar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"></path><line x1="12" y1="15" x2="12" y2="21"></line></svg></button>
+          <button class="com-mini" data-com-editar="c3" aria-label="Editar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+        </div>
+      </div>
+    </article></div>
+  </div>
+<div class="h-wrap h-modal"><div class="h-lbl">Composer — novo comunicado</div><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" tabindex="-1">
+    <div class="modal__header">
+      <div><h2 id="modal-titulo">Novo comunicado</h2><p>Publica como Administrador. Alcance e leituras seguem o segmento.</p></div>
+      <button class="modal__close" data-close=""><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <form class="modal__body" id="com-form" onsubmit="return false">
+      <div class="field">
+        <label for="com-titulo">Titulo</label>
+        <input type="text" id="com-titulo" maxlength="140" value="" placeholder="Ex.: Parada programada do refeitorio">
+      </div>
+      <div class="field">
+        <label for="com-corpo">Corpo <span class="muted text-xs">(texto simples, quebras preservadas)</span></label>
+        <textarea id="com-corpo" rows="4" placeholder="Escreva o aviso."></textarea>
+      </div>
+      <div class="field">
+        <label>Segmento</label>
+        <div class="com-seg" role="group" aria-label="Segmento do comunicado">
+          <button type="button" class="com-seg__chip" data-com-seg="todos"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>Todos</span></button>
+          <button type="button" class="com-seg__chip is-on" data-com-seg="turno"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Por turno</span></button>
+          <button type="button" class="com-seg__chip" data-com-seg="setor"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="13.5" rx="2.2"></rect><path d="M8 7V5.2A2.2 2.2 0 0 1 10.2 3h3.6A2.2 2.2 0 0 1 16 5.2V7"></path><path d="M2.5 12.5h19"></path></svg><span>Por setor</span></button>
+        </div>
+        <div class="com-seg__detail" id="com-seg-turno" style="">
+          <select id="com-turno">
+            <option value="1" selected="">Turno matutino (1)</option>
+            <option value="2">Turno vespertino (2)</option>
+            <option value="3">Turno noturno (3)</option>
+            <option value="geral">Geral / Administrativo</option>
+          </select>
+        </div>
+        <div class="com-seg__detail" id="com-seg-setor" style="display:none">
+          <select id="com-setor">
+            <option value="Logística" selected="">Setor · Logística</option><option value="Manutenção">Setor · Manutenção</option><option value="Produção">Setor · Produção</option><option value="Qualidade">Setor · Qualidade</option>
+          </select>
+        </div>
+      </div>
+      <div class="com-toggle">
+        <div class="com-toggle__t"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"></path><line x1="12" y1="15" x2="12" y2="21"></line></svg><div><b>Fixar no topo</b><span>Mantem o aviso destacado acima dos demais</span></div></div>
+        <button type="button" class="com-sw " id="com-fixar" role="switch" aria-checked="false" aria-label="Fixar no topo"></button>
+      </div>
+      <div class="com-toggle">
+        <div class="com-toggle__t"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><div><b>Requer confirmacao de leitura</b><span>Gera trilha de ciencia por funcionario</span></div></div>
+        <button type="button" class="com-sw is-on" id="com-conf" role="switch" aria-checked="true" aria-label="Requer confirmacao de leitura"></button>
+      </div>
+      <div class="com-preview">
+        <div class="com-preview__l">Pre-visualizacao</div>
+        <div class="com-preview__t" id="com-pv-titulo">Parada programada do refeitorio</div>
+        <div class="com-badges" id="com-pv-badges"><span class="badge badge--success"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Turno · 1º Turno</span></span><span class="badge badge--warning"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Requer confirmacao</span></span></div>
+        <div class="com-preview__b" id="com-pv-corpo">Nos dias 26 e 27/06 o refeitorio fica fechado das 11h as 14h.</div>
+        <div class="com-preview__alc" id="com-pv-alc">Alcance estimado: 5 pessoas</div>
+      </div>
+    </form>
+    <div class="modal__footer">
+      
+      <button class="btn btn--ghost" data-close="">Cancelar</button>
+      <button class="btn btn--primary" id="com-save"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg><span>Publicar</span></button>
+    </div>
+  </div></div>
+<div class="h-wrap h-modal"><div class="h-lbl">Painel — X de Y leram</div><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" tabindex="-1">
+    <div class="modal__header">
+      <div><h2 id="modal-titulo">Leituras</h2><p>Parada programada do refeitorio (manutencao eletrica)</p></div>
+      <button class="modal__close" data-close=""><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="com-tabs">
+        <button class="com-tab is-on" data-com-tab="ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Confirmaram</span> <i>2</i></button>
+        <button class="com-tab" data-com-tab="pend"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Pendentes</span> <i>13</i></button>
+      </div>
+      <div class="com-people" id="com-people-ok"><div class="com-person">
+      <span class="com-person__av">HC</span>
+      <div class="com-person__info"><b>Helena Caroline Vieira</b><span>1º Turno · Produção</span></div>
+      <span class="com-person__tag is-ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>25/06 15:35</span>
+    </div><div class="com-person">
+      <span class="com-person__av">MA</span>
+      <div class="com-person__info"><b>Maria Aparecida Santos</b><span>1º Turno · Qualidade</span></div>
+      <span class="com-person__tag is-ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>25/06 15:35</span>
+    </div></div>
+      <div class="com-people" id="com-people-pend" style="display:none"><div class="com-person">
+      <span class="com-person__av">JP</span>
+      <div class="com-person__info"><b>João Paulo da Silva</b><span>1º Turno · Produção</span></div>
+      <span class="com-person__tag is-pend">aguardando</span>
+    </div><div class="com-person">
+      <span class="com-person__av">AB</span>
+      <div class="com-person__info"><b>Ana Beatriz Costa</b><span>1º Turno · Produção</span></div>
+      <span class="com-person__tag is-pend">aguardando</span>
+    </div><div class="com-person">
+      <span class="com-person__av">CE</span>
+      <div class="com-person__info"><b>Carlos Eduardo Lima</b><span>2º Turno · Produção</span></div>
+      <span class="com-person__tag is-pend">aguardando</span>
+    </div></div>
+    </div>
+    <div class="modal__footer">
+      <span class="muted text-xs">Trilha de ciencia · 2 de 15 confirmaram</span>
+      <button class="btn btn--ghost" data-close="">Fechar</button>
+    </div>
+  </div></div>
+</body></html>

@@ -1582,6 +1582,7 @@ function renderNav() {
     }
     items.push(ob);
   }
+  if (can("comunicados.gerenciar")) items.push({ id: "comunicados", label: "Comunicados", icon: "megafone" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
@@ -1620,6 +1621,9 @@ function renderBottomNav() {
 
   // Itens à direita do FAB
   const right = [];
+  if (can("comunicados.gerenciar")) {
+    right.push({ id: "comunicados", label: "Avisos", icon: "megafone" });
+  }
   if (can("sistema.config")) {
     right.push({ id: "config", label: "Ajustes", icon: "settings" });
   }
@@ -1742,6 +1746,10 @@ function renderView() {
   if (page === "obrigacoes") {
     if (!can("obrigacoes.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderObrigacoes();
+  }
+  if (page === "comunicados") {
+    if (!can("comunicados.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
+    return renderComunicados();
   }
   if (page === "auditoria") {
     if (!can("auditoria.ver")) {
@@ -3967,6 +3975,370 @@ if (!window._obrigBound) {
     if (nv) { openObrigacaoModal(); return; }
     const ab = e.target.closest("[data-obrig-abrir]");
     if (ab) { state.view.page = "obrigacoes"; renderApp(); return; }
+  });
+}
+
+// ===== Comunicados (Pacote Gestor) — canal 1->N do RH =====
+// Backend real: firebase.js sobrescreve window.criarComunicado/editarComunicado/
+// fixarComunicado/despublicarComunicado e popula state.comunicados (+ leituras).
+// Em modo demo, cai no fallback local (store.save), espelhando Obrigacoes.
+// PII zero: as leituras guardam funcionarioId; o nome e cruzado no cliente.
+
+function comData(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function comIniciais(nome) {
+  return String(nome || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0] || "").join("").toUpperCase() || "?";
+}
+function comAtivos() { return (state.comunicados || []).filter((c) => c.ativo !== false); }
+function comOrdenados() {
+  return comAtivos().slice().sort((a, b) => {
+    if (!!b.fixado !== !!a.fixado) return b.fixado ? 1 : -1;
+    return String(b.publicadoEm || "").localeCompare(String(a.publicadoEm || ""));
+  });
+}
+// Funcionarios ativos (exclui diretor) que casam com o segmento — base do alcance (Y).
+function comFuncsDoSegmento(seg) {
+  const ativos = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true);
+  if (!seg || seg.tipo === "todos") return ativos;
+  if (seg.tipo === "turno") return ativos.filter((f) => (seg.valores || []).includes(f.turno));
+  if (seg.tipo === "setor") return ativos.filter((f) => (seg.valores || []).includes(f.setor));
+  return [];
+}
+function comAlcance(seg) { return comFuncsDoSegmento(seg).length; }
+function comSegLabel(seg) {
+  if (!seg || seg.tipo === "todos") return `${icon("users")}<span>Todos</span>`;
+  if (seg.tipo === "turno") {
+    const v = (seg.valores || [])[0];
+    const t = (typeof TURNOS !== "undefined" && TURNOS[v]?.label) || ("Turno " + v);
+    return `${icon("clock")}<span>Turno · ${escapeHtml(t)}</span>`;
+  }
+  return `${icon("briefcase")}<span>Setor · ${escapeHtml((seg.valores || [])[0] || "")}</span>`;
+}
+
+function renderComunicados() {
+  if (!can("comunicados.gerenciar")) { state.view.page = "dashboard"; return renderApp(); }
+  $("#topbar-title").textContent = "Comunicados";
+  const lista = comOrdenados();
+  const fixados = lista.filter((c) => c.fixado);
+  const recentes = lista.filter((c) => !c.fixado);
+  const comConf = comAtivos().filter((c) => c.requerConfirmacao).length;
+
+  const cab = `
+    <header class="page-header">
+      <div>
+        <h1>Comunicados</h1>
+        <p>Componha e publique avisos para a equipe. A publicacao parte do seu login de gestor.</p>
+      </div>
+      <button class="btn btn--primary" data-com-nova>${icon("plus")}<span>Novo comunicado</span></button>
+    </header>`;
+
+  if (lista.length === 0) {
+    $("#view").innerHTML = cab + `
+      <div class="empty">
+        <div class="empty__icon">${icon("megafone")}</div>
+        <h3>Nenhum comunicado publicado</h3>
+        <p>Crie o primeiro aviso para a equipe. Voce escolhe quem recebe (todos, por turno ou por setor) e acompanha quem leu.</p>
+        <button class="btn btn--primary" data-com-nova>${icon("plus")}<span>Novo comunicado</span></button>
+      </div>`;
+    return;
+  }
+
+  const stat = (label, value, icn) => `
+    <div class="stat"><div class="stat__label">${icon(icn)} ${label}</div><div class="stat__value">${value}</div></div>`;
+
+  $("#view").innerHTML = cab + `
+    <div class="stats">
+      ${stat("Publicados", comAtivos().length, "megafone")}
+      ${stat("Fixados", fixados.length, "pin")}
+      ${stat("Com confirmacao", comConf, "check")}
+    </div>
+    ${fixados.length ? `<div class="com-seclabel">${icon("pin")}<span>Fixado</span></div>
+      <div class="com-list">${fixados.map(comCardHtml).join("")}</div>` : ""}
+    ${recentes.length ? `<div class="com-seclabel">${icon("clock")}<span>Recentes</span></div>
+      <div class="com-list">${recentes.map(comCardHtml).join("")}</div>` : ""}
+  `;
+}
+
+function comCardHtml(c) {
+  const seg = c.segmento || { tipo: "todos", valores: [] };
+  const Y = (typeof c.alcanceEstimado === "number") ? c.alcanceEstimado : comAlcance(seg);
+  const leituras = c.leituras || [];
+  const X = c.requerConfirmacao ? leituras.filter((l) => l.confirmado).length : leituras.length;
+  const pct = Y > 0 ? Math.min(100, Math.round((X / Y) * 100)) : 0;
+  const verbo = c.requerConfirmacao ? "confirmaram" : "leram";
+  return `
+    <article class="com-card ${c.fixado ? "com-card--pin" : ""}" data-com-id="${c.id}">
+      <div class="com-card__top">
+        <h3 class="com-card__title">${escapeHtml(c.titulo || "(sem titulo)")}</h3>
+        ${c.fixado ? `<span class="com-pinmark" aria-hidden="true">${icon("pin")}</span>` : ""}
+      </div>
+      <div class="com-badges">
+        <span class="badge badge--success">${comSegLabel(seg)}</span>
+        ${c.requerConfirmacao ? `<span class="badge badge--warning">${icon("check")}<span>Requer confirmacao</span></span>` : ""}
+        ${c.fixado ? `<span class="badge badge--neutral">${icon("pin")}<span>Fixado</span></span>` : ""}
+      </div>
+      ${c.corpo ? `<div class="com-card__body">${escapeHtml(c.corpo)}</div>` : ""}
+      <div class="com-foot">
+        <div class="com-meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
+        <div class="com-read">
+          <span class="com-read__pct"><b>${X}</b> de ${Y} ${verbo}</span>
+          <span class="com-bar"><i style="width:${pct}%"></i></span>
+        </div>
+        <div class="com-actions">
+          <button class="com-mini" data-com-leituras="${c.id}" aria-label="Ver leituras">${icon("eye")}</button>
+          <button class="com-mini" data-com-fixar="${c.id}" aria-label="${c.fixado ? "Desafixar" : "Fixar"}">${icon("pin")}</button>
+          <button class="com-mini" data-com-editar="${c.id}" aria-label="Editar">${icon("edit")}</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+// Le o segmento atual do form do composer.
+function comSegmentoDoForm(segTipo) {
+  if (segTipo === "turno") {
+    const v = $("#com-turno").value;
+    return { tipo: "turno", valores: [v === "geral" ? "geral" : Number(v)] };
+  }
+  if (segTipo === "setor") return { tipo: "setor", valores: [$("#com-setor").value] };
+  return { tipo: "todos", valores: [] };
+}
+
+function comPreview(segTipo) {
+  const t = ($("#com-titulo")?.value || "").trim();
+  const b = ($("#com-corpo")?.value || "").trim();
+  const seg = comSegmentoDoForm(segTipo);
+  const fixar = $("#com-fixar")?.getAttribute("aria-checked") === "true";
+  const conf = $("#com-conf")?.getAttribute("aria-checked") === "true";
+  if ($("#com-pv-titulo")) $("#com-pv-titulo").textContent = t || "Titulo do comunicado";
+  if ($("#com-pv-corpo")) $("#com-pv-corpo").textContent = b || "O corpo aparece aqui conforme voce escreve.";
+  let badges = `<span class="badge badge--success">${comSegLabel(seg)}</span>`;
+  if (conf) badges += `<span class="badge badge--warning">${icon("check")}<span>Requer confirmacao</span></span>`;
+  if (fixar) badges += `<span class="badge badge--neutral">${icon("pin")}<span>Fixado</span></span>`;
+  if ($("#com-pv-badges")) $("#com-pv-badges").innerHTML = badges;
+  const n = comAlcance(seg);
+  if ($("#com-pv-alc")) $("#com-pv-alc").textContent = `Alcance estimado: ${n} ${n === 1 ? "pessoa" : "pessoas"}`;
+}
+
+function openComunicadoModal(id) {
+  if (!can("comunicados.gerenciar")) return;
+  const c = id ? (state.comunicados || []).find((x) => x.id === id) : null;
+  const seg = c?.segmento || { tipo: "todos", valores: [] };
+  const setores = getSetores();
+  const turnoVal = seg.tipo === "turno" ? (seg.valores || [])[0] : 1;
+  const setorVal = seg.tipo === "setor" ? (seg.valores || [])[0] : (setores[0] || "");
+
+  openModal(`
+    <div class="modal__header">
+      <div><h2>${c ? "Editar comunicado" : "Novo comunicado"}</h2><p>Publica como ${escapeHtml(currentUser()?.nome || "gestor")}. Alcance e leituras seguem o segmento.</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="com-form" onsubmit="return false">
+      <div class="field">
+        <label for="com-titulo">Titulo</label>
+        <input type="text" id="com-titulo" maxlength="140" value="${c ? escapeHtml(c.titulo) : ""}" placeholder="Ex.: Parada programada do refeitorio" />
+      </div>
+      <div class="field">
+        <label for="com-corpo">Corpo <span class="muted text-xs">(texto simples, quebras preservadas)</span></label>
+        <textarea id="com-corpo" rows="4" placeholder="Escreva o aviso.">${c ? escapeHtml(c.corpo || "") : ""}</textarea>
+      </div>
+      <div class="field">
+        <label>Segmento</label>
+        <div class="com-seg" role="group" aria-label="Segmento do comunicado">
+          <button type="button" class="com-seg__chip ${seg.tipo === "todos" ? "is-on" : ""}" data-com-seg="todos">${icon("users")}<span>Todos</span></button>
+          <button type="button" class="com-seg__chip ${seg.tipo === "turno" ? "is-on" : ""}" data-com-seg="turno">${icon("clock")}<span>Por turno</span></button>
+          <button type="button" class="com-seg__chip ${seg.tipo === "setor" ? "is-on" : ""}" data-com-seg="setor">${icon("briefcase")}<span>Por setor</span></button>
+        </div>
+        <div class="com-seg__detail" id="com-seg-turno" style="${seg.tipo === "turno" ? "" : "display:none"}">
+          <select id="com-turno">
+            <option value="1" ${turnoVal === 1 ? "selected" : ""}>Turno matutino (1)</option>
+            <option value="2" ${turnoVal === 2 ? "selected" : ""}>Turno vespertino (2)</option>
+            <option value="3" ${turnoVal === 3 ? "selected" : ""}>Turno noturno (3)</option>
+            <option value="geral" ${turnoVal === "geral" ? "selected" : ""}>Geral / Administrativo</option>
+          </select>
+        </div>
+        <div class="com-seg__detail" id="com-seg-setor" style="${seg.tipo === "setor" ? "" : "display:none"}">
+          <select id="com-setor">
+            ${setores.map((s) => `<option value="${escapeHtml(s)}" ${s === setorVal ? "selected" : ""}>Setor · ${escapeHtml(s)}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="com-toggle">
+        <div class="com-toggle__t">${icon("pin")}<div><b>Fixar no topo</b><span>Mantem o aviso destacado acima dos demais</span></div></div>
+        <button type="button" class="com-sw ${c?.fixado ? "is-on" : ""}" id="com-fixar" role="switch" aria-checked="${c?.fixado ? "true" : "false"}" aria-label="Fixar no topo"></button>
+      </div>
+      <div class="com-toggle">
+        <div class="com-toggle__t">${icon("check")}<div><b>Requer confirmacao de leitura</b><span>Gera trilha de ciencia por funcionario</span></div></div>
+        <button type="button" class="com-sw ${c?.requerConfirmacao ? "is-on" : ""}" id="com-conf" role="switch" aria-checked="${c?.requerConfirmacao ? "true" : "false"}" aria-label="Requer confirmacao de leitura"></button>
+      </div>
+      <div class="com-preview">
+        <div class="com-preview__l">Pre-visualizacao</div>
+        <div class="com-preview__t" id="com-pv-titulo"></div>
+        <div class="com-badges" id="com-pv-badges"></div>
+        <div class="com-preview__b" id="com-pv-corpo"></div>
+        <div class="com-preview__alc" id="com-pv-alc"></div>
+      </div>
+    </form>
+    <div class="modal__footer">
+      ${c ? `<button class="btn btn--danger" data-com-despublicar="${c.id}">${icon("trash")}<span>Despublicar</span></button>` : ""}
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="com-save">${icon("send")}<span>${c ? "Salvar" : "Publicar"}</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      let segTipo = seg.tipo;
+      const chips = modal.querySelectorAll("[data-com-seg]");
+      const sync = () => {
+        $("#com-seg-turno").style.display = segTipo === "turno" ? "" : "none";
+        $("#com-seg-setor").style.display = segTipo === "setor" ? "" : "none";
+        comPreview(segTipo);
+      };
+      chips.forEach((ch) => ch.addEventListener("click", () => {
+        chips.forEach((c2) => c2.classList.remove("is-on"));
+        ch.classList.add("is-on");
+        segTipo = ch.dataset.comSeg;
+        sync();
+      }));
+      const flip = (el) => { const on = el.getAttribute("aria-checked") === "true"; el.setAttribute("aria-checked", String(!on)); el.classList.toggle("is-on", !on); comPreview(segTipo); };
+      $("#com-fixar").addEventListener("click", () => flip($("#com-fixar")));
+      $("#com-conf").addEventListener("click", () => flip($("#com-conf")));
+      ["com-titulo", "com-corpo"].forEach((idf) => $("#" + idf).addEventListener("input", () => comPreview(segTipo)));
+      $("#com-turno").addEventListener("change", () => comPreview(segTipo));
+      $("#com-setor")?.addEventListener("change", () => comPreview(segTipo));
+      $("#com-save").addEventListener("click", () => salvarComunicadoForm(id, segTipo));
+      const desp = modal.querySelector("[data-com-despublicar]");
+      if (desp) desp.addEventListener("click", () => despublicarComunicadoUI(desp.dataset.comDespublicar));
+      comPreview(segTipo);
+      setTimeout(() => $("#com-titulo")?.focus(), 60);
+    },
+  });
+}
+
+function salvarComunicadoForm(id, segTipo) {
+  const titulo = $("#com-titulo").value.trim();
+  if (!titulo || titulo.length < 3) return campoInvalido("#com-titulo", "De um titulo ao comunicado (min. 3 letras).");
+  const corpo = $("#com-corpo").value.trim();
+  if (!corpo) return campoInvalido("#com-corpo", "Escreva o corpo do comunicado.");
+  const seg = comSegmentoDoForm(segTipo);
+  const dados = {
+    titulo, corpo, segmento: seg,
+    fixado: $("#com-fixar").getAttribute("aria-checked") === "true",
+    requerConfirmacao: $("#com-conf").getAttribute("aria-checked") === "true",
+    alcanceEstimado: comAlcance(seg),
+  };
+  if (window.criarComunicado && !id) return void window.criarComunicado(dados);
+  if (window.editarComunicado && id) return void window.editarComunicado(id, dados);
+  salvarComunicadoLocal(dados, id);
+}
+
+// Fallback DEMO (sem firebase) — espelha salvarObrigacao.
+function salvarComunicadoLocal(dados, id) {
+  if (!state.comunicados) state.comunicados = [];
+  if (id) {
+    const c = state.comunicados.find((x) => x.id === id);
+    if (c) Object.assign(c, dados, { editadoEm: nowIso() });
+  } else {
+    const u = currentUser();
+    state.comunicados.unshift({
+      id: "com-" + Date.now(), ativo: true, leituras: [], anexo: null,
+      autorUid: u?.id || null, autorNome: u?.nome || "RH",
+      publicadoEm: nowIso(), editadoEm: null, ...dados,
+    });
+  }
+  store.save(state);
+  closeModal();
+  toast(id ? "Comunicado atualizado." : "Comunicado publicado.");
+  renderApp();
+}
+
+function fixarComunicadoUI(id) {
+  const c = (state.comunicados || []).find((x) => x.id === id);
+  if (!c) return;
+  const novo = !c.fixado;
+  if (window.fixarComunicado) return void window.fixarComunicado(id, novo);
+  c.fixado = novo; store.save(state); toast(novo ? "Comunicado fixado." : "Comunicado desafixado."); renderApp();
+}
+
+async function despublicarComunicadoUI(id) {
+  const c = (state.comunicados || []).find((x) => x.id === id);
+  if (!c) return;
+  if (!(await confirmar({ titulo: "Despublicar comunicado?", msg: `"${escapeHtml(c.titulo)}" sai da lista da equipe. O historico e as leituras sao preservados.`, okLabel: "Despublicar", perigo: true }))) return;
+  if (window.despublicarComunicado) return void window.despublicarComunicado(id);
+  c.ativo = false; store.save(state); closeModal(); toast("Comunicado despublicado."); renderApp();
+}
+
+function abrirLeiturasComunicado(id) {
+  const c = (state.comunicados || []).find((x) => x.id === id);
+  if (!c) return;
+  const seg = c.segmento || { tipo: "todos", valores: [] };
+  const Y = (typeof c.alcanceEstimado === "number") ? c.alcanceEstimado : comAlcance(seg);
+  const leituras = c.leituras || [];
+  const confKey = c.requerConfirmacao;
+  const lidosIds = new Set(leituras.filter((l) => (confKey ? l.confirmado : true)).map((l) => l.funcionarioId));
+  const elegiveis = comFuncsDoSegmento(seg);
+  const confirmaram = elegiveis.filter((f) => lidosIds.has(f.id));
+  const pendentes = elegiveis.filter((f) => !lidosIds.has(f.id));
+  const verbo = confKey ? "confirmaram" : "leram";
+
+  const linha = (f, ok) => {
+    const l = leituras.find((x) => x.funcionarioId === f.id);
+    const quando = ok && l ? comData(l.em) : "";
+    const sub = [(typeof TURNOS !== "undefined" && TURNOS[f.turno]?.label) || "", f.setor || ""].filter(Boolean).join(" · ");
+    return `<div class="com-person">
+      <span class="com-person__av">${escapeHtml(comIniciais(f.nome))}</span>
+      <div class="com-person__info"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
+      <span class="com-person__tag ${ok ? "is-ok" : "is-pend"}">${ok ? `${icon("check")}${escapeHtml(quando)}` : "aguardando"}</span>
+    </div>`;
+  };
+
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Leituras</h2><p>${escapeHtml(c.titulo)}</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="com-tabs">
+        <button class="com-tab is-on" data-com-tab="ok">${icon("check")}<span>${confKey ? "Confirmaram" : "Leram"}</span> <i>${confirmaram.length}</i></button>
+        <button class="com-tab" data-com-tab="pend">${icon("clock")}<span>Pendentes</span> <i>${pendentes.length}</i></button>
+      </div>
+      <div class="com-people" id="com-people-ok">${confirmaram.length ? confirmaram.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguem ${verbo} ainda.</p>`}</div>
+      <div class="com-people" id="com-people-pend" style="display:none">${pendentes.length ? pendentes.map((f) => linha(f, false)).join("") : `<p class="muted" style="padding:14px 2px">Todos em dia.</p>`}</div>
+    </div>
+    <div class="modal__footer">
+      <span class="muted text-xs">Trilha de ciencia · ${confirmaram.length} de ${Y} ${verbo}</span>
+      <button class="btn btn--ghost" data-close>Fechar</button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      modal.querySelectorAll("[data-com-tab]").forEach((tb) => tb.addEventListener("click", () => {
+        modal.querySelectorAll(".com-tab").forEach((t) => t.classList.remove("is-on"));
+        tb.classList.add("is-on");
+        const ok = tb.dataset.comTab === "ok";
+        $("#com-people-ok").style.display = ok ? "" : "none";
+        $("#com-people-pend").style.display = ok ? "none" : "";
+      }));
+    },
+  });
+}
+
+// Handler delegado unico (sobrevive aos re-renders do #view).
+if (!window._comBound) {
+  window._comBound = true;
+  document.addEventListener("click", (e) => {
+    const nv = e.target.closest("[data-com-nova]");
+    if (nv) { openComunicadoModal(); return; }
+    const ed = e.target.closest("[data-com-editar]");
+    if (ed) { e.stopPropagation(); openComunicadoModal(ed.dataset.comEditar); return; }
+    const fx = e.target.closest("[data-com-fixar]");
+    if (fx) { e.stopPropagation(); fixarComunicadoUI(fx.dataset.comFixar); return; }
+    const lt = e.target.closest("[data-com-leituras]");
+    if (lt) { e.stopPropagation(); abrirLeiturasComunicado(lt.dataset.comLeituras); return; }
   });
 }
 

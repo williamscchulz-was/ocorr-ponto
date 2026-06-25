@@ -918,6 +918,136 @@
       }
     };
 
+    // ===== Comunicados (Pacote Gestor) — escreve /comunicados no Firestore =====
+    // Gestor com a cap (comunicados.gerenciar) cria/edita/fixa/despublica. publicadoEm
+    // e server-time (a rule exige == request.time). state.comunicados e populado em
+    // carregarDadosCompletos; apos cada escrita a lista e recarregada. PII zero: a
+    // subcolecao leituras guarda funcionarioId; o nome e cruzado no cliente.
+    async function recarregarComunicados() {
+      try {
+        const snap = await db.collection("comunicados").orderBy("publicadoEm", "desc").limit(200).get();
+        const arr = [];
+        for (const d of snap.docs) {
+          const dat = d.data();
+          const c = { id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm), editadoEm: tsToIso(dat.editadoEm), leituras: [] };
+          try {
+            const ls = await d.ref.collection("leituras").get();
+            c.leituras = ls.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) }));
+          } catch (e) { /* sem leituras visiveis */ }
+          arr.push(c);
+        }
+        state.comunicados = arr;
+      } catch (e) {
+        debug?.("[comunicados] load:", e?.message || e);
+        state.comunicados = state.comunicados || [];
+      }
+    }
+    window.recarregarComunicados = recarregarComunicados;
+
+    window.criarComunicado = async function (dados) {
+      const u = currentUser();
+      const seg = dados.segmento || { tipo: "todos", valores: [] };
+      const doc = {
+        titulo: String(dados.titulo || "").slice(0, 140),
+        corpo: String(dados.corpo || ""),
+        segmento: seg,
+        requerConfirmacao: !!dados.requerConfirmacao,
+        fixado: !!dados.fixado,
+        ativo: true,
+        anexo: (dados.anexo && ehUrlSegura(dados.anexo.url)) ? dados.anexo : null,
+        alcanceEstimado: Number(dados.alcanceEstimado) || 0,
+        autorUid: (auth.currentUser && auth.currentUser.uid) || u?.id || null,
+        autorNome: u?.nome || "RH",
+        publicadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        editadoEm: null,
+        editadoPor: null,
+      };
+      try {
+        await db.collection("comunicados").add(doc);
+        window.registrarAuditoria?.({ tipo: "comunicado", acao: "Publicou comunicado", alvo: doc.titulo });
+        await recarregarComunicados();
+        closeModal();
+        toast("Comunicado publicado.");
+        renderApp();
+      } catch (e) {
+        debug?.("[comunicado criar]", e?.message || e);
+        toast("Erro ao publicar: " + e.message, "danger");
+      }
+    };
+
+    window.editarComunicado = async function (id, patch) {
+      const u = currentUser();
+      const up = {
+        titulo: String(patch.titulo || "").slice(0, 140),
+        corpo: String(patch.corpo || ""),
+        segmento: patch.segmento || { tipo: "todos", valores: [] },
+        requerConfirmacao: !!patch.requerConfirmacao,
+        fixado: !!patch.fixado,
+        alcanceEstimado: Number(patch.alcanceEstimado) || 0,
+        editadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        editadoPor: (auth.currentUser && auth.currentUser.uid) || u?.id || null,
+      };
+      try {
+        await db.collection("comunicados").doc(id).update(up);
+        window.registrarAuditoria?.({ tipo: "comunicado", acao: "Editou comunicado", alvo: up.titulo });
+        await recarregarComunicados();
+        closeModal();
+        toast("Comunicado atualizado.");
+        renderApp();
+      } catch (e) {
+        debug?.("[comunicado editar]", e?.message || e);
+        toast("Erro ao salvar: " + e.message, "danger");
+      }
+    };
+
+    window.fixarComunicado = async function (id, fixado) {
+      try {
+        await db.collection("comunicados").doc(id).update({ fixado: !!fixado });
+        window.registrarAuditoria?.({ tipo: "comunicado", acao: fixado ? "Fixou comunicado" : "Desafixou comunicado", alvo: id });
+        await recarregarComunicados();
+        toast(fixado ? "Comunicado fixado." : "Comunicado desafixado.");
+        renderApp();
+      } catch (e) {
+        toast("Erro: " + e.message, "danger");
+      }
+    };
+
+    window.despublicarComunicado = async function (id) {
+      try {
+        await db.collection("comunicados").doc(id).update({ ativo: false });
+        window.registrarAuditoria?.({ tipo: "comunicado", acao: "Despublicou comunicado", alvo: id });
+        await recarregarComunicados();
+        closeModal();
+        toast("Comunicado despublicado.");
+        renderApp();
+      } catch (e) {
+        toast("Erro: " + e.message, "danger");
+      }
+    };
+
+    // App do colaborador (fase futura): registra leitura/ciencia. set-once (nao
+    // sobrescreve o 'em' da 1a vez). A rule amarra ao segmento do pai.
+    window.registrarLeitura = async function (comunicadoId, opts = {}) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!uid) return { ok: false, err: "sem sessao" };
+      const u = currentUser();
+      try {
+        const ref = db.collection("comunicados").doc(comunicadoId).collection("leituras").doc(uid);
+        const snap = await ref.get();
+        if (snap.exists) return { ok: true };
+        await ref.set({
+          uid,
+          funcionarioId: (u && u.funcionarioId) || null,
+          confirmado: !!opts.confirmar,
+          em: firebase.firestore.FieldValue.serverTimestamp(),
+          userAgent: String(navigator.userAgent || "").slice(0, 200),
+        });
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, err: e.message };
+      }
+    };
+
     // Import Banco de Horas: substituição completa em /bancoHoras
     window.doImportBancoHorasFirebase = async function (entries) {
       const u = currentUser();
@@ -1886,6 +2016,7 @@
       // Para o listener global do chat e zera as mensagens recebidas
       if (chatUnsub) { chatUnsub(); chatUnsub = null; }
       state.mensagensRecebidas = [];
+      state.comunicados = [];
       // Para o listener vivo das ocorrências e reseta a detecção de deltas
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
@@ -2081,6 +2212,12 @@
       const obSnap = await db.collection("obrigacoes").get();
       state.obrigacoes = obSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (e) { state.obrigacoes = state.obrigacoes || []; debug?.("[obrigacoes] load:", e?.message || e); }
+
+    // Comunicados (Pacote Gestor) — só quem tem a cap carrega (gestor com comunicados.gerenciar).
+    state.comunicados = state.comunicados || [];
+    if (typeof can === "function" && can("comunicados.gerenciar")) {
+      await recarregarComunicados();
+    }
 
     // Banco de Horas — fontes diferentes por papel pra isolamento por turno:
     //
