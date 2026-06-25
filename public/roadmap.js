@@ -83,7 +83,7 @@ window.ROADMAP = {
       status: "concluido",
       concluidoEm: "2026-06-24",
       classificacao: "adapta",
-      descricao: "renderColabRoadmap() reusando o molde de Obrigações (agrupamento por fase no padrão .mes/mes--atual/.vermais, linhas no padrão obrigLinhaHtml, selos .st, pílulas .ob-pill, barras de progresso por fase + global). Cada item exibe Nome, Descrição, Objetivo, Prioridade, Complexidade, Dependências, Status e Critérios de aceite (modal de detalhe via openModal). Fonte: array estático public/roadmap.js populado a partir deste documento.",
+      descricao: "renderColabRoadmap() reusando o molde de Obrigações (agrupamento por fase no padrão .mes/mes--atual/.vermais, linhas no padrão obrigLinhaHtml, selos .st, pílulas .ob-pill, barras de progresso por fase + global). Cada item exibe Nome, Descrição, Objetivo, Prioridade, Complexidade, Dependências, Status e Critérios de aceite (modal de detalhe via openModal). Fonte: array estático public/roadmap.js populado a partir deste documento. UI redesenhada (jun/2026) como MAPA MENTAL vertical estilo trilho de metrô (renderPortalRoadmap: estações por fase com anel de progresso, folhas expansíveis, conectores SVG Bézier), contagens derivadas em runtime; chips dark aware.",
       objetivo: "Tornar o roadmap o guia oficial e documento vivo de alinhamento, reaproveitando o motor de status/progresso já testado em produção.",
       dependencias: ["#39", "molde Obrigações", "public/roadmap.js"],
       criteriosAceite: [
@@ -167,7 +167,8 @@ window.ROADMAP = {
       fase: "fase1",
       prioridade: "critica",
       complexidade: "muito_facil",
-      status: "em_andamento",
+      status: "concluido",
+      concluidoEm: "2026-06-25",
       classificacao: "reaproveita",
       descricao: "cpfParaEmail(cpf) gera {cpf}@colaborador.fiobras.local; signInWithEmailAndPassword padrão; o handler do modo Colaborador monta o e-mail antes de window.login.",
       objetivo: "Login por CPF sem billing nem Custom Token, reaproveitando o Auth em produção.",
@@ -185,7 +186,8 @@ window.ROADMAP = {
       fase: "fase1",
       prioridade: "alta",
       complexidade: "facil",
-      status: "em_andamento",
+      status: "concluido",
+      concluidoEm: "2026-06-25",
       classificacao: "adapta",
       descricao: "Toggle no #login alternando o modo do campo (label CPF + máscara só dígitos vs. e-mail). No submit em modo Colaborador, monta o e-mail sintético. Lembrar último modo em localStorage. 'Esqueci a senha' oculto no modo Colaborador (domínio fake).",
       objetivo: "Entrada clara para os dois públicos na mesma tela de login.",
@@ -281,7 +283,8 @@ window.ROADMAP = {
       fase: "fase1",
       prioridade: "critica",
       complexidade: "medio",
-      status: "em_andamento",
+      status: "concluido",
+      concluidoEm: "2026-06-25",
       classificacao: "adapta",
       descricao: "Ler precisaTrocarSenha no onAuthStateChanged; modal bloqueante via alterarMinhaSenha; ao sucesso, zerar a flag (rule self-update); nova senha diferente de nascimento, com no mínimo 6 caracteres.",
       objetivo: "Mitigar a semente de senha fraca (nascimento é previsível).",
@@ -434,7 +437,7 @@ window.ROADMAP = {
       complexidade: "medio",
       status: "planejado",
       classificacao: "adapta",
-      descricao: "renderComunicados com lista publicada (cronológica reversa, fixado no topo) + modal de composição (título, corpo, segmento, fixado/requer confirmação). Corpo texto simples + quebras (escapeHtml).",
+      descricao: "Origem = PORTAL DO GESTOR (cap comunicados.gerenciar = admin/RH; supervisor comum não publica). renderComunicados com lista publicada (cronológica reversa, fixado no topo) + painel de leituras (X de Y leram/confirmaram) + modal compositor (título, corpo, segmento todos/turno/setor, fixar, requer confirmação, pré-visualização). Segmentação canônica de turno (1 Matutino, 2 Vespertino, 3 Noturno, geral Todos). Corpo texto simples + quebras (escapeHtml).",
       objetivo: "Canal oficial de avisos com segmentação, substituindo WhatsApp/mural.",
       dependencias: ["#21", "mock aprovado"],
       criteriosAceite: [
@@ -1235,6 +1238,46 @@ window.ROADMAP = {
         "Resets administrativos e inativações do pipeline ficam rastreáveis na auditoria.",
         "Política de retenção e inativação documentada e em execução (prazos definidos, dado retido, nada apagado indevidamente).",
         "Revisão periódica confirma que ninguém fora do quadro mantém acesso."
+      ]
+    },
+    {
+      id: "categorias-sem-acesso-portal",
+      numero: null,
+      nome: "Categorias sem acesso ao Portal (diretoria, invalidez, aprendiz)",
+      fase: "fase1",
+      prioridade: "alta",
+      complexidade: "facil",
+      status: "concluido",
+      concluidoEm: "2026-06-24",
+      classificacao: "adapta",
+      descricao: "Diretoria, aposentadoria por invalidez e menor aprendiz não acessam o Portal do Colaborador. O pipeline WKRADAR (sync-colaborador-users.mjs) trata essas categorias de forma unificada: não cria login e revoga se já existir (users.ativo=false + Auth disabled + auditoria), com motivoSemAcesso. Há allowlist explícita para exceções de teste (ex.: o login do diretor William). A trava users.ativo===false + Auth disabled barra a entrada no app.",
+      objetivo: "Manter rastreável e auditável quem fica fora do Portal por categoria, sem depender de ressalva escondida dentro de outros itens.",
+      dependencias: ["Criação e inativação automática de usuários (#5)", "Vínculo uid e funcionarioId (#11)", "Trava users.ativo no onAuthStateChanged"],
+      criteriosAceite: [
+        "Diretoria, invalidez e aprendiz não recebem login; se já existir, é revogado (ativo false + Auth disabled).",
+        "Allowlist explícita permite exceções de teste sem reabrir a categoria.",
+        "Nada é apagado: histórico e auditoria preservados (append only).",
+        "Reexecutar o pipeline é idempotente."
+      ]
+    },
+    {
+      id: "documentos-institucionais-gestao",
+      numero: null,
+      nome: "Documentos institucionais (gestão pelo RH/admin)",
+      fase: "fase2",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "planejado",
+      classificacao: "adapta",
+      descricao: "Tela no portal do GESTOR (cap documentos.gerenciar = admin/RH) para publicar e versionar documentos institucionais: manual de regras, código de conduta, manual da cultura, política de privacidade e LGPD, termos. Reusa documentos/{id} com escopo institucional (sem funcionarioId, com segmento) + assinatura N1 (#30). Texto OU anexo Drive (https + hash SHA-256); exige assinatura ou ciência; trocar a versão reabre a assinatura. Painel de adesão (porcentagem e pendentes). O colaborador só consome (lê e assina). Supervisor comum não publica por padrão.",
+      objetivo: "Dar ao RH um lugar para publicar os documentos da empresa com versão, segmento e prova de ciência, sem mexer nas telas atuais do gestor.",
+      dependencias: ["Coleção documentos e repositório (#29)", "Assinatura N1 com trilha (#30)", "cap documentos.gerenciar", "Segmentação canônica de turno"],
+      criteriosAceite: [
+        "Só admin e RH (documentos.gerenciar) veem a aba e publicam; supervisor comum não.",
+        "Documento com texto ou anexo Drive (https) + hash; segmento por turno, setor ou todos.",
+        "Exige assinatura ou ciência; publicar nova versão reabre o aceite (versão anterior congela como prova).",
+        "Painel de adesão (porcentagem e pendentes) lê de assinaturas e leituras no servidor, sem PII de terceiros.",
+        "Zero regressão nas telas e regras atuais do gestor."
       ]
     }
   ]
