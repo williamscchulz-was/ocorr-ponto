@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;background:#0a0d0a;padding:24px">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+
+<div id="g-mon" data-t="dark">
+  <h2 class="sr-only">FioPulse Portal do Gestor — Monitor do pipeline: saude das exportacoes do WK Radar e das saidas no app, com ultima execucao, resumo e lista de fontes</h2>
+
+  <style>
+  #g-mon{
+    /* ===== DARK (padrao) ===== */
+    --bg:#0E130E;--surf:#141A14;--card:#161D15;--card2:#1B231A;--bd:#232C22;--bd2:#283027;
+    --brand:#1AA34F;--brand-d:#0B7A36;--g-tx:#5FCB85;--g-tx2:#4FD080;
+    --amber:#E8B468;--info:#6FA8E0;--danger:#E8736B;--viol:#B79CE8;
+    --tx:#E9F0E5;--tx-w:#94A38D;--tx-w2:#7E8C78;
+    --green-bg:rgba(26,163,79,.14);--amber-bg:rgba(232,180,104,.13);--info-bg:rgba(111,168,224,.13);--neutral-bg:rgba(148,163,141,.12);--danger-bg:rgba(232,115,107,.13);--viol-bg:rgba(183,156,232,.13);
+    --sh-card:0 2px 10px -4px rgba(0,0,0,.55);--sh-hero:0 14px 34px -14px rgba(0,0,0,.7);
+    --hero-tx:#EAFBEF;--hero-mut:rgba(234,251,239,.74);
+
+    box-sizing:border-box;width:1100px;max-width:100%;height:720px;margin:0 auto;
+    border-radius:24px;overflow:hidden;border:1px solid var(--bd);
+    background:var(--bg);color:var(--tx);font-family:'Poppins',system-ui,sans-serif;
+    display:flex;-webkit-font-smoothing:antialiased;isolation:isolate;
+  }
+  #g-mon[data-t="light"]{
+    --bg:#EEF3EC;--surf:#FFFFFF;--card:#FFFFFF;--card2:#F6F9F4;--bd:#E3EBE0;--bd2:#D8E2D5;
+    --brand:#0E8C3F;--brand-d:#0B7A36;--g-tx:#0E8C3F;--g-tx2:#0E8C3F;
+    --amber:#C98A2A;--info:#3D7CC0;--danger:#C5453B;--viol:#7B5FB0;
+    --tx:#16201A;--tx-w:#5B6B57;--tx-w2:#7A8775;
+    --green-bg:rgba(14,140,63,.12);--amber-bg:rgba(201,138,42,.13);--info-bg:rgba(61,124,192,.12);--neutral-bg:rgba(91,107,87,.10);--danger-bg:rgba(197,69,59,.11);--viol-bg:rgba(123,95,176,.12);
+    --sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);--sh-hero:0 8px 26px -8px rgba(0,40,20,.22),0 2px 8px rgba(0,40,20,.08);
+    --hero-tx:#FFFFFF;--hero-mut:rgba(255,255,255,.82);
+  }
+  #g-mon *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  #g-mon .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+  #g-mon button{font-family:inherit}
+
+  /* ===================== RAIL ===================== */
+  #g-mon .rail{width:232px;flex:0 0 232px;background:var(--surf);border-right:1px solid var(--bd);display:flex;flex-direction:column}
+  #g-mon .rail__brand{display:flex;align-items:center;gap:10px;padding:18px 16px 16px}
+  #g-mon .rail__logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(150deg,#1AA34F,#0B7A36);display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 0 0 3px var(--green-bg)}
+  #g-mon .rail__logo svg{display:block}
+  #g-mon .rail__wm{font-size:16px;font-weight:600;letter-spacing:-.01em;line-height:1.05}
+  #g-mon .rail__sub{font-size:10.5px;color:var(--tx-w);font-weight:500;margin-top:1px}
+
+  #g-mon .nav{display:flex;flex-direction:column;gap:2px;padding:6px 12px;flex:1;overflow-y:auto}
+  #g-mon .nav__sec{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx-w2);padding:12px 10px 5px}
+  #g-mon .nv{position:relative;display:flex;align-items:center;gap:11px;height:42px;padding:0 11px;border-radius:11px;color:var(--tx-w);text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;transition:.14s}
+  #g-mon .nv i{font-size:19px;flex:0 0 auto}
+  #g-mon .nv:hover{background:var(--card2);color:var(--tx)}
+  #g-mon .nv.on{background:var(--green-bg);color:var(--g-tx2);font-weight:600}
+  #g-mon .nv.on::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--brand)}
+  #g-mon .nv__bdg{margin-left:auto;font-size:10px;font-weight:700;line-height:1;min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+  #g-mon .nv__bdg.am{background:var(--amber);color:#13140e}
+  #g-mon .nv__dot{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--info)}
+
+  #g-mon .rail__foot{border-top:1px solid var(--bd);padding:12px}
+  #g-mon .usr{display:flex;align-items:center;gap:10px;padding:6px 4px}
+  #g-mon .usr__av{width:34px;height:34px;border-radius:11px;background:linear-gradient(150deg,#1AA34F,#0B7A36);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#fff;flex:0 0 auto}
+  #g-mon .usr__b{min-width:0;flex:1}
+  #g-mon .usr__n{font-size:12.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #g-mon .usr__r{font-size:10.5px;color:var(--tx-w);font-weight:500;margin-top:1px}
+  #g-mon .usr__tg{background:none;border:1px solid var(--bd);color:var(--tx-w);width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;flex:0 0 auto;transition:.14s}
+  #g-mon .usr__tg:hover{background:var(--card2);color:var(--tx)}
+
+  /* ===================== MAIN ===================== */
+  #g-mon .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  #g-mon .top{height:64px;flex:0 0 64px;border-bottom:1px solid var(--bd);padding:0 26px;display:flex;align-items:center;gap:14px}
+  #g-mon .top__ttl{font-size:20px;font-weight:600;letter-spacing:-.02em}
+  #g-mon .top__sub{font-size:11.5px;color:var(--tx-w);font-weight:500;margin-top:2px}
+  #g-mon .top__sp{flex:1}
+  #g-mon .top__live{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--g-tx);background:var(--green-bg);border-radius:999px;padding:6px 12px}
+  #g-mon .top__live .lv{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 0 var(--brand);animation:gmpulse 2s infinite}
+  @keyframes gmpulse{0%{box-shadow:0 0 0 0 rgba(26,163,79,.5)}70%{box-shadow:0 0 0 6px rgba(26,163,79,0)}100%{box-shadow:0 0 0 0 rgba(26,163,79,0)}}
+  #g-mon .top__ic{background:none;border:1px solid var(--bd);color:var(--tx-w);width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;transition:.14s;position:relative}
+  #g-mon .top__ic:hover{background:var(--card2);color:var(--tx)}
+  #g-mon .top__btn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 15px;border-radius:11px;border:none;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--sh-card);transition:.14s}
+  #g-mon .top__btn:hover{filter:brightness(1.06)}
+  #g-mon .top__btn i{font-size:17px}
+
+  #g-mon .scroll{flex:1;overflow-y:auto;padding:24px 26px 30px}
+  #g-mon .scroll::-webkit-scrollbar{width:9px}
+  #g-mon .scroll::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:8px;border:2px solid var(--bg)}
+
+  /* ---- TOP GRID: hero + resumo ---- */
+  #g-mon .grid-top{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:stretch}
+
+  /* HERO (unico bloco de marca) */
+  #g-mon .hero{position:relative;border-radius:18px;box-shadow:var(--sh-hero);overflow:hidden;background:linear-gradient(150deg,#1AA34F 0%,#137C3A 60%,#0B7A36 100%);padding:22px 24px;display:flex;flex-direction:column;justify-content:space-between}
+  #g-mon .hero::after{content:"";position:absolute;right:-50px;top:-70px;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 66%);pointer-events:none}
+  #g-mon .hero__top{position:relative;z-index:1;display:flex;align-items:flex-start;gap:14px}
+  #g-mon .hero__ico{width:50px;height:50px;border-radius:14px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--hero-tx);flex:0 0 auto}
+  #g-mon .hero__lab{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hero-mut)}
+  #g-mon .hero__st{font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--hero-tx);line-height:1.1;margin-top:3px;display:flex;align-items:center;gap:9px}
+  #g-mon .hero__st i{font-size:23px}
+  #g-mon .hero__pill{position:relative;z-index:1;margin-left:auto;font-size:11px;font-weight:600;color:var(--hero-tx);background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.26);padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  #g-mon .hero__pill i{font-size:14px}
+  #g-mon .hero__stats{position:relative;z-index:1;display:flex;gap:26px;margin-top:20px}
+  #g-mon .hs__v{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--hero-tx);font-variant-numeric:tabular-nums;line-height:1;display:flex;align-items:baseline;gap:4px}
+  #g-mon .hs__v small{font-size:12px;font-weight:600;color:var(--hero-mut)}
+  #g-mon .hs__k{font-size:10.5px;font-weight:600;color:var(--hero-mut);margin-top:6px;display:flex;align-items:center;gap:5px}
+  #g-mon .hs__k i{font-size:13px}
+  #g-mon .hero__div{width:1px;align-self:stretch;background:rgba(255,255,255,.2)}
+  #g-mon .hero__ag{position:relative;z-index:1;margin-top:20px;padding-top:15px;border-top:1px solid rgba(255,255,255,.18);display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--hero-mut);font-weight:500}
+  #g-mon .hero__ag i{font-size:15px;color:var(--hero-tx)}
+  #g-mon .hero__ag b{color:var(--hero-tx);font-weight:700;font-variant-numeric:tabular-nums}
+  #g-mon .hero__ag .sched{color:var(--hero-tx);font-weight:700;letter-spacing:.01em}
+
+  /* RESUMO card (chips de saude) */
+  #g-mon .sumc{background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sh-card);padding:18px 18px 16px;display:flex;flex-direction:column}
+  #g-mon .sumc__h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  #g-mon .sumc__t{font-size:13px;font-weight:700;letter-spacing:-.01em}
+  #g-mon .sumc__chk{font-size:10.5px;color:var(--tx-w);font-weight:500;display:flex;align-items:center;gap:5px}
+  #g-mon .sumc__chk i{font-size:13px}
+  #g-mon .sumg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  #g-mon .st{border-radius:13px;padding:13px 12px;border:1px solid var(--bd);display:flex;flex-direction:column;gap:6px}
+  #g-mon .st__v{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:7px}
+  #g-mon .st__v i{font-size:18px}
+  #g-mon .st__k{font-size:10.5px;font-weight:600;letter-spacing:.01em}
+  #g-mon .st.ok{background:var(--green-bg)} #g-mon .st.ok .st__v{color:var(--g-tx2)} #g-mon .st.ok .st__k{color:var(--g-tx)}
+  #g-mon .st.am{background:var(--amber-bg)} #g-mon .st.am .st__v,#g-mon .st.am .st__k{color:var(--amber)}
+  #g-mon .st.rd{background:var(--danger-bg)} #g-mon .st.rd .st__v,#g-mon .st.rd .st__k{color:var(--danger)}
+  #g-mon .sumc__bar{margin-top:14px}
+  #g-mon .sumc__barL{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:var(--tx-w);font-weight:500;margin-bottom:6px}
+  #g-mon .sumc__barL b{color:var(--tx);font-weight:700;font-variant-numeric:tabular-nums}
+  #g-mon .track{height:7px;border-radius:6px;background:var(--neutral-bg);overflow:hidden;display:flex}
+  #g-mon .track i{display:block;height:100%}
+  #g-mon .track .pok{background:var(--brand)} #g-mon .track .pam{background:var(--amber)} #g-mon .track .prd{background:var(--danger)}
+  #g-mon .sumc__foot{margin-top:13px;font-size:10.5px;color:var(--tx-w2);font-weight:500;display:flex;align-items:center;gap:6px;line-height:1.4}
+  #g-mon .sumc__foot i{font-size:13px;flex:0 0 auto}
+
+  /* ---- ATENCAO banner (item nao-ok) ---- */
+  #g-mon .alert{margin-top:16px;background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--amber);border-radius:14px;box-shadow:var(--sh-card);padding:13px 16px;display:flex;align-items:center;gap:13px}
+  #g-mon .alert__ic{width:36px;height:36px;border-radius:11px;background:var(--amber-bg);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:19px;flex:0 0 auto}
+  #g-mon .alert__b{flex:1;min-width:0}
+  #g-mon .alert__t{font-size:13px;font-weight:600;letter-spacing:-.01em}
+  #g-mon .alert__t b{color:var(--amber)}
+  #g-mon .alert__s{font-size:11.5px;color:var(--tx-w);font-weight:500;margin-top:2px}
+  #g-mon .alert__btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:10px;border:1px solid var(--bd);background:var(--card2);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer;transition:.14s}
+  #g-mon .alert__btn:hover{background:var(--neutral-bg)}
+  #g-mon .alert__btn i{font-size:16px}
+
+  /* ---- SECTION header ---- */
+  #g-mon .sec{display:flex;align-items:center;gap:9px;margin:24px 2px 11px}
+  #g-mon .sec__t{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx-w);display:flex;align-items:center;gap:7px}
+  #g-mon .sec__t i{font-size:15px;color:var(--tx-w2)}
+  #g-mon .sec__ct{font-size:10.5px;font-weight:700;color:var(--tx-w2);letter-spacing:.02em}
+  #g-mon .sec__ln{flex:1;height:1px;background:var(--bd)}
+
+  /* ---- FONTES card ---- */
+  #g-mon .fcard{background:var(--card);border:1px solid var(--bd);border-radius:16px;box-shadow:var(--sh-card);overflow:hidden}
+  #g-mon .src{display:flex;align-items:center;gap:13px;padding:13px 16px;border-top:1px solid var(--bd);transition:.13s}
+  #g-mon .fcard .src:first-child{border-top:none}
+  #g-mon .src:hover{background:var(--card2)}
+  #g-mon .src__dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;position:relative}
+  #g-mon .src__dot.ok{background:var(--brand)}
+  #g-mon .src__dot.am{background:var(--amber)}
+  #g-mon .src__dot.rd{background:var(--danger)}
+  #g-mon .src__dot.am::after,#g-mon .src__dot.rd::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid currentColor;opacity:.35}
+  #g-mon .src__dot.am{color:var(--amber)} #g-mon .src__dot.rd{color:var(--danger)}
+  #g-mon .src__ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto;background:var(--neutral-bg);color:var(--tx-w)}
+  #g-mon .src__ic.gr{background:var(--green-bg);color:var(--g-tx)}
+  #g-mon .src__ic.in{background:var(--info-bg);color:var(--info)}
+  #g-mon .src__ic.vi{background:var(--viol-bg);color:var(--viol)}
+  #g-mon .src__ic.am{background:var(--amber-bg);color:var(--amber)}
+  #g-mon .src__b{flex:1;min-width:0}
+  #g-mon .src__l{font-size:13.5px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  #g-mon .src__code{font-size:10px;font-weight:600;color:var(--tx-w2);background:var(--neutral-bg);padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums}
+  #g-mon .src__s{font-size:11.5px;color:var(--tx-w);font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #g-mon .src__bd{flex:0 0 auto;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:7px}
+  #g-mon .src__bd.am{background:var(--amber-bg);color:var(--amber)}
+  #g-mon .src__bd.rd{background:var(--danger-bg);color:var(--danger)}
+  #g-mon .src__age{flex:0 0 auto;text-align:right;white-space:nowrap;min-width:118px}
+  #g-mon .src__when{font-size:12px;font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums}
+  #g-mon .src__ago{font-size:10.5px;color:var(--tx-w);font-weight:500;margin-top:1px;font-variant-numeric:tabular-nums}
+  #g-mon .src__age.am .src__ago{color:var(--amber)}
+  #g-mon .src.bad{background:var(--amber-bg)}
+  #g-mon .src.bad:hover{background:var(--amber-bg)}
+
+  #g-mon .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+  #g-mon .foot{margin-top:22px;padding-top:16px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx-w2);font-weight:500;line-height:1.4}
+  #g-mon .foot i{font-size:14px;flex:0 0 auto}
+  #g-mon .foot .sep{color:var(--bd2)}
+  </style>
+
+  <!-- ===================== RAIL ===================== -->
+  <aside class="rail">
+    <div class="rail__brand">
+      <span class="rail__logo" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22"/></svg>
+      </span>
+      <span>
+        <span class="rail__wm">FioPulse</span>
+        <span class="rail__sub">Portal do Gestor</span>
+      </span>
+    </div>
+
+    <nav class="nav" aria-label="Navegacao principal">
+      <a class="nv" href="#" onclick="return false"><i class="ti ti-layout-dashboard"></i>Dashboard</a>
+      <a class="nv" href="#" onclick="return false"><i class="ti ti-users"></i>Funcionarios</a>
+      <a class="nv" href="#" onclick="return false"><i class="ti ti-speakerphone"></i>Comunicados<span class="nv__dot" aria-label="novidades"></span></a>
+      <a class="nv" href="#" onclick="return false"><i class="ti ti-files"></i>Documentos</a>
+      <a class="nv" href="#" onclick="return false"><i class="ti ti-clipboard-check"></i>Ocorrencias<span class="nv__bdg am">12</span></a>
+
+      <div class="nav__sec">Sistema</div>
+      <a class="nv on" href="#" onclick="return false" aria-current="page"><i class="ti ti-activity-heartbeat"></i>Monitor</a>
+      <a class="nv" href="#" onclick="return false"><i class="ti ti-settings"></i>Configuracoes</a>
+    </nav>
+
+    <div class="rail__foot">
+      <div class="usr">
+        <span class="usr__av">RH</span>
+        <span class="usr__b">
+          <span class="usr__n">Recursos Humanos</span>
+          <span class="usr__r">admin</span>
+        </span>
+        <button class="usr__tg" id="gmTheme" aria-label="Alternar tema claro ou escuro"><i class="ti ti-moon"></i></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="top">
+      <div>
+        <div class="top__ttl">Monitor do pipeline</div>
+        <div class="top__sub">Saude dos exports do WK Radar e das saidas no app</div>
+      </div>
+      <div class="top__sp"></div>
+      <span class="top__live"><span class="lv"></span>Ao vivo</span>
+      <button class="top__ic" aria-label="Notificacoes"><i class="ti ti-bell"></i></button>
+      <button class="top__btn"><i class="ti ti-refresh"></i>Verificar agora</button>
+    </header>
+
+    <div class="scroll">
+
+      <!-- TOP: hero + resumo -->
+      <div class="grid-top">
+
+        <!-- HERO: ultima execucao (unico bloco de marca) -->
+        <section class="hero" aria-label="Ultima execucao do pipeline">
+          <div class="hero__top">
+            <div class="hero__ico"><i class="ti ti-circle-check"></i></div>
+            <div>
+              <div class="hero__lab">Ultima execucao</div>
+              <div class="hero__st"><i class="ti ti-rosette-discount-check"></i>Concluida com sucesso</div>
+            </div>
+            <span class="hero__pill"><i class="ti ti-clock"></i>hoje, 14:00</span>
+          </div>
+
+          <div class="hero__stats">
+            <div>
+              <div class="hs__v">6<small>/ 6</small></div>
+              <div class="hs__k"><i class="ti ti-list-check"></i>Passos concluidos</div>
+            </div>
+            <span class="hero__div"></span>
+            <div>
+              <div class="hs__v">42<small>s</small></div>
+              <div class="hs__k"><i class="ti ti-stopwatch"></i>Duracao</div>
+            </div>
+            <span class="hero__div"></span>
+            <div>
+              <div class="hs__v">0</div>
+              <div class="hs__k"><i class="ti ti-alert-circle"></i>Erros</div>
+            </div>
+          </div>
+
+          <div class="hero__ag">
+            <i class="ti ti-calendar-clock"></i>
+            <span>Roda <span class="sched">08:00 &middot; 10:00 &middot; 14:00</span> &middot; seg a sex &middot; proxima as <b>08:00</b></span>
+          </div>
+        </section>
+
+        <!-- RESUMO -->
+        <section class="sumc" aria-label="Resumo de saude das fontes">
+          <div class="sumc__h">
+            <div class="sumc__t">Resumo das fontes</div>
+            <div class="sumc__chk"><i class="ti ti-refresh-dot"></i>verificado hoje, 14:02</div>
+          </div>
+          <div class="sumg">
+            <div class="st ok">
+              <div class="st__v"><i class="ti ti-circle-check"></i>10</div>
+              <div class="st__k">OK</div>
+            </div>
+            <div class="st am">
+              <div class="st__v"><i class="ti ti-alert-triangle"></i>1</div>
+              <div class="st__k">Atencao</div>
+            </div>
+            <div class="st rd">
+              <div class="st__v"><i class="ti ti-player-stop"></i>0</div>
+              <div class="st__k">Paradas</div>
+            </div>
+          </div>
+          <div class="sumc__bar">
+            <div class="sumc__barL"><span>Disponibilidade das fontes</span><span><b>10</b> de 11 saudaveis</span></div>
+            <div class="track" role="img" aria-label="10 de 11 fontes saudaveis">
+              <i class="pok" style="width:90.9%"></i>
+              <i class="pam" style="width:9.1%"></i>
+            </div>
+          </div>
+          <div class="sumc__foot">
+            <i class="ti ti-shield-check"></i>
+            <span>Lista montada do doc <b style="font-weight:700;color:var(--tx)">monitor/wkradar</b> (dinamica). Sem PII. Escrita so pelo servidor.</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- ATENCAO: item nao-ok -->
+      <div class="alert" role="status">
+        <div class="alert__ic"><i class="ti ti-alert-triangle"></i></div>
+        <div class="alert__b">
+          <div class="alert__t">1 fonte precisa de <b>atencao</b></div>
+          <div class="alert__s"><b style="color:var(--tx);font-weight:600">D_Empregado</b> nao atualiza ha 6h12 &mdash; export do cadastro pode ter falhado no agendamento das 08:00.</div>
+        </div>
+        <button class="alert__btn"><i class="ti ti-external-link"></i>Ver detalhes</button>
+      </div>
+
+      <!-- FONTES: Exportacoes do WK Radar -->
+      <div class="sec">
+        <span class="sec__t"><i class="ti ti-file-export"></i>Exportacoes do WK Radar</span>
+        <span class="sec__ct">3 fontes</span>
+        <span class="sec__ln"></span>
+      </div>
+      <section class="fcard" aria-label="Exportacoes do WK Radar">
+        <div class="src">
+          <span class="src__dot ok"></span>
+          <span class="src__ic gr"><i class="ti ti-clock-hour-4"></i></span>
+          <div class="src__b">
+            <div class="src__l">Banco de Horas <span class="src__code">ExpAuto_Banco_de_Horas.txt</span></div>
+            <div class="src__s">CSV de saldos &middot; 97 linhas &middot; latin-1</div>
+          </div>
+          <div class="src__age">
+            <div class="src__when">hoje 14:00</div>
+            <div class="src__ago">atualizado ha 2min</div>
+          </div>
+        </div>
+
+        <div class="src bad">
+          <span class="src__dot am"></span>
+          <span class="src__ic am"><i class="ti ti-id-badge-2"></i></span>
+          <div class="src__b">
+            <div class="src__l">D_Empregado <span class="src__code">ExpAuto_D_Empregado.txt</span></div>
+            <div class="src__s">Cadastro &middot; turno, setor, escala, demissao</div>
+          </div>
+          <span class="src__bd am">Atencao</span>
+          <div class="src__age am">
+            <div class="src__when">hoje 07:48</div>
+            <div class="src__ago">ha 6h12 &middot; atrasado</div>
+          </div>
+        </div>
+
+        <div class="src">
+          <span class="src__dot ok"></span>
+          <span class="src__ic gr"><i class="ti ti-calculator"></i></span>
+          <div class="src__b">
+            <div class="src__l">Apuracoes <span class="src__code">ExpAuto_Apuracoes.txt</span></div>
+            <div class="src__s">Fechamento mensal &middot; competencia 06/2026</div>
+          </div>
+          <div class="src__age">
+            <div class="src__when">hoje 14:00</div>
+            <div class="src__ago">atualizado ha 2min</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FONTES: Saidas no app + Acesso (2 colunas) -->
+      <div class="grid-2">
+        <div>
+          <div class="sec">
+            <span class="sec__t"><i class="ti ti-cloud-up"></i>Saidas no app</span>
+            <span class="sec__ct">5 colecoes</span>
+            <span class="sec__ln"></span>
+          </div>
+          <section class="fcard" aria-label="Saidas no app, colecoes Firestore">
+            <div class="src">
+              <span class="src__dot ok"></span>
+              <span class="src__ic in"><i class="ti ti-clock-check"></i></span>
+              <div class="src__b">
+                <div class="src__l">banco-horas</div>
+                <div class="src__s">Saldos por turno (lider)</div>
+              </div>
+              <div class="src__age">
+                <div class="src__when">hoje 14:02</div>
+                <div class="src__ago">ha 1min</div>
+              </div>
+            </div>
+            <div class="src">
+              <span class="src__dot ok"></span>
+              <span class="src__ic in"><i class="ti ti-users"></i></span>
+              <div class="src__b">
+                <div class="src__l">funcionarios</div>
+                <div class="src__s">90 ativos &middot; sem PII</div>
+              </div>
+              <div class="src__age">
+                <div class="src__when">hoje 14:02</div>
+                <div class="src__ago">ha 1min</div>
+              </div>
+            </div>
+            <div class="src">
+              <span class="src__dot ok"></span>
+              <span class="src__ic in"><i class="ti ti-user-check"></i></span>
+              <div class="src__b">
+                <div class="src__l">banco-horas-self</div>
+                <div class="src__s">Saldo do colaborador</div>
+              </div>
+              <div class="src__age">
+                <div class="src__when">hoje 14:02</div>
+                <div class="src__ago">ha 1min</div>
+              </div>
+            </div>
+            <div class="src">
+              <span class="src__dot ok"></span>
+              <span class="src__ic in"><i class="ti ti-cake"></i></span>
+              <div class="src__b">
+                <div class="src__l">aniversariantes</div>
+                <div class="src__s">97 pessoas &middot; sem PII</div>
+              </div>
+              <div class="src__age">
+                <div class="src__when">hoje 08:01</div>
+                <div class="src__ago">ha 6h01</div>
+              </div>
+            </div>
+            <div class="src">
+              <span class="src__dot ok"></span>
+              <span class="src__ic in"><i class="ti ti-robot"></i></span>
+              <div class="src__b">
+                <div class="src__l">ocorrencias-auto</div>
+                <div class="src__s">Faltas e atrasos detectados</div>
+              </div>
+              <div class="src__age">
+                <div class="src__when">hoje 14:02</div>
+                <div class="src__ago">ha 1min</div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div>
+          <div class="sec">
+            <span class="sec__t"><i class="ti ti-shield-lock"></i>Acesso</span>
+            <span class="sec__ct">3 fontes</span>
+            <span class="sec__ln"></span>
+          </div>
+          <section class="fcard" aria-label="Acesso">
+            <div class="src">
+              <span class="src__dot ok"></span>
+              <span class="src__ic vi"><i class="ti ti-login-2"></i></span>
+              <div class="src__b">
+                <div class="src__l">Logins de colaborador</div>
+                <div class="src__s">87 ativos &middot; 2 sem 1o acesso</div>
+              </div>
+              <div class="src__age">
+                <div class="src__when">hoje 08:01</div>
+                <div class="src__ago">ha 6h01</div>
+              </div>
+            </div>
+            <div class="src">
+              <span class="src__dot ok"></span>
+              <span class="src__ic vi"><i class="ti ti-server-2"></i></span>
+              <div class="src__b">
+                <div class="src__l">Servidor do pipeline</div>
+                <div class="src__s">Task Scheduler &middot; WKRADAR</div>
+              </div>
+              <div class="src__age">
+                <div class="src__when">hoje 14:02</div>
+                <div class="src__ago">ha 1min</div>
+              </div>
+            </div>
+            <div class="src">
+              <span class="src__dot ok"></span>
+              <span class="src__ic vi"><i class="ti ti-brand-git"></i></span>
+              <div class="src__b">
+                <div class="src__l">Heartbeat / git push</div>
+                <div class="src__s">ocorr-ponto-repo &middot; report</div>
+              </div>
+              <div class="src__age">
+                <div class="src__when">hoje 14:02</div>
+                <div class="src__ago">ha 1min</div>
+              </div>
+            </div>
+          </section>
+
+          <div class="foot">
+            <i class="ti ti-info-circle"></i>
+            <span>Snapshot lido de <b style="color:var(--tx);font-weight:600">monitor/wkradar</b>. <span class="sep">|</span> Read-only para o gestor.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var root=document.getElementById('g-mon');
+    var btn=document.getElementById('gmTheme');
+    btn.addEventListener('click',function(){
+      var dark=root.getAttribute('data-t')==='dark';
+      root.setAttribute('data-t',dark?'light':'dark');
+      btn.innerHTML=dark?'<i class="ti ti-sun"></i>':'<i class="ti ti-moon"></i>';
+      btn.setAttribute('aria-label',dark?'Alternar para tema escuro':'Alternar para tema claro');
+    });
+    // hover/active feedback nos itens de nav (apenas visual)
+    root.querySelectorAll('.nv').forEach(function(el){
+      el.addEventListener('click',function(){
+        root.querySelectorAll('.nv').forEach(function(n){n.classList.remove('on');n.removeAttribute('aria-current');});
+        el.classList.add('on');el.setAttribute('aria-current','page');
+      });
+    });
+  })();
+  </script>
+</div>
+</body></html>

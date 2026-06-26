@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;background:#0a0d0a;padding:24px">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+
+<div id="g-doc" data-t="dark">
+<style>
+#g-doc{
+  --bg:#0E130E;--surf:#141A14;--card:#161D15;--card2:#1B231A;--bd:#232C22;--bd2:#283027;
+  --brand:#1AA34F;--brand-d:#0B7A36;--g-tx:#5FCB85;--g-tx2:#4FD080;
+  --amber:#E8B468;--info:#6FA8E0;--danger:#E8736B;--viol:#B79CE8;
+  --tx:#E9F0E5;--tx-w:#94A38D;--tx-w2:#7E8C78;
+  --green-bg:rgba(26,163,79,.14);--amber-bg:rgba(232,180,104,.13);--info-bg:rgba(111,168,224,.13);--neutral-bg:rgba(148,163,141,.12);--danger-bg:rgba(232,115,107,.13);--viol-bg:rgba(183,156,232,.13);
+  --sh-card:0 2px 10px -4px rgba(0,0,0,.55);--sh-hero:0 14px 34px -14px rgba(0,0,0,.7);
+  --hero-tx:#EAFBEF;--hero-mut:rgba(234,251,239,.74);
+  width:1100px;max-width:100%;height:720px;border-radius:24px;overflow:hidden;border:1px solid var(--bd);
+  background:var(--bg);color:var(--tx);display:flex;font-family:'Poppins',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.5;isolation:isolate;
+}
+#g-doc[data-t="light"]{
+  --bg:#EEF3EC;--surf:#FFFFFF;--card:#FFFFFF;--card2:#F6F9F4;--bd:#E3EBE0;--bd2:#D8E2D5;
+  --brand:#0E8C3F;--brand-d:#0B7A36;--g-tx:#0E8C3F;--g-tx2:#0E8C3F;
+  --amber:#C98A2A;--info:#3D7CC0;--danger:#C5453B;--viol:#7B5FB0;
+  --tx:#16201A;--tx-w:#5B6B57;--tx-w2:#7A8775;
+  --green-bg:rgba(14,140,63,.12);--amber-bg:rgba(201,138,42,.13);--info-bg:rgba(61,124,192,.12);--neutral-bg:rgba(91,107,87,.10);--danger-bg:rgba(197,69,59,.11);--viol-bg:rgba(123,95,176,.12);
+  --sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);--sh-hero:0 8px 26px -8px rgba(0,40,20,.22),0 2px 8px rgba(0,40,20,.08);
+  --hero-tx:#FFFFFF;--hero-mut:rgba(255,255,255,.82);
+}
+#g-doc *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+#g-doc .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+#g-doc button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+#g-doc :focus-visible{outline:2px solid var(--g-tx2);outline-offset:2px;border-radius:8px}
+#g-doc::-webkit-scrollbar,#g-doc *::-webkit-scrollbar{width:9px;height:9px}
+#g-doc *::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:9px}
+
+#g-doc .rail{width:232px;flex:none;background:var(--surf);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:16px 13px}
+#g-doc .brand{display:flex;align-items:center;gap:10px;padding:4px 6px 16px}
+#g-doc .brand .sq{width:30px;height:30px;border-radius:9px;background:linear-gradient(150deg,#1AA34F,#0B7A36);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 3px var(--green-bg)}
+#g-doc .brand .wm{font-size:16px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
+#g-doc .brand .sub{font-size:10.5px;color:var(--tx-w);font-weight:500;margin-top:1px}
+#g-doc .nav{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+#g-doc .nv{position:relative;display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:11px;color:var(--tx-w);font-size:13.5px;font-weight:500;transition:.15s;text-align:left;width:100%}
+#g-doc .nv i{font-size:19px;flex:none}
+#g-doc .nv:hover{background:var(--card2);color:var(--tx)}
+#g-doc .nv.on{background:var(--green-bg);color:var(--g-tx2);font-weight:600}
+#g-doc .nv.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--brand)}
+#g-doc .nv .bdg{margin-left:auto;font-size:10.5px;font-weight:700;min-width:19px;height:19px;padding:0 5px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--amber-bg);color:var(--amber)}
+#g-doc .nv .dot{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--info)}
+#g-doc .rail .sp{flex:1}
+#g-doc .ucard{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1px solid var(--bd);background:var(--card)}
+#g-doc .ucard .av{width:34px;height:34px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;background:linear-gradient(150deg,#1AA34F,#0B7A36)}
+#g-doc .ucard .un{font-size:12.5px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#g-doc .ucard .ur{font-size:10.5px;color:var(--tx-w2);font-weight:500}
+#g-doc .ucard .tg{margin-left:auto;width:32px;height:32px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--tx-w);font-size:17px;border:1px solid var(--bd2);transition:.15s}
+#g-doc .ucard .tg:hover{color:var(--tx);border-color:var(--brand)}
+
+#g-doc .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+#g-doc .topbar{height:64px;flex:none;border-bottom:1px solid var(--bd);padding:0 26px;display:flex;align-items:center;gap:16px}
+#g-doc .topbar h1{font-size:20px;font-weight:600;letter-spacing:-.01em}
+#g-doc .topbar .tsub{font-size:12px;color:var(--tx-w2);font-weight:500;margin-top:1px}
+#g-doc .topbar .spc{flex:1}
+#g-doc .search{display:flex;align-items:center;gap:8px;height:38px;width:240px;padding:0 12px;border-radius:11px;border:1px solid var(--bd2);background:var(--card);color:var(--tx-w);font-size:13px;transition:.15s}
+#g-doc .search:focus-within{border-color:var(--brand);color:var(--tx)}
+#g-doc .search i{font-size:17px;flex:none}
+#g-doc .search input{flex:1;background:none;border:none;outline:none;color:var(--tx);font-family:inherit;font-size:13px}
+#g-doc .search input::placeholder{color:var(--tx-w2)}
+#g-doc .ibtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;color:var(--tx-w);font-size:18px;flex:none;transition:.15s;position:relative}
+#g-doc .ibtn:hover{color:var(--tx);border-color:var(--brand)}
+#g-doc .ibtn .pulse{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--amber);border:2px solid var(--surf)}
+#g-doc[data-t="light"] .ibtn .pulse{border-color:#fff}
+#g-doc .pbtn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:11px;font-size:13.5px;font-weight:600;color:#fff;background:linear-gradient(150deg,#1AA34F,#0B7A36);transition:.15s;white-space:nowrap}
+#g-doc .pbtn:hover{filter:brightness(1.07)}
+#g-doc .pbtn i{font-size:17px}
+
+#g-doc .body{flex:1;overflow-y:auto;padding:24px 26px}
+
+#g-doc .hero{position:relative;border-radius:18px;overflow:hidden;box-shadow:var(--sh-hero);background:linear-gradient(150deg,#1AA34F 0%,#127C3A 60%,#0B7A36 100%);padding:22px 24px;display:flex;align-items:center;gap:24px;margin-bottom:18px}
+#g-doc .hero::after{content:"";position:absolute;right:-40px;top:-60px;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.17),transparent 66%);pointer-events:none}
+#g-doc .hero__l{position:relative;z-index:1;flex:1;min-width:0}
+#g-doc .hero__lab{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--hero-mut);display:flex;align-items:center;gap:7px}
+#g-doc .hero__lab i{font-size:14px}
+#g-doc .hero__t{font-size:21px;font-weight:700;letter-spacing:-.02em;color:var(--hero-tx);margin-top:9px}
+#g-doc .hero__x{font-size:12.5px;font-weight:500;color:var(--hero-mut);margin-top:5px;max-width:430px;line-height:1.5}
+#g-doc .hero__stats{position:relative;z-index:1;display:flex;gap:10px;flex:none}
+#g-doc .hstat{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:13px;padding:12px 16px;min-width:104px}
+#g-doc .hstat .hv{font-size:25px;font-weight:800;letter-spacing:-.02em;color:var(--hero-tx);font-variant-numeric:tabular-nums;line-height:1}
+#g-doc .hstat .hv small{font-size:13px;font-weight:600;color:var(--hero-mut)}
+#g-doc .hstat .hl{font-size:10.5px;font-weight:600;color:var(--hero-mut);margin-top:6px;display:flex;align-items:center;gap:5px}
+#g-doc .hstat .hl i{font-size:13px}
+#g-doc .hero__cta{position:relative;z-index:1;flex:none;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border-radius:12px;font-size:14px;font-weight:600;color:var(--brand-d);background:#fff;transition:.15s;box-shadow:0 6px 18px -8px rgba(0,0,0,.5)}
+#g-doc[data-t="light"] .hero__cta{color:var(--brand-d)}
+#g-doc .hero__cta:hover{transform:translateY(-1px)}
+#g-doc .hero__cta i{font-size:18px}
+
+#g-doc .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+#g-doc .chips{display:flex;gap:7px;flex-wrap:wrap;flex:1}
+#g-doc .chip{font-size:12px;font-weight:500;padding:7px 13px;border-radius:999px;border:1px solid var(--bd2);color:var(--tx-w);transition:.15s;display:inline-flex;align-items:center;gap:6px}
+#g-doc .chip i{font-size:14px}
+#g-doc .chip:hover{color:var(--tx);border-color:var(--brand)}
+#g-doc .chip.on{background:var(--green-bg);color:var(--g-tx2);border-color:transparent;font-weight:600}
+#g-doc .sortbtn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:10px;border:1px solid var(--bd2);color:var(--tx-w);font-size:12.5px;font-weight:500;transition:.15s}
+#g-doc .sortbtn:hover{color:var(--tx);border-color:var(--brand)}
+#g-doc .sortbtn i{font-size:16px}
+
+#g-doc .thead{display:grid;grid-template-columns:1fr 132px 220px 96px;gap:14px;padding:0 16px 9px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx-w2)}
+#g-doc .thead .r{text-align:right}
+#g-doc .list{display:flex;flex-direction:column;gap:10px}
+#g-doc .doc{display:grid;grid-template-columns:1fr 132px 220px 96px;gap:14px;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;box-shadow:var(--sh-card);transition:.15s;cursor:pointer}
+#g-doc .doc:hover{border-color:var(--brand);background:var(--card2)}
+#g-doc .doc.draft{border-style:dashed;border-color:rgba(232,180,104,.5);box-shadow:none}
+#g-doc[data-t="light"] .doc.draft{border-color:rgba(201,138,42,.55)}
+#g-doc .dmain{display:flex;align-items:center;gap:13px;min-width:0}
+#g-doc .dico{width:42px;height:42px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px}
+#g-doc .dico.g{background:var(--green-bg);color:var(--g-tx)}
+#g-doc .dico.a{background:var(--amber-bg);color:var(--amber)}
+#g-doc .dico.i{background:var(--info-bg);color:var(--info)}
+#g-doc .dico.v{background:var(--viol-bg);color:var(--viol)}
+#g-doc .dico.n{background:var(--neutral-bg);color:var(--tx-w)}
+#g-doc .dtt{min-width:0}
+#g-doc .dtt h3{font-size:14px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#g-doc .dtt .dsub{font-size:11.5px;color:var(--tx-w);font-weight:500;margin-top:4px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+#g-doc .dtt .dsub i{font-size:13px;vertical-align:-1px;margin-right:3px}
+#g-doc .seal{font-size:10px;font-weight:700;letter-spacing:.02em;padding:3px 9px;border-radius:999px;text-transform:none;flex:none}
+#g-doc .seal.g{background:var(--green-bg);color:var(--g-tx)}
+#g-doc .seal.a{background:var(--amber-bg);color:var(--amber)}
+#g-doc .seal.i{background:var(--info-bg);color:var(--info)}
+#g-doc .seal.v{background:var(--viol-bg);color:var(--viol)}
+#g-doc .seal.n{background:var(--neutral-bg);color:var(--tx-w)}
+#g-doc .ver{font-size:11px;font-weight:600;color:var(--tx-w2);border:1px solid var(--bd2);border-radius:7px;padding:2px 7px;font-variant-numeric:tabular-nums}
+#g-doc .csign{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600}
+#g-doc .csign.req{color:var(--g-tx)}
+#g-doc .csign.opt{color:var(--tx-w)}
+#g-doc .csign i{font-size:16px}
+#g-doc .cell-status .stt{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 9px;border-radius:7px;display:inline-flex;align-items:center;gap:5px}
+#g-doc .stt.pub{background:var(--green-bg);color:var(--g-tx)}
+#g-doc .stt.dr{background:var(--amber-bg);color:var(--amber)}
+#g-doc .stt i{font-size:12px}
+#g-doc .adh .alab{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;color:var(--tx-w);font-weight:500;margin-bottom:6px}
+#g-doc .adh .alab b{color:var(--tx);font-weight:700;font-variant-numeric:tabular-nums}
+#g-doc .adh .alab .pc{font-size:13px}
+#g-doc .bar{height:7px;border-radius:999px;background:var(--bd2);overflow:hidden}
+#g-doc .bar span{display:block;height:100%;border-radius:999px;background:var(--brand);transition:width .5s}
+#g-doc .bar span.low{background:var(--amber)}
+#g-doc .adh.wait{font-size:11.5px;color:var(--amber);font-weight:600;display:flex;align-items:center;gap:6px}
+#g-doc .adh.wait i{font-size:15px}
+#g-doc .acts{display:flex;justify-content:flex-end;gap:5px}
+#g-doc .acts button{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--tx-w);font-size:16px;border:1px solid transparent;transition:.15s}
+#g-doc .acts button:hover{color:var(--tx);background:var(--surf);border-color:var(--bd2)}
+#g-doc .acts button.arch:hover{color:var(--danger);border-color:var(--danger)}
+
+#g-doc .foot{margin-top:18px;display:flex;align-items:flex-start;gap:11px;padding:13px 16px;border-radius:13px;background:var(--info-bg);border:1px solid transparent}
+#g-doc[data-t="light"] .foot{border-color:rgba(61,124,192,.2)}
+#g-doc .foot .fi{width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--info);background:rgba(111,168,224,.14)}
+#g-doc[data-t="light"] .foot .fi{background:rgba(61,124,192,.12)}
+#g-doc .foot .ft{font-size:12.5px;font-weight:600;color:var(--tx)}
+#g-doc .foot .fx{font-size:11.5px;font-weight:500;color:var(--tx-w);margin-top:2px;line-height:1.5}
+#g-doc .foot .fx b{color:var(--info);font-weight:600}
+</style>
+
+<span class="sr-only">Tela do gestor para publicar e gerenciar documentos institucionais da Fiobras: heroi de adicao, indicadores de adesao, filtros por categoria e tabela de documentos com versao, exigencia de assinatura e barra de adesao.</span>
+
+<nav class="rail" aria-label="Navegacao principal">
+  <div class="brand">
+    <span class="sq" aria-hidden="true">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22"/></svg>
+    </span>
+    <div>
+      <div class="wm">FioPulse</div>
+      <div class="sub">Portal do Gestor</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nv"><i class="ti ti-layout-dashboard"></i>Dashboard</button>
+    <button class="nv"><i class="ti ti-users"></i>Funcionarios</button>
+    <button class="nv"><i class="ti ti-speakerphone"></i>Comunicados<span class="dot" aria-label="novidades"></span></button>
+    <button class="nv on" aria-current="page"><i class="ti ti-files"></i>Documentos</button>
+    <button class="nv"><i class="ti ti-clipboard-check"></i>Ocorrencias<span class="bdg">12</span></button>
+    <button class="nv"><i class="ti ti-activity-heartbeat"></i>Monitor</button>
+    <button class="nv"><i class="ti ti-settings"></i>Configuracoes</button>
+  </div>
+
+  <span class="sp"></span>
+
+  <div class="ucard">
+    <span class="av" aria-hidden="true">RH</span>
+    <div style="min-width:0">
+      <div class="un">Recursos Humanos</div>
+      <div class="ur">admin</div>
+    </div>
+    <button class="tg" id="themeBtn" aria-label="Alternar tema claro e escuro"><i class="ti ti-moon"></i></button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1>Documentos institucionais</h1>
+      <div class="tsub">Regras, conduta, cultura e politicas que o colaborador le e assina</div>
+    </div>
+    <span class="spc"></span>
+    <label class="search">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Buscar documento..." aria-label="Buscar documento">
+    </label>
+    <button class="ibtn" aria-label="Notificacoes"><i class="ti ti-bell"></i><span class="pulse"></span></button>
+    <button class="pbtn"><i class="ti ti-plus"></i>Adicionar documento</button>
+  </div>
+
+  <div class="body">
+
+    <section class="hero" aria-label="Resumo de adesao e adicionar documento">
+      <div class="hero__l">
+        <div class="hero__lab"><i class="ti ti-file-certificate"></i>Adesao geral</div>
+        <div class="hero__t">82% da empresa em dia com as assinaturas</div>
+        <div class="hero__x">7 documentos publicados, 1 rascunho. Suba um novo documento e acompanhe quem ja deu ciencia, com hash e hora do servidor.</div>
+      </div>
+      <div class="hero__stats">
+        <div class="hstat">
+          <div class="hv">7</div>
+          <div class="hl"><i class="ti ti-files"></i>Publicados</div>
+        </div>
+        <div class="hstat">
+          <div class="hv">23 <small>pess.</small></div>
+          <div class="hl"><i class="ti ti-writing-sign"></i>Pendentes</div>
+        </div>
+        <div class="hstat">
+          <div class="hv">82<small>%</small></div>
+          <div class="hl"><i class="ti ti-chart-arcs"></i>Adesao media</div>
+        </div>
+      </div>
+      <button class="hero__cta"><i class="ti ti-upload"></i>Adicionar documento</button>
+    </section>
+
+    <div class="toolbar">
+      <div class="chips" id="filters">
+        <button class="chip on"><i class="ti ti-layout-grid"></i>Todos</button>
+        <button class="chip"><i class="ti ti-gavel"></i>Regras</button>
+        <button class="chip"><i class="ti ti-shield-check"></i>Conduta</button>
+        <button class="chip"><i class="ti ti-heart-handshake"></i>Cultura</button>
+        <button class="chip"><i class="ti ti-clock-hour-4"></i>Banco de horas</button>
+        <button class="chip"><i class="ti ti-lock"></i>Privacidade</button>
+        <button class="chip"><i class="ti ti-pencil"></i>Rascunhos</button>
+      </div>
+      <button class="sortbtn"><i class="ti ti-arrows-sort"></i>Menor adesao</button>
+    </div>
+
+    <div class="thead">
+      <div>Documento</div>
+      <div>Assinatura</div>
+      <div>Adesao</div>
+      <div class="r">Acoes</div>
+    </div>
+
+    <div class="list">
+
+      <div class="doc" role="button" tabindex="0" aria-label="Abrir Manual de regras internas">
+        <div class="dmain">
+          <span class="dico g"><i class="ti ti-gavel"></i></span>
+          <div class="dtt">
+            <h3>Manual de regras internas <span class="seal g">regras</span> <span class="ver">v3.1</span></h3>
+            <div class="dsub"><span><i class="ti ti-users"></i>Todos os colaboradores</span><span class="stt pub" style="font-size:9px;padding:2px 7px"><i class="ti ti-circle-check"></i>Publicado</span></div>
+          </div>
+        </div>
+        <div class="cell-sign"><span class="csign req"><i class="ti ti-writing-sign"></i>Exige</span></div>
+        <div class="adh">
+          <div class="alab"><span><b>108</b> de 124 assinaram</span><b class="pc">87%</b></div>
+          <div class="bar"><span style="width:87%"></span></div>
+        </div>
+        <div class="acts">
+          <button aria-label="Ver documento"><i class="ti ti-eye"></i></button>
+          <button aria-label="Nova versao"><i class="ti ti-versions"></i></button>
+          <button class="arch" aria-label="Arquivar"><i class="ti ti-archive"></i></button>
+        </div>
+      </div>
+
+      <div class="doc" role="button" tabindex="0" aria-label="Abrir Codigo de conduta 2026">
+        <div class="dmain">
+          <span class="dico g"><i class="ti ti-shield-check"></i></span>
+          <div class="dtt">
+            <h3>Codigo de conduta 2026 <span class="seal g">conduta</span> <span class="ver">v2.0</span></h3>
+            <div class="dsub"><span><i class="ti ti-users"></i>Todos os colaboradores</span><span class="stt pub" style="font-size:9px;padding:2px 7px"><i class="ti ti-circle-check"></i>Publicado</span></div>
+          </div>
+        </div>
+        <div class="cell-sign"><span class="csign req"><i class="ti ti-writing-sign"></i>Exige</span></div>
+        <div class="adh">
+          <div class="alab"><span><b>22</b> de 31 assinaram</span><b class="pc">71%</b></div>
+          <div class="bar"><span class="low" style="width:71%"></span></div>
+        </div>
+        <div class="acts">
+          <button aria-label="Ver documento"><i class="ti ti-eye"></i></button>
+          <button aria-label="Nova versao"><i class="ti ti-versions"></i></button>
+          <button class="arch" aria-label="Arquivar"><i class="ti ti-archive"></i></button>
+        </div>
+      </div>
+
+      <div class="doc" role="button" tabindex="0" aria-label="Abrir Politica de banco de horas">
+        <div class="dmain">
+          <span class="dico i"><i class="ti ti-clock-hour-4"></i></span>
+          <div class="dtt">
+            <h3>Politica de banco de horas <span class="seal i">banco de horas</span> <span class="ver">v1.2</span></h3>
+            <div class="dsub"><span><i class="ti ti-users"></i>Todos os colaboradores</span><span class="stt pub" style="font-size:9px;padding:2px 7px"><i class="ti ti-circle-check"></i>Publicado</span></div>
+          </div>
+        </div>
+        <div class="cell-sign"><span class="csign req"><i class="ti ti-writing-sign"></i>Exige</span></div>
+        <div class="adh">
+          <div class="alab"><span><b>96</b> de 124 assinaram</span><b class="pc">77%</b></div>
+          <div class="bar"><span class="low" style="width:77%"></span></div>
+        </div>
+        <div class="acts">
+          <button aria-label="Ver documento"><i class="ti ti-eye"></i></button>
+          <button aria-label="Nova versao"><i class="ti ti-versions"></i></button>
+          <button class="arch" aria-label="Arquivar"><i class="ti ti-archive"></i></button>
+        </div>
+      </div>
+
+      <div class="doc" role="button" tabindex="0" aria-label="Abrir Manual da cultura Fiobras">
+        <div class="dmain">
+          <span class="dico a"><i class="ti ti-heart-handshake"></i></span>
+          <div class="dtt">
+            <h3>Manual da cultura Fiobras <span class="seal a">cultura</span> <span class="ver">v1.4</span></h3>
+            <div class="dsub"><span><i class="ti ti-users"></i>Todos os colaboradores</span><span class="stt pub" style="font-size:9px;padding:2px 7px"><i class="ti ti-circle-check"></i>Publicado</span></div>
+          </div>
+        </div>
+        <div class="cell-sign"><span class="csign opt"><i class="ti ti-eye"></i>So ciencia</span></div>
+        <div class="adh">
+          <div class="alab"><span><b>119</b> de 124 leram</span><b class="pc">96%</b></div>
+          <div class="bar"><span style="width:96%"></span></div>
+        </div>
+        <div class="acts">
+          <button aria-label="Ver documento"><i class="ti ti-eye"></i></button>
+          <button aria-label="Nova versao"><i class="ti ti-versions"></i></button>
+          <button class="arch" aria-label="Arquivar"><i class="ti ti-archive"></i></button>
+        </div>
+      </div>
+
+      <div class="doc" role="button" tabindex="0" aria-label="Abrir Termo de uso de EPI">
+        <div class="dmain">
+          <span class="dico v"><i class="ti ti-file-text"></i></span>
+          <div class="dtt">
+            <h3>Termo de uso de EPI <span class="seal v">termo</span> <span class="ver">v1.0</span></h3>
+            <div class="dsub"><span><i class="ti ti-building-factory"></i>Setor: Producao</span><span class="stt pub" style="font-size:9px;padding:2px 7px"><i class="ti ti-circle-check"></i>Publicado</span></div>
+          </div>
+        </div>
+        <div class="cell-sign"><span class="csign req"><i class="ti ti-writing-sign"></i>Exige</span></div>
+        <div class="adh">
+          <div class="alab"><span><b>54</b> de 88 assinaram</span><b class="pc">61%</b></div>
+          <div class="bar"><span class="low" style="width:61%"></span></div>
+        </div>
+        <div class="acts">
+          <button aria-label="Ver documento"><i class="ti ti-eye"></i></button>
+          <button aria-label="Nova versao"><i class="ti ti-versions"></i></button>
+          <button class="arch" aria-label="Arquivar"><i class="ti ti-archive"></i></button>
+        </div>
+      </div>
+
+      <div class="doc" role="button" tabindex="0" aria-label="Abrir Politica de privacidade e LGPD">
+        <div class="dmain">
+          <span class="dico n"><i class="ti ti-lock"></i></span>
+          <div class="dtt">
+            <h3>Politica de privacidade e LGPD <span class="seal n">privacidade</span> <span class="ver">v2.2</span></h3>
+            <div class="dsub"><span><i class="ti ti-users"></i>Todos os colaboradores</span><span class="stt pub" style="font-size:9px;padding:2px 7px"><i class="ti ti-circle-check"></i>Publicado</span></div>
+          </div>
+        </div>
+        <div class="cell-sign"><span class="csign req"><i class="ti ti-writing-sign"></i>Exige</span></div>
+        <div class="adh">
+          <div class="alab"><span><b>101</b> de 124 assinaram</span><b class="pc">81%</b></div>
+          <div class="bar"><span style="width:81%"></span></div>
+        </div>
+        <div class="acts">
+          <button aria-label="Ver documento"><i class="ti ti-eye"></i></button>
+          <button aria-label="Nova versao"><i class="ti ti-versions"></i></button>
+          <button class="arch" aria-label="Arquivar"><i class="ti ti-archive"></i></button>
+        </div>
+      </div>
+
+      <div class="doc draft" role="button" tabindex="0" aria-label="Abrir rascunho Politica de home office">
+        <div class="dmain">
+          <span class="dico n"><i class="ti ti-home"></i></span>
+          <div class="dtt">
+            <h3>Politica de home office <span class="seal n">outro</span> <span class="ver">v1.1</span></h3>
+            <div class="dsub"><span><i class="ti ti-clock-hour-4"></i>Turno: Geral</span><span class="stt dr" style="font-size:9px;padding:2px 7px"><i class="ti ti-pencil"></i>Rascunho</span></div>
+          </div>
+        </div>
+        <div class="cell-sign"><span class="csign opt"><i class="ti ti-eye"></i>So ciencia</span></div>
+        <div class="adh wait"><i class="ti ti-clock-pause"></i>Aguardando publicacao</div>
+        <div class="acts">
+          <button aria-label="Editar rascunho"><i class="ti ti-pencil"></i></button>
+          <button aria-label="Publicar"><i class="ti ti-send"></i></button>
+          <button class="arch" aria-label="Descartar"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="foot">
+      <span class="fi" aria-hidden="true"><i class="ti ti-info-circle"></i></span>
+      <div>
+        <div class="ft">Documentos pessoais nao ficam aqui</div>
+        <div class="fx">Holerites, recibos e comprovantes sao <b>documentos pessoais</b> (um por colaborador) e ficam no Portal do Colaborador. Esta tela cuida so do que e institucional: um documento para todos.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+  var root=document.getElementById('g-doc');
+  var btn=document.getElementById('themeBtn');
+  btn.addEventListener('click',function(){
+    var dark=root.getAttribute('data-t')==='dark';
+    root.setAttribute('data-t',dark?'light':'dark');
+    btn.innerHTML=dark?'<i class="ti ti-sun"></i>':'<i class="ti ti-moon"></i>';
+  });
+  var filters=document.getElementById('filters');
+  filters.addEventListener('click',function(e){
+    var b=e.target.closest('.chip');if(!b)return;
+    filters.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
+    b.classList.add('on');
+  });
+  root.querySelectorAll('.acts button').forEach(function(b){
+    b.addEventListener('click',function(e){e.stopPropagation();});
+  });
+})();
+</script>
+</body></html>

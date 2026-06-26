@@ -411,3 +411,20 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Método:** workflow multi-agente (1 agente por tela, tokens premium pinados) → montagem do mural → render inline pra aprovação.
 
 **Em paralelo (PC, no ar):** Monitor "Status do pipeline" (v193, lê monitor/wkradar) e Aniversariantes na home (v195, lê config/aniversariantes). Próximo: **redesign premium do Portal do Gestor** (Dashboard, Comunicados-composição, Documentos institucionais, Conferência de ocorrências, Monitor) — mesma linguagem, shell desktop compartilhado.
+
+---
+
+## 2026-06-26 · 🎨 Redesign premium do Portal do Gestor (5 telas, desktop)
+
+**Objetivo:** William liberou estender a linguagem premium pro **Portal do Gestor** ("pode fazer de tudo, inclusive do portal do gestor") e apresentar num super-HTML. Só design (regras/permissões do gestor intocadas; tudo aditivo).
+
+**Feito:** 5 telas desktop num **shell compartilhado** (rail 232px com marca + nav + usuário/toggle; topbar + conteúdo) — **Dashboard**, **Comunicados (composição)**, **Documentos institucionais**, **Conferência de ocorrências** (aba de teste), **Monitor**. Mesmos tokens do colaborador (dark padrão + toggle, herói de marca, 3 elevações, light anti-lavado, sem emoji, Tabler, tabular-nums, aria). Cada tela escopada sob `#g-*`.
+
+**Destaques:**
+- **Conferência de ocorrências** materializa as regras já capturadas: herói com breakdown por tipo, cards com previsto×apurado + saldo + observação do WK, botões Conferir/Ajustar/Descartar, card já-conferido discreto, card da regra do **Turno Geral** (só falta injustificada gera), selo "Ambiente de teste", rodapé "Origem: ocorrencias-auto".
+- **Dashboard** com KPI-herói "12 ocorrências a conferir" + headcount por setor (barras) + atividade do pipeline.
+- **Comunicados** = composer (segmento/fixar/exigir confirmação) + lista com métrica de leitura. **Documentos institucionais** = upload + adesão por documento.
+
+**Método:** workflow multi-agente (1 agente/tela, shell + tokens pinados, ancorado no mockup de conteúdo real) → assembler Node limpa fragmentos (tira prosa/cercas) → mural `gestor-portal-redesign-showcase.html` + 5 telas `gestor-{dash,com,doc,ocr,mon}-redesign.html`.
+
+**Handoff:** `claude-bridge/inbox-pc/2026-06-26-gestor-portal-redesign-pacote.md` (bind/backend por tela). O Monitor já está no ar (PC v193); o redesign é alinhamento visual. firestore.rules é do PC — não tocado.

@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;background:#0a0d0a;padding:24px">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+
+<div id="g-dash" data-t="dark">
+<style>
+#g-dash{
+  --bg:#0E130E;--surf:#141A14;--card:#161D15;--card2:#1B231A;--bd:#232C22;--bd2:#283027;
+  --brand:#1AA34F;--brand-d:#0B7A36;--g-tx:#5FCB85;--g-tx2:#4FD080;
+  --amber:#E8B468;--info:#6FA8E0;--danger:#E8736B;--viol:#B79CE8;
+  --tx:#E9F0E5;--tx-w:#94A38D;--tx-w2:#7E8C78;
+  --green-bg:rgba(26,163,79,.14);--amber-bg:rgba(232,180,104,.13);--info-bg:rgba(111,168,224,.13);--neutral-bg:rgba(148,163,141,.12);--danger-bg:rgba(232,115,107,.13);--viol-bg:rgba(183,156,232,.13);
+  --sh-card:0 2px 10px -4px rgba(0,0,0,.55);--sh-hero:0 14px 34px -14px rgba(0,0,0,.7);
+  --r-card:16px;--r-item:12px;
+  box-sizing:border-box;width:1100px;max-width:100%;height:720px;margin:0 auto;
+  border-radius:24px;overflow:hidden;border:1px solid var(--bd);
+  background:var(--bg);color:var(--tx);display:flex;
+  font-family:'Poppins',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+}
+#g-dash[data-t="light"]{
+  --bg:#EEF3EC;--surf:#FFFFFF;--card:#FFFFFF;--card2:#F6F9F4;--bd:#E3EBE0;--bd2:#D8E2D5;
+  --brand:#0E8C3F;--brand-d:#0B7A36;--g-tx:#0E8C3F;--g-tx2:#0E8C3F;
+  --amber:#C98A2A;--info:#3D7CC0;--danger:#C5453B;--viol:#7B5FB0;
+  --tx:#16201A;--tx-w:#5B6B57;--tx-w2:#7A8775;
+  --green-bg:rgba(14,140,63,.12);--amber-bg:rgba(201,138,42,.13);--info-bg:rgba(61,124,192,.12);--neutral-bg:rgba(91,107,87,.10);--danger-bg:rgba(197,69,59,.11);--viol-bg:rgba(123,95,176,.12);
+  --sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);--sh-hero:0 8px 26px -8px rgba(0,40,20,.22),0 2px 8px rgba(0,40,20,.08);
+}
+#g-dash *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+#g-dash .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+#g-dash button{font-family:inherit}
+
+/* ===== RAIL ===== */
+#g-dash .rail{width:232px;flex:0 0 232px;background:var(--surf);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:16px 12px}
+#g-dash .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 2px}
+#g-dash .brand__sq{width:30px;height:30px;border-radius:9px;background:linear-gradient(150deg,#1AA34F,#0B7A36);display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 0 0 3px var(--green-bg)}
+#g-dash .brand__sq svg{width:19px;height:19px}
+#g-dash .brand__wm{font-size:16px;font-weight:600;letter-spacing:-.01em;line-height:1.05}
+#g-dash .brand__sub{font-size:10.5px;color:var(--tx-w);font-weight:500;margin-top:1px}
+
+#g-dash .nav{display:flex;flex-direction:column;gap:2px;margin-top:18px}
+#g-dash .nav__lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tx-w2);padding:0 10px 6px}
+#g-dash .ni{position:relative;display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:11px;color:var(--tx-w);text-decoration:none;font-size:13px;font-weight:500;letter-spacing:-.01em;cursor:pointer;transition:.14s}
+#g-dash .ni i{font-size:19px;flex:0 0 auto}
+#g-dash .ni:hover{background:var(--card2);color:var(--tx)}
+#g-dash .ni.on{background:var(--green-bg);color:var(--g-tx2);font-weight:600}
+#g-dash .ni.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--brand)}
+#g-dash .ni__sp{flex:1}
+#g-dash .ni__bd{font-size:10px;font-weight:800;letter-spacing:.02em;min-width:19px;height:19px;padding:0 5px;border-radius:8px;background:var(--amber);color:#13140e;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+#g-dash[data-t="light"] .ni__bd{color:#fff}
+#g-dash .ni__dot{width:7px;height:7px;border-radius:50%;background:var(--info);flex:0 0 auto}
+
+#g-dash .rail__ft{margin-top:auto;padding-top:14px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:10px}
+#g-dash .uav{width:36px;height:36px;border-radius:11px;background:linear-gradient(150deg,#1AA34F,#0B7A36);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#fff;flex:0 0 auto}
+#g-dash .uinfo{flex:1;min-width:0}
+#g-dash .uinfo__n{font-size:12.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#g-dash .uinfo__r{font-size:10.5px;color:var(--tx-w);font-weight:500}
+#g-dash .tgl{background:none;border:1px solid var(--bd);color:var(--tx-w);width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;flex:0 0 auto;transition:.14s}
+#g-dash .tgl:hover{background:var(--card2);color:var(--tx)}
+
+/* ===== MAIN ===== */
+#g-dash .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#g-dash .top{height:64px;flex:0 0 auto;border-bottom:1px solid var(--bd);padding:0 26px;display:flex;align-items:center;gap:16px}
+#g-dash .top__ttl{font-size:20px;font-weight:600;letter-spacing:-.02em}
+#g-dash .top__sub{font-size:12px;color:var(--tx-w);font-weight:500;margin-top:1px}
+#g-dash .top__sp{flex:1}
+#g-dash .srch{display:flex;align-items:center;gap:9px;width:280px;background:var(--card);border:1px solid var(--bd);border-radius:11px;padding:9px 13px;color:var(--tx-w)}
+#g-dash .srch i{font-size:17px;flex:0 0 auto}
+#g-dash .srch input{flex:1;background:none;border:none;outline:none;color:var(--tx);font-size:13px;font-weight:500}
+#g-dash .srch input::placeholder{color:var(--tx-w2)}
+#g-dash .tbtn{position:relative;background:none;border:1px solid var(--bd);color:var(--tx-w);width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;transition:.14s;flex:0 0 auto}
+#g-dash .tbtn:hover{background:var(--card2);color:var(--tx)}
+#g-dash .tbtn__d{position:absolute;top:9px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--amber);border:1.5px solid var(--surf)}
+
+#g-dash .scroll{flex:1;overflow-y:auto;padding:24px 26px}
+#g-dash .scroll::-webkit-scrollbar{width:9px}
+#g-dash .scroll::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:9px;border:2px solid var(--bg)}
+
+#g-dash .greet{margin-bottom:18px}
+#g-dash .greet__h{font-size:18px;font-weight:700;letter-spacing:-.02em}
+#g-dash .greet__p{font-size:12.5px;color:var(--tx-w);font-weight:500;margin-top:2px}
+
+#g-dash .sec{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx-w);margin:0 2px 11px;display:flex;align-items:center;gap:8px}
+#g-dash .sec .ct{color:var(--tx-w2);font-weight:700;letter-spacing:.02em;text-transform:none;font-size:11px}
+#g-dash .sec__sp{flex:1}
+#g-dash .sec__a{font-size:11px;font-weight:600;color:var(--g-tx2);text-transform:none;letter-spacing:0;text-decoration:none;display:inline-flex;align-items:center;gap:3px;cursor:pointer}
+#g-dash .sec__a i{font-size:14px}
+
+/* ===== KPIs ===== */
+#g-dash .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+#g-dash .kpi{background:var(--card);border:1px solid var(--bd);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:15px 16px;position:relative;overflow:hidden;cursor:default}
+#g-dash .kpi__top{display:flex;align-items:center;justify-content:space-between}
+#g-dash .kpi__ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto}
+#g-dash .kpi__ic.gr{background:var(--green-bg);color:var(--g-tx)}
+#g-dash .kpi__ic.am{background:var(--amber-bg);color:var(--amber)}
+#g-dash .kpi__ic.in{background:var(--info-bg);color:var(--info)}
+#g-dash .kpi__bd{font-size:10px;font-weight:800;letter-spacing:.03em;padding:3px 8px;border-radius:7px;background:var(--amber-bg);color:var(--amber);display:inline-flex;align-items:center;gap:4px}
+#g-dash .kpi__v{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-top:13px;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+#g-dash .kpi__v.am{color:var(--amber)}
+#g-dash .kpi__l{font-size:12px;color:var(--tx-w);font-weight:500;margin-top:7px}
+#g-dash .kpi__d{font-size:10.5px;color:var(--tx-w2);font-weight:500;margin-top:3px;display:flex;align-items:center;gap:4px}
+#g-dash .kpi__d i{font-size:13px}
+
+/* hero KPI */
+#g-dash .kpi.hero{border:none;color:#EAFBEF;background:linear-gradient(150deg,#1AA34F,#0B7A36);box-shadow:var(--sh-hero)}
+#g-dash .kpi.hero::after{content:"";position:absolute;right:-30px;top:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 66%);pointer-events:none}
+#g-dash .kpi.hero .kpi__ic{background:rgba(255,255,255,.16);color:#fff}
+#g-dash .kpi.hero .kpi__bd{background:rgba(255,255,255,.18);color:#fff}
+#g-dash .kpi.hero .kpi__v{color:#fff}
+#g-dash .kpi.hero .kpi__l{color:rgba(234,251,239,.86)}
+#g-dash .kpi.hero .kpi__cta{position:relative;z-index:1;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:5px 11px;margin-top:12px;cursor:pointer;transition:.14s}
+#g-dash .kpi.hero .kpi__cta:hover{background:rgba(255,255,255,.26)}
+#g-dash .kpi.hero .kpi__cta i{font-size:14px}
+
+/* ===== GRID 2 col ===== */
+#g-dash .grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;margin-bottom:24px}
+#g-dash .blk{background:var(--card);border:1px solid var(--bd);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden}
+
+/* atencao */
+#g-dash .att{border-left:3px solid var(--amber)}
+#g-dash .att__h{display:flex;align-items:center;gap:11px;padding:15px 17px 12px}
+#g-dash .att__ico{width:34px;height:34px;border-radius:10px;background:var(--amber-bg);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto}
+#g-dash .att__t{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+#g-dash .att__c{font-size:11.5px;color:var(--tx-w);font-weight:500;margin-top:1px}
+#g-dash .att__c b{color:var(--tx);font-weight:700}
+#g-dash .rw{display:flex;align-items:center;gap:12px;padding:12px 17px;border-top:1px solid var(--bd);text-decoration:none;color:inherit;cursor:pointer;transition:.14s}
+#g-dash .rw:hover{background:var(--card2)}
+#g-dash .rw__ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto}
+#g-dash .rw__ic.am{background:var(--amber-bg);color:var(--amber)}
+#g-dash .rw__ic.in{background:var(--info-bg);color:var(--info)}
+#g-dash .rw__ic.vi{background:var(--viol-bg);color:var(--viol)}
+#g-dash .rw__tx{flex:1;min-width:0}
+#g-dash .rw__t{font-size:13px;font-weight:600;letter-spacing:-.01em}
+#g-dash .rw__s{font-size:11px;color:var(--tx-w);font-weight:500;margin-top:2px}
+#g-dash .rw__bd{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:7px;flex:0 0 auto}
+#g-dash .rw__bd.am{background:var(--amber-bg);color:var(--amber)}
+#g-dash .rw__bd.in{background:var(--info-bg);color:var(--info)}
+#g-dash .rw__bd.vi{background:var(--viol-bg);color:var(--viol)}
+#g-dash .rw__chev{color:var(--tx-w2);font-size:17px;flex:0 0 auto}
+
+/* distribuicao */
+#g-dash .dist__h{display:flex;align-items:center;justify-content:space-between;padding:15px 17px 4px}
+#g-dash .dist__t{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+#g-dash .dist__tot{font-size:11px;color:var(--tx-w);font-weight:500}
+#g-dash .dist__tot b{color:var(--tx);font-weight:700;font-variant-numeric:tabular-nums}
+#g-dash .dist__body{padding:8px 17px 16px;display:flex;flex-direction:column;gap:13px}
+#g-dash .bar{display:flex;flex-direction:column;gap:6px}
+#g-dash .bar__top{display:flex;align-items:center;justify-content:space-between;font-size:12px}
+#g-dash .bar__lb{font-weight:500;color:var(--tx);display:flex;align-items:center;gap:7px}
+#g-dash .bar__lb i{font-size:14px;color:var(--tx-w2)}
+#g-dash .bar__n{font-weight:700;color:var(--tx-w);font-variant-numeric:tabular-nums}
+#g-dash .bar__n b{color:var(--tx)}
+#g-dash .bar__track{height:8px;border-radius:6px;background:var(--neutral-bg);overflow:hidden}
+#g-dash .bar__fill{height:100%;border-radius:6px}
+#g-dash .bar__fill.gr{background:var(--brand)}
+#g-dash .bar__fill.in{background:var(--info)}
+#g-dash .bar__fill.am{background:var(--amber)}
+#g-dash .bar__fill.vi{background:var(--viol)}
+#g-dash .dist__ft{display:flex;gap:7px;padding:0 17px 16px;flex-wrap:wrap}
+#g-dash .lg{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;color:var(--tx-w);background:var(--card2);border:1px solid var(--bd);border-radius:8px;padding:4px 9px}
+#g-dash .lg .sw{width:9px;height:9px;border-radius:3px}
+
+/* atividade */
+#g-dash .act{}
+#g-dash .actrw{display:flex;gap:13px;padding:13px 18px;border-top:1px solid var(--bd);position:relative}
+#g-dash .actrw:first-child{border-top:none}
+#g-dash .actrw__ln{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center}
+#g-dash .actrw__dot{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto;z-index:1}
+#g-dash .actrw__dot.gr{background:var(--green-bg);color:var(--g-tx)}
+#g-dash .actrw__dot.in{background:var(--info-bg);color:var(--info)}
+#g-dash .actrw__dot.am{background:var(--amber-bg);color:var(--amber)}
+#g-dash .actrw__dot.nt{background:var(--neutral-bg);color:var(--tx-w)}
+#g-dash .actrw:not(:last-child) .actrw__ln::after{content:"";position:absolute;top:30px;bottom:-13px;width:1.5px;background:var(--bd);left:50%;transform:translateX(-50%)}
+#g-dash .actrw__b{flex:1;min-width:0;padding-top:1px}
+#g-dash .actrw__t{font-size:12.5px;font-weight:600;letter-spacing:-.01em;line-height:1.35}
+#g-dash .actrw__t .ok{color:var(--g-tx2);font-weight:700}
+#g-dash .actrw__s{font-size:11px;color:var(--tx-w);font-weight:500;margin-top:2px}
+#g-dash .actrw__tm{font-size:10.5px;color:var(--tx-w2);font-weight:600;font-variant-numeric:tabular-nums;flex:0 0 auto;padding-top:1px}
+</style>
+
+  <h2 class="sr-only">Dashboard do Gestor do FioPulse — visao geral do RH com indicadores, pendencias que precisam de atencao, distribuicao de colaboradores por setor e atividade recente do pipeline.</h2>
+
+  <aside class="rail">
+    <a class="brand" href="#" onclick="return false" aria-label="FioPulse, o batimento do RH">
+      <span class="brand__sq">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22"/></svg>
+      </span>
+      <span>
+        <span class="brand__wm">FioPulse</span>
+        <span class="brand__sub">Portal do Gestor</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Navegacao principal">
+      <span class="nav__lbl">Menu</span>
+      <a class="ni on" href="#" onclick="return false" aria-current="page"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></a>
+      <a class="ni" href="#" onclick="return false"><i class="ti ti-users"></i><span>Funcionarios</span></a>
+      <a class="ni" href="#" onclick="return false"><i class="ti ti-speakerphone"></i><span>Comunicados</span><span class="ni__sp"></span><span class="ni__dot" aria-label="atualizacoes"></span></a>
+      <a class="ni" href="#" onclick="return false"><i class="ti ti-files"></i><span>Documentos</span></a>
+      <a class="ni" href="#" onclick="return false"><i class="ti ti-clipboard-check"></i><span>Ocorrencias</span><span class="ni__sp"></span><span class="ni__bd">12</span></a>
+      <a class="ni" href="#" onclick="return false"><i class="ti ti-activity-heartbeat"></i><span>Monitor</span></a>
+      <a class="ni" href="#" onclick="return false"><i class="ti ti-settings"></i><span>Configuracoes</span></a>
+    </nav>
+
+    <div class="rail__ft">
+      <span class="uav">RH</span>
+      <span class="uinfo">
+        <span class="uinfo__n">Recursos Humanos</span>
+        <span class="uinfo__r">admin</span>
+      </span>
+      <button class="tgl" id="gdTheme" aria-label="Alternar tema claro ou escuro"><i class="ti ti-moon"></i></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <div>
+        <div class="top__ttl">Dashboard</div>
+        <div class="top__sub">Visao geral do RH &middot; Fiobras</div>
+      </div>
+      <div class="top__sp"></div>
+      <label class="srch">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="text" placeholder="Buscar colaborador, matricula ou setor" aria-label="Buscar">
+      </label>
+      <button class="tbtn" aria-label="Notificacoes"><span class="tbtn__d"></span><i class="ti ti-bell"></i></button>
+    </header>
+
+    <main class="scroll">
+
+      <div class="greet">
+        <div class="greet__h" id="gdGreet">Bom dia, equipe de RH</div>
+        <div class="greet__p">Sexta-feira, 26 de junho de 2026 &middot; pipeline atualizado as 08:00</div>
+      </div>
+
+      <section class="kpis" aria-label="Indicadores principais">
+        <div class="kpi">
+          <div class="kpi__top">
+            <span class="kpi__ic gr"><i class="ti ti-users"></i></span>
+          </div>
+          <div class="kpi__v">97</div>
+          <div class="kpi__l">Colaboradores ativos</div>
+          <div class="kpi__d"><i class="ti ti-arrow-up-right"></i>+2 no mes</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi__top">
+            <span class="kpi__ic am"><i class="ti ti-clock-pause"></i></span>
+          </div>
+          <div class="kpi__v am">-00:42</div>
+          <div class="kpi__l">Saldo BH medio do mes</div>
+          <div class="kpi__d"><i class="ti ti-trending-down"></i>negativo, dentro do limite</div>
+        </div>
+
+        <div class="kpi hero">
+          <div class="kpi__top">
+            <span class="kpi__ic"><i class="ti ti-clipboard-check"></i></span>
+            <span class="kpi__bd"><i class="ti ti-alert-circle" style="font-size:12px"></i>atencao</span>
+          </div>
+          <div class="kpi__v">12</div>
+          <div class="kpi__l">Ocorrencias a conferir</div>
+          <button class="kpi__cta">Abrir Ocorrencias <i class="ti ti-arrow-right"></i></button>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi__top">
+            <span class="kpi__ic in"><i class="ti ti-speakerphone"></i></span>
+          </div>
+          <div class="kpi__v">3</div>
+          <div class="kpi__l">Comunicados ativos</div>
+          <div class="kpi__d"><i class="ti ti-pin"></i>1 fixado pela gestao</div>
+        </div>
+      </section>
+
+      <div class="grid2">
+        <section class="blk att" aria-label="Itens que precisam de atencao">
+          <div class="att__h">
+            <span class="att__ico"><i class="ti ti-alert-triangle"></i></span>
+            <div>
+              <div class="att__t">Precisa de atencao</div>
+              <div class="att__c"><b>3</b> frentes aguardando o RH</div>
+            </div>
+          </div>
+          <a class="rw" href="#" onclick="return false">
+            <span class="rw__ic am"><i class="ti ti-clipboard-check"></i></span>
+            <span class="rw__tx">
+              <span class="rw__t">12 ocorrencias aguardando conferencia</span>
+              <span class="rw__s">Atrasos e faltas importados do ponto &middot; junho</span>
+            </span>
+            <span class="rw__bd am">Conferir</span>
+            <i class="ti ti-chevron-right rw__chev"></i>
+          </a>
+          <a class="rw" href="#" onclick="return false">
+            <span class="rw__ic vi"><i class="ti ti-file-pencil"></i></span>
+            <span class="rw__tx">
+              <span class="rw__t">7 documentos sem assinatura</span>
+              <span class="rw__s">Politica de Seguranca &middot; vence em 3 dias</span>
+            </span>
+            <span class="rw__bd vi">Cobrar</span>
+            <i class="ti ti-chevron-right rw__chev"></i>
+          </a>
+          <a class="rw" href="#" onclick="return false">
+            <span class="rw__ic in"><i class="ti ti-checkbox"></i></span>
+            <span class="rw__tx">
+              <span class="rw__t">2 comunicados pedem confirmacao de leitura</span>
+              <span class="rw__s">Recesso de julho &middot; 38 de 97 confirmaram</span>
+            </span>
+            <span class="rw__bd in">Acompanhar</span>
+            <i class="ti ti-chevron-right rw__chev"></i>
+          </a>
+        </section>
+
+        <section class="blk" aria-label="Distribuicao de colaboradores por setor">
+          <div class="dist__h">
+            <span class="dist__t">Headcount por setor</span>
+            <span class="dist__tot"><b>97</b> ativos</span>
+          </div>
+          <div class="dist__body">
+            <div class="bar">
+              <div class="bar__top">
+                <span class="bar__lb"><i class="ti ti-settings-2"></i>Producao</span>
+                <span class="bar__n"><b>41</b> &middot; 42%</span>
+              </div>
+              <div class="bar__track"><span class="bar__fill gr" style="width:42%"></span></div>
+            </div>
+            <div class="bar">
+              <div class="bar__top">
+                <span class="bar__lb"><i class="ti ti-grid-pattern"></i>Tecelagem</span>
+                <span class="bar__n"><b>26</b> &middot; 27%</span>
+              </div>
+              <div class="bar__track"><span class="bar__fill in" style="width:27%"></span></div>
+            </div>
+            <div class="bar">
+              <div class="bar__top">
+                <span class="bar__lb"><i class="ti ti-needle-thread"></i>Costura</span>
+                <span class="bar__n"><b>18</b> &middot; 19%</span>
+              </div>
+              <div class="bar__track"><span class="bar__fill am" style="width:19%"></span></div>
+            </div>
+            <div class="bar">
+              <div class="bar__top">
+                <span class="bar__lb"><i class="ti ti-briefcase"></i>Administrativo</span>
+                <span class="bar__n"><b>12</b> &middot; 12%</span>
+              </div>
+              <div class="bar__track"><span class="bar__fill vi" style="width:12%"></span></div>
+            </div>
+          </div>
+          <div class="dist__ft">
+            <span class="lg"><span class="sw" style="background:var(--brand)"></span>Turno 1 &middot; 54</span>
+            <span class="lg"><span class="sw" style="background:var(--info)"></span>Turno 2 &middot; 31</span>
+            <span class="lg"><span class="sw" style="background:var(--amber)"></span>Geral &middot; 12</span>
+          </div>
+        </section>
+      </div>
+
+      <div class="sec">
+        Atividade recente
+        <span class="ct">&middot; ultimas 24h</span>
+        <span class="sec__sp"></span>
+        <a class="sec__a" href="#" onclick="return false">Ver Monitor <i class="ti ti-arrow-right"></i></a>
+      </div>
+      <section class="blk act" aria-label="Atividade recente do pipeline e do RH">
+        <div class="actrw">
+          <div class="actrw__ln"><span class="actrw__dot gr"><i class="ti ti-circle-check"></i></span></div>
+          <div class="actrw__b">
+            <div class="actrw__t">Pipeline rodou as 08:00 &mdash; <span class="ok">OK</span></div>
+            <div class="actrw__s">Banco de horas e cadastro sincronizados com o Firestore</div>
+          </div>
+          <div class="actrw__tm">08:00</div>
+        </div>
+        <div class="actrw">
+          <div class="actrw__ln"><span class="actrw__dot am"><i class="ti ti-clipboard-plus"></i></span></div>
+          <div class="actrw__b">
+            <div class="actrw__t">12 ocorrencias importadas do ponto</div>
+            <div class="actrw__s">Atrasos e faltas de 25/06 &middot; aguardando conferencia do RH</div>
+          </div>
+          <div class="actrw__tm">08:01</div>
+        </div>
+        <div class="actrw">
+          <div class="actrw__ln"><span class="actrw__dot in"><i class="ti ti-speakerphone"></i></span></div>
+          <div class="actrw__b">
+            <div class="actrw__t">Comunicado publicado: &ldquo;Recesso de julho &mdash; escala&rdquo;</div>
+            <div class="actrw__s">Enviado para 97 colaboradores &middot; pede confirmacao de leitura</div>
+          </div>
+          <div class="actrw__tm">Ontem</div>
+        </div>
+        <div class="actrw">
+          <div class="actrw__ln"><span class="actrw__dot nt"><i class="ti ti-user-plus"></i></span></div>
+          <div class="actrw__b">
+            <div class="actrw__t">2 admissoes lancadas no cadastro</div>
+            <div class="actrw__s">Setor Producao &middot; Turno 1 &middot; refletido no headcount</div>
+          </div>
+          <div class="actrw__tm">Ontem</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root=document.getElementById('g-dash');
+  var btn=document.getElementById('gdTheme');
+  btn.addEventListener('click',function(){
+    var dark=root.getAttribute('data-t')==='dark';
+    root.setAttribute('data-t',dark?'light':'dark');
+    btn.innerHTML=dark?'<i class="ti ti-sun"></i>':'<i class="ti ti-moon"></i>';
+  });
+  var h=new Date().getHours();
+  var g=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+  document.getElementById('gdGreet').textContent=g+', equipe de RH';
+  root.querySelectorAll('.ni').forEach(function(n){
+    n.addEventListener('click',function(){
+      root.querySelectorAll('.ni').forEach(function(x){x.classList.remove('on');x.removeAttribute('aria-current');});
+      n.classList.add('on');n.setAttribute('aria-current','page');
+    });
+  });
+})();
+</script>
+</body></html>
