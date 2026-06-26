@@ -82,13 +82,17 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
 .modo-colab .version-pill--side{display:none}
 
 /* Banco de horas (card da home) */
-.cp-bh{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;font:inherit;background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:15px;margin:14px 0 4px;cursor:pointer;box-shadow:0 1px 2px rgba(0,40,20,.05)}
-.cp-bh__l{font-size:11.5px;color:var(--text-muted);font-weight:600;display:flex;align-items:center;gap:7px}
-.cp-bh__l svg{width:16px;height:16px}
-.cp-bh__v{font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px;color:var(--success)}
-.cp-bh__v svg{width:18px;height:18px;color:var(--text-muted);stroke-width:2.5}
-.cp-bh--neg .cp-bh__v{color:var(--warning)}
-.cp-bh__soon{font-size:14px;font-weight:600;color:var(--text-muted)}
+/* Herói de banco de horas: único bloco saturado de marca (mesmo gradiente verde em dark/claro). */
+.cp-bh{position:relative;display:block;width:100%;text-align:left;font:inherit;background:linear-gradient(150deg,#1AA34F 0%,#117A39 62%,#0B7A36 100%);border:0;border-radius:16px;padding:16px 18px;margin:14px 0 4px;cursor:pointer;overflow:hidden;box-shadow:0 14px 32px -12px rgba(0,80,40,.55)}
+.cp-bh::after{content:"";position:absolute;right:-32px;top:-42px;width:152px;height:152px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 70%);pointer-events:none}
+.cp-bh__l{position:relative;z-index:1;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.8);font-weight:600;display:flex;align-items:center;gap:6px}
+.cp-bh__l svg{width:14px;height:14px}
+.cp-bh__v{position:relative;z-index:1;display:block;font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums;color:#fff;margin-top:6px}
+.cp-bh__ctx{position:relative;z-index:1;font-size:11px;color:rgba(255,255,255,.8);display:flex;align-items:center;gap:5px;margin-top:5px}
+.cp-bh__ctx svg{width:13px;height:13px}
+.cp-bh__badge{position:absolute;top:14px;right:14px;z-index:1;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);border-radius:20px;padding:5px 11px}
+.cp-bh__badge svg{width:14px;height:14px}
+.cp-bh__soon{font-size:20px;font-weight:700;color:rgba(255,255,255,.85)}
 
 /* Nav inferior do colaborador (mobile): pílula só-ícone, ativo em círculo verde */
 .modo-colab #bottom-nav{justify-content:space-around}

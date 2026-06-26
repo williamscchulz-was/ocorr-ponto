@@ -1154,6 +1154,29 @@ function precisaAtencaoHtml() {
   return `<div class="cp-seclabel">${cpIcon("alert")}<span>Precisa da sua atenção</span><span class="cp-seclabel__ct">· ${n} ${n > 1 ? "itens" : "item"}</span></div><div class="cp-pend">${rows}</div>`;
 }
 
+// Herói de banco de horas (home): 3 estados com selo. Mesmo gradiente verde sempre; o sinal
+// e o selo comunicam. Esconde pro bhExempt (diretor/Geral sem ponto).
+function bhHeroHtml(f) {
+  if (f && f.bhExempt) return "";
+  const bh = state.meuSaldoBH || null;
+  const bhMin = bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null;
+  let bhStr = bh ? (bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null)) : null;
+  const estado = bhMin == null ? "semdado" : (bhMin > 0 ? "pos" : (bhMin < 0 ? "neg" : "zero"));
+  if (estado === "zero") bhStr = "00:00";
+  const selos = { pos: ["check", "A favor"], neg: [null, "A compensar"], zero: ["check", "Em dia"], semdado: [null, ""] };
+  const [selIc, selTxt] = selos[estado];
+  let iso = bh && bh.atualizadoEm;
+  if (iso && typeof iso.toDate === "function") iso = iso.toDate().toISOString();
+  else if (iso && typeof iso === "object" && typeof iso.seconds === "number") iso = new Date(iso.seconds * 1000).toISOString();
+  const ctx = (typeof iso === "string" && typeof bhFrescorTxt === "function") ? bhFrescorTxt(iso) : "";
+  return `<button class="cp-bh cp-bh--${estado}" data-nav="colab-ponto" aria-label="Banco de horas">
+    <span class="cp-bh__l">${cpIcon("clock")}<span>Banco de horas</span></span>
+    <span class="cp-bh__v">${bhStr ? escapeHtml(bhStr) : '<span class="cp-bh__soon">em breve</span>'}</span>
+    ${ctx ? `<span class="cp-bh__ctx">${cpIcon("check")}<span>Atualizado ${escapeHtml(ctx)}</span></span>` : ""}
+    ${selTxt ? `<span class="cp-bh__badge">${selIc ? cpIcon(selIc) : ""}${escapeHtml(selTxt)}</span>` : ""}
+  </button>`;
+}
+
 function renderColaboradorHome() {
   const view = $("#view");
   const u = currentUser();
@@ -1193,10 +1216,7 @@ function renderColaboradorHome() {
         ${metas.length ? `<div class="cp-idc__meta">${metas.map((m) => `<span class="cp-tagm">${escapeHtml(m)}</span>`).join("")}</div>` : ""}
       </div>
     </div>
-    ${(f && f.bhExempt) ? "" : `<button class="cp-bh${bhNeg ? " cp-bh--neg" : ""}" data-nav="colab-ponto">
-      <span class="cp-bh__l">${cpIcon("clock")}<span>Banco de horas</span></span>
-      <span class="cp-bh__v">${bhStr ? escapeHtml(bhStr) : '<span class="cp-bh__soon">em breve</span>'}${cpIcon("chevron")}</span>
-    </button>`}
+    ${bhHeroHtml(f)}
     <div class="cp-sec"><h2>Atalhos</h2></div>
     <div class="cp-atalhos">
       ${atalhos.map((a) => `<button class="cp-atalho" data-nav="${a.page}"><span class="cp-atalho__ic">${cpIcon(a.icon)}</span><span class="cp-atalho__t">${a.t}</span><span class="cp-atalho__s">${a.s}</span></button>`).join("")}
