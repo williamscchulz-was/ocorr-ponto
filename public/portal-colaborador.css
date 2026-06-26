@@ -55,6 +55,13 @@ html.modo-colab.cp-dark{
 }
 html.modo-colab.cp-dark body{background:var(--bg)}
 html.modo-colab.cp-dark .app{background:var(--bg)}
+/* Tema claro do colaborador: fundo "anti-lavado" (verde-acinzentado), pros cards brancos
+   descolarem do fundo (evita o efeito lavado). O dark fica como está. */
+html.modo-colab:not(.cp-dark) body,
+html.modo-colab:not(.cp-dark) .app{background:#EEF3EC}
+html.modo-colab:not(.cp-dark) .cp-com,
+html.modo-colab:not(.cp-dark) .cp-pend,
+html.modo-colab:not(.cp-dark) .cp-aniv{box-shadow:0 1px 3px rgba(16,48,28,.06),0 6px 16px rgba(16,48,28,.05)}
 /* Topbar do colaborador: clara/escura (não o verde do gestor) */
 .modo-colab .topbar{background:var(--surface);color:var(--text-body);border-bottom:1px solid var(--border)}
 .modo-colab .topbar__title{color:var(--text-body)}
