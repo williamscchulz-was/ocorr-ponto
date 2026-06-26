@@ -352,3 +352,22 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Lição:** ao verificar tarefas com privilégio elevado a partir de uma sessão não-admin, dá silenciosamente vazio em `Get-ScheduledTask`. Não confundir "não consegui ver" com "não existe". Próxima vez: pedir verificação direto na janela admin do operador, OU executar via `Invoke-Command -ScriptBlock { ... }` com credenciais elevadas.
 
 **Status final:** automação 100% operacional. Sem ação humana pendente.
+
+---
+
+## 2026-06-26 · 🧪 Automação de ocorrências (atraso/falta/saída) da apuração do WK — TESTE
+
+**Objetivo:** as ocorrências de ponto passam a sair AUTOMÁTICAS da apuração do WK Radar pra área do gestor, em vez da Suyanne digitar uma a uma. RH só **confere**.
+
+**Fonte nova:** `Radar Ponto → Apurações → Relatório de Apurações` salvo como Exportação Automática → `Config_Relatorio_de_Apurações.txt` → `ExpAuto_Apuracoes.txt` (latin1, `;`, com cabeçalho). Mesmo motor do BH/D_Empregado. Parser `process-apuracoes.mjs` (mapeia por nome de coluna).
+
+**Regras de negócio (decididas com o William):**
+1. **Só 4 situações** vão pro app: Atrasos, Faltas Injustificadas, Saída Antecipada, Saída Intermediária (checkboxes no WK). Extras/licenças/abonos/férias = fora.
+2. **Colapsa o split interno do WK** (mesmas batidas/situação no dia em 2+ linhas, saldo fatiado) → 1 ocorrência por **código+data+situação**.
+3. **Turno GERAL:** atraso/saída do Geral vai pro banco de horas (NÃO gera ocorrência); **só Falta Injustificada gera**. Turnos 1/2/3 geram tudo. (junho: 160 → **90** ocorrências.)
+
+**Conferência — achado importante:** o **"Conferido" do WK NÃO é exportável** (não existe campo nem filtro no modelador — só o checkbox da tela operacional Apuração Mensal). Então **o app é o dono da conferência**: pipeline é **cria-e-NUNCA-reabre** (id estável; se o doc existe, preserva o status; conferida fica conferida). Na produção, **data de corte** evita despejar o histórico já tratado. (Long-shot futuro: perguntar pro Mik se dá pra expor o Conferido via fórmula/Info Plus.)
+
+**Teste (sandbox):** coleção **`ocorrencias-auto`** (SEPARADA da `ocorrencias` de produção) populada com 90 ocorrências de junho. PC vai criar uma **aba de revisão** no gestor (cap admin/RH, aditiva). Bridge: `claude-bridge/inbox-pc/2026-06-26-ocorrencias-auto-teste.md`.
+
+**Status:** TESTE — ainda NÃO está no `run-pipeline.mjs` diário. Vira rotina só depois que William + RH validarem a aba. Scripts novos em `C:\fiobras-pipeline-rh`: `process-apuracoes.mjs`, `upload-ocorrencias-auto.mjs`, `inline-run-apuracoes-export.mjs`.
