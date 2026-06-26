@@ -371,3 +371,17 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Teste (sandbox):** coleção **`ocorrencias-auto`** (SEPARADA da `ocorrencias` de produção) populada com 90 ocorrências de junho. PC vai criar uma **aba de revisão** no gestor (cap admin/RH, aditiva). Bridge: `claude-bridge/inbox-pc/2026-06-26-ocorrencias-auto-teste.md`.
 
 **Status:** TESTE — ainda NÃO está no `run-pipeline.mjs` diário. Vira rotina só depois que William + RH validarem a aba. Scripts novos em `C:\fiobras-pipeline-rh`: `process-apuracoes.mjs`, `upload-ocorrencias-auto.mjs`, `inline-run-apuracoes-export.mjs`.
+
+---
+
+## 2026-06-26 · ⏰ Pipeline 3×/dia em dias úteis + D_Empregado dobrado pra dentro do pipeline
+
+**Agendamento:** a tarefa `Fiobras Pipeline RH` (Task Scheduler, roda como `wkradar`/Limited) passou de 1 trigger diário 08:00 pra **3 triggers semanais seg–sex: 08:00, 10:00 e 14:00** (sem sábado/domingo). Feito direto via `Set-ScheduledTask` (tarefa é do usuário wkradar, não-elevada → editável do shell). `DaysOfWeek=62` = Mon–Fri.
+
+**Exportação do Radar dentro do pipe:** o `run-pipeline.mjs` (passo 1) agora roda o `ExportacaoAutomatica.exe` pra **BH E D_Empregado** (antes só BH; o D_Empregado dependia da tarefa separada das 07:40). Assim **uma execução do pipeline cobre os dois exports** + processa + sobe. Adicionado `WK_EMP_CONFIG` (Config_Informativos.txt) no `config.mjs`.
+
+**Porquê:** (1) William quer BH/cadastro atualizando 3×/dia, não só de manhã; (2) o **monitor novo** pegou o `ExpAuto_D_Empregado.txt` com ~30h — a tarefa das 07:40 não rodou hoje. Dobrar o D_Empregado pra dentro do pipeline conserta a defasagem de vez (re-exporta a cada run) e deixa o pipeline auto-suficiente.
+
+**Redundância:** a tarefa `WKRadar Export D_Empregado` (07:40) ficou redundante (a `WKRadar Export BH` das 07:45 já estava Disabled). Por ora deixada como está (inofensiva); pode ser desabilitada.
+
+**Teste:** rodada manual OK em 34s (2 exports → ~17s a mais que antes); D_Empregado regenerado (mtime = agora).
