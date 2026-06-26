@@ -223,3 +223,13 @@ O Portal segmenta Comunicados/Documentos por **turno** e **setor** via rule `cas
 ---
 
 *Esse playbook é vivo. Quando aprender algo novo sobre o WK Radar, adicione aqui.*
+
+---
+
+## Quirk: ExportacaoAutomatica.exe ignora ListarSomenteOcorrencias / IdsSituacoes (2026-06-26)
+
+Ao gerar um relatório de ocorrências via **Integrador WK** + `ExportacaoAutomatica.exe <config> /Silent`, o `.exe` **NÃO aplica** os filtros `ListarSomenteOcorrencias=Sim` nem `IdsSituacoes=...` que ficam gravados no `Config_*.txt`. A exportação sai com a **apuração inteira** (todos os dias/funcionários — ex.: 6348 linhas no mês). Esses filtros só valem na **emissão interativa** dentro do Radar.
+
+**Implicação:** filtre as situações que interessam **no parser** (código), não confie no filtro do config. No pipeline RH isso é feito no `process-ocorrencias.mjs` (mantém só 32/36/37/38 + regra do Geral + D-1).
+
+**Bônus:** o Integrador **auto-incrementa** o nome do config se já existir (`...Apurações.txt` → `...Apurações1.txt`). E o modelo de export herda o layout do modelo selecionado no Minerador (no caso, o da apuração, com previsto×apurado + saldo — mais rico que o "Relação de Ocorrências" de 9 colunas).

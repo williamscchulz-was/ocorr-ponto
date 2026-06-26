@@ -445,3 +445,19 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Construído (em `C:\fiobras-pipeline-rh`):** `process-ocorrencias.mjs` (parser novo, detecção de delim/cabeçalho + as 3 regras), `inline-run-ocorrencias-export.mjs` (seta datas D-1 + roda o exe), e `config.mjs` ganhou `WK_OCORR_CONFIG`/`OCORRENCIAS_CSV_PATH`/`PARSED_OCORRENCIAS_OUT`/`COL_OCORRENCIAS_AUTO`.
 
 **Falta (ação WK do William):** criar o export do relatório no modelador do WK → `Config_Relatorio_de_Ocorrencias.txt` gerando `ExpAuto_Ocorrencias.txt` (TXT delimitado, com cabeçalho, sem aspas, todos os funcionários). Depois: validar parser contra o TXT real → adaptar `upload-ocorrencias-auto.mjs` → repovoar `ocorrencias-auto` → entrar no `run-pipeline`. `process-apuracoes.mjs` fica como histórico (descontinuado).
+
+---
+
+## 2026-06-26 · ✅ Ocorrências reais NO AR em ocorrencias-auto (59) — fluxo end-to-end
+
+**Funcionando ponta a ponta:** `inline-run-ocorrencias-export.mjs` (datas→D-1 + ArquivoExportacao→ASCII, byte-safe latin1) → `ExpAuto_Ocorrencias.txt` → `process-ocorrencias.mjs` (parser rico, detecção de coluna por nome) → `parsed-ocorrencias.json` → `upload-ocorrencias-auto.mjs --reset` → `ocorrencias-auto` (59 docs). Apagados os 90 docs antigos (teste de apuração antigo, com 26/06 + Geral errados).
+
+**Distribuição (junho, D-1):** 30 Faltas Injustificadas + 18 Atrasos + 11 Saídas Antecipadas = 59 (73 atrasos/saídas de Geral filtrados pra BH).
+
+**🔑 Quirk WK aprendida:** o **`ExportacaoAutomatica.exe` IGNORA** o `ListarSomenteOcorrencias=Sim` e o `IdsSituacoes` do config — a exportação automática sai com a **apuração inteira** (6348 linhas, todos os dias). Então o filtro das 4 situações é feito **no parser** (process-ocorrencias), não no WK. (O filtro do config só vale na emissão interativa.)
+
+**Config:** o Integrador WK criou `Config_Relatorio_de_Apurações1.txt`; o William renomeou tirando o "1" → `Config_Relatorio_de_Apurações.txt`. Usa o **modelo da apuração** (`ExpAuto_Relatorio_de_Apuracoes`), não o "Relação de Ocorrências" de 9 colunas — o que é melhor (vem com previsto×apurado + saldo). `WK_OCORR_CONFIG`/`OCORRENCIAS_CSV_PATH` no config.mjs apontam pra ele; o runner reescreve ArquivoExportacao→`ExpAuto_Ocorrencias.txt` (ASCII, sem ç/õ).
+
+**Limitação conhecida:** neste layout o **saldoDiário de falta = 00:00** e a magnitude (8h) não vem em coluna — pro card de falta usar `marcacoesApuradas==null` ("sem marcação") + `marcacoesPrevistas`. Atrasos/saídas têm previsto×apurado.
+
+**Status:** TESTE/sandbox validável na aba de conferência. **Ainda NÃO está no run-pipeline diário** — entra como rotina depois que William + RH validarem a aba. Bridge: `claude-bridge/inbox-pc/2026-06-26-ocorrencias-auto-dados-reais.md`.
