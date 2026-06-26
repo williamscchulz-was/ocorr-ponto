@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;background:#0a0d0a;padding:24px">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css">
+
+<div id="scr-com" data-t="dark">
+  <style>
+    #scr-com{
+      --bg:#0E130E; --surf:#141A14; --card:#161D15; --card2:#1B231A; --bd:#232C22; --bd2:#283027;
+      --brand:#1AA34F; --brand-d:#0B7A36; --gtext:#5FCB85; --gtext2:#4FD080;
+      --amber:#E8B468; --info:#6FA8E0;
+      --tx:#E9F0E5; --tx-w:#94A38D; --tx-w2:#7E8C78;
+      --green-bg:rgba(26,163,79,.14); --amber-bg:rgba(232,180,104,.13); --info-bg:rgba(111,168,224,.13); --neutral-bg:rgba(148,163,141,.12);
+      --sh-card:0 2px 10px -4px rgba(0,0,0,.55); --sh-hero:0 14px 34px -14px rgba(0,0,0,.7);
+      font-family:'Poppins',system-ui,sans-serif;
+      width:390px; max-width:100%; border-radius:28px; overflow:hidden;
+      border:1px solid var(--bd); min-height:760px; position:relative;
+      background:var(--bg); color:var(--tx); -webkit-font-smoothing:antialiased;
+      display:flex; flex-direction:column;
+    }
+    #scr-com[data-t="light"]{
+      --bg:#EEF3EC; --surf:#FFFFFF; --card:#FFFFFF; --card2:#F6F9F4; --bd:#E3EBE0; --bd2:#D8E2D4;
+      --brand:#0E8C3F; --brand-d:#0B7A36; --gtext:#0E8C3F; --gtext2:#0E8C3F;
+      --amber:#C98A2A; --info:#3E7FC4;
+      --tx:#16201A; --tx-w:#5B6B57; --tx-w2:#7A8876;
+      --green-bg:rgba(14,140,63,.12); --amber-bg:rgba(201,138,42,.14); --info-bg:rgba(62,127,196,.12); --neutral-bg:rgba(91,107,87,.10);
+      --sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+      --sh-hero:0 1px 3px rgba(0,40,20,.08),0 10px 26px -6px rgba(0,40,20,.18);
+    }
+    #scr-com *{box-sizing:border-box; margin:0; padding:0;}
+    #scr-com .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+    #scr-com .scroll{flex:1; overflow-y:auto; padding:0 16px 92px;}
+    #scr-com .scroll::-webkit-scrollbar{width:0;}
+
+    /* TOPBAR FLAT */
+    #scr-com .topbar{
+      display:flex; align-items:center; gap:8px;
+      padding:16px 14px 10px; background:var(--bg);
+    }
+    #scr-com .tb-back{
+      width:40px; height:40px; border-radius:13px; border:1px solid var(--bd);
+      background:var(--surf); color:var(--tx); display:flex; align-items:center; justify-content:center;
+      font-size:20px; cursor:pointer; flex:0 0 auto;
+    }
+    #scr-com .tb-title{flex:1; font-size:18px; font-weight:600; letter-spacing:-.01em;}
+    #scr-com .tb-theme{
+      width:40px; height:40px; border-radius:13px; border:1px solid var(--bd);
+      background:var(--surf); color:var(--tx-w); display:flex; align-items:center; justify-content:center;
+      font-size:19px; cursor:pointer; flex:0 0 auto;
+    }
+
+    /* FILTER CHIPS */
+    #scr-com .filters{display:flex; gap:8px; padding:6px 16px 14px; background:var(--bg);}
+    #scr-com .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      height:36px; padding:0 14px; border-radius:11px;
+      border:1px solid var(--bd); background:var(--surf); color:var(--tx-w);
+      font-family:inherit; font-size:13px; font-weight:500; cursor:pointer; letter-spacing:-.01em;
+    }
+    #scr-com .chip i{font-size:16px;}
+    #scr-com .chip[aria-pressed="true"]{
+      background:var(--green-bg); border-color:transparent; color:var(--gtext2); font-weight:600;
+    }
+    #scr-com .chip .cc{
+      font-size:11px; font-weight:700; padding:1px 6px; border-radius:7px;
+      background:var(--info-bg); color:var(--info); font-variant-numeric:tabular-nums;
+    }
+
+    /* SECTION OVERLINE */
+    #scr-com .ov{
+      display:flex; align-items:center; gap:8px;
+      font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.07em;
+      color:var(--tx-w2); margin:14px 2px 9px;
+    }
+    #scr-com .ov .ct{
+      font-size:10.5px; color:var(--tx-w2); font-variant-numeric:tabular-nums;
+      background:var(--neutral-bg); padding:1px 7px; border-radius:6px;
+    }
+    #scr-com .ov .ln{flex:1; height:1px; background:var(--bd);}
+
+    /* HERO */
+    #scr-com .hero{
+      position:relative; overflow:hidden;
+      border-radius:18px; padding:18px 18px 17px;
+      background:linear-gradient(150deg,#1AA34F,#0B7A36);
+      box-shadow:var(--sh-hero); color:#fff; margin-top:4px;
+    }
+    #scr-com .hero::after{
+      content:""; position:absolute; top:-46px; right:-30px; width:170px; height:170px; border-radius:50%;
+      background:radial-gradient(circle,rgba(255,255,255,.32),transparent 68%); pointer-events:none;
+    }
+    #scr-com .hero-top{display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1;}
+    #scr-com .hero-badge{
+      display:inline-flex; align-items:center; gap:5px;
+      background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.22);
+      padding:4px 10px; border-radius:9px; font-size:11px; font-weight:600; color:#fff;
+    }
+    #scr-com .hero-badge i{font-size:14px;}
+    #scr-com .hero-ico{font-size:21px; opacity:.9;}
+    #scr-com .hero-val{
+      font-size:42px; font-weight:700; line-height:1; margin:13px 0 2px;
+      font-variant-numeric:tabular-nums; position:relative; z-index:1; letter-spacing:-.02em;
+    }
+    #scr-com .hero-val small{font-size:15px; font-weight:500; opacity:.85; margin-left:6px;}
+    #scr-com .hero-sub{font-size:12.5px; color:rgba(255,255,255,.82); position:relative; z-index:1;}
+
+    /* COMM CARD */
+    #scr-com .com{
+      position:relative; background:var(--card); border:1px solid var(--bd);
+      border-radius:15px; padding:14px 14px 13px; box-shadow:var(--sh-card); margin-bottom:10px;
+    }
+    #scr-com .com.pinned{border-left:3px solid var(--brand); background:var(--card2);}
+    #scr-com .com.unread{border-left:3px solid var(--info);}
+    #scr-com .com-head{display:flex; align-items:flex-start; gap:11px;}
+    #scr-com .com-ico{
+      width:36px; height:36px; border-radius:11px; flex:0 0 auto;
+      display:flex; align-items:center; justify-content:center; font-size:18px;
+    }
+    #scr-com .ic-green{background:var(--green-bg); color:var(--gtext2);}
+    #scr-com .ic-amber{background:var(--amber-bg); color:var(--amber);}
+    #scr-com .ic-info{background:var(--info-bg); color:var(--info);}
+    #scr-com .ic-neutral{background:var(--neutral-bg); color:var(--tx-w);}
+    #scr-com .com-body{flex:1; min-width:0;}
+    #scr-com .com-tt{
+      font-size:14px; font-weight:500; color:var(--tx); line-height:1.3; letter-spacing:-.01em;
+      display:flex; align-items:center; gap:7px;
+    }
+    #scr-com .com.unread .com-tt{font-weight:700;}
+    #scr-com .dot{width:8px; height:8px; border-radius:50%; background:var(--info); flex:0 0 auto; box-shadow:0 0 0 3px var(--info-bg);}
+    #scr-com .com-ex{
+      font-size:12.5px; color:var(--tx-w); line-height:1.42; margin-top:5px;
+      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    }
+    #scr-com .com-meta{display:flex; align-items:center; gap:8px; margin-top:11px; flex-wrap:wrap;}
+    #scr-com .seg{
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:11px; font-weight:600; padding:3px 9px; border-radius:8px;
+      background:var(--neutral-bg); color:var(--tx-w);
+    }
+    #scr-com .seg i{font-size:13px;}
+    #scr-com .seg.green{background:var(--green-bg); color:var(--gtext2);}
+    #scr-com .seg.amber{background:var(--amber-bg); color:var(--amber);}
+    #scr-com .when{font-size:11px; color:var(--tx-w2); margin-left:auto; display:inline-flex; align-items:center; gap:4px;}
+    #scr-com .when i{font-size:13px;}
+
+    /* status badges */
+    #scr-com .badge{
+      display:inline-flex; align-items:center; gap:4px;
+      font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:8px; letter-spacing:.01em;
+    }
+    #scr-com .b-new{background:var(--info-bg); color:var(--info);}
+    #scr-com .b-pend{background:var(--amber-bg); color:var(--amber);}
+    #scr-com .b-ok{background:var(--green-bg); color:var(--gtext2);}
+    #scr-com .badge i{font-size:13px;}
+
+    /* confirm CTA */
+    #scr-com .com-confirm{
+      margin-top:12px; padding-top:12px; border-top:1px dashed var(--bd2);
+      display:flex; align-items:center; gap:10px;
+    }
+    #scr-com .com-confirm .ctxt{font-size:11.5px; color:var(--amber); font-weight:500; flex:1; display:flex; align-items:center; gap:5px;}
+    #scr-com .com-confirm .ctxt i{font-size:15px;}
+    #scr-com .btn-confirm{
+      height:38px; padding:0 15px; border-radius:11px; border:none;
+      background:linear-gradient(150deg,#1AA34F,#0B7A36); color:#fff;
+      font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
+      display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+    }
+    #scr-com .btn-confirm i{font-size:16px;}
+    #scr-com .com.done{opacity:.78;}
+    #scr-com .com.done .com-tt{font-weight:500; color:var(--tx-w);}
+
+    /* BOTTOM NAV */
+    #scr-com .nav{
+      position:absolute; left:0; right:0; bottom:0;
+      display:flex; padding:9px 10px 14px; gap:2px;
+      background:linear-gradient(0deg,var(--bg) 78%,transparent);
+      border-top:1px solid var(--bd);
+    }
+    #scr-com .nav-it{
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+      background:none; border:none; cursor:pointer; color:var(--tx-w2);
+      font-family:inherit; font-size:10px; font-weight:500; position:relative;
+    }
+    #scr-com .nav-it i{font-size:22px;}
+    #scr-com .nav-it.on{color:var(--gtext2);}
+    #scr-com .nav-it .nbadge{
+      position:absolute; top:-3px; left:calc(50% + 6px);
+      min-width:16px; height:16px; padding:0 4px; border-radius:8px;
+      background:var(--info); color:#fff; font-size:9.5px; font-weight:700;
+      display:flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums;
+      border:2px solid var(--bg);
+    }
+  </style>
+
+  <div class="topbar">
+    <button class="tb-back" aria-label="Voltar"><i class="ti ti-chevron-left"></i></button>
+    <span class="tb-title">Avisos</span>
+    <button class="tb-theme" id="com-theme" aria-label="Alternar tema"><i class="ti ti-moon"></i></button>
+  </div>
+
+  <div class="filters" role="group" aria-label="Filtrar avisos">
+    <button class="chip" aria-pressed="true"><i class="ti ti-layout-grid"></i>Todos</button>
+    <button class="chip" aria-pressed="false"><i class="ti ti-mail-opened"></i>Não lidos <span class="cc">3</span></button>
+  </div>
+
+  <div class="scroll">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-top">
+        <span class="hero-badge"><i class="ti ti-bell-ringing"></i>Comunicação interna</span>
+        <i class="ti ti-speakerphone hero-ico"></i>
+      </div>
+      <div class="hero-val">3<small>avisos não lidos</small></div>
+      <div class="hero-sub">1 exige sua confirmação de leitura</div>
+    </div>
+
+    <!-- FIXADO -->
+    <div class="ov"><i class="ti ti-pin" style="font-size:13px"></i>Fixado<span class="ln"></span></div>
+
+    <div class="com pinned unread">
+      <div class="com-head">
+        <div class="com-ico ic-green"><i class="ti ti-calendar-event"></i></div>
+        <div class="com-body">
+          <div class="com-tt"><span class="dot" aria-hidden="true"></span>Recesso coletivo de julho — escala definida</div>
+          <p class="com-ex">A escala de recesso entre 14/07 e 18/07 já está fechada. Confira seu período de descanso e o impacto no banco de horas no portal.</p>
+          <div class="com-meta">
+            <span class="seg green"><i class="ti ti-users"></i>Todos</span>
+            <span class="badge b-new"><i class="ti ti-sparkles"></i>Novo</span>
+            <span class="when"><i class="ti ti-clock"></i>Hoje, 08:12</span>
+          </div>
+        </div>
+      </div>
+      <div class="com-confirm">
+        <span class="ctxt"><i class="ti ti-shield-check"></i>RH pediu confirmação de leitura</span>
+        <button class="btn-confirm"><i class="ti ti-check"></i>Confirmo que li</button>
+      </div>
+    </div>
+
+    <!-- RECENTES -->
+    <div class="ov">Recentes<span class="ct">5</span><span class="ln"></span></div>
+
+    <div class="com unread">
+      <div class="com-head">
+        <div class="com-ico ic-amber"><i class="ti ti-tools"></i></div>
+        <div class="com-body">
+          <div class="com-tt"><span class="dot" aria-hidden="true"></span>Manutenção do refeitório — turno B</div>
+          <p class="com-ex">Na quarta (01/07) o refeitório abre às 11h30 para o turno B. Marmitas seguem disponíveis no horário normal.</p>
+          <div class="com-meta">
+            <span class="seg amber"><i class="ti ti-clock-hour-4"></i>Turno B</span>
+            <span class="badge b-new"><i class="ti ti-sparkles"></i>Novo</span>
+            <span class="when"><i class="ti ti-clock"></i>Ontem, 17:40</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="com unread">
+      <div class="com-head">
+        <div class="com-ico ic-info"><i class="ti ti-clock-dollar"></i></div>
+        <div class="com-body">
+          <div class="com-tt"><span class="dot" aria-hidden="true"></span>Fechamento do banco de horas de junho</div>
+          <p class="com-ex">Seu saldo atual é -02:24. O fechamento do mês ocorre em 30/06; compense as horas pendentes até lá com seu líder.</p>
+          <div class="com-meta">
+            <span class="seg"><i class="ti ti-building-factory-2"></i>Produção</span>
+            <span class="badge b-new"><i class="ti ti-sparkles"></i>Novo</span>
+            <span class="when"><i class="ti ti-clock"></i>23/06</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="com done">
+      <div class="com-head">
+        <div class="com-ico ic-neutral"><i class="ti ti-vaccine"></i></div>
+        <div class="com-body">
+          <div class="com-tt">Campanha de vacinação da gripe</div>
+          <p class="com-ex">Vacinação gratuita no ambulatório nesta sexta, das 09h às 16h. Leve o crachá.</p>
+          <div class="com-meta">
+            <span class="seg green"><i class="ti ti-users"></i>Todos</span>
+            <span class="badge b-ok"><i class="ti ti-check"></i>Confirmado</span>
+            <span class="when"><i class="ti ti-eye-check"></i>Lido em 20/06</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="com done">
+      <div class="com-head">
+        <div class="com-ico ic-neutral"><i class="ti ti-shirt"></i></div>
+        <div class="com-body">
+          <div class="com-tt">Entrega de novos uniformes</div>
+          <p class="com-ex">A retirada dos uniformes do setor de costura segue até 30/06 no almoxarifado.</p>
+          <div class="com-meta">
+            <span class="seg amber"><i class="ti ti-needle-thread"></i>Costura</span>
+            <span class="badge b-ok"><i class="ti ti-check"></i>Lido</span>
+            <span class="when"><i class="ti ti-eye-check"></i>Lido em 18/06</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <nav class="nav" aria-label="Navegação principal">
+    <button class="nav-it"><i class="ti ti-home"></i>Início</button>
+    <button class="nav-it"><i class="ti ti-clock-hour-9"></i>Banco h.</button>
+    <button class="nav-it on" aria-current="page"><i class="ti ti-speakerphone"></i>Avisos<span class="nbadge">3</span></button>
+    <button class="nav-it"><i class="ti ti-user"></i>Perfil</button>
+  </nav>
+
+  <script>
+    (function(){
+      var root=document.getElementById('scr-com');
+      var btn=root.querySelector('#com-theme');
+      btn.addEventListener('click',function(){
+        var d=root.getAttribute('data-t')==='dark';
+        root.setAttribute('data-t', d?'light':'dark');
+        btn.querySelector('i').className='ti '+(d?'ti-sun':'ti-moon');
+      });
+      root.querySelectorAll('.filters .chip').forEach(function(c){
+        c.addEventListener('click',function(){
+          root.querySelectorAll('.filters .chip').forEach(function(x){x.setAttribute('aria-pressed','false');});
+          c.setAttribute('aria-pressed','true');
+        });
+      });
+      root.querySelectorAll('.btn-confirm').forEach(function(b){
+        b.addEventListener('click',function(){
+          var card=b.closest('.com');
+          card.classList.remove('unread');
+          card.classList.add('done');
+          var dot=card.querySelector('.dot'); if(dot) dot.remove();
+          b.closest('.com-confirm').innerHTML='<span class="ctxt" style="color:var(--gtext2)"><i class="ti ti-circle-check-filled"></i>Leitura confirmada agora</span>';
+        });
+      });
+    })();
+  </script>
+</div>
+</body></html>

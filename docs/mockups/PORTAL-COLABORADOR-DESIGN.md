@@ -27,6 +27,8 @@
 | 6 | **Conta / perfil** | `colaborador-conta.html` | ✅ desenhada |
 | 7 | **Acesso + login (CPF)** | `colaborador-acesso-login.html` | ✅ desenhada |
 
+> **🎨 Redesign premium aprovado (2026-06-26)** — as 5 telas principais foram redesenhadas na linguagem da home aprovada (3 níveis de elevação, herói de marca, light anti-lavado, dark padrão + toggle). Mockups: `colaborador-home-redesign.html` · `colaborador-conta-redesign.html` · `colaborador-bh-redesign.html` · `colaborador-comunicados-redesign.html` · `colaborador-documentos-redesign.html`. **Super-HTML (mural das 5):** `portal-redesign-showcase.html`. Handoff: `claude-bridge/inbox-pc/2026-06-26-colaborador-redesign-pacote.md` (+ home em `2026-06-26-home-redesign.md`). Bind real por tela está no bridge.
+
 ### 1. Início (home)
 Saudação + cartão de identidade (nome, cargo · setor, chips: turno, tempo de casa, aniversário — sem PII) · **Banco de horas minimalista** (só o saldo; verde positivo / âmbar negativo) · **"Precisa da sua atenção"** (documento a assinar, comunicados novos) · atalhos (Meu ponto · Holerites · Comunicados · Documentos) · comunicado fixado · aniversariantes.
 **Bind:** identidade/saldo de `funcionarios/{meuId}` + `pipeline-rh/cur`; aniversariantes de `/config/aniversariantes` (ou agregado). Comunicados/documentos = placeholder até as coleções existirem.
