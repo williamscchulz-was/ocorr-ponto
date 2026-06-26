@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal do Colaborador — Avisos + Documentos (mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Tokens do Portal do Colaborador (dark = assinatura do portal; .light disponivel) */
+.phone{
+  --bg:#0E130E; --surface:#161D15; --surface-warm:#1E261D; --border:#232C22; --border-strong:#2A332A;
+  --text:#EDF3EA; --text-muted:#8A9884; --plum:#5FCB85; --plum-soft:#5FCB85; --plum-deep:#9FE0B5;
+  --success:#5FCB85; --success-bg:#193220; --warning:#E8B468; --warning-bg:#3A2E18;
+  --danger:#E68A86; --danger-bg:rgba(150,47,50,.22); --info:#7FC4F0; --info-bg:rgba(0,118,190,.18);
+  --radius:15px; --radius-sm:11px;
+}
+.phone.light{
+  --bg:#F7F9F6; --surface:#FFFFFF; --surface-warm:#EEF3EC; --border:#E3EBE0; --border-strong:#D8E2D3;
+  --text:#16201A; --text-muted:#5B6B57; --plum:#0E8C3F; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --success:#2F6B3F; --success-bg:#E0EAD8; --warning:#B27429; --warning-bg:#F8E9D2;
+  --danger:#962F32; --danger-bg:#F4D6D2; --info:#2F5A6B; --info-bg:#DBEAF6;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Poppins,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:#0a0d0a;display:flex;flex-wrap:wrap;gap:30px;justify-content:center;padding:30px 18px}
+.light-bg{background:#dfe6dc}
+.col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#7c8a77}
+#root.light .lbl, .light-mode .lbl{color:#5B6B57}
+
+/* moldura tipo celular */
+.phone{width:390px;background:var(--bg);border-radius:30px;overflow:hidden;border:1px solid var(--border);
+  box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;height:760px;position:relative}
+
+/* topbar */
+.cp-top{display:flex;align-items:center;gap:12px;padding:16px 18px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex:none}
+.cp-top h1{font-size:18px;font-weight:700;color:var(--text);flex:1}
+.cp-top .sub{font-size:11.5px;color:var(--text-muted);font-weight:500}
+.cp-pill{font-size:11px;font-weight:700;color:var(--warning);background:var(--warning-bg);border-radius:999px;padding:3px 10px}
+.cp-tema{width:32px;height:32px;border-radius:50%;background:var(--surface-warm);border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.cp-tema svg{width:16px;height:16px;stroke-width:2}
+
+.cp-body{flex:1;overflow-y:auto;padding:16px 16px 86px;background:var(--bg)}
+.cp-body::-webkit-scrollbar{width:0}
+
+.cp-seclabel{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin:6px 2px 9px;display:flex;align-items:center;gap:6px}
+.cp-seclabel svg{width:13px;height:13px}
+
+/* ---- Card de aviso (comunicado) ---- */
+.av{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,40,20,.05)}
+.av--pin{border-color:rgba(95,203,133,.34);background:linear-gradient(180deg,var(--success-bg),transparent 55%),var(--surface)}
+.av__top{display:flex;align-items:flex-start;gap:10px}
+.av__title{font-size:15px;font-weight:700;color:var(--text);line-height:1.3;flex:1}
+.av__pin{color:var(--plum);flex:none;margin-top:1px}
+.av__pin svg{width:16px;height:16px}
+.av__badges{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}
+.chip{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:5px}
+.chip svg{width:12px;height:12px}
+.chip--seg{background:var(--success-bg);color:var(--success)}
+.chip--conf{background:var(--warning-bg);color:var(--warning)}
+.av__body{font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px}
+.av__foot{display:flex;align-items:center;gap:9px;border-top:1px solid var(--border);padding-top:11px}
+.av__meta{font-size:11px;color:var(--text-muted);flex:1}
+.av__ok{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--success)}
+.av__ok svg{width:16px;height:16px}
+.btn-ciente{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--plum-soft);color:#06210f;border:none;border-radius:11px;
+  padding:10px 15px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:filter .15s;white-space:nowrap}
+.btn-ciente:hover{filter:brightness(1.06)}
+.btn-ciente svg{width:16px;height:16px;stroke-width:2.5}
+
+/* ---- Card de documento ---- */
+.doc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;margin-bottom:12px}
+.doc__row{display:flex;align-items:flex-start;gap:12px}
+.doc__seal{width:42px;height:42px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--success-bg);color:var(--plum)}
+.doc__seal svg{width:21px;height:21px}
+.doc__tt{flex:1;min-width:0}
+.doc__title{font-size:14.5px;font-weight:700;color:var(--text);line-height:1.3}
+.doc__sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:10.5px;font-weight:600;color:var(--text-muted);background:var(--surface-warm);border:1px solid var(--border);border-radius:8px;padding:2px 8px;display:inline-flex;align-items:center;gap:5px}
+.tag svg{width:12px;height:12px}
+.tag--link{color:var(--info);border-color:rgba(127,196,240,.3)}
+.doc__status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:13px;border-top:1px solid var(--border);padding-top:12px}
+.doc__pend{font-size:12px;font-weight:600;color:var(--warning);display:inline-flex;align-items:center;gap:6px}
+.doc__pend svg{width:15px;height:15px}
+.doc__signed{font-size:12px;font-weight:600;color:var(--success);display:inline-flex;align-items:center;gap:6px}
+.doc__signed svg{width:16px;height:16px}
+.btn-assinar{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--plum-soft);color:#06210f;border:none;border-radius:11px;
+  padding:10px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn-assinar svg{width:16px;height:16px;stroke-width:2.4}
+.btn-ler{background:var(--surface-warm);color:var(--text);border:1px solid var(--border);border-radius:11px;padding:9px 14px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+
+/* ---- Bottom nav ---- */
+.cp-bn{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;align-items:center;
+  background:var(--surface);border-top:1px solid var(--border);padding:8px 6px 12px}
+.cp-bn button{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.cp-bn__ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.cp-bn__ic svg{width:23px;height:23px}
+.cp-bn button.on .cp-bn__ic{background:var(--plum-soft);color:#06210f}
+
+/* ---- Modal de assinatura ---- */
+.ov{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;padding:0}
+.sheet{background:var(--surface);border-top-left-radius:22px;border-top-right-radius:22px;width:100%;padding:20px 18px 22px;border-top:1px solid var(--border-strong)}
+.sheet__grip{width:38px;height:4px;border-radius:4px;background:var(--border-strong);margin:0 auto 16px}
+.sheet h2{font-size:17px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:9px}
+.sheet h2 svg{width:20px;height:20px;color:var(--plum)}
+.sheet .meta{font-size:12px;color:var(--text-muted);margin:5px 0 14px}
+.sheet__doc{display:flex;align-items:center;gap:11px;background:var(--surface-warm);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px}
+.sheet__doc .doc__seal{width:38px;height:38px}
+.sheet__doc b{font-size:13.5px;font-weight:600;color:var(--text);display:block}
+.sheet__doc span{font-size:11.5px;color:var(--text-muted)}
+.sheet__doc a{margin-left:auto;font-size:12px;font-weight:600;color:var(--info);text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.sheet__doc a svg{width:15px;height:15px}
+.aceite{display:flex;align-items:flex-start;gap:11px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:13px;cursor:pointer}
+.aceite__box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border-strong);flex:none;display:flex;align-items:center;justify-content:center;transition:.15s}
+.aceite.on .aceite__box{background:var(--plum-soft);border-color:var(--plum-soft);color:#06210f}
+.aceite__box svg{width:14px;height:14px;stroke-width:3;opacity:0}
+.aceite.on .aceite__box svg{opacity:1}
+.aceite__t{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.sheet__note{font-size:11px;color:var(--text-muted);line-height:1.5;margin:13px 2px 16px;display:flex;gap:7px}
+.sheet__note svg{width:14px;height:14px;flex:none;margin-top:1px;color:var(--text-muted)}
+.btn-confirm{width:100%;background:var(--plum-soft);color:#06210f;border:none;border-radius:13px;padding:14px;font:inherit;font-size:14.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+.btn-confirm:disabled{background:var(--surface-warm);color:var(--text-muted);cursor:not-allowed}
+.btn-confirm svg{width:18px;height:18px;stroke-width:2.4}
+</style>
+</head>
+<body id="page">
+<div class="col">
+  <div class="lbl">Avisos — colaborador (lê + confirma ciência)</div>
+  <div class="phone" id="root">
+    <div class="cp-top">
+      <h1>Avisos</h1>
+      <span class="cp-pill">2 pendentes</span>
+      <button class="cp-tema" id="tema" title="Tema" aria-label="Alternar tema">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+    <div class="cp-body">
+      <div class="cp-seclabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg>Fixado</div>
+
+      <article class="av av--pin">
+        <div class="av__top">
+          <div class="av__title">Parada programada do refeitório</div>
+          <span class="av__pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg></span>
+        </div>
+        <div class="av__badges">
+          <span class="chip chip--seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Todos</span>
+          <span class="chip chip--conf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Requer ciência</span>
+        </div>
+        <div class="av__body">Nos dias 26 e 27/06 o refeitório fica fechado das 11h às 14h para manutenção elétrica. O almoço será servido na sala de treinamento do bloco B.</div>
+        <div class="av__foot">
+          <div class="av__meta">RH Fiobras · hoje, 08:14</div>
+          <button class="btn-ciente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Li e estou ciente</button>
+        </div>
+      </article>
+
+      <div class="cp-seclabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Recentes</div>
+
+      <article class="av">
+        <div class="av__top"><div class="av__title">Nova escala do turno noturno</div></div>
+        <div class="av__badges">
+          <span class="chip chip--seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Seu turno</span>
+          <span class="chip chip--conf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Requer ciência</span>
+        </div>
+        <div class="av__body">A partir de 01/07 a passagem de turno passa a ser às 23h00. Confira a nova grade no quadro do setor.</div>
+        <div class="av__foot">
+          <div class="av__meta">RH Fiobras · ontem, 17:02</div>
+          <button class="btn-ciente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Li e estou ciente</button>
+        </div>
+      </article>
+
+      <article class="av">
+        <div class="av__top"><div class="av__title">Confraternização junina</div></div>
+        <div class="av__badges">
+          <span class="chip chip--seg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Todos</span>
+        </div>
+        <div class="av__body">Nossa festa junina será nesta sexta a partir das 16h no pátio coberto. Tragam a família!</div>
+        <div class="av__foot">
+          <div class="av__meta">RH Fiobras · 18/06, 09:00</div>
+          <span class="av__ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Ciência registrada · hoje 09:12</span>
+        </div>
+      </article>
+    </div>
+    <nav class="cp-bn">
+      <button><span class="cp-bn__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span></button>
+      <button class="on"><span class="cp-bn__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3.5 3.5 0 0 1 0 6"/></svg></span></button>
+      <button><span class="cp-bn__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span></button>
+      <button><span class="cp-bn__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></button>
+    </nav>
+  </div>
+</div>
+
+<div class="col">
+  <div class="lbl">Documentos — colaborador (lê + assina N1)</div>
+  <div class="phone" id="root2">
+    <div class="cp-top">
+      <h1>Documentos</h1>
+      <span class="cp-pill">1 assinatura</span>
+      <button class="cp-tema" title="Tema" aria-label="Alternar tema">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+    <div class="cp-body">
+      <div class="cp-seclabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Precisa da sua assinatura</div>
+
+      <article class="doc">
+        <div class="doc__row">
+          <span class="doc__seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+          <div class="doc__tt">
+            <div class="doc__title">Código de conduta 2026</div>
+            <div class="doc__sub">
+              <span class="tag">conduta</span>
+              <span class="tag">v2</span>
+              <span class="tag tag--link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>abrir anexo</span>
+            </div>
+          </div>
+        </div>
+        <div class="doc__status">
+          <span class="doc__pend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 7 12 12 15 14"/></svg>Assinatura pendente (v2)</span>
+          <button class="btn-assinar" onclick="document.getElementById('sheet').style.display='flex'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Assinar</button>
+        </div>
+      </article>
+
+      <div class="cp-seclabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Em dia</div>
+
+      <article class="doc">
+        <div class="doc__row">
+          <span class="doc__seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <div class="doc__tt">
+            <div class="doc__title">Política de privacidade e LGPD</div>
+            <div class="doc__sub">
+              <span class="tag">privacidade</span>
+              <span class="tag">v1</span>
+              <span class="tag tag--link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>abrir anexo</span>
+            </div>
+          </div>
+        </div>
+        <div class="doc__status">
+          <span class="doc__signed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Assinado · v1 · 24/06 16:40</span>
+        </div>
+      </article>
+
+      <article class="doc">
+        <div class="doc__row">
+          <span class="doc__seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span>
+          <div class="doc__tt">
+            <div class="doc__title">Manual da cultura Fiobras</div>
+            <div class="doc__sub">
+              <span class="tag">cultura</span>
+              <span class="tag">v1</span>
+              <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>só ciência</span>
+            </div>
+          </div>
+        </div>
+        <div class="doc__status">
+          <span class="doc__signed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Lido · 22/06</span>
+        </div>
+      </article>
+    </div>
+    <nav class="cp-bn">
+      <button><span class="cp-bn__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span></button>
+      <button><span class="cp-bn__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3.5 3.5 0 0 1 0 6"/></svg></span></button>
+      <button class="on"><span class="cp-bn__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span></button>
+      <button><span class="cp-bn__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></button>
+    </nav>
+
+    <!-- Sheet de assinatura -->
+    <div class="ov" id="sheet" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+      <div class="sheet">
+        <div class="sheet__grip"></div>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Assinar documento</h2>
+        <div class="meta">Aceite N1 · versão 2</div>
+        <div class="sheet__doc">
+          <span class="doc__seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+          <div><b>Código de conduta 2026</b><span>conduta · v2</span></div>
+          <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>ler</a>
+        </div>
+        <label class="aceite" id="aceite" onclick="this.classList.toggle('on');document.getElementById('confirm').disabled=!this.classList.contains('on')">
+          <span class="aceite__box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span class="aceite__t">Li e estou de acordo com o conteúdo deste documento.</span>
+        </label>
+        <div class="sheet__note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span>Registra seu nome, data e hora (do servidor) e a versão assinada. É um aceite com trilha, não validade jurídica plena.</span>
+        </div>
+        <button class="btn-confirm" id="confirm" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Confirmar assinatura</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // toggle de tema nos dois telefones
+  document.querySelectorAll('.cp-tema').forEach(function(b){
+    b.addEventListener('click', function(){
+      var root = b.closest('.phone');
+      root.classList.toggle('light');
+      document.body.classList.toggle('light-bg');
+    });
+  });
+</script>
+</body>
+</html>
