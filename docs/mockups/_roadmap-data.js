@@ -416,9 +416,10 @@ window.ROADMAP = {
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
-      status: "planejado",
+      status: "concluido",
+      concluidoEm: "2026-06-26",
       classificacao: "cria",
-      descricao: "Coleção comunicados/{id} + CRUD (criarComunicado, escutarComunicados, editarComunicado, fixarComunicado). Schema {titulo, corpo, segmento{tipo,valores}, autorUid, autorNome, publicadoEm(server), fixado, ativo, requerConfirmacao}. Cap comunicados.gerenciar (true admin/RH).",
+      descricao: "ENTREGUE (no ar v186). Segmentação por turno/setor lê cruzado (users.setor/.turno denormalizados pelo pipeline) + hasOnly nas subcoleções. Coleção comunicados/{id} + CRUD (criarComunicado, escutarComunicados, editarComunicado, fixarComunicado). Schema {titulo, corpo, segmento{tipo,valores}, autorUid, autorNome, publicadoEm(server), fixado, ativo, requerConfirmacao}. Cap comunicados.gerenciar (true admin/RH).",
       objetivo: "Estabelecer a comunicação 1→N que hoje não existe. Backbone de comunicados, avisos e notificações.",
       dependencias: ["rules (read segmentado, write temCap)", "papel colaborador"],
       criteriosAceite: [
@@ -435,9 +436,10 @@ window.ROADMAP = {
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
-      status: "planejado",
+      status: "concluido",
+      concluidoEm: "2026-06-26",
       classificacao: "adapta",
-      descricao: "Origem = PORTAL DO GESTOR (cap comunicados.gerenciar = admin/RH; supervisor comum não publica). renderComunicados com lista publicada (cronológica reversa, fixado no topo) + painel de leituras (X de Y leram/confirmaram) + modal compositor (título, corpo, segmento todos/turno/setor, fixar, requer confirmação, pré-visualização). Segmentação canônica de turno (1 Matutino, 2 Vespertino, 3 Noturno, geral Todos). Corpo texto simples + quebras (escapeHtml).",
+      descricao: "ENTREGUE (v186) com pré-visualização ao vivo + IMAGEM no aviso (base64 com resize no cliente). Origem = PORTAL DO GESTOR (cap comunicados.gerenciar = admin/RH; supervisor comum não publica). renderComunicados com lista publicada (cronológica reversa, fixado no topo) + painel de leituras (X de Y leram/confirmaram) + modal compositor (título, corpo, segmento todos/turno/setor, fixar, requer confirmação, pré-visualização). Segmentação canônica de turno (1 Matutino, 2 Vespertino, 3 Noturno, geral Todos). Corpo texto simples + quebras (escapeHtml).",
       objetivo: "Canal oficial de avisos com segmentação, substituindo WhatsApp/mural.",
       dependencias: ["#21", "mock aprovado"],
       criteriosAceite: [
@@ -454,9 +456,10 @@ window.ROADMAP = {
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
-      status: "planejado",
+      status: "concluido",
+      concluidoEm: "2026-06-26",
       classificacao: "adapta",
-      descricao: "Renderizar comunicados segmentados (home + aba) e gravar recibo em comunicados/{id}/leituras/{uid} ao abrir/confirmar, espelhando o recibo do chat; botão 'Confirmo que li' quando requerConfirmacao; badge de não-lido; painel 'X de Y leram' para o autor.",
+      descricao: "ENTREGUE (v188) — tela Avisos do colaborador (3 queries por segmento; a rule não filtra query). Renderizar comunicados segmentados (home + aba) e gravar recibo em comunicados/{id}/leituras/{uid} ao abrir/confirmar, espelhando o recibo do chat; botão 'Confirmo que li' quando requerConfirmacao; badge de não-lido; painel 'X de Y leram' para o autor.",
       objetivo: "Prova de leitura juridicamente útil para o RH; lugar único e confiável para o colaborador.",
       dependencias: ["#21", "#22", "recibo do chat"],
       criteriosAceite: [
@@ -510,9 +513,10 @@ window.ROADMAP = {
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
-      status: "planejado",
+      status: "concluido",
+      concluidoEm: "2026-06-26",
       classificacao: "adapta",
-      descricao: "Coleção documentos com metadados, vínculo a funcionarioId, link Drive e hash. Schema {tipo, funcionarioId, titulo, descricao, url(Drive), hashSha256, status, criadoEm(server), criadoPor, exigeAssinatura}. Reusa driveUploadDisponivel+ehUrlSegura (só https); hash via crypto.subtle.digest.",
+      descricao: "ENTREGUE (v186) — backbone institucional (ramo pessoal por funcionarioId entra depois). Coleção documentos com metadados, vínculo a funcionarioId, link Drive e hash. Schema {tipo, funcionarioId, titulo, descricao, url(Drive), hashSha256, status, criadoEm(server), criadoPor, exigeAssinatura}. Reusa driveUploadDisponivel+ehUrlSegura (só https); hash via crypto.subtle.digest.",
       objetivo: "Centralizar todo documento a entregar/assinar com rastreabilidade.",
       dependencias: ["#11", "anexo PJ (contratoUrl/ehUrlSegura/google-drive.js)", "rule nova"],
       criteriosAceite: [
@@ -530,9 +534,10 @@ window.ROADMAP = {
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
-      status: "planejado",
+      status: "concluido",
+      concluidoEm: "2026-06-26",
       classificacao: "reaproveita",
-      descricao: "Registrar aceite com um clique, gerando evento imutável na auditoria (docId, hashSha256, uid, hora-servidor, userAgent) + subcoleção documentos/{id}/assinaturas/{uid}. Modal com documento + caixa 'Li e estou de acordo' antes de habilitar Assinar. Ressalva: é 'aceite com trilha', NÃO validade jurídica plena; IP confiável não vem do cliente.",
+      descricao: "ENTREGUE (v188) com RE-AUTENTICAÇÃO no ato de assinar (o colaborador redigita a senha; reauthenticateWithCredential) — nivel escolhido pelo dono. Registrar aceite com um clique, gerando evento imutável na auditoria (docId, hashSha256, uid, hora-servidor, userAgent) + subcoleção documentos/{id}/assinaturas/{uid}. Modal com documento + caixa 'Li e estou de acordo' antes de habilitar Assinar. Ressalva: é 'aceite com trilha', NÃO validade jurídica plena; IP confiável não vem do cliente.",
       objetivo: "Substituir papel por aceite digital rastreável e imutável, sem custo externo.",
       dependencias: ["#29", "registrarAuditoria", "crypto.subtle"],
       criteriosAceite: [
@@ -1267,9 +1272,10 @@ window.ROADMAP = {
       fase: "fase2",
       prioridade: "alta",
       complexidade: "medio",
-      status: "planejado",
+      status: "concluido",
+      concluidoEm: "2026-06-26",
       classificacao: "adapta",
-      descricao: "Tela no portal do GESTOR (cap documentos.gerenciar = admin/RH) para publicar e versionar documentos institucionais: manual de regras, código de conduta, manual da cultura, política de privacidade e LGPD, termos. Reusa documentos/{id} com escopo institucional (sem funcionarioId, com segmento) + assinatura N1 (#30). Texto OU anexo Drive (https + hash SHA-256); exige assinatura ou ciência; trocar a versão reabre a assinatura. Painel de adesão (porcentagem e pendentes). O colaborador só consome (lê e assina). Supervisor comum não publica por padrão.",
+      descricao: "ENTREGUE (v186). Tela no portal do GESTOR (cap documentos.gerenciar = admin/RH) para publicar e versionar documentos institucionais: manual de regras, código de conduta, manual da cultura, política de privacidade e LGPD, termos. Reusa documentos/{id} com escopo institucional (sem funcionarioId, com segmento) + assinatura N1 (#30). Texto OU anexo Drive (https + hash SHA-256); exige assinatura ou ciência; trocar a versão reabre a assinatura. Painel de adesão (porcentagem e pendentes). O colaborador só consome (lê e assina). Supervisor comum não publica por padrão.",
       objetivo: "Dar ao RH um lugar para publicar os documentos da empresa com versão, segmento e prova de ciência, sem mexer nas telas atuais do gestor.",
       dependencias: ["Coleção documentos e repositório (#29)", "Assinatura N1 com trilha (#30)", "cap documentos.gerenciar", "Segmentação canônica de turno"],
       criteriosAceite: [
@@ -1278,6 +1284,46 @@ window.ROADMAP = {
         "Exige assinatura ou ciência; publicar nova versão reabre o aceite (versão anterior congela como prova).",
         "Painel de adesão (porcentagem e pendentes) lê de assinaturas e leituras no servidor, sem PII de terceiros.",
         "Zero regressão nas telas e regras atuais do gestor."
+      ]
+    },
+    {
+      id: "marca-proposta-c-pulso",
+      numero: null,
+      nome: "Marca FioPulse — Proposta C (pulso ECG + tagline)",
+      fase: "fase1",
+      prioridade: "media",
+      complexidade: "facil",
+      status: "concluido",
+      concluidoEm: "2026-06-26",
+      classificacao: "adapta",
+      descricao: "ENTREGUE (v184). Mark ECG-pulso inline (SVG) unificado em 4 pontos (acesso, login gestor, login colaborador, sidebar) + tagline 'Fiobras · o batimento do RH'. Favicons 16/32/48 regerados (quadrado verde + ECG branco, legível a 16px) + variante monocromática. Aditivo, zero regressão.",
+      objetivo: "Identidade única e reconhecível do FioPulse, do acesso à sidebar, em todos os tamanhos.",
+      dependencias: ["Manual de marca Fiobras"],
+      criteriosAceite: [
+        "Mesma marca no acesso, login e sidebar.",
+        "Favicon legível a 16px.",
+        "Tagline unificada 'o batimento do RH'.",
+        "Nenhuma tela existente alterada."
+      ]
+    },
+    {
+      id: "auditoria-mobile-app-like",
+      numero: null,
+      nome: "Auditoria mobile / sensação de app (viewport + chrome + toque)",
+      fase: "fase1",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "em_andamento",
+      classificacao: "adapta",
+      descricao: "1ª LEVA NO AR (v189). Viewport de app (maximum-scale=1, user-scalable=no — acaba o pinch-zoom preso). No mobile: esconde o hamburger redundante (.topbar__menu), o FAB flutuante e o toggle do rail (a bottom-nav cobre a navegação); alvos de toque ≥40px; senha 16px (evita zoom no iOS); safe-area na bottom-nav; empilha stats/filtros/cards do colaborador com botão largura total; títulos menores. 2ª LEVA (baixa prioridade, pendente): tamanhos da home do colaborador (saldo/KPI) + scroll-snap na tabela de permissões.",
+      objetivo: "Deixar o app mobile-friendly de verdade (estrutura de app, não só adaptado).",
+      dependencias: ["Casca de UI (topbar/sidebar/bottom-nav)"],
+      criteriosAceite: [
+        "Sem pinch-zoom preso no mobile.",
+        "Sem menu sanduíche redundante no mobile.",
+        "Alvos de toque confortáveis.",
+        "Inputs não causam zoom no iOS.",
+        "Cards e ações não estouram a largura."
       ]
     }
   ]
