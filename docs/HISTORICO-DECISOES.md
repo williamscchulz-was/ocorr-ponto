@@ -428,3 +428,20 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Método:** workflow multi-agente (1 agente/tela, shell + tokens pinados, ancorado no mockup de conteúdo real) → assembler Node limpa fragmentos (tira prosa/cercas) → mural `gestor-portal-redesign-showcase.html` + 5 telas `gestor-{dash,com,doc,ocr,mon}-redesign.html`.
 
 **Handoff:** `claude-bridge/inbox-pc/2026-06-26-gestor-portal-redesign-pacote.md` (bind/backend por tela). O Monitor já está no ar (PC v193); o redesign é alinhamento visual. firestore.rules é do PC — não tocado.
+
+---
+
+## 2026-06-26 · 🎯 Ocorrências: fonte canônica = relatório "Relação de Ocorrências por Empregado" (pivot)
+
+**Virada:** o William trouxe o relatório do WK **"Relação de Ocorrências por Empregado"** (PDF, 5 págs, 155 linhas, jun/2026). É a fonte LIMPA e oficial — **substitui** o parse da apuração (`process-apuracoes`, que inferia situação a partir de Ocorrência=Sim). O relatório já vem **filtrado nas 4 situações** que vão pro app e com a **magnitude**.
+
+**Colunas:** `Cód.E · Nome · Cód.D · Departamento · Data · Cód.(sit) · Situação · Diurnas · Noturna`. **Códigos de situação:** 32 Faltas Injustificadas · 36 Atrasos · 37 Saída Antecipada · 38 Saída Intermediária (zero ruído — sem compensado/DSR/abono).
+
+**2 regras confirmadas pelo William:**
+1. **Só dias FECHADOS (D-1 pra trás).** A emissão de 26/06 14:31 trouxe **22 "Faltas de 08:00"** de gente que ainda estava trabalhando — artefato do dia aberto. O export usa `DataFinal=ontem` e o parser descarta `dataIso >= hoje`.
+2. **Turno GERAL:** atraso/saída vão pro banco de horas (NÃO geram ocorrência); **só Falta Injustificada gera**. Turnos fixos geram tudo. A escala/turno vem do `D_Empregado` (parsed-empregado) por código (o relatório não traz turno).
+3. Dedupe por (código+data+situação); splits de situações diferentes no mesmo dia ficam como 2 ocorrências.
+
+**Construído (em `C:\fiobras-pipeline-rh`):** `process-ocorrencias.mjs` (parser novo, detecção de delim/cabeçalho + as 3 regras), `inline-run-ocorrencias-export.mjs` (seta datas D-1 + roda o exe), e `config.mjs` ganhou `WK_OCORR_CONFIG`/`OCORRENCIAS_CSV_PATH`/`PARSED_OCORRENCIAS_OUT`/`COL_OCORRENCIAS_AUTO`.
+
+**Falta (ação WK do William):** criar o export do relatório no modelador do WK → `Config_Relatorio_de_Ocorrencias.txt` gerando `ExpAuto_Ocorrencias.txt` (TXT delimitado, com cabeçalho, sem aspas, todos os funcionários). Depois: validar parser contra o TXT real → adaptar `upload-ocorrencias-auto.mjs` → repovoar `ocorrencias-auto` → entrar no `run-pipeline`. `process-apuracoes.mjs` fica como histórico (descontinuado).
