@@ -719,6 +719,7 @@ function cpIcon(name) {
     expand: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
     collapse: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
     conferir: '<rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M8.5 13l2.2 2.2L15.5 10"/>',
+    pulso: '<path d="M3 12h4l2 5 4-12 2 7h6"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -2257,6 +2258,7 @@ function renderDashboard() {
         <p>${subtitle}</p>
       </div>
       <div class="row">
+        ${can("pipeline.monitor") ? `<button class="btn btn--ghost" id="btn-monitor">${icon("pulso")}<span>Monitor</span></button>` : ""}
         ${
           can("ocorrencias.criar")
             ? `<button class="btn btn--primary" id="btn-nova">${icon("plus")}<span>Nova ocorrência</span></button>`
@@ -2330,6 +2332,7 @@ function renderDashboard() {
 
   // Wire up
   if ($("#btn-nova")) $("#btn-nova").addEventListener("click", openNovaOcorrencia);
+  if ($("#btn-monitor")) $("#btn-monitor").addEventListener("click", openMonitorPipeline);
 
   // Ink deslizante: troca de aba move só a lista (não re-renderiza o dashboard),
   // então a barrinha transiciona da aba antiga pra nova em vez de pular.
@@ -5276,6 +5279,82 @@ function ocaConferirUI(id) {
   renderApp();
 }
 
+// ===== Monitor do pipeline (gestor, cap pipeline.monitor) — modal que lê monitor/wkradar =====
+const MON_GRUPOS = { "wk-export": "Exportações do WK Radar", "colecao": "Saídas no app", "auth": "Acesso" };
+function monGrupoLabel(tipo) { return MON_GRUPOS[tipo] || (tipo ? tipo.charAt(0).toUpperCase() + tipo.slice(1) : "Outras"); }
+function monIdade(min) {
+  if (min == null || isNaN(min)) return "";
+  if (min < 60) return `há ${Math.round(min)} min`;
+  const h = Math.floor(min / 60);
+  return h < 24 ? `há ${h} h` : `há ${Math.floor(h / 24)} d`;
+}
+function monQuando(iso, min) {
+  const t = bhFrescorTxt(iso);
+  const idade = monIdade(min);
+  return `${t ? `<b>${escapeHtml(t)}</b>` : ""}${idade ? `<span>${escapeHtml(idade)}</span>` : ""}` || "—";
+}
+async function openMonitorPipeline() {
+  if (!can("pipeline.monitor")) return;
+  openModal(`<div class="mon" id="mon-root">${monSkeletonHtml()}</div>`);
+  const modalEl = document.querySelector("#modal-root .modal");
+  if (modalEl) modalEl.classList.add("modal--wide");
+  wireMonClose($("#mon-root"));
+  if (window.carregarMonitorPipeline) await window.carregarMonitorPipeline();
+  const root = $("#mon-root");
+  if (root) { root.innerHTML = monPainelHtml(); wireMonClose(root); }
+}
+function wireMonClose(root) {
+  if (root) root.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+}
+function monHeadHtml(sub) {
+  return `<div class="mon-head"><div class="mon-head__ic">${icon("pulso")}</div>
+    <div class="mon-head__t"><h2>Status do pipeline</h2><p>${sub}</p></div>
+    <button class="mon-x" data-close aria-label="Fechar">${icon("x")}</button></div>`;
+}
+function monSkeletonHtml() {
+  return monHeadHtml("Carregando...") + `<div class="oca-skel" style="margin:0 22px 18px">${[0, 1, 2].map(() => `<div class="oca-skel__row" style="height:52px"></div>`).join("")}</div>`;
+}
+function monPainelHtml() {
+  const m = state.monitorPipeline || {};
+  const head = monHeadHtml(`Saúde dos exports do Radar e das saídas no app.${m.checadoEm ? ` Última verificação: ${escapeHtml(bhFrescorTxt(m.checadoEm))}.` : ""}`);
+  if (m.vazio) return head + `<div class="oca-empty">${icon("pulso")}<p>O pipeline ainda não publicou status.</p></div>`;
+  if (m.erro) return head + `<div class="oca-empty">${icon("alert")}<p>Não consegui carregar o status agora.</p></div>`;
+
+  const r = m.resumo || {};
+  const chips = `<div class="mon-chips">
+    ${r.ok ? `<span class="mon-chip mon-chip--ok"><span class="mon-dot mon-dot--ok"></span>${r.ok} OK</span>` : ""}
+    ${r.atencao ? `<span class="mon-chip mon-chip--amb"><span class="mon-dot mon-dot--amb"></span>${r.atencao} atenção</span>` : ""}
+    ${r.parado ? `<span class="mon-chip mon-chip--red"><span class="mon-dot mon-dot--red"></span>${r.parado} parada${r.parado > 1 ? "s" : ""}</span>` : ""}
+    ${r.total != null ? `<span class="mon-chip mon-chip--mut">${r.total} fontes</span>` : ""}
+  </div>`;
+
+  const ue = m.ultimaExecucao || {};
+  const ueOk = ue.status === "ok";
+  const hero = ue.status ? `<div class="mon-hero">
+    <div class="mon-hero__st mon-hero__st--${ueOk ? "ok" : "red"}">${icon(ueOk ? "check" : "alert")}</div>
+    <div class="mon-hero__m"><b>Última execução: ${ueOk ? "OK" : "Falha"}</b>
+      <p>${[ue.passos != null ? `${ue.passos} passos` : "", ue.duracaoSeg != null ? `${ue.duracaoSeg} s` : "", (!ueOk && ue.erro) ? escapeHtml(String(ue.erro)).slice(0, 80) : ""].filter(Boolean).join(" · ")}</p></div>
+    ${m.agenda ? `<div class="mon-hero__ag">${escapeHtml(m.agenda)}</div>` : ""}
+  </div>` : "";
+
+  const fontes = Array.isArray(m.fontes) ? m.fontes : [];
+  const ordem = [], porTipo = {};
+  for (const f of fontes) { const t = f.tipo || "outras"; if (!porTipo[t]) { porTipo[t] = []; ordem.push(t); } porTipo[t].push(f); }
+  const grupos = ordem.map((t) => `<div class="mon-grp__t">${escapeHtml(monGrupoLabel(t))}</div>${porTipo[t].map(monFonteHtml).join("")}`).join("");
+
+  return head + chips + hero + `<div class="mon-grp">${grupos}</div>`
+    + `<div class="mon-foot">${icon("info")}<span>Lista de monitor/wkradar (dinâmica). Sem PII. Escrita só pelo servidor.</span></div>`;
+}
+function monFonteHtml(f) {
+  const s = f.status === "ok" ? "ok" : f.status === "parado" ? "red" : "amb";
+  const detalhe = [f.meta, f.hint].filter(Boolean).join(" · ");
+  return `<div class="mon-src">
+    <span class="mon-dot mon-dot--${s}"></span>
+    <div class="mon-src__m"><div class="mon-src__l">${escapeHtml(f.label || f.id || "—")}</div>${detalhe ? `<div class="mon-src__s">${escapeHtml(detalhe)}</div>` : ""}</div>
+    <div class="mon-src__t">${monQuando(f.atualizadoEm, f.idadeMin)}</div>
+  </div>`;
+}
+
 // Selo de frescor do BH: mostra de quando sao os dados na tela (run do pipeline p/ RH,
 // ou atualizadoEm mais recente p/ lider/supervisor). Com o re-fetch ao foco, se atualiza sozinho.
 function bhFrescorTxt(iso) {
@@ -8187,6 +8266,7 @@ const PERM_CAPS = [
   { area: "Banco de Horas", caps: [
     { k: "bancoHoras.ver", n: "Ver saldos", scoped: true },
     { k: "bancoHoras.importar", n: "Importar planilha" },
+    { k: "pipeline.monitor", n: "Ver status do pipeline (monitor)" },
   ]},
   { area: "Controle PJ", caps: [
     { k: "pj.ver", n: "Ver contratos" },
@@ -8231,7 +8311,7 @@ const PERM_DEFAULT = {
     "ocorrencias.ver": true, "ocorrencias.criar": true, "ocorrencias.conferir": true,
     "ocorrencias.lancar": true, "ocorrencias.editarTudo": false, "ocorrencias.excluir": true,
     "ocorrencias.revisarAuto": true,
-    "bancoHoras.ver": true, "bancoHoras.importar": true,
+    "bancoHoras.ver": true, "bancoHoras.importar": true, "pipeline.monitor": true,
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
     "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
     "comunicados.gerenciar": true, "documentos.gerenciar": true,
@@ -8241,7 +8321,7 @@ const PERM_DEFAULT = {
     "ocorrencias.ver": "turno", "ocorrencias.criar": false, "ocorrencias.conferir": "turno",
     "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
     "ocorrencias.revisarAuto": false,
-    "bancoHoras.ver": "turno", "bancoHoras.importar": false,
+    "bancoHoras.ver": "turno", "bancoHoras.importar": false, "pipeline.monitor": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false,
@@ -8251,7 +8331,7 @@ const PERM_DEFAULT = {
     "ocorrencias.ver": "atrib", "ocorrencias.criar": false, "ocorrencias.conferir": "atrib",
     "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
     "ocorrencias.revisarAuto": false,
-    "bancoHoras.ver": "atrib", "bancoHoras.importar": false,
+    "bancoHoras.ver": "atrib", "bancoHoras.importar": false, "pipeline.monitor": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false,
@@ -8263,7 +8343,7 @@ const PERM_DEFAULT = {
     "ocorrencias.ver": false, "ocorrencias.criar": false, "ocorrencias.conferir": false,
     "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
     "ocorrencias.revisarAuto": false,
-    "bancoHoras.ver": false, "bancoHoras.importar": false,
+    "bancoHoras.ver": false, "bancoHoras.importar": false, "pipeline.monitor": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,
     "auditoria.ver": false, "obrigacoes.gerenciar": false,

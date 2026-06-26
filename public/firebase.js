@@ -1103,6 +1103,24 @@
     }
     window.recarregarOcorrenciasAuto = recarregarOcorrenciasAuto;
 
+    // ===== monitor/wkradar — saúde do pipeline (somente leitura, admin/RH) =====
+    // Doc gravado pelo servidor a cada run. Converte os Timestamps p/ ISO e expõe no state.
+    window.carregarMonitorPipeline = async function () {
+      try {
+        const snap = await db.collection("monitor").doc("wkradar").get();
+        if (!snap.exists) { state.monitorPipeline = { vazio: true }; return; }
+        const d = snap.data();
+        state.monitorPipeline = {
+          ...d,
+          checadoEm: tsToIso(d.checadoEm),
+          fontes: Array.isArray(d.fontes) ? d.fontes.map((f) => ({ ...f, atualizadoEm: tsToIso(f.atualizadoEm) })) : [],
+        };
+      } catch (e) {
+        debug?.("[monitor] carregar:", e?.message || e);
+        state.monitorPipeline = { erro: true };
+      }
+    };
+
     // Confirma a conferência de UMA ocorrência. Idempotente: se já conferida, não reescreve.
     // A rule só deixa mexer em status (-> conferida) + historico (append de 1).
     window.conferirOcorrenciaAuto = async function (id) {
@@ -2252,6 +2270,7 @@
       state.comunicadosColab = [];
       state.documentosColab = [];
       state.ocorrenciasAuto = null; // null = recarrega no próximo acesso à aba
+      state.monitorPipeline = null;
       // Para o listener vivo das ocorrências e reseta a detecção de deltas
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }

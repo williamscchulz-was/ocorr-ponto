@@ -413,6 +413,14 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    // ===== monitor/wkradar — saúde do pipeline RH (somente leitura no app) =====
+    // Doc gravado pelo servidor (Admin SDK) a cada execução do pipeline. SEM PII (só nomes
+    // de arquivo/coleção, horários, contagens). Admin/RH leem; o app nunca escreve.
+    match /monitor/{doc} {
+      allow read: if isAdmin() || temCap('pipeline.monitor', isRH());
+      allow write: if false;
+    }
+
     // ----- Helpers de atualização -----
 
     // GH editando só a observação (anotação benigna) — sempre permitido,
