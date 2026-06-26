@@ -4040,7 +4040,7 @@ function renderComunicados() {
     <header class="page-header">
       <div>
         <h1>Comunicados</h1>
-        <p>Componha e publique avisos para a equipe. A publicacao parte do seu login de gestor.</p>
+        <p>Componha e publique avisos para a equipe. A publicação parte do seu login de gestor.</p>
       </div>
       <button class="btn btn--primary" data-com-nova>${icon("plus")}<span>Novo comunicado</span></button>
     </header>`;
@@ -4063,7 +4063,7 @@ function renderComunicados() {
     <div class="stats">
       ${stat("Publicados", comAtivos().length, "megafone")}
       ${stat("Fixados", fixados.length, "pin")}
-      ${stat("Com confirmacao", comConf, "check")}
+      ${stat("Com confirmação", comConf, "check")}
     </div>
     ${fixados.length ? `<div class="com-seclabel">${icon("pin")}<span>Fixado</span></div>
       <div class="com-list">${fixados.map(comCardHtml).join("")}</div>` : ""}
@@ -4087,7 +4087,7 @@ function comCardHtml(c) {
       </div>
       <div class="com-badges">
         <span class="badge badge--success">${comSegLabel(seg)}</span>
-        ${c.requerConfirmacao ? `<span class="badge badge--warning">${icon("check")}<span>Requer confirmacao</span></span>` : ""}
+        ${c.requerConfirmacao ? `<span class="badge badge--warning">${icon("check")}<span>Requer confirmação</span></span>` : ""}
         ${c.fixado ? `<span class="badge badge--neutral">${icon("pin")}<span>Fixado</span></span>` : ""}
       </div>
       ${c.corpo ? `<div class="com-card__body">${escapeHtml(c.corpo)}</div>` : ""}
@@ -4122,10 +4122,10 @@ function comPreview(segTipo) {
   const seg = comSegmentoDoForm(segTipo);
   const fixar = $("#com-fixar")?.getAttribute("aria-checked") === "true";
   const conf = $("#com-conf")?.getAttribute("aria-checked") === "true";
-  if ($("#com-pv-titulo")) $("#com-pv-titulo").textContent = t || "Titulo do comunicado";
-  if ($("#com-pv-corpo")) $("#com-pv-corpo").textContent = b || "O corpo aparece aqui conforme voce escreve.";
+  if ($("#com-pv-titulo")) $("#com-pv-titulo").textContent = t || "Título do comunicado";
+  if ($("#com-pv-corpo")) $("#com-pv-corpo").textContent = b || "O corpo aparece aqui conforme você escreve.";
   let badges = `<span class="badge badge--success">${comSegLabel(seg)}</span>`;
-  if (conf) badges += `<span class="badge badge--warning">${icon("check")}<span>Requer confirmacao</span></span>`;
+  if (conf) badges += `<span class="badge badge--warning">${icon("check")}<span>Requer confirmação</span></span>`;
   if (fixar) badges += `<span class="badge badge--neutral">${icon("pin")}<span>Fixado</span></span>`;
   if ($("#com-pv-badges")) $("#com-pv-badges").innerHTML = badges;
   const n = comAlcance(seg);
@@ -4147,7 +4147,7 @@ function openComunicadoModal(id) {
     </div>
     <form class="modal__body" id="com-form" onsubmit="return false">
       <div class="field">
-        <label for="com-titulo">Titulo</label>
+        <label for="com-titulo">Título</label>
         <input type="text" id="com-titulo" maxlength="140" value="${c ? escapeHtml(c.titulo) : ""}" placeholder="Ex.: Parada programada do refeitorio" />
       </div>
       <div class="field">
@@ -4176,15 +4176,15 @@ function openComunicadoModal(id) {
         </div>
       </div>
       <div class="com-toggle">
-        <div class="com-toggle__t">${icon("pin")}<div><b>Fixar no topo</b><span>Mantem o aviso destacado acima dos demais</span></div></div>
+        <div class="com-toggle__t">${icon("pin")}<div><b>Fixar no topo</b><span>Mantém o aviso destacado acima dos demais</span></div></div>
         <button type="button" class="com-sw ${c?.fixado ? "is-on" : ""}" id="com-fixar" role="switch" aria-checked="${c?.fixado ? "true" : "false"}" aria-label="Fixar no topo"></button>
       </div>
       <div class="com-toggle">
-        <div class="com-toggle__t">${icon("check")}<div><b>Requer confirmacao de leitura</b><span>Gera trilha de ciencia por funcionario</span></div></div>
-        <button type="button" class="com-sw ${c?.requerConfirmacao ? "is-on" : ""}" id="com-conf" role="switch" aria-checked="${c?.requerConfirmacao ? "true" : "false"}" aria-label="Requer confirmacao de leitura"></button>
+        <div class="com-toggle__t">${icon("check")}<div><b>Requer confirmação de leitura</b><span>Gera trilha de ciência por funcionário</span></div></div>
+        <button type="button" class="com-sw ${c?.requerConfirmacao ? "is-on" : ""}" id="com-conf" role="switch" aria-checked="${c?.requerConfirmacao ? "true" : "false"}" aria-label="Requer confirmação de leitura"></button>
       </div>
       <div class="com-preview">
-        <div class="com-preview__l">Pre-visualizacao</div>
+        <div class="com-preview__l">Pré-visualização</div>
         <div class="com-preview__t" id="com-pv-titulo"></div>
         <div class="com-badges" id="com-pv-badges"></div>
         <div class="com-preview__b" id="com-pv-corpo"></div>
@@ -4229,7 +4229,7 @@ function openComunicadoModal(id) {
 
 function salvarComunicadoForm(id, segTipo) {
   const titulo = $("#com-titulo").value.trim();
-  if (!titulo || titulo.length < 3) return campoInvalido("#com-titulo", "De um titulo ao comunicado (min. 3 letras).");
+  if (!titulo || titulo.length < 3) return campoInvalido("#com-titulo", "Dê um título ao comunicado (mín. 3 letras).");
   const corpo = $("#com-corpo").value.trim();
   if (!corpo) return campoInvalido("#com-corpo", "Escreva o corpo do comunicado.");
   const seg = comSegmentoDoForm(segTipo);
@@ -4275,7 +4275,7 @@ function fixarComunicadoUI(id) {
 async function despublicarComunicadoUI(id) {
   const c = (state.comunicados || []).find((x) => x.id === id);
   if (!c) return;
-  if (!(await confirmar({ titulo: "Despublicar comunicado?", msg: `"${escapeHtml(c.titulo)}" sai da lista da equipe. O historico e as leituras sao preservados.`, okLabel: "Despublicar", perigo: true }))) return;
+  if (!(await confirmar({ titulo: "Despublicar comunicado?", msg: `"${escapeHtml(c.titulo)}" sai da lista da equipe. O histórico e as leituras são preservados.`, okLabel: "Despublicar", perigo: true }))) return;
   if (window.despublicarComunicado) return void window.despublicarComunicado(id);
   c.ativo = false; store.save(state); closeModal(); toast("Comunicado despublicado."); renderApp();
 }
@@ -4314,11 +4314,11 @@ function abrirLeiturasComunicado(id) {
         <button class="com-tab is-on" data-com-tab="ok">${icon("check")}<span>${confKey ? "Confirmaram" : "Leram"}</span> <i>${confirmaram.length}</i></button>
         <button class="com-tab" data-com-tab="pend">${icon("clock")}<span>Pendentes</span> <i>${pendentes.length}</i></button>
       </div>
-      <div class="com-people" id="com-people-ok">${confirmaram.length ? confirmaram.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguem ${verbo} ainda.</p>`}</div>
+      <div class="com-people" id="com-people-ok">${confirmaram.length ? confirmaram.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguém ${verbo} ainda.</p>`}</div>
       <div class="com-people" id="com-people-pend" style="display:none">${pendentes.length ? pendentes.map((f) => linha(f, false)).join("") : `<p class="muted" style="padding:14px 2px">Todos em dia.</p>`}</div>
     </div>
     <div class="modal__footer">
-      <span class="muted text-xs">Trilha de ciencia · ${confirmaram.length} de ${Y} ${verbo}</span>
+      <span class="muted text-xs">Trilha de ciência · ${confirmaram.length} de ${Y} ${verbo}</span>
       <button class="btn btn--ghost" data-close>Fechar</button>
     </div>
   `, {
@@ -4404,7 +4404,7 @@ function renderDocumentos() {
     <header class="page-header">
       <div>
         <h1>Documentos institucionais</h1>
-        <p>Publique regras, conduta, cultura e politicas. Acompanhe quem leu e assinou.</p>
+        <p>Publique regras, conduta, cultura e políticas. Acompanhe quem leu e assinou.</p>
       </div>
       <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Novo documento</span></button>
     </header>`;
@@ -4428,7 +4428,7 @@ function renderDocumentos() {
     <div class="stats">
       ${stat("Publicados", m.publicados, "file")}
       ${stat("Assinatura pendente", m.pendentes, "edit")}
-      ${stat("Adesao media", m.media + "%", "check")}
+      ${stat("Adesão média", m.media + "%", "check")}
     </div>
     <div class="doc-filtros">
       ${filtros.map(([k, n]) => `<button class="doc-chip ${filtro === k ? "is-on" : ""}" data-doc-filtro="${k}">${escapeHtml(n)}</button>`).join("")}
@@ -4447,8 +4447,8 @@ function docCardHtml(d) {
     ? `<span class="badge badge--warning">${icon("edit")}<span>Rascunho</span></span>`
     : `<span class="badge badge--success">${icon("check")}<span>Publicado</span></span>`;
   const adesao = rascunho
-    ? `<div class="doc-adh"><div class="doc-adh__l"><span>Adesao</span><b>Aguardando publicacao</b></div><div class="com-bar"><i style="width:0%"></i></div></div>`
-    : `<div class="doc-adh"><div class="doc-adh__l"><span>Adesao</span><b>${a.pct}% · ${a.X} de ${a.Y} ${a.verbo}</b></div><div class="com-bar"><i style="width:${a.pct}%"></i></div></div>`;
+    ? `<div class="doc-adh"><div class="doc-adh__l"><span>Adesão</span><b>Aguardando publicação</b></div><div class="com-bar"><i style="width:0%"></i></div></div>`
+    : `<div class="doc-adh"><div class="doc-adh__l"><span>Adesão</span><b>${a.pct}% · ${a.X} de ${a.Y} ${a.verbo}</b></div><div class="com-bar"><i style="width:${a.pct}%"></i></div></div>`;
   return `
     <article class="doc-card ${rascunho ? "doc-card--rascunho" : ""}" data-doc-id="${d.id}">
       <div class="doc-card__row">
@@ -4458,7 +4458,7 @@ function docCardHtml(d) {
           <div class="doc-card__sub">
             <span class="doc-tag">${comSegLabel(seg)}</span>
             <span class="doc-ver">v${d.versao || 1}</span>
-            ${d.exigeAssinatura ? `<span class="doc-tag doc-tag--sign">${icon("edit")}<span>assinatura</span></span>` : `<span class="doc-tag">${icon("eye")}<span>ciencia</span></span>`}
+            ${d.exigeAssinatura ? `<span class="doc-tag doc-tag--sign">${icon("edit")}<span>assinatura</span></span>` : `<span class="doc-tag">${icon("eye")}<span>ciência</span></span>`}
             ${d.anexo && d.anexo.url ? `<span class="doc-tag">${icon("file")}<span>anexo</span></span>` : ""}
           </div>
         </div>
@@ -4466,7 +4466,7 @@ function docCardHtml(d) {
           ${rascunho
             ? `<button class="com-mini" data-doc-publicar="${d.id}" aria-label="Publicar">${icon("upload")}</button>`
             : `<button class="com-mini" data-doc-adesao="${d.id}" aria-label="Ver adesao">${icon("eye")}</button>
-               <button class="com-mini" data-doc-versao="${d.id}" aria-label="Nova versao">${icon("upload")}</button>`}
+               <button class="com-mini" data-doc-versao="${d.id}" aria-label="Nova versão">${icon("upload")}</button>`}
           <button class="com-mini" data-doc-editar="${d.id}" aria-label="Editar">${icon("edit")}</button>
         </div>
       </div>
@@ -4495,14 +4495,14 @@ function openDocumentoModal(id) {
 
   openModal(`
     <div class="modal__header">
-      <div><h2>${d ? "Editar documento" : "Novo documento institucional"}</h2><p>Regras, conduta, cultura e politicas para um segmento.</p></div>
+      <div><h2>${d ? "Editar documento" : "Novo documento institucional"}</h2><p>Regras, conduta, cultura e políticas para um segmento.</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body" id="doc-form" onsubmit="return false">
       ${(d && d.status === "publicado" && d.exigeAssinatura) ? `<div class="doc-warn">${icon("alert")}<span>Documento publicado com assinatura. Para trocar conteúdo ou segmento use Nova versão (reabre a assinatura). Aqui você ajusta só a descrição.</span></div>` : ""}
       <div class="field">
-        <label for="doc-titulo">Titulo</label>
-        <input type="text" id="doc-titulo" maxlength="140" value="${d ? escapeHtml(d.titulo) : ""}" placeholder="Ex.: Codigo de conduta 2026" />
+        <label for="doc-titulo">Título</label>
+        <input type="text" id="doc-titulo" maxlength="140" value="${d ? escapeHtml(d.titulo) : ""}" placeholder="Ex.: Código de conduta 2026" />
       </div>
       <div class="field">
         <label>Tipo</label>
@@ -4511,8 +4511,8 @@ function openDocumentoModal(id) {
         </div>
       </div>
       <div class="field">
-        <label>Conteudo</label>
-        <div class="com-seg" role="group" aria-label="Modo de conteudo">
+        <label>Conteúdo</label>
+        <div class="com-seg" role="group" aria-label="Modo de conteúdo">
           <button type="button" class="com-seg__chip ${temAnexo ? "" : "is-on"}" data-doc-modo="texto">${icon("edit")}<span>Texto</span></button>
           <button type="button" class="com-seg__chip ${temAnexo ? "is-on" : ""}" data-doc-modo="anexo">${icon("file")}<span>Anexo Drive</span></button>
         </div>
@@ -4521,7 +4521,7 @@ function openDocumentoModal(id) {
         </div>
         <div class="com-seg__detail" id="doc-modo-anexo" style="${temAnexo ? "" : "display:none"}">
           <input type="text" id="doc-anexo-url" value="${temAnexo ? escapeHtml(d.anexo.url) : ""}" placeholder="https://drive.google.com/file/d/..." />
-          <div class="doc-hashnote">${icon("shield")}<span>Link https do Drive. O hash SHA-256 de integridade entra quando o arquivo for anexado por upload (proxima fase).</span></div>
+          <div class="doc-hashnote">${icon("shield")}<span>Link https do Drive. O hash SHA-256 de integridade entra quando o arquivo for anexado por upload (próxima fase).</span></div>
         </div>
       </div>
       <div class="field">
@@ -4546,7 +4546,7 @@ function openDocumentoModal(id) {
         </div>
       </div>
       <div class="com-toggle">
-        <div class="com-toggle__t">${icon("edit")}<div><b>Exige assinatura / ciencia</b><span>Registra trilha N1 com data, hora e versao por colaborador</span></div></div>
+        <div class="com-toggle__t">${icon("edit")}<div><b>Exige assinatura / ciência</b><span>Registra trilha N1 com data, hora e versão por colaborador</span></div></div>
         <button type="button" class="com-sw ${d?.exigeAssinatura ? "is-on" : ""}" id="doc-assina" role="switch" aria-checked="${d?.exigeAssinatura ? "true" : "false"}" aria-label="Exige assinatura"></button>
       </div>
     </form>
@@ -4589,13 +4589,13 @@ function openDocumentoModal(id) {
 function salvarDocumentoForm(id, getState, publicar) {
   const { segTipo, tipo, modo } = getState();
   const titulo = $("#doc-titulo").value.trim();
-  if (!titulo || titulo.length < 3) return campoInvalido("#doc-titulo", "De um titulo ao documento (min. 3 letras).");
+  if (!titulo || titulo.length < 3) return campoInvalido("#doc-titulo", "Dê um título ao documento (mín. 3 letras).");
   const seg = docSegmentoDoForm(segTipo);
   const dados = { titulo, tipo, segmento: seg, exigeAssinatura: $("#doc-assina").getAttribute("aria-checked") === "true", alcanceEstimado: comAlcance(seg) };
   if (modo === "anexo") {
     const url = $("#doc-anexo-url").value.trim();
     if (!url) return campoInvalido("#doc-anexo-url", "Cole o link do Drive ou troque para Texto.");
-    if (!ehUrlSegura(url)) return campoInvalido("#doc-anexo-url", "Link invalido. Use uma URL https.");
+    if (!ehUrlSegura(url)) return campoInvalido("#doc-anexo-url", "Link inválido. Use uma URL https.");
     dados.anexo = { url, nome: titulo, hashSha256: "" };
     dados.descricao = "";
   } else {
@@ -4638,18 +4638,18 @@ function novaVersaoDocumentoUI(id) {
   if (!d) return;
   openModal(`
     <div class="modal__header">
-      <div><h2>Nova versao</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} &rarr; v${(d.versao || 1) + 1}</p></div>
+      <div><h2>Nova versão</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} &rarr; v${(d.versao || 1) + 1}</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body" id="doc-nv-form" onsubmit="return false">
-      <div class="doc-warn">${icon("alert")}<span>Trocar a versao reabre a assinatura: os colaboradores do segmento precisarao dar ciencia de novo.</span></div>
+      <div class="doc-warn">${icon("alert")}<span>Trocar a versão reabre a assinatura: os colaboradores do segmento precisarão dar ciência de novo.</span></div>
       <div class="field">
         <label for="doc-nv-url">Novo anexo (link do Drive)</label>
         <input type="text" id="doc-nv-url" value="${d.anexo && d.anexo.url ? escapeHtml(d.anexo.url) : ""}" placeholder="https://drive.google.com/file/d/..." />
       </div>
       <div class="field">
         <label for="doc-nv-motivo">Motivo <span class="muted text-xs">(opcional)</span></label>
-        <input type="text" id="doc-nv-motivo" placeholder="O que mudou nesta versao" />
+        <input type="text" id="doc-nv-motivo" placeholder="O que mudou nesta versão" />
       </div>
     </form>
     <div class="modal__footer">
@@ -4661,11 +4661,11 @@ function novaVersaoDocumentoUI(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#doc-nv-save").addEventListener("click", () => {
         const url = $("#doc-nv-url").value.trim();
-        if (url && !ehUrlSegura(url)) return campoInvalido("#doc-nv-url", "Link invalido. Use uma URL https.");
+        if (url && !ehUrlSegura(url)) return campoInvalido("#doc-nv-url", "Link inválido. Use uma URL https.");
         const patch = { url: url || (d.anexo && d.anexo.url) || "", nome: d.titulo, hashSha256: "", motivo: $("#doc-nv-motivo").value.trim() };
         if (window.novaVersaoDocumento) return void window.novaVersaoDocumento(id, patch);
         d.versao = (d.versao || 1) + 1; d.anexo = { url: patch.url, nome: patch.nome, hashSha256: "" }; d.versaoEm = nowIso();
-        store.save(state); closeModal(); toast("Nova versao publicada. Assinatura reaberta."); renderApp();
+        store.save(state); closeModal(); toast("Nova versão publicada. Assinatura reaberta."); renderApp();
       });
     },
   });
@@ -4694,7 +4694,7 @@ function abrirAdesaoDocumento(id) {
   };
   openModal(`
     <div class="modal__header">
-      <div><h2>Adesao</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "exige assinatura" : "ciencia"}</p></div>
+      <div><h2>Adesão</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "exige assinatura" : "ciência"}</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
@@ -4704,11 +4704,11 @@ function abrirAdesaoDocumento(id) {
         <button class="com-tab is-on" data-doc-tab="ok">${icon("check")}<span>${assina ? "Assinaram" : "Leram"}</span> <i>${feitos.length}</i></button>
         <button class="com-tab" data-doc-tab="pend">${icon("clock")}<span>Pendentes</span> <i>${pendentes.length}</i></button>
       </div>
-      <div class="com-people" id="doc-people-ok">${feitos.length ? feitos.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguem ${a.verbo} ainda.</p>`}</div>
+      <div class="com-people" id="doc-people-ok">${feitos.length ? feitos.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguém ${a.verbo} ainda.</p>`}</div>
       <div class="com-people" id="doc-people-pend" style="display:none">${pendentes.length ? pendentes.map((f) => linha(f, false)).join("") : `<p class="muted" style="padding:14px 2px">Todos em dia.</p>`}</div>
     </div>
     <div class="modal__footer">
-      <span class="muted text-xs">Trilha N1 · aceite com data/hora-servidor + versao (nao e validade juridica plena)</span>
+      <span class="muted text-xs">Trilha N1 · aceite com data/hora-servidor + versão (não é validade jurídica plena)</span>
       <button class="btn btn--ghost" data-close>Fechar</button>
     </div>
   `, {

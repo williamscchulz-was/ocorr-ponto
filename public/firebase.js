@@ -1149,7 +1149,7 @@
         });
         window.registrarAuditoria?.({ tipo: "documento", acao: "Nova versao (v" + nova + ")", alvo: d?.titulo || id });
         await recarregarDocumentos();
-        closeModal(); toast("Nova versao publicada. Assinatura reaberta."); renderApp();
+        closeModal(); toast("Nova versão publicada. Assinatura reaberta."); renderApp();
       } catch (e) { toast("Erro: " + e.message, "danger"); }
     };
 
