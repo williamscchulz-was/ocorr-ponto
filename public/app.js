@@ -2258,7 +2258,7 @@ function renderDashboard() {
         <p>${subtitle}</p>
       </div>
       <div class="row">
-        ${can("pipeline.monitor") ? `<button class="btn btn--ghost" id="btn-monitor">${icon("pulso")}<span>Monitor</span></button>` : ""}
+        ${can("pipeline.monitor") ? monChipHtml() : ""}
         ${
           can("ocorrencias.criar")
             ? `<button class="btn btn--primary" id="btn-nova">${icon("plus")}<span>Nova ocorrência</span></button>`
@@ -5293,9 +5293,20 @@ function monQuando(iso, min) {
   const idade = monIdade(min);
   return `${t ? `<b>${escapeHtml(t)}</b>` : ""}${idade ? `<span>${escapeHtml(idade)}</span>` : ""}` || "—";
 }
+// Chip de status do pipeline no dashboard (abre o painel). Lê o resumo já carregado
+// no boot; sem dado ainda, cai num chip neutro "Monitor".
+function monChipHtml() {
+  const r = state.monitorPipeline && state.monitorPipeline.resumo;
+  if (!r) return `<button class="mon-chipbtn mon-chipbtn--mut" id="btn-monitor" title="Status do pipeline">${icon("pulso")}Monitor</button>`;
+  let tone = "ok", label = `Fontes OK${r.total != null ? ` · ${r.total}` : ""}`;
+  if (r.parado > 0) { tone = "red"; label = `${r.parado} parada${r.parado > 1 ? "s" : ""}${r.total != null ? ` · ${r.total}` : ""}`; }
+  else if (r.atencao > 0) { tone = "amb"; label = `${r.atencao} atenção${r.total != null ? ` · ${r.total}` : ""}`; }
+  return `<button class="mon-chipbtn mon-chipbtn--${tone}" id="btn-monitor" title="Status do pipeline"><span class="mon-dot mon-dot--${tone}"></span>${escapeHtml(label)}</button>`;
+}
 async function openMonitorPipeline() {
   if (!can("pipeline.monitor")) return;
-  openModal(`<div class="mon" id="mon-root">${monSkeletonHtml()}</div>`);
+  const temDado = !!(state.monitorPipeline && state.monitorPipeline.resumo);
+  openModal(`<div class="mon" id="mon-root">${temDado ? monPainelHtml() : monSkeletonHtml()}</div>`);
   const modalEl = document.querySelector("#modal-root .modal");
   if (modalEl) modalEl.classList.add("modal--wide");
   wireMonClose($("#mon-root"));

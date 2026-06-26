@@ -2476,6 +2476,7 @@
       if (window.recarregarComunicados) tarefas.push(window.recarregarComunicados());
       if (window.recarregarDocumentos) tarefas.push(window.recarregarDocumentos());
       if (state.ocorrenciasAuto != null && window.recarregarOcorrenciasAuto) tarefas.push(window.recarregarOcorrenciasAuto());
+      if ((u.role === "admin" || u.role === "rh") && window.carregarMonitorPipeline) tarefas.push(window.carregarMonitorPipeline());
       await Promise.all(tarefas.map((p) => Promise.resolve(p).catch(() => {})));
     }
     state.dadosCarregadosEm = new Date().toISOString();
@@ -2626,6 +2627,11 @@
     // tem o turno denormalizado pelo pipeline, regra do Firestore garante o
     // isolamento. Sem acesso à meta agregada (não precisa, vê só dos seus).
     await carregarBancoHorasGestor(u);
+
+    // Monitor do pipeline (chip de status no dashboard) — só admin/RH têm a cap.
+    if ((u.role === "admin" || u.role === "rh") && window.carregarMonitorPipeline) {
+      try { await window.carregarMonitorPipeline(); } catch (e) { debug?.("[monitor] boot:", e?.message || e); }
+    }
 
     // Controle PJ (admin/RH só)
     state.pjs = [];
