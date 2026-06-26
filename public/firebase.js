@@ -1048,6 +1048,21 @@
       }
     };
 
+    // App do colaborador: confirma ciência de um comunicado (Li e estou ciente).
+    // set-once via registrarLeitura; reflete no state.comunicadosColab e re-renderiza.
+    window.confirmarCienciaComunicado = async function (comunicadoId) {
+      const r = await window.registrarLeitura(comunicadoId, { confirmar: true });
+      if (r && r.ok) {
+        const c = (state.comunicadosColab || []).find((x) => x.id === comunicadoId);
+        if (c && !c.minhaLeitura) c.minhaLeitura = { confirmado: true, em: new Date().toISOString() };
+        toast("Ciência registrada.");
+        renderApp();
+      } else {
+        toast("Não consegui registrar: " + ((r && r.err) || "?"), "danger");
+      }
+      return r;
+    };
+
     // ===== Documentos institucionais (Pacote Gestor) — escreve /documentos =====
     // criadoEm server-time (rule exige == request.time); escopo institucional sem
     // funcionarioId. novaVersao = unica forma de trocar anexo em doc publicado+assinatura
@@ -2156,6 +2171,7 @@
       state.mensagensRecebidas = [];
       state.comunicados = [];
       state.documentos = [];
+      state.comunicadosColab = [];
       // Para o listener vivo das ocorrências e reseta a detecção de deltas
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
@@ -2323,6 +2339,36 @@
           if (bh.exists) state.meuSaldoBH = bh.data();
         } catch (e) { debug?.("[colab] saldo BH self:", e?.message || e); }
       }
+      // Comunicados do SEGMENTO do colaborador. A rule não filtra query: faço uma
+      // query por segmento (todos / turno dele / setor dele) — cada uma só retorna
+      // o que a rule já permite. turno/setor vêm do funcionário (WKRADAR mantém ==
+      // users.turno/.setor, que é o que a rule checa). Junta e dedupe no cliente.
+      state.comunicadosColab = [];
+      try {
+        const f = state.funcionarios[0] || null;
+        const meuTurno = f ? f.turno : null;
+        const meuSetor = f ? f.setor : null;
+        const col = db.collection("comunicados");
+        const queries = [col.where("ativo", "==", true).where("segmento.tipo", "==", "todos")];
+        if (meuTurno != null) queries.push(col.where("ativo", "==", true).where("segmento.tipo", "==", "turno").where("segmento.valores", "array-contains", meuTurno));
+        if (meuSetor) queries.push(col.where("ativo", "==", true).where("segmento.tipo", "==", "setor").where("segmento.valores", "array-contains", meuSetor));
+        const snaps = await Promise.all(queries.map((q) => q.get().catch((e) => { debug?.("[colab] comunicados q:", e?.message || e); return null; })));
+        const seen = {}; const arr = [];
+        for (const sn of snaps) {
+          if (!sn) continue;
+          for (const d of sn.docs) {
+            if (seen[d.id]) continue; seen[d.id] = 1;
+            const dat = d.data();
+            arr.push({ id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm) });
+          }
+        }
+        const uid = auth.currentUser && auth.currentUser.uid;
+        await Promise.all(arr.map(async (c) => {
+          try { const l = await db.collection("comunicados").doc(c.id).collection("leituras").doc(uid).get(); c.minhaLeitura = l.exists ? { ...l.data(), em: tsToIso(l.data().em) } : null; }
+          catch (e) { c.minhaLeitura = null; }
+        }));
+        state.comunicadosColab = arr;
+      } catch (e) { debug?.("[colab] comunicados:", e?.message || e); state.comunicadosColab = []; }
       return;
     }
 

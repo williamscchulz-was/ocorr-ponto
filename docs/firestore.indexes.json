@@ -32,6 +32,23 @@
         { "fieldPath": "para", "order": "ASCENDING" },
         { "fieldPath": "lido", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "comunicados",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "segmento.tipo", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "comunicados",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "segmento.tipo", "order": "ASCENDING" },
+        { "fieldPath": "segmento.valores", "arrayConfig": "CONTAINS" }
+      ]
     }
   ],
   "fieldOverrides": []

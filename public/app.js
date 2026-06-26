@@ -705,6 +705,8 @@ function cpIcon(name) {
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     chevron: '<polyline points="9 18 15 12 9 6"/>',
     lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    pin: '<path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/>',
+    edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
     users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     check: '<polyline points="20 6 9 17 4 12"/>',
     spinner: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
@@ -790,7 +792,7 @@ function renderPortalColaborador(u) {
 const COLAB_NAV = [
   { id: "colab-home", label: "Início", icon: "home" },
   { id: "colab-ponto", label: "Meu Ponto", icon: "clock" },
-  { id: "colab-comunicados", label: "Comunicados", icon: "megafone" },
+  { id: "colab-comunicados", label: "Avisos", icon: "megafone" },
   { id: "colab-documentos", label: "Documentos", icon: "file" },
   { id: "colab-conta", label: "Conta", icon: "user" },
 ];
@@ -839,12 +841,12 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-comunicados": "Comunicados", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap do Portal", "colab-conta": "Conta" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap do Portal", "colab-conta": "Conta" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conta") return renderColabConta();
   if (page === "colab-roadmap") return renderPortalRoadmap();
   if (page === "colab-ponto") return renderColabStub("Meu Ponto", "Aqui você verá seu saldo de banco de horas e o espelho de ponto. Em construção.", "clock");
-  if (page === "colab-comunicados") return renderColabStub("Comunicados", "Os avisos e comunicados do GH aparecerão aqui. Em construção.", "megafone");
+  if (page === "colab-comunicados") return renderColabComunicados();
   if (page === "colab-documentos") return renderColabStub("Documentos", "Seus holerites, recibos e documentos para assinar ficarão aqui. Em construção.", "file");
   return renderColaboradorHome();
 }
@@ -857,6 +859,82 @@ function renderColabStub(titulo, msg, ic) {
       <p>${escapeHtml(msg)}</p>
       <span class="cp-stub__tag">Próximas fases do Portal</span>
     </div>`;
+}
+
+// ===== Avisos (Comunicados) do colaborador — lê + confirma ciência =====
+function colabAvisosOrdenados() {
+  return (state.comunicadosColab || []).slice().sort((a, b) => {
+    if (!!b.fixado !== !!a.fixado) return b.fixado ? 1 : -1;
+    return String(b.publicadoEm || "").localeCompare(String(a.publicadoEm || ""));
+  });
+}
+
+function renderColabComunicados() {
+  const lista = colabAvisosOrdenados();
+  const pend = lista.filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado)).length;
+  const fixados = lista.filter((c) => c.fixado);
+  const recentes = lista.filter((c) => !c.fixado);
+  const cab = `<header class="page-header"><div><h1>Avisos</h1></div>${pend ? `<span class="cp-pend">${pend} pendente${pend > 1 ? "s" : ""}</span>` : ""}</header>`;
+
+  if (lista.length === 0) {
+    $("#view").innerHTML = cab + `
+      <div class="cp-stub">
+        <div class="cp-stub__ic">${cpIcon("megafone")}</div>
+        <p>Nenhum aviso pra você por enquanto. Quando o RH publicar algo do seu setor ou turno, aparece aqui.</p>
+      </div>`;
+    return;
+  }
+  $("#view").innerHTML = cab
+    + (fixados.length ? `<div class="cp-seclabel">${cpIcon("pin")}<span>Fixado</span></div>${fixados.map(colabAvisoHtml).join("")}` : "")
+    + (recentes.length ? `<div class="cp-seclabel">${cpIcon("clock")}<span>Recentes</span></div>${recentes.map(colabAvisoHtml).join("")}` : "");
+}
+
+function colabAvisoHtml(c) {
+  const seg = c.segmento || { tipo: "todos", valores: [] };
+  const segTxt = seg.tipo === "todos" ? "Todos" : (seg.tipo === "turno" ? "Seu turno" : "Seu setor");
+  const segIc = seg.tipo === "turno" ? "clock" : "users";
+  const confirmou = !!(c.minhaLeitura && c.minhaLeitura.confirmado);
+  const reqConf = !!c.requerConfirmacao;
+  let acao = "";
+  if (reqConf) {
+    acao = confirmou
+      ? `<span class="cp-av__ok">${cpIcon("check")}Ciência registrada · ${comData(c.minhaLeitura.em)}</span>`
+      : `<button class="cp-ciente" data-colab-ciente="${c.id}">${cpIcon("check")}Li e estou ciente</button>`;
+  }
+  return `
+    <article class="cp-av${c.fixado ? " cp-av--pin" : ""}">
+      <div class="cp-av__top">
+        <div class="cp-av__title">${escapeHtml(c.titulo || "")}</div>
+        ${c.fixado ? `<span class="cp-av__pin">${cpIcon("pin")}</span>` : ""}
+      </div>
+      <div class="cp-av__badges">
+        <span class="cp-chip cp-chip--seg">${cpIcon(segIc)}${escapeHtml(segTxt)}</span>
+        ${reqConf ? `<span class="cp-chip cp-chip--conf">${cpIcon("check")}Requer ciência</span>` : ""}
+      </div>
+      ${c.corpo ? `<div class="cp-av__body">${escapeHtml(c.corpo)}</div>` : ""}
+      <div class="cp-av__foot">
+        <div class="cp-av__meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
+        ${acao}
+      </div>
+    </article>`;
+}
+
+// Confirma ciência (dual-mode: firebase override ou fallback demo local).
+function colabCienteUI(id) {
+  if (window.confirmarCienciaComunicado) return void window.confirmarCienciaComunicado(id);
+  const c = (state.comunicadosColab || []).find((x) => x.id === id);
+  if (c) c.minhaLeitura = { confirmado: true, em: nowIso() };
+  if (typeof store !== "undefined") store.save(state);
+  toast("Ciência registrada.");
+  renderApp();
+}
+
+if (!window._colabAvisoBound) {
+  window._colabAvisoBound = true;
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-colab-ciente]");
+    if (b) { e.preventDefault(); b.disabled = true; colabCienteUI(b.dataset.colabCiente); return; }
+  });
 }
 
 function renderColaboradorHome() {
