@@ -718,6 +718,7 @@ function cpIcon(name) {
     mappin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
     expand: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
     collapse: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
+    conferir: '<rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M8.5 13l2.2 2.2L15.5 10"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -1792,6 +1793,7 @@ function renderNav() {
   const items = [];
   items.push({ id: "dashboard", label: "Ocorrências", icon: "clipboard", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
+  if (can("ocorrencias.revisarAuto")) items.push({ id: "ocorrencias-auto", label: "Conferência", icon: "conferir", beta: true });
 
   if (can("func.ver")) {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
@@ -1816,6 +1818,7 @@ function renderNav() {
     <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
       ${icon(it.icon)}
       <span>${it.label}</span>
+      ${it.beta ? `<span class="nav__beta">beta</span>` : ""}
       ${it.badge ? `<span class="nav__badge ${it.badgeClass || ""}">${it.badge}</span>` : ""}
     </button>
   `).join("");
@@ -1983,6 +1986,10 @@ function renderView() {
   if (page === "documentos") {
     if (!can("documentos.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderDocumentos();
+  }
+  if (page === "ocorrencias-auto") {
+    if (!can("ocorrencias.revisarAuto")) { state.view.page = "dashboard"; return renderDashboard(); }
+    return renderOcorrenciasAuto();
   }
   if (page === "auditoria") {
     if (!can("auditoria.ver")) {
@@ -4804,8 +4811,20 @@ function openDocumentoModal(id) {
           <textarea id="doc-corpo" rows="4" placeholder="Escreva o corpo do documento.">${d ? escapeHtml(d.descricao || "") : ""}</textarea>
         </div>
         <div class="com-seg__detail" id="doc-modo-anexo" style="${temAnexo ? "" : "display:none"}">
-          <input type="text" id="doc-anexo-url" value="${temAnexo ? escapeHtml(d.anexo.url) : ""}" placeholder="https://drive.google.com/file/d/..." />
-          <div class="doc-hashnote">${icon("shield")}<span>Link https do Drive. O hash SHA-256 de integridade entra quando o arquivo for anexado por upload (próxima fase).</span></div>
+          ${window.driveUploadDisponivel ? `
+          <div class="doc-up">
+            <label class="doc-drop" id="doc-drop">
+              <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,image/*" hidden />
+              <span class="doc-drop__ic">${icon("upload")}</span>
+              <span class="doc-drop__t">Escolher arquivo do computador</span>
+              <span class="doc-drop__s">PDF, imagem ou documento. Sobe pro Drive da empresa.</span>
+            </label>
+            <div class="doc-file" id="doc-file" hidden></div>
+            <div class="doc-or"><span>ou cole um link que já existe no Drive</span></div>
+          ` : ""}
+          <input type="text" id="doc-anexo-url" value="${temAnexo ? escapeHtml(d.anexo.url) : ""}" data-nome="${temAnexo ? escapeHtml(d.anexo.nome || "") : ""}" placeholder="https://drive.google.com/file/d/..." />
+          ${window.driveUploadDisponivel ? `</div>` : ""}
+          <div class="doc-hashnote">${icon("shield")}<span>O arquivo fica no Drive da empresa (acesso controlado). O link https é o que abre o documento.</span></div>
         </div>
       </div>
       <div class="field">
@@ -4863,11 +4882,44 @@ function openDocumentoModal(id) {
         const el = $("#doc-assina"); const on = el.getAttribute("aria-checked") === "true";
         el.setAttribute("aria-checked", String(!on)); el.classList.toggle("is-on", !on);
       });
+
+      // Upload de anexo pro Drive (reusa o OAuth e o uploader dos contratos PJ).
+      const dFile = $("#doc-file-input");
+      if (dFile) {
+        const box = $("#doc-file"), drop = $("#doc-drop"), urlIn = $("#doc-anexo-url");
+        const showBox = (html) => { if (box) { box.hidden = false; box.innerHTML = html; } if (drop) drop.style.display = "none"; };
+        const resetBox = () => { if (box) { box.hidden = true; box.innerHTML = ""; } if (drop) drop.style.display = ""; };
+        if (temAnexo && urlIn && urlIn.value) showBox(docFileRowHtml(urlIn.dataset.nome || "Arquivo anexado", urlIn.value));
+        dFile.addEventListener("change", async () => {
+          const file = dFile.files && dFile.files[0];
+          if (!file) return;
+          if (file.size > 25 * 1024 * 1024) { toast("Arquivo acima de 25 MB. Reduza ou anexe por link.", "danger"); dFile.value = ""; return; }
+          showBox(`<div class="doc-file__row"><span class="doc-file__ic doc-file__ic--load">${icon("spinner")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(file.name)}</div><div class="doc-file__s">Enviando pro Drive...</div></div></div>`);
+          try {
+            if (window.preAquecerTokenDrive) await window.preAquecerTokenDrive();
+            const res = await window.uploadDocumentoToDrive(file);
+            if (urlIn) { urlIn.value = res.webViewLink || ""; urlIn.dataset.nome = file.name; }
+            showBox(docFileRowHtml(file.name, res.webViewLink));
+          } catch (e) {
+            showBox(`<div class="doc-file__row doc-file__row--err"><span class="doc-file__ic">${icon("alert")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(file.name)}</div><div class="doc-file__s">${escapeHtml(e.message || "Falha no upload")}</div></div><button type="button" class="doc-file__x" data-doc-file-reset aria-label="Tentar de novo">${icon("x")}</button></div>`);
+          }
+          dFile.value = "";
+        });
+        if (box) box.addEventListener("click", (e) => {
+          if (e.target.closest("[data-doc-file-reset]")) { if (urlIn) { urlIn.value = ""; urlIn.dataset.nome = ""; } resetBox(); }
+        });
+      }
+
       $("#doc-rascunho").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo }), false));
       $("#doc-publicar").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo }), true));
       setTimeout(() => $("#doc-titulo")?.focus(), 60);
     },
   });
+}
+
+// Linha do arquivo anexado (estado "no Drive") no form de documento.
+function docFileRowHtml(nome, url) {
+  return `<div class="doc-file__row"><span class="doc-file__ic doc-file__ic--ok">${icon("check")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(nome)}</div><div class="doc-file__s">No Drive${url ? ` &middot; <a href="${escapeHtml(url)}" target="_blank" rel="noopener">abrir</a>` : ""}</div></div><button type="button" class="doc-file__x" data-doc-file-reset aria-label="Remover">${icon("x")}</button></div>`;
 }
 
 function salvarDocumentoForm(id, getState, publicar) {
@@ -4880,7 +4932,8 @@ function salvarDocumentoForm(id, getState, publicar) {
     const url = $("#doc-anexo-url").value.trim();
     if (!url) return campoInvalido("#doc-anexo-url", "Cole o link do Drive ou troque para Texto.");
     if (!ehUrlSegura(url)) return campoInvalido("#doc-anexo-url", "Link inválido. Use uma URL https.");
-    dados.anexo = { url, nome: titulo, hashSha256: "" };
+    const anexoNome = ($("#doc-anexo-url").dataset.nome || "").trim() || titulo;
+    dados.anexo = { url, nome: anexoNome, hashSha256: "" };
     dados.descricao = "";
   } else {
     dados.descricao = $("#doc-corpo").value.trim();
@@ -5025,6 +5078,202 @@ if (!window._docBound) {
     const vr = e.target.closest("[data-doc-versao]");
     if (vr) { e.stopPropagation(); novaVersaoDocumentoUI(vr.dataset.docVersao); return; }
   });
+}
+
+// ===== Conferência de ocorrências automáticas (beta / sandbox) =====
+// Lê a coleção SEPARADA `ocorrencias-auto` (pipeline da apuração do ponto WK). É ADITIVO:
+// não toca no fluxo manual de ocorrências. Gated por cap ocorrencias.revisarAuto (admin/RH).
+// O conteúdo é escrito só pelo servidor; aqui o RH apenas confere (status -> conferida + trilha).
+const OCA_TIPOS = {
+  "Atrasos": { label: "Atraso", tone: "warning" },
+  "Faltas Injustificadas": { label: "Falta injustificada", tone: "danger" },
+  "Saída Antecipada": { label: "Saída antecipada", tone: "warning" },
+  "Saída Intermediária": { label: "Saída intermediária", tone: "warning" },
+};
+const OCA_MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function ocaTipo(t) { return OCA_TIPOS[t] || { label: t || "—", tone: "neutral" }; }
+function ocaTurnoLabel(turno) {
+  if (turno === "geral") return "Geral";
+  const n = parseInt(turno, 10);
+  return (n === 1 || n === 2 || n === 3) ? `${n}º Turno` : "";
+}
+function ocaSetorTurno(o) { return [o.setor, ocaTurnoLabel(o.turno)].filter(Boolean).join(" · ") || "—"; }
+function ocaFmtMarc(v) {
+  if (v == null || v === "") return "";
+  if (Array.isArray(v)) return v.filter(Boolean).join("  ");
+  return String(v);
+}
+function ocaIsPend(o) { return o.status !== "conferida"; }
+
+function ocaListaFiltrada() {
+  const tab = state.view.ocaTab || "aguardando";
+  const busca = (state.view.ocaBusca || "").trim().toLowerCase();
+  const tipo = state.view.ocaTipo || "";
+  const seg = state.view.ocaSeg || "";
+  let l = (state.ocorrenciasAuto || []).slice();
+  if (tab === "aguardando") l = l.filter(ocaIsPend);
+  else if (tab === "conferidas") l = l.filter((o) => !ocaIsPend(o));
+  if (tipo) l = l.filter((o) => o.tipo === tipo);
+  if (seg) l = l.filter((o) => o.setor === seg || String(o.turno) === seg);
+  if (busca) l = l.filter((o) => String(o.nome || "").toLowerCase().includes(busca));
+  l.sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
+  return l;
+}
+
+function renderOcorrenciasAuto() {
+  $("#topbar-title").textContent = "Conferência";
+  const cab = `
+    <header class="page-header">
+      <div>
+        <h1>Conferência <span class="beta-pill">beta</span></h1>
+        <p>Ocorrências geradas da apuração do ponto (WK). Confira e confirme. O lançamento manual continua na aba Ocorrências.</p>
+      </div>
+    </header>
+    <div class="oca-sandbox">${icon("shield")}<span>Teste / sandbox. Coleção separada, não afeta a produção nem o fluxo manual.</span></div>`;
+
+  // Carga preguiçosa: só admin/RH chega aqui (dispatch + nav já filtram).
+  if (state.ocorrenciasAuto == null) {
+    if (!window.recarregarOcorrenciasAuto) { state.ocorrenciasAuto = []; }
+    else {
+      $("#view").innerHTML = cab + `<div class="oca-skel">${[0, 1, 2, 3].map(() => `<div class="oca-skel__row"></div>`).join("")}</div>`;
+      if (!state._ocaCarregando) {
+        state._ocaCarregando = true;
+        window.recarregarOcorrenciasAuto().catch(() => {}).finally(() => {
+          state._ocaCarregando = false;
+          if (state.view.page === "ocorrencias-auto") renderApp();
+        });
+      }
+      return;
+    }
+  }
+
+  const todas = state.ocorrenciasAuto || [];
+  const pend = todas.filter(ocaIsPend);
+  const conf = todas.filter((o) => !ocaIsPend(o));
+  const tab = state.view.ocaTab || "aguardando";
+  const setores = [...new Set(todas.map((o) => o.setor).filter(Boolean))].sort();
+  const lista = ocaListaFiltrada();
+
+  $("#view").innerHTML = cab + `
+    <div class="stats">
+      <div class="stat stat--accent stat--kpi">
+        <div class="stat__label">Aguardando conferência</div>
+        <div class="stat__value">${pend.length}</div>
+        <div class="stat__hint">de ${todas.length} importadas</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Conferidas</div>
+        <div class="stat__value">${conf.length}</div>
+        <div class="stat__hint">marcadas pelo RH</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Total importado</div>
+        <div class="stat__value">${todas.length}</div>
+        <div class="stat__hint">da apuração do ponto</div>
+      </div>
+    </div>
+
+    <div class="tabs" id="oca-tabs">
+      <button class="tab ${tab === "aguardando" ? "active" : ""}" data-oca-tab="aguardando">Aguardando <span class="tab__count">${pend.length}</span></button>
+      <button class="tab ${tab === "conferidas" ? "active" : ""}" data-oca-tab="conferidas">Conferidas <span class="tab__count">${conf.length}</span></button>
+      <button class="tab ${tab === "todas" ? "active" : ""}" data-oca-tab="todas">Todas <span class="tab__count">${todas.length}</span></button>
+      <span class="tabs__ink" aria-hidden="true"></span>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar__search">
+        ${icon("search")}
+        <input type="text" id="oca-busca" placeholder="Buscar por funcionário..." value="${escapeHtml(state.view.ocaBusca || "")}" aria-label="Buscar por funcionário" />
+      </div>
+      <select id="oca-tipo" aria-label="Filtrar por tipo">
+        <option value="">Todos os tipos</option>
+        ${Object.keys(OCA_TIPOS).map((k) => `<option value="${escapeHtml(k)}" ${state.view.ocaTipo === k ? "selected" : ""}>${escapeHtml(OCA_TIPOS[k].label)}</option>`).join("")}
+      </select>
+      <select id="oca-seg" aria-label="Filtrar por setor ou turno">
+        <option value="">Todos os setores / turnos</option>
+        <option value="1" ${state.view.ocaSeg === "1" ? "selected" : ""}>1º Turno</option>
+        <option value="2" ${state.view.ocaSeg === "2" ? "selected" : ""}>2º Turno</option>
+        <option value="3" ${state.view.ocaSeg === "3" ? "selected" : ""}>3º Turno</option>
+        <option value="geral" ${state.view.ocaSeg === "geral" ? "selected" : ""}>Geral</option>
+        ${setores.map((s) => `<option value="${escapeHtml(s)}" ${state.view.ocaSeg === s ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}
+      </select>
+    </div>
+
+    <div class="list" id="oca-list">${lista.length ? lista.map(ocaCardHtml).join("") : ocaVazioHtml(tab)}</div>
+  `;
+
+  $$("#oca-tabs .tab").forEach((t) => t.addEventListener("click", () => { state.view.ocaTab = t.dataset.ocaTab; renderApp(); }));
+  if ($("#oca-busca")) $("#oca-busca").addEventListener("input", debounce((e) => { state.view.ocaBusca = e.target.value; renderOcaList(); }, 200));
+  if ($("#oca-tipo")) $("#oca-tipo").addEventListener("change", (e) => { state.view.ocaTipo = e.target.value; renderOcaList(); });
+  if ($("#oca-seg")) $("#oca-seg").addEventListener("change", (e) => { state.view.ocaSeg = e.target.value; renderOcaList(); });
+}
+
+function renderOcaList() {
+  const el = $("#oca-list"); if (!el) return;
+  const lista = ocaListaFiltrada();
+  el.innerHTML = lista.length ? lista.map(ocaCardHtml).join("") : ocaVazioHtml(state.view.ocaTab || "aguardando");
+}
+
+function ocaVazioHtml(tab) {
+  const msg = tab === "conferidas" ? "Nada conferido ainda." : tab === "todas" ? "Nenhuma ocorrência importada." : "Tudo conferido. Nada aguardando.";
+  return `<div class="oca-empty">${icon("conferir")}<p>${msg}</p></div>`;
+}
+
+function ocaCardHtml(o) {
+  const t = ocaTipo(o.tipo);
+  const pend = ocaIsPend(o);
+  const prev = ocaFmtMarc(o.marcacoesPrevistas);
+  const bat = ocaFmtMarc(o.marcacoesApuradas);
+  const saldo = (o.saldoDiario == null || o.saldoDiario === "") ? "" : String(o.saldoDiario);
+  const saldoNeg = /^-/.test(saldo);
+  const partes = String(o.data || "").split("/");
+  const dia = partes[0] || "—";
+  const mes = OCA_MESES[parseInt(partes[1], 10) - 1] || "";
+  let acao = "";
+  if (pend) {
+    acao = `<button class="btn btn--primary btn--sm" data-oca-conferir="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar conferência</span></button>`;
+  } else {
+    const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "conferida") || (o.historico || [])[(o.historico || []).length - 1];
+    const quem = (ult && ult.porNome) || "RH";
+    const quando = (ult && ult.emIso) ? comData(ult.emIso) : "";
+    acao = `<span class="badge badge--success"><span class="dot"></span>Conferida</span><div class="oca-confmeta">por ${escapeHtml(quem)}${quando ? `<br>${escapeHtml(quando)}` : ""}</div>`;
+  }
+  return `
+    <article class="occ oca ${pend ? "occ--pendente" : "oca--ok"}">
+      <div class="occ__date"><strong>${escapeHtml(dia)}</strong><span>${mes}</span></div>
+      <div class="occ__main">
+        <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
+        <div class="occ__sub">
+          <span class="badge badge--${t.tone}">${escapeHtml(t.label)}</span>
+          <span class="dot"></span>
+          <span>${escapeHtml(ocaSetorTurno(o))}</span>
+        </div>
+      </div>
+      <div class="oca-mag">
+        <div class="oca-mag__row"><span class="oca-mag__k">Previsto</span><span class="oca-mag__v">${escapeHtml(prev || "—")}</span></div>
+        <div class="oca-mag__row"><span class="oca-mag__k">Batido</span><span class="oca-mag__v ${bat ? "" : "oca-mag__v--miss"}">${escapeHtml(bat || "sem marcação")}</span></div>
+        ${saldo ? `<div class="oca-mag__row"><span class="oca-mag__k">Saldo</span><span class="oca-mag__saldo ${saldoNeg ? "oca-neg" : ""}">${escapeHtml(saldo)}</span></div>` : ""}
+      </div>
+      <div class="oca-actions">${acao}</div>
+    </article>`;
+}
+
+// Delegação do botão conferir (uma vez)
+if (!window._ocaBound) {
+  window._ocaBound = true;
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-oca-conferir]");
+    if (b) { e.preventDefault(); b.disabled = true; ocaConferirUI(b.dataset.ocaConferir); }
+  });
+}
+
+function ocaConferirUI(id) {
+  if (window.conferirOcorrenciaAuto) return void window.conferirOcorrenciaAuto(id);
+  // Fallback demo local (sem firebase)
+  const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+  if (o) { o.status = "conferida"; o.historico = [...(o.historico || []), { acao: "conferida", por: "local", porNome: currentUser()?.nome || "RH", emIso: nowIso() }]; }
+  toast("Conferência confirmada.");
+  renderApp();
 }
 
 function renderBancoHoras() {
@@ -7907,6 +8156,7 @@ const PERM_CAPS = [
     { k: "ocorrencias.lancar", n: "Marcar como lançada" },
     { k: "ocorrencias.editarTudo", n: "Editar o lançamento inteiro" },
     { k: "ocorrencias.excluir", n: "Excluir" },
+    { k: "ocorrencias.revisarAuto", n: "Conferir ocorrências automáticas (beta)" },
   ]},
   { area: "Banco de Horas", caps: [
     { k: "bancoHoras.ver", n: "Ver saldos", scoped: true },
@@ -7954,6 +8204,7 @@ const PERM_DEFAULT = {
   rh: {
     "ocorrencias.ver": true, "ocorrencias.criar": true, "ocorrencias.conferir": true,
     "ocorrencias.lancar": true, "ocorrencias.editarTudo": false, "ocorrencias.excluir": true,
+    "ocorrencias.revisarAuto": true,
     "bancoHoras.ver": true, "bancoHoras.importar": true,
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
     "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
@@ -7963,6 +8214,7 @@ const PERM_DEFAULT = {
   lider: {
     "ocorrencias.ver": "turno", "ocorrencias.criar": false, "ocorrencias.conferir": "turno",
     "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
+    "ocorrencias.revisarAuto": false,
     "bancoHoras.ver": "turno", "bancoHoras.importar": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
@@ -7972,6 +8224,7 @@ const PERM_DEFAULT = {
   supervisor: {
     "ocorrencias.ver": "atrib", "ocorrencias.criar": false, "ocorrencias.conferir": "atrib",
     "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
+    "ocorrencias.revisarAuto": false,
     "bancoHoras.ver": "atrib", "bancoHoras.importar": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
@@ -7983,6 +8236,7 @@ const PERM_DEFAULT = {
   colaborador: {
     "ocorrencias.ver": false, "ocorrencias.criar": false, "ocorrencias.conferir": false,
     "ocorrencias.lancar": false, "ocorrencias.editarTudo": false, "ocorrencias.excluir": false,
+    "ocorrencias.revisarAuto": false,
     "bancoHoras.ver": false, "bancoHoras.importar": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,

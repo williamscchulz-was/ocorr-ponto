@@ -247,6 +247,23 @@
   };
 
   /**
+   * Upload de um documento institucional pro Drive, numa subpasta dedicada
+   * ("Documentos institucionais"). Reusa o OAuth e o uploader dos contratos PJ.
+   * Retorna { id, name, webViewLink }.
+   */
+  window.uploadDocumentoToDrive = async function (file) {
+    let parents = [];
+    try {
+      const fid = await window.findOrCreateFolderForPJ("Documentos institucionais");
+      if (fid) parents = [fid];
+    } catch (e) {
+      if (typeof debug === "function") debug("[Drive] subpasta de documentos falhou, usando raiz:", e?.message || e);
+    }
+    const safe = String(file.name || "documento").replace(/[\\/:*?"<>|]+/g, "-");
+    return window.uploadContratoToDrive(file, { name: safe, parents });
+  };
+
+  /**
    * Extrai texto de um PDF no Drive usando o OCR nativo do Google.
    * Estratégia: copia o PDF como Google Doc (Drive gatilha OCR) →
    * exporta como text/plain → deleta o Doc temporário.

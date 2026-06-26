@@ -395,6 +395,24 @@ service cloud.firestore {
       }
     }
 
+    // ===== ocorrencias-auto (TESTE / sandbox) =====
+    // Ocorrências geradas pelo pipeline da apuração do ponto (WK). Coleção SEPARADA da
+    // 'ocorrencias' de produção: zero impacto no fluxo manual. O CONTEÚDO é escrito só pelo
+    // servidor (Admin SDK, que ignora estas rules). Do app, admin/RH apenas LÊ e CONFERE:
+    // muda status -> 'conferida' e faz APPEND no historico (quem/quando). Sem PII na coleção.
+    // Modelo cria-e-nunca-reabre: o cliente só leva status PARA 'conferida', nunca de volta.
+    match /ocorrencias-auto/{id} {
+      allow read: if isAdmin() || temCap('ocorrencias.revisarAuto', isRH());
+
+      allow update: if (isAdmin() || temCap('ocorrencias.revisarAuto', isRH()))
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico'])
+                    && request.resource.data.status == 'conferida'
+                    && request.resource.data.historico.size() == resource.data.historico.size() + 1;
+
+      // Conteúdo nasce e some só pelo servidor (Admin SDK bypassa rules).
+      allow create, delete: if false;
+    }
+
     // ----- Helpers de atualização -----
 
     // GH editando só a observação (anotação benigna) — sempre permitido,

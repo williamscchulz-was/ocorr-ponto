@@ -1085,6 +1085,47 @@
     }
     window.recarregarDocumentos = recarregarDocumentos;
 
+    // ===== ocorrencias-auto (TESTE / sandbox) — conferência pelo RH =====
+    // Coleção SEPARADA da 'ocorrencias' de produção (zero impacto no fluxo manual). O conteúdo
+    // é gravado só pelo pipeline (Admin SDK). Aqui admin/RH apenas LÊ e CONFERE: muda status
+    // para 'conferida' e faz APPEND no historico (quem/quando). Carga preguiçosa (lazy).
+    async function recarregarOcorrenciasAuto() {
+      try {
+        const snap = await db.collection("ocorrencias-auto").limit(1000).get();
+        const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        arr.sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
+        state.ocorrenciasAuto = arr;
+      } catch (e) {
+        debug?.("[ocorrencias-auto] carregar:", e?.message || e);
+        state.ocorrenciasAuto = state.ocorrenciasAuto || [];
+        toast?.("Não consegui carregar as ocorrências automáticas.", "danger");
+      }
+    }
+    window.recarregarOcorrenciasAuto = recarregarOcorrenciasAuto;
+
+    // Confirma a conferência de UMA ocorrência. Idempotente: se já conferida, não reescreve.
+    // A rule só deixa mexer em status (-> conferida) + historico (append de 1).
+    window.conferirOcorrenciaAuto = async function (id) {
+      const u = currentUser();
+      const uid = (auth.currentUser && auth.currentUser.uid) || null;
+      const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+      if (!o) return;
+      if (o.status === "conferida") { toast?.("Essa já estava conferida."); renderApp(); return; }
+      const entrada = { acao: "conferida", por: uid, porNome: u?.nome || "RH", emIso: new Date().toISOString() };
+      const novoHist = [...(Array.isArray(o.historico) ? o.historico : []), entrada];
+      try {
+        await db.collection("ocorrencias-auto").doc(id).update({ status: "conferida", historico: novoHist });
+        o.status = "conferida"; o.historico = novoHist; // otimista local
+        window.registrarAuditoria?.({ tipo: "ocorrencia-auto", acao: "Conferiu ocorrência automática", alvo: `${o.nome || ""} · ${o.data || ""} · ${o.tipo || ""}` });
+        toast?.("Conferência confirmada.");
+        renderApp();
+      } catch (e) {
+        debug?.("[ocorrencias-auto] conferir:", e?.message || e);
+        toast?.("Erro ao confirmar: " + (e?.message || e), "danger");
+        renderApp(); // re-render reabilita o botão
+      }
+    };
+
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
       const u = currentUser();
       const seg = dados.segmento || { tipo: "todos", valores: [] };
@@ -2210,6 +2251,7 @@
       state.documentos = [];
       state.comunicadosColab = [];
       state.documentosColab = [];
+      state.ocorrenciasAuto = null; // null = recarrega no próximo acesso à aba
       // Para o listener vivo das ocorrências e reseta a detecção de deltas
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }

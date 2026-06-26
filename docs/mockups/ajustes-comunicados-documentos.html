@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Ajustes (imagem + upload Drive)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --verde:#008835; --amarelo:#FFCB00; --azul:#0076BE;
+    --tinta:#1d2329; --muted:#6b7681; --linha:#e7ebee; --fundo:#f4f6f8;
+    --surface:#ffffff; --radius:16px; --radius-sm:10px;
+    --sombra:0 1px 2px rgba(16,24,32,.06),0 8px 24px rgba(16,24,32,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fundo);color:var(--tinta);font-family:Poppins,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:32px 16px 80px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 28px}
+  h2{font-size:16px;font-weight:600;margin:36px 0 4px;display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:8px;background:var(--verde);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700}
+  .lead{color:var(--muted);font-size:13.5px;margin:0 0 16px;max-width:720px;line-height:1.5}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--linha);border-radius:var(--radius);box-shadow:var(--sombra);overflow:hidden}
+  .panel__h{padding:11px 16px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--linha)}
+  .panel__h .dot{width:8px;height:8px;border-radius:50%}
+  .bad .dot{background:#d83a52}.good .dot{background:var(--verde)}
+  .bad{color:#b3293d}.good{color:var(--verde)}
+  .panel__b{padding:16px;background:var(--fundo);max-height:520px;overflow:auto}
+
+  /* ---- card de comunicado (espelha o app) ---- */
+  .com-card{background:#fff;border:1px solid var(--linha);border-radius:var(--radius-sm);box-shadow:var(--sombra);overflow:hidden}
+  .com-card__bd{padding:14px 16px}
+  .com-card__t{font-weight:600;font-size:15px;margin:0 0 4px}
+  .com-card__x{color:var(--muted);font-size:13px;line-height:1.5;margin:0}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px;background:#eef6f0;color:var(--verde);margin:0 0 10px}
+  .com-card__img{margin-top:2px}
+  /* ANTES: sem teto de altura -> estoura */
+  .antes .com-card__img img{display:block;width:100%}
+  /* DEPOIS: contida e responsiva */
+  .depois .com-card__img img{display:block;max-width:100%;height:auto;max-height:280px;object-fit:contain;background:#0e1418}
+  .foot{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid var(--linha);color:var(--muted);font-size:12px}
+
+  /* ---- form de documento ---- */
+  .form{background:#fff;border:1px solid var(--linha);border-radius:var(--radius);box-shadow:var(--sombra);padding:18px;max-width:560px;margin:0 auto}
+  .field{margin-bottom:16px}
+  .field>label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px}
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:96px;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 10px;border-radius:var(--radius-sm);border:1px solid var(--linha);background:#fff;font:inherit;font-size:13px;font-weight:500;color:var(--tinta);cursor:pointer}
+  .seg button.on{border-color:var(--verde);background:#eef6f0;color:var(--verde);font-weight:600}
+  .detail{margin-top:10px}
+  input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--linha);border-radius:var(--radius-sm);font:inherit;font-size:14px}
+  .note{display:flex;gap:8px;align-items:flex-start;margin-top:9px;font-size:12px;color:var(--muted);line-height:1.45}
+  .note svg{flex:none;margin-top:1px}
+
+  /* dropzone de upload */
+  .drop{border:1.5px dashed #cfd6db;border-radius:var(--radius-sm);background:var(--fundo);padding:20px 16px;text-align:center;cursor:pointer;transition:.15s}
+  .drop:hover{border-color:var(--verde);background:#eef6f0}
+  .drop__ic{width:40px;height:40px;border-radius:12px;background:#fff;border:1px solid var(--linha);display:inline-grid;place-items:center;color:var(--verde);margin-bottom:8px}
+  .drop__t{font-size:13.5px;font-weight:600;margin:0}
+  .drop__s{font-size:12px;color:var(--muted);margin:3px 0 0}
+  /* arquivo selecionado / enviando / enviado */
+  .filerow{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--linha);border-radius:var(--radius-sm);background:#fff;margin-top:10px}
+  .filerow__ic{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;flex:none;color:#fff;background:var(--azul)}
+  .filerow__m{flex:1;min-width:0}
+  .filerow__n{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .filerow__s{font-size:12px;color:var(--muted)}
+  .bar{height:5px;border-radius:999px;background:#e7ebee;overflow:hidden;margin-top:6px}
+  .bar>i{display:block;height:100%;background:var(--verde);border-radius:999px}
+  .pill{font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .pill--ok{background:#eef6f0;color:var(--verde)}
+  .pill--up{background:#eaf3fb;color:var(--azul)}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:var(--radius-sm);border:1px solid var(--linha);background:#fff;font:inherit;font-size:13px;font-weight:600;color:var(--tinta);cursor:pointer}
+  .btn--drive{border-color:var(--azul);color:var(--azul)}
+  .link{color:var(--azul);font-size:12.5px;font-weight:600;text-decoration:none}
+  .x{color:var(--muted);cursor:pointer;flex:none}
+  .states{display:flex;flex-direction:column;gap:14px}
+  .state-cap{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:2px 0 -4px}
+  .footbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+  .btn--primary{background:var(--verde);border-color:var(--verde);color:#fff}
+  .btn--soft{background:#eef6f0;border-color:#d7e7dd;color:var(--verde)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ajustes · Comunicados e Documentos</h1>
+  <p class="sub">Mock pra aprovar antes de eu mexer no app. Abra no seu navegador (este arquivo), não no preview.</p>
+
+  <!-- ============ 1. IMAGEM ============ -->
+  <h2><span class="n">1</span> Imagem do comunicado: conter na tela</h2>
+  <p class="lead">Hoje a imagem entra no tamanho cheio e estoura pra baixo. O ajuste limita a altura e usa <b>object-fit: contain</b> — a imagem aparece inteira, proporcional, sem cortar nem esticar. Vale no card do gestor e no aviso do colaborador.</p>
+  <div class="cols">
+    <div class="panel">
+      <div class="panel__h bad"><span class="dot"></span>Antes · estoura</div>
+      <div class="panel__b">
+        <article class="com-card antes">
+          <div class="com-card__bd">
+            <span class="chip">Todos</span>
+            <p class="com-card__t">Campanha de vacinação</p>
+            <p class="com-card__x">Confira o cartaz com datas e locais.</p>
+          </div>
+          <div class="com-card__img"><img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='760'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23008835'/><stop offset='1' stop-color='%230076BE'/></linearGradient></defs><rect width='480' height='760' fill='url(%23g)'/><text x='240' y='380' fill='white' font-family='Poppins,sans-serif' font-size='34' font-weight='700' text-anchor='middle'>CARTAZ 480x760</text></svg>"></div>
+          <div class="foot"><span>RH · hoje</span></div>
+        </article>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel__h good"><span class="dot"></span>Depois · contida</div>
+      <div class="panel__b">
+        <article class="com-card depois">
+          <div class="com-card__bd">
+            <span class="chip">Todos</span>
+            <p class="com-card__t">Campanha de vacinação</p>
+            <p class="com-card__x">Confira o cartaz com datas e locais.</p>
+          </div>
+          <div class="com-card__img"><img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='760'><defs><linearGradient id='g2' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23008835'/><stop offset='1' stop-color='%230076BE'/></linearGradient></defs><rect width='480' height='760' fill='url(%23g2)'/><text x='240' y='380' fill='white' font-family='Poppins,sans-serif' font-size='34' font-weight='700' text-anchor='middle'>CARTAZ 480x760</text></svg>"></div>
+          <div class="foot"><span>RH · hoje</span></div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2. UPLOAD DRIVE ============ -->
+  <h2><span class="n">2</span> Documento: subir arquivo direto pro Drive</h2>
+  <p class="lead">No modo <b>Anexo</b>, em vez de só colar um link, você escolhe o arquivo do seu computador e ele sobe pro Drive usando o mesmo acesso dos contratos PJ (subpasta "Documentos institucionais"). O link do Drive fica gravado automaticamente. Colar link continua disponível pra quem já tem o arquivo lá.</p>
+
+  <div class="form">
+    <div class="field">
+      <label>Conteúdo</label>
+      <div class="seg">
+        <button>Texto</button>
+        <button class="on">Anexo</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Arquivo</label>
+      <div class="states">
+        <div class="state-cap">a. vazio — escolher ou arrastar</div>
+        <div class="drop">
+          <div class="drop__ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+          <p class="drop__t">Escolher arquivo ou arrastar aqui</p>
+          <p class="drop__s">PDF, imagem ou documento · até 25 MB</p>
+        </div>
+        <div class="note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span>Prefere colar um link do Drive que já existe? <a class="link" href="#">Colar link manual</a></span>
+        </div>
+
+        <div class="state-cap">b. enviando pro Drive</div>
+        <div class="filerow">
+          <div class="filerow__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="filerow__m">
+            <div class="filerow__n">Politica-de-conduta-2026.pdf</div>
+            <div class="filerow__s">1,8 MB</div>
+            <div class="bar"><i style="width:62%"></i></div>
+          </div>
+          <span class="pill pill--up">Enviando 62%</span>
+        </div>
+
+        <div class="state-cap">c. enviado — link gravado</div>
+        <div class="filerow">
+          <div class="filerow__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div class="filerow__m">
+            <div class="filerow__n">Politica-de-conduta-2026.pdf</div>
+            <div class="filerow__s">No Drive · <a class="link" href="#">abrir</a></div>
+          </div>
+          <span class="pill pill--ok">No Drive</span>
+          <span class="x" title="Remover"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footbtns">
+      <button class="btn btn--soft">Salvar rascunho</button>
+      <button class="btn btn--primary">Publicar</button>
+    </div>
+  </div>
+
+  <h2><span class="n">3</span> Documentos não chegam ao colaborador</h2>
+  <p class="lead">Sem mock (não é visual). Causa: documento salvo como <b>rascunho</b> não aparece pro colaborador (precisa clicar <b>Publicar</b>), e item por <b>turno/setor</b> só aparece pra quem casa o segmento. Vou deixar isso à prova de erro e te passo a receita de teste. Detalhes na mensagem.</p>
+</div>
+</body>
+</html>
