@@ -2276,6 +2276,7 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && auth.currentUser) {
         pingPresenca();
+        refetchAoFoco(); // re-busca dados voláteis (BH/avisos/docs) ao voltar pra aba
       }
     });
     // Beforeunload: tenta limpar (best-effort, sem garantias)
@@ -2359,6 +2360,7 @@
         state.currentUserId = fbUser.uid;
 
         await carregarDadosCompletos(db);
+        state.dadosCarregadosEm = new Date().toISOString();
 
         $("#acesso")?.classList.add("hidden");
         $("#login").classList.add("hidden");
@@ -2392,6 +2394,90 @@
       }
     });
   }
+
+  // ===== Banco de Horas (gestor) — extraído pra poder recarregar sozinho no re-fetch ao foco =====
+  async function carregarBancoHorasGestor(u) {
+    state.bancoHoras = {};
+    state.pipelineMeta = null;
+    try {
+      if (u.role === "admin" || u.role === "rh") {
+        const curSnap = await db.collection("pipeline-rh").doc("cur").get();
+        if (curSnap.exists) {
+          const cur = curSnap.data();
+          const atualizadoEm = tsToIso(cur.meta?.generatedAt);
+          for (const f of (cur.funcionarios || [])) {
+            state.bancoHoras["f-" + f.funcId] = {
+              funcionarioCodigo: f.funcId,
+              funcionarioNome: f.nome,
+              minutos: f.saldoAtualMin,
+              saldoFormatado: f.saldoAtualFmt,
+              atualizadoEm,
+              ultimaDataIso: f.ultimaDataIso,
+              lancamentos: Array.isArray(f.lancamentos) ? f.lancamentos : [],
+            };
+          }
+          state.pipelineMeta = {
+            schema: cur.schema,
+            month: cur.month,
+            generatedAt: atualizadoEm,
+            periodStart: cur.meta?.periodStart,
+            periodEnd: cur.meta?.periodEnd,
+            totalAtivos: cur.meta?.totalFuncionariosAtivos,
+            totalInativos: cur.meta?.totalFuncionariosInativos,
+            totalLancamentos: cur.meta?.totalLancamentos,
+            warnings: cur.meta?.warnings,
+          };
+          debug?.("[pipeline-rh] cur carregado:", state.pipelineMeta);
+        } else {
+          debug?.("[pipeline-rh] doc 'cur' não existe — pipeline RH não rodou ainda.");
+        }
+      } else if (u.role === "lider") {
+        const bhSnap = await db.collection("bancoHoras").where("funcionarioTurno", "==", u.turno).get();
+        bhSnap.docs.forEach((d) => { state.bancoHoras[d.id] = { ...d.data(), atualizadoEm: tsToIso(d.data().atualizadoEm) }; });
+        debug?.("[bancoHoras] líder turno", u.turno, "→", bhSnap.size, "saldos");
+      } else if (u.role === "supervisor") {
+        const bhSnap = await db.collection("bancoHoras").get();
+        bhSnap.docs.forEach((d) => { state.bancoHoras[d.id] = { ...d.data(), atualizadoEm: tsToIso(d.data().atualizadoEm) }; });
+        debug?.("[bancoHoras] supervisor →", bhSnap.size, "saldos");
+      }
+    } catch (e) {
+      debug?.("[bh] falha ao ler banco de horas:", e?.message || e);
+    }
+  }
+
+  // Re-fetch dos dados VOLÁTEIS (ficam velhos na tela) sem re-rodar o boot inteiro nem
+  // re-assinar listeners. Resolve RH vendo BH velho + colaborador não vendo aviso novo.
+  async function recarregarVolateis() {
+    const u = currentUser();
+    if (!u) return;
+    if (u.role === "colaborador") {
+      await carregarDadosCompletos(db); // ramo colab é leve e não assina listeners
+    } else {
+      const tarefas = [carregarBancoHorasGestor(u)];
+      if (window.recarregarComunicados) tarefas.push(window.recarregarComunicados());
+      if (window.recarregarDocumentos) tarefas.push(window.recarregarDocumentos());
+      if (state.ocorrenciasAuto != null && window.recarregarOcorrenciasAuto) tarefas.push(window.recarregarOcorrenciasAuto());
+      await Promise.all(tarefas.map((p) => Promise.resolve(p).catch(() => {})));
+    }
+    state.dadosCarregadosEm = new Date().toISOString();
+  }
+
+  // Throttle + guardas: re-fetch quando a aba volta ao foco. Não dispara com modal aberto
+  // (não atrapalha cadastro) nem mais de 1x a cada 20s.
+  let _ultimoRefetch = 0, _refetchEmAndamento = false;
+  async function refetchAoFoco() {
+    if (!auth.currentUser || document.visibilityState !== "visible") return;
+    if (_refetchEmAndamento || document.body.classList.contains("modal-aberto")) return;
+    if (Date.now() - _ultimoRefetch < 20000) return;
+    _refetchEmAndamento = true;
+    try {
+      await recarregarVolateis();
+      _ultimoRefetch = Date.now();
+      if (typeof renderApp === "function") renderApp();
+    } catch (e) { debug?.("[refetch foco] falhou:", e?.message || e); }
+    finally { _refetchEmAndamento = false; }
+  }
+  window.addEventListener("focus", () => { if (auth.currentUser) refetchAoFoco(); });
 
   async function carregarDadosCompletos(db) {
     const u = currentUser();
@@ -2520,68 +2606,7 @@
     // Líder: lê /bancoHoras filtrando por funcionarioTurno=u.turno. Cada doc
     // tem o turno denormalizado pelo pipeline, regra do Firestore garante o
     // isolamento. Sem acesso à meta agregada (não precisa, vê só dos seus).
-    state.bancoHoras = {};
-    state.pipelineMeta = null;
-    try {
-      if (u.role === "admin" || u.role === "rh") {
-        const curSnap = await db.collection("pipeline-rh").doc("cur").get();
-        if (curSnap.exists) {
-          const cur = curSnap.data();
-          const atualizadoEm = tsToIso(cur.meta?.generatedAt);
-          for (const f of (cur.funcionarios || [])) {
-            state.bancoHoras["f-" + f.funcId] = {
-              funcionarioCodigo: f.funcId,
-              funcionarioNome: f.nome,
-              minutos: f.saldoAtualMin,
-              saldoFormatado: f.saldoAtualFmt,
-              atualizadoEm,
-              ultimaDataIso: f.ultimaDataIso,
-              // lançamentos diários (saldo cumulativo por dia) pro gráfico do perfil
-              lancamentos: Array.isArray(f.lancamentos) ? f.lancamentos : [],
-            };
-          }
-          state.pipelineMeta = {
-            schema: cur.schema,
-            month: cur.month,
-            generatedAt: atualizadoEm,
-            periodStart: cur.meta?.periodStart,
-            periodEnd: cur.meta?.periodEnd,
-            totalAtivos: cur.meta?.totalFuncionariosAtivos,
-            totalInativos: cur.meta?.totalFuncionariosInativos,
-            totalLancamentos: cur.meta?.totalLancamentos,
-            warnings: cur.meta?.warnings,
-          };
-          debug?.("[pipeline-rh] cur carregado:", state.pipelineMeta);
-        } else {
-          debug?.("[pipeline-rh] doc 'cur' não existe — pipeline RH não rodou ainda.");
-        }
-      } else if (u.role === "lider") {
-        // Query OBRIGATORIAMENTE filtrada por turno pra casar com a rule.
-        const bhSnap = await db.collection("bancoHoras")
-          .where("funcionarioTurno", "==", u.turno)
-          .get();
-        bhSnap.docs.forEach((d) => {
-          state.bancoHoras[d.id] = {
-            ...d.data(),
-            atualizadoEm: tsToIso(d.data().atualizadoEm),
-          };
-        });
-        debug?.("[bancoHoras] líder turno", u.turno, "→", bhSnap.size, "saldos");
-      } else if (u.role === "supervisor") {
-        // Supervisor lê a coleção bancoHoras inteira (rule permite leitura
-        // ampla; a UI filtra pela lista funcionariosVisiveis do supervisor).
-        const bhSnap = await db.collection("bancoHoras").get();
-        bhSnap.docs.forEach((d) => {
-          state.bancoHoras[d.id] = {
-            ...d.data(),
-            atualizadoEm: tsToIso(d.data().atualizadoEm),
-          };
-        });
-        debug?.("[bancoHoras] supervisor →", bhSnap.size, "saldos");
-      }
-    } catch (e) {
-      debug?.("[bh] falha ao ler banco de horas:", e?.message || e);
-    }
+    await carregarBancoHorasGestor(u);
 
     // Controle PJ (admin/RH só)
     state.pjs = [];

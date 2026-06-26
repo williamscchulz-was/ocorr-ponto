@@ -5276,6 +5276,31 @@ function ocaConferirUI(id) {
   renderApp();
 }
 
+// Selo de frescor do BH: mostra de quando sao os dados na tela (run do pipeline p/ RH,
+// ou atualizadoEm mais recente p/ lider/supervisor). Com o re-fetch ao foco, se atualiza sozinho.
+function bhFrescorTxt(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const p2 = (n) => String(n).padStart(2, "0");
+  const hora = `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  const hoje = new Date();
+  const ehHoje = d.getDate() === hoje.getDate() && d.getMonth() === hoje.getMonth() && d.getFullYear() === hoje.getFullYear();
+  return ehHoje ? `hoje às ${hora}` : `${p2(d.getDate())}/${p2(d.getMonth() + 1)} às ${hora}`;
+}
+function bhFrescorSelo(u) {
+  let iso = null;
+  if ((u.role === "admin" || u.role === "rh") && state.pipelineMeta && state.pipelineMeta.generatedAt) {
+    iso = state.pipelineMeta.generatedAt;
+  } else {
+    const ts = Object.values(state.bancoHoras || {}).map((b) => b.atualizadoEm).filter(Boolean).sort();
+    iso = ts[ts.length - 1] || state.dadosCarregadosEm || null;
+  }
+  const txt = bhFrescorTxt(iso);
+  if (!txt) return "";
+  return `<span class="bh-frescor" title="Atualiza sozinho ao voltar pra aba">${icon("clock")}<span>Dados de ${txt}</span></span>`;
+}
+
 function renderBancoHoras() {
   const u = currentUser();
   $("#topbar-title").textContent = "Banco de Horas";
@@ -5300,6 +5325,7 @@ function renderBancoHoras() {
         <h1>Banco de Horas</h1>
         <p>${subtitle}</p>
       </div>
+      ${bhFrescorSelo(u)}
     </header>
 
     <div class="stats">
