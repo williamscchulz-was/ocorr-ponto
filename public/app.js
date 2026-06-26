@@ -845,7 +845,7 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap do Portal", "colab-conta": "Conta" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap", "colab-conta": "Conta" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conta") return renderColabConta();
   if (page === "colab-roadmap") return renderPortalRoadmap();
@@ -916,6 +916,7 @@ function colabAvisoHtml(c) {
         ${reqConf ? `<span class="cp-chip cp-chip--conf">${cpIcon("check")}Requer ciência</span>` : ""}
       </div>
       ${c.corpo ? `<div class="cp-av__body">${escapeHtml(c.corpo)}</div>` : ""}
+      ${c.imagem ? `<div class="cp-av__img"><img src="${c.imagem}" alt="" loading="lazy"></div>` : ""}
       <div class="cp-av__foot">
         <div class="cp-av__meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
         ${acao}
@@ -4315,6 +4316,7 @@ function comCardHtml(c) {
         ${c.fixado ? `<span class="badge badge--neutral">${icon("pin")}<span>Fixado</span></span>` : ""}
       </div>
       ${c.corpo ? `<div class="com-card__body">${escapeHtml(c.corpo)}</div>` : ""}
+      ${c.imagem ? `<div class="com-card__img"><img src="${c.imagem}" alt="" loading="lazy"></div>` : ""}
       <div class="com-foot">
         <div class="com-meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
         <div class="com-read">
@@ -4340,6 +4342,26 @@ function comSegmentoDoForm(segTipo) {
   return { tipo: "todos", valores: [] };
 }
 
+// Imagem do comunicado: redimensiona no cliente (canvas) e vira base64 leve.
+// Sem Firebase Storage — fica no proprio doc (cap de tamanho). Estado do composer atual.
+let _comImagem = null;
+function comResizeImagem(file, maxPx, quality) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (Math.max(w, h) > maxPx) { const s = maxPx / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      try { resolve(cv.toDataURL("image/jpeg", quality)); } catch (e) { reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+    img.src = url;
+  });
+}
+
 function comPreview(segTipo) {
   const t = ($("#com-titulo")?.value || "").trim();
   const b = ($("#com-corpo")?.value || "").trim();
@@ -4354,6 +4376,7 @@ function comPreview(segTipo) {
   if ($("#com-pv-badges")) $("#com-pv-badges").innerHTML = badges;
   const n = comAlcance(seg);
   if ($("#com-pv-alc")) $("#com-pv-alc").textContent = `Alcance estimado: ${n} ${n === 1 ? "pessoa" : "pessoas"}`;
+  if ($("#com-pv-img")) $("#com-pv-img").innerHTML = _comImagem ? `<img src="${_comImagem}" alt="Prévia da imagem">` : "";
 }
 
 function openComunicadoModal(id) {
@@ -4363,6 +4386,7 @@ function openComunicadoModal(id) {
   const setores = getSetores();
   const turnoVal = seg.tipo === "turno" ? (seg.valores || [])[0] : 1;
   const setorVal = seg.tipo === "setor" ? (seg.valores || [])[0] : (setores[0] || "");
+  _comImagem = (c && typeof c.imagem === "string") ? c.imagem : null;
 
   openModal(`
     <div class="modal__header">
@@ -4377,6 +4401,15 @@ function openComunicadoModal(id) {
       <div class="field">
         <label for="com-corpo">Corpo <span class="muted text-xs">(texto simples, quebras preservadas)</span></label>
         <textarea id="com-corpo" rows="4" placeholder="Escreva o aviso.">${c ? escapeHtml(c.corpo || "") : ""}</textarea>
+      </div>
+      <div class="field">
+        <label>Imagem <span class="muted text-xs">(opcional · cartaz, foto do aviso)</span></label>
+        <input type="file" id="com-img-input" accept="image/*" hidden />
+        <button type="button" class="com-imgadd" id="com-img-add">${icon("plus")}<span>Adicionar imagem</span></button>
+        <div class="com-imgprev" id="com-img-prev" style="display:none">
+          <img id="com-img-thumb" alt="Prévia da imagem" />
+          <button type="button" class="com-imgrm" id="com-img-rm" aria-label="Remover imagem">${icon("trash")}</button>
+        </div>
       </div>
       <div class="field">
         <label>Segmento</label>
@@ -4412,6 +4445,7 @@ function openComunicadoModal(id) {
         <div class="com-preview__t" id="com-pv-titulo"></div>
         <div class="com-badges" id="com-pv-badges"></div>
         <div class="com-preview__b" id="com-pv-corpo"></div>
+        <div class="com-preview__img" id="com-pv-img"></div>
         <div class="com-preview__alc" id="com-pv-alc"></div>
       </div>
     </form>
@@ -4422,7 +4456,32 @@ function openComunicadoModal(id) {
     </div>
   `, {
     onMount: (modal) => {
+      modal.classList.add("modal--wide");
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const segAtual = () => { const on = modal.querySelector(".com-seg__chip.is-on"); return (on && on.dataset.comSeg) || "todos"; };
+      // Imagem (base64 com resize)
+      const imgInput = $("#com-img-input"), imgAdd = $("#com-img-add"), imgPrev = $("#com-img-prev"), imgThumb = $("#com-img-thumb");
+      const setImg = (dataUrl) => {
+        _comImagem = dataUrl || null;
+        if (_comImagem) { imgThumb.src = _comImagem; imgPrev.style.display = ""; imgAdd.style.display = "none"; }
+        else { imgPrev.style.display = "none"; imgAdd.style.display = ""; imgThumb.removeAttribute("src"); }
+        comPreview(segAtual());
+      };
+      imgAdd.addEventListener("click", () => imgInput.click());
+      imgInput.addEventListener("change", async () => {
+        const file = imgInput.files && imgInput.files[0];
+        if (!file) return;
+        if (!/^image\//.test(file.type || "")) { toast("Selecione um arquivo de imagem.", "danger"); imgInput.value = ""; return; }
+        try {
+          const dataUrl = await comResizeImagem(file, 1280, 0.72);
+          if (dataUrl.length > 950000) { toast("Imagem muito grande mesmo comprimida. Use uma menor.", "danger"); }
+          else setImg(dataUrl);
+        } catch (e) { toast("Não consegui ler a imagem.", "danger"); }
+        imgInput.value = "";
+      });
+      $("#com-img-rm").addEventListener("click", () => setImg(null));
+      if (_comImagem) setImg(_comImagem);
+      const segTipoRef = { v: seg.tipo };
       let segTipo = seg.tipo;
       const chips = modal.querySelectorAll("[data-com-seg]");
       const sync = () => {
@@ -4462,6 +4521,7 @@ function salvarComunicadoForm(id, segTipo) {
     fixado: $("#com-fixar").getAttribute("aria-checked") === "true",
     requerConfirmacao: $("#com-conf").getAttribute("aria-checked") === "true",
     alcanceEstimado: comAlcance(seg),
+    imagem: _comImagem || null,
   };
   if (window.criarComunicado && !id) return void window.criarComunicado(dados);
   if (window.editarComunicado && id) return void window.editarComunicado(id, dados);

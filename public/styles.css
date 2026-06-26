@@ -1401,6 +1401,7 @@ textarea:focus-visible,
 /* Overlay de confirmação: empilha ACIMA de qualquer modal aberto */
 .modal-backdrop--confirm { z-index: 9990; }
 .modal--sm { max-width: 400px; width: 100%; }
+.modal.modal--wide { max-width: 760px; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 /* Saída do modal espelha a entrada: desce e some no lugar (auditoria 2). */
@@ -4079,3 +4080,37 @@ code { font-family: inherit; }
 
 .empty--mini { padding: 30px 16px; }
 .empty--mini p { color: var(--text-muted); font-size: 13px; }
+
+/* ============================================
+   IMAGEM DO COMUNICADO (composer + card)
+   ============================================ */
+.com-imgadd { display: inline-flex; align-items: center; gap: 7px; background: var(--surface-warm); border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 11px 14px; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: border-color var(--transition), color var(--transition); }
+.com-imgadd:hover { color: var(--plum); border-color: var(--plum-soft); }
+.com-imgadd .icon { width: 16px; height: 16px; }
+.com-imgprev { position: relative; display: inline-block; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
+.com-imgprev img { display: block; max-width: 100%; max-height: 220px; object-fit: cover; }
+.com-imgrm { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(0,0,0,.55); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.com-imgrm .icon { width: 16px; height: 16px; }
+.com-preview__img img { display: block; max-width: 100%; border-radius: var(--radius-sm); margin-top: 8px; }
+.com-card__img { margin: 4px 0 11px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
+.com-card__img img { display: block; width: 100%; max-height: 280px; object-fit: cover; }
+
+/* ============================================
+   MOBILE FRIENDLY (auditoria mobile) — chrome do gestor
+   ============================================ */
+@media (max-width: 900px) {
+  .topbar__menu { display: none !important; }   /* bottom-nav substitui o hamburger */
+  .sidebar-toggle { display: none !important; }  /* recolher o rail nao faz sentido no mobile */
+  #fab { display: none !important; }             /* a bottom-nav ja tem o FAB inline */
+}
+@media (max-width: 560px) {
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar select, .toolbar__search { width: 100%; }
+  .stats { display: grid; grid-template-columns: 1fr; }
+  .com-actions { margin-left: 0; }
+  .com-mini { width: 40px; height: 40px; }       /* alvo de toque */
+}
+@media (max-width: 540px) {
+  .page-header h1 { font-size: 18px; }
+  .com-card__title { font-size: 14px; }
+}
