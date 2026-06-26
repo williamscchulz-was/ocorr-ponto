@@ -333,3 +333,22 @@ Os 3 discos estão atrás do **mesmo controlador Intel VMD/RST** (Port 0, Bus 2,
 - `E:\WKRadar\Backup\_scripts\limpa-backup-em-batches.ps1` — wrapper. Param `-Batches N` (padrão 20), `-BasePauseSec N` (padrão 60), `-Apply`.
 - O principal (`limpa-backup-antigo.ps1`) ganhou `-MaxItems N` (pega só os N mais antigos por execução, sort por data crescente).
 - **Da próxima limpeza diária pela tarefa SYSTEM**: como só sobram ~2 itens/dia pra apagar (kit novo entra, kit velho de 15 dias atrás sai), o script principal direto roda rápido — não precisa de batches.
+
+---
+
+## 2026-06-26 · ✅ Correção: tarefa agendada NUNCA sumiu — minha verificação que falhou
+
+Continuação direta da entrada anterior ("bandeira amarela: tarefa agendada 02:00 sumiu").
+
+**Correção honesta:** a tarefa estava registrada o tempo todo. O que falhou foi minha **verificação remota** via `Get-ScheduledTask` num shell **sem privilégio elevado** — tarefas registradas como SYSTEM/`RunLevel Highest` não são visíveis assim. `schtasks /Query` também retornou "Acesso negado" no shell normal, o que confirma o problema de leitura, não de existência.
+
+**Prova:** verificação feita pelo William na própria janela admin em 26/06 09:27 retornou:
+```
+NextRunTime              LastRunTime              LastTaskResult
+27/06/2026 02:00:00      26/06/2026 02:00:01      0
+```
+A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Provavelmente apagou o kit do dia 11/06 (que com corte hoje <12/06 virou >14d).
+
+**Lição:** ao verificar tarefas com privilégio elevado a partir de uma sessão não-admin, dá silenciosamente vazio em `Get-ScheduledTask`. Não confundir "não consegui ver" com "não existe". Próxima vez: pedir verificação direto na janela admin do operador, OU executar via `Invoke-Command -ScriptBlock { ... }` com credenciais elevadas.
+
+**Status final:** automação 100% operacional. Sem ação humana pendente.
