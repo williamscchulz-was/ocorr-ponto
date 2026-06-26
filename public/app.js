@@ -1193,10 +1193,10 @@ function renderColaboradorHome() {
         ${metas.length ? `<div class="cp-idc__meta">${metas.map((m) => `<span class="cp-tagm">${escapeHtml(m)}</span>`).join("")}</div>` : ""}
       </div>
     </div>
-    <button class="cp-bh${bhNeg ? " cp-bh--neg" : ""}" data-nav="colab-ponto">
+    ${(f && f.bhExempt) ? "" : `<button class="cp-bh${bhNeg ? " cp-bh--neg" : ""}" data-nav="colab-ponto">
       <span class="cp-bh__l">${cpIcon("clock")}<span>Banco de horas</span></span>
       <span class="cp-bh__v">${bhStr ? escapeHtml(bhStr) : '<span class="cp-bh__soon">em breve</span>'}${cpIcon("chevron")}</span>
-    </button>
+    </button>`}
     <div class="cp-sec"><h2>Atalhos</h2></div>
     <div class="cp-atalhos">
       ${atalhos.map((a) => `<button class="cp-atalho" data-nav="${a.page}"><span class="cp-atalho__ic">${cpIcon(a.icon)}</span><span class="cp-atalho__t">${a.t}</span><span class="cp-atalho__s">${a.s}</span></button>`).join("")}
