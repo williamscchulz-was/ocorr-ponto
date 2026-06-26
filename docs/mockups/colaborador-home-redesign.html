@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Home colaborador - redesign</title></head>
+<body style="margin:0;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;background:#1A211A;padding:24px">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+
+<style>
+.fp{
+  /* ===== DARK (padrao) ===== */
+  --bg:#0E130E;--surf:#141A14;--card:#161D15;--card2:#1B231A;--bd:#232C22;--bd2:#283027;
+  --green:#1AA34F;--green-d:#0B7A36;--green-t:#5FCB85;--green-t2:#4FD080;
+  --amber:#E8B468;--tx:#E9F0E5;--mut:#94A38D;--mut2:#7E8C78;
+  --info:#6FA8E0;
+  --info-bg:rgba(111,168,224,.13);--amber-bg:rgba(232,180,104,.13);--green-bg:rgba(26,163,79,.14);--neutral-bg:rgba(148,163,141,.12);
+  --sh-flat:none;
+  --sh-card:0 2px 10px -4px rgba(0,0,0,.55);
+  --sh-hero:0 14px 34px -14px rgba(0,0,0,.7),0 2px 8px -4px rgba(0,0,0,.5);
+  --gh-from:#1AA34F;--gh-to:#0B7A36;
+  --hero-tx:#EAFBEF;--hero-mut:rgba(234,251,239,.72);
+  --navbg:rgba(20,26,20,.82);
+  --r-card:16px;--r-item:14px;
+  box-sizing:border-box;width:390px;max-width:100%;margin:0 auto;position:relative;
+  background:var(--bg);color:var(--tx);font-family:'Poppins',system-ui,sans-serif;
+  border-radius:28px;overflow:hidden;min-height:840px;-webkit-font-smoothing:antialiased;
+  border:1px solid var(--bd);isolation:isolate;
+}
+.fp[data-t=light]{
+  --bg:#EEF3EC;--surf:#FFFFFF;--card:#FFFFFF;--card2:#F4F8F2;--bd:#E3EBE0;--bd2:#D7E2D3;
+  --green:#0E8C3F;--green-d:#0B7A36;--green-t:#0E8C3F;--green-t2:#0E8C3F;
+  --amber:#C98A2A;--tx:#16201A;--mut:#5B6B57;--mut2:#7C8B77;
+  --info:#2E72B8;
+  --info-bg:rgba(46,114,184,.10);--amber-bg:rgba(201,138,42,.12);--green-bg:rgba(14,140,63,.10);--neutral-bg:rgba(91,107,87,.08);
+  --sh-flat:0 1px 2px rgba(0,40,20,.05);
+  --sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+  --sh-hero:0 12px 28px -10px rgba(14,80,40,.26),0 2px 6px -2px rgba(0,40,20,.10);
+  --gh-from:#1AA34F;--gh-to:#0B7A36;
+  --hero-tx:#FFFFFF;--hero-mut:rgba(255,255,255,.80);
+  --navbg:rgba(255,255,255,.86);
+}
+.fp *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+.fp .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+
+/* TOPBAR (flat / aliviada) */
+.fp__top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px;background:var(--bg)}
+.fp__ttl{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.fp__acts{display:flex;align-items:center;gap:2px}
+.fp__tbtn{background:none;border:none;color:var(--mut);font-size:21px;cursor:pointer;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;transition:.15s}
+.fp__tbtn:active{transform:scale(.9)}
+
+/* SCROLL / RITMO */
+.fp__main{padding:4px 16px 128px;display:flex;flex-direction:column;gap:16px}
+
+/* SAUDACAO */
+.hi{margin:2px 2px 0}
+.hi__g{font-size:13px;color:var(--mut);font-weight:500;letter-spacing:.01em}
+.hi__n{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:1px}
+
+/* OVERLINE */
+.sec{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin:6px 2px -4px;display:flex;align-items:center;gap:7px}
+.sec .ct{color:var(--mut2);font-weight:700;letter-spacing:.02em}
+
+/* ATENCAO — nivel 1 (foco), duas zonas */
+.att{background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--amber);border-radius:var(--r-card);box-shadow:var(--sh-hero);overflow:hidden}
+.att__h{display:flex;align-items:center;gap:11px;padding:14px 16px 11px}
+.att__ico{width:34px;height:34px;border-radius:10px;background:var(--amber-bg);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto}
+.att__t{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+.att__c{font-size:11.5px;color:var(--mut);font-weight:500;margin-top:1px}
+.att__c b{color:var(--tx);font-weight:700}
+.rw{display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:1px solid var(--bd);min-height:60px;cursor:pointer;text-decoration:none;color:inherit;transition:.15s}
+.rw:active{background:var(--neutral-bg)}
+.rw__ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto}
+.rw__ic.am{background:var(--amber-bg);color:var(--amber)}
+.rw__ic.in{background:var(--info-bg);color:var(--info)}
+.rw__tx{flex:1;min-width:0}
+.rw__t{font-size:13px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw__s{font-size:11px;color:var(--mut);font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw__bd{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:7px;flex:0 0 auto}
+.rw__bd.am{background:var(--amber-bg);color:var(--amber)}
+.rw__bd.in{background:var(--info-bg);color:var(--info)}
+.rw__chev{color:var(--mut2);font-size:16px;flex:0 0 auto}
+
+/* IDENTIDADE — nivel repouso (mais leve, sem sombra) */
+.idc{display:flex;align-items:center;gap:12px;padding:0 2px}
+.idc__av{width:46px;height:46px;border-radius:15px;background:linear-gradient(150deg,var(--gh-from),var(--gh-to));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;letter-spacing:.02em;flex:0 0 auto;box-shadow:0 0 0 3px var(--green-bg)}
+.idc__b{min-width:0;flex:1}
+.idc__n{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.idc__r{font-size:11.5px;color:var(--mut);font-weight:500;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 2px 0;padding:0 2px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--mut);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:4px 9px 4px 7px;line-height:1}
+.chip i{font-size:13px;color:var(--mut2)}
+.chip.cake{background:var(--amber-bg);border-color:transparent;color:var(--amber)}
+.chip.cake i{color:var(--amber)}
+
+/* BANCO DE HORAS — nivel 2 (heroi de marca, unico saturado) */
+.bh{position:relative;border-radius:var(--r-card);box-shadow:var(--sh-hero);overflow:hidden;background:linear-gradient(150deg,var(--gh-from) 0%,#117A39 62%,var(--gh-to) 100%);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bh::after{content:"";position:absolute;right:-32px;top:-42px;width:152px;height:152px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 66%);pointer-events:none}
+.bh__l{position:relative;z-index:1;display:flex;flex-direction:column}
+.bh__lab{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hero-mut);display:flex;align-items:center;gap:6px}
+.bh__lab i{font-size:13px}
+.bh__v{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--hero-tx);font-variant-numeric:tabular-nums;font-feature-settings:"tnum";margin-top:7px}
+.bh__ctx{font-size:11px;font-weight:500;color:var(--hero-mut);margin-top:6px;display:flex;align-items:center;gap:5px}
+.bh__ctx i{font-size:13px}
+.bh__badge{position:relative;z-index:1;flex:0 0 auto;font-size:10.5px;font-weight:600;color:var(--hero-tx);background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);padding:5px 11px;border-radius:20px;display:inline-flex;align-items:center;gap:5px}
+.bh__badge i{font-size:13px}
+
+/* ATALHOS — color-coded */
+.gr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.at{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--bd);border-radius:var(--r-item);box-shadow:var(--sh-card);padding:13px;text-decoration:none;color:inherit;min-height:64px;transition:transform .12s ease}
+.at:active{transform:scale(.975)}
+.at__ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex:0 0 auto}
+.at__ic.gr_{background:var(--green-bg);color:var(--green-t)}
+.at__ic.am{background:var(--amber-bg);color:var(--amber)}
+.at__ic.in{background:var(--info-bg);color:var(--info)}
+.at__ic.nt{background:var(--neutral-bg);color:var(--mut)}
+.at__t{font-size:12.5px;font-weight:600;letter-spacing:-.01em;line-height:1.15}
+.at__s{font-size:10px;color:var(--mut);font-weight:500;margin-top:2px}
+
+/* COMUNICADO FIXADO */
+.com{background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--green);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:14px 16px}
+.com__h{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green-t)}
+.com__h i{font-size:14px}
+.com__t{font-size:13.5px;font-weight:600;letter-spacing:-.01em;margin-top:8px;line-height:1.3}
+.com__x{font-size:11.5px;color:var(--mut);font-weight:500;line-height:1.5;margin-top:4px}
+.com__m{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--mut2);font-weight:500;margin-top:10px}
+.com__m i{font-size:13px}
+
+/* ANIVERSARIANTES */
+.aniv{background:var(--card);border:1px solid var(--bd);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden}
+.an{display:flex;align-items:center;gap:11px;padding:11px 15px;border-top:1px solid var(--bd)}
+.an:first-child{border-top:none}
+.an__av{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:#fff;flex:0 0 auto}
+.an__b{flex:1;min-width:0}
+.an__n{font-size:13px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an__n .me{font-size:10px;color:var(--amber);font-weight:600}
+.an__r{font-size:10.5px;color:var(--mut);font-weight:500;margin-top:1px}
+.an__d{display:flex;flex-direction:column;align-items:center;background:var(--card2);border:1px solid var(--bd2);border-radius:9px;padding:4px 9px;flex:0 0 auto;line-height:1}
+.an__dd{font-size:14px;font-weight:800;color:var(--tx)}
+.an__dm{font-size:8.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut2);margin-top:2px}
+.an.is-me .an__d{background:var(--amber-bg);border-color:transparent}
+.an.is-me .an__dd{color:var(--amber)}
+.an.is-me .an__dm{color:var(--amber)}
+
+/* BOTTOM NAV — ancorada, vidro */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:10;background:var(--navbg);backdrop-filter:saturate(150%) blur(14px);-webkit-backdrop-filter:saturate(150%) blur(14px);border-top:1px solid var(--bd);padding:8px 6px calc(8px + env(safe-area-inset-bottom));display:flex}
+.nv{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--mut2);font-family:inherit;cursor:pointer;padding:6px 2px;min-height:50px;justify-content:center;text-decoration:none;position:relative}
+.nv__i{font-size:22px;line-height:1}
+.nv__l{font-size:9.5px;font-weight:600;letter-spacing:.01em}
+.nv.on{color:var(--green-t)}
+.nv__bdg{position:absolute;top:3px;left:calc(50% + 6px);min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--amber);color:#13140e;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--surf);line-height:1}
+</style>
+
+<div class="fp" data-t="dark" id="fpRoot">
+  <h2 class="sr-only">Painel inicial do colaborador FioPulse, modo escuro, com pendencias, banco de horas, atalhos, comunicado fixado e aniversariantes do mes</h2>
+
+  <header class="fp__top">
+    <h1 class="fp__ttl">Inicio</h1>
+    <div class="fp__acts">
+      <button class="fp__tbtn" aria-label="Notificacoes"><i class="ti ti-bell"></i></button>
+      <button class="fp__tbtn" id="fpTheme" aria-label="Alternar tema claro ou escuro"><i class="ti ti-moon"></i></button>
+    </div>
+  </header>
+
+  <main class="fp__main">
+
+    <div class="hi">
+      <div class="hi__g" id="fpGreet">Bom dia</div>
+      <div class="hi__n">William</div>
+    </div>
+
+    <div class="sec" style="margin-top:0">Precisa da sua atencao <span class="ct">&middot; 2 itens</span></div>
+    <section class="att" aria-label="Pendencias que precisam da sua atencao">
+      <div class="att__h">
+        <div class="att__ico"><i class="ti ti-alert-triangle"></i></div>
+        <div>
+          <div class="att__t">Voce tem pendencias</div>
+          <div class="att__c"><b>2</b> itens aguardando voce</div>
+        </div>
+      </div>
+      <a class="rw" href="#" onclick="return false">
+        <div class="rw__ic am"><i class="ti ti-writing-sign"></i></div>
+        <div class="rw__tx">
+          <div class="rw__t">Documento a assinar</div>
+          <div class="rw__s">Politica de Seguranca da Informacao &middot; vence em 3 dias</div>
+        </div>
+        <span class="rw__bd am">Pendente</span>
+        <i class="ti ti-chevron-right rw__chev"></i>
+      </a>
+      <a class="rw" href="#" onclick="return false">
+        <div class="rw__ic in"><i class="ti ti-speakerphone"></i></div>
+        <div class="rw__tx">
+          <div class="rw__t">Comunicado nao lido</div>
+          <div class="rw__s">Recesso de julho &mdash; escala &middot; publicado hoje</div>
+        </div>
+        <span class="rw__bd in">Novo</span>
+        <i class="ti ti-chevron-right rw__chev"></i>
+      </a>
+    </section>
+
+    <section class="idc" aria-label="Sua identidade">
+      <div class="idc__av">WS</div>
+      <div class="idc__b">
+        <div class="idc__n">William Schulz</div>
+        <div class="idc__r">Diretor Administrativo &middot; Administracao</div>
+      </div>
+    </section>
+    <div class="chips">
+      <span class="chip"><i class="ti ti-clock-hour-4"></i>Turno Geral</span>
+      <span class="chip"><i class="ti ti-briefcase"></i>4 anos de casa</span>
+      <span class="chip cake"><i class="ti ti-cake"></i>Aniversario 14/06</span>
+    </div>
+
+    <section class="bh" aria-label="Banco de horas, saldo em dia">
+      <div class="bh__l">
+        <span class="bh__lab"><i class="ti ti-clock-check"></i>Banco de horas</span>
+        <span class="bh__v">00:00</span>
+        <span class="bh__ctx"><i class="ti ti-checks"></i>Atualizado hoje, 08:00</span>
+      </div>
+      <span class="bh__badge"><i class="ti ti-circle-check"></i>Em dia</span>
+    </section>
+
+    <div class="sec">Atalhos</div>
+    <nav class="gr" aria-label="Atalhos">
+      <a class="at" href="#" onclick="return false">
+        <div class="at__ic gr_"><i class="ti ti-clock-play"></i></div>
+        <div><div class="at__t">Meu ponto</div><div class="at__s">Marcacoes</div></div>
+      </a>
+      <a class="at" href="#" onclick="return false">
+        <div class="at__ic am"><i class="ti ti-receipt-2"></i></div>
+        <div><div class="at__t">Holerites</div><div class="at__s">Contracheques</div></div>
+      </a>
+      <a class="at" href="#" onclick="return false">
+        <div class="at__ic in"><i class="ti ti-speakerphone"></i></div>
+        <div><div class="at__t">Comunicados</div><div class="at__s">Avisos do GH</div></div>
+      </a>
+      <a class="at" href="#" onclick="return false">
+        <div class="at__ic nt"><i class="ti ti-folder"></i></div>
+        <div><div class="at__t">Documentos</div><div class="at__s">Termos e recibos</div></div>
+      </a>
+    </nav>
+
+    <div class="sec">Comunicado fixado</div>
+    <section class="com" aria-label="Comunicado fixado pelo GH">
+      <div class="com__h"><i class="ti ti-pin"></i>Fixado pelo GH</div>
+      <div class="com__t">Recesso coletivo de fim de ano</div>
+      <div class="com__x">A Fiobras estara em recesso de 23/12 a 02/01. O ponto fica suspenso no periodo e retornamos no dia 05/01.</div>
+      <div class="com__m"><i class="ti ti-calendar"></i>Publicado em 20/06/2026 &middot; Gestao de Pessoas</div>
+    </section>
+
+    <div class="sec">Aniversariantes do mes</div>
+    <section class="aniv" aria-label="Aniversariantes do mes">
+      <div class="an is-me">
+        <div class="an__av" style="background:linear-gradient(150deg,#1AA34F,#0B7A36)">WS</div>
+        <div class="an__b"><div class="an__n">William Schulz <span class="me">&middot; voce</span></div><div class="an__r">Administracao</div></div>
+        <div class="an__d"><span class="an__dd">14</span><span class="an__dm">Jun</span></div>
+      </div>
+      <div class="an">
+        <div class="an__av" style="background:linear-gradient(150deg,#6FA8E0,#2E72B8)">MA</div>
+        <div class="an__b"><div class="an__n">Marina Alves</div><div class="an__r">Gestao de Pessoas</div></div>
+        <div class="an__d"><span class="an__dd">22</span><span class="an__dm">Jun</span></div>
+      </div>
+      <div class="an">
+        <div class="an__av" style="background:linear-gradient(150deg,#E8B468,#C98A2A)">RC</div>
+        <div class="an__b"><div class="an__n">Rafael Costa</div><div class="an__r">Producao</div></div>
+        <div class="an__d"><span class="an__dd">29</span><span class="an__dm">Jun</span></div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="nav" aria-label="Navegacao principal">
+    <a class="nv on" href="#" onclick="return false"><span class="nv__i"><i class="ti ti-home"></i></span><span class="nv__l">Inicio</span></a>
+    <a class="nv" href="#" onclick="return false"><span class="nv__i"><i class="ti ti-clock"></i></span><span class="nv__l">Ponto</span></a>
+    <a class="nv" href="#" onclick="return false"><span class="nv__i"><i class="ti ti-speakerphone"></i></span><span class="nv__bdg">2</span><span class="nv__l">Avisos</span></a>
+    <a class="nv" href="#" onclick="return false"><span class="nv__i"><i class="ti ti-folder"></i></span><span class="nv__bdg">1</span><span class="nv__l">Docs</span></a>
+    <a class="nv" href="#" onclick="return false"><span class="nv__i"><i class="ti ti-user"></i></span><span class="nv__l">Conta</span></a>
+  </nav>
+</div>
+
+<script>
+(function(){
+  var root=document.getElementById('fpRoot');
+  var btn=document.getElementById('fpTheme');
+  btn.addEventListener('click',function(){
+    var dark=root.getAttribute('data-t')==='dark';
+    root.setAttribute('data-t',dark?'light':'dark');
+    btn.innerHTML=dark?'<i class="ti ti-sun"></i>':'<i class="ti ti-moon"></i>';
+  });
+  var h=new Date().getHours();
+  var g=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+  document.getElementById('fpGreet').textContent=g+', bom te ver por aqui.';
+})();
+</script>
+</body></html>

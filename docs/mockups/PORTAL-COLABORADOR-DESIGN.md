@@ -30,6 +30,7 @@
 ### 1. Início (home)
 Saudação + cartão de identidade (nome, cargo · setor, chips: turno, tempo de casa, aniversário — sem PII) · **Banco de horas minimalista** (só o saldo; verde positivo / âmbar negativo) · **"Precisa da sua atenção"** (documento a assinar, comunicados novos) · atalhos (Meu ponto · Holerites · Comunicados · Documentos) · comunicado fixado · aniversariantes.
 **Bind:** identidade/saldo de `funcionarios/{meuId}` + `pipeline-rh/cur`; aniversariantes de `/config/aniversariantes` (ou agregado). Comunicados/documentos = placeholder até as coleções existirem.
+**🎨 Redesign aprovado (2026-06-26):** ver `colaborador-home-redesign.html` + auditoria `AUDITORIA-home-colaborador.md` (29 achados). Essência: renderizar as 3 seções que já têm CSS mas o `renderColabInicio` não emite (atenção/comunicado fixado/aniversariantes — causa do vão morto); 3 níveis de elevação; BH = único bloco saturado com 3 estados (positivo/negativo/00:00 "Em dia") + esconder p/ `bhExempt`; Holerites no lugar do Roadmap; topbar sem avatar duplicado; nav ancorada c/ safe-area + rótulos; light anti-lavado. Bridge `2026-06-26-home-redesign.md`.
 
 ### 2. Meu Banco de Horas
 Abre ao tocar no card de BH (vive dentro de "Ponto"). Topbar com voltar. **Hero** com o saldo atual grande (âmbar se negativo). 2 mini-stats (início do mês / pior dia). **Gráfico do mês** = saldo diário (barras: verde crédito acima da linha zero, âmbar débito abaixo). **Lançamentos** = lista por dia (data + saldo + Δ do dia).
