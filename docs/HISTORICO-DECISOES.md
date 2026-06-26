@@ -309,3 +309,27 @@ Implicação: a limpeza **só funciona** rodando como SYSTEM (via tarefa agendad
 **Raciocínio:** denormalizar em `users` (em vez de a rule cruzar com `funcionarios`) mantém a regra barata (1 get do próprio doc) e evita o colaborador ler `funcionarios` de terceiros. Self-heal evita segmentação velha quando alguém troca de turno/setor.
 
 **Achado pro PC:** os setores reais vêm em MAIÚSCULAS (PREPARAÇÃO, REPASSE, DIRETOS BENEFICIAMENTO, ADMINISTRAÇÃO, ...). O dropdown de setor do compositor tem que usar esses valores exatos (o mock usava "Produção"/"Administrativo", que não casam) — montar a partir dos setores distintos reais.
+
+---
+
+## 2026-06-25 · ✅ Limpeza de backup executada com sucesso (945 GB liberados)
+
+Continuação do dia. Limpeza inicial dos backups antigos foi feita via wrapper de batches pra não saturar o HD.
+
+### Resultado
+- **Espaço livre em E:: 301 GB (92% usado) → 1.246 GB (67% usado).** **+945 GB liberados** em 53 min.
+- 82 itens apagados em 20 batches (≈4–5 por batch), pausa adaptativa 60s base (subia se disco %time>60).
+- **0 erros** nos 20 batches.
+- Datas restantes: **12/06 → 25/06 = 14 dias exatos** preservados, como combinado.
+- Log de auditoria: `E:\WKRadar\Backup\_limpeza-batches.log` e `_limpeza.log`.
+
+### Achado novo: por que apagar tudo de uma vez trava o servidor (mesmo o HD sendo "separado")
+Os 3 discos estão atrás do **mesmo controlador Intel VMD/RST** (Port 0, Bus 2, Targets 4/5/6 — SSDs do RAID + HD do E:). I/O massivo no E: enche a fila do controlador e atrasa o RAID também. Somam-se: o Windows escreve no event log/pagefile do C: pra cada delete, cache de metadados NTFS na RAM pressiona o sistema, VSS/notificações de filesystem disparam. Batches com pausa adaptativa entre eles dão tempo pra fila/cache/journal drenarem. Validado empiricamente nesta execução: sistema permaneceu responsivo, sem evento 129.
+
+### Bandeira amarela: tarefa agendada 02:00 sumiu
+`REGISTRAR-tarefa-agendada-ADMIN.ps1` rodou e retornou "OK - Tarefa registrada" mostrando próxima execução 26/06 02:00. Mas verificação ~1h depois (`Get-ScheduledTask`) retornou TAREFA NAO ENCONTRADA. Causa não identificada (sem evento de delete no log, sem tentativa de auditoria — sumiu silencioso). Plano: William re-roda o script de registro. Se sumir de novo, investigar policy/política de tarefas ou registrar via `schtasks.exe /Create` direto como alternativa.
+
+### Wrapper de batches — artefatos
+- `E:\WKRadar\Backup\_scripts\limpa-backup-em-batches.ps1` — wrapper. Param `-Batches N` (padrão 20), `-BasePauseSec N` (padrão 60), `-Apply`.
+- O principal (`limpa-backup-antigo.ps1`) ganhou `-MaxItems N` (pega só os N mais antigos por execução, sort por data crescente).
+- **Da próxima limpeza diária pela tarefa SYSTEM**: como só sobram ~2 itens/dia pra apagar (kit novo entra, kit velho de 15 dias atrás sai), o script principal direto roda rápido — não precisa de batches.
