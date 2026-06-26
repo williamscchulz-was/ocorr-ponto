@@ -382,7 +382,7 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 
 **Porquê:** (1) William quer BH/cadastro atualizando 3×/dia, não só de manhã; (2) o **monitor novo** pegou o `ExpAuto_D_Empregado.txt` com ~30h — a tarefa das 07:40 não rodou hoje. Dobrar o D_Empregado pra dentro do pipeline conserta a defasagem de vez (re-exporta a cada run) e deixa o pipeline auto-suficiente.
 
-**Redundância:** a tarefa `WKRadar Export D_Empregado` (07:40) ficou redundante (a `WKRadar Export BH` das 07:45 já estava Disabled). Por ora deixada como está (inofensiva); pode ser desabilitada.
+**Redundância:** a tarefa `WKRadar Export D_Empregado` (07:40) ficou redundante (o pipeline já exporta o D_Empregado 3×/dia) e foi **desabilitada** em 26/06 (a `WKRadar Export BH` das 07:45 já estava Disabled). Agora o `run-pipeline.mjs` é a fonte única de todos os exports.
 
 **Teste:** rodada manual OK em 34s (2 exports → ~17s a mais que antes); D_Empregado regenerado (mtime = agora).
 
