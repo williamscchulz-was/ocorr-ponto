@@ -696,6 +696,7 @@ function cpIcon(name) {
     home: '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>',
     clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>',
     cake: '<path d="M20 21v-8H4v8M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1 2.5 1 4 1 2-1 2-1M12 4a1 1 0 0 0-1 1c0 1 1 2 1 2s1-1 1-2a1 1 0 0 0-1-1zM6 13v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>',
+    alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
     megafone: '<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
     file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
     roadmap: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
@@ -1112,6 +1113,47 @@ function aniversariantesDoMesHtml(meuNome) {
   return `<div class="cp-seclabel">${cpIcon("cake")}<span>Aniversariantes do mês</span></div><div class="cp-aniv">${rows}</div>`;
 }
 
+// Comunicado fixado em destaque na home (reusa .cp-com). Pega o 1o fixado do segmento.
+function comunicadoFixadoHtml() {
+  const lista = (typeof colabAvisosOrdenados === "function") ? colabAvisosOrdenados() : (state.comunicadosColab || []);
+  const fix = lista.find((c) => c.fixado);
+  if (!fix) return "";
+  const naoLido = !!(fix.requerConfirmacao && !(fix.minhaLeitura && fix.minhaLeitura.confirmado));
+  return `<div class="cp-seclabel">${cpIcon("pin")}<span>Comunicado fixado</span></div>
+    <button class="cp-com" data-nav="colab-comunicados">
+      <div class="cp-com__top"><span class="cp-com__tag">${cpIcon("pin")}Fixado pelo GH</span>${naoLido ? `<span class="cp-com__new"></span>` : ""}</div>
+      <div class="cp-com__t">${escapeHtml(fix.titulo || "")}</div>
+      ${fix.corpo ? `<div class="cp-com__p">${escapeHtml(fix.corpo)}</div>` : ""}
+    </button>`;
+}
+
+// "Precisa da sua atencao": agrega doc a assinar/ler + aviso que pede ciencia. So renderiza
+// se houver pendencia. Cada linha navega pra tela certa.
+function precisaAtencaoHtml() {
+  const docs = (state.documentosColab || []).filter((d) => typeof colabDocPendente === "function" && colabDocPendente(d));
+  const avisos = (state.comunicadosColab || []).filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado));
+  const itens = [];
+  docs.forEach((d) => itens.push({
+    page: "colab-documentos", tone: d.exigeAssinatura ? "amber" : "info",
+    ic: d.exigeAssinatura ? "edit" : "file",
+    t: d.exigeAssinatura ? "Documento a assinar" : "Documento a ler",
+    s: d.titulo || "", bd: d.exigeAssinatura ? "Assinar" : "Ler",
+  }));
+  avisos.forEach((c) => itens.push({
+    page: "colab-comunicados", tone: "info", ic: "megafone",
+    t: "Comunicado pra confirmar", s: c.titulo || "", bd: "Ciência",
+  }));
+  if (!itens.length) return "";
+  const n = itens.length;
+  const rows = itens.map((it) => `<button class="cp-pend__row" data-nav="${it.page}">
+      <span class="cp-pend__ic cp-pend__ic--${it.tone}">${cpIcon(it.ic)}</span>
+      <span class="cp-pend__tx"><span class="cp-pend__t">${escapeHtml(it.t)}</span><span class="cp-pend__s">${escapeHtml(it.s)}</span></span>
+      <span class="cp-pend__bd cp-pend__bd--${it.tone}">${escapeHtml(it.bd)}</span>
+      ${cpIcon("chevron")}
+    </button>`).join("");
+  return `<div class="cp-seclabel">${cpIcon("alert")}<span>Precisa da sua atenção</span><span class="cp-seclabel__ct">· ${n} ${n > 1 ? "itens" : "item"}</span></div><div class="cp-pend">${rows}</div>`;
+}
+
 function renderColaboradorHome() {
   const view = $("#view");
   const u = currentUser();
@@ -1142,6 +1184,7 @@ function renderColaboradorHome() {
   ];
   view.innerHTML = `
     <div class="cp-hi"><h1>Olá, ${escapeHtml(primeiro)}</h1><p>Bom te ver por aqui.</p></div>
+    ${precisaAtencaoHtml()}
     <div class="cp-idc">
       <div class="cp-idc__av">${escapeHtml(initials(nome || "?"))}</div>
       <div class="cp-idc__main">
@@ -1158,6 +1201,7 @@ function renderColaboradorHome() {
     <div class="cp-atalhos">
       ${atalhos.map((a) => `<button class="cp-atalho" data-nav="${a.page}"><span class="cp-atalho__ic">${cpIcon(a.icon)}</span><span class="cp-atalho__t">${a.t}</span><span class="cp-atalho__s">${a.s}</span></button>`).join("")}
     </div>
+    ${comunicadoFixadoHtml()}
     ${aniversariantesDoMesHtml(nome)}
   `;
   bindColabNav(view);

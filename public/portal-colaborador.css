@@ -282,6 +282,22 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
 .cp-aniv__hoje{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:999px;margin-left:auto}
 .cp-aniv__av.is-me{background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff}
 .cp-aniv__me{color:var(--plum);font-weight:700}
+/* "Precisa da sua atencao" na home (linhas clicaveis de pendencia) */
+.cp-seclabel__ct{color:var(--text-muted);font-weight:600;margin-left:4px}
+.cp-pend{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--warning);border-radius:0 12px 12px 0;overflow:hidden;margin-bottom:18px}
+.cp-pend__row{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--border);padding:12px 14px;cursor:pointer;font:inherit}
+.cp-pend__row:first-child{border-top:0}
+.cp-pend__ic{width:36px;height:36px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center}
+.cp-pend__ic svg{width:17px;height:17px}
+.cp-pend__ic--amber{background:var(--warning-bg);color:var(--warning)}
+.cp-pend__ic--info{background:var(--info-bg);color:var(--info)}
+.cp-pend__tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.cp-pend__t{font-size:13px;font-weight:600;color:var(--text-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-pend__s{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-pend__bd{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:7px;flex:none}
+.cp-pend__bd--amber{background:var(--warning-bg);color:var(--warning)}
+.cp-pend__bd--info{background:var(--info-bg);color:var(--info)}
+.cp-pend__row>svg{width:18px;height:18px;color:var(--text-muted);flex:none}
 .cp-rmcard{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;font:inherit;margin-bottom:8px}
 .cp-rmcard__top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .cp-rmcard__t{font-size:13.5px;font-weight:700;color:var(--text-body)}
