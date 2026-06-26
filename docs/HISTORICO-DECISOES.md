@@ -397,3 +397,17 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Front:** o PC cria o painel "Status do pipeline" (lê `monitor/wkradar`, renderiza `fontes[]` dinâmico, cap admin/RH, aditivo). Bridge: `claude-bridge/inbox-pc/2026-06-26-monitor-pipeline-painel.md`.
 
 **De quebra:** o monitor já pegou um problema real — o `ExpAuto_D_Empregado.txt` estava com ~30h (tarefa 07:40 não rodou). Resolvido ao dobrar o export do D_Empregado pra dentro do pipeline (entrada acima). Scripts novos: `write-monitor.mjs`, `inline-monitor-data.mjs`.
+
+---
+
+## 2026-06-26 · 🎨 Redesign premium do Portal do Colaborador (5 telas) + super-HTML
+
+**Objetivo:** depois da home aprovada (auditoria de 29 achados + redesign), William pediu pra estender a linguagem premium pras outras telas do colaborador e "apresentar num super HTML".
+
+**Feito:** redesenhei as 4 telas restantes na **mesma identidade exata** da home — **Conta/Perfil**, **Banco de horas**, **Comunicados/Avisos**, **Documentos**. Linguagem: 3 níveis de elevação (repouso/card/herói), herói de marca (gradiente verde + glow) com no máx. 1 por tela, saldo negativo em **âmbar** (nunca vermelho), light "anti-lavado" (`#EEF3EC`), dark padrão + toggle, sem emoji, ícones Tabler, `tabular-nums`, `aria`/`sr-only`. Cada tela escopada sob id raiz único (`#scr-*`).
+
+**Entregáveis** (`docs/mockups/`): `colaborador-{conta,bh,comunicados,documentos}-redesign.html` + **super-HTML mural** `portal-redesign-showcase.html` (as 5 telas em frames de celular). Spec atualizado em `PORTAL-COLABORADOR-DESIGN.md`. Handoff: `claude-bridge/inbox-pc/2026-06-26-colaborador-redesign-pacote.md` (bind real por tela: funcionarios/{meuId}, pipeline-rh/cur.funcionarios[].lancamentos[], comunicados/{id}+leituras, documentos/{id}+assinaturas).
+
+**Método:** workflow multi-agente (1 agente por tela, tokens premium pinados) → montagem do mural → render inline pra aprovação.
+
+**Em paralelo (PC, no ar):** Monitor "Status do pipeline" (v193, lê monitor/wkradar) e Aniversariantes na home (v195, lê config/aniversariantes). Próximo: **redesign premium do Portal do Gestor** (Dashboard, Comunicados-composição, Documentos institucionais, Conferência de ocorrências, Monitor) — mesma linguagem, shell desktop compartilhado.
