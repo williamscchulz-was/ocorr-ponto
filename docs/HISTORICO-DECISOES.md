@@ -385,3 +385,15 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Redundância:** a tarefa `WKRadar Export D_Empregado` (07:40) ficou redundante (a `WKRadar Export BH` das 07:45 já estava Disabled). Por ora deixada como está (inofensiva); pode ser desabilitada.
 
 **Teste:** rodada manual OK em 34s (2 exports → ~17s a mais que antes); D_Empregado regenerado (mtime = agora).
+
+---
+
+## 2026-06-26 · 📊 Monitor do Pipeline RH (doc monitor/wkradar + painel no gestor)
+
+**Objetivo:** painel no Portal do Gestor pra ver, num olhar, se os exports do Radar + o pipeline rodaram 100% (inspirado no "Status dos arquivos" do sistema Comercial). William aprovou o mock.
+
+**Back:** novo `write-monitor.mjs` grava `monitor/wkradar` no fim de **cada execução** (passo **[8/10]**, antes do heartbeat; sempre roda, registra até falha). Coleta: idade dos CSVs do WK (BH, D_Empregado), frescor das coleções (pipeline-rh/cur, banco-horas-self, bancoHoras, aniversariantes, funcionarios, logins) e o status/duração do run (via env). Status por fonte: ok (idade ok) / atenção (>6h = não regenerou neste run) / parado (>48h ou faltando). **SEM PII.** Pipeline agora = 10 passos.
+
+**Front:** o PC cria o painel "Status do pipeline" (lê `monitor/wkradar`, renderiza `fontes[]` dinâmico, cap admin/RH, aditivo). Bridge: `claude-bridge/inbox-pc/2026-06-26-monitor-pipeline-painel.md`.
+
+**De quebra:** o monitor já pegou um problema real — o `ExpAuto_D_Empregado.txt` estava com ~30h (tarefa 07:40 não rodou). Resolvido ao dobrar o export do D_Empregado pra dentro do pipeline (entrada acima). Scripts novos: `write-monitor.mjs`, `inline-monitor-data.mjs`.
