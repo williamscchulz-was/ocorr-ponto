@@ -49,6 +49,25 @@
         { "fieldPath": "segmento.tipo", "order": "ASCENDING" },
         { "fieldPath": "segmento.valores", "arrayConfig": "CONTAINS" }
       ]
+    },
+    {
+      "collectionGroup": "documentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "escopo", "order": "ASCENDING" },
+        { "fieldPath": "segmento.tipo", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "documentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "escopo", "order": "ASCENDING" },
+        { "fieldPath": "segmento.tipo", "order": "ASCENDING" },
+        { "fieldPath": "segmento.valores", "arrayConfig": "CONTAINS" }
+      ]
     }
   ],
   "fieldOverrides": []

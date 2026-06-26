@@ -1179,12 +1179,12 @@
           uid,
           funcionarioId: (u && u.funcionarioId) || null,
           versaoAssinada: d ? (d.versao || 1) : (opts.versao || 1),
-          hashSha256: (d && d.anexo && d.anexo.hashSha256) || "",
+          hashSha256: (d && d.anexo && d.anexo.hashSha256) || opts.hashSha256 || "",
           aceiteTexto: opts.aceiteTexto || "Li e estou de acordo",
           em: firebase.firestore.FieldValue.serverTimestamp(),
           userAgent: String(navigator.userAgent || "").slice(0, 200),
         });
-        window.registrarAuditoria?.({ tipo: "documento", acao: "Assinou documento (N1)", alvo: (d?.titulo || docId) + " v" + (d?.versao || 1) });
+        window.registrarAuditoria?.({ tipo: "documento", acao: "Assinou documento (N1)", alvo: (d?.titulo || docId) + " v" + (d?.versao || opts.versao || 1) });
         return { ok: true };
       } catch (e) { return { ok: false, err: e.message }; }
     };
@@ -1199,6 +1199,41 @@
         await ref.set({ uid, funcionarioId: (u && u.funcionarioId) || null, confirmado: !!opts.confirmar, em: firebase.firestore.FieldValue.serverTimestamp(), userAgent: String(navigator.userAgent || "").slice(0, 200) });
         return { ok: true };
       } catch (e) { return { ok: false, err: e.message }; }
+    };
+
+    // App do colaborador: assina documento com RE-AUTENTICAÇÃO no ato (redigita a senha).
+    // Prova que quem sabe a senha está presente agora; só então grava a assinatura N1.
+    window.assinarDocumentoColab = async function (docId, senha) {
+      const user = auth.currentUser;
+      if (!user) return { ok: false, err: "sem sessao" };
+      if (!senha) return { ok: false, err: "senha", msg: "Digite sua senha pra confirmar." };
+      try {
+        const cred = firebase.auth.EmailAuthProvider.credential(user.email, senha);
+        await user.reauthenticateWithCredential(cred);
+      } catch (e) {
+        return { ok: false, err: "senha", msg: "Senha incorreta. Confira e tente de novo." };
+      }
+      const d = (state.documentosColab || []).find((x) => x.id === docId);
+      const r = await window.registrarAssinaturaDocumento(docId, { versao: d ? d.versao : 1, hashSha256: (d && d.anexo && d.anexo.hashSha256) || "" });
+      if (r && r.ok) {
+        if (d) d.minhaAssinatura = { versaoAssinada: d.versao, em: new Date().toISOString() };
+        toast("Documento assinado.");
+        renderApp();
+      } else {
+        toast("Não consegui registrar: " + ((r && r.err) || "?"), "danger");
+      }
+      return r;
+    };
+    // Documento de só ciência (sem assinatura): marca como lido.
+    window.confirmarLeituraDocumentoColab = async function (docId) {
+      const r = await window.registrarLeituraDocumento(docId, { confirmar: true });
+      if (r && r.ok) {
+        const d = (state.documentosColab || []).find((x) => x.id === docId);
+        if (d && !d.minhaLeitura) d.minhaLeitura = { confirmado: true, em: new Date().toISOString() };
+        toast("Leitura registrada.");
+        renderApp();
+      }
+      return r;
     };
 
     // Import Banco de Horas: substituição completa em /bancoHoras
@@ -2172,6 +2207,7 @@
       state.comunicados = [];
       state.documentos = [];
       state.comunicadosColab = [];
+      state.documentosColab = [];
       // Para o listener vivo das ocorrências e reseta a detecção de deltas
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
@@ -2369,6 +2405,29 @@
         }));
         state.comunicadosColab = arr;
       } catch (e) { debug?.("[colab] comunicados:", e?.message || e); state.comunicadosColab = []; }
+
+      // Documentos institucionais publicados do segmento. Mesma lógica de query por
+      // segmento (a rule não filtra). O ramo 'pessoal' entra quando existir doc pessoal.
+      state.documentosColab = [];
+      try {
+        const f2 = state.funcionarios[0] || null;
+        const t2 = f2 ? f2.turno : null;
+        const s2 = f2 ? f2.setor : null;
+        const dbase = db.collection("documentos").where("status", "==", "publicado").where("escopo", "==", "institucional");
+        const dq = [dbase.where("segmento.tipo", "==", "todos")];
+        if (t2 != null) dq.push(dbase.where("segmento.tipo", "==", "turno").where("segmento.valores", "array-contains", t2));
+        if (s2) dq.push(dbase.where("segmento.tipo", "==", "setor").where("segmento.valores", "array-contains", s2));
+        const dsnaps = await Promise.all(dq.map((q) => q.get().catch((e) => { debug?.("[colab] documentos q:", e?.message || e); return null; })));
+        const dseen = {}; const darr = [];
+        for (const sn of dsnaps) { if (!sn) continue; for (const d of sn.docs) { if (dseen[d.id]) continue; dseen[d.id] = 1; const dat = d.data(); darr.push({ id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm), versaoEm: tsToIso(dat.versaoEm) }); } }
+        const uid2 = auth.currentUser && auth.currentUser.uid;
+        await Promise.all(darr.map(async (d) => {
+          d.minhaAssinatura = null; d.minhaLeitura = null;
+          try { const a = await db.collection("documentos").doc(d.id).collection("assinaturas").doc(uid2).get(); if (a.exists) d.minhaAssinatura = { ...a.data(), em: tsToIso(a.data().em) }; } catch (e) { /* */ }
+          try { const l = await db.collection("documentos").doc(d.id).collection("leituras").doc(uid2).get(); if (l.exists) d.minhaLeitura = { ...l.data(), em: tsToIso(l.data().em) }; } catch (e) { /* */ }
+        }));
+        state.documentosColab = darr;
+      } catch (e) { debug?.("[colab] documentos:", e?.message || e); state.documentosColab = []; }
       return;
     }
 

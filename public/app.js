@@ -707,6 +707,10 @@ function cpIcon(name) {
     lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     pin: '<path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/>',
     edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+    x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    clipboard: '<rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M9 10h6M9 14h6M9 18h4"/>',
+    smile: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>',
     users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     check: '<polyline points="20 6 9 17 4 12"/>',
     spinner: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
@@ -847,7 +851,7 @@ function renderViewColaborador() {
   if (page === "colab-roadmap") return renderPortalRoadmap();
   if (page === "colab-ponto") return renderColabStub("Meu Ponto", "Aqui você verá seu saldo de banco de horas e o espelho de ponto. Em construção.", "clock");
   if (page === "colab-comunicados") return renderColabComunicados();
-  if (page === "colab-documentos") return renderColabStub("Documentos", "Seus holerites, recibos e documentos para assinar ficarão aqui. Em construção.", "file");
+  if (page === "colab-documentos") return renderColabDocumentos();
   return renderColaboradorHome();
 }
 
@@ -934,6 +938,148 @@ if (!window._colabAvisoBound) {
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-colab-ciente]");
     if (b) { e.preventDefault(); b.disabled = true; colabCienteUI(b.dataset.colabCiente); return; }
+  });
+}
+
+// ===== Documentos do colaborador — lê + assina (re-auth no ato) =====
+const COLAB_DOC_IC = { regras: "clipboard", conduta: "shield", cultura: "smile", privacidade: "lock", termo: "file", outro: "file" };
+
+function colabDocPendente(d) {
+  if (d.exigeAssinatura) return !(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada === d.versao);
+  return !(d.minhaLeitura && d.minhaLeitura.confirmado);
+}
+
+function renderColabDocumentos() {
+  const lista = (state.documentosColab || []).slice().sort((a, b) => String(b.publicadoEm || "").localeCompare(String(a.publicadoEm || "")));
+  const pend = lista.filter(colabDocPendente);
+  const emdia = lista.filter((d) => !colabDocPendente(d));
+  const pendAssin = pend.filter((d) => d.exigeAssinatura).length;
+  const cab = `<header class="page-header"><div><h1>Documentos</h1></div>${pendAssin ? `<span class="cp-pend">${pendAssin} assinatura${pendAssin > 1 ? "s" : ""}</span>` : ""}</header>`;
+
+  if (lista.length === 0) {
+    $("#view").innerHTML = cab + `
+      <div class="cp-stub">
+        <div class="cp-stub__ic">${cpIcon("file")}</div>
+        <p>Nenhum documento pra você por enquanto. Quando o RH publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p>
+      </div>`;
+    return;
+  }
+  $("#view").innerHTML = cab
+    + (pend.length ? `<div class="cp-seclabel">${cpIcon("edit")}<span>Precisa de você</span></div>${pend.map(colabDocCardHtml).join("")}` : "")
+    + (emdia.length ? `<div class="cp-seclabel">${cpIcon("check")}<span>Em dia</span></div>${emdia.map(colabDocCardHtml).join("")}` : "");
+}
+
+function colabDocCardHtml(d) {
+  const ic = COLAB_DOC_IC[d.tipo] || "file";
+  const anexoUrl = (d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url)) ? d.anexo.url : null;
+  const pend = colabDocPendente(d);
+  let status = "", acao = "";
+  if (d.exigeAssinatura) {
+    if (pend) {
+      status = `<span class="cp-doc__pend">${cpIcon("edit")}Assinatura pendente (v${d.versao || 1})</span>`;
+      acao = `<button class="cp-ciente" data-colab-assinar="${d.id}">${cpIcon("edit")}Assinar</button>`;
+    } else {
+      status = `<span class="cp-av__ok">${cpIcon("check")}Assinado · v${d.minhaAssinatura.versaoAssinada} · ${comData(d.minhaAssinatura.em)}</span>`;
+    }
+  } else if (pend) {
+    status = `<span class="cp-doc__pend">${cpIcon("info")}Só ciência</span>`;
+    acao = `<button class="cp-ciente cp-ciente--soft" data-colab-lerdoc="${d.id}">${cpIcon("check")}Marcar como lido</button>`;
+  } else {
+    status = `<span class="cp-av__ok">${cpIcon("check")}Lido · ${comData(d.minhaLeitura.em)}</span>`;
+  }
+  return `
+    <article class="cp-doc">
+      <div class="cp-doc__row">
+        <span class="cp-doc__seal">${cpIcon(ic)}</span>
+        <div class="cp-doc__tt">
+          <div class="cp-doc__title">${escapeHtml(d.titulo || "")}</div>
+          <div class="cp-doc__sub">
+            <span class="cp-tag">${escapeHtml(d.tipo || "doc")}</span>
+            <span class="cp-tag">v${d.versao || 1}</span>
+            ${anexoUrl ? `<a class="cp-tag cp-tag--link" href="${escapeHtml(anexoUrl)}" target="_blank" rel="noopener">${cpIcon("file")}abrir anexo</a>` : ""}
+          </div>
+        </div>
+      </div>
+      <div class="cp-doc__status">${status}${acao}</div>
+    </article>`;
+}
+
+function colabLerDocUI(id) {
+  if (window.confirmarLeituraDocumentoColab) return void window.confirmarLeituraDocumentoColab(id);
+  const d = (state.documentosColab || []).find((x) => x.id === id);
+  if (d) d.minhaLeitura = { confirmado: true, em: nowIso() };
+  if (typeof store !== "undefined") store.save(state);
+  toast("Leitura registrada."); renderApp();
+}
+
+function openColabAssinarSheet(docId) {
+  const d = (state.documentosColab || []).find((x) => x.id === docId);
+  if (!d) return;
+  const anexoUrl = (d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url)) ? d.anexo.url : null;
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Assinar documento</h2><p>Aceite N1 · versão ${d.versao || 1}</p></div>
+      <button class="modal__close" data-close>${cpIcon("x")}</button>
+    </div>
+    <div class="modal__body cp-assinar">
+      <div class="cp-assinar__doc">
+        <span class="cp-doc__seal">${cpIcon(COLAB_DOC_IC[d.tipo] || "file")}</span>
+        <div class="cp-assinar__docinfo"><b>${escapeHtml(d.titulo || "")}</b><span>${escapeHtml(d.tipo || "doc")} · v${d.versao || 1}</span></div>
+        ${anexoUrl ? `<a class="cp-assinar__ler" href="${escapeHtml(anexoUrl)}" target="_blank" rel="noopener">${cpIcon("file")}ler</a>` : ""}
+      </div>
+      <button type="button" class="cp-aceite" id="cp-aceite" aria-pressed="false">
+        <span class="cp-aceite__box">${cpIcon("check")}</span>
+        <span class="cp-aceite__t">Li e estou de acordo com o conteúdo deste documento.</span>
+      </button>
+      <div class="field cp-senha" id="cp-senha-wrap" style="display:none">
+        <label for="cp-senha">Confirme com sua senha</label>
+        <input type="password" id="cp-senha" autocomplete="current-password" placeholder="Sua senha" />
+      </div>
+      <div class="cp-assinar__note">${cpIcon("info")}<span>Pra confirmar, você redigita a senha. Registra seu nome, data e hora (do servidor) e a versão assinada. É um aceite com trilha, não validade jurídica plena.</span></div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="cp-assinar-ok" disabled>${cpIcon("check")}<span>Confirmar assinatura</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const aceite = $("#cp-aceite"), btn = $("#cp-assinar-ok"), senhaWrap = $("#cp-senha-wrap");
+      aceite.addEventListener("click", () => {
+        const on = aceite.getAttribute("aria-pressed") === "true";
+        aceite.setAttribute("aria-pressed", String(!on));
+        aceite.classList.toggle("is-on", !on);
+        senhaWrap.style.display = !on ? "" : "none";
+        btn.disabled = on;
+        if (!on) setTimeout(() => $("#cp-senha") && $("#cp-senha").focus(), 50);
+      });
+      btn.addEventListener("click", async () => {
+        const senha = $("#cp-senha") ? $("#cp-senha").value : "";
+        if (!senha) return campoInvalido("#cp-senha", "Digite sua senha pra confirmar.");
+        btn.disabled = true;
+        if (window.assinarDocumentoColab) {
+          const r = await window.assinarDocumentoColab(docId, senha);
+          if (r && r.ok) { closeModal(); }
+          else { btn.disabled = false; campoInvalido("#cp-senha", (r && r.msg) || "Não consegui confirmar. Tente de novo."); }
+        } else {
+          const dd = (state.documentosColab || []).find((x) => x.id === docId);
+          if (dd) dd.minhaAssinatura = { versaoAssinada: dd.versao, em: nowIso() };
+          if (typeof store !== "undefined") store.save(state);
+          closeModal(); toast("Documento assinado."); renderApp();
+        }
+      });
+      setTimeout(() => $("#cp-aceite") && $("#cp-aceite").focus(), 60);
+    },
+  });
+}
+
+if (!window._colabDocBound) {
+  window._colabDocBound = true;
+  document.addEventListener("click", (e) => {
+    const as = e.target.closest("[data-colab-assinar]");
+    if (as) { e.preventDefault(); openColabAssinarSheet(as.dataset.colabAssinar); return; }
+    const lr = e.target.closest("[data-colab-lerdoc]");
+    if (lr) { e.preventDefault(); lr.disabled = true; colabLerDocUI(lr.dataset.colabLerdoc); return; }
   });
 }
 
