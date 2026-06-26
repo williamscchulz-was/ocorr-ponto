@@ -1144,6 +1144,17 @@
       }
     };
 
+    // config/aniversariantes (sem PII: nome/dia/mes). Leitura autenticada (rule config/{doc}).
+    window.carregarAniversariantes = async function () {
+      try {
+        const snap = await db.collection("config").doc("aniversariantes").get();
+        state.aniversariantes = snap.exists ? snap.data() : null;
+      } catch (e) {
+        debug?.("[aniversariantes] carregar:", e?.message || e);
+        state.aniversariantes = null;
+      }
+    };
+
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
       const u = currentUser();
       const seg = dados.segmento || { tipo: "todos", valores: [] };
@@ -2271,6 +2282,7 @@
       state.documentosColab = [];
       state.ocorrenciasAuto = null; // null = recarrega no próximo acesso à aba
       state.monitorPipeline = null;
+      state.aniversariantes = null;
       // Para o listener vivo das ocorrências e reseta a detecção de deltas
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
@@ -2578,6 +2590,9 @@
         }));
         state.documentosColab = darr;
       } catch (e) { debug?.("[colab] documentos:", e?.message || e); state.documentosColab = []; }
+
+      // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
+      try { await window.carregarAniversariantes(); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
       return;
     }
 

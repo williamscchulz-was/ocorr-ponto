@@ -695,6 +695,7 @@ function cpIcon(name) {
   const P = {
     home: '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>',
     clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>',
+    cake: '<path d="M20 21v-8H4v8M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1 2.5 1 4 1 2-1 2-1M12 4a1 1 0 0 0-1 1c0 1 1 2 1 2s1-1 1-2a1 1 0 0 0-1-1zM6 13v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>',
     megafone: '<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
     file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
     roadmap: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
@@ -1086,6 +1087,31 @@ if (!window._colabDocBound) {
   });
 }
 
+// Aniversariantes do mês na home do colaborador. Lê config/aniversariantes (sem PII:
+// só nome/dia/mês). Filtra o mês corrente, marca "hoje" e destaca "você". Sem dado -> "".
+function _normNome(s) { return String(s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+function aniversariantesDoMesHtml(meuNome) {
+  const lista = (state.aniversariantes && Array.isArray(state.aniversariantes.pessoas)) ? state.aniversariantes.pessoas : [];
+  if (!lista.length) return "";
+  const hoje = new Date();
+  const mes = hoje.getMonth() + 1, diaHoje = hoje.getDate();
+  const doMes = lista.filter((p) => Number(p.mes) === mes).slice().sort((a, b) => Number(a.dia) - Number(b.dia));
+  if (!doMes.length) return "";
+  const eu = _normNome(meuNome);
+  const rows = doMes.map((p) => {
+    const ehHoje = Number(p.dia) === diaHoje;
+    const souEu = eu && _normNome(p.nome) === eu;
+    const dd = String(p.dia).padStart(2, "0"), mm = String(p.mes).padStart(2, "0");
+    const dir = ehHoje ? `<span class="cp-aniv__hoje">Hoje</span>` : `<span class="cp-aniv__data">${dd}/${mm}</span>`;
+    return `<div class="cp-aniv__row">
+      <div class="cp-aniv__av${souEu ? " is-me" : ""}">${escapeHtml(initials(p.nome || "?"))}</div>
+      <span class="cp-aniv__nome">${escapeHtml(p.nome || "—")}${souEu ? ` <span class="cp-aniv__me">· você</span>` : ""}</span>
+      ${dir}
+    </div>`;
+  }).join("");
+  return `<div class="cp-seclabel">${cpIcon("cake")}<span>Aniversariantes do mês</span></div><div class="cp-aniv">${rows}</div>`;
+}
+
 function renderColaboradorHome() {
   const view = $("#view");
   const u = currentUser();
@@ -1132,6 +1158,7 @@ function renderColaboradorHome() {
     <div class="cp-atalhos">
       ${atalhos.map((a) => `<button class="cp-atalho" data-nav="${a.page}"><span class="cp-atalho__ic">${cpIcon(a.icon)}</span><span class="cp-atalho__t">${a.t}</span><span class="cp-atalho__s">${a.s}</span></button>`).join("")}
     </div>
+    ${aniversariantesDoMesHtml(nome)}
   `;
   bindColabNav(view);
   if (typeof animarEntrada === "function") animarEntrada(view);

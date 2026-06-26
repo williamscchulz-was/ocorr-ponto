@@ -280,6 +280,8 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
 .cp-aniv__nome{font-size:13px;font-weight:600;color:var(--text-body)}
 .cp-aniv__data{font-size:11.5px;color:var(--text-muted);margin-left:auto;font-variant-numeric:tabular-nums}
 .cp-aniv__hoje{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:999px;margin-left:auto}
+.cp-aniv__av.is-me{background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff}
+.cp-aniv__me{color:var(--plum);font-weight:700}
 .cp-rmcard{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;font:inherit;margin-bottom:8px}
 .cp-rmcard__top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .cp-rmcard__t{font-size:13.5px;font-weight:700;color:var(--text-body)}
