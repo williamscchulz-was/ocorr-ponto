@@ -877,7 +877,20 @@ function colabAvisosOrdenados() {
   });
 }
 
+// Re-busca os dados voláteis do colaborador ao ABRIR Avisos/Documentos (não só ao focar a aba),
+// pra avisos/docs publicados depois do login aparecerem sem precisar relogar. Throttle 15s.
+function cpRefreshAoAbrir() {
+  if (!window.recarregarVolateis) return;
+  const agora = Date.now();
+  if (agora - (window._cpLastColabRefresh || 0) < 15000) return;
+  window._cpLastColabRefresh = agora;
+  window.recarregarVolateis().then(() => {
+    if (/^colab-(comunicados|documentos)$/.test(state.view.page || "")) renderApp();
+  }).catch(() => {});
+}
+
 function renderColabComunicados() {
+  cpRefreshAoAbrir();
   const todos = colabAvisosOrdenados();
   const naoLidos = todos.filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado));
   const cab = `<header class="page-header"><div><h1>Avisos</h1></div>${naoLidos.length ? `<span class="cp-pend">${naoLidos.length} pendente${naoLidos.length > 1 ? "s" : ""}</span>` : ""}</header>`;
@@ -964,6 +977,7 @@ function colabDocPendente(d) {
 }
 
 function renderColabDocumentos() {
+  cpRefreshAoAbrir();
   const lista = (state.documentosColab || []).slice().sort((a, b) => String(b.publicadoEm || "").localeCompare(String(a.publicadoEm || "")));
   const pend = lista.filter(colabDocPendente);
   const emdia = lista.filter((d) => !colabDocPendente(d));
@@ -1252,11 +1266,7 @@ function renderColabPonto() {
     return;
   }
   view.innerHTML = cab + bhHeroHtml(f) + `
-    <div class="cp-seclabel">${cpIcon("clock")}<span>Detalhamento diário</span></div>
-    <div class="cp-stub">
-      <div class="cp-stub__ic">${cpIcon("clock")}</div>
-      <p>O gráfico de saldo e os lançamentos por dia chegam aqui em breve, com o detalhamento do banco de horas.</p>
-    </div>`;
+    <div class="cp-bh-note">${cpIcon("info")}<span>Seu saldo atual de banco de horas, atualizado pelo RH na apuração do ponto.</span></div>`;
   bindColabNav(view);
   if (typeof animarEntrada === "function") animarEntrada(view);
 }
