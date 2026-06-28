@@ -853,7 +853,7 @@ function renderViewColaborador() {
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conta") return renderColabConta();
   if (page === "colab-roadmap") return renderPortalRoadmap();
-  if (page === "colab-ponto") return renderColabStub("Meu Ponto", "Aqui você verá seu saldo de banco de horas e o espelho de ponto. Em construção.", "clock");
+  if (page === "colab-ponto") return renderColabPonto();
   if (page === "colab-comunicados") return renderColabComunicados();
   if (page === "colab-documentos") return renderColabDocumentos();
   return renderColaboradorHome();
@@ -1229,6 +1229,29 @@ function renderColaboradorHome() {
 }
 
 // Conta do colaborador: dados do cadastro (SELF, sem PII) + aparência + trocar senha + sair.
+// Meu Ponto / Banco de horas do colaborador. Herói com o saldo (3 estados) + detalhamento
+// diário (gráfico + lançamentos) que entra quando o pipeline publicar lancamentos[] no
+// banco-horas-self (pedido no bridge). Some pro bhExempt (cargo sem ponto).
+function renderColabPonto() {
+  const view = $("#view");
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const cab = `<header class="page-header"><div><h1>Meu ponto</h1></div></header>`;
+  if (f && f.bhExempt) {
+    view.innerHTML = cab + `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>`;
+    bindColabNav(view);
+    if (typeof animarEntrada === "function") animarEntrada(view);
+    return;
+  }
+  view.innerHTML = cab + bhHeroHtml(f) + `
+    <div class="cp-seclabel">${cpIcon("clock")}<span>Detalhamento diário</span></div>
+    <div class="cp-stub">
+      <div class="cp-stub__ic">${cpIcon("clock")}</div>
+      <p>O gráfico de saldo e os lançamentos por dia chegam aqui em breve, com o detalhamento do banco de horas.</p>
+    </div>`;
+  bindColabNav(view);
+  if (typeof animarEntrada === "function") animarEntrada(view);
+}
+
 function renderColabConta() {
   const view = $("#view");
   const u = currentUser();
