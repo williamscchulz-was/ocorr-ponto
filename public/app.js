@@ -878,13 +878,11 @@ function colabAvisosOrdenados() {
 }
 
 function renderColabComunicados() {
-  const lista = colabAvisosOrdenados();
-  const pend = lista.filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado)).length;
-  const fixados = lista.filter((c) => c.fixado);
-  const recentes = lista.filter((c) => !c.fixado);
-  const cab = `<header class="page-header"><div><h1>Avisos</h1></div>${pend ? `<span class="cp-pend">${pend} pendente${pend > 1 ? "s" : ""}</span>` : ""}</header>`;
+  const todos = colabAvisosOrdenados();
+  const naoLidos = todos.filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado));
+  const cab = `<header class="page-header"><div><h1>Avisos</h1></div>${naoLidos.length ? `<span class="cp-pend">${naoLidos.length} pendente${naoLidos.length > 1 ? "s" : ""}</span>` : ""}</header>`;
 
-  if (lista.length === 0) {
+  if (todos.length === 0) {
     $("#view").innerHTML = cab + `
       <div class="cp-stub">
         <div class="cp-stub__ic">${cpIcon("megafone")}</div>
@@ -892,9 +890,20 @@ function renderColabComunicados() {
       </div>`;
     return;
   }
-  $("#view").innerHTML = cab
-    + (fixados.length ? `<div class="cp-seclabel">${cpIcon("pin")}<span>Fixado</span></div>${fixados.map(colabAvisoHtml).join("")}` : "")
-    + (recentes.length ? `<div class="cp-seclabel">${cpIcon("clock")}<span>Recentes</span></div>${recentes.map(colabAvisoHtml).join("")}` : "");
+  const filtro = state.view.avFiltro === "naolidos" ? "naolidos" : "todos";
+  const lista = filtro === "naolidos" ? naoLidos : todos;
+  const tabs = `<div class="cp-tabs" id="cp-av-tabs">
+    <button class="cp-tab ${filtro === "todos" ? "on" : ""}" data-av-filtro="todos">Todos <span class="cp-tab__c">${todos.length}</span></button>
+    <button class="cp-tab ${filtro === "naolidos" ? "on" : ""}" data-av-filtro="naolidos">Não lidos <span class="cp-tab__c">${naoLidos.length}</span></button>
+  </div>`;
+  const fixados = lista.filter((c) => c.fixado);
+  const recentes = lista.filter((c) => !c.fixado);
+  const corpo = lista.length === 0
+    ? `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Tudo em dia. Você confirmou todos os avisos.</p></div>`
+    : (fixados.length ? `<div class="cp-seclabel">${cpIcon("pin")}<span>Fixado</span></div>${fixados.map(colabAvisoHtml).join("")}` : "")
+      + (recentes.length ? `<div class="cp-seclabel">${cpIcon("clock")}<span>Recentes</span></div>${recentes.map(colabAvisoHtml).join("")}` : "");
+  $("#view").innerHTML = cab + tabs + corpo;
+  $$("#cp-av-tabs .cp-tab").forEach((b) => b.addEventListener("click", () => { state.view.avFiltro = b.dataset.avFiltro; renderApp(); }));
 }
 
 function colabAvisoHtml(c) {
@@ -1279,6 +1288,10 @@ function renderColabConta() {
       <div class="cp-prof__av">${escapeHtml(initials(nome || "?"))}</div>
       <div class="cp-prof__n">${escapeHtml(nome || "—")}</div>
       <div class="cp-prof__c">${escapeHtml(cargoSetor)}</div>
+      <div class="cp-prof__chips">
+        <span class="cp-chip cp-chip--seg">${cpIcon("check")}Ativo</span>
+        ${(u && u.codigo) ? `<span class="cp-chip cp-chip--seg">Matrícula ${escapeHtml(String(u.codigo))}</span>` : ""}
+      </div>
     </div>
     <div class="cp-glab">Meus dados</div>
     <div class="cp-grp">
