@@ -2368,6 +2368,16 @@ function renderDemografiaWidget(u) {
     </details>`;
 }
 
+// Saldo de horas médio do escopo carregado (KPI do dashboard). "—" se sem dado.
+function dashBhMedia() {
+  const vals = Object.values(state.bancoHoras || {})
+    .map((b) => (typeof b.minutos === "number" ? b.minutos : (typeof b.saldoMin === "number" ? b.saldoMin : null)))
+    .filter((v) => v != null);
+  if (!vals.length) return "—";
+  const m = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+  return typeof formatSaldoHoras === "function" ? formatSaldoHoras(m) : String(m);
+}
+
 function renderDashboard() {
   const u = currentUser();
   $("#topbar-title").textContent = "Ocorrências";
@@ -2404,26 +2414,26 @@ function renderDashboard() {
       </div>
     </header>
 
-    <div class="stats">
+    <div class="stats stats--kpi">
       <div class="stat stat--accent stat--kpi">
-        <div class="stat__label">Pendentes</div>
+        <div class="stat__label">Ocorrências a conferir</div>
         <div class="stat__value">${pending.length}</div>
-        <div class="stat__hint">${u.role === "lider" ? "aguardando sua conferência" : u.role === "supervisor" ? "aguardando o líder conferir" : "aguardando líder"}</div>
+        <div class="stat__hint">${pending.length ? `<button class="btn btn--soft btn--sm" id="kpi-conferir">${icon("check")}<span>Conferir agora</span></button>` : "tudo em dia"}</div>
       </div>
       <div class="stat">
-        <div class="stat__label">Resolvidas</div>
-        <div class="stat__value">${done.length}</div>
-        <div class="stat__hint">conferidas + lançadas</div>
+        <div class="stat__label">Colaboradores ativos</div>
+        <div class="stat__value">${countActiveFuncs(u)}</div>
+        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
       </div>
       <div class="stat">
-        <div class="stat__label">Total mês</div>
-        <div class="stat__value">${visible.length}</div>
+        <div class="stat__label">Saldo de horas (média)</div>
+        <div class="stat__value num">${escapeHtml(dashBhMedia())}</div>
         <div class="stat__hint">${currentMonthLabel()}</div>
       </div>
       <div class="stat">
-        <div class="stat__label">Funcionários ativos</div>
-        <div class="stat__value">${countActiveFuncs(u)}</div>
-        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "todos os turnos"}</div>
+        <div class="stat__label">Resolvidas no mês</div>
+        <div class="stat__value">${done.length}</div>
+        <div class="stat__hint">conferidas + lançadas</div>
       </div>
     </div>
 
@@ -2470,6 +2480,14 @@ function renderDashboard() {
   // Wire up
   if ($("#btn-nova")) $("#btn-nova").addEventListener("click", openNovaOcorrencia);
   if ($("#btn-monitor")) $("#btn-monitor").addEventListener("click", openMonitorPipeline);
+  if ($("#kpi-conferir")) $("#kpi-conferir").addEventListener("click", () => {
+    state.view.filterTab = "pendentes";
+    $$("#tabs .tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === "pendentes"));
+    const ink = $("#tabs .tabs__ink"), at = $("#tabs .tab.active");
+    if (ink && at) { ink.style.left = at.offsetLeft + "px"; ink.style.width = at.offsetWidth + "px"; }
+    renderOccList();
+    $("#occ-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   // Ink deslizante: troca de aba move só a lista (não re-renderiza o dashboard),
   // então a barrinha transiciona da aba antiga pra nova em vez de pular.
