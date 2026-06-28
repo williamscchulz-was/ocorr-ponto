@@ -19,11 +19,13 @@ escondido, alvos de toque, safe-area. Confirmado no ar.
 | Tela | Mock WKRADAR | Estado no código | Status |
 |---|---|---|---|
 | Home | `colaborador-home-redesign.html` | renderColaboradorHome (A/B/C) | ✅ APLICADO (v195-199) |
-| Banco de horas (`colab-ponto`) | `colaborador-bh-redesign.html` | **renderColabStub "Em construção"** | ❌ STUB — redesign NÃO aplicado |
-| Conta/perfil (`colab-conta`) | `colaborador-conta-redesign.html` | renderColabConta (antigo) | ⚠️ Funcional, redesign NÃO aplicado |
-| Comunicados (`colab-comunicados`) | `colaborador-comunicados-redesign.html` | renderColabComunicados (v187) | ⚠️ Funcional, redesign NÃO aplicado |
-| Documentos (`colab-documentos`) | `colaborador-documentos-redesign.html` | renderColabDocumentos (v188) | ⚠️ Funcional, redesign NÃO aplicado |
-| Roadmap (`colab-roadmap`) | `roadmap-portal-mapa-mental.html` | renderPortalRoadmap (timeline antiga) | ⚠️ Mapa mental NÃO aplicado |
+| Banco de horas (`colab-ponto`) | `colaborador-bh-redesign.html` | renderColabPonto (herói + detalhe em breve) | 🟡 APLICADO PARCIAL (v200) — gráfico/lançamentos esperam dado WKRADAR |
+| Conta/perfil (`colab-conta`) | `colaborador-conta-redesign.html` | renderColabConta + chips (v201) | ✅ APLICADO |
+| Comunicados (`colab-comunicados`) | `colaborador-comunicados-redesign.html` | renderColabComunicados + filtro (v201) | ✅ APLICADO |
+| Documentos (`colab-documentos`) | `colaborador-documentos-redesign.html` | renderColabDocumentos (pendente/em dia) | ✅ APLICADO |
+| Roadmap (`colab-roadmap`) | `roadmap-portal-mapa-mental.html` | **renderPortalRoadmap (mapa mental fp-*)** | ✅ JÁ ESTAVA APLICADO (auditoria inicial errou) |
+
+**Colaborador (mobile) = COMPLETO** (só o gráfico/lançamentos da tela de BH esperam o WKRADAR subir `lancamentos[]`).
 
 ## Portal do Gestor (desktop) — redesign premium das 5 telas
 | Tela | Mock WKRADAR | Estado | Status |
