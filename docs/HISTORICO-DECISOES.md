@@ -461,3 +461,15 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Limitação conhecida:** neste layout o **saldoDiário de falta = 00:00** e a magnitude (8h) não vem em coluna — pro card de falta usar `marcacoesApuradas==null` ("sem marcação") + `marcacoesPrevistas`. Atrasos/saídas têm previsto×apurado.
 
 **Status:** TESTE/sandbox validável na aba de conferência. **Ainda NÃO está no run-pipeline diário** — entra como rotina depois que William + RH validarem a aba. Bridge: `claude-bridge/inbox-pc/2026-06-26-ocorrencias-auto-dados-reais.md`.
+
+---
+
+## 2026-06-27 · 🩹 Fix: setor vinha do relatório de BH (defasado), não do D_Empregado
+
+**Sintoma (William reportou):** após o pipeline rodar, divergências de setor — **REPASSE** e **RETORCEDEIRAS**. 6 funcionários com `funcionarios.setor` errado vs o cadastro: DAIANE(1037), AMANDA(1192), ANDRIELLI(1210)→REPASSE; SIMONE(1158), MARCELO(1235), SINTIA(1239)→RETORCEDEIRAS.
+
+**Causa:** `upload-to-firestore.mjs` usava `primary.departamento` (linha 116: `primary = bh || emp`, BH preferencial) pra gravar `setor`. O **departamento do relatório de BH defasa** o do **D_Empregado** (cadastro autoritativo, mantido pelo RH). Quando alguém muda de setor, o D_Empregado atualiza antes do BH. O pipeline JÁ logava o aviso `depto diverge BH vs Emp` (cross-validation) — mas gravava o do BH mesmo assim. Propagava pra `users.setor` (segmentação), `bancoHoras` (líder) e `pipeline-rh` (app).
+
+**Fix:** setor agora prefere `emp?.departamento` (D_Empregado), caindo no BH só se não houver cadastro. 4 pontos: `funcionarios.setor` (L149), `bancoHoras.setor` (L305), `pipeline-rh.departamento` (L390) e `process-ocorrencias` (setor da ocorrência). Re-rodei upload + sync-colaborador-users → **0 divergências** (cadastro = funcionarios = users). Código corrigido → próximas execuções saem certas.
+
+**Aberto (menor):** 10 `users` com setor null — provavelmente contas de gestor/admin/líder (sem funcionario), não colaboradores. A confirmar se incomoda.
