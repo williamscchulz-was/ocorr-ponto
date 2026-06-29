@@ -5013,10 +5013,33 @@ function docCardHtml(d) {
             : `<button class="com-mini" data-doc-adesao="${d.id}" aria-label="Ver adesao">${icon("eye")}</button>
                <button class="com-mini" data-doc-versao="${d.id}" aria-label="Nova versão">${icon("upload")}</button>`}
           <button class="com-mini" data-doc-editar="${d.id}" aria-label="Editar">${icon("edit")}</button>
+          ${(currentUser()?.role === "admin") ? `<button class="com-mini" data-doc-excluir="${d.id}" aria-label="Excluir documento" title="Excluir" style="color:var(--danger)">${icon("trash")}</button>` : ""}
         </div>
       </div>
       ${adesao}
     </article>`;
+}
+
+// Excluir documento (só admin, espelha a rule). Confirma antes — ação irreversível.
+function excluirDocumentoUI(id) {
+  if (currentUser()?.role !== "admin") return toast("Apenas o administrador pode excluir documentos.", "danger");
+  const d = (state.documentos || []).find((x) => x.id === id);
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Excluir documento</h2><p>Esta ação não pode ser desfeita.</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <p>Tem certeza que deseja excluir <strong>${escapeHtml(d?.titulo || "este documento")}</strong>? Ele sai do painel e do portal do colaborador. As leituras e assinaturas registradas também deixam de ser acessíveis.</p>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--danger" id="btn-doc-excluir-go">${icon("trash")}<span>Excluir documento</span></button>
+    </div>
+  `, { onMount: (modal) => {
+    modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+    modal.querySelector("#btn-doc-excluir-go").addEventListener("click", async () => { closeModal(); await window.excluirDocumento(id); });
+  }});
 }
 
 function docSegmentoDoForm(segTipo) {
@@ -5331,6 +5354,8 @@ if (!window._docBound) {
     if (ad) { e.stopPropagation(); abrirAdesaoDocumento(ad.dataset.docAdesao); return; }
     const vr = e.target.closest("[data-doc-versao]");
     if (vr) { e.stopPropagation(); novaVersaoDocumentoUI(vr.dataset.docVersao); return; }
+    const dx = e.target.closest("[data-doc-excluir]");
+    if (dx) { e.stopPropagation(); excluirDocumentoUI(dx.dataset.docExcluir); return; }
   });
 }
 

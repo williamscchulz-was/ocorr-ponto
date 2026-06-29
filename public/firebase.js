@@ -1224,6 +1224,19 @@
       } catch (e) { toast("Erro: " + e.message, "danger"); }
     };
 
+    // Exclusao fisica do documento institucional. A rule permite só admin
+    // (allow delete: if isAdmin()). Remove o doc; subcoleções (assinaturas/leituras)
+    // ficam órfãs e inacessíveis — aceitável pro caso de uso.
+    window.excluirDocumento = async function (id) {
+      const d = (state.documentos || []).find((x) => x.id === id);
+      try {
+        await db.collection("documentos").doc(id).delete();
+        window.registrarAuditoria?.({ tipo: "documento", acao: "Excluiu documento", alvo: d?.titulo || id });
+        await recarregarDocumentos();
+        toast("Documento excluído."); renderApp();
+      } catch (e) { toast("Erro ao excluir: " + (e?.message || e), "danger"); }
+    };
+
     window.novaVersaoDocumento = async function (id, patch) {
       const d = (state.documentos || []).find((x) => x.id === id);
       const nova = ((d && d.versao) || 1) + 1;

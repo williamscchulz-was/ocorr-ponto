@@ -118,11 +118,13 @@ html.modo-colab.cp-dark #bottom-nav{
   background:rgba(22,29,21,.96);
   box-shadow:0 -8px 24px -10px rgba(0,0,0,.55),0 -1px 0 var(--border);
 }
-.modo-colab .cp-bn-lab{display:none}
-.modo-colab .bottom-nav__item{flex:0 0 auto;min-width:0;background:none;padding:4px}
-.modo-colab .bottom-nav__item.active{background:none}
-.modo-colab .cp-bn-ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
-.modo-colab .bottom-nav__item.active .cp-bn-ic{background:var(--plum-soft);color:#fff}
+/* Itens da nav: ícone EM CIMA do rótulo, ativo em verde (sem círculo) — idêntico
+   ao mockup aprovado. */
+.modo-colab .cp-bn-lab{display:block;font-size:10px;font-weight:500;line-height:1}
+.modo-colab .bottom-nav__item{flex:1;min-width:0;background:none;padding:6px 4px;flex-direction:column;gap:4px;color:var(--text-muted)}
+.modo-colab .bottom-nav__item.active{background:none;color:var(--plum)}
+.modo-colab .cp-bn-ic{width:auto;height:auto;border-radius:0;background:none;display:flex;align-items:center;justify-content:center;color:inherit}
+.modo-colab .bottom-nav__item.active .cp-bn-ic{background:none;color:inherit}
 .modo-colab .bottom-nav__item .icon{width:23px;height:23px}
 
 /* ---- Conta do colaborador ---- */
