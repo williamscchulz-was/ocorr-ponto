@@ -4,7 +4,7 @@
 
 const state = {
   ...store.init(),
-  view: { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" },
+  view: { page: "dashboard", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" },
 };
 
 // Subscription da conversa de chat aberta no momento (cancelada ao trocar de
@@ -595,7 +595,7 @@ function login(userId, senha) {
   store.save({ ...state, view: undefined });
   $("#login").classList.add("hidden");
   $("#app").classList.remove("hidden");
-  state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
+  state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
   renderApp();
   return true;
 }
@@ -2382,6 +2382,15 @@ function dashBhMedia() {
   return typeof formatSaldoHoras === "function" ? formatSaldoHoras(m) : String(m);
 }
 
+// "2026-06" -> "Junho de 2026" (rótulo do filtro de mês). Capitaliza a inicial.
+function mesAnoLabel(ym) {
+  if (!ym) return "";
+  const [y, m] = String(ym).split("-").map(Number);
+  if (!y || !m) return ym;
+  const s = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function renderDashboard() {
   const u = currentUser();
   $("#topbar-title").textContent = "Ocorrências";
@@ -2391,6 +2400,12 @@ function renderDashboard() {
   const conferidas = visible.filter(isConferida);
   const lancadas = visible.filter(isLancada);
   const done = visible.filter((o) => !isPending(o)); // conferidas + lançadas
+
+  // Meses presentes nos dados visíveis (pro filtro de mês). Mais recente primeiro.
+  // Inclui o mês selecionado mesmo se sumir dos dados, pra o select refletir o estado.
+  const mesesDisponiveis = [...new Set(visible.map((o) => (o.data || "").slice(0, 7)).filter(Boolean))];
+  if (state.view.filterMes && !mesesDisponiveis.includes(state.view.filterMes)) mesesDisponiveis.push(state.view.filterMes);
+  mesesDisponiveis.sort().reverse();
 
   const greeting = greetingText(u);
   const subtitle =
@@ -2467,6 +2482,10 @@ function renderDashboard() {
         ${icon("search")}
         <input type="text" id="search" placeholder="Buscar por funcionário ou tipo..." aria-label="Buscar ocorrências por funcionário ou tipo" value="${state.view.search}" />
       </div>
+      <select id="mes-filter" aria-label="Filtrar ocorrências por mês">
+        <option value="">Todos os meses</option>
+        ${mesesDisponiveis.map((ym) => `<option value="${ym}" ${state.view.filterMes === ym ? "selected" : ""}>${mesAnoLabel(ym)}</option>`).join("")}
+      </select>
       ${u.role !== "lider" ? `
         <select id="turno-filter" aria-label="Filtrar ocorrências por turno">
           <option value="">Todos os turnos</option>
@@ -2527,6 +2546,13 @@ function renderDashboard() {
     });
   }
 
+  if ($("#mes-filter")) {
+    $("#mes-filter").addEventListener("change", (e) => {
+      state.view.filterMes = e.target.value || null;
+      renderOccList();
+    });
+  }
+
   renderOccList();
 }
 
@@ -2548,6 +2574,7 @@ function renderOccList() {
   const tab = state.view.filterTab;
   const search = state.view.search.toLowerCase();
   const turno = state.view.filterTurno;
+  const mes = state.view.filterMes;
 
   let list = visibleOcorrencias();
 
@@ -2560,6 +2587,10 @@ function renderOccList() {
       const f = getFuncionario(o.funcionarioId);
       return f && String(f.turno) === turno;
     });
+  }
+
+  if (mes) {
+    list = list.filter((o) => (o.data || "").slice(0, 7) === mes);
   }
 
   if (search) {
@@ -2587,8 +2618,8 @@ function renderOccList() {
   }
 
   if (list.length === 0) {
-    // Se o vazio é por causa de busca/filtro de turno ativo, oferece limpar.
-    const temFiltroAtivo = !!search || !!turno;
+    // Se o vazio é por causa de busca/filtro de turno/mês ativo, oferece limpar.
+    const temFiltroAtivo = !!search || !!turno || !!mes;
     const podeCriar = !temFiltroAtivo && tab === "pendentes" && can("ocorrencias.criar");
     root.innerHTML = `
       <div class="empty">
@@ -2607,8 +2638,10 @@ function renderOccList() {
     if (limpar) limpar.addEventListener("click", () => {
       state.view.search = "";
       state.view.filterTurno = null;
+      state.view.filterMes = null;
       if ($("#search")) $("#search").value = "";
       if ($("#turno-filter")) $("#turno-filter").value = "";
+      if ($("#mes-filter")) $("#mes-filter").value = "";
       renderOccList();
     });
     const nova = $("#btn-empty-nova");
@@ -8741,7 +8774,7 @@ function renderUsuariosInto(selector) {
       })) {
         const fresh = store.reset();
         Object.assign(state, fresh);
-        state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
+        state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
         toast("Dados resetados.");
         renderApp();
       }
@@ -9808,7 +9841,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("#acesso")?.classList.add("hidden");
     $("#login").classList.add("hidden");
     $("#app").classList.remove("hidden");
-    state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
+    state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
     renderApp();
   }
 
