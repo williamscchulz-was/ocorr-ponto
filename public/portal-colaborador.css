@@ -103,8 +103,21 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
 .cp-bh-note{display:flex;align-items:flex-start;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text-muted);line-height:1.45;margin-top:2px}
 .cp-bh-note svg{width:15px;height:15px;flex:none;margin-top:1px;color:var(--plum)}
 
-/* Nav inferior do colaborador (mobile): pílula só-ícone, ativo em círculo verde */
-.modo-colab #bottom-nav{justify-content:space-around}
+/* Nav inferior do colaborador (mobile): barra ANCORADA no rodapé (não pílula
+   flutuante). Sem o vão de 16px embaixo, o conteúdo deixa de vazar atrás/abaixo
+   da barra. Backdrop sólido + cantos arredondados em cima. Alinha com o mockup
+   aprovado. Só-ícone, ativo em círculo verde. */
+.modo-colab #bottom-nav{
+  justify-content:space-around;
+  left:0;right:0;bottom:0;height:auto;border-radius:18px 18px 0 0;
+  background:var(--surface);
+  box-shadow:0 -8px 24px -10px rgba(16,48,28,.18),0 -1px 0 var(--border);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+html.modo-colab.cp-dark #bottom-nav{
+  background:rgba(22,29,21,.96);
+  box-shadow:0 -8px 24px -10px rgba(0,0,0,.55),0 -1px 0 var(--border);
+}
 .modo-colab .cp-bn-lab{display:none}
 .modo-colab .bottom-nav__item{flex:0 0 auto;min-width:0;background:none;padding:4px}
 .modo-colab .bottom-nav__item.active{background:none}
