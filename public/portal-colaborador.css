@@ -608,6 +608,49 @@ html.modo-colab.cp-dark{
 
 .pp-foot{text-align:center;font-size:10.5px;color:var(--text-muted);margin:22px 0 6px;line-height:1.7}
 
+/* saudacao (large title) */
+.pp-hi{padding:2px 2px 6px}
+.pp-hi h1{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1;color:var(--text-body)}
+.pp-hi p{margin-top:4px;font-size:13px;color:var(--text-muted);font-weight:400}
+
+/* precisa de atencao (pendencia) */
+.pp-pend{display:flex;align-items:center;gap:12px;background:var(--warning-bg);border:1px solid transparent;border-radius:var(--pp-rc);padding:13px 14px;width:100%;text-align:left;font:inherit;cursor:pointer;margin-bottom:8px}
+.pp-pend:last-of-type{margin-bottom:0}
+.pp-pend__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pp-pend__t{font-size:13.5px;font-weight:600;color:var(--text-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-pend__s{font-size:11.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* atalhos (grid 2x2) */
+.pp-atalhos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pp-atalho{background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);padding:14px;box-shadow:var(--pp-sh-card);display:flex;flex-direction:column;gap:9px;cursor:pointer;text-align:left;font:inherit;color:var(--text-body)}
+.pp-atalho:active{background:var(--surface-warm)}
+.pp-atalho .pp-ico{width:40px;height:40px}.pp-atalho .pp-ico svg{width:21px;height:21px}
+.pp-atalho__t{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.pp-atalho__s{font-size:11px;color:var(--text-muted)}
+.pp-atalho__n{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warning);color:#fff;font-size:10px;font-weight:700}
+
+/* card de comunicado (home) */
+.pp-card{display:block;width:100%;text-align:left;font:inherit;cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);overflow:hidden;margin-bottom:2px}
+.pp-card--pin{border-color:transparent;box-shadow:0 0 0 1.5px #1AA34F,var(--pp-sh-card)}
+.pp-card__bd{padding:14px}
+.pp-card__meta{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);margin-bottom:7px;font-weight:500}
+.pp-card__meta svg{width:13px;height:13px}
+.pp-card__t{font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.3;color:var(--text-body)}
+.pp-card__x{margin-top:6px;font-size:12.5px;color:var(--text-muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* aniversariantes (carrossel) */
+.pp-aniv{display:flex;gap:10px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none}
+.pp-aniv::-webkit-scrollbar{display:none}
+.pp-aniv-c{flex:none;width:86px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-ri);padding:11px 8px;text-align:center;box-shadow:var(--pp-sh-card)}
+.pp-aniv-av{width:42px;height:42px;border-radius:50%;background:var(--success-bg);color:var(--plum);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;margin:0 auto 7px}
+.pp-aniv-c.me .pp-aniv-av{background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff}
+.pp-aniv-n{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-body)}
+.pp-aniv-d{font-size:10px;color:var(--text-muted);margin-top:1px}
+.pp-aniv-d.hoje{color:var(--plum);font-weight:700}
+
+/* link "ver todos" no overline */
+.pp-ovl a{margin-left:auto;color:var(--plum);font-size:11.5px;font-weight:600;text-decoration:none;text-transform:none;letter-spacing:0;cursor:pointer}
+
 /* entrada suave */
 @keyframes ppFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .pp-fade>*{animation:ppFade .4s both}

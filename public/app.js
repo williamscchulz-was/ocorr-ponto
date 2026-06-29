@@ -1126,18 +1126,18 @@ function aniversariantesDoMesHtml(meuNome) {
   const doMes = lista.filter((p) => Number(p.mes) === mes).slice().sort((a, b) => Number(a.dia) - Number(b.dia));
   if (!doMes.length) return "";
   const eu = _normNome(meuNome);
-  const rows = doMes.map((p) => {
+  const cards = doMes.map((p) => {
     const ehHoje = Number(p.dia) === diaHoje;
     const souEu = eu && _normNome(p.nome) === eu;
     const dd = String(p.dia).padStart(2, "0"), mm = String(p.mes).padStart(2, "0");
-    const dir = ehHoje ? `<span class="cp-aniv__hoje">Hoje</span>` : `<span class="cp-aniv__data">${dd}/${mm}</span>`;
-    return `<div class="cp-aniv__row">
-      <div class="cp-aniv__av${souEu ? " is-me" : ""}">${escapeHtml(initials(p.nome || "?"))}</div>
-      <span class="cp-aniv__nome">${escapeHtml(p.nome || "—")}${souEu ? ` <span class="cp-aniv__me">· você</span>` : ""}</span>
-      ${dir}
+    const primeiro = souEu ? "Você" : ((p.nome || "?").trim().split(/\s+/)[0] || "?");
+    return `<div class="pp-aniv-c${souEu ? " me" : ""}">
+      <div class="pp-aniv-av">${escapeHtml(initials(p.nome || "?"))}</div>
+      <div class="pp-aniv-n">${escapeHtml(primeiro)}</div>
+      <div class="pp-aniv-d${ehHoje ? " hoje" : ""}">${ehHoje ? "Hoje" : `${dd}/${mm}`}</div>
     </div>`;
   }).join("");
-  return `<div class="cp-seclabel">${cpIcon("cake")}<span>Aniversariantes do mês</span></div><div class="cp-aniv">${rows}</div>`;
+  return `<div class="pp-ovl">Aniversariantes do mês</div><div class="pp-aniv">${cards}</div>`;
 }
 
 // Comunicado fixado em destaque na home (reusa .cp-com). Pega o 1o fixado do segmento.
@@ -1145,12 +1145,13 @@ function comunicadoFixadoHtml() {
   const lista = (typeof colabAvisosOrdenados === "function") ? colabAvisosOrdenados() : (state.comunicadosColab || []);
   const fix = lista.find((c) => c.fixado);
   if (!fix) return "";
-  const naoLido = !!(fix.requerConfirmacao && !(fix.minhaLeitura && fix.minhaLeitura.confirmado));
-  return `<div class="cp-seclabel">${cpIcon("pin")}<span>Comunicado fixado</span></div>
-    <button class="cp-com" data-nav="colab-comunicados">
-      <div class="cp-com__top"><span class="cp-com__tag">${cpIcon("pin")}Fixado pelo GH</span>${naoLido ? `<span class="cp-com__new"></span>` : ""}</div>
-      <div class="cp-com__t">${escapeHtml(fix.titulo || "")}</div>
-      ${fix.corpo ? `<div class="cp-com__p">${escapeHtml(fix.corpo)}</div>` : ""}
+  return `<div class="pp-ovl">Comunicados<a data-nav="colab-comunicados">Ver todos</a></div>
+    <button class="pp-card pp-card--pin" data-nav="colab-comunicados">
+      <div class="pp-card__bd">
+        <div class="pp-card__meta">${cpIcon("pin")}<span>Fixado pelo GH</span></div>
+        <div class="pp-card__t">${escapeHtml(fix.titulo || "")}</div>
+        ${fix.corpo ? `<div class="pp-card__x">${escapeHtml(fix.corpo)}</div>` : ""}
+      </div>
     </button>`;
 }
 
@@ -1172,13 +1173,12 @@ function precisaAtencaoHtml() {
   }));
   if (!itens.length) return "";
   const n = itens.length;
-  const rows = itens.map((it) => `<button class="cp-pend__row" data-nav="${it.page}">
-      <span class="cp-pend__ic cp-pend__ic--${it.tone}">${cpIcon(it.ic)}</span>
-      <span class="cp-pend__tx"><span class="cp-pend__t">${escapeHtml(it.t)}</span><span class="cp-pend__s">${escapeHtml(it.s)}</span></span>
-      <span class="cp-pend__bd cp-pend__bd--${it.tone}">${escapeHtml(it.bd)}</span>
-      ${cpIcon("chevron")}
+  const rows = itens.map((it) => `<button class="pp-pend" data-nav="${it.page}">
+      <span class="pp-ico pp-ico--${it.tone === "amber" ? "amber" : "info"}">${cpIcon(it.ic)}</span>
+      <span class="pp-pend__bd"><span class="pp-pend__t">${escapeHtml(it.t)}</span><span class="pp-pend__s">${escapeHtml(it.s)}</span></span>
+      <span class="pp-rw__chev">${cpIcon("chevron")}</span>
     </button>`).join("");
-  return `<div class="cp-seclabel">${cpIcon("alert")}<span>Precisa da sua atenção</span><span class="cp-seclabel__ct">· ${n} ${n > 1 ? "itens" : "item"}</span></div><div class="cp-pend">${rows}</div>`;
+  return `<div class="pp-ovl">Precisa da sua atenção<span class="pp-ct">${n} ${n > 1 ? "itens" : "item"}</span></div>${rows}`;
 }
 
 // Herói de banco de horas (home): 3 estados com selo. Mesmo gradiente verde sempre; o sinal
@@ -1196,11 +1196,19 @@ function bhHeroHtml(f) {
   if (iso && typeof iso.toDate === "function") iso = iso.toDate().toISOString();
   else if (iso && typeof iso === "object" && typeof iso.seconds === "number") iso = new Date(iso.seconds * 1000).toISOString();
   const ctx = (typeof iso === "string" && typeof bhFrescorTxt === "function") ? bhFrescorTxt(iso) : "";
-  return `<button class="cp-bh cp-bh--${estado}" data-nav="colab-ponto" aria-label="Banco de horas">
-    <span class="cp-bh__l">${cpIcon("clock")}<span>Banco de horas</span></span>
-    <span class="cp-bh__v">${bhStr ? escapeHtml(bhStr) : '<span class="cp-bh__soon">em breve</span>'}</span>
-    ${ctx ? `<span class="cp-bh__ctx">${cpIcon("check")}<span>Atualizado ${escapeHtml(ctx)}</span></span>` : ""}
-    ${selTxt ? `<span class="cp-bh__badge">${selIc ? cpIcon(selIc) : ""}${escapeHtml(selTxt)}</span>` : ""}
+  const cls = estado === "neg" ? "pp-hero--neg" : estado === "zero" ? "pp-hero--zero" : "";
+  const _mes = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const mesCap = _mes.charAt(0).toUpperCase() + _mes.slice(1);
+  const sub = estado === "semdado"
+    ? "Seu saldo aparece aqui assim que o RH sincronizar"
+    : (ctx ? `Atualizado ${ctx} · ${selTxt}` : (selTxt || "Toque para ver o detalhe"));
+  return `<button class="pp-hero ${cls}" data-nav="colab-ponto" aria-label="Banco de horas" style="margin-bottom:4px">
+    <div class="pp-hero__top">
+      <span class="pp-hero__lbl">${cpIcon("clock")}Banco de horas</span>
+      <span class="pp-hero__badge">${escapeHtml(mesCap)}</span>
+    </div>
+    <div class="pp-hero__val">${bhStr ? escapeHtml(bhStr) : "em breve"}</div>
+    <div class="pp-hero__sub">${escapeHtml(sub)}</div>
   </button>`;
 }
 
@@ -1227,32 +1235,30 @@ function renderColaboradorHome() {
   if (bh) bhStr = bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null);
   const bhNeg = bhMin != null && bhMin < 0;
   const atalhos = [
-    { page: "colab-ponto", icon: "clock", t: "Meu ponto", s: "Saldo e espelho" },
-    { page: "colab-comunicados", icon: "megafone", t: "Comunicados", s: "Avisos do GH" },
-    { page: "colab-documentos", icon: "file", t: "Documentos", s: "Termos e recibos" },
-    { page: "colab-roadmap", icon: "roadmap", t: "Roadmap", s: "Evolução do portal" },
+    { page: "colab-ponto", icon: "clock", t: "Meu ponto", s: "Saldo e espelho", tone: "green" },
+    { page: "colab-comunicados", icon: "megafone", t: "Comunicados", s: "Avisos do GH", tone: "amber" },
+    { page: "colab-documentos", icon: "file", t: "Documentos", s: "Termos e recibos", tone: "info" },
+    { page: "colab-roadmap", icon: "roadmap", t: "Novidades", s: "Evolução do portal", tone: "neutral" },
   ];
+  const naoLidos = (state.comunicadosColab || []).filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado)).length;
   view.innerHTML = `
-    <div class="cp-hi"><h1>Olá, ${escapeHtml(primeiro)}</h1><p>Bom te ver por aqui.</p></div>
-    ${precisaAtencaoHtml()}
-    <div class="cp-idc">
-      <div class="cp-idc__av">${escapeHtml(initials(nome || "?"))}</div>
-      <div class="cp-idc__main">
-        <div class="cp-idc__nome">${escapeHtml(nome || "—")}</div>
-        <div class="cp-idc__cargo">${escapeHtml(cargoSetor)}</div>
-        ${metas.length ? `<div class="cp-idc__meta">${metas.map((m) => `<span class="cp-tagm">${escapeHtml(m)}</span>`).join("")}</div>` : ""}
+    <div class="pp-fade">
+      <div class="pp-hi"><h1>Olá, ${escapeHtml(primeiro)}</h1><p>Bom te ver por aqui.</p></div>
+      ${bhHeroHtml(f)}
+      ${precisaAtencaoHtml()}
+      <div class="pp-ovl">Acessos rápidos</div>
+      <div class="pp-atalhos">
+        ${atalhos.map((a) => `<button class="pp-atalho" data-nav="${a.page}">
+          <span class="pp-ico pp-ico--${a.tone}">${cpIcon(a.icon)}</span>
+          <span class="pp-atalho__t">${a.t}${(a.page === "colab-comunicados" && naoLidos) ? `<span class="pp-atalho__n">${naoLidos}</span>` : ""}</span>
+          <span class="pp-atalho__s">${a.s}</span>
+        </button>`).join("")}
       </div>
+      ${comunicadoFixadoHtml()}
+      ${aniversariantesDoMesHtml(nome)}
     </div>
-    ${bhHeroHtml(f)}
-    <div class="cp-sec"><h2>Atalhos</h2></div>
-    <div class="cp-atalhos">
-      ${atalhos.map((a) => `<button class="cp-atalho" data-nav="${a.page}"><span class="cp-atalho__ic">${cpIcon(a.icon)}</span><span class="cp-atalho__t">${a.t}</span><span class="cp-atalho__s">${a.s}</span></button>`).join("")}
-    </div>
-    ${comunicadoFixadoHtml()}
-    ${aniversariantesDoMesHtml(nome)}
   `;
   bindColabNav(view);
-  if (typeof animarEntrada === "function") animarEntrada(view);
 }
 
 // Conta do colaborador: dados do cadastro (SELF, sem PII) + aparência + trocar senha + sair.
@@ -1262,17 +1268,20 @@ function renderColaboradorHome() {
 function renderColabPonto() {
   const view = $("#view");
   const f = (state.funcionarios && state.funcionarios[0]) || null;
-  const cab = `<header class="page-header"><div><h1>Meu ponto</h1></div></header>`;
   if (f && f.bhExempt) {
-    view.innerHTML = cab + `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>`;
+    view.innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Meu ponto</h1></div>
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div></div>`;
     bindColabNav(view);
-    if (typeof animarEntrada === "function") animarEntrada(view);
     return;
   }
-  view.innerHTML = cab + bhHeroHtml(f) + `
-    <div class="cp-bh-note">${cpIcon("info")}<span>Seu saldo atual de banco de horas, atualizado pelo RH na apuração do ponto.</span></div>`;
+  view.innerHTML = `
+    <div class="pp-fade">
+      <div class="pp-hi"><h1>Meu ponto</h1></div>
+      <div class="pp-ovl">Banco de horas</div>
+      ${bhHeroHtml(f)}
+      <div class="cp-bh-note" style="margin-top:10px">${cpIcon("info")}<span>Seu saldo atual de banco de horas, atualizado pelo RH na apuração do ponto. O detalhamento dia a dia chega em breve.</span></div>
+    </div>`;
   bindColabNav(view);
-  if (typeof animarEntrada === "function") animarEntrada(view);
 }
 
 function renderColabConta() {
