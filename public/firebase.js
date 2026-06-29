@@ -2612,7 +2612,7 @@
           catch (e) { c.minhaLeitura = null; }
         }));
         state.comunicadosColab = arr; state._dbgComN = arr.length;
-      } catch (e) { debug?.("[colab] comunicados:", e?.message || e); state.comunicadosColab = []; }
+      } catch (e) { debug?.("[colab] comunicados:", e?.message || e); state._dbgComErr = (e && (e.code || e.message)) || String(e); state.comunicadosColab = []; }
 
       // Documentos institucionais publicados do segmento. Mesma lógica de query por
       // segmento (a rule não filtra). O ramo 'pessoal' entra quando existir doc pessoal.
@@ -2635,7 +2635,7 @@
           try { const l = await db.collection("documentos").doc(d.id).collection("leituras").doc(uid2).get(); if (l.exists) d.minhaLeitura = { ...l.data(), em: tsToIso(l.data().em) }; } catch (e) { /* */ }
         }));
         state.documentosColab = darr; state._dbgDocN = darr.length;
-      } catch (e) { debug?.("[colab] documentos:", e?.message || e); state.documentosColab = []; }
+      } catch (e) { debug?.("[colab] documentos:", e?.message || e); state._dbgDocErr = (e && (e.code || e.message)) || String(e); state.documentosColab = []; }
 
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
       try { await window.carregarAniversariantes(); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
@@ -2846,13 +2846,16 @@
     if (!ts) return null;
     if (typeof ts === "string") return ts;
     const d = ts.toDate ? ts.toDate() : new Date(ts);
+    if (isNaN(d.getTime())) return null; // ts malformado -> null em vez de RangeError no toISOString
     return d.toISOString().slice(0, 10);
   }
 
   function tsToIso(ts) {
     if (!ts) return null;
     if (typeof ts === "string") return ts;
-    return (ts.toDate ? ts.toDate() : new Date(ts)).toISOString();
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    if (isNaN(d.getTime())) return null; // ts malformado -> null em vez de RangeError no toISOString
+    return d.toISOString();
   }
 
   function traduzErroAuth(e) {
