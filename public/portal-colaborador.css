@@ -502,3 +502,101 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
   .cp-ciente,.cp-av__ok,.cp-doc__pend{width:100%;justify-content:center}
   .cp-assinar__doc{flex-wrap:wrap}
 }
+
+/* ============================================================
+   PP — Portal Polish (iOS 27 na linguagem FioPulse). Camada aditiva
+   escopada em .modo-colab; usa os tokens cp-dark/light ja definidos.
+   Portado do mockup aprovado docs/mockups/polish-2026/. Gestor intacto.
+   ============================================================ */
+.modo-colab{
+  --pp-ri:14px;--pp-rc:16px;--pp-rh:18px;
+  --pp-sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+  --pp-sh-hero:0 8px 26px -8px rgba(0,40,20,.28),0 2px 8px rgba(0,40,20,.10);
+}
+html.modo-colab.cp-dark{
+  --pp-sh-card:0 2px 10px -4px rgba(0,0,0,.55);
+  --pp-sh-hero:0 14px 34px -14px rgba(0,0,0,.7);
+}
+
+/* perfil */
+.pp-prof{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 0 18px}
+.pp-av{width:84px;height:84px;border-radius:26px;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:600;box-shadow:0 0 0 3px var(--success-bg),var(--pp-sh-card);position:relative}
+.pp-av::after{content:"";position:absolute;top:8px;left:12px;width:34px;height:24px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.4),transparent 70%);filter:blur(2px)}
+.pp-name{margin-top:13px;font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--text-body)}
+.pp-role{margin-top:3px;font-size:12.5px;color:var(--text-muted);font-weight:500}
+.pp-chips{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.pp-chip{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 11px;border-radius:999px;font-size:11.5px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text-muted)}
+.pp-chip svg{width:14px;height:14px}
+.pp-chip--on{background:var(--success-bg);border-color:transparent;color:var(--plum)}
+
+/* overline de secao */
+.pp-ovl{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:20px 4px 9px}
+.pp-ovl .pp-ct{margin-left:auto;text-transform:none;letter-spacing:0;font-size:11px;font-weight:500;color:var(--text-muted)}
+
+/* grupo inset + linhas */
+.pp-grp{background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);overflow:hidden}
+.pp-rw{display:flex;align-items:center;gap:12px;padding:13px 14px;min-height:60px;background:none;border:0;border-top:1px solid var(--border);width:100%;text-align:left;cursor:pointer;color:var(--text-body);font:inherit;position:relative}
+.pp-grp>.pp-rw:first-child,.pp-grp>.pp-seg-row:first-child{border-top:0}
+.pp-rw:active{background:var(--surface-warm)}
+.pp-ico{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
+.pp-ico svg{width:19px;height:19px;stroke-width:2}
+.pp-ico--green{background:var(--success-bg);color:var(--plum)}
+.pp-ico--amber{background:var(--warning-bg);color:var(--warning)}
+.pp-ico--info{background:var(--info-bg);color:var(--info)}
+.pp-ico--neutral{background:var(--surface-warm);color:var(--text-muted)}
+.pp-ico--danger{background:var(--danger-bg);color:var(--danger)}
+.pp-rw__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pp-rw__t{font-size:14px;font-weight:500;letter-spacing:-.01em;color:var(--text-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pp-rw__s{font-size:11.5px;color:var(--text-muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pp-rw__chev{flex:none;color:var(--text-muted);display:flex}
+.pp-rw__chev svg{width:18px;height:18px}
+.pp-rw__val{flex:none;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.pp-rw__val--neg{color:var(--warning)}.pp-rw__val--pos{color:var(--plum)}
+.pp-rw__ro{flex:none;display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:var(--surface-warm);color:var(--text-muted);font-size:10.5px;font-weight:500}
+.pp-rw__ro svg{width:12px;height:12px}
+.pp-rw--danger .pp-rw__t{color:var(--danger)}
+
+/* heroi BH (mesmo gradiente do cp-bh) */
+.pp-hero{position:relative;border-radius:var(--pp-rh);padding:16px 18px;background:linear-gradient(150deg,#1AA34F 0%,#117A39 62%,#0B7A36 100%);box-shadow:var(--pp-sh-hero);overflow:hidden;color:#fff;display:block;width:100%;border:0;text-align:left;font:inherit;cursor:pointer}
+.pp-hero--neg{background:linear-gradient(150deg,#C98A2A,#9A6A1E)}
+.pp-hero--zero{background:linear-gradient(150deg,#3D7CC0,#2A5C95)}
+.pp-hero::before{content:"";position:absolute;top:-40px;right:-30px;width:150px;height:150px;background:radial-gradient(circle,rgba(255,255,255,.28),transparent 65%);pointer-events:none}
+.pp-hero__top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}
+.pp-hero__lbl{font-size:11px;font-weight:500;color:rgba(255,255,255,.85);display:flex;align-items:center;gap:6px}
+.pp-hero__lbl svg{width:15px;height:15px}
+.pp-hero__badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-size:10.5px;font-weight:600;border:1px solid rgba(255,255,255,.2)}
+.pp-hero__badge svg{width:13px;height:13px}
+.pp-hero__val{position:relative;z-index:1;margin-top:9px;font-size:38px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+.pp-hero__sub{position:relative;z-index:1;margin-top:7px;font-size:11.5px;color:rgba(255,255,255,.82);font-weight:400}
+
+/* segmented com pill deslizante */
+.pp-seg-row{padding:14px 14px 15px}
+.pp-seg-cap{font-size:13px;font-weight:500;display:flex;align-items:center;gap:9px;margin-bottom:11px;color:var(--text-body)}
+.pp-seg-cap .pp-ico{width:30px;height:30px}.pp-seg-cap .pp-ico svg{width:16px;height:16px}
+.pp-seg{display:flex;background:var(--surface-warm);border:1px solid var(--border);border-radius:12px;padding:3px;position:relative}
+.pp-seg button{flex:1;height:36px;border:0;background:transparent;color:var(--text-muted);font:inherit;font-size:12px;font-weight:500;cursor:pointer;border-radius:9px;z-index:1;display:flex;align-items:center;justify-content:center;gap:5px;transition:color .18s;white-space:nowrap}
+.pp-seg button.on{color:#fff}
+.pp-seg__pill{position:absolute;top:3px;left:3px;height:36px;background:linear-gradient(150deg,#1AA34F,#0B7A36);border-radius:9px;box-shadow:0 2px 8px -2px rgba(0,0,0,.4);transition:transform .22s cubic-bezier(.4,0,.2,1)}
+
+/* switch iOS */
+.pp-sw-rw{display:flex;align-items:center;gap:12px;padding:13px 14px;min-height:60px;border-top:1px solid var(--border)}
+.pp-sw-rw__bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pp-switch{width:46px;height:28px;border-radius:999px;border:0;background:var(--border-strong);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.pp-switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.pp-switch[aria-checked="true"]{background:#1AA34F}
+.pp-switch[aria-checked="true"]::after{transform:translateX(18px)}
+
+/* dados expansiveis (mantém o toggle existente) */
+.pp-dados{padding:2px 14px 12px;border-top:1px solid var(--border)}
+.pp-dados__row{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:6px 0;color:var(--text-body)}
+.pp-dados__row span:first-child{color:var(--text-muted)}
+
+.pp-foot{text-align:center;font-size:10.5px;color:var(--text-muted);margin:22px 0 6px;line-height:1.7}
+
+/* entrada suave */
+@keyframes ppFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.pp-fade>*{animation:ppFade .4s both}
+.pp-fade>*:nth-child(2){animation-delay:.04s}.pp-fade>*:nth-child(3){animation-delay:.08s}
+.pp-fade>*:nth-child(4){animation-delay:.12s}.pp-fade>*:nth-child(5){animation-delay:.16s}
+.pp-fade>*:nth-child(6){animation-delay:.2s}.pp-fade>*:nth-child(7){animation-delay:.24s}
+@media (prefers-reduced-motion:reduce){.pp-fade>*{animation:none}}

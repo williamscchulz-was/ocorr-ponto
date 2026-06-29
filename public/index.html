@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=210" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=210" />
+  <link rel="stylesheet" href="styles.css?v=211" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=211" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -300,16 +300,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=210"></script>
-  <script defer src="data.js?v=210"></script>
+  <script defer src="utils.js?v=211"></script>
+  <script defer src="data.js?v=211"></script>
   <!-- roadmap.js: dados estáticos do Roadmap do Portal (window.ROADMAP). -->
-  <script defer src="roadmap.js?v=210"></script>
-  <script defer src="app.js?v=210"></script>
+  <script defer src="roadmap.js?v=211"></script>
+  <script defer src="app.js?v=211"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=210"></script>
-  <script defer src="google-drive.js?v=210"></script>
+  <script defer src="firebase.js?v=211"></script>
+  <script defer src="google-drive.js?v=211"></script>
 </body>
 </html>

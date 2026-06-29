@@ -1286,55 +1286,114 @@ function renderColabConta() {
   const bhStr = bh ? (bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null)) : null;
   let pref = null; try { pref = localStorage.getItem("fiopulse:tema"); } catch {}
   const tema = pref === "claro" ? "claro" : pref === "escuro" ? "escuro" : "auto";
+  const temaIdx = tema === "auto" ? 0 : tema === "claro" ? 1 : 2;
+  let notif = true; try { notif = localStorage.getItem("fiopulse:notif") !== "0"; } catch {}
   const ts = (v) => (typeof tsToDateStr === "function" ? tsToDateStr(v) : null);
   const dash = (v) => (v == null || v === "" ? "—" : v);
+  const bhTone = bhMin == null ? "" : bhMin < 0 ? "neg" : bhMin === 0 ? "zero" : "";
+  const idadeSexo = [f && f.idade ? `${f.idade} anos` : null, f && f.sexo].filter(Boolean).join(" · ") || "Cadastro";
+  const _mes = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const mesCap = _mes.charAt(0).toUpperCase() + _mes.slice(1);
+  // PII fora do portal do colaborador: Nascimento NAO aparece (regra LGPD). Mantem nao sensiveis.
   const dados = f ? [
     ["Idade", f.idade ? `${f.idade} anos` : null],
-    ["Nascimento", ts(f.nascimento)],
     ["Sexo", f.sexo],
     ["Estado civil", f.estadoCivil],
     ["Cargo", f.cargo],
+    ["Setor", f.setor],
     ["Admissão", ts(f.admissao)],
     ["Tempo de casa", f.diasNaEmpresa ? tempoDeCasa(f.diasNaEmpresa) : null],
   ] : [];
   view.innerHTML = `
-    <div class="cp-prof">
-      <div class="cp-prof__av">${escapeHtml(initials(nome || "?"))}</div>
-      <div class="cp-prof__n">${escapeHtml(nome || "—")}</div>
-      <div class="cp-prof__c">${escapeHtml(cargoSetor)}</div>
-      <div class="cp-prof__chips">
-        <span class="cp-chip cp-chip--seg">${cpIcon("check")}Ativo</span>
-        ${(u && u.codigo) ? `<span class="cp-chip cp-chip--seg">Matrícula ${escapeHtml(String(u.codigo))}</span>` : ""}
+    <div class="pp-fade">
+      <div class="pp-prof">
+        <div class="pp-av">${escapeHtml(initials(nome || "?"))}</div>
+        <div class="pp-name">${escapeHtml(nome || "—")}</div>
+        <div class="pp-role">${escapeHtml(cargoSetor)}</div>
+        <div class="pp-chips">
+          <span class="pp-chip pp-chip--on">${cpIcon("check")}Ativo</span>
+          ${(u && u.codigo) ? `<span class="pp-chip">Matrícula ${escapeHtml(String(u.codigo))}</span>` : ""}
+        </div>
       </div>
-    </div>
-    <div class="cp-glab">Meus dados</div>
-    <div class="cp-grp">
-      <button class="cp-conta-row" data-acao="dados-toggle"><span class="cp-conta-row__ic">${cpIcon("user")}</span><span class="cp-conta-row__t">Dados pessoais</span><span class="cp-conta-row__v">${cpIcon("chevron")}</span></button>
-      <div class="cp-dados hidden" id="cp-dados">${dados.map(([k, v]) => `<div class="cp-dados__row"><span>${k}</span><span>${escapeHtml(String(dash(v)))}</span></div>`).join("") || '<div class="cp-dados__row"><span>Sem dados de cadastro</span><span>—</span></div>'}</div>
-      <button class="cp-conta-row" data-nav="colab-ponto"><span class="cp-conta-row__ic">${cpIcon("clock")}</span><span class="cp-conta-row__t">Meu banco de horas</span><span class="cp-conta-row__v">${bhStr ? `<span class="num">${escapeHtml(bhStr)}</span>` : ""}${cpIcon("chevron")}</span></button>
-    </div>
-    <div class="cp-glab">Preferências</div>
-    <div class="cp-grp">
-      <div class="cp-seg-h"><span class="cp-conta-row__ic">${cpIcon("moon")}</span><span class="cp-conta-row__t">Aparência</span></div>
-      <div class="cp-seg" id="cp-seg-tema">
-        <button data-tema="auto" class="${tema === "auto" ? "on" : ""}">Automático</button>
-        <button data-tema="claro" class="${tema === "claro" ? "on" : ""}">Claro</button>
-        <button data-tema="escuro" class="${tema === "escuro" ? "on" : ""}">Escuro</button>
+
+      <div class="pp-ovl">Banco de horas</div>
+      <button class="pp-hero ${bhTone ? "pp-hero--" + bhTone : ""}" data-nav="colab-ponto">
+        <div class="pp-hero__top">
+          <span class="pp-hero__lbl">${cpIcon("clock")}Saldo atual</span>
+          <span class="pp-hero__badge">${escapeHtml(mesCap)}</span>
+        </div>
+        <div class="pp-hero__val">${escapeHtml(bhStr || "Em breve")}</div>
+        <div class="pp-hero__sub">${bhStr ? "Toque para ver o detalhe" : "Seu saldo aparece aqui assim que sincronizar"}</div>
+      </button>
+
+      <div class="pp-ovl">Meus dados</div>
+      <div class="pp-grp">
+        <button class="pp-rw" data-acao="dados-toggle">
+          <span class="pp-ico pp-ico--info">${cpIcon("user")}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">Dados pessoais</span><span class="pp-rw__s">${escapeHtml(idadeSexo)}</span></span>
+          <span class="pp-rw__ro">${cpIcon("lock")}Somente leitura</span>
+        </button>
+        <div class="pp-dados hidden" id="cp-dados">${dados.map(([k, v]) => `<div class="pp-dados__row"><span>${k}</span><span>${escapeHtml(String(dash(v)))}</span></div>`).join("") || '<div class="pp-dados__row"><span>Sem dados de cadastro</span><span>—</span></div>'}</div>
+        <button class="pp-rw" data-nav="colab-ponto">
+          <span class="pp-ico pp-ico--green">${cpIcon("clock")}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">Meu banco de horas</span><span class="pp-rw__s">Saldo e referência</span></span>
+          ${bhStr ? `<span class="pp-rw__val ${bhTone === "neg" ? "pp-rw__val--neg" : bhTone === "" ? "pp-rw__val--pos" : ""}">${escapeHtml(bhStr)}</span>` : ""}
+          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
+        </button>
       </div>
+
+      <div class="pp-ovl">Preferências</div>
+      <div class="pp-grp">
+        <div class="pp-seg-row">
+          <div class="pp-seg-cap"><span class="pp-ico pp-ico--neutral">${cpIcon("moon")}</span>Aparência</div>
+          <div class="pp-seg" id="cp-seg-tema">
+            <span class="pp-seg__pill" style="width:calc((100% - 6px)/3);transform:translateX(${temaIdx * 100}%)"></span>
+            <button data-tema="auto" class="${tema === "auto" ? "on" : ""}">Automático</button>
+            <button data-tema="claro" class="${tema === "claro" ? "on" : ""}">Claro</button>
+            <button data-tema="escuro" class="${tema === "escuro" ? "on" : ""}">Escuro</button>
+          </div>
+        </div>
+        <div class="pp-sw-rw">
+          <span class="pp-ico pp-ico--amber">${cpIcon("megafone")}</span>
+          <span class="pp-sw-rw__bd"><span class="pp-rw__t">Notificações</span><span class="pp-rw__s">Avisos de fechamento e comunicados</span></span>
+          <button class="pp-switch" id="cp-notif" role="switch" aria-checked="${notif ? "true" : "false"}" aria-label="Notificações"></button>
+        </div>
+      </div>
+
+      <div class="pp-ovl">Segurança</div>
+      <div class="pp-grp">
+        <button class="pp-rw" data-acao="trocar-senha">
+          <span class="pp-ico pp-ico--neutral">${cpIcon("lock")}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">Trocar senha</span></span>
+          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
+        </button>
+        <button class="pp-rw pp-rw--danger" data-acao="sair">
+          <span class="pp-ico pp-ico--danger">${cpIcon("logout")}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">Sair</span></span>
+          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
+        </button>
+      </div>
+
+      <div class="pp-foot">FioPulse · Portal do Colaborador${typeof CURRENT_VERSION !== "undefined" ? " · " + escapeHtml(CURRENT_VERSION) : ""}</div>
     </div>
-    <div class="cp-glab">Segurança</div>
-    <div class="cp-grp">
-      <button class="cp-conta-row" data-acao="trocar-senha"><span class="cp-conta-row__ic">${cpIcon("lock")}</span><span class="cp-conta-row__t">Trocar senha</span><span class="cp-conta-row__v">${cpIcon("chevron")}</span></button>
-      <button class="cp-conta-row" data-acao="sair"><span class="cp-conta-row__ic red">${cpIcon("logout")}</span><span class="cp-conta-row__t red">Sair</span></button>
-    </div>
-    <div class="cp-foot">FioPulse · Portal do Colaborador · ${typeof CURRENT_VERSION !== "undefined" ? escapeHtml(CURRENT_VERSION) : ""}</div>
   `;
   view.querySelector('[data-acao="dados-toggle"]')?.addEventListener("click", () => $("#cp-dados")?.classList.toggle("hidden"));
   view.querySelector('[data-acao="trocar-senha"]')?.addEventListener("click", () => { if (typeof openProfileModal === "function") openProfileModal(); });
   view.querySelector('[data-acao="sair"]')?.addEventListener("click", () => (window.logout ? window.logout() : logout()));
-  view.querySelectorAll("#cp-seg-tema button").forEach((b) => b.addEventListener("click", () => cpSetTema(b.dataset.tema)));
+  const _seg = view.querySelector("#cp-seg-tema");
+  const _pill = _seg?.querySelector(".pp-seg__pill");
+  _seg?.querySelectorAll("button").forEach((b, i) => b.addEventListener("click", () => {
+    cpSetTema(b.dataset.tema);
+    _seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+    if (_pill) _pill.style.transform = `translateX(${i * 100}%)`;
+  }));
+  const _notif = view.querySelector("#cp-notif");
+  _notif?.addEventListener("click", () => {
+    const on = _notif.getAttribute("aria-checked") === "true";
+    _notif.setAttribute("aria-checked", on ? "false" : "true");
+    try { localStorage.setItem("fiopulse:notif", on ? "0" : "1"); } catch {}
+  });
   bindColabNav(view);
-  if (typeof animarEntrada === "function") animarEntrada(view);
 }
 
 // ---- Roadmap do Portal (linha do tempo horizontal) ----
