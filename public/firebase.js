@@ -1686,6 +1686,7 @@
 
       try {
         await auth.signInWithEmailAndPassword(emailOrId, senha);
+        try { localStorage.setItem("fiopulse:ultimoUser", emailOrId); } catch {}
         // onAuthStateChanged toma o controle daqui (vai carregar dados +
         // renderizar). Botão fica em "Entrando..." até a transição.
         return true;
@@ -1720,6 +1721,7 @@
       } catch (e) {}
       try {
         await auth.signInWithEmailAndPassword(email, senha);
+        try { localStorage.setItem("fiopulse:ultimoCpf", String(cpf || "")); } catch {}
         return true; // onAuthStateChanged assume daqui (carrega + renderiza)
       } catch (e) {
         setErr(traduzErroAuth(e));
@@ -2110,11 +2112,22 @@
       }
     } catch {}
 
-    // Restaura estado do checkbox "manter conectado" entre visitas
+    // Auto-login LIGADO por padrão (decisão do William 2026-06): migra uma vez quem tinha "0"
+    // (era o default opt-in antigo) ou nada -> "1". Quem desmarcar depois fica "0" e não re-migra.
     try {
-      const remembered = localStorage.getItem("fiopulse:manterConectado") === "1";
+      if (localStorage.getItem("fiopulse:autoLoginDefaultOn") !== "1") {
+        localStorage.setItem("fiopulse:manterConectado", "1");
+        localStorage.setItem("fiopulse:autoLoginDefaultOn", "1");
+      }
+    } catch {}
+
+    // Restaura "manter conectado" (LIGADO por padrão) + pré-preenche o usuário do último acesso.
+    try {
       const cb = $("#login-remember");
-      if (cb) cb.checked = remembered;
+      if (cb) cb.checked = localStorage.getItem("fiopulse:manterConectado") !== "0";
+      const ult = localStorage.getItem("fiopulse:ultimoUser");
+      const ui = $("#login-user");
+      if (ui && ult && !ui.value) ui.value = ult;
     } catch {}
 
     // Auto-logout por inatividade: 30 min sem interação → signOut.
@@ -2550,7 +2563,7 @@
         const queries = [col.where("ativo", "==", true).where("segmento.tipo", "==", "todos")];
         if (meuTurno != null) queries.push(col.where("ativo", "==", true).where("segmento.tipo", "==", "turno").where("segmento.valores", "array-contains", meuTurno));
         if (meuSetor) queries.push(col.where("ativo", "==", true).where("segmento.tipo", "==", "setor").where("segmento.valores", "array-contains", meuSetor));
-        const snaps = await Promise.all(queries.map((q) => q.get().catch((e) => { debug?.("[colab] comunicados q:", e?.message || e); return null; })));
+        const snaps = await Promise.all(queries.map((q) => q.get().catch((e) => { debug?.("[colab] comunicados q:", e?.message || e); state._dbgComErr = (e && (e.code || e.message)) || String(e); return null; })));
         const seen = {}; const arr = [];
         for (const sn of snaps) {
           if (!sn) continue;
@@ -2565,7 +2578,7 @@
           try { const l = await db.collection("comunicados").doc(c.id).collection("leituras").doc(uid).get(); c.minhaLeitura = l.exists ? { ...l.data(), em: tsToIso(l.data().em) } : null; }
           catch (e) { c.minhaLeitura = null; }
         }));
-        state.comunicadosColab = arr;
+        state.comunicadosColab = arr; state._dbgComN = arr.length;
       } catch (e) { debug?.("[colab] comunicados:", e?.message || e); state.comunicadosColab = []; }
 
       // Documentos institucionais publicados do segmento. Mesma lógica de query por
@@ -2579,7 +2592,7 @@
         const dq = [dbase.where("segmento.tipo", "==", "todos")];
         if (t2 != null) dq.push(dbase.where("segmento.tipo", "==", "turno").where("segmento.valores", "array-contains", t2));
         if (s2) dq.push(dbase.where("segmento.tipo", "==", "setor").where("segmento.valores", "array-contains", s2));
-        const dsnaps = await Promise.all(dq.map((q) => q.get().catch((e) => { debug?.("[colab] documentos q:", e?.message || e); return null; })));
+        const dsnaps = await Promise.all(dq.map((q) => q.get().catch((e) => { debug?.("[colab] documentos q:", e?.message || e); state._dbgDocErr = (e && (e.code || e.message)) || String(e); return null; })));
         const dseen = {}; const darr = [];
         for (const sn of dsnaps) { if (!sn) continue; for (const d of sn.docs) { if (dseen[d.id]) continue; dseen[d.id] = 1; const dat = d.data(); darr.push({ id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm), versaoEm: tsToIso(dat.versaoEm) }); } }
         const uid2 = auth.currentUser && auth.currentUser.uid;
@@ -2588,7 +2601,7 @@
           try { const a = await db.collection("documentos").doc(d.id).collection("assinaturas").doc(uid2).get(); if (a.exists) d.minhaAssinatura = { ...a.data(), em: tsToIso(a.data().em) }; } catch (e) { /* */ }
           try { const l = await db.collection("documentos").doc(d.id).collection("leituras").doc(uid2).get(); if (l.exists) d.minhaLeitura = { ...l.data(), em: tsToIso(l.data().em) }; } catch (e) { /* */ }
         }));
-        state.documentosColab = darr;
+        state.documentosColab = darr; state._dbgDocN = darr.length;
       } catch (e) { debug?.("[colab] documentos:", e?.message || e); state.documentosColab = []; }
 
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.

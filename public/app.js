@@ -642,11 +642,13 @@ function mostrarLoginColaborador() {
   const cc = $("#colab-cpf"), cs = $("#colab-senha");
   if (cc) cc.disabled = false;
   if (cs) cs.disabled = false;
-  // Restaura a preferência de login automático.
+  // Pré-preenche o CPF do último acesso (a pessoa só digita a senha e clica Entrar).
+  try { const ult = localStorage.getItem("fiopulse:ultimoCpf"); if (cc && ult && !cc.value) cc.value = ult; } catch {}
+  // Login automático LIGADO por padrão (só desliga se a pessoa desmarcou explicitamente).
   const rem = $("#colab-remember");
-  if (rem) { try { rem.checked = localStorage.getItem("fiopulse:manterConectado") === "1"; } catch {} }
+  if (rem) { try { rem.checked = localStorage.getItem("fiopulse:manterConectado") !== "0"; } catch {} }
   $("#login-colab")?.classList.remove("hidden");
-  setTimeout(() => $("#colab-cpf")?.focus(), 60);
+  setTimeout(() => (cc && cc.value ? $("#colab-senha") : $("#colab-cpf"))?.focus(), 60);
 }
 
 // Troca obrigatória de senha no 1º acesso do colaborador (overlay bloqueante).
@@ -900,7 +902,8 @@ function renderColabComunicados() {
       <div class="cp-stub">
         <div class="cp-stub__ic">${cpIcon("megafone")}</div>
         <p>Nenhum aviso pra você por enquanto. Quando o RH publicar algo do seu setor ou turno, aparece aqui.</p>
-      </div>`;
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.75">diag avisos: ${state._dbgComN ?? "?"} carregados · ${state._dbgComErr ? escapeHtml(String(state._dbgComErr)).slice(0, 100) : "sem erro de query"}</div>`;
     return;
   }
   const filtro = state.view.avFiltro === "naolidos" ? "naolidos" : "todos";
@@ -989,7 +992,8 @@ function renderColabDocumentos() {
       <div class="cp-stub">
         <div class="cp-stub__ic">${cpIcon("file")}</div>
         <p>Nenhum documento pra você por enquanto. Quando o RH publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p>
-      </div>`;
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.75">diag docs: ${state._dbgDocN ?? "?"} carregados · ${state._dbgDocErr ? escapeHtml(String(state._dbgDocErr)).slice(0, 100) : "sem erro de query"}</div>`;
     return;
   }
   $("#view").innerHTML = cab
