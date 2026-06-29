@@ -1,0 +1,1622 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Super mockups mobile (Polish 2026)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="polish.css">
+</head>
+<body>
+<div class="gallery">
+  <h1>FioPulse · Super mockups mobile</h1>
+  <p class="lead">Polish inspirado no iOS 27 (padroes, nao a cara do iOS) na identidade FioPulse: verde, Poppins, Tabler, dark padrao + light anti-lavado. Listas inset, herois, segmented com pill, sheets com grabber, swipe na Conferencia. Toque nas telas: tema, abas, switch, sheet e swipe funcionam.</p>
+  <p class="legend">Cada telefone alterna tema no botao da topbar. Aprove tela a tela; eu implemento so as aprovadas, aditivo.</p>
+
+  <div class="grid" id="grid">
+
+    <div class="sec">Colaborador</div>
+
+    <!-- ============ CONTA (referencia) ============ -->
+    <div class="cell">
+      <div class="cap"><span class="num">C1</span><span class="ct">Conta</span><span class="cs">lista inset + segmented + switch</span></div>
+      <div class="scr" data-t="dark">
+        <div class="topbar">
+          <button class="tb-back" aria-label="Voltar"><i class="ti ti-chevron-left"></i></button>
+          <span class="tb-title">Conta</span><span class="tb-sp"></span>
+          <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+        </div>
+        <div class="scroll fade">
+          <header class="phead">
+            <div class="avatar" aria-hidden="true">MR</div>
+            <h1 class="pname">Marina Rocha</h1>
+            <p class="prole">Analista de Producao · Tecelagem</p>
+            <div class="pchips">
+              <span class="chip hl"><i class="ti ti-circle-check"></i>Ativa</span>
+              <span class="chip"><i class="ti ti-id-badge-2"></i>Mat. 1042</span>
+            </div>
+          </header>
+
+          <div class="ovl">Banco de horas</div>
+          <div class="hero neg">
+            <div class="hero-top">
+              <span class="hero-lbl"><i class="ti ti-clock-pause"></i>Saldo atual</span>
+              <span class="hero-badge"><i class="ti ti-calendar"></i>Junho/2026</span>
+            </div>
+            <div class="hero-val">-02:24</div>
+            <p class="hero-sub">Atualizado hoje, 08:00 · 2h24 a compensar ate o fechamento</p>
+          </div>
+
+          <div class="ovl">Meus dados</div>
+          <div class="group">
+            <button class="rw">
+              <span class="ico info"><i class="ti ti-user"></i></span>
+              <span class="body"><span class="t">Dados pessoais</span><span class="s">34 anos · Feminino</span></span>
+              <span class="ro"><i class="ti ti-lock"></i>Somente leitura</span>
+            </button>
+            <button class="rw">
+              <span class="ico green"><i class="ti ti-clock-hour-9"></i></span>
+              <span class="body"><span class="t">Meu banco de horas</span><span class="s">Extrato e fechamentos</span></span>
+              <span class="val neg">-02:24</span><i class="ti ti-chevron-right chev"></i>
+            </button>
+          </div>
+
+          <div class="ovl">Preferencias</div>
+          <div class="group">
+            <div class="seg-row">
+              <div class="seg-cap"><span class="ico neutral"><i class="ti ti-brightness"></i></span>Aparencia</div>
+              <div class="seg" id="seg-ap">
+                <span class="seg-pill" style="width:calc((100% - 6px)/3);transform:translateX(200%)"></span>
+                <button><i class="ti ti-device-mobile"></i>Auto</button>
+                <button><i class="ti ti-sun"></i>Claro</button>
+                <button class="on"><i class="ti ti-moon"></i>Escuro</button>
+              </div>
+            </div>
+            <div class="sw-rw">
+              <span class="ico amber"><i class="ti ti-bell"></i></span>
+              <span class="body"><span class="t">Notificacoes</span><span class="s">Avisos de fechamento e ocorrencias</span></span>
+              <button class="switch" role="switch" aria-checked="true" aria-label="Notificacoes"></button>
+            </div>
+          </div>
+
+          <div class="ovl">Seguranca</div>
+          <div class="group">
+            <button class="rw">
+              <span class="ico neutral"><i class="ti ti-key"></i></span>
+              <span class="body"><span class="t">Trocar senha</span><span class="s">Ultima alteracao ha 3 meses</span></span>
+              <i class="ti ti-chevron-right chev"></i>
+            </button>
+            <button class="rw danger">
+              <span class="ico danger"><i class="ti ti-logout"></i></span>
+              <span class="body"><span class="t">Sair</span></span>
+              <i class="ti ti-chevron-right chev"></i>
+            </button>
+          </div>
+          <p class="foot">FioPulse · Portal do Colaborador<br>v1.4.2</p>
+        </div>
+        <nav class="nav">
+          <a><i class="ti ti-home"></i>Inicio</a>
+          <a><i class="ti ti-clock-hour-9"></i>Horas</a>
+          <a><i class="ti ti-file-description"></i>Documentos</a>
+          <a class="on" aria-current="page"><i class="ti ti-user-circle"></i>Conta</a>
+        </nav>
+      </div>
+    </div>
+
+<div class="cell">
+  <div class="cap"><span class="num">C2</span><span class="ct">Inicio</span><span class="cs">home: heroi BH + atalhos + avisos</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Ola, Marina</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+
+      <div class="hero">
+        <div class="hero-top">
+          <span class="hero-lbl"><i class="ti ti-clock-hour-9"></i>Banco de horas</span>
+          <span class="hero-badge"><i class="ti ti-calendar"></i>Junho/2026</span>
+        </div>
+        <div class="hero-val">+03:12</div>
+        <p class="hero-sub">Atualizado hoje, 08:00 · saldo positivo</p>
+      </div>
+
+      <button class="pend" style="width:100%;text-align:left;cursor:pointer" aria-label="Abrir documento para assinatura">
+        <span class="ico"><i class="ti ti-file-pencil"></i></span>
+        <span class="body">
+          <span class="t">1 documento aguarda sua assinatura</span>
+          <span class="s">Aditivo de horario · ate 30/06</span>
+        </span>
+        <i class="ti ti-chevron-right chev"></i>
+      </button>
+
+      <div class="ovl">Acessos rapidos</div>
+      <div class="atalhos">
+        <button class="atalho">
+          <span class="ico green"><i class="ti ti-clock-hour-9"></i></span>
+          <span class="at">Meu ponto</span>
+          <span class="as">Marcacoes do dia</span>
+        </button>
+        <button class="atalho">
+          <span class="ico amber"><i class="ti ti-bell"></i></span>
+          <span class="at">Avisos <span class="badge amber" style="height:20px;padding:0 7px;font-size:10px;margin-left:2px">3</span></span>
+          <span class="as">3 nao lidos</span>
+        </button>
+        <button class="atalho">
+          <span class="ico info"><i class="ti ti-file-description"></i></span>
+          <span class="at">Documentos</span>
+          <span class="as">Holerites e termos</span>
+        </button>
+        <button class="atalho">
+          <span class="ico neutral"><i class="ti ti-user-circle"></i></span>
+          <span class="at">Meus dados</span>
+          <span class="as">Cadastro e contato</span>
+        </button>
+      </div>
+
+      <div class="ovl">Comunicados<a>Ver todos</a></div>
+      <div class="card pin">
+        <div class="card-bd">
+          <div class="card-meta">
+            <span><i class="ti ti-pin" style="font-size:12px"></i> Fixado</span>
+            <span class="dot"></span>
+            <span>RH · 27/06</span>
+          </div>
+          <div class="card-t">Transmissao dos jogos na fabrica</div>
+          <p class="card-x">Telao montado no refeitorio. Jogos do Brasil exibidos ao vivo durante o intervalo do almoco, sem alteracao de horario.</p>
+        </div>
+      </div>
+
+      <div class="ovl">Aniversariantes de junho</div>
+      <div class="aniv">
+        <div class="aniv-c">
+          <div class="aniv-av">JS</div>
+          <div class="aniv-n">Joao Silva</div>
+          <div class="aniv-d">02/06</div>
+        </div>
+        <div class="aniv-c">
+          <div class="aniv-av">CB</div>
+          <div class="aniv-n">Carla Brito</div>
+          <div class="aniv-d">11/06</div>
+        </div>
+        <div class="aniv-c me">
+          <div class="aniv-av">MR</div>
+          <div class="aniv-n">Voce</div>
+          <div class="aniv-d">18/06</div>
+        </div>
+        <div class="aniv-c">
+          <div class="aniv-av">RA</div>
+          <div class="aniv-n">Rafael Alves</div>
+          <div class="aniv-d">23/06</div>
+        </div>
+        <div class="aniv-c">
+          <div class="aniv-av">PL</div>
+          <div class="aniv-n">Paula Lima</div>
+          <div class="aniv-d">29/06</div>
+        </div>
+      </div>
+
+      <p class="foot">FioPulse · Portal do Colaborador<br>Bom dia, bom turno</p>
+    </div>
+    <nav class="nav">
+      <a class="on" aria-current="page"><i class="ti ti-home"></i>Inicio</a>
+      <a><i class="ti ti-clock-hour-9"></i>Horas</a>
+      <a><i class="ti ti-file-description"></i>Documentos</a>
+      <a><i class="ti ti-user-circle"></i>Conta</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">C3</span><span class="ct">Meu ponto</span><span class="cs">heroi do saldo (so valor atual)</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Meu ponto</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+
+      <div class="ovl">Banco de horas</div>
+      <div class="hero">
+        <div class="hero-top">
+          <span class="hero-lbl"><i class="ti ti-clock-hour-9"></i>Saldo atual</span>
+          <span class="hero-badge"><i class="ti ti-calendar"></i>Junho/2026</span>
+        </div>
+        <div class="hero-val">+03:12</div>
+        <p class="hero-sub">3h12 a favor ate o fechamento do mes</p>
+      </div>
+
+      <div class="ovl">Resumo</div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-clock-check"></i></span>
+          <span class="body"><span class="t">Saldo atual</span><span class="s">Horas acumuladas no mes</span></span>
+          <span class="val pos">+03:12</span>
+        </div>
+        <div class="rw">
+          <span class="ico info"><i class="ti ti-calendar-month"></i></span>
+          <span class="body"><span class="t">Referencia</span><span class="s">Periodo em curso</span></span>
+          <span class="val">Junho/2026</span>
+        </div>
+        <div class="rw">
+          <span class="ico neutral"><i class="ti ti-refresh"></i></span>
+          <span class="body"><span class="t">Ultima sincronizacao</span><span class="s">Atualizado pelo RH</span></span>
+          <span class="val">Hoje, 08:00</span>
+        </div>
+      </div>
+
+      <div class="ovl">Extrato</div>
+      <div class="card">
+        <div class="card-bd">
+          <div class="card-meta">
+            <span><i class="ti ti-sparkles"></i> Em breve</span>
+          </div>
+          <div class="rw" style="padding:4px 0;min-height:0;cursor:default">
+            <span class="ico amber"><i class="ti ti-list-details"></i></span>
+            <span class="body">
+              <span class="t">Detalhamento dia a dia</span>
+              <span class="s" style="line-height:1.5;white-space:normal">Por enquanto mostramos so o saldo atual. O extrato dia a dia chega em breve.</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <p class="foot">FioPulse · Portal do Colaborador<br>Saldo informado pelo RH</p>
+    </div>
+    <nav class="nav">
+      <a><i class="ti ti-home"></i>Inicio</a>
+      <a class="on" aria-current="page"><i class="ti ti-clock-hour-9"></i>Horas</a>
+      <a><i class="ti ti-file-description"></i>Documentos</a>
+      <a><i class="ti ti-user-circle"></i>Conta</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">C4</span><span class="ct">Avisos</span><span class="cs">filtro chips + cards + sheet de ciencia</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Avisos</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+
+      <div class="pend">
+        <span class="ico"><i class="ti ti-bell-ringing"></i></span>
+        <span class="body">
+          <span class="t">2 nao lidos · 1 pede confirmacao</span>
+          <span class="s">Mantenha seus avisos do mural em dia</span>
+        </span>
+      </div>
+
+      <div class="ovl">Filtrar</div>
+      <div class="chips">
+        <button class="chip-f on">Todos</button>
+        <button class="chip-f">Nao lidos <span class="n">2</span></button>
+        <button class="chip-f"><i class="ti ti-pin"></i>Fixados</button>
+      </div>
+
+      <div class="ovl" style="margin-top:18px">Mural</div>
+
+      <article class="card pin">
+        <img class="card-img" src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=600" alt="">
+        <div class="card-bd">
+          <div class="card-meta">
+            <i class="ti ti-pin" style="font-size:13px"></i>Fixado
+            <span class="dot"></span>RH · Comunicacao
+            <span class="dot"></span>27 jun
+          </div>
+          <h2 class="card-t">Transmissao dos jogos na fabrica</h2>
+          <p class="card-x">Os jogos da selecao serao exibidos no refeitorio durante o intervalo ampliado. Confira a escala de turnos liberados no quadro de avisos.</p>
+          <div class="card-foot">
+            <span class="badge neutral"><i class="ti ti-circle-check"></i>Lido</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="card attn">
+        <div class="card-bd">
+          <div class="card-meta">
+            Seguranca do Trabalho
+            <span class="dot"></span>26 jun
+          </div>
+          <h2 class="card-t">Uso obrigatorio de protetor auricular na Tinturaria</h2>
+          <p class="card-x">Nova norma interna entra em vigor nesta semana. Leia o comunicado e confirme a ciencia para registro no seu historico.</p>
+          <div class="card-foot">
+            <span class="badge amber"><i class="ti ti-alert-triangle"></i>Pede confirmacao</span>
+            <span class="tb-sp"></span>
+            <button class="btn soft sm" data-sheet="sh-ciencia"><i class="ti ti-checkbox"></i>Dar ciencia</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-bd">
+          <div class="card-meta">
+            RH · Beneficios
+            <span class="dot"></span>24 jun
+          </div>
+          <h2 class="card-t">Atualizacao do vale alimentacao em julho</h2>
+          <p class="card-x">O reajuste do beneficio sera aplicado na proxima competencia. Sem necessidade de acao da sua parte.</p>
+          <div class="card-foot">
+            <span class="badge neutral"><i class="ti ti-circle-check"></i>Lido</span>
+          </div>
+        </div>
+      </article>
+
+      <p class="foot">Voce viu todos os avisos do mural<br>Junho/2026</p>
+    </div>
+
+    <div class="sheet-wrap" id="sh-ciencia">
+      <div class="sheet-bd" data-sheet-close></div>
+      <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-h">
+          <span class="st">Uso obrigatorio de protetor auricular</span>
+          <button class="sheet-x" data-sheet-close aria-label="Fechar"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="sheet-bdy">
+          <div class="card-meta" style="margin-bottom:12px">
+            Seguranca do Trabalho
+            <span class="dot"></span>26 jun
+            <span class="dot"></span>Tinturaria
+          </div>
+          <span class="badge amber" style="margin-bottom:14px"><i class="ti ti-alert-triangle"></i>Pede confirmacao</span>
+          <p class="card-x" style="margin-top:14px">A partir desta semana, o uso de protetor auricular passa a ser obrigatorio em toda a area da Tinturaria durante o funcionamento das maquinas de tingimento.</p>
+          <p class="card-x" style="margin-top:12px">O equipamento esta disponivel no almoxarifado mediante assinatura no controle de EPI. Em caso de duvida, procure o lider de turno ou o tecnico de seguranca.</p>
+          <p class="card-x" style="margin-top:12px">Ao confirmar a leitura, fica registrado que voce esta ciente da norma e se compromete a segui la durante a jornada.</p>
+        </div>
+        <div class="sheet-foot">
+          <button class="btn primary block" data-sheet-close><i class="ti ti-circle-check"></i>Confirmar leitura</button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a><i class="ti ti-home"></i>Inicio</a>
+      <a class="on" aria-current="page"><i class="ti ti-bell"></i>Avisos</a>
+      <a><i class="ti ti-file-description"></i>Documentos</a>
+      <a><i class="ti ti-user-circle"></i>Conta</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">C5</span><span class="ct">Documentos</span><span class="cs">assinatura pendente em destaque + sheet</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Documentos</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+
+      <div class="ovl">Requer sua acao</div>
+      <div class="card attn">
+        <div class="card-bd">
+          <span class="badge amber"><i class="ti ti-writing-sign"></i>Assinatura pendente</span>
+          <h2 class="card-t" style="margin-top:11px">Regulamento Interno 2026</h2>
+          <div class="card-meta" style="margin-top:8px;margin-bottom:0">
+            <span><i class="ti ti-building-factory-2"></i> RH Fiobras</span>
+            <span class="dot"></span>
+            <span>Publicado em 24/06</span>
+            <span class="dot"></span>
+            <span>4 paginas</span>
+          </div>
+          <p class="card-x">Atualizacao das normas de conduta e jornada. Sua assinatura confirma a leitura ate 30/06.</p>
+          <div class="card-foot">
+            <button class="btn primary block" data-sheet="sh-assinar"><i class="ti ti-signature"></i>Assinar agora</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ovl">Publicados<span class="ct">8 documentos</span></div>
+      <div class="group">
+        <button class="rw">
+          <span class="ico green"><i class="ti ti-file-check"></i></span>
+          <span class="body"><span class="t">Codigo de Conduta</span><span class="s">Assinado em 12/06 · 6 paginas</span></span>
+          <i class="ti ti-chevron-right chev"></i>
+        </button>
+        <button class="rw">
+          <span class="ico info"><i class="ti ti-file-description"></i></span>
+          <span class="body"><span class="t">Politica de Ponto</span><span class="s">Publicado em 12/06 · 3 paginas</span></span>
+          <i class="ti ti-chevron-right chev"></i>
+        </button>
+        <button class="rw">
+          <span class="ico neutral"><i class="ti ti-file-shield"></i></span>
+          <span class="body"><span class="t">Manual de Seguranca</span><span class="s">Publicado em 05/06 · 12 paginas</span></span>
+          <i class="ti ti-chevron-right chev"></i>
+        </button>
+        <button class="rw">
+          <span class="ico neutral"><i class="ti ti-file-text"></i></span>
+          <span class="body"><span class="t">Plano de Beneficios</span><span class="s">Publicado em 02/06 · 5 paginas</span></span>
+          <i class="ti ti-chevron-right chev"></i>
+        </button>
+      </div>
+
+      <p class="foot">FioPulse · Portal do Colaborador<br>Documentos institucionais</p>
+    </div>
+
+    <div class="sheet-wrap" id="sh-assinar">
+      <div class="sheet-bd" data-close></div>
+      <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-h">
+          <span class="st">Assinar documento</span>
+          <button class="sheet-x" data-close aria-label="Fechar"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="sheet-bdy">
+          <div class="group" style="box-shadow:none">
+            <div class="rw" style="cursor:default">
+              <span class="ico amber"><i class="ti ti-file-text"></i></span>
+              <span class="body"><span class="t">Regulamento Interno 2026</span><span class="s">RH Fiobras · 4 paginas</span></span>
+            </div>
+          </div>
+          <div class="pend" style="margin-top:14px">
+            <span class="ico"><i class="ti ti-shield-check"></i></span>
+            <span class="body">
+              <span class="t">Assinatura com validade</span>
+              <span class="s">Ao assinar, voce confirma a leitura do documento. O registro fica vinculado a sua matricula, com data e hora, e tem validade para fins internos.</span>
+            </span>
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <button class="btn ghost" data-close>Cancelar</button>
+          <button class="btn primary" style="flex:1"><i class="ti ti-signature"></i>Assinar</button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a><i class="ti ti-home"></i>Inicio</a>
+      <a><i class="ti ti-clock-hour-9"></i>Horas</a>
+      <a class="on" aria-current="page"><i class="ti ti-file-description"></i>Documentos</a>
+      <a><i class="ti ti-user-circle"></i>Conta</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">C6</span><span class="ct">Roadmap</span><span class="cs">novidades do portal (timeline)</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <button class="tb-back" aria-label="Voltar"><i class="ti ti-chevron-left"></i></button>
+      <span class="tb-title">Novidades</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+      <div class="large-h">
+        <h1>O que vem por ai</h1>
+        <p>Acompanhe o que ja esta no ar e o que estamos preparando pro seu portal.</p>
+      </div>
+
+      <div class="ovl">No ar agora<span class="ct">3 recursos</span></div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-speakerphone"></i></span>
+          <span class="body"><span class="t">Avisos e comunicados</span><span class="s">Recados da fabrica direto no celular</span></span>
+          <span class="badge green"><i class="ti ti-circle-check"></i>No ar</span>
+        </div>
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-file-certificate"></i></span>
+          <span class="body"><span class="t">Documentos com assinatura</span><span class="s">Leia e assine pelo portal, sem papel</span></span>
+          <span class="badge green"><i class="ti ti-circle-check"></i>No ar</span>
+        </div>
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-clock-hour-9"></i></span>
+          <span class="body"><span class="t">Banco de horas</span><span class="s">Saldo atualizado e fechamentos do mes</span></span>
+          <span class="badge green"><i class="ti ti-circle-check"></i>No ar</span>
+        </div>
+      </div>
+
+      <div class="ovl">Chegando em breve<span class="ct">1 recurso</span></div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico amber"><i class="ti ti-list-details"></i></span>
+          <span class="body"><span class="t">Extrato dia a dia</span><span class="s">Entradas, saidas e ocorrencias por data</span></span>
+          <span class="badge amber"><i class="ti ti-progress"></i>Em breve</span>
+        </div>
+      </div>
+
+      <div class="ovl">No nosso radar<span class="ct">2 recursos</span></div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico neutral"><i class="ti ti-receipt-2"></i></span>
+          <span class="body"><span class="t">Contracheque</span><span class="s">Holerite do mes pra consultar e baixar</span></span>
+          <span class="badge neutral"><i class="ti ti-bulb"></i>Planejado</span>
+        </div>
+        <div class="rw">
+          <span class="ico neutral"><i class="ti ti-calendar-stats"></i></span>
+          <span class="body"><span class="t">Solicitacao de ferias</span><span class="s">Peca e acompanhe pelo proprio app</span></span>
+          <span class="badge neutral"><i class="ti ti-bulb"></i>Planejado</span>
+        </div>
+      </div>
+
+      <p class="foot">Tem uma ideia pro portal? Fale com o RH.<br>FioPulse · Portal do Colaborador</p>
+    </div>
+    <nav class="nav">
+      <a><i class="ti ti-home"></i>Inicio</a>
+      <a><i class="ti ti-clock-hour-9"></i>Horas</a>
+      <a><i class="ti ti-file-description"></i>Documentos</a>
+      <a class="on" aria-current="page"><i class="ti ti-user-circle"></i>Conta</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">C7</span><span class="ct">Acesso</span><span class="cs">login por CPF (sem PII na tela)</span></div>
+  <div class="scr" data-t="light">
+    <div class="topbar">
+      <span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll nonav fade">
+      <header class="phead" style="padding-top:26px">
+        <div class="avatar" aria-hidden="true"><i class="ti ti-activity-heartbeat"></i></div>
+        <h1 class="pname" style="margin-top:16px;font-size:23px">FioPulse</h1>
+        <p class="prole">Portal do Colaborador</p>
+      </header>
+
+      <div class="large-h" style="text-align:center;padding-bottom:14px">
+        <h1 style="font-size:21px">Bem vindo de volta</h1>
+        <p>Entre com seu CPF para acessar seu ponto, banco de horas e avisos.</p>
+      </div>
+
+      <div class="ovl">Suas credenciais</div>
+      <div class="group">
+        <div class="rw" style="cursor:default">
+          <span class="ico info"><i class="ti ti-id"></i></span>
+          <span class="body">
+            <span class="s">CPF</span>
+            <span class="t" style="color:var(--tx-w2);font-weight:400">000.000.000-00</span>
+          </span>
+        </div>
+        <div class="rw" style="cursor:default">
+          <span class="ico neutral"><i class="ti ti-lock"></i></span>
+          <span class="body">
+            <span class="s">Senha</span>
+            <span class="t" style="color:var(--tx-w2);font-weight:400;letter-spacing:.18em">••••••••</span>
+          </span>
+          <button class="tb-act ghost" aria-label="Mostrar senha"><i class="ti ti-eye"></i></button>
+        </div>
+        <div class="sw-rw">
+          <span class="ico green"><i class="ti ti-device-mobile-check"></i></span>
+          <span class="body">
+            <span class="t">Manter conectado</span>
+            <span class="s">Neste aparelho, ate voce sair</span>
+          </span>
+          <button class="switch" role="switch" aria-checked="true" aria-label="Manter conectado"></button>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <button class="btn primary block"><i class="ti ti-login-2"></i>Entrar</button>
+      </div>
+
+      <div style="text-align:center;margin-top:16px">
+        <a href="#" style="color:var(--g-tx2);font-size:12.5px;font-weight:500;text-decoration:none">Esqueci a senha</a>
+      </div>
+
+      <div class="ovl" style="justify-content:center;margin-top:26px">
+        <i class="ti ti-shield-lock" style="font-size:13px"></i>
+        Acesso seguro · Fiobras
+      </div>
+
+      <p class="foot" style="margin-top:14px">FioPulse · Portal do Colaborador<br>Em caso de dificuldade, procure o RH · v1.4.2</p>
+    </div>
+  </div>
+</div>
+
+    <div class="sec" id="g">Gestor</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G1</span><span class="ct">Dashboard</span><span class="cs">KPIs + filtros (mes) + ocorrencias + FAB</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Ocorrencias</span>
+      <span class="chip hl" style="margin-left:8px"><i class="ti ti-plug-connected"></i>Fontes ok</span>
+      <span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+      <div class="large-h">
+        <h1>Bom dia, Administrador</h1>
+        <p>Sexta, 26 de junho · 1 ocorrencia aguardando conferencia</p>
+      </div>
+
+      <div class="kpis">
+        <button class="stat accent" style="text-align:left;cursor:pointer;font-family:inherit;display:block">
+          <span class="sl">Ocorrencias a conferir</span>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <span class="sv">1</span>
+            <span class="badge" style="background:rgba(255,255,255,.18);color:#fff;margin-bottom:6px"><i class="ti ti-arrow-right"></i>Conferir agora</span>
+          </div>
+          <span class="sh">Coletadas pelo pipeline, prontas pra revisar</span>
+        </button>
+        <div class="stat">
+          <span class="sl">Colaboradores ativos</span>
+          <div class="sv">145</div>
+          <span class="sh">3 turnos · 6 setores</span>
+        </div>
+        <div class="stat">
+          <span class="sl">Saldo medio</span>
+          <div class="sv pos" style="color:var(--g-tx2)">+0h01</div>
+          <span class="sh">Banco de horas geral</span>
+        </div>
+        <div class="stat">
+          <span class="sl">Resolvidas no mes</span>
+          <div class="sv">88</div>
+          <span class="sh">Lancadas e conferidas</span>
+        </div>
+        <div class="stat">
+          <span class="sl">Faltas no mes</span>
+          <div class="sv" style="color:var(--amber)">12</div>
+          <span class="sh">5 ainda sem justificativa</span>
+        </div>
+      </div>
+
+      <div class="ovl">Fluxo de conferencia</div>
+      <div class="seg">
+        <span class="seg-pill" style="width:calc((100% - 6px)/4);transform:translateX(300%)"></span>
+        <button>Pendentes <span class="n" style="opacity:.7">1</span></button>
+        <button>Conferidas <span class="n" style="opacity:.7">10</span></button>
+        <button>Lancadas <span class="n" style="opacity:.7">78</span></button>
+        <button class="on">Todas</button>
+      </div>
+
+      <div class="chips" style="margin-top:10px">
+        <button class="chip-f on"><i class="ti ti-calendar"></i>Junho 2026</button>
+        <button class="chip-f"><i class="ti ti-users-group"></i>Todos os turnos</button>
+        <button class="chip-f"><i class="ti ti-building-factory-2"></i>Todos os setores</button>
+      </div>
+
+      <div class="ovl">Ocorrencias <span class="ct">4 de 89</span></div>
+
+      <div class="occ">
+        <span class="occ-bar amber"></span>
+        <div class="occ-date"><div class="d">20</div><div class="m">Jun</div></div>
+        <div class="occ-main">
+          <div class="occ-name">Adriana Nogueira</div>
+          <div class="occ-sub">
+            <span class="badge amber"><i class="ti ti-calendar-x"></i>Falta Injustificada</span>
+            <span>Repasse · 1o turno</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="occ-r" style="color:var(--amber)">09:00</div>
+          <span class="badge amber" style="margin-top:6px"><i class="ti ti-clock-pause"></i>Pendente</span>
+        </div>
+      </div>
+
+      <div class="occ">
+        <span class="occ-bar amber"></span>
+        <div class="occ-date"><div class="d">19</div><div class="m">Jun</div></div>
+        <div class="occ-main">
+          <div class="occ-name">Cleiton Ferreira de Souza</div>
+          <div class="occ-sub">
+            <span class="badge neutral"><i class="ti ti-clock-exclamation"></i>Atraso</span>
+            <span>Tinturaria · 2o turno</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="occ-r" style="color:var(--amber)">00:18</div>
+          <span class="badge amber" style="margin-top:6px"><i class="ti ti-clock-pause"></i>Pendente</span>
+        </div>
+      </div>
+
+      <div class="occ">
+        <span class="occ-bar green"></span>
+        <div class="occ-date"><div class="d">18</div><div class="m">Jun</div></div>
+        <div class="occ-main">
+          <div class="occ-name">Rosangela Pereira</div>
+          <div class="occ-sub">
+            <span class="badge info"><i class="ti ti-clock-plus"></i>Hora Extra</span>
+            <span>Preparacao · Geral</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="occ-r">+01:30</div>
+          <span class="badge green" style="margin-top:6px"><i class="ti ti-clock-hour-9"></i>Banco de Horas</span>
+        </div>
+      </div>
+
+      <div class="occ">
+        <span class="occ-bar green"></span>
+        <div class="occ-date"><div class="d">17</div><div class="m">Jun</div></div>
+        <div class="occ-main">
+          <div class="occ-name">Marcos Vinicius Alves</div>
+          <div class="occ-sub">
+            <span class="badge neutral"><i class="ti ti-clock-minus"></i>Saida Antecipada</span>
+            <span>Expedicao · 1o turno</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="occ-r" style="color:var(--amber)">-00:45</div>
+          <span class="badge green" style="margin-top:6px"><i class="ti ti-clock-hour-9"></i>Banco de Horas</span>
+        </div>
+      </div>
+
+      <p class="foot">FioPulse · Painel do Gestor<br>v206</p>
+    </div>
+    <button class="fab" aria-label="Nova ocorrencia"><i class="ti ti-plus"></i></button>
+    <nav class="nav">
+      <a class="on" aria-current="page"><i class="ti ti-home"></i>Inicio</a>
+      <a><i class="ti ti-clock-hour-9"></i>Banco de horas</a>
+      <a><i class="ti ti-users"></i>Funcionarios</a>
+      <a><i class="ti ti-dots"></i>Mais</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G2</span><span class="ct">Banco de Horas</span><span class="cs">lista de saldos + selo de frescor</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Banco de Horas</span><span class="tb-sp"></span>
+      <span class="badge green"><i class="ti ti-circle-check"></i>Hoje 08:12</span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+
+      <div class="kpis">
+        <div class="stat">
+          <div class="sl">Funcionarios ativos</div>
+          <div class="sv">90</div>
+          <div class="sh">1o turno · Repasse</div>
+        </div>
+        <div class="stat">
+          <div class="sl">Com saldo</div>
+          <div class="sv">92%</div>
+          <div class="sh">83 com banco em aberto</div>
+        </div>
+      </div>
+
+      <div class="ovl">Buscar</div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico neutral"><i class="ti ti-search"></i></span>
+          <span class="body"><span class="s">Buscar funcionario</span></span>
+          <i class="ti ti-adjustments-horizontal chev"></i>
+        </div>
+      </div>
+
+      <div class="ovl">Saldos<span class="ct">90 pessoas</span></div>
+      <div class="group">
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">AI</span>
+          <span class="body"><span class="t">Acira Maria Inacio</span><span class="s">Operador de Maquina V · Repasse</span></span>
+          <span class="val pos">+01:10</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">CB</span>
+          <span class="body"><span class="t">Cleiton Batista Rosa</span><span class="s">Tintureiro · Tinturaria</span></span>
+          <span class="val neg">-02:24</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">DM</span>
+          <span class="body"><span class="t">Daniele Moreira Lopes</span><span class="s">Operador de Maquina III · Preparacao</span></span>
+          <span class="val pos">+04:48</span>
+        </button>
+        <button class="rw">
+          <span class="ico neutral"><i class="ti ti-user"></i></span>
+          <span class="body"><span class="t">Edson Carvalho Pires</span><span class="s">Auxiliar de Expedicao · Expedicao</span></span>
+          <span class="val">00:00</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">FS</span>
+          <span class="body"><span class="t">Fabiana Souza Teixeira</span><span class="s">Analista de Laboratorio · Laboratorio</span></span>
+          <span class="val neg">-00:36</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">GR</span>
+          <span class="body"><span class="t">Gilmar Ribeiro Antunes</span><span class="s">Lider de Turno · Beneficiamento</span></span>
+          <span class="val pos">+07:52</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">HV</span>
+          <span class="body"><span class="t">Helena Vasconcelos Dias</span><span class="s">Operador de Maquina II · Repasse</span></span>
+          <span class="val neg">-03:15</span>
+        </button>
+      </div>
+
+      <p class="foot">FioPulse · Gestao de Banco de Horas<br>Sincronizado em 29/06/2026 · 08:12</p>
+    </div>
+    <nav class="nav">
+      <a><i class="ti ti-home"></i>Inicio</a>
+      <a class="on" aria-current="page"><i class="ti ti-clock-hour-9"></i>Banco de horas</a>
+      <a><i class="ti ti-checklist"></i>Conferencia</a>
+      <a><i class="ti ti-users"></i>Equipe</a>
+      <a><i class="ti ti-user-circle"></i>Conta</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G3</span><span class="ct">Conferencia</span><span class="cs">swipe pra conferir/descartar + sheet detalhe</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Conferencia</span>
+      <span class="tb-sp"></span>
+      <span class="badge amber"><i class="ti ti-inbox"></i>8 a conferir</span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+      <p class="card-x" style="margin:2px 4px 14px">Ocorrencias detectadas pelo pipeline. Arraste o item pra esquerda pra conferir ou descartar, ou toque pra ver o detalhe.</p>
+
+      <div class="swipe open">
+        <div class="swipe-act">
+          <button class="ok" aria-label="Conferir"><i class="ti ti-check"></i>Conferir</button>
+          <button class="no" aria-label="Descartar"><i class="ti ti-x"></i>Descartar</button>
+        </div>
+        <div class="swipe-fg">
+          <button class="occ" data-sheet="sh-detalhe">
+            <span class="occ-bar amber"></span>
+            <div class="occ-date"><div class="d">12</div><div class="m">Jun</div></div>
+            <div class="occ-main">
+              <div class="occ-name">Adriana Nogueira</div>
+              <div class="occ-sub">Atraso · REPASSE · 1o turno</div>
+            </div>
+            <div class="occ-r" style="color:var(--amber)">-00:18</div>
+          </button>
+          <i class="ti ti-chevron-left swipe-hint"></i>
+        </div>
+      </div>
+
+      <div class="swipe">
+        <div class="swipe-act">
+          <button class="ok" aria-label="Conferir"><i class="ti ti-check"></i>Conferir</button>
+          <button class="no" aria-label="Descartar"><i class="ti ti-x"></i>Descartar</button>
+        </div>
+        <div class="swipe-fg">
+          <button class="occ" data-sheet="sh-detalhe">
+            <span class="occ-bar amber"></span>
+            <div class="occ-date"><div class="d">12</div><div class="m">Jun</div></div>
+            <div class="occ-main">
+              <div class="occ-name">Reginaldo Tavares</div>
+              <div class="occ-sub">Saida antecipada · TINTURARIA · 2o turno</div>
+            </div>
+            <div class="occ-r" style="color:var(--amber)">-00:42</div>
+          </button>
+          <i class="ti ti-chevron-left swipe-hint"></i>
+        </div>
+      </div>
+
+      <div class="swipe">
+        <div class="swipe-act">
+          <button class="ok" aria-label="Conferir"><i class="ti ti-check"></i>Conferir</button>
+          <button class="no" aria-label="Descartar"><i class="ti ti-x"></i>Descartar</button>
+        </div>
+        <div class="swipe-fg">
+          <button class="occ" data-sheet="sh-detalhe">
+            <span class="occ-bar green"></span>
+            <div class="occ-date"><div class="d">11</div><div class="m">Jun</div></div>
+            <div class="occ-main">
+              <div class="occ-name">Maria do Carmo Silva</div>
+              <div class="occ-sub">Hora extra · PREPARACAO · 1o turno</div>
+            </div>
+            <div class="occ-r">+01:10</div>
+          </button>
+          <i class="ti ti-chevron-left swipe-hint"></i>
+        </div>
+      </div>
+
+      <div class="swipe">
+        <div class="swipe-act">
+          <button class="ok" aria-label="Conferir"><i class="ti ti-check"></i>Conferir</button>
+          <button class="no" aria-label="Descartar"><i class="ti ti-x"></i>Descartar</button>
+        </div>
+        <div class="swipe-fg">
+          <button class="occ" data-sheet="sh-detalhe">
+            <span class="occ-bar amber"></span>
+            <div class="occ-date"><div class="d">11</div><div class="m">Jun</div></div>
+            <div class="occ-main">
+              <div class="occ-name">Joelma Pereira dos Santos</div>
+              <div class="occ-sub">Falta · EXPEDICAO · Geral</div>
+            </div>
+            <div class="occ-r" style="color:var(--amber)">-08:00</div>
+          </button>
+          <i class="ti ti-chevron-left swipe-hint"></i>
+        </div>
+      </div>
+
+      <p class="foot">Sincronizado com o pipeline as 08:00 · 26/Jun</p>
+    </div>
+
+    <div class="sheet-wrap" id="sh-detalhe">
+      <div class="sheet-bd"></div>
+      <div class="sheet">
+        <div class="grabber"></div>
+        <div class="sheet-h">
+          <span class="st">Detalhe da ocorrencia</span>
+          <button class="sheet-x" aria-label="Fechar"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="sheet-bdy">
+          <div class="group">
+            <div class="rw" style="cursor:default">
+              <span class="ico info"><i class="ti ti-user"></i></span>
+              <span class="body"><span class="t">Funcionario</span><span class="s">Mat. 1042 · 1o turno</span></span>
+              <span class="val">Adriana Nogueira</span>
+            </div>
+            <div class="rw" style="cursor:default">
+              <span class="ico amber"><i class="ti ti-clock-exclamation"></i></span>
+              <span class="body"><span class="t">Tipo</span><span class="s">REPASSE</span></span>
+              <span class="badge amber"><i class="ti ti-alert-triangle"></i>Atraso</span>
+            </div>
+            <div class="rw" style="cursor:default">
+              <span class="ico neutral"><i class="ti ti-calendar"></i></span>
+              <span class="body"><span class="t">Data</span><span class="s">Sexta-feira</span></span>
+              <span class="val">12/Jun/2026</span>
+            </div>
+            <div class="rw" style="cursor:default">
+              <span class="ico amber"><i class="ti ti-arrow-down-right"></i></span>
+              <span class="body"><span class="t">Magnitude</span><span class="s">Entrada 06:18 · prevista 06:00</span></span>
+              <span class="val neg">-00:18</span>
+            </div>
+            <div class="rw" style="cursor:default">
+              <span class="ico green"><i class="ti ti-robot"></i></span>
+              <span class="body"><span class="t">Origem</span><span class="s">Pipeline automatico · WK</span></span>
+              <span class="ro"><i class="ti ti-sparkles"></i>Auto</span>
+            </div>
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <button class="btn danger" style="flex:1"><i class="ti ti-x"></i>Descartar</button>
+          <button class="btn primary" style="flex:1"><i class="ti ti-check"></i>Conferir</button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a class="on" aria-current="page"><i class="ti ti-checkup-list"></i>Conferencia</a>
+      <a><i class="ti ti-users"></i>Equipe</a>
+      <a><i class="ti ti-clock-hour-9"></i>Horas</a>
+      <a><i class="ti ti-bell"></i>Avisos</a>
+      <a><i class="ti ti-dots"></i>Mais</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G4</span><span class="ct">Comunicados</span><span class="cs">gestao: lista + status + criar</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Comunicados</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+      <button class="tb-act" aria-label="Novo comunicado"><i class="ti ti-plus"></i></button>
+    </div>
+    <div class="scroll fade">
+
+      <div class="ovl">Publicados<span class="ct">4 ativos</span></div>
+
+      <article class="card pin">
+        <img class="card-img" src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=60" alt="Equipe na linha de producao">
+        <div class="card-bd">
+          <div class="card-meta">
+            <span>27 jun</span><span class="dot"></span><span>Todos os setores</span>
+          </div>
+          <h3 class="card-t">Parada programada de manutencao no sabado</h3>
+          <p class="card-x">As maquinas da TINTURARIA ficam paradas das 06h as 12h para revisao preventiva. Reorganizem as escalas do 1o turno.</p>
+          <div class="card-foot">
+            <span class="badge green"><i class="ti ti-circle-check-filled"></i>Ativo</span>
+            <span class="badge amber"><i class="ti ti-pin"></i>Fixado</span>
+            <span class="badge neutral"><i class="ti ti-eye"></i>34 leram</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-bd">
+          <div class="card-meta">
+            <span>25 jun</span><span class="dot"></span><span>2o Turno</span>
+          </div>
+          <h3 class="card-t">Novo fluxo de registro de ponto no REPASSE</h3>
+          <p class="card-x">A partir de segunda o coletor fica na entrada do galpao B. Operadores devem bater antes de assumir a maquina.</p>
+          <div class="card-foot">
+            <span class="badge green"><i class="ti ti-circle-check-filled"></i>Ativo</span>
+            <span class="badge neutral"><i class="ti ti-eye"></i>22 leram</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-bd">
+          <div class="card-meta">
+            <span>23 jun</span><span class="dot"></span><span>Geral</span>
+          </div>
+          <h3 class="card-t">Confraternizacao de meio de ano dia 04/07</h3>
+          <p class="card-x">Almoco para todos os turnos no refeitorio central. Confirme presenca com o lider ate sexta.</p>
+          <div class="card-foot">
+            <span class="badge green"><i class="ti ti-circle-check-filled"></i>Ativo</span>
+            <span class="badge neutral"><i class="ti ti-eye"></i>61 leram</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-bd">
+          <div class="card-meta">
+            <span>20 jun</span><span class="dot"></span><span>1o Turno</span>
+          </div>
+          <h3 class="card-t">Uso obrigatorio de protetor auricular na PREPARACAO</h3>
+          <p class="card-x">A CIPA reforca o uso continuo do EPI em toda a area de PREPARACAO. Procure o almoxarifado para reposicao.</p>
+          <div class="card-foot">
+            <span class="badge green"><i class="ti ti-circle-check-filled"></i>Ativo</span>
+            <span class="badge neutral"><i class="ti ti-eye"></i>18 leram</span>
+          </div>
+        </div>
+      </article>
+
+      <p class="foot">FioPulse · Gestao de Comunicados<br>4 comunicados ativos</p>
+    </div>
+
+    <button class="fab" aria-label="Novo comunicado"><i class="ti ti-plus"></i></button>
+
+    <nav class="nav">
+      <a><i class="ti ti-layout-dashboard"></i>Painel</a>
+      <a><i class="ti ti-users"></i>Equipe</a>
+      <a><i class="ti ti-checklist"></i>Conferencia</a>
+      <a class="on" aria-current="page"><i class="ti ti-speakerphone"></i>Comunicados</a>
+      <a><i class="ti ti-dots"></i>Mais</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G5</span><span class="ct">Documentos</span><span class="cs">gestao institucional: rascunho/publicado</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Documentos</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+      <button class="tb-act" aria-label="Criar documento"><i class="ti ti-plus"></i></button>
+    </div>
+    <div class="scroll fade">
+      <div class="large-h">
+        <h1>Documentos</h1>
+        <p>Gestao institucional · publique politicas e colete assinaturas</p>
+      </div>
+
+      <div class="seg" style="margin-top:6px">
+        <span class="seg-pill" style="width:calc((100% - 6px)/2);transform:translateX(0)"></span>
+        <button class="on"><i class="ti ti-file-check"></i>Publicados</button>
+        <button><i class="ti ti-pencil"></i>Rascunhos</button>
+      </div>
+
+      <div class="ovl">Ativos<span class="ct">4 documentos</span></div>
+
+      <div class="group">
+        <button class="rw">
+          <span class="ico green"><i class="ti ti-file-text"></i></span>
+          <span class="body">
+            <span class="t">Politica de Seguranca do Trabalho</span>
+            <span class="s">Geral · 12 jun 2026</span>
+          </span>
+          <span class="badge green"><i class="ti ti-circle-check"></i>Publicado</span>
+        </button>
+        <button class="rw">
+          <span class="ico info"><i class="ti ti-file-certificate"></i></span>
+          <span class="body">
+            <span class="t">Codigo de Conduta 2026</span>
+            <span class="s">Geral · 09 jun 2026 · <span style="color:var(--info)">12/40 assinaram</span></span>
+          </span>
+          <span class="badge info"><i class="ti ti-signature"></i>Assinatura</span>
+        </button>
+        <button class="rw">
+          <span class="ico green"><i class="ti ti-file-text"></i></span>
+          <span class="body">
+            <span class="t">Escala de Turnos · Tinturaria</span>
+            <span class="s">Tinturaria · 1o e 2o turno · 05 jun 2026</span>
+          </span>
+          <span class="badge green"><i class="ti ti-circle-check"></i>Publicado</span>
+        </button>
+      </div>
+
+      <div class="ovl">Rascunhos<span class="ct">1 documento</span></div>
+
+      <div class="group">
+        <button class="rw">
+          <span class="ico neutral"><i class="ti ti-file-pencil"></i></span>
+          <span class="body">
+            <span class="t">Norma de Uso de EPI · Repasse</span>
+            <span class="s">Repasse · editado ha 2 dias</span>
+          </span>
+          <span class="badge neutral"><i class="ti ti-pencil"></i>Rascunho</span>
+        </button>
+      </div>
+
+      <div class="ovl">Assinaturas em andamento</div>
+
+      <div class="card">
+        <div class="card-bd">
+          <div class="card-meta">
+            <i class="ti ti-file-certificate" style="font-size:14px;color:var(--info)"></i>
+            <span>Codigo de Conduta 2026</span>
+            <span class="dot"></span>
+            <span>Geral</span>
+          </div>
+          <div class="card-t">12 de 40 colaboradores assinaram</div>
+          <div class="bars" style="margin-top:11px">
+            <div class="bar-row">
+              <div class="bl"><span style="color:var(--tx-w)">Progresso de coleta</span><span class="bn">30%</span></div>
+              <div class="track"><div class="fill" style="width:30%"></div></div>
+            </div>
+          </div>
+          <div class="card-foot">
+            <span class="badge info"><i class="ti ti-signature"></i>12/40 assinaram</span>
+            <span class="badge neutral"><i class="ti ti-clock"></i>Prazo 30 jun</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="foot">FioPulse · Pacote Gestor<br>Documentos institucionais</p>
+    </div>
+
+    <button class="fab" aria-label="Novo documento"><i class="ti ti-plus"></i></button>
+
+    <nav class="nav">
+      <a><i class="ti ti-layout-dashboard"></i>Painel</a>
+      <a><i class="ti ti-users"></i>Equipe</a>
+      <a><i class="ti ti-clock-hour-9"></i>Ocorrencias</a>
+      <a><i class="ti ti-speakerphone"></i>Comunicados</a>
+      <a class="on" aria-current="page"><i class="ti ti-dots"></i>Mais</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G6</span><span class="ct">Funcionarios</span><span class="cs">lista inset + busca + filtro status</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Funcionarios</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+      <button class="tb-act" aria-label="Adicionar funcionario"><i class="ti ti-user-plus"></i></button>
+    </div>
+    <div class="scroll fade">
+      <div class="group" style="margin-top:4px">
+        <div class="rw" style="cursor:default">
+          <span class="ico neutral"><i class="ti ti-search"></i></span>
+          <span class="body"><span class="s" style="font-size:13px;color:var(--tx-w)">Buscar funcionario</span></span>
+        </div>
+      </div>
+
+      <div class="chips" style="margin-top:14px">
+        <button class="chip-f on">Ativos<span class="n">145</span></button>
+        <button class="chip-f">Inativos<span class="n">8</span></button>
+        <button class="chip-f">Todos<span class="n">153</span></button>
+      </div>
+
+      <div class="ovl">Equipe<span class="ct">145 ativos</span></div>
+      <div class="group">
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">AS</span>
+          <span class="body"><span class="t">Anderson Silva</span><span class="s">Operador de Maquina · REPASSE</span></span>
+          <span class="badge green">Ativo</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">CM</span>
+          <span class="body"><span class="t">Cristiane Moraes</span><span class="s">Tintureira · TINTURARIA</span></span>
+          <span class="badge green">Ativo</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">JP</span>
+          <span class="body"><span class="t">Joao Paulo Ferreira</span><span class="s">Lider de Turno · PREPARACAO</span></span>
+          <i class="ti ti-chevron-right chev"></i>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">RB</span>
+          <span class="body"><span class="t">Rafaela Bittencourt</span><span class="s">Auxiliar de Producao · EXPEDICAO</span></span>
+          <span class="badge green">Ativo</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">ME</span>
+          <span class="body"><span class="t">Marcos Eduardo Lima</span><span class="s">Operador de Maquina · BENEFICIAMENTO</span></span>
+          <span class="badge green">Ativo</span>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">PV</span>
+          <span class="body"><span class="t">Patricia Vasconcelos</span><span class="s">Analista de Laboratorio · LABORATORIO</span></span>
+          <i class="ti ti-chevron-right chev"></i>
+        </button>
+        <button class="rw">
+          <span class="avatar sm" aria-hidden="true">WG</span>
+          <span class="body"><span class="t">Wesley Gomes</span><span class="s">Conferente · EXPEDICAO</span></span>
+          <span class="badge green">Ativo</span>
+        </button>
+      </div>
+      <p class="foot">FioPulse · Painel do Gestor<br>145 funcionarios ativos · 8 inativos</p>
+    </div>
+    <nav class="nav">
+      <a class="on" aria-current="page"><i class="ti ti-users"></i>Funcionarios</a>
+      <a><i class="ti ti-clipboard-list"></i>Ocorrencias</a>
+      <a><i class="ti ti-clock-hour-9"></i>Banco</a>
+      <a><i class="ti ti-speakerphone"></i>Comunicados</a>
+      <a><i class="ti ti-user-circle"></i>Conta</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G7</span><span class="ct">Permissoes</span><span class="cs">matriz de papeis com switches</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <button class="tb-back" aria-label="Voltar"><i class="ti ti-chevron-left"></i></button>
+      <span class="tb-title">Permissoes</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+
+      <div class="ovl">Papel<span class="ct">3 perfis</span></div>
+      <div class="seg" id="seg-papel">
+        <span class="seg-pill" style="width:calc((100% - 6px)/3);transform:translateX(0)"></span>
+        <button class="on"><i class="ti ti-shield-check"></i>RH</button>
+        <button><i class="ti ti-users"></i>Lider</button>
+        <button><i class="ti ti-user-star"></i>Supervisor</button>
+      </div>
+
+      <div class="ovl">Ocorrencias</div>
+      <div class="group">
+        <div class="sw-rw">
+          <span class="ico green"><i class="ti ti-plus"></i></span>
+          <span class="body"><span class="t">Criar ocorrencia</span><span class="s">Lancar atrasos, faltas e abonos</span></span>
+          <button class="switch" role="switch" aria-checked="true" aria-label="Criar ocorrencia"></button>
+        </div>
+        <div class="sw-rw">
+          <span class="ico green"><i class="ti ti-checkup-list"></i></span>
+          <span class="body"><span class="t">Conferir ocorrencia</span><span class="s">Aprovar lancamentos do turno</span></span>
+          <button class="switch" role="switch" aria-checked="true" aria-label="Conferir ocorrencia"></button>
+        </div>
+        <div class="sw-rw">
+          <span class="ico neutral"><i class="ti ti-history-toggle"></i></span>
+          <span class="body"><span class="t">Revisar conferencia</span><span class="s">Reabrir itens ja conferidos</span></span>
+          <button class="switch" role="switch" aria-checked="false" aria-label="Revisar conferencia"></button>
+        </div>
+      </div>
+
+      <div class="ovl">Banco de horas</div>
+      <div class="group">
+        <div class="sw-rw">
+          <span class="ico info"><i class="ti ti-clock-hour-9"></i></span>
+          <span class="body"><span class="t">Ver saldos da equipe</span><span class="s">Extrato consolidado por setor</span></span>
+          <button class="switch" role="switch" aria-checked="true" aria-label="Ver saldos da equipe"></button>
+        </div>
+        <div class="sw-rw">
+          <span class="ico neutral"><i class="ti ti-file-import"></i></span>
+          <span class="body"><span class="t">Importar banco de horas</span><span class="s">Subir planilha de fechamento</span></span>
+          <button class="switch" role="switch" aria-checked="false" aria-label="Importar banco de horas"></button>
+        </div>
+        <div class="sw-rw">
+          <span class="ico neutral"><i class="ti ti-adjustments"></i></span>
+          <span class="body"><span class="t">Ajustar saldo manual</span><span class="s">Correcoes pontuais com justificativa</span></span>
+          <button class="switch" role="switch" aria-checked="false" aria-label="Ajustar saldo manual"></button>
+        </div>
+      </div>
+
+      <div class="ovl">Pacote gestor</div>
+      <div class="group">
+        <div class="sw-rw">
+          <span class="ico green"><i class="ti ti-speakerphone"></i></span>
+          <span class="body"><span class="t">Gerenciar comunicados</span><span class="s">Publicar e fixar avisos</span></span>
+          <button class="switch" role="switch" aria-checked="true" aria-label="Gerenciar comunicados"></button>
+        </div>
+        <div class="sw-rw">
+          <span class="ico green"><i class="ti ti-file-description"></i></span>
+          <span class="body"><span class="t">Publicar documentos</span><span class="s">Politicas e manuais institucionais</span></span>
+          <button class="switch" role="switch" aria-checked="true" aria-label="Publicar documentos"></button>
+        </div>
+        <div class="sw-rw">
+          <span class="ico neutral"><i class="ti ti-shield-lock"></i></span>
+          <span class="body"><span class="t">Editar permissoes</span><span class="s">Alterar esta matriz de papeis</span></span>
+          <button class="switch" role="switch" aria-checked="false" aria-label="Editar permissoes"></button>
+        </div>
+      </div>
+
+      <p class="foot">Alteracoes valem para todos os usuarios do papel RH<br>Salvas automaticamente</p>
+    </div>
+    <nav class="nav">
+      <a><i class="ti ti-layout-dashboard"></i>Painel</a>
+      <a><i class="ti ti-checkup-list"></i>Conferencia</a>
+      <a><i class="ti ti-clock-hour-9"></i>Horas</a>
+      <a class="on" aria-current="page"><i class="ti ti-dots"></i>Mais</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G8</span><span class="ct">Monitor</span><span class="cs">status do pipeline WKRADAR</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Monitor</span><span class="tb-sp"></span>
+      <span class="badge green"><i class="ti ti-circle-check"></i>Tudo ok</span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+
+      <div class="hero">
+        <div class="hero-top">
+          <span class="hero-lbl"><i class="ti ti-activity-heartbeat"></i>Pipeline WKRADAR</span>
+          <span class="hero-badge"><i class="ti ti-circle-check"></i>Saudavel</span>
+        </div>
+        <div class="hero-val" style="font-size:26px">Pipeline saudavel</div>
+        <p class="hero-sub">Ultima sincronizacao hoje, 08:12 · 4 fontes ativas</p>
+      </div>
+
+      <div class="ovl">Fontes de dados</div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-clock-hour-9"></i></span>
+          <span class="body"><span class="t">Banco de Horas</span><span class="s">Atualizado hoje, 08:12</span></span>
+          <span class="badge green">OK</span>
+        </div>
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-users"></i></span>
+          <span class="body"><span class="t">Funcionarios</span><span class="s">Atualizado hoje, 08:12</span></span>
+          <span class="badge green">OK</span>
+        </div>
+        <div class="rw">
+          <span class="ico amber"><i class="ti ti-alert-triangle"></i></span>
+          <span class="body"><span class="t">Ocorrencias auto</span><span class="s">Ultima carga ontem, 19:40</span></span>
+          <span class="badge amber">Atrasado</span>
+        </div>
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-cake"></i></span>
+          <span class="body"><span class="t">Aniversariantes</span><span class="s">Atualizado hoje, 08:12</span></span>
+          <span class="badge green">OK</span>
+        </div>
+      </div>
+
+      <div class="ovl">Volume processado</div>
+      <div class="group">
+        <div class="seg-row">
+          <div class="seg-cap"><span class="ico info"><i class="ti ti-database"></i></span>Registros na ultima carga</div>
+          <div class="bars">
+            <div class="bar-row">
+              <div class="bl"><span>Banco de Horas</span><span class="bn">1.284</span></div>
+              <div class="track"><div class="fill" style="width:100%"></div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bl"><span>Funcionarios</span><span class="bn">972</span></div>
+              <div class="track"><div class="fill" style="width:76%"></div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bl"><span>Ocorrencias auto</span><span class="bn">241</span></div>
+              <div class="track"><div class="fill" style="width:19%"></div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bl"><span>Aniversariantes</span><span class="bn">97</span></div>
+              <div class="track"><div class="fill" style="width:8%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis" style="margin-top:12px">
+        <div class="stat accent">
+          <div class="sl">Total processado hoje</div>
+          <div class="sv">2.594</div>
+          <div class="sh">registros em 4 fontes · 1 atrasada</div>
+        </div>
+        <div class="stat">
+          <div class="sl">Tempo de carga</div>
+          <div class="sv">3,8s</div>
+          <div class="sh">media das fontes</div>
+        </div>
+        <div class="stat">
+          <div class="sl">Proxima sync</div>
+          <div class="sv">12:00</div>
+          <div class="sh">automatica, a cada 4h</div>
+        </div>
+      </div>
+
+      <button class="btn ghost block" style="margin-top:14px"><i class="ti ti-refresh"></i>Sincronizar agora</button>
+
+      <p class="foot">FioPulse · Monitor WKRADAR<br>Pipeline v186 · 29 jun 2026</p>
+    </div>
+    <nav class="nav">
+      <a><i class="ti ti-home"></i>Inicio</a>
+      <a><i class="ti ti-users"></i>Equipe</a>
+      <a><i class="ti ti-clipboard-check"></i>Conferencia</a>
+      <a class="on" aria-current="page"><i class="ti ti-dots"></i>Mais</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G9</span><span class="ct">Controle PJ</span><span class="cs">lista de contratos PJ</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Controle PJ</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+      <button class="tb-act" aria-label="Novo PJ"><i class="ti ti-plus"></i></button>
+    </div>
+    <div class="scroll fade">
+      <div class="kpis">
+        <div class="stat">
+          <div class="sl">PJs ativos</div>
+          <div class="sv">12</div>
+          <div class="sh">Contratos vigentes</div>
+        </div>
+        <div class="stat">
+          <div class="sl">Revisao proxima</div>
+          <div class="sv">2</div>
+          <div class="sh">Reajuste em ate 30 dias</div>
+        </div>
+      </div>
+
+      <div class="ovl">Contratos PJ<span class="ct">12 ativos</span></div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-building"></i></span>
+          <span class="body">
+            <span class="t">Marcos Vieira Manutencao ME</span>
+            <span class="s">CNPJ 24.•••.•••/0001-08 · R$ 7.800/mes</span>
+          </span>
+          <span class="badge green"><i class="ti ti-circle-check"></i>Em dia</span>
+        </div>
+        <div class="rw">
+          <span class="ico amber"><i class="ti ti-building"></i></span>
+          <span class="body">
+            <span class="t">RT Engenharia Textil LTDA</span>
+            <span class="s">CNPJ 18.•••.•••/0001-55 · R$ 12.400/mes</span>
+          </span>
+          <span class="badge amber"><i class="ti ti-clock-exclamation"></i>Reajuste em 15/01</span>
+        </div>
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-building"></i></span>
+          <span class="body">
+            <span class="t">Luciana Prado Consultoria</span>
+            <span class="s">CNPJ 31.•••.•••/0001-72 · R$ 5.200/mes</span>
+          </span>
+          <span class="badge green"><i class="ti ti-circle-check"></i>Em dia</span>
+        </div>
+        <div class="rw">
+          <span class="ico amber"><i class="ti ti-building"></i></span>
+          <span class="body">
+            <span class="t">SolTec Automacao Industrial</span>
+            <span class="s">CNPJ 09.•••.•••/0001-30 · R$ 9.650/mes</span>
+          </span>
+          <span class="badge amber"><i class="ti ti-clock-exclamation"></i>Reajuste em 22/01</span>
+        </div>
+      </div>
+
+      <div class="ovl">Documentos</div>
+      <div class="group">
+        <button class="rw">
+          <span class="ico neutral"><i class="ti ti-file-text"></i></span>
+          <span class="body">
+            <span class="t">Contrato</span>
+            <span class="s">RT Engenharia Textil LTDA · PDF</span>
+          </span>
+          <i class="ti ti-chevron-right chev"></i>
+        </button>
+      </div>
+
+      <p class="foot">FioPulse · Gestao de PJ<br>12 contratos · atualizado hoje</p>
+    </div>
+    <button class="fab" aria-label="Novo PJ"><i class="ti ti-plus"></i></button>
+    <nav class="nav">
+      <a><i class="ti ti-layout-dashboard"></i>Painel</a>
+      <a><i class="ti ti-users"></i>Equipe</a>
+      <a><i class="ti ti-clipboard-check"></i>Conferencia</a>
+      <a class="on" aria-current="page"><i class="ti ti-dots"></i>Mais</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G10</span><span class="ct">Auditoria</span><span class="cs">timeline de eventos imutaveis</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-title">Auditoria</span><span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll fade">
+      <div class="chips">
+        <button class="chip-f on">Tudo <span class="n">42</span></button>
+        <button class="chip-f"><i class="ti ti-trash"></i>Exclusoes <span class="n">6</span></button>
+        <button class="chip-f"><i class="ti ti-edit"></i>Edicoes <span class="n">18</span></button>
+      </div>
+
+      <div class="ovl">Hoje · 29 de junho</div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico danger"><i class="ti ti-trash"></i></span>
+          <span class="body"><span class="t">Ocorrencia excluida</span><span class="s">por Suyanne · 29/06 14:32 · REPASSE</span></span>
+          <span class="ro"><i class="ti ti-lock"></i>Imutavel</span>
+        </div>
+        <div class="rw">
+          <span class="ico info"><i class="ti ti-edit"></i></span>
+          <span class="body"><span class="t">Funcionario editado</span><span class="s">por Carlos Henrique · 29/06 11:08 · TINTURARIA</span></span>
+          <span class="ro"><i class="ti ti-lock"></i>Imutavel</span>
+        </div>
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-plus"></i></span>
+          <span class="body"><span class="t">Ocorrencia criada</span><span class="s">por Marina Rocha · 29/06 08:47 · PREPARACAO</span></span>
+          <span class="ro"><i class="ti ti-lock"></i>Imutavel</span>
+        </div>
+      </div>
+
+      <div class="ovl">Ontem · 28 de junho</div>
+      <div class="group">
+        <div class="rw">
+          <span class="ico info"><i class="ti ti-edit"></i></span>
+          <span class="body"><span class="t">Banco de horas ajustado</span><span class="s">por Suyanne · 28/06 17:21 · EXPEDICAO</span></span>
+          <span class="ro"><i class="ti ti-lock"></i>Imutavel</span>
+        </div>
+        <div class="rw">
+          <span class="ico danger"><i class="ti ti-trash"></i></span>
+          <span class="body"><span class="t">Documento removido</span><span class="s">por Fernanda Lima · 28/06 16:05 · BENEFICIAMENTO</span></span>
+          <span class="ro"><i class="ti ti-lock"></i>Imutavel</span>
+        </div>
+        <div class="rw">
+          <span class="ico green"><i class="ti ti-user-plus"></i></span>
+          <span class="body"><span class="t">Funcionario cadastrado</span><span class="s">por Carlos Henrique · 28/06 09:14 · LABORATORIO</span></span>
+          <span class="ro"><i class="ti ti-lock"></i>Imutavel</span>
+        </div>
+      </div>
+
+      <p class="foot">Registro conforme LGPD · eventos nao podem ser alterados<br>Retencao de 5 anos</p>
+    </div>
+    <nav class="nav">
+      <a><i class="ti ti-layout-dashboard"></i>Painel</a>
+      <a><i class="ti ti-users"></i>Equipe</a>
+      <a><i class="ti ti-clipboard-check"></i>Conferencia</a>
+      <a class="on" aria-current="page"><i class="ti ti-dots"></i>Mais</a>
+    </nav>
+  </div>
+</div>
+
+<div class="cell">
+  <div class="cap"><span class="num">G11</span><span class="ct">Acesso gestor</span><span class="cs">login email + senha</span></div>
+  <div class="scr" data-t="dark">
+    <div class="topbar">
+      <span class="tb-sp"></span>
+      <button class="tb-act ghost" data-theme aria-label="Tema"><i class="ti ti-moon"></i></button>
+    </div>
+    <div class="scroll nonav fade">
+      <header class="phead" style="padding-top:34px">
+        <div class="avatar sm" aria-hidden="true"><i class="ti ti-activity-heartbeat"></i></div>
+        <h1 class="pname">FioPulse</h1>
+        <p class="prole">Painel do Gestor</p>
+        <div class="pchips">
+          <span class="chip"><i class="ti ti-shield-lock"></i>Acesso restrito</span>
+        </div>
+      </header>
+
+      <div class="ovl">Entrar</div>
+      <div class="group">
+        <label class="rw" style="cursor:text">
+          <span class="ico info"><i class="ti ti-mail"></i></span>
+          <span class="body">
+            <span class="s">E-mail</span>
+            <span class="t" style="color:var(--tx-w2);font-weight:400">voce@fiobras.com.br</span>
+          </span>
+        </label>
+        <label class="rw" style="cursor:text">
+          <span class="ico neutral"><i class="ti ti-lock"></i></span>
+          <span class="body">
+            <span class="s">Senha</span>
+            <span class="t" style="color:var(--tx-w2);font-weight:400">Senha</span>
+          </span>
+          <button class="tb-act ghost" aria-label="Mostrar senha"><i class="ti ti-eye"></i></button>
+        </label>
+        <div class="sw-rw">
+          <span class="ico green"><i class="ti ti-device-mobile-check"></i></span>
+          <span class="body"><span class="t">Manter conectado</span><span class="s">Neste aparelho, ate sair</span></span>
+          <button class="switch" role="switch" aria-checked="true" aria-label="Manter conectado"></button>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <button class="btn primary block"><i class="ti ti-login-2"></i>Entrar</button>
+      </div>
+
+      <div style="text-align:center;margin-top:16px">
+        <a href="#" style="color:var(--g-tx2);font-size:12.5px;font-weight:600;text-decoration:none">Esqueci a senha</a>
+      </div>
+
+      <p class="foot">FioPulse · Painel do Gestor<br>Uso interno Fiobras · v1.4.2</p>
+    </div>
+  </div>
+</div>
+
+  </div>
+</div>
+<script src="polish.js"></script>
+</body></html>
