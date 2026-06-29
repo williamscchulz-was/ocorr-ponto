@@ -2540,6 +2540,7 @@
   // (não atrapalha cadastro) nem mais de 1x a cada 20s.
   let _ultimoRefetch = 0, _refetchEmAndamento = false;
   async function refetchAoFoco() {
+    const auth = firebase.auth(); // auth fora do closure desta funcao irma — singleton
     if (!auth.currentUser || document.visibilityState !== "visible") return;
     if (_refetchEmAndamento || document.body.classList.contains("modal-aberto")) return;
     if (Date.now() - _ultimoRefetch < 20000) return;
@@ -2551,9 +2552,12 @@
     } catch (e) { debug?.("[refetch foco] falhou:", e?.message || e); }
     finally { _refetchEmAndamento = false; }
   }
-  window.addEventListener("focus", () => { if (auth.currentUser) refetchAoFoco(); });
+  window.addEventListener("focus", () => { if (firebase.auth().currentUser) refetchAoFoco(); });
 
   async function carregarDadosCompletos(db) {
+    const auth = firebase.auth(); // auth NÃO está no closure (irmã de installFirebaseStore) — singleton.
+                                  // Sem isto: o ramo colaborador lança "auth is not defined" ao montar
+                                  // a leitura (uid), cai no catch e zera comunicados/documentos do colab.
     const u = currentUser();
 
     // F3 (Fundação SELF): o colaborador NÃO roda .get() amplo (vazaria a base inteira e, após
