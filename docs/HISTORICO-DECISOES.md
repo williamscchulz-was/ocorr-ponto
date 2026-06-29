@@ -473,3 +473,23 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Fix:** setor agora prefere `emp?.departamento` (D_Empregado), caindo no BH só se não houver cadastro. 4 pontos: `funcionarios.setor` (L149), `bancoHoras.setor` (L305), `pipeline-rh.departamento` (L390) e `process-ocorrencias` (setor da ocorrência). Re-rodei upload + sync-colaborador-users → **0 divergências** (cadastro = funcionarios = users). Código corrigido → próximas execuções saem certas.
 
 **Aberto (menor):** 10 `users` com setor null — provavelmente contas de gestor/admin/líder (sem funcionario), não colaboradores. A confirmar se incomoda.
+
+---
+
+## 2026-06-29 · 🎯 Ocorrências REAIS: regras de magnitude + batida (de 84 → 43)
+
+**Problema (William):** a Conferência estava cheia de "Falta Injustificada" com **saldo 00:00** onde a pessoa **bateu ponto e trabalhou** (ex.: JHENYFFER bateu 21:56–05:05). Não eram faltas reais.
+
+**Investigação:** o relatório limpo "Relação de Ocorrências" (com Diurnas/Noturnas) é **do RH, não está no Minerador** — não dá pra automatizar por ele. Solução: adicionamos as colunas **Horas Diurnas + Horas Noturnas** ao modelo da apuração (`ExpAuto_Relatorio_de_Apuracoes`). Aí descobrimos a semântica real:
+- **Atraso/Saída:** Diurnas/Noturnas = a **magnitude real** da ocorrência (DJONIFFER atraso 00:12, FRANCIELE saída 00:30). Bom sinal.
+- **Falta:** Diurnas/Noturnas mostra as **horas do turno** mesmo p/ quem trabalhou (JOILSON "falta 08:00" tendo batido 05:02–13:32). NÃO distingue falta real de falsa.
+
+**Regras finais no `process-ocorrencias.mjs`:**
+1. Só 4 situações (32/36/37/38) + Ocorrência=Sim.
+2. **Falta só é REAL se SEM batida** (ausência total). Bateu ponto → rótulo errado → descarta. (47 falsas removidas em junho.)
+3. **Atraso/Saída:** magnitude (Diurnas+Noturnas) > 0 (real). (Regra `magnitude 0` só ativa quando o layout tem essas colunas.)
+4. Turno Geral: atraso/saída → BH (só falta gera). 5. D-1. 6. Dedupe.
+
+**Resultado:** 6497 linhas → **43 ocorrências reais** (11 Faltas + 20 Atrasos + 12 Saídas), repovoadas em `ocorrencias-auto`. Magnitude guardada (`diurnas`/`noturna`/`duracaoFmt`) p/ o card mostrar.
+
+**Em aberto:** atraso compensado por hora-extra continua aparecendo (foi atraso de fato); suprimir é regra futura se o RH quiser. Partial-absence (trabalhou parte) não vira falta — se saiu cedo, aparece como Saída.
