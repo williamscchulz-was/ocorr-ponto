@@ -895,60 +895,51 @@ function renderColabComunicados() {
   cpRefreshAoAbrir();
   const todos = colabAvisosOrdenados();
   const naoLidos = todos.filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado));
-  const cab = `<header class="page-header"><div><h1>Avisos</h1></div>${naoLidos.length ? `<span class="cp-pend">${naoLidos.length} pendente${naoLidos.length > 1 ? "s" : ""}</span>` : ""}</header>`;
 
   if (todos.length === 0) {
-    $("#view").innerHTML = cab + `
-      <div class="cp-stub">
-        <div class="cp-stub__ic">${cpIcon("megafone")}</div>
-        <p>Nenhum aviso pra você por enquanto. Quando o RH publicar algo do seu setor ou turno, aparece aqui.</p>
-      </div>
-      <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.75">diag avisos: ${state._dbgComN ?? "?"} carregados · ${state._dbgComErr ? escapeHtml(String(state._dbgComErr)).slice(0, 100) : "sem erro de query"}</div>`;
+    $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("megafone")}</div><p>Nenhum aviso pra você por enquanto. Quando o RH publicar algo do seu setor ou turno, aparece aqui.</p></div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.6">diag avisos: ${state._dbgComN ?? "?"} carregados · ${state._dbgComErr ? escapeHtml(String(state._dbgComErr)).slice(0, 100) : "sem erro de query"}</div></div>`;
     return;
   }
   const filtro = state.view.avFiltro === "naolidos" ? "naolidos" : "todos";
   const lista = filtro === "naolidos" ? naoLidos : todos;
-  const tabs = `<div class="cp-tabs" id="cp-av-tabs">
-    <button class="cp-tab ${filtro === "todos" ? "on" : ""}" data-av-filtro="todos">Todos <span class="cp-tab__c">${todos.length}</span></button>
-    <button class="cp-tab ${filtro === "naolidos" ? "on" : ""}" data-av-filtro="naolidos">Não lidos <span class="cp-tab__c">${naoLidos.length}</span></button>
+  const resumo = naoLidos.length
+    ? `<div class="pp-pend" style="cursor:default"><span class="pp-ico pp-ico--amber">${cpIcon("alert")}</span><span class="pp-pend__bd"><span class="pp-pend__t">${naoLidos.length} aviso${naoLidos.length > 1 ? "s" : ""} ${naoLidos.length > 1 ? "pedem" : "pede"} confirmação</span><span class="pp-pend__s">Toque em "Li e estou ciente" pra registrar</span></span></div>`
+    : "";
+  const chips = `<div class="pp-chips-f" id="cp-av-tabs">
+    <button class="pp-chip-f ${filtro === "todos" ? "on" : ""}" data-av-filtro="todos">Todos <span class="pp-chip-f__c">${todos.length}</span></button>
+    <button class="pp-chip-f ${filtro === "naolidos" ? "on" : ""}" data-av-filtro="naolidos">Não lidos <span class="pp-chip-f__c">${naoLidos.length}</span></button>
   </div>`;
-  const fixados = lista.filter((c) => c.fixado);
-  const recentes = lista.filter((c) => !c.fixado);
   const corpo = lista.length === 0
     ? `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Tudo em dia. Você confirmou todos os avisos.</p></div>`
-    : (fixados.length ? `<div class="cp-seclabel">${cpIcon("pin")}<span>Fixado</span></div>${fixados.map(colabAvisoHtml).join("")}` : "")
-      + (recentes.length ? `<div class="cp-seclabel">${cpIcon("clock")}<span>Recentes</span></div>${recentes.map(colabAvisoHtml).join("")}` : "");
-  $("#view").innerHTML = cab + tabs + corpo;
-  $$("#cp-av-tabs .cp-tab").forEach((b) => b.addEventListener("click", () => { state.view.avFiltro = b.dataset.avFiltro; renderApp(); }));
+    : lista.map(colabAvisoHtml).join("");
+  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>${resumo}${chips}${corpo}</div>`;
+  $$("#cp-av-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.avFiltro = b.dataset.avFiltro; renderApp(); }));
 }
 
 function colabAvisoHtml(c) {
   const seg = c.segmento || { tipo: "todos", valores: [] };
   const segTxt = seg.tipo === "todos" ? "Todos" : (seg.tipo === "turno" ? "Seu turno" : "Seu setor");
-  const segIc = seg.tipo === "turno" ? "clock" : "users";
   const confirmou = !!(c.minhaLeitura && c.minhaLeitura.confirmado);
   const reqConf = !!c.requerConfirmacao;
-  let acao = "";
+  const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
+  let foot;
   if (reqConf) {
-    acao = confirmou
-      ? `<span class="cp-av__ok">${cpIcon("check")}Ciência registrada · ${comData(c.minhaLeitura.em)}</span>`
-      : `<button class="cp-ciente" data-colab-ciente="${c.id}">${cpIcon("check")}Li e estou ciente</button>`;
+    foot = confirmou
+      ? `<span class="pp-badge pp-badge--green">${cpIcon("check")}Ciência registrada</span>`
+      : `<span class="pp-badge pp-badge--amber">${cpIcon("alert")}Pede confirmação</span><button class="pp-btn pp-btn--soft pp-btn--sm" data-colab-ciente="${c.id}" style="margin-left:auto">${cpIcon("check")}Li e estou ciente</button>`;
+  } else {
+    foot = `<span class="pp-badge pp-badge--neutral">${cpIcon("megafone")}Informativo</span>`;
   }
   return `
-    <article class="cp-av${c.fixado ? " cp-av--pin" : ""}">
-      <div class="cp-av__top">
-        <div class="cp-av__title">${escapeHtml(c.titulo || "")}</div>
-        ${c.fixado ? `<span class="cp-av__pin">${cpIcon("pin")}</span>` : ""}
-      </div>
-      <div class="cp-av__badges">
-        <span class="cp-chip cp-chip--seg">${cpIcon(segIc)}${escapeHtml(segTxt)}</span>
-        ${reqConf ? `<span class="cp-chip cp-chip--conf">${cpIcon("check")}Requer ciência</span>` : ""}
-      </div>
-      ${c.corpo ? `<div class="cp-av__body">${escapeHtml(c.corpo)}</div>` : ""}
-      ${c.imagem ? `<div class="cp-av__img"><img src="${c.imagem}" alt="" loading="lazy"></div>` : ""}
-      <div class="cp-av__foot">
-        <div class="cp-av__meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
-        ${acao}
+    <article class="pp-card${c.fixado ? " pp-card--pin" : ""}">
+      ${imgOk ? `<img class="pp-card__img" src="${escapeHtml(c.imagem)}" alt="" loading="lazy">` : ""}
+      <div class="pp-card__bd">
+        <div class="pp-card__meta">${c.fixado ? `${cpIcon("pin")}<span>Fixado · </span>` : ""}<span>${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}</span></div>
+        <div class="pp-card__t">${escapeHtml(c.titulo || "")}</div>
+        ${c.corpo ? `<div class="pp-card__x" style="-webkit-line-clamp:4">${escapeHtml(c.corpo)}</div>` : ""}
+        <div class="pp-card__foot">${foot}</div>
       </div>
     </article>`;
 }
@@ -984,56 +975,52 @@ function renderColabDocumentos() {
   const lista = (state.documentosColab || []).slice().sort((a, b) => String(b.publicadoEm || "").localeCompare(String(a.publicadoEm || "")));
   const pend = lista.filter(colabDocPendente);
   const emdia = lista.filter((d) => !colabDocPendente(d));
-  const pendAssin = pend.filter((d) => d.exigeAssinatura).length;
-  const cab = `<header class="page-header"><div><h1>Documentos</h1></div>${pendAssin ? `<span class="cp-pend">${pendAssin} assinatura${pendAssin > 1 ? "s" : ""}</span>` : ""}</header>`;
-
   if (lista.length === 0) {
-    $("#view").innerHTML = cab + `
-      <div class="cp-stub">
-        <div class="cp-stub__ic">${cpIcon("file")}</div>
-        <p>Nenhum documento pra você por enquanto. Quando o RH publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p>
-      </div>
-      <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.75">diag docs: ${state._dbgDocN ?? "?"} carregados · ${state._dbgDocErr ? escapeHtml(String(state._dbgDocErr)).slice(0, 100) : "sem erro de query"}</div>`;
+    $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("file")}</div><p>Nenhum documento pra você por enquanto. Quando o RH publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p></div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.6">diag docs: ${state._dbgDocN ?? "?"} carregados · ${state._dbgDocErr ? escapeHtml(String(state._dbgDocErr)).slice(0, 100) : "sem erro de query"}</div></div>`;
     return;
   }
-  $("#view").innerHTML = cab
-    + (pend.length ? `<div class="cp-seclabel">${cpIcon("edit")}<span>Precisa de você</span></div>${pend.map(colabDocCardHtml).join("")}` : "")
-    + (emdia.length ? `<div class="cp-seclabel">${cpIcon("check")}<span>Em dia</span></div>${emdia.map(colabDocCardHtml).join("")}` : "");
+  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>`
+    + (pend.length ? `<div class="pp-ovl">Precisa de você<span class="pp-ct">${pend.length}</span></div>${pend.map(colabDocCardHtml).join("")}` : "")
+    + (emdia.length ? `<div class="pp-ovl">Publicados</div><div class="pp-grp">${emdia.map(colabDocRowHtml).join("")}</div>` : "")
+    + `</div>`;
 }
 
+// Documento PENDENTE: card-herói com borda âmbar + botão grande (assinar/ler).
 function colabDocCardHtml(d) {
   const ic = COLAB_DOC_IC[d.tipo] || "file";
-  const anexoUrl = (d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url)) ? d.anexo.url : null;
-  const pend = colabDocPendente(d);
-  let status = "", acao = "";
-  if (d.exigeAssinatura) {
-    if (pend) {
-      status = `<span class="cp-doc__pend">${cpIcon("edit")}Assinatura pendente (v${d.versao || 1})</span>`;
-      acao = `<button class="cp-ciente" data-colab-assinar="${d.id}">${cpIcon("edit")}Assinar</button>`;
-    } else {
-      status = `<span class="cp-av__ok">${cpIcon("check")}Assinado · v${d.minhaAssinatura.versaoAssinada} · ${comData(d.minhaAssinatura.em)}</span>`;
-    }
-  } else if (pend) {
-    status = `<span class="cp-doc__pend">${cpIcon("info")}Só ciência</span>`;
-    acao = `<button class="cp-ciente cp-ciente--soft" data-colab-lerdoc="${d.id}">${cpIcon("check")}Marcar como lido</button>`;
-  } else {
-    status = `<span class="cp-av__ok">${cpIcon("check")}Lido · ${comData(d.minhaLeitura.em)}</span>`;
-  }
+  const exige = !!d.exigeAssinatura;
+  const acaoBtn = exige
+    ? `<button class="pp-btn pp-btn--primary pp-btn--block" data-colab-assinar="${d.id}">${cpIcon("edit")}Assinar agora</button>`
+    : `<button class="pp-btn pp-btn--soft pp-btn--block" data-colab-lerdoc="${d.id}">${cpIcon("check")}Marcar como lido</button>`;
   return `
-    <article class="cp-doc">
-      <div class="cp-doc__row">
-        <span class="cp-doc__seal">${cpIcon(ic)}</span>
-        <div class="cp-doc__tt">
-          <div class="cp-doc__title">${escapeHtml(d.titulo || "")}</div>
-          <div class="cp-doc__sub">
-            <span class="cp-tag">${escapeHtml(d.tipo || "doc")}</span>
-            <span class="cp-tag">v${d.versao || 1}</span>
-            ${anexoUrl ? `<a class="cp-tag cp-tag--link" href="${escapeHtml(anexoUrl)}" target="_blank" rel="noopener">${cpIcon("file")}abrir anexo</a>` : ""}
-          </div>
+    <article class="pp-card pp-card--attn">
+      <div class="pp-card__bd">
+        <div class="pp-card__foot" style="margin:0 0 11px">
+          <span class="pp-badge pp-badge--amber">${cpIcon(exige ? "edit" : "info")}${exige ? `Assinatura pendente · v${d.versao || 1}` : "Leitura pendente"}</span>
         </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span class="pp-ico pp-ico--amber">${cpIcon(ic)}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(d.tipo || "documento")} · v${d.versao || 1}</span></span>
+        </div>
+        <div style="margin-top:13px">${acaoBtn}</div>
       </div>
-      <div class="cp-doc__status">${status}${acao}</div>
     </article>`;
+}
+
+// Documento EM DIA (lido/assinado): linha compacta no grupo "Publicados".
+function colabDocRowHtml(d) {
+  const ic = COLAB_DOC_IC[d.tipo] || "file";
+  const anexoUrl = (d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url)) ? d.anexo.url : null;
+  const statusTxt = d.exigeAssinatura
+    ? `Assinado · v${(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada) || d.versao || 1}`
+    : "Lido";
+  return `<div class="pp-rw" style="cursor:default">
+    <span class="pp-ico pp-ico--green">${cpIcon(ic)}</span>
+    <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(d.tipo || "documento")} · ${statusTxt}</span></span>
+    ${anexoUrl ? `<a class="pp-rw__ro" href="${escapeHtml(anexoUrl)}" target="_blank" rel="noopener">${cpIcon("file")}Abrir</a>` : `<span class="pp-rw__ro">${cpIcon("check")}OK</span>`}
+  </div>`;
 }
 
 function colabLerDocUI(id) {

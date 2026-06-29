@@ -658,3 +658,33 @@ html.modo-colab.cp-dark{
 .pp-fade>*:nth-child(4){animation-delay:.12s}.pp-fade>*:nth-child(5){animation-delay:.16s}
 .pp-fade>*:nth-child(6){animation-delay:.2s}.pp-fade>*:nth-child(7){animation-delay:.24s}
 @media (prefers-reduced-motion:reduce){.pp-fade>*{animation:none}}
+
+/* chips de filtro (Avisos) */
+.pp-chips-f{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
+.pp-chips-f::-webkit-scrollbar{display:none}
+.pp-chip-f{flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.pp-chip-f.on{background:#1AA34F;border-color:transparent;color:#fff}
+.pp-chip-f__c{font-size:11px;opacity:.85;font-variant-numeric:tabular-nums}
+
+/* badge de status */
+.pp-badge{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:600}
+.pp-badge svg{width:13px;height:13px}
+.pp-badge--green{background:var(--success-bg);color:var(--plum)}
+.pp-badge--amber{background:var(--warning-bg);color:var(--warning)}
+.pp-badge--info{background:var(--info-bg);color:var(--info)}
+.pp-badge--neutral{background:var(--surface-warm);color:var(--text-muted)}
+
+/* botoes */
+.pp-btn{height:44px;border-radius:13px;border:0;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 16px}
+.pp-btn svg{width:17px;height:17px}
+.pp-btn--primary{background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;box-shadow:0 6px 16px -7px rgba(0,80,40,.6)}
+.pp-btn--primary:active{filter:brightness(.96)}
+.pp-btn--soft{background:var(--success-bg);color:var(--plum)}
+.pp-btn--block{width:100%}
+.pp-btn--sm{height:36px;font-size:12.5px;border-radius:11px;padding:0 13px}
+
+/* card: imagem + rodape */
+.pp-card__img{width:100%;max-height:170px;object-fit:cover;display:block;background:var(--surface-warm)}
+.pp-card__foot{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px}
+.pp-card--attn{border-color:transparent;box-shadow:0 0 0 1.5px var(--warning),var(--pp-sh-card)}
+.pp-rw__ro a,.pp-rw__ro{text-decoration:none}
