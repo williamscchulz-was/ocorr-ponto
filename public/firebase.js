@@ -2445,6 +2445,9 @@
   // foco, blip de rede/token, doc grande) NUNCA apaga o saldo que já estava bom na tela.
   // 1 retry no read canônico cobre o blip. Diagnóstico (state._dbgBh*) some quando funciona.
   async function carregarBancoHorasGestor(u) {
+    // db NÃO está no closure desta função (ela é irmã de installFirebaseStore, não filha) —
+    // pega o singleton global. Sem isto: ReferenceError "db is not defined" -> catch -> BH vazio.
+    const db = firebase.firestore();
     const novo = {};
     let meta = null;
     let dbgErr = null, dbgExists = null;
@@ -2516,6 +2519,7 @@
   // Re-fetch dos dados VOLÁTEIS (ficam velhos na tela) sem re-rodar o boot inteiro nem
   // re-assinar listeners. Resolve RH vendo BH velho + colaborador não vendo aviso novo.
   async function recarregarVolateis() {
+    const db = firebase.firestore(); // mesma razão de carregarBancoHorasGestor: db fora do closure
     const u = currentUser();
     if (!u) return;
     if (u.role === "colaborador") {
