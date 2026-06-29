@@ -2440,17 +2440,28 @@
   }
 
   // ===== Banco de Horas (gestor) — extraído pra poder recarregar sozinho no re-fetch ao foco =====
+  // Carrega o saldo de banco de horas pro gestor. ROBUSTEZ: monta num mapa temporário e só
+  // troca state.bancoHoras quando a leitura conclui — assim um erro transitório (re-fetch ao
+  // foco, blip de rede/token, doc grande) NUNCA apaga o saldo que já estava bom na tela.
+  // 1 retry no read canônico cobre o blip. Diagnóstico (state._dbgBh*) some quando funciona.
   async function carregarBancoHorasGestor(u) {
-    state.bancoHoras = {};
-    state.pipelineMeta = null;
+    const novo = {};
+    let meta = null;
+    let dbgErr = null, dbgExists = null;
     try {
       if (u.role === "admin" || u.role === "rh") {
-        const curSnap = await db.collection("pipeline-rh").doc("cur").get();
-        if (curSnap.exists) {
+        let curSnap = null, ultimoErro = null;
+        for (let tent = 0; tent < 2; tent++) {
+          try { curSnap = await db.collection("pipeline-rh").doc("cur").get(); ultimoErro = null; break; }
+          catch (e) { ultimoErro = e; }
+        }
+        if (ultimoErro) throw ultimoErro;
+        dbgExists = !!(curSnap && curSnap.exists);
+        if (curSnap && curSnap.exists) {
           const cur = curSnap.data();
           const atualizadoEm = tsToIso(cur.meta?.generatedAt);
           for (const f of (cur.funcionarios || [])) {
-            state.bancoHoras["f-" + f.funcId] = {
+            novo["f-" + f.funcId] = {
               funcionarioCodigo: f.funcId,
               funcionarioNome: f.nome,
               minutos: f.saldoAtualMin,
@@ -2460,7 +2471,7 @@
               lancamentos: Array.isArray(f.lancamentos) ? f.lancamentos : [],
             };
           }
-          state.pipelineMeta = {
+          meta = {
             schema: cur.schema,
             month: cur.month,
             generatedAt: atualizadoEm,
@@ -2471,20 +2482,33 @@
             totalLancamentos: cur.meta?.totalLancamentos,
             warnings: cur.meta?.warnings,
           };
-          debug?.("[pipeline-rh] cur carregado:", state.pipelineMeta);
+          debug?.("[pipeline-rh] cur carregado:", meta);
         } else {
           debug?.("[pipeline-rh] doc 'cur' não existe — pipeline RH não rodou ainda.");
         }
+        state.bancoHoras = novo;
+        state.pipelineMeta = meta;
       } else if (u.role === "lider") {
         const bhSnap = await db.collection("bancoHoras").where("funcionarioTurno", "==", u.turno).get();
-        bhSnap.docs.forEach((d) => { state.bancoHoras[d.id] = { ...d.data(), atualizadoEm: tsToIso(d.data().atualizadoEm) }; });
+        bhSnap.docs.forEach((d) => { novo[d.id] = { ...d.data(), atualizadoEm: tsToIso(d.data().atualizadoEm) }; });
         debug?.("[bancoHoras] líder turno", u.turno, "→", bhSnap.size, "saldos");
+        state.bancoHoras = novo;
+        state.pipelineMeta = null;
       } else if (u.role === "supervisor") {
         const bhSnap = await db.collection("bancoHoras").get();
-        bhSnap.docs.forEach((d) => { state.bancoHoras[d.id] = { ...d.data(), atualizadoEm: tsToIso(d.data().atualizadoEm) }; });
+        bhSnap.docs.forEach((d) => { novo[d.id] = { ...d.data(), atualizadoEm: tsToIso(d.data().atualizadoEm) }; });
         debug?.("[bancoHoras] supervisor →", bhSnap.size, "saldos");
+        state.bancoHoras = novo;
+        state.pipelineMeta = null;
       }
+      state._dbgBhErr = dbgErr;
+      state._dbgBhExists = dbgExists;
+      state._dbgBhN = Object.keys(novo).length;
     } catch (e) {
+      // NÃO apaga o que já tinha (state.bancoHoras intacto). Só registra o diagnóstico.
+      state._dbgBhErr = e?.code || e?.message || String(e);
+      state._dbgBhExists = dbgExists;
+      state._dbgBhN = Object.keys(state.bancoHoras || {}).length;
       debug?.("[bh] falha ao ler banco de horas:", e?.message || e);
     }
   }
@@ -2506,6 +2530,7 @@
     }
     state.dadosCarregadosEm = new Date().toISOString();
   }
+  window.recarregarVolateis = recarregarVolateis;
 
   // Throttle + guardas: re-fetch quando a aba volta ao foco. Não dispara com modal aberto
   // (não atrapalha cadastro) nem mais de 1x a cada 20s.

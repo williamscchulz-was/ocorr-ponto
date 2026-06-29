@@ -5601,6 +5601,12 @@ function renderBancoHoras() {
       })()}
     </div>
 
+    ${comSaldo === 0 && (u.role === "admin" || u.role === "rh") ? `
+    <div style="margin:0 0 14px;padding:10px 14px;border:1px dashed var(--border);border-radius:10px;font-size:12.5px;color:var(--muted);line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span><strong style="color:var(--text);font-weight:600;">diag BH</strong> · doc existe: ${state._dbgBhExists === true ? "sim" : state._dbgBhExists === false ? "nao" : "?"} · carregados: ${state._dbgBhN ?? 0} · erro: ${state._dbgBhErr ? escapeHtml(String(state._dbgBhErr)) : "nenhum"}</span>
+      <button id="bh-diag-retry" class="btn btn--ghost" style="padding:3px 12px;font-size:12px;">Tentar de novo</button>
+    </div>` : ""}
+
     <div class="toolbar">
       <div class="toolbar__search">
         ${icon("search")}
@@ -5613,6 +5619,14 @@ function renderBancoHoras() {
 
   if ($("#btn-import-bh")) {
     $("#btn-import-bh").addEventListener("click", openImportBancoHorasModal);
+  }
+  if ($("#bh-diag-retry")) {
+    $("#bh-diag-retry").addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true; btn.textContent = "Carregando...";
+      try { await window.recarregarVolateis?.(); } catch (_) {}
+      if (typeof renderApp === "function") renderApp();
+    });
   }
   $("#bh-search").addEventListener("input", debounce(() => renderBHList(visibles), 150));
   renderBHList(visibles, true);
