@@ -598,3 +598,12 @@ Mantém "cria-e-nunca-reabre": o pipeline nunca volta um status que o app já av
 **Piso de go-live (meu lado — FEITO):** `process-ocorrencias-rh.py` ganhou `GO_LIVE = "2026-07-01"` — descarta ocorrência com `dataIso < 2026-07-01` (junho era teste/sandbox). Re-rodei o parser no CSV de junho: 199 brutas → 28 cortadas (D-1, dia aberto) → **171 cortadas (pré-go-live) → 0**. `upload-ocorrencias-auto.mjs --reset` zerou a coleção (73 → 0). **Aba vazia agora**; de 02/07 entram só ocorrências de julho+ (com o D-1 de sempre). Casa com o reset mensal automático que já existe.
 
 **"GH" não "RH" (pro PC):** na Fiobras o setor é **GH (Gestão Humana)**, não Recursos Humanos. Missão `inbox-pc/2026-06-30-gh-nao-rh-e-piso-julho.md`: PC troca o label `RH confere` → `GH confere` (e todo "RH" visível → GH). O status interno `rh_confere` → `gh_confere` foi proposto como rename **opcional COORDENADO** (coleção vazia = momento limpo; landar antes de 02/07) — aguardando o PC decidir o caminho.
+
+
+---
+
+## 2026-06-30 · ✏️ Correção: é GP (Gestão de Pessoas), NÃO "GH"
+
+Na entrada anterior registrei "GH (Gestão Humana)" — **errado**. O William corrigiu o próprio engano: o setor na Fiobras é **GP — Gestão de Pessoas** (nem RH, nem GH). Substituir GH→GP em tudo: label da aba "GP confere", textos visíveis (slogan "o batimento do RH" no `index.html` ×5, `changelog.js`, `roadmap.js`), e o status interno `gp_confere` **se** decidirmos renomear.
+
+Missão corrigida pro PC: `inbox-pc/2026-06-30-gp-gestao-de-pessoas.md` (substitui a `...gh-nao-rh-e-piso-julho.md`). **Escopo em decisão com o William:** só texto visível (seguro) × também o identificador interno do papel `rh`→`gp` (migração de user docs + `firestore.rules` + 34 refs no app — risco; precisa de plano). O `rh_confere`→`gp_confere` é barato agora (coleção vazia) se for "tudo".
