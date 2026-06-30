@@ -958,7 +958,7 @@
         imagem: (typeof dados.imagem === "string" && dados.imagem.indexOf("data:image/") === 0) ? dados.imagem : null,
         alcanceEstimado: Number(dados.alcanceEstimado) || 0,
         autorUid: (auth.currentUser && auth.currentUser.uid) || u?.id || null,
-        autorNome: u?.nome || "RH",
+        autorNome: u?.nome || "GP",
         publicadoEm: firebase.firestore.FieldValue.serverTimestamp(),
         editadoEm: null,
         editadoPor: null,
@@ -1144,7 +1144,7 @@
       const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
       if (!o) return;
       if (o.status === "conferida") { toast?.("Essa já estava conferida."); renderApp(); return; }
-      const entrada = { acao: "conferida", por: uid, porNome: u?.nome || "RH", emIso: new Date().toISOString() };
+      const entrada = { acao: "conferida", por: uid, porNome: u?.nome || "GP", emIso: new Date().toISOString() };
       const novoHist = [...(Array.isArray(o.historico) ? o.historico : []), entrada];
       try {
         await db.collection("ocorrencias-auto").doc(id).update({ status: "conferida", historico: novoHist });
@@ -1213,7 +1213,7 @@
         status: "rascunho",
         alcanceEstimado: Number(dados.alcanceEstimado) || 0,
         criadoPor: (auth.currentUser && auth.currentUser.uid) || u?.id || null,
-        autorNome: u?.nome || "RH",
+        autorNome: u?.nome || "GP",
         criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
         publicadoEm: null, versaoEm: null, versaoPor: null,
       };
@@ -2511,7 +2511,7 @@
         // (ativo !== false) → regressão zero para os gestores atuais (sem o campo).
         // Nota: isto barra a ENTRADA; token já emitido sobrevive ~1h (revogação real = Admin SDK, futuro).
         if (userData.ativo === false) {
-          $("#login-error").textContent = "Seu acesso está inativo. Procure o GH.";
+          $("#login-error").textContent = "Seu acesso está inativo. Procure o GP.";
           $("#login-error").classList.remove("hidden");
           window.__forcarLoginGestor = true;
           await auth.signOut();

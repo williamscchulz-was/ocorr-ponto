@@ -155,7 +155,7 @@ window.ROADMAP = {
       dependencias: ["#11", "carregarDadosCompletos ramificado", "/config/diretorioGH"],
       criteriosAceite: [
         "Colaborador recebe permission-denied em .get() amplo.",
-        "Lê o próprio doc + diretório GH.",
+        "Lê o próprio doc + diretório GP.",
         "Chat/diretório dos gestores intactos.",
         "Emulator passa próprio-OK / terceiro-NEGADO."
       ]
@@ -230,7 +230,7 @@ window.ROADMAP = {
       concluidoEm: "2026-06-24",
       classificacao: "adapta",
       descricao: "Riding no pipeline WKRADAR diário: novos funcionários ganham conta automaticamente; vínculos e dados de identidade são reconciliados a partir de pipeline-rh/{cur,hist}.",
-      objetivo: "Manter a base de logins viva sem o RH lembrar de criar conta a cada admissão.",
+      objetivo: "Manter a base de logins viva sem o GP lembrar de criar conta a cada admissão.",
       dependencias: ["#5", "pipeline-rh/{cur,hist}"],
       criteriosAceite: [
         "Funcionário novo do pipeline aparece com conta no dia seguinte sem ação manual.",
@@ -271,7 +271,7 @@ window.ROADMAP = {
       objetivo: "Conformidade e rastreabilidade (defesa trabalhista, LGPD com política de retenção).",
       dependencias: ["Inativação automática", "auditoria append-only"],
       criteriosAceite: [
-        "Após inativação, histórico/auditoria do ex-funcionário continuam legíveis para admin/RH.",
+        "Após inativação, histórico/auditoria do ex-funcionário continuam legíveis para admin/GP.",
         "Nada é apagado.",
         "Política de retenção documentada."
       ]
@@ -318,17 +318,17 @@ window.ROADMAP = {
     {
       id: "recuperacao-senha-reset-administrativo",
       numero: null,
-      nome: "Recuperação de senha = reset administrativo pelo RH",
+      nome: "Recuperação de senha = reset administrativo pelo GP",
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
       status: "planejado",
       classificacao: "adapta",
-      descricao: "Como o domínio colaborador.fiobras.local é fake, sendPasswordResetEmail não funciona e 'Esqueci a senha' fica oculto no modo Colaborador. O reset viável é administrativo pelo RH: re-seta a senha para nascimento (DDMMAAAA) + precisaTrocarSenha=true.",
+      descricao: "Como o domínio colaborador.fiobras.local é fake, sendPasswordResetEmail não funciona e 'Esqueci a senha' fica oculto no modo Colaborador. O reset viável é administrativo pelo GP: re-seta a senha para nascimento (DDMMAAAA) + precisaTrocarSenha=true.",
       objetivo: "Resolver o 'esqueci a senha' sem e-mail real e sem billing.",
       dependencias: ["#6", "gestão admin de contas"],
       criteriosAceite: [
-        "RH reseta a conta; próximo login do colaborador cai na troca obrigatória.",
+        "GP reseta a conta; próximo login do colaborador cai na troca obrigatória.",
         "Ação registrada na auditoria.",
         "'Esqueci a senha' não aparece no modo Colaborador."
       ]
@@ -401,7 +401,7 @@ window.ROADMAP = {
       status: "planejado",
       classificacao: "adapta",
       descricao: "Expor o próprio saldo + gráfico do mês via banco-horas-self/{codigo} (saldo + lançamentos, SEM PII) populado pelo pipeline, reusando graficoBarrasBH; carregar no carregarDadosCompletos ramificado.",
-      objetivo: "Colaborador acompanha o saldo sem depender do RH.",
+      objetivo: "Colaborador acompanha o saldo sem depender do GP.",
       dependencias: ["#11", "banco-horas-self", "graficoBarrasBH"],
       criteriosAceite: [
         "Vê o próprio saldo + gráfico.",
@@ -419,11 +419,11 @@ window.ROADMAP = {
       status: "concluido",
       concluidoEm: "2026-06-26",
       classificacao: "cria",
-      descricao: "ENTREGUE (no ar v186). Segmentação por turno/setor lê cruzado (users.setor/.turno denormalizados pelo pipeline) + hasOnly nas subcoleções. Coleção comunicados/{id} + CRUD (criarComunicado, escutarComunicados, editarComunicado, fixarComunicado). Schema {titulo, corpo, segmento{tipo,valores}, autorUid, autorNome, publicadoEm(server), fixado, ativo, requerConfirmacao}. Cap comunicados.gerenciar (true admin/RH).",
+      descricao: "ENTREGUE (no ar v186). Segmentação por turno/setor lê cruzado (users.setor/.turno denormalizados pelo pipeline) + hasOnly nas subcoleções. Coleção comunicados/{id} + CRUD (criarComunicado, escutarComunicados, editarComunicado, fixarComunicado). Schema {titulo, corpo, segmento{tipo,valores}, autorUid, autorNome, publicadoEm(server), fixado, ativo, requerConfirmacao}. Cap comunicados.gerenciar (true admin/GP).",
       objetivo: "Estabelecer a comunicação 1→N que hoje não existe. Backbone de comunicados, avisos e notificações.",
       dependencias: ["rules (read segmentado, write temCap)", "papel colaborador"],
       criteriosAceite: [
-        "Admin/RH cria e aparece em menos de 2s no segmento.",
+        "Admin/GP cria e aparece em menos de 2s no segmento.",
         "Demais não criam.",
         "turno:1 não chega ao turno 2.",
         "Criação/edição na auditoria."
@@ -432,14 +432,14 @@ window.ROADMAP = {
     {
       id: "comunicados-tela-composicao",
       numero: 22,
-      nome: "Comunicados: tela e composição (autor RH/admin)",
+      nome: "Comunicados: tela e composição (autor GP/admin)",
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
       status: "concluido",
       concluidoEm: "2026-06-26",
       classificacao: "adapta",
-      descricao: "ENTREGUE (v186) com pré-visualização ao vivo + IMAGEM no aviso (base64 com resize no cliente). Origem = PORTAL DO GESTOR (cap comunicados.gerenciar = admin/RH; supervisor comum não publica). renderComunicados com lista publicada (cronológica reversa, fixado no topo) + painel de leituras (X de Y leram/confirmaram) + modal compositor (título, corpo, segmento todos/turno/setor, fixar, requer confirmação, pré-visualização). Segmentação canônica de turno (1 Matutino, 2 Vespertino, 3 Noturno, geral Todos). Corpo texto simples + quebras (escapeHtml).",
+      descricao: "ENTREGUE (v186) com pré-visualização ao vivo + IMAGEM no aviso (base64 com resize no cliente). Origem = PORTAL DO GESTOR (cap comunicados.gerenciar = admin/GP; supervisor comum não publica). renderComunicados com lista publicada (cronológica reversa, fixado no topo) + painel de leituras (X de Y leram/confirmaram) + modal compositor (título, corpo, segmento todos/turno/setor, fixar, requer confirmação, pré-visualização). Segmentação canônica de turno (1 Matutino, 2 Vespertino, 3 Noturno, geral Todos). Corpo texto simples + quebras (escapeHtml).",
       objetivo: "Canal oficial de avisos com segmentação, substituindo WhatsApp/mural.",
       dependencias: ["#21", "mock aprovado"],
       criteriosAceite: [
@@ -460,7 +460,7 @@ window.ROADMAP = {
       concluidoEm: "2026-06-26",
       classificacao: "adapta",
       descricao: "ENTREGUE (v188) — tela Avisos do colaborador (3 queries por segmento; a rule não filtra query). Renderizar comunicados segmentados (home + aba) e gravar recibo em comunicados/{id}/leituras/{uid} ao abrir/confirmar, espelhando o recibo do chat; botão 'Confirmo que li' quando requerConfirmacao; badge de não-lido; painel 'X de Y leram' para o autor.",
-      objetivo: "Prova de leitura juridicamente útil para o RH; lugar único e confiável para o colaborador.",
+      objetivo: "Prova de leitura juridicamente útil para o GP; lugar único e confiável para o colaborador.",
       dependencias: ["#21", "#22", "recibo do chat"],
       criteriosAceite: [
         "Abrir cria 1 doc em /leituras/{uid} com hora-servidor.",
@@ -520,7 +520,7 @@ window.ROADMAP = {
       objetivo: "Centralizar todo documento a entregar/assinar com rastreabilidade.",
       dependencias: ["#11", "anexo PJ (contratoUrl/ehUrlSegura/google-drive.js)", "rule nova"],
       criteriosAceite: [
-        "RH cria com link Drive e vê 'pendente'.",
+        "GP cria com link Drive e vê 'pendente'.",
         "url não-https bloqueada.",
         "hashSha256 preenchido.",
         "Colaborador lê só os próprios.",
@@ -551,17 +551,17 @@ window.ROADMAP = {
     {
       id: "meus-holerites-repositorio-pdf",
       numero: 18,
-      nome: "Meus holerites — repositório de PDFs via upload do RH",
+      nome: "Meus holerites — repositório de PDFs via upload do GP",
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
       status: "planejado",
       classificacao: "adapta",
-      descricao: "Reframe: repositório de PDFs com upload/importação pelo RH (reusa o padrão de anexo do PJ + Drive + ehUrlSegura), não integração automática com ERP. holerites/{id} (funcionarioId, competencia, urlPdf, tipo); rule read self.",
+      descricao: "Reframe: repositório de PDFs com upload/importação pelo GP (reusa o padrão de anexo do PJ + Drive + ehUrlSegura), não integração automática com ERP. holerites/{id} (funcionarioId, competencia, urlPdf, tipo); rule read self.",
       objetivo: "Acesso self ao contracheque — um dos itens mais valiosos do portal — entregável sem billing e sem esperar o ERP.",
       dependencias: ["#11", "anexo PJ + google-drive.js", "rule read SELF"],
       criteriosAceite: [
-        "RH faz upload e o colaborador vê só os próprios e abre o PDF.",
+        "GP faz upload e o colaborador vê só os próprios e abre o PDF.",
         "Acessar de terceiro negado.",
         "Sem PDFs, estado vazio honesto."
       ]
@@ -569,17 +569,17 @@ window.ROADMAP = {
     {
       id: "espelho-ponto-repositorio-pdf",
       numero: 15,
-      nome: "Espelho de ponto — repositório de PDFs via upload do RH",
+      nome: "Espelho de ponto — repositório de PDFs via upload do GP",
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
       status: "planejado",
       classificacao: "adapta",
-      descricao: "Espelho de ponto como PDF importado pelo RH (mesmo padrão dos holerites), por competência. Deixa explícito que é o espelho que a folha/relógio já gera, não batidas vivas calculadas pelo app.",
+      descricao: "Espelho de ponto como PDF importado pelo GP (mesmo padrão dos holerites), por competência. Deixa explícito que é o espelho que a folha/relógio já gera, não batidas vivas calculadas pelo app.",
       objetivo: "Entregar o espelho de ponto agora, sem depender da integração de batidas.",
       dependencias: ["#18", "#11"],
       criteriosAceite: [
-        "RH faz upload por competência.",
+        "GP faz upload por competência.",
         "Colaborador abre só os próprios PDFs.",
         "Acessar de terceiro negado.",
         "Sem PDFs, vazio honesto."
@@ -588,13 +588,13 @@ window.ROADMAP = {
     {
       id: "meus-recibos-repositorio-pdf",
       numero: 19,
-      nome: "Meus recibos — repositório de PDFs via upload do RH",
+      nome: "Meus recibos — repositório de PDFs via upload do GP",
       fase: "fase1",
       prioridade: "media",
       complexidade: "facil",
       status: "planejado",
       classificacao: "adapta",
-      descricao: "Listar/abrir recibos por tipo (férias, 13º, adiantamento, rescisão), reusando a coleção/tela/rule dos holerites variando o campo tipo. PDFs por upload do RH.",
+      descricao: "Listar/abrir recibos por tipo (férias, 13º, adiantamento, rescisão), reusando a coleção/tela/rule dos holerites variando o campo tipo. PDFs por upload do GP.",
       objetivo: "Completar o autoatendimento financeiro com custo marginal baixo.",
       dependencias: ["#18"],
       criteriosAceite: [
@@ -668,13 +668,13 @@ window.ROADMAP = {
       status: "planejado",
       classificacao: "adapta",
       descricao: "Coleção reconhecimentos/{id} + mural/widget reusando o padrão de reações por uid do chat. Categorias curtas, sem emoji.",
-      objetivo: "Cultura de reconhecimento e sinais qualitativos para o RH.",
+      objetivo: "Cultura de reconhecimento e sinais qualitativos para o GP.",
       dependencias: ["#11", "reacoes{} do chat", "rule nova"],
       criteriosAceite: [
         "Reconhecer aparece em tempo real.",
         "Reagir usa reacoes{}.",
         "Sem auto-reconhecimento.",
-        "RH arquiva inadequado."
+        "GP arquiva inadequado."
       ]
     },
     {
@@ -704,7 +704,7 @@ window.ROADMAP = {
       complexidade: "medio",
       status: "planejado",
       classificacao: "adapta",
-      descricao: "RH/gestor emite (tipo='advertencia'), o colaborador lê e dá ciência (assina) ou registra discordância ('com ressalvas', texto livre). Reusa a assinatura N1. Visão RH do status (pendente/com ciência/com ressalvas/recusada), com badge das Obrigações.",
+      descricao: "GP/gestor emite (tipo='advertencia'), o colaborador lê e dá ciência (assina) ou registra discordância ('com ressalvas', texto livre). Reusa a assinatura N1. Visão GP do status (pendente/com ciência/com ressalvas/recusada), com badge das Obrigações.",
       objetivo: "Formalizar a ciência de medidas disciplinares com hora auditável; elimina o 'recusou a assinar' não rastreável. Ciência não é concordância.",
       dependencias: ["#30", "#29", "badge das Obrigações"],
       criteriosAceite: [
@@ -748,7 +748,7 @@ window.ROADMAP = {
       objetivo: "Substituir planilhas por fluxo estruturado, com histórico por ciclo.",
       dependencias: ["conclusoes{}", "podeVerFuncionario", "PERM_CAPS", "rules"],
       criteriosAceite: [
-        "RH cria ciclo com modelo.",
+        "GP cria ciclo com modelo.",
         "Gestor preenche/rascunho/envia.",
         "Status mostra quantas faltam.",
         "Colaborador vê só após liberação.",
@@ -891,11 +891,11 @@ window.ROADMAP = {
       complexidade: "dificil",
       status: "pendente",
       classificacao: "cria",
-      descricao: "Recuperação autônoma pelo colaborador via e-mail/SMS real (além do reset administrativo do RH). O domínio sintético fake impede reset nativo; exige serviço externo.",
-      objetivo: "Reduzir a carga operacional do RH com resets.",
+      descricao: "Recuperação autônoma pelo colaborador via e-mail/SMS real (além do reset administrativo do GP). O domínio sintético fake impede reset nativo; exige serviço externo.",
+      objetivo: "Reduzir a carga operacional do GP com resets.",
       dependencias: ["serviço externo", "reset administrativo (base)"],
       criteriosAceite: [
-        "Colaborador recupera a senha sem o RH.",
+        "Colaborador recupera a senha sem o GP.",
         "Canal de envio configurável.",
         "Fluxo registrado."
       ]
@@ -1001,20 +1001,20 @@ window.ROADMAP = {
     {
       id: "alfa-grupo-selecao",
       numero: null,
-      nome: "Definição do grupo alfa (5 pessoas) e ponto de contato no RH",
+      nome: "Definição do grupo alfa (5 pessoas) e ponto de contato no GP",
       fase: "alfa",
       prioridade: "alta",
       complexidade: "muito_facil",
       status: "planejado",
-      descricao: "Selecionar 5 colaboradores para o teste interno do Portal, com perfis variados (alguém com facilidade digital, alguém com pouca familiaridade, líderes de turno) dentro dos 86 logins ativos, evitando diretoria, invalidez e aprendiz (sem acesso). Registrar nome, setor, turno e CPF de cada participante e combinar de viva voz que é uma versão de teste e que bugs e dúvidas são esperados. Definir um responsável do RH como ponto de contato e montar um canal simples de feedback (grupo de mensagens ou planilha única com data, pessoa, tela, o que esperava e o que aconteceu). O RH consolida em uma lista priorizada (bug, dúvida recorrente, sugestão) que alimenta o backlog antes do beta.",
+      descricao: "Selecionar 5 colaboradores para o teste interno do Portal, com perfis variados (alguém com facilidade digital, alguém com pouca familiaridade, líderes de turno) dentro dos 86 logins ativos, evitando diretoria, invalidez e aprendiz (sem acesso). Registrar nome, setor, turno e CPF de cada participante e combinar de viva voz que é uma versão de teste e que bugs e dúvidas são esperados. Definir um responsável do GP como ponto de contato e montar um canal simples de feedback (grupo de mensagens ou planilha única com data, pessoa, tela, o que esperava e o que aconteceu). O GP consolida em uma lista priorizada (bug, dúvida recorrente, sugestão) que alimenta o backlog antes do beta.",
       objetivo: "Começar o rollout por um grupo pequeno e controlado, com gente que representa a realidade da fábrica, e transformar o atrito relatado em correções concretas antes de abrir para mais pessoas.",
       dependencias: ["Provisão de logins (WKRADAR)", "Login por CPF (#4)", "Troca obrigatória de senha (#6)"],
       criteriosAceite: [
         "Lista nominal de 5 participantes alfa registrada, com setor, turno e CPF.",
         "Nenhum participante de diretoria, invalidez ou aprendiz na lista.",
         "Cada participante avisado pessoalmente de que é versão de teste antes do primeiro acesso.",
-        "Um responsável do RH nomeado como ponto de contato e canal de feedback comunicado aos 5.",
-        "Relatos consolidados em lista priorizada (bug, dúvida, sugestão) com pelo menos uma resposta do RH no prazo combinado, antes de iniciar o beta."
+        "Um responsável do GP nomeado como ponto de contato e canal de feedback comunicado aos 5.",
+        "Relatos consolidados em lista priorizada (bug, dúvida, sugestão) com pelo menos uma resposta do GP no prazo combinado, antes de iniciar o beta."
       ]
     },
     {
@@ -1101,7 +1101,7 @@ window.ROADMAP = {
       prioridade: "alta",
       complexidade: "facil",
       status: "planejado",
-      descricao: "Selecionar o grupo piloto de cerca de 20 pessoas (de preferência um turno ou setor inteiro, para o boca a boca jogar a favor) e produzir um material curto e visual de primeiro acesso (um cartão ou folha A5 e uma versão para celular) em linguagem simples: entre com o CPF, a senha inicial é a sua data de nascimento no formato ddmmaaaa (oito dígitos, sem barras), e na primeira vez o sistema pede para criar uma senha nova só sua. Incluir onde acessar (link ou QR Code), o que fazer se não conseguir entrar (procurar o RH) e o aviso de que é um sistema da empresa. Rodar um treinamento curto presencial de poucos minutos por turma, cobrindo primeiro acesso, troca de senha e consultas.",
+      descricao: "Selecionar o grupo piloto de cerca de 20 pessoas (de preferência um turno ou setor inteiro, para o boca a boca jogar a favor) e produzir um material curto e visual de primeiro acesso (um cartão ou folha A5 e uma versão para celular) em linguagem simples: entre com o CPF, a senha inicial é a sua data de nascimento no formato ddmmaaaa (oito dígitos, sem barras), e na primeira vez o sistema pede para criar uma senha nova só sua. Incluir onde acessar (link ou QR Code), o que fazer se não conseguir entrar (procurar o GP) e o aviso de que é um sistema da empresa. Rodar um treinamento curto presencial de poucos minutos por turma, cobrindo primeiro acesso, troca de senha e consultas.",
       objetivo: "Remover a dúvida número um do primeiro acesso (qual é a senha e como ela funciona) com uma explicação que qualquer colaborador entende sozinho, validando o Portal com um grupo maior já organizado por turno ou setor.",
       dependencias: ["Login por CPF (#4)", "Troca obrigatória de senha (#6)", "Aprendizados do grupo alfa"],
       criteriosAceite: [
@@ -1120,7 +1120,7 @@ window.ROADMAP = {
       prioridade: "alta",
       complexidade: "medio",
       status: "planejado",
-      descricao: "Liberação por lista de pessoas, não por percentual abstrato: alfa com 5, beta com 20 (um turno ou setor), depois geral. O controle de quem já foi liberado é operacional (provisão e ativação de conta pelo pipeline WKRADAR e pelo RH), não um experimento no cliente. Cada onda só abre depois que os critérios da onda anterior batem. Diretoria, afastados por invalidez e aprendizes seguem fora do acesso em todas as ondas. Quem não tem celular tem acesso garantido por quiosque ou PC compartilhado.",
+      descricao: "Liberação por lista de pessoas, não por percentual abstrato: alfa com 5, beta com 20 (um turno ou setor), depois geral. O controle de quem já foi liberado é operacional (provisão e ativação de conta pelo pipeline WKRADAR e pelo GP), não um experimento no cliente. Cada onda só abre depois que os critérios da onda anterior batem. Diretoria, afastados por invalidez e aprendizes seguem fora do acesso em todas as ondas. Quem não tem celular tem acesso garantido por quiosque ou PC compartilhado.",
       objetivo: "Conter o raio de impacto de qualquer falha a um grupo pequeno e crescer só com sinal verde, em vez de expor 86 pessoas de uma vez.",
       dependencias: ["Smoke test do caminho crítico", "Provisão de logins WKRADAR (86 ativos)", "Critérios de saída mensuráveis das fases"],
       criteriosAceite: [
@@ -1128,7 +1128,7 @@ window.ROADMAP = {
         "A onda seguinte só é liberada depois que o critério da anterior bate.",
         "Diretoria, invalidez e aprendiz permanecem sem acesso em todas as ondas.",
         "Quem não tem celular na onda tem acesso garantido por quiosque ou PC compartilhado.",
-        "O status de qual onda está ativa fica visível para RH e direção."
+        "O status de qual onda está ativa fica visível para GP e direção."
       ]
     },
     {
@@ -1139,13 +1139,13 @@ window.ROADMAP = {
       prioridade: "alta",
       complexidade: "medio",
       status: "planejado",
-      descricao: "Painel operacional simples para RH e direção com os sinais que decidem avançar ou recuar: quantos da onda entraram pelo menos uma vez, quantos concluíram a troca de senha, quantos resets administrativos foram pedidos, contagem de bugs abertos por gravidade e qualquer pico de acesso negado. Os números saem do que já existe (usuários com flags, auditoria de resets, provisão do pipeline); não cria coleta nova de dado de comportamento além do operacional.",
+      descricao: "Painel operacional simples para GP e direção com os sinais que decidem avançar ou recuar: quantos da onda entraram pelo menos uma vez, quantos concluíram a troca de senha, quantos resets administrativos foram pedidos, contagem de bugs abertos por gravidade e qualquer pico de acesso negado. Os números saem do que já existe (usuários com flags, auditoria de resets, provisão do pipeline); não cria coleta nova de dado de comportamento além do operacional.",
       objetivo: "Dar visibilidade objetiva da adoção e da saúde do Portal para sustentar os critérios de saída de cada fase, em vez de decidir por impressão.",
-      dependencias: ["users (precisaTrocarSenha e ativo)", "Reset administrativo pelo RH (auditoria)", "Provisão WKRADAR", "Coleta de bugs da onda"],
+      dependencias: ["users (precisaTrocarSenha e ativo)", "Reset administrativo pelo GP (auditoria)", "Provisão WKRADAR", "Coleta de bugs da onda"],
       criteriosAceite: [
         "O painel mostra, por onda: quantos entraram, quantos trocaram a senha, número de resets e número de bugs por gravidade.",
         "Os números derivam de dados já existentes (flags, auditoria, pipeline), sem coleta nova de PII.",
-        "O RH consegue ler o painel sem ajuda técnica.",
+        "O GP consegue ler o painel sem ajuda técnica.",
         "Pico anormal de acesso negado ou de resets fica visível para acionar o botão de desligar.",
         "Os indicadores do painel são exatamente os usados nos critérios de saída das fases."
       ]
@@ -1177,14 +1177,14 @@ window.ROADMAP = {
       prioridade: "alta",
       complexidade: "medio",
       status: "planejado",
-      descricao: "No primeiro acesso do grupo piloto, apresentar a política de privacidade do Portal (quais dados o RH trata, finalidade, retenção, canal do titular) e registrar o aceite por versão, reusando o padrão de assinatura com trilha (uid, identificação da versão, hora do servidor, dispositivo); trocar a versão do texto reabre o aceite pendente. No mesmo piloto, exercitar com um caso controlado o pipeline de inativação: ao marcar o funcionário como inativo ou demitido pelo WKRADAR, o cadastro de acesso do colaborador cai para inativo e o login passa a ser bloqueado no acesso seguinte; confirmar que o histórico e a trilha de quem saiu continuam legíveis para admin e RH (nada apagado) e medir o atraso entre a saída do quadro e o corte de acesso.",
+      descricao: "No primeiro acesso do grupo piloto, apresentar a política de privacidade do Portal (quais dados o GP trata, finalidade, retenção, canal do titular) e registrar o aceite por versão, reusando o padrão de assinatura com trilha (uid, identificação da versão, hora do servidor, dispositivo); trocar a versão do texto reabre o aceite pendente. No mesmo piloto, exercitar com um caso controlado o pipeline de inativação: ao marcar o funcionário como inativo ou demitido pelo WKRADAR, o cadastro de acesso do colaborador cai para inativo e o login passa a ser bloqueado no acesso seguinte; confirmar que o histórico e a trilha de quem saiu continuam legíveis para admin e GP (nada apagado) e medir o atraso entre a saída do quadro e o corte de acesso.",
       objetivo: "Cumprir a base legal e o dever de informação da LGPD com consentimento versionado e auditável, e provar que quem sai do quadro perde o acesso automaticamente com o dado retido, ainda no piloto antes da carga geral.",
       dependencias: ["Troca obrigatória de senha (#6)", "Assinatura com trilha (#30)", "Coleção de documentos (#29)", "Provisão de logins (#5 e #10)", "Inativação automática ao sair do quadro"],
       criteriosAceite: [
         "O colaborador do piloto vê a política e o aceite é gravado com versão, hora do servidor e dispositivo; sem o aceite da versão vigente o item fica pendente, e publicar nova versão reabre o aceite.",
         "O evento de aceite é imutável e aparece na auditoria.",
         "Conta marcada como inativa pelo pipeline não consegue entrar no acesso seguinte, com atraso medido e dentro do ciclo diário.",
-        "Histórico e auditoria de quem saiu do quadro continuam legíveis para admin e RH; nada é apagado e o bloqueio fica registrado.",
+        "Histórico e auditoria de quem saiu do quadro continuam legíveis para admin e GP; nada é apagado e o bloqueio fica registrado.",
         "Diretoria, invalidez e aprendiz confirmados sem login ativo."
       ]
     },
@@ -1196,30 +1196,30 @@ window.ROADMAP = {
       prioridade: "alta",
       complexidade: "muito_facil",
       status: "planejado",
-      descricao: "Anunciar o lançamento geral para os 86 colaboradores ativos em canais coordenados: comunicado oficial no próprio Portal, cartaz no mural e mensagem no WhatsApp, todos com a mesma mensagem curta (o que é o Portal, como acessar pela primeira vez com CPF e nascimento, e onde pedir ajuda). Reaproveitar o material de primeiro acesso já validado no beta e citar nominalmente o canal de suporte do RH. Combinar uma data e uma mensagem única para não gerar versões conflitantes. Nenhum exemplo ou captura mostra CPF, PIS ou nascimento real; toda imagem usa dado fictício ou mascarado.",
+      descricao: "Anunciar o lançamento geral para os 86 colaboradores ativos em canais coordenados: comunicado oficial no próprio Portal, cartaz no mural e mensagem no WhatsApp, todos com a mesma mensagem curta (o que é o Portal, como acessar pela primeira vez com CPF e nascimento, e onde pedir ajuda). Reaproveitar o material de primeiro acesso já validado no beta e citar nominalmente o canal de suporte do GP. Combinar uma data e uma mensagem única para não gerar versões conflitantes. Nenhum exemplo ou captura mostra CPF, PIS ou nascimento real; toda imagem usa dado fictício ou mascarado.",
       objetivo: "Dar ao Portal um lançamento oficial e reconhecível, em vez de algo que aparece sem aviso, garantindo que todo colaborador saiba que existe, para que serve e como entrar, sem o próprio material virar fonte de vazamento.",
       dependencias: ["Treinamento e métricas de adoção do piloto", "Material de primeiro acesso (piloto)", "Comunicados (#21 e #22)"],
       criteriosAceite: [
         "Lançamento anunciado em Portal, mural e WhatsApp com a mesma mensagem.",
         "A mensagem explica o que é o Portal, como fazer o primeiro acesso e onde pedir ajuda.",
         "Material de primeiro acesso validado no beta reaproveitado na comunicação.",
-        "Canal de suporte do RH citado nominalmente em todos os canais.",
+        "Canal de suporte do GP citado nominalmente em todos os canais.",
         "Nenhum exemplo ou captura mostra CPF, PIS ou nascimento real; tudo fictício ou mascarado, sem traço e sem emoji."
       ]
     },
     {
       id: "live-faq-suporte-quiosque",
       numero: null,
-      nome: "FAQ, suporte humano, reset pelo RH e acesso por quiosque",
+      nome: "FAQ, suporte humano, reset pelo GP e acesso por quiosque",
       fase: "live",
       prioridade: "alta",
       complexidade: "facil",
       status: "planejado",
-      descricao: "Estruturar o suporte contínuo do primeiro acesso: um FAQ curto com as dúvidas reais coletadas no alfa e no beta (esqueci a senha, não lembro meu nascimento, troquei e esqueci de novo, não consigo entrar, não tenho celular) e um procedimento humano claro para o RH, incluindo o reset administrativo (voltar a senha para o nascimento em ddmmaaaa com troca obrigatória no acesso seguinte), já que o esqueci a senha automático não existe no modo Colaborador. Para quem não tem celular, instrução de uso do PC compartilhado ou quiosque, com o passo explícito de encerrar a sessão (botão Sair) ao terminar. Definir quem no RH faz o reset, em quanto tempo, e registrar cada reset. Incluir um roteiro objetivo para acolher resistência (não quero usar celular, prefiro perguntar pessoalmente) sem forçar.",
+      descricao: "Estruturar o suporte contínuo do primeiro acesso: um FAQ curto com as dúvidas reais coletadas no alfa e no beta (esqueci a senha, não lembro meu nascimento, troquei e esqueci de novo, não consigo entrar, não tenho celular) e um procedimento humano claro para o GP, incluindo o reset administrativo (voltar a senha para o nascimento em ddmmaaaa com troca obrigatória no acesso seguinte), já que o esqueci a senha automático não existe no modo Colaborador. Para quem não tem celular, instrução de uso do PC compartilhado ou quiosque, com o passo explícito de encerrar a sessão (botão Sair) ao terminar. Definir quem no GP faz o reset, em quanto tempo, e registrar cada reset. Incluir um roteiro objetivo para acolher resistência (não quero usar celular, prefiro perguntar pessoalmente) sem forçar.",
       objetivo: "Garantir que ninguém fique travado no primeiro acesso nem fique de fora por falta de celular, e que o esqueci a senha tenha uma resposta humana rápida e registrada, sustentando a adoção depois do entusiasmo inicial.",
-      dependencias: ["Recuperação de senha por reset administrativo do RH", "Gestão admin de contas de colaborador (#9)", "Onboarding do primeiro acesso (carrossel)", "Comunicação oficial de lançamento"],
+      dependencias: ["Recuperação de senha por reset administrativo do GP", "Gestão admin de contas de colaborador (#9)", "Onboarding do primeiro acesso (carrossel)", "Comunicação oficial de lançamento"],
       criteriosAceite: [
-        "FAQ curto publicado com as dúvidas reais de primeiro acesso do alfa e do beta, cobrindo esqueci a senha (reset do RH), sem celular (quiosque ou PC) e não consigo entrar.",
+        "FAQ curto publicado com as dúvidas reais de primeiro acesso do alfa e do beta, cobrindo esqueci a senha (reset do GP), sem celular (quiosque ou PC) e não consigo entrar.",
         "Procedimento de reset administrativo documentado (quem faz, prazo, como o colaborador volta a entrar) e cada reset registrado na auditoria.",
         "Roteiro de uso do PC compartilhado inclui o passo de sair da sessão ao terminar.",
         "O FAQ explica que o colaborador vê apenas os próprios dados e indica o canal para dúvidas de privacidade.",
@@ -1234,11 +1234,11 @@ window.ROADMAP = {
       prioridade: "alta",
       complexidade: "medio",
       status: "planejado",
-      descricao: "Depois do lançamento geral, acompanhamento contínuo dos sinais de segurança SELF: contas ativas em relação ao quadro, picos de acesso negado (tentativa de ler fora do escopo), resets administrativos e inativações processadas pelo pipeline. A política de retenção e inativação passa a rodar em regime: quem sai do quadro perde acesso, os dados ficam retidos pelo prazo definido e a auditoria registra cada evento. Revisão periódica do RH confere que ninguém fora do quadro tem acesso.",
+      descricao: "Depois do lançamento geral, acompanhamento contínuo dos sinais de segurança SELF: contas ativas em relação ao quadro, picos de acesso negado (tentativa de ler fora do escopo), resets administrativos e inativações processadas pelo pipeline. A política de retenção e inativação passa a rodar em regime: quem sai do quadro perde acesso, os dados ficam retidos pelo prazo definido e a auditoria registra cada evento. Revisão periódica do GP confere que ninguém fora do quadro tem acesso.",
       objetivo: "Manter o escopo SELF íntegro em produção ao longo do tempo, com a política de retenção e inativação em operação e revisão recorrente.",
-      dependencias: ["Inativação automática ao sair do quadro", "Recuperação de senha por reset do RH", "Auditoria append only"],
+      dependencias: ["Inativação automática ao sair do quadro", "Recuperação de senha por reset do GP", "Auditoria append only"],
       criteriosAceite: [
-        "Painel ou rotina do RH cruza contas ativas com o quadro e sinaliza divergência.",
+        "Painel ou rotina do GP cruza contas ativas com o quadro e sinaliza divergência.",
         "Tentativas de acesso fora do escopo (acesso negado) ficam visíveis para revisão.",
         "Resets administrativos e inativações do pipeline ficam rastreáveis na auditoria.",
         "Política de retenção e inativação documentada e em execução (prazos definidos, dado retido, nada apagado indevidamente).",
@@ -1268,18 +1268,18 @@ window.ROADMAP = {
     {
       id: "documentos-institucionais-gestao",
       numero: null,
-      nome: "Documentos institucionais (gestão pelo RH/admin)",
+      nome: "Documentos institucionais (gestão pelo GP/admin)",
       fase: "fase2",
       prioridade: "alta",
       complexidade: "medio",
       status: "concluido",
       concluidoEm: "2026-06-26",
       classificacao: "adapta",
-      descricao: "ENTREGUE (v186). Tela no portal do GESTOR (cap documentos.gerenciar = admin/RH) para publicar e versionar documentos institucionais: manual de regras, código de conduta, manual da cultura, política de privacidade e LGPD, termos. Reusa documentos/{id} com escopo institucional (sem funcionarioId, com segmento) + assinatura N1 (#30). Texto OU anexo Drive (https + hash SHA-256); exige assinatura ou ciência; trocar a versão reabre a assinatura. Painel de adesão (porcentagem e pendentes). O colaborador só consome (lê e assina). Supervisor comum não publica por padrão.",
-      objetivo: "Dar ao RH um lugar para publicar os documentos da empresa com versão, segmento e prova de ciência, sem mexer nas telas atuais do gestor.",
+      descricao: "ENTREGUE (v186). Tela no portal do GESTOR (cap documentos.gerenciar = admin/GP) para publicar e versionar documentos institucionais: manual de regras, código de conduta, manual da cultura, política de privacidade e LGPD, termos. Reusa documentos/{id} com escopo institucional (sem funcionarioId, com segmento) + assinatura N1 (#30). Texto OU anexo Drive (https + hash SHA-256); exige assinatura ou ciência; trocar a versão reabre a assinatura. Painel de adesão (porcentagem e pendentes). O colaborador só consome (lê e assina). Supervisor comum não publica por padrão.",
+      objetivo: "Dar ao GP um lugar para publicar os documentos da empresa com versão, segmento e prova de ciência, sem mexer nas telas atuais do gestor.",
       dependencias: ["Coleção documentos e repositório (#29)", "Assinatura N1 com trilha (#30)", "cap documentos.gerenciar", "Segmentação canônica de turno"],
       criteriosAceite: [
-        "Só admin e RH (documentos.gerenciar) veem a aba e publicam; supervisor comum não.",
+        "Só admin e GP (documentos.gerenciar) veem a aba e publicam; supervisor comum não.",
         "Documento com texto ou anexo Drive (https) + hash; segmento por turno, setor ou todos.",
         "Exige assinatura ou ciência; publicar nova versão reabre o aceite (versão anterior congela como prova).",
         "Painel de adesão (porcentagem e pendentes) lê de assinaturas e leituras no servidor, sem PII de terceiros.",
@@ -1296,13 +1296,13 @@ window.ROADMAP = {
       status: "concluido",
       concluidoEm: "2026-06-26",
       classificacao: "adapta",
-      descricao: "ENTREGUE (v184). Mark ECG-pulso inline (SVG) unificado em 4 pontos (acesso, login gestor, login colaborador, sidebar) + tagline 'Fiobras · o batimento do RH'. Favicons 16/32/48 regerados (quadrado verde + ECG branco, legível a 16px) + variante monocromática. Aditivo, zero regressão.",
+      descricao: "ENTREGUE (v184). Mark ECG-pulso inline (SVG) unificado em 4 pontos (acesso, login gestor, login colaborador, sidebar) + tagline 'Fiobras · o batimento do GP'. Favicons 16/32/48 regerados (quadrado verde + ECG branco, legível a 16px) + variante monocromática. Aditivo, zero regressão.",
       objetivo: "Identidade única e reconhecível do FioPulse, do acesso à sidebar, em todos os tamanhos.",
       dependencias: ["Manual de marca Fiobras"],
       criteriosAceite: [
         "Mesma marca no acesso, login e sidebar.",
         "Favicon legível a 16px.",
-        "Tagline unificada 'o batimento do RH'.",
+        "Tagline unificada 'o batimento do GP'.",
         "Nenhuma tela existente alterada."
       ]
     },

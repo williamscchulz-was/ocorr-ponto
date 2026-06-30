@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.13.2", d: "30 jun 2026", current: true, items: [
+    v: "1.13.3", d: "30 jun 2026", current: true, items: [
+      { type: "note", title: "Onde o sistema dizia RH ou GH, agora diz GP (Gestão de Pessoas)." },
+    ],
+  },
+  {
+    v: "1.13.2", d: "30 jun 2026", items: [
       { type: "high", title: "Avisos agora só registram visualização: abriu o post, conta como visto. Sem precisar confirmar ciência. No portal do gestor, o acompanhamento mostra quantos viram cada comunicado." },
     ],
   },
@@ -22,7 +27,7 @@ window.CHANGELOG = [
   },
   {
     v: "1.13.0", d: "30 jun 2026", items: [
-      { type: "high", title: "Ocorrências ganhou o estágio \"RH confere\": o RH valida ou dispensa as ocorrências automáticas do ponto, e o que ele valida vai pro líder do turno confirmar." },
+      { type: "high", title: "Ocorrências ganhou o estágio \"GP confere\": o GP valida ou dispensa as ocorrências automáticas do ponto, e o que ele valida vai pro líder do turno confirmar." },
       { type: "feat", title: "Comunicados e Documentos agora aparecem em grade, estilo feed: cards menores e visão geral mais rápida." },
       { type: "note", title: "Quem está marcado em rescisão aparece sinalizado na conferência, com a contagem de faltas no mês." },
     ],
@@ -41,7 +46,7 @@ window.CHANGELOG = [
   },
   {
     v: "1.10.0", d: "18 jun 2026", items: [
-      { type: "high", title: "Novo: Obrigações do GH — checklist das rotinas (fechar folha, banco de horas, eSocial, pagar PJ…) que zera sozinha a cada mês/ano." },
+      { type: "high", title: "Novo: Obrigações do GP — checklist das rotinas (fechar folha, banco de horas, eSocial, pagar PJ…) que zera sozinha a cada mês/ano." },
       { type: "feat", title: "Card no dashboard mostra o que vence no mês, o que está pendente e o que atrasou; marca como feito em um toque." },
     ],
   },
@@ -107,12 +112,12 @@ window.CHANGELOG = [
   },
   {
     v: "1.4.0", d: "1 jun 2026", items: [
-      { type: "feat", title: "Permissões editáveis: admin liga/desliga na matriz o que cada papel (GH, Líder, Supervisor) pode fazer." },
+      { type: "feat", title: "Permissões editáveis: admin liga/desliga na matriz o que cada papel (GP, Líder, Supervisor) pode fazer." },
     ],
   },
   {
     v: "1.3.0", d: "1 jun 2026", items: [
-      { type: "feat", title: "Painel de Permissões: matriz do que cada papel (Admin, GH, Líder, Supervisor) faz + escopo por usuário (turno / funcionários)." },
+      { type: "feat", title: "Painel de Permissões: matriz do que cada papel (Admin, GP, Líder, Supervisor) faz + escopo por usuário (turno / funcionários)." },
     ],
   },
   {

@@ -380,7 +380,7 @@ function renderLoginQuick() {
 
 function roleLabel(user) {
   if (user.role === "admin") return "Administrador";
-  if (user.role === "rh") return "GH";
+  if (user.role === "rh") return "GP";
   if (user.role === "lider") return `Líder ${user.turno}º Turno`;
   if (user.role === "supervisor") return "Supervisor";
   if (user.role === "colaborador") return "Colaborador";
@@ -900,7 +900,7 @@ function renderColabComunicados() {
   if (todos.length === 0) {
     $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>
       ${discSec}
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("megafone")}</div><p>Nenhum aviso pra você por enquanto. Quando o RH publicar algo do seu setor ou turno, aparece aqui.</p></div>
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("megafone")}</div><p>Nenhum aviso pra você por enquanto. Quando o GP publicar algo do seu setor ou turno, aparece aqui.</p></div>
       <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.6">diag avisos: ${state._dbgComN ?? "?"} carregados · ${state._dbgComErr ? escapeHtml(String(state._dbgComErr)).slice(0, 100) : "sem erro de query"}</div></div>`;
     return;
   }
@@ -927,7 +927,7 @@ function colabAvisoHtml(c) {
       ${!visto ? `<span class="cp-novo" aria-label="Não visto"></span>` : ""}
       ${imgOk ? `<img class="pp-card__img" src="${escapeHtml(c.imagem)}" alt="" loading="lazy">` : ""}
       <div class="pp-card__bd">
-        <div class="pp-card__meta">${c.fixado ? `${cpIcon("pin")}<span>Fixado · </span>` : ""}<span>${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}</span></div>
+        <div class="pp-card__meta">${c.fixado ? `${cpIcon("pin")}<span>Fixado · </span>` : ""}<span>${escapeHtml(c.autorNome || "GP")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}</span></div>
         <div class="pp-card__t">${escapeHtml(c.titulo || "")}</div>
         ${c.corpo ? `<div class="pp-card__x" style="-webkit-line-clamp:4">${escapeHtml(c.corpo)}</div>` : ""}
         ${visto ? `<div class="pp-card__foot"><span class="cp-seen">${cpIcon("check")}Visualizado</span></div>` : ""}
@@ -979,7 +979,7 @@ function openColabAvisoSheet(id) {
   const segTxt = seg.tipo === "todos" ? "Todos" : (seg.tipo === "turno" ? "Seu turno" : "Seu setor");
   const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
   const anexoUrl = (c.anexo && c.anexo.url && (typeof ehUrlSegura !== "function" || ehUrlSegura(c.anexo.url))) ? c.anexo.url : null;
-  const metaTxt = `${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}`;
+  const metaTxt = `${escapeHtml(c.autorNome || "GP")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}`;
   const foot = `<span class="cp-post__doneline">${cpIcon("check")}Visualizado</span>`;
   openModal(`
     <button class="cp-post__x" data-close aria-label="Fechar">${cpIcon("x")}</button>
@@ -1075,7 +1075,7 @@ function colabDiscCardHtml(d) {
     <div class="pp-card__bd">
       <span class="pp-badge pp-badge--${m.badge}">${cpIcon(m.ic)}${m.label}${dias}</span>
       <div class="pp-card__t" style="margin-top:10px">${escapeHtml(d.motivo || "Ocorrência disciplinar")}</div>
-      <div class="pp-card__meta" style="margin-top:5px"><span>${escapeHtml(d.aplicadoPorNome || "Recursos Humanos")} · ${escapeHtml(dataFmt)}</span></div>
+      <div class="pp-card__meta" style="margin-top:5px"><span>${escapeHtml(d.aplicadoPorNome || "Gestão de Pessoas")} · ${escapeHtml(dataFmt)}</span></div>
       ${d.descricao ? `<div class="pp-card__x" style="margin-top:8px;-webkit-line-clamp:5">${escapeHtml(d.descricao)}</div>` : ""}
       ${docRow}
       ${foot}
@@ -1103,7 +1103,7 @@ function renderColabDocumentos() {
   const emdia = lista.filter((d) => !colabDocPendente(d));
   if (lista.length === 0) {
     $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("file")}</div><p>Nenhum documento pra você por enquanto. Quando o RH publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p></div>
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("file")}</div><p>Nenhum documento pra você por enquanto. Quando o GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p></div>
       <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.6">diag docs: ${state._dbgDocN ?? "?"} carregados · ${state._dbgDocErr ? escapeHtml(String(state._dbgDocErr)).slice(0, 100) : "sem erro de query"}</div></div>`;
     return;
   }
@@ -1261,7 +1261,7 @@ function comunicadoFixadoHtml() {
   return `<div class="pp-ovl">Comunicados<a data-nav="colab-comunicados">Ver todos</a></div>
     <button class="pp-card pp-card--pin" data-nav="colab-comunicados">
       <div class="pp-card__bd">
-        <div class="pp-card__meta">${cpIcon("pin")}<span>Fixado pelo GH</span></div>
+        <div class="pp-card__meta">${cpIcon("pin")}<span>Fixado pelo GP</span></div>
         <div class="pp-card__t">${escapeHtml(fix.titulo || "")}</div>
         ${fix.corpo ? `<div class="pp-card__x">${escapeHtml(fix.corpo)}</div>` : ""}
       </div>
@@ -1314,7 +1314,7 @@ function bhHeroHtml(f) {
   const _mes = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const mesCap = _mes.charAt(0).toUpperCase() + _mes.slice(1);
   const sub = estado === "semdado"
-    ? "Seu saldo aparece aqui assim que o RH sincronizar"
+    ? "Seu saldo aparece aqui assim que o GP sincronizar"
     : (ctx ? `Atualizado ${ctx} · ${selTxt}` : (selTxt || "Toque para ver o detalhe"));
   return `<button class="pp-hero ${cls}" data-nav="colab-ponto" aria-label="Banco de horas" style="margin-bottom:4px">
     <div class="pp-hero__top">
@@ -1350,7 +1350,7 @@ function renderColaboradorHome() {
   const bhNeg = bhMin != null && bhMin < 0;
   const atalhos = [
     { page: "colab-ponto", icon: "clock", t: "Meu ponto", s: "Saldo e espelho", tone: "green" },
-    { page: "colab-comunicados", icon: "megafone", t: "Comunicados", s: "Avisos do GH", tone: "amber" },
+    { page: "colab-comunicados", icon: "megafone", t: "Comunicados", s: "Avisos do GP", tone: "amber" },
     { page: "colab-documentos", icon: "file", t: "Documentos", s: "Termos e recibos", tone: "info" },
     { page: "colab-roadmap", icon: "roadmap", t: "Novidades", s: "Evolução do portal", tone: "neutral" },
   ];
@@ -1393,7 +1393,7 @@ function renderColabPonto() {
       <div class="pp-hi"><h1>Meu ponto</h1></div>
       <div class="pp-ovl">Banco de horas</div>
       ${bhHeroHtml(f)}
-      <div class="cp-bh-note" style="margin-top:10px">${cpIcon("info")}<span>Seu saldo atual de banco de horas, atualizado pelo RH na apuração do ponto. O detalhamento dia a dia chega em breve.</span></div>
+      <div class="cp-bh-note" style="margin-top:10px">${cpIcon("info")}<span>Seu saldo atual de banco de horas, atualizado pelo GP na apuração do ponto. O detalhamento dia a dia chega em breve.</span></div>
     </div>`;
   bindColabNav(view);
 }
@@ -1959,7 +1959,7 @@ function renderPresence() {
 
 // Tooltip helper (compartilhado entre topbar + sidebar)
 function montarTooltipPresence(usr) {
-  const ROLE_LABELS = { admin: "Admin", rh: "GH", lider: "Líder" };
+  const ROLE_LABELS = { admin: "Admin", rh: "GP", lider: "Líder" };
   const PAGE_LABELS = {
     dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
@@ -1996,7 +1996,7 @@ function abrirPresenceDropdown(online) {
   const u = currentUser();
   fecharPresenceDropdown();
 
-  const ROLE_LABELS = { admin: "Admin", rh: "GH", lider: "Líder" };
+  const ROLE_LABELS = { admin: "Admin", rh: "GP", lider: "Líder" };
   const PAGE_LABELS = {
     dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
@@ -2659,7 +2659,7 @@ function renderDashboard() {
 
     <div class="tabs" id="tabs">
       ${podeRh ? `<button class="tab ${state.view.filterTab === "rh-confere" ? "active" : ""}" data-tab="rh-confere">
-        RH confere <span class="tab__count">${nRhConfere}</span>
+        GP confere <span class="tab__count">${nRhConfere}</span>
       </button>` : ""}
       <button class="tab ${state.view.filterTab === "pendentes" ? "active" : ""}" data-tab="pendentes">
         Pendentes <span class="tab__count">${pending.length + nComLider}</span>
@@ -2835,9 +2835,9 @@ function renderOccList() {
         <h3>${temFiltroAtivo ? "Nada por aqui" : "Tudo em dia"}</h3>
         <p>${temFiltroAtivo
           ? "Nenhum registro com a busca/filtro atual."
-          : (tab === "rh-confere" ? "Nada para o RH conferir agora."
+          : (tab === "rh-confere" ? "Nada para o GP conferir agora."
             : tab === "dispensadas" ? "Nenhuma ocorrência dispensada."
-            : tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando o GH lançar algo, aparece aqui."
+            : tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando o GP lançar algo, aparece aqui."
             : "Nenhum registro encontrado.")}</p>
         ${temFiltroAtivo ? `<button class="btn btn--ghost" id="btn-limpar-occ">${icon("x")}<span>Limpar filtros</span></button>` : ""}
         ${podeCriar ? `<button class="btn btn--primary" id="btn-empty-nova">${icon("plus")}<span>Nova ocorrência</span></button>` : ""}
@@ -2931,7 +2931,7 @@ function openNovaOcorrencia() {
     <div class="modal__header">
       <div>
         <h2>Nova ocorrência</h2>
-        <p>Preencha os dados que o GH conhece. O líder cuida da conferência depois.</p>
+        <p>Preencha os dados que o GP conhece. O líder cuida da conferência depois.</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
@@ -3528,7 +3528,7 @@ function renderFuncList(animar) {
         <div class="empty__icon">${icon("users")}</div>
         <h3>${semFiltro ? "Aguardando primeira sincronização" : "Nenhum resultado"}</h3>
         <p>${semFiltro
-          ? "Os funcionários virão automaticamente do pipeline de GH na próxima execução."
+          ? "Os funcionários virão automaticamente do pipeline de GP na próxima execução."
           : (apenasInativos ? "" : "Tente ajustar a busca ou os filtros (turno/status).")}</p>
         ${semFiltro ? "" : `<button class="btn btn--ghost" id="btn-limpar-func">${icon("x")}<span>Limpar filtros</span></button>`}
       </div>`;
@@ -3863,7 +3863,7 @@ function openFuncionarioModal(id) {
         if (pii) {
           pii.innerHTML = `
             <div class="func-perfil-secao">
-              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GH)</div>
+              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GP)</div>
               <div class="text-xs muted">carregando…</div>
             </div>`;
         }
@@ -3873,7 +3873,7 @@ function openFuncionarioModal(id) {
           if (!dados) {
             cont.innerHTML = `
               <div class="func-perfil-secao">
-                <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GH)</div>
+                <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GP)</div>
                 <div class="text-xs muted">Sem dados em banco-horas-saldos pra este código.</div>
               </div>`;
             return;
@@ -3881,7 +3881,7 @@ function openFuncionarioModal(id) {
           const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
           cont.innerHTML = `
             <div class="func-perfil-secao">
-              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GH)</div>
+              <div class="func-perfil-secao__titulo">Dados sensíveis (admin/GP)</div>
               <div class="func-perfil-grid">
                 <div class="func-perfil-grid__item">
                   <label>CPF</label>
@@ -4426,7 +4426,7 @@ function renderObrigacoes() {
     <header class="page-header">
       <div>
         <h1>Obrigações</h1>
-        <p>As rotinas do GH. O sistema acompanha mês a mês e zera no período seguinte.</p>
+        <p>As rotinas do GP. O sistema acompanha mês a mês e zera no período seguinte.</p>
       </div>
       <button class="btn btn--primary" data-obrig-nova>${icon("plus")}<span>Nova obrigação</span></button>
     </header>`;
@@ -4493,7 +4493,7 @@ function openObrigacaoModal(id) {
   const rec = o?.recorrencia || "mensal";
   openModal(`
     <div class="modal__header">
-      <div><h2>${o ? "Editar obrigação" : "Nova obrigação"}</h2><p>Rotina recorrente do GH.</p></div>
+      <div><h2>${o ? "Editar obrigação" : "Nova obrigação"}</h2><p>Rotina recorrente do GP.</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body" id="obrig-form" onsubmit="return false">
@@ -4724,7 +4724,7 @@ function comCardHtml(c) {
         <div class="cf-title" data-com-editar="${c.id}">${escapeHtml(c.titulo || "(sem titulo)")}</div>
         <span class="cf-seg">${comSegLabel(seg)}</span>
         <div class="cf-read"><span><b>${X}</b> de ${Y} viram</span><span class="com-bar"><i style="width:${pct}%"></i></span></div>
-        <div class="cf-meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
+        <div class="cf-meta">${escapeHtml(c.autorNome || "GP")} · ${comData(c.publicadoEm)}</div>
         <div class="cf-acts">
           <button class="com-mini" data-com-leituras="${c.id}" aria-label="Ver leituras">${icon("eye")}</button>
           <button class="com-mini" data-com-fixar="${c.id}" aria-label="${c.fixado ? "Desafixar" : "Fixar"}">${icon("pin")}</button>
@@ -4932,7 +4932,7 @@ function salvarComunicadoLocal(dados, id) {
     const u = currentUser();
     state.comunicados.unshift({
       id: "com-" + Date.now(), ativo: true, leituras: [], anexo: null,
-      autorUid: u?.id || null, autorNome: u?.nome || "RH",
+      autorUid: u?.id || null, autorNome: u?.nome || "GP",
       publicadoEm: nowIso(), editadoEm: null, ...dados,
     });
   }
@@ -5191,7 +5191,7 @@ function discRecHtml(d) {
 
 function openDisciplinarModal() {
   const u = currentUser();
-  if (u.role !== "admin" && u.role !== "rh") return toast("Apenas admin e RH registram ocorrências.", "danger");
+  if (u.role !== "admin" && u.role !== "rh") return toast("Apenas admin e GP registram ocorrências.", "danger");
   const ativos = (state.funcionarios || []).filter((f) => f.ativo !== false).slice().sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
   const hoje = new Date().toISOString().slice(0, 10);
   let tipo = "verbal";
@@ -5639,7 +5639,7 @@ function salvarDocumentoLocal(dados, id, publicar) {
   } else {
     state.documentos.unshift({
       id: "doc-" + Date.now(), escopo: "institucional", status: publicar ? "publicado" : "rascunho",
-      versao: 1, assinaturas: [], leituras: [], autorNome: u?.nome || "RH", criadoPor: u?.id || null,
+      versao: 1, assinaturas: [], leituras: [], autorNome: u?.nome || "GP", criadoPor: u?.id || null,
       criadoEm: nowIso(), publicadoEm: publicar ? nowIso() : null, ...dados,
     });
   }
@@ -5950,7 +5950,7 @@ function renderOcorrenciasAuto() {
       <div class="stat">
         <div class="stat__label">Conferidas</div>
         <div class="stat__value">${conf.length}</div>
-        <div class="stat__hint">marcadas pelo RH</div>
+        <div class="stat__hint">marcadas pelo GP</div>
       </div>
       <div class="stat">
         <div class="stat__label">Total importado</div>
@@ -6020,7 +6020,7 @@ function ocaCardHtml(o) {
     acao = `<button class="btn btn--primary btn--sm" data-oca-conferir="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar conferência</span></button>`;
   } else {
     const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "conferida") || (o.historico || [])[(o.historico || []).length - 1];
-    const quem = (ult && ult.porNome) || "RH";
+    const quem = (ult && ult.porNome) || "GP";
     const quando = (ult && ult.emIso) ? comData(ult.emIso) : "";
     acao = `<span class="badge badge--success"><span class="dot"></span>Conferida</span><div class="oca-confmeta">por ${escapeHtml(quem)}${quando ? `<br>${escapeHtml(quando)}` : ""}</div>`;
   }
@@ -6063,7 +6063,7 @@ function ocaConferirUI(id) {
   if (window.conferirOcorrenciaAuto) return void window.conferirOcorrenciaAuto(id);
   // Fallback demo local (sem firebase)
   const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
-  if (o) { o.status = "conferida"; o.historico = [...(o.historico || []), { acao: "conferida", por: "local", porNome: currentUser()?.nome || "RH", emIso: nowIso() }]; }
+  if (o) { o.status = "conferida"; o.historico = [...(o.historico || []), { acao: "conferida", por: "local", porNome: currentUser()?.nome || "GP", emIso: nowIso() }]; }
   toast("Conferência confirmada.");
   renderApp();
 }
@@ -8471,7 +8471,7 @@ function renderAuditoria() {
     <header class="page-header">
       <div>
         <h1>Auditoria</h1>
-        <p>Quem fez o quê e quando — ocorrências e PJ. Apenas Admin e GH.</p>
+        <p>Quem fez o quê e quando — ocorrências e PJ. Apenas Admin e GP.</p>
       </div>
     </header>
     <div class="aud">
@@ -8636,7 +8636,7 @@ function renderConfig() {
     <header class="page-header">
       <div>
         <h1>Configurações</h1>
-        <p>Ajustes do sistema. Apenas administradores e GH.</p>
+        <p>Ajustes do sistema. Apenas administradores e GP.</p>
       </div>
     </header>
 
@@ -9269,7 +9269,7 @@ function permissoesMatrizHtml() {
             <tr>
               <th class="perm-corner">O que pode fazer</th>
               <th class="perm-rcol perm-rcol--admin"><span>Admin</span><small>${n("admin")} ${n("admin") === 1 ? "pessoa" : "pessoas"}</small></th>
-              <th class="perm-rcol perm-rcol--gh"><span>GH</span><small>${n("rh")} ${n("rh") === 1 ? "pessoa" : "pessoas"}</small></th>
+              <th class="perm-rcol perm-rcol--gh"><span>GP</span><small>${n("rh")} ${n("rh") === 1 ? "pessoa" : "pessoas"}</small></th>
               <th class="perm-rcol perm-rcol--lider"><span>Líder</span><small>${n("lider")} ${n("lider") === 1 ? "pessoa" : "pessoas"}</small></th>
               <th class="perm-rcol perm-rcol--super"><span>Supervisor</span><small>${n("supervisor")} ${n("supervisor") === 1 ? "pessoa" : "pessoas"}</small></th>
             </tr>
@@ -9402,7 +9402,7 @@ function openNovoUsuarioModal() {
         <div class="field">
           <label for="novo-user-role">Papel <span style="color:var(--danger)">*</span></label>
           <select id="novo-user-role" required aria-required="true">
-            <option value="rh">GH (cria e edita ocorrências)</option>
+            <option value="rh">GP (cria e edita ocorrências)</option>
             <option value="lider">Líder (confere ocorrências do turno)</option>
             <option value="supervisor">Supervisor (confere funcionários específicos)</option>
             <option value="admin">Administrador (acesso total)</option>
@@ -9514,7 +9514,7 @@ function openEditarUsuarioModal(uid) {
         <div class="field">
           <label for="edit-role">Papel <span style="color:var(--danger)">*</span></label>
           <select id="edit-role" required aria-required="true" ${ehVoceMesmo ? "disabled" : ""}>
-            <option value="rh" ${u.role === "rh" ? "selected" : ""}>GH</option>
+            <option value="rh" ${u.role === "rh" ? "selected" : ""}>GP</option>
             <option value="lider" ${u.role === "lider" ? "selected" : ""}>Líder</option>
             <option value="supervisor" ${u.role === "supervisor" ? "selected" : ""}>Supervisor</option>
             <option value="admin" ${u.role === "admin" ? "selected" : ""}>Administrador</option>
@@ -10301,7 +10301,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.13.2";
+window.CURRENT_VERSION = "1.13.3";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
