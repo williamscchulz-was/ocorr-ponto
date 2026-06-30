@@ -634,3 +634,24 @@ William quer a auditoria pegando **todo evento significativo de todo usuário + 
 **Desenho recomendado (missão `inbox-pc/2026-06-30-auditoria-completa-eventos-logins.md`):** coleção própria **`/eventos`** append-only, **self-write** (`por == auth.uid`) + read `auditoria.ver` — destrava login de todos + eventos de colaborador + a ciência/assinatura da missão anterior numa fonte só. Helper `logEvento()` nos pontos significativos: login/logout (`onAuthStateChanged` firebase.js:2479 + `logout` 1837 + auto-logout 2270), senha (alterar/reset/zerarPrecisa), CRUD de funcionário/usuário/papel/tipo/bancoHoras (**lote = 1 evento-resumo**, não N), ciência/assinatura. `coletarAuditoria` ingere `/eventos` (4ª fonte) + filtros novos (Acessos/Senha/Dados/Ciências).
 
 **Cuidados:** client-side = não pega login falho nem é anti-fraude (server-side é evolução); volume controlado (significativos + lote resumido); PII só pra `auditoria.ver`. **Unifica** a missão `2026-06-30-auditoria-leitura-assinatura.md`. Domínio do PC (rules + app); **pipeline não escreve em `/eventos`** — não me afeta.
+
+
+---
+
+## 2026-06-30 · ✅ Espelho de Ponto no banco-horas-self (marcações reais por dia) — LIVE
+
+William quer o colaborador vendo **o horário que bateu, por dia** (espelho de ponto), **NEUTRO** ("sem julgamento"). Implementado e no ar.
+
+**Fonte:** relatório de apuração NOVO montado no WK Modelador pelo William — **config 4** (`Config_Relatorio_de_Apurações4.txt`). Diferença do antigo (`ExpAuto_Apuracoes.txt`): **"Listar somente ocorrências" DESMARCADO + situações "Vários"** → traz `Originais`/`Apuradas` (batidas REAIS) em TODO dia trabalhado, não só nos de ocorrência. (O antigo mostrava a OLINDA vazia porque ela é **aposentada por invalidez**, não porque suprimia.)
+
+**Pipeline (lado WKRADAR, novo — não-git, local):**
+- `config.mjs`: `WK_ESPELHO_CONFIG` (config 4), `ESPELHO_CSV_PATH` (`ExpAuto_Espelho_Ponto.txt`, ASCII), `PARSED_ESPELHO_OUT`.
+- `export-espelho.mjs`: reescreve byte-safe latin1 (janela rolante ~20 dias, saída ASCII, `IdsFuncionarios` vazio=todos, `GerarSemAspas=1`) + roda o `.exe`; **espera o arquivo FRESCO aparecer** (o exe roda destacado, não dá pra confiar no exit code).
+- `process-espelho-ponto.mjs`: parser → `dias[]` (últimos ~12, mais recente 1º), colapsa o split do WK, à prova de aspas. Campos: `{dataIso, diaSemana, marcacoes[], apuradas[], saldoDiaFmt (running, fim do dia), situacoes[]}`. SEM PII.
+- `upload-banco-horas-self.mjs`: junta `dias[]` no doc self (só ativos; demitidos sem login não entram — ex.: JOILSON 1185).
+- `run-pipeline.mjs`: passos novos (export-espelho no bloco de exports + process-espelho-ponto antes do upload self).
+- **Testado ponta a ponta: 93 colaboradores no ar** (183 PEDRO com 12 dias de batidas reais).
+
+**Lado app (PC):** missão `inbox-pc/2026-06-30-espelho-de-ponto-portal-colaborador.md` — renderizar **NEUTRO** na tela "Meu banco de horas": só os horários; dia sem batida = "Folga"/"Sem marcação"; **NÃO** mostrar Atrasos/Falta/Suspensão pro colaborador (`situacoes[]` fica pro RH). Dados já legíveis.
+
+**Aprendizado WK:** o relatório de apuração só preenche `Originais/Apuradas` em dia de ocorrência quando "Listar somente ocorrências" / filtro de situação restringem. Desmarcando + todas as situações, vem a batida de TODO dia trabalhado. Ver memória project-apuracao-marcacoes.
