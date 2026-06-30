@@ -323,6 +323,44 @@ Continuação do dia. Limpeza inicial dos backups antigos foi feita via wrapper 
 - Datas restantes: **12/06 → 25/06 = 14 dias exatos** preservados, como combinado.
 - Log de auditoria: `E:\WKRadar\Backup\_limpeza-batches.log` e `_limpeza.log`.
 
+---
+
+## 2026-06-29 · ✅ Ocorrências (Relação de Ocorrências) — export HEADLESS, sem automação de tela
+
+**O quê:** o pipeline passou a gerar as ocorrências do RH (faltas/atrasos/saídas → `ocorrencias-auto`) de forma **HEADLESS**, via `ExportacaoAutomatica.exe` + o config `Config_Relatorio_de_Apurações1.txt` — a MESMA mecânica do export do BH. **Não depende mais de automação de tela** (e portanto não depende de sessão desbloqueada).
+
+### Cadeia (3 passos novos no run-pipeline.mjs, todos best-effort)
+- `export-ocorrencias.mjs`: reescreve no config (byte-safe latin1, preserva 1252+CRLF) `DataInicial`=1º-do-mês / `DataFinal`=hoje + `ArquivoExportacao`→ASCII, e roda `ExportacaoAutomatica.exe ...1.txt /Silent` → CSV.
+- `process-ocorrencias-rh.py <CSV>`: lê o CSV (latin-1, `;`) OU XLSX (mesmas colunas), aplica **D-1** (corta dataIso>=hoje) + **regra do Geral** (turno geral: atraso/saída→BH, só Falta gera) → `parsed-ocorrencias.json` (84 ocorrências).
+- `upload-ocorrencias-auto.mjs`: sobe pra `ocorrencias-auto` (cria-e-nunca-reabre).
+
+### A descoberta (por que agora funciona)
+O histórico dizia que o export de apuração NÃO batia com o relatório do RH — mas isso era com o config antigo. O William já tinha ajustado o **`...Apurações1.txt`** no Modelador do WK pra ficar IDÊNTICO ao relatório do RH (9 colunas: Cód.Emp·Nome·Cód.Depto·Departamento·Data·Cód.Sit·Situação·Diurnas·Noturnas). **Verificado 2026-06-29: o CSV headless é byte-a-byte == o XLSX que sai pela UI (197=197 brutas, zero diff)** → 84 após regras. Casos-chave batem (DAVID 1232, JOILSON 1185, CIBELE 1229). A pista veio do William ("já existe uma exportação automática aqui no sistema, talvez podes usar").
+
+### Caminho percorrido (registro do esforço)
+Antes de achar o headless, foi construída uma automação de **TELA** completa (`rh-export-auto.ps1`, PowerShell) que dirige a UI do WK. No processo descobriu-se que **o WK Radar 7.20 é um app Chromium/CEF** (menu hambúrguer web — navega por teclado com o mouse jogado pro canto, senão fecha) + diálogos **NATIVOS MFC** (visualizador `Afx:`, "Salvar como" `#32770`). Exportar = ícone "grade verde" (#3 da toolbar), NÃO o do Excel (#4, que exige MS Excel instalado e dá erro). Funcionou (gerou XLSX idêntico em ~24s), MAS: exige sessão Windows DESBLOQUEADA (tela bloqueada → `CopyFromScreen` "identificador inválido", `SendKeys` "Acesso negado") e é frágil (coordenadas 1920×1080). Por isso virou só **FALLBACK**.
+
+### Arquivos
+- Novos: `export-ocorrencias.mjs` (runner headless), `rh-export-auto.ps1` (fallback de UI).
+- Editados: `config.mjs` (`WK_OCORR_CONFIG` → `...Apurações1.txt`), `process-ocorrencias-rh.py` (lê CSV **ou** XLSX), `run-pipeline.mjs` (bloco de ocorrências: export headless → parse → upload, best-effort).
+- Já agendado: roda dentro da tarefa "Fiobras Pipeline RH" (run-pipeline.mjs, 3x/dia) — sem tarefa nova.
+
+### Validação + fix dinâmico (mesmo dia, à tarde)
+O William exportou o relatório na mão (`teste atualizado 30.06.xlsx`) pra conferir. Comparação programática revelou:
+- Regra do Geral OK (PEDRO 183 e os 30 funcionários geral filtrados, 0 vazamento — nem na saída nem na coleção).
+- **Achado:** o headless deixava recém-contratados de fora (ex.: DIONEIA 1244) porque o config `...1.txt` tinha `IdsFuncionarios` ESTÁTICA. **Fix:** `export-ocorrencias.mjs` agora LIMPA `IdsFuncionarios` a cada run → **seleção DINÂMICA** (pega todos, inclusive novos). Pós-fix a DIONEIA passou a bater exatinho com o manual.
+- Diferenças residuais (2 ocorrências) eram o RH **justificando ao vivo** no WK entre as exportações — o headless ficou até mais atual. Não é bug.
+
+**Coleção `ocorrencias-auto` RESETADA** (`upload --reset`: 144 antigas apagadas → 93 atuais) pro RH conferir do zero. Verificado: 93 docs, 0 PEDRO, 0 vazamento de Geral. (Task #13 — inscrever os 6 recém-contratados no BH — segue pendente, mas agora eles JÁ aparecem nas ocorrências via seleção dinâmica.)
+
+### Regra estendida aos LÍDERES DE TURNO (William, mesma sessão, 30/06)
+O William apontou que os **líderes de turno** seguem a mesma regra do Geral (atraso/saída → BH, só Falta gera) mesmo tendo turno fixo. Identificados pelo campo **`cargo` = "LIDER DE TURNO"** no cadastro: **ADELIR PADILHA (785), DJONIFFER KRIECK (866), NIVALDO CLASEN (140)** — o NIVALDO o William nem tinha citado, mas o filtro por cargo pegou. `process-ocorrencias-rh.py` agora trata `turno=='geral' OU cargo contém 'lider'` igual (pega líderes futuros automático). Efeito: o DJONIFFER tinha **9 atrasos/saídas** que saíram da conferência (só ficou a falta de 27/06). Coleção re-resetada (80 atuais). **Pendência observada:** o último dia (D-1) pode vir com pico de falta-falsa se a apuração ainda não fechou — William decidiu DEIXAR como está (RH dispensa na conferência); a regra do Geral/Líder fica (faltas de Geral/Líder geram, como a MARIA).
+
+### Refinamento de inativos + fluxo de 2 estágios (William, 30/06 à tarde)
+- **Líderes setados À MÃO** (`LIDERES={785 ADELIR, 866 DJONIFFER}`), **NÃO por cargo** — o cargo "LIDER DE TURNO" pegava o **NIVALDO 140**, que é **afastado** (aposentadoria por invalidez). William: "tem que olhar tudo".
+- **AFASTADOS excluídos** (NIVALDO). **DEMITIDOS APARECEM** marcados (`situacaoFunc`, `demitido`) — a falta deles é real (vira suspensão/rescisão, o RH precisa ver): JOILSON 1185 = 8 faltas → demitido **29/06**, todas reais. Mas só **ATÉ a `demissaoIso`**; ocorrência após a saída corta (safeguard; hoje 0, o WK não lista pós-saída). Coleção em **73**.
+- **Fluxo novo (MOCKADO, p/ o PC implementar):** a aba "Conferência (beta)" vira estágio dentro de **Ocorrências** — 2 níveis: **RH confere** (valida/dispensa) → **com o líder** (age c/ colaborador) → **confirmada** (+ Dispensadas). Demitido com tag "em rescisão". **Permissão:** o líder precisa enxergar o estágio "com o líder" do SEU setor — mexe em segmentação de gestor = domínio do Claude do PC. Missão pro PC pendente de aprovação do William.
+
 ### Achado novo: por que apagar tudo de uma vez trava o servidor (mesmo o HD sendo "separado")
 Os 3 discos estão atrás do **mesmo controlador Intel VMD/RST** (Port 0, Bus 2, Targets 4/5/6 — SSDs do RAID + HD do E:). I/O massivo no E: enche a fila do controlador e atrasa o RAID também. Somam-se: o Windows escreve no event log/pagefile do C: pra cada delete, cache de metadados NTFS na RAM pressiona o sistema, VSS/notificações de filesystem disparam. Batches com pausa adaptativa entre eles dão tempo pra fila/cache/journal drenarem. Validado empiricamente nesta execução: sistema permaneceu responsivo, sem evento 129.
 
