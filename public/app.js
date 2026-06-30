@@ -2038,7 +2038,7 @@ function renderNav() {
   const items = [];
   items.push({ id: "dashboard", label: "Ocorrências", icon: "clipboard", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
-  if (can("ocorrencias.revisarAuto")) items.push({ id: "ocorrencias-auto", label: "Conferência", icon: "conferir", beta: true });
+  // "Conferência (beta)" foi fundida na aba Ocorrências (estágio "RH confere"); sem item próprio.
 
   if (can("func.ver")) {
     items.push({ id: "funcionarios", label: "Funcionários", icon: "users" });
@@ -2237,9 +2237,10 @@ function renderView() {
     if (!["admin", "rh", "lider"].includes(currentUser()?.role)) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderDisciplinar();
   }
-  if (page === "ocorrencias-auto") {
-    if (!can("ocorrencias.revisarAuto")) { state.view.page = "dashboard"; return renderDashboard(); }
-    return renderOcorrenciasAuto();
+  if (page === "ocorrencias-auto") { // rota legada: fundida na aba Ocorrências
+    state.view.page = "dashboard";
+    if (can("ocorrencias.revisarAuto")) state.view.filterTab = "rh-confere";
+    return renderDashboard();
   }
   if (page === "auditoria") {
     if (!can("auditoria.ver")) {
@@ -2509,6 +2510,14 @@ function renderDashboard() {
   const lancadas = visible.filter(isLancada);
   const done = visible.filter((o) => !isPending(o)); // conferidas + lançadas
 
+  // Automáticas (fluxo RH→Líder) integradas nas mesmas abas. Carga lazy (1x).
+  if (["admin", "rh", "lider"].includes(u.role)) ensureOcaCarregada();
+  const podeRh = can("ocorrencias.revisarAuto");
+  const nRhConfere = podeRh ? ocaDoEstagio("rh_confere").length : 0;
+  const nComLider = ocaDoEstagio("com_lider").length;
+  const nConfAuto = ocaDoEstagio("confirmada").length;
+  const nDispensadas = podeRh ? ocaDoEstagio("dispensada").length : 0;
+
   // Meses presentes nos dados visíveis (pro filtro de mês). Mais recente primeiro.
   // Inclui o mês selecionado mesmo se sumir dos dados, pra o select refletir o estado.
   const mesesDisponiveis = [...new Set(visible.map((o) => (o.data || "").slice(0, 7)).filter(Boolean))];
@@ -2570,18 +2579,24 @@ function renderDashboard() {
     ${renderRankingTempoCasaWidget(u)}
 
     <div class="tabs" id="tabs">
+      ${podeRh ? `<button class="tab ${state.view.filterTab === "rh-confere" ? "active" : ""}" data-tab="rh-confere">
+        RH confere <span class="tab__count">${nRhConfere}</span>
+      </button>` : ""}
       <button class="tab ${state.view.filterTab === "pendentes" ? "active" : ""}" data-tab="pendentes">
-        Pendentes <span class="tab__count">${pending.length}</span>
+        Pendentes <span class="tab__count">${pending.length + nComLider}</span>
       </button>
       <button class="tab ${state.view.filterTab === "conferidas" ? "active" : ""}" data-tab="conferidas">
-        Conferidas <span class="tab__count">${conferidas.length}</span>
+        Conferidas <span class="tab__count">${conferidas.length + nConfAuto}</span>
       </button>
       <button class="tab ${state.view.filterTab === "lancadas" ? "active" : ""}" data-tab="lancadas">
         Lançadas <span class="tab__count">${lancadas.length}</span>
       </button>
       <button class="tab ${state.view.filterTab === "todas" ? "active" : ""}" data-tab="todas">
-        Todas <span class="tab__count">${visible.length}</span>
+        Todas <span class="tab__count">${visible.length + nComLider + nConfAuto}</span>
       </button>
+      ${podeRh && nDispensadas ? `<button class="tab ${state.view.filterTab === "dispensadas" ? "active" : ""}" data-tab="dispensadas">
+        Dispensadas <span class="tab__count">${nDispensadas}</span>
+      </button>` : ""}
       <span class="tabs__ink" aria-hidden="true"></span>
     </div>
 
@@ -2685,10 +2700,14 @@ function renderOccList() {
   const mes = state.view.filterMes;
 
   let list = visibleOcorrencias();
+  let autoList = []; // ocorrências automáticas (fluxo RH→Líder) do estágio da aba
 
-  if (tab === "pendentes") list = list.filter(isPending);
-  else if (tab === "conferidas") list = list.filter(isConferida);
+  if (tab === "rh-confere") { list = []; autoList = ocaDoEstagio("rh_confere", true); }
+  else if (tab === "dispensadas") { list = []; autoList = ocaDoEstagio("dispensada", true); }
+  else if (tab === "pendentes") { list = list.filter(isPending); autoList = ocaDoEstagio("com_lider", true); }
+  else if (tab === "conferidas") { list = list.filter(isConferida); autoList = ocaDoEstagio("confirmada", true); }
   else if (tab === "lancadas") list = list.filter(isLancada);
+  else if (tab === "todas") autoList = [...ocaDoEstagio("com_lider", true), ...ocaDoEstagio("confirmada", true)];
 
   if (turno) {
     list = list.filter((o) => {
@@ -2725,7 +2744,7 @@ function renderOccList() {
     return;
   }
 
-  if (list.length === 0) {
+  if (list.length === 0 && autoList.length === 0) {
     // Se o vazio é por causa de busca/filtro de turno/mês ativo, oferece limpar.
     const temFiltroAtivo = !!search || !!turno || !!mes;
     const podeCriar = !temFiltroAtivo && tab === "pendentes" && can("ocorrencias.criar");
@@ -2737,7 +2756,10 @@ function renderOccList() {
         <h3>${temFiltroAtivo ? "Nada por aqui" : "Tudo em dia"}</h3>
         <p>${temFiltroAtivo
           ? "Nenhum registro com a busca/filtro atual."
-          : (tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando o GH lançar algo, aparece aqui." : "Nenhum registro encontrado.")}</p>
+          : (tab === "rh-confere" ? "Nada para o RH conferir agora."
+            : tab === "dispensadas" ? "Nenhuma ocorrência dispensada."
+            : tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando o GH lançar algo, aparece aqui."
+            : "Nenhum registro encontrado.")}</p>
         ${temFiltroAtivo ? `<button class="btn btn--ghost" id="btn-limpar-occ">${icon("x")}<span>Limpar filtros</span></button>` : ""}
         ${podeCriar ? `<button class="btn btn--primary" id="btn-empty-nova">${icon("plus")}<span>Nova ocorrência</span></button>` : ""}
       </div>
@@ -2757,8 +2779,9 @@ function renderOccList() {
     return;
   }
 
-  root.innerHTML = `<div class="list">${list.map(renderOccCard).join("")}</div>`;
-  $$("#occ-list .occ").forEach((el) => {
+  root.innerHTML = `<div class="list">${autoList.map(ocaDashCardHtml).join("")}${list.map(renderOccCard).join("")}</div>`;
+  // Só os cards manuais abrem detalhe; os automáticos (data-oca-card) agem pelos próprios botões.
+  $$("#occ-list .occ:not([data-oca-card])").forEach((el) => {
     el.addEventListener("click", () => openOcorrenciaDetail(el.dataset.id));
   });
   $$("#occ-list [data-quick-lancar]").forEach((btn) => {
@@ -4612,15 +4635,15 @@ function comCardHtml(c) {
   const pct = Y > 0 ? Math.min(100, Math.round((X / Y) * 100)) : 0;
   const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
   const head = imgOk
-    ? `<img class="cf-thumb" src="${c.imagem}" alt="" loading="lazy">`
-    : `<div class="cf-noimg">${escapeHtml((c.corpo || c.titulo || "Comunicado").slice(0, 80))}</div>`;
+    ? `<img class="cf-thumb" src="${c.imagem}" alt="" loading="lazy" data-com-editar="${c.id}">`
+    : `<div class="cf-noimg" data-com-editar="${c.id}">${escapeHtml((c.corpo || c.titulo || "Comunicado").slice(0, 80))}</div>`;
   return `
-    <article class="cf-card ${c.fixado ? "cf-card--pin" : ""}" data-com-id="${c.id}" data-com-editar="${c.id}" role="button" tabindex="0">
+    <article class="cf-card ${c.fixado ? "cf-card--pin" : ""}" data-com-id="${c.id}">
       ${head}
       ${c.fixado ? `<span class="cf-pin" aria-hidden="true">${icon("pin")}</span>` : ""}
       ${c.requerConfirmacao ? `<span class="cf-conf">${icon("check")}Confirmação</span>` : ""}
       <div class="cf-bd">
-        <div class="cf-title">${escapeHtml(c.titulo || "(sem titulo)")}</div>
+        <div class="cf-title" data-com-editar="${c.id}">${escapeHtml(c.titulo || "(sem titulo)")}</div>
         <span class="cf-seg">${comSegLabel(seg)}</span>
         <div class="cf-read"><span><b>${X}</b> de ${Y}</span><span class="com-bar"><i style="width:${pct}%"></i></span></div>
         <div class="cf-meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
@@ -5297,7 +5320,7 @@ function renderDocumentos() {
     <div class="doc-filtros">
       ${filtros.map(([k, n]) => `<button class="doc-chip ${filtro === k ? "is-on" : ""}" data-doc-filtro="${k}">${escapeHtml(n)}</button>`).join("")}
     </div>
-    <div class="doc-list">
+    <div class="com-grid">
       ${lista.length ? lista.map(docCardHtml).join("") : `<div class="empty empty--mini"><p>Nenhum documento neste filtro.</p></div>`}
     </div>`;
 }
@@ -5308,34 +5331,32 @@ function docCardHtml(d) {
   const rascunho = d.status !== "publicado";
   const a = docAdesao(d);
   const statusBadge = rascunho
-    ? `<span class="badge badge--warning">${icon("edit")}<span>Rascunho</span></span>`
-    : `<span class="badge badge--success">${icon("check")}<span>Publicado</span></span>`;
+    ? `<span class="badge badge--warning"><span>Rascunho</span></span>`
+    : `<span class="badge badge--success"><span>Publicado</span></span>`;
   const adesao = rascunho
-    ? `<div class="doc-adh"><div class="doc-adh__l"><span>Adesão</span><b>Aguardando publicação</b></div><div class="com-bar"><i style="width:0%"></i></div></div>`
-    : `<div class="doc-adh"><div class="doc-adh__l"><span>Adesão</span><b>${a.pct}% · ${a.X} de ${a.Y} ${a.verbo}</b></div><div class="com-bar"><i style="width:${a.pct}%"></i></div></div>`;
+    ? `<div class="cf-read"><span>Aguardando publicação</span><span class="com-bar"><i style="width:0%"></i></span></div>`
+    : `<div class="cf-read"><span><b>${a.X}</b> de ${a.Y} ${a.verbo}</span><span class="com-bar"><i style="width:${a.pct}%"></i></span></div>`;
+  const acts = rascunho
+    ? `<button class="com-mini" data-doc-publicar="${d.id}" aria-label="Publicar" title="Publicar">${icon("upload")}</button>`
+    : `<button class="com-mini" data-doc-adesao="${d.id}" aria-label="Ver adesao" title="Ver adesão">${icon("eye")}</button>
+       <button class="com-mini" data-doc-versao="${d.id}" aria-label="Nova versão" title="Nova versão">${icon("upload")}</button>`;
   return `
-    <article class="doc-card ${rascunho ? "doc-card--rascunho" : ""}" data-doc-id="${d.id}">
-      <div class="doc-card__row">
-        <span class="doc-seal">${icon(tm.icon)}</span>
-        <div class="doc-card__tt">
-          <h3>${escapeHtml(d.titulo || "(sem titulo)")} ${statusBadge}<span class="doc-seal-tag">${escapeHtml(tm.n)}</span></h3>
-          <div class="doc-card__sub">
-            <span class="doc-tag">${comSegLabel(seg)}</span>
-            <span class="doc-ver">v${d.versao || 1}</span>
-            ${d.exigeAssinatura ? `<span class="doc-tag doc-tag--sign">${icon("edit")}<span>assinatura</span></span>` : `<span class="doc-tag">${icon("eye")}<span>ciência</span></span>`}
-            ${d.anexo && d.anexo.url ? `<span class="doc-tag">${icon("file")}<span>anexo</span></span>` : ""}
-          </div>
-        </div>
-        <div class="com-actions">
-          ${rascunho
-            ? `<button class="com-mini" data-doc-publicar="${d.id}" aria-label="Publicar">${icon("upload")}</button>`
-            : `<button class="com-mini" data-doc-adesao="${d.id}" aria-label="Ver adesao">${icon("eye")}</button>
-               <button class="com-mini" data-doc-versao="${d.id}" aria-label="Nova versão">${icon("upload")}</button>`}
-          <button class="com-mini" data-doc-editar="${d.id}" aria-label="Editar">${icon("edit")}</button>
+    <article class="cf-card${rascunho ? " cf-card--rasc" : ""}" data-doc-id="${d.id}">
+      <div class="dcf-cover ${rascunho ? "dcf-cover--rasc" : "dcf-cover--pub"}" data-doc-editar="${d.id}">
+        ${icon(tm.icon)}
+        <span class="dcf-type">${escapeHtml(tm.n)}</span>
+        ${d.exigeAssinatura ? `<span class="dcf-sign">${icon("edit")}Assinatura</span>` : ""}
+      </div>
+      <div class="cf-bd">
+        <div class="cf-title" data-doc-editar="${d.id}">${escapeHtml(d.titulo || "(sem titulo)")}</div>
+        <div class="cf-statline">${statusBadge}<span class="cf-ver">v${d.versao || 1} · ${comSegLabel(seg)}</span></div>
+        ${adesao}
+        <div class="cf-acts">
+          ${acts}
+          <button class="com-mini" data-doc-editar="${d.id}" aria-label="Editar" title="Editar">${icon("edit")}</button>
           ${(currentUser()?.role === "admin") ? `<button class="com-mini" data-doc-excluir="${d.id}" aria-label="Excluir documento" title="Excluir" style="color:var(--danger)">${icon("trash")}</button>` : ""}
         </div>
       </div>
-      ${adesao}
     </article>`;
 }
 
@@ -5703,6 +5724,104 @@ function ocaFmtMarc(v) {
 }
 function ocaIsPend(o) { return o.status !== "conferida"; }
 
+// ===== Fluxo RH→Líder das ocorrências automáticas, integrado na aba Ocorrências =====
+// Estágio do doc (mapeia legado: aguardando_conferencia->rh_confere, conferida->confirmada).
+function ocaEstagio(o) {
+  const s = o.status;
+  if (s === "rh_confere" || s === "aguardando_conferencia") return "rh_confere";
+  if (s === "com_lider") return "com_lider";
+  if (s === "confirmada" || s === "conferida") return "confirmada";
+  if (s === "dispensada") return "dispensada";
+  return "rh_confere"; // desconhecido cai no 1º filtro do RH
+}
+function ocaDemitido(o) { return !!o.demitido || o.situacaoFunc === "Rescisão"; }
+// Faltas do mesmo funcionário no mês (agregado no cliente — o doc não traz faltasMes).
+function ocaFaltasMes(o) {
+  const cod = o.codigo, ym = String(o.dataIso || "").slice(0, 7);
+  if (cod == null || !ym) return 0;
+  return (state.ocorrenciasAuto || []).filter((x) => x.codigo === cod && String(x.dataIso || "").slice(0, 7) === ym && /falta/i.test(x.tipo || "")).length;
+}
+// Aplica os mesmos filtros da toolbar (busca/turno/mês) às automáticas.
+function ocaAplicaFiltros(lista) {
+  const busca = (state.view.search || "").trim().toLowerCase();
+  const turno = state.view.filterTurno;
+  const mes = state.view.filterMes;
+  let l = lista;
+  if (turno) l = l.filter((o) => String(o.turno) === turno);
+  if (mes) l = l.filter((o) => String(o.dataIso || "").slice(0, 7) === mes);
+  if (busca) l = l.filter((o) => String(o.nome || "").toLowerCase().includes(busca) || String(o.tipo || "").toLowerCase().includes(busca));
+  return l;
+}
+// Automáticas de um estágio, ordenadas (recentes primeiro). comFiltros só na lista (não nas contagens).
+function ocaDoEstagio(estagio, comFiltros) {
+  let l = (state.ocorrenciasAuto || []).filter((o) => ocaEstagio(o) === estagio);
+  if (comFiltros) l = ocaAplicaFiltros(l);
+  return l.slice().sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
+}
+// Dispara a carga das automáticas uma vez (lazy) e re-renderiza quando chega.
+function ensureOcaCarregada() {
+  if (state.ocorrenciasAuto != null || state._ocaCarregando) return;
+  if (!window.recarregarOcorrenciasAuto) { state.ocorrenciasAuto = []; return; }
+  state._ocaCarregando = true;
+  window.recarregarOcorrenciasAuto().catch(() => {}).finally(() => {
+    state._ocaCarregando = false;
+    if (["dashboard", "ocorrencias-auto"].includes(state.view.page)) renderApp();
+  });
+}
+
+// Card da ocorrência automática dentro da lista da aba Ocorrências (reusa o layout .occ).
+function ocaDashCardHtml(o) {
+  const est = ocaEstagio(o);
+  const t = ocaTipo(o.tipo);
+  const partes = String(o.data || "").split("/");
+  const dia = partes[0] || String(o.dataIso || "").slice(8, 10) || "—";
+  const mesIdx = partes[1] ? parseInt(partes[1], 10) - 1 : parseInt(String(o.dataIso || "").slice(5, 7), 10) - 1;
+  const mes = OCA_MESES[mesIdx] || "";
+  const demit = ocaDemitido(o);
+  const setorTurno = ocaSetorTurno(o);
+  const sub = demit ? `${setorTurno} · ${ocaFaltasMes(o)} faltas no mês` : setorTurno;
+  const hora = o.horario || (ocaFmtMarc(o.marcacoesPrevistas).split(/\s+/)[0] || "");
+  let acoes = "";
+  if (est === "rh_confere") {
+    acoes = `<div class="rhacts">
+      <button class="btn btn--primary btn--sm" data-oca-validar="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar</span></button>
+      <button class="btn btn--ghost btn--sm" data-oca-dispensar="${escapeHtml(o.id)}">${icon("x")}<span>Dispensar</span></button>
+    </div>`;
+  } else if (est === "com_lider") {
+    acoes = `<div class="rhacts"><button class="btn btn--primary btn--sm" data-oca-confirmar="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar conferência</span></button></div>`;
+  } else if (est === "confirmada") {
+    const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "confirmou") || (o.historico || [])[(o.historico || []).length - 1];
+    const quem = (ult && ult.porNome) || "";
+    acoes = `<div class="rhacts oca-confdone"><span class="badge badge--success"><span class="dot"></span>Confirmada</span>${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}</span>` : ""}</div>`;
+  } else if (est === "dispensada") {
+    const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "dispensou");
+    const quem = (ult && ult.porNome) || "";
+    acoes = `<div class="rhacts oca-confdone"><span class="badge badge--neutral"><span class="dot"></span>Dispensada</span>${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}</span>` : ""}</div>`;
+  }
+  return `
+    <article class="occ occ--rh${est === "rh_confere" ? " occ--pendente" : ""}${demit ? " occ--resc" : ""}" data-oca-card="1" data-oca-id="${escapeHtml(o.id)}">
+      <div class="occ__date"><strong>${escapeHtml(dia)}</strong><span>${mes}</span></div>
+      <div class="occ__main">
+        <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
+        <div class="occ__sub">
+          <span class="badge badge--${t.tone}">${escapeHtml(t.label)}</span>
+          ${demit ? `<span class="badge badge--danger">Em rescisão</span>` : ""}
+          <span class="dot"></span>
+          <span>${escapeHtml(sub)}</span>
+        </div>
+      </div>
+      ${hora ? `<div class="occ__time">${escapeHtml(hora)}</div>` : ""}
+      ${acoes}
+    </article>`;
+}
+
+// Ação dos botões das automáticas (delegado). Chama a transição no firebase.js.
+function ocaAcaoUI(acao, id) {
+  const fn = { validar: window.validarOcorrenciaAuto, dispensar: window.dispensarOcorrenciaAuto, confirmar: window.confirmarOcorrenciaAuto }[acao];
+  if (fn) return void fn(id);
+  renderApp(); // sem backend (demo): só re-habilita
+}
+
 function ocaListaFiltrada() {
   const tab = state.view.ocaTab || "aguardando";
   const busca = (state.view.ocaBusca || "").trim().toLowerCase();
@@ -5860,6 +5979,12 @@ function ocaCardHtml(o) {
 if (!window._ocaBound) {
   window._ocaBound = true;
   document.addEventListener("click", (e) => {
+    const v = e.target.closest("[data-oca-validar]");
+    if (v) { e.preventDefault(); e.stopPropagation(); v.disabled = true; ocaAcaoUI("validar", v.dataset.ocaValidar); return; }
+    const d = e.target.closest("[data-oca-dispensar]");
+    if (d) { e.preventDefault(); e.stopPropagation(); d.disabled = true; ocaAcaoUI("dispensar", d.dataset.ocaDispensar); return; }
+    const c = e.target.closest("[data-oca-confirmar]");
+    if (c) { e.preventDefault(); e.stopPropagation(); c.disabled = true; ocaAcaoUI("confirmar", c.dataset.ocaConfirmar); return; }
     const b = e.target.closest("[data-oca-conferir]");
     if (b) { e.preventDefault(); b.disabled = true; ocaConferirUI(b.dataset.ocaConferir); }
   });
@@ -10107,7 +10232,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.12.0";
+window.CURRENT_VERSION = "1.13.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

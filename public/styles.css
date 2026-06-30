@@ -4304,4 +4304,22 @@ code { font-family: inherit; }
 .cf-read .com-bar{flex:1}
 .cf-acts{display:flex;gap:6px;margin-top:6px;padding-top:9px;border-top:1px solid var(--border)}
 .cf-acts .com-mini{width:32px;height:32px}
+/* Documentos institucionais em grade — capa colorida por tipo (sem imagem) */
+.dcf-cover{position:relative;aspect-ratio:16/10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:#fff;background:linear-gradient(150deg,#1AA34F,#0B6E33)}
+.dcf-cover--rasc{background:linear-gradient(150deg,#9aa39a,#6f786e)}
+.dcf-cover .icon{width:30px;height:30px;stroke-width:1.7}
+.dcf-type{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.dcf-sign{position:absolute;top:9px;right:9px;display:inline-flex;align-items:center;gap:4px;height:23px;padding:0 9px;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:700}
+.dcf-sign .icon{width:11px;height:11px}
+.cf-statline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cf-ver{font-size:11px;color:var(--text-muted);font-weight:600}
 @media(max-width:560px){.com-grid{grid-template-columns:1fr 1fr;gap:10px}}
+
+/* Ocorrências automáticas (fluxo RH→Líder) dentro da aba Ocorrências */
+.occ--rh{display:flex;align-items:center;gap:16px}
+.occ--rh .occ__main{flex:1;min-width:0}
+.occ--rh .rhacts{flex:none;display:flex;align-items:center;gap:8px}
+.occ--resc{box-shadow:0 0 0 1.5px var(--danger),0 1px 3px rgba(0,40,20,.06)}
+.oca-confdone{flex-direction:column;align-items:flex-end;gap:2px}
+.oca-confby{font-size:11px;color:var(--text-muted)}
+@media(max-width:720px){.occ--rh{flex-wrap:wrap}.occ--rh .rhacts{width:100%}.occ--rh .rhacts .btn{flex:1}}

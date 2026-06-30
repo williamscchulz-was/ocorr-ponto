@@ -11,7 +11,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.12.0", d: "24 jun 2026", current: true, items: [
+    v: "1.13.0", d: "30 jun 2026", current: true, items: [
+      { type: "high", title: "Ocorrências ganhou o estágio \"RH confere\": o RH valida ou dispensa as ocorrências automáticas do ponto, e o que ele valida vai pro líder do turno confirmar." },
+      { type: "feat", title: "Comunicados e Documentos agora aparecem em grade, estilo feed: cards menores e visão geral mais rápida." },
+      { type: "note", title: "Quem está marcado em rescisão aparece sinalizado na conferência, com a contagem de faltas no mês." },
+    ],
+  },
+  {
+    v: "1.12.0", d: "24 jun 2026", items: [
       { type: "high", title: "Novo: ao abrir o sistema você escolhe \"Portal do Colaborador\" ou \"Portal do Gestor/Administrador\". O acesso do gestor continua igual — só ganhou um toque a mais." },
       { type: "feat", title: "Prévia do Portal do Colaborador (ainda sem login): início com identidade, banco de horas, comunicados, documentos e o Roadmap do Portal." },
     ],

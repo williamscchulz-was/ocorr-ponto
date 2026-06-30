@@ -1091,7 +1091,12 @@
     // para 'conferida' e faz APPEND no historico (quem/quando). Carga preguiçosa (lazy).
     async function recarregarOcorrenciasAuto() {
       try {
-        const snap = await db.collection("ocorrencias-auto").limit(1000).get();
+        const u = currentUser();
+        let q = db.collection("ocorrencias-auto");
+        // Líder só pode LER (regra) as do próprio turno — a consulta precisa filtrar por turno,
+        // senão o get() da coleção inteira é rejeitado. Admin/RH leem tudo.
+        if (u && u.role === "lider" && u.turno != null) q = q.where("turno", "==", u.turno);
+        const snap = await q.limit(1000).get();
         const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         arr.sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
         state.ocorrenciasAuto = arr;
@@ -1143,6 +1148,34 @@
         renderApp(); // re-render reabilita o botão
       }
     };
+
+    // Transições do fluxo RH→Líder (coleção ocorrencias-auto). Cada uma muda só status + faz
+    // APPEND de 1 no historico (a rule exige hasOnly(status,historico) e historico +1).
+    //   validar:   rh_confere -> com_lider   (RH/admin)
+    //   dispensar: rh_confere -> dispensada  (RH/admin)
+    //   confirmar: com_lider  -> confirmada  (líder do turno OU RH/admin)
+    async function _transicaoOca(id, novoStatus, acao, msgOk) {
+      const u = currentUser();
+      const uid = (auth.currentUser && auth.currentUser.uid) || null;
+      const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+      if (!o) return;
+      const entrada = { acao, por: uid, porNome: u?.nome || "", emIso: new Date().toISOString() };
+      const novoHist = [...(Array.isArray(o.historico) ? o.historico : []), entrada];
+      try {
+        await db.collection("ocorrencias-auto").doc(id).update({ status: novoStatus, historico: novoHist });
+        o.status = novoStatus; o.historico = novoHist; // otimista local
+        window.registrarAuditoria?.({ tipo: "ocorrencia-auto", acao: "Ocorrência automática: " + acao, alvo: `${o.nome || ""} · ${o.data || ""} · ${o.tipo || ""}` });
+        toast?.(msgOk);
+        renderApp();
+      } catch (e) {
+        debug?.("[ocorrencias-auto] " + acao + ":", e?.message || e);
+        toast?.("Erro: " + (e?.message || e), "danger");
+        renderApp(); // re-render reabilita o botão
+      }
+    }
+    window.validarOcorrenciaAuto   = (id) => _transicaoOca(id, "com_lider",  "validou",   "Enviada para o líder.");
+    window.dispensarOcorrenciaAuto = (id) => _transicaoOca(id, "dispensada", "dispensou", "Ocorrência dispensada.");
+    window.confirmarOcorrenciaAuto = (id) => _transicaoOca(id, "confirmada", "confirmou", "Conferência confirmada.");
 
     // config/aniversariantes (sem PII: nome/dia/mes). Leitura autenticada (rule config/{doc}).
     window.carregarAniversariantes = async function () {
