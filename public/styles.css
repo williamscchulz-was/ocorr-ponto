@@ -4231,3 +4231,41 @@ code { font-family: inherit; }
   .page-header h1 { font-size: 18px; }
   .com-card__title { font-size: 14px; }
 }
+
+/* ===== Controle disciplinar (gestor) ===== */
+.stat--alert .stat__value{color:var(--danger)}
+.disc-list{display:flex;flex-direction:column;gap:10px}
+.disc-rec{position:relative;display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px 14px 18px;box-shadow:0 1px 3px rgba(0,40,20,.05)}
+.disc-bar{position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0}
+.disc-bar--verbal{background:var(--warning)}
+.disc-bar--escrita{background:#C26A22}
+.disc-bar--susp{background:var(--danger)}
+.disc-av{flex:none;width:44px;height:44px;border-radius:13px;background:var(--success-bg);color:var(--success);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+.disc-main{flex:1;min-width:0}
+.disc-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.disc-nome{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text-body)}
+.disc-badge{display:inline-flex;align-items:center;gap:5px;height:25px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700}
+.disc-badge .icon{width:13px;height:13px}
+.disc-badge--verbal{background:var(--warning-bg);color:var(--warning)}
+.disc-badge--escrita{background:rgba(194,106,34,.14);color:#C26A22}
+.disc-badge--susp{background:var(--danger-bg);color:var(--danger)}
+.disc-escala{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);background:var(--surface-warm);border:1px solid var(--border);border-radius:999px;padding:3px 10px}
+.disc-dots{display:inline-flex;gap:3px}
+.disc-dot{width:7px;height:7px;border-radius:50%;background:var(--border)}
+.disc-dot.on{background:var(--warning)}
+.disc-dot.red{background:var(--danger)}
+.disc-cargo{font-size:11.5px;color:var(--text-muted);margin-top:4px}
+.disc-mot{font-size:13px;color:var(--text-muted);margin-top:5px;line-height:1.45}
+.disc-r{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:7px;text-align:right}
+.disc-data{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.disc-acts{display:flex;gap:6px}
+.com-mini--static{cursor:default;display:inline-flex;align-items:center;justify-content:center}
+.disc-seg .com-seg__chip.is-on{background:var(--plum);color:#fff}
+.disc-row2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.disc-escbox{display:flex;align-items:flex-start;gap:11px;background:var(--warning-bg);border-radius:11px;padding:12px 14px;margin-bottom:6px}
+.disc-escbox .icon{width:20px;height:20px;color:var(--warning);flex:none;margin-top:1px}
+.disc-escbox b{display:block;font-size:12.5px;margin-bottom:1px;color:var(--text-body)}
+.disc-escbox div{font-size:12px;color:var(--text-muted);line-height:1.5}
+#disc-form select,#disc-form textarea,#disc-form input[type=date],#disc-form input[type=url],#disc-form input[type=number]{width:100%;height:44px;border:1px solid var(--border);border-radius:11px;background:var(--surface);padding:0 13px;font:inherit;font-size:14px;color:var(--text-body)}
+#disc-form textarea{height:auto;min-height:74px;padding:10px 13px;resize:vertical;line-height:1.5}
+@media(max-width:640px){.disc-rec{flex-wrap:wrap}.disc-r{align-items:flex-start;text-align:left;width:100%;flex-direction:row;justify-content:space-between}.disc-row2{grid-template-columns:1fr}}

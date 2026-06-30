@@ -895,9 +895,11 @@ function renderColabComunicados() {
   cpRefreshAoAbrir();
   const todos = colabAvisosOrdenados();
   const naoLidos = todos.filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado));
+  const discSec = colabDiscSecaoHtml();
 
   if (todos.length === 0) {
     $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>
+      ${discSec}
       <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("megafone")}</div><p>Nenhum aviso pra você por enquanto. Quando o RH publicar algo do seu setor ou turno, aparece aqui.</p></div>
       <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.6">diag avisos: ${state._dbgComN ?? "?"} carregados · ${state._dbgComErr ? escapeHtml(String(state._dbgComErr)).slice(0, 100) : "sem erro de query"}</div></div>`;
     return;
@@ -914,7 +916,7 @@ function renderColabComunicados() {
   const corpo = lista.length === 0
     ? `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Tudo em dia. Você confirmou todos os avisos.</p></div>`
     : lista.map(colabAvisoHtml).join("");
-  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>${resumo}${chips}${corpo}</div>`;
+  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>${discSec}${resumo}${chips}${corpo}</div>`;
   $$("#cp-av-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.avFiltro = b.dataset.avFiltro; renderApp(); }));
 }
 
@@ -959,7 +961,47 @@ if (!window._colabAvisoBound) {
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-colab-ciente]");
     if (b) { e.preventDefault(); b.disabled = true; colabCienteUI(b.dataset.colabCiente); return; }
+    const dc = e.target.closest("[data-colab-disc-ciente]");
+    if (dc) { e.preventDefault(); dc.disabled = true; (window.darCienciaDisciplinar ? window.darCienciaDisciplinar(dc.dataset.colabDiscCiente) : null); return; }
   });
+}
+
+// ===== Registro disciplinar do colaborador (advertencia/suspensao) — le + da ciencia =====
+const COLAB_DISC = {
+  verbal: { label: "Advertência verbal", ic: "megafone", badge: "amber" },
+  escrita: { label: "Advertência escrita", ic: "edit", badge: "amber" },
+  suspensao: { label: "Suspensão", ic: "alert", badge: "danger" },
+};
+function colabDiscCardHtml(d) {
+  const m = COLAB_DISC[d.tipo] || { label: d.tipo || "Ocorrência", ic: "alert", badge: "amber" };
+  const ciente = !!d.minhaCiencia;
+  const anexoUrl = (d.anexo && d.anexo.url && (typeof ehUrlSegura === "function" ? ehUrlSegura(d.anexo.url) : true)) ? d.anexo.url : null;
+  const dataFmt = (d.data && typeof formatDate === "function") ? formatDate(d.data) : (d.data || (d.criadoEm ? comData(d.criadoEm) : ""));
+  const dias = (d.tipo === "suspensao" && d.dias) ? " · " + d.dias + " dia" + (d.dias === 1 ? "" : "s") : "";
+  const docRow = anexoUrl
+    ? `<a class="pp-rw" href="${escapeHtml(anexoUrl)}" target="_blank" rel="noopener" style="margin-top:13px;border:1px solid var(--border);border-radius:12px">
+        <span class="pp-ico pp-ico--info">${cpIcon("file")}</span>
+        <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.anexo.nome || "Documento")}</span><span class="pp-rw__s">Toque para abrir e ler</span></span>
+        <span class="pp-rw__chev">${cpIcon("chevron")}</span></a>`
+    : "";
+  const foot = ciente
+    ? `<div class="pp-disc-done">${cpIcon("check")}<span>Ciência registrada${d.minhaCiencia.em ? " em " + comData(d.minhaCiencia.em) : ""}</span></div>`
+    : `<button class="pp-btn pp-btn--primary pp-btn--block" data-colab-disc-ciente="${d.id}" style="margin-top:13px">${cpIcon("check")}Dar ciência</button>`;
+  return `<article class="pp-card ${ciente ? "" : "pp-card--attn"}">
+    <div class="pp-card__bd">
+      <span class="pp-badge pp-badge--${m.badge}">${cpIcon(m.ic)}${m.label}${dias}</span>
+      <div class="pp-card__t" style="margin-top:10px">${escapeHtml(d.motivo || "Ocorrência disciplinar")}</div>
+      <div class="pp-card__meta" style="margin-top:5px"><span>${escapeHtml(d.aplicadoPorNome || "Recursos Humanos")} · ${escapeHtml(dataFmt)}</span></div>
+      ${d.descricao ? `<div class="pp-card__x" style="margin-top:8px;-webkit-line-clamp:5">${escapeHtml(d.descricao)}</div>` : ""}
+      ${docRow}
+      ${foot}
+    </div>
+  </article>`;
+}
+function colabDiscSecaoHtml() {
+  const lista = state.disciplinaresColab || [];
+  if (!lista.length) return "";
+  return `<div class="pp-ovl">Registro disciplinar</div>${lista.map(colabDiscCardHtml).join("")}`;
 }
 
 // ===== Documentos do colaborador — lê + assina (re-auth no ato) =====
@@ -1157,6 +1199,12 @@ function precisaAtencaoHtml() {
   avisos.forEach((c) => itens.push({
     page: "colab-comunicados", tone: "info", ic: "megafone",
     t: "Comunicado pra confirmar", s: c.titulo || "", bd: "Ciência",
+  }));
+  const disc = (state.disciplinaresColab || []).filter((d) => !d.minhaCiencia);
+  disc.forEach((d) => itens.push({
+    page: "colab-comunicados", tone: "amber", ic: "alert",
+    t: (d.tipo === "suspensao" ? "Suspensão" : "Advertência") + " aguarda sua ciência",
+    s: d.motivo || "Registro disciplinar", bd: "Ciência",
   }));
   if (!itens.length) return "";
   const n = itens.length;
@@ -2008,6 +2056,7 @@ function renderNav() {
   }
   if (can("comunicados.gerenciar")) items.push({ id: "comunicados", label: "Comunicados", icon: "megafone" });
   if (can("documentos.gerenciar")) items.push({ id: "documentos", label: "Documentos", icon: "file" });
+  if (["admin", "rh", "lider"].includes(currentUser()?.role)) items.push({ id: "disciplinar", label: "Disciplinar", icon: "alert" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
@@ -2183,6 +2232,10 @@ function renderView() {
   if (page === "documentos") {
     if (!can("documentos.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderDocumentos();
+  }
+  if (page === "disciplinar") {
+    if (!["admin", "rh", "lider"].includes(currentUser()?.role)) { state.view.page = "dashboard"; return renderDashboard(); }
+    return renderDisciplinar();
   }
   if (page === "ocorrencias-auto") {
     if (!can("ocorrencias.revisarAuto")) { state.view.page = "dashboard"; return renderDashboard(); }
@@ -4930,6 +4983,252 @@ function docMetrics() {
     somaPct += a.pct;
   }
   return { publicados: pubs.length, pendentes, media: pubs.length ? Math.round(somaPct / pubs.length) : 0 };
+}
+
+// ===== Controle disciplinar (advertencia/suspensao) — gestor =====
+const DISC_TIPOS = {
+  verbal: { label: "Advertência verbal", short: "Verbal", icon: "message", tone: "verbal" },
+  escrita: { label: "Advertência escrita", short: "Escrita", icon: "edit", tone: "escrita" },
+  suspensao: { label: "Suspensão", short: "Suspensão", icon: "alert", tone: "susp" },
+};
+const DISC_MOTIVOS = ["Faltas injustificadas", "Atrasos recorrentes", "Saída antecipada sem autorização", "Insubordinação", "Descumprimento de norma de segurança", "Conduta inadequada", "Baixo desempenho", "Outro"];
+function discTipoMeta(t) { return DISC_TIPOS[t] || { label: t || "—", short: t || "—", icon: "alert", tone: "verbal" }; }
+function discDeFunc(funcId) {
+  return (state.disciplinares || []).filter((d) => d.funcionarioId === funcId)
+    .slice().sort((a, b) => String(a.data || a.criadoEm || "").localeCompare(String(b.data || b.criadoEm || "")));
+}
+function discOrdinal(d) { const i = discDeFunc(d.funcionarioId).findIndex((x) => x.id === d.id); return i >= 0 ? i + 1 : 1; }
+function discDataFmt(d) { const iso = d.data || (d.criadoEm ? String(d.criadoEm).slice(0, 10) : null); return (iso && typeof formatDate === "function") ? formatDate(iso) : (iso || "—"); }
+
+function discVisiveis() {
+  const lista = state.disciplinares || [];
+  const filtro = state.view.discFiltro || "todos";
+  const busca = (state.view.discBusca || "").toLowerCase();
+  let v = lista;
+  if (filtro === "advertencia") v = v.filter((d) => d.tipo !== "suspensao");
+  else if (filtro === "suspensao") v = v.filter((d) => d.tipo === "suspensao");
+  if (busca) v = v.filter((d) => (d.funcionarioNome || "").toLowerCase().includes(busca));
+  return v.slice().sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
+}
+
+function renderDisciplinar() {
+  const u = currentUser();
+  $("#topbar-title").textContent = "Disciplinar";
+  const podeRegistrar = u.role === "admin" || u.role === "rh";
+  const lista = state.disciplinares || [];
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  const ehDoMes = (d) => (String(d.data || "").slice(0, 7) === mesAtual) || (String(d.criadoEm || "").slice(0, 7) === mesAtual);
+  const noMes = lista.filter(ehDoMes);
+  const advMes = noMes.filter((d) => d.tipo !== "suspensao").length;
+  const suspMes = noMes.filter((d) => d.tipo === "suspensao");
+  const diasSusp = suspMes.reduce((s, d) => s + (Number(d.dias) || 0), 0);
+  const reincidentes = [...new Set(lista.filter((d) => discDeFunc(d.funcionarioId).length >= 2).map((d) => d.funcionarioId))].length;
+  const comOcorrencia = new Set(lista.map((d) => d.funcionarioId)).size;
+
+  const cab = `
+    <header class="page-header">
+      <div><h1>Controle disciplinar</h1><p>Advertências e suspensões. Dado sensível com acesso restrito e trilha de auditoria.</p></div>
+      ${podeRegistrar ? `<button class="btn btn--primary" data-disc-novo>${icon("plus")}<span>Registrar ocorrência</span></button>` : ""}
+    </header>`;
+
+  if (lista.length === 0) {
+    $("#view").innerHTML = cab + `
+      <div class="empty">
+        <div class="empty__icon">${icon("alert")}</div>
+        <h3>Nenhuma ocorrência registrada</h3>
+        <p>${podeRegistrar ? "Registre advertências e suspensões aqui. O funcionário vê a própria no portal e dá ciência." : "Quando houver ocorrências do seu turno, aparecem aqui."}</p>
+        ${podeRegistrar ? `<button class="btn btn--primary" data-disc-novo>${icon("plus")}<span>Registrar primeira</span></button>` : ""}
+      </div>`;
+    bindDiscActions();
+    return;
+  }
+
+  const stat = (label, value, hint, cls) => `<div class="stat ${cls || ""}"><div class="stat__label">${label}</div><div class="stat__value">${value}</div><div class="stat__hint">${hint}</div></div>`;
+  const filtros = [["todos", "Todas"], ["advertencia", "Advertências"], ["suspensao", "Suspensões"]];
+  const filtroAtual = state.view.discFiltro || "todos";
+
+  $("#view").innerHTML = cab + `
+    <div class="stats">
+      ${stat("Advertências no mês", advMes, "verbais + escritas")}
+      ${stat("Suspensões no mês", suspMes.length, diasSusp + " dia" + (diasSusp === 1 ? "" : "s") + " no total", "stat--alert")}
+      ${stat("Reincidentes", reincidentes, "2+ ocorrências")}
+      ${stat("Com ocorrência", comOcorrencia, "funcionários")}
+    </div>
+    <div class="toolbar">
+      <div class="toolbar__search">${icon("search")}<input type="text" id="disc-search" placeholder="Buscar funcionário..." value="${escapeHtml(state.view.discBusca || "")}" aria-label="Buscar funcionário"></div>
+    </div>
+    <div class="doc-filtros">
+      ${filtros.map(([k, n]) => `<button class="doc-chip ${filtroAtual === k ? "is-on" : ""}" data-disc-filtro="${k}">${escapeHtml(n)}</button>`).join("")}
+    </div>
+    <div class="disc-list">
+      ${discVisiveis().length ? discVisiveis().map(discRecHtml).join("") : `<div class="empty empty--mini"><p>Nenhuma ocorrência neste filtro.</p></div>`}
+    </div>`;
+
+  const s = $("#disc-search");
+  if (s) s.addEventListener("input", debounce(() => {
+    state.view.discBusca = s.value;
+    const root = $(".disc-list");
+    if (root) root.innerHTML = discVisiveis().length ? discVisiveis().map(discRecHtml).join("") : `<div class="empty empty--mini"><p>Nenhuma ocorrência neste filtro.</p></div>`;
+  }, 200));
+  bindDiscActions();
+}
+
+function discRecHtml(d) {
+  const tm = discTipoMeta(d.tipo);
+  const u = currentUser();
+  const ord = discOrdinal(d);
+  const cienciaOk = Array.isArray(d.ciencias) && d.ciencias.length > 0;
+  const dots = [1, 2, 3].map((n) => `<span class="disc-dot ${n < ord ? "on" : n === ord ? (d.tipo === "suspensao" ? "red" : "on") : ""}"></span>`).join("");
+  const cargoSetor = [d.funcionarioCargo, d.funcionarioSetor].filter(Boolean).join(" · ");
+  const turnoLbl = (d.funcionarioTurno != null && typeof TURNOS !== "undefined" && TURNOS[d.funcionarioTurno]) ? TURNOS[d.funcionarioTurno].label : "";
+  const badge = `<span class="disc-badge disc-badge--${tm.tone}">${icon(tm.icon)}<span>${tm.short}${d.tipo === "suspensao" && d.dias ? " · " + d.dias + " dia" + (d.dias === 1 ? "" : "s") : ""}</span></span>`;
+  return `
+    <article class="disc-rec">
+      <span class="disc-bar disc-bar--${tm.tone}"></span>
+      <span class="disc-av">${escapeHtml(initials(d.funcionarioNome || "?"))}</span>
+      <div class="disc-main">
+        <div class="disc-top">
+          <span class="disc-nome">${escapeHtml(d.funcionarioNome || "—")}</span>
+          ${badge}
+          <span class="disc-escala">${ord}ª ocorrência <span class="disc-dots">${dots}</span></span>
+        </div>
+        <div class="disc-cargo">${escapeHtml([cargoSetor, turnoLbl].filter(Boolean).join(" · ") || "—")}</div>
+        ${(d.motivo || d.descricao) ? `<div class="disc-mot">${escapeHtml(d.motivo || "")}${d.descricao ? " · " + escapeHtml(d.descricao) : ""}</div>` : ""}
+      </div>
+      <div class="disc-r">
+        <span class="disc-data">${discDataFmt(d)}</span>
+        <div class="disc-acts">
+          ${(d.anexo && d.anexo.url) ? `<a class="com-mini" href="${escapeHtml(d.anexo.url)}" target="_blank" rel="noopener" title="Ver documento" aria-label="Ver documento">${icon("file")}</a>` : ""}
+          <span class="com-mini com-mini--static" title="${cienciaOk ? "Ciência registrada" : "Aguardando ciência"}" style="color:${cienciaOk ? "var(--success)" : "var(--text-muted)"}">${icon("check")}</span>
+          ${u.role === "admin" ? `<button class="com-mini" data-disc-excluir="${d.id}" title="Excluir" aria-label="Excluir" style="color:var(--danger)">${icon("trash")}</button>` : ""}
+        </div>
+      </div>
+    </article>`;
+}
+
+function openDisciplinarModal() {
+  const u = currentUser();
+  if (u.role !== "admin" && u.role !== "rh") return toast("Apenas admin e RH registram ocorrências.", "danger");
+  const ativos = (state.funcionarios || []).filter((f) => f.ativo !== false).slice().sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+  const hoje = new Date().toISOString().slice(0, 10);
+  let tipo = "verbal";
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Registrar ocorrência disciplinar</h2><p>Dado sensível. Fica registrado quem aplicou, data e hora.</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <form class="modal__body" id="disc-form" onsubmit="return false">
+      <div class="field">
+        <label for="disc-func">Funcionário <span style="color:var(--danger)">*</span></label>
+        <select id="disc-func">
+          <option value="">Selecione...</option>
+          ${ativos.map((f) => `<option value="${escapeHtml(f.id)}">${escapeHtml(f.nome || f.id)}${f.cargo ? " · " + escapeHtml(f.cargo) : ""}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label>Tipo <span style="color:var(--danger)">*</span></label>
+        <div class="com-seg disc-seg" role="group" aria-label="Tipo">
+          ${Object.entries(DISC_TIPOS).map(([k, m]) => `<button type="button" class="com-seg__chip ${k === "verbal" ? "is-on" : ""}" data-disc-tipo="${k}">${icon(m.icon)}<span>${m.short}</span></button>`).join("")}
+        </div>
+      </div>
+      <div id="disc-escala-aviso"></div>
+      <div class="disc-row2">
+        <div class="field"><label for="disc-data">Data <span style="color:var(--danger)">*</span></label><input type="date" id="disc-data" value="${hoje}"></div>
+        <div class="field" id="disc-dias-wrap" style="display:none"><label for="disc-dias">Dias de suspensão <span style="color:var(--danger)">*</span></label><input type="number" id="disc-dias" min="1" max="30" value="1"></div>
+      </div>
+      <div class="field">
+        <label for="disc-motivo">Motivo <span style="color:var(--danger)">*</span></label>
+        <select id="disc-motivo">${DISC_MOTIVOS.map((m) => `<option>${escapeHtml(m)}</option>`).join("")}</select>
+      </div>
+      <div class="field">
+        <label for="disc-desc">Descrição</label>
+        <textarea id="disc-desc" rows="3" placeholder="Detalhe o ocorrido (datas, contexto)..."></textarea>
+      </div>
+      <div class="field">
+        <label for="disc-anexo">Documento anexado <span style="color:var(--danger)">*</span></label>
+        <input type="url" id="disc-anexo" placeholder="Cole o link do documento (Drive/OneDrive)">
+        <span class="field__hint">É esse documento que o colaborador vai abrir e ler antes de dar ciência.</span>
+      </div>
+      <div class="doc-warn" style="background:var(--info-bg);border-color:transparent">${icon("shield")}<span>Acesso restrito a admin, RH e ao líder do turno. O colaborador vê a própria, abre o documento e dá ciência (registrada com data e hora).</span></div>
+    </form>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--primary" id="disc-salvar">${icon("check")}<span>Registrar ocorrência</span></button>
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const diasWrap = modal.querySelector("#disc-dias-wrap");
+      const aviso = modal.querySelector("#disc-escala-aviso");
+      const atualizaAviso = () => {
+        const fid = modal.querySelector("#disc-func").value;
+        const n = fid ? discDeFunc(fid).length : 0;
+        aviso.innerHTML = n >= 2
+          ? `<div class="disc-escbox">${icon("alert")}<div><b>Este funcionário já tem ${n} ocorrência${n > 1 ? "s" : ""}.</b>Pela escala, a próxima costuma ser suspensão. Confira antes de registrar.</div></div>`
+          : "";
+      };
+      modal.querySelectorAll("[data-disc-tipo]").forEach((b) => b.addEventListener("click", () => {
+        tipo = b.dataset.discTipo;
+        modal.querySelectorAll("[data-disc-tipo]").forEach((x) => x.classList.toggle("is-on", x === b));
+        diasWrap.style.display = tipo === "suspensao" ? "" : "none";
+      }));
+      modal.querySelector("#disc-func").addEventListener("change", atualizaAviso);
+      modal.querySelector("#disc-salvar").addEventListener("click", () => salvarDisciplinar(() => tipo));
+    },
+  });
+}
+
+async function salvarDisciplinar(getTipo) {
+  const fid = $("#disc-func")?.value;
+  const tipo = getTipo();
+  const data = $("#disc-data")?.value;
+  const motivo = $("#disc-motivo")?.value;
+  const descricao = $("#disc-desc")?.value || "";
+  const anexo = ($("#disc-anexo")?.value || "").trim();
+  const dias = tipo === "suspensao" ? Number($("#disc-dias")?.value || 0) : null;
+  if (!fid) return toast("Escolha o funcionário.", "danger");
+  if (!data) return toast("Informe a data.", "danger");
+  if (!anexo) return toast("Anexe o documento (link).", "danger");
+  if (typeof ehUrlSegura === "function" && !ehUrlSegura(anexo)) return toast("Link do documento inválido.", "danger");
+  if (tipo === "suspensao" && (!dias || dias < 1)) return toast("Informe os dias de suspensão.", "danger");
+  const f = (state.funcionarios || []).find((x) => x.id === fid);
+  const btn = $("#disc-salvar"); if (btn) { btn.disabled = true; btn.innerHTML = `${icon("clock")}<span>Salvando...</span>`; }
+  await window.criarDisciplinar({
+    funcionarioId: fid,
+    funcionarioNome: (f && f.nome) || "",
+    funcionarioTurno: (f && f.turno != null) ? f.turno : null,
+    funcionarioCargo: (f && f.cargo) || "",
+    funcionarioSetor: (f && f.setor) || "",
+    tipo, data, motivo, descricao, dias,
+    anexo: { url: anexo, nome: motivo || "documento" },
+  });
+}
+
+function excluirDisciplinarUI(id) {
+  if (currentUser()?.role !== "admin") return toast("Apenas o administrador pode excluir.", "danger");
+  const d = (state.disciplinares || []).find((x) => x.id === id);
+  openModal(`
+    <div class="modal__header"><div><h2>Excluir ocorrência</h2><p>Esta ação não pode ser desfeita.</p></div><button class="modal__close" data-close>${icon("x")}</button></div>
+    <div class="modal__body"><p>Excluir a ocorrência disciplinar de <strong>${escapeHtml((d && d.funcionarioNome) || "este funcionário")}</strong>? Sai do painel e do portal do colaborador.</p></div>
+    <div class="modal__footer"><button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--danger" id="disc-del-go">${icon("trash")}<span>Excluir</span></button></div>
+  `, { onMount: (modal) => {
+    modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+    modal.querySelector("#disc-del-go").addEventListener("click", async () => { closeModal(); await window.excluirDisciplinar(id); });
+  } });
+}
+
+let _discBound = false;
+function bindDiscActions() {
+  if (_discBound) return;
+  _discBound = true;
+  document.addEventListener("click", (e) => {
+    const nv = e.target.closest("[data-disc-novo]");
+    if (nv) { openDisciplinarModal(); return; }
+    const fl = e.target.closest("[data-disc-filtro]");
+    if (fl) { state.view.discFiltro = fl.dataset.discFiltro; renderApp(); return; }
+    const dx = e.target.closest("[data-disc-excluir]");
+    if (dx) { e.stopPropagation(); excluirDisciplinarUI(dx.dataset.discExcluir); return; }
+  });
 }
 
 function renderDocumentos() {

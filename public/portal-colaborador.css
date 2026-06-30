@@ -688,3 +688,7 @@ html.modo-colab.cp-dark{
 .pp-card__foot{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px}
 .pp-card--attn{border-color:transparent;box-shadow:0 0 0 1.5px var(--warning),var(--pp-sh-card)}
 .pp-rw__ro a,.pp-rw__ro{text-decoration:none}
+
+/* registro disciplinar (colaborador) */
+.pp-disc-done{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--plum);font-weight:600;margin-top:13px}
+.pp-disc-done svg{width:16px;height:16px;flex:none}
