@@ -1002,12 +1002,11 @@ function openColabAvisoSheet(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       const img = modal.querySelector("[data-cp-img]");
       if (img) img.addEventListener("click", () => openColabImgLightbox(img.dataset.cpImg));
-      // Abriu o post = visualizado. Registra (set-once) e atualiza o feed atrás do modal.
-      const novo = !(c.minhaLeitura);
-      if (window.registrarVisualizacaoComunicado) {
-        window.registrarVisualizacaoComunicado(id).then(() => { if (novo && state.view.page === "colab-comunicados") renderApp(); });
-      } else if (novo) {
-        c.minhaLeitura = { confirmado: false, em: (typeof nowIso === "function" ? nowIso() : new Date().toISOString()) };
+      // Abriu o post = visualizado. Marca otimista na hora (o set local de
+      // registrarVisualizacaoComunicado é síncrono) e persiste em background. Some o "não visto" já.
+      if (!c.minhaLeitura) {
+        if (window.registrarVisualizacaoComunicado) window.registrarVisualizacaoComunicado(id);
+        else c.minhaLeitura = { confirmado: false, em: (typeof nowIso === "function" ? nowIso() : new Date().toISOString()) };
         if (state.view.page === "colab-comunicados") renderApp();
       }
     },

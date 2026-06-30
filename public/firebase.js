@@ -1055,9 +1055,11 @@
     window.registrarVisualizacaoComunicado = async function (comunicadoId) {
       const c = (state.comunicadosColab || []).find((x) => x.id === comunicadoId);
       if (c && c.minhaLeitura) return { ok: true }; // já visto, não reescreve
-      const r = await window.registrarLeitura(comunicadoId, { confirmar: false });
-      if (r && r.ok && c && !c.minhaLeitura) c.minhaLeitura = { confirmado: false, em: new Date().toISOString() };
-      return r;
+      // Otimista: marca "visto" na hora (set síncrono antes do await), pra refletir no feed
+      // imediatamente mesmo se o write demorar OU não houver sessão (prévia). A persistência
+      // de verdade segue no registrarLeitura; sem sessão fica só local na sessão.
+      if (c) c.minhaLeitura = { confirmado: false, em: new Date().toISOString() };
+      return await window.registrarLeitura(comunicadoId, { confirmar: false });
     };
 
     // App do colaborador: confirma ciência de um comunicado (Li e estou ciente).
@@ -2722,6 +2724,7 @@
       // query por segmento (todos / turno dele / setor dele) — cada uma só retorna
       // o que a rule já permite. turno/setor vêm do funcionário (WKRADAR mantém ==
       // users.turno/.setor, que é o que a rule checa). Junta e dedupe no cliente.
+      const prevCom = state.comunicadosColab || []; // pra preservar "visto" otimista no reload volátil
       state.comunicadosColab = [];
       try {
         const f = state.funcionarios[0] || null;
@@ -2743,8 +2746,11 @@
         }
         const uid = auth.currentUser && auth.currentUser.uid;
         await Promise.all(arr.map(async (c) => {
-          try { const l = await db.collection("comunicados").doc(c.id).collection("leituras").doc(uid).get(); c.minhaLeitura = l.exists ? { ...l.data(), em: tsToIso(l.data().em) } : null; }
-          catch (e) { c.minhaLeitura = null; }
+          // Se o reload rodar antes do write da leitura propagar (ou sem sessão), mantém o
+          // "visto" local em vez de zerar — senão o aviso voltava eterno pra "não visto".
+          const prev = prevCom.find((x) => x.id === c.id);
+          try { const l = await db.collection("comunicados").doc(c.id).collection("leituras").doc(uid).get(); c.minhaLeitura = l.exists ? { ...l.data(), em: tsToIso(l.data().em) } : ((prev && prev.minhaLeitura) || null); }
+          catch (e) { c.minhaLeitura = (prev && prev.minhaLeitura) || null; }
         }));
         state.comunicadosColab = arr; state._dbgComN = arr.length;
       } catch (e) { debug?.("[colab] comunicados:", e?.message || e); state._dbgComErr = (e && (e.code || e.message)) || String(e); state.comunicadosColab = []; }
