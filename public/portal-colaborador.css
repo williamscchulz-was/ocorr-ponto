@@ -686,6 +686,12 @@ html.modo-colab.cp-dark{
 /* card: imagem + rodape */
 .pp-card__img{width:100%;max-height:170px;object-fit:cover;display:block;background:var(--surface-warm)}
 
+/* Indicador de não-visto (pontinho) no card + "Visualizado" no rodapé do que já abriu */
+.pp-card{position:relative}
+.cp-novo{position:absolute;top:11px;right:11px;z-index:2;width:10px;height:10px;border-radius:50%;background:#1FB558;box-shadow:0 0 0 3px rgba(31,181,88,.2)}
+.cp-seen{display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-size:12px;font-weight:500}
+.cp-seen .icon{width:14px;height:14px;color:#1FB558}
+
 /* Aviso aberto em tela cheia (post) — tocar no card abre. Reusa o .modal do app. */
 .cp-post{display:flex;flex-direction:column}
 .cp-post__x{position:absolute;top:12px;right:12px;z-index:6;width:34px;height:34px;border-radius:50%;background:rgba(8,10,8,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--border-strong);color:var(--text-body);display:flex;align-items:center;justify-content:center;cursor:pointer}

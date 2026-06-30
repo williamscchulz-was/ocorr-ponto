@@ -11,8 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.13.1", d: "30 jun 2026", current: true, items: [
-      { type: "feat", title: "No Portal do Colaborador, toque no aviso pra abrir o post inteiro: imagem ampliável em tela cheia, texto completo e o anexo. A confirmação de leitura fica ali dentro." },
+    v: "1.13.2", d: "30 jun 2026", current: true, items: [
+      { type: "high", title: "Avisos agora só registram visualização: abriu o post, conta como visto. Sem precisar confirmar ciência. No portal do gestor, o acompanhamento mostra quantos viram cada comunicado." },
+    ],
+  },
+  {
+    v: "1.13.1", d: "30 jun 2026", items: [
+      { type: "feat", title: "No Portal do Colaborador, toque no aviso pra abrir o post inteiro: imagem ampliável em tela cheia, texto completo e o anexo." },
     ],
   },
   {

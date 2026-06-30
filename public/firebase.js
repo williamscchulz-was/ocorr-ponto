@@ -1050,6 +1050,16 @@
       }
     };
 
+    // App do colaborador: registra que VISUALIZOU o comunicado (abriu o post). Sem ciência,
+    // sem toast — set-once (confirmado:false). Conta como "visto" no acompanhamento do gestor.
+    window.registrarVisualizacaoComunicado = async function (comunicadoId) {
+      const c = (state.comunicadosColab || []).find((x) => x.id === comunicadoId);
+      if (c && c.minhaLeitura) return { ok: true }; // já visto, não reescreve
+      const r = await window.registrarLeitura(comunicadoId, { confirmar: false });
+      if (r && r.ok && c && !c.minhaLeitura) c.minhaLeitura = { confirmado: false, em: new Date().toISOString() };
+      return r;
+    };
+
     // App do colaborador: confirma ciência de um comunicado (Li e estou ciente).
     // set-once via registrarLeitura; reflete no state.comunicadosColab e re-renderiza.
     window.confirmarCienciaComunicado = async function (comunicadoId) {

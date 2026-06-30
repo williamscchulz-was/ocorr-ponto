@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR" class="modo-colab cp-dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Avisos só visualização (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 60px;font-family:Poppins,sans-serif;display:flex;flex-wrap:wrap;gap:34px;justify-content:center;align-items:flex-start}
+  .note{flex-basis:100%;max-width:980px;margin:0 auto 8px;font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#EDF3EA}
+  .cap{text-align:center;font-size:12px;color:#8A9884;margin-top:10px;font-weight:600}
+  .phone{width:372px;background:#0E130E;border:1px solid #232C22;border-radius:30px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .phone__bar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;color:#EDF3EA;font-weight:600}
+  .scr{padding:16px 14px 22px}
+  .pp-hi h1{margin:0 0 14px}
+  /* indicador de NÃO VISTO: pontinho verde no canto do card */
+  .pp-card{position:relative}
+  .cp-novo{position:absolute;top:11px;right:11px;width:10px;height:10px;border-radius:50%;background:#1FB558;box-shadow:0 0 0 3px rgba(31,181,88,.18)}
+  /* linha "visualizado" discreta no rodapé do card já visto */
+  .cp-seen{display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-size:12px;font-weight:500}
+  .cp-seen .icon{width:14px;height:14px;color:#1FB558}
+</style></head>
+<body>
+
+<div class="note"><b>Mock · avisos só com visualização (sem assinar ciência).</b> O colaborador não confirma nada: <b>abriu o post = visto</b>. No feed, o que ele ainda não abriu tem um <b>pontinho verde</b> (não visto); o filtro "Não lidos" vira <b>"Não vistos"</b>. O que já abriu mostra um discreto <b>"Visualizado"</b>. Some o botão "Li e estou ciente" e a tag "Pede confirmação". No portal do gestor, o acompanhamento passa a contar <b>"X de Y visualizaram"</b>.</div>
+
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>11:50</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-hi"><h1>Avisos</h1></div>
+    <div class="pp-chips-f" style="margin-bottom:12px">
+      <button class="pp-chip-f on">Todos <span class="pp-chip-f__c">3</span></button>
+      <button class="pp-chip-f">Não vistos <span class="pp-chip-f__c">2</span></button>
+    </div>
+
+    <article class="pp-card pp-card--pin">
+      <span class="cp-novo" title="Não visto"></span>
+      <img class="pp-card__img" src="https://images.unsplash.com/photo-1522778526097-ce0a22ceb253?w=560&q=70" alt="">
+      <div class="pp-card__bd">
+        <div class="pp-card__meta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg><span>Fixado · Jenifer · 30/06 · Todos</span></div>
+        <div class="pp-card__t">Jogos da Copa</div>
+        <div class="pp-card__x" style="-webkit-line-clamp:2">Os jogos do Brasil serão transmitidos aqui na empresa, no telão. Local: refeitório da empresa.</div>
+      </div>
+    </article>
+
+    <article class="pp-card">
+      <span class="cp-novo" title="Não visto"></span>
+      <div class="pp-card__bd">
+        <div class="pp-card__meta"><span>RH · 27/06 · Seu turno</span></div>
+        <div class="pp-card__t">Campanha de segurança no trabalho</div>
+        <div class="pp-card__x" style="-webkit-line-clamp:2">A partir de segunda começa a campanha de uso obrigatório de EPI em todos os setores de produção.</div>
+      </div>
+    </article>
+
+    <article class="pp-card">
+      <div class="pp-card__bd">
+        <div class="pp-card__meta"><span>RH · 25/06 · Todos</span></div>
+        <div class="pp-card__t">Reunião geral de produção</div>
+        <div class="pp-card__x" style="-webkit-line-clamp:2">Sexta, às 14h, no refeitório. Presença de todos os turnos.</div>
+        <div class="pp-card__foot"><span class="cp-seen"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Visualizado</span></div>
+      </div>
+    </article>
+  </div>
+</div>
+<div class="cap">Feed · pontinho = não visto · "Visualizado" no que já abriu</div>
+</div>
+
+</body></html>

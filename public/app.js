@@ -894,7 +894,7 @@ function cpRefreshAoAbrir() {
 function renderColabComunicados() {
   cpRefreshAoAbrir();
   const todos = colabAvisosOrdenados();
-  const naoLidos = todos.filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado));
+  const naoVistos = todos.filter((c) => !(c.minhaLeitura)); // abriu o post = visto
   const discSec = colabDiscSecaoHtml();
 
   if (todos.length === 0) {
@@ -904,44 +904,33 @@ function renderColabComunicados() {
       <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.6">diag avisos: ${state._dbgComN ?? "?"} carregados · ${state._dbgComErr ? escapeHtml(String(state._dbgComErr)).slice(0, 100) : "sem erro de query"}</div></div>`;
     return;
   }
-  const filtro = state.view.avFiltro === "naolidos" ? "naolidos" : "todos";
-  const lista = filtro === "naolidos" ? naoLidos : todos;
-  const resumo = naoLidos.length
-    ? `<div class="pp-pend" style="cursor:default"><span class="pp-ico pp-ico--amber">${cpIcon("alert")}</span><span class="pp-pend__bd"><span class="pp-pend__t">${naoLidos.length} aviso${naoLidos.length > 1 ? "s" : ""} ${naoLidos.length > 1 ? "pedem" : "pede"} confirmação</span><span class="pp-pend__s">Toque em "Li e estou ciente" pra registrar</span></span></div>`
-    : "";
+  const filtro = (state.view.avFiltro === "naovistos" || state.view.avFiltro === "naolidos") ? "naovistos" : "todos";
+  const lista = filtro === "naovistos" ? naoVistos : todos;
   const chips = `<div class="pp-chips-f" id="cp-av-tabs">
     <button class="pp-chip-f ${filtro === "todos" ? "on" : ""}" data-av-filtro="todos">Todos <span class="pp-chip-f__c">${todos.length}</span></button>
-    <button class="pp-chip-f ${filtro === "naolidos" ? "on" : ""}" data-av-filtro="naolidos">Não lidos <span class="pp-chip-f__c">${naoLidos.length}</span></button>
+    <button class="pp-chip-f ${filtro === "naovistos" ? "on" : ""}" data-av-filtro="naovistos">Não vistos <span class="pp-chip-f__c">${naoVistos.length}</span></button>
   </div>`;
   const corpo = lista.length === 0
-    ? `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Tudo em dia. Você confirmou todos os avisos.</p></div>`
+    ? `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Tudo em dia. Você já viu todos os avisos.</p></div>`
     : lista.map(colabAvisoHtml).join("");
-  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>${discSec}${resumo}${chips}${corpo}</div>`;
+  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>${discSec}${chips}${corpo}</div>`;
   $$("#cp-av-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.avFiltro = b.dataset.avFiltro; renderApp(); }));
 }
 
 function colabAvisoHtml(c) {
   const seg = c.segmento || { tipo: "todos", valores: [] };
   const segTxt = seg.tipo === "todos" ? "Todos" : (seg.tipo === "turno" ? "Seu turno" : "Seu setor");
-  const confirmou = !!(c.minhaLeitura && c.minhaLeitura.confirmado);
-  const reqConf = !!c.requerConfirmacao;
+  const visto = !!(c.minhaLeitura); // abriu o post = visto
   const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
-  let foot;
-  if (reqConf) {
-    foot = confirmou
-      ? `<span class="pp-badge pp-badge--green">${cpIcon("check")}Ciência registrada</span>`
-      : `<span class="pp-badge pp-badge--amber">${cpIcon("alert")}Pede confirmação</span><button class="pp-btn pp-btn--soft pp-btn--sm" data-colab-ciente="${c.id}" style="margin-left:auto">${cpIcon("check")}Li e estou ciente</button>`;
-  } else {
-    foot = `<span class="pp-badge pp-badge--neutral">${cpIcon("megafone")}Informativo</span>`;
-  }
   return `
     <article class="pp-card${c.fixado ? " pp-card--pin" : ""}" data-colab-aviso="${c.id}" role="button" tabindex="0" aria-label="Abrir aviso ${escapeHtml(c.titulo || "")}">
+      ${!visto ? `<span class="cp-novo" aria-label="Não visto"></span>` : ""}
       ${imgOk ? `<img class="pp-card__img" src="${escapeHtml(c.imagem)}" alt="" loading="lazy">` : ""}
       <div class="pp-card__bd">
         <div class="pp-card__meta">${c.fixado ? `${cpIcon("pin")}<span>Fixado · </span>` : ""}<span>${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}</span></div>
         <div class="pp-card__t">${escapeHtml(c.titulo || "")}</div>
         ${c.corpo ? `<div class="pp-card__x" style="-webkit-line-clamp:4">${escapeHtml(c.corpo)}</div>` : ""}
-        <div class="pp-card__foot">${foot}</div>
+        ${visto ? `<div class="pp-card__foot"><span class="cp-seen">${cpIcon("check")}Visualizado</span></div>` : ""}
       </div>
     </article>`;
 }
@@ -990,17 +979,8 @@ function openColabAvisoSheet(id) {
   const segTxt = seg.tipo === "todos" ? "Todos" : (seg.tipo === "turno" ? "Seu turno" : "Seu setor");
   const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
   const anexoUrl = (c.anexo && c.anexo.url && (typeof ehUrlSegura !== "function" || ehUrlSegura(c.anexo.url))) ? c.anexo.url : null;
-  const confirmou = !!(c.minhaLeitura && c.minhaLeitura.confirmado);
-  const reqConf = !!c.requerConfirmacao;
   const metaTxt = `${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}`;
-  let foot;
-  if (reqConf && !confirmou) {
-    foot = `<button class="pp-btn pp-btn--primary" id="cp-post-ciente">${cpIcon("check")}<span>Li e estou ciente</span></button>`;
-  } else if (reqConf && confirmou) {
-    foot = `<span class="pp-badge pp-badge--green">${cpIcon("check")}Ciência registrada</span>`;
-  } else {
-    foot = `<span class="cp-post__doneline">${cpIcon("megafone")}Aviso informativo</span>`;
-  }
+  const foot = `<span class="cp-post__doneline">${cpIcon("check")}Visualizado</span>`;
   openModal(`
     <button class="cp-post__x" data-close aria-label="Fechar">${cpIcon("x")}</button>
     <div class="cp-post">
@@ -1022,14 +1002,14 @@ function openColabAvisoSheet(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       const img = modal.querySelector("[data-cp-img]");
       if (img) img.addEventListener("click", () => openColabImgLightbox(img.dataset.cpImg));
-      const ci = modal.querySelector("#cp-post-ciente");
-      if (ci) ci.addEventListener("click", async () => {
-        ci.disabled = true;
-        try {
-          if (window.confirmarCienciaComunicado) await window.confirmarCienciaComunicado(id);
-          else colabCienteUI(id);
-        } finally { closeModal(); }
-      });
+      // Abriu o post = visualizado. Registra (set-once) e atualiza o feed atrás do modal.
+      const novo = !(c.minhaLeitura);
+      if (window.registrarVisualizacaoComunicado) {
+        window.registrarVisualizacaoComunicado(id).then(() => { if (novo && state.view.page === "colab-comunicados") renderApp(); });
+      } else if (novo) {
+        c.minhaLeitura = { confirmado: false, em: (typeof nowIso === "function" ? nowIso() : new Date().toISOString()) };
+        if (state.view.page === "colab-comunicados") renderApp();
+      }
     },
   });
 }
@@ -1292,17 +1272,12 @@ function comunicadoFixadoHtml() {
 // se houver pendencia. Cada linha navega pra tela certa.
 function precisaAtencaoHtml() {
   const docs = (state.documentosColab || []).filter((d) => typeof colabDocPendente === "function" && colabDocPendente(d));
-  const avisos = (state.comunicadosColab || []).filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado));
   const itens = [];
   docs.forEach((d) => itens.push({
     page: "colab-documentos", tone: d.exigeAssinatura ? "amber" : "info",
     ic: d.exigeAssinatura ? "edit" : "file",
     t: d.exigeAssinatura ? "Documento a assinar" : "Documento a ler",
     s: d.titulo || "", bd: d.exigeAssinatura ? "Assinar" : "Ler",
-  }));
-  avisos.forEach((c) => itens.push({
-    page: "colab-comunicados", tone: "info", ic: "megafone",
-    t: "Comunicado pra confirmar", s: c.titulo || "", bd: "Ciência",
   }));
   const disc = (state.disciplinaresColab || []).filter((d) => !d.minhaCiencia);
   disc.forEach((d) => itens.push({
@@ -1379,7 +1354,7 @@ function renderColaboradorHome() {
     { page: "colab-documentos", icon: "file", t: "Documentos", s: "Termos e recibos", tone: "info" },
     { page: "colab-roadmap", icon: "roadmap", t: "Novidades", s: "Evolução do portal", tone: "neutral" },
   ];
-  const naoLidos = (state.comunicadosColab || []).filter((c) => c.requerConfirmacao && !(c.minhaLeitura && c.minhaLeitura.confirmado)).length;
+  const naoLidos = (state.comunicadosColab || []).filter((c) => !(c.minhaLeitura)).length; // não vistos
   view.innerHTML = `
     <div class="pp-fade">
       <div class="pp-hi"><h1>Olá, ${escapeHtml(primeiro)}</h1><p>Bom te ver por aqui.</p></div>
@@ -4696,7 +4671,7 @@ function renderComunicados() {
   const lista = comOrdenados();
   const fixados = lista.filter((c) => c.fixado);
   const recentes = lista.filter((c) => !c.fixado);
-  const comConf = comAtivos().filter((c) => c.requerConfirmacao).length;
+  const totalVistos = comAtivos().reduce((s, c) => s + ((c.leituras || []).length), 0);
 
   const cab = `
     <header class="page-header">
@@ -4725,7 +4700,7 @@ function renderComunicados() {
     <div class="stats">
       ${stat("Publicados", comAtivos().length, "megafone")}
       ${stat("Fixados", fixados.length, "pin")}
-      ${stat("Com confirmação", comConf, "check")}
+      ${stat("Visualizações", totalVistos, "eye")}
     </div>
     <div class="com-grid">${[...fixados, ...recentes].map(comCardHtml).join("")}</div>
   `;
@@ -4735,7 +4710,7 @@ function comCardHtml(c) {
   const seg = c.segmento || { tipo: "todos", valores: [] };
   const Y = (typeof c.alcanceEstimado === "number") ? c.alcanceEstimado : comAlcance(seg);
   const leituras = c.leituras || [];
-  const X = c.requerConfirmacao ? leituras.filter((l) => l.confirmado).length : leituras.length;
+  const X = leituras.length; // todas as leituras = visualizações
   const pct = Y > 0 ? Math.min(100, Math.round((X / Y) * 100)) : 0;
   const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
   const head = imgOk
@@ -4745,11 +4720,10 @@ function comCardHtml(c) {
     <article class="cf-card ${c.fixado ? "cf-card--pin" : ""}" data-com-id="${c.id}">
       ${head}
       ${c.fixado ? `<span class="cf-pin" aria-hidden="true">${icon("pin")}</span>` : ""}
-      ${c.requerConfirmacao ? `<span class="cf-conf">${icon("check")}Confirmação</span>` : ""}
       <div class="cf-bd">
         <div class="cf-title" data-com-editar="${c.id}">${escapeHtml(c.titulo || "(sem titulo)")}</div>
         <span class="cf-seg">${comSegLabel(seg)}</span>
-        <div class="cf-read"><span><b>${X}</b> de ${Y}</span><span class="com-bar"><i style="width:${pct}%"></i></span></div>
+        <div class="cf-read"><span><b>${X}</b> de ${Y} viram</span><span class="com-bar"><i style="width:${pct}%"></i></span></div>
         <div class="cf-meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
         <div class="cf-acts">
           <button class="com-mini" data-com-leituras="${c.id}" aria-label="Ver leituras">${icon("eye")}</button>
@@ -4795,11 +4769,9 @@ function comPreview(segTipo) {
   const b = ($("#com-corpo")?.value || "").trim();
   const seg = comSegmentoDoForm(segTipo);
   const fixar = $("#com-fixar")?.getAttribute("aria-checked") === "true";
-  const conf = $("#com-conf")?.getAttribute("aria-checked") === "true";
   if ($("#com-pv-titulo")) $("#com-pv-titulo").textContent = t || "Título do comunicado";
   if ($("#com-pv-corpo")) $("#com-pv-corpo").textContent = b || "O corpo aparece aqui conforme você escreve.";
   let badges = `<span class="badge badge--success">${comSegLabel(seg)}</span>`;
-  if (conf) badges += `<span class="badge badge--warning">${icon("check")}<span>Requer confirmação</span></span>`;
   if (fixar) badges += `<span class="badge badge--neutral">${icon("pin")}<span>Fixado</span></span>`;
   if ($("#com-pv-badges")) $("#com-pv-badges").innerHTML = badges;
   const n = comAlcance(seg);
@@ -4864,10 +4836,6 @@ function openComunicadoModal(id) {
         <div class="com-toggle__t">${icon("pin")}<div><b>Fixar no topo</b><span>Mantém o aviso destacado acima dos demais</span></div></div>
         <button type="button" class="com-sw ${c?.fixado ? "is-on" : ""}" id="com-fixar" role="switch" aria-checked="${c?.fixado ? "true" : "false"}" aria-label="Fixar no topo"></button>
       </div>
-      <div class="com-toggle">
-        <div class="com-toggle__t">${icon("check")}<div><b>Requer confirmação de leitura</b><span>Gera trilha de ciência por funcionário</span></div></div>
-        <button type="button" class="com-sw ${c?.requerConfirmacao ? "is-on" : ""}" id="com-conf" role="switch" aria-checked="${c?.requerConfirmacao ? "true" : "false"}" aria-label="Requer confirmação de leitura"></button>
-      </div>
       <div class="com-preview">
         <div class="com-preview__l">Pré-visualização</div>
         <div class="com-preview__t" id="com-pv-titulo"></div>
@@ -4925,7 +4893,6 @@ function openComunicadoModal(id) {
       }));
       const flip = (el) => { const on = el.getAttribute("aria-checked") === "true"; el.setAttribute("aria-checked", String(!on)); el.classList.toggle("is-on", !on); comPreview(segTipo); };
       $("#com-fixar").addEventListener("click", () => flip($("#com-fixar")));
-      $("#com-conf").addEventListener("click", () => flip($("#com-conf")));
       ["com-titulo", "com-corpo"].forEach((idf) => $("#" + idf).addEventListener("input", () => comPreview(segTipo)));
       $("#com-turno").addEventListener("change", () => comPreview(segTipo));
       $("#com-setor")?.addEventListener("change", () => comPreview(segTipo));
@@ -4947,7 +4914,6 @@ function salvarComunicadoForm(id, segTipo) {
   const dados = {
     titulo, corpo, segmento: seg,
     fixado: $("#com-fixar").getAttribute("aria-checked") === "true",
-    requerConfirmacao: $("#com-conf").getAttribute("aria-checked") === "true",
     alcanceEstimado: comAlcance(seg),
     imagem: _comImagem || null,
   };
@@ -4998,12 +4964,11 @@ function abrirLeiturasComunicado(id) {
   const seg = c.segmento || { tipo: "todos", valores: [] };
   const Y = (typeof c.alcanceEstimado === "number") ? c.alcanceEstimado : comAlcance(seg);
   const leituras = c.leituras || [];
-  const confKey = c.requerConfirmacao;
-  const lidosIds = new Set(leituras.filter((l) => (confKey ? l.confirmado : true)).map((l) => l.funcionarioId));
+  const vistosIds = new Set(leituras.map((l) => l.funcionarioId));
   const elegiveis = comFuncsDoSegmento(seg);
-  const confirmaram = elegiveis.filter((f) => lidosIds.has(f.id));
-  const pendentes = elegiveis.filter((f) => !lidosIds.has(f.id));
-  const verbo = confKey ? "confirmaram" : "leram";
+  const confirmaram = elegiveis.filter((f) => vistosIds.has(f.id)); // viram
+  const pendentes = elegiveis.filter((f) => !vistosIds.has(f.id));
+  const verbo = "viram";
 
   const linha = (f, ok) => {
     const l = leituras.find((x) => x.funcionarioId === f.id);
@@ -5018,19 +4983,19 @@ function abrirLeiturasComunicado(id) {
 
   openModal(`
     <div class="modal__header">
-      <div><h2>Leituras</h2><p>${escapeHtml(c.titulo)}</p></div>
+      <div><h2>Visualizações</h2><p>${escapeHtml(c.titulo)}</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="com-tabs">
-        <button class="com-tab is-on" data-com-tab="ok">${icon("check")}<span>${confKey ? "Confirmaram" : "Leram"}</span> <i>${confirmaram.length}</i></button>
+        <button class="com-tab is-on" data-com-tab="ok">${icon("eye")}<span>Viram</span> <i>${confirmaram.length}</i></button>
         <button class="com-tab" data-com-tab="pend">${icon("clock")}<span>Pendentes</span> <i>${pendentes.length}</i></button>
       </div>
       <div class="com-people" id="com-people-ok">${confirmaram.length ? confirmaram.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguém ${verbo} ainda.</p>`}</div>
       <div class="com-people" id="com-people-pend" style="display:none">${pendentes.length ? pendentes.map((f) => linha(f, false)).join("") : `<p class="muted" style="padding:14px 2px">Todos em dia.</p>`}</div>
     </div>
     <div class="modal__footer">
-      <span class="muted text-xs">Trilha de ciência · ${confirmaram.length} de ${Y} ${verbo}</span>
+      <span class="muted text-xs">Visualizações · ${confirmaram.length} de ${Y} ${verbo}</span>
       <button class="btn btn--ghost" data-close>Fechar</button>
     </div>
   `, {
@@ -10336,7 +10301,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.13.1";
+window.CURRENT_VERSION = "1.13.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
