@@ -1,216 +1,118 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FioPulse · Ocorrências — fluxo RH → Líder (mock)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<title>FioPulse · Ocorrências + RH confere (mock sobre a tela real)</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../../public/styles.css">
 <style>
-  :root{
-    --bg:#EDF2EA;--card:#fff;--card2:#F6F9F4;--bd:#E2EADF;--bd2:#D6E0D2;
-    --brand:#0E8C3F;--brand-d:#0B6E33;--gtx:#0E8C3F;
-    --tx:#16201A;--txw:#5B6B57;--txw2:#7C8A77;
-    --amber:#C98A2A;--amber-bg:rgba(201,138,42,.15);
-    --red:#C5453B;--red-bg:rgba(197,69,59,.12);
-    --green-bg:rgba(14,140,63,.12);--info:#3D7CC0;--info-bg:rgba(61,124,192,.12);
-    --sh:0 1px 3px rgba(0,40,20,.07),0 6px 18px rgba(0,40,20,.05);
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);font-family:Poppins,system-ui,sans-serif;color:var(--tx);-webkit-font-smoothing:antialiased;padding:30px 20px 80px}
-  .wrap{max-width:1060px;margin:0 auto}
-  .note{font-size:13px;color:var(--txw);background:var(--card);border:1px dashed var(--bd2);border-radius:12px;padding:12px 16px;margin-bottom:22px;line-height:1.6}
-  .note b{color:var(--tx)}
-  .seclabel{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);margin:30px 0 14px;display:flex;align-items:center;gap:10px}
-  .seclabel::after{content:"";flex:1;height:1px;background:var(--bd)}
-
-  .panel{background:var(--bg);border:1px solid var(--bd);border-radius:18px;padding:22px;box-shadow:var(--sh)}
-  .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
-  .ph h1{font-size:23px;font-weight:800;letter-spacing:-.02em}
-  .ph p{font-size:13.5px;color:var(--txw);margin-top:3px}
-  .chip-ok{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:999px;background:var(--green-bg);color:var(--brand);font-size:12.5px;font-weight:600}
-
-  /* lifecycle */
-  .flow{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;box-shadow:var(--sh);margin-bottom:16px;flex-wrap:wrap}
-  .flow .st{display:flex;align-items:center;gap:9px;padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--txw);background:var(--card2)}
-  .flow .st i{font-size:16px}
-  .flow .st.on{background:var(--brand);color:#fff}
-  .flow .st.done{background:var(--green-bg);color:var(--brand)}
-  .flow .arr{color:var(--txw2);font-size:18px}
-  .flow .branch{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--red);background:var(--red-bg);padding:5px 11px;border-radius:999px;font-weight:600}
-
-  /* segments */
-  .segs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-  .seg{height:38px;padding:0 15px;border-radius:11px;border:1px solid var(--bd2);background:var(--card);color:var(--txw);font:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-  .seg .n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--card2);font-size:11px;color:var(--txw)}
-  .seg.on{background:var(--brand);border-color:transparent;color:#fff}
-  .seg.on .n{background:rgba(255,255,255,.25);color:#fff}
-
-  /* cards */
-  .list{display:flex;flex-direction:column;gap:10px}
-  .occ{display:flex;align-items:center;gap:15px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:13px 16px;box-shadow:var(--sh)}
-  .occ.resc{box-shadow:0 0 0 1.5px var(--red),var(--sh)}
-  .occ-date{flex:none;width:46px;text-align:center;line-height:1}
-  .occ-date .d{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums}
-  .occ-date .m{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txw);letter-spacing:.05em;margin-top:3px}
-  .occ-main{flex:1;min-width:0}
-  .occ-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-  .occ-nome{font-size:15px;font-weight:700;letter-spacing:-.01em}
-  .occ-sub{font-size:12px;color:var(--txw);margin-top:4px}
-  .pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700}
-  .pill i{font-size:13px}
-  .pill--falta{background:var(--red-bg);color:var(--red)}
-  .pill--atraso,.pill--saida{background:var(--amber-bg);color:var(--amber)}
-  .pill--resc{background:var(--red);color:#fff}
-  .occ-acts{flex:none;display:flex;gap:8px}
-  .btn{height:38px;border:0;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px}
-  .btn i{font-size:16px}
-  .btn--ok{background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff}
-  .btn--disp{background:var(--card2);color:var(--txw);border:1px solid var(--bd2)}
-  .btn--conf{background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff}
-  .occ-flag{flex:none;font-size:11.5px;color:var(--txw);text-align:right}
-  .occ-flag b{color:var(--red)}
-
-  @media(max-width:720px){.occ{flex-wrap:wrap}.occ-acts{width:100%}.occ-acts .btn{flex:1}}
+  body{background:var(--bg,#F4F7F2);padding:0;margin:0}
+  .mockwrap{max-width:1180px;margin:0 auto;padding:26px 28px 80px}
+  .mocknote{font-size:13px;color:var(--text-muted);background:#fff;border:1px dashed var(--border);border-radius:12px;padding:12px 16px;margin-bottom:22px;line-height:1.6}
+  .mocknote b{color:var(--text-body)}
+  .mocksec{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--plum);margin:26px 0 14px}
+  /* card no estagio RH confere: vira flex com 2 botoes no fim (sem mexer no .occ real) */
+  #view .occ--rh{display:flex;align-items:center;gap:16px}
+  #view .occ--rh .occ__main{flex:1;min-width:0}
+  #view .occ--rh .rhacts{flex:none;display:flex;gap:8px}
+  @media(max-width:720px){#view .occ--rh{flex-wrap:wrap}#view .occ--rh .rhacts{width:100%}#view .occ--rh .rhacts .btn{flex:1}}
 </style></head>
 <body>
-<div class="wrap">
+<div class="mockwrap">
+  <div class="mocknote"><b>Mock sobre a tela REAL de Ocorrências.</b> A única mudança: entra a aba <b>RH confere</b> na frente. Dentro dela o RH <b>Confirma</b> (manda pro líder, vira "Pendente") ou <b>Dispensa</b> (descarta). O resto (Pendentes/Conferidas/Lançadas/Todas) fica igual. Os automáticos do pipeline caem em "RH confere"; demitido vem marcado "em rescisão".</div>
 
-  <div class="note"><b>Mock pra aprovação · Fluxo novo de Ocorrências (RH → Líder).</b><br>
-  Sai a aba "Conferência (beta)"; tudo vira a aba <b>Ocorrências</b> com 2 estágios: <b>RH confere</b> (valida → líder, ou dispensa) e <b>com o líder</b> (age com o colaborador → confirmada). Demitido aparece marcado "em rescisão" (falta real). Dados já vêm do pipeline novo (campos situacaoFunc/demitido). Nada implementado; só desenho.</div>
-
-  <div class="seclabel"><i class="ti ti-arrow-guide"></i> 1. Aba Ocorrências · estágio "RH confere" (RH valida ou dispensa)</div>
-  <div class="panel">
-    <div class="ph">
-      <div><h1>Ocorrências</h1><p>Apuração automática do ponto. O RH confere primeiro; o que validar vai pro líder do setor.</p></div>
-      <span class="chip-ok"><i class="ti ti-circle-check"></i> Fonte ok · 73 no mês</span>
+  <div class="mocksec">Aba Ocorrências · nova aba "RH confere" ativa</div>
+  <div id="view">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="rh-confere">RH confere <span class="tab__count">12</span></button>
+      <button class="tab" data-tab="pendentes">Pendentes <span class="tab__count">8</span></button>
+      <button class="tab" data-tab="conferidas">Conferidas <span class="tab__count">2</span></button>
+      <button class="tab" data-tab="lancadas">Lançadas <span class="tab__count">91</span></button>
+      <button class="tab" data-tab="todas">Todas <span class="tab__count">113</span></button>
+      <span class="tabs__ink" style="left:0;width:128px"></span>
     </div>
 
-    <div class="flow">
-      <span class="st done"><i class="ti ti-robot"></i> Gerada</span>
-      <span class="arr">›</span>
-      <span class="st on"><i class="ti ti-user-search"></i> RH confere</span>
-      <span class="arr">›</span>
-      <span class="st"><i class="ti ti-user-shield"></i> Com o líder</span>
-      <span class="arr">›</span>
-      <span class="st"><i class="ti ti-circle-check"></i> Confirmada</span>
-      <span style="flex:1"></span>
-      <span class="branch"><i class="ti ti-arrow-down-right"></i> Dispensada (descarte do RH)</span>
+    <div class="toolbar">
+      <div class="toolbar__search">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Buscar por funcionário ou tipo..." />
+      </div>
+      <select aria-label="mes"><option>Todos os meses</option></select>
+      <select aria-label="turno"><option>Todos os turnos</option></select>
     </div>
 
-    <div class="segs">
-      <button class="seg on">RH confere <span class="n">12</span></button>
-      <button class="seg">Com o líder <span class="n">8</span></button>
-      <button class="seg">Confirmadas <span class="n">45</span></button>
-      <button class="seg">Dispensadas <span class="n">6</span></button>
-    </div>
+    <div id="occ-list">
 
-    <div class="list">
-      <div class="occ resc">
-        <div class="occ-date"><div class="d">29</div><div class="m">jun</div></div>
-        <div class="occ-main">
-          <div class="occ-top">
-            <span class="occ-nome">Joilson Jose Mattozo</span>
-            <span class="pill pill--falta"><i class="ti ti-user-x"></i> Falta</span>
-            <span class="pill pill--resc"><i class="ti ti-alert-triangle"></i> Em rescisão</span>
+      <article class="occ occ--rh occ--pendente" style="box-shadow:0 0 0 1.5px var(--danger),var(--shadow,0 1px 3px rgba(0,40,20,.06))">
+        <div class="occ__date"><strong>29</strong><span>jun</span></div>
+        <div class="occ__main">
+          <div class="occ__name">Joilson Jose Mattozo</div>
+          <div class="occ__sub">
+            <span class="badge badge--danger">Falta Injustificada</span>
+            <span class="badge badge--danger">Em rescisão</span>
+            <span class="dot"></span>
+            <span>EXPEDIÇÃO · Geral · 8 faltas no mês</span>
           </div>
-          <div class="occ-sub">Expedição · Geral · 8 faltas no mês · demitido em 29/06</div>
         </div>
-        <div class="occ-flag"><b>Falta real</b><br>levou à rescisão</div>
-        <div class="occ-acts">
-          <button class="btn btn--ok"><i class="ti ti-arrow-right"></i> Validar → líder</button>
-          <button class="btn btn--disp"><i class="ti ti-x"></i> Dispensar</button>
+        <div class="occ__time">08:00</div>
+        <div class="rhacts">
+          <button class="btn btn--primary btn--sm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Confirmar</span></button>
+          <button class="btn btn--ghost btn--sm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Dispensar</span></button>
         </div>
-      </div>
+      </article>
 
-      <div class="occ">
-        <div class="occ-date"><div class="d">28</div><div class="m">jun</div></div>
-        <div class="occ-main">
-          <div class="occ-top">
-            <span class="occ-nome">Maria Aparecida Lima</span>
-            <span class="pill pill--falta"><i class="ti ti-user-x"></i> Falta</span>
+      <article class="occ occ--rh occ--pendente">
+        <div class="occ__date"><strong>29</strong><span>jun</span></div>
+        <div class="occ__main">
+          <div class="occ__name">Arno Cezar Wolf</div>
+          <div class="occ__sub">
+            <span class="badge badge--warning">Não Registrou Entrada</span>
+            <span class="dot"></span>
+            <span>DIRETOS BENEFICIAMENTO · 3º Turno</span>
           </div>
-          <div class="occ-sub">Repasse · 2º turno · Trabalhando</div>
         </div>
-        <div class="occ-acts">
-          <button class="btn btn--ok"><i class="ti ti-arrow-right"></i> Validar → líder</button>
-          <button class="btn btn--disp"><i class="ti ti-x"></i> Dispensar</button>
+        <div class="occ__time">22:30</div>
+        <div class="rhacts">
+          <button class="btn btn--primary btn--sm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Confirmar</span></button>
+          <button class="btn btn--ghost btn--sm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Dispensar</span></button>
         </div>
-      </div>
+      </article>
 
-      <div class="occ">
-        <div class="occ-date"><div class="d">28</div><div class="m">jun</div></div>
-        <div class="occ-main">
-          <div class="occ-top">
-            <span class="occ-nome">Carlos Eduardo Zoz</span>
-            <span class="pill pill--atraso"><i class="ti ti-clock-exclamation"></i> Atraso 00:12</span>
+      <article class="occ occ--rh occ--pendente">
+        <div class="occ__date"><strong>29</strong><span>jun</span></div>
+        <div class="occ__main">
+          <div class="occ__name">Luisana Carolina Cabrices Palma</div>
+          <div class="occ__sub">
+            <span class="badge badge--danger">Falta Injustificada</span>
+            <span class="dot"></span>
+            <span>REPASSE · 1º Turno</span>
           </div>
-          <div class="occ-sub">Tinturaria · 3º turno · Trabalhando</div>
         </div>
-        <div class="occ-acts">
-          <button class="btn btn--ok"><i class="ti ti-arrow-right"></i> Validar → líder</button>
-          <button class="btn btn--disp"><i class="ti ti-x"></i> Dispensar</button>
+        <div class="occ__time">05:00</div>
+        <div class="rhacts">
+          <button class="btn btn--primary btn--sm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Confirmar</span></button>
+          <button class="btn btn--ghost btn--sm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Dispensar</span></button>
         </div>
-      </div>
+      </article>
 
-      <div class="occ">
-        <div class="occ-date"><div class="d">27</div><div class="m">jun</div></div>
-        <div class="occ-main">
-          <div class="occ-top">
-            <span class="occ-nome">Rafaela Bittencourt</span>
-            <span class="pill pill--saida"><i class="ti ti-door-exit"></i> Saída antecipada</span>
+      <article class="occ occ--rh occ--pendente">
+        <div class="occ__date"><strong>29</strong><span>jun</span></div>
+        <div class="occ__main">
+          <div class="occ__name">Ludgeron Murilo Weiss Bauer</div>
+          <div class="occ__sub">
+            <span class="badge badge--warning">Atraso</span>
+            <span class="dot"></span>
+            <span>REPASSE · 3º Turno</span>
           </div>
-          <div class="occ-sub">Preparação · 1º turno · Trabalhando</div>
         </div>
-        <div class="occ-acts">
-          <button class="btn btn--ok"><i class="ti ti-arrow-right"></i> Validar → líder</button>
-          <button class="btn btn--disp"><i class="ti ti-x"></i> Dispensar</button>
+        <div class="occ__time">22:41</div>
+        <div class="rhacts">
+          <button class="btn btn--primary btn--sm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Confirmar</span></button>
+          <button class="btn btn--ghost btn--sm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Dispensar</span></button>
         </div>
-      </div>
-    </div>
-  </div>
+      </article>
 
-  <div class="seclabel"><i class="ti ti-user-shield"></i> 2. Mesmo painel · estágio "Com o líder" (líder do setor age e confirma)</div>
-  <div class="panel">
-    <div class="segs">
-      <button class="seg">RH confere <span class="n">12</span></button>
-      <button class="seg on">Com o líder <span class="n">8</span></button>
-      <button class="seg">Confirmadas <span class="n">45</span></button>
-      <button class="seg">Dispensadas <span class="n">6</span></button>
-    </div>
-    <p style="font-size:12.5px;color:var(--txw);margin-bottom:14px">O líder vê só as do <b>turno dele</b> que o RH já validou (recorte por turno, como o app já faz). Ele trata com o colaborador e confirma.</p>
-    <div class="list">
-      <div class="occ">
-        <div class="occ-date"><div class="d">28</div><div class="m">jun</div></div>
-        <div class="occ-main">
-          <div class="occ-top">
-            <span class="occ-nome">Maria Aparecida Lima</span>
-            <span class="pill pill--falta"><i class="ti ti-user-x"></i> Falta</span>
-          </div>
-          <div class="occ-sub">Repasse · 2º turno · validada pelo RH (Suyanne) · 28/06 14:10</div>
-        </div>
-        <div class="occ-acts">
-          <button class="btn btn--conf"><i class="ti ti-check"></i> Confirmar (tratei com o colaborador)</button>
-        </div>
-      </div>
-      <div class="occ">
-        <div class="occ-date"><div class="d">27</div><div class="m">jun</div></div>
-        <div class="occ-main">
-          <div class="occ-top">
-            <span class="occ-nome">Anderson Souza</span>
-            <span class="pill pill--atraso"><i class="ti ti-clock-exclamation"></i> Atraso 00:23</span>
-          </div>
-          <div class="occ-sub">Repasse · 2º turno · validada pelo RH (Suyanne) · 27/06</div>
-        </div>
-        <div class="occ-acts">
-          <button class="btn btn--conf"><i class="ti ti-check"></i> Confirmar</button>
-        </div>
-      </div>
     </div>
   </div>
 
-  <div class="seclabel"><i class="ti ti-info-circle"></i> Regras de dados (já no ar, vindas do WKRADAR)</div>
-  <div class="panel" style="font-size:13px;color:var(--txw);line-height:1.7">
-    <b style="color:var(--tx)">O que vira ocorrência:</b> dia já apurado (corta o D-1). <b style="color:var(--tx)">Geral e líderes de turno</b> (Adelir, Djoniffer): atraso/saída vão pro Banco de Horas, <b>só falta</b> gera ocorrência. <b style="color:var(--tx)">Afastados</b> saem (falta falsa). <b style="color:var(--tx)">Demitidos</b> aparecem marcados <span class="pill pill--resc" style="height:20px;font-size:10px">Em rescisão</span> (falta real, até a data de demissão).
-  </div>
-
+  <div class="mocknote" style="margin-top:22px">O que o RH <b>Confirmar</b> sai daqui e vira <b>Pendente</b> (vai pro líder do turno tratar e dar a baixa, exatamente como já funciona hoje). O que ele <b>Dispensar</b> vai pra um filtro "Dispensadas" (descarte, com trilha). Geral e líderes de turno: atraso/saída já caem no Banco de Horas, então em "RH confere" deles só aparece <b>falta</b>.</div>
 </div>
 </body></html>
