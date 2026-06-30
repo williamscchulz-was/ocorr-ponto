@@ -692,6 +692,32 @@ html.modo-colab.cp-dark{
 .cp-seen{display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-size:12px;font-weight:500}
 .cp-seen .icon{width:14px;height:14px;color:#1FB558}
 
+/* Meu ponto: nota informativa + ocorrência read-only (.cp-occ) + últimos 10 dias (.cp-dia) */
+.cp-bhnote{margin-top:10px;display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--text-muted);line-height:1.5}
+.cp-bhnote .icon{width:14px;height:14px;flex:none;margin-top:1px;color:#1FB558}
+.cp-occ{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:9px}
+.cp-occ__date{flex:none;width:46px;height:46px;border-radius:11px;background:var(--surface-warm);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.cp-occ__date b{font-size:17px;font-weight:700;color:var(--text-body)}
+.cp-occ__date span{font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
+.cp-occ__bd{flex:1;min-width:0}
+.cp-occ__t{font-size:14.5px;font-weight:600;color:var(--text-body)}
+.cp-occ__s{font-size:12px;color:var(--text-muted);margin-top:2px}
+.cp-occ__st{flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700}
+.cp-occ__st--ok{background:var(--success-bg);color:#1FB558}
+.cp-occ__st--pend{background:rgba(224,163,58,.15);color:#E0A33A}
+.cp-occ__st--lanc{background:rgba(74,168,230,.14);color:#6FB6E8}
+.cp-occ__st .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.cp-dia{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:10px 13px;margin-bottom:8px}
+.cp-dia__d{flex:none;width:42px;text-align:center;line-height:1}
+.cp-dia__d b{font-size:16px;font-weight:700;color:var(--text-body)}
+.cp-dia__d span{display:block;font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
+.cp-dia__m{flex:1;min-width:0;font-size:13px;color:var(--text-body);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.cp-dia__m--off{color:var(--text-muted);font-style:italic;letter-spacing:0}
+.cp-dia__s{flex:none;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.cp-dia__s--pos{color:#1FB558}
+.cp-dia__s--neg{color:#E06A5A}
+.cp-dia__s--zero{color:var(--text-muted)}
+
 /* Aviso aberto em tela cheia (post) — tocar no card abre. Reusa o .modal do app. */
 .cp-post{display:flex;flex-direction:column}
 .cp-post__x{position:absolute;top:12px;right:12px;z-index:6;width:34px;height:34px;border-radius:50%;background:rgba(8,10,8,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--border-strong);color:var(--text-body);display:flex;align-items:center;justify-content:center;cursor:pointer}

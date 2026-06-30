@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.13.3", d: "30 jun 2026", current: true, items: [
+    v: "1.14.0", d: "1 jul 2026", current: true, items: [
+      { type: "feat", title: "Em Meu ponto, no Portal do Colaborador, agora você acompanha as suas ocorrências (atrasos, faltas e saídas), só leitura. O detalhamento dia a dia do banco de horas chega em seguida." },
+    ],
+  },
+  {
+    v: "1.13.3", d: "30 jun 2026", items: [
       { type: "note", title: "Onde o sistema dizia RH ou GH, agora diz GP (Gestão de Pessoas)." },
     ],
   },

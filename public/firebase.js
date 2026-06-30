@@ -2858,6 +2858,16 @@
         } catch (e) { debug?.("[colab] disciplinares:", e?.message || e); state.disciplinaresColab = []; }
       }
 
+      // Minhas ocorrências (read-only): a rule deixa o colaborador ler SÓ as próprias
+      // (isColaborador && euSouODono(funcionarioId)). Sem PII de terceiros.
+      state.ocorrenciasColab = [];
+      if (u.funcionarioId) {
+        try {
+          const osnap = await db.collection("ocorrencias").where("funcionarioId", "==", u.funcionarioId).get();
+          state.ocorrenciasColab = osnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } catch (e) { debug?.("[colab] ocorrencias:", e?.message || e); state.ocorrenciasColab = []; }
+      }
+
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
       try { await window.carregarAniversariantes(); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
       return;

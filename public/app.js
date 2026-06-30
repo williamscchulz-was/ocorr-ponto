@@ -1381,20 +1381,80 @@ function renderColaboradorHome() {
 function renderColabPonto() {
   const view = $("#view");
   const f = (state.funcionarios && state.funcionarios[0]) || null;
-  if (f && f.bhExempt) {
-    view.innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Meu ponto</h1></div>
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div></div>`;
-    bindColabNav(view);
-    return;
+  const minhas = (state.ocorrenciasColab || []).slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+  const tab = (state.view.pontoTab === "ocorrencias") ? "ocorrencias" : "bh";
+  const chips = `<div class="pp-chips-f" id="cp-ponto-tabs">
+    <button class="pp-chip-f ${tab === "bh" ? "on" : ""}" data-ponto-tab="bh">Banco de horas</button>
+    <button class="pp-chip-f ${tab === "ocorrencias" ? "on" : ""}" data-ponto-tab="ocorrencias">Ocorrências${minhas.length ? ` <span class="pp-chip-f__c">${minhas.length}</span>` : ""}</button>
+  </div>`;
+  let corpo;
+  if (tab === "ocorrencias") {
+    corpo = minhas.length
+      ? `${minhas.map(colabOccCardHtml).join("")}<div class="cp-bhnote" style="margin-top:12px;padding:0 4px">${cpIcon("info")}<span>Você vê apenas as suas ocorrências, só para acompanhar. Dúvidas, fale com seu líder.</span></div>`
+      : `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Nenhuma ocorrência sua registrada. Tudo certo.</p></div>`;
+  } else {
+    corpo = colabBhTabHtml(f);
   }
-  view.innerHTML = `
-    <div class="pp-fade">
-      <div class="pp-hi"><h1>Meu ponto</h1></div>
-      <div class="pp-ovl">Banco de horas</div>
-      ${bhHeroHtml(f)}
-      <div class="cp-bh-note" style="margin-top:10px">${cpIcon("info")}<span>Seu saldo atual de banco de horas, atualizado pelo GP na apuração do ponto. O detalhamento dia a dia chega em breve.</span></div>
-    </div>`;
+  view.innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Meu ponto</h1></div>${chips}${corpo}</div>`;
+  $$("#cp-ponto-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.pontoTab = b.dataset.pontoTab; renderApp(); }));
   bindColabNav(view);
+}
+
+// Aba "Banco de horas": saldo (hero) + últimos 10 dias de marcação quando o pipeline publicar
+// state.meuSaldoBH.dias[]. Sem o dado, mostra só o saldo + nota "em breve".
+function colabBhTabHtml(f) {
+  if (f && f.bhExempt) return `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>`;
+  const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias)) ? state.meuSaldoBH.dias.slice(0, 10) : [];
+  const detalhe = dias.length
+    ? `<div class="pp-ovl" style="margin-top:18px">Últimos 10 dias</div>${dias.map(colabDiaMarcHtml).join("")}<div class="cp-bhnote">${cpIcon("info")}<span>As marcações e o saldo vêm da apuração do ponto, atualizadas pelo GP. Dúvida em algum dia, fale com seu líder.</span></div>`
+    : `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O detalhamento dos últimos dias aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
+  return `${bhHeroHtml(f)}${detalhe}`;
+}
+
+const CP_SIT = { folga: "Folga", falta: "Falta", falta_justificada: "Falta justificada", faltajustificada: "Falta justificada", feriado: "Feriado", dsr: "DSR", ferias: "Férias", afastado: "Afastado", atestado: "Atestado" };
+function cpSitLabel(s) { const k = String(s || "").toLowerCase().replace(/[\s-]/g, "_"); return CP_SIT[k] || (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : ""); }
+function cpDow(dataIso) {
+  try { return new Date(String(dataIso) + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short" }).replace(/\.$/, "").slice(0, 3); }
+  catch (e) { return ""; }
+}
+
+// Um dia da lista "Últimos 10 dias" — tolerante ao formato do pipeline: marcacoes array OU string;
+// saldoDiaFmt OU saldoDiaMin; situacao p/ dia sem batida (folga/falta/feriado...).
+function colabDiaMarcHtml(d) {
+  const iso = d.dataIso || d.data || "";
+  const dia = String(iso).slice(8, 10) || "--";
+  const dow = cpDow(iso);
+  const off = !!(d.situacao && /folga|falta|feriado|dsr|f[ée]rias|afast|atestado/i.test(d.situacao));
+  let marc;
+  if (off) marc = cpSitLabel(d.situacao);
+  else if (Array.isArray(d.marcacoes)) marc = d.marcacoes.filter(Boolean).join(" · ");
+  else if (d.marcacoes) marc = String(d.marcacoes).trim().split(/\s+/).filter(Boolean).join(" · ");
+  else marc = "—";
+  const sMin = (typeof d.saldoDiaMin === "number") ? d.saldoDiaMin : (typeof d.saldoMin === "number" ? d.saldoMin : null);
+  const sFmt = d.saldoDiaFmt || d.saldoFmt || (sMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(sMin) : "");
+  const cls = (off || sMin == null) ? "cp-dia__s--zero" : (sMin > 0 ? "cp-dia__s--pos" : (sMin < 0 ? "cp-dia__s--neg" : "cp-dia__s--zero"));
+  const sTxt = off ? "—" : (sFmt || (sMin === 0 ? "00:00" : "—"));
+  return `<div class="cp-dia"><div class="cp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div><div class="cp-dia__m${off ? " cp-dia__m--off" : ""}">${escapeHtml(marc)}</div><div class="cp-dia__s ${cls}">${escapeHtml(sTxt)}</div></div>`;
+}
+
+// Card read-only de ocorrência do próprio colaborador (sem ações; só acompanhar).
+function colabOccCardHtml(o) {
+  const tipo = (typeof getTipo === "function" && getTipo(o.tipo)) || null;
+  const tipoLbl = (tipo && tipo.label) || o.tipo || "Ocorrência";
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const setor = (f && f.setor) || "";
+  const turnoLbl = (f && f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label : "";
+  const sub = [setor, turnoLbl, o.horario].filter(Boolean).join(" · ") || "—";
+  const dia = (typeof formatDay === "function") ? formatDay(o.data) : String(o.data || "").slice(8, 10);
+  const mes = (typeof formatMonth === "function") ? formatMonth(o.data) : "";
+  const st = (typeof isLancada === "function" && isLancada(o)) ? ["lanc", "Lançada"]
+    : (typeof isPending === "function" && isPending(o)) ? ["pend", "Pendente"]
+      : ["ok", "Conferida"];
+  return `<div class="cp-occ">
+    <div class="cp-occ__date"><b>${escapeHtml(dia)}</b><span>${escapeHtml(mes)}</span></div>
+    <div class="cp-occ__bd"><div class="cp-occ__t">${escapeHtml(tipoLbl)}</div><div class="cp-occ__s">${escapeHtml(sub)}</div></div>
+    <span class="cp-occ__st cp-occ__st--${st[0]}"><span class="dot"></span>${st[1]}</span>
+  </div>`;
 }
 
 function renderColabConta() {
@@ -10329,7 +10389,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.13.3";
+window.CURRENT_VERSION = "1.14.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
