@@ -607,3 +607,10 @@ Mantém "cria-e-nunca-reabre": o pipeline nunca volta um status que o app já av
 Na entrada anterior registrei "GH (Gestão Humana)" — **errado**. O William corrigiu o próprio engano: o setor na Fiobras é **GP — Gestão de Pessoas** (nem RH, nem GH). Substituir GH→GP em tudo: label da aba "GP confere", textos visíveis (slogan "o batimento do RH" no `index.html` ×5, `changelog.js`, `roadmap.js`), e o status interno `gp_confere` **se** decidirmos renomear.
 
 Missão corrigida pro PC: `inbox-pc/2026-06-30-gp-gestao-de-pessoas.md` (substitui a `...gh-nao-rh-e-piso-julho.md`). **Escopo em decisão com o William:** só texto visível (seguro) × também o identificador interno do papel `rh`→`gp` (migração de user docs + `firestore.rules` + 34 refs no app — risco; precisa de plano). O `rh_confere`→`gp_confere` é barato agora (coleção vazia) se for "tudo".
+
+
+---
+
+## 2026-06-30 · ✅ GP — decisões do William: só texto visível + remover o slogan
+
+Sobre o RH→GP, William decidiu: (1) **escopo só VISÍVEL** — NÃO renomear o papel interno `rh`/`isRH()`/`firestore.rules`/role nos user docs/`rh_confere` (invisível; zero migração/risco; meu uploader segue `rh_confere`); (2) **remover o slogan** "Fiobras · o batimento do RH" (não substituir, só tirar — "não precisa por ora"); (3) demais textos visíveis → GP (aba "GP confere", `changelog.js`, `roadmap.js`). Repassado ao PC: `inbox-pc/2026-06-30-gp-decisoes-william.md`. Meu lado (pipeline) não muda nada — é tudo texto/UI do app.
