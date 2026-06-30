@@ -5145,8 +5145,20 @@ function openDisciplinarModal() {
         <textarea id="disc-desc" rows="3" placeholder="Detalhe o ocorrido (datas, contexto)..."></textarea>
       </div>
       <div class="field">
-        <label for="disc-anexo">Documento anexado <span style="color:var(--danger)">*</span></label>
-        <input type="url" id="disc-anexo" placeholder="Cole o link do documento (Drive/OneDrive)">
+        <label>Documento anexado <span style="color:var(--danger)">*</span></label>
+        ${window.driveUploadDisponivel ? `
+        <div class="doc-up">
+          <label class="doc-drop" id="disc-drop">
+            <input type="file" id="disc-file-input" accept=".pdf,.doc,.docx,image/*" hidden />
+            <span class="doc-drop__ic">${icon("upload")}</span>
+            <span class="doc-drop__t">Escolher arquivo do computador</span>
+            <span class="doc-drop__s">PDF ou imagem. Sobe pro Drive da empresa.</span>
+          </label>
+          <div class="doc-file" id="disc-file" hidden></div>
+          <div class="doc-or"><span>ou cole um link que já existe no Drive</span></div>
+        ` : ""}
+        <input type="url" id="disc-anexo" placeholder="https://drive.google.com/file/d/..." data-nome="">
+        ${window.driveUploadDisponivel ? `</div>` : ""}
         <span class="field__hint">É esse documento que o colaborador vai abrir e ler antes de dar ciência.</span>
       </div>
       <div class="doc-warn" style="background:var(--info-bg);border-color:transparent">${icon("shield")}<span>Acesso restrito a admin, RH e ao líder do turno. O colaborador vê a própria, abre o documento e dá ciência (registrada com data e hora).</span></div>
@@ -5173,6 +5185,29 @@ function openDisciplinarModal() {
         diasWrap.style.display = tipo === "suspensao" ? "" : "none";
       }));
       modal.querySelector("#disc-func").addEventListener("change", atualizaAviso);
+      // Upload do documento direto pro Drive (reusa o OAuth/uploader dos documentos).
+      const dFile = modal.querySelector("#disc-file-input");
+      if (dFile) {
+        const box = modal.querySelector("#disc-file"), drop = modal.querySelector("#disc-drop"), urlIn = modal.querySelector("#disc-anexo");
+        const showBox = (html) => { if (box) { box.hidden = false; box.innerHTML = html; } if (drop) drop.style.display = "none"; };
+        const resetBox = () => { if (box) { box.hidden = true; box.innerHTML = ""; } if (drop) drop.style.display = ""; };
+        dFile.addEventListener("change", async () => {
+          const file = dFile.files && dFile.files[0];
+          if (!file) return;
+          if (file.size > 25 * 1024 * 1024) { toast("Arquivo acima de 25 MB. Reduza ou anexe por link.", "danger"); dFile.value = ""; return; }
+          showBox(`<div class="doc-file__row"><span class="doc-file__ic doc-file__ic--load">${icon("spinner")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(file.name)}</div><div class="doc-file__s">Enviando pro Drive...</div></div></div>`);
+          try {
+            if (window.preAquecerTokenDrive) await window.preAquecerTokenDrive();
+            const res = await window.uploadDocumentoToDrive(file);
+            if (urlIn) { urlIn.value = res.webViewLink || ""; urlIn.dataset.nome = file.name; }
+            showBox(docFileRowHtml(file.name, res.webViewLink));
+          } catch (e) {
+            showBox(`<div class="doc-file__row doc-file__row--err"><span class="doc-file__ic">${icon("alert")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(file.name)}</div><div class="doc-file__s">${escapeHtml(e.message || "Falha no upload")}</div></div><button type="button" class="doc-file__x" data-disc-file-reset aria-label="Tentar de novo">${icon("x")}</button></div>`);
+          }
+          dFile.value = "";
+        });
+        if (box) box.addEventListener("click", (e) => { if (e.target.closest("[data-disc-file-reset]")) { if (urlIn) { urlIn.value = ""; urlIn.dataset.nome = ""; } resetBox(); } });
+      }
       modal.querySelector("#disc-salvar").addEventListener("click", () => salvarDisciplinar(() => tipo));
     },
   });
@@ -5184,11 +5219,13 @@ async function salvarDisciplinar(getTipo) {
   const data = $("#disc-data")?.value;
   const motivo = $("#disc-motivo")?.value;
   const descricao = $("#disc-desc")?.value || "";
-  const anexo = ($("#disc-anexo")?.value || "").trim();
+  const anexoEl = $("#disc-anexo");
+  const anexo = (anexoEl?.value || "").trim();
+  const anexoNome = (anexoEl && anexoEl.dataset.nome) || motivo || "documento";
   const dias = tipo === "suspensao" ? Number($("#disc-dias")?.value || 0) : null;
   if (!fid) return toast("Escolha o funcionário.", "danger");
   if (!data) return toast("Informe a data.", "danger");
-  if (!anexo) return toast("Anexe o documento (link).", "danger");
+  if (!anexo) return toast("Anexe o documento (arquivo ou link).", "danger");
   if (typeof ehUrlSegura === "function" && !ehUrlSegura(anexo)) return toast("Link do documento inválido.", "danger");
   if (tipo === "suspensao" && (!dias || dias < 1)) return toast("Informe os dias de suspensão.", "danger");
   const f = (state.funcionarios || []).find((x) => x.id === fid);
@@ -5200,7 +5237,7 @@ async function salvarDisciplinar(getTipo) {
     funcionarioCargo: (f && f.cargo) || "",
     funcionarioSetor: (f && f.setor) || "",
     tipo, data, motivo, descricao, dias,
-    anexo: { url: anexo, nome: motivo || "documento" },
+    anexo: { url: anexo, nome: anexoNome },
   });
 }
 
