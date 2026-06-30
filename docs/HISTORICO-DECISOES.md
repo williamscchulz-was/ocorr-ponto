@@ -587,3 +587,14 @@ Mantém "cria-e-nunca-reabre": o pipeline nunca volta um status que o app já av
 **Decisão (William):** **desligar o Pages.** Settings → Pages → Build and deployment → Source "Deploy from a branch" → **Branch = None** + Save. Site unpublished; os emails de falha cessam. **Produção intacta** — Firebase não usa Pages, e não há CNAME no repo apontando o domínio pro Pages.
 
 **Aprendizado (como distinguir Firebase × GitHub Pages):** (a) **IP** — Firebase Hosting = `199.36.158.100`; GitHub Pages = `185.199.108–111.153`. (b) **Header** — Pages sempre manda `Server: GitHub.com` + `X-GitHub-Request-Id`; Firebase não. Útil pra futuras dúvidas de "qual URL é servida por quem".
+
+
+---
+
+## 2026-06-30 · 🏷️ "GH" não "RH" + piso de go-live 01/07 (coleção zerada)
+
+**William (vendo a aba nova no ar):** "mostrar somente ocorrências a partir de julho — essa aba deveria estar vazia agora. Além disso, não é RH na Fiobras, é GH."
+
+**Piso de go-live (meu lado — FEITO):** `process-ocorrencias-rh.py` ganhou `GO_LIVE = "2026-07-01"` — descarta ocorrência com `dataIso < 2026-07-01` (junho era teste/sandbox). Re-rodei o parser no CSV de junho: 199 brutas → 28 cortadas (D-1, dia aberto) → **171 cortadas (pré-go-live) → 0**. `upload-ocorrencias-auto.mjs --reset` zerou a coleção (73 → 0). **Aba vazia agora**; de 02/07 entram só ocorrências de julho+ (com o D-1 de sempre). Casa com o reset mensal automático que já existe.
+
+**"GH" não "RH" (pro PC):** na Fiobras o setor é **GH (Gestão Humana)**, não Recursos Humanos. Missão `inbox-pc/2026-06-30-gh-nao-rh-e-piso-julho.md`: PC troca o label `RH confere` → `GH confere` (e todo "RH" visível → GH). O status interno `rh_confere` → `gh_confere` foi proposto como rename **opcional COORDENADO** (coleção vazia = momento limpo; landar antes de 02/07) — aguardando o PC decidir o caminho.
