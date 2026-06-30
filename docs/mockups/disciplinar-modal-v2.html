@@ -12,15 +12,22 @@
   #disc-form .field{margin:0}
   #disc-form .field>label{margin-bottom:7px}
   #disc-form .ovl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:0 0 2px}
-  #disc-form .disc-cols{display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:start}
+  #disc-form .disc-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
   #disc-form .disc-col{display:flex;flex-direction:column;gap:18px}
   #disc-form .disc-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  /* painel do documento (zona de prova, levemente destacada) */
-  #disc-form .disc-doc{background:var(--surface-warm);border:1px solid var(--border);border-radius:14px;padding:16px}
-  #disc-form .disc-doc>.ovl{margin-bottom:12px}
-  #disc-form .disc-doc .doc-drop{background:var(--surface);min-height:124px;justify-content:center}
-  #disc-form .disc-doc input[type=url]{background:var(--surface)}
-  #disc-form .disc-doc .field__hint{margin-top:9px}
+  /* documento: campo limpo, sem caixa em volta (minimalista) */
+  #disc-form .disc-cols>.field{display:flex;flex-direction:column;gap:11px}
+  #disc-form .disc-cols>.field>label{margin:0}
+  #disc-form .doc-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;border:1px solid var(--border);border-radius:12px;background:transparent;padding:26px 14px;cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+  #disc-form .doc-drop:hover{border-color:var(--plum);background:var(--surface-warm)}
+  #disc-form .doc-drop__ic{width:auto;height:auto;background:none;color:var(--plum);margin:0}
+  #disc-form .doc-drop__ic .icon{width:22px;height:22px}
+  #disc-form .doc-drop__t{font-size:13.5px;font-weight:600;color:var(--text-body)}
+  #disc-form .doc-drop__s{font-size:11.5px;color:var(--text-muted)}
+  #disc-form .doc-or{text-align:center;font-size:11.5px;color:var(--text-muted);margin:1px 0}
+  #disc-form .doc-or::before,#disc-form .doc-or::after{display:none}
+  #disc-form .doc-or span{background:none;padding:0}
+  #disc-form .field__hint{margin:0}
   #disc-form .doc-warn{margin:0}
   @media(max-width:680px){#disc-form .disc-cols,#disc-form .disc-pair{grid-template-columns:1fr}}
 </style></head>
@@ -57,8 +64,8 @@
         <div class="field"><label>Descrição</label><textarea rows="5" placeholder="Detalhe o ocorrido (datas, contexto)..."></textarea></div>
       </div>
 
-      <div class="disc-doc">
-        <div class="ovl">Documento anexado <span style="color:var(--danger)">*</span></div>
+      <div class="field">
+        <label>Documento anexado <span style="color:var(--danger)">*</span></label>
         <label class="doc-drop">
           <span class="doc-drop__ic"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
           <span class="doc-drop__t">Escolher arquivo do computador</span>
