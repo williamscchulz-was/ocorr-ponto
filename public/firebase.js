@@ -1321,6 +1321,85 @@
       return r;
     };
 
+    // ===== Disciplinares (advertencia/suspensao) — dado SENSIVEL =====
+    // Gestor (admin/RH le tudo, lider le do turno dele). Sem orderBy nas queries com where
+    // (evita indice composto); ordena no cliente. Auditoria no create/delete.
+    async function recarregarDisciplinares() {
+      try {
+        const u = currentUser();
+        let snap = null;
+        if (u.role === "admin" || u.role === "rh") {
+          snap = await db.collection("disciplinares").get();
+        } else if (u.role === "lider") {
+          snap = await db.collection("disciplinares").where("funcionarioTurno", "==", u.turno).get();
+        } else { state.disciplinares = state.disciplinares || []; return; }
+        const arr = [];
+        for (const d of snap.docs) {
+          const dat = d.data();
+          const o = { id: d.id, ...dat, criadoEm: tsToIso(dat.criadoEm), ciencias: [] };
+          try { const cs = await d.ref.collection("ciencia").get(); o.ciencias = cs.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) })); } catch (e) { /* sem ciencias visiveis */ }
+          arr.push(o);
+        }
+        arr.sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
+        state.disciplinares = arr;
+      } catch (e) { debug?.("[disciplinares] load:", e?.message || e); state.disciplinares = state.disciplinares || []; }
+    }
+    window.recarregarDisciplinares = recarregarDisciplinares;
+
+    window.criarDisciplinar = async function (dados) {
+      const u = currentUser();
+      try {
+        const ref = await db.collection("disciplinares").add({
+          funcionarioId: dados.funcionarioId,
+          funcionarioNome: dados.funcionarioNome || "",
+          funcionarioTurno: (dados.funcionarioTurno === undefined ? null : dados.funcionarioTurno),
+          funcionarioCargo: dados.funcionarioCargo || "",
+          funcionarioSetor: dados.funcionarioSetor || "",
+          tipo: dados.tipo,
+          data: dados.data || null,
+          motivo: dados.motivo || "",
+          descricao: dados.descricao || "",
+          dias: dados.tipo === "suspensao" ? (Number(dados.dias) || 0) : null,
+          anexo: (dados.anexo && dados.anexo.url) ? { url: dados.anexo.url, nome: dados.anexo.nome || "" } : null,
+          aplicadoPor: (auth.currentUser && auth.currentUser.uid) || null,
+          aplicadoPorNome: (u && u.nome) || "",
+          criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        window.registrarAuditoria?.({ tipo: "disciplinar", acao: "Registrou " + (dados.tipo === "suspensao" ? "suspensao" : "advertencia " + dados.tipo), alvo: dados.funcionarioNome || dados.funcionarioId });
+        await recarregarDisciplinares();
+        closeModal(); toast("Ocorrência disciplinar registrada."); renderApp();
+        return { ok: true, id: ref.id };
+      } catch (e) { toast("Erro: " + (e?.message || e), "danger"); return { ok: false, err: e?.message }; }
+    };
+
+    window.excluirDisciplinar = async function (id) {
+      const d = (state.disciplinares || []).find((x) => x.id === id);
+      try {
+        await db.collection("disciplinares").doc(id).delete();
+        window.registrarAuditoria?.({ tipo: "disciplinar", acao: "Excluiu registro disciplinar", alvo: (d && d.funcionarioNome) || id });
+        await recarregarDisciplinares();
+        toast("Registro excluído."); renderApp();
+      } catch (e) { toast("Erro ao excluir: " + (e?.message || e), "danger"); }
+    };
+
+    // Colaborador da ciencia (self-write na subcolecao). So o dono consegue (rule).
+    window.darCienciaDisciplinar = async function (id) {
+      const u = currentUser();
+      try {
+        const uid = auth.currentUser && auth.currentUser.uid;
+        await db.collection("disciplinares").doc(id).collection("ciencia").doc(uid).set({
+          uid,
+          funcionarioId: (u && u.funcionarioId) || "",
+          em: firebase.firestore.FieldValue.serverTimestamp(),
+          userAgent: (navigator.userAgent || "").slice(0, 200),
+        });
+        const d = (state.disciplinaresColab || []).find((x) => x.id === id);
+        if (d) d.minhaCiencia = { em: new Date().toISOString() };
+        toast("Ciência registrada."); renderApp();
+        return { ok: true };
+      } catch (e) { toast("Não consegui registrar: " + (e?.message || e), "danger"); return { ok: false }; }
+    };
+
     // Import Banco de Horas: substituição completa em /bancoHoras
     window.doImportBancoHorasFirebase = async function (entries) {
       const u = currentUser();
@@ -2650,6 +2729,25 @@
         state.documentosColab = darr; state._dbgDocN = darr.length;
       } catch (e) { debug?.("[colab] documentos:", e?.message || e); state._dbgDocErr = (e && (e.code || e.message)) || String(e); state.documentosColab = []; }
 
+      // Registro disciplinar do PROPRIO colaborador (advertencia/suspensao). where(funcionarioId==)
+      // sem orderBy (sem indice composto); ordena no cliente. Le tambem a propria ciencia.
+      state.disciplinaresColab = [];
+      if (u.funcionarioId) {
+        try {
+          const uidC = auth.currentUser && auth.currentUser.uid;
+          const dsnap = await db.collection("disciplinares").where("funcionarioId", "==", u.funcionarioId).get();
+          const arr = [];
+          for (const dd of dsnap.docs) {
+            const dat = dd.data();
+            const o = { id: dd.id, ...dat, criadoEm: tsToIso(dat.criadoEm), minhaCiencia: null };
+            try { const c = await dd.ref.collection("ciencia").doc(uidC).get(); if (c.exists) o.minhaCiencia = { ...c.data(), em: tsToIso(c.data().em) }; } catch (e) { /* */ }
+            arr.push(o);
+          }
+          arr.sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
+          state.disciplinaresColab = arr;
+        } catch (e) { debug?.("[colab] disciplinares:", e?.message || e); state.disciplinaresColab = []; }
+      }
+
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
       try { await window.carregarAniversariantes(); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
       return;
@@ -2690,6 +2788,12 @@
     state.documentos = state.documentos || [];
     if (typeof can === "function" && can("documentos.gerenciar")) {
       await recarregarDocumentos();
+    }
+
+    // Disciplinar (advertencia/suspensao) — admin/RH veem tudo; lider ve só do turno dele.
+    state.disciplinares = state.disciplinares || [];
+    if (u.role === "admin" || u.role === "rh" || u.role === "lider") {
+      try { await recarregarDisciplinares(); } catch (e) { debug?.("[disciplinares] boot:", e?.message || e); }
     }
 
     // Banco de Horas — fontes diferentes por papel pra isolamento por turno:

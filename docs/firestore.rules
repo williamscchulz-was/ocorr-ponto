@@ -421,6 +421,45 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ===== disciplinares (advertencia/suspensao) — registro disciplinar SENSIVEL =====
+    // Registra: admin/RH. Le: admin/RH, lider do TURNO do funcionario, e o PROPRIO
+    // colaborador (so a dele, via funcionarioId). Tem anexo (doc) + ciencia do colaborador
+    // (subcolecao self-write, append-only). Delete so admin. Auditoria em /auditoria (create).
+    match /disciplinares/{id} {
+      allow read: if isAdmin() || isRH()
+        || liderDoMesmoTurno(resource.data.funcionarioTurno)
+        || (isColaborador() && resource.data.funcionarioId == meuFuncionarioId());
+
+      allow create: if (isAdmin() || isRH())
+        && request.resource.data.aplicadoPor == request.auth.uid
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.funcionarioId is string
+        && request.resource.data.funcionarioId.size() > 0
+        && request.resource.data.tipo in ['verbal', 'escrita', 'suspensao'];
+
+      // Edicao restrita (correcao de motivo/descricao/anexo/dias/data) por admin/RH;
+      // funcionario/tipo/aplicadoPor/criadoEm sao imutaveis.
+      allow update: if (isAdmin() || isRH())
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['motivo', 'descricao', 'anexo', 'dias', 'data', 'editadoEm', 'editadoPor']);
+
+      allow delete: if isAdmin();
+
+      // ciencia/{uid}: o colaborador DONO confirma que leu. Append-only, self-write,
+      // amarrada ao dono do registro pai (funcionarioId == meuFuncionarioId).
+      match /ciencia/{uid} {
+        allow read: if isAdmin() || isRH()
+          || liderDoMesmoTurno(get(/databases/$(database)/documents/disciplinares/$(id)).data.funcionarioTurno)
+          || (isAuthed() && request.auth.uid == uid);
+        allow create: if isAuthed()
+          && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'em', 'userAgent'])
+          && get(/databases/$(database)/documents/disciplinares/$(id)).data.funcionarioId == meuFuncionarioId();
+        allow update, delete: if false;
+      }
+    }
+
     // ----- Helpers de atualização -----
 
     // GH editando só a observação (anotação benigna) — sempre permitido,
