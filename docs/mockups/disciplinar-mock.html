@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Controle disciplinar (mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    --bg:#EDF2EA;--card:#fff;--card2:#F6F9F4;--bd:#E2EADF;--bd2:#D6E0D2;
+    --brand:#0E8C3F;--brand-d:#0B6E33;--gtx:#0E8C3F;
+    --tx:#16201A;--txw:#5B6B57;--txw2:#7C8A77;
+    --amber:#C98A2A;--amber-bg:rgba(201,138,42,.14);
+    --orange:#C26A22;--orange-bg:rgba(194,106,34,.14);
+    --red:#C5453B;--red-bg:rgba(197,69,59,.12);
+    --green-bg:rgba(14,140,63,.12);--info:#3D7CC0;--info-bg:rgba(61,124,192,.12);
+    --sh:0 1px 3px rgba(0,40,20,.07),0 6px 18px rgba(0,40,20,.05);
+    --sh-lg:0 12px 40px -12px rgba(0,40,20,.3);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);font-family:Poppins,system-ui,sans-serif;color:var(--tx);-webkit-font-smoothing:antialiased;padding:30px 20px 80px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .note{font-size:13px;color:var(--txw);background:var(--card);border:1px dashed var(--bd2);border-radius:12px;padding:12px 16px;margin-bottom:22px;line-height:1.6}
+  .note b{color:var(--tx)}
+  .seclabel{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+  .seclabel::after{content:"";flex:1;height:1px;background:var(--bd)}
+
+  /* PANEL (a tela) */
+  .panel{background:var(--bg);border:1px solid var(--bd);border-radius:18px;padding:22px;box-shadow:var(--sh)}
+  .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .ph h1{font-size:23px;font-weight:800;letter-spacing:-.02em}
+  .ph p{font-size:13.5px;color:var(--txw);margin-top:3px}
+  .btn{height:42px;border:0;border-radius:11px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px}
+  .btn i{font-size:18px}
+  .btn--primary{background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;box-shadow:0 6px 16px -7px rgba(0,80,40,.5)}
+  .btn--ghost{background:var(--card);border:1px solid var(--bd2);color:var(--tx)}
+  .btn--danger{background:var(--red-bg);color:var(--red)}
+  .btn--sm{height:34px;font-size:12.5px;padding:0 12px;border-radius:9px}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:15px;box-shadow:var(--sh)}
+  .stat__l{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--txw)}
+  .stat__v{font-size:27px;font-weight:800;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+  .stat__h{font-size:11px;color:var(--txw);margin-top:2px}
+  .stat--alert .stat__v{color:var(--red)}
+
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .search{flex:1;min-width:220px;height:42px;background:var(--card);border:1px solid var(--bd2);border-radius:11px;display:flex;align-items:center;gap:9px;padding:0 14px;color:var(--txw)}
+  .search input{flex:1;border:0;background:none;font:inherit;font-size:13.5px;color:var(--tx);outline:none}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--bd2);background:var(--card);color:var(--txw);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .chip.on{background:var(--brand);border-color:transparent;color:#fff}
+
+  /* registro (linha) */
+  .list{display:flex;flex-direction:column;gap:10px}
+  .rec{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;box-shadow:var(--sh);display:flex;align-items:center;gap:14px}
+  .rec__bar{width:4px;align-self:stretch;border-radius:4px;flex:none}
+  .rec__av{width:44px;height:44px;border-radius:13px;background:var(--green-bg);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:none}
+  .rec__main{flex:1;min-width:0}
+  .rec__top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .rec__nome{font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .rec__cargo{font-size:11.5px;color:var(--txw)}
+  .rec__motivo{font-size:13px;color:var(--txw);margin-top:5px;line-height:1.45}
+  .rec__r{flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .rec__data{font-size:12px;color:var(--txw);font-variant-numeric:tabular-nums}
+  .badge{display:inline-flex;align-items:center;gap:5px;height:25px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700}
+  .badge i{font-size:13px}
+  .badge--verbal{background:var(--amber-bg);color:var(--amber)}
+  .badge--escrita{background:var(--orange-bg);color:var(--orange)}
+  .badge--susp{background:var(--red-bg);color:var(--red)}
+  .escala{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--txw);background:var(--card2);border:1px solid var(--bd);border-radius:999px;padding:3px 10px}
+  .escala b{color:var(--tx)}
+  .dots{display:inline-flex;gap:3px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--bd2)}
+  .dot.on{background:var(--amber)}
+  .dot.red{background:var(--red)}
+  .rec__acts{display:flex;gap:6px;flex:none}
+  .iconbtn{width:34px;height:34px;border-radius:9px;border:1px solid var(--bd2);background:var(--card);color:var(--txw);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .iconbtn.dang{color:var(--red);border-color:transparent;background:var(--red-bg)}
+
+  /* MODAL */
+  .modal{background:var(--card);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--sh-lg);max-width:560px;margin:0 auto;overflow:hidden}
+  .modal__h{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 22px 14px;border-bottom:1px solid var(--bd)}
+  .modal__h h2{font-size:18px;font-weight:700}
+  .modal__h p{font-size:12.5px;color:var(--txw);margin-top:3px}
+  .modal__x{width:32px;height:32px;border-radius:50%;background:var(--card2);border:0;color:var(--txw);font-size:18px;cursor:pointer}
+  .modal__b{padding:18px 22px;display:flex;flex-direction:column;gap:15px}
+  .field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+  .field label .req{color:var(--red)}
+  .inp{width:100%;height:44px;border:1px solid var(--bd2);border-radius:11px;background:var(--card2);padding:0 13px;font:inherit;font-size:14px;color:var(--tx)}
+  .inp--sel{display:flex;align-items:center;gap:10px}
+  .inp--sel .av{width:30px;height:30px;border-radius:9px;background:var(--green-bg);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  textarea.inp{height:auto;min-height:80px;padding:11px 13px;resize:vertical;line-height:1.5}
+  .seg{display:flex;background:var(--card2);border:1px solid var(--bd2);border-radius:12px;padding:3px;gap:3px}
+  .seg button{flex:1;height:40px;border:0;background:transparent;color:var(--txw);font:inherit;font-size:12.5px;font-weight:600;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .seg button i{font-size:16px}
+  .seg button.on.verbal{background:var(--amber);color:#fff}
+  .seg button.on.escrita{background:var(--orange);color:#fff}
+  .seg button.on.susp{background:var(--red);color:#fff}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .infobox{display:flex;gap:10px;background:var(--info-bg);border-radius:11px;padding:11px 13px;font-size:12px;color:var(--info);line-height:1.5}
+  .infobox i{font-size:17px;flex:none;margin-top:1px}
+  .escalabox{display:flex;align-items:center;gap:12px;background:var(--amber-bg);border-radius:11px;padding:12px 14px}
+  .escalabox .ic{width:34px;height:34px;border-radius:10px;background:rgba(201,138,42,.2);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+  .escalabox .tx{flex:1;font-size:12.5px;color:var(--tx)}
+  .escalabox .tx b{display:block;margin-bottom:1px}
+  .modal__f{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px 20px;border-top:1px solid var(--bd)}
+  @media(max-width:680px){.stats{grid-template-columns:1fr 1fr}.row2{grid-template-columns:1fr}.rec{flex-wrap:wrap}.rec__r{align-items:flex-start;text-align:left}}
+</style></head>
+<body>
+<div class="wrap">
+
+  <div class="note"><b>Mock pra aprovação · Controle disciplinar (advertência e suspensão) no portal do gestor.</b><br>
+  Quem registra: admin e RH. Quem vê: admin, RH e liderança de turno (do seu turno). Colaborador não vê. Dado sensível: acesso restrito + trilha de auditoria. Nada implementado ainda; só desenho.</div>
+
+  <div class="seclabel"><i class="ti ti-gavel"></i> 1. Tela principal (lista por funcionário)</div>
+
+  <div class="panel">
+    <div class="ph">
+      <div><h1>Controle disciplinar</h1><p>Advertências e suspensões. Registro restrito ao RH, com trilha de auditoria.</p></div>
+      <button class="btn btn--primary"><i class="ti ti-plus"></i> Registrar ocorrência</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat__l">Advertências no mês</div><div class="stat__v">7</div><div class="stat__h">verbais + escritas</div></div>
+      <div class="stat stat--alert"><div class="stat__l">Suspensões no mês</div><div class="stat__v">2</div><div class="stat__h">total 5 dias</div></div>
+      <div class="stat"><div class="stat__l">Reincidentes</div><div class="stat__v">3</div><div class="stat__h">2+ ocorrências em 90 dias</div></div>
+      <div class="stat"><div class="stat__l">Com ocorrência ativa</div><div class="stat__v">9</div><div class="stat__h">de 145 ativos</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search"><i class="ti ti-search"></i><input placeholder="Buscar funcionário..."></div>
+      <div class="chips">
+        <button class="chip on">Todas</button>
+        <button class="chip">Advertência</button>
+        <button class="chip">Suspensão</button>
+        <button class="chip"><i class="ti ti-clock"></i> Todos os turnos</button>
+      </div>
+    </div>
+
+    <div class="list">
+      <div class="rec">
+        <span class="rec__bar" style="background:var(--red)"></span>
+        <span class="rec__av">CZ</span>
+        <div class="rec__main">
+          <div class="rec__top">
+            <span class="rec__nome">Carlos Zoz</span>
+            <span class="badge badge--susp"><i class="ti ti-ban"></i> Suspensão · 2 dias</span>
+            <span class="escala">3ª ocorrência <span class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot red"></span></span></span>
+          </div>
+          <div class="rec__cargo">Tintureiro III · Diretos Beneficiamento · 3º turno</div>
+          <div class="rec__motivo">Reincidência de faltas injustificadas após duas advertências. Período: 30/06 e 01/07.</div>
+        </div>
+        <div class="rec__r">
+          <span class="rec__data">28/06/2026</span>
+          <div class="rec__acts"><button class="iconbtn"><i class="ti ti-eye"></i></button><button class="iconbtn"><i class="ti ti-paperclip"></i></button></div>
+        </div>
+      </div>
+
+      <div class="rec">
+        <span class="rec__bar" style="background:var(--orange)"></span>
+        <span class="rec__av">EW</span>
+        <div class="rec__main">
+          <div class="rec__top">
+            <span class="rec__nome">Eliziane Waier</span>
+            <span class="badge badge--escrita"><i class="ti ti-file-text"></i> Advertência escrita</span>
+            <span class="escala">2ª ocorrência <span class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></span></span>
+          </div>
+          <div class="rec__cargo">Operador de Máquina I · Repasse · 3º turno</div>
+          <div class="rec__motivo">Saída antecipada sem autorização do líder de turno.</div>
+        </div>
+        <div class="rec__r">
+          <span class="rec__data">26/06/2026</span>
+          <div class="rec__acts"><button class="iconbtn"><i class="ti ti-eye"></i></button><button class="iconbtn"><i class="ti ti-paperclip"></i></button></div>
+        </div>
+      </div>
+
+      <div class="rec">
+        <span class="rec__bar" style="background:var(--amber)"></span>
+        <span class="rec__av">PS</span>
+        <div class="rec__main">
+          <div class="rec__top">
+            <span class="rec__nome">Paulo Cesar Coelho Santos</span>
+            <span class="badge badge--verbal"><i class="ti ti-message"></i> Advertência verbal</span>
+            <span class="escala">1ª ocorrência <span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span>
+          </div>
+          <div class="rec__cargo">Expedição · Geral</div>
+          <div class="rec__motivo">Atraso recorrente no início do turno.</div>
+        </div>
+        <div class="rec__r">
+          <span class="rec__data">24/06/2026</span>
+          <div class="rec__acts"><button class="iconbtn"><i class="ti ti-eye"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seclabel"><i class="ti ti-pencil-plus"></i> 2. Registrar ocorrência (modal)</div>
+
+  <div class="modal">
+    <div class="modal__h">
+      <div><h2>Registrar ocorrência disciplinar</h2><p>Dado sensível. Fica registrado quem aplicou, data e hora.</p></div>
+      <button class="modal__x"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal__b">
+      <div class="field">
+        <label>Funcionário <span class="req">*</span></label>
+        <div class="inp inp--sel"><span class="av">CZ</span><span>Carlos Zoz · Tintureiro III · 3º turno</span><i class="ti ti-chevron-down" style="margin-left:auto;color:var(--txw)"></i></div>
+      </div>
+      <div class="field">
+        <label>Tipo <span class="req">*</span></label>
+        <div class="seg">
+          <button class="on verbal"><i class="ti ti-message"></i> Verbal</button>
+          <button class="escrita"><i class="ti ti-file-text"></i> Escrita</button>
+          <button class="susp"><i class="ti ti-ban"></i> Suspensão</button>
+        </div>
+      </div>
+      <div class="escalabox">
+        <span class="ic"><i class="ti ti-alert-triangle"></i></span>
+        <span class="tx"><b>Este funcionário já tem 2 advertências em 90 dias.</b>Pela escala, a próxima ocorrência costuma ser suspensão. Confira antes de registrar.</span>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Data da ocorrência <span class="req">*</span></label><input class="inp" type="text" value="28/06/2026"></div>
+        <div class="field"><label>Dias de suspensão</label><input class="inp" type="text" value="—" disabled style="opacity:.5"></div>
+      </div>
+      <div class="field">
+        <label>Motivo <span class="req">*</span></label>
+        <div class="inp inp--sel"><span>Faltas injustificadas</span><i class="ti ti-chevron-down" style="margin-left:auto;color:var(--txw)"></i></div>
+      </div>
+      <div class="field">
+        <label>Descrição</label>
+        <textarea class="inp" placeholder="Detalhe o ocorrido (datas, contexto)...">Reincidência de faltas injustificadas após duas advertências.</textarea>
+      </div>
+      <div class="field">
+        <label>Anexo (opcional)</label>
+        <div class="inp inp--sel" style="color:var(--txw)"><i class="ti ti-paperclip"></i><span>Anexar documento assinado (PDF) ou link</span></div>
+      </div>
+      <div class="infobox"><i class="ti ti-shield-lock"></i><span>Acesso restrito a admin, RH e à liderança do turno do funcionário. O colaborador não vê esse registro no portal dele.</span></div>
+    </div>
+    <div class="modal__f">
+      <button class="btn btn--ghost">Cancelar</button>
+      <button class="btn btn--primary"><i class="ti ti-check"></i> Registrar ocorrência</button>
+    </div>
+  </div>
+
+  <div class="seclabel"><i class="ti ti-history"></i> 3. Histórico do funcionário (dentro do perfil)</div>
+  <div class="panel" style="max-width:620px">
+    <div class="ph" style="margin-bottom:14px"><div><h1 style="font-size:18px">Histórico disciplinar · Carlos Zoz</h1><p>3 ocorrências · escala em nível de suspensão</p></div></div>
+    <div class="list">
+      <div class="rec" style="padding:12px 14px"><span class="rec__bar" style="background:var(--red)"></span><div class="rec__main"><div class="rec__top"><span class="badge badge--susp"><i class="ti ti-ban"></i> Suspensão · 2 dias</span><span class="rec__data">28/06/2026 · por Suyanne (RH)</span></div><div class="rec__motivo">Faltas injustificadas reincidentes.</div></div></div>
+      <div class="rec" style="padding:12px 14px"><span class="rec__bar" style="background:var(--orange)"></span><div class="rec__main"><div class="rec__top"><span class="badge badge--escrita"><i class="ti ti-file-text"></i> Advertência escrita</span><span class="rec__data">12/06/2026 · por Suyanne (RH)</span></div><div class="rec__motivo">Falta injustificada em 11/06.</div></div></div>
+      <div class="rec" style="padding:12px 14px"><span class="rec__bar" style="background:var(--amber)"></span><div class="rec__main"><div class="rec__top"><span class="badge badge--verbal"><i class="ti ti-message"></i> Advertência verbal</span><span class="rec__data">02/06/2026 · por Adelir (líder)</span></div><div class="rec__motivo">Atraso no início do turno.</div></div></div>
+    </div>
+  </div>
+
+</div>
+</body></html>
