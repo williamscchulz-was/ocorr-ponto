@@ -576,3 +576,14 @@ Mantém "cria-e-nunca-reabre": o pipeline nunca volta um status que o app já av
 **Encaminhamento:** rules + app/firebase são domínio do PC → não mexi. Missão `inbox-pc/2026-06-30-auditoria-leitura-assinatura.md` com 2 opções — **A (recomendada):** auditoria ingere as subcoleções via collectionGroup, sem afrouxar a regra imutável; **B:** afrouxar `/auditoria` pra evento "self" do colaborador — + mudanças de exibição (keywords + chip "Leituras & Assinaturas") + nota de sensibilidade (disciplinar). PC decide a arquitetura.
 
 **À parte (mesmo dia) — email "pages build and deployment ... Failed":** é o GitHub Pages travado (deploy `294e101e` "em andamento" → todo push novo falha). NÃO afeta produção: o app roda no **Firebase** — `gh.fiobras.com.br` e `weave-fiobras.web.app` confirmados por header (sem `Server: GitHub.com`; o github.io tem `Server: GitHub.com` e título diferente "| ocorr-ponto" = espelho vestigial/desatualizado). Recomendado **desligar o Pages** (Settings → Pages → Source: None) pra parar os emails; não toca gh.fiobras.com.br nem weave (ambos Firebase, sem CNAME no repo).
+
+
+---
+
+## 2026-06-30 · 🔌 GitHub Pages DESLIGADO (decisão: William)
+
+**Contexto:** emails "pages build and deployment ... Failed" chegando a cada push. Investigado: o app roda 100% no **Firebase** — `gh.fiobras.com.br` e `weave-fiobras.web.app` resolvem pra `199.36.158.100` (IP do Firebase Hosting) e os headers HTTP não têm `Server: GitHub.com`. O GitHub Pages (`williamscchulz-was.github.io/ocorr-ponto`, IPs `185.199.108–111.153`) era um espelho **vestigial e desatualizado** (título "…| ocorr-ponto"; deploy travado no commit `294e101e` "em andamento" → toda republicação falhava, gerando os emails).
+
+**Decisão (William):** **desligar o Pages.** Settings → Pages → Build and deployment → Source "Deploy from a branch" → **Branch = None** + Save. Site unpublished; os emails de falha cessam. **Produção intacta** — Firebase não usa Pages, e não há CNAME no repo apontando o domínio pro Pages.
+
+**Aprendizado (como distinguir Firebase × GitHub Pages):** (a) **IP** — Firebase Hosting = `199.36.158.100`; GitHub Pages = `185.199.108–111.153`. (b) **Header** — Pages sempre manda `Server: GitHub.com` + `X-GitHub-Request-Id`; Firebase não. Útil pra futuras dúvidas de "qual URL é servida por quem".
