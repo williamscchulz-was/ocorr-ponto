@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.13.0", d: "30 jun 2026", current: true, items: [
+    v: "1.13.1", d: "30 jun 2026", current: true, items: [
+      { type: "feat", title: "No Portal do Colaborador, toque no aviso pra abrir o post inteiro: imagem ampliável em tela cheia, texto completo e o anexo. A confirmação de leitura fica ali dentro." },
+    ],
+  },
+  {
+    v: "1.13.0", d: "30 jun 2026", items: [
       { type: "high", title: "Ocorrências ganhou o estágio \"RH confere\": o RH valida ou dispensa as ocorrências automáticas do ponto, e o que ele valida vai pro líder do turno confirmar." },
       { type: "feat", title: "Comunicados e Documentos agora aparecem em grade, estilo feed: cards menores e visão geral mais rápida." },
       { type: "note", title: "Quem está marcado em rescisão aparece sinalizado na conferência, com a contagem de faltas no mês." },

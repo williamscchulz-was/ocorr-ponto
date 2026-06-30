@@ -935,7 +935,7 @@ function colabAvisoHtml(c) {
     foot = `<span class="pp-badge pp-badge--neutral">${cpIcon("megafone")}Informativo</span>`;
   }
   return `
-    <article class="pp-card${c.fixado ? " pp-card--pin" : ""}">
+    <article class="pp-card${c.fixado ? " pp-card--pin" : ""}" data-colab-aviso="${c.id}" role="button" tabindex="0" aria-label="Abrir aviso ${escapeHtml(c.titulo || "")}">
       ${imgOk ? `<img class="pp-card__img" src="${escapeHtml(c.imagem)}" alt="" loading="lazy">` : ""}
       <div class="pp-card__bd">
         <div class="pp-card__meta">${c.fixado ? `${cpIcon("pin")}<span>Fixado · </span>` : ""}<span>${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}</span></div>
@@ -963,8 +963,112 @@ if (!window._colabAvisoBound) {
     if (b) { e.preventDefault(); b.disabled = true; colabCienteUI(b.dataset.colabCiente); return; }
     const dc = e.target.closest("[data-colab-disc-ciente]");
     if (dc) { e.preventDefault(); dc.disabled = true; (window.darCienciaDisciplinar ? window.darCienciaDisciplinar(dc.dataset.colabDiscCiente) : null); return; }
+    // Abrir o aviso em tela cheia (tocar no card). Vem DEPOIS da ciência: clicar no
+    // botão "Li e estou ciente" confirma direto; clicar no resto do card abre o post.
+    const av = e.target.closest("[data-colab-aviso]");
+    if (av) { openColabAvisoSheet(av.dataset.colabAviso); return; }
+  });
+  // Enter/Espaço no card (a11y): abre o aviso. Só quando o foco está NO card
+  // (matches, não closest) pra não disparar junto com o botão "Li e estou ciente".
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const t = e.target;
+    if (t && t.matches && t.matches("[data-colab-aviso]")) { e.preventDefault(); openColabAvisoSheet(t.dataset.colabAviso); }
   });
 }
+
+// Ícones inline (não dependem do mapa do cpIcon): ampliar + lupa-zoom + X grande.
+const ICON_AMPLIAR = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>`;
+const ICON_LUPA_MAIS = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>`;
+
+// Abre UM aviso em tela cheia (post): imagem inteira (ampliável), texto completo, anexo,
+// e o botão "Li e estou ciente" quando pede confirmação. Reusa a infra de modal do app.
+function openColabAvisoSheet(id) {
+  const c = (state.comunicadosColab || []).find((x) => x.id === id);
+  if (!c) return;
+  const seg = c.segmento || { tipo: "todos", valores: [] };
+  const segTxt = seg.tipo === "todos" ? "Todos" : (seg.tipo === "turno" ? "Seu turno" : "Seu setor");
+  const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
+  const anexoUrl = (c.anexo && c.anexo.url && (typeof ehUrlSegura !== "function" || ehUrlSegura(c.anexo.url))) ? c.anexo.url : null;
+  const confirmou = !!(c.minhaLeitura && c.minhaLeitura.confirmado);
+  const reqConf = !!c.requerConfirmacao;
+  const metaTxt = `${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}`;
+  let foot;
+  if (reqConf && !confirmou) {
+    foot = `<button class="pp-btn pp-btn--primary" id="cp-post-ciente">${cpIcon("check")}<span>Li e estou ciente</span></button>`;
+  } else if (reqConf && confirmou) {
+    foot = `<span class="pp-badge pp-badge--green">${cpIcon("check")}Ciência registrada</span>`;
+  } else {
+    foot = `<span class="cp-post__doneline">${cpIcon("megafone")}Aviso informativo</span>`;
+  }
+  openModal(`
+    <button class="cp-post__x" data-close aria-label="Fechar">${cpIcon("x")}</button>
+    <div class="cp-post">
+      ${imgOk ? `<button type="button" class="cp-post__imgwrap" data-cp-img="${escapeHtml(c.imagem)}" aria-label="Ampliar imagem">
+        <img class="cp-post__img" src="${escapeHtml(c.imagem)}" alt="">
+        <span class="cp-post__zoom">${ICON_AMPLIAR}Ampliar</span>
+      </button>` : ""}
+      <div class="cp-post__c">
+        <div class="cp-post__meta"><span>${metaTxt}</span></div>
+        <h2 class="cp-post__t">${escapeHtml(c.titulo || "")}</h2>
+        ${c.corpo ? `<div class="cp-post__body">${escapeHtml(c.corpo)}</div>` : ""}
+        ${anexoUrl ? `<a class="cp-post__anexo" href="${escapeHtml(anexoUrl)}" target="_blank" rel="noopener">${cpIcon("file")}<span>${escapeHtml((c.anexo && c.anexo.nome) || "Abrir anexo")}</span></a>` : ""}
+      </div>
+    </div>
+    <div class="cp-post__foot">${foot}</div>
+  `, {
+    dismissOnBackdrop: true,
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const img = modal.querySelector("[data-cp-img]");
+      if (img) img.addEventListener("click", () => openColabImgLightbox(img.dataset.cpImg));
+      const ci = modal.querySelector("#cp-post-ciente");
+      if (ci) ci.addEventListener("click", async () => {
+        ci.disabled = true;
+        try {
+          if (window.confirmarCienciaComunicado) await window.confirmarCienciaComunicado(id);
+          else colabCienteUI(id);
+        } finally { closeModal(); }
+      });
+    },
+  });
+}
+
+// Visualizador de imagem em tela cheia (lightbox). Toque duplo amplia; arrastar dá pan.
+// X, ESC ou tocar fora fecham. Genérico — serve pra qualquer imagem (aviso/documento).
+function openColabImgLightbox(url) {
+  if (!url || (typeof ehUrlSegura === "function" && !ehUrlSegura(url))) return;
+  const root = document.createElement("div");
+  root.className = "cp-lb";
+  root.innerHTML = `
+    <button class="cp-lb__x" aria-label="Fechar">${cpIcon("x")}</button>
+    <img class="cp-lb__img" src="${escapeHtml(url)}" alt="" draggable="false">
+    <div class="cp-lb__hint">${ICON_LUPA_MAIS}<span>Toque duas vezes pra ampliar</span></div>`;
+  document.body.appendChild(root);
+  document.body.classList.add("modal-aberto");
+  const img = root.querySelector(".cp-lb__img");
+  const hint = root.querySelector(".cp-lb__hint");
+  let zoom = false, tx = 0, ty = 0, dragging = false, sx = 0, sy = 0, lastTap = 0;
+  const apply = () => { img.style.transform = zoom ? `translate(${tx}px,${ty}px) scale(2.4)` : "translate(0,0) scale(1)"; };
+  const setZoom = (z) => { zoom = z; tx = 0; ty = 0; img.classList.toggle("is-zoom", z); if (hint) hint.style.opacity = z ? "0" : ""; apply(); };
+  const fechar = () => { root.remove(); document.body.classList.remove("modal-aberto"); document.removeEventListener("keydown", esc); };
+  const esc = (e) => { if (e.key === "Escape") fechar(); };
+  document.addEventListener("keydown", esc);
+  root.querySelector(".cp-lb__x").addEventListener("click", fechar);
+  root.addEventListener("click", (e) => { if (e.target === root) fechar(); });
+  img.addEventListener("pointerdown", (e) => {
+    const now = Date.now();
+    if (now - lastTap < 300) { setZoom(!zoom); lastTap = 0; return; } // toque duplo: zoom
+    lastTap = now;
+    if (!zoom) return;
+    dragging = true; sx = e.clientX - tx; sy = e.clientY - ty;
+    try { img.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  img.addEventListener("pointermove", (e) => { if (!dragging) return; tx = e.clientX - sx; ty = e.clientY - sy; apply(); });
+  img.addEventListener("pointerup", () => { dragging = false; });
+  img.addEventListener("pointercancel", () => { dragging = false; });
+}
+window.openColabImgLightbox = openColabImgLightbox;
 
 // ===== Registro disciplinar do colaborador (advertencia/suspensao) — le + da ciencia =====
 const COLAB_DISC = {
@@ -10232,7 +10336,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.13.0";
+window.CURRENT_VERSION = "1.13.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
