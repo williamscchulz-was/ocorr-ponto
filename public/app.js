@@ -5132,34 +5132,40 @@ function openDisciplinarModal() {
         </div>
       </div>
       <div id="disc-escala-aviso"></div>
-      <div class="disc-row2">
-        <div class="field"><label for="disc-data">Data <span style="color:var(--danger)">*</span></label><input type="date" id="disc-data" value="${hoje}"></div>
-        <div class="field" id="disc-dias-wrap" style="display:none"><label for="disc-dias">Dias de suspensão <span style="color:var(--danger)">*</span></label><input type="number" id="disc-dias" min="1" max="30" value="1"></div>
-      </div>
-      <div class="field">
-        <label for="disc-motivo">Motivo <span style="color:var(--danger)">*</span></label>
-        <select id="disc-motivo">${DISC_MOTIVOS.map((m) => `<option>${escapeHtml(m)}</option>`).join("")}</select>
-      </div>
-      <div class="field">
-        <label for="disc-desc">Descrição</label>
-        <textarea id="disc-desc" rows="3" placeholder="Detalhe o ocorrido (datas, contexto)..."></textarea>
-      </div>
-      <div class="field">
-        <label>Documento anexado <span style="color:var(--danger)">*</span></label>
-        ${window.driveUploadDisponivel ? `
-        <div class="doc-up">
-          <label class="doc-drop" id="disc-drop">
-            <input type="file" id="disc-file-input" accept=".pdf,.doc,.docx,image/*" hidden />
-            <span class="doc-drop__ic">${icon("upload")}</span>
-            <span class="doc-drop__t">Escolher arquivo do computador</span>
-            <span class="doc-drop__s">PDF ou imagem. Sobe pro Drive da empresa.</span>
-          </label>
-          <div class="doc-file" id="disc-file" hidden></div>
-          <div class="doc-or"><span>ou cole um link que já existe no Drive</span></div>
-        ` : ""}
-        <input type="url" id="disc-anexo" placeholder="https://drive.google.com/file/d/..." data-nome="">
-        ${window.driveUploadDisponivel ? `</div>` : ""}
-        <span class="field__hint">É esse documento que o colaborador vai abrir e ler antes de dar ciência.</span>
+      <div class="disc-cols">
+        <div class="disc-col">
+          <div class="disc-row2">
+            <div class="field"><label for="disc-data">Data <span style="color:var(--danger)">*</span></label><input type="date" id="disc-data" value="${hoje}"></div>
+            <div class="field" id="disc-dias-wrap" style="display:none"><label for="disc-dias">Dias <span style="color:var(--danger)">*</span></label><input type="number" id="disc-dias" min="1" max="30" value="1"></div>
+          </div>
+          <div class="field">
+            <label for="disc-motivo">Motivo <span style="color:var(--danger)">*</span></label>
+            <select id="disc-motivo">${DISC_MOTIVOS.map((m) => `<option>${escapeHtml(m)}</option>`).join("")}</select>
+          </div>
+          <div class="field">
+            <label for="disc-desc">Descrição</label>
+            <textarea id="disc-desc" rows="4" placeholder="Detalhe o ocorrido (datas, contexto)..."></textarea>
+          </div>
+        </div>
+        <div class="disc-col">
+          <div class="field">
+            <label>Documento anexado <span style="color:var(--danger)">*</span></label>
+            ${window.driveUploadDisponivel ? `
+            <div class="doc-up">
+              <label class="doc-drop" id="disc-drop">
+                <input type="file" id="disc-file-input" accept=".pdf,.doc,.docx,image/*" hidden />
+                <span class="doc-drop__ic">${icon("upload")}</span>
+                <span class="doc-drop__t">Escolher arquivo do computador</span>
+                <span class="doc-drop__s">PDF ou imagem. Sobe pro Drive da empresa.</span>
+              </label>
+              <div class="doc-file" id="disc-file" hidden></div>
+              <div class="doc-or"><span>ou cole um link que já existe no Drive</span></div>
+            ` : ""}
+            <input type="url" id="disc-anexo" placeholder="https://drive.google.com/file/d/..." data-nome="">
+            ${window.driveUploadDisponivel ? `</div>` : ""}
+            <span class="field__hint">É esse documento que o colaborador vai abrir e ler antes de dar ciência.</span>
+          </div>
+        </div>
       </div>
       <div class="doc-warn" style="background:var(--info-bg);border-color:transparent">${icon("shield")}<span>Acesso restrito a admin, RH e ao líder do turno. O colaborador vê a própria, abre o documento e dá ciência (registrada com data e hora).</span></div>
     </form>
@@ -5169,6 +5175,7 @@ function openDisciplinarModal() {
     </div>
   `, {
     onMount: (modal) => {
+      const _wm = document.querySelector("#modal-root .modal"); if (_wm) _wm.classList.add("modal--wide");
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       const diasWrap = modal.querySelector("#disc-dias-wrap");
       const aviso = modal.querySelector("#disc-escala-aviso");
