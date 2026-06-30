@@ -1180,7 +1180,7 @@ function openColabAssinarSheet(docId) {
         <label for="cp-senha">Confirme com sua senha</label>
         <input type="password" id="cp-senha" autocomplete="current-password" placeholder="Sua senha" />
       </div>
-      <div class="cp-assinar__note">${cpIcon("info")}<span>Pra confirmar, você redigita a senha. Registra seu nome, data e hora (do servidor) e a versão assinada. É um aceite com trilha, não validade jurídica plena.</span></div>
+      <div class="cp-assinar__note">${cpIcon("info")}<span>Pra confirmar, você redigita a senha. Registra seu nome, data e hora (do servidor) e a versão assinada.</span></div>
     </div>
     <div class="modal__footer">
       <button class="btn btn--ghost" data-close>Cancelar</button>
@@ -5731,7 +5731,6 @@ function abrirAdesaoDocumento(id) {
       <div class="com-people" id="doc-people-pend" style="display:none">${pendentes.length ? pendentes.map((f) => linha(f, false)).join("") : `<p class="muted" style="padding:14px 2px">Todos em dia.</p>`}</div>
     </div>
     <div class="modal__footer">
-      <span class="muted text-xs">Trilha N1 · aceite com data/hora-servidor + versão (não é validade jurídica plena)</span>
       <button class="btn btn--ghost" data-close>Fechar</button>
     </div>
   `, {

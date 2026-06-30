@@ -614,3 +614,10 @@ Missão corrigida pro PC: `inbox-pc/2026-06-30-gp-gestao-de-pessoas.md` (substit
 ## 2026-06-30 · ✅ GP — decisões do William: só texto visível + remover o slogan
 
 Sobre o RH→GP, William decidiu: (1) **escopo só VISÍVEL** — NÃO renomear o papel interno `rh`/`isRH()`/`firestore.rules`/role nos user docs/`rh_confere` (invisível; zero migração/risco; meu uploader segue `rh_confere`); (2) **remover o slogan** "Fiobras · o batimento do RH" (não substituir, só tirar — "não precisa por ora"); (3) demais textos visíveis → GP (aba "GP confere", `changelog.js`, `roadmap.js`). Repassado ao PC: `inbox-pc/2026-06-30-gp-decisoes-william.md`. Meu lado (pipeline) não muda nada — é tudo texto/UI do app.
+
+
+---
+
+## 2026-06-30 · 🚨 Removido o aviso "validade jurídica plena" da assinatura (urgente, William)
+
+William pediu URGENTE pra tirar o texto "(não é validade jurídica plena)" das telas de assinatura. Removido em `app.js`: ~5734 (modal "Adesão", `<span>` do footer inteiro) e ~1183 (sheet de assinar do colaborador — só a frase do disclaimer, mantida a instrução útil de redigitar a senha). `roadmap.js` #33 ("Assinatura N3 — validade jurídica") NÃO tocado (é feature planejada). Editado por mim (WKRADAR) no domínio do app por urgência; flag no bridge pro PC. **Falta deploy** (`firebase deploy --only hosting:weave`) pra ir ao ar. Bridge: `inbox-pc/2026-06-30-urgente-tira-validade-juridica.md`.
