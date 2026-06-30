@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Documentos em grade (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<style>
+  body{background:var(--bg,#EDF2EA);margin:0;padding:26px 28px 80px}
+  .wrap{max-width:1100px;margin:0 auto}
+  .cap{font-size:13px;color:#3a4a36;background:#fff;border:1px dashed #cdd8c8;border-radius:12px;padding:11px 15px;margin-bottom:18px;line-height:1.6}
+  /* documento na grade: topo colorido com o icone do tipo (sem imagem) */
+  .dcf-cover{height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;text-align:center;position:relative}
+  .dcf-cover--pub{background:linear-gradient(150deg,#1AA34F,#0B6E33)}
+  .dcf-cover--rasc{background:linear-gradient(150deg,#94A38D,#6E7A69)}
+  .dcf-cover .icon{width:30px;height:30px}
+  .dcf-type{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.95}
+  .dcf-sign{position:absolute;top:8px;right:8px;height:22px;padding:0 9px;border-radius:999px;background:rgba(255,255,255,.22);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+  .dcf-sign .icon{width:12px;height:12px}
+  .cf-statline{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .cf-ver{font-size:10.5px;color:var(--text-muted);font-weight:600}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="cap"><b>Mock · Documentos institucionais do gestor em grade (feed).</b> Sem imagem: o topo é um bloco verde (publicado) ou cinza (rascunho) com o ícone do tipo. Badge de status, "exige assinatura" no canto, adesão e as ações (publicar/adesão/nova versão/editar/excluir). Mesma grade dos comunicados.</div>
+
+  <header class="page-header">
+    <div><h1>Documentos institucionais</h1><p>Publique regras, conduta, cultura e políticas. Acompanhe quem leu e assinou.</p></div>
+    <button class="btn btn--primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Novo documento</span></button>
+  </header>
+
+  <div class="stats" style="margin-bottom:18px">
+    <div class="stat"><div class="stat__label">Publicados</div><div class="stat__value">5</div></div>
+    <div class="stat"><div class="stat__label">Assinatura pendente</div><div class="stat__value">2</div></div>
+    <div class="stat"><div class="stat__label">Adesão média</div><div class="stat__value">74%</div></div>
+  </div>
+
+  <div class="doc-filtros" style="margin-bottom:14px">
+    <button class="doc-chip is-on">Todos</button><button class="doc-chip">Rascunhos</button><button class="doc-chip">Regras</button><button class="doc-chip">Conduta</button>
+  </div>
+
+  <div class="com-grid">
+    <article class="cf-card">
+      <div class="dcf-cover dcf-cover--pub">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M9 10h6M9 14h6M9 18h4"/></svg>
+        <span class="dcf-type">Regras</span>
+        <span class="dcf-sign"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Assinatura</span>
+      </div>
+      <div class="cf-bd">
+        <div class="cf-title">Regulamento Interno 2026</div>
+        <div class="cf-statline"><span class="badge badge--success">Publicado</span><span class="cf-ver">v1 · Todos</span></div>
+        <div class="cf-read"><span><b>12</b> de 40 assinaram</span><span class="com-bar"><i style="width:30%"></i></span></div>
+        <div class="cf-acts"><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>
+      </div>
+    </article>
+
+    <article class="cf-card">
+      <div class="dcf-cover dcf-cover--pub">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span class="dcf-type">Conduta</span>
+      </div>
+      <div class="cf-bd">
+        <div class="cf-title">Código de Conduta</div>
+        <div class="cf-statline"><span class="badge badge--success">Publicado</span><span class="cf-ver">v2 · Todos</span></div>
+        <div class="cf-read"><span><b>78</b> de 93 leram</span><span class="com-bar"><i style="width:84%"></i></span></div>
+        <div class="cf-acts"><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>
+      </div>
+    </article>
+
+    <article class="cf-card">
+      <div class="dcf-cover dcf-cover--rasc">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M9 10h6M9 14h6M9 18h4"/></svg>
+        <span class="dcf-type">Regras</span>
+      </div>
+      <div class="cf-bd">
+        <div class="cf-title">Política de Ponto e Jornada</div>
+        <div class="cf-statline"><span class="badge badge--warning">Rascunho</span><span class="cf-ver">v1 · 2º Turno</span></div>
+        <div class="cf-read"><span>Aguardando publicação</span><span class="com-bar"><i style="width:0%"></i></span></div>
+        <div class="cf-acts"><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="com-mini" style="color:var(--danger)"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></div>
+      </div>
+    </article>
+
+    <article class="cf-card">
+      <div class="dcf-cover dcf-cover--pub">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="dcf-type">Termo</span>
+        <span class="dcf-sign"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Assinatura</span>
+      </div>
+      <div class="cf-bd">
+        <div class="cf-title">Manual de Segurança do Trabalho</div>
+        <div class="cf-statline"><span class="badge badge--success">Publicado</span><span class="cf-ver">v1 · Beneficiamento</span></div>
+        <div class="cf-read"><span><b>45</b> de 60 assinaram</span><span class="com-bar"><i style="width:75%"></i></span></div>
+        <div class="cf-acts"><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>
+      </div>
+    </article>
+  </div>
+</div>
+</body></html>
