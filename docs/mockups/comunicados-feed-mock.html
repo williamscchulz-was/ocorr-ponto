@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Comunicados em grade (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<style>
+  body{background:var(--bg,#EDF2EA);margin:0;padding:26px 28px 80px}
+  .wrap{max-width:1100px;margin:0 auto}
+  .cap{font-size:13px;color:#3a4a36;background:#fff;border:1px dashed #cdd8c8;border-radius:12px;padding:11px 15px;margin-bottom:18px;line-height:1.6}
+  /* GRADE estilo feed (cards pequenos) */
+  .com-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .cf-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,40,20,.06);display:flex;flex-direction:column;cursor:pointer;transition:box-shadow .15s,transform .15s}
+  .cf-card:hover{box-shadow:0 8px 22px -10px rgba(0,40,20,.25);transform:translateY(-2px)}
+  .cf-card--pin{box-shadow:0 0 0 1.5px var(--plum),0 1px 3px rgba(0,40,20,.06)}
+  .cf-thumb{aspect-ratio:1/1;width:100%;object-fit:cover;display:block;background:var(--surface-warm)}
+  .cf-noimg{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;background:linear-gradient(150deg,#1AA34F,#0B6E33);color:#fff;font-weight:700;font-size:16px;line-height:1.3}
+  .cf-pin{position:absolute;top:9px;right:9px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+  .cf-pin .icon{width:15px;height:15px}
+  .cf-conf{position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:999px;background:rgba(201,138,42,.95);color:#fff;font-size:10.5px;font-weight:700}
+  .cf-conf .icon{width:12px;height:12px}
+  .cf-bd{padding:11px 12px 12px;display:flex;flex-direction:column;gap:7px;flex:1}
+  .cf-title{font-size:14px;font-weight:700;letter-spacing:-.01em;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text-body)}
+  .cf-seg{align-self:flex-start;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;background:var(--success-bg);color:var(--plum);font-size:10.5px;font-weight:700}
+  .cf-meta{font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-top:1px}
+  .cf-read{display:flex;align-items:center;gap:8px}
+  .cf-read b{font-variant-numeric:tabular-nums}
+  .cf-read .com-bar{flex:1}
+  .cf-acts{display:flex;gap:6px;margin-top:6px;padding-top:9px;border-top:1px solid var(--border)}
+  .cf-acts .com-mini{width:32px;height:32px}
+  @media(max-width:560px){.com-grid{grid-template-columns:1fr 1fr;gap:10px}}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="cap"><b>Mock · Comunicados do gestor em grade (feed).</b> A imagem vira thumbnail quadrada; cards pequenos numa grade. Fixado tem borda verde + alfinete; "requer confirmação" tem selo. Clicar abre/edita. Ajusto se quiser outro recorte de imagem (quadrado, retrato 4:5 ou inteiro sem cortar).</div>
+
+  <header class="page-header">
+    <div><h1>Comunicados</h1><p>Componha e publique avisos para a equipe.</p></div>
+    <button class="btn btn--primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Novo comunicado</span></button>
+  </header>
+
+  <div class="stats" style="margin-bottom:18px">
+    <div class="stat"><div class="stat__label">Publicados</div><div class="stat__value">8</div></div>
+    <div class="stat"><div class="stat__label">Fixados</div><div class="stat__value">1</div></div>
+    <div class="stat"><div class="stat__label">Com confirmação</div><div class="stat__value">3</div></div>
+  </div>
+
+  <div class="com-grid">
+    <article class="cf-card cf-card--pin">
+      <img class="cf-thumb" src="https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=400&q=70" alt="">
+      <span class="cf-pin"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg></span>
+      <div class="cf-bd">
+        <div class="cf-title">Jogos da Copa serão transmitidos na empresa</div>
+        <span class="cf-seg">Todos</span>
+        <div class="cf-read"><span><b>0</b> de 93</span><span class="com-bar"><i style="width:0%"></i></span></div>
+        <div class="cf-meta">Jenifer · 30/06</div>
+        <div class="cf-acts"><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>
+      </div>
+    </article>
+
+    <article class="cf-card">
+      <img class="cf-thumb" src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&q=70" alt="">
+      <span class="cf-conf"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Confirmação</span>
+      <div class="cf-bd">
+        <div class="cf-title">Campanha de segurança no trabalho</div>
+        <span class="cf-seg">Repasse</span>
+        <div class="cf-read"><span><b>41</b> de 60</span><span class="com-bar"><i style="width:68%"></i></span></div>
+        <div class="cf-meta">RH · 27/06</div>
+        <div class="cf-acts"><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>
+      </div>
+    </article>
+
+    <article class="cf-card">
+      <div class="cf-noimg">Reunião geral<br>sexta, 14h</div>
+      <div class="cf-bd">
+        <div class="cf-title">Reunião geral de produção</div>
+        <span class="cf-seg">2º Turno</span>
+        <div class="cf-read"><span><b>52</b> de 58</span><span class="com-bar"><i style="width:90%"></i></span></div>
+        <div class="cf-meta">RH · 25/06</div>
+        <div class="cf-acts"><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>
+      </div>
+    </article>
+
+    <article class="cf-card">
+      <img class="cf-thumb" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400&q=70" alt="">
+      <div class="cf-bd">
+        <div class="cf-title">Confraternização de fim de ano</div>
+        <span class="cf-seg">Todos</span>
+        <div class="cf-read"><span><b>78</b> de 93</span><span class="com-bar"><i style="width:84%"></i></span></div>
+        <div class="cf-meta">Jenifer · 20/06</div>
+        <div class="cf-acts"><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg></button><button class="com-mini"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>
+      </div>
+    </article>
+  </div>
+</div>
+</body></html>
