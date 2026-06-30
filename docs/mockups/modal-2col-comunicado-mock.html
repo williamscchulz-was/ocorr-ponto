@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Modal comunicado em 2 colunas (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<style>
+  body{background:#e9efe6;margin:0;padding:0;font-family:Poppins,sans-serif}
+  .note{max-width:860px;margin:18px auto 0;font-size:13px;color:#3a4a36;background:#fff;border:1px dashed #cdd8c8;border-radius:12px;padding:11px 15px;line-height:1.6}
+  .note b{color:#1a2a16}
+  /* simula o backdrop/modal sem position fixed (pra caber na página do mock) */
+  .stage{display:flex;justify-content:center;padding:24px 16px 60px}
+  .modal-backdrop{position:static;display:block;padding:0;background:none}
+  .modal{margin:0 auto}
+  /* GRID 2 colunas reusável (vira .mform2 no styles.css) */
+  .mform2{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;align-items:start}
+  .mform2__col{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .mform2 .field{margin:0}
+  @media(max-width:680px){.mform2{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="note"><b>Mock · modal de comunicado em 2 colunas (desktop).</b> Mesmo padrão do registro disciplinar (v218): no computador, <b>compõe à esquerda</b> (título, corpo, imagem) e <b>segmento + fixar + pré-visualização à direita</b> — aparece tudo sem rolar. No celular vira 1 coluna empilhada. Depois eu aplico o mesmo nos outros modais (documento, nova ocorrência, etc.).</div>
+<div class="stage">
+<div class="modal-backdrop"><div class="modal modal--wide" style="max-width:780px">
+  <div class="modal__header">
+    <div><h2>Editar comunicado</h2><p>Publica como Administrador. Alcance e leituras seguem o segmento.</p></div>
+    <button class="modal__close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <form class="modal__body mform2">
+    <div class="mform2__col">
+      <div class="field">
+        <label for="t">Título</label>
+        <input id="t" type="text" value="Jogos da Copa">
+      </div>
+      <div class="field">
+        <label for="c">Corpo <span class="muted text-xs">(texto simples, quebras preservadas)</span></label>
+        <textarea id="c" rows="7">Os jogos do Brasil serão transmitidos na empresa, no telão do refeitório. Liberação só no horário do jogo; quem está na escala combina a reposição com o líder.</textarea>
+      </div>
+      <div class="field">
+        <label>Imagem <span class="muted text-xs">(opcional · cartaz, foto do aviso)</span></label>
+        <div class="com-imgprev" style="display:flex">
+          <img id="th" src="https://images.unsplash.com/photo-1522778526097-ce0a22ceb253?w=400&q=70" alt="Prévia da imagem">
+          <button type="button" class="com-imgrm" aria-label="Remover imagem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mform2__col">
+      <div class="field">
+        <label>Segmento</label>
+        <div class="com-seg" role="group">
+          <button type="button" class="com-seg__chip is-on"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg><span>Todos</span></button>
+          <button type="button" class="com-seg__chip"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><span>Por turno</span></button>
+          <button type="button" class="com-seg__chip"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg><span>Por setor</span></button>
+        </div>
+      </div>
+      <div class="com-toggle">
+        <div class="com-toggle__t"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg><div><b>Fixar no topo</b><span>Mantém o aviso destacado acima dos demais</span></div></div>
+        <button type="button" class="com-sw is-on" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="com-preview">
+        <div class="com-preview__l">Pré-visualização</div>
+        <div class="com-preview__t">Jogos da Copa</div>
+        <div class="com-badges"><span class="badge badge--success">Todos</span><span class="badge badge--neutral"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg><span>Fixado</span></span></div>
+        <div class="com-preview__b">Os jogos do Brasil serão transmitidos na empresa, no telão do refeitório.</div>
+        <div class="com-preview__img"><img src="https://images.unsplash.com/photo-1522778526097-ce0a22ceb253?w=400&q=70" alt=""></div>
+        <div class="com-preview__alc">Alcance estimado: 93 pessoas</div>
+      </div>
+    </div>
+  </form>
+  <div class="modal__footer">
+    <button class="btn btn--danger"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg><span>Despublicar</span></button>
+    <button class="btn btn--ghost">Cancelar</button>
+    <button class="btn btn--primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg><span>Salvar</span></button>
+  </div>
+</div></div>
+</div>
+</body></html>

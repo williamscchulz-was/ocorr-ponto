@@ -4793,7 +4793,8 @@ function openComunicadoModal(id) {
       <div><h2>${c ? "Editar comunicado" : "Novo comunicado"}</h2><p>Publica como ${escapeHtml(currentUser()?.nome || "gestor")}. Alcance e leituras seguem o segmento.</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
-    <form class="modal__body" id="com-form" onsubmit="return false">
+    <form class="modal__body mform2" id="com-form" onsubmit="return false">
+      <div class="mform2__col">
       <div class="field">
         <label for="com-titulo">Título</label>
         <input type="text" id="com-titulo" maxlength="140" value="${c ? escapeHtml(c.titulo) : ""}" placeholder="Ex.: Parada programada do refeitorio" />
@@ -4811,6 +4812,8 @@ function openComunicadoModal(id) {
           <button type="button" class="com-imgrm" id="com-img-rm" aria-label="Remover imagem">${icon("trash")}</button>
         </div>
       </div>
+      </div>
+      <div class="mform2__col">
       <div class="field">
         <label>Segmento</label>
         <div class="com-seg" role="group" aria-label="Segmento do comunicado">
@@ -4843,6 +4846,7 @@ function openComunicadoModal(id) {
         <div class="com-preview__b" id="com-pv-corpo"></div>
         <div class="com-preview__img" id="com-pv-img"></div>
         <div class="com-preview__alc" id="com-pv-alc"></div>
+      </div>
       </div>
     </form>
     <div class="modal__footer">
@@ -5475,8 +5479,9 @@ function openDocumentoModal(id) {
       <div><h2>${d ? "Editar documento" : "Novo documento institucional"}</h2><p>Regras, conduta, cultura e políticas para um segmento.</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
-    <form class="modal__body" id="doc-form" onsubmit="return false">
-      ${(d && d.status === "publicado" && d.exigeAssinatura) ? `<div class="doc-warn">${icon("alert")}<span>Documento publicado com assinatura. Para trocar conteúdo ou segmento use Nova versão (reabre a assinatura). Aqui você ajusta só a descrição.</span></div>` : ""}
+    <form class="modal__body mform2" id="doc-form" onsubmit="return false">
+      ${(d && d.status === "publicado" && d.exigeAssinatura) ? `<div class="doc-warn mform-full">${icon("alert")}<span>Documento publicado com assinatura. Para trocar conteúdo ou segmento use Nova versão (reabre a assinatura). Aqui você ajusta só a descrição.</span></div>` : ""}
+      <div class="mform2__col">
       <div class="field">
         <label for="doc-titulo">Título</label>
         <input type="text" id="doc-titulo" maxlength="140" value="${d ? escapeHtml(d.titulo) : ""}" placeholder="Ex.: Código de conduta 2026" />
@@ -5513,6 +5518,8 @@ function openDocumentoModal(id) {
           <div class="doc-hashnote">${icon("shield")}<span>O arquivo fica no Drive da empresa (acesso controlado). O link https é o que abre o documento.</span></div>
         </div>
       </div>
+      </div>
+      <div class="mform2__col">
       <div class="field">
         <label>Segmento</label>
         <div class="com-seg" role="group" aria-label="Segmento do documento">
@@ -5538,6 +5545,7 @@ function openDocumentoModal(id) {
         <div class="com-toggle__t">${icon("edit")}<div><b>Exige assinatura / ciência</b><span>Registra trilha N1 com data, hora e versão por colaborador</span></div></div>
         <button type="button" class="com-sw ${d?.exigeAssinatura ? "is-on" : ""}" id="doc-assina" role="switch" aria-checked="${d?.exigeAssinatura ? "true" : "false"}" aria-label="Exige assinatura"></button>
       </div>
+      </div>
     </form>
     <div class="modal__footer">
       <button class="btn btn--ghost" data-close>Cancelar</button>
@@ -5546,6 +5554,7 @@ function openDocumentoModal(id) {
     </div>
   `, {
     onMount: (modal) => {
+      modal.classList.add("modal--wide");
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       let segTipo = seg.tipo, tipo = tipoAtual, modo = temAnexo ? "anexo" : "texto";
       const groupPick = (sel, attr, set) => modal.querySelectorAll(sel).forEach((ch) => ch.addEventListener("click", () => {
