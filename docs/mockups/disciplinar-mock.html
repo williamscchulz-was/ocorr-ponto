@@ -104,13 +104,50 @@
   .escalabox .tx{flex:1;font-size:12.5px;color:var(--tx)}
   .escalabox .tx b{display:block;margin-bottom:1px}
   .modal__f{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px 20px;border-top:1px solid var(--bd)}
+  .dropz{display:flex;align-items:center;gap:13px;border:1.5px dashed var(--bd2);border-radius:11px;background:var(--card2);padding:14px}
+  .dropz i{font-size:27px;color:var(--brand)}
+  .dropz b{display:block;font-size:13.5px;color:var(--tx)}
+  .dropz span{font-size:11.5px;color:var(--txw)}
+
+  /* telefone do colaborador (tema escuro do portal) */
+  .phone{width:380px;background:#0E130E;border:1px solid #232c22;border-radius:30px;overflow:hidden;color:#E9F0E5;box-shadow:0 24px 60px -24px rgba(0,0,0,.6)}
+  .phone .pt{display:flex;align-items:center;gap:8px;padding:17px 18px 8px}
+  .phone .pt b{font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .phone .pbody{padding:6px 16px 24px}
+  .phone .povl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94A38D;margin:16px 2px 9px}
+  .phone .pcard{background:#161D15;border:1px solid #232C22;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px -4px rgba(0,0,0,.5)}
+  .phone .pcard.attn{border-color:transparent;box-shadow:0 0 0 1.5px #C98A2A,0 2px 10px -4px rgba(0,0,0,.5)}
+  .phone .pcard__b{padding:15px}
+  .phone .pbadge{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(232,180,104,.16);color:#E8B468}
+  .phone .pbadge i{font-size:13px}
+  .phone .pbadge.red{background:rgba(232,115,107,.16);color:#E8736B}
+  .phone .ptt{font-size:16px;font-weight:700;margin:11px 0 3px;letter-spacing:-.01em}
+  .phone .pmeta{font-size:11.5px;color:#94A38D}
+  .phone .pmot{font-size:13px;color:#C8D2C2;margin-top:9px;line-height:1.5}
+  .phone .pdoc{display:flex;align-items:center;gap:10px;background:#1B231A;border:1px solid #232C22;border-radius:11px;padding:11px 13px;margin-top:13px;font-size:13px;font-weight:500}
+  .phone .pdoc i{font-size:19px;color:#6FA8E0}
+  .phone .pdoc .arr{margin-left:auto;color:#7E8C78;font-size:17px}
+  .phone .pbtns{display:flex;gap:9px;margin-top:13px}
+  .phone .pbtn{flex:1;height:44px;border:0;border-radius:12px;font-family:inherit;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+  .phone .pbtn i{font-size:17px}
+  .phone .pbtn--ok{background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff}
+  .phone .pbtn--gh{background:#1B231A;color:#E9F0E5;border:1px solid #232C22}
+  .phone .pdone{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#5FCB85;margin-top:14px;font-weight:600}
+  .phone .pdone i{font-size:17px}
+  .phone .ppend{display:flex;align-items:center;gap:11px;background:rgba(232,180,104,.13);border-radius:14px;padding:13px}
+  .phone .ppend i{font-size:21px;color:#E8B468;flex:none}
+  .phone .ppend b{font-size:13.5px;display:block}
+  .phone .ppend span{font-size:11.5px;color:#94A38D}
+  .phonewrap{display:flex;gap:30px;flex-wrap:wrap;justify-content:center}
+  .phonecap{text-align:center;font-size:12px;color:var(--txw);margin-top:10px;font-weight:600}
+
   @media(max-width:680px){.stats{grid-template-columns:1fr 1fr}.row2{grid-template-columns:1fr}.rec{flex-wrap:wrap}.rec__r{align-items:flex-start;text-align:left}}
 </style></head>
 <body>
 <div class="wrap">
 
-  <div class="note"><b>Mock pra aprovação · Controle disciplinar (advertência e suspensão) no portal do gestor.</b><br>
-  Quem registra: admin e RH. Quem vê: admin, RH e liderança de turno (do seu turno). Colaborador não vê. Dado sensível: acesso restrito + trilha de auditoria. Nada implementado ainda; só desenho.</div>
+  <div class="note"><b>Mock pra aprovação · Controle disciplinar (advertência e suspensão).</b><br>
+  Registra: admin e RH. Vê no gestor: admin, RH e líder do turno. <b>O colaborador vê a própria ocorrência no portal dele, abre o documento anexado e dá ciência.</b> Dado sensível: acesso restrito + trilha de auditoria. Nada implementado ainda; só desenho.</div>
 
   <div class="seclabel"><i class="ti ti-gavel"></i> 1. Tela principal (lista por funcionário)</div>
 
@@ -231,10 +268,11 @@
         <textarea class="inp" placeholder="Detalhe o ocorrido (datas, contexto)...">Reincidência de faltas injustificadas após duas advertências.</textarea>
       </div>
       <div class="field">
-        <label>Anexo (opcional)</label>
-        <div class="inp inp--sel" style="color:var(--txw)"><i class="ti ti-paperclip"></i><span>Anexar documento assinado (PDF) ou link</span></div>
+        <label>Documento anexado <span class="req">*</span></label>
+        <div class="dropz"><i class="ti ti-file-upload"></i><div><b>Anexar documento (PDF)</b><span>Arraste aqui, escolha do computador ou cole um link do Drive</span></div></div>
+        <span style="font-size:11.5px;color:var(--txw);display:block;margin-top:6px">É esse documento que o colaborador vai abrir e ler antes de dar ciência.</span>
       </div>
-      <div class="infobox"><i class="ti ti-shield-lock"></i><span>Acesso restrito a admin, RH e à liderança do turno do funcionário. O colaborador não vê esse registro no portal dele.</span></div>
+      <div class="infobox"><i class="ti ti-shield-lock"></i><span>Acesso restrito a admin, RH e ao líder do turno. <b>O colaborador vê a própria ocorrência no portal, abre o documento e dá ciência</b> (registrada com data e hora). Fica também a trilha de quem aplicou.</span></div>
     </div>
     <div class="modal__f">
       <button class="btn btn--ghost">Cancelar</button>
@@ -249,6 +287,49 @@
       <div class="rec" style="padding:12px 14px"><span class="rec__bar" style="background:var(--red)"></span><div class="rec__main"><div class="rec__top"><span class="badge badge--susp"><i class="ti ti-ban"></i> Suspensão · 2 dias</span><span class="rec__data">28/06/2026 · por Suyanne (RH)</span></div><div class="rec__motivo">Faltas injustificadas reincidentes.</div></div></div>
       <div class="rec" style="padding:12px 14px"><span class="rec__bar" style="background:var(--orange)"></span><div class="rec__main"><div class="rec__top"><span class="badge badge--escrita"><i class="ti ti-file-text"></i> Advertência escrita</span><span class="rec__data">12/06/2026 · por Suyanne (RH)</span></div><div class="rec__motivo">Falta injustificada em 11/06.</div></div></div>
       <div class="rec" style="padding:12px 14px"><span class="rec__bar" style="background:var(--amber)"></span><div class="rec__main"><div class="rec__top"><span class="badge badge--verbal"><i class="ti ti-message"></i> Advertência verbal</span><span class="rec__data">02/06/2026 · por Adelir (líder)</span></div><div class="rec__motivo">Atraso no início do turno.</div></div></div>
+    </div>
+  </div>
+
+  <div class="seclabel"><i class="ti ti-device-mobile"></i> 4. Como o colaborador vê (portal dele) e dá ciência</div>
+  <div class="phonewrap">
+    <div>
+      <div class="phone">
+        <div class="pt"><b>Avisos</b></div>
+        <div class="pbody">
+          <div class="ppend"><i class="ti ti-alert-triangle"></i><div><b>1 ocorrência aguarda sua ciência</b><span>Leia o documento e confirme</span></div></div>
+          <div class="povl">Registro disciplinar</div>
+          <div class="pcard attn">
+            <div class="pcard__b">
+              <span class="pbadge"><i class="ti ti-file-text"></i> Advertência escrita</span>
+              <div class="ptt">Falta injustificada</div>
+              <div class="pmeta">Recursos Humanos · 26/06/2026</div>
+              <div class="pmot">Saída antecipada sem autorização do líder de turno em 25/06.</div>
+              <div class="pdoc"><i class="ti ti-file-text"></i><span>Advertencia_2026-06.pdf</span><i class="ti ti-chevron-right arr"></i></div>
+              <div class="pbtns"><button class="pbtn pbtn--gh"><i class="ti ti-eye"></i> Ver documento</button><button class="pbtn pbtn--ok"><i class="ti ti-check"></i> Dar ciência</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phonecap">Pendente · com o documento e o botão de ciência</div>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="pt"><b>Avisos</b></div>
+        <div class="pbody">
+          <div class="povl">Registro disciplinar</div>
+          <div class="pcard">
+            <div class="pcard__b">
+              <span class="pbadge"><i class="ti ti-file-text"></i> Advertência escrita</span>
+              <div class="ptt">Falta injustificada</div>
+              <div class="pmeta">Recursos Humanos · 26/06/2026</div>
+              <div class="pmot">Saída antecipada sem autorização do líder de turno em 25/06.</div>
+              <div class="pdoc"><i class="ti ti-file-text"></i><span>Advertencia_2026-06.pdf</span><i class="ti ti-chevron-right arr"></i></div>
+              <div class="pdone"><i class="ti ti-circle-check"></i> Ciência registrada em 26/06 às 14:32</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phonecap">Depois da ciência · fica o registro com data e hora</div>
     </div>
   </div>
 
