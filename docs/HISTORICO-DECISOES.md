@@ -560,3 +560,19 @@ Mantém "cria-e-nunca-reabre": o pipeline nunca volta um status que o app já av
 **Decisão em aberto (PC + William):** recorte do líder por **setor** ou **turno** (app hoje usa turno via `liderDoMesmoTurno`; sugeri setor). Não afeta o pipeline — mando `setor` e `turno` no doc. `faltasMes`: PC conta no cliente (sem campo denormalizado).
 
 **Go-live:** 01/07 (aparece 02/07 pelo delay D-1).
+
+
+---
+
+## 2026-06-30 · 🔎 Auditoria não mostra leitura/assinatura do colaborador — causa-raiz + missão pro PC
+
+**William:** "na auditoria precisa aparecer quando o colaborador lê e assina o documento — não tá aparecendo."
+
+**Investigação (workflow 3 agentes, read-only no app):** causa dupla + exibição.
+1. **Regra:** create no `/auditoria` é só admin/RH (`firestore.rules:181-188`). O `registrarAssinaturaDocumento` (firebase.js:1272) JÁ chama `registrarAuditoria`, mas roda no fluxo do COLABORADOR (sem `auditoria.ver`) → write **negado**, cai no catch best-effort → a assinatura **nunca persiste** no log (só push otimista local que some no reload). Por isso nem a assinatura aparece pro RH.
+2. **Código:** leitura/ciência (`registrarLeituraDocumento` 1276, `registrarLeitura` comunicado 1032, `darCienciaDisciplinar` 1386) não chamam `registrarAuditoria`.
+3. **Exibição:** `coletarAuditoria` (app.js:8266) não lê as subcoleções de assinaturas/leituras/ciência; `classificarAcaoAuditoria`/`AUD_FILTROS` (app.js:8242-8263) sem categoria pra isso.
+
+**Encaminhamento:** rules + app/firebase são domínio do PC → não mexi. Missão `inbox-pc/2026-06-30-auditoria-leitura-assinatura.md` com 2 opções — **A (recomendada):** auditoria ingere as subcoleções via collectionGroup, sem afrouxar a regra imutável; **B:** afrouxar `/auditoria` pra evento "self" do colaborador — + mudanças de exibição (keywords + chip "Leituras & Assinaturas") + nota de sensibilidade (disciplinar). PC decide a arquitetura.
+
+**À parte (mesmo dia) — email "pages build and deployment ... Failed":** é o GitHub Pages travado (deploy `294e101e` "em andamento" → todo push novo falha). NÃO afeta produção: o app roda no **Firebase** — `gh.fiobras.com.br` e `weave-fiobras.web.app` confirmados por header (sem `Server: GitHub.com`; o github.io tem `Server: GitHub.com` e título diferente "| ocorr-ponto" = espelho vestigial/desatualizado). Recomendado **desligar o Pages** (Settings → Pages → Source: None) pra parar os emails; não toca gh.fiobras.com.br nem weave (ambos Firebase, sem CNAME no repo).
