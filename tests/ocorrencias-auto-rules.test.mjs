@@ -32,10 +32,20 @@ before(async () => {
     const db = ctx.firestore();
     await setDoc(doc(db, "users/uRh"),     { role: "rh", nome: "Suyanne" });
     await setDoc(doc(db, "users/uAdmin"),  { role: "admin", nome: "Will" });
-    await setDoc(doc(db, "users/uLider"),  { role: "lider", turno: 1, nome: "Lider" });
+    await setDoc(doc(db, "users/uLider"),  { role: "lider", turno: 1, nome: "Lider T1" });
+    await setDoc(doc(db, "users/uLider2"), { role: "lider", turno: 2, nome: "Lider T2" });
     await setDoc(doc(db, "users/uColab"),  { role: "colaborador", funcionarioId: "f-100", nome: "Maria" });
     await setDoc(doc(db, "ocorrencias-auto/oca1"), baseDoc());
     await setDoc(doc(db, "ocorrencias-auto/oca2"), baseDoc({ historico: [{ acao: "gerada", por: "pipeline", emIso: "2026-06-26T16:00:00Z" }] }));
+    // fluxo novo (turno 1). rh_confere com historico vazio (mutacao -> size 1);
+    // com_lider com historico size 1 (mutacao -> size 2). 1 doc por teste (sem estado compartilhado).
+    const h1 = [{ acao: "validou", por: "uRh", emIso: "2026-06-30T12:00:00Z" }];
+    for (const id of ["ocaRH", "ocaRHv", "ocaRHd", "ocaRHlv", "ocaRHld", "ocaRHc"]) {
+      await setDoc(doc(db, "ocorrencias-auto/" + id), baseDoc({ status: "rh_confere", turno: 1 }));
+    }
+    await setDoc(doc(db, "ocorrencias-auto/ocaLD"),  baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaLD2"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaDone"), baseDoc({ status: "confirmada", turno: 1, historico: h1 }));
   });
 });
 
@@ -44,6 +54,7 @@ after(async () => { await env.cleanup(); });
 const rh    = () => env.authenticatedContext("uRh").firestore();
 const admin = () => env.authenticatedContext("uAdmin").firestore();
 const lider = () => env.authenticatedContext("uLider").firestore();
+const lider2 = () => env.authenticatedContext("uLider2").firestore();
 const colab = () => env.authenticatedContext("uColab").firestore();
 
 // ---- leitura ----
@@ -94,3 +105,34 @@ test("RH NÃO deleta ocorrencia-auto", async () =>
   assertFails(deleteDoc(doc(rh(), "ocorrencias-auto/oca1"))));
 test("Admin NÃO deleta ocorrencia-auto (só Admin SDK)", async () =>
   assertFails(deleteDoc(doc(admin(), "ocorrencias-auto/oca1"))));
+
+// ===== Fluxo novo RH -> Lider =====
+const histN = (n) => Array.from({ length: n }, (_, i) => ({ acao: "a" + i, por: "x", emIso: `2026-06-30T1${i}:00:00Z` }));
+
+// leitura por turno (lider)
+test("Líder do MESMO turno lê (turno 1)", async () => assertSucceeds(getDoc(doc(lider(), "ocorrencias-auto/ocaRH"))));
+test("Líder de OUTRO turno NÃO lê", async () => assertFails(getDoc(doc(lider2(), "ocorrencias-auto/ocaRH"))));
+
+// RH valida / dispensa (rh_confere historico size 0 -> mutacao size 1)
+test("RH valida: rh_confere -> com_lider", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHv"), { status: "com_lider", historico: histN(1) })));
+test("RH dispensa: rh_confere -> dispensada", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "ocorrencias-auto/ocaRHd"), { status: "dispensada", historico: histN(1) })));
+
+// Lider confirma (turno dele) (com_lider historico size 1 -> mutacao size 2)
+test("Líder do turno confirma: com_lider -> confirmada", async () =>
+  assertSucceeds(updateDoc(doc(lider(), "ocorrencias-auto/ocaLD"), { status: "confirmada", historico: histN(2) })));
+test("Líder de OUTRO turno NÃO confirma", async () =>
+  assertFails(updateDoc(doc(lider2(), "ocorrencias-auto/ocaLD2"), { status: "confirmada", historico: histN(2) })));
+
+// Lider NÃO valida nem dispensa (só confirma)
+test("Líder NÃO valida (rh_confere -> com_lider)", async () =>
+  assertFails(updateDoc(doc(lider(), "ocorrencias-auto/ocaRHlv"), { status: "com_lider", historico: histN(1) })));
+test("Líder NÃO dispensa", async () =>
+  assertFails(updateDoc(doc(lider(), "ocorrencias-auto/ocaRHld"), { status: "dispensada", historico: histN(1) })));
+
+// nunca reabre
+test("Ninguém reabre confirmada -> rh_confere", async () =>
+  assertFails(updateDoc(doc(admin(), "ocorrencias-auto/ocaDone"), { status: "rh_confere", historico: histN(2) })));
+test("Colaborador NÃO age no fluxo novo", async () =>
+  assertFails(updateDoc(doc(colab(), "ocorrencias-auto/ocaRHc"), { status: "com_lider", historico: histN(1) })));

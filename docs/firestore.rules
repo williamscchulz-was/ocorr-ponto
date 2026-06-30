@@ -401,13 +401,27 @@ service cloud.firestore {
     // servidor (Admin SDK, que ignora estas rules). Do app, admin/RH apenas LÊ e CONFERE:
     // muda status -> 'conferida' e faz APPEND no historico (quem/quando). Sem PII na coleção.
     // Modelo cria-e-nunca-reabre: o cliente só leva status PARA 'conferida', nunca de volta.
+    // Fluxo de 2 estagios (RH -> Lider): pipeline cria 'rh_confere'; RH valida (-> 'com_lider')
+    // ou dispensa (-> 'dispensada'); lider do TURNO confirma (-> 'confirmada'). Cria-e-nunca-reabre
+    // (status novo nunca volta pra 'rh_confere'). Legado: 'aguardando_conferencia' (= RH confere) e
+    // 'conferida' (terminal antigo) seguem aceitos durante a transicao.
     match /ocorrencias-auto/{id} {
-      allow read: if isAdmin() || temCap('ocorrencias.revisarAuto', isRH());
+      allow read: if isAdmin() || isRH()
+                  || (isLider() && resource.data.turno == userDoc().turno);
 
-      allow update: if (isAdmin() || temCap('ocorrencias.revisarAuto', isRH()))
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico'])
-                    && request.resource.data.status == 'conferida'
-                    && request.resource.data.historico.size() == resource.data.historico.size() + 1;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico'])
+        && request.resource.data.historico.size() == resource.data.historico.size() + 1
+        && (
+          // RH/admin no estagio "RH confere": manda pro lider, dispensa, ou conclui direto.
+          ( (isAdmin() || temCap('ocorrencias.revisarAuto', isRH()))
+            && resource.data.status in ['rh_confere', 'aguardando_conferencia', 'com_lider']
+            && request.resource.data.status in ['com_lider', 'dispensada', 'confirmada', 'conferida'] )
+          ||
+          // Lider do TURNO confirma o que esta "com o lider".
+          ( isLider() && resource.data.turno == userDoc().turno
+            && resource.data.status == 'com_lider'
+            && request.resource.data.status == 'confirmada' )
+        );
 
       // Conteúdo nasce e some só pelo servidor (Admin SDK bypassa rules).
       allow create, delete: if false;
