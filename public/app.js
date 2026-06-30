@@ -10286,9 +10286,12 @@ function currentMonthLabel() {
 }
 
 function countActiveFuncs(u) {
-  if (u.role === "lider") return state.funcionarios.filter((f) => f.turno === u.turno).length;
-  if (u.role === "supervisor") return state.funcionarios.filter((f) => podeVerFuncionario(u, f)).length;
-  return state.funcionarios.length;
+  // Só ATIVOS (o label é "Colaboradores ativos"). Antes contava o total c/ inativos:
+  // dava 145 no dashboard vs 96 na tela de Funcionários. Agora bate.
+  const ativos = (state.funcionarios || []).filter((f) => f.ativo !== false);
+  if (u.role === "lider") return ativos.filter((f) => f.turno === u.turno).length;
+  if (u.role === "supervisor") return ativos.filter((f) => podeVerFuncionario(u, f)).length;
+  return ativos.length;
 }
 
 // ---------- Sidebar mobile ----------
