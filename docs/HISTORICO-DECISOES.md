@@ -531,3 +531,32 @@ A tarefa rodou automaticamente hoje 02:00:01 com sucesso (LastTaskResult=0). Pro
 **Resultado:** 6497 linhas → **43 ocorrências reais** (11 Faltas + 20 Atrasos + 12 Saídas), repovoadas em `ocorrencias-auto`. Magnitude guardada (`diurnas`/`noturna`/`duracaoFmt`) p/ o card mostrar.
 
 **Em aberto:** atraso compensado por hora-extra continua aparecendo (foi atraso de fato); suprimir é regra futura se o RH quiser. Partial-absence (trabalhou parte) não vira falta — se saiu cedo, aparece como Saída.
+
+
+---
+
+## 2026-06-30 · ✅ Fluxo RH→Líder + uploader (rh_confere, situacaoFunc/demitido) + reset mensal
+
+**Contexto:** unificar a aba "Conferência (beta)" na aba "Ocorrências" com um estágio extra ANTES de "pendentes": o RH confere → manda pro líder → líder confirma. Missão enviada ao Claude PC (`inbox-pc/2026-06-30-ocorrencias-fluxo-rh-lider.md`); ele fechou a máquina de estados e está mockando (subiu `docs/mockups/disciplinar-modal-v2.html`).
+
+**Máquina de estados (definida com o PC):**
+```
+pipeline cria => "rh_confere"
+  RH valida   => "com_lider"   → líder confirma => "confirmada"
+  RH dispensa => "dispensada"
+```
+Mantém "cria-e-nunca-reabre": o pipeline nunca volta um status que o app já avançou.
+
+**Mudanças no pipeline (lado WKRADAR):**
+1. `upload-ocorrencias-auto.mjs`: status inicial `aguardando_conferencia` → **`rh_confere`**. E passou a **gravar `situacaoFunc`** ("Trabalhando"/"Rescisão") **e `demitido`** (bool) no doc — antes estavam só no parser e não chegavam no Firestore (o app não enxergava). `demitido==true` → app mostra pill "em rescisão".
+2. `run-pipeline.mjs`: **reset mensal automático**. Guarda o mês corrente em `ocorrencias-mes.txt`; se virou o mês, sobe com `--reset` (zera a coleção). **01/07 começa limpo** no esquema novo. Estado inicializado em `2026-06` pra não resetar junho à toa.
+
+**Regras de quem aparece (revalidadas com o William):**
+- Turno **Geral** e **líderes de turno** (ADELIR PADILHA 785, DJONIFFER KRIECK 866 — setados MANUALMENTE por código, NÃO por cargo) → atraso/saída vai pro BH; **só Falta gera ocorrência**.
+- **Afastados** (ex.: NIVALDO) → NÃO entram.
+- **Demitidos** (ex.: JOILSON — era suspensão) → **aparecem marcados** pro RH, mas só até a data de demissão (corte pós-demissão como salvaguarda).
+- Seleção **dinâmica** (IdsFuncionarios vazio) → pega recém-contratados (ex.: DIONEIA).
+
+**Decisão em aberto (PC + William):** recorte do líder por **setor** ou **turno** (app hoje usa turno via `liderDoMesmoTurno`; sugeri setor). Não afeta o pipeline — mando `setor` e `turno` no doc. `faltasMes`: PC conta no cliente (sem campo denormalizado).
+
+**Go-live:** 01/07 (aparece 02/07 pelo delay D-1).
