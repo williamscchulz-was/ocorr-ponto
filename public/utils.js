@@ -42,10 +42,12 @@ const debug = (...args) => {
 const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-// Valida que uma URL é https:// — usar antes de salvar contratoUrl pra
-// rejeitar javascript: / data: que viraria XSS via href.
+// Valida que uma URL é http(s):// — usar antes de salvar/renderizar pra rejeitar
+// javascript:/data:text que viraria XSS via href. EXCEÇÃO: data:image/ é segura
+// num <img> (não executa script) — usada nas imagens base64 dos comunicados.
 const ehUrlSegura = (url) => {
   if (!url || !url.trim()) return true; // vazio é OK (campo opcional)
+  if (/^data:image\//i.test(url.trim())) return true; // data URL de imagem é segura p/ <img>
   try {
     const u = new URL(url.trim());
     return u.protocol === "https:" || u.protocol === "http:";
