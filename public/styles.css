@@ -4283,3 +4283,25 @@ code { font-family: inherit; }
 .disc-upbtn .icon{width:17px;height:17px;color:var(--plum)}
 .disc-upbtn.ok{border-color:var(--plum);color:var(--plum);background:var(--success-bg)}
 @media(max-width:680px){.disc-row3{grid-template-columns:1fr}}
+
+/* Comunicados do gestor em grade (feed estilo Instagram) */
+.com-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.cf-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,40,20,.06);display:flex;flex-direction:column;cursor:pointer;transition:box-shadow .15s,transform .15s}
+.cf-card:hover{box-shadow:0 8px 22px -10px rgba(0,40,20,.25);transform:translateY(-2px)}
+.cf-card--pin{box-shadow:0 0 0 1.5px var(--plum),0 1px 3px rgba(0,40,20,.06)}
+.cf-thumb{aspect-ratio:1/1;width:100%;object-fit:cover;display:block;background:var(--surface-warm)}
+.cf-noimg{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;background:linear-gradient(150deg,#1AA34F,#0B6E33);color:#fff;font-weight:700;font-size:15px;line-height:1.3;overflow:hidden}
+.cf-pin{position:absolute;top:9px;right:9px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.cf-pin .icon{width:15px;height:15px}
+.cf-conf{position:absolute;top:9px;left:9px;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:999px;background:rgba(201,138,42,.95);color:#fff;font-size:10.5px;font-weight:700}
+.cf-conf .icon{width:12px;height:12px}
+.cf-bd{padding:11px 12px 12px;display:flex;flex-direction:column;gap:7px;flex:1}
+.cf-title{font-size:14px;font-weight:700;letter-spacing:-.01em;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text-body)}
+.cf-seg{align-self:flex-start;display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:999px;background:var(--success-bg);color:var(--plum);font-size:10.5px;font-weight:700}
+.cf-meta{font-size:11px;color:var(--text-muted);margin-top:1px}
+.cf-read{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-muted)}
+.cf-read b{font-variant-numeric:tabular-nums;color:var(--text-body)}
+.cf-read .com-bar{flex:1}
+.cf-acts{display:flex;gap:6px;margin-top:6px;padding-top:9px;border-top:1px solid var(--border)}
+.cf-acts .com-mini{width:32px;height:32px}
+@media(max-width:560px){.com-grid{grid-template-columns:1fr 1fr;gap:10px}}

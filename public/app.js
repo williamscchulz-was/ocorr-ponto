@@ -4600,10 +4600,7 @@ function renderComunicados() {
       ${stat("Fixados", fixados.length, "pin")}
       ${stat("Com confirmação", comConf, "check")}
     </div>
-    ${fixados.length ? `<div class="com-seclabel">${icon("pin")}<span>Fixado</span></div>
-      <div class="com-list">${fixados.map(comCardHtml).join("")}</div>` : ""}
-    ${recentes.length ? `<div class="com-seclabel">${icon("clock")}<span>Recentes</span></div>
-      <div class="com-list">${recentes.map(comCardHtml).join("")}</div>` : ""}
+    <div class="com-grid">${[...fixados, ...recentes].map(comCardHtml).join("")}</div>
   `;
 }
 
@@ -4613,27 +4610,21 @@ function comCardHtml(c) {
   const leituras = c.leituras || [];
   const X = c.requerConfirmacao ? leituras.filter((l) => l.confirmado).length : leituras.length;
   const pct = Y > 0 ? Math.min(100, Math.round((X / Y) * 100)) : 0;
-  const verbo = c.requerConfirmacao ? "confirmaram" : "leram";
+  const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
+  const head = imgOk
+    ? `<img class="cf-thumb" src="${c.imagem}" alt="" loading="lazy">`
+    : `<div class="cf-noimg">${escapeHtml((c.corpo || c.titulo || "Comunicado").slice(0, 80))}</div>`;
   return `
-    <article class="com-card ${c.fixado ? "com-card--pin" : ""}" data-com-id="${c.id}">
-      <div class="com-card__top">
-        <h3 class="com-card__title">${escapeHtml(c.titulo || "(sem titulo)")}</h3>
-        ${c.fixado ? `<span class="com-pinmark" aria-hidden="true">${icon("pin")}</span>` : ""}
-      </div>
-      <div class="com-badges">
-        <span class="badge badge--success">${comSegLabel(seg)}</span>
-        ${c.requerConfirmacao ? `<span class="badge badge--warning">${icon("check")}<span>Requer confirmação</span></span>` : ""}
-        ${c.fixado ? `<span class="badge badge--neutral">${icon("pin")}<span>Fixado</span></span>` : ""}
-      </div>
-      ${c.corpo ? `<div class="com-card__body">${escapeHtml(c.corpo)}</div>` : ""}
-      ${c.imagem ? `<div class="com-card__img"><img src="${c.imagem}" alt="" loading="lazy"></div>` : ""}
-      <div class="com-foot">
-        <div class="com-meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
-        <div class="com-read">
-          <span class="com-read__pct"><b>${X}</b> de ${Y} ${verbo}</span>
-          <span class="com-bar"><i style="width:${pct}%"></i></span>
-        </div>
-        <div class="com-actions">
+    <article class="cf-card ${c.fixado ? "cf-card--pin" : ""}" data-com-id="${c.id}" data-com-editar="${c.id}" role="button" tabindex="0">
+      ${head}
+      ${c.fixado ? `<span class="cf-pin" aria-hidden="true">${icon("pin")}</span>` : ""}
+      ${c.requerConfirmacao ? `<span class="cf-conf">${icon("check")}Confirmação</span>` : ""}
+      <div class="cf-bd">
+        <div class="cf-title">${escapeHtml(c.titulo || "(sem titulo)")}</div>
+        <span class="cf-seg">${comSegLabel(seg)}</span>
+        <div class="cf-read"><span><b>${X}</b> de ${Y}</span><span class="com-bar"><i style="width:${pct}%"></i></span></div>
+        <div class="cf-meta">${escapeHtml(c.autorNome || "RH")} · ${comData(c.publicadoEm)}</div>
+        <div class="cf-acts">
           <button class="com-mini" data-com-leituras="${c.id}" aria-label="Ver leituras">${icon("eye")}</button>
           <button class="com-mini" data-com-fixar="${c.id}" aria-label="${c.fixado ? "Desafixar" : "Fixar"}">${icon("pin")}</button>
           <button class="com-mini" data-com-editar="${c.id}" aria-label="Editar">${icon("edit")}</button>
