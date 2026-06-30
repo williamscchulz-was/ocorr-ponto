@@ -621,3 +621,16 @@ Sobre o RH→GP, William decidiu: (1) **escopo só VISÍVEL** — NÃO renomear 
 ## 2026-06-30 · 🚨 Removido o aviso "validade jurídica plena" da assinatura (urgente, William)
 
 William pediu URGENTE pra tirar o texto "(não é validade jurídica plena)" das telas de assinatura. Removido em `app.js`: ~5734 (modal "Adesão", `<span>` do footer inteiro) e ~1183 (sheet de assinar do colaborador — só a frase do disclaimer, mantida a instrução útil de redigitar a senha). `roadmap.js` #33 ("Assinatura N3 — validade jurídica") NÃO tocado (é feature planejada). Editado por mim (WKRADAR) no domínio do app por urgência; flag no bridge pro PC. **Falta deploy** (`firebase deploy --only hosting:weave`) pra ir ao ar. Bridge: `inbox-pc/2026-06-30-urgente-tira-validade-juridica.md`.
+
+
+---
+
+## 2026-06-30 · 📋 Auditoria completa: log de TODO evento + LOGINS (desenho, decisões William)
+
+William quer a auditoria pegando **todo evento significativo de todo usuário + logins**. Workflow (3 agentes) mapeou o estado: hoje só **~25%** das ações sensíveis entram no log global; **logins não** são logados; e a **regra do `/auditoria` bloqueia o colaborador** de escrever (raiz do problema).
+
+**Decisões do William:** escopo = **eventos significativos** (não cada clique/visualização); login = **client-side agora** (auto-relato; server-side/Cloud Function fica pra depois).
+
+**Desenho recomendado (missão `inbox-pc/2026-06-30-auditoria-completa-eventos-logins.md`):** coleção própria **`/eventos`** append-only, **self-write** (`por == auth.uid`) + read `auditoria.ver` — destrava login de todos + eventos de colaborador + a ciência/assinatura da missão anterior numa fonte só. Helper `logEvento()` nos pontos significativos: login/logout (`onAuthStateChanged` firebase.js:2479 + `logout` 1837 + auto-logout 2270), senha (alterar/reset/zerarPrecisa), CRUD de funcionário/usuário/papel/tipo/bancoHoras (**lote = 1 evento-resumo**, não N), ciência/assinatura. `coletarAuditoria` ingere `/eventos` (4ª fonte) + filtros novos (Acessos/Senha/Dados/Ciências).
+
+**Cuidados:** client-side = não pega login falho nem é anti-fraude (server-side é evolução); volume controlado (significativos + lote resumido); PII só pra `auditoria.ver`. **Unifica** a missão `2026-06-30-auditoria-leitura-assinatura.md`. Domínio do PC (rules + app); **pipeline não escreve em `/eventos`** — não me afeta.
