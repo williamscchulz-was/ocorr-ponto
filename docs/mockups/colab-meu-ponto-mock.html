@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR" class="modo-colab cp-dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Meu ponto (BH + ocorrências) mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 60px;font-family:Poppins,sans-serif;display:flex;flex-wrap:wrap;gap:34px;justify-content:center;align-items:flex-start}
+  .note{flex-basis:100%;max-width:980px;margin:0 auto 8px;font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#EDF3EA}
+  .cap{text-align:center;font-size:12px;color:#8A9884;margin-top:10px;font-weight:600}
+  .phone{width:372px;background:#0E130E;border:1px solid #232C22;border-radius:30px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .phone__bar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;color:#EDF3EA;font-weight:600}
+  .scr{padding:16px 14px 22px}
+  .pp-hi h1{margin:0 0 14px}
+  .cp-bhnote{margin-top:10px;display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--text-muted);line-height:1.5}
+  .cp-bhnote .icon{width:14px;height:14px;flex:none;margin-top:1px;color:#1FB558}
+  /* últimos 10 dias de marcação (vira .cp-dia) */
+  .cp-dia{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:10px 13px;margin-bottom:8px}
+  .cp-dia__d{flex:none;width:42px;text-align:center;line-height:1}
+  .cp-dia__d b{font-size:16px;font-weight:700;color:var(--text-body)}
+  .cp-dia__d span{display:block;font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
+  .cp-dia__m{flex:1;min-width:0;font-size:13px;color:var(--text-body);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .cp-dia__m--off{color:var(--text-muted);font-style:italic;letter-spacing:0}
+  .cp-dia__s{flex:none;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+  .cp-dia__s--pos{color:#1FB558}
+  .cp-dia__s--neg{color:#E06A5A}
+  .cp-dia__s--zero{color:var(--text-muted)}
+  /* ocorrência read-only no portal (vira .cp-occ) */
+  .cp-occ{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:9px}
+  .cp-occ__date{flex:none;width:46px;height:46px;border-radius:11px;background:var(--surface-warm);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .cp-occ__date b{font-size:17px;font-weight:700;color:var(--text-body)}
+  .cp-occ__date span{font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
+  .cp-occ__bd{flex:1;min-width:0}
+  .cp-occ__t{font-size:14.5px;font-weight:600;color:var(--text-body)}
+  .cp-occ__s{font-size:12px;color:var(--text-muted);margin-top:2px}
+  .cp-occ__st{flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700}
+  .cp-occ__st--ok{background:var(--success-bg);color:#1FB558}
+  .cp-occ__st--pend{background:rgba(224,163,58,.15);color:#E0A33A}
+  .cp-occ__st--lanc{background:rgba(74,168,230,.14);color:#6FB6E8}
+  .cp-occ__st .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+</style></head>
+<body>
+
+<div class="note"><b>Mock · Meu ponto (roadmap #13 + #14).</b> Seletor no topo: <b>Banco de horas</b> = saldo atual em cima + <b>os últimos 10 dias de marcação</b> (entrada/intervalo/saída + saldo do dia) embaixo, tudo da apuração do ponto. E <b>Minhas ocorrências</b> (atrasos/faltas, só leitura — vê as próprias, sem botões). Sugestão do GP do William: mostrar os 10 dias de marcação em vez de só um gráfico.</div>
+
+<!-- PHONE 1 — Banco de horas -->
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>11:50</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-hi"><h1>Meu ponto</h1></div>
+    <div class="pp-chips-f" style="margin-bottom:14px">
+      <button class="pp-chip-f on">Banco de horas</button>
+      <button class="pp-chip-f">Ocorrências <span class="pp-chip-f__c">3</span></button>
+    </div>
+
+    <button class="pp-hero" style="margin-bottom:4px;width:100%;text-align:left">
+      <div class="pp-hero__top">
+        <span class="pp-hero__lbl"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Banco de horas</span>
+        <span class="pp-hero__badge">Junho 2026</span>
+      </div>
+      <div class="pp-hero__val">+02:30</div>
+      <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+    </button>
+
+    <div class="pp-ovl" style="margin-top:18px">Últimos 10 dias</div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>03</b><span>sex</span></div><div class="cp-dia__m">07:00 · 12:01 · 13:00 · 17:14</div><div class="cp-dia__s cp-dia__s--pos">+00:14</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>02</b><span>qui</span></div><div class="cp-dia__m">07:03 · 12:00 · 13:02 · 17:00</div><div class="cp-dia__s cp-dia__s--neg">-00:05</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>01</b><span>qua</span></div><div class="cp-dia__m">07:00 · 12:00 · 13:00 · 17:00</div><div class="cp-dia__s cp-dia__s--zero">00:00</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>31</b><span>ter</span></div><div class="cp-dia__m cp-dia__m--off">Folga</div><div class="cp-dia__s cp-dia__s--zero">—</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>30</b><span>seg</span></div><div class="cp-dia__m">06:58 · 12:00 · 13:00 · 17:20</div><div class="cp-dia__s cp-dia__s--pos">+00:22</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>29</b><span>dom</span></div><div class="cp-dia__m cp-dia__m--off">Folga</div><div class="cp-dia__s cp-dia__s--zero">—</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>28</b><span>sáb</span></div><div class="cp-dia__m">07:00 · 11:00</div><div class="cp-dia__s cp-dia__s--pos">+04:00</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>27</b><span>sex</span></div><div class="cp-dia__m cp-dia__m--off">Falta justificada</div><div class="cp-dia__s cp-dia__s--zero">—</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>26</b><span>qui</span></div><div class="cp-dia__m">07:01 · 12:00 · 13:00 · 17:05</div><div class="cp-dia__s cp-dia__s--pos">+00:04</div></div>
+    <div class="cp-dia"><div class="cp-dia__d"><b>25</b><span>qua</span></div><div class="cp-dia__m">07:00 · 12:10 · 13:00 · 17:00</div><div class="cp-dia__s cp-dia__s--neg">-00:10</div></div>
+    <div class="cp-bhnote"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>As marcações e o saldo vêm da apuração do ponto, atualizadas pelo GP. Dúvida em algum dia, fale com seu líder.</span></div>
+  </div>
+</div>
+<div class="cap">Banco de horas · saldo + últimos 10 dias</div>
+</div>
+
+<!-- PHONE 2 — Minhas ocorrências -->
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>11:50</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-hi"><h1>Meu ponto</h1></div>
+    <div class="pp-chips-f" style="margin-bottom:14px">
+      <button class="pp-chip-f">Banco de horas</button>
+      <button class="pp-chip-f on">Ocorrências <span class="pp-chip-f__c">3</span></button>
+    </div>
+
+    <div class="cp-occ">
+      <div class="cp-occ__date"><b>03</b><span>jun</span></div>
+      <div class="cp-occ__bd"><div class="cp-occ__t">Atraso</div><div class="cp-occ__s">PREPARAÇÃO · 1º Turno · 07:12</div></div>
+      <span class="cp-occ__st cp-occ__st--ok"><span class="dot"></span>Conferida</span>
+    </div>
+    <div class="cp-occ">
+      <div class="cp-occ__date"><b>28</b><span>mai</span></div>
+      <div class="cp-occ__bd"><div class="cp-occ__t">Saída antecipada</div><div class="cp-occ__s">PREPARAÇÃO · 1º Turno · 16:40</div></div>
+      <span class="cp-occ__st cp-occ__st--lanc"><span class="dot"></span>Lançada</span>
+    </div>
+    <div class="cp-occ">
+      <div class="cp-occ__date"><b>21</b><span>mai</span></div>
+      <div class="cp-occ__bd"><div class="cp-occ__t">Falta justificada</div><div class="cp-occ__s">PREPARAÇÃO · 1º Turno</div></div>
+      <span class="cp-occ__st cp-occ__st--pend"><span class="dot"></span>Pendente</span>
+    </div>
+
+    <div class="cp-bhnote" style="margin-top:14px;padding:0 4px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Você vê apenas as suas ocorrências, só para acompanhar. Dúvidas, fale com seu líder.</span></div>
+  </div>
+</div>
+<div class="cap">Minhas ocorrências · só leitura</div>
+</div>
+
+</body></html>
