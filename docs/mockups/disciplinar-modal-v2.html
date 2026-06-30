@@ -1,35 +1,44 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FioPulse · Modal disciplinar reorganizado (mock)</title>
+<title>FioPulse · Modal disciplinar reorganizado v3 (mock)</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../public/styles.css">
 <style>
   body{background:#cfd8cc;margin:0;padding:26px;min-height:100vh}
-  .cap{max-width:780px;margin:0 auto 16px;font-size:13px;color:#3a4a36;background:#fff;border:1px dashed #cdd8c8;border-radius:12px;padding:11px 15px;line-height:1.6}
-  /* AJUSTES propostos (entrariam no styles.css quando aprovado) */
-  #disc-form .disc-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
-  #disc-form .disc-col{display:flex;flex-direction:column;gap:13px}
-  #disc-form .disc-col .field{margin:0}
-  /* descricao (esq) e zona de anexo (dir) preenchem a altura -> colunas batem em cima E embaixo */
-  #disc-form .disc-col .field--fill{flex:1;display:flex;flex-direction:column}
-  #disc-form .disc-col .field--fill textarea{flex:1;min-height:120px}
-  #disc-form .doc-up--fill{flex:1;display:flex;flex-direction:column}
-  #disc-form .doc-up--fill .doc-drop{flex:1;min-height:120px;justify-content:center}
-  @media(max-width:680px){#disc-form .disc-cols{grid-template-columns:1fr}}
+  .cap{max-width:820px;margin:0 auto 16px;font-size:13px;color:#3a4a36;background:#fff;border:1px dashed #cdd8c8;border-radius:12px;padding:11px 15px;line-height:1.6}
+  .modal--disc{max-width:820px}
+  /* AJUSTES propostos (entram no styles.css quando aprovado) */
+  #disc-form{display:flex;flex-direction:column;gap:20px;padding:22px 24px 24px}
+  #disc-form .field{margin:0}
+  #disc-form .field>label{margin-bottom:7px}
+  #disc-form .ovl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:0 0 2px}
+  #disc-form .disc-cols{display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:start}
+  #disc-form .disc-col{display:flex;flex-direction:column;gap:18px}
+  #disc-form .disc-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  /* painel do documento (zona de prova, levemente destacada) */
+  #disc-form .disc-doc{background:var(--surface-warm);border:1px solid var(--border);border-radius:14px;padding:16px}
+  #disc-form .disc-doc>.ovl{margin-bottom:12px}
+  #disc-form .disc-doc .doc-drop{background:var(--surface);min-height:124px;justify-content:center}
+  #disc-form .disc-doc input[type=url]{background:var(--surface)}
+  #disc-form .disc-doc .field__hint{margin-top:9px}
+  #disc-form .doc-warn{margin:0}
+  @media(max-width:680px){#disc-form .disc-cols,#disc-form .disc-pair{grid-template-columns:1fr}}
 </style></head>
 <body>
-<div class="cap"><b>Mock · modal disciplinar reorganizado.</b> Colunas da mesma altura (descrição e zona de anexo preenchem), tudo alinhado num bloco só, sem vão. Mesma largura (760px) e sem scroll no desktop.</div>
+<div class="cap"><b>Mock v3 · modal disciplinar.</b> Mais respiro entre os campos, esquerda agrupada ("a ocorrência"), o anexo num painel próprio à direita ("o documento"), e a nota de acesso com espaço antes do rodapé. Largura 820px, sem scroll no desktop.</div>
 
-<div class="modal modal--wide" style="margin:0 auto">
+<div class="modal modal--wide modal--disc" style="margin:0 auto">
   <div class="modal__header">
     <div><h2>Registrar ocorrência disciplinar</h2><p>Dado sensível. Fica registrado quem aplicou, data e hora.</p></div>
     <button class="modal__close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
   <form class="modal__body" id="disc-form">
+
     <div class="field">
       <label>Funcionário <span style="color:var(--danger)">*</span></label>
       <select><option>Selecione...</option></select>
     </div>
+
     <div class="field">
       <label>Tipo <span style="color:var(--danger)">*</span></label>
       <div class="com-seg disc-seg">
@@ -38,28 +47,29 @@
         <button type="button" class="com-seg__chip"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Suspensão</span></button>
       </div>
     </div>
+
     <div class="disc-cols">
       <div class="disc-col">
-        <div class="field"><label>Data <span style="color:var(--danger)">*</span></label><input type="date" value="2026-06-30"></div>
-        <div class="field"><label>Motivo <span style="color:var(--danger)">*</span></label><select><option>Faltas injustificadas</option></select></div>
-        <div class="field field--fill"><label>Descrição</label><textarea placeholder="Detalhe o ocorrido (datas, contexto)..."></textarea></div>
-      </div>
-      <div class="disc-col">
-        <div class="field field--fill">
-          <label>Documento anexado <span style="color:var(--danger)">*</span></label>
-          <div class="doc-up doc-up--fill">
-            <label class="doc-drop">
-              <span class="doc-drop__ic"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
-              <span class="doc-drop__t">Escolher arquivo do computador</span>
-              <span class="doc-drop__s">PDF ou imagem. Sobe pro Drive da empresa.</span>
-            </label>
-            <div class="doc-or"><span>ou cole um link que já existe no Drive</span></div>
-            <input type="url" placeholder="https://drive.google.com/file/d/...">
-          </div>
-          <span class="field__hint">É esse documento que o colaborador vai abrir e ler antes de dar ciência.</span>
+        <div class="disc-pair">
+          <div class="field"><label>Data <span style="color:var(--danger)">*</span></label><input type="date" value="2026-06-30"></div>
+          <div class="field"><label>Motivo <span style="color:var(--danger)">*</span></label><select><option>Faltas injustificadas</option></select></div>
         </div>
+        <div class="field"><label>Descrição</label><textarea rows="5" placeholder="Detalhe o ocorrido (datas, contexto)..."></textarea></div>
+      </div>
+
+      <div class="disc-doc">
+        <div class="ovl">Documento anexado <span style="color:var(--danger)">*</span></div>
+        <label class="doc-drop">
+          <span class="doc-drop__ic"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+          <span class="doc-drop__t">Escolher arquivo do computador</span>
+          <span class="doc-drop__s">PDF ou imagem. Sobe pro Drive da empresa.</span>
+        </label>
+        <div class="doc-or"><span>ou cole um link que já existe no Drive</span></div>
+        <input type="url" placeholder="https://drive.google.com/file/d/...">
+        <span class="field__hint">É esse documento que o colaborador vai abrir e ler antes de dar ciência.</span>
       </div>
     </div>
+
     <div class="doc-warn" style="background:var(--info-bg);border-color:transparent"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Acesso restrito a admin, RH e ao líder do turno. O colaborador vê a própria, abre o documento e dá ciência (registrada com data e hora).</span></div>
   </form>
   <div class="modal__footer">
