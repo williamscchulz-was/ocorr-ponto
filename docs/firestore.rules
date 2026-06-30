@@ -187,6 +187,29 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ----- eventos (log de auditoria de TODO usuário · self-write append-only) -----
+    // Cada usuário grava SÓ os PRÓPRIOS eventos (por == uid). Leitura só p/ auditoria.ver.
+    // Append-only (sem update/delete). Destrava login de qualquer papel + ciência/leitura/assinatura
+    // do colaborador numa fonte só, sem afrouxar /auditoria. Client-side/auto-relato: é histórico
+    // interno, NÃO prova jurídica (anti-fraude server-side fica pra Cloud Function no futuro).
+    // Campos limitados; 'alvo' neutro (quem chama não manda conteúdo sensível).
+    match /eventos/{id} {
+      allow read: if isAdmin() || temCap('auditoria.ver', isRH());
+      allow create: if isAuthed()
+        && request.resource.data.por == request.auth.uid
+        && request.resource.data.em == request.time
+        && request.resource.data.tipo is string
+        && request.resource.data.tipo.size() <= 40
+        && request.resource.data.acao is string
+        && request.resource.data.acao.size() > 0
+        && request.resource.data.acao.size() <= 200
+        && request.resource.data.keys().hasOnly(['por', 'porNome', 'porRole', 'tipo', 'acao', 'alvo', 'em'])
+        && (!('alvo' in request.resource.data) || (request.resource.data.alvo is string && request.resource.data.alvo.size() <= 300))
+        && (!('porNome' in request.resource.data) || (request.resource.data.porNome is string && request.resource.data.porNome.size() <= 120))
+        && (!('porRole' in request.resource.data) || (request.resource.data.porRole is string && request.resource.data.porRole.size() <= 40));
+      allow update, delete: if false;
+    }
+
     // ----- presence (quem está online agora) -----
     match /presence/{uid} {
       allow read: if isAuthed();

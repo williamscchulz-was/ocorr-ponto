@@ -8422,6 +8422,10 @@ async function deletePJ(id) {
 
 const AUD_FILTROS = [
   { id: "tudo", label: "Tudo" },
+  { id: "acessos", label: "Acessos" },
+  { id: "senha", label: "Senha" },
+  { id: "dados", label: "Dados" },
+  { id: "ciencias", label: "Ciências" },
   { id: "conferencias", label: "Conferências" },
   { id: "lancamentos", label: "Lançamentos" },
   { id: "edicoes", label: "Edições" },
@@ -8431,6 +8435,10 @@ const AUD_FILTROS = [
 // Classifica uma ação textual do histórico em categoria + visual (cor + ícone).
 function classificarAcaoAuditoria(acao) {
   const a = (acao || "").toLowerCase();
+  if (a.includes("entrou") || a.includes("saiu")) return { cat: "acessos", dot: "ok", ic: "shield" };
+  if (a.includes("senha") || a.includes("reset")) return { cat: "senha", dot: "warn", ic: "lock" };
+  if (a.includes("ciência") || a.includes("ciencia") || a.includes("assinou") || a.includes("visualizou") || a.includes("leitura")) return { cat: "ciencias", dot: "neu", ic: "check" };
+  if (a.includes("usuário") || a.includes("usuario") || a.includes("funcionário") || a.includes("funcionario") || a.includes("permiss") || a.includes("importou") || a.includes("tipo")) return { cat: "dados", dot: "info", ic: "users" };
   if (a.includes("conferiu")) return { cat: "conferencias", dot: "ok", ic: "check" };
   if (a.includes("desfez")) return { cat: "lancamentos", dot: "warn", ic: "undo" };
   if (a.includes("lançada") || a.includes("lancada") || a.includes("lançou") || a.includes("lancou"))
@@ -8464,6 +8472,12 @@ function coletarAuditoria() {
   for (const ev of (state.auditoriaGlobal || [])) {
     if (!ev || !ev.em) continue;
     itens.push({ tipo: "log", em: ev.em, por: ev.por, acao: ev.acao || "—", alvoTexto: ev.alvo || "" });
+  }
+  // Eventos estruturados (/eventos): login, senha, dados, ciência/assinatura de todo usuário.
+  // porNome vem no doc (o ator pode ser colaborador, cujo uid não está no state.users do gestor).
+  for (const ev of (state.eventos || [])) {
+    if (!ev || !ev.em) continue;
+    itens.push({ tipo: "evento", em: ev.em, por: ev.por, acao: ev.acao || "—", alvoTexto: ev.alvo || "", porNome: ev.porNome || "", porRole: ev.porRole || "" });
   }
   itens.sort((a, b) => String(b.em).localeCompare(String(a.em)));
   return itens;
@@ -8500,11 +8514,12 @@ function renderAuditoria() {
   // Lazy: carrega o log global (exclusões) só na 1ª vez que a Auditoria abre —
   // não pesa no boot. Depois fica em cache na sessão (atualizações vêm do push
   // otimista do registrarAuditoria).
-  if (window.carregarAuditoriaGlobal && !state._audGlobalCarregado) {
-    window.carregarAuditoriaGlobal().then(() => {
-      state._audGlobalCarregado = true;
-      if (state.view.page === "auditoria") pintarFeedAuditoria();
-    });
+  if (!state._audGlobalCarregado) {
+    state._audGlobalCarregado = true;
+    Promise.all([
+      window.carregarAuditoriaGlobal ? window.carregarAuditoriaGlobal() : Promise.resolve(),
+      window.carregarEventosGlobal ? window.carregarEventosGlobal() : Promise.resolve(),
+    ]).then(() => { if (state.view.page === "auditoria") pintarFeedAuditoria(); });
   }
 
   const busca = $("#aud-busca");
@@ -8534,10 +8549,10 @@ function pintarFeedAuditoria(animar) {
   const itens = coletarAuditoria().filter((it) => {
     if (cat !== "tudo" && classificarAcaoAuditoria(it.acao).cat !== cat) return false;
     if (termo) {
-      const quem = (getUser(it.por)?.nome || it.por || "").toLowerCase();
+      const quem = (getUser(it.por)?.nome || it.porNome || it.por || "").toLowerCase();
       const alvo = (it.tipo === "pj"
         ? (it.pj?.nome || "")
-        : it.tipo === "log"
+        : (it.tipo === "log" || it.tipo === "evento")
           ? (it.alvoTexto || "")
           : (it.o?.funcionarioNome || getFuncionario(it.o?.funcionarioId)?.nome || "")).toLowerCase();
       if (!quem.includes(termo) && !alvo.includes(termo)) return false;
@@ -8576,13 +8591,16 @@ function pintarFeedAuditoria(animar) {
       <div class="aud__feed">
         ${g.itens.map((it) => {
           const cl = classificarAcaoAuditoria(it.acao);
-          const quem = getUser(it.por)?.nome || it.por || "—";
+          const quem = getUser(it.por)?.nome || it.porNome || it.por || "—";
           let alvo, attr;
           if (it.tipo === "pj") {
             alvo = "PJ · " + (it.pj?.nome || "—");
             attr = `data-pj="${escapeHtml(it.pj?.id || "")}"`;
           } else if (it.tipo === "log") {
             // Registro já não existe (foi excluído) — sem clique.
+            alvo = it.alvoTexto || "—";
+            attr = "";
+          } else if (it.tipo === "evento") {
             alvo = it.alvoTexto || "—";
             attr = "";
           } else {

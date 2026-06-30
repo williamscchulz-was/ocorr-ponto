@@ -483,6 +483,7 @@
           ...novo,
           criadoEm: new Date().toISOString(),
         });
+        window.logEvento?.({ tipo: "dados", acao: "Criou tipo de ocorrência", alvo: (novo.label || id) });
         closeModal();
         toast("Tipo criado!");
         renderApp();
@@ -522,6 +523,7 @@
           });
           state.funcionarios.push({ id: novoId, ...dados });
         }
+        window.logEvento?.({ tipo: "dados", acao: id ? "Atualizou funcionário" : "Criou funcionário", alvo: nome });
         closeModal();
         toast(id ? "Funcionário atualizado." : "Funcionário criado.");
         renderApp();
@@ -545,6 +547,7 @@
       }))) return;
       try {
         await db.collection("funcionarios").doc(id).delete();
+        window.logEvento?.({ tipo: "dados", acao: "Excluiu funcionário", alvo: (f?.nome || id) });
         state.funcionarios = state.funcionarios.filter((x) => x.id !== id);
         closeModal();
         toast("Funcionário excluído.");
@@ -906,6 +909,31 @@
       }
     };
 
+    // Log de evento significativo na coleção /eventos (self-write append-only; cada um grava
+    // só os próprios). Best-effort: se falhar, não atrapalha o fluxo. A rule exige por==uid,
+    // em==server-time e hasOnly(por,porNome,porRole,tipo,acao,alvo). Reflete na sessão se a
+    // tela de Auditoria já carregou state.eventos (só quem tem auditoria.ver).
+    window.logEvento = async function (evt) {
+      const por = (auth.currentUser && auth.currentUser.uid) || null;
+      if (!por) return; // sem sessão, não loga
+      const u = currentUser();
+      const acao = String(evt?.acao || "").slice(0, 200);
+      if (!acao) return;
+      const doc = {
+        por,
+        porNome: String((u && u.nome) || "").slice(0, 120),
+        porRole: String((u && u.role) || "").slice(0, 40),
+        tipo: String(evt?.tipo || "geral").slice(0, 40),
+        acao,
+        em: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      const alvo = (evt && evt.alvo != null) ? String(evt.alvo).slice(0, 300) : "";
+      if (alvo) doc.alvo = alvo;
+      if (Array.isArray(state.eventos)) state.eventos.unshift({ ...doc, em: new Date().toISOString() });
+      try { await db.collection("eventos").add(doc); }
+      catch (e) { debug?.("[eventos] falha ao registrar:", e?.message || e); }
+    };
+
     // Carrega o log global sob demanda (chamado ao abrir a tela Auditoria).
     window.carregarAuditoriaGlobal = async function () {
       const u = currentUser();
@@ -915,6 +943,20 @@
         state.auditoriaGlobal = snap.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
       } catch (e) {
         debug?.("[auditoria] load falhou:", e?.message || e);
+      }
+    };
+
+    // Carrega a coleção /eventos sob demanda (junto da Auditoria). Só admin/RH (a rule gateia
+    // por auditoria.ver). Ordena por em desc; limite alto pra cobrir o histórico recente.
+    window.carregarEventosGlobal = async function () {
+      const u = currentUser();
+      if (!u || (u.role !== "admin" && u.role !== "rh")) return;
+      try {
+        const snap = await db.collection("eventos").orderBy("em", "desc").limit(400).get();
+        state.eventos = snap.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
+      } catch (e) {
+        debug?.("[eventos] load falhou:", e?.message || e);
+        if (!Array.isArray(state.eventos)) state.eventos = [];
       }
     };
 
@@ -1044,6 +1086,7 @@
           em: firebase.firestore.FieldValue.serverTimestamp(),
           userAgent: String(navigator.userAgent || "").slice(0, 200),
         });
+        window.logEvento?.({ tipo: "ciencias", acao: opts.confirmar ? "Confirmou ciência de comunicado" : "Visualizou comunicado", alvo: ((state.comunicadosColab || []).find((x) => x.id === comunicadoId)?.titulo || comunicadoId) });
         return { ok: true };
       } catch (e) {
         return { ok: false, err: e.message };
@@ -1314,6 +1357,7 @@
           em: firebase.firestore.FieldValue.serverTimestamp(),
           userAgent: String(navigator.userAgent || "").slice(0, 200),
         });
+        window.logEvento?.({ tipo: "ciencias", acao: "Assinou documento", alvo: (d?.titulo || docId) + " v" + (d?.versao || opts.versao || 1) });
         window.registrarAuditoria?.({ tipo: "documento", acao: "Assinou documento (N1)", alvo: (d?.titulo || docId) + " v" + (d?.versao || opts.versao || 1) });
         return { ok: true };
       } catch (e) { return { ok: false, err: e.message }; }
@@ -1327,6 +1371,7 @@
         const snap = await ref.get();
         if (snap.exists) return { ok: true };
         await ref.set({ uid, funcionarioId: (u && u.funcionarioId) || null, confirmado: !!opts.confirmar, em: firebase.firestore.FieldValue.serverTimestamp(), userAgent: String(navigator.userAgent || "").slice(0, 200) });
+        window.logEvento?.({ tipo: "ciencias", acao: opts.confirmar ? "Confirmou leitura de documento" : "Visualizou documento", alvo: ((state.documentosColab || []).find((x) => x.id === docId)?.titulo || docId) });
         return { ok: true };
       } catch (e) { return { ok: false, err: e.message }; }
     };
@@ -1440,6 +1485,7 @@
         });
         const d = (state.disciplinaresColab || []).find((x) => x.id === id);
         if (d) d.minhaCiencia = { em: new Date().toISOString() };
+        window.logEvento?.({ tipo: "ciencias", acao: "Registrou ciência disciplinar", alvo: "Registro disciplinar" + (d?.data ? " · " + d.data : "") });
         toast("Ciência registrada."); renderApp();
         return { ok: true };
       } catch (e) { toast("Não consegui registrar: " + (e?.message || e), "danger"); return { ok: false }; }
@@ -1495,6 +1541,7 @@
           };
         }
 
+        window.logEvento?.({ tipo: "dados", acao: "Importou banco de horas", alvo: `${total} saldos` });
         closeModal();
         toast(`${total} saldos sincronizados no Firestore.`);
         renderApp();
@@ -1588,6 +1635,7 @@
         }
       }
 
+      window.logEvento?.({ tipo: "dados", acao: "Importou funcionários", alvo: `${total} no JSON${markAusentes ? ` · ${inativados} inativados` : ""}` });
       closeModal();
       toast(`Sincronizado: ${total} no JSON${markAusentes ? ` · ${inativados} inativados` : ""}.`);
       renderApp();
@@ -1612,6 +1660,7 @@
         await db.collection("acoes").doc(id).set(nova);
         if (!state.acoesCustom) state.acoesCustom = [];
         state.acoesCustom.push({ id, ...nova, criadoEm: new Date().toISOString() });
+        window.logEvento?.({ tipo: "dados", acao: "Criou ação", alvo: (nova.label || id) });
         closeModal();
         toast("Ação criada!");
         renderApp();
@@ -1835,6 +1884,7 @@
     };
 
     window.logout = async function () {
+      try { await window.logEvento?.({ tipo: "acessos", acao: "Saiu", alvo: (currentUser()?.nome || "") }); } catch (e) {}
       await auth.signOut();
     };
 
@@ -1871,7 +1921,11 @@
     window.zerarPrecisaTrocarSenha = async function () {
       const user = auth.currentUser;
       if (!user) return { ok: false, err: "Não está logado." };
-      try { await db.collection("users").doc(user.uid).update({ precisaTrocarSenha: false }); return { ok: true }; }
+      try {
+        await db.collection("users").doc(user.uid).update({ precisaTrocarSenha: false });
+        window.logEvento?.({ tipo: "senha", acao: "Completou troca obrigatória de senha", alvo: (currentUser()?.nome || "") });
+        return { ok: true };
+      }
       catch (e) { return { ok: false, err: e.message }; }
     };
 
@@ -1921,6 +1975,7 @@
         // Adiciona ao state local pra UI atualizar
         state.users.push({ id: uid, ...userDoc, criadoEm: new Date().toISOString() });
 
+        window.logEvento?.({ tipo: "dados", acao: "Convidou usuário", alvo: `${nome} (${role})` });
         return { ok: true, uid, email, tempPassword, resetEnviado };
       } catch (err) {
         return { ok: false, err: traduzErroAuth(err) };
@@ -1966,6 +2021,7 @@
         await db.collection("users").doc(uid).update(update);
         const local = state.users.find((x) => x.id === uid);
         if (local) Object.assign(local, update);
+        window.logEvento?.({ tipo: "dados", acao: "Atualizou usuário", alvo: `${(local && local.nome) || uid}${update.role ? " · papel " + update.role : ""}` });
         return { ok: true };
       } catch (e) {
         return { ok: false, err: e.message || String(e) };
@@ -1981,6 +2037,7 @@
       try {
         await db.collection("config").doc("permissoes").set(mapa);
         state.permissoes = mapa;
+        window.logEvento?.({ tipo: "dados", acao: "Atualizou matriz de permissões", alvo: "Permissões por papel" });
         return { ok: true };
       } catch (e) {
         return { ok: false, err: e.message || String(e) };
@@ -2178,6 +2235,7 @@
         await user.updatePassword(nova);
         // Defensivo: refresh do token após a troca, pra não sobrar estado de auth obsoleto.
         try { await user.getIdToken(true); } catch (e) {}
+        window.logEvento?.({ tipo: "senha", acao: "Alterou a própria senha", alvo: (currentUser()?.nome || "") });
         return { ok: true };
       } catch (e) {
         return { ok: false, err: traduzErroAuth(e) };
@@ -2196,6 +2254,7 @@
       debug?.("[Auth] enviando email de redefinição pra:", email);
       try {
         await auth.sendPasswordResetEmail(email);
+        window.logEvento?.({ tipo: "senha", acao: "Solicitou redefinição de senha", alvo: email });
         toast(`Email enviado pra ${email}. Veja na caixa de entrada (e na pasta de spam).`);
       } catch (e) {
         debug?.("[Auth] reset error:", e);
@@ -2282,6 +2341,7 @@
       if (manterConectadoAtivo()) return;
       idleTimer = setTimeout(async () => {
         if (auth.currentUser) {
+          try { await window.logEvento?.({ tipo: "acessos", acao: "Saiu (inatividade)", alvo: (currentUser()?.nome || "") }); } catch (e) {}
           await auth.signOut().catch(() => {});
           if (typeof toast === "function") toast("Sessão expirada por inatividade. Entre de novo.", "danger");
         }
@@ -2542,6 +2602,7 @@
 
         await carregarDadosCompletos(db);
         state.dadosCarregadosEm = new Date().toISOString();
+        window.logEvento?.({ tipo: "acessos", acao: "Entrou", alvo: userInState.nome });
 
         $("#acesso")?.classList.add("hidden");
         $("#login").classList.add("hidden");
