@@ -32,7 +32,7 @@ Novo: o pipeline agora grava o **espelho de ponto** (as marcações REAIS por di
 - Mostra as **batidas por dia** (os horários), estilo espelho de ponto.
 - Dia COM batida → os horários. Dia SEM batida → marcador **neutro**: **"Folga"** (domingo / `situacoes` vazio) ou **"Sem marcação"**.
 - **NÃO** jogue rótulos pesados na cara do colaborador (**Atrasos / Falta / Suspensão**). O `situacoes[]` está no dado caso o RH/admin queira usar internamente, mas **a tela do colaborador deve ser neutra — só os horários** que ele bateu.
-- `saldoDiaFmt` por dia é opcional mostrar (é running, não delta).
+- `saldoDiaFmt` por dia = saldo **acumulado** (running) ao fim do dia. **O William gostou de ver isso — MOSTRAR** junto das batidas (ex.: "saldo acumulado" ao lado/abaixo dos horários). O saldo TOTAL geral continua em `saldoFormatado`.
 
 ## Pra você confirmar comigo
 - Encaixa na tela "Meu banco de horas" do colaborador?
