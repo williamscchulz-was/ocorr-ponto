@@ -1405,10 +1405,26 @@ function renderColabPonto() {
 function colabBhTabHtml(f) {
   if (f && f.bhExempt) return `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>`;
   const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias)) ? state.meuSaldoBH.dias : [];
-  const mesLbl = dias.length ? cpMesLabel(dias[0].dataIso) : "";
-  const detalhe = dias.length
-    ? `<div class="pp-ovl" style="margin-top:18px">Espelho de ponto${mesLbl ? ` · ${mesLbl}` : ""}</div>${dias.map(colabDiaMarcHtml).join("")}<div class="cp-bhnote">${cpIcon("info")}<span>Os horários que você bateu a cada dia, atualizados diariamente. Dúvida em algum dia, fale com seu líder.</span></div>`
-    : `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O espelho do mês aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
+  let detalhe;
+  if (dias.length) {
+    // Agrupa por mês (YYYY-MM), preservando a ordem (mais recente primeiro). Cobre mês vigente
+    // + mês anterior quando o pipeline mandar os dois — cada mês ganha seu cabeçalho.
+    const grupos = [];
+    let atual = null;
+    for (const d of dias) {
+      const ym = String(d.dataIso || "").slice(0, 7);
+      if (!atual || atual.ym !== ym) { atual = { ym, dataIso: d.dataIso, dias: [] }; grupos.push(atual); }
+      atual.dias.push(d);
+    }
+    const blocos = grupos.map((g, i) => {
+      const m = cpMesLabel(g.dataIso);
+      const h = i === 0 ? `Espelho de ponto${m ? ` · ${m}` : ""}` : m;
+      return `<div class="pp-ovl" style="margin-top:${i === 0 ? 18 : 16}px">${escapeHtml(h)}</div>${g.dias.map(colabDiaMarcHtml).join("")}`;
+    }).join("");
+    detalhe = `${blocos}<div class="cp-bhnote">${cpIcon("info")}<span>Os horários que você bateu a cada dia, atualizados diariamente. Dúvida em algum dia, fale com seu líder.</span></div>`;
+  } else {
+    detalhe = `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O espelho do mês aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
+  }
   return `${bhHeroHtml(f)}${detalhe}`;
 }
 
