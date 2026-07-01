@@ -720,3 +720,18 @@ William: "manda ver" nos altos. Corrigidos, um por um, testados com pipeline rea
 **Verificação:** monitor foi de "1 parado" (falso alarme do histórico, corrigido) pra "11 ok / 0 atenção / 0 parado". Pipeline completo rodado do zero (export → parse → upload → monitor → heartbeat), exit 0.
 
 **Não aplicados ainda:** ~20 médios + ~18 baixos/info da auditoria de 2026-07-01. Ficam documentados pra quando o William quiser retomar.
+
+
+---
+
+## 2026-07-01 · ✅ Espelho de ponto: mês anterior + mês vigente (2 meses) no ar
+
+William quer guardar 2 meses (vigente + anterior), não só o vigente — doc cabe tranquilo (~10-12KB de 1MB, confirmado pelo PC). Implementado:
+
+- `export-espelho.mjs`: `DataInicial` = 1º do mês **ANTERIOR** (era 1º do vigente). Bônus: essa janela nunca fica de 1 dia só (mesmo no dia 1º do mês vigente, o mês anterior inteiro garante ≥28 dias de intervalo) — **elimina de vez** o bug do WK de janela de 1 dia (achado nesta mesma sessão, mais cedo hoje), sem precisar mais do hack de "estica pra ontem".
+- `process-espelho-ponto.mjs`: piso do filtro passou de "1º do mês vigente" pra "1º do mês ANTERIOR"; teto de segurança `MAX_DIAS` 31→**62**.
+- Comentários atualizados em `config.mjs`/`upload-banco-horas-self.mjs`/`run-pipeline.mjs`.
+
+**Testado com dado real**: janela ficou `01/06 → 01/07` (confirmado no export); 183/356 vieram com 30 dias (01/06→30/06, 01/07 ainda não apurado — característica normal, não bug). Doc verificado no Firestore: ~5.2-5.8 KB hoje (vai estabilizar ~10-12KB com o mês fechado). Pipeline completo rodado de ponta a ponta de novo (com os 6 fixes "alto" + essa mudança juntos): exit 0, monitor 11 ok / 0 atenção / 0 parado.
+
+Avisei o PC (`inbox-pc/2026-07-01-espelho-2-meses-no-ar.md`) — zero mudança do lado dele (já agrupa por mês, "acende sozinho").
