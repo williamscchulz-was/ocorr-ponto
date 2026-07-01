@@ -813,3 +813,21 @@ Perguntei ao William "como criptografar" o `parsed-empregado.json`/`parsed-bh.js
 **Testado com dado real**: pipeline completo rodado do zero — `PIPELINE OK · 21.6s`, log confirmou `[PII-cleanup] removido` pros 2 arquivos, e depois do run os arquivos de fato não existiam mais no disco (verificado com `ls`).
 
 **Nota:** scripts de debug manual (`inline-check-setores.mjs` e similares) que leem `parsed-empregado.json` fora de uma rodada do pipeline vão precisar rodar `process-empregado.mjs` primeiro pra regenerar o arquivo — comportamento esperado, não é bug.
+
+
+---
+
+## 2026-07-01 · ✅ 4 achados "baixo/info" com ganho real — corrigidos e testados
+
+William: "aplica o que é ganho real e bora!" — os 4 que recomendei (dos ~18 baixo/info restantes da auditoria):
+
+1. **Contadores de descarte do parser de ocorrências agora persistem no JSON** (`process-ocorrencias-rh.py`): novo campo `regras` em `parsed-ocorrencias.json` — `{goLive, hoje, brutas, final, puloAberto, puloPreGoLive, removidoGeral, removidoAfastado, removidoPosDemissao, demitidoMarcado}`. Antes só existiam no console (stdout efêmero de uma rodada agendada) — se um dia sumissem ocorrências demais, ninguém teria como auditar o porquê dias depois. Testado: campo confere com o console (184 pré-go-live hoje).
+2. **`export-espelho.mjs`: `Atomics.wait()` (bloqueava a thread) → `setTimeout`/`await` (top-level await, ESM nativo)** no loop que espera o arquivo do WK aparecer. Testado com export real, funcionou igual.
+3. **Path do servidor removido do report público do heartbeat** (`write-heartbeat-report.mjs`): `sourceCSV` e `## Source` agora mostram só `basename` (ex.: `ExpAuto_Banco_de_Horas.txt`), não mais `D:\WKRadar\BI\Registros\...` — o report vai pro GitHub, não precisa expor estrutura de disco/RAID do servidor.
+4. **Limpeza de docs órfãos em `banco-horas-self`** (`upload-banco-horas-self.mjs`): quando colaborador é demitido/some do BH, o doc dele agora é apagado (antes ficava pra sempre — sem risco de vazamento, rule SELF já travava, mas lixo acumulando). **Testado com dado real: encontrou e removeu 2 docs órfãos de verdade que estavam sobrando em produção.**
+
+**Verificação final:** pipeline completo rodado do zero com TODAS as correções da sessão juntas (2 críticos + 9 altos + médios + esses 4) — `PIPELINE OK · 23.6s`, monitor 11 ok/0 atenção/0 parado, heartbeat commitado e enviado, `sourceCSV` confirmado sem path do servidor.
+
+**Consequência colateral notada**: como `parsed-bh.json`/`parsed-empregado.json` agora são apagados no fim de cada rodada (decisão de hoje sobre PII), rodar os scripts isoladamente fora de uma rodada completa exige regenerar esses arquivos primeiro (`node process-bh.mjs` / `node process-empregado.mjs`) — comportamento esperado, documentado.
+
+**Restam ~14 achados baixo/info** (teóricos/risco quase-zero ou decisão de negócio) não abordados nesta rodada — ver entrada anterior "Achados médio" pra lista completa do que foi avaliado e propositalmente deixado de lado.
