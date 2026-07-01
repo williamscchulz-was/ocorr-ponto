@@ -725,6 +725,7 @@ function cpIcon(name) {
     conferir: '<rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M8.5 13l2.2 2.2L15.5 10"/>',
     pulso: '<path d="M3 12h4l2 5 4-12 2 7h6"/>',
     briefcase: '<rect x="2.5" y="7" width="19" height="13.5" rx="2.2"/><path d="M8 7V5.2A2.2 2.2 0 0 1 10.2 3h3.6A2.2 2.2 0 0 1 16 5.2V7"/><path d="M2.5 12.5h19"/>',
+    camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -1362,11 +1363,15 @@ function colabGreetHtml(f, nome) {
   const primeiro = (nome || "").trim().split(/\s+/)[0] || "";
   const hoje = new Date();
   const h = hoje.getHours();
-  const av = escapeHtml(initials(nome || "?"));
+  const u = currentUser();
+  // Foto do próprio colaborador (fotoBase64), se tiver; senão iniciais no verde da marca.
+  const foto = (u && typeof u.fotoBase64 === "string" && u.fotoBase64.indexOf("data:image/") === 0) ? u.fotoBase64 : null;
+  const avSt = foto ? ` style="background-image:url(${foto});background-size:cover;background-position:center;color:transparent"` : "";
+  const av = foto ? "" : escapeHtml(initials(nome || "?"));
   const ehAniv = f && Number(f.aniversarioDia) === hoje.getDate() && Number(f.aniversarioMes) === (hoje.getMonth() + 1);
   if (ehAniv) {
     return `<div class="pp-greet pp-greet--bday">
-      <div class="pp-greet__av">${av}<span class="spark">${cpIcon("cake")}</span></div>
+      <div class="pp-greet__av"${avSt}>${av}<span class="spark">${cpIcon("cake")}</span></div>
       <div class="pp-greet__tx"><h1>Feliz aniversário, <b>${escapeHtml(primeiro)}</b></h1><p>Toda a Fiobras te deseja um dia incrível</p></div>
     </div>`;
   }
@@ -1378,7 +1383,7 @@ function colabGreetHtml(f, nome) {
   const sub = [`${ds}, ${hoje.getDate()} de ${mesNome}`, turnoLabel].filter(Boolean).join(" · ");
   const icoHora = (h >= 6 && h < 18) ? "sun" : "moon";
   return `<div class="pp-greet">
-    <div class="pp-greet__av">${av}</div>
+    <div class="pp-greet__av"${avSt}>${av}</div>
     <div class="pp-greet__tx"><h1>${saud}, <b>${escapeHtml(primeiro)}</b></h1><p>${cpIcon(icoHora)}${escapeHtml(sub)}</p></div>
   </div>`;
 }
@@ -1529,9 +1534,51 @@ function colabOccCardHtml(o) {
   </div>`;
 }
 
+// Folha de foto do perfil do colaborador: escolher (via cropper) ou remover. Reusa a mesma
+// infra do gestor (openCropFotoModal + atualizarMinhaFoto). A foto passa a valer em todos
+// os avatares (saudação da Home, topo, Conta).
+function openColabFotoSheet() {
+  if (typeof window.atualizarMinhaFoto !== "function") return;
+  const u = currentUser();
+  const temFoto = u && typeof u.fotoBase64 === "string" && u.fotoBase64.indexOf("data:image/") === 0;
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Foto do perfil</h2><p>Aparece na Home, no topo e na Conta</p></div>
+      <button class="modal__close" data-close>${cpIcon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <input type="file" id="colab-foto-input" accept="image/*" hidden />
+      <button class="btn btn--primary btn--block" id="colab-foto-escolher">${icon("upload")}<span>Escolher uma foto</span></button>
+      ${temFoto ? `<button class="btn btn--ghost btn--block" id="colab-foto-remover" style="color:var(--danger);margin-top:10px">${icon("trash")}<span>Remover foto (voltar às iniciais)</span></button>` : ""}
+    </div>
+  `, {
+    onMount: (modal) => {
+      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const inp = $("#colab-foto-input");
+      $("#colab-foto-escolher").addEventListener("click", () => inp && inp.click());
+      if (inp) inp.addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { toast("Imagem acima de 5 MB. Escolha uma menor.", "danger"); inp.value = ""; return; }
+        openCropFotoModal(file, async (base64) => {
+          try { await window.atualizarMinhaFoto(base64); toast("Foto atualizada."); renderApp(); }
+          catch (err) { toast("Erro ao salvar a foto: " + (err?.message || err), "danger"); }
+        });
+      });
+      const rm = $("#colab-foto-remover");
+      if (rm) rm.addEventListener("click", async () => {
+        if (!(await confirmar({ titulo: "Remover foto?", msg: "Sua foto de perfil volta para as iniciais.", okLabel: "Remover", perigo: true }))) return;
+        try { await window.atualizarMinhaFoto(null); closeModal(); toast("Foto removida."); renderApp(); }
+        catch (err) { toast("Erro ao remover: " + (err?.message || err), "danger"); }
+      });
+    },
+  });
+}
+
 function renderColabConta() {
   const view = $("#view");
   const u = currentUser();
+  const podeAlterarFotoColab = typeof window.atualizarMinhaFoto === "function";
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
   const cargoSetor = [f && f.cargo, f && f.setor].filter(Boolean).join(" · ") || "—";
@@ -1561,7 +1608,10 @@ function renderColabConta() {
   view.innerHTML = `
     <div class="pp-fade">
       <div class="pp-prof">
-        <div class="pp-av">${escapeHtml(initials(nome || "?"))}</div>
+        <div class="pp-avwrap">
+          <div class="pp-av" id="colab-av">${escapeHtml(initials(nome || "?"))}</div>
+          ${podeAlterarFotoColab ? `<button class="pp-avcam" id="colab-av-cam" aria-label="Alterar foto do perfil">${cpIcon("camera")}</button>` : ""}
+        </div>
         <div class="pp-name">${escapeHtml(nome || "—")}</div>
         <div class="pp-role">${escapeHtml(cargoSetor)}</div>
         <div class="pp-chips">
@@ -1632,6 +1682,8 @@ function renderColabConta() {
     </div>
   `;
   view.querySelector('[data-acao="dados-toggle"]')?.addEventListener("click", () => $("#cp-dados")?.classList.toggle("hidden"));
+  aplicarAvatar($("#colab-av"), u); // aplica a foto do perfil, se houver
+  view.querySelector("#colab-av-cam")?.addEventListener("click", openColabFotoSheet);
   view.querySelector('[data-acao="trocar-senha"]')?.addEventListener("click", () => { if (typeof openProfileModal === "function") openProfileModal(); });
   view.querySelector('[data-acao="sair"]')?.addEventListener("click", () => (window.logout ? window.logout() : logout()));
   const _seg = view.querySelector("#cp-seg-tema");

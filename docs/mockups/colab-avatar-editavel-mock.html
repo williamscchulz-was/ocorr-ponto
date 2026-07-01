@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR" class="modo-colab cp-dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Avatar editável do colaborador (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 60px;font-family:Poppins,sans-serif;display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start}
+  .note{flex-basis:100%;max-width:1100px;margin:0 auto 6px;font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#EDF3EA}
+  .cap{text-align:center;font-size:12px;color:#8A9884;margin-top:10px;font-weight:600}
+  .capbig{flex-basis:100%;text-align:center;font-size:13px;color:#EDF3EA;font-weight:700;margin:8px 0 -8px}
+  .phone{width:372px;background:#0E130E;border:1px solid #232C22;border-radius:30px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8);position:relative}
+  .phone__bar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;color:#EDF3EA;font-weight:600}
+  .scr{padding:16px 14px 22px}
+  /* topbar mock */
+  .tb{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--border);margin:-16px -14px 14px}
+  .tb__title{font-size:15px;font-weight:700;color:var(--text-body)}
+  .fotoav{background-size:cover;background-position:center;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;background-color:#0B7A36}
+  /* avatar grande editável (Conta) */
+  .cta-prof{display:flex;flex-direction:column;align-items:center;text-align:center;margin:8px 0 20px}
+  .cta-avwrap{position:relative;width:92px;height:92px}
+  .cta-av{width:92px;height:92px;font-size:30px}
+  .cta-cam{position:absolute;right:-2px;bottom:-2px;width:32px;height:32px;border-radius:50%;background:var(--plum);color:#fff;border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .cta-cam svg{width:15px;height:15px}
+  .cta-nm{font-size:17px;font-weight:700;margin-top:12px;color:var(--text-body)}
+  .cta-cg{font-size:12px;color:var(--text-muted);margin-top:2px}
+  .cta-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-top:1px solid var(--border);color:var(--text-body);font-size:13px}
+  .cta-list{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .cta-row .ic{width:34px;height:34px;border-radius:9px;background:var(--surface-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .cta-row .ic svg{width:17px;height:17px}
+  /* sheet de foto */
+  .sheet-ov{position:absolute;inset:0;background:rgba(4,8,4,.6);display:flex;align-items:flex-end}
+  .sheet{width:100%;background:var(--surface);border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0));border-top:1px solid var(--border)}
+  .sheet__h{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .sheet__h .fotoav{width:52px;height:52px;font-size:18px}
+  .sheet__h b{font-size:15px;color:var(--text-body);display:block}
+  .sheet__h span{font-size:12px;color:var(--text-muted)}
+  .sheet .pp-btn{width:100%;justify-content:center;margin-top:9px}
+  .pp-btn{display:flex;align-items:center;gap:8px;height:46px;border-radius:12px;border:1px solid var(--border);background:var(--surface-warm);color:var(--text-body);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .pp-btn svg{width:18px;height:18px}
+  .pp-btn--primary{background:var(--plum);color:#fff;border-color:var(--plum)}
+  .pp-btn--danger{color:var(--danger);background:none}
+  .cam-svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style></head>
+<body>
+
+<div class="note"><b>Mock · Avatar editável do colaborador, presente em tudo.</b> O colaborador toca no <b>selinho de câmera</b> na foto (na Conta) e escolhe uma imagem da galeria (ou remove pra voltar às iniciais). A foto é comprimida e guardada no perfil dele. A <b>mesma foto aparece em todo lugar</b>: na saudação da Home, no topo, na Conta e onde mais tiver avatar. Sem foto, mostra as iniciais no verde da marca (como hoje).</div>
+
+<div class="capbig">CONTA · avatar com botão de editar + a folha de opções</div>
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+  <div class="scr">
+    <div class="tb"><span class="tb__title">Conta</span><div class="fotoav" style="width:30px;height:30px;font-size:11px;background-image:url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80')"></div></div>
+    <div class="cta-prof">
+      <div class="cta-avwrap">
+        <div class="fotoav cta-av" style="background-image:url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80')"></div>
+        <button class="cta-cam"><svg class="cam-svg" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      </div>
+      <div class="cta-nm">Pedro Alves</div>
+      <div class="cta-cg">Operador · Produção · 1º turno</div>
+    </div>
+    <div class="cta-list">
+      <div class="cta-row"><span class="ic"><svg viewBox="0 0 24 24" class="cam-svg"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg></span>Meus dados</div>
+      <div class="cta-row"><span class="ic"><svg viewBox="0 0 24 24" class="cam-svg"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>Trocar senha</div>
+    </div>
+  </div>
+  <!-- sheet -->
+  <div class="sheet-ov">
+    <div class="sheet">
+      <div class="sheet__h"><div class="fotoav" style="background-image:url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80')"></div><div><b>Foto do perfil</b><span>Aparece na Home, no topo e na Conta</span></div></div>
+      <button class="pp-btn pp-btn--primary"><svg class="cam-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Escolher uma foto</button>
+      <button class="pp-btn pp-btn--danger"><svg class="cam-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>Remover foto (voltar às iniciais)</button>
+    </div>
+  </div>
+</div>
+<div class="cap">Toca no selinho de câmera, escolhe ou remove</div>
+</div>
+
+<div class="capbig">A MESMA FOTO EM TUDO</div>
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-fade">
+      <div class="pp-greet">
+        <div class="pp-greet__av fotoav" style="background-image:url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&q=80')"></div>
+        <div class="pp-greet__tx"><h1>Bom dia, <b>Pedro</b></h1><p><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/></svg>Quinta, 3 de julho · 1º turno</p></div>
+      </div>
+      <button class="pp-hero" style="margin-bottom:14px"><div class="pp-hero__top"><span class="pp-hero__lbl">Banco de horas</span></div><div class="pp-hero__val">+05:30</div><div class="pp-hero__sub">A favor</div></button>
+      <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:12px;padding:4px 2px">
+        <div class="fotoav" style="width:26px;height:26px;font-size:10px;background-image:url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80')"></div>
+        e também aparece no topo, nas listas e onde mais tiver avatar
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap">Saudação da Home, topbar e listas usam a mesma foto</div>
+</div>
+
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+  <div class="scr">
+    <div class="cta-prof">
+      <div class="cta-avwrap">
+        <div class="fotoav cta-av" style="background-image:none">PA</div>
+        <button class="cta-cam"><svg class="cam-svg" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      </div>
+      <div class="cta-nm">Pedro Alves</div>
+      <div class="cta-cg">Operador · Produção · 1º turno</div>
+    </div>
+  </div>
+</div>
+<div class="cap">Sem foto: iniciais no verde da marca (padrão de hoje) + o botão de adicionar</div>
+</div>
+
+</body></html>

@@ -310,7 +310,10 @@ html.modo-colab.cp-dark{
 
 /* perfil */
 .pp-prof{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 0 18px}
-.pp-av{width:84px;height:84px;border-radius:26px;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:600;box-shadow:0 0 0 3px var(--success-bg),var(--pp-sh-card);position:relative}
+.pp-av{width:84px;height:84px;border-radius:26px;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:600;box-shadow:0 0 0 3px var(--success-bg),var(--pp-sh-card);position:relative;background-size:cover;background-position:center}
+.pp-avwrap{position:relative;width:84px;height:84px}
+.pp-avcam{position:absolute;right:-4px;bottom:-4px;width:31px;height:31px;border-radius:50%;background:var(--plum);color:#fff;border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.pp-avcam svg{width:15px;height:15px}
 .pp-av::after{content:"";position:absolute;top:8px;left:12px;width:34px;height:24px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.4),transparent 70%);filter:blur(2px)}
 .pp-name{margin-top:13px;font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--text-body)}
 .pp-role{margin-top:3px;font-size:12.5px;color:var(--text-muted);font-weight:500}
