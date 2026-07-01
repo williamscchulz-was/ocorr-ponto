@@ -702,3 +702,21 @@ William priorizou: só os 2 críticos por ora. Ambos corrigidos e testados com d
 **2) `upload-to-firestore.mjs` — elimina a releitura de turno/ativo que causava a race.** Antes: `uploadBancoHorasApp` e `uploadPipelineRH` faziam CADA UMA seu próprio `.get()` de `funcionarios` DEPOIS que `uploadFuncionarios` já tinha commitado — janela teórica onde uma escrita externa (admin manual) entre essas leituras deixaria `bancoHoras`/`pipeline-rh` com turno desatualizado (rule de isolamento do líder por turno depende desse campo). Fix: `uploadFuncionarios` agora CALCULA e RETORNA `{turnoByDocId, ativoByDocId}` em memória (o valor final que ela mesma decidiu escrever/preservar), e `uploadBancoHorasApp`/`uploadPipelineRH` recebem isso por parâmetro em vez de reler o Firestore. Elimina a classe inteira de race + 2 queries redundantes da coleção inteira por rodada. **Testado**: rodei o upload completo e comparei `funcionarios.turno`/`bancoHoras.funcionarioTurno`/`pipeline-rh.cur.turno` pra 3 funcionários — idênticos entre as 3 coleções, sem regressão.
 
 **Não aplicados (William decidiu deixar pra depois):** os outros 47 achados (9 altos + ~20 médios + ~18 baixos/info) da auditoria completa de 2026-07-01. Lista completa na conversa com o Claude WKRADAR.
+
+
+---
+
+## 2026-07-01 · ✅ 6 achados "alto" da auditoria de backend corrigidos e testados
+
+William: "manda ver" nos altos. Corrigidos, um por um, testados com pipeline real rodando de ponta a ponta ao final (exit 0, 17.7s, sem regressão).
+
+1. **Timeout em `runScript`/`runExe`/`runPython`/`runPowerShell`** (`run-pipeline.mjs`) — antes, sub-processo travado deixava o pipeline pendurado pra sempre (nunca chegava no heartbeat). Agora cada helper mata o processo (`p.kill()`) e rejeita se passar do timeout (5min scripts, 3min exe, 5min python, 10min powershell).
+2. **Idade do CSV de BH checada** (`process-bh.mjs`) — se a exportação do WK falhar e o CSV ficar velho, agora vira warning explícito (>24h) em vez de processar dado velho como se fosse fresco, silenciosamente.
+3. **`GO_LIVE` movido pra `config.mjs`** (`OCORRENCIAS_GO_LIVE`) — `process-ocorrencias-rh.py` recebe via 2º argv (passado por `run-pipeline.mjs`), com fallback pro valor de sempre se rodado manual/isolado. Fonte única, não precisa mais editar o `.py` pra mudar o piso.
+4. **Monitor cobrindo `banco-horas-saldos` (tinha PII, zero cobertura) e `banco-horas` (histórico)** (`write-monitor.mjs`) — pontos cegos fechados. **Achado extra durante o teste**: o histórico usa doc por func×mês, e meses FECHADOS nunca mais são reescritos — um `limit(1)` sem `orderBy` pegava um doc antigo por acaso e dava falso "parado". Corrigido com `orderBy('atualizadoEm','desc')`.
+5. **Espelho de ponto: falha silenciosa agora visível** — monitor passou a trackear o mtime do `parsed-espelho-ponto.json` (se `process-espelho-ponto.mjs` falhar, o arquivo intermediário fica velho e aparece no monitor, em vez de sumir sem ninguém perceber).
+6. **`log()` não engole mais erro de escrita silenciosamente** (`run-pipeline.mjs`) — se `appendFileSync` no log falhar (disco cheio, permissão, arquivo trancado), agora vai pro stderr também (Task Scheduler costuma capturar), em vez de só desaparecer.
+
+**Verificação:** monitor foi de "1 parado" (falso alarme do histórico, corrigido) pra "11 ok / 0 atenção / 0 parado". Pipeline completo rodado do zero (export → parse → upload → monitor → heartbeat), exit 0.
+
+**Não aplicados ainda:** ~20 médios + ~18 baixos/info da auditoria de 2026-07-01. Ficam documentados pra quando o William quiser retomar.
