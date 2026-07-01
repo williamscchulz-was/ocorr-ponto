@@ -1333,17 +1333,39 @@ window.ROADMAP = {
       fase: "fase2",
       prioridade: "alta",
       complexidade: "medio",
-      status: "em_andamento",
+      status: "concluido",
+      concluidoEm: "2026-07-01",
       classificacao: "cria",
       descricao: "NO AR v238 (aba 'Espelho de ponto', gated bancoHoras.ver): lista a equipe do escopo já existente (líder por turno, supervisor por funcionariosVisiveis, via funcionariosVisiveisPara) e mostra o cartão-ponto NEUTRO do liderado (mês vigente + anterior, só horários batidos, folga/sem marcação, saldo do dia colorido) reusando a lógica do colaborador. banco-horas-self lido sob demanda (carregarEspelhoFuncionario). Regra do banco-horas-self liberada pro gestor (líder por funcionarioTurno, supervisor por funcionarioId), com guard 'campo in resource.data' que fecha o doc legado — DEPLOYADA, 118/118. FUNCIONA JÁ pra admin/GP. FALTA (pendente WKRADAR, missão enviada 2026-07-01): denormalizar funcionarioTurno + funcionarioId no banco-horas-self (mesmos valores que já existem no bancoHoras) — quando subir, líder/supervisor passam a ler automaticamente. Mock aprovado: docs/mockups/gestor-espelho-ponto-mock.html.",
       objetivo: "Dar ao gestor/supervisor a mesma visão de cartão-ponto que o colaborador tem de si, restrita aos seus liderados, sem config nova (reusa o escopo e o render já existentes).",
       dependencias: ["Espelho de ponto do colaborador (banco-horas-self.dias[])", "Escopo funcionariosVisiveisPara(u)", "Pipeline WKRADAR: denormalizar funcionarioTurno/funcionarioId em banco-horas-self", "Regra banco-horas-self (leitura por líder/supervisor)"],
       criteriosAceite: [
-        "Líder vê o cartão-ponto só de quem é do turno dele; supervisor só dos funcionariosVisiveis.",
+        "Líder vê o cartão-ponto só de quem é do turno dele; supervisor só do escopo dele.",
         "Espelho NEUTRO idêntico ao do colaborador (mês vigente + anterior, só horários batidos, sem rótulo de atraso/falta).",
         "Regra do banco-horas-self libera leitura pro gestor com escopo correto (denormalização no pipeline).",
         "Nenhuma config nova: a equipe sai do escopo já existente.",
         "Aprovado em mock antes de mexer no app."
+      ]
+    },
+    {
+      id: "supervisor-por-turnos",
+      numero: null,
+      nome: "Supervisor por turnos (automação de escopo)",
+      fase: "fase2",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "concluido",
+      concluidoEm: "2026-07-01",
+      classificacao: "cria",
+      descricao: "NO AR v240. O supervisor deixou de depender só da lista manual pessoa a pessoa: ganha o campo turnosVisiveis (marca 1º/2º/3º) e cobre turnos INTEIROS, com novas admissões entrando automático. A lista funcionariosVisiveis continua, agora como AVULSOS (Geral e casos pontuais). Escopo efetivo = (todos dos turnos marcados) UNIÃO (avulsos), aplicado em Funcionários, Ocorrências e Espelho de ponto. UI: chips de turno + picker de avulsos + acesso total ao vivo na edição do usuário. Regra: helper supervisorVeTurno; banco-horas-self read + conferir ocorrência ganham o caminho por turno (reusa funcionarioTurno denormalizado, guard 'campo in resource.data'). Retrocompatível: supervisor só com lista funciona igual. Revisão adversarial (3 lentes) + 123/123 testes. Caso motivador: Aldo cobre o chão de fábrica inteiro; Jacques é pontual (só avulsos).",
+      objetivo: "Escalar o escopo do supervisor sem manutenção manual: cobre turnos inteiros e a GP só ajusta as exceções (Geral, pontuais).",
+      dependencias: ["Espelho de ponto no Portal do Gestor", "banco-horas-self denormalizado (funcionarioTurno)"],
+      criteriosAceite: [
+        "Supervisor marca turnos e vê todos daqueles turnos, admissões futuras incluídas.",
+        "Avulsos continuam pro Geral e casos pontuais; escopo = união dos dois.",
+        "Vale em Funcionários, Ocorrências e Espelho de ponto de uma vez.",
+        "Regra de segurança escopa por turno sem vazamento (guard fecha doc legado).",
+        "Retrocompatível: supervisor só com lista manual funciona igual."
       ]
     }
   ]
