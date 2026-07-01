@@ -47,6 +47,7 @@
       await Promise.all([
         loadScript(`${SDK_BASE}/firebase-auth-compat.js`),
         loadScript(`${SDK_BASE}/firebase-firestore-compat.js`),
+        loadScript(`${SDK_BASE}/firebase-storage-compat.js`),
       ]);
 
       const app = firebase.initializeApp(cfg);
@@ -54,6 +55,8 @@
       // Templates de email (reset senha, verificação) saem em pt-BR
       auth.languageCode = "pt";
       const db = firebase.firestore();
+      // Storage: PDFs de recibo/cartão ponto (arquivo de verdade, fora do Firestore).
+      const storage = firebase.storage();
 
       // Limpa qualquer sessão de modo demo
       localStorage.removeItem("ocorr-ponto:v1");
@@ -87,7 +90,7 @@
         debug?.("[Auth] setPersistence falhou:", e);
       }
 
-      window.FIREBASE = { app, auth, db };
+      window.FIREBASE = { app, auth, db, storage };
 
       installFirebaseStore(auth, db);
       wireAuthFlow(auth, db);

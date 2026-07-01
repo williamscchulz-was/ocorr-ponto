@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// ============================================================
+// Firebase Storage — FioPulse
+//
+// IMPORTANTE: as regras do Storage NÃO conseguem ler o Firestore. Então o controle
+// de acesso ao ARQUIVO depende de CUSTOM CLAIMS no token do usuário (role, funcionarioId),
+// setadas pelo pipeline (WKRADAR, admin SDK) no provisionamento. Sem a claim,
+// request.auth.token.role / .funcionarioId vêm indefinidos => nega (fail-safe).
+// O app força getIdToken(true) pra pegar as claims novas.
+// ============================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function gestor() {
+      return request.auth != null
+        && (request.auth.token.role == 'admin' || request.auth.token.role == 'rh');
+    }
+    function ehDono(funcionarioId) {
+      return request.auth != null
+        && request.auth.token.funcionarioId == funcionarioId;
+    }
+
+    // recibos/{funcionarioId}/{arquivo...}
+    //   recibo de pagamento e, na Fase B, a versão assinada (carimbada).
+    //   Colaborador lê SÓ os do próprio funcionarioId (claim); admin/RH leem/escrevem tudo.
+    match /recibos/{funcionarioId}/{arquivo=**} {
+      allow read:  if gestor() || ehDono(funcionarioId);
+      allow write: if gestor();
+    }
+
+    // Qualquer outro caminho: negado por padrão (não precisa de match explícito).
+  }
+}

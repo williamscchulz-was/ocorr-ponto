@@ -736,6 +736,25 @@ window.ROADMAP = {
       ]
     },
     {
+      id: "revisar-assinatura-documentos-institucionais",
+      numero: null,
+      nome: "Rever assinatura de documentos institucionais (carimbo no arquivo)",
+      fase: "fase2",
+      prioridade: "media",
+      complexidade: "medio",
+      status: "planejado",
+      classificacao: "adapta",
+      descricao: "Hoje a assinatura de documento institucional (ex.: Manual da Cultura, painel 'X de Y assinaram') é só registro no banco (aceite N1), sem carimbo no PDF. Quando o motor de recibos trouxer o carimbo dentro do arquivo (nome em fonte de assinatura + termos + hash + geolocalização), avaliar unificar: trazer o mesmo carimbo pros documentos institucionais e rever o painel de adesão. Conversar com o William antes de decidir.",
+      objetivo: "Uma experiência de assinatura só, coerente entre recibo, cartão ponto e documento institucional.",
+      dependencias: ["motor de assinatura carimbada dos recibos (Fase B)", "#30"],
+      criteriosAceite: [
+        "Decisão registrada: institucional ganha carimbo no arquivo ou fica só aceite N1.",
+        "Se ganhar carimbo, reusa o mesmo motor dos recibos (sem duplicar).",
+        "Painel de adesão ('X de Y assinaram') revisado.",
+        "Conversado com o William antes de implementar."
+      ]
+    },
+    {
       id: "avaliacao-desempenho-ciclos",
       numero: 34,
       nome: "Avaliação de desempenho — ciclos e questionários",

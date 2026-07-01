@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { test, before, after } from "node:test";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 
 let env;
 
@@ -64,6 +64,10 @@ before(async () => {
     await setDoc(doc(db, "banco-horas-self/300"), { saldoMin: 12, saldoFormatado: "+00:12", funcionarioTurno: 1, funcionarioId: "f-300" });
     await setDoc(doc(db, "banco-horas-self/400"), { saldoMin: -5, saldoFormatado: "-00:05", funcionarioTurno: 2, funcionarioId: "f-400" });
     // (banco-horas-self/100 e /200 acima seguem SEM os campos = doc legado, pré-pipeline)
+
+    // recibos (metadados; o PDF ficaria no Storage). f-100 é do uColab, f-200 do uColab2.
+    await setDoc(doc(db, "recibos/f-100_2026-05"), { funcionarioId: "f-100", codigo: 100, competencia: "2026-05", tipo: "recibo", storagePath: "recibos/f-100/2026-05.pdf", nomeArquivo: "recibo.pdf", paginas: 1, status: "disponivel", criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "recibos/f-200_2026-05"), { funcionarioId: "f-200", codigo: 200, competencia: "2026-05", tipo: "recibo", storagePath: "recibos/f-200/2026-05.pdf", nomeArquivo: "recibo.pdf", paginas: 1, status: "disponivel", criadoPor: "uRh", criadoEm: new Date() });
   });
 });
 
@@ -127,6 +131,30 @@ test("RH lê banco-horas-self (sem regressão)", async () =>
   assertSucceeds(getDoc(doc(rh(), "banco-horas-self/100"))));
 test("colaborador NÃO escreve banco-horas-self", async () =>
   assertFails(setDoc(doc(colab(), "banco-horas-self/100"), { saldoMin: 999 })));
+
+// ---- recibos (recibo de pagamento SELF · metadados; PDF no Storage) ----
+test("colaborador LÊ o próprio recibo", async () =>
+  assertSucceeds(getDoc(doc(colab(), "recibos/f-100_2026-05"))));
+test("colaborador NÃO lê recibo de terceiro", async () =>
+  assertFails(getDoc(doc(colab(), "recibos/f-200_2026-05"))));
+test("colaborador SEM vínculo não lê recibo (fail-safe)", async () =>
+  assertFails(getDoc(doc(colabSV(), "recibos/f-100_2026-05"))));
+test("RH lê qualquer recibo", async () =>
+  assertSucceeds(getDoc(doc(rh(), "recibos/f-200_2026-05"))));
+test("RH cria recibo (criadoPor/criadoEm válidos)", async () =>
+  assertSucceeds(setDoc(doc(rh(), "recibos/f-100_2026-06"), { funcionarioId: "f-100", codigo: 100, competencia: "2026-06", tipo: "recibo", storagePath: "recibos/f-100/2026-06.pdf", criadoPor: "uRh", criadoEm: serverTimestamp() })));
+test("RH NÃO cria recibo com criadoPor falsificado", async () =>
+  assertFails(setDoc(doc(rh(), "recibos/f-100_2026-07"), { funcionarioId: "f-100", competencia: "2026-07", tipo: "recibo", criadoPor: "uOutro", criadoEm: serverTimestamp() })));
+test("colaborador NÃO cria recibo", async () =>
+  assertFails(setDoc(doc(colab(), "recibos/f-100_2026-08"), { funcionarioId: "f-100", competencia: "2026-08", tipo: "recibo", criadoPor: "uColab", criadoEm: serverTimestamp() })));
+test("RH atualiza status do recibo (imutáveis preservados)", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "recibos/f-100_2026-05"), { status: "visualizado" })));
+test("RH NÃO troca o funcionarioId do recibo (imutável)", async () =>
+  assertFails(updateDoc(doc(rh(), "recibos/f-100_2026-05"), { funcionarioId: "f-999" })));
+test("colaborador NÃO atualiza recibo", async () =>
+  assertFails(updateDoc(doc(colab(), "recibos/f-100_2026-05"), { status: "hack" })));
+test("RH NÃO deleta recibo (só admin)", async () =>
+  assertFails(deleteDoc(doc(rh(), "recibos/f-100_2026-05"))));
 
 // ---- banco-horas-self: Espelho de ponto do gestor (líder por turno · supervisor por lista) ----
 test("líder LÊ banco-horas-self de liderado do MESMO turno (denormalizado)", async () =>

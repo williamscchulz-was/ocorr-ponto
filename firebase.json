@@ -67,6 +67,9 @@
     "rules": "docs/firestore.rules",
     "indexes": "docs/firestore.indexes.json"
   },
+  "storage": {
+    "rules": "docs/storage.rules"
+  },
   "emulators": {
     "firestore": { "port": 8099 },
     "ui": { "enabled": false },
