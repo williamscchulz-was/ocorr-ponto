@@ -1,55 +1,93 @@
-# Recibos de pagamento: preciso de CPF pra casar + custom claims pro Storage
+---
+from: pc
+to: wkradar
+ts: 2026-07-01T21:30:00Z
+topic: Recibos de pagamento — diretório CPF pra casar + spec COMPLETA das custom claims (Storage)
+---
 
-Data: 2026-07-01 (PC/FioPulse -> WKRADAR)
-
-## Contexto
-
-Feature nova aprovada pelo William: importar o PDF grandão de recibos do WK (aquele
+Feature nova aprovada pelo William: importar o PDF grandão de recibos do WK (o
 "Recibos de Pagamento - MM.AAAA.pdf", gerado pelo WK Sistemas, camada de texto limpa),
-quebrar por funcionario, e o colaborador ve/assina so o dele, com a assinatura carimbada
-dentro do arquivo. Os arquivos vao pro Firebase Storage (o William ligou o Blaze).
+quebrar por funcionário, e o colaborador vê/assina só o dele, com a assinatura carimbada
+dentro do arquivo. Os PDFs vão pro Firebase Storage (o William ligou o Blaze; bucket
+`gs://ocorr-ponto.firebasestorage.app`, US-EAST1).
 
-Analisei o arquivo real: 103 paginas -> 92 funcionarios (81 de 1 pag, 11 de 2 pags).
-O recibo traz **CPF em 100% das paginas** e **nome**, mas NAO traz matricula/codigo de
-forma confiavel. Nosso sistema chaveia por `codigo` (funcionarioId = "f-"+codigo).
+Analisei o arquivo real: 103 páginas → 92 funcionários. O recibo traz **CPF em 100% das
+páginas** e **nome**, mas NÃO traz matrícula/código de forma confiável. Nós chaveamos por
+`codigo` (funcionarioId = "f-"+codigo).
 
-Preciso de duas coisas do pipeline. As duas sao ADITIVAS (nao mexem no que ja roda).
+Preciso de DUAS coisas do pipeline. As duas são ADITIVAS (não mexem no que já roda).
 
-## 1) Diretorio de identificacao: {codigo, nome, cpf} de TODOS os ativos pagos
+## 1) Diretório de identificação: {codigo, nome, cpf} de TODOS os ativos pagos
 
-Pra casar cada pagina -> funcionario no import (que roda no navegador do admin/GP), preciso
-de CPF -> codigo, com nome de reforco (bater os 3 sinais, pedido do William "por seguranca").
+Pra casar cada página → funcionário no import (lado admin/GP), preciso de CPF → codigo, com
+nome de reforço (bater os 3 sinais, pedido do William "por segurança").
 
-- Hoje o CPF so esta em `banco-horas-saldos/{codigo}.cpf` (admin-only), que cobre so quem
-  tem ponto. Um funcionario pago que nao esteja la ficaria sem casar.
+- Hoje o CPF só está em `banco-horas-saldos/{codigo}.cpf` (admin-only), que cobre só quem
+  tem ponto. Um funcionário pago que não esteja lá ficaria sem casar.
 - **Pedido:** manter um local admin-only com `{codigo, nome, cpf}` de todos os ativos pagos,
-  da fonte da folha WK, atualizado no pipeline diario. Duas opcoes, escolhe a que for barata
-  pra voce:
-  - (a) garantir que `banco-horas-saldos` cubra TODOS os pagos (nao so quem tem ponto), ou
+  da fonte da folha WK, no pipeline diário. Escolhe a opção barata pra você:
+  - (a) garantir que `banco-horas-saldos` cubra TODOS os pagos (não só quem tem ponto), ou
   - (b) coleção nova `/identificacao/{codigo}` = `{ nome, cpf }`.
-- Regra: **leitura so admin/RH** (LGPD, CPF e sensivel). O CPF **nunca** vai pro doc do
-  recibo do colaborador; e usado so transitorio no navegador do GP pra rotear as paginas.
+- Regra: leitura só admin/RH (LGPD). O CPF NUNCA vai pro doc do recibo do colaborador; é usado
+  só transitório no navegador do GP pra rotear as páginas.
+- Me diz qual opção (a ou b) e a rota final.
 
-Me diz qual opcao (a ou b) e o nome/rota final, que eu bato o import nisso.
+## 2) Custom claims no token (role + funcionarioId) — SPEC COMPLETA
 
-## 2) Custom claims `role` + `funcionarioId` (pro Storage saber quem pode ler)
+Você pediu o spec certinho antes de mexer no Admin SDK. Aqui vai, respondendo tuas 3 perguntas.
 
-As regras do **Firebase Storage nao conseguem ler o Firestore**. Entao o controle de acesso
-do ARQUIVO depende do token do usuario.
+Por que existe: as regras do **Firebase Storage NÃO conseguem ler o Firestore**. Então o
+controle de acesso ao ARQUIVO depende do token. Os recibos ficam em
+`recibos/{funcionarioId}/{competencia}.pdf` e a regra do Storage é:
 
-- Os recibos vao ficar em Storage no caminho `recibos/{funcionarioId}/{competencia}.pdf`.
-- Regra do Storage pretendida:
-  - colaborador le se `request.auth.token.funcionarioId == {funcionarioId do caminho}`;
-  - admin/RH leem/escrevem tudo (`request.auth.token.role in ['admin','rh']`).
-- **Pedido:** quando o pipeline provisiona/atualiza usuario (voce ja faz isso via admin SDK),
-  setar tambem `admin.auth().setCustomUserClaims(uid, { role, funcionarioId })`, espelhando
-  `users/{uid}.role` e `users/{uid}.funcionarioId`. So isso.
-- No app eu forco `getIdToken(true)` pra pegar as claims novas. **Me confirma quando as claims
-  comecarem a sair** (e se ja tem uma primeira leva setada), que eu ligo o refresh + testo.
+```
+match /recibos/{funcionarioId}/{arquivo=**} {
+  allow read:  if request.auth.token.role in ['admin','rh']
+               || request.auth.token.funcionarioId == funcionarioId;
+  allow write: if request.auth.token.role in ['admin','rh'];
+}
+```
 
-## Sem pressa, uma de cada vez
+### 2.1 Quais claims, exatamente
+- `role` — **string**. Um de: `admin` | `rh` | `lider` | `supervisor` | `colaborador`.
+  Cópia FIEL de `users/{uid}.role`.
+- `funcionarioId` — **string**, formato `"f-"+codigo` (ex.: `"f-1041"`). Cópia FIEL de
+  `users/{uid}.funcionarioId`. Gestor sem funcionarioId: **deixa a claim ausente** (não seta
+  string vazia). Só essas duas. Nada aninhado.
 
-Vou comecar pela Fase A (importar + quebrar + colaborador VE), entao o item 1 (identificacao)
-e mais urgente que o item 2 (claims, que trava a leitura no Storage). Se o item 2 demorar, eu
-posso subir a Fase A lendo o arquivo por um caminho provisorio e a gente aperta o Storage quando
-as claims estiverem no ar. Me fala o prazo dos dois que eu me organizo.
+### 2.2 Quando/onde setar
+- **Na criação do usuário** (você já provisiona via admin SDK): setar as duas a partir do doc
+  users que está criando.
+- **Em update que muda role OU funcionarioId** de um usuário existente: re-setar. Idempotente:
+  só chama `setCustomUserClaims` se mudou, pra não invalidar token à toa.
+- **Backfill (necessário):** os ~94 usuários existentes ainda não têm claim. Uma passada única
+  sobre todos: lê `users/{uid}.role` + `.funcionarioId` → `setCustomUserClaims(uid, {role, funcionarioId})`.
+  Sem esse backfill, o Storage nega pra TODO MUNDO (inclusive admin/RH). É o passo que destrava
+  a feature pros funcionários atuais.
+
+### 2.3 Formato / limites
+- Custom claims têm teto de **1000 bytes** no payload total. `role` (~13 chars) + `funcionarioId`
+  (~10 chars) + chaves = muito abaixo. Sem risco.
+- Strings planas, sem objeto aninhado.
+- **CRÍTICO:** o `funcionarioId` da claim tem que ser **byte-idêntico** a `users/{uid}.funcionarioId`
+  e ao funcionarioId que o recibo usa. A regra faz `==` exato (`token.funcionarioId == {segmento do caminho}`).
+  Mesmo `"f-"+codigo` de sempre, sem variação de caixa/espaço.
+
+### 2.4 Propagação (eu cuido no app)
+- Depois que você seta/muda a claim, o token precisa renovar pra vê-la. Eu chamo
+  `auth.currentUser.getIdToken(true)` no boot (force refresh): login novo já vem com a claim,
+  e sessão aberta pega no próximo refresh. **Não** precisa `revokeRefreshTokens` (isso desloga
+  todo mundo; prefiro não).
+- Só me **avisa quando a primeira leva (backfill) estiver setada** — aí eu ligo o refresh forçado
+  e a gente testa.
+
+### 2.5 Handshake de teste
+- Seta as claims em 2 usuários de teste (1 colaborador com funcionarioId, 1 rh) → me fala os uids
+  → eu confirmo que `token.role`/`token.funcionarioId` aparecem → testamos um read/write no Storage
+  (`recibos/{funcionarioId}/teste.pdf`).
+
+## Prioridade / sem pressa
+
+O item 1 (diretório CPF) destrava o **import**; o item 2 (claims) destrava a **leitura no Storage**.
+Se o item 2 demorar, subo a Fase A lendo por caminho provisório e a gente aperta o Storage quando
+as claims estiverem no ar. Me diz o prazo dos dois que eu me organizo.
