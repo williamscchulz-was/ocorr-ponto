@@ -1404,15 +1404,20 @@ function renderColabPonto() {
 // state.meuSaldoBH.dias[]. Sem o dado, mostra só o saldo + nota "em breve".
 function colabBhTabHtml(f) {
   if (f && f.bhExempt) return `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>`;
-  const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias)) ? state.meuSaldoBH.dias.slice(0, 12) : [];
+  const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias)) ? state.meuSaldoBH.dias : [];
+  const mesLbl = dias.length ? cpMesLabel(dias[0].dataIso) : "";
   const detalhe = dias.length
-    ? `<div class="pp-ovl" style="margin-top:18px">Espelho de ponto</div>${dias.map(colabDiaMarcHtml).join("")}<div class="cp-bhnote">${cpIcon("info")}<span>Os horários que você bateu a cada dia, atualizados diariamente. Dúvida em algum dia, fale com seu líder.</span></div>`
-    : `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O espelho dos últimos dias aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
+    ? `<div class="pp-ovl" style="margin-top:18px">Espelho de ponto${mesLbl ? ` · ${mesLbl}` : ""}</div>${dias.map(colabDiaMarcHtml).join("")}<div class="cp-bhnote">${cpIcon("info")}<span>Os horários que você bateu a cada dia, atualizados diariamente. Dúvida em algum dia, fale com seu líder.</span></div>`
+    : `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O espelho do mês aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
   return `${bhHeroHtml(f)}${detalhe}`;
 }
 
 function cpDow(dataIso) {
   try { return new Date(String(dataIso) + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short" }).replace(/\.$/, "").slice(0, 3); }
+  catch (e) { return ""; }
+}
+function cpMesLabel(dataIso) {
+  try { const s = new Date(String(dataIso) + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); return s.charAt(0).toUpperCase() + s.slice(1); }
   catch (e) { return ""; }
 }
 // Rótulo NEUTRO pro dia sem batida. Deriva de situacoes[] (interno do RH) SEM revelar
