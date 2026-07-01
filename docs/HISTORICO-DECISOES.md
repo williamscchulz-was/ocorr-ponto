@@ -796,3 +796,20 @@ Ao escrever as novas strings do script, o uso de **travessão "—"  dentro de l
 ### Arquivos alterados
 - `E:\WKRadar\Backup\_scripts\limpa-backup-antigo.ps1` — +5 params, rotação de log, circuit-breaker, `Send-Alert`.
 - `E:\WKRadar\Backup\_scripts\limpa-backup-em-batches.ps1` — detecta `CIRCUIT-BREAKER ACIONADO` e aborta o loop de batches.
+
+
+---
+
+## 2026-07-01 · ✅ PII no disco: William decidiu — reduzir janela de exposição (não criptografar)
+
+Perguntei ao William "como criptografar" o `parsed-empregado.json`/`parsed-bh.json` (têm CPF/PIS/nome da mãe/nascimento em texto puro). Apresentei 4 opções (reduzir janela de exposição / DPAPI do Windows / chave em arquivo ao lado / BitLocker no disco todo), explicando o que cada uma protege de verdade:
+- **DPAPI**: robusto (preso à conta+máquina), mas exige chamar PowerShell a cada leitura/escrita — complexo.
+- **Chave em arquivo ao lado**: pouca proteção real — quem lê o JSON também lê a chave do lado.
+- **BitLocker (disco todo)**: só protege contra roubo físico do disco, não contra acesso normal ao Windows já ligado (o cenário mais provável aqui).
+- **Reduzir janela de exposição**: sem criptografia, sem chave — apaga o arquivo logo depois do último consumidor da rodada.
+
+**Decisão: reduzir a janela de exposição.** Implementado em `run-pipeline.mjs`: depois do `write-heartbeat-report.mjs` (passo 9, confirmado por grep como o ÚLTIMO consumidor de ambos os arquivos numa rodada), o pipeline apaga `parsed-bh.json` e `parsed-empregado.json` (`unlinkSync`, best-effort, nunca derruba o pipeline). Antes: os 2 arquivos ficavam no disco o dia inteiro entre as 3 execuções (08h/10h/14h). Agora: só existem durante os ~20-30s da rodada em si — o resto do tempo (a maior parte do dia), não existem no disco.
+
+**Testado com dado real**: pipeline completo rodado do zero — `PIPELINE OK · 21.6s`, log confirmou `[PII-cleanup] removido` pros 2 arquivos, e depois do run os arquivos de fato não existiam mais no disco (verificado com `ls`).
+
+**Nota:** scripts de debug manual (`inline-check-setores.mjs` e similares) que leem `parsed-empregado.json` fora de uma rodada do pipeline vão precisar rodar `process-empregado.mjs` primeiro pra regenerar o arquivo — comportamento esperado, não é bug.
