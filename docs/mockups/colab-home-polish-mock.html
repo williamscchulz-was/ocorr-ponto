@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR" class="modo-colab cp-dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Home do Colaborador (polish) mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 60px;font-family:Poppins,sans-serif;display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start}
+  .note{flex-basis:100%;max-width:1100px;margin:0 auto 6px;font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#EDF3EA}
+  .cap{text-align:center;font-size:12px;color:#8A9884;margin-top:10px;font-weight:600}
+  .capbig{flex-basis:100%;text-align:center;font-size:13px;color:#EDF3EA;font-weight:700;margin:8px 0 -8px;letter-spacing:.02em}
+  .phone{width:372px;background:#0E130E;border:1px solid #232C22;border-radius:30px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .phone__bar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;color:#EDF3EA;font-weight:600}
+  .scr{padding:14px 14px 22px;max-height:720px;overflow:auto}
+  .tag-antes{color:#c98b8b} .tag-depois{color:#7ec98b}
+  /* peso 700 no titulo (decisão da auditoria) só na coluna DEPOIS */
+  .depois .pp-hi h1{font-weight:700}
+  /* card de destaque das Novidades (substitui o grid de 4 atalhos) */
+  .pp-novi{display:flex;align-items:center;gap:13px;width:100%;text-align:left;font:inherit;cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:14px 15px}
+  .pp-novi__ic{width:44px;height:44px;border-radius:13px;background:var(--surface-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .pp-novi__ic svg{width:22px;height:22px}
+  .pp-novi__bd{flex:1;min-width:0}
+  .pp-novi__t{font-size:15px;font-weight:600;color:var(--text-body);display:flex;align-items:center;gap:7px}
+  .pp-novi__t .pp-novi__n{font-size:10.5px;font-weight:700;background:var(--plum);color:#fff;border-radius:999px;padding:1px 7px}
+  .pp-novi__s{font-size:12px;color:var(--text-muted);margin-top:1px}
+  .pp-novi__chev{color:var(--text-muted);flex:none}
+  .pp-novi__chev svg{width:18px;height:18px}
+  /* desktop 2 colunas */
+  .desk{width:900px;max-width:96vw;background:#0E130E;border:1px solid #232C22;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .desk__bar{height:40px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid #1c241b}
+  .desk__dot{width:10px;height:10px;border-radius:50%;background:#2A332A}
+  .desk__scr{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;padding:22px 24px}
+  .desk__scr .pp-hi h1{font-weight:700}
+  @media(max-width:720px){.desk__scr{grid-template-columns:1fr}}
+</style></head>
+<body>
+
+<div class="note"><b>Mock · Polish da Home do Colaborador (decisões da auditoria).</b> Três mudanças: (1) <b>"Acessos rápidos" enxuto</b> — some o grid de 4 (Meu ponto/Comunicados/Documentos já estão na navegação), fica só <b>Novidades</b> como card de destaque (é o único caminho pro Roadmap). (2) <b>Título da Home</b> com peso 700 (era 800), mais elegante. (3) <b>Desktop em 2 colunas</b>. Identidade Fiobras intacta (verde + Poppins). Compare ANTES x DEPOIS abaixo.</div>
+
+<div class="capbig">MOBILE · ANTES x DEPOIS</div>
+
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-fade">
+      <div class="pp-hi"><h1>Olá, Pedro</h1><p>Bom te ver por aqui.</p></div>
+      <button class="pp-hero" style="margin-bottom:4px">
+        <div class="pp-hero__top"><span class="pp-hero__lbl"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho</span></div>
+        <div class="pp-hero__val">+05:30</div>
+        <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+      </button>
+      <div class="pp-ovl">Acessos rápidos</div>
+      <div class="pp-atalhos">
+        <button class="pp-atalho"><span class="pp-ico pp-ico--green"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></span><span class="pp-atalho__t">Meu ponto</span><span class="pp-atalho__s">Saldo e espelho</span></button>
+        <button class="pp-atalho"><span class="pp-ico pp-ico--amber"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span><span class="pp-atalho__t">Comunicados<span class="pp-atalho__n">1</span></span><span class="pp-atalho__s">Avisos do GP</span></button>
+        <button class="pp-atalho"><span class="pp-ico pp-ico--info"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span><span class="pp-atalho__t">Documentos</span><span class="pp-atalho__s">Termos e recibos</span></button>
+        <button class="pp-atalho"><span class="pp-ico pp-ico--neutral"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="pp-atalho__t">Novidades</span><span class="pp-atalho__s">Evolução do portal</span></button>
+      </div>
+      <div class="pp-ovl">Comunicados<a>Ver todos</a></div>
+      <button class="pp-card pp-card--pin"><div class="pp-card__bd"><div class="pp-card__meta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg><span>Fixado pelo GP</span></div><div class="pp-card__t">Reunião geral hoje às 14h</div><div class="pp-card__x">Presença de todos os turnos no refeitório.</div></div></button>
+    </div>
+  </div>
+</div>
+<div class="cap tag-antes">ANTES · grid de 4 atalhos, título peso 800</div>
+</div>
+
+<div class="depois">
+<div class="phone">
+  <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-fade">
+      <div class="pp-hi"><h1>Olá, Pedro</h1><p>Bom te ver por aqui.</p></div>
+      <button class="pp-hero" style="margin-bottom:4px">
+        <div class="pp-hero__top"><span class="pp-hero__lbl"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho</span></div>
+        <div class="pp-hero__val">+05:30</div>
+        <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+      </button>
+      <button class="pp-novi" style="margin-top:4px">
+        <span class="pp-novi__ic"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+        <span class="pp-novi__bd"><span class="pp-novi__t">Novidades <span class="pp-novi__n">nova versão</span></span><span class="pp-novi__s">Veja a evolução do portal e o que chegou</span></span>
+        <span class="pp-novi__chev"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>
+      <div class="pp-ovl">Comunicados<a>Ver todos</a></div>
+      <button class="pp-card pp-card--pin"><div class="pp-card__bd"><div class="pp-card__meta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg><span>Fixado pelo GP</span></div><div class="pp-card__t">Reunião geral hoje às 14h</div><div class="pp-card__x">Presença de todos os turnos no refeitório.</div></div></button>
+      <div class="pp-ovl">Aniversariantes do mês</div>
+      <div class="pp-aniv">
+        <div class="pp-aniv-c me"><div class="pp-aniv-av">PA</div><div class="pp-aniv-n">Você</div><div class="pp-aniv-d">14/07</div></div>
+        <div class="pp-aniv-c"><div class="pp-aniv-av">JR</div><div class="pp-aniv-n">Jenifer</div><div class="pp-aniv-d hoje">Hoje</div></div>
+        <div class="pp-aniv-c"><div class="pp-aniv-av">CS</div><div class="pp-aniv-n">Carlos</div><div class="pp-aniv-d">22/07</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap tag-depois">DEPOIS · só Novidades (destaque), título peso 700</div>
+</div>
+
+<div class="capbig">DESKTOP · 2 COLUNAS (depois)</div>
+<div class="desk">
+  <div class="desk__bar"><span class="desk__dot"></span><span class="desk__dot"></span><span class="desk__dot"></span></div>
+  <div class="desk__scr">
+    <div>
+      <div class="pp-hi"><h1>Olá, Pedro</h1><p>Bom te ver por aqui.</p></div>
+      <button class="pp-hero" style="margin-bottom:14px">
+        <div class="pp-hero__top"><span class="pp-hero__lbl"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho</span></div>
+        <div class="pp-hero__val">+05:30</div>
+        <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+      </button>
+      <button class="pp-novi">
+        <span class="pp-novi__ic"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+        <span class="pp-novi__bd"><span class="pp-novi__t">Novidades <span class="pp-novi__n">nova versão</span></span><span class="pp-novi__s">Veja a evolução do portal e o que chegou</span></span>
+        <span class="pp-novi__chev"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>
+    </div>
+    <div>
+      <div class="pp-ovl" style="margin-top:0">Comunicados<a>Ver todos</a></div>
+      <button class="pp-card pp-card--pin" style="margin-bottom:14px"><div class="pp-card__bd"><div class="pp-card__meta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg><span>Fixado pelo GP</span></div><div class="pp-card__t">Reunião geral hoje às 14h</div><div class="pp-card__x">Presença de todos os turnos no refeitório.</div></div></button>
+      <div class="pp-ovl">Aniversariantes do mês</div>
+      <div class="pp-aniv">
+        <div class="pp-aniv-c me"><div class="pp-aniv-av">PA</div><div class="pp-aniv-n">Você</div><div class="pp-aniv-d">14/07</div></div>
+        <div class="pp-aniv-c"><div class="pp-aniv-av">JR</div><div class="pp-aniv-n">Jenifer</div><div class="pp-aniv-d hoje">Hoje</div></div>
+        <div class="pp-aniv-c"><div class="pp-aniv-av">CS</div><div class="pp-aniv-n">Carlos</div><div class="pp-aniv-d">22/07</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap">Home em 2 colunas no desktop: hero + Novidades à esquerda, comunicados + aniversariantes à direita</div>
+
+</body></html>

@@ -769,19 +769,8 @@ function cpInjetarToggleTema() {
   cpAtualizarBotaoTema();
 }
 
-// Mapas de exibição do Roadmap (cores em hex — não dependem de tokens do app).
-const CP_PRIO = { critica: { t: "Crítica", c: "crit" }, alta: { t: "Alta", c: "alta" }, media: { t: "Média", c: "media" }, baixa: { t: "Baixa", c: "baixa" }, muito_baixa: { t: "Muito baixa", c: "mbaixa" } };
+// Complexidade dos itens do Roadmap (usada pelo mapa mental vivo, renderPortalRoadmap).
 const CP_CX = { muito_facil: { t: "Muito fácil", n: 1 }, facil: { t: "Fácil", n: 2 }, medio: { t: "Médio", n: 3 }, dificil: { t: "Difícil", n: 4 }, muito_dificil: { t: "Muito difícil", n: 5 } };
-const CP_STA = { concluido: { t: "Concluído", c: "ok" }, em_andamento: { t: "Em andamento", c: "prog" }, planejado: { t: "Planejado", c: "plan" }, pendente: { t: "Pendente", c: "block" } };
-const CP_ACC = { ok: "#008835", prog: "#0076be", plan: "#D8E2D3", block: "#962F32" };
-const CP_CLA = { reaproveita: "Reaproveita", adapta: "Adapta", cria: "Cria do zero" };
-function cpMeter(n) { let h = ""; for (let i = 1; i <= 5; i++) h += `<i class="${i <= n ? "on" : ""}"></i>`; return `<span class="cp-meter">${h}</span>`; }
-function cpRoadmapStats() {
-  const it = (window.ROADMAP && window.ROADMAP.itens) || [];
-  const by = (k) => it.filter((x) => x.status === k).length;
-  const total = it.length, done = by("concluido");
-  return { total, done, pct: total ? Math.round((done / total) * 100) : 0, prog: by("em_andamento"), plan: by("planejado") + by("pendente") };
-}
 
 // ---- Shell do colaborador (chrome reaproveitado) ----
 function renderPortalColaborador(u) {
@@ -1633,31 +1622,6 @@ function renderColabConta() {
   bindColabNav(view);
 }
 
-// ---- Roadmap do Portal (linha do tempo horizontal) ----
-function cpTileHtml(it) {
-  const st = CP_STA[it.status], pr = CP_PRIO[it.prioridade];
-  const num = it.numero != null ? `<span class="cp-tile__num">#${it.numero}</span>` : "<span></span>";
-  return `<button class="cp-tile" type="button" data-id="${it.id}" style="--acc:${CP_ACC[st.c]}">
-    <span class="cp-tile__top">${num}<span class="cp-chip cp-chip--${pr.c}">${pr.t}</span></span>
-    <span class="cp-tile__nome">${escapeHtml(it.nome)}</span>
-    <span class="cp-tile__bot"><span class="cp-tst cp-tst--${st.c}">${st.t}</span><span class="cp-dot"></span><span>${CP_CX[it.complexidade].t}</span></span>
-  </button>`;
-}
-function cpStationHtml(f, idx, foco) {
-  const items = window.ROADMAP.itens.filter((i) => i.fase === f.id);
-  const done = items.filter((i) => i.status === "concluido").length;
-  const pct = items.length ? Math.round((done / items.length) * 100) : 0;
-  return `<div class="cp-col ${foco ? "cp-col--foco" : ""}">
-    <div class="cp-col__head">
-      <div class="cp-node" style="--pct:${pct}%">${foco ? '<span class="cp-pin">você está aqui</span>' : ""}<span class="cp-node__in">${idx}</span></div>
-      <div class="cp-col__nome">${escapeHtml(f.nome)}</div>
-      ${foco ? '<span class="cp-col__tag">em foco</span>' : ""}
-      <div class="cp-col__sub">${escapeHtml(f.subtitulo)}</div>
-      <div class="cp-col__count">${done}/${items.length} · ${pct}%</div>
-    </div>
-    <div class="cp-col__cards">${items.map(cpTileHtml).join("")}</div>
-  </div>`;
-}
 function cpRoadmapFocoIdx() {
   const R = window.ROADMAP;
   const itensDe = (id) => R.itens.filter((x) => x.fase === id);
@@ -1795,28 +1759,6 @@ function renderPortalRoadmap() {
   setTimeout(drawRail, 120);
   setTimeout(drawRail, 440);
 }
-function openRoadmapDetalhe(id) {
-  const R = window.ROADMAP; if (!R) return;
-  const it = R.itens.find((x) => x.id === id); if (!it) return;
-  const st = CP_STA[it.status], pr = CP_PRIO[it.prioridade], cx = CP_CX[it.complexidade];
-  const num = it.numero != null ? `#${it.numero} · ` : "";
-  const deps = (it.dependencias || []).map((d) => `<li>${escapeHtml(d)}</li>`).join("") || "<li>—</li>";
-  const crit = (it.criteriosAceite || []).map((c) => `<li>${escapeHtml(c)}</li>`).join("") || "<li>—</li>";
-  openModal(`
-    <div class="modal__header">
-      <div><p class="cp-mod-kicker">${num}${CP_CLA[it.classificacao] || ""}</p><h2>${escapeHtml(it.nome)}</h2></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
-    </div>
-    <div class="modal__body cp-mod">
-      <div class="cp-mod-chips"><span class="cp-st cp-st--${st.c}">${st.t}</span><span class="cp-chip cp-chip--${pr.c}">${pr.t}</span><span class="cp-mod-cx">${cpMeter(cx.n)} ${cx.t}</span></div>
-      <div class="cp-mod-sec"><h4>Descrição</h4><p>${escapeHtml(it.descricao)}</p></div>
-      <div class="cp-mod-sec"><h4>Objetivo</h4><p>${escapeHtml(it.objetivo)}</p></div>
-      <div class="cp-mod-sec cp-mod-deps"><h4>Dependências</h4><ul>${deps}</ul></div>
-      <div class="cp-mod-sec"><h4>Critérios de aceite</h4><ul>${crit}</ul></div>
-    </div>
-  `, { onMount: (m) => m.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal)) });
-}
-
 // ---------- App Shell ----------
 
 function renderApp() {
