@@ -912,3 +912,16 @@ William viu a tela "Controle disciplinar" (screenshot, "Nenhuma ocorrência regi
 Coleção `disciplinares` está **vazia hoje** (0 docs, confirmado na auditoria de dados de mais cedo) — mudança 100% aditiva, sem migração.
 
 Missão enviada (`inbox-pc/2026-07-01-disciplinar-segmentar-lider-supervisor.md`): aponta os helpers já existentes no rules (`supervisorVe`/`supervisorVeTurno`) pra reusar, e destaca que o projeto já tem 2 padrões de segmentação de supervisor convivendo (leitura ampla + filtro na UI, usado em ocorrências; regra estrita no read, usado hoje em `banco-horas-self`) — sugeri regra estrita pro disciplinar por ser dado mais sensível, mas deixei a decisão com o PC.
+
+
+---
+
+## 2026-07-01 · 🎨 Home do colaborador: topbar desencaixado + tela vazia pra bhExempt (missão pro PC)
+
+William mandou screenshot real (próprio celular, logado) reclamando do "encaixe" do cabeçalho da Home. Investiguei antes de mandar a missão — 2 achados distintos:
+
+1. **Topbar desencaixado (feedback dele)**: `portal-colaborador.css:63` — topbar com fundo branco sólido + hairline colado direto acima do fundo da página (`#EEF3EC`, cor diferente) — lê visualmente como 2 blocos empilhados sem transição. Sugeri 3 caminhos (fundir cor de fundo / large-title que recolhe no scroll / blur translúcido em vez de cor sólida) sem forçar uma escolha — é call de design do PC/William.
+
+2. **Achado extra (não era bug, mas é gap de UX real)**: a tela dele apareceu quase vazia (só saudação + "Novidades") — **não é bug**, é o comportamento correto pra quem tem `bhExempt:true` (ele é diretor, `app.js:1332` esconde o card de saldo de propósito). Sem pendência nem comunicado fixado, a coluna fica vazia sem nenhuma mensagem tipo "tudo em dia" — afeta especificamente usuários `bhExempt` (poucos, mas o William é um deles, por isso ele reparou na hora).
+
+Missão enviada (`inbox-pc/2026-07-01-home-header-e-vazio-bhexempt.md`) — é tudo CSS/app.js, domínio do PC, não mexi em nada.
