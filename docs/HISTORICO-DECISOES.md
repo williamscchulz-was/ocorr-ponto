@@ -831,3 +831,20 @@ William: "aplica o que é ganho real e bora!" — os 4 que recomendei (dos ~18 b
 **Consequência colateral notada**: como `parsed-bh.json`/`parsed-empregado.json` agora são apagados no fim de cada rodada (decisão de hoje sobre PII), rodar os scripts isoladamente fora de uma rodada completa exige regenerar esses arquivos primeiro (`node process-bh.mjs` / `node process-empregado.mjs`) — comportamento esperado, documentado.
 
 **Restam ~14 achados baixo/info** (teóricos/risco quase-zero ou decisão de negócio) não abordados nesta rodada — ver entrada anterior "Achados médio" pra lista completa do que foi avaliado e propositalmente deixado de lado.
+
+
+---
+
+## 2026-07-01 · 🎨 Mega auditoria de UI/UX do Portal do Colaborador (inspirada na Apple)
+
+William pediu auditoria completa de design (mobile+desktop) do Portal do Colaborador, com inspiração em princípios de design da Apple (clareza, hierarquia, espaço generoso, profundidade sutil, movimento com propósito) — **preservando a identidade Fiobras** (verde + Poppins).
+
+**Workflow:** mapeamento das 9 telas do colaborador (Acesso, Login CPF, Troca de Senha, Home, Meu Ponto, Conta, Avisos, Documentos, Roadmap) + 9 agentes em paralelo (tipografia, espaçamento, cor/profundidade/dark mode, movimento, navegação, ergonomia mobile, ergonomia desktop, consistência de componentes, acessibilidade) → 79 achados brutos → 1 agente de síntese que **conferiu contra o código real** antes de fechar.
+
+**Achado-chave:** ~200 das 754 linhas de `portal-colaborador.css` + 2 funções JS inteiras (`cpTileHtml`/`cpStationHtml`, `app.js:1614-1637`) são **código morto** (versão antiga de Home/Conta/Avisos/Roadmap, já substituída por `.pp-*`/`.fp-*`) — boa parte dos achados brutos citava classes que não renderizam mais. Também recalculei 2 alegações de contraste WCAG que a auditoria bruta marcou como insuficientes — as duas passam (~6:1, acima do mínimo 4.5:1).
+
+**Roteiro final:** Passo 0 (apagar código morto, risco zero) → 7 ganhos rápidos (alvos de toque, feedback `:active`, transições, padding, font-size de input, safe-area, peso de fonte) → 5 melhorias estruturais (tokens do Roadmap, botão primário duplicado, badges sem padrão, empty states reinventados, escala tipográfica) → 4 decisões estratégicas do William (todas na recomendação): (1) Home mantém só o atalho "Novidades" (remove os 3 redundantes com a navegação principal); (2) Roadmap mantém o mapa mental mas reduz de 6+ pra 4 estados de cor; (3) os 3 prefixos CSS (cp-/pp-/fp-) **não são unificados agora** — convivem com papel documentado; (4) vale investir em layout desktop 2-colunas (Home/Conta) — hoje é mobile esticado.
+
+Mostrei um mockup visual (antes/depois) de um trecho da Home ilustrando padding consistente + feedback de toque, pro William ver a diferença na prática antes de aprovar o roteiro.
+
+**Missão completa (com todos os `arquivo:linha`) mandada pro Claude PC:** `inbox-pc/2026-07-01-mega-auditoria-uiux-portal-colaborador.md`. É auditoria de LEITURA — nada foi implementado ainda, fica a critério do PC priorizar dentro da agenda.
