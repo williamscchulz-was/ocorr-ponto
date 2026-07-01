@@ -1436,9 +1436,15 @@ function colabDiaMarcHtml(d) {
     : (d.marcacoes ? String(d.marcacoes).trim().split(/\s+/).filter(Boolean) : []);
   const off = marcs.length === 0;
   const corpo = off ? cpDiaSemMarcacaoLabel(d.situacoes) : marcs.join(" · ");
+  // Saldo do dia (saldoDiaFmt) — neutro, é a própria conta do banco de horas. Verde a favor,
+  // vermelho a compensar, cinza zerado. Só o número; nada de rótulo de atraso/falta.
+  const sFmt = String(d.saldoDiaFmt || "").trim();
+  const sCls = sFmt.startsWith("-") ? "cp-dia__s--neg" : (/^\+?0+:0{2}$/.test(sFmt) ? "cp-dia__s--zero" : "cp-dia__s--pos");
+  const saldo = sFmt ? `<div class="cp-dia__s ${sCls}">${escapeHtml(sFmt)}</div>` : "";
   return `<div class="cp-dia">
     <div class="cp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div>
     <div class="cp-dia__m${off ? " cp-dia__m--off" : ""}">${escapeHtml(corpo)}</div>
+    ${saldo}
   </div>`;
 }
 
