@@ -293,12 +293,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // ----- banco-horas-self (saldo SELF do colaborador · SEM PII · doc por código) -----
+    // ----- banco-horas-self (saldo + espelho SELF · SEM PII · doc por código) -----
     // Populado pelo pipeline (servidor). Colaborador lê SÓ o próprio (codigo == seu codigo);
-    // admin/RH leem qualquer um. string() coage o codigo do users/{uid} (pode vir number) pro id.
+    // admin/RH leem qualquer um. O GESTOR (Espelho de ponto do portal) lê os liderados:
+    // líder pelo funcionarioTurno do doc, supervisor pelo funcionarioId do doc — ambos
+    // DENORMALIZADOS no doc pelo pipeline. O guard 'campo in resource.data' fecha o buraco
+    // do doc legado (sem o campo): nunca casa antes do pipeline gravar. string() coage o codigo.
     match /banco-horas-self/{codigo} {
       allow read: if isAdmin() || isRH()
-                  || (isColaborador() && 'codigo' in userDoc() && string(userDoc().codigo) == codigo);
+                  || (isColaborador() && 'codigo' in userDoc() && string(userDoc().codigo) == codigo)
+                  || (isLider() && 'funcionarioTurno' in resource.data && resource.data.funcionarioTurno == userDoc().turno)
+                  || (isSupervisor() && 'funcionarioId' in resource.data && supervisorVe(resource.data.funcionarioId));
       allow write: if false;
     }
 

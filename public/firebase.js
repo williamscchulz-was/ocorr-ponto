@@ -986,6 +986,14 @@
     }
     window.recarregarComunicados = recarregarComunicados;
 
+    // Espelho de ponto (gestor): lê banco-horas-self/{codigo} de um liderado, sob demanda.
+    // A rule libera admin/RH sempre; líder por funcionarioTurno e supervisor por funcionarioId
+    // (denormalizados no doc pelo pipeline). Retorna os dados ou null; erro (permission) propaga.
+    window.carregarEspelhoFuncionario = async function (codigo) {
+      const snap = await db.collection("banco-horas-self").doc(String(codigo)).get();
+      return snap.exists ? snap.data() : null;
+    };
+
     window.criarComunicado = async function (dados) {
       const u = currentUser();
       const tipo = dados.tipo === "aviso" ? "aviso" : "comunicado";

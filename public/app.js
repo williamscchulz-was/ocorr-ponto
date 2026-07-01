@@ -381,7 +381,7 @@ function renderLoginQuick() {
 function roleLabel(user) {
   if (user.role === "admin") return "Administrador";
   if (user.role === "rh") return "GP";
-  if (user.role === "lider") return `Líder ${user.turno}º Turno`;
+  if (user.role === "lider") return user.turno === "geral" ? "Líder Geral" : `Líder ${user.turno}º Turno`;
   if (user.role === "supervisor") return "Supervisor";
   if (user.role === "colaborador") return "Colaborador";
   return user.role;
@@ -2075,7 +2075,7 @@ function renderPresence() {
 function montarTooltipPresence(usr) {
   const ROLE_LABELS = { admin: "Admin", rh: "GP", lider: "Líder" };
   const PAGE_LABELS = {
-    dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
+    dashboard: "Ocorrências", "banco-horas": "Banco de Horas", "espelho-ponto": "Espelho de ponto",
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
   };
   const role = ROLE_LABELS[usr.role] || "";
@@ -2112,7 +2112,7 @@ function abrirPresenceDropdown(online) {
 
   const ROLE_LABELS = { admin: "Admin", rh: "GP", lider: "Líder" };
   const PAGE_LABELS = {
-    dashboard: "Ocorrências", "banco-horas": "Banco de Horas",
+    dashboard: "Ocorrências", "banco-horas": "Banco de Horas", "espelho-ponto": "Espelho de ponto",
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
   };
 
@@ -2224,6 +2224,139 @@ function renderSidebarPresence(online) {
   `;
 }
 
+// ================= Espelho de ponto (Portal do Gestor) =================
+// Gestor/supervisor vê o cartão-ponto NEUTRO dos liderados (mês vigente + anterior),
+// reusando o dias[] de banco-horas-self. Escopo = funcionariosVisiveisPara (turno p/
+// líder, lista p/ supervisor). Gated por bancoHoras.ver. banco-horas-self lido sob demanda.
+const _espState = { sel: null, cache: {}, loading: {}, erro: {} };
+
+// Um dia do espelho no chrome do gestor (mesma lógica NEUTRA do colaborador: só horários).
+function espDiaHtml(d) {
+  const iso = d.dataIso || "";
+  const dia = String(iso).slice(8, 10) || "--";
+  const dow = d.diaSemana ? String(d.diaSemana).slice(0, 3).toLowerCase() : cpDow(iso);
+  const marcs = Array.isArray(d.marcacoes) ? d.marcacoes.filter(Boolean)
+    : (d.marcacoes ? String(d.marcacoes).trim().split(/\s+/).filter(Boolean) : []);
+  const off = marcs.length === 0;
+  const corpo = off ? cpDiaSemMarcacaoLabel(d.situacoes) : marcs.join(" · ");
+  const sFmt = String(d.saldoDiaFmt || "").trim();
+  const sCls = sFmt.startsWith("-") ? "esp-neg" : (/^\+?0+:0{2}$/.test(sFmt) ? "esp-zero" : "esp-pos");
+  const saldo = sFmt ? `<div class="esp-dia__s ${sCls}">${escapeHtml(sFmt)}</div>` : "";
+  return `<div class="esp-dia"><div class="esp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div><div class="esp-dia__m${off ? " esp-dia__m--off" : ""}">${escapeHtml(corpo)}</div>${saldo}</div>`;
+}
+
+// O cartão-ponto de UM funcionário (herói + meses). Lê do cache; sinaliza carregando/erro.
+function espCartaoHtml(f) {
+  if (!f) return "";
+  const cod = f.codigo != null ? String(f.codigo) : "";
+  if (!cod) return `<div class="esp-card"><div class="empty empty--mini"><p>Sem código de apuração pra este funcionário.</p></div></div>`;
+  if (_espState.loading[cod]) return `<div class="esp-card"><div class="esp-skel">${icon("clock")}<span>Carregando o espelho...</span></div></div>`;
+  if (_espState.erro[cod]) return `<div class="esp-card"><div class="empty empty--mini"><p>${escapeHtml(_espState.erro[cod])}</p></div></div>`;
+  const doc = _espState.cache[cod];
+  const dias = (doc && Array.isArray(doc.dias)) ? doc.dias : [];
+  const saldo = doc && (doc.saldoFormatado || null);
+  const saldoMin = doc ? (typeof doc.minutos === "number" ? doc.minutos : (typeof doc.saldoMin === "number" ? doc.saldoMin : null)) : null;
+  const sCls = saldoMin == null ? "" : (saldoMin > 0 ? "esp-pos" : saldoMin < 0 ? "esp-neg" : "esp-zero");
+  const cargoSetor = [f.cargo, f.setor].filter(Boolean).join(" · ");
+  const turnoLbl = (f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label
+    : (f.turno === "geral" ? "Geral" : (f.turno ? `${f.turno}º Turno` : ""));
+  const head = `<div class="esp-ch">
+      <div class="esp-ch__av">${escapeHtml(initials(f.nome || "?"))}</div>
+      <div class="esp-ch__bd"><div class="esp-ch__n">${escapeHtml(f.nome || "")}</div><div class="esp-ch__s">${escapeHtml([cargoSetor, turnoLbl, "cód. " + cod].filter(Boolean).join(" · "))}</div></div>
+      ${saldo ? `<div class="esp-ch__bh"><b class="${sCls}">${escapeHtml(saldo)}</b><span>saldo atual</span></div>` : ""}
+    </div>`;
+  const nota = `<div class="esp-note">${icon("info")}<span>Somente os horários batidos, como o colaborador vê. Ocorrências e ajustes ficam na aba Ocorrências.</span></div>`;
+  let corpo;
+  if (dias.length) {
+    const grupos = [];
+    let atual = null;
+    for (const d of dias) {
+      const ym = String(d.dataIso || "").slice(0, 7);
+      if (!atual || atual.ym !== ym) { atual = { ym, dataIso: d.dataIso, dias: [] }; grupos.push(atual); }
+      atual.dias.push(d);
+    }
+    corpo = grupos.map((g) => `<div class="esp-mes">${escapeHtml(cpMesLabel(g.dataIso))}</div>${g.dias.map(espDiaHtml).join("")}`).join("");
+  } else {
+    corpo = `<div class="empty empty--mini"><p>Sem espelho apurado pra este funcionário ainda.</p></div>`;
+  }
+  return `<div class="esp-card">${head}${nota}${corpo}</div>`;
+}
+
+// Carrega (sob demanda) o espelho do funcionário e re-renderiza só o painel de detalhe.
+function espSelecionar(f) {
+  const det = $("#esp-detalhe");
+  if (!f) { if (det) det.innerHTML = ""; return; }
+  const cod = f.codigo != null ? String(f.codigo) : "";
+  if (det) det.innerHTML = espCartaoHtml(f);
+  if (!cod || _espState.cache[cod] || _espState.erro[cod]) return;
+  if (!window.carregarEspelhoFuncionario) { _espState.cache[cod] = { dias: [] }; if ($("#esp-detalhe")) $("#esp-detalhe").innerHTML = espCartaoHtml(f); return; }
+  if (_espState.loading[cod]) return;
+  _espState.loading[cod] = true;
+  if (det) det.innerHTML = espCartaoHtml(f);
+  window.carregarEspelhoFuncionario(cod).then((doc) => {
+    _espState.cache[cod] = doc || { dias: [] };
+  }).catch((e) => {
+    _espState.erro[cod] = (e && /permission/i.test(e.message || "")) ? "Apuração deste colaborador ainda não liberada pra você." : "Não consegui carregar o espelho agora.";
+  }).finally(() => {
+    _espState.loading[cod] = false;
+    if (_espState.sel === f.id && $("#esp-detalhe")) $("#esp-detalhe").innerHTML = espCartaoHtml(f);
+  });
+}
+
+function renderEspelhoPontoGestor() {
+  const u = currentUser();
+  const time = funcionariosVisiveisPara(u).slice().sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+  const escopoTxt = u.role === "lider" ? (u.turno === "geral" ? "Horário geral" : `${u.turno}º Turno`)
+    : u.role === "supervisor" ? "Seus atribuídos" : "Todos";
+  if (!time.length) {
+    $("#view").innerHTML = `<header class="page-header"><div><h1>Espelho de ponto</h1></div></header>
+      <div class="empty"><div class="empty__cel"><div class="empty__cel-circ">${icon("users")}</div></div><p>Nenhum liderado no seu escopo por enquanto.</p></div>`;
+    return;
+  }
+  if (!_espState.sel || !time.some((f) => f.id === _espState.sel)) _espState.sel = time[0].id;
+  const sel = time.find((f) => f.id === _espState.sel) || time[0];
+
+  const bhSaldo = (f) => {
+    const bh = (state.bancoHoras && state.bancoHoras[f.id]) || null;
+    const s = bh && (bh.saldoFormatado || null);
+    const min = bh ? (typeof bh.minutos === "number" ? bh.minutos : null) : null;
+    const cls = min == null ? "esp-zero" : (min > 0 ? "esp-pos" : min < 0 ? "esp-neg" : "esp-zero");
+    return s ? `<span class="esp-trow__bh ${cls}">${escapeHtml(s)}</span>` : "";
+  };
+  const rows = time.map((f) => `<button class="esp-trow ${f.id === sel.id ? "on" : ""}" data-esp-sel="${f.id}">
+      <span class="esp-trow__av">${escapeHtml(initials(f.nome || "?"))}</span>
+      <span class="esp-trow__bd"><span class="esp-trow__n">${escapeHtml(f.nome || "")}</span><span class="esp-trow__s">${escapeHtml([f.cargo, f.setor].filter(Boolean).join(" · ") || "—")}</span></span>
+      ${bhSaldo(f)}
+    </button>`).join("");
+
+  $("#view").innerHTML = `
+    <header class="page-header"><div><h1>Espelho de ponto</h1><p>Cartão-ponto dos seus liderados. Mês atual e mês anterior, direto da apuração.</p></div></header>
+    <div class="esp-layout">
+      <div class="esp-team">
+        <div class="esp-team__srch">${icon("search")}<input type="text" id="esp-busca" placeholder="Buscar liderado..." autocomplete="off"></div>
+        <div class="esp-scope">${icon("users")}<span>${escapeHtml(escopoTxt)} · ${time.length} ${time.length === 1 ? "pessoa" : "pessoas"}</span></div>
+        <div class="esp-rows" id="esp-rows">${rows}</div>
+      </div>
+      <div id="esp-detalhe">${espCartaoHtml(sel)}</div>
+    </div>`;
+
+  const busca = $("#esp-busca");
+  if (busca) busca.addEventListener("input", () => {
+    const t = busca.value.trim().toLowerCase();
+    $$("#esp-rows .esp-trow").forEach((r) => {
+      const nome = r.querySelector(".esp-trow__n")?.textContent || "";
+      const sub = r.querySelector(".esp-trow__s")?.textContent || "";
+      r.style.display = (!t || (nome + " " + sub).toLowerCase().includes(t)) ? "" : "none";
+    });
+  });
+  $$("#esp-rows .esp-trow").forEach((btn) => btn.addEventListener("click", () => {
+    _espState.sel = btn.dataset.espSel;
+    $$("#esp-rows .esp-trow").forEach((b) => b.classList.toggle("on", b === btn));
+    espSelecionar(time.find((x) => x.id === _espState.sel));
+  }));
+  espSelecionar(sel);
+}
+
 function renderNav() {
   const u = currentUser();
   const pending = pendingForUser(u).length;
@@ -2231,6 +2364,7 @@ function renderNav() {
   const items = [];
   items.push({ id: "dashboard", label: "Ocorrências", icon: "clipboard", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
+  if (can("bancoHoras.ver")) items.push({ id: "espelho-ponto", label: "Espelho de ponto", icon: "conferir" });
   // "Conferência (beta)" foi fundida na aba Ocorrências (estágio "RH confere"); sem item próprio.
 
   if (can("func.ver")) {
@@ -2412,6 +2546,7 @@ function renderView() {
 
   if (page === "dashboard") return renderDashboard();
   if (page === "banco-horas") return renderBancoHoras();
+  if (page === "espelho-ponto") return renderEspelhoPontoGestor();
   if (page === "funcionarios") return renderFuncionarios();
   if (page === "pj") return renderControlePJ();
   if (page === "obrigacoes") {

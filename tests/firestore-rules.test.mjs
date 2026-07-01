@@ -54,6 +54,14 @@ before(async () => {
     await setDoc(doc(db, "documentos/dRascunho"), { escopo: "institucional", status: "rascunho",  segmento: { tipo: "todos", valores: [] }, exigeAssinatura: false, versao: 1, criadoPor: "uRh", autorNome: "GH", criadoEm: new Date(), anexo: anexo("b"), titulo: "Rascunho" });
     await setDoc(doc(db, "documentos/dPesMeu"),   { escopo: "pessoal", status: "publicado", funcionarioId: "f-100", exigeAssinatura: true, versao: 1, criadoPor: "uRh", autorNome: "GH", criadoEm: new Date(), anexo: anexo("c"), titulo: "Meu" });
     await setDoc(doc(db, "documentos/dPesOutro"), { escopo: "pessoal", status: "publicado", funcionarioId: "f-200", exigeAssinatura: true, versao: 1, criadoPor: "uRh", autorNome: "GH", criadoEm: new Date(), anexo: anexo("d"), titulo: "Outro" });
+
+    // ----- Espelho de ponto no gestor: líder por turno, supervisor pela lista de visíveis -----
+    await setDoc(doc(db, "users/uLiderT1"), { role: "lider", turno: 1, nome: "Adelir" });
+    await setDoc(doc(db, "users/uSuperv"),  { role: "supervisor", funcionariosVisiveis: ["f-300"], nome: "Jacques" });
+    // banco-horas-self COM denormalização (pipeline grava funcionarioTurno + funcionarioId).
+    await setDoc(doc(db, "banco-horas-self/300"), { saldoMin: 12, saldoFormatado: "+00:12", funcionarioTurno: 1, funcionarioId: "f-300" });
+    await setDoc(doc(db, "banco-horas-self/400"), { saldoMin: -5, saldoFormatado: "-00:05", funcionarioTurno: 2, funcionarioId: "f-400" });
+    // (banco-horas-self/100 e /200 acima seguem SEM os campos = doc legado, pré-pipeline)
   });
 });
 
@@ -64,6 +72,8 @@ const colabSV  = () => env.authenticatedContext("uColabSemVinc").firestore();
 const colabT1  = () => env.authenticatedContext("uColabT1").firestore();
 const colabT2  = () => env.authenticatedContext("uColabT2").firestore();
 const rh       = () => env.authenticatedContext("uRh").firestore();
+const liderT1  = () => env.authenticatedContext("uLiderT1").firestore();
+const superv   = () => env.authenticatedContext("uSuperv").firestore();
 
 // ---- funcionarios ----
 test("colaborador LÊ o próprio funcionário", async () =>
@@ -114,6 +124,20 @@ test("RH lê banco-horas-self (sem regressão)", async () =>
   assertSucceeds(getDoc(doc(rh(), "banco-horas-self/100"))));
 test("colaborador NÃO escreve banco-horas-self", async () =>
   assertFails(setDoc(doc(colab(), "banco-horas-self/100"), { saldoMin: 999 })));
+
+// ---- banco-horas-self: Espelho de ponto do gestor (líder por turno · supervisor por lista) ----
+test("líder LÊ banco-horas-self de liderado do MESMO turno (denormalizado)", async () =>
+  assertSucceeds(getDoc(doc(liderT1(), "banco-horas-self/300"))));
+test("líder NÃO lê banco-horas-self de OUTRO turno", async () =>
+  assertFails(getDoc(doc(liderT1(), "banco-horas-self/400"))));
+test("líder NÃO lê banco-horas-self LEGADO (sem funcionarioTurno)", async () =>
+  assertFails(getDoc(doc(liderT1(), "banco-horas-self/100"))));
+test("supervisor LÊ banco-horas-self de funcionário ATRIBUÍDO", async () =>
+  assertSucceeds(getDoc(doc(superv(), "banco-horas-self/300"))));
+test("supervisor NÃO lê banco-horas-self de NÃO atribuído", async () =>
+  assertFails(getDoc(doc(superv(), "banco-horas-self/400"))));
+test("supervisor NÃO lê banco-horas-self LEGADO (sem funcionarioId)", async () =>
+  assertFails(getDoc(doc(superv(), "banco-horas-self/100"))));
 
 // ---- comunicados (Pacote Gestor · leitura segmentada + write gated) ----
 test("colaborador LÊ comunicado 'todos' ativo", async () =>
