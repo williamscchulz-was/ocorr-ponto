@@ -735,3 +735,30 @@ William quer guardar 2 meses (vigente + anterior), não só o vigente — doc ca
 **Testado com dado real**: janela ficou `01/06 → 01/07` (confirmado no export); 183/356 vieram com 30 dias (01/06→30/06, 01/07 ainda não apurado — característica normal, não bug). Doc verificado no Firestore: ~5.2-5.8 KB hoje (vai estabilizar ~10-12KB com o mês fechado). Pipeline completo rodado de ponta a ponta de novo (com os 6 fixes "alto" + essa mudança juntos): exit 0, monitor 11 ok / 0 atenção / 0 parado.
 
 Avisei o PC (`inbox-pc/2026-07-01-espelho-2-meses-no-ar.md`) — zero mudança do lado dele (já agrupa por mês, "acende sozinho").
+
+
+---
+
+## 2026-07-01 · ✅ Achados "médio" da auditoria de backend — varredura quase completa
+
+William: "autorizo ir para os médios". Testado tudo junto no final (pipeline completo, exit 0, monitor 11 ok/0/0).
+
+**Corrigidos:**
+1. `process-empregado.mjs`: `parseInt(...)||null` mascarava zero legítimo (idade/codEscala/diasNaEmpresa) → `parseIntOrNull` novo (só null se NaN de verdade). 0 casos afetados hoje, protege caso futuro (contratado no dia 0).
+2. `process-empregado.mjs`: CSV do D_Empregado sumir saía com `exit(0)` ("sucesso" falso) → agora `exit(1)`, orquestrador loga o aviso de verdade.
+3. `process-apuracoes.mjs`: path hardcoded do parsed-empregado → `CONFIG.PARSED_EMPREGADO_OUT`.
+4. `upload-ocorrencias-auto.mjs`: batch 400→500 (padroniza com os outros uploaders); delete-loop do RESET com try/catch + mensagem clara se falhar no meio (fica parcial, idempotente, próxima rodada retry).
+5. `write-heartbeat-report.mjs`: `writeFileSync` do report agora em try/catch (antes crashava cru se disco cheio/permissão negada).
+6. `update-config-dates.mjs` + `export-ocorrencias.mjs` + `export-espelho.mjs` (os 3 que reescrevem config do WK): escrita ATÔMICA (temp+rename, não writeFileSync direto — protege contra processo morto no meio) + verificação por releitura byte-a-byte (confirma que o que foi escrito bate com o que devia, sem confiar só no replace() em memória).
+7. `sync-colaborador-users.mjs` + `backfill-users-segmentacao.mjs`: comparação de turno tolerante a tipo (`String(a)===String(b)`) pra não gerar update falso se um lado tiver number e outro string — SEM mudar o que é escrito (tipo canônico intacto; o PC depende dele nas rules/query do líder, então não uniformizei o tipo, só a comparação).
+8. `write-monitor.mjs`: strings de coleção → `CONFIG.COL_*` (única fonte).
+9. `.gitignore`: `ocorrencias-mes.txt` adicionado (defensivo — esta pasta não é repo git hoje).
+10. `process-ocorrencias.mjs` (211 linhas, ZERO referências em qualquer lugar, confirmado por grep) — **deletado**. Resolve de quebra o achado "comportamento divergente entre process-ocorrencias.mjs e process-ocorrencias-rh.py": não tem mais o que divergir.
+
+**Avaliados e propositalmente NÃO alterados (com razão):**
+- **LIDERES hardcoded** (`{"785","866"}`) — a auditoria sugeriu derivar de cargo/flag; mas foi decisão DELIBERADA do William (2026-06-30) reverter de "por cargo" pra "manual" justamente porque cargo pegava o NIVALDO (afastado) como líder. Reverter contradiria a própria correção. Mantido.
+- **Portabilidade** (paths Windows hardcoded em `config.mjs`) — todo o sistema é Windows-tied (WK Radar roda só em Windows, `.exe` nativo). Portabilidade Linux/Mac não tem uso prático aqui. Não vale o esforço.
+- **CPF/PIS/nomeMãe sem criptografia em `parsed-empregado.json`** — é uma decisão de arquitetura (key management pra encriptar em repouso), não um bug de código. Precisa de decisão do William antes de implementar algo.
+- **Race de `ocorrencias-mes.txt`** (escrita DEPOIS do upload) — reavaliado: é a ordem CORRETA. Se escrevesse ANTES e o upload falhasse, a próxima rodada NÃO tentaria de novo (pior). A ordem atual garante retry automático e idempotente. Nada a mudar.
+
+**Não abordados nesta rodada** (rated "baixo"/"info" pela auditoria, fora do escopo autorizado: só médios): ~18 achados menores documentados na entrada de auditoria original.
