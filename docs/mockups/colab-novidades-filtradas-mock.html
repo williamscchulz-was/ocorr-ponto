@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Novidades por público (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 70px;font-family:Poppins,sans-serif;display:flex;flex-wrap:wrap;gap:34px;justify-content:center;align-items:flex-start}
+  .note{flex-basis:100%;max-width:1120px;margin:0 auto 4px;font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65}
+  .note b{color:#EDF3EA}
+  .note code{background:#1b241a;color:#cfe6c6;padding:1px 6px;border-radius:5px;font-size:12px}
+  .cap{text-align:center;font-size:12px;color:#8A9884;margin-top:10px;font-weight:600;max-width:440px}
+  .capbig{flex-basis:100%;text-align:center;font-size:13px;color:#EDF3EA;font-weight:700;margin:10px 0 -12px;letter-spacing:.02em}
+  .col{display:flex;flex-direction:column;align-items:center}
+  /* réplica EXATA dos tokens dark do colaborador (html.modo-colab.cp-dark), num wrapper
+     pra podermos mostrar os dois temas lado a lado na mesma página */
+  .chrome-dark{
+    --bg:#0E130E;--milk:#0E130E;--surface:#161D15;--surface-warm:#1E261D;--milk-warm:#1E261D;
+    --border:#232C22;--border-strong:#2A332A;--milk-edge:#2A332A;
+    --text:#EDF3EA;--text-body:#EDF3EA;--text-muted:#8A9884;
+    --plum:#5FCB85;--plum-soft:#5FCB85;--plum-deep:#9FE0B5;
+    --success:#5FCB85;--warning:#E8B468;--danger:#E68A86;--info:#7FC4F0;
+  }
+  /* o painel real é .changelog (a .changelog-overlay é só o fundo fixo; no mock mostro o painel) */
+  .frame{width:440px;max-width:92vw}
+  .frame .changelog{max-width:none;max-height:none;animation:none}
+  .frame .changelog__body{max-height:520px}
+  /* etiqueta de mock (NÃO é UI real) marcando o que fica de fora pro colaborador */
+  .gone{font-size:10.5px;font-weight:700;color:#E8B468;background:rgba(232,180,104,.12);border:1px solid rgba(232,180,104,.3);border-radius:999px;padding:1px 7px;margin-left:6px;letter-spacing:.02em}
+  /* entry point (home do colaborador) */
+  .phone{width:340px;background:#0E130E;border:1px solid #232C22;border-radius:26px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .phone__bar{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:11px;color:#EDF3EA;font-weight:600}
+  .phone .scr{padding:14px 13px 20px}
+</style></head>
+<body>
+
+<div class="note">
+  <b>Mock · Novidades por público.</b> Hoje a tela de Novidades (o histórico "O que mudou no FioPulse") é <b>só do gestor</b> e mostra <b>tudo</b> — inclusive coisa técnica que não diz respeito ao colaborador (endurecer regras, permissões, obrigações do GP, aviso interno, "GP confere"…). A proposta: cada item do histórico ganha um público (<code>aud</code>). O <b>gestor continua vendo tudo</b>. O <b>colaborador passa a ter a MESMA tela de Novidades</b>, porém <b>só com o que muda pra ele</b> (Home nova, foto de perfil, aniversariantes, documentos que abrem no app, espelho de ponto, avisos…). Versões que sobram vazias somem. O backend do filtro já está pronto; falta só ligar a tela pro colaborador — por isso este mock.
+</div>
+
+<div class="capbig">COLABORADOR · Novidades (só o que muda pra ele) — tema escuro do portal</div>
+<div class="col">
+  <div class="chrome-dark frame">
+    <div class="changelog" role="dialog" aria-modal="true">
+      <div class="changelog__head">
+        <div><h2>Novidades</h2><p class="changelog__sub">O que mudou pra você no FioPulse</p></div>
+        <button class="changelog__close" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="changelog__body">
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.17.0</span><span class="cl-versao__d">1 jul 2026</span><span class="cl-badge">Atual</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--high"></span><span class="cl-item__title">A sua Home ganhou um visual novo: saudação pelo horário do dia com o seu nome, e no seu aniversário ela vira festa.</span></div>
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Agora você pode colocar a sua foto de perfil: ela aparece na Home, no topo e na Conta.</span></div>
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Aniversariantes ficaram mais leves: no celular, só quem faz aniversário hoje.</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.15.0</span><span class="cl-versao__d">1 jul 2026</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--high"></span><span class="cl-item__title">Documentos institucionais agora abrem dentro do app: leia e assine ali mesmo, sem sair pro Drive.</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.14.0</span><span class="cl-versao__d">1 jul 2026</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Em Meu ponto: as suas ocorrências e o espelho de ponto, atualizados diariamente.</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.13.2</span><span class="cl-versao__d">30 jun 2026</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--high"></span><span class="cl-item__title">Avisos agora só registram visualização: abriu o post, conta como visto.</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.13.1</span><span class="cl-versao__d">30 jun 2026</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Toque no aviso pra abrir o post inteiro: imagem em tela cheia, texto completo e o anexo.</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.12.0</span><span class="cl-versao__d">24 jun 2026</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--high"></span><span class="cl-item__title">Novo: ao abrir o sistema você escolhe Portal do Colaborador ou Portal do Gestor.</span></div>
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Prévia do Portal do Colaborador: início, banco de horas, comunicados e documentos.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Mesma tela, mesmo visual do gestor — só que no tema escuro do portal e sem o que é técnico/gestor</div>
+</div>
+
+<div class="capbig">GESTOR · Novidades (tudo, como é hoje) — tema claro</div>
+<div class="col">
+  <div class="frame">
+    <div class="changelog" role="dialog" aria-modal="true">
+      <div class="changelog__head">
+        <div><h2>Novidades</h2><p class="changelog__sub">O que mudou no FioPulse</p></div>
+        <button class="changelog__close" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="changelog__body">
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.17.0</span><span class="cl-versao__d">1 jul 2026</span><span class="cl-badge">Atual</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--high"></span><span class="cl-item__title">A Home do colaborador ganhou um visual novo (saudação pelo horário, festa no aniversário).</span></div>
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Foto de perfil do colaborador em todo lugar.</span></div>
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Aniversariantes mais leves (celular = só do dia).</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.16.0</span><span class="cl-versao__d">1 jul 2026</span><span class="gone">não vai pro colaborador</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Comunicados ganharam o tipo "Aviso interno" no compositor (selo âmbar no feed).</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.15.0</span><span class="cl-versao__d">1 jul 2026</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--high"></span><span class="cl-item__title">Documentos institucionais abrem dentro do app.</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.13.0</span><span class="cl-versao__d">30 jun 2026</span><span class="gone">não vai pro colaborador</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--high"></span><span class="cl-item__title">Ocorrências ganhou o estágio "GP confere".</span></div>
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Comunicados e Documentos em grade, estilo feed.</span></div>
+            <div class="cl-item"><span class="cl-dot cl-dot--note"></span><span class="cl-item__title">Sinalização de rescisão na conferência.</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.11.0</span><span class="cl-versao__d">18 jun 2026</span><span class="gone">não vai pro colaborador</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--feat"></span><span class="cl-item__title">Toques premium no app do gestor (barrinha das abas, números que animam…).</span></div>
+          </div>
+        </div>
+        <div class="cl-versao">
+          <div class="cl-versao__head"><span class="cl-versao__v">v1.10.0 … v0.9.0</span><span class="cl-versao__d">jun → mai 2026</span><span class="gone">não vai pro colaborador</span></div>
+          <div class="cl-itens">
+            <div class="cl-item"><span class="cl-dot cl-dot--note"></span><span class="cl-item__title">Todo o histórico técnico/gestor: Obrigações do GP, Permissões, Auditoria, Chat, leitura de contrato, banco de horas, Controle PJ…</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Idêntico ao de hoje: o gestor vê tudo. As marcas âmbar são só do mock, pra apontar o que o colaborador NÃO vê.</div>
+</div>
+
+<div class="capbig">COMO O COLABORADOR ABRE</div>
+<div class="col">
+  <div class="chrome-dark modo-colab cp-dark">
+    <div class="phone">
+      <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+      <div class="scr">
+        <button class="pp-novi" style="width:100%">
+          <span class="pp-novi__ic"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+          <span class="pp-novi__bd"><span class="pp-novi__t">Novidades</span><span class="pp-novi__s">O que chegou de novo pra você</span></span>
+          <span class="pp-novi__chev"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="9 18 15 12 9 6"/></svg></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Card "Novidades" na Home abre a tela acima. E abre sozinho uma vez quando chega novidade nova pra ele (nunca por causa de mudança que é só do gestor). O Roadmap segue no menu, separado.</div>
+</div>
+
+</body></html>

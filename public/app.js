@@ -1844,6 +1844,11 @@ function renderPortalRoadmap() {
 function renderApp() {
   const u = currentUser();
   if (!u) { mostrarAcesso(); return; }
+
+  // Novidades: pop-up 1x por sessão (gestor E colaborador). O colaborador só vê o que
+  // muda pra ele (frontend); o filtro por público mora em checkChangelog/renderChangelog.
+  if (!_changelogChecado) { _changelogChecado = true; checkChangelog(); }
+
   if (u.role === "colaborador") return renderPortalColaborador(u);
   // Gestor nunca usa o modo colaborador (limpa classe que possa ter sobrado).
   document.documentElement.classList.remove("modo-colab");
@@ -1859,9 +1864,6 @@ function renderApp() {
   renderView();
   updateFab();
   window.atualizarBadgeChat();
-
-  // Novidades: uma vez por sessão (post-login), abre o popup se houver versão nova.
-  if (!_changelogChecado) { _changelogChecado = true; checkChangelog(); }
 
   // Toast de aniversariantes do dia — uma vez por sessão (post-login).
   // Líder vê só do próprio turno; admin/RH veem todos.
@@ -10892,10 +10894,21 @@ function carregarChangelog(cb) {
   document.head.appendChild(s);
 }
 
+// Público atual: o colaborador vê só o que muda no portal DELE (itens sem aud "gestor");
+// o gestor/admin/GP/líder/supervisor vê TUDO. Filtra itens e some com versões vazias.
+function changelogParaAtual() {
+  const lista = window.CHANGELOG || [];
+  const u = (typeof currentUser === "function") ? currentUser() : null;
+  if (!u || u.role !== "colaborador") return lista;
+  return lista
+    .map((ver) => ({ ...ver, items: (ver.items || []).filter((it) => (it.aud || ver.aud) !== "gestor") }))
+    .filter((ver) => ver.items.length);
+}
+
 function renderChangelog() {
   const body = document.getElementById("changelog-body");
   if (!body) return;
-  const lista = window.CHANGELOG || [];
+  const lista = changelogParaAtual();
   if (!lista.length) {
     body.innerHTML = `<div class="cl-vazio">Sem novidades por enquanto.</div>`;
     return;
@@ -10927,14 +10940,23 @@ function openChangelog() {
 function closeChangelog() {
   const ov = document.getElementById("changelog-overlay");
   if (ov) ov.classList.remove("open");
-  try { localStorage.setItem("last-seen-version", window.CURRENT_VERSION); } catch (e) {}
+  // Marca como vista a versão MAIS NOVA relevante pro público atual: o colaborador
+  // não deve carregar um "não visto" por causa de mudança que é só do gestor.
+  const lista = changelogParaAtual();
+  const topo = lista.length ? lista[0].v : window.CURRENT_VERSION;
+  try { localStorage.setItem("last-seen-version", topo); } catch (e) {}
 }
 
-// Abre sozinho ~0,6s depois quando a versão atual ainda não foi vista.
+// Abre sozinho ~0,6s depois quando ainda há novidade não vista PARA O PÚBLICO ATUAL.
 function checkChangelog() {
   let seen = null;
   try { seen = localStorage.getItem("last-seen-version"); } catch (e) {}
-  if (seen !== window.CURRENT_VERSION) setTimeout(openChangelog, 600);
+  if (seen === window.CURRENT_VERSION) return; // já viu o que há de mais novo
+  carregarChangelog(() => {
+    const lista = changelogParaAtual();
+    const topo = lista.length ? lista[0].v : null;
+    if (topo && seen !== topo) setTimeout(openChangelog, 600);
+  });
 }
 
 // ---------- Boot ----------

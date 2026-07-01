@@ -8,6 +8,9 @@
 // Mantenha conciso: versão + data + títulos macro de 1 linha.
 //
 // type: 'feat' (novidade) | 'fix' (correção) | 'high' (destaque) | 'note' (aviso)
+// aud (público): 'gestor' = só o Portal do Gestor vê; ausente OU 'colab'/'todos' = o
+//   colaborador também vê. O gestor SEMPRE vê tudo. Pode ir na entry (vale p/ todos os
+//   itens) ou por item (sobrepõe a entry). O portal do colaborador filtra pelo aud.
 // ============================================================
 window.CHANGELOG = [
   {
@@ -18,7 +21,7 @@ window.CHANGELOG = [
     ],
   },
   {
-    v: "1.16.0", d: "1 jul 2026", items: [
+    v: "1.16.0", d: "1 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "Comunicados agora têm o tipo \"Aviso interno\": um recado rápido pra todos. No compositor é só escolher; no feed ele aparece com um selo âmbar \"Aviso\", separando do comunicado por turno ou setor." },
     ],
   },
@@ -39,7 +42,7 @@ window.CHANGELOG = [
   },
   {
     v: "1.13.2", d: "30 jun 2026", items: [
-      { type: "high", title: "Avisos agora só registram visualização: abriu o post, conta como visto. Sem precisar confirmar ciência. No portal do gestor, o acompanhamento mostra quantos viram cada comunicado." },
+      { type: "high", title: "Avisos agora só registram visualização: abriu o post, conta como visto. Sem precisar confirmar ciência." },
     ],
   },
   {
@@ -48,7 +51,7 @@ window.CHANGELOG = [
     ],
   },
   {
-    v: "1.13.0", d: "30 jun 2026", items: [
+    v: "1.13.0", d: "30 jun 2026", aud: "gestor", items: [
       { type: "high", title: "Ocorrências ganhou o estágio \"GP confere\": o GP valida ou dispensa as ocorrências automáticas do ponto, e o que ele valida vai pro líder do turno confirmar." },
       { type: "feat", title: "Comunicados e Documentos agora aparecem em grade, estilo feed: cards menores e visão geral mais rápida." },
       { type: "note", title: "Quem está marcado em rescisão aparece sinalizado na conferência, com a contagem de faltas no mês." },
@@ -57,53 +60,53 @@ window.CHANGELOG = [
   {
     v: "1.12.0", d: "24 jun 2026", items: [
       { type: "high", title: "Novo: ao abrir o sistema você escolhe \"Portal do Colaborador\" ou \"Portal do Gestor/Administrador\". O acesso do gestor continua igual — só ganhou um toque a mais." },
-      { type: "feat", title: "Prévia do Portal do Colaborador (ainda sem login): início com identidade, banco de horas, comunicados, documentos e o Roadmap do Portal." },
+      { type: "feat", title: "Prévia do Portal do Colaborador: início com identidade, banco de horas, comunicados, documentos e o Roadmap do Portal." },
     ],
   },
   {
-    v: "1.11.0", d: "18 jun 2026", items: [
+    v: "1.11.0", d: "18 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Toques premium: a barrinha das abas desliza, os números animam quando mudam, e o 'Tudo em dia' chega com uma comemoração discreta." },
       { type: "feat", title: "No celular: vibração curtinha ao lançar/conferir/marcar, topbar com sombra ao rolar e o botão + que recolhe ao descer." },
     ],
   },
   {
-    v: "1.10.0", d: "18 jun 2026", items: [
+    v: "1.10.0", d: "18 jun 2026", aud: "gestor", items: [
       { type: "high", title: "Novo: Obrigações do GP — checklist das rotinas (fechar folha, banco de horas, eSocial, pagar PJ…) que zera sozinha a cada mês/ano." },
       { type: "feat", title: "Card no dashboard mostra o que vence no mês, o que está pendente e o que atrasou; marca como feito em um toque." },
     ],
   },
   {
-    v: "1.9.1", d: "17 jun 2026", items: [
+    v: "1.9.1", d: "17 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Menores aprendizes têm badge \"Menor Aprendiz\" na lista e filtro de status próprio." },
       { type: "note", title: "Aprendizes saem de banco de horas, demografia e ranking (como a diretoria); seguem contando no quadro e nos aniversários." },
     ],
   },
   {
-    v: "1.9.0", d: "17 jun 2026", items: [
+    v: "1.9.0", d: "17 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Afastados e diretores têm marcação própria: badge na lista, banner/selo no perfil e filtro de status (Operacionais · Afastados · Diretores)." },
       { type: "note", title: "Diretores saem de banco de horas, demografia e ranking; afastados saem do ranking. Os dois seguem contando no quadro e nos aniversários." },
     ],
   },
   {
-    v: "1.8.2", d: "13 jun 2026", items: [
+    v: "1.8.2", d: "13 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Chat: a mensagem aparece na hora ao enviar (com 'enviando…'), botão pra descer rápido na conversa, e cores de não-lida/leitura na paleta da marca." },
       { type: "fix", title: "Corrigido o realce ao passar o mouse nas listas — tinha sumido por um token de cor quebrado." },
     ],
   },
   {
-    v: "1.8.1", d: "13 jun 2026", items: [
+    v: "1.8.1", d: "13 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Novo no painel do admin: ranking dos 10 funcionários de casa mais antiga, ao lado do card de Demografia." },
     ],
   },
   {
-    v: "1.8.0", d: "13 jun 2026", items: [
+    v: "1.8.0", d: "13 jun 2026", aud: "gestor", items: [
       { type: "high", title: "Chat mais rápido: a lista de conversas para de se redesenhar a cada batimento de presença — sem mais perder a rolagem ou o foco." },
       { type: "fix", title: "Correções no chat: a foto não quebra mais o layout, 'digitando…' não vaza pra conversa errada, enviar sem internet avisa (em vez de fingir que mandou), e os horários acertam à noite." },
       { type: "feat", title: "Chat acessível: ESC fecha, o leitor de tela anuncia mensagens novas e as reações têm nome." },
     ],
   },
   {
-    v: "1.7.0", d: "13 jun 2026", items: [
+    v: "1.7.0", d: "13 jun 2026", aud: "gestor", items: [
       { type: "high", title: "Auditoria de design: contraste e foco mais legíveis, números alinhados em colunas, e o botão de chat não cobre mais as janelas." },
       { type: "feat", title: "No dashboard, a contagem 'Conferidas' virou 'Resolvidas' (conferidas + lançadas) — sem mais confusão com a aba." },
       { type: "feat", title: "Hierarquia mais clara: o número que pede ação ganha destaque, a ocorrência pendente recebe uma marca, e Funcionários abre direto na lista (contagem por turno foi pro filtro)." },
@@ -112,57 +115,57 @@ window.CHANGELOG = [
     ],
   },
   {
-    v: "1.6.2", d: "10 jun 2026", items: [
+    v: "1.6.2", d: "10 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Primeira visita às listas ganha um instante de carregamento elegante; no resto do uso, tudo segue instantâneo." },
     ],
   },
   {
-    v: "1.6.1", d: "10 jun 2026", items: [
+    v: "1.6.1", d: "10 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Erros de formulário agora aparecem no próprio campo, em vez de um aviso que some." },
       { type: "feat", title: "Listas navegáveis pelo teclado: Tab percorre, Enter abre o item." },
     ],
   },
   {
-    v: "1.6.0", d: "10 jun 2026", items: [
+    v: "1.6.0", d: "10 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Toques de UX: skeleton ao carregar, aviso de 'sem conexão', e a ocorrência desliza pra fora ao ser lançada." },
     ],
   },
   {
-    v: "1.5.0", d: "1 jun 2026", items: [
+    v: "1.5.0", d: "1 jun 2026", aud: "gestor", items: [
       { type: "high", title: "Nova tela de abertura: a marca da Fiobras se desenha sozinha quando o app carrega." },
     ],
   },
   {
-    v: "1.4.0", d: "1 jun 2026", items: [
+    v: "1.4.0", d: "1 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Permissões editáveis: admin liga/desliga na matriz o que cada papel (GP, Líder, Supervisor) pode fazer." },
     ],
   },
   {
-    v: "1.3.0", d: "1 jun 2026", items: [
+    v: "1.3.0", d: "1 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Painel de Permissões: matriz do que cada papel (Admin, GP, Líder, Supervisor) faz + escopo por usuário (turno / funcionários)." },
     ],
   },
   {
-    v: "1.2.0", d: "1 jun 2026", items: [
+    v: "1.2.0", d: "1 jun 2026", aud: "gestor", items: [
       { type: "high", title: "Leitura de contrato repaginada: cena de scan animada + cartão revisando o que foi encontrado." },
       { type: "feat", title: "Extração mais esperta: reconhece CPF além de CNPJ e prioriza o valor mensal/honorários." },
     ],
   },
   {
-    v: "1.1.0", d: "29 mai 2026", items: [
+    v: "1.1.0", d: "29 mai 2026", aud: "gestor", items: [
       { type: "fix", title: "Usabilidade no celular: topbar, listas, formulários e chat ajustados pra mobile." },
       { type: "feat", title: "Toque e segure pra reagir no chat (celular); Novidades acessível também no desktop." },
     ],
   },
   {
-    v: "1.0.0", d: "29 mai 2026", items: [
+    v: "1.0.0", d: "29 mai 2026", aud: "gestor", items: [
       { type: "feat", title: "Chat novo: conversas separadas de pessoas, com reações e confirmação de leitura." },
       { type: "feat", title: "Auditoria: linha do tempo de quem conferiu, lançou, alterou ou excluiu." },
       { type: "high", title: "Visual minimalista em todo o app + identidade FioPulse." },
     ],
   },
   {
-    v: "0.9.0", d: "26 mai 2026", items: [
+    v: "0.9.0", d: "26 mai 2026", aud: "gestor", items: [
       { type: "feat", title: "Banco de horas com gráfico do mês no perfil do funcionário." },
       { type: "feat", title: "Controle PJ: contrato e aditivos juntos, com pasta no Drive." },
       { type: "fix", title: "Login mais rápido e sem piscar a tela." },
