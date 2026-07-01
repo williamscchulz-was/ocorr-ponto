@@ -925,3 +925,14 @@ William mandou screenshot real (próprio celular, logado) reclamando do "encaixe
 2. **Achado extra (não era bug, mas é gap de UX real)**: a tela dele apareceu quase vazia (só saudação + "Novidades") — **não é bug**, é o comportamento correto pra quem tem `bhExempt:true` (ele é diretor, `app.js:1332` esconde o card de saldo de propósito). Sem pendência nem comunicado fixado, a coluna fica vazia sem nenhuma mensagem tipo "tudo em dia" — afeta especificamente usuários `bhExempt` (poucos, mas o William é um deles, por isso ele reparou na hora).
 
 Missão enviada (`inbox-pc/2026-07-01-home-header-e-vazio-bhexempt.md`) — é tudo CSS/app.js, domínio do PC, não mexi em nada.
+
+
+---
+
+## 2026-07-01 · 🎨 Mockup "Liquid Glass" da Home do colaborador aprovado por William
+
+William pediu um mockup completo inspirado no "Liquid Glass" da Apple pra Home do colaborador, com claro e escuro. Gerei via workflow multi-agente: 3 designers criaram direções distintas em paralelo (vidro em tudo / vidro só nos elementos principais / profundidade em camadas com animação), um diretor de design sintetizou a melhor combinação, e um revisor técnico checou contraste e corrigiu um bug real (no modo escuro, duas variáveis de cor colapsavam na mesma tonalidade, deixando o botão "Assinar" quase ilegível — corrigido).
+
+William pediu pra ver os 3 conceitos originais separados (não só a síntese) e arquivos `.html` de verdade em vez de só o preview inline — gerei os 4 (3 conceitos + síntese) como arquivos standalone que abrem sozinhos no navegador.
+
+**Aprovado**: a direção "profundidade em camadas" — o card de Banco de Horas vira uma "ilha flutuante" com glow radial atrás e uma animação de luz que atravessa a superfície ao tocar/passar o mouse. Copiado pro repo em `docs/mockups/colab-home-liquid-glass-mock.html` e mandado pro PC (`inbox-pc/2026-07-01-mockup-liquid-glass-aprovado-home.md`) como referência visual — é HTML solto, não código real do app, e o William autorizou o PC a remockar/melhorar se tiver ideias melhores (não é uma trava rígida).
