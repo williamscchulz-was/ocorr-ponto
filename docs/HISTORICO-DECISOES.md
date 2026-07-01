@@ -886,3 +886,16 @@ PC subiu uma aba "Espelho de ponto" no Portal do Gestor (v238) reusando o `dias[
 **Testado:** 92/92 docs cobertos, valores conferidos batendo exatamente com `bancoHoras` (3 amostras, inclusive turno `"geral"` string e numérico). Pipeline completo rodado de ponta a ponta: exit 0, sem regressão.
 
 Avisado o PC (`inbox-pc/2026-07-01-denormalizado-bh-self-no-ar.md`) — ele confirma líder/supervisor lendo ao vivo.
+
+
+---
+
+## 2026-07-01 · ✅ Caso Dioneia (f-1244) resolvido — achado o mecanismo real de "preso em inativo"
+
+Fechamento do achado da auditoria de dados: William confirmou com o RH (Jenifer, chat) — Dioneia Cristine Ramos é contratação **legítima e recente** (2-3 dias), ficou sem crachá/marcações nos primeiros dias, "sumiu" das apurações de ponto até a Jenifer/Suyanne conferirem e regularizarem o crachá ontem (30/06).
+
+**Causa raiz confirmada nos dados**: no WK (D_Empregado + BH), ela está 100% limpa hoje — sem demissão, `situacao: "Trabalhando"`, já com lançamentos de ponto (30/06, 01/07). Mas em `funcionarios/f-1244` o Firestore mantinha `ativo: false`. Motivo: a lógica **"preserva ativo=false manual"** (feita pro caso Denis f-778 — respeitar quando um admin desativa alguém de propósito sem o CSV trazer demissão) **não distingue** "admin desativou por decisão" de "o próprio pipeline desativou por ausência temporária num export" (provavelmente ela sumiu de algum export nos primeiros dias, antes do crachá). Uma vez `ativo=false` sem demissão, o pipeline **protege esse estado pra sempre**, mesmo com dado limpo em runs seguintes — **rodar de novo não resolve sozinho** (testado e confirmado: rodei antes de saber disso e ela continuou presa).
+
+**Correção aplicada (autorizada pelo William):** `ativo: true` direto no Firestore (correção pontual, quebra o loop). Confirmado rodando o pipeline de novo com dado real: **"0 inativo manual preservados"** (era 1), `pipeline-rh/cur` foi de **91 → 92 ativos**, login do Portal do Colaborador **reativado automaticamente** ("Reativados: 1" no relatório do `sync-colaborador-users.mjs`). Não precisou de mais nada manual — ela segue ativa sozinha daqui pra frente enquanto o dado dela continuar limpo.
+
+**⚠️ Risco sistêmico anotado (não corrigido hoje, só documentado):** qualquer novo contratado que fique ausente de um export por 1 rodada (típico: sem crachá ainda nos primeiros dias) pode cair na mesma armadilha. Corrigir de vez exigiria distinguir, no dado, "pipeline desativou por ausência" de "admin desativou manualmente" (hoje os dois casos são indistinguíveis no doc) — fica como possível próxima frente.
