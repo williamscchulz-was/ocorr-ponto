@@ -655,3 +655,37 @@ William quer o colaborador vendo **o horário que bateu, por dia** (espelho de p
 **Lado app (PC):** missão `inbox-pc/2026-06-30-espelho-de-ponto-portal-colaborador.md` — renderizar **NEUTRO** na tela "Meu banco de horas": só os horários; dia sem batida = "Folga"/"Sem marcação"; **NÃO** mostrar Atrasos/Falta/Suspensão pro colaborador (`situacoes[]` fica pro RH). Dados já legíveis.
 
 **Aprendizado WK:** o relatório de apuração só preenche `Originais/Apuradas` em dia de ocorrência quando "Listar somente ocorrências" / filtro de situação restringem. Desmarcando + todas as situações, vem a batida de TODO dia trabalhado. Ver memória project-apuracao-marcacoes.
+
+
+---
+
+## 2026-07-01 · 🔧 Espelho de Ponto → mês vigente + 🐛 bug real do WK (janela de 1 dia) + correção de um falso alarme
+
+**Pedido do William:** `dias[]` no `banco-horas-self` deixar de ser "últimos ~12 dias" e virar o **MÊS VIGENTE inteiro** (dia 1 → hoje) — formato natural de espelho de ponto. UI do PC já suporta (renderiza tudo que vier, sem cap de 12).
+
+**Implementado:** `export-espelho.mjs` pede `DataInicial`=1º-do-mês (era janela rolante ~20 dias); `process-espelho-ponto.mjs` trocou `N_DIAS=12` (slice) por `MAX_DIAS=31` (teto de segurança) + sem filtro de contagem.
+
+**🐛 Bug real do WK descoberto no teste (dia 1º/07, o pior caso — mês vigente = 1 dia só):** quando `DataInicial == DataFinal` (janela de 1 dia), o exportador do WK **silenciosamente não gera arquivo nenhum** pro relatório de Espelho de Ponto (confirmado reproduzindo: janela 01/07→01/07 não gerou; 30/06→01/07 gerou normal). Bateria **TODO dia 1º de mês**, pra sempre.
+**Fix:** no dia 1º, `export-espelho.mjs` e `update-config-dates.mjs` esticam `DataInicial` pra ONTEM (cruza pro mês anterior, garante ≥2 dias na janela); o parser (`process-espelho-ponto.mjs`) filtra esse dia extra fora (só fica `dataIso >= 1º-do-mês-vigente`), mantendo o contrato "só mês vigente" limpo.
+
+**⚠️ Quase um alarme falso — Banco de Horas:** ao investigar, achei que a rodada automática das 08:00 de hoje tinha "zerado" o saldo de TODO MUNDO em `bancoHoras` (o mesmo bug de janela de 1 dia também afeta `Config_Banco_de_Horas.txt`, via `update-config-dates.mjs`). Cheguei a tratar como incidente crítico — **mas comparei com o histórico real de junho no Firestore antes de alarmar**: dia 1º de **junho** TAMBÉM mostrava saldo 00:00 pra esses mesmos funcionários (dado real, gerado pela pipeline normal do mês passado). Conclusão: **"Banco Horas Mensal" reseta por desenho todo dia 1º** — 00:00 no dia 1º É o valor correto, não é bug de dado. Apliquei a mesma correção defensiva em `update-config-dates.mjs` (estica pra ontem no dia 1) por segurança/consistência — **não** porque o valor estivesse errado, mas pra não depender de um comportamento frágil do WK (janela de 1 dia = risco de "nada gerado" nesse OU em outros relatórios no futuro). Reprocessei a cadeia (process-bh → upload-to-firestore → upload-banco-horas-self) com a janela corrigida; `pipeline-rh/cur` migrou certo pro mês 2026-07 (junho virou histórico fechado).
+
+**Aprendizado geral:** qualquer script que monta janela `DataInicial`=1º-do-mês / `DataFinal`=hoje precisa garantir ≥2 dias (nunca janela de 1 dia só) — é uma fragilidade do exportador do WK, não específica de um relatório.
+
+---
+
+## 2026-07-01 · 🔎 Auditoria completa do backend (fiobras-pipeline-rh) — 55 achados, 49 confirmados
+
+William pediu auditoria completa do backend. Workflow com 6 frentes em paralelo (parsing/dados, escrita Firestore, orquestração/resiliência, segurança/config, consistência entre scripts, observabilidade/logging) + verificação adversarial de cada achado (61 agentes, ~2.7M tokens). **55 achados preliminares → 49 confirmados / 6 refutados (falso positivo)** pela verificação.
+
+**Críticos (2):** (1) reset mensal de `ocorrencias-auto` (`upload-ocorrencias-auto.mjs`) apaga a coleção ANTES de validar que o novo parse tem dados — se o parser falhar/gerar vazio no dia da virada de mês, a conferência do mês inteiro some sem nada pra repor. (2) `upload-to-firestore.mjs` lê turno/ativo de `funcionarios` DEPOIS de já ter escrito lá — janela teórica de turno desatualizado indo pro `bancoHoras` (usado pra isolar líder por turno nas rules).
+
+**Altos (9):** GO_LIVE hardcoded no `process-ocorrencias-rh.py` (deveria estar em config, não no código — vira permanente e não dá pra reabrir histórico depois); `runScript`/`runExe`/`runPython` sem timeout (sub-processo travado = pipeline pendurado pra sempre, nunca chega no heartbeat); export de BH best-effort sem checar idade do CSV (dado velho processado como se fosse fresco, sem aviso); `write-monitor.mjs` não cobre `banco-horas-saldos` (PII) nem `banco-horas` (histórico); `process-espelho-ponto.mjs` best-effort sem alerta se falhar (Portal fica sem marcações, ninguém percebe); `log()` engole erro de escrita do arquivo de log silenciosamente.
+
+**Médios (~20):** `parseInt(...)||null` mascara zero legítimo em `process-empregado.mjs`; configs do WK reescritos in-place sem atomic write/backup; `LIDERES={"785","866"}` hardcoded por código (risco se reatribuído); tipos de `turno` inconsistentes (number vs string) entre scripts; batch=400 vs 500 inconsistente entre uploaders; delete em lote sem try/catch por commit; `ocorrencias-mes.txt` fora do `.gitignore`; regex de config não valida se a substituição realmente aconteceu.
+
+**Baixos/info:** portabilidade zero (paths Windows hardcoded), `process-ocorrencias.mjs` é código morto (nunca chamado, substituído por `process-ocorrencias-rh.py`), docs órfãos em `banco-horas-self` quando colaborador é demitido (sem risco de vazamento, é só limpeza), path absoluto do WK exposto no heartbeat público (baixo risco).
+
+**Refutados (6, falso positivo — verificação funcionou):** overflow de CPF (função já rejeita !=11 dígitos), heartbeat não rodar em erro não-capturado (o catch já envolve tudo, roda sempre), "bug" no regex `$11$2` do GerarSemAspas (JS interpreta certo, não é bug), PII vazando em logs de erro (err.message nunca carrega os valores), escrita não-atômica de `ocorrencias-mes.txt` (a ordem do código já protege isso).
+
+**Status:** nenhum fix aplicado ainda — William vai priorizar o que corrigir. Relatório completo na conversa com o Claude WKRADAR.

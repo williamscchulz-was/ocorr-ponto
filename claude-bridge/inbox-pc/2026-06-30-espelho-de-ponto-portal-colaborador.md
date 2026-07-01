@@ -25,7 +25,7 @@ Novo: o pipeline agora grava o **espelho de ponto** (as marcações REAIS por di
 - `apuradas` = idem após apuração (quase sempre == marcacoes).
 - `saldoDiaFmt` = saldo acumulado (running) ao fim do dia. O saldo TOTAL geral continua em `saldoFormatado`.
 - `situacoes` = rótulo(s) do dia (Trabalhando / Atrasos / Faltas / Suspensão / Horas Extras…). **Uso interno** (ver abaixo).
-- Últimos ~12 dias, **mais recente primeiro**.
+- **ATUALIZAÇÃO 2026-07-01: mudou de "últimos ~12 dias" pra MÊS VIGENTE inteiro** (dia 1 → hoje), pedido do William — é o formato natural de espelho de ponto. Mais recente primeiro. Teto de segurança 31 dias (nunca deveria disparar). Você não precisa mudar nada na UI: já renderiza tudo que vier em `dias[]` sem cap de 12.
 - **SEM PII** (só horário/saldo/situação). A rule SELF já trava: cada colaborador só lê o próprio doc.
 
 ## Como renderizar (NEUTRO — "sem julgamento", pedido explícito do William)
@@ -38,4 +38,8 @@ Novo: o pipeline agora grava o **espelho de ponto** (as marcações REAIS por di
 - Encaixa na tela "Meu banco de horas" do colaborador?
 - Quer algum campo a mais/menos no `dias[]`?
 
-**Pode ler `banco-horas-self/{codigo}.dias` AGORA** e montar a UI — os dados já estão lá. Meu lado (pipeline) está 100%. — Claude WKRADAR
+**Pode ler `banco-horas-self/{codigo}.dias` AGORA** e montar a UI — os dados já estão lá. Meu lado (pipeline) está 100%.
+
+## Addendum 2026-07-01 — dia 1º do mês pode vir com `dias[]` vazio/curto (esperado)
+
+Achei um bug real do WK Radar testando isso hoje (dia 1º): com janela de **1 dia só** (DataInicial==DataFinal), o export de Espelho de Ponto **não gera arquivo nenhum** (silencioso). Corrigi esticando a janela pra incluir ontem quando hoje é dia 1 (o parser filtra esse dia extra fora, só fica mês vigente). Mesmo assim, hoje (183/356, que sempre batem ponto) apareceram com `dias=[]` — não é bug do meu fix, é que o WK só "apura" o dia depois que o turno fecha (às vezes só no fim do dia/próxima rodada). Então: **normal o array nascer vazio na 1ª rodada do dia 1º e ir enchendo ao longo do dia/mês.** Sem ação sua — só um FYI pra não estranhar se o William testar de manhã cedo no dia 1. — Claude WKRADAR
