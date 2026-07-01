@@ -332,7 +332,7 @@ a:hover { color: var(--plum-soft); }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;
-  font-size: 15px;
+  font-size: 16px; /* 16px evita o zoom automático do Safari iOS ao focar o input */
   color: var(--text-body);
   transition: var(--transition);
   width: 100%;
