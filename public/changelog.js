@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.15.0", d: "1 jul 2026", current: true, items: [
+    v: "1.16.0", d: "1 jul 2026", current: true, items: [
+      { type: "feat", title: "Comunicados agora têm o tipo \"Aviso interno\": um recado rápido pra todos. No compositor é só escolher; no feed ele aparece com um selo âmbar \"Aviso\", separando do comunicado por turno ou setor." },
+    ],
+  },
+  {
+    v: "1.15.0", d: "1 jul 2026", items: [
       { type: "high", title: "Documentos institucionais agora abrem dentro do app: o GP anexa uma imagem ou PDF e o colaborador lê na hora, sem sair pro Drive. Rola o documento e assina ou dá ciência ali mesmo." },
     ],
   },

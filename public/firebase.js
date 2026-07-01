@@ -988,10 +988,13 @@
 
     window.criarComunicado = async function (dados) {
       const u = currentUser();
-      const seg = dados.segmento || { tipo: "todos", valores: [] };
+      const tipo = dados.tipo === "aviso" ? "aviso" : "comunicado";
+      // Aviso interno é sempre Todos — reforça no backend caso a UI escape.
+      const seg = tipo === "aviso" ? { tipo: "todos", valores: [] } : (dados.segmento || { tipo: "todos", valores: [] });
       const doc = {
         titulo: String(dados.titulo || "").slice(0, 140),
         corpo: String(dados.corpo || ""),
+        tipo,
         segmento: seg,
         requerConfirmacao: !!dados.requerConfirmacao,
         fixado: !!dados.fixado,
@@ -1007,7 +1010,7 @@
       };
       try {
         await db.collection("comunicados").add(doc);
-        window.registrarAuditoria?.({ tipo: "comunicado", acao: "Publicou comunicado", alvo: doc.titulo });
+        window.registrarAuditoria?.({ tipo: "comunicado", acao: tipo === "aviso" ? "Publicou aviso interno" : "Publicou comunicado", alvo: doc.titulo });
         await recarregarComunicados();
         closeModal();
         toast("Comunicado publicado.");
@@ -1020,10 +1023,12 @@
 
     window.editarComunicado = async function (id, patch) {
       const u = currentUser();
+      const tipo = patch.tipo === "aviso" ? "aviso" : "comunicado";
       const up = {
         titulo: String(patch.titulo || "").slice(0, 140),
         corpo: String(patch.corpo || ""),
-        segmento: patch.segmento || { tipo: "todos", valores: [] },
+        tipo,
+        segmento: tipo === "aviso" ? { tipo: "todos", valores: [] } : (patch.segmento || { tipo: "todos", valores: [] }),
         requerConfirmacao: !!patch.requerConfirmacao,
         fixado: !!patch.fixado,
         imagem: (typeof patch.imagem === "string" && patch.imagem.indexOf("data:image/") === 0) ? patch.imagem : null,

@@ -691,6 +691,12 @@ html.modo-colab.cp-dark{
 .cp-novo{position:absolute;top:11px;right:11px;z-index:2;width:10px;height:10px;border-radius:50%;background:#1FB558;box-shadow:0 0 0 3px rgba(31,181,88,.2)}
 .cp-seen{display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-size:12px;font-weight:500}
 .cp-seen .icon{width:14px;height:14px;color:#1FB558}
+/* Selo "Aviso" (subtipo) vs selo de segmento no card do colaborador (do mock aprovado). */
+.cp-avisotag{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:rgba(224,163,58,.16);color:#E0A33A;font-size:11px;font-weight:700;margin-bottom:8px}
+.cp-avisotag .icon{width:13px;height:13px}
+.cp-avisocard{border-color:transparent;box-shadow:0 0 0 1.5px rgba(224,163,58,.45),var(--pp-sh-card)}
+.cp-segtag{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:var(--surface-warm);color:var(--text-muted);font-size:11px;font-weight:600;margin-bottom:8px}
+.cp-segtag .icon{width:13px;height:13px}
 
 /* Meu ponto: nota informativa + ocorrência read-only (.cp-occ) + últimos 10 dias (.cp-dia) */
 .cp-bhnote{margin-top:10px;display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--text-muted);line-height:1.5}

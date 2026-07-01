@@ -724,6 +724,7 @@ function cpIcon(name) {
     collapse: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
     conferir: '<rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M8.5 13l2.2 2.2L15.5 10"/>',
     pulso: '<path d="M3 12h4l2 5 4-12 2 7h6"/>',
+    briefcase: '<rect x="2.5" y="7" width="19" height="13.5" rx="2.2"/><path d="M8 7V5.2A2.2 2.2 0 0 1 10.2 3h3.6A2.2 2.2 0 0 1 16 5.2V7"/><path d="M2.5 12.5h19"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -919,15 +920,20 @@ function renderColabComunicados() {
 
 function colabAvisoHtml(c) {
   const seg = c.segmento || { tipo: "todos", valores: [] };
-  const segTxt = seg.tipo === "todos" ? "Todos" : (seg.tipo === "turno" ? "Seu turno" : "Seu setor");
+  const ehAviso = (c.tipo === "aviso");
+  // Aviso -> selo âmbar "Aviso". Comunicado segmentado -> selo do segmento. "Todos" -> sem selo.
+  const segTag = (!ehAviso && seg.tipo === "turno") ? "Seu turno"
+    : (!ehAviso && seg.tipo === "setor") ? "Seu setor" : "";
   const visto = !!(c.minhaLeitura); // abriu o post = visto
   const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
   return `
-    <article class="pp-card${c.fixado ? " pp-card--pin" : ""}" data-colab-aviso="${c.id}" role="button" tabindex="0" aria-label="Abrir aviso ${escapeHtml(c.titulo || "")}">
+    <article class="pp-card${c.fixado ? " pp-card--pin" : ""}${ehAviso ? " cp-avisocard" : ""}" data-colab-aviso="${c.id}" role="button" tabindex="0" aria-label="Abrir aviso ${escapeHtml(c.titulo || "")}">
       ${!visto ? `<span class="cp-novo" aria-label="Não visto"></span>` : ""}
       ${imgOk ? `<img class="pp-card__img" src="${escapeHtml(c.imagem)}" alt="" loading="lazy">` : ""}
       <div class="pp-card__bd">
-        <div class="pp-card__meta">${c.fixado ? `${cpIcon("pin")}<span>Fixado · </span>` : ""}<span>${escapeHtml(c.autorNome || "GP")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}</span></div>
+        ${ehAviso ? `<span class="cp-avisotag">${cpIcon("megafone")}Aviso</span>` : ""}
+        ${segTag ? `<span class="cp-segtag">${cpIcon(seg.tipo === "setor" ? "briefcase" : "clock")}${segTag}</span>` : ""}
+        <div class="pp-card__meta">${c.fixado ? `${cpIcon("pin")}<span>Fixado · </span>` : ""}<span>${escapeHtml(c.autorNome || "GP")} · ${comData(c.publicadoEm)}</span></div>
         <div class="pp-card__t">${escapeHtml(c.titulo || "")}</div>
         ${c.corpo ? `<div class="pp-card__x" style="-webkit-line-clamp:4">${escapeHtml(c.corpo)}</div>` : ""}
         ${visto ? `<div class="pp-card__foot"><span class="cp-seen">${cpIcon("check")}Visualizado</span></div>` : ""}
@@ -976,10 +982,13 @@ function openColabAvisoSheet(id) {
   const c = (state.comunicadosColab || []).find((x) => x.id === id);
   if (!c) return;
   const seg = c.segmento || { tipo: "todos", valores: [] };
-  const segTxt = seg.tipo === "todos" ? "Todos" : (seg.tipo === "turno" ? "Seu turno" : "Seu setor");
+  const ehAviso = (c.tipo === "aviso");
+  const postTag = ehAviso ? `<span class="cp-avisotag">${cpIcon("megafone")}Aviso</span>`
+    : (seg.tipo === "turno" ? `<span class="cp-segtag">${cpIcon("clock")}Seu turno</span>`
+      : (seg.tipo === "setor" ? `<span class="cp-segtag">${cpIcon("briefcase")}Seu setor</span>` : ""));
   const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
   const anexoUrl = (c.anexo && c.anexo.url && (typeof ehUrlSegura !== "function" || ehUrlSegura(c.anexo.url))) ? c.anexo.url : null;
-  const metaTxt = `${escapeHtml(c.autorNome || "GP")} · ${comData(c.publicadoEm)} · ${escapeHtml(segTxt)}`;
+  const metaTxt = `${escapeHtml(c.autorNome || "GP")} · ${comData(c.publicadoEm)}`;
   const foot = `<span class="cp-post__doneline">${cpIcon("check")}Visualizado</span>`;
   openModal(`
     <button class="cp-post__x" data-close aria-label="Fechar">${cpIcon("x")}</button>
@@ -989,6 +998,7 @@ function openColabAvisoSheet(id) {
         <span class="cp-post__zoom">${ICON_AMPLIAR}Ampliar</span>
       </button>` : ""}
       <div class="cp-post__c">
+        ${postTag}
         <div class="cp-post__meta"><span>${metaTxt}</span></div>
         <h2 class="cp-post__t">${escapeHtml(c.titulo || "")}</h2>
         ${c.corpo ? `<div class="cp-post__body">${escapeHtml(c.corpo)}</div>` : ""}
@@ -1268,9 +1278,11 @@ function comunicadoFixadoHtml() {
   const lista = (typeof colabAvisosOrdenados === "function") ? colabAvisosOrdenados() : (state.comunicadosColab || []);
   const fix = lista.find((c) => c.fixado);
   if (!fix) return "";
+  const ehAviso = (fix.tipo === "aviso");
   return `<div class="pp-ovl">Comunicados<a data-nav="colab-comunicados">Ver todos</a></div>
-    <button class="pp-card pp-card--pin" data-nav="colab-comunicados">
+    <button class="pp-card pp-card--pin${ehAviso ? " cp-avisocard" : ""}" data-nav="colab-comunicados">
       <div class="pp-card__bd">
+        ${ehAviso ? `<span class="cp-avisotag">${cpIcon("megafone")}Aviso</span>` : ""}
         <div class="pp-card__meta">${cpIcon("pin")}<span>Fixado pelo GP</span></div>
         <div class="pp-card__t">${escapeHtml(fix.titulo || "")}</div>
         ${fix.corpo ? `<div class="pp-card__x">${escapeHtml(fix.corpo)}</div>` : ""}
@@ -4810,6 +4822,7 @@ function renderComunicados() {
 
 function comCardHtml(c) {
   const seg = c.segmento || { tipo: "todos", valores: [] };
+  const ehAviso = (c.tipo === "aviso");
   const Y = (typeof c.alcanceEstimado === "number") ? c.alcanceEstimado : comAlcance(seg);
   const leituras = c.leituras || [];
   const X = leituras.length; // todas as leituras = visualizações
@@ -4819,12 +4832,12 @@ function comCardHtml(c) {
     ? `<img class="cf-thumb" src="${c.imagem}" alt="" loading="lazy" data-com-editar="${c.id}">`
     : `<div class="cf-noimg" data-com-editar="${c.id}">${escapeHtml((c.corpo || c.titulo || "Comunicado").slice(0, 80))}</div>`;
   return `
-    <article class="cf-card ${c.fixado ? "cf-card--pin" : ""}" data-com-id="${c.id}">
+    <article class="cf-card ${c.fixado ? "cf-card--pin" : ""} ${ehAviso ? "cf-card--aviso" : ""}" data-com-id="${c.id}">
       ${head}
       ${c.fixado ? `<span class="cf-pin" aria-hidden="true">${icon("pin")}</span>` : ""}
       <div class="cf-bd">
         <div class="cf-title" data-com-editar="${c.id}">${escapeHtml(c.titulo || "(sem titulo)")}</div>
-        <span class="cf-seg">${comSegLabel(seg)}</span>
+        <span class="cf-seg ${ehAviso ? "cf-seg--aviso" : ""}">${ehAviso ? `${icon("megafone")}<span>Aviso</span>` : comSegLabel(seg)}</span>
         <div class="cf-read"><span><b>${X}</b> de ${Y} viram</span><span class="com-bar"><i style="width:${pct}%"></i></span></div>
         <div class="cf-meta">${escapeHtml(c.autorNome || "GP")} · ${comData(c.publicadoEm)}</div>
         <div class="cf-acts">
@@ -4969,14 +4982,17 @@ function openDocViewer(d) {
   setTimeout(() => root.querySelector("[data-docview-close]")?.focus(), 30);
 }
 
-function comPreview(segTipo) {
+function comPreview(segTipo, tipoCom) {
+  const isAviso = tipoCom === "aviso";
   const t = ($("#com-titulo")?.value || "").trim();
   const b = ($("#com-corpo")?.value || "").trim();
-  const seg = comSegmentoDoForm(segTipo);
+  const seg = isAviso ? { tipo: "todos", valores: [] } : comSegmentoDoForm(segTipo);
   const fixar = $("#com-fixar")?.getAttribute("aria-checked") === "true";
-  if ($("#com-pv-titulo")) $("#com-pv-titulo").textContent = t || "Título do comunicado";
+  if ($("#com-pv-titulo")) $("#com-pv-titulo").textContent = t || (isAviso ? "Título do aviso" : "Título do comunicado");
   if ($("#com-pv-corpo")) $("#com-pv-corpo").textContent = b || "O corpo aparece aqui conforme você escreve.";
-  let badges = `<span class="badge badge--success">${comSegLabel(seg)}</span>`;
+  let badges = isAviso
+    ? `<span class="badge badge--aviso">${icon("megafone")}<span>Aviso</span></span>`
+    : `<span class="badge badge--success">${comSegLabel(seg)}</span>`;
   if (fixar) badges += `<span class="badge badge--neutral">${icon("pin")}<span>Fixado</span></span>`;
   if ($("#com-pv-badges")) $("#com-pv-badges").innerHTML = badges;
   const n = comAlcance(seg);
@@ -4988,6 +5004,7 @@ function openComunicadoModal(id) {
   if (!can("comunicados.gerenciar")) return;
   const c = id ? (state.comunicados || []).find((x) => x.id === id) : null;
   const seg = c?.segmento || { tipo: "todos", valores: [] };
+  const tipoCom = (c?.tipo === "aviso") ? "aviso" : "comunicado";
   const setores = getSetores();
   const turnoVal = seg.tipo === "turno" ? (seg.valores || [])[0] : 1;
   const setorVal = seg.tipo === "setor" ? (seg.valores || [])[0] : (setores[0] || "");
@@ -4999,6 +5016,13 @@ function openComunicadoModal(id) {
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body mform2" id="com-form" onsubmit="return false">
+      <div class="field mform-full">
+        <label>Tipo</label>
+        <div class="com-seg" role="group" aria-label="Tipo de publicação">
+          <button type="button" class="com-seg__chip ${tipoCom === "aviso" ? "" : "is-on"}" data-com-tipo="comunicado">${icon("message")}<span>Comunicado</span></button>
+          <button type="button" class="com-seg__chip ${tipoCom === "aviso" ? "is-on" : ""}" data-com-tipo="aviso">${icon("megafone")}<span>Aviso interno</span></button>
+        </div>
+      </div>
       <div class="mform2__col">
       <div class="field">
         <label for="com-titulo">Título</label>
@@ -5019,7 +5043,7 @@ function openComunicadoModal(id) {
       </div>
       </div>
       <div class="mform2__col">
-      <div class="field">
+      <div class="field" id="com-seg-field">
         <label>Segmento</label>
         <div class="com-seg" role="group" aria-label="Segmento do comunicado">
           <button type="button" class="com-seg__chip ${seg.tipo === "todos" ? "is-on" : ""}" data-com-seg="todos">${icon("users")}<span>Todos</span></button>
@@ -5063,14 +5087,15 @@ function openComunicadoModal(id) {
     onMount: (modal) => {
       modal.classList.add("modal--wide");
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      const segAtual = () => { const on = modal.querySelector(".com-seg__chip.is-on"); return (on && on.dataset.comSeg) || "todos"; };
+      let segTipo = seg.tipo;
+      let tipoAtual = tipoCom; // "comunicado" | "aviso" (closure p/ preview e save) — declarado antes do setImg
       // Imagem (base64 com resize)
       const imgInput = $("#com-img-input"), imgAdd = $("#com-img-add"), imgPrev = $("#com-img-prev"), imgThumb = $("#com-img-thumb");
       const setImg = (dataUrl) => {
         _comImagem = dataUrl || null;
         if (_comImagem) { imgThumb.src = _comImagem; imgPrev.style.display = ""; imgAdd.style.display = "none"; }
         else { imgPrev.style.display = "none"; imgAdd.style.display = ""; imgThumb.removeAttribute("src"); }
-        comPreview(segAtual());
+        comPreview(segTipo, tipoAtual);
       };
       imgAdd.addEventListener("click", () => imgInput.click());
       imgInput.addEventListener("change", async () => {
@@ -5086,13 +5111,13 @@ function openComunicadoModal(id) {
       });
       $("#com-img-rm").addEventListener("click", () => setImg(null));
       if (_comImagem) setImg(_comImagem);
-      const segTipoRef = { v: seg.tipo };
-      let segTipo = seg.tipo;
       const chips = modal.querySelectorAll("[data-com-seg]");
       const sync = () => {
-        $("#com-seg-turno").style.display = segTipo === "turno" ? "" : "none";
-        $("#com-seg-setor").style.display = segTipo === "setor" ? "" : "none";
-        comPreview(segTipo);
+        const isAviso = tipoAtual === "aviso";
+        $("#com-seg-field").style.display = isAviso ? "none" : "";
+        $("#com-seg-turno").style.display = (!isAviso && segTipo === "turno") ? "" : "none";
+        $("#com-seg-setor").style.display = (!isAviso && segTipo === "setor") ? "" : "none";
+        comPreview(segTipo, tipoAtual);
       };
       chips.forEach((ch) => ch.addEventListener("click", () => {
         chips.forEach((c2) => c2.classList.remove("is-on"));
@@ -5100,28 +5125,40 @@ function openComunicadoModal(id) {
         segTipo = ch.dataset.comSeg;
         sync();
       }));
-      const flip = (el) => { const on = el.getAttribute("aria-checked") === "true"; el.setAttribute("aria-checked", String(!on)); el.classList.toggle("is-on", !on); comPreview(segTipo); };
+      // Chip de tipo: Comunicado | Aviso interno. Aviso é sempre Todos (esconde segmento).
+      const tipoChips = modal.querySelectorAll("[data-com-tipo]");
+      tipoChips.forEach((ch) => ch.addEventListener("click", () => {
+        tipoChips.forEach((c2) => c2.classList.remove("is-on"));
+        ch.classList.add("is-on");
+        tipoAtual = ch.dataset.comTipo;
+        if (tipoAtual === "aviso") { segTipo = "todos"; chips.forEach((c2) => c2.classList.toggle("is-on", c2.dataset.comSeg === "todos")); }
+        sync();
+      }));
+      const flip = (el) => { const on = el.getAttribute("aria-checked") === "true"; el.setAttribute("aria-checked", String(!on)); el.classList.toggle("is-on", !on); comPreview(segTipo, tipoAtual); };
       $("#com-fixar").addEventListener("click", () => flip($("#com-fixar")));
-      ["com-titulo", "com-corpo"].forEach((idf) => $("#" + idf).addEventListener("input", () => comPreview(segTipo)));
-      $("#com-turno").addEventListener("change", () => comPreview(segTipo));
-      $("#com-setor")?.addEventListener("change", () => comPreview(segTipo));
-      $("#com-save").addEventListener("click", () => salvarComunicadoForm(id, segTipo));
+      ["com-titulo", "com-corpo"].forEach((idf) => $("#" + idf).addEventListener("input", () => comPreview(segTipo, tipoAtual)));
+      $("#com-turno").addEventListener("change", () => comPreview(segTipo, tipoAtual));
+      $("#com-setor")?.addEventListener("change", () => comPreview(segTipo, tipoAtual));
+      $("#com-save").addEventListener("click", () => salvarComunicadoForm(id, segTipo, tipoAtual));
       const desp = modal.querySelector("[data-com-despublicar]");
       if (desp) desp.addEventListener("click", () => despublicarComunicadoUI(desp.dataset.comDespublicar));
-      comPreview(segTipo);
+      sync(); // estado inicial coerente (esconde segmento se editar um aviso)
       setTimeout(() => $("#com-titulo")?.focus(), 60);
     },
   });
 }
 
-function salvarComunicadoForm(id, segTipo) {
+function salvarComunicadoForm(id, segTipo, tipoCom) {
+  const isAviso = tipoCom === "aviso";
   const titulo = $("#com-titulo").value.trim();
   if (!titulo || titulo.length < 3) return campoInvalido("#com-titulo", "Dê um título ao comunicado (mín. 3 letras).");
   const corpo = $("#com-corpo").value.trim();
   if (!corpo) return campoInvalido("#com-corpo", "Escreva o corpo do comunicado.");
-  const seg = comSegmentoDoForm(segTipo);
+  // Aviso interno é SEMPRE Todos (sem segmentação); não toca nos selects escondidos.
+  const seg = isAviso ? { tipo: "todos", valores: [] } : comSegmentoDoForm(segTipo);
   const dados = {
     titulo, corpo, segmento: seg,
+    tipo: isAviso ? "aviso" : "comunicado",
     fixado: $("#com-fixar").getAttribute("aria-checked") === "true",
     alcanceEstimado: comAlcance(seg),
     imagem: _comImagem || null,
@@ -10562,7 +10599,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.15.0";
+window.CURRENT_VERSION = "1.16.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
