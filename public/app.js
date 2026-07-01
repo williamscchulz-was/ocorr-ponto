@@ -1262,6 +1262,25 @@ function aniversariantesDoMesHtml(meuNome) {
   return `<div class="pp-ovl">Aniversariantes do mês</div><div class="pp-aniv">${cards}</div>`;
 }
 
+// Só o(s) aniversariante(s) de HOJE, num card compacto (usado no mobile pra não ocupar
+// espaço). Ignora o próprio colaborador (a saudação já festeja quem faz aniversário). "" se
+// não houver ninguém hoje (aí a seção some).
+function aniversarianteHojeHtml(meuNome) {
+  const lista = (state.aniversariantes && Array.isArray(state.aniversariantes.pessoas)) ? state.aniversariantes.pessoas : [];
+  if (!lista.length) return "";
+  const hoje = new Date();
+  const mes = hoje.getMonth() + 1, diaHoje = hoje.getDate();
+  const eu = _normNome(meuNome);
+  const doDia = lista.filter((p) => Number(p.mes) === mes && Number(p.dia) === diaHoje && _normNome(p.nome) !== eu);
+  if (!doDia.length) return "";
+  const nomes = doDia.map((p) => (p.nome || "?").trim().split(/\s+/)[0] || "?");
+  const quem = nomes.length === 1 ? nomes[0] : (nomes.slice(0, -1).join(", ") + " e " + nomes.slice(-1));
+  return `<div class="pp-bday">
+    <div class="pp-bday__ic">${cpIcon("cake")}</div>
+    <div class="pp-bday__bd"><div class="pp-bday__t">Hoje é aniversário de ${escapeHtml(quem)}</div><div class="pp-bday__s">Que tal desejar um feliz aniversário</div></div>
+  </div>`;
+}
+
 // Comunicado fixado em destaque na home (reusa .pp-card--pin). Pega o 1o fixado do segmento.
 function comunicadoFixadoHtml() {
   const lista = (typeof colabAvisosOrdenados === "function") ? colabAvisosOrdenados() : (state.comunicadosColab || []);
@@ -1337,50 +1356,59 @@ function bhHeroHtml(f) {
   </button>`;
 }
 
+// Saudação criativa da home: avatar + saudação por horário ("Bom dia/tarde/noite, Nome") +
+// subtítulo de contexto (data + turno). No aniversário do próprio colaborador, vira festa.
+function colabGreetHtml(f, nome) {
+  const primeiro = (nome || "").trim().split(/\s+/)[0] || "";
+  const hoje = new Date();
+  const h = hoje.getHours();
+  const av = escapeHtml(initials(nome || "?"));
+  const ehAniv = f && Number(f.aniversarioDia) === hoje.getDate() && Number(f.aniversarioMes) === (hoje.getMonth() + 1);
+  if (ehAniv) {
+    return `<div class="pp-greet pp-greet--bday">
+      <div class="pp-greet__av">${av}<span class="spark">${cpIcon("cake")}</span></div>
+      <div class="pp-greet__tx"><h1>Feliz aniversário, <b>${escapeHtml(primeiro)}</b></h1><p>Toda a Fiobras te deseja um dia incrível</p></div>
+    </div>`;
+  }
+  const saud = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+  let ds = hoje.toLocaleDateString("pt-BR", { weekday: "long" }).replace(/-feira$/i, "");
+  ds = ds.charAt(0).toUpperCase() + ds.slice(1);
+  const mesNome = hoje.toLocaleDateString("pt-BR", { month: "long" });
+  const turnoLabel = (f && f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label : null;
+  const sub = [`${ds}, ${hoje.getDate()} de ${mesNome}`, turnoLabel].filter(Boolean).join(" · ");
+  const icoHora = (h >= 6 && h < 18) ? "sun" : "moon";
+  return `<div class="pp-greet">
+    <div class="pp-greet__av">${av}</div>
+    <div class="pp-greet__tx"><h1>${saud}, <b>${escapeHtml(primeiro)}</b></h1><p>${cpIcon(icoHora)}${escapeHtml(sub)}</p></div>
+  </div>`;
+}
+
 function renderColaboradorHome() {
   const view = $("#view");
   const u = currentUser();
   // Dados reais do próprio funcionário (carregado no boot: state.funcionarios[0] = só o doc dele).
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
-  const primeiro = nome.trim().split(/\s+/)[0] || "";
-  const cargoSetor = [f && f.cargo, f && f.setor].filter(Boolean).join(" · ") || "—";
-  const turnoLabel = (f && f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label : null;
-  const tempo = (f && f.diasNaEmpresa) ? tempoDeCasa(f.diasNaEmpresa) : null;
-  const aniv = (f && f.aniversarioDia && f.aniversarioMes)
-    ? `${String(f.aniversarioDia).padStart(2, "0")}/${String(f.aniversarioMes).padStart(2, "0")}` : null;
-  const metas = [];
-  if (turnoLabel) metas.push(turnoLabel);
-  if (tempo) metas.push(`Há ${tempo} na Fiobras`);
-  if (aniv) metas.push(`Aniversário ${aniv}`);
-  // Banco de horas (saldo SELF, se já carregado em state.meuSaldoBH; senão "em breve")
-  const bh = state.meuSaldoBH || null;
-  const bhMin = bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null;
-  let bhStr = null;
-  if (bh) bhStr = bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null);
-  const bhNeg = bhMin != null && bhMin < 0;
-  const atalhos = [
-    { page: "colab-ponto", icon: "clock", t: "Meu ponto", s: "Saldo e espelho", tone: "green" },
-    { page: "colab-comunicados", icon: "megafone", t: "Comunicados", s: "Avisos do GP", tone: "amber" },
-    { page: "colab-documentos", icon: "file", t: "Documentos", s: "Termos e recibos", tone: "info" },
-    { page: "colab-roadmap", icon: "roadmap", t: "Novidades", s: "Evolução do portal", tone: "neutral" },
-  ];
-  const naoLidos = (state.comunicadosColab || []).filter((c) => !(c.minhaLeitura)).length; // não vistos
+  const noviCard = `<button class="pp-novi" data-nav="colab-roadmap">
+      <span class="pp-novi__ic">${cpIcon("roadmap")}</span>
+      <span class="pp-novi__bd"><span class="pp-novi__t">Novidades</span><span class="pp-novi__s">Veja a evolução do portal e o que chegou</span></span>
+      <span class="pp-novi__chev">${cpIcon("chevron")}</span>
+    </button>`;
   view.innerHTML = `
-    <div class="pp-fade">
-      <div class="pp-hi"><h1>Olá, ${escapeHtml(primeiro)}</h1><p>Bom te ver por aqui.</p></div>
-      ${bhHeroHtml(f)}
-      ${precisaAtencaoHtml()}
-      <div class="pp-ovl">Acessos rápidos</div>
-      <div class="pp-atalhos">
-        ${atalhos.map((a) => `<button class="pp-atalho" data-nav="${a.page}">
-          <span class="pp-ico pp-ico--${a.tone}">${cpIcon(a.icon)}</span>
-          <span class="pp-atalho__t">${a.t}${(a.page === "colab-comunicados" && naoLidos) ? `<span class="pp-atalho__n">${naoLidos}</span>` : ""}</span>
-          <span class="pp-atalho__s">${a.s}</span>
-        </button>`).join("")}
+    <div class="pp-fade pp-home">
+      ${colabGreetHtml(f, nome)}
+      <div class="pp-home__grid">
+        <div class="pp-home__col">
+          ${bhHeroHtml(f)}
+          ${precisaAtencaoHtml()}
+          ${noviCard}
+        </div>
+        <div class="pp-home__col">
+          ${comunicadoFixadoHtml()}
+          <div class="pp-bday-m">${aniversarianteHojeHtml(nome)}</div>
+          <div class="pp-aniv-d">${aniversariantesDoMesHtml(nome)}</div>
+        </div>
       </div>
-      ${comunicadoFixadoHtml()}
-      ${aniversariantesDoMesHtml(nome)}
     </div>
   `;
   bindColabNav(view);
@@ -10780,7 +10808,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.16.0";
+window.CURRENT_VERSION = "1.17.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

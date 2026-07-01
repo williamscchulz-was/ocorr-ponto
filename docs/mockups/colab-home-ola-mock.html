@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR" class="modo-colab cp-dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Olá criativo + aniversariantes (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 60px;font-family:Poppins,sans-serif;display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start}
+  .note{flex-basis:100%;max-width:1100px;margin:0 auto 6px;font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#EDF3EA}
+  .cap{text-align:center;font-size:12px;color:#8A9884;margin-top:10px;font-weight:600}
+  .capbig{flex-basis:100%;text-align:center;font-size:13px;color:#EDF3EA;font-weight:700;margin:8px 0 -8px}
+  .phone{width:372px;background:#0E130E;border:1px solid #232C22;border-radius:30px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .phone__bar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;color:#EDF3EA;font-weight:600}
+  .scr{padding:16px 14px 22px}
+
+  /* ---- "Olá" criativo: avatar + saudação por horário + subtítulo com contexto ---- */
+  .pp-greet{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+  .pp-greet__av{width:48px;height:48px;border-radius:16px;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex:none;position:relative}
+  .pp-greet__av .spark{position:absolute;right:-4px;top:-4px;width:18px;height:18px;border-radius:50%;background:var(--warning);color:#3a2a05;display:flex;align-items:center;justify-content:center}
+  .pp-greet__av .spark svg{width:11px;height:11px}
+  .pp-greet__tx{min-width:0}
+  .pp-greet__tx h1{font-size:23px;font-weight:700;letter-spacing:-.02em;line-height:1.12;color:var(--text-body);margin:0}
+  .pp-greet__tx h1 b{font-weight:800}
+  .pp-greet__tx p{font-size:12.5px;color:var(--text-muted);margin:3px 0 0;display:flex;align-items:center;gap:6px}
+  .pp-greet__tx p svg{width:13px;height:13px;flex:none}
+  .pp-greet--bday .pp-greet__tx h1{color:var(--warning)}
+
+  /* ---- Aniversariante do dia (compacto, só quando tem hoje) ---- */
+  .pp-bday{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:12px 14px;margin-bottom:14px;position:relative;overflow:hidden}
+  .pp-bday::after{content:"";position:absolute;right:-24px;top:-30px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,rgba(224,163,58,.14),transparent 70%)}
+  .pp-bday__ic{width:40px;height:40px;border-radius:12px;background:rgba(224,163,58,.16);color:var(--warning);display:flex;align-items:center;justify-content:center;flex:none}
+  .pp-bday__ic svg{width:21px;height:21px}
+  .pp-bday__bd{flex:1;min-width:0;z-index:1}
+  .pp-bday__t{font-size:13.5px;font-weight:600;color:var(--text-body)}
+  .pp-bday__s{font-size:11.5px;color:var(--text-muted);margin-top:1px}
+  .desk{width:900px;max-width:96vw;background:#0E130E;border:1px solid #232C22;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .desk__bar{height:40px;border-bottom:1px solid #1c241b}
+  .desk__scr{padding:22px 24px}
+</style></head>
+<body>
+
+<div class="note"><b>Mock · "Olá" mais criativo + aniversariantes repensados.</b> (1) A saudação vira <b>avatar + saudação por horário</b> ("Bom dia/tarde/noite, Pedro") com um subtítulo de contexto (data + turno, ou uma mensagem). No aniversário da pessoa, ela muda de tom. (2) Aniversariantes: no <b>mobile</b> aparece só <b>quem faz aniversário HOJE</b> (card compacto; se não tem ninguém, some), e no <b>desktop</b> mostra o mês inteiro.</div>
+
+<div class="capbig">MOBILE · saudação normal + aniversariante do dia</div>
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-fade">
+      <div class="pp-greet">
+        <div class="pp-greet__av">PA</div>
+        <div class="pp-greet__tx"><h1>Bom dia, <b>Pedro</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Quinta, 3 de julho · 1º turno</p></div>
+      </div>
+      <button class="pp-hero" style="margin-bottom:14px">
+        <div class="pp-hero__top"><span class="pp-hero__lbl"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho</span></div>
+        <div class="pp-hero__val">+05:30</div>
+        <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+      </button>
+      <div class="pp-bday">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8H4v8M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1 2.5 1 4 1 2-1 2-1M12 4a1 1 0 0 0-1 1c0 1 1 2 1 2s1-1 1-2a1 1 0 0 0-1-1zM6 13v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/></svg></div>
+        <div class="pp-bday__bd"><div class="pp-bday__t">Hoje é aniversário da Jenifer</div><div class="pp-bday__s">Que tal desejar um feliz aniversário</div></div>
+      </div>
+      <button class="pp-novi">
+        <span class="pp-novi__ic" style="width:44px;height:44px;border-radius:13px;background:var(--surface-warm);color:var(--plum);display:flex;align-items:center;justify-content:center"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+        <span class="pp-novi__bd" style="flex:1"><span class="pp-novi__t" style="font-size:15px;font-weight:600">Novidades</span><span class="pp-novi__s" style="font-size:12px;color:var(--text-muted)">Veja a evolução do portal</span></span>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="cap">Saudação por horário + só o aniversariante de hoje</div>
+</div>
+
+<div class="capbig">MOBILE · no aniversário do próprio colaborador</div>
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-fade">
+      <div class="pp-greet pp-greet--bday">
+        <div class="pp-greet__av">PA<span class="spark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8H4v8M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1 2.5 1 4 1 2-1 2-1M12 4a1 1 0 0 0-1 1c0 1 1 2 1 2s1-1 1-2a1 1 0 0 0-1-1z"/></svg></span></div>
+        <div class="pp-greet__tx"><h1>Feliz aniversário, <b>Pedro</b></h1><p>Toda a Fiobras te deseja um dia incrível</p></div>
+      </div>
+      <button class="pp-hero" style="margin-bottom:14px">
+        <div class="pp-hero__top"><span class="pp-hero__lbl"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho</span></div>
+        <div class="pp-hero__val">+05:30</div>
+        <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="cap">No dia do aniversário, a saudação vira festa (âmbar + selo de bolo)</div>
+</div>
+
+<div class="capbig">DESKTOP · aniversariantes do mês inteiro</div>
+<div class="desk">
+  <div class="desk__bar"></div>
+  <div class="desk__scr">
+    <div class="pp-greet">
+      <div class="pp-greet__av">PA</div>
+      <div class="pp-greet__tx"><h1>Bom dia, <b>Pedro</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Quinta, 3 de julho · 1º turno</p></div>
+    </div>
+    <div class="pp-ovl">Aniversariantes do mês</div>
+    <div class="pp-aniv">
+      <div class="pp-aniv-c"><div class="pp-aniv-av">JR</div><div class="pp-aniv-n">Jenifer</div><div class="pp-aniv-d hoje">Hoje</div></div>
+      <div class="pp-aniv-c me"><div class="pp-aniv-av">PA</div><div class="pp-aniv-n">Você</div><div class="pp-aniv-d">14/07</div></div>
+      <div class="pp-aniv-c"><div class="pp-aniv-av">CS</div><div class="pp-aniv-n">Carlos</div><div class="pp-aniv-d">22/07</div></div>
+      <div class="pp-aniv-c"><div class="pp-aniv-av">ML</div><div class="pp-aniv-n">Maria</div><div class="pp-aniv-d">28/07</div></div>
+    </div>
+  </div>
+</div>
+<div class="cap">No desktop tem espaço, então mostra o mês todo</div>
+
+</body></html>

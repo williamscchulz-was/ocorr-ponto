@@ -11,7 +11,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.16.0", d: "1 jul 2026", current: true, items: [
+    v: "1.17.0", d: "1 jul 2026", current: true, items: [
+      { type: "high", title: "A sua Home ganhou um visual novo: uma saudação pelo horário do dia (bom dia, boa tarde, boa noite) com o seu nome, e no seu aniversário ela vira festa. No computador ela abre em duas colunas." },
+      { type: "feat", title: "Aniversariantes ficaram mais leves: no celular aparece só quem faz aniversário hoje; no computador, o mês inteiro." },
+    ],
+  },
+  {
+    v: "1.16.0", d: "1 jul 2026", items: [
       { type: "feat", title: "Comunicados agora têm o tipo \"Aviso interno\": um recado rápido pra todos. No compositor é só escolher; no feed ele aparece com um selo âmbar \"Aviso\", separando do comunicado por turno ou setor." },
     ],
   },
