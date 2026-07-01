@@ -848,3 +848,28 @@ William pediu auditoria completa de design (mobile+desktop) do Portal do Colabor
 Mostrei um mockup visual (antes/depois) de um trecho da Home ilustrando padding consistente + feedback de toque, pro William ver a diferença na prática antes de aprovar o roteiro.
 
 **Missão completa (com todos os `arquivo:linha`) mandada pro Claude PC:** `inbox-pc/2026-07-01-mega-auditoria-uiux-portal-colaborador.md`. É auditoria de LEITURA — nada foi implementado ainda, fica a critério do PC priorizar dentro da agenda.
+
+
+---
+
+## 2026-07-01 · 🔍 4 frentes "do nosso lado" — versionamento, dados, credencial, monitoramento
+
+William: "teria mais alguma coisa que a gente poderia olhar do nosso lado". 4 candidatos propostos, todos escolhidos.
+
+### 1) Versionamento do pipeline — feito
+`C:\fiobras-pipeline-rh` NUNCA teve controle de versão. Criado repo git **LOCAL** (sem remoto por ora), identidade local `Claude WKRADAR <claude-wkradar@local>` (mesma convenção do ocorr-ponto-repo). `.gitignore` reforçado: além de `service-account.json`, agora cobre `parsed-*.json` (glob — **corrigiu uma lacuna real**: `parsed-empregado.json`, que TEM CPF/PIS/nome da mãe, não estava listado antes, só `parsed-bh.json` estava), `colaborador-sync-report.json`, `__pycache__/`, `_diag/*.log`, `.claude/`, `rh-export/`, `rh-ocorr.txt`. 4 commits, 84→86 arquivos rastreados, curado à mão (removi cache Python, logs de 2.4MB, um arquivo de nome acidental, dumps de debug).
+
+### 2) Auditoria de qualidade dos DADOS (não do código) — feito, achado crítico corrigido
+Workflow com 6 agentes consultando o Firestore de produção direto (não código): integridade de `funcionarios`, consistência cruzada BH, qualidade de `banco-horas-self`, consistência `users`×`funcionarios`, sanidade de ocorrências/comunicados/documentos, e verificação direta de vazamento de PII. **31 achados**.
+
+**🔴 CRÍTICO corrigido:** campo `nascimento` (data de nascimento COMPLETA, com ano) presente em **145/145 docs de `funcionarios`** — vazava pra líder/supervisor/colaborador via firestore.rules (mais amplo que `banco-horas-saldos`, único lugar autorizado pra PII pela regra de ouro do projeto). Corrigido em `upload-to-firestore.mjs` (`FieldValue.delete()`), autorizado pelo William e aplicado em produção — verificado 0/145 docs com o campo depois. `aniversarioDia`/`aniversarioMes`/`aniversarioDM` (sem ano) preservados, cobrem o uso legítimo (widget de aniversariantes).
+
+**🟠 Outros achados altos:** (a) 4 funcionários ativos (aprendizes f-1200 a f-1203) sem NENHUM registro de Banco de Horas em lugar nenhum — **confirmado com o William: esperado** (regime de aprendiz não tem BH, não é bug). (b) coleção `documentos` com 2 docs pai inexistentes e 3 assinaturas órfãs — reportado pro PC (`inbox-pc/2026-07-01-achado-documentos-assinaturas-orfas.md`, é domínio do app dele).
+
+**🟡 Médios/baixos (documentados, sem ação hoje):** f-1244 (Dioneia) com `ativo=false` sem demissão registrada — William vai confirmar com o RH; `banco-horas-saldos` usa doc ID sem prefixo `f-` (bare código) diferente das outras 3 coleções — inconsistência de convenção, não mexida por poder quebrar leitura do app; nome em `banco-horas-saldos` em CAIXA ALTA vs Title Case nas outras fontes — cosmético; `funcionarios.turno` tipo misto (já endereçado hoje mais cedo com comparação tolerante).
+
+### 3) Higiene da credencial (service-account.json) — achado sério corrigido
+Idade: 40 dias (não urgente). **Achado real**: o servidor é associado a um domínio Active Directory (`wkradar.local`) e o grupo local "Users" (com permissão de LEITURA no arquivo) continha `AUTORIDADE NT\Usuários autenticados` e `Usuários do Domínio` — ou seja, **qualquer conta do domínio inteiro conseguia ler a chave de acesso total ao Firestore**, não só a conta que roda o pipeline. Corrigido com autorização do William: `icacls` restringindo pra só `WKRADAR\wkradar` + `Administrators` + `SYSTEM`. Testado e confirmado: pipeline continua lendo a chave e conectando no Firestore normalmente.
+
+### 4) Monitoramento de verdade — rotina criada
+Descoberta: o comentário no código sobre "Cloud Routine do Claude PC monitora este diretório" não tem evidência de estar ativo (`CronList`/tarefas agendadas do lado WKRADAR vazios). O que existe de fato é **passivo** (painel no app, só mostra quando alguém abre). Task Scheduler do Windows em si está saudável (última rodada 10:00 sucesso, zero falhas). Criada rotina agendada (`check-pipeline-rh-heartbeat`, 16:05 seg-sex) que confere se o report de hoje existe e teve `status: ok`, e manda push notification SÓ se algo estiver errado (sem barulho quando tudo bem).
