@@ -1969,10 +1969,11 @@
           userDoc.turno = turno === "geral" ? "geral" : Number(turno);
         }
         if (role === "supervisor") {
-          // Supervisor nasce sem turno e com lista vazia; admin define os
-          // funcionários visíveis depois, na edição do usuário.
+          // Supervisor nasce sem turno e sem escopo; admin define os turnos que
+          // ele cobre e/ou os avulsos depois, na edição do usuário.
           userDoc.turno = null;
           userDoc.funcionariosVisiveis = [];
+          userDoc.turnosVisiveis = [];
         }
         await db.collection("users").doc(uid).set(userDoc);
 
@@ -2024,10 +2025,14 @@
       if (dados.funcionariosVisiveis !== undefined) {
         update.funcionariosVisiveis = Array.isArray(dados.funcionariosVisiveis) ? dados.funcionariosVisiveis : [];
       }
-      // Se o papel mudou pra algo != supervisor, zera a lista de funcionários
-      // visíveis (não faz sentido manter escopo de supervisor noutro papel).
+      if (dados.turnosVisiveis !== undefined) {
+        update.turnosVisiveis = Array.isArray(dados.turnosVisiveis) ? dados.turnosVisiveis.map(Number).filter((n) => !Number.isNaN(n)) : [];
+      }
+      // Se o papel mudou pra algo != supervisor, zera o escopo de supervisor
+      // (lista de avulsos + turnos) — não faz sentido manter noutro papel.
       if (dados.role !== undefined && dados.role !== "supervisor") {
         update.funcionariosVisiveis = [];
+        update.turnosVisiveis = [];
       }
 
       try {
@@ -2600,6 +2605,7 @@
           turno: userData.turno || null,
           // Escopo do supervisor — sem isso o filtro de visibilidade fica vazio
           funcionariosVisiveis: userData.funcionariosVisiveis || [],
+          turnosVisiveis: userData.turnosVisiveis || [], // turnos cobertos (automação)
           // Foto de perfil do próprio usuário (avatar na sidebar)
           fotoBase64: userData.fotoBase64 || null,
           // F2: vínculo uid<->funcionarioId (escopo SELF do colaborador). Gestores não têm
@@ -2983,7 +2989,12 @@
       if (user.role === "admin" || user.role === "rh") return true;
       if (user.role === "lider") return o.funcionarioTurno === user.turno;
       if (user.role === "supervisor") {
-        return (user.funcionariosVisiveis || []).includes(o.funcionarioId);
+        // Turno VIVO do funcionário (consistente com o podeVerOcorrenciaUI do app.js),
+        // com fallback pro denorm quando o funcionário ainda não estiver carregado.
+        const f = (state.funcionarios || []).find((x) => x.id === o.funcionarioId);
+        const turno = f ? f.turno : o.funcionarioTurno;
+        return (user.funcionariosVisiveis || []).includes(o.funcionarioId)
+          || (turno != null && (user.turnosVisiveis || []).includes(Number(turno)));
       }
       return false;
     };

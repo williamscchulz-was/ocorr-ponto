@@ -41,6 +41,13 @@ service cloud.firestore {
         && userDoc().funcionariosVisiveis is list
         && userDoc().funcionariosVisiveis.hasAny([funcId]);
     }
+    // Supervisor por TURNO (automação): cobre turnos inteiros (ex.: Aldo = 1,2,3).
+    // O escopo efetivo do supervisor é supervisorVe (avulsos) OU supervisorVeTurno.
+    function supervisorVeTurno(turno) {
+      return isSupervisor()
+        && userDoc().turnosVisiveis is list
+        && userDoc().turnosVisiveis.hasAny([turno]);
+    }
     function liderDoMesmoTurno(turno) {
       return isLider() && userDoc().turno == turno;
     }
@@ -274,7 +281,8 @@ service cloud.firestore {
             && podeConferirOuAtualizarObs())
         || (temCap('ocorrencias.conferir', isSupervisor())
             && isSupervisor()
-            && supervisorVe(resource.data.funcionarioId)
+            && (supervisorVe(resource.data.funcionarioId)
+                || ('funcionarioTurno' in resource.data && supervisorVeTurno(resource.data.funcionarioTurno)))
             && podeConferirOuAtualizarObs());
 
       allow delete: if isAdmin() || temCap('ocorrencias.excluir', isRH());
@@ -303,7 +311,8 @@ service cloud.firestore {
       allow read: if isAdmin() || isRH()
                   || (isColaborador() && 'codigo' in userDoc() && string(userDoc().codigo) == codigo)
                   || (isLider() && 'funcionarioTurno' in resource.data && resource.data.funcionarioTurno == userDoc().turno)
-                  || (isSupervisor() && 'funcionarioId' in resource.data && supervisorVe(resource.data.funcionarioId));
+                  || (isSupervisor() && 'funcionarioId' in resource.data && supervisorVe(resource.data.funcionarioId))
+                  || (isSupervisor() && 'funcionarioTurno' in resource.data && supervisorVeTurno(resource.data.funcionarioTurno));
       allow write: if false;
     }
 

@@ -29,8 +29,8 @@ before(async () => {
     await setDoc(doc(db, "users/uRh"),           { role: "rh", nome: "GH" });
     await setDoc(doc(db, "funcionarios/f-100"), { nome: "Maria", nascimento: "1990-07-14" });
     await setDoc(doc(db, "funcionarios/f-200"), { nome: "Ana" });
-    await setDoc(doc(db, "ocorrencias/o100"), { funcionarioId: "f-100", funcionarioTurno: 1, tipo: "falta" });
-    await setDoc(doc(db, "ocorrencias/o200"), { funcionarioId: "f-200", funcionarioTurno: 2, tipo: "falta" });
+    await setDoc(doc(db, "ocorrencias/o100"), { funcionarioId: "f-100", funcionarioTurno: 1, tipo: "falta", acao: null, dataConferencia: null });
+    await setDoc(doc(db, "ocorrencias/o200"), { funcionarioId: "f-200", funcionarioTurno: 2, tipo: "falta", acao: null, dataConferencia: null });
     await setDoc(doc(db, "banco-horas-saldos/f-100"), { cpf: "000.000.000-00", saldoMin: 150 });
     await setDoc(doc(db, "banco-horas-self/100"), { saldoMin: 30, saldoFormatado: "+00:30" });
     await setDoc(doc(db, "banco-horas-self/200"), { saldoMin: -24, saldoFormatado: "-00:24" });
@@ -58,6 +58,8 @@ before(async () => {
     // ----- Espelho de ponto no gestor: líder por turno, supervisor pela lista de visíveis -----
     await setDoc(doc(db, "users/uLiderT1"), { role: "lider", turno: 1, nome: "Adelir" });
     await setDoc(doc(db, "users/uSuperv"),  { role: "supervisor", funcionariosVisiveis: ["f-300"], nome: "Jacques" });
+    // Supervisor por TURNO (automação): cobre o 2º turno inteiro, sem lista de avulsos.
+    await setDoc(doc(db, "users/uSupervT2"), { role: "supervisor", turnosVisiveis: [2], funcionariosVisiveis: [], nome: "Aldo" });
     // banco-horas-self COM denormalização (pipeline grava funcionarioTurno + funcionarioId).
     await setDoc(doc(db, "banco-horas-self/300"), { saldoMin: 12, saldoFormatado: "+00:12", funcionarioTurno: 1, funcionarioId: "f-300" });
     await setDoc(doc(db, "banco-horas-self/400"), { saldoMin: -5, saldoFormatado: "-00:05", funcionarioTurno: 2, funcionarioId: "f-400" });
@@ -74,6 +76,7 @@ const colabT2  = () => env.authenticatedContext("uColabT2").firestore();
 const rh       = () => env.authenticatedContext("uRh").firestore();
 const liderT1  = () => env.authenticatedContext("uLiderT1").firestore();
 const superv   = () => env.authenticatedContext("uSuperv").firestore();
+const supervT2 = () => env.authenticatedContext("uSupervT2").firestore();
 
 // ---- funcionarios ----
 test("colaborador LÊ o próprio funcionário", async () =>
@@ -138,6 +141,18 @@ test("supervisor NÃO lê banco-horas-self de NÃO atribuído", async () =>
   assertFails(getDoc(doc(superv(), "banco-horas-self/400"))));
 test("supervisor NÃO lê banco-horas-self LEGADO (sem funcionarioId)", async () =>
   assertFails(getDoc(doc(superv(), "banco-horas-self/100"))));
+// supervisor por TURNO (automação: Aldo cobre o 2º turno inteiro)
+test("supervisor por TURNO lê banco-horas-self do turno coberto", async () =>
+  assertSucceeds(getDoc(doc(supervT2(), "banco-horas-self/400"))));
+test("supervisor por TURNO NÃO lê banco-horas-self de turno não coberto", async () =>
+  assertFails(getDoc(doc(supervT2(), "banco-horas-self/300"))));
+test("supervisor por TURNO NÃO lê banco-horas-self LEGADO (sem funcionarioTurno)", async () =>
+  assertFails(getDoc(doc(supervT2(), "banco-horas-self/200"))));
+// supervisor por TURNO CONFERE ocorrência (WRITE) do turno coberto, não de outro
+test("supervisor por TURNO confere ocorrência do turno coberto", async () =>
+  assertSucceeds(updateDoc(doc(supervT2(), "ocorrencias/o200"), { acao: "advertencia", dataConferencia: serverTimestamp(), conferidoPor: "uSupervT2" })));
+test("supervisor por TURNO NÃO confere ocorrência de turno não coberto", async () =>
+  assertFails(updateDoc(doc(supervT2(), "ocorrencias/o100"), { acao: "advertencia", dataConferencia: serverTimestamp(), conferidoPor: "uSupervT2" })));
 
 // ---- comunicados (Pacote Gestor · leitura segmentada + write gated) ----
 test("colaborador LÊ comunicado 'todos' ativo", async () =>

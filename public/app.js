@@ -2590,7 +2590,7 @@ function podeVerFuncionario(u, f) {
   if (!u || !f) return false;
   if (u.role === "admin" || u.role === "rh") return true;
   if (u.role === "lider") return f.turno === u.turno;
-  if (u.role === "supervisor") return (u.funcionariosVisiveis || []).includes(f.id);
+  if (u.role === "supervisor") return (u.funcionariosVisiveis || []).includes(f.id) || (u.turnosVisiveis || []).includes(Number(f.turno));
   if (u.role === "colaborador") return f.id === u.funcionarioId; // escopo SELF
   return false;
 }
@@ -2604,7 +2604,15 @@ function podeVerOcorrenciaUI(u, o) {
     const f = getFuncionario(o.funcionarioId);
     return !!f && f.turno === u.turno;
   }
-  if (u.role === "supervisor") return (u.funcionariosVisiveis || []).includes(o.funcionarioId);
+  if (u.role === "supervisor") {
+    // Turno VIVO do funcionário (igual ao podeVerFuncionario), com fallback pro denorm
+    // da ocorrência quando o funcionário não estiver carregado. Evita "vê a pessoa mas
+    // não a ocorrência" e escopo obsoleto por troca de turno.
+    const f = getFuncionario(o.funcionarioId);
+    const turno = f ? f.turno : o.funcionarioTurno;
+    return (u.funcionariosVisiveis || []).includes(o.funcionarioId)
+      || (turno != null && (u.turnosVisiveis || []).includes(Number(turno)));
+  }
   return false;
 }
 // Decide se o user pode CONFERIR (dar baixa) numa ocorrência.
@@ -2623,7 +2631,7 @@ function podeConferirUI(u, o) {
 function funcionariosVisiveisPara(u) {
   let pool = (state.funcionarios || []).filter((f) => f.ativo !== false);
   if (u.role === "lider") pool = pool.filter((f) => f.turno === u.turno);
-  else if (u.role === "supervisor") pool = pool.filter((f) => (u.funcionariosVisiveis || []).includes(f.id));
+  else if (u.role === "supervisor") pool = pool.filter((f) => (u.funcionariosVisiveis || []).includes(f.id) || (u.turnosVisiveis || []).includes(Number(f.turno)));
   return pool;
 }
 
@@ -9640,8 +9648,12 @@ function escopoUsuario(u) {
   if (u.role === "rh") return "Todos os turnos";
   if (u.role === "lider") return u.turno === "geral" ? "Horário geral" : (u.turno ? `Turno ${u.turno}` : "Turno —");
   if (u.role === "supervisor") {
+    const ts = (u.turnosVisiveis || []).slice().sort((a, b) => a - b);
     const n = (u.funcionariosVisiveis || []).length;
-    return `${n} ${n === 1 ? "funcionário" : "funcionários"}`;
+    const partes = [];
+    if (ts.length) partes.push(`Turno ${ts.join(", ")}`);
+    if (n) partes.push(`${n} avulso${n > 1 ? "s" : ""}`);
+    return partes.join(" + ") || "Sem escopo definido";
   }
   return "";
 }
@@ -9917,7 +9929,7 @@ function openNovoUsuarioModal() {
         </div>
       </div>
       <div class="field" id="user-superv-hint" style="display:none;">
-        <span class="field__hint">Defina os funcionários visíveis após criar, na edição do usuário.</span>
+        <span class="field__hint">Defina os turnos que ele supervisiona e os avulsos após criar, na edição do usuário.</span>
       </div>
     </form>
     <div id="user-result" style="display:none;"></div>
@@ -10030,11 +10042,19 @@ function openEditarUsuarioModal(uid) {
         </div>
       </div>
 
+      <div class="field" id="edit-superv-turnos" style="display:${u.role === "supervisor" ? "block" : "none"};">
+        <label>Turnos que supervisiona</label>
+        <div class="com-seg com-seg--multi" role="group" aria-label="Turnos que supervisiona" id="superv-turnos">
+          ${[1, 2, 3].map((t) => `<button type="button" class="com-seg__chip ${(u.turnosVisiveis || []).map(Number).includes(t) ? "is-on" : ""}" data-turno="${t}"><span>${t}º Turno</span></button>`).join("")}
+        </div>
+        <span class="field__hint">Todo mundo desses turnos entra automático, inclusive novas admissões. O Geral e casos pontuais entram nos avulsos abaixo.</span>
+      </div>
+
       <div class="field" id="edit-superv-field" style="display:${u.role === "supervisor" ? "block" : "none"};">
-        <label>Funcionários visíveis <span style="color:var(--danger)">*</span></label>
+        <label>Também estes (avulsos)</label>
         <input type="text" id="superv-search" placeholder="Buscar funcionário..." style="margin-bottom:8px;" />
         <div id="superv-list" class="superv-picker"></div>
-        <span class="field__hint"><span id="superv-count">0</span> selecionados</span>
+        <span class="field__hint">Acesso total do supervisor: <b id="superv-resultado">0 pessoas</b> · avulsos entram pro Geral e casos pontuais</span>
       </div>
 
       <div class="perm-preview" id="edit-access-preview"></div>
@@ -10061,15 +10081,21 @@ function openEditarUsuarioModal(uid) {
       const roleSel = $("#edit-role");
       const turnoField = $("#edit-turno-field");
       const supervField = $("#edit-superv-field");
+      const supervTurnos = $("#edit-superv-turnos");
 
-      // Estado do picker de supervisor: Set de funcionarioIds selecionados.
-      // Sobrevive à re-filtragem da busca (a lista re-renderiza, mas o Set
-      // mantém quem está marcado, inclusive itens fora do filtro atual).
+      // Escopo do supervisor: turnos cobertos (automação, ex. Aldo=1,2,3) + avulsos (exceções,
+      // ex. Geral pontual). O Set de avulsos sobrevive à re-filtragem da busca.
       const selecionados = new Set(Array.isArray(u.funcionariosVisiveis) ? u.funcionariosVisiveis : []);
+      const turnosSel = new Set((Array.isArray(u.turnosVisiveis) ? u.turnosVisiveis : []).map(Number));
 
+      // Acesso resultante = (todos dos turnos marcados) ∪ (avulsos), só ativos.
       const atualizarContador = () => {
-        const c = $("#superv-count");
-        if (c) c.textContent = String(selecionados.size);
+        const rt = $("#superv-resultado");
+        if (!rt) return;
+        const total = (state.funcionarios || [])
+          .filter((f) => f.ativo !== false)
+          .filter((f) => turnosSel.has(Number(f.turno)) || selecionados.has(f.id)).length;
+        rt.textContent = `${total} ${total === 1 ? "pessoa" : "pessoas"}`;
       };
 
       // Popula #superv-list com checkboxes dos funcionários ATIVOS que casam
@@ -10116,10 +10142,19 @@ function openEditarUsuarioModal(uid) {
         const r = roleSel.value;
         turnoField.style.display = r === "lider" ? "block" : "none";
         supervField.style.display = r === "supervisor" ? "block" : "none";
-        if (r === "supervisor") renderSupervPicker($("#superv-search")?.value || "");
+        if (supervTurnos) supervTurnos.style.display = r === "supervisor" ? "block" : "none";
+        if (r === "supervisor") { renderSupervPicker($("#superv-search")?.value || ""); atualizarContador(); }
         const pv = $("#edit-access-preview");
         if (pv) pv.innerHTML = `<div class="perm-preview__t">Acesso resultante</div><ul>${(ACCESS_PREVIEW[r] || []).map((t) => `<li>${icon("check")}<span>${escapeHtml(t)}</span></li>`).join("")}</ul>`;
       };
+
+      // Chips de turno (multi): marca/desmarca os turnos que o supervisor cobre.
+      modal.querySelectorAll("#superv-turnos [data-turno]").forEach((ch) => ch.addEventListener("click", () => {
+        const t = Number(ch.dataset.turno);
+        if (turnosSel.has(t)) { turnosSel.delete(t); ch.classList.remove("is-on"); }
+        else { turnosSel.add(t); ch.classList.add("is-on"); }
+        atualizarContador();
+      }));
 
       roleSel.addEventListener("change", aplicarVisibilidadePapel);
       if ($("#superv-search")) {
@@ -10140,11 +10175,12 @@ function openEditarUsuarioModal(uid) {
         const turno = role === "lider" ? $("#edit-turno").value : null;
         const ativo = ehVoceMesmo ? true : $("#edit-ativo").checked;
 
-        // Coleta a lista do picker quando supervisor; pros demais, zera.
+        // Escopo do supervisor: turnos cobertos + avulsos. Pros demais, zera ambos.
         const funcionariosVisiveis = role === "supervisor" ? [...selecionados] : [];
-        if (role === "supervisor" && funcionariosVisiveis.length === 0) {
+        const turnosVisiveis = role === "supervisor" ? [...turnosSel] : [];
+        if (role === "supervisor" && funcionariosVisiveis.length === 0 && turnosVisiveis.length === 0) {
           const err = $("#edit-user-error");
-          err.textContent = "Selecione ao menos um funcionário visível.";
+          err.textContent = "Escolha ao menos um turno ou um avulso pro supervisor.";
           err.classList.remove("hidden");
           return;
         }
@@ -10153,7 +10189,7 @@ function openEditarUsuarioModal(uid) {
         btn.disabled = true;
         btn.innerHTML = icon("clock") + "<span>Salvando...</span>";
 
-        const res = await window.atualizarUsuario(uid, { nome, role, turno, ativo, funcionariosVisiveis });
+        const res = await window.atualizarUsuario(uid, { nome, role, turno, ativo, funcionariosVisiveis, turnosVisiveis });
         if (!res.ok) {
           const err = $("#edit-user-error");
           err.textContent = res.err || "Erro ao salvar.";
