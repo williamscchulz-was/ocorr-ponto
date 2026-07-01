@@ -762,3 +762,37 @@ William: "autorizo ir para os médios". Testado tudo junto no final (pipeline co
 - **Race de `ocorrencias-mes.txt`** (escrita DEPOIS do upload) — reavaliado: é a ordem CORRETA. Se escrevesse ANTES e o upload falhasse, a próxima rodada NÃO tentaria de novo (pior). A ordem atual garante retry automático e idempotente. Nada a mudar.
 
 **Não abordados nesta rodada** (rated "baixo"/"info" pela auditoria, fora do escopo autorizado: só médios): ~18 achados menores documentados na entrada de auditoria original.
+
+---
+
+## 2026-07-01 · 🛡️ 3 melhorias de robustez na limpeza de backup (checagem de logs + reforço)
+
+Após 6 dias de execução automática sem erros (26/06-01/07), revisão completa dos logs (`_limpeza.log` + `_limpeza-batches.log`, 884 linhas) confirmou: **nenhum erro novo** desde a correção de permissão do dia 25/06. Aproveitado pra implementar 3 reforços de robustez sugeridos e aprovados pelo William.
+
+### 1. Rotação do `_limpeza.log`
+Novo parâmetro `-LogMaxMB` (padrão 5). Antes de cada execução `-Apply`, se `_limpeza.log` passar de 5 MB, é movido pra `_limpeza.log.1` (mantém só 1 histórico) e um novo log começa limpo. Testado isoladamente (pasta scratch): confirmado que rotaciona corretamente e preserva o conteúdo anterior no `.1`.
+
+### 2. Circuit-breaker contra apagar demais
+Novos parâmetros `-MinKeepDays` (padrão 7) e `-StaleAfterDays` (padrão 2). Antes de apagar, o script agora calcula:
+- **Idade do backup mais recente encontrado** — se > `StaleAfterDays`, assume que o `WKBackup.exe` parou de gerar backups novos (ERP fora do ar, tarefa falhando, etc.) e **aborta a exclusão** desta execução (não quer continuar "comendo" os únicos backups que sobraram).
+- **Dias distintos que sobrariam após apagar** — se < `MinKeepDays`, também aborta (proteção contra reduzir a retenção real abaixo de um mínimo seguro, mesmo que o `RetentionDays` configurado diga 14).
+
+Se disparar (modo `-Apply`): loga `CIRCUIT-BREAKER ACIONADO`, sai com `exit 3`, chama o alerta (item 3), e **não apaga nada** nessa execução. Em dry-run, só avisa (não aborta, já que dry-run não apaga mesmo).
+
+Testado com sucesso (dry-run, pasta de produção): forçando `-StaleAfterDays 0` e `-MinKeepDays 20` artificialmente, ambos dispararam corretamente sem apagar nada.
+
+Também atualizado `limpa-backup-em-batches.ps1`: detecta a string `CIRCUIT-BREAKER ACIONADO` na saída de cada batch e interrompe o loop inteiro (evita várias chamadas repetidas / vários alertas em sequência se o breaker disparar no meio de uma limpeza grande).
+
+### 3. Alerta ativo: popup na tela + arquivo marcador
+Nova função `Send-Alert`, chamada quando: (a) há erro ao apagar algum item (`errCount > 0`), ou (b) o circuit-breaker aborta uma execução `-Apply`. Faz duas coisas:
+- Grava/sobrescreve `E:\WKRadar\Backup\_ULTIMO-ERRO.txt` com data, motivo e caminho do log completo — registro persistente mesmo se ninguém estiver olhando na hora.
+- Dispara `msg.exe * /TIME:0` (popup nativo do Windows, fica até ser fechado manualmente) pra qualquer sessão logada no servidor.
+
+**Validação:** testado em pasta isolada (não mexeu na produção). O popup não apareceu quando disparado pela sessão do Claude (headless, sem sessão gráfica anexada — comportamento esperado). William testou manualmente `msg * /TIME:30 "..."` na própria janela admin e **confirmou que o popup aparece normalmente**. Como a tarefa real roda como SYSTEM (que tem permissão pra sinalizar qualquer sessão ativa via WTS API), o popup deve funcionar quando alguém estiver logado no servidor; se ninguém estiver logado (ex: 2h da manhã), o popup simplesmente não é visto no momento — mas o arquivo `_ULTIMO-ERRO.txt` garante que o alerta não se perde.
+
+### Armadilha de encoding descoberta (repetida do incidente do `REGISTRAR-tarefa-agendada-ADMIN.ps1`)
+Ao escrever as novas strings do script, o uso de **travessão "—"  dentro de literais de string** (fora de comentários) quebrou o parser do PowerShell 5.1 com erros confusos e em cascata ("Token inesperado", "string sem terminador", etc.) — mesma classe de problema do incidente anterior com backtick de continuação de linha. Causa provável: encoding/codepage na escrita do arquivo corrompe caracteres multibyte dentro de strings tokenizadas (comentários não sofrem, pois não são tokenizados). **Lição adicionada ao padrão de trabalho:** evitar travessão "—", aspas curvas e backticks dentro de string literals em `.ps1` neste servidor — usar hífen simples "-" e, se precisar quebra de linha, usar `[Environment]::NewLine` ou string multi-linha real em vez de `` `r`n ``. Sempre validar com `[System.Management.Automation.Language.Parser]::ParseFile()` após editar.
+
+### Arquivos alterados
+- `E:\WKRadar\Backup\_scripts\limpa-backup-antigo.ps1` — +5 params, rotação de log, circuit-breaker, `Send-Alert`.
+- `E:\WKRadar\Backup\_scripts\limpa-backup-em-batches.ps1` — detecta `CIRCUIT-BREAKER ACIONADO` e aborta o loop de batches.
