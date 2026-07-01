@@ -1436,6 +1436,34 @@ textarea:focus-visible,
 .modal--sm { max-width: 400px; width: 100%; }
 .modal.modal--wide { max-width: 760px; }
 
+/* Visualizador in-app de documento (imagem/PDF base64 do anexo). Overlay próprio,
+   full-screen, empilha por cima de um modal aberto. Serve gestor (claro) e colab
+   (escuro) via tokens; a área de leitura é sempre escura, como um leitor de PDF. */
+.modal-backdrop--docview { z-index: 9985; padding: 0; display: block; background: rgba(0, 0, 0, .74); }
+.cp-docview {
+  display: flex; flex-direction: column;
+  width: 100%; height: 100%;
+  max-width: 920px; margin: 0 auto;
+  background: var(--bg, var(--surface));
+  animation: fadeIn 160ms ease-out;
+}
+.cp-docview__h { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--surface); flex: none; }
+.cp-docview__h .x { width: 34px; height: 34px; border-radius: 50%; background: var(--surface-warm, rgba(0, 0, 0, .05)); border: 1px solid var(--border); color: var(--text-body); display: flex; align-items: center; justify-content: center; flex: none; cursor: pointer; }
+.cp-docview__h .x svg { width: 16px; height: 16px; }
+.cp-docview__t { flex: 1; min-width: 0; }
+.cp-docview__t b { display: block; font-size: 15px; color: var(--text-body); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-docview__t span { font-size: 12px; color: var(--text-muted); }
+.cp-docview__body { flex: 1; overflow: auto; background: #0b0d0b; padding: 16px; display: flex; justify-content: center; align-items: flex-start; -webkit-overflow-scrolling: touch; }
+.cp-docview__body--pdf { padding: 0; flex-direction: column; align-items: stretch; }
+.cp-docpage { width: 100%; max-width: 860px; height: auto; background: #fff; border-radius: 6px; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); }
+.cp-docframe { flex: 1; width: 100%; border: 0; background: #fff; min-height: 0; }
+.cp-docview__note { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-muted); padding: 10px 14px; background: var(--surface); flex: none; }
+.cp-docview__note svg { width: 14px; height: 14px; flex: none; }
+.cp-docview__foot { padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; flex: none; }
+.cp-docview__foot .btn { flex: 1; justify-content: center; }
+/* link "ver" na linha do arquivo anexado (form do gestor) */
+.doc-file__lnk { background: none; border: 0; padding: 0; color: var(--brand, #008835); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 /* Saída do modal espelha a entrada: desce e some no lugar (auditoria 2). */
 @keyframes modalOut { to { opacity: 0; transform: translateY(14px); } }

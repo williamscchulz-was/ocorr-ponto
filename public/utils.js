@@ -43,11 +43,12 @@ const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // Valida que uma URL é http(s):// — usar antes de salvar/renderizar pra rejeitar
-// javascript:/data:text que viraria XSS via href. EXCEÇÃO: data:image/ é segura
-// num <img> (não executa script) — usada nas imagens base64 dos comunicados.
+// javascript:/data:text que viraria XSS via href. EXCEÇÃO: data:image/ e
+// data:application/pdf são seguras num <img>/<iframe> de PDF (não executam
+// script) — usadas nas imagens base64 dos comunicados e nos anexos dos documentos.
 const ehUrlSegura = (url) => {
   if (!url || !url.trim()) return true; // vazio é OK (campo opcional)
-  if (/^data:image\//i.test(url.trim())) return true; // data URL de imagem é segura p/ <img>
+  if (/^data:(image\/|application\/pdf)/i.test(url.trim())) return true; // imagem/PDF base64 (não executa script)
   try {
     const u = new URL(url.trim());
     return u.protocol === "https:" || u.protocol === "http:";
@@ -295,6 +296,7 @@ const icon = (name) => {
     pin: '<path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/>',
     eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
     lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${icons[name] || ""}</svg>`;
 };

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR" class="modo-colab cp-dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Aviso interno (subtipo) mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 60px;font-family:Poppins,sans-serif;display:flex;flex-wrap:wrap;gap:34px;justify-content:center;align-items:flex-start}
+  .note{flex-basis:100%;max-width:980px;margin:0 auto 8px;font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#EDF3EA}
+  .cap{text-align:center;font-size:12px;color:#8A9884;margin-top:10px;font-weight:600}
+  .phone{width:372px;background:#0E130E;border:1px solid #232C22;border-radius:30px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .phone__bar{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:12px;color:#EDF3EA;font-weight:600}
+  .scr{padding:16px 14px 22px}
+  .pp-hi h1{margin:0 0 14px}
+  /* selo "Aviso" (subtipo) — diferencia do comunicado segmentado */
+  .cp-avisotag{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:rgba(224,163,58,.16);color:#E0A33A;font-size:11px;font-weight:700;margin-bottom:8px}
+  .cp-avisotag .icon{width:13px;height:13px}
+  .cp-avisocard{border-color:transparent;box-shadow:0 0 0 1.5px rgba(224,163,58,.45),var(--pp-sh-card)}
+  .cp-segtag{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:var(--surface-warm);color:var(--text-muted);font-size:11px;font-weight:600;margin-bottom:8px}
+  .cp-segtag .icon{width:13px;height:13px}
+</style></head>
+<body>
+
+<div class="note"><b>Mock · Aviso interno (subtipo de comunicado).</b> Um <b>recado rápido pra todos</b>, sem segmentação. No feed do colaborador ele vem com um selo <b>"Aviso"</b> (âmbar) e uma borda âmbar sutil, pra diferenciar do <b>comunicado segmentado</b> (que mostra o segmento, ex. "Seu turno"). No compositor do gestor entra um chip no topo: <b>Comunicado · Aviso interno</b> — no modo "Aviso interno" o seletor de segmento some (é sempre Todos). Reusa a coleção comunicados (campo tipo='aviso'), sem coleção nova.</div>
+
+<div>
+<div class="phone">
+  <div class="phone__bar"><span>11:50</span><span>5G</span></div>
+  <div class="scr">
+    <div class="pp-hi"><h1>Avisos</h1></div>
+    <div class="pp-chips-f" style="margin-bottom:12px">
+      <button class="pp-chip-f on">Todos <span class="pp-chip-f__c">3</span></button>
+      <button class="pp-chip-f">Não vistos <span class="pp-chip-f__c">1</span></button>
+    </div>
+
+    <article class="pp-card cp-avisocard">
+      <span class="cp-novo" aria-label="Não visto"></span>
+      <div class="pp-card__bd">
+        <span class="cp-avisotag"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Aviso</span>
+        <div class="pp-card__meta"><span>RH · hoje 10:12</span></div>
+        <div class="pp-card__t">Reunião geral hoje às 14h no refeitório</div>
+        <div class="pp-card__x" style="-webkit-line-clamp:3">Presença de todos os turnos. Pauta rápida sobre a virada do mês e o novo portal. Deve durar 20 minutos.</div>
+      </div>
+    </article>
+
+    <article class="pp-card pp-card--pin">
+      <img class="pp-card__img" src="https://images.unsplash.com/photo-1522778526097-ce0a22ceb253?w=560&q=70" alt="">
+      <div class="pp-card__bd">
+        <span class="cp-segtag"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Seu turno</span>
+        <div class="pp-card__meta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/></svg><span>Jenifer · 30/06 · 1º Turno</span></div>
+        <div class="pp-card__t">Campanha de segurança no trabalho</div>
+        <div class="pp-card__x" style="-webkit-line-clamp:2">A partir de segunda começa a campanha de uso obrigatório de EPI.</div>
+      </div>
+    </article>
+
+    <article class="pp-card cp-avisocard">
+      <div class="pp-card__bd">
+        <span class="cp-avisotag"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Aviso</span>
+        <div class="pp-card__meta"><span>RH · ontem</span></div>
+        <div class="pp-card__t">Refeitório fecha 30 min mais cedo na sexta</div>
+        <div class="pp-card__x" style="-webkit-line-clamp:2">Por manutenção. Se organizem para o almoço.</div>
+      </div>
+    </article>
+  </div>
+</div>
+<div class="cap">Feed · "Aviso" (âmbar) vs comunicado segmentado</div>
+</div>
+
+</body></html>

@@ -11,7 +11,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.14.0", d: "1 jul 2026", current: true, items: [
+    v: "1.15.0", d: "1 jul 2026", current: true, items: [
+      { type: "high", title: "Documentos institucionais agora abrem dentro do app: o GP anexa uma imagem ou PDF e o colaborador lê na hora, sem sair pro Drive. Rola o documento e assina ou dá ciência ali mesmo." },
+    ],
+  },
+  {
+    v: "1.14.0", d: "1 jul 2026", items: [
       { type: "feat", title: "Em Meu ponto, no Portal do Colaborador, você acompanha as suas ocorrências (só leitura) e o espelho de ponto: os horários que você bateu a cada dia, atualizados diariamente." },
     ],
   },

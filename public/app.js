@@ -1116,6 +1116,8 @@ function renderColabDocumentos() {
 function colabDocCardHtml(d) {
   const ic = COLAB_DOC_IC[d.tipo] || "file";
   const exige = !!d.exigeAssinatura;
+  const temAnexo = !!(d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url));
+  const verBtn = temAnexo ? `<button class="pp-btn pp-btn--soft pp-btn--block" data-doc-view="${d.id}" style="margin-bottom:8px">${cpIcon("file")}Ver documento</button>` : "";
   const acaoBtn = exige
     ? `<button class="pp-btn pp-btn--primary pp-btn--block" data-colab-assinar="${d.id}">${cpIcon("edit")}Assinar agora</button>`
     : `<button class="pp-btn pp-btn--soft pp-btn--block" data-colab-lerdoc="${d.id}">${cpIcon("check")}Marcar como lido</button>`;
@@ -1129,7 +1131,7 @@ function colabDocCardHtml(d) {
           <span class="pp-ico pp-ico--amber">${cpIcon(ic)}</span>
           <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(d.tipo || "documento")} · v${d.versao || 1}</span></span>
         </div>
-        <div style="margin-top:13px">${acaoBtn}</div>
+        <div style="margin-top:13px">${verBtn}${acaoBtn}</div>
       </div>
     </article>`;
 }
@@ -1137,14 +1139,14 @@ function colabDocCardHtml(d) {
 // Documento EM DIA (lido/assinado): linha compacta no grupo "Publicados".
 function colabDocRowHtml(d) {
   const ic = COLAB_DOC_IC[d.tipo] || "file";
-  const anexoUrl = (d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url)) ? d.anexo.url : null;
+  const temAnexo = !!(d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url));
   const statusTxt = d.exigeAssinatura
     ? `Assinado · v${(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada) || d.versao || 1}`
     : "Lido";
-  return `<div class="pp-rw" style="cursor:default">
+  return `<div class="pp-rw"${temAnexo ? ` data-doc-view="${d.id}" style="cursor:pointer"` : ` style="cursor:default"`}>
     <span class="pp-ico pp-ico--green">${cpIcon(ic)}</span>
     <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(d.tipo || "documento")} · ${statusTxt}</span></span>
-    ${anexoUrl ? `<a class="pp-rw__ro" href="${escapeHtml(anexoUrl)}" target="_blank" rel="noopener">${cpIcon("file")}Abrir</a>` : `<span class="pp-rw__ro">${cpIcon("check")}OK</span>`}
+    ${temAnexo ? `<span class="pp-rw__ro">${cpIcon("file")}Abrir</span>` : `<span class="pp-rw__ro">${cpIcon("check")}OK</span>`}
   </div>`;
 }
 
@@ -1159,7 +1161,7 @@ function colabLerDocUI(id) {
 function openColabAssinarSheet(docId) {
   const d = (state.documentosColab || []).find((x) => x.id === docId);
   if (!d) return;
-  const anexoUrl = (d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url)) ? d.anexo.url : null;
+  const temAnexo = !!(d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url));
   openModal(`
     <div class="modal__header">
       <div><h2>Assinar documento</h2><p>Aceite N1 · versão ${d.versao || 1}</p></div>
@@ -1169,7 +1171,7 @@ function openColabAssinarSheet(docId) {
       <div class="cp-assinar__doc">
         <span class="cp-doc__seal">${cpIcon(COLAB_DOC_IC[d.tipo] || "file")}</span>
         <div class="cp-assinar__docinfo"><b>${escapeHtml(d.titulo || "")}</b><span>${escapeHtml(d.tipo || "doc")} · v${d.versao || 1}</span></div>
-        ${anexoUrl ? `<a class="cp-assinar__ler" href="${escapeHtml(anexoUrl)}" target="_blank" rel="noopener">${cpIcon("file")}ler</a>` : ""}
+        ${temAnexo ? `<button type="button" class="cp-assinar__ler" data-docview-ler>${cpIcon("file")}ler</button>` : ""}
       </div>
       <button type="button" class="cp-aceite" id="cp-aceite" aria-pressed="false">
         <span class="cp-aceite__box">${cpIcon("check")}</span>
@@ -1188,6 +1190,8 @@ function openColabAssinarSheet(docId) {
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      const lerBtn = modal.querySelector("[data-docview-ler]");
+      if (lerBtn) lerBtn.addEventListener("click", () => openDocViewer(d));
       const aceite = $("#cp-aceite"), btn = $("#cp-assinar-ok"), senhaWrap = $("#cp-senha-wrap");
       aceite.addEventListener("click", () => {
         const on = aceite.getAttribute("aria-pressed") === "true";
@@ -1220,6 +1224,13 @@ function openColabAssinarSheet(docId) {
 if (!window._colabDocBound) {
   window._colabDocBound = true;
   document.addEventListener("click", (e) => {
+    const dv = e.target.closest("[data-doc-view]");
+    if (dv) {
+      e.preventDefault();
+      const d = (state.documentosColab || []).find((x) => x.id === dv.dataset.docView);
+      if (d) openDocViewer(d);
+      return;
+    }
     const as = e.target.closest("[data-colab-assinar]");
     if (as) { e.preventDefault(); openColabAssinarSheet(as.dataset.colabAssinar); return; }
     const lr = e.target.closest("[data-colab-lerdoc]");
@@ -4855,6 +4866,109 @@ function comResizeImagem(file, maxPx, quality) {
   });
 }
 
+// ---------- Anexo in-app do documento institucional ----------
+// O arquivo (imagem comprimida ou PDF) fica guardado como base64 (data URL) no
+// próprio doc do Firestore — abre DENTRO do app, sem depender do Drive. Guardado
+// em { url:dataUrl, nome, mime }. Link do Drive continua como plano B (abre em nova aba).
+let _docAnexoInApp = null;
+
+function lerArquivoDataUrl(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result || ""));
+    r.onerror = () => rej(new Error("Falha ao ler o arquivo."));
+    r.readAsDataURL(file);
+  });
+}
+
+// Lê um File e devolve { url:dataUrl, mime, nome } pronto pro anexo in-app.
+// Imagem -> comprime em JPEG; PDF -> base64 cru. Cap ~900 KB pra caber no doc (limite 1 MB).
+async function docArquivoParaAnexo(file) {
+  const isImg = /^image\//i.test(file.type || "");
+  const isPdf = (file.type === "application/pdf") || /\.pdf$/i.test(file.name || "");
+  if (!isImg && !isPdf) throw new Error("Formato não suportado no app. Use imagem ou PDF, ou cole um link do Drive.");
+  let url, mime;
+  if (isImg) {
+    url = await comResizeImagem(file, 1600, 0.72); mime = "image/jpeg";
+    if (url.length > 900000) url = await comResizeImagem(file, 1200, 0.62);
+    if (url.length > 900000) throw new Error("Imagem muito pesada mesmo comprimida. Reduza a resolução e tente de novo.");
+  } else {
+    url = await lerArquivoDataUrl(file); mime = "application/pdf";
+    if (!/^data:application\/pdf/i.test(url)) throw new Error("Arquivo não parece um PDF válido.");
+    if (url.length > 950000) throw new Error("PDF acima de ~680 KB. Comprima o PDF (ex.: ilovepdf) ou cole um link do Drive.");
+  }
+  return { url, mime, nome: (file.name || "arquivo").slice(0, 140) };
+}
+
+// Converte uma data URL base64 em Blob (pra gerar um blob: URL, que — ao contrário
+// de data: — pode ser embutido em <iframe> e aberto em nova aba no mobile).
+function dataUrlParaBlob(dataUrl) {
+  const s = String(dataUrl);
+  const virg = s.indexOf(",");
+  const head = s.slice(0, virg), b64 = s.slice(virg + 1);
+  const mime = (head.match(/data:([^;]+)/) || [])[1] || "application/octet-stream";
+  const bin = atob(b64 || "");
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// Visualizador in-app do documento (imagem inline ou PDF embutido). Overlay PRÓPRIO
+// (não usa #modal-root) — empilha POR CIMA de um modal aberto (ex.: sheet de assinar)
+// sem destruí-lo. Link externo (Drive) não embute: abre direto em nova aba.
+function openDocViewer(d) {
+  const anexo = d && d.anexo;
+  const url = anexo && anexo.url;
+  if (!url || !ehUrlSegura(url)) { toast("Documento sem arquivo pra abrir.", "danger"); return; }
+  const ehDado = /^data:/i.test(url);
+  if (!ehDado) { window.open(url, "_blank", "noopener"); return; } // link do Drive: nova aba
+  const ehPdf = /^data:application\/pdf/i.test(url) || /pdf/i.test(anexo.mime || "");
+  const ehImg = /^data:image\//i.test(url) || /^image\//i.test(anexo.mime || "");
+
+  const ic = (typeof cpIcon === "function" && document.documentElement.classList.contains("modo-colab")) ? cpIcon : icon;
+  const titulo = d.titulo || anexo.nome || "Documento";
+  const sub = [d.tipo, d.versao ? "v" + d.versao : "", d.exigeAssinatura ? "exige assinatura" : ""].filter(Boolean).join(" · ");
+  const prevFocus = document.activeElement;
+  const root = document.createElement("div");
+  root.className = "modal-backdrop modal-backdrop--docview";
+  let blobUrl = null, corpo, abrirBtn = "";
+  if (ehImg) {
+    corpo = `<div class="cp-docview__body"><img class="cp-docpage" src="${escapeHtml(url)}" alt="${escapeHtml(titulo)}"></div>`;
+  } else if (ehPdf) {
+    blobUrl = URL.createObjectURL(dataUrlParaBlob(url));
+    corpo = `<div class="cp-docview__body cp-docview__body--pdf">
+        <iframe class="cp-docframe" src="${blobUrl}" title="${escapeHtml(titulo)}"></iframe>
+        <div class="cp-docview__note">${ic("info")}<span>Se o PDF não abrir aqui no seu celular, toque em Abrir.</span></div>
+      </div>`;
+    abrirBtn = `<button class="btn btn--soft" data-doc-abrir>${ic("file")}<span>Abrir em nova aba</span></button>`;
+  } else {
+    corpo = `<div class="cp-docview__body"><div class="cp-docview__note">${ic("info")}<span>Formato não visualizável aqui.</span></div></div>`;
+  }
+  root.innerHTML = `
+    <div class="cp-docview" role="dialog" aria-modal="true" aria-label="${escapeHtml(titulo)}">
+      <div class="cp-docview__h">
+        <button class="x" data-docview-close aria-label="Fechar">${ic("x")}</button>
+        <div class="cp-docview__t"><b>${escapeHtml(titulo)}</b>${sub ? `<span>${escapeHtml(sub)}</span>` : ""}</div>
+      </div>
+      ${corpo}
+      ${abrirBtn ? `<div class="cp-docview__foot">${abrirBtn}</div>` : ""}
+    </div>`;
+  document.body.appendChild(root);
+  const fechar = () => {
+    document.removeEventListener("keydown", onKey, true);
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    root.remove();
+    if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch {} }
+  };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fechar(); } };
+  document.addEventListener("keydown", onKey, true);
+  root.addEventListener("click", (e) => { if (e.target === root) fechar(); });
+  root.querySelector("[data-docview-close]").addEventListener("click", fechar);
+  const ab = root.querySelector("[data-doc-abrir]");
+  if (ab && blobUrl) ab.addEventListener("click", () => window.open(blobUrl, "_blank", "noopener"));
+  setTimeout(() => root.querySelector("[data-docview-close]")?.focus(), 30);
+}
+
 function comPreview(segTipo) {
   const t = ($("#com-titulo")?.value || "").trim();
   const b = ($("#com-corpo")?.value || "").trim();
@@ -5500,6 +5614,8 @@ function docCardHtml(d) {
   const adesao = rascunho
     ? `<div class="cf-read"><span>Aguardando publicação</span><span class="com-bar"><i style="width:0%"></i></span></div>`
     : `<div class="cf-read"><span><b>${a.X}</b> de ${a.Y} ${a.verbo}</span><span class="com-bar"><i style="width:${a.pct}%"></i></span></div>`;
+  const temAnexo = !!(d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url));
+  const verBtn = temAnexo ? `<button class="com-mini" data-doc-ver="${d.id}" aria-label="Ver documento" title="Ver documento">${icon("file")}</button>` : "";
   const acts = rascunho
     ? `<button class="com-mini" data-doc-publicar="${d.id}" aria-label="Publicar" title="Publicar">${icon("upload")}</button>`
     : `<button class="com-mini" data-doc-adesao="${d.id}" aria-label="Ver adesao" title="Ver adesão">${icon("eye")}</button>
@@ -5516,6 +5632,7 @@ function docCardHtml(d) {
         <div class="cf-statline">${statusBadge}<span class="cf-ver">v${d.versao || 1} · ${comSegLabel(seg)}</span></div>
         ${adesao}
         <div class="cf-acts">
+          ${verBtn}
           ${acts}
           <button class="com-mini" data-doc-editar="${d.id}" aria-label="Editar" title="Editar">${icon("edit")}</button>
           ${(currentUser()?.role === "admin") ? `<button class="com-mini" data-doc-excluir="${d.id}" aria-label="Excluir documento" title="Excluir" style="color:var(--danger)">${icon("trash")}</button>` : ""}
@@ -5564,6 +5681,11 @@ function openDocumentoModal(id) {
   const setorVal = seg.tipo === "setor" ? (seg.valores || [])[0] : (setores[0] || "");
   const tipoAtual = d?.tipo || "regras";
   const temAnexo = !!(d?.anexo && d.anexo.url);
+  // Anexo pode ser in-app (data URL base64) OU link do Drive (https). Só o link vai
+  // pro input de texto; o arquivo in-app abre pelo _docAnexoInApp/showBox.
+  const anexoEhDado = temAnexo && /^data:/i.test(d.anexo.url || "");
+  const linkVal = (temAnexo && !anexoEhDado) ? d.anexo.url : "";
+  const linkNome = (temAnexo && !anexoEhDado) ? (d.anexo.nome || "") : "";
 
   openModal(`
     <div class="modal__header">
@@ -5587,26 +5709,24 @@ function openDocumentoModal(id) {
         <label>Conteúdo</label>
         <div class="com-seg" role="group" aria-label="Modo de conteúdo">
           <button type="button" class="com-seg__chip ${temAnexo ? "" : "is-on"}" data-doc-modo="texto">${icon("edit")}<span>Texto</span></button>
-          <button type="button" class="com-seg__chip ${temAnexo ? "is-on" : ""}" data-doc-modo="anexo">${icon("file")}<span>Anexo Drive</span></button>
+          <button type="button" class="com-seg__chip ${temAnexo ? "is-on" : ""}" data-doc-modo="anexo">${icon("file")}<span>Anexo (arquivo)</span></button>
         </div>
         <div class="com-seg__detail" id="doc-modo-texto" style="${temAnexo ? "display:none" : ""}">
           <textarea id="doc-corpo" rows="4" placeholder="Escreva o corpo do documento.">${d ? escapeHtml(d.descricao || "") : ""}</textarea>
         </div>
         <div class="com-seg__detail" id="doc-modo-anexo" style="${temAnexo ? "" : "display:none"}">
-          ${window.driveUploadDisponivel ? `
           <div class="doc-up">
             <label class="doc-drop" id="doc-drop">
-              <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,image/*" hidden />
+              <input type="file" id="doc-file-input" accept="image/*,application/pdf" hidden />
               <span class="doc-drop__ic">${icon("upload")}</span>
-              <span class="doc-drop__t">Escolher arquivo do computador</span>
-              <span class="doc-drop__s">PDF, imagem ou documento. Sobe pro Drive da empresa.</span>
+              <span class="doc-drop__t">Escolher imagem ou PDF</span>
+              <span class="doc-drop__s">Fica no app e abre direto pro colaborador. Até ~1 MB.</span>
             </label>
             <div class="doc-file" id="doc-file" hidden></div>
-            <div class="doc-or"><span>ou cole um link que já existe no Drive</span></div>
-          ` : ""}
-          <input type="text" id="doc-anexo-url" value="${temAnexo ? escapeHtml(d.anexo.url) : ""}" data-nome="${temAnexo ? escapeHtml(d.anexo.nome || "") : ""}" placeholder="https://drive.google.com/file/d/..." />
-          ${window.driveUploadDisponivel ? `</div>` : ""}
-          <div class="doc-hashnote">${icon("shield")}<span>O arquivo fica no Drive da empresa (acesso controlado). O link https é o que abre o documento.</span></div>
+            <div class="doc-or"><span>ou cole um link do Drive (abre em nova aba)</span></div>
+          </div>
+          <input type="text" id="doc-anexo-url" value="${escapeHtml(linkVal)}" data-nome="${escapeHtml(linkNome)}" placeholder="https://drive.google.com/file/d/..." />
+          <div class="doc-hashnote">${icon("shield")}<span>Imagem e PDF ficam no app (privado, sem depender do Drive) e abrem dentro do portal. O link do Drive é alternativa e abre em nova aba.</span></div>
         </div>
       </div>
       </div>
@@ -5669,30 +5789,35 @@ function openDocumentoModal(id) {
         el.setAttribute("aria-checked", String(!on)); el.classList.toggle("is-on", !on);
       });
 
-      // Upload de anexo pro Drive (reusa o OAuth e o uploader dos contratos PJ).
+      // Anexo in-app: lê a imagem/PDF e guarda base64 no _docAnexoInApp (vai pro doc
+      // do Firestore). Editando um anexo in-app existente, já mostra a linha do arquivo.
+      _docAnexoInApp = anexoEhDado ? { url: d.anexo.url, nome: d.anexo.nome || (d.titulo || "arquivo"), mime: d.anexo.mime || "" } : null;
       const dFile = $("#doc-file-input");
       if (dFile) {
         const box = $("#doc-file"), drop = $("#doc-drop"), urlIn = $("#doc-anexo-url");
         const showBox = (html) => { if (box) { box.hidden = false; box.innerHTML = html; } if (drop) drop.style.display = "none"; };
-        const resetBox = () => { if (box) { box.hidden = true; box.innerHTML = ""; } if (drop) drop.style.display = ""; };
-        if (temAnexo && urlIn && urlIn.value) showBox(docFileRowHtml(urlIn.dataset.nome || "Arquivo anexado", urlIn.value));
+        const resetBox = () => { if (box) { box.hidden = true; box.innerHTML = ""; } if (drop) drop.style.display = ""; _docAnexoInApp = null; };
+        if (_docAnexoInApp) showBox(docFileRowHtml(_docAnexoInApp.nome, _docAnexoInApp.url, _docAnexoInApp.mime));
         dFile.addEventListener("change", async () => {
           const file = dFile.files && dFile.files[0];
           if (!file) return;
-          if (file.size > 25 * 1024 * 1024) { toast("Arquivo acima de 25 MB. Reduza ou anexe por link.", "danger"); dFile.value = ""; return; }
-          showBox(`<div class="doc-file__row"><span class="doc-file__ic doc-file__ic--load">${icon("spinner")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(file.name)}</div><div class="doc-file__s">Enviando pro Drive...</div></div></div>`);
+          showBox(`<div class="doc-file__row"><span class="doc-file__ic doc-file__ic--load">${icon("spinner")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(file.name)}</div><div class="doc-file__s">Preparando pro app...</div></div></div>`);
           try {
-            if (window.preAquecerTokenDrive) await window.preAquecerTokenDrive();
-            const res = await window.uploadDocumentoToDrive(file);
-            if (urlIn) { urlIn.value = res.webViewLink || ""; urlIn.dataset.nome = file.name; }
-            showBox(docFileRowHtml(file.name, res.webViewLink));
+            const a = await docArquivoParaAnexo(file);
+            _docAnexoInApp = a;
+            if (urlIn) { urlIn.value = ""; urlIn.dataset.nome = ""; } // arquivo in-app tem prioridade sobre link
+            showBox(docFileRowHtml(a.nome, a.url, a.mime));
           } catch (e) {
-            showBox(`<div class="doc-file__row doc-file__row--err"><span class="doc-file__ic">${icon("alert")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(file.name)}</div><div class="doc-file__s">${escapeHtml(e.message || "Falha no upload")}</div></div><button type="button" class="doc-file__x" data-doc-file-reset aria-label="Tentar de novo">${icon("x")}</button></div>`);
+            _docAnexoInApp = null;
+            showBox(`<div class="doc-file__row doc-file__row--err"><span class="doc-file__ic">${icon("alert")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(file.name)}</div><div class="doc-file__s">${escapeHtml(e.message || "Falha ao anexar")}</div></div><button type="button" class="doc-file__x" data-doc-file-reset aria-label="Tentar de novo">${icon("x")}</button></div>`);
           }
           dFile.value = "";
         });
         if (box) box.addEventListener("click", (e) => {
-          if (e.target.closest("[data-doc-file-reset]")) { if (urlIn) { urlIn.value = ""; urlIn.dataset.nome = ""; } resetBox(); }
+          if (e.target.closest("[data-doc-file-reset]")) { resetBox(); return; }
+          if (e.target.closest("[data-doc-file-ver]") && _docAnexoInApp) {
+            openDocViewer({ titulo: ($("#doc-titulo")?.value || "").trim() || _docAnexoInApp.nome, tipo: "", versao: "", anexo: _docAnexoInApp });
+          }
         });
       }
 
@@ -5703,9 +5828,15 @@ function openDocumentoModal(id) {
   });
 }
 
-// Linha do arquivo anexado (estado "no Drive") no form de documento.
-function docFileRowHtml(nome, url) {
-  return `<div class="doc-file__row"><span class="doc-file__ic doc-file__ic--ok">${icon("check")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(nome)}</div><div class="doc-file__s">No Drive${url ? ` &middot; <a href="${escapeHtml(url)}" target="_blank" rel="noopener">abrir</a>` : ""}</div></div><button type="button" class="doc-file__x" data-doc-file-reset aria-label="Remover">${icon("x")}</button></div>`;
+// Linha do arquivo anexado no form de documento. In-app (data URL) mostra "ver"
+// (abre no visualizador); link https mostra "abrir" (nova aba).
+function docFileRowHtml(nome, url, mime) {
+  const ehDado = /^data:/i.test(url || "");
+  const rotulo = ehDado ? (/pdf/i.test(mime || url || "") ? "PDF no app" : "Imagem no app") : "Link do Drive";
+  const acao = ehDado
+    ? `<button type="button" class="doc-file__lnk" data-doc-file-ver>ver</button>`
+    : (url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">abrir</a>` : "");
+  return `<div class="doc-file__row"><span class="doc-file__ic doc-file__ic--ok">${icon("check")}</span><div class="doc-file__m"><div class="doc-file__n">${escapeHtml(nome)}</div><div class="doc-file__s">${rotulo}${acao ? ` &middot; ${acao}` : ""}</div></div><button type="button" class="doc-file__x" data-doc-file-reset aria-label="Remover">${icon("x")}</button></div>`;
 }
 
 function salvarDocumentoForm(id, getState, publicar) {
@@ -5715,11 +5846,19 @@ function salvarDocumentoForm(id, getState, publicar) {
   const seg = docSegmentoDoForm(segTipo);
   const dados = { titulo, tipo, segmento: seg, exigeAssinatura: $("#doc-assina").getAttribute("aria-checked") === "true", alcanceEstimado: comAlcance(seg) };
   if (modo === "anexo") {
-    const url = $("#doc-anexo-url").value.trim();
-    if (!url) return campoInvalido("#doc-anexo-url", "Cole o link do Drive ou troque para Texto.");
-    if (!ehUrlSegura(url)) return campoInvalido("#doc-anexo-url", "Link inválido. Use uma URL https.");
-    const anexoNome = ($("#doc-anexo-url").dataset.nome || "").trim() || titulo;
-    dados.anexo = { url, nome: anexoNome, hashSha256: "" };
+    const link = $("#doc-anexo-url").value.trim();
+    if (_docAnexoInApp && _docAnexoInApp.url) {
+      // Arquivo in-app (base64) tem prioridade — abre dentro do portal.
+      dados.anexo = { url: _docAnexoInApp.url, nome: _docAnexoInApp.nome || titulo, mime: _docAnexoInApp.mime || "", hashSha256: "" };
+    } else if (link) {
+      if (!ehUrlSegura(link)) return campoInvalido("#doc-anexo-url", "Link inválido. Use uma URL https.");
+      const anexoNome = ($("#doc-anexo-url").dataset.nome || "").trim() || titulo;
+      // Link do Drive mantém o shape antigo (sem mime) — preserva a igualdade do
+      // anexo exigida pela rule ao editar doc publicado+assinatura já existente.
+      dados.anexo = { url: link, nome: anexoNome, hashSha256: "" };
+    } else {
+      return campoInvalido("#doc-anexo-url", "Anexe uma imagem/PDF ou cole um link do Drive (ou troque para Texto).");
+    }
     dados.descricao = "";
   } else {
     dados.descricao = $("#doc-corpo").value.trim();
@@ -5854,6 +5993,8 @@ if (!window._docBound) {
     if (nv) { openDocumentoModal(); return; }
     const fl = e.target.closest("[data-doc-filtro]");
     if (fl) { state.view.docFiltro = fl.dataset.docFiltro; renderApp(); return; }
+    const dvr = e.target.closest("[data-doc-ver]");
+    if (dvr) { e.stopPropagation(); const dd = (state.documentos || []).find((x) => x.id === dvr.dataset.docVer); if (dd) openDocViewer(dd); return; }
     const ed = e.target.closest("[data-doc-editar]");
     if (ed) { e.stopPropagation(); openDocumentoModal(ed.dataset.docEditar); return; }
     const pb = e.target.closest("[data-doc-publicar]");
@@ -10421,7 +10562,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.14.0";
+window.CURRENT_VERSION = "1.15.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
