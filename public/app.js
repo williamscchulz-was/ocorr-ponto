@@ -1404,37 +1404,42 @@ function renderColabPonto() {
 // state.meuSaldoBH.dias[]. Sem o dado, mostra só o saldo + nota "em breve".
 function colabBhTabHtml(f) {
   if (f && f.bhExempt) return `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>`;
-  const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias)) ? state.meuSaldoBH.dias.slice(0, 10) : [];
+  const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias)) ? state.meuSaldoBH.dias.slice(0, 12) : [];
   const detalhe = dias.length
-    ? `<div class="pp-ovl" style="margin-top:18px">Últimos 10 dias</div>${dias.map(colabDiaMarcHtml).join("")}<div class="cp-bhnote">${cpIcon("info")}<span>As marcações e o saldo vêm da apuração do ponto, atualizadas pelo GP. Dúvida em algum dia, fale com seu líder.</span></div>`
-    : `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O detalhamento dos últimos dias aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
+    ? `<div class="pp-ovl" style="margin-top:18px">Espelho de ponto</div>${dias.map(colabDiaMarcHtml).join("")}<div class="cp-bhnote">${cpIcon("info")}<span>Os horários que você bateu a cada dia, atualizados diariamente. Dúvida em algum dia, fale com seu líder.</span></div>`
+    : `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O espelho dos últimos dias aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
   return `${bhHeroHtml(f)}${detalhe}`;
 }
 
-const CP_SIT = { folga: "Folga", falta: "Falta", falta_justificada: "Falta justificada", faltajustificada: "Falta justificada", feriado: "Feriado", dsr: "DSR", ferias: "Férias", afastado: "Afastado", atestado: "Atestado" };
-function cpSitLabel(s) { const k = String(s || "").toLowerCase().replace(/[\s-]/g, "_"); return CP_SIT[k] || (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : ""); }
 function cpDow(dataIso) {
   try { return new Date(String(dataIso) + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short" }).replace(/\.$/, "").slice(0, 3); }
   catch (e) { return ""; }
 }
+// Rótulo NEUTRO pro dia sem batida. Deriva de situacoes[] (interno do RH) SEM revelar
+// atraso/falta/suspensão — esses viram "Sem marcação"; só folga/feriado/férias aparecem nomeados.
+function cpDiaSemMarcacaoLabel(situacoes) {
+  const s = (Array.isArray(situacoes) ? situacoes : [situacoes]).map((x) => String(x || "").toLowerCase()).join(" ");
+  if (/folga|dsr|descanso/.test(s)) return "Folga";
+  if (/feriado/.test(s)) return "Feriado";
+  if (/f[ée]rias/.test(s)) return "Férias";
+  return "Sem marcação";
+}
 
-// Um dia da lista "Últimos 10 dias" — tolerante ao formato do pipeline: marcacoes array OU string;
-// saldoDiaFmt OU saldoDiaMin; situacao p/ dia sem batida (folga/falta/feriado...).
+// Um dia do espelho de ponto (banco-horas-self.dias[]): NEUTRO, só os horários que a pessoa bateu.
+// marcacoes: ["07:26","12:00",...]. Dia sem batida = Folga/Feriado/Férias/Sem marcação.
+// situacoes[] é interno do RH — NUNCA mostrar atraso/falta/suspensão pro colaborador.
 function colabDiaMarcHtml(d) {
-  const iso = d.dataIso || d.data || "";
+  const iso = d.dataIso || "";
   const dia = String(iso).slice(8, 10) || "--";
-  const dow = cpDow(iso);
-  const off = !!(d.situacao && /folga|falta|feriado|dsr|f[ée]rias|afast|atestado/i.test(d.situacao));
-  let marc;
-  if (off) marc = cpSitLabel(d.situacao);
-  else if (Array.isArray(d.marcacoes)) marc = d.marcacoes.filter(Boolean).join(" · ");
-  else if (d.marcacoes) marc = String(d.marcacoes).trim().split(/\s+/).filter(Boolean).join(" · ");
-  else marc = "—";
-  const sMin = (typeof d.saldoDiaMin === "number") ? d.saldoDiaMin : (typeof d.saldoMin === "number" ? d.saldoMin : null);
-  const sFmt = d.saldoDiaFmt || d.saldoFmt || (sMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(sMin) : "");
-  const cls = (off || sMin == null) ? "cp-dia__s--zero" : (sMin > 0 ? "cp-dia__s--pos" : (sMin < 0 ? "cp-dia__s--neg" : "cp-dia__s--zero"));
-  const sTxt = off ? "—" : (sFmt || (sMin === 0 ? "00:00" : "—"));
-  return `<div class="cp-dia"><div class="cp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div><div class="cp-dia__m${off ? " cp-dia__m--off" : ""}">${escapeHtml(marc)}</div><div class="cp-dia__s ${cls}">${escapeHtml(sTxt)}</div></div>`;
+  const dow = d.diaSemana ? String(d.diaSemana).slice(0, 3).toLowerCase() : cpDow(iso);
+  const marcs = Array.isArray(d.marcacoes) ? d.marcacoes.filter(Boolean)
+    : (d.marcacoes ? String(d.marcacoes).trim().split(/\s+/).filter(Boolean) : []);
+  const off = marcs.length === 0;
+  const corpo = off ? cpDiaSemMarcacaoLabel(d.situacoes) : marcs.join(" · ");
+  return `<div class="cp-dia">
+    <div class="cp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div>
+    <div class="cp-dia__m${off ? " cp-dia__m--off" : ""}">${escapeHtml(corpo)}</div>
+  </div>`;
 }
 
 // Card read-only de ocorrência do próprio colaborador (sem ações; só acompanhar).

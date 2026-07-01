@@ -12,7 +12,7 @@
 window.CHANGELOG = [
   {
     v: "1.14.0", d: "1 jul 2026", current: true, items: [
-      { type: "feat", title: "Em Meu ponto, no Portal do Colaborador, agora você acompanha as suas ocorrências (atrasos, faltas e saídas), só leitura. O detalhamento dia a dia do banco de horas chega em seguida." },
+      { type: "feat", title: "Em Meu ponto, no Portal do Colaborador, você acompanha as suas ocorrências (só leitura) e o espelho de ponto: os horários que você bateu a cada dia, atualizados diariamente." },
     ],
   },
   {
