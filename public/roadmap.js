@@ -1325,6 +1325,26 @@ window.ROADMAP = {
         "Inputs não causam zoom no iOS.",
         "Cards e ações não estouram a largura."
       ]
+    },
+    {
+      id: "espelho-ponto-gestor",
+      numero: null,
+      nome: "Espelho de ponto no Portal do Gestor (cartão-ponto dos liderados)",
+      fase: "fase2",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "planejado",
+      classificacao: "cria",
+      descricao: "Aba nova no portal do gestor onde líder/supervisor vê o cartão-ponto dos liderados: lista da equipe (já sai do escopo atual — líder por turno, supervisor pela lista de funcionariosVisiveis, via funcionariosVisiveisPara(u)) e, ao selecionar alguém, o espelho NEUTRO (mês vigente + anterior, só os horários batidos, folga/sem marcação nos dias vazios, saldo do dia colorido) — o MESMO render do colaborador, reusado. Mock aprovado: docs/mockups/gestor-espelho-ponto-mock.html. BACKEND (crítico): a coleção banco-horas-self/{codigo} (que tem o dias[] com as marcações) hoje só é lida pelo próprio colaborador + admin/RH (firestore.rules ~296-303); precisa liberar leitura pro líder (por turno) e supervisor (por atribuição). Como o doc é indexado por codigo (string) e NÃO tem funcionarioTurno/funcionarioId denormalizado, é preciso o pipeline (WKRADAR) gravar esses campos no banco-horas-self para a regra escopar com segurança. O bancoHoras/{funcionarioId} que o gestor já lê tem só o saldo diário (lancamentos[]), sem os horários batidos — por isso a fonte é o self.",
+      objetivo: "Dar ao gestor/supervisor a mesma visão de cartão-ponto que o colaborador tem de si, restrita aos seus liderados, sem config nova (reusa o escopo e o render já existentes).",
+      dependencias: ["Espelho de ponto do colaborador (banco-horas-self.dias[])", "Escopo funcionariosVisiveisPara(u)", "Pipeline WKRADAR: denormalizar funcionarioTurno/funcionarioId em banco-horas-self", "Regra banco-horas-self (leitura por líder/supervisor)"],
+      criteriosAceite: [
+        "Líder vê o cartão-ponto só de quem é do turno dele; supervisor só dos funcionariosVisiveis.",
+        "Espelho NEUTRO idêntico ao do colaborador (mês vigente + anterior, só horários batidos, sem rótulo de atraso/falta).",
+        "Regra do banco-horas-self libera leitura pro gestor com escopo correto (denormalização no pipeline).",
+        "Nenhuma config nova: a equipe sai do escopo já existente.",
+        "Aprovado em mock antes de mexer no app."
+      ]
     }
   ]
 };

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Espelho de ponto (Portal do Gestor) mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<style>
+  body{font-family:Poppins,sans-serif;background:var(--bg);margin:0;padding:26px 20px 60px;color:var(--text-body)}
+  .note{max-width:1060px;margin:0 auto 18px;font-size:13px;color:#5b6b58;background:#fff;border:1px dashed #cdd8c8;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#1f2a1f}
+  .page{max-width:1060px;margin:0 auto}
+  .hi{margin:0 0 4px;font-size:24px;font-weight:800;letter-spacing:-.02em}
+  .sub{margin:0 0 18px;color:var(--text-muted);font-size:13.5px}
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+  /* ---- lista de liderados (esquerda) ---- */
+  .team{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  .team__srch{padding:12px;border-bottom:1px solid var(--border)}
+  .team__srch input{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font:inherit;font-size:13px;background:var(--bg)}
+  .team__scope{display:flex;align-items:center;gap:7px;padding:9px 14px;font-size:11.5px;color:var(--text-muted);background:var(--success-bg);border-bottom:1px solid var(--border)}
+  .team__scope svg{width:14px;height:14px;color:var(--plum)}
+  .trow{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+  .trow:last-child{border-bottom:0}
+  .trow:hover{background:var(--bg)}
+  .trow.on{background:var(--success-bg)}
+  .trow.on .trow__n{color:var(--plum)}
+  .trow__av{width:38px;height:38px;border-radius:50%;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex:none}
+  .trow__bd{flex:1;min-width:0}
+  .trow__n{font-size:13.5px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trow__s{font-size:11.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trow__bh{font-size:12px;font-weight:700;flex:none}
+  .pos{color:var(--success)} .neg{color:var(--danger)} .zero{color:var(--text-muted)}
+  /* ---- cartão ponto (direita) ---- */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  .ch{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border)}
+  .ch__av{width:46px;height:46px;border-radius:50%;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;flex:none}
+  .ch__bd{flex:1;min-width:0}
+  .ch__n{font-size:16px;font-weight:700;letter-spacing:-.01em}
+  .ch__s{font-size:12px;color:var(--text-muted)}
+  .ch__bh{text-align:right;flex:none}
+  .ch__bh b{display:block;font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .ch__bh span{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+  .note2{display:flex;align-items:center;gap:8px;padding:10px 18px;font-size:11.5px;color:var(--text-muted);background:var(--bg);border-bottom:1px solid var(--border)}
+  .note2 svg{width:14px;height:14px;flex:none}
+  .mes{padding:14px 18px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+  .gp-dia{display:flex;align-items:center;gap:14px;padding:10px 18px;border-top:1px solid var(--border)}
+  .gp-dia__d{width:38px;text-align:center;flex:none}
+  .gp-dia__d b{display:block;font-size:15px;font-weight:700;line-height:1}
+  .gp-dia__d span{font-size:10px;color:var(--text-muted);text-transform:uppercase}
+  .gp-dia__m{flex:1;font-size:13.5px;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .gp-dia__m--off{color:var(--text-muted);font-style:italic;font-variant-numeric:normal}
+  .gp-dia__s{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+  @media(max-width:760px){.layout{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="note"><b>Mock · Espelho de ponto no Portal do Gestor.</b> Aba nova onde o gestor/supervisor vê o <b>cartão-ponto dos liderados dele</b> (mês atual + anterior), reusando o mesmo espelho NEUTRO do colaborador (só os horários batidos, sem rótulo de atraso/falta). A lista de gente já sai pronta do escopo atual (<b>líder por turno, supervisor pela lista de visíveis</b>) — nenhuma config nova. Falta backend: liberar a regra do <code>banco-horas-self</code> pro gestor ler a do liderado (+ denormalizar turno). Selecionado: Pedro.</div>
+
+<div class="page">
+  <h1 class="hi">Espelho de ponto</h1>
+  <p class="sub">Cartão-ponto dos seus liderados. Mês atual e mês anterior, direto da apuração.</p>
+
+  <div class="layout">
+    <!-- lista de liderados -->
+    <div class="team">
+      <div class="team__srch"><input placeholder="Buscar liderado..."></div>
+      <div class="team__scope">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
+        1º Turno · 4 pessoas
+      </div>
+      <div class="trow on">
+        <div class="trow__av">PA</div>
+        <div class="trow__bd"><div class="trow__n">Pedro Alves</div><div class="trow__s">Operador · Produção</div></div>
+        <div class="trow__bh pos">+5:30</div>
+      </div>
+      <div class="trow">
+        <div class="trow__av">CS</div>
+        <div class="trow__bd"><div class="trow__n">Carlos Souza</div><div class="trow__s">Operador · Produção</div></div>
+        <div class="trow__bh neg">-1:15</div>
+      </div>
+      <div class="trow">
+        <div class="trow__av">ML</div>
+        <div class="trow__bd"><div class="trow__n">Maria Lima</div><div class="trow__s">Auxiliar · Qualidade</div></div>
+        <div class="trow__bh pos">+0:45</div>
+      </div>
+      <div class="trow">
+        <div class="trow__av">JD</div>
+        <div class="trow__bd"><div class="trow__n">João Dias</div><div class="trow__s">Operador · Produção</div></div>
+        <div class="trow__bh zero">0:00</div>
+      </div>
+    </div>
+
+    <!-- cartão ponto do selecionado -->
+    <div class="card">
+      <div class="ch">
+        <div class="ch__av">PA</div>
+        <div class="ch__bd"><div class="ch__n">Pedro Alves</div><div class="ch__s">Operador · Produção · 1º Turno · cód. 183</div></div>
+        <div class="ch__bh"><b class="pos">+5:30</b><span>saldo atual</span></div>
+      </div>
+      <div class="note2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        Somente os horários batidos, como o colaborador vê. Ocorrências e ajustes ficam na aba Ocorrências.
+      </div>
+
+      <div class="mes">Julho de 2026</div>
+      <div class="gp-dia"><div class="gp-dia__d"><b>03</b><span>qui</span></div><div class="gp-dia__m">07:01 · 11:59 · 13:02 · 17:04</div><div class="gp-dia__s pos">+0:06</div></div>
+      <div class="gp-dia"><div class="gp-dia__d"><b>02</b><span>qua</span></div><div class="gp-dia__m">07:00 · 12:00 · 13:00 · 17:00</div><div class="gp-dia__s zero">0:00</div></div>
+      <div class="gp-dia"><div class="gp-dia__d"><b>01</b><span>ter</span></div><div class="gp-dia__m">07:03 · 12:01 · 13:00 · 16:58</div><div class="gp-dia__s neg">-0:04</div></div>
+
+      <div class="mes">Junho de 2026</div>
+      <div class="gp-dia"><div class="gp-dia__d"><b>30</b><span>seg</span></div><div class="gp-dia__m">06:58 · 12:00 · 12:59 · 17:30</div><div class="gp-dia__s pos">+0:33</div></div>
+      <div class="gp-dia"><div class="gp-dia__d"><b>29</b><span>dom</span></div><div class="gp-dia__m gp-dia__m--off">Folga</div><div class="gp-dia__s zero">0:00</div></div>
+      <div class="gp-dia"><div class="gp-dia__d"><b>28</b><span>sáb</span></div><div class="gp-dia__m gp-dia__m--off">Folga</div><div class="gp-dia__s zero">0:00</div></div>
+      <div class="gp-dia"><div class="gp-dia__d"><b>27</b><span>sex</span></div><div class="gp-dia__m">07:00 · 12:02 · 13:01 · 17:01</div><div class="gp-dia__s zero">0:00</div></div>
+      <div class="gp-dia"><div class="gp-dia__d"><b>26</b><span>qui</span></div><div class="gp-dia__m gp-dia__m--off">Sem marcação</div><div class="gp-dia__s zero">0:00</div></div>
+    </div>
+  </div>
+</div>
+</body></html>
