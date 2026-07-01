@@ -2265,7 +2265,6 @@ function espCartaoHtml(f) {
       <div class="esp-ch__bd"><div class="esp-ch__n">${escapeHtml(f.nome || "")}</div><div class="esp-ch__s">${escapeHtml([cargoSetor, turnoLbl, "cód. " + cod].filter(Boolean).join(" · "))}</div></div>
       ${saldo ? `<div class="esp-ch__bh"><b class="${sCls}">${escapeHtml(saldo)}</b><span>saldo atual</span></div>` : ""}
     </div>`;
-  const nota = `<div class="esp-note">${icon("info")}<span>Somente os horários batidos, como o colaborador vê. Ocorrências e ajustes ficam na aba Ocorrências.</span></div>`;
   let corpo;
   if (dias.length) {
     const grupos = [];
@@ -2279,7 +2278,7 @@ function espCartaoHtml(f) {
   } else {
     corpo = `<div class="empty empty--mini"><p>Sem espelho apurado pra este funcionário ainda.</p></div>`;
   }
-  return `<div class="esp-card">${head}${nota}${corpo}</div>`;
+  return `<div class="esp-card">${head}${corpo}</div>`;
 }
 
 // Carrega (sob demanda) o espelho do funcionário e re-renderiza só o painel de detalhe.
