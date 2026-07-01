@@ -873,3 +873,16 @@ Idade: 40 dias (não urgente). **Achado real**: o servidor é associado a um dom
 
 ### 4) Monitoramento de verdade — rotina criada
 Descoberta: o comentário no código sobre "Cloud Routine do Claude PC monitora este diretório" não tem evidência de estar ativo (`CronList`/tarefas agendadas do lado WKRADAR vazios). O que existe de fato é **passivo** (painel no app, só mostra quando alguém abre). Task Scheduler do Windows em si está saudável (última rodada 10:00 sucesso, zero falhas). Criada rotina agendada (`check-pipeline-rh-heartbeat`, 16:05 seg-sex) que confere se o report de hoje existe e teve `status: ok`, e manda push notification SÓ se algo estiver errado (sem barulho quando tudo bem).
+
+
+---
+
+## 2026-07-01 · ✅ banco-horas-self denormalizado (funcionarioTurno + funcionarioId) pro Espelho de Ponto do gestor
+
+PC subiu uma aba "Espelho de ponto" no Portal do Gestor (v238) reusando o `dias[]` que o pipeline já grava — mas precisava de 2 campos denormalizados no doc pra rule liberar leitura de líder/supervisor com escopo seguro (líder por turno, supervisor por lista de atribuídos). Rule já tinha sido deployada com guard "campo existe" (sem os campos = negado, sem buraco de segurança).
+
+**Implementado em `upload-banco-horas-self.mjs`:** carrega `parsed-empregado.json` (mesmo padrão do `upload-ocorrencias-auto.mjs`) e grava `funcionarioTurno` (mesmo valor de `bancoHoras.funcionarioTurno`) e `funcionarioId` (`f-{codigo}`) em cada doc.
+
+**Testado:** 92/92 docs cobertos, valores conferidos batendo exatamente com `bancoHoras` (3 amostras, inclusive turno `"geral"` string e numérico). Pipeline completo rodado de ponta a ponta: exit 0, sem regressão.
+
+Avisado o PC (`inbox-pc/2026-07-01-denormalizado-bh-self-no-ar.md`) — ele confirma líder/supervisor lendo ao vivo.
