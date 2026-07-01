@@ -689,3 +689,16 @@ William pediu auditoria completa do backend. Workflow com 6 frentes em paralelo 
 **Refutados (6, falso positivo — verificação funcionou):** overflow de CPF (função já rejeita !=11 dígitos), heartbeat não rodar em erro não-capturado (o catch já envolve tudo, roda sempre), "bug" no regex `$11$2` do GerarSemAspas (JS interpreta certo, não é bug), PII vazando em logs de erro (err.message nunca carrega os valores), escrita não-atômica de `ocorrencias-mes.txt` (a ordem do código já protege isso).
 
 **Status:** nenhum fix aplicado ainda — William vai priorizar o que corrigir. Relatório completo na conversa com o Claude WKRADAR.
+
+
+---
+
+## 2026-07-01 · ✅ Corrigidos os 2 achados CRÍTICOS da auditoria de backend
+
+William priorizou: só os 2 críticos por ora. Ambos corrigidos e testados com dado real (não sintético).
+
+**1) `upload-ocorrencias-auto.mjs` — trava contra reset com parse vazio.** Antes: `--reset` (virada de mês) apagava a coleção ANTES de checar se o novo parse tinha dado. Se o parser falhasse/CSV corrompesse no dia da virada, a conferência do mês inteiro sumia sem nada pra repor. Fix: se `--reset` e `occ.length === 0`, aborta com `exit(1)` ANTES de tocar na coleção (mensagem clara no log). Como `ocorrencias-mes.txt` só é escrito se o upload terminar com sucesso, a próxima rodada tenta o reset de novo automaticamente. **Testado com dado real**: hoje (01/07, dia do go-live) o parse de fato veio com 0 ocorrências (D-1 corta 01/07 e GO_LIVE também é 01/07 — dia 1 nunca tem ocorrência válida, por desenho) — a trava abortou corretamente em vez de reprocessar/apagar de novo.
+
+**2) `upload-to-firestore.mjs` — elimina a releitura de turno/ativo que causava a race.** Antes: `uploadBancoHorasApp` e `uploadPipelineRH` faziam CADA UMA seu próprio `.get()` de `funcionarios` DEPOIS que `uploadFuncionarios` já tinha commitado — janela teórica onde uma escrita externa (admin manual) entre essas leituras deixaria `bancoHoras`/`pipeline-rh` com turno desatualizado (rule de isolamento do líder por turno depende desse campo). Fix: `uploadFuncionarios` agora CALCULA e RETORNA `{turnoByDocId, ativoByDocId}` em memória (o valor final que ela mesma decidiu escrever/preservar), e `uploadBancoHorasApp`/`uploadPipelineRH` recebem isso por parâmetro em vez de reler o Firestore. Elimina a classe inteira de race + 2 queries redundantes da coleção inteira por rodada. **Testado**: rodei o upload completo e comparei `funcionarios.turno`/`bancoHoras.funcionarioTurno`/`pipeline-rh.cur.turno` pra 3 funcionários — idênticos entre as 3 coleções, sem regressão.
+
+**Não aplicados (William decidiu deixar pra depois):** os outros 47 achados (9 altos + ~20 médios + ~18 baixos/info) da auditoria completa de 2026-07-01. Lista completa na conversa com o Claude WKRADAR.
