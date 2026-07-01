@@ -899,3 +899,16 @@ Fechamento do achado da auditoria de dados: William confirmou com o RH (Jenifer,
 **Correção aplicada (autorizada pelo William):** `ativo: true` direto no Firestore (correção pontual, quebra o loop). Confirmado rodando o pipeline de novo com dado real: **"0 inativo manual preservados"** (era 1), `pipeline-rh/cur` foi de **91 → 92 ativos**, login do Portal do Colaborador **reativado automaticamente** ("Reativados: 1" no relatório do `sync-colaborador-users.mjs`). Não precisou de mais nada manual — ela segue ativa sozinha daqui pra frente enquanto o dado dela continuar limpo.
 
 **⚠️ Risco sistêmico anotado (não corrigido hoje, só documentado):** qualquer novo contratado que fique ausente de um export por 1 rodada (típico: sem crachá ainda nos primeiros dias) pode cair na mesma armadilha. Corrigir de vez exigiria distinguir, no dado, "pipeline desativou por ausência" de "admin desativou manualmente" (hoje os dois casos são indistinguíveis no doc) — fica como possível próxima frente.
+
+
+---
+
+## 2026-07-01 · 🎯 Controle Disciplinar precisa de segmentação de supervisor (missão pro PC)
+
+William viu a tela "Controle disciplinar" (screenshot, "Nenhuma ocorrência registrada") e pediu a mesma regra de segmentação que Ocorrências e Banco de Horas já têm (cada líder/supervisor só vê os próprios liderados).
+
+**Investigado antes de mandar a missão** (`docs/firestore.rules` + `public/firebase.js`): **líder já está 100% funcionando** (rule `:479-482` usa `liderDoMesmoTurno(funcionarioTurno)`, app `:1436-1437` já filtra a query por turno, `criarDisciplinar` já grava `funcionarioTurno` na criação). **Falta só supervisor** — hoje ele cai num `else` que retorna lista vazia sem nem consultar o Firestore, e a rule não tem cláusula pra `isSupervisor()` em `disciplinares` nem na subcoleção `ciencia`.
+
+Coleção `disciplinares` está **vazia hoje** (0 docs, confirmado na auditoria de dados de mais cedo) — mudança 100% aditiva, sem migração.
+
+Missão enviada (`inbox-pc/2026-07-01-disciplinar-segmentar-lider-supervisor.md`): aponta os helpers já existentes no rules (`supervisorVe`/`supervisorVeTurno`) pra reusar, e destaca que o projeto já tem 2 padrões de segmentação de supervisor convivendo (leitura ampla + filtro na UI, usado em ocorrências; regra estrita no read, usado hoje em `banco-horas-self`) — sugeri regra estrita pro disciplinar por ser dado mais sensível, mas deixei a decisão com o PC.
