@@ -9584,31 +9584,74 @@ function permissoesMatrizHtml() {
 // ---------- Usuários (Admin) ----------
 
 function renderUsuarios() { renderUsuariosInto("#view"); }
+
+// Selo do papel colorido por nível (bate o olho e sabe o nível).
+const USER_BADGE_CLS = { admin: "badge--admin", rh: "badge--gp", supervisor: "badge--aviso", lider: "badge--success", colaborador: "badge--neutral" };
+
+// Subtítulo da linha do usuário: gestor mostra email + escopo; colaborador mostra
+// cargo/setor do funcionário vinculado (NÃO o id aleatório).
+function subUsuarioLinha(u) {
+  if (u.role === "colaborador") {
+    const f = (state.funcionarios || []).find((x) => x.id === u.funcionarioId || (u.codigo != null && String(x.codigo) === String(u.codigo)));
+    const cs = f ? [f.cargo, f.setor].filter(Boolean).map((s) => escapeHtml(s)).join(" · ") : "";
+    return cs || "Acesso aos próprios dados";
+  }
+  const esc = escopoUsuario(u);
+  return `${escapeHtml(u.email || ("@" + u.id))}${esc ? " · " + escapeHtml(esc) : ""}`;
+}
+
+function cfgUserRowHtml(u, isFirebaseMode) {
+  const badgeCls = USER_BADGE_CLS[u.role] || "badge--neutral";
+  return `
+    <article class="cfg-row ${isFirebaseMode ? "cfg-row--click" : ""}" data-edit-user="${u.id}" ${isFirebaseMode ? 'role="button" tabindex="0"' : ""}
+             style="opacity:${u.ativo === false ? "0.55" : "1"};" title="${isFirebaseMode ? "Clique para editar" : ""}">
+      <div class="avatar" data-uid="${u.id}">${initials(u.nome || u.email || "?")}</div>
+      <div class="cfg-main">
+        <div class="cfg-name">${escapeHtml(u.nome || "(sem nome)")}${u.ativo === false ? ` <span class="cfg-tone">inativo</span>` : ""}</div>
+        <div class="cfg-sub">${subUsuarioLinha(u)}</div>
+      </div>
+      <span class="badge ${badgeCls}">${roleLabel(u)}</span>
+    </article>`;
+}
+
 function renderUsuariosInto(selector) {
   const isFirebaseMode = typeof window.inviteUser === "function";
+  const users = (state.users || []).slice();
+  const byNome = (a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+
+  // Agrupa por papel na ordem hierárquica; colaboradores (a massa) vêm recolhidos.
+  const GEST_GRUPOS = [
+    { role: "admin", titulo: "Administrador", dot: "#0B7A36" },
+    { role: "rh", titulo: "GP · Gestão de Pessoas", dot: "#0076BE" },
+    { role: "supervisor", titulo: "Supervisor", dot: "#E0A33A" },
+    { role: "lider", titulo: "Líder", dot: "#008835" },
+  ];
+  const grpHtml = (titulo, dot, n, corpo) => `<div class="cfg-rg">
+      <div class="cfg-rg__h"><span class="cfg-rg__dot" style="background:${dot}"></span><span class="cfg-rg__t">${escapeHtml(titulo)}</span><span class="cfg-rg__c">${n}</span></div>
+      ${corpo}
+    </div>`;
+  const gestoresHtml = GEST_GRUPOS.map((g) => {
+    const us = users.filter((u) => u.role === g.role).sort(byNome);
+    if (!us.length) return "";
+    return grpHtml(g.titulo, g.dot, us.length, `<div class="cfg-list">${us.map((u) => cfgUserRowHtml(u, isFirebaseMode)).join("")}</div>`);
+  }).join("");
+  const colabs = users.filter((u) => !["admin", "rh", "supervisor", "lider"].includes(u.role)).sort(byNome);
+  const colabHtml = colabs.length ? grpHtml("Colaboradores", "#8A9884", colabs.length, `
+      <button type="button" class="cfg-colab-bar" id="cfg-colab-bar" aria-expanded="false">
+        <span class="cfg-colab-ic">${icon("users")}</span>
+        <span class="cfg-colab-tx"><b>${colabs.length} ${colabs.length === 1 ? "colaborador" : "colaboradores"}</b><span>acesso só aos próprios dados. Toque pra ver e gerenciar</span></span>
+        <span class="cfg-colab-chev">${icon("chevron")}</span>
+      </button>
+      <div class="cfg-list cfg-colab-list" id="cfg-colab-list" hidden>${colabs.map((u) => cfgUserRowHtml(u, isFirebaseMode)).join("")}</div>`) : "";
 
   $(selector).innerHTML = `
     ${permissoesMatrizHtml()}
-    <div class="cfg-actbar">
-      <p>Quem acessa, com qual papel e qual escopo.${isFirebaseMode ? " Clique numa linha pra editar." : ""}</p>
+    <div class="cfg-actbar"><p>Quem acessa, com qual papel e qual escopo.${isFirebaseMode ? " Clique numa linha pra editar." : ""}</p></div>
+    <div class="cfg-toolbar">
+      <div class="cfg-srch">${icon("search")}<input type="text" id="cfg-user-search" placeholder="Buscar por nome ou email..." autocomplete="off"></div>
       <button class="btn btn--primary" id="btn-novo-user" ${!isFirebaseMode ? `disabled title="Disponível apenas em modo Firebase"` : ""}>${icon("plus")}<span>Novo usuário</span></button>
     </div>
-
-    <div class="cfg-list">
-      ${state.users.map((u) => `
-        <article class="cfg-row ${isFirebaseMode ? "cfg-row--click" : ""}" data-edit-user="${u.id}" ${isFirebaseMode ? 'role="button" tabindex="0"' : ""}
-                 style="opacity:${u.ativo === false ? "0.55" : "1"};"
-                 title="${isFirebaseMode ? "Clique para editar" : ""}">
-          <div class="avatar" data-uid="${u.id}">${initials(u.nome || u.email || "?")}</div>
-          <div class="cfg-main">
-            <div class="cfg-name">${escapeHtml(u.nome || "(sem nome)")}${u.ativo === false ? ` <span class="cfg-tone">inativo</span>` : ""}</div>
-            <div class="cfg-sub">${escapeHtml(u.email || "@" + u.id)} · ${escopoUsuario(u)}</div>
-          </div>
-          <span class="badge badge--${u.role === "admin" ? "danger" : u.role === "rh" ? "info" : "neutral"}">${roleLabel(u)}</span>
-        </article>
-      `).join("")}
-    </div>
-
+    <div class="cfg-groups">${gestoresHtml}${colabHtml}</div>
     ${!isFirebaseMode ? `
       <div style="margin-top:24px;">
         <button class="btn btn--ghost" id="reset-btn">${icon("alert")}<span>Resetar dados locais</span></button>
@@ -9654,6 +9697,32 @@ function renderUsuariosInto(selector) {
       if (usr) aplicarAvatar(el, usr);
     });
   }
+
+  // Recolher/expandir o grupo de colaboradores (a massa fica escondida por padrão).
+  const colabBar = $("#cfg-colab-bar"), colabList = $("#cfg-colab-list");
+  if (colabBar && colabList) colabBar.addEventListener("click", () => {
+    const abrir = colabList.hidden;
+    colabList.hidden = !abrir;
+    colabBar.setAttribute("aria-expanded", String(abrir));
+    colabBar.classList.toggle("is-open", abrir);
+  });
+  // Busca varre todos os usuários; ao digitar, abre os colaboradores e esconde grupos sem resultado.
+  const busca = $("#cfg-user-search");
+  if (busca) busca.addEventListener("input", () => {
+    const t = busca.value.trim().toLowerCase();
+    if (t && colabList && colabList.hidden) { colabList.hidden = false; if (colabBar) { colabBar.setAttribute("aria-expanded", "true"); colabBar.classList.add("is-open"); } }
+    $$(`${selector} .cfg-row`).forEach((r) => {
+      const nome = r.querySelector(".cfg-name")?.textContent || "";
+      const sub = r.querySelector(".cfg-sub")?.textContent || "";
+      r.style.display = (!t || (nome + " " + sub).toLowerCase().includes(t)) ? "" : "none";
+    });
+    $$(`${selector} .cfg-rg`).forEach((g) => {
+      const linhas = g.querySelectorAll(".cfg-row");
+      if (!linhas.length) return;
+      const algum = Array.from(linhas).some((r) => r.style.display !== "none");
+      g.style.display = (!t || algum) ? "" : "none";
+    });
+  });
 
   const reset = $("#reset-btn");
   if (reset) {
