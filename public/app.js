@@ -1262,7 +1262,7 @@ function aniversariantesDoMesHtml(meuNome) {
   return `<div class="pp-ovl">Aniversariantes do mês</div><div class="pp-aniv">${cards}</div>`;
 }
 
-// Comunicado fixado em destaque na home (reusa .cp-com). Pega o 1o fixado do segmento.
+// Comunicado fixado em destaque na home (reusa .pp-card--pin). Pega o 1o fixado do segmento.
 function comunicadoFixadoHtml() {
   const lista = (typeof colabAvisosOrdenados === "function") ? colabAvisosOrdenados() : (state.comunicadosColab || []);
   const fix = lista.find((c) => c.fixado);
