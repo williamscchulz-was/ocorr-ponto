@@ -2724,6 +2724,12 @@
       // Inicia timer assim que loga
       resetIdleTimer();
 
+      // Renova o ID token à força (1x por login): puxa as CUSTOM CLAIMS (role,
+      // funcionarioId) que o pipeline seta via Admin SDK — é o que as regras do
+      // Storage leem (elas não conseguem consultar o Firestore). Fire-and-forget:
+      // nada do boot depende disso; o Storage só é usado depois.
+      fbUser.getIdToken(true).catch(() => {});
+
       // Busca o doc users/{uid} pra papel/turno
       try {
         const userSnap = await db.collection("users").doc(fbUser.uid).get();

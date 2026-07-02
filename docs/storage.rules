@@ -27,7 +27,12 @@ service firebase.storage {
     //   Colaborador lê SÓ os do próprio funcionarioId (claim); admin/RH leem/escrevem tudo.
     match /recibos/{funcionarioId}/{arquivo=**} {
       allow read:  if gestor() || ehDono(funcionarioId);
-      allow write: if gestor();
+      // Só PDF, teto de 10 MB (um recibo/cartão fatiado tem dezenas de KB; a folga
+      // cobre a versão assinada carimbada da Fase B). Delete (resource null) só gestor.
+      allow write: if gestor()
+        && (request.resource == null
+            || (request.resource.contentType == 'application/pdf'
+                && request.resource.size < 10 * 1024 * 1024));
     }
 
     // Qualquer outro caminho: negado por padrão (não precisa de match explícito).
