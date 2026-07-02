@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.20.3", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.20.4", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "feat", title: "O progresso da importação ganhou vida: os nomes dos funcionários desfilam com um check verde enquanto os arquivos são separados e salvos." },
+    ],
+  },
+  {
+    v: "1.20.3", d: "2 jul 2026", aud: "gestor", items: [
       { type: "fix", title: "Gravação do lote aguenta conexão instável: se o canal com o banco cair no meio, o sistema recicla a conexão e tenta de novo (3 vezes), com lotes mais leves e pausa entre eles." },
       { type: "feat", title: "Sair ou atualizar a página no meio de uma importação agora dispara o aviso do navegador (era assim que lotes morriam pela metade sem ninguém ver)." },
     ],

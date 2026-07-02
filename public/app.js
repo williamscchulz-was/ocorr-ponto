@@ -6500,6 +6500,38 @@ window.addEventListener("beforeunload", (e) => {
   e.returnValue = ""; // exigido pelo Chrome pra exibir o aviso nativo
 });
 
+// Ticker de nomes no overlay de progresso (teatro de carregamento): cada funcionário
+// desfila com um check verde no ritmo da separação/gravação. Fila com teto pra não
+// atrasar demais em relação ao trabalho real.
+let _rcbTickerTimer = null, _rcbTickerFila = [];
+function rcbTickerStart() {
+  rcbTickerStop();
+  const blocker = document.getElementById("form-blocker");
+  const msg = document.getElementById("form-blocker-msg");
+  if (!blocker || !msg) return;
+  const el = document.createElement("div");
+  el.className = "fb-nome"; el.id = "fb-nome";
+  el.setAttribute("aria-hidden", "true"); // decorativo; o progresso real está na msg
+  msg.parentNode.insertBefore(el, msg.nextSibling);
+  _rcbTickerTimer = setInterval(() => {
+    const alvo = document.getElementById("fb-nome");
+    if (!alvo) return rcbTickerStop();
+    const nome = _rcbTickerFila.shift();
+    if (!nome) return;
+    alvo.innerHTML = `${icon("check")}<span>${escapeHtml(nome)}</span>`;
+    alvo.classList.remove("on"); void alvo.offsetWidth; alvo.classList.add("on");
+  }, 220);
+}
+function rcbTickerPush(nomes) {
+  _rcbTickerFila.push(...[].concat(nomes).filter(Boolean));
+  if (_rcbTickerFila.length > 25) _rcbTickerFila.splice(0, _rcbTickerFila.length - 25);
+}
+function rcbTickerStop() {
+  clearInterval(_rcbTickerTimer);
+  _rcbTickerTimer = null; _rcbTickerFila = [];
+  document.getElementById("fb-nome")?.remove();
+}
+
 function openReciboImportModal() {
   // Análise pendurada de uma conferência fechada no Esc/X: solta o pdf.js antes de recomeçar.
   try { _rcbImport?.pdf?.destroy?.(); } catch (e) {}
@@ -6927,6 +6959,7 @@ async function rcbGerar() {
   // antes deixava os 20-40s de trabalho invisíveis — parecia travado e convidava ao F5).
   _rcbProcessando = true;
   showFormBlocker("Separando por funcionário...", ["Separando por funcionário", "Salvando", "Concluído"]);
+  rcbTickerStart(); // os nomes desfilam no overlay enquanto separa e salva
   try {
     const PDFLib = await loadPdfLib();
     const src = await PDFLib.PDFDocument.load(st.buf);
@@ -6940,6 +6973,7 @@ async function rcbGerar() {
       const dataUrl = await out.saveAsBase64({ dataUri: true });
       const f = getFuncionario(fid);
       const nome = (f && f.nome) || g.nome || "";
+      rcbTickerPush(nome);
       if (dataUrl.length > 900000) { grandes.push(nome || fid); continue; } // teto do doc (1 MB)
       itens.push({
         funcionarioId: fid, codigo: (f && f.codigo) || g.codigo || null, nome,
@@ -6948,8 +6982,10 @@ async function rcbGerar() {
       });
     }
     updateFormBlocker(`Salvando 0 de ${itens.length}...`, 1);
-    const r = (await window.criarRecibosEmLote?.(itens, (feitos, tot) => updateFormBlocker(`Salvando ${feitos} de ${tot}...`, 1)))
-      || { ok: false, n: 0, falhas: itens.map((x) => x.nome), err: "backend indisponível" };
+    const r = (await window.criarRecibosEmLote?.(itens, (feitos, tot, nomes) => {
+      updateFormBlocker(`Salvando ${feitos} de ${tot}...`, 1);
+      if (nomes) rcbTickerPush(nomes);
+    })) || { ok: false, n: 0, falhas: itens.map((x) => x.nome), err: "backend indisponível" };
     try { st.pdf?.destroy?.(); } catch (e) {} // solta o worker/memória do pdf.js
     _rcbImport = null;
     hideFormBlocker();
@@ -6985,6 +7021,7 @@ async function rcbGerar() {
     toast("Falha ao gerar: " + (e?.message || e), "danger");
   } finally {
     _rcbProcessando = false;
+    rcbTickerStop();
   }
 }
 
@@ -11657,7 +11694,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.20.3";
+window.CURRENT_VERSION = "1.20.4";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -4527,3 +4527,8 @@ code { font-family: inherit; }
 .rcb-parcial__tx { font-size: 13.5px; color: var(--text-body); line-height: 1.55; margin: 0 0 12px; }
 .rcb-parcial__lista { font-size: 12.5px; color: var(--text-body); background: rgba(224, 163, 58, .08); border: 1px solid rgba(224, 163, 58, .3); border-radius: 10px; padding: 10px 12px; line-height: 1.5; max-height: 30vh; overflow-y: auto; }
 .rcb-parcial__err { font-size: 11px; color: var(--text-muted); margin: 10px 0 0; word-break: break-word; }
+/* ticker de nomes no overlay de progresso (teatro de carregamento dos recibos) */
+.fb-nome { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 8px; min-height: 20px; font-size: 13px; font-weight: 600; color: var(--plum); opacity: 0; }
+.fb-nome svg { width: 14px; height: 14px; flex: none; }
+.fb-nome.on { animation: fbNome .24s var(--ease) forwards; }
+@keyframes fbNome { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }

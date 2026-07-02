@@ -1530,7 +1530,8 @@
         }
         if (okChunk) salvos += chunk.length;
         else falhas.push(...chunk.map((it) => it.nome || it.funcionarioId));
-        onProgress?.(salvos, itens.length);
+        // 3º arg: nomes do chunk que acabou de entrar (alimenta o ticker do overlay)
+        onProgress?.(salvos, itens.length, okChunk ? chunk.map((it) => it.nome || "") : null);
         await espera(150); // respiro entre commits (não afoga o canal)
       }
       if (salvos > 0) {
