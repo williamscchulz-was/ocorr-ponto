@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.22.0", d: "2 jul 2026", current: true, items: [
+    v: "1.22.1", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "feat", title: "As fotos dos colaboradores agora aparecem também no Portal do Gestor: espelho de ponto, conferência de ocorrências, perfil do funcionário, disciplinares e popup do banco de horas." },
+    ],
+  },
+  {
+    v: "1.22.0", d: "2 jul 2026", items: [
       { type: "high", title: "O visualizador de documentos foi refeito: agora o arquivo aparece limpo na tela, com TODAS as páginas (no iPhone só aparecia a primeira), sem barra nem painel do navegador." },
       { type: "fix", aud: "gestor", title: "Ver um recibo assinado ficou confiável: se o download direto falhar, a versão carimbada abre em nova aba em vez de mostrar o original sem avisar." },
     ],

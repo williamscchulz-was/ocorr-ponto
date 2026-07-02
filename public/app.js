@@ -411,6 +411,34 @@ function aplicarAvatar(el, user) {
   }
 }
 
+// Foto oficial do FUNCIONÁRIO no portal do gestor: a mesma foto do colaborador
+// (users.fotoBase64, via vínculo funcionarioId). Mapa com cache invalidado por
+// referência do array (o refetch cria array novo). Sem foto: null (caller usa iniciais).
+let _fotoFuncMap = null, _fotoFuncRef = null;
+function fotoDoFuncionario(funcionarioId) {
+  if (!funcionarioId) return null;
+  const users = state.users || [];
+  if (!_fotoFuncMap || _fotoFuncRef !== users) {
+    _fotoFuncMap = {};
+    for (const u of users) {
+      if (u.funcionarioId && typeof u.fotoBase64 === "string" && u.fotoBase64.indexOf("data:image/") === 0) {
+        _fotoFuncMap[u.funcionarioId] = u.fotoBase64;
+      }
+    }
+    _fotoFuncRef = users;
+  }
+  return _fotoFuncMap[funcionarioId] || null;
+}
+
+// Avatar de funcionário (html string): foto quando existir, senão iniciais.
+// cls = classes existentes do site (o visual local não muda); av-foto só cobre a foto.
+function avatarFuncHtml(f, cls, styleExtra) {
+  const foto = fotoDoFuncionario(f && f.id);
+  const st = [styleExtra || "", foto ? `background-image:url('${foto}')` : ""].filter(Boolean).join(";");
+  if (foto) return `<div class="${cls} av-foto"${st ? ` style="${st}"` : ""} role="img" aria-label="Foto de ${escapeHtml((f && f.nome) || "funcionário")}"></div>`;
+  return `<div class="${cls}"${st ? ` style="${st}"` : ""}>${escapeHtml(initials((f && f.nome) || "?"))}</div>`;
+}
+
 // Carrega uma imagem (File) em Image element. Promise.
 function carregarImagem(file) {
   return new Promise((resolve, reject) => {
@@ -2595,7 +2623,7 @@ function espCartaoHtml(f) {
   const turnoLbl = (f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label
     : (f.turno === "geral" ? "Geral" : (f.turno ? `${f.turno}º Turno` : ""));
   const head = `<div class="esp-ch">
-      <div class="esp-ch__av">${escapeHtml(initials(f.nome || "?"))}</div>
+      ${avatarFuncHtml(f, "esp-ch__av")}
       <div class="esp-ch__bd"><div class="esp-ch__n">${escapeHtml(f.nome || "")}</div><div class="esp-ch__s">${escapeHtml([cargoSetor, turnoLbl, "cód. " + cod].filter(Boolean).join(" · "))}</div></div>
       ${saldo ? `<div class="esp-ch__bh"><b class="${sCls}">${escapeHtml(saldo)}</b><span>saldo atual</span></div>` : ""}
     </div>`;
@@ -2657,7 +2685,7 @@ function renderEspelhoPontoGestor() {
     return s ? `<span class="esp-trow__bh ${cls}">${escapeHtml(s)}</span>` : "";
   };
   const rows = time.map((f) => `<button class="esp-trow ${f.id === sel.id ? "on" : ""}" data-esp-sel="${f.id}">
-      <span class="esp-trow__av">${escapeHtml(initials(f.nome || "?"))}</span>
+      ${avatarFuncHtml(f, "esp-trow__av")}
       <span class="esp-trow__bd"><span class="esp-trow__n">${escapeHtml(f.nome || "")}</span><span class="esp-trow__s">${escapeHtml([f.cargo, f.setor].filter(Boolean).join(" · ") || "—")}</span></span>
       ${bhSaldo(f)}
     </button>`).join("");
@@ -3646,7 +3674,7 @@ function openOcorrenciaDetail(id) {
 
     <div class="modal__body">
       <div class="row" style="margin-bottom:16px; gap:12px;">
-        <div class="avatar avatar--lg">${initials(f?.nome || "?")}</div>
+        ${avatarFuncHtml(f, "avatar avatar--lg")}
         <div>
           <div style="font-weight:600; color:var(--plum); font-size:16px;">${f?.nome || "—"}</div>
           <div class="muted text-sm">${f?.setor || "—"} · ${TURNOS[f?.turno]?.label || "—"}</div>
@@ -4252,7 +4280,7 @@ function renderFuncPerfilSecoes(f) {
 
   return `
     <div class="func-perfil-header">
-      <div class="avatar avatar--lg" style="width:56px; height:56px; font-size:20px;">${initials(f.nome)}</div>
+      ${avatarFuncHtml(f, "avatar avatar--lg", "width:56px; height:56px; font-size:20px")}
       <div style="flex:1; min-width:0;">
         <div class="func-perfil-header__nome">${escapeHtml(f.nome)}${f.diretor === true ? ` <span class="func-selo-diretoria">Diretoria</span>` : ""}${f.aprendiz === true ? ` <span class="badge badge--neutral">Menor Aprendiz</span>` : ""}</div>
         <div class="func-perfil-header__sub">
@@ -5945,7 +5973,7 @@ function discRecHtml(d) {
   return `
     <article class="disc-rec">
       <span class="disc-bar disc-bar--${tm.tone}"></span>
-      <span class="disc-av">${escapeHtml(initials(d.funcionarioNome || "?"))}</span>
+      ${avatarFuncHtml({ id: d.funcionarioId, nome: d.funcionarioNome }, "disc-av")}
       <div class="disc-main">
         <div class="disc-top">
           <span class="disc-nome">${escapeHtml(d.funcionarioNome || "—")}</span>
@@ -7576,7 +7604,7 @@ function openConferirAutoModal(id) {
     </div>
     <div class="modal__body">
       <div class="row" style="margin-bottom:16px; gap:12px;">
-        <div class="avatar avatar--lg">${initials(o.nome || "?")}</div>
+        ${avatarFuncHtml({ id: o.funcionarioId, nome: o.nome }, "avatar avatar--lg")}
         <div>
           <div style="font-weight:600; color:var(--plum); font-size:16px;">${escapeHtml(o.nome || "—")}</div>
           <div class="muted text-sm">${escapeHtml(ocaSetorTurno(o))}</div>
@@ -8082,7 +8110,7 @@ async function openEspelhoPopupBH(funcionarioId) {
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
-      <div class="bhpop-saldo"><span>Saldo atual</span><b class="${tone}">${escapeHtml(saldoStr)}</b></div>
+      <div class="bhpop-saldo">${avatarFuncHtml(f, "avatar")}<span style="margin-right:auto">Saldo atual</span><b class="${tone}">${escapeHtml(saldoStr)}</b></div>
       ${corpo}
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
         <button class="btn btn--ghost" data-close>Fechar</button>
@@ -12227,7 +12255,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.22.0";
+window.CURRENT_VERSION = "1.22.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
