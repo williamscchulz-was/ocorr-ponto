@@ -4592,6 +4592,23 @@ code { font-family: inherit; }
 .bhpop-lbl { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 6px; }
 .bhpop-lbl:first-child { margin-top: 0; }
 .bhpop-body { max-height: 46vh; overflow-y: auto; padding-right: 2px; }
+/* modal premium da ocorrência automática (mock aprovado 2026-07-02): largo no
+   desktop, fatos à esquerda e ação/trilha à direita; 1 coluna no celular. */
+.modal.modal--oca { max-width: 860px; }
+.oca-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
+@media (max-width: 860px) {
+  .modal.modal--oca { max-width: 560px; }
+  .oca-duo { grid-template-columns: 1fr; gap: 14px; }
+}
+.oca-jornada { display: flex; flex-direction: column; gap: 12px; margin: 14px 0 12px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 12px; }
+.oca-jr__k { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin-bottom: 6px; }
+.oca-bat { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 8px; background: var(--row-hover); font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; margin: 0 6px 4px 0; }
+.oca-bat--off { background: var(--warning-bg); color: var(--warning); }
+.oca-bat--off s { color: var(--text-muted); font-weight: 500; }
+.oca-bat--miss { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+.oca-desvio { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--warning-bg); color: var(--warning); font-weight: 700; font-size: 14px; margin: 2px 0 10px; }
+.oca-desvio .icon { width: 16px; height: 16px; }
+.oca-obswk { font-size: 12.5px; color: var(--text-muted); margin-top: 6px; }
 /* histórico no modal de conferência da ocorrência automática */
 .occ--rh { cursor: pointer; }
 .oca-hist { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }

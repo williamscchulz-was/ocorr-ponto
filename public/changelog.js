@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.22.3", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.23.0", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "high", title: "A tela da ocorrência automática cresceu no desktop: duas colunas, com a jornada prevista lado a lado com as batidas do dia, a primeira batida do atraso em destaque e o tempo do atraso calculado (Atraso de 32 min). Vale pra GP conferir e pro líder destinar." },
+      { type: "note", title: "Enquanto o pipeline não preencher as marcações de julho, a tela mostra 'sem marcação no dia' e segue funcionando normal." },
+    ],
+  },
+  {
+    v: "1.22.3", d: "2 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "A lista principal de Funcionários agora mostra a foto de cada colaborador (quem não tem segue com as iniciais)." },
       { type: "fix", title: "Fotos que apareciam estouradas em alguns avatares do gestor (cartão do espelho e disciplinares) agora ficam sempre enquadradas." },
     ],

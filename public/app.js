@@ -7586,50 +7586,38 @@ function ocaAcaoUI(acao, id) {
 function openConferirAutoModal(id) {
   const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
   if (!o || ocaEstagio(o) !== "com_lider") return;
-  const t = ocaTipo(o.tipo);
-  const prev = ocaFmtMarc(o.marcacoesPrevistas);
-  const bat = ocaFmtMarc(o.marcacoesApuradas || o.marcacoes);
-  const saldo = (o.saldoDiario == null || o.saldoDiario === "") ? "" : String(o.saldoDiario);
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
-  const histHtml = ocaHistHtml(o, "Aguardando conferência do líder");
   openModal(`
     <div class="modal__header">
       <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>Aguardando conferência do líder</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
-      <div class="row" style="margin-bottom:16px; gap:12px;">
-        ${avatarFuncHtml({ id: o.funcionarioId, nome: o.nome }, "avatar avatar--lg")}
+      <div class="oca-duo">
+        <div>${ocaFatosHtml(o)}</div>
         <div>
-          <div style="font-weight:600; color:var(--plum); font-size:16px;">${escapeHtml(o.nome || "—")}</div>
-          <div class="muted text-sm">${escapeHtml(ocaSetorTurno(o))}</div>
+          <div class="field">
+            <label for="oca-acao">Ação <span style="color:var(--danger)">*</span></label>
+            <select id="oca-acao" required aria-required="true">
+              <option value="">Escolha como tratar a ocorrência...</option>
+              ${getAllAcoes().map((a) => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.label)}</option>`).join("")}
+            </select>
+            <span class="field__hint">A data da conferência será marcada automaticamente.</span>
+            <div class="ass-erro" id="oca-acao-erro" hidden>Escolha a ação antes de confirmar.</div>
+          </div>
+          <div class="field">
+            <label for="oca-obs">Observação</label>
+            <textarea id="oca-obs" rows="3" placeholder="Adicione contexto, justificativas ou notas..."></textarea>
+          </div>
+          ${ocaHistHtml(o, "Aguardando conferência do líder")}
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+            <button class="btn btn--ghost" data-close>Fechar</button>
+            <button class="btn btn--primary" id="oca-confirmar-btn">${icon("check")}<span>Confirmar conferência</span></button>
+          </div>
         </div>
       </div>
-      <div class="detail-grid">
-        <div class="detail-cell"><label>Tipo</label><strong>${escapeHtml(t.label)}</strong></div>
-        <div class="detail-cell"><label>Previsto</label><strong>${escapeHtml(prev || "—")}</strong></div>
-        <div class="detail-cell"><label>Batido</label><strong>${escapeHtml(bat || "sem marcação")}</strong></div>
-        ${saldo ? `<div class="detail-cell"><label>Saldo do dia</label><strong>${escapeHtml(saldo)}</strong></div>` : ""}
-      </div>
-      <div class="field">
-        <label for="oca-acao">Ação <span style="color:var(--danger)">*</span></label>
-        <select id="oca-acao" required aria-required="true">
-          <option value="">Escolha como tratar a ocorrência...</option>
-          ${getAllAcoes().map((a) => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.label)}</option>`).join("")}
-        </select>
-        <span class="field__hint">A data da conferência será marcada automaticamente.</span>
-        <div class="ass-erro" id="oca-acao-erro" hidden>Escolha a ação antes de confirmar.</div>
-      </div>
-      <div class="field">
-        <label for="oca-obs">Observação</label>
-        <textarea id="oca-obs" rows="3" placeholder="Adicione contexto, justificativas ou notas..."></textarea>
-      </div>
-      ${histHtml}
-      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
-        <button class="btn btn--ghost" data-close>Fechar</button>
-        <button class="btn btn--primary" id="oca-confirmar-btn">${icon("check")}<span>Confirmar conferência</span></button>
-      </div>
     </div>`);
+  document.querySelector("#modal-root .modal")?.classList.add("modal--oca");
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
   $("#oca-confirmar-btn")?.addEventListener("click", async (e) => {
     const sel = $("#oca-acao")?.value || "";
@@ -7669,6 +7657,79 @@ function ocaHistHtml(o, proximaEtapa) {
     </div>`;
 }
 
+// "HH:MM" -> minutos (null se inválido).
+function ocaMin(hhmm) {
+  const m = /^(\d{1,3}):(\d{2})$/.exec(String(hhmm || "").trim());
+  return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+}
+// minutos -> "32 min" / "1h 05".
+function ocaDuracaoHumana(min) {
+  if (min == null || min <= 0) return "";
+  const h = Math.floor(min / 60), m = min % 60;
+  return h ? `${h}h ${String(m).padStart(2, "0")}` : `${m} min`;
+}
+// Tamanho do desvio em minutos: usa duracaoFmt do doc (fonte WK); sem ele, calcula
+// das marcações (atraso: 1ª batida x 1º previsto; saída: último previsto x última
+// batida). Falta não tem desvio (retorna null).
+function ocaDesvioMin(o) {
+  const d = ocaMin(String(o.duracaoFmt || "").replace(/^-/, ""));
+  if (d != null && d > 0) return d;
+  const prevArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
+  const batArr = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
+  if (!prevArr.length || !batArr.length) return null;
+  const tipo = String(o.tipo || "").toLowerCase();
+  let diff = null;
+  if (tipo.includes("atraso")) {
+    const p = ocaMin(prevArr[0]), b = ocaMin(batArr[0]);
+    if (p != null && b != null) diff = b - p;
+  } else if (/sa[ií]da/.test(tipo)) {
+    const p = ocaMin(prevArr[prevArr.length - 1]), b = ocaMin(batArr[batArr.length - 1]);
+    if (p != null && b != null) diff = p - b;
+  }
+  return diff != null && diff > 0 ? diff : null;
+}
+
+// Coluna dos FATOS da ocorrência automática (mock premium aprovado 2026-07-02):
+// pessoa, tipo/dia, jornada prevista x batidas (1ª batida do atraso em destaque com o
+// previsto riscado), badge do desvio, saldo do dia e observação do WK. Degrada com
+// elegância quando o pipeline ainda não preencheu (sem marcação no dia, sem badge).
+function ocaFatosHtml(o) {
+  const t = ocaTipo(o.tipo);
+  const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
+  const prevArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
+  const batArr = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
+  const saldo = (o.saldoDiario == null || o.saldoDiario === "" || o.saldoDiario === "00:00") ? "" : String(o.saldoDiario);
+  const desvio = ocaDesvioMin(o);
+  const ehAtraso = String(o.tipo || "").toLowerCase().includes("atraso");
+  const chips = (arr) => arr.map((x) => `<span class="oca-bat">${escapeHtml(x)}</span>`).join("");
+  const batidas = batArr.length
+    ? batArr.map((b, i) => (i === 0 && ehAtraso && desvio)
+        ? `<span class="oca-bat oca-bat--off">${escapeHtml(b)}${prevArr[0] ? ` <s>${escapeHtml(prevArr[0])}</s>` : ""}</span>`
+        : `<span class="oca-bat">${escapeHtml(b)}</span>`).join("")
+    : `<span class="oca-bat--miss">sem marcação no dia</span>`;
+  const rotDesvio = ehAtraso ? "Atraso" : t.label;
+  return `
+    <div class="row" style="margin-bottom:14px; gap:12px;">
+      ${avatarFuncHtml({ id: o.funcionarioId, nome: o.nome }, "avatar avatar--lg")}
+      <div>
+        <div style="font-weight:600; color:var(--plum); font-size:16px;">${escapeHtml(o.nome || "—")}</div>
+        <div class="muted text-sm">${escapeHtml(ocaSetorTurno(o))}</div>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-cell"><label>Tipo</label><strong>${escapeHtml(t.label)}</strong></div>
+      <div class="detail-cell"><label>Dia</label><strong>${escapeHtml(dataLbl)}</strong></div>
+      ${o.horario ? `<div class="detail-cell"><label>Horário</label><strong>${escapeHtml(o.horario)}</strong></div>` : ""}
+      ${saldo ? `<div class="detail-cell"><label>Saldo do dia</label><strong class="${saldo.startsWith("-") ? "esp-neg" : ""}">${escapeHtml(saldo)}</strong></div>` : ""}
+    </div>
+    <div class="oca-jornada">
+      <div><span class="oca-jr__k">Jornada prevista</span><div>${prevArr.length ? chips(prevArr) : `<span class="oca-bat--miss">não informada</span>`}</div></div>
+      <div><span class="oca-jr__k">Batidas do dia</span><div>${batidas}</div></div>
+    </div>
+    ${desvio ? `<div class="oca-desvio">${icon("clock")}<span>${escapeHtml(rotDesvio)} de ${escapeHtml(ocaDuracaoHumana(desvio))}</span></div>` : ""}
+    ${o.observacaoWK ? `<div class="oca-obswk">Observação do WK: ${escapeHtml(o.observacaoWK)}</div>` : ""}`;
+}
+
 // Detalhe de QUALQUER ocorrência automática ao clicar no card (a manual sempre teve
 // essa tela; pedido do William 2026-07-02): pessoa, marcações, trilha completa com
 // motivo da dispensa e destino da conferência, mais as ações do estágio.
@@ -7677,10 +7738,6 @@ function openDetalheAutoModal(id) {
   if (!o) return;
   const est = ocaEstagio(o);
   if (est === "com_lider") return openConferirAutoModal(id); // a tela de agir JÁ É o detalhe
-  const t = ocaTipo(o.tipo);
-  const prev = ocaFmtMarc(o.marcacoesPrevistas);
-  const bat = ocaFmtMarc(o.marcacoesApuradas || o.marcacoes);
-  const saldo = (o.saldoDiario == null || o.saldoDiario === "") ? "" : String(o.saldoDiario);
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
   const sub = { rh_confere: "Aguardando conferência da GP", confirmada: "Conferência confirmada", dispensada: "Dispensada pela GP" }[est] || "";
   const acoesHtml = est === "rh_confere"
@@ -7693,22 +7750,15 @@ function openDetalheAutoModal(id) {
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
-      <div class="row" style="margin-bottom:16px; gap:12px;">
-        ${avatarFuncHtml({ id: o.funcionarioId, nome: o.nome }, "avatar avatar--lg")}
+      <div class="oca-duo">
+        <div>${ocaFatosHtml(o)}</div>
         <div>
-          <div style="font-weight:600; color:var(--plum); font-size:16px;">${escapeHtml(o.nome || "—")}</div>
-          <div class="muted text-sm">${escapeHtml(ocaSetorTurno(o))}</div>
+          ${ocaHistHtml(o, est === "rh_confere" ? "GP valida e envia ao líder, ou dispensa" : "")}
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">${acoesHtml}</div>
         </div>
       </div>
-      <div class="detail-grid">
-        <div class="detail-cell"><label>Tipo</label><strong>${escapeHtml(t.label)}</strong></div>
-        <div class="detail-cell"><label>Previsto</label><strong>${escapeHtml(prev || "—")}</strong></div>
-        <div class="detail-cell"><label>Batido</label><strong>${escapeHtml(bat || "sem marcação")}</strong></div>
-        ${saldo ? `<div class="detail-cell"><label>Saldo do dia</label><strong>${escapeHtml(saldo)}</strong></div>` : ""}
-      </div>
-      ${ocaHistHtml(o, est === "rh_confere" ? "GP valida e envia ao líder, ou dispensa" : "")}
-      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">${acoesHtml}</div>
     </div>`);
+  document.querySelector("#modal-root .modal")?.classList.add("modal--oca");
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
   $("#oca-det-validar")?.addEventListener("click", (e) => {
     e.currentTarget.disabled = true;
@@ -12362,7 +12412,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.22.3";
+window.CURRENT_VERSION = "1.23.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
