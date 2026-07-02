@@ -1022,3 +1022,20 @@ Perguntei ao William se via risco grande antes de implementar — avaliação: b
 **Aviso pro PC**: contas de gestor (admin/rh/líder/supervisor) são criadas pelo lado dele — o backfill cobriu quem já existe, mas gestor novo precisa da mesma lógica no fluxo de criação dele, senão nasce sem claim.
 
 Mandado pro bridge (`inbox-pc/2026-07-02-claims-backfill-feito.md`) com o handshake de teste que ele pediu (2 uids — 1 colaborador, 1 rh — claims confirmadas em ambos).
+
+
+---
+
+## 2026-07-02 · 🔧 Auto-heal de claims p/ todos os papéis + 📷 fotos oficiais do Drive automáticas
+
+Duas missões do PC no mesmo pedido.
+
+**1) Auto-heal de custom claims estendido pra todo mundo.** PC explicou por que minha sugestão anterior (ele espelhar `setCustomUserClaims` no fluxo de criação de gestor) não dava: é API Admin SDK, o app roda client SDK, não tem como. Solução: o `backfill-custom-claims.mjs` que já varria TODOS os `users/{uid}` (sem filtro de papel) virou etapa recorrente do pipeline (7b/10) em vez de passada única — gestor novo criado pelo app se autocura em até uma rodada (≤8h).
+
+**2) `sync-fotos-drive.mjs` (novo): fotos oficiais do Drive → avatar automático.** William quer as fotos entrando sozinhas, sem clique de ninguém. Casamento arquivo→funcionário por código no nome do arquivo (`"1244 - Dioneia..."`) ou, sem código, nome normalizado contra `parsed-empregado.json`. Contrato rígido (regra de ouro do William, "faz isso apenas uma vez"): fotoBase64 ausente/null → preenche; `""` → respeita remoção proposital (nunca repõe); dataURL existente → intocável (escolha do funcionário). Imagem processada com `sharp`: quadrado 300px, JPEG q75, ~9KB real (bem abaixo da meta de 40KB).
+
+Service account já tinha acesso de leitura na pasta do Drive — não precisou pedir compartilhamento pro William.
+
+**Testado**: 80 imagens na pasta do Drive, 76 casaram (74 por código + 2 por nome), 4 não bateram (nomes que não existem no roster atual — Alexander Schacht Sasse, Hernandes Schlickamann, Joacir Branger, Edilson Locks — logado claro no relatório pro PC ver o padrão com o William se quiser). 73 gravados de verdade (3 casaram mas ainda não têm login criado). 0 erros. Rodei `--dry` antes de aplicar, mesmo resultado — confirma idempotência.
+
+Ligadas no pipeline como etapas best-effort (7b/10 claims, 7c/10 fotos). Novas dependências: `googleapis`, `sharp`. Respondido pro PC no bridge com os números.
