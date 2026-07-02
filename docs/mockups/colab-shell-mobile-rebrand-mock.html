@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Rebranding do topo e da nav bar no mobile (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Michroma&display=swap" rel="stylesheet">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 80px;font-family:Poppins,sans-serif;color:#EDF3EA}
+  .wrap{max-width:1340px;margin:0 auto}
+  .note{font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65;margin-bottom:30px}
+  .note b{color:#EDF3EA}
+  .row{display:flex;flex-wrap:wrap;gap:clamp(16px,2vw,34px);align-items:flex-start;justify-content:center}
+  .col{display:flex;flex-direction:column;align-items:center;width:390px;max-width:100%}
+  .ilabel{width:100%;box-sizing:border-box;padding:0 4px;margin-bottom:12px}
+  .itag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:rgba(95,203,133,.15);color:#5FCB85;border:1px solid rgba(95,203,133,.35);border-radius:999px;padding:2px 10px;vertical-align:middle}
+  .ilabel b{display:inline-block;font-size:14px;margin-left:9px;vertical-align:middle;letter-spacing:-.01em}
+  .ilabel p{margin:6px 0 0;font-size:12px;color:#8A9884;line-height:1.55}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin-top:10px;font-weight:600;max-width:360px}
+  .foot{margin-top:36px;font-size:12.5px;color:#8A9884;background:#0C110B;border:1px solid #1c241b;border-radius:12px;padding:13px 16px;line-height:1.7;text-align:center}
+  .foot b{color:#EDF3EA}
+
+  /* ===== telefone (fundacao escura do colaborador) ===== */
+  .phone{
+    --bg:#0E130E;--surface:#161D15;--surface-warm:#1E261D;
+    --border:#232C22;--text:#EDF3EA;--muted:#8A9884;
+    --green:#5FCB85;--green-soft:#9FE0B5;--warning:#E8B468;
+    width:390px;max-width:100%;box-sizing:border-box;background:var(--bg);
+    border:1px solid #232C22;border-radius:30px;overflow:hidden;position:relative;
+    box-shadow:0 30px 70px -30px rgba(0,0,0,.8);color:var(--text);
+  }
+  .phone__bar{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:11px;font-weight:600;position:relative;z-index:2}
+  .scr{position:relative;z-index:1;height:600px;overflow-y:auto;padding:10px 16px 108px;box-sizing:border-box;scrollbar-width:none;scroll-behavior:smooth}
+  .scr::-webkit-scrollbar{display:none}
+
+  /* fundo em camadas do frame liquid glass (eco da Home aprovada) */
+  .blob{position:absolute;border-radius:50%;filter:blur(46px);pointer-events:none;z-index:0}
+  .blob--a{width:250px;height:250px;top:-80px;left:-70px;background:rgba(52,199,119,.16)}
+  .blob--b{width:230px;height:230px;top:250px;right:-100px;background:rgba(15,110,86,.24)}
+  .blob--c{width:240px;height:180px;bottom:-50px;left:-50px;background:rgba(52,199,119,.10)}
+
+  /* ===== cabecalhos ===== */
+  .ptitle{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin:0 0 16px;color:var(--text)}
+  .backbtn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;margin:4px 0 12px;transition:transform .15s ease}
+  .backbtn:active{transform:scale(.9)}
+  .backbtn svg{width:18px;height:18px}
+  .titlerow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .titlerow .ptitle{flex:1}
+  .themebtn{width:32px;height:32px;flex:none;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s ease}
+  .themebtn:active{transform:scale(.9)}
+  .themebtn svg{width:15px;height:15px}
+  .brandline{display:flex;align-items:center;justify-content:space-between;padding:4px 0 16px}
+  .wordmark{font-family:Michroma,Poppins,sans-serif;font-size:13px;letter-spacing:.02em;color:var(--text)}
+  .wordmark i{font-style:normal;color:var(--green)}
+
+  /* ===== conteudo: Folha de pagamento ===== */
+  .seclbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:2px 2px 9px}
+  .rc{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:13px 14px;margin-bottom:10px;cursor:pointer}
+  .rc__ic{width:40px;height:40px;flex:none;border-radius:13px;background:var(--surface-warm);color:var(--green);display:flex;align-items:center;justify-content:center}
+  .rc__ic svg{width:19px;height:19px}
+  .rc__bd{flex:1;min-width:0}
+  .rc__t{font-size:14.5px;font-weight:600}
+  .rc__s{font-size:12px;color:var(--muted);margin-top:2px}
+  .rc__chev{color:var(--muted);flex:none;display:flex}
+  .rc__chev svg{width:16px;height:16px}
+  .rtag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;background:rgba(95,203,133,.14);color:#7FDCA4;border:1px solid rgba(95,203,133,.32);border-radius:999px;padding:2px 9px;margin-left:6px;vertical-align:middle}
+  .rtag svg{width:10px;height:10px}
+  .privnote{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--muted);line-height:1.6;padding:10px 4px 0}
+  .privnote svg{width:15px;height:15px;flex:none;margin-top:2px;color:var(--green)}
+
+  /* frame liquid glass: cards em vidro */
+  .phone--glass .rc{background:rgba(30,41,28,.55);border-color:rgba(255,255,255,.08);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%)}
+  .phone--glass .rc__ic{background:rgba(95,203,133,.12)}
+
+  /* ===== barras de baixo ===== */
+  .bn{position:absolute;left:0;right:0;bottom:0;display:flex;z-index:5}
+  .bn__it{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;color:var(--muted);font:inherit;font-size:10px;font-weight:600;padding:6px 2px 5px;position:relative;cursor:pointer;z-index:1;transition:color .25s ease}
+  .bn__it svg{width:21px;height:21px;transition:transform .25s ease}
+  .bn__it.on{color:var(--green);font-weight:700}
+  .bn__it:active svg{transform:scale(.88)}
+  .bn__dot{position:absolute;top:2px;right:calc(50% - 16px);min-width:15px;height:15px;border-radius:99px;background:var(--warning);color:#3a2a05;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+  /* ideia 1: barra atual polida, encostada na borda */
+  .bn--flat{background:var(--surface);border-top:1px solid var(--border);padding:7px 6px 12px}
+  .bn--flat .bn__it.on svg{transform:translateY(-1px)}
+
+  /* ideia 2: pill deslizante no item ativo */
+  .bn--pill{background:var(--surface);border-top:1px solid var(--border);padding:7px 8px 12px}
+  .bn--pill .bn__pillbg{position:absolute;top:11px;height:52px;border-radius:17px;background:rgba(95,203,133,.13);z-index:0;pointer-events:none}
+  .bn--pill .bn__pillbg.ready{transition:left .35s cubic-bezier(.3,.8,.3,1),width .35s cubic-bezier(.3,.8,.3,1)}
+  .bn--pill .bn__it{padding:9px 2px 8px}
+
+  /* ideia 3: ilha de vidro flutuante */
+  .bn--glass{
+    left:16px;right:16px;bottom:16px;border-radius:26px;padding:7px;
+    background:rgba(21,29,20,.55);
+    backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
+    border:1px solid rgba(255,255,255,.13);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 24px 48px -16px rgba(0,0,0,.85);
+  }
+  .bn--glass .bn__it{border-radius:19px;padding:8px 2px 7px;transition:background .25s ease,color .25s ease}
+  .bn--glass .bn__it.on{background:rgba(95,203,133,.17);color:var(--green-soft)}
+  .bn--glass .bn__dot{top:4px}
+</style></head>
+<body><div class="wrap">
+
+<div class="note">
+  <b>Mock · Rebranding do topo e da barra de baixo, só no celular.</b> O desktop segue exatamente como está. Hoje as páginas internas abrem com um header em card com o nome da página e um título gigante repetindo o mesmo nome logo abaixo; nas três ideias esse header em card morre e a página abre direto no título. A tela de exemplo é a <b>Folha de pagamento</b>. As barras de baixo são clicáveis: toque num item pra trocar o ativo.
+</div>
+
+<div class="row">
+
+<!-- ============ IDEIA 1: so o titulo ============ -->
+<div class="col">
+  <div class="ilabel">
+    <span class="itag">Ideia 1</span><b>Só o título</b>
+    <p>Nada de marca no topo: voltar, título grande e o botão de tema na mesma linha. Barra de baixo atual, polida.</p>
+  </div>
+  <div class="phone">
+    <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+    <div class="scr">
+      <button class="backbtn" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+      <div class="titlerow">
+        <h1 class="ptitle">Folha de pagamento</h1>
+        <button class="themebtn" aria-label="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
+      </div>
+      <div class="seclbl">Meus recibos</div>
+      <div class="rc">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Maio de 2026</div><div class="rc__s">Recibo de pagamento · 1 pág <span class="rtag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Assinado</span></div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="privnote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Só você vê os seus recibos. O RH vê apenas a confirmação da assinatura.</span></div>
+    </div>
+    <div class="bn bn--flat">
+      <button class="bn__it on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</button>
+      <button class="bn__it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Avisos<span class="bn__dot">2</span></button>
+      <button class="bn__it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg>Conta</button>
+    </div>
+  </div>
+  <div class="cap">O mais enxuto possível: a tela é só conteúdo, e a barra continua encostada na borda como hoje.</div>
+</div>
+
+<!-- ============ IDEIA 2: wordmark discreta ============ -->
+<div class="col">
+  <div class="ilabel">
+    <span class="itag">Ideia 2</span><b>Wordmark discreta</b>
+    <p>Linha fina transparente com a marca FioPulse pequena e o tema; título grande abaixo. Barra com pill deslizante no ativo.</p>
+  </div>
+  <div class="phone">
+    <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+    <div class="scr">
+      <div class="brandline">
+        <span class="wordmark">Fio<i>Pulse</i></span>
+        <button class="themebtn" aria-label="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
+      </div>
+      <h1 class="ptitle">Folha de pagamento</h1>
+      <div class="seclbl">Meus recibos</div>
+      <div class="rc">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Maio de 2026</div><div class="rc__s">Recibo de pagamento · 1 pág <span class="rtag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Assinado</span></div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="privnote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Só você vê os seus recibos. O RH vê apenas a confirmação da assinatura.</span></div>
+    </div>
+    <div class="bn bn--pill">
+      <span class="bn__pillbg"></span>
+      <button class="bn__it on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</button>
+      <button class="bn__it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Avisos<span class="bn__dot">2</span></button>
+      <button class="bn__it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg>Conta</button>
+    </div>
+  </div>
+  <div class="cap">A marca fica presente em toda página, mas mínima. A pill desliza quando você troca de aba.</div>
+</div>
+
+<!-- ============ IDEIA 3: liquid glass ============ -->
+<div class="col">
+  <div class="ilabel">
+    <span class="itag">Ideia 3</span><b>Liquid glass</b>
+    <p>Nenhum header, título direto. A barra vira uma ilha de vidro flutuante e o conteúdo passa por baixo dela ao rolar.</p>
+  </div>
+  <div class="phone phone--glass">
+    <span class="blob blob--a"></span><span class="blob blob--b"></span><span class="blob blob--c"></span>
+    <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+    <div class="scr">
+      <h1 class="ptitle" style="margin-top:8px">Folha de pagamento</h1>
+      <div class="seclbl">Meus recibos</div>
+      <div class="rc">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Maio de 2026</div><div class="rc__s">Recibo de pagamento · 1 pág <span class="rtag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Assinado</span></div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="rc">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Abril de 2026</div><div class="rc__s">Recibo de pagamento · 1 pág <span class="rtag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Assinado</span></div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="rc">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Março de 2026</div><div class="rc__s">Recibo de pagamento · 1 pág <span class="rtag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Assinado</span></div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="seclbl" style="margin-top:16px">2025</div>
+      <div class="rc">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Dezembro de 2025</div><div class="rc__s">Recibo de pagamento · 1 pág <span class="rtag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Assinado</span></div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="rc">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Novembro de 2025</div><div class="rc__s">Recibo de pagamento · 1 pág <span class="rtag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Assinado</span></div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="privnote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Só você vê os seus recibos. O RH vê apenas a confirmação da assinatura.</span></div>
+    </div>
+    <div class="bn bn--glass">
+      <button class="bn__it on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</button>
+      <button class="bn__it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Avisos<span class="bn__dot">2</span></button>
+      <button class="bn__it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg>Conta</button>
+    </div>
+  </div>
+  <div class="cap">Arraste a lista pra ver o conteúdo passando por baixo do vidro. Combina com a Home liquid glass já aprovada.</div>
+</div>
+
+</div>
+
+<div class="foot">
+  <b>Nas três ideias o header em card deixa de existir</b> e a página abre direto no título grande. O que muda entre elas: quanto de marca fica no topo (nada na 1 e na 3; wordmark pequena na 2) e o estilo da barra de baixo (encostada e polida na 1; pill deslizante na 2; ilha de vidro flutuante na 3).
+</div>
+
+</div>
+<script>
+(function(){
+  var reposFns = [];
+  document.querySelectorAll('.bn').forEach(function(bar){
+    var items = Array.prototype.slice.call(bar.querySelectorAll('.bn__it'));
+    var pill = bar.querySelector('.bn__pillbg');
+    function movePill(it){
+      if(!pill) return;
+      pill.style.left = (it.offsetLeft + 8) + 'px';
+      pill.style.width = (it.offsetWidth - 16) + 'px';
+    }
+    items.forEach(function(it){
+      it.addEventListener('click', function(){
+        items.forEach(function(o){ o.classList.remove('on'); });
+        it.classList.add('on');
+        movePill(it);
+      });
+    });
+    function repos(){
+      var ativo = bar.querySelector('.bn__it.on');
+      if(ativo) movePill(ativo);
+    }
+    repos();
+    reposFns.push(repos);
+    if(pill){
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ pill.classList.add('ready'); });
+      });
+    }
+  });
+  function reposAll(){ reposFns.forEach(function(f){ f(); }); }
+  window.addEventListener('resize', reposAll);
+  window.addEventListener('load', reposAll);
+})();
+</script>
+</body></html>
