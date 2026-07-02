@@ -981,3 +981,14 @@ William pediu pra habilitar login dos menores aprendizes porque precisam ver a p
 O código tinha uma exclusão deliberada pra essa categoria (`sync-colaborador-users.mjs`, decisão do próprio William em 2026-06-24 — "Menor aprendiz: NÃO cria e revoga"). Como é dado de menor de idade + informação financeira/salarial sensível (LGPD tem regra especial pra dado de criança/adolescente), não apliquei de primeira — perguntei se isso já tinha sido validado com jurídico/RH antes de reverter a trava. Confirmado que sim, pode liberar.
 
 **Mudança em `sync-colaborador-users.mjs`**: removida a exclusão de `aprendiz` da lógica de `motivoSemAcesso` (Diretoria e Aposentadoria por Invalidez continuam sem acesso, inalterado). Testado com `--dry` antes de aplicar de verdade: **4 aprendizes reativados** (contas já existiam desde antes da regra de 06-24, só estavam revogadas — não foram criadas do zero), 0 erros.
+
+
+---
+
+## 2026-07-02 · 🔍 Aprendizes sem CPF em nenhuma coleção — achado repassado pro PC
+
+Depois de habilitar o login dos aprendizes, William testou a tela nova de Conferência de recibos do PC (v248) com o holerite de uma aprendiz e bateu em "CPF não está no cadastro".
+
+Investigado: **não é bug** — é lacuna estrutural. Os 4 aprendizes (f-1200 a f-1203) existem em `funcionarios` mas sem CPF (regra de LGPD: CPF só em `banco-horas-saldos`). E eles não existem em `banco-horas-saldos`/`banco-horas-self`/`bancoHoras` porque **nunca aparecem no export de Banco de Horas do WK** (regime de aprendiz não gera banco de horas, vem de dentro do ERP, não é filtro do pipeline). Resultado: hoje não existe nenhuma coleção com CPF pros aprendizes.
+
+Mandado pro PC (`inbox-pc/2026-07-02-aprendizes-sem-cpf-nenhuma-colecao.md`) — conectei com o "diretório de identificação (código+nome+CPF)" que ele já tinha comentado que ia construir pra outra coisa (custom claims do Storage), sugerindo desenhar pensando nos dois usos de uma vez. Não mexi em nada, é decisão dele.
