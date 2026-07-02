@@ -340,6 +340,26 @@ service cloud.firestore {
         && request.resource.data.competencia == resource.data.competencia;
 
       allow delete: if isAdmin();
+
+      // arquivo/{docId}: o PDF (base64) mora AQUI, separado dos metadados — a lista do
+      // gestor lê só o pai (leve) e o arquivo é buscado sob demanda ao abrir. funcionarioId
+      // DENORMALIZADO no subdoc (evita get() no pai a cada LEITURA). No CREATE, o subdoc é
+      // AMARRADO ao pai: precisa existir (existsAfter cobre o batch pai+filho junto) e o
+      // funcionarioId tem que bater com o do pai — sem arquivo órfão nem trocado. Payload
+      // fechado (hasOnly). Imutável: substituição = admin exclui o lote e o GP reimporta.
+      // delete só admin é DECISÃO (espelha documentos): RH gerencia create/update; destruir, não.
+      match /arquivo/{docId} {
+        allow read: if isAdmin() || temCap('recibos.gerenciar', isRH())
+                    || (isColaborador() && resource.data.funcionarioId == meuFuncionarioId());
+        allow create: if (isAdmin() || temCap('recibos.gerenciar', isRH()))
+                      && request.resource.data.keys().hasOnly(['funcionarioId', 'base64'])
+                      && request.resource.data.funcionarioId is string
+                      && existsAfter(/databases/$(database)/documents/recibos/$(id))
+                      && request.resource.data.funcionarioId
+                           == getAfter(/databases/$(database)/documents/recibos/$(id)).data.funcionarioId;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
     }
 
     // ----- pipeline-rh (estrutura cur/hist · espelho do Comercial · SEM PII) -----

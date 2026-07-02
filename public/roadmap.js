@@ -551,38 +551,60 @@ window.ROADMAP = {
     {
       id: "meus-holerites-repositorio-pdf",
       numero: 18,
-      nome: "Meus holerites — repositório de PDFs via upload do GP",
+      nome: "Folha de pagamento — recibos por funcionário (import + quebra por CPF)",
+      fase: "fase1",
+      prioridade: "alta",
+      complexidade: "medio",
+      status: "concluido",
+      concluidoEm: "2026-07-02",
+      classificacao: "adapta",
+      descricao: "ENTREGUE (v247) melhor que o plano: em vez de upload manual por funcionário, o GP importa UM PDF da folha (WK) na aba \"Recibos e cartão ponto\" (Documentos) e o sistema separa por funcionário casando o CPF de cada página (banco-horas-saldos) + nome do cadastro no texto, com conferência página a página (miniaturas reais via pdf.js) antes de gerar. Fatia com pdf-lib (CDN, sob demanda); metadados em recibos/{funcionarioId}_{competencia}_{tipo} + base64 na subcoleção arquivo (rule SELF, testes no emulator). Colaborador vê no menu novo \"Folha de pagamento\".",
+      objetivo: "Acesso self ao contracheque — um dos itens mais valiosos do portal — sem esperar o ERP.",
+      dependencias: ["#11", "pdf.js + pdf-lib", "rule read SELF"],
+      criteriosAceite: [
+        "GP importa 1 PDF e o colaborador vê só os próprios e abre o PDF no app.",
+        "Acessar de terceiro negado (rule + testes).",
+        "Conferência resolve não identificados na mão antes de gerar.",
+        "Sem PDFs, estado vazio honesto."
+      ]
+    },
+    {
+      id: "recibos-assinatura-carimbada",
+      numero: null,
+      nome: "Assinatura do recibo carimbada no arquivo (Fase B)",
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
       status: "planejado",
-      classificacao: "adapta",
-      descricao: "Reframe: repositório de PDFs com upload/importação pelo GP (reusa o padrão de anexo do PJ + Drive + ehUrlSegura), não integração automática com ERP. holerites/{id} (funcionarioId, competencia, urlPdf, tipo); rule read self.",
-      objetivo: "Acesso self ao contracheque — um dos itens mais valiosos do portal — entregável sem billing e sem esperar o ERP.",
-      dependencias: ["#11", "anexo PJ + google-drive.js", "rule read SELF"],
+      classificacao: "cria",
+      descricao: "O colaborador assina o recibo (obrigatório) com re-autenticação por senha, geolocalização EXIGIDA (como o Joinin) e o box \"Termos de Assinatura e Registro Eletrônico\" + nome em fonte de assinatura CARIMBADOS dentro do PDF via pdf-lib (provado no arquivo real). Versão assinada gravada; trilha em /assinaturas + auditoria. Storage entra quando as custom claims (WKRADAR) estiverem no ar.",
+      objetivo: "Substituir a assinatura em papel do recibo com prova rica (quem, quando, onde, hash) visível no próprio arquivo.",
+      dependencias: ["#18", "pdf-lib", "custom claims (WKRADAR)", "geolocalização"],
       criteriosAceite: [
-        "GP faz upload e o colaborador vê só os próprios e abre o PDF.",
-        "Acessar de terceiro negado.",
-        "Sem PDFs, estado vazio honesto."
+        "Sem permitir a localização, não assina.",
+        "O PDF assinado carrega o box de termos + nome em fonte de assinatura.",
+        "Trilha imutável (uid, hora-servidor, geo, hash).",
+        "GP vê quem assinou e quem falta."
       ]
     },
     {
       id: "espelho-ponto-repositorio-pdf",
       numero: 15,
-      nome: "Espelho de ponto — repositório de PDFs via upload do GP",
+      nome: "Cartão ponto oficial em arquivo (mesmo motor dos recibos)",
       fase: "fase1",
       prioridade: "alta",
       complexidade: "medio",
-      status: "planejado",
+      status: "concluido",
+      concluidoEm: "2026-07-02",
       classificacao: "adapta",
-      descricao: "Espelho de ponto como PDF importado pelo GP (mesmo padrão dos holerites), por competência. Deixa explícito que é o espelho que a folha/relógio já gera, não batidas vivas calculadas pelo app.",
-      objetivo: "Entregar o espelho de ponto agora, sem depender da integração de batidas.",
+      descricao: "ENTREGUE (v247) junto com os recibos: o MESMO importador (aba \"Recibos e cartão ponto\") aceita tipo \"Cartão ponto\" — um PDF da competência, quebrado por CPF. O colaborador vê em Meu ponto, na seção \"Cartão ponto (arquivo)\", convivendo com o espelho ao vivo do banco-horas-self.",
+      objetivo: "O cartão ponto oficial que a folha/relógio já gera, em arquivo, sem depender da integração de batidas.",
       dependencias: ["#18", "#11"],
       criteriosAceite: [
-        "GP faz upload por competência.",
-        "Colaborador abre só os próprios PDFs.",
+        "GP importa por competência com o mesmo fluxo dos recibos.",
+        "Colaborador abre só os próprios PDFs (rule SELF).",
         "Acessar de terceiro negado.",
-        "Sem PDFs, vazio honesto."
+        "Sem PDFs, a seção some (vazio honesto)."
       ]
     },
     {

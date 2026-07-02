@@ -793,26 +793,23 @@ function renderPortalColaborador(u) {
 const COLAB_NAV = [
   { id: "colab-home", label: "Início", icon: "home" },
   { id: "colab-ponto", label: "Meu Ponto", icon: "clock" },
+  { id: "colab-folha", label: "Folha de pagamento", icon: "briefcase" },
   { id: "colab-comunicados", label: "Avisos", icon: "megafone" },
   { id: "colab-documentos", label: "Documentos", icon: "file" },
   { id: "colab-conta", label: "Conta", icon: "user" },
 ];
 
 function renderNavColaborador() {
-  const esc = document.documentElement.classList.contains("cp-dark");
+  // Tema NÃO entra aqui: o toggle vive na topbar (cp-tema-btn) e na Conta (Aparência).
   $("#nav").innerHTML = COLAB_NAV.map((it) => `
     <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
       ${cpIcon(it.icon)}<span>${it.label}</span>
     </button>`).join("") + `
-    <button class="nav__item nav__item--tema" data-acao="tema">
-      ${cpIcon(esc ? "sun" : "moon")}<span>${esc ? "Tema claro" : "Tema escuro"}</span>
-    </button>
     <button class="nav__item nav__item--sair" data-acao="sair">
       ${cpIcon("logout")}<span>Sair</span>
     </button>`;
   $$("#nav .nav__item").forEach((btn) => btn.addEventListener("click", () => {
     if (btn.dataset.acao === "sair") return (window.logout ? window.logout() : logout());
-    if (btn.dataset.acao === "tema") { cpToggleTema(); renderApp(); return; }
     state.view.page = btn.dataset.page; renderApp(); closeSidebar();
   }));
 }
@@ -842,10 +839,11 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap", "colab-conta": "Conta" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap", "colab-conta": "Conta" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conta") return renderColabConta();
   if (page === "colab-roadmap") return renderPortalRoadmap();
+  if (page === "colab-folha") return renderColabFolha();
   if (page === "colab-ponto") return renderColabPonto();
   if (page === "colab-comunicados") return renderColabComunicados();
   if (page === "colab-documentos") return renderColabDocumentos();
@@ -1093,6 +1091,67 @@ const COLAB_DOC_IC = { regras: "clipboard", conduta: "shield", cultura: "smile",
 function colabDocPendente(d) {
   if (d.exigeAssinatura) return !(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada === d.versao);
   return !(d.minhaLeitura && d.minhaLeitura.confirmado);
+}
+
+// ---- Folha de pagamento (recibos) + cartão ponto em arquivo (SELF) ----
+// Metadados em state.meusRecibos (carregados no boot); o PDF vem sob demanda ao abrir.
+const RCB_TIPOS = { "recibo": "Recibo de pagamento", "cartao-ponto": "Cartão ponto" };
+
+function rcbCompetenciaLabel(comp) {
+  try {
+    const s = new Date(String(comp) + "-01T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  } catch (e) { return String(comp || ""); }
+}
+
+// Linha de recibo do colaborador (Folha de pagamento e Meu ponto). Fase A: ver e baixar;
+// tudo nasce com o selo âmbar "Assinatura pendente" (a assinatura chega na Fase B).
+function colabReciboRowHtml(r) {
+  const tipoLbl = RCB_TIPOS[r.tipo] || "Documento";
+  return `<div class="pp-rw" data-recibo-abrir="${escapeHtml(r.id)}" style="cursor:pointer">
+    <span class="pp-ico pp-ico--amber">${cpIcon(r.tipo === "cartao-ponto" ? "clock" : "briefcase")}</span>
+    <span class="pp-rw__bd">
+      <span class="pp-rw__t">${escapeHtml(rcbCompetenciaLabel(r.competencia))}</span>
+      <span class="pp-rw__s">${escapeHtml(tipoLbl)} · ${r.paginas || 1} pág${(r.paginas || 1) > 1 ? "s" : ""}</span>
+    </span>
+    <span class="pp-badge pp-badge--amber">${cpIcon("edit")}Assinatura pendente</span>
+  </div>`;
+}
+
+// Abre o recibo: busca o base64 sob demanda e reusa o visualizador in-app dos documentos.
+let _rcbAbrindo = false;
+async function abrirReciboColab(id) {
+  if (_rcbAbrindo) return;
+  const r = (state.meusRecibos || []).find((x) => x.id === id)
+    || (state.recibos || []).find((x) => x.id === id); // gestor conferindo um recibo gerado
+  if (!r) return;
+  _rcbAbrindo = true;
+  try {
+    const base64 = (typeof window.carregarArquivoRecibo === "function") ? await window.carregarArquivoRecibo(id) : null;
+    if (!base64) { toast("Não consegui abrir o arquivo. Tente de novo.", "danger"); return; }
+    openDocViewer({
+      titulo: `${RCB_TIPOS[r.tipo] || "Documento"} · ${rcbCompetenciaLabel(r.competencia)}`,
+      tipo: RCB_TIPOS[r.tipo] || "documento",
+      exigeAssinatura: true,
+      anexo: { url: base64, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
+    });
+    window.logEvento?.({ tipo: "recibos", acao: "Abriu recibo", alvo: `${RCB_TIPOS[r.tipo] || r.tipo} · ${r.competencia}` });
+  } finally { _rcbAbrindo = false; }
+}
+
+function renderColabFolha() {
+  cpRefreshAoAbrir();
+  const lista = (state.meusRecibos || []).filter((r) => r.tipo === "recibo");
+  if (lista.length === 0) {
+    $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("briefcase")}</div><p>Nenhum recibo por enquanto. Quando o GP importar a folha do mês, o seu recibo aparece aqui.</p></div></div>`;
+    return;
+  }
+  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
+    <div class="pp-ovl">Meus recibos</div>
+    <div class="pp-grp">${lista.map(colabReciboRowHtml).join("")}</div>
+    <div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>Só você vê os seus recibos. A assinatura eletrônica chega em breve; enquanto isso, dá pra ler e baixar.</span></div>
+  </div>`;
 }
 
 function renderColabDocumentos() {
@@ -1448,7 +1507,13 @@ function renderColabPonto() {
 // Aba "Banco de horas": saldo (hero) + últimos 10 dias de marcação quando o pipeline publicar
 // state.meuSaldoBH.dias[]. Sem o dado, mostra só o saldo + nota "em breve".
 function colabBhTabHtml(f) {
-  if (f && f.bhExempt) return `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>`;
+  // Cartão ponto OFICIAL em arquivo (importado pelo GP): aparece pra TODOS que tiverem
+  // arquivo — inclusive bhExempt (o early-return abaixo não pode engolir esta seção).
+  const arquivos = (state.meusRecibos || []).filter((r) => r.tipo === "cartao-ponto");
+  const cartaoSec = arquivos.length
+    ? `<div class="pp-ovl" style="margin-top:18px">Cartão ponto (arquivo)</div><div class="pp-grp">${arquivos.map(colabReciboRowHtml).join("")}</div>`
+    : "";
+  if (f && f.bhExempt) return `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>${cartaoSec}`;
   const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias)) ? state.meuSaldoBH.dias : [];
   let detalhe;
   if (dias.length) {
@@ -1470,7 +1535,7 @@ function colabBhTabHtml(f) {
   } else {
     detalhe = `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O espelho do mês aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
   }
-  return `${bhHeroHtml(f)}${detalhe}`;
+  return `${bhHeroHtml(f)}${cartaoSec}${detalhe}`;
 }
 
 function cpDow(dataIso) {
@@ -5762,6 +5827,14 @@ function bindDiscActions() {
 function renderDocumentos() {
   if (!can("documentos.gerenciar")) { state.view.page = "dashboard"; return renderApp(); }
   $("#topbar-title").textContent = "Documentos";
+  // Abas: Institucionais | Recibos e cartão ponto (esta só pra quem tem recibos.gerenciar).
+  const abaRecibos = state.view.docTab === "recibos" && can("recibos.gerenciar");
+  const tabsHtml = can("recibos.gerenciar") ? `
+    <div class="rcb-tabs">
+      <button class="rcb-tab ${!abaRecibos ? "on" : ""}" data-doc-tab="inst">Institucionais</button>
+      <button class="rcb-tab ${abaRecibos ? "on" : ""}" data-doc-tab="recibos">Recibos e cartão ponto</button>
+    </div>` : "";
+  if (abaRecibos) return renderRecibosGestor(tabsHtml);
   const filtro = state.view.docFiltro || "todos";
   let lista = docAtivos().slice().sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
   if (filtro === "rascunho") lista = lista.filter((d) => d.status === "rascunho");
@@ -5775,7 +5848,7 @@ function renderDocumentos() {
         <p>Publique regras, conduta, cultura e políticas. Acompanhe quem leu e assinou.</p>
       </div>
       <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Novo documento</span></button>
-    </header>`;
+    </header>` + tabsHtml;
 
   if (docAtivos().length === 0) {
     $("#view").innerHTML = cab + `
@@ -6208,6 +6281,408 @@ if (!window._docBound) {
     if (vr) { e.stopPropagation(); novaVersaoDocumentoUI(vr.dataset.docVersao); return; }
     const dx = e.target.closest("[data-doc-excluir]");
     if (dx) { e.stopPropagation(); excluirDocumentoUI(dx.dataset.docExcluir); return; }
+  });
+}
+
+// ===== Recibos e cartão ponto (aba de Documentos · Fase A) =====
+// O GP importa UM PDF da folha (WK); o sistema separa por funcionário casando o CPF de
+// cada página com banco-horas-saldos (CPF→funcionarioId) e o nome do cadastro no texto
+// da página como reforço. Conferência mostra a miniatura real de cada página antes de
+// gerar. O colaborador vê só o dele (rule SELF). Assinatura carimbada = Fase B.
+
+// pdf-lib sob demanda (mesmo padrão do pdf.js/XLSX: CDN, sem build). Só carrega ao gerar.
+let _pdfLibPromise = null;
+function loadPdfLib() {
+  if (_pdfLibPromise) return _pdfLibPromise;
+  _pdfLibPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js";
+    s.onload = () => (window.PDFLib ? resolve(window.PDFLib) : reject(new Error("pdf-lib não expôs PDFLib")));
+    s.onerror = () => { _pdfLibPromise = null; reject(new Error("Falha ao carregar pdf-lib")); };
+    document.head.appendChild(s);
+  });
+  return _pdfLibPromise;
+}
+
+// Lotes = agrupamento de state.recibos por tipo+competência (mais recente primeiro).
+function rcbLotes() {
+  const m = {};
+  for (const r of (state.recibos || [])) {
+    const k = `${r.tipo}|${r.competencia}`;
+    (m[k] = m[k] || { tipo: r.tipo, competencia: r.competencia, itens: [] }).itens.push(r);
+  }
+  return Object.values(m).sort((a, b) =>
+    String(b.competencia || "").localeCompare(String(a.competencia || "")) || String(a.tipo).localeCompare(String(b.tipo)));
+}
+
+function renderRecibosGestor(tabsHtml) {
+  const cab = `
+    <header class="page-header">
+      <div>
+        <h1>Recibos e cartão ponto</h1>
+        <p>Importe o PDF da folha. O sistema separa por funcionário e cada um vê só o dele.</p>
+      </div>
+      <button class="btn btn--primary" data-rcb-importar>${icon("plus")}<span>Importar</span></button>
+    </header>` + tabsHtml;
+
+  // Lazy: 1ª visita carrega os metadados (leves) e re-renderiza.
+  if (state.recibos == null) {
+    $("#view").innerHTML = cab + `<div class="empty empty--mini"><p>Carregando lotes…</p></div>`;
+    if (typeof window.recarregarRecibosGestor === "function") {
+      window.recarregarRecibosGestor().then(() => renderApp());
+    } else { state.recibos = []; }
+    return;
+  }
+
+  const lotes = rcbLotes();
+  if (!lotes.length) {
+    $("#view").innerHTML = cab + `
+      <div class="empty">
+        <div class="empty__icon">${icon("file")}</div>
+        <h3>Nenhum lote importado</h3>
+        <p>Importe o PDF de recibos ou do cartão ponto da competência. O sistema separa por funcionário.</p>
+        <button class="btn btn--primary" data-rcb-importar>${icon("plus")}<span>Importar o primeiro lote</span></button>
+      </div>`;
+    return;
+  }
+
+  const ehAdmin = currentUser()?.role === "admin";
+  $("#view").innerHTML = cab + `
+    <div class="rcb-lotes">
+      ${lotes.map((l) => `
+        <div class="rcb-lote" data-rcb-lote="${escapeHtml(l.tipo)}" data-rcb-comp="${escapeHtml(l.competencia)}">
+          <span class="rcb-lote__ic">${icon(l.tipo === "cartao-ponto" ? "conferir" : "file")}</span>
+          <span class="rcb-lote__bd">
+            <b>${escapeHtml(RCB_TIPOS[l.tipo] || l.tipo)} · ${escapeHtml(rcbCompetenciaLabel(l.competencia))}</b>
+            <span>${l.itens.length} funcionário${l.itens.length > 1 ? "s" : ""}</span>
+          </span>
+          <span class="rcb-lote__pill">${l.itens.length} gerados</span>
+          ${ehAdmin ? `<button class="com-mini" data-rcb-excluir="${escapeHtml(l.tipo)}" data-rcb-comp="${escapeHtml(l.competencia)}" aria-label="Excluir lote" title="Excluir lote" style="color:var(--danger)">${icon("trash")}</button>` : ""}
+        </div>`).join("")}
+    </div>`;
+}
+
+// Detalhe do lote: lista de funcionários com "Ver" (abre o PDF individual sob demanda).
+function openLoteRecibos(tipo, competencia) {
+  const itens = (state.recibos || [])
+    .filter((r) => r.tipo === tipo && r.competencia === competencia)
+    .sort((a, b) => String(a.funcionarioNome || "").localeCompare(String(b.funcionarioNome || ""), "pt-BR"));
+  openModal(`
+    <div class="modal__header">
+      <div><h2>${escapeHtml(RCB_TIPOS[tipo] || tipo)}</h2><p>${escapeHtml(rcbCompetenciaLabel(competencia))} · ${itens.length} funcionários</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="rcb-lote-list">
+        ${itens.map((r) => `
+          <div class="rcb-lote-row">
+            <span class="rcb-lote-row__bd"><b>${escapeHtml(r.funcionarioNome || r.funcionarioId)}</b><span>${r.paginas || 1} pág${(r.paginas || 1) > 1 ? "s" : ""} · assinatura pendente</span></span>
+            <button class="btn btn--soft" data-recibo-abrir="${escapeHtml(r.id)}">${icon("eye")}<span>Ver</span></button>
+          </div>`).join("")}
+      </div>
+    </div>`);
+}
+
+async function excluirLoteRecibosUI(tipo, competencia) {
+  if (currentUser()?.role !== "admin") return toast("Apenas o administrador pode excluir lotes.", "danger");
+  const n = (state.recibos || []).filter((r) => r.tipo === tipo && r.competencia === competencia).length;
+  if (!(await confirmar({
+    titulo: "Excluir lote",
+    msg: `Excluir os ${n} arquivos de ${RCB_TIPOS[tipo] || tipo} de ${rcbCompetenciaLabel(competencia)}? Os colaboradores deixam de ver. Não dá pra desfazer.`,
+    okLabel: "Excluir lote", perigo: true,
+  }))) return;
+  const r = await window.excluirLoteRecibos?.(tipo, competencia);
+  if (r && r.ok) { toast(`Lote excluído (${r.n} arquivos).`); renderApp(); }
+  else toast("Erro ao excluir: " + (r?.err || "?"), "danger");
+}
+
+// ---- Importar: modal → Analisar (pdf.js) → Conferência (miniaturas) → Gerar (pdf-lib) ----
+let _rcbImport = null;
+
+function openReciboImportModal() {
+  // Competência default: mês anterior (a folha fecha e chega depois do mês virar).
+  const d = new Date(); d.setMonth(d.getMonth() - 1);
+  const compDefault = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Importar</h2><p>Um PDF com todos os funcionários. O sistema separa por CPF.</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="field"><label>Unidade</label><input type="text" value="FIOBRAS LTDA" disabled></div>
+      <div class="form-row">
+        <div class="field"><label for="rcb-tipo">Tipo do arquivo</label>
+          <select id="rcb-tipo"><option value="recibo">Recibo de pagamento</option><option value="cartao-ponto">Cartão ponto</option></select>
+        </div>
+        <div class="field"><label for="rcb-comp">Competência</label><input type="month" id="rcb-comp" value="${compDefault}"></div>
+      </div>
+      <div class="field"><label for="rcb-file">Arquivo (PDF da folha)</label><input type="file" id="rcb-file" accept="application/pdf"></div>
+      <p class="rcb-hint">${icon("info")} Identificação por CPF (está em toda página), com nome e código do cadastro como reforço. Nada é gravado antes da conferência.</p>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+        <button class="btn btn--ghost" data-close>Cancelar</button>
+        <button class="btn btn--primary" id="rcb-analisar">${icon("search")}<span>Analisar</span></button>
+      </div>
+    </div>`);
+  $("#rcb-analisar")?.addEventListener("click", rcbAnalisar);
+}
+
+async function rcbAnalisar() {
+  const tipo = $("#rcb-tipo")?.value || "recibo";
+  const competencia = $("#rcb-comp")?.value || "";
+  const file = $("#rcb-file")?.files && $("#rcb-file").files[0];
+  if (!/^\d{4}-\d{2}$/.test(competencia)) return toast("Escolha a competência.", "danger");
+  if (!file) return toast("Escolha o PDF.", "danger");
+  if ((state.recibos || []).some((r) => r.tipo === tipo && r.competencia === competencia))
+    return toast("Já existe um lote dessa competência. O admin precisa excluir o lote antes de reimportar.", "danger");
+
+  showFormBlocker("Lendo o PDF...", ["Lendo o PDF", "Identificando funcionários", "Conferência"]);
+  try {
+    const pdfjs = await loadPdfJs();
+    const buf = await file.arrayBuffer();
+    // slice(0): o pdf.js transfere o buffer pro worker (fica destacado); o original
+    // segue intacto pro pdf-lib fatiar depois, sem reler o arquivo.
+    const pdf = await pdfjs.getDocument({ data: buf.slice(0) }).promise;
+
+    const paginas = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      if (i === 1 || i % 10 === 0) updateFormBlocker(`Lendo página ${i} de ${pdf.numPages}...`, 0);
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      paginas.push(content.items.map((it) => it.str).join(" "));
+    }
+
+    updateFormBlocker("Identificando funcionários...", 1);
+    const mapa = await window.carregarMapaCpf?.();
+    if (!mapa || !Object.keys(mapa).length)
+      throw new Error("Não consegui montar a identificação por CPF (sem acesso ou base vazia).");
+
+    // CPF por página (primeiro match válido de 11 dígitos, com ou sem máscara).
+    const cpfRe = /\d{3}\.?\d{3}\.?\d{3}-?\d{2}/g;
+    const cpfPag = paginas.map((t) => {
+      const ms = t.match(cpfRe) || [];
+      for (const x of ms) { const dig = x.replace(/\D/g, ""); if (dig.length === 11) return dig; }
+      return null;
+    });
+
+    // Agrupa páginas CONSECUTIVAS com o mesmo CPF = 1 funcionário (1 a 2 páginas no arquivo real).
+    const grupos = [];
+    for (let i = 0; i < cpfPag.length; i++) {
+      const c = cpfPag[i];
+      const ult = grupos[grupos.length - 1];
+      if (ult && c !== null && ult.cpf === c) ult.paginas.push(i + 1);
+      else grupos.push({ cpf: c, paginas: [i + 1] });
+    }
+
+    // Casa CPF→funcionarioId e confere o NOME do cadastro no texto da página (reforço).
+    // ̀-ͯ = diacríticos combinantes (remove acentos depois do NFD).
+    const norm = (s) => String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+    for (const g of grupos) {
+      g.funcionarioId = g.cpf ? (mapa[g.cpf] || null) : null;
+      const f = g.funcionarioId ? getFuncionario(g.funcionarioId) : null;
+      g.nome = f ? f.nome : null;
+      g.codigo = f ? (f.codigo || null) : null;
+      g.nomeConfere = !!(f && norm(paginas[g.paginas[0] - 1]).includes(norm(f.nome)));
+      g.status = (f && g.nomeConfere) ? "ok" : "resolver";
+      g.escolha = null; // resolução manual (funcionarioId ou "ignorar")
+    }
+
+    // Reforço: o "Período da Folha: M/AAAA" impresso nas páginas tem que bater com a
+    // competência escolhida — pega PDF do mês errado (ou meses misturados) ANTES de gerar.
+    const perRe = /Per[íi]odo da Folha:\s*(\d{1,2})\/(\d{4})/i;
+    let comPeriodo = 0, divergem = 0;
+    for (const t of paginas) {
+      const m = t.match(perRe);
+      if (!m) continue;
+      comPeriodo++;
+      if (`${m[2]}-${String(m[1]).padStart(2, "0")}` !== competencia) divergem++;
+    }
+    const avisoCompetencia = divergem
+      ? `${divergem} de ${comPeriodo} páginas indicam um Período da Folha DIFERENTE de ${rcbCompetenciaLabel(competencia)}. Confira se o PDF é da competência certa antes de gerar.`
+      : null;
+
+    _rcbImport = { buf, pdf, tipo, competencia, grupos, avisoCompetencia };
+    hideFormBlocker();
+    renderRcbConferencia();
+  } catch (e) {
+    hideFormBlocker();
+    toast("Falha ao analisar: " + (e?.message || e), "danger");
+  }
+}
+
+// FuncionarioId efetivo de um grupo: manual > automático confirmado > nada.
+function rcbFuncDoGrupo(g) {
+  if (g.escolha === "ignorar") return null;
+  if (g.escolha) return g.escolha;
+  return g.status === "ok" ? g.funcionarioId : null;
+}
+
+function renderRcbConferencia() {
+  const st = _rcbImport; if (!st) return;
+  const total = st.grupos.length;
+  const okN = st.grupos.filter((g) => rcbFuncDoGrupo(g)).length;
+  const pendN = st.grupos.filter((g) => g.status === "resolver" && !g.escolha).length;
+  const funcs = (state.funcionarios || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
+
+  const rowHtml = (g, i) => {
+    const pags = g.paginas.length > 1 ? `páginas ${g.paginas[0]} a ${g.paginas[g.paginas.length - 1]}` : `página ${g.paginas[0]}`;
+    const thumb = `<canvas class="rcb-thumb" data-rcb-thumb="${g.paginas[0]}"></canvas>`;
+    if (g.status === "ok") {
+      return `<div class="rcb-conf-row">${thumb}
+        <div class="rcb-conf-bd"><b>${escapeHtml(g.nome)}</b><span>${pags} · ${escapeHtml(g.funcionarioId)} · CPF e nome bateram</span></div>
+        <span class="rcb-tag rcb-tag--ok">${g.paginas.length} pág${g.paginas.length > 1 ? "s" : ""}</span>
+      </div>`;
+    }
+    const motivo = g.funcionarioId ? "CPF bateu, mas o nome não confere" : (g.cpf ? "CPF não está no cadastro" : "página sem CPF");
+    const sugerido = g.funcionarioId || "";
+    return `<div class="rcb-conf-row rcb-conf-row--warn">${thumb}
+      <div class="rcb-conf-bd"><b>A resolver</b><span>${pags} · ${escapeHtml(motivo)} — olhe a página e diga de quem é</span>
+        <select class="rcb-conf-sel" data-rcb-sel="${i}">
+          <option value="">Escolher…</option>
+          ${funcs.map((f) => `<option value="${escapeHtml(f.id)}" ${f.id === (g.escolha || sugerido) ? "selected" : ""}>${escapeHtml(f.nome)}</option>`).join("")}
+          <option value="ignorar" ${g.escolha === "ignorar" ? "selected" : ""}>Ignorar (não gerar)</option>
+        </select>
+      </div>
+    </div>`;
+  };
+
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Conferência</h2><p>${st.pdf.numPages} páginas lidas · ${total} funcionários no arquivo</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="rcb-sumbar">
+        <div class="rcb-sum rcb-sum--ok"><b id="rcb-n-ok">${okN}</b><span>identificados</span></div>
+        <div class="rcb-sum ${pendN ? "rcb-sum--warn" : ""}" id="rcb-sum-pend"><b id="rcb-n-pend">${pendN}</b><span>a resolver</span></div>
+        <div class="rcb-sum"><b>${total}</b><span>total</span></div>
+      </div>
+      ${st.avisoCompetencia ? `<div class="rcb-conf-aviso">${icon("info")}<span>${escapeHtml(st.avisoCompetencia)}</span></div>` : ""}
+      <div class="rcb-conf-list">${st.grupos.map(rowHtml).join("")}</div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+        <button class="btn btn--ghost" id="rcb-voltar">Voltar</button>
+        <button class="btn btn--primary" id="rcb-gerar" ${okN ? "" : "disabled"}>${icon("check")}<span id="rcb-gerar-lbl">Gerar ${okN} ${st.tipo === "recibo" ? "recibos" : "cartões"}</span></button>
+      </div>
+    </div>`);
+
+  // Resolução manual: atualiza o grupo e SÓ o resumo/botão, em cima do DOM vivo —
+  // NÃO re-renderiza o modal (isso destruiria as miniaturas já desenhadas nos canvas).
+  $$(".rcb-conf-sel").forEach((sel) => sel.addEventListener("change", () => {
+    const g = st.grupos[Number(sel.dataset.rcbSel)];
+    if (g) g.escolha = sel.value || null;
+    rcbAtualizarResumoConf(st);
+  }));
+  $("#rcb-voltar")?.addEventListener("click", () => {
+    try { st.pdf?.destroy?.(); } catch (e) {} // solta o worker/memória do pdf.js
+    _rcbImport = null;
+    openReciboImportModal();
+  });
+  $("#rcb-gerar")?.addEventListener("click", rcbGerar);
+  rcbBindThumbs();
+}
+
+// Atualiza contadores e botão Gerar da conferência SEM re-renderizar o modal.
+function rcbAtualizarResumoConf(st) {
+  const okN = st.grupos.filter((g) => rcbFuncDoGrupo(g)).length;
+  const pendN = st.grupos.filter((g) => g.status === "resolver" && !g.escolha).length;
+  const nOk = $("#rcb-n-ok"); if (nOk) nOk.textContent = okN;
+  const nPend = $("#rcb-n-pend"); if (nPend) nPend.textContent = pendN;
+  $("#rcb-sum-pend")?.classList.toggle("rcb-sum--warn", pendN > 0);
+  const btn = $("#rcb-gerar"); if (btn) btn.disabled = !okN;
+  const lbl = $("#rcb-gerar-lbl"); if (lbl) lbl.textContent = `Gerar ${okN} ${st.tipo === "recibo" ? "recibos" : "cartões"}`;
+}
+
+// Miniaturas REAIS das páginas (pdf.js → canvas), renderizadas lazy conforme aparecem.
+// Observer único no módulo: desconecta o anterior antes de criar outro (sem vazar).
+let _rcbThumbIO = null;
+function rcbBindThumbs() {
+  const st = _rcbImport; if (!st) return;
+  _rcbThumbIO?.disconnect();
+  const io = _rcbThumbIO = new IntersectionObserver((entries) => {
+    for (const en of entries) {
+      if (!en.isIntersecting) continue;
+      io.unobserve(en.target);
+      rcbRenderThumb(en.target);
+    }
+  });
+  $$("#modal-root [data-rcb-thumb]").forEach((c) => io.observe(c));
+}
+async function rcbRenderThumb(canvas) {
+  try {
+    const st = _rcbImport; if (!st || !document.contains(canvas)) return;
+    const page = await st.pdf.getPage(Number(canvas.dataset.rcbThumb));
+    const vp0 = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: 148 / vp0.width }); // 2x de 74px (nitidez)
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+  } catch (e) { /* miniatura é cosmética; a conferência segue sem ela */ }
+}
+
+async function rcbGerar() {
+  const st = _rcbImport; if (!st) return;
+  const alvo = st.grupos.map((g) => ({ g, fid: rcbFuncDoGrupo(g) })).filter((x) => x.fid);
+  if (!alvo.length) return toast("Nenhum funcionário identificado.", "danger");
+  // Dois grupos no MESMO funcionário = mesmo doc id (write duplicado no batch quebra).
+  // Acontece quando a resolução manual aponta pra alguém que já casou em outra página.
+  const vistos = {};
+  for (const { g, fid } of alvo) {
+    if (vistos[fid]) {
+      const f = getFuncionario(fid);
+      return toast(`${(f && f.nome) || fid} está em dois grupos (páginas ${vistos[fid].paginas[0]} e ${g.paginas[0]}). Ajuste a resolução ou ignore um deles.`, "danger");
+    }
+    vistos[fid] = g;
+  }
+  closeModal();
+  showFormBlocker("Separando por funcionário...", ["Separando por funcionário", "Salvando", "Concluído"]);
+  try {
+    const PDFLib = await loadPdfLib();
+    const src = await PDFLib.PDFDocument.load(st.buf);
+    const itens = []; const falhas = [];
+    for (let i = 0; i < alvo.length; i++) {
+      const { g, fid } = alvo[i];
+      if (i === 0 || i % 5 === 0) updateFormBlocker(`Separando ${i + 1} de ${alvo.length}...`, 0);
+      const out = await PDFLib.PDFDocument.create();
+      const pages = await out.copyPages(src, g.paginas.map((p) => p - 1));
+      pages.forEach((p) => out.addPage(p));
+      const dataUrl = await out.saveAsBase64({ dataUri: true });
+      const f = getFuncionario(fid);
+      const nome = (f && f.nome) || g.nome || "";
+      if (dataUrl.length > 900000) { falhas.push(nome || fid); continue; } // teto do doc (1 MB)
+      itens.push({
+        funcionarioId: fid, codigo: (f && f.codigo) || g.codigo || null, nome,
+        competencia: st.competencia, tipo: st.tipo, paginas: g.paginas.length,
+        nomeArquivo: `${st.tipo}-${st.competencia}.pdf`, pdfBase64: dataUrl,
+      });
+    }
+    updateFormBlocker(`Salvando 0 de ${itens.length}...`, 1);
+    const r = await window.criarRecibosEmLote?.(itens, (feitos, tot) => updateFormBlocker(`Salvando ${feitos} de ${tot}...`, 1));
+    hideFormBlocker();
+    if (!r || !r.ok) return toast("Erro ao salvar: " + (r?.err || "?"), "danger");
+    try { st.pdf?.destroy?.(); } catch (e) {} // solta o worker/memória do pdf.js
+    _rcbImport = null;
+    await window.recarregarRecibosGestor?.();
+    toast(`${r.n} ${st.tipo === "recibo" ? "recibos" : "cartões ponto"} gerados.`
+      + (falhas.length ? ` ${falhas.length} não coube${falhas.length > 1 ? "ram" : ""} (arquivo grande demais).` : ""));
+    renderApp();
+  } catch (e) {
+    hideFormBlocker();
+    toast("Falha ao gerar: " + (e?.message || e), "danger");
+  }
+}
+
+// Handler delegado único dos recibos (gestor + colaborador) — sobrevive aos re-renders.
+if (!window._rcbBound) {
+  window._rcbBound = true;
+  document.addEventListener("click", (e) => {
+    const ab = e.target.closest("[data-recibo-abrir]");
+    if (ab) { abrirReciboColab(ab.dataset.reciboAbrir); return; }
+    const tb = e.target.closest("[data-doc-tab]");
+    if (tb) { state.view.docTab = tb.dataset.docTab; renderApp(); return; }
+    const im = e.target.closest("[data-rcb-importar]");
+    if (im) { openReciboImportModal(); return; }
+    const ex = e.target.closest("[data-rcb-excluir]");
+    if (ex) { e.stopPropagation(); excluirLoteRecibosUI(ex.dataset.rcbExcluir, ex.dataset.rcbComp); return; }
+    const lt = e.target.closest("[data-rcb-lote]");
+    if (lt) { openLoteRecibos(lt.dataset.rcbLote, lt.dataset.rcbComp); return; }
   });
 }
 
@@ -9565,6 +10040,7 @@ const PERM_CAPS = [
   { area: "Comunicação", caps: [
     { k: "comunicados.gerenciar", n: "Criar e gerenciar comunicados" },
     { k: "documentos.gerenciar", n: "Publicar e gerenciar documentos institucionais" },
+    { k: "recibos.gerenciar", n: "Importar recibos de pagamento e cartão ponto" },
   ]},
   { area: "Sistema", caps: [
     { k: "sistema.config", n: "Configurações (tipos, ações)" },
@@ -9589,7 +10065,7 @@ const PERM_DEFAULT = {
     "bancoHoras.ver": true, "bancoHoras.importar": true, "pipeline.monitor": true,
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
     "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
-    "comunicados.gerenciar": true, "documentos.gerenciar": true,
+    "comunicados.gerenciar": true, "documentos.gerenciar": true, "recibos.gerenciar": true,
     "auditoria.ver": true, "sistema.config": true, "sistema.usuarios": false,
   },
   lider: {
@@ -9599,7 +10075,7 @@ const PERM_DEFAULT = {
     "bancoHoras.ver": "turno", "bancoHoras.importar": false, "pipeline.monitor": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
-    "comunicados.gerenciar": false, "documentos.gerenciar": false,
+    "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   supervisor: {
@@ -9609,7 +10085,7 @@ const PERM_DEFAULT = {
     "bancoHoras.ver": "atrib", "bancoHoras.importar": false, "pipeline.monitor": false,
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
-    "comunicados.gerenciar": false, "documentos.gerenciar": false,
+    "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   // Colaborador (Portal). Tudo de gestor explicitamente false (impede override acidental);
@@ -9622,7 +10098,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,
     "auditoria.ver": false, "obrigacoes.gerenciar": false,
-    "comunicados.gerenciar": false, "documentos.gerenciar": false,
+    "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
     "sistema.config": false, "sistema.usuarios": false,
     "self.ver": true, "self.assinar": true, "etica.enviar": true,
   },
@@ -10862,7 +11338,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.17.0";
+window.CURRENT_VERSION = "1.18.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

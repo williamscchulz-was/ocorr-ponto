@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Supervisor por turnos (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<style>
+  body{font-family:Poppins,sans-serif;background:#0d130d;margin:0;padding:34px 18px 60px;display:flex;flex-wrap:wrap;gap:26px;justify-content:center;align-items:flex-start}
+  .note{flex-basis:100%;max-width:900px;margin:0 auto 6px;font-size:13px;color:#b9c7b2;background:#10160f;border:1px dashed #2a332a;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#edf3ea}
+  .cap{text-align:center;font-size:12px;color:#8fa08a;margin-top:10px;font-weight:600}
+  .modal{max-width:520px;width:100%}
+  .field{margin-bottom:16px}
+  .field>label{display:block;font-size:12.5px;font-weight:600;color:var(--text-body);margin-bottom:7px}
+  .field .hint{font-size:11.5px;color:var(--text-muted);margin-top:6px;line-height:1.5}
+  input[type=text],select{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;background:var(--surface);color:var(--text-body)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .tchip{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:13px;font-weight:600;cursor:pointer;transition:.12s}
+  .tchip .bx{width:16px;height:16px;border-radius:5px;border:2px solid var(--border-strong,#cdd8c8);display:flex;align-items:center;justify-content:center;color:transparent}
+  .tchip .bx svg{width:11px;height:11px;stroke-width:3.5}
+  .tchip.on{border-color:var(--plum);background:var(--success-bg);color:var(--plum)}
+  .tchip.on .bx{background:var(--plum);border-color:var(--plum);color:#fff}
+  .avulsos-add{position:relative}
+  .avulsos-add svg{position:absolute;left:11px;top:11px;width:16px;height:16px;color:var(--text-muted)}
+  .avulsos-add input{padding-left:34px}
+  .selchips{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .selchip{display:inline-flex;align-items:center;gap:7px;padding:5px 6px 5px 11px;border-radius:999px;background:var(--surface-warm);font-size:12.5px;color:var(--text-body)}
+  .selchip small{color:var(--text-muted);font-size:11px}
+  .selchip button{border:0;background:none;color:var(--text-muted);cursor:pointer;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+  .selchip button svg{width:12px;height:12px}
+  .resultado{display:flex;align-items:center;gap:11px;background:var(--success-bg);border:1px solid rgba(0,136,53,.25);border-radius:12px;padding:13px 15px;margin-top:4px}
+  .resultado .ic{width:34px;height:34px;border-radius:50%;background:var(--plum);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+  .resultado .ic svg{width:17px;height:17px}
+  .resultado b{font-size:15px;color:var(--text-body)} .resultado span{display:block;font-size:11.5px;color:var(--text-muted)}
+</style></head>
+<body>
+
+<div class="note"><b>Mock · Supervisor por turnos (automação).</b> Em vez de a GP escolher os liderados um a um, ela marca os <b>turnos</b> que o supervisor cobre e todo mundo daqueles turnos entra automático (inclusive novas admissões). A lista manual vira só <b>avulsos</b>, pra incluir gente de fora dos turnos marcados, como os poucos do <b>Geral</b>. Acesso = turnos marcados + avulsos.</div>
+
+<div>
+<div class="modal">
+  <div class="modal__header">
+    <div><h2>Editar usuário</h2><p>Jacques · jacques@fiobras.com.br</p></div>
+  </div>
+  <div class="modal__body">
+    <div class="field">
+      <label>Papel</label>
+      <select><option>Supervisor</option></select>
+    </div>
+
+    <div class="field">
+      <label>Turnos que supervisiona</label>
+      <div class="chips" id="turnos">
+        <button type="button" class="tchip on" data-t="1"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>1º Turno</button>
+        <button type="button" class="tchip on" data-t="2"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>2º Turno</button>
+        <button type="button" class="tchip on" data-t="3"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>3º Turno</button>
+      </div>
+      <div class="hint">Todo mundo desses turnos entra automático, inclusive quem for admitido depois. Sem precisar mexer aqui de novo. O pessoal do Geral é caso a caso, entra pelos avulsos abaixo.</div>
+    </div>
+
+    <div class="field">
+      <label>Também estes (avulsos)</label>
+      <div class="avulsos-add">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Buscar por nome ou código...">
+      </div>
+      <div class="selchips">
+        <span class="selchip">Marcos Andrade <small>Geral</small><button data-rm><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></span>
+        <span class="selchip">Sandra Reis <small>Geral</small><button data-rm><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></span>
+      </div>
+      <div class="hint">Use pra incluir alguém de fora dos turnos marcados, como o pessoal do Geral que responde a este supervisor.</div>
+    </div>
+
+    <div class="field">
+      <label>Resultado do acesso</label>
+      <div class="resultado">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <div><b id="rtot">80 pessoas</b><span id="rdet">todos do 1º, 2º e 3º turno + 2 avulsos</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal__footer">
+    <button class="btn btn--ghost">Cancelar</button>
+    <button class="btn btn--primary">Salvar</button>
+  </div>
+</div>
+<div class="cap">Edição do supervisor · escopo por turnos + avulsos</div>
+</div>
+
+<script>
+  var contagem={1:28,2:26,3:24,geral:9};
+  function ordinal(t){return t==="geral"?"Geral":t+"º turno";}
+  function recalc(){
+    var on=[].slice.call(document.querySelectorAll('.tchip.on')).map(function(c){return c.dataset.t;});
+    var avulsos=document.querySelectorAll('.selchip').length;
+    var tot=on.reduce(function(a,t){return a+(contagem[t]||0);},0)+avulsos;
+    document.getElementById('rtot').textContent=tot+' pessoas';
+    var turnLbl=on.filter(function(t){return t!=='geral';}).map(function(t){return t+'º';});
+    var parts=[];
+    if(turnLbl.length) parts.push('todos do '+turnLbl.join(', ').replace(/, ([^,]*)$/,' e $1')+' turno');
+    if(on.indexOf('geral')>-1) parts.push('todo o Geral');
+    if(avulsos) parts.push(avulsos+' avulso'+(avulsos>1?'s':''));
+    document.getElementById('rdet').textContent=parts.join(' + ')||'ninguém ainda';
+  }
+  document.querySelectorAll('.tchip').forEach(function(c){c.addEventListener('click',function(){c.classList.toggle('on');recalc();});});
+  document.querySelectorAll('[data-rm]').forEach(function(b){b.addEventListener('click',function(){b.closest('.selchip').remove();recalc();});});
+  recalc();
+</script>
+</body></html>

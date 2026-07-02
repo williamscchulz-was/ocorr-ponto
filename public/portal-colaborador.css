@@ -78,7 +78,6 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
 .modo-colab .nav__item{color:var(--text-muted)}
 .modo-colab .nav__item:hover{color:var(--text-body);background:var(--surface-warm)}
 .modo-colab .nav__item.active{background:var(--surface-warm);color:var(--plum)}
-.modo-colab .nav__item--tema{color:var(--text-muted)}
 .modo-colab .app__user{color:var(--text-body)}
 .modo-colab .app__user-info strong{color:var(--text-body)}
 .modo-colab .app__user-info span{color:var(--text-muted)}

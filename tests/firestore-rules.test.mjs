@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { test, before, after } from "node:test";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 
 let env;
 
@@ -31,7 +31,8 @@ before(async () => {
     await setDoc(doc(db, "funcionarios/f-200"), { nome: "Ana" });
     await setDoc(doc(db, "ocorrencias/o100"), { funcionarioId: "f-100", funcionarioTurno: 1, tipo: "falta", acao: null, dataConferencia: null });
     await setDoc(doc(db, "ocorrencias/o200"), { funcionarioId: "f-200", funcionarioTurno: 2, tipo: "falta", acao: null, dataConferencia: null });
-    await setDoc(doc(db, "banco-horas-saldos/f-100"), { cpf: "000.000.000-00", saldoMin: 150 });
+    // chave REAL de producao: codigo CRU (banco-horas-saldos/{codigo}), sem o prefixo f-
+    await setDoc(doc(db, "banco-horas-saldos/100"), { cpf: "000.000.000-00", saldoMin: 150 });
     await setDoc(doc(db, "banco-horas-self/100"), { saldoMin: 30, saldoFormatado: "+00:30" });
     await setDoc(doc(db, "banco-horas-self/200"), { saldoMin: -24, saldoFormatado: "-00:24" });
 
@@ -65,9 +66,12 @@ before(async () => {
     await setDoc(doc(db, "banco-horas-self/400"), { saldoMin: -5, saldoFormatado: "-00:05", funcionarioTurno: 2, funcionarioId: "f-400" });
     // (banco-horas-self/100 e /200 acima seguem SEM os campos = doc legado, pré-pipeline)
 
-    // recibos (metadados; o PDF ficaria no Storage). f-100 é do uColab, f-200 do uColab2.
-    await setDoc(doc(db, "recibos/f-100_2026-05"), { funcionarioId: "f-100", codigo: 100, competencia: "2026-05", tipo: "recibo", storagePath: "recibos/f-100/2026-05.pdf", nomeArquivo: "recibo.pdf", paginas: 1, status: "disponivel", criadoPor: "uRh", criadoEm: new Date() });
-    await setDoc(doc(db, "recibos/f-200_2026-05"), { funcionarioId: "f-200", codigo: 200, competencia: "2026-05", tipo: "recibo", storagePath: "recibos/f-200/2026-05.pdf", nomeArquivo: "recibo.pdf", paginas: 1, status: "disponivel", criadoPor: "uRh", criadoEm: new Date() });
+    // recibos (metadados leves; o PDF base64 vive na subcoleção arquivo/pdf).
+    // f-100 é do uColab, f-200 do uColab2.
+    await setDoc(doc(db, "recibos/f-100_2026-05"), { funcionarioId: "f-100", codigo: 100, competencia: "2026-05", tipo: "recibo", nomeArquivo: "recibo.pdf", paginas: 1, status: "disponivel", criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "recibos/f-200_2026-05"), { funcionarioId: "f-200", codigo: 200, competencia: "2026-05", tipo: "recibo", nomeArquivo: "recibo.pdf", paginas: 1, status: "disponivel", criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "recibos/f-100_2026-05/arquivo/pdf"), { funcionarioId: "f-100", base64: "data:application/pdf;base64,AAA" });
+    await setDoc(doc(db, "recibos/f-200_2026-05/arquivo/pdf"), { funcionarioId: "f-200", base64: "data:application/pdf;base64,BBB" });
   });
 });
 
@@ -116,9 +120,9 @@ test("RH lê ocorrência (sem regressão)", async () =>
 
 // ---- PII (banco-horas-saldos: CPF/PIS) ----
 test("colaborador NÃO lê banco-horas-saldos (PII, nem o próprio)", async () =>
-  assertFails(getDoc(doc(colab(), "banco-horas-saldos/f-100"))));
+  assertFails(getDoc(doc(colab(), "banco-horas-saldos/100"))));
 test("RH lê banco-horas-saldos (sem regressão)", async () =>
-  assertSucceeds(getDoc(doc(rh(), "banco-horas-saldos/f-100"))));
+  assertSucceeds(getDoc(doc(rh(), "banco-horas-saldos/100"))));
 
 // ---- banco-horas-self (saldo SELF, SEM PII · doc por código) ----
 test("colaborador LÊ o próprio banco-horas-self (codigo coagido)", async () =>
@@ -155,6 +159,33 @@ test("colaborador NÃO atualiza recibo", async () =>
   assertFails(updateDoc(doc(colab(), "recibos/f-100_2026-05"), { status: "hack" })));
 test("RH NÃO deleta recibo (só admin)", async () =>
   assertFails(deleteDoc(doc(rh(), "recibos/f-100_2026-05"))));
+
+// ---- recibos/arquivo (PDF base64 na subcoleção, separado dos metadados) ----
+test("colaborador LÊ o arquivo do próprio recibo", async () =>
+  assertSucceeds(getDoc(doc(colab(), "recibos/f-100_2026-05/arquivo/pdf"))));
+test("colaborador NÃO lê arquivo de recibo de terceiro", async () =>
+  assertFails(getDoc(doc(colab(), "recibos/f-200_2026-05/arquivo/pdf"))));
+test("RH lê arquivo de qualquer recibo", async () =>
+  assertSucceeds(getDoc(doc(rh(), "recibos/f-200_2026-05/arquivo/pdf"))));
+test("RH cria o arquivo do recibo (pai existe, funcionarioId bate)", async () =>
+  assertSucceeds(setDoc(doc(rh(), "recibos/f-100_2026-06/arquivo/pdf"), { funcionarioId: "f-100", base64: "data:application/pdf;base64,CCC" })));
+test("RH cria pai + arquivo no MESMO batch (padrão do criarRecibosEmLote)", async () => {
+  const db = rh();
+  const b = writeBatch(db);
+  b.set(doc(db, "recibos/f-100_2026-07"), { funcionarioId: "f-100", codigo: 100, competencia: "2026-07", tipo: "recibo", criadoPor: "uRh", criadoEm: serverTimestamp() });
+  b.set(doc(db, "recibos/f-100_2026-07/arquivo/pdf"), { funcionarioId: "f-100", base64: "data:application/pdf;base64,DDD" });
+  await assertSucceeds(b.commit());
+});
+test("RH NÃO cria arquivo ÓRFÃO (sem o recibo pai)", async () =>
+  assertFails(setDoc(doc(rh(), "recibos/f-100_2099-01/arquivo/pdf"), { funcionarioId: "f-100", base64: "x" })));
+test("RH NÃO cria arquivo com funcionarioId TROCADO (diferente do pai)", async () =>
+  assertFails(setDoc(doc(rh(), "recibos/f-100_2026-06/arquivo/pdf2"), { funcionarioId: "f-200", base64: "x" })));
+test("colaborador NÃO cria arquivo de recibo", async () =>
+  assertFails(setDoc(doc(colab(), "recibos/f-100_2026-05/arquivo/pdf2"), { funcionarioId: "f-100", base64: "x" })));
+test("arquivo do recibo é imutável (nem RH atualiza)", async () =>
+  assertFails(updateDoc(doc(rh(), "recibos/f-100_2026-05/arquivo/pdf"), { base64: "hack" })));
+test("RH NÃO deleta arquivo de recibo (só admin)", async () =>
+  assertFails(deleteDoc(doc(rh(), "recibos/f-100_2026-05/arquivo/pdf"))));
 
 // ---- banco-horas-self: Espelho de ponto do gestor (líder por turno · supervisor por lista) ----
 test("líder LÊ banco-horas-self de liderado do MESMO turno (denormalizado)", async () =>

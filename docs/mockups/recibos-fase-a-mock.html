@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FioPulse · Recibos de pagamento (Fase A) mock</title>
+<title>FioPulse · Recibos de pagamento (Fase A) mock v2</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../public/styles.css">
 <link rel="stylesheet" href="../../public/portal-colaborador.css">
@@ -14,19 +14,21 @@
   .capbig{font-size:12px;color:#EDF3EA;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid #1c241b}
   .capbig span{color:#7F9E86;font-weight:600;text-transform:none;letter-spacing:0}
   .row{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start}
-  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin-top:9px;font-weight:600;max-width:420px}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin-top:9px;font-weight:600;max-width:460px}
   .col{display:flex;flex-direction:column;align-items:center}
-  /* ---- painel GESTOR (tema claro, tokens padrao do styles.css) ---- */
-  .panel{width:520px;max-width:94vw;background:var(--surface);border-radius:16px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);overflow:hidden;color:var(--text-body)}
-  .panel__h{padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+  /* painel GESTOR (claro) */
+  .panel{width:560px;max-width:94vw;background:var(--surface);border-radius:16px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);overflow:hidden;color:var(--text-body)}
+  .panel__h{padding:16px 22px 0;border-bottom:1px solid var(--border)}
   .panel__h h2{margin:0;font-size:19px;color:var(--plum-deep);font-weight:700}
   .panel__h p{margin:3px 0 0;font-size:12.5px;color:var(--text-muted)}
+  .tabs{display:flex;gap:2px;margin-top:14px}
+  .tab{padding:9px 14px;font-size:13px;font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;cursor:pointer}
+  .tab.on{color:var(--plum);border-bottom-color:var(--plum)}
   .panel__b{padding:18px 22px 22px}
   .fld{margin-bottom:15px}
   .fld>label{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
   .inp{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:10px;padding:11px 12px;font:inherit;font-size:14px;color:var(--text-body);background:var(--milk-warm)}
   .chip{display:inline-flex;align-items:center;gap:7px;background:var(--milk-warm);border:1px solid var(--border);border-radius:999px;padding:5px 8px 5px 12px;font-size:13px;font-weight:600;color:var(--text-body)}
-  .chip b{color:var(--text-muted);font-weight:600}
   .chipx{width:18px;height:18px;border-radius:50%;background:var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:11px}
   .two{display:flex;gap:12px}.two>*{flex:1}
   .idrow{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-body);padding:4px 0}
@@ -34,43 +36,44 @@
   .ck--on{background:var(--plum);color:#fff}.ck--off{border:1.5px solid var(--border)}
   .ck svg{width:12px;height:12px}
   .muted{color:var(--text-muted)}
-  .drop{border:1.5px dashed var(--border);border-radius:14px;padding:20px;display:flex;align-items:center;gap:14px;background:var(--milk-warm)}
+  .drop{border:1.5px dashed var(--border);border-radius:14px;padding:18px;display:flex;align-items:center;gap:14px;background:var(--milk-warm)}
   .drop__ic{width:46px;height:46px;border-radius:11px;background:rgba(0,136,53,.1);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
   .drop__ic svg{width:24px;height:24px}
   .drop b{font-size:14px;color:var(--text-body)}
   .drop span{font-size:12px;color:var(--text-muted);display:block;margin-top:2px}
-  .btns{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+  .btns{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
   .btn{border:0;border-radius:10px;padding:11px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
   .btn--g{background:var(--plum);color:#fff}
   .btn--ghost{background:none;border:1px solid var(--border);color:var(--text-body)}
-  /* conferencia */
+  /* lista de lotes importados */
+  .lote{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .lote__ic{width:40px;height:40px;border-radius:10px;background:var(--milk-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .lote__ic svg{width:20px;height:20px}
+  .lote__bd{flex:1;min-width:0}
+  .lote__t{font-size:14px;font-weight:600;color:var(--text-body)}
+  .lote__s{font-size:11.5px;color:var(--text-muted)}
+  .pilar{font-size:11px;font-weight:700;color:var(--plum);background:rgba(0,136,53,.1);border-radius:999px;padding:3px 10px}
+  /* conferencia COM PDF */
   .sumbar{display:flex;gap:10px;margin-bottom:16px}
-  .sum{flex:1;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--milk-warm)}
-  .sum b{display:block;font-size:22px;font-weight:800;line-height:1}
-  .sum span{font-size:11.5px;color:var(--text-muted)}
+  .sum{flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 13px;background:var(--milk-warm)}
+  .sum b{display:block;font-size:20px;font-weight:800;line-height:1}
+  .sum span{font-size:11px;color:var(--text-muted)}
   .sum--ok b{color:var(--plum)} .sum--warn b{color:var(--warning)}
-  .list{border:1px solid var(--border);border-radius:12px;overflow:hidden}
-  .li{display:flex;align-items:center;gap:11px;padding:11px 14px;border-top:1px solid var(--border);font-size:13px}
-  .li:first-child{border-top:0}
-  .li--warn{background:rgba(232,180,104,.07)}
-  .li .av{width:30px;height:30px;border-radius:8px;background:var(--milk-warm);color:var(--plum);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
-  .li .nm{flex:1;min-width:0}
-  .li .nm b{color:var(--text-body)}.li .nm span{color:var(--text-muted);font-size:11.5px;display:block}
-  .tag{font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 9px}
+  .confrow{display:flex;gap:12px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:12px;margin-bottom:9px}
+  .confrow--warn{background:rgba(232,180,104,.07);border-color:rgba(232,180,104,.35)}
+  .thumb{width:74px;height:96px;flex:none;background:#fff;border-radius:5px;box-shadow:0 4px 12px -6px rgba(0,0,0,.5);padding:6px;overflow:hidden;font-size:4.2px;line-height:1.5;color:#333}
+  .thumb h6{margin:0 0 1px;font-size:5px;color:#111}
+  .thumb .tl{display:flex;justify-content:space-between;border-top:.5px solid #eee;padding:.5px 0}
+  .thumb .tt{display:flex;justify-content:space-between;font-weight:700;border-top:1px solid #333;margin-top:2px;padding-top:1px}
+  .thumb .tsig{margin-top:6px;border-top:.5px solid #999;width:70%;padding-top:1px;text-align:center;color:#888}
+  .confbd{flex:1;min-width:0}
+  .confbd b{font-size:14px;color:var(--text-body)}
+  .confbd .sub{font-size:12px;color:var(--text-muted);margin-top:1px}
+  .tag{font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
   .tag--ok{background:rgba(0,136,53,.12);color:var(--plum)}
   .tag--warn{background:rgba(232,180,104,.16);color:#96631a}
-  .miniinp{border:1px solid var(--border);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;background:var(--surface);color:var(--text-body)}
-  /* progresso (form blocker) */
-  .fb{width:360px;background:var(--surface);border-radius:16px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);padding:26px 22px;text-align:center;color:var(--text-body)}
-  .fb__bar{height:8px;border-radius:99px;background:var(--milk-warm);overflow:hidden;margin:14px 0 8px}
-  .fb__bar i{display:block;height:100%;width:69%;background:var(--plum);border-radius:99px}
-  .fb__msg{font-size:14px;font-weight:600}
-  .fb__hint{font-size:12px;color:var(--text-muted);margin-top:2px}
-  .fb__steps{display:flex;flex-direction:column;gap:6px;margin-top:16px;text-align:left}
-  .fb__st{font-size:12px;color:var(--text-muted);display:flex;gap:8px;align-items:center}
-  .fb__st.on{color:var(--text-body);font-weight:600}
-  .fb__st.done{color:var(--plum)}
-  /* ---- COLABORADOR (dark) ---- */
+  .miniinp{border:1px solid var(--border);border-radius:8px;padding:7px 9px;font:inherit;font-size:12px;background:var(--surface);color:var(--text-body);margin-top:6px;width:100%;box-sizing:border-box}
+  /* COLABORADOR (dark) */
   .chrome-dark{
     --bg:#0E130E;--milk:#0E130E;--surface:#161D15;--surface-warm:#1E261D;--milk-warm:#1E261D;
     --border:#232C22;--border-strong:#2A332A;--text:#EDF3EA;--text-body:#EDF3EA;--text-muted:#8A9884;
@@ -85,12 +88,12 @@
   .rc__ic svg{width:22px;height:22px}
   .rc__bd{flex:1;min-width:0}
   .rc__t{font-size:14px;font-weight:600}
-  .rc__s{font-size:11.5px;color:var(--text-muted);margin-top:1px}
-  .rc__chev{color:var(--text-muted)}
-  .rtag{font-size:10px;font-weight:700;border-radius:999px;padding:2px 8px}
-  .rtag--novo{background:rgba(95,203,133,.16);color:var(--plum)}
+  .rc__s{font-size:11.5px;color:var(--text-muted);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .rtag{font-size:9.5px;font-weight:700;border-radius:999px;padding:2px 8px}
   .rtag--pend{background:rgba(232,180,104,.16);color:var(--warning)}
-  /* visualizador */
+  .rtag--ok{background:rgba(95,203,133,.16);color:var(--plum)}
+  .rc__chev{color:var(--text-muted)}
+  /* viewer */
   .viewer{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
   .viewer__bar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted)}
   .paper{background:#fff;color:#222;margin:12px;border-radius:6px;padding:14px;font-size:8.5px;line-height:1.5;box-shadow:0 6px 20px -10px rgba(0,0,0,.5)}
@@ -98,11 +101,18 @@
   .paper .pr{display:flex;justify-content:space-between;border-top:1px solid #eee;padding:2px 0}
   .paper .tot{display:flex;justify-content:space-between;font-weight:700;border-top:1.5px solid #333;margin-top:4px;padding-top:3px}
   .paper .sigline{margin-top:16px;border-top:1px solid #999;width:70%;padding-top:3px;text-align:center;color:#666}
+  .signnote{background:rgba(232,180,104,.1);border:1px solid rgba(232,180,104,.28);border-radius:10px;padding:9px 11px;font-size:11.5px;color:var(--text-body);margin:0 12px 12px;display:flex;gap:8px;align-items:center}
+  .signnote svg{width:15px;height:15px;color:var(--warning);flex:none}
   .vbtns{display:flex;gap:8px;padding:12px}
   .vbtn{flex:1;border-radius:10px;padding:10px;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface-warm);color:var(--text-body);display:flex;align-items:center;justify-content:center;gap:7px}
   .vbtn--sign{background:var(--plum);color:#04210f;border-color:var(--plum)}
   .vbtn svg{width:15px;height:15px}
-  /* fase B preview */
+  /* Meu ponto card */
+  .mp-hero{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px}
+  .mp-hero__l{font-size:12px;color:var(--text-muted)}
+  .mp-hero__v{font-size:26px;font-weight:800;color:var(--plum);margin-top:2px}
+  .seclbl{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin:6px 2px 8px}
+  /* fase B */
   .fbtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;background:rgba(127,196,240,.14);color:#7FC4F0;border:1px solid rgba(127,196,240,.3);border-radius:999px;padding:2px 10px;margin-left:8px;vertical-align:middle}
   .geo{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;color:var(--text-body)}
   .geo__warn{background:rgba(232,180,104,.1);border:1px solid rgba(232,180,104,.25);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--text-body);line-height:1.5;margin-bottom:12px}
@@ -114,104 +124,125 @@
 <body><div class="wrap">
 
 <div class="note">
-  <b>Mock · Recibos de pagamento (Fase A) + prévia da Fase B.</b> Fluxo em 2 mundos. <b>Gestor (GP):</b> importa UM PDF do WK com todos os recibos, o sistema quebra por funcionário (casa por <code>CPF</code>, 100% presente no arquivo) e mostra a conferência de quem foi identificado antes de gerar. <b>Colaborador:</b> vê só os recibos dele e abre no próprio app. A <b>Fase A</b> entrega isso (importar + quebrar + ver). A <b>Fase B</b> (prévia no fim) acrescenta assinar com o carimbo dentro do arquivo, geolocalização exigida e assinatura obrigatória. Provado no seu arquivo real: 103 páginas viram 92 funcionários; fatiar 1 recibo dá ~46 KB e o carimbo entra no PDF.
+  <b>Mock v2 · Recibos de pagamento (Fase A), com os teus ajustes.</b> <b>(1) Gestor:</b> tudo dentro de "Documentos", numa aba <b>"Recibos e cartão ponto"</b>. <b>(2) Conferência mostra o PDF de verdade</b> de cada página ao lado do funcionário que casou (por <code>CPF</code>), pra bater o olho e resolver os não identificados vendo a página. <b>(3) Colaborador:</b> um menu <b>"Folha de pagamento"</b> pros recibos, e o <b>cartão ponto dentro de "Meu ponto"</b>, os dois com <b>aviso de assinatura pendente</b> (igual documento institucional). A assinatura carimbada no arquivo é a Fase B (prévia no fim).
 </div>
 
-<!-- ============ GESTOR: IMPORTAR ============ -->
-<div class="capbig">Gestor · Importar recibos <span>passo 1: escolher o arquivo</span></div>
-<div class="row">
-<div class="col">
+<!-- GESTOR: Documentos > aba Recibos e cartao ponto -->
+<div class="capbig">Gestor · Documentos <span>aba "Recibos e cartão ponto"</span></div>
+<div class="row"><div class="col">
   <div class="panel">
-    <div class="panel__h"><h2>Importar recibos</h2><p>Um PDF com todos os recibos. O sistema separa por funcionário.</p></div>
+    <div class="panel__h">
+      <h2>Documentos</h2>
+      <div class="tabs"><div class="tab">Institucionais</div><div class="tab on">Recibos e cartão ponto</div></div>
+    </div>
+    <div class="panel__b">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="muted" style="font-size:12.5px">Importados por competência</div>
+        <button class="btn btn--g" style="padding:9px 16px">+ Importar</button>
+      </div>
+      <div class="lote">
+        <div class="lote__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="lote__bd"><div class="lote__t">Recibo de pagamento · Maio 2026</div><div class="lote__s">90 funcionários · 30 assinaram</div></div>
+        <span class="pilar">90 gerados</span>
+      </div>
+      <div class="lote">
+        <div class="lote__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11H3v10h6zM21 3h-6v18h6zM15 8H9v13h6z"/></svg></div>
+        <div class="lote__bd"><div class="lote__t">Cartão ponto · Maio 2026</div><div class="lote__s">90 funcionários · 12 assinaram</div></div>
+        <span class="pilar">90 gerados</span>
+      </div>
+      <div class="lote">
+        <div class="lote__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="lote__bd"><div class="lote__t">Recibo de pagamento · Abril 2026</div><div class="lote__s">89 funcionários · 89 assinaram</div></div>
+        <span class="pilar">89 gerados</span>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Sem menu novo no gestor: entra na aba dentro de Documentos. O mesmo lugar serve recibo e cartão ponto.</div>
+</div></div>
+
+<!-- GESTOR: importar -->
+<div class="capbig">Gestor · Importar <span>escolher o arquivo</span></div>
+<div class="row"><div class="col">
+  <div class="panel">
+    <div class="panel__h" style="padding-bottom:14px"><h2>Importar</h2><p>Um PDF com todos. O sistema separa por funcionário.</p></div>
     <div class="panel__b">
       <div class="fld"><label>Unidade</label><span class="chip">FIOBRAS LTDA <span class="chipx">&times;</span></span></div>
       <div class="two">
-        <div class="fld"><label>Tipo do arquivo</label><div class="inp">Recibo de pagamento &#9662;</div></div>
+        <div class="fld"><label>Tipo</label><div class="inp">Recibo de pagamento &#9662;</div></div>
         <div class="fld"><label>Competência</label><div class="inp">Maio / 2026 &#128197;</div></div>
       </div>
       <div class="fld">
         <label>Identificar o funcionário por</label>
-        <div class="idrow"><span class="ck ck--on"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> CPF <span class="muted">&nbsp;(recomendado · está em toda página do recibo)</span></div>
-        <div class="idrow"><span class="ck ck--off"></span> <span class="muted">Nome (reforço, quando o CPF não bater)</span></div>
+        <div class="idrow"><span class="ck ck--on"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> CPF <span class="muted">&nbsp;(está em toda página do recibo)</span></div>
+        <div class="idrow"><span class="ck ck--on"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Nome e código <span class="muted">&nbsp;(reforço, do WKRADAR)</span></div>
       </div>
       <div class="drop">
         <div class="drop__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
-        <div><b>Recibos de Pagamento · 05.2026.pdf</b><span>643 KB · 103 páginas · gerado pelo WK Sistemas</span></div>
+        <div><b>Recibos de Pagamento · 05.2026.pdf</b><span>643 KB · 103 páginas · WK Sistemas</span></div>
       </div>
       <div class="btns"><button class="btn btn--ghost">Voltar</button><button class="btn btn--g">Analisar</button></div>
     </div>
   </div>
-  <div class="cap">Igual à ideia do print, no nosso visual. "Analisar" lê o PDF e leva pra conferência (não grava nada ainda).</div>
-</div>
-</div>
+  <div class="cap">"Analisar" lê o PDF e leva pra conferência. Nada é gravado ainda.</div>
+</div></div>
 
-<!-- ============ GESTOR: CONFERENCIA ============ -->
-<div class="capbig">Gestor · Conferência <span>passo 2: quem foi identificado, antes de gerar</span></div>
-<div class="row">
-<div class="col">
+<!-- GESTOR: conferencia COM PDF -->
+<div class="capbig">Gestor · Conferência <span>mostra o PDF de cada página ao lado de quem casou</span></div>
+<div class="row"><div class="col">
   <div class="panel">
-    <div class="panel__h"><h2>Conferência</h2><p>103 páginas lidas · 92 funcionários encontrados</p></div>
+    <div class="panel__h" style="padding-bottom:14px"><h2>Conferência</h2><p>103 páginas lidas · 92 funcionários</p></div>
     <div class="panel__b">
       <div class="sumbar">
         <div class="sum sum--ok"><b>90</b><span>identificados</span></div>
         <div class="sum sum--warn"><b>2</b><span>a resolver</span></div>
-        <div class="sum"><b>92</b><span>total no arquivo</span></div>
+        <div class="sum"><b>92</b><span>total</span></div>
       </div>
-      <div class="list">
-        <div class="li"><span class="av">AS</span><div class="nm"><b>Ana Souza</b><span>página 1 · f-1041 · 1&ordm; turno</span></div><span class="tag tag--ok">1 página</span></div>
-        <div class="li"><span class="av">BL</span><div class="nm"><b>Bruno Lima</b><span>páginas 2 a 3 · f-1042 · 2&ordm; turno</span></div><span class="tag tag--ok">2 páginas</span></div>
-        <div class="li"><span class="av">CD</span><div class="nm"><b>Carla Dias</b><span>página 4 · f-1043 · 1&ordm; turno</span></div><span class="tag tag--ok">1 página</span></div>
-        <div class="li li--warn"><span class="av" style="background:rgba(232,180,104,.16);color:#96631a">?</span><div class="nm"><b>CPF não encontrado</b><span>página 45 · ###.###.###-## não bate com nenhum funcionário</span></div><select class="miniinp"><option>Atribuir a...</option><option>Ignorar página</option></select></div>
-        <div class="li li--warn"><span class="av" style="background:rgba(232,180,104,.16);color:#96631a">?</span><div class="nm"><b>CPF não encontrado</b><span>página 78 · ###.###.###-## não bate com nenhum funcionário</span></div><select class="miniinp"><option>Atribuir a...</option><option>Ignorar página</option></select></div>
+      <div class="confrow">
+        <div class="thumb"><h6>FIOBRAS LTDA</h6><div>Recibo · Maio/2026</div><div style="color:#666">Ana Souza</div><div class="tl"><span>Salário</span><span>2.400</span></div><div class="tl"><span>Ad. not.</span><span>180</span></div><div class="tt"><span>Líquido</span><span>2.280</span></div><div class="tsig">recebi</div></div>
+        <div class="confbd"><b>Ana Souza</b><div class="sub">página 1 · f-1041 · CPF bateu</div></div>
+        <span class="tag tag--ok">1 página</span>
+      </div>
+      <div class="confrow">
+        <div class="thumb"><h6>FIOBRAS LTDA</h6><div>Recibo · Maio/2026</div><div style="color:#666">Bruno Lima</div><div class="tl"><span>Salário</span><span>3.100</span></div><div class="tl"><span>H. extra</span><span>240</span></div><div class="tt"><span>Líquido</span><span>2.910</span></div><div class="tsig">recebi</div></div>
+        <div class="confbd"><b>Bruno Lima</b><div class="sub">páginas 2 a 3 · f-1042 · CPF bateu</div></div>
+        <span class="tag tag--ok">2 páginas</span>
+      </div>
+      <div class="confrow confrow--warn">
+        <div class="thumb"><h6>FIOBRAS LTDA</h6><div>Recibo · Maio/2026</div><div style="color:#666">J. C. GULART</div><div class="tl"><span>Salário</span><span>2.050</span></div><div class="tl"><span>INSS</span><span>-190</span></div><div class="tt"><span>Líquido</span><span>1.860</span></div><div class="tsig">recebi</div></div>
+        <div class="confbd"><b>CPF não bateu</b><div class="sub">página 45 · olhe a página e diga quem é</div><select class="miniinp"><option>Atribuir a Jenifer Caroline Gulart (f-1088)?</option><option>Outro funcionário...</option><option>Ignorar esta página</option></select></div>
       </div>
       <div class="btns"><button class="btn btn--ghost">Voltar</button><button class="btn btn--g">Gerar 90 recibos</button></div>
     </div>
   </div>
-  <div class="cap">O passo que o print não mostra e é o que dá segurança: ninguém recebe recibo trocado. Os 2 "a resolver" o GP atribui na mão ou ignora.</div>
-</div>
+  <div class="cap">O PDF fica à mostra. No não identificado, você lê a página e confirma quem é (o sistema até sugere pelo nome que leu).</div>
+</div></div>
 
-<div class="col">
-  <div class="fb">
-    <div class="fb__msg">Gerando recibos...</div>
-    <div class="fb__bar"><i></i></div>
-    <div class="fb__hint">62 de 90 · não feche esta janela</div>
-    <div class="fb__steps">
-      <div class="fb__st done">Lendo o PDF</div>
-      <div class="fb__st done">Separando por funcionário</div>
-      <div class="fb__st on">Salvando os recibos</div>
-      <div class="fb__st">Concluído</div>
-    </div>
-  </div>
-  <div class="cap">Reusa o mesmo overlay de progresso que já roda no import de banco de horas e no OCR de contrato.</div>
-</div>
-</div>
-
-<!-- ============ COLABORADOR ============ -->
-<div class="capbig">Colaborador · Meus recibos <span>vê só os dele</span></div>
+<!-- COLABORADOR: Folha de pagamento -->
+<div class="capbig">Colaborador · Folha de pagamento <span>menu novo · recibos</span></div>
 <div class="row">
 <div class="col">
   <div class="chrome-dark"><div class="phone">
     <div class="phone__bar"><span>9:41</span><span>5G</span></div>
     <div class="scr">
-      <div class="ptitle">Meus recibos</div>
+      <div class="ptitle">Folha de pagamento</div>
       <div class="rc">
         <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
-        <div class="rc__bd"><div class="rc__t">Maio de 2026 <span class="rtag rtag--novo">Novo</span></div><div class="rc__s">Recibo de pagamento · 1 página</div></div>
+        <div class="rc__bd"><div class="rc__t">Maio de 2026</div><div class="rc__s">Recibo de pagamento <span class="rtag rtag--pend">Assinatura pendente</span></div></div>
         <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="9 18 15 12 9 6"/></svg></span>
       </div>
       <div class="rc">
         <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
-        <div class="rc__bd"><div class="rc__t">Abril de 2026</div><div class="rc__s">Recibo de pagamento · 1 página</div></div>
+        <div class="rc__bd"><div class="rc__t">Abril de 2026</div><div class="rc__s">Recibo de pagamento <span class="rtag rtag--ok">Assinado</span></div></div>
         <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="9 18 15 12 9 6"/></svg></span>
       </div>
       <div class="rc">
         <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
-        <div class="rc__bd"><div class="rc__t">Março de 2026</div><div class="rc__s">Recibo de pagamento · 1 página</div></div>
+        <div class="rc__bd"><div class="rc__t">Março de 2026</div><div class="rc__s">Recibo de pagamento <span class="rtag rtag--ok">Assinado</span></div></div>
         <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="9 18 15 12 9 6"/></svg></span>
       </div>
     </div>
   </div></div>
-  <div class="cap">Regra SELF (a mesma do banco de horas): cada um só enxerga os próprios. Na Fase A o status é só "Novo".</div>
+  <div class="cap">Menu próprio "Folha de pagamento". O selo "Assinatura pendente" é igual ao do documento institucional.</div>
 </div>
 
 <div class="col">
@@ -220,7 +251,7 @@
     <div class="scr">
       <div class="ptitle">Maio de 2026</div>
       <div class="viewer">
-        <div class="viewer__bar"><span>Recibo de pagamento</span><span>1 / 1</span></div>
+        <div class="viewer__bar"><span>Recibo de pagamento</span><span class="rtag rtag--pend">Assinatura pendente</span></div>
         <div class="paper">
           <h4>FIOBRAS LTDA</h4>
           <div>Recibo de Pagamento de Salário · Maio/2026</div>
@@ -228,21 +259,47 @@
           <div class="pr"><span>Salário mensalista</span><span>2.400,00</span></div>
           <div class="pr"><span>Adicional noturno</span><span>180,00</span></div>
           <div class="pr"><span>INSS</span><span>-210,00</span></div>
-          <div class="pr"><span>Desc. alimentação</span><span>-90,00</span></div>
           <div class="tot"><span>Líquido a receber</span><span>2.280,00</span></div>
           <div class="sigline">recebi a importância líquida</div>
         </div>
+        <div class="signnote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/></svg> Este recibo precisa da sua assinatura.</div>
         <div class="vbtns">
           <button class="vbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar</button>
+          <button class="vbtn vbtn--sign">Assinar <span class="fbtag" style="margin:0">Fase B</span></button>
         </div>
       </div>
     </div>
   </div></div>
-  <div class="cap">Abre no visualizador que já existe no app (mesmo do documento institucional). Na Fase A: ver e baixar.</div>
+  <div class="cap">Abre no visualizador do app, com o aviso de assinatura. Na Fase A: ver e baixar. Assinar chega na Fase B.</div>
 </div>
 </div>
 
-<!-- ============ FASE B PREVIEW ============ -->
+<!-- COLABORADOR: cartao ponto dentro de Meu ponto -->
+<div class="capbig">Colaborador · Meu ponto <span>cartão ponto em arquivo entra aqui</span></div>
+<div class="row"><div class="col">
+  <div class="chrome-dark"><div class="phone">
+    <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+    <div class="scr">
+      <div class="ptitle">Meu ponto</div>
+      <div class="mp-hero"><div class="mp-hero__l">Banco de horas</div><div class="mp-hero__v">+05:30</div></div>
+      <div class="seclbl">Cartão ponto (arquivo)</div>
+      <div class="rc">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11H3v10h6zM21 3h-6v18h6zM15 8H9v13h6z"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Maio de 2026</div><div class="rc__s">Cartão ponto oficial <span class="rtag rtag--pend">Assinatura pendente</span></div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+      <div class="seclbl" style="margin-top:14px">Marcações do dia a dia</div>
+      <div class="rc" style="margin-bottom:0">
+        <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></div>
+        <div class="rc__bd"><div class="rc__t">Espelho ao vivo</div><div class="rc__s">os horários que você bateu, dia a dia</div></div>
+        <span class="rc__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </div>
+    </div>
+  </div></div>
+  <div class="cap">Dentro de "Meu ponto": o cartão ponto oficial (arquivo, com assinatura) convive com o espelho ao vivo que já existe.</div>
+</div></div>
+
+<!-- FASE B preview -->
 <div class="capbig">Fase B <span class="fbtag">vem depois</span> <span>assinar com carimbo no arquivo + geolocalização exigida</span></div>
 <div class="row">
 <div class="col">
@@ -253,23 +310,19 @@
       <div class="geo">
         <div class="geo__warn"><b>Preciso da sua localização.</b><br>Pra assinar este recibo você precisa permitir o acesso à sua localização.</div>
         <div class="geo__perm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> O navegador vai perguntar · toque em Permitir</div>
-        <div class="vbtns" style="padding:12px 0 0">
-          <button class="vbtn">Voltar</button>
-          <button class="vbtn vbtn--sign">Permitir e assinar</button>
-        </div>
+        <div class="vbtns" style="padding:12px 0 0"><button class="vbtn">Voltar</button><button class="vbtn vbtn--sign">Permitir e assinar</button></div>
       </div>
     </div>
   </div></div>
-  <div class="cap">Como você pediu: exige a localização (bloqueia sem permitir) e a assinatura é obrigatória.</div>
+  <div class="cap">Exige a localização (bloqueia sem permitir) e a assinatura é obrigatória, como você pediu.</div>
 </div>
-
 <div class="col">
   <div class="chrome-dark"><div class="phone">
     <div class="phone__bar"><span>9:41</span><span>5G</span></div>
     <div class="scr">
       <div class="ptitle">Recibo assinado</div>
       <div class="viewer">
-        <div class="viewer__bar"><span>Recibo de pagamento</span><span class="rtag" style="background:rgba(95,203,133,.16);color:var(--plum)">Assinado</span></div>
+        <div class="viewer__bar"><span>Recibo de pagamento</span><span class="rtag rtag--ok">Assinado</span></div>
         <div class="paper">
           <h4>FIOBRAS LTDA</h4>
           <div style="color:#666">Ana Souza · Maio/2026 · Líquido 2.280,00</div>
@@ -287,7 +340,7 @@
       </div>
     </div>
   </div></div>
-  <div class="cap">O carimbo entra DENTRO do PDF (nome em fonte de assinatura + termos + local + hash), igual ao print do joinin. Provado no arquivo real.</div>
+  <div class="cap">O carimbo entra DENTRO do PDF (nome em fonte de assinatura + termos + local + hash). Provado no arquivo real.</div>
 </div>
 </div>
 

@@ -1427,6 +1427,108 @@
       return r;
     };
 
+    // ===== Recibos (recibo de pagamento / cartão ponto por funcionário) =====
+    // Metadados leves em recibos/{funcionarioId}_{competencia}_{tipo}; o PDF (base64)
+    // vive na subcoleção arquivo/pdf — a lista lê só o pai, o arquivo vem sob demanda.
+    // Colaborador lê SÓ o dele (rule SELF); admin/RH gerenciam (cap recibos.gerenciar).
+
+    // CPF -> funcionarioId a partir de banco-horas-saldos (admin/RH only). TRANSITÓRIO:
+    // vive só na memória do navegador do gestor durante o import, pra rotear as páginas.
+    // O CPF NUNCA persiste no doc do recibo (LGPD).
+    window.carregarMapaCpf = async function () {
+      const u = currentUser();
+      if (!u || (u.role !== "admin" && u.role !== "rh")) return null;
+      try {
+        const snap = await db.collection("banco-horas-saldos").get();
+        const mapa = {};
+        for (const d of snap.docs) {
+          const cpf = String(d.data().cpf || "").replace(/\D/g, "");
+          // ATENÇÃO à chave: banco-horas-saldos/{codigo} é o código CRU (ex.: "1041"),
+          // diferente de bancoHoras/{f-codigo}. O funcionarioId do app = "f-"+codigo.
+          if (cpf.length === 11) mapa[cpf] = "f-" + d.id;
+        }
+        return mapa;
+      } catch (e) { debug?.("[recibos] mapa cpf:", e?.message || e); return null; }
+    };
+
+    // Lista do gestor (metadados de todos). Lazy: chamada quando a aba abre.
+    window.recarregarRecibosGestor = async function () {
+      try {
+        const snap = await db.collection("recibos").orderBy("criadoEm", "desc").limit(2000).get();
+        state.recibos = snap.docs.map((d) => { const x = d.data(); return { id: d.id, ...x, criadoEm: tsToIso(x.criadoEm) }; });
+      } catch (e) { debug?.("[recibos] load gestor:", e?.message || e); state.recibos = state.recibos || []; }
+    };
+
+    // Grava o lote: metadados + arquivo (base64) por funcionário. Chunk pequeno (8) porque
+    // cada arquivo tem dezenas de KB e o commit tem teto de ~10 MB. onProgress(feitos, total).
+    window.criarRecibosEmLote = async function (itens, onProgress) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!uid) return { ok: false, err: "sem sessao" };
+      try {
+        let feitos = 0;
+        for (let i = 0; i < itens.length; i += 8) {
+          const chunk = itens.slice(i, i + 8);
+          const batch = db.batch();
+          for (const it of chunk) {
+            const id = `${it.funcionarioId}_${it.competencia}_${it.tipo}`;
+            const ref = db.collection("recibos").doc(id);
+            batch.set(ref, {
+              funcionarioId: it.funcionarioId,
+              codigo: it.codigo || null,
+              funcionarioNome: it.nome || "",
+              competencia: it.competencia,
+              tipo: it.tipo,
+              paginas: it.paginas || 1,
+              nomeArquivo: it.nomeArquivo || "recibo.pdf",
+              status: "disponivel",
+              criadoPor: uid,
+              criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            batch.set(ref.collection("arquivo").doc("pdf"), { funcionarioId: it.funcionarioId, base64: it.pdfBase64 });
+          }
+          await batch.commit();
+          feitos += chunk.length;
+          onProgress?.(feitos, itens.length);
+        }
+        const alvo = `${itens.length} × ${itens[0]?.tipo || "recibo"} · ${itens[0]?.competencia || ""}`;
+        window.registrarAuditoria?.({ tipo: "recibos", acao: "Importou lote de recibos", alvo });
+        window.logEvento?.({ tipo: "recibos", acao: "Importou lote", alvo });
+        return { ok: true, n: itens.length };
+      } catch (e) { debug?.("[recibos] lote:", e?.message || e); return { ok: false, err: e.message }; }
+    };
+
+    // Busca o PDF (base64) de UM recibo, sob demanda (abrir/baixar).
+    window.carregarArquivoRecibo = async function (reciboId) {
+      try {
+        const snap = await db.collection("recibos").doc(reciboId).collection("arquivo").doc("pdf").get();
+        return snap.exists ? (snap.data().base64 || null) : null;
+      } catch (e) { debug?.("[recibos] arquivo:", e?.message || e); return null; }
+    };
+
+    // Exclui um lote inteiro (tipo+competência): metadados + arquivos. Rule: só admin
+    // (decisão: RH gerencia create/update; destruir é do admin, como nos documentos).
+    // Guard aqui também: erro claro em vez de permission-denied no meio do batch.
+    window.excluirLoteRecibos = async function (tipo, competencia) {
+      const u = currentUser();
+      if (!u || u.role !== "admin") return { ok: false, err: "Só o administrador exclui lotes." };
+      try {
+        const snap = await db.collection("recibos")
+          .where("tipo", "==", tipo).where("competencia", "==", competencia).get();
+        for (let i = 0; i < snap.docs.length; i += 200) {
+          const chunk = snap.docs.slice(i, i + 200);
+          const batch = db.batch();
+          for (const d of chunk) {
+            batch.delete(d.ref.collection("arquivo").doc("pdf"));
+            batch.delete(d.ref);
+          }
+          await batch.commit();
+        }
+        window.registrarAuditoria?.({ tipo: "recibos", acao: "Excluiu lote de recibos", alvo: `${tipo} · ${competencia} (${snap.size})` });
+        await window.recarregarRecibosGestor();
+        return { ok: true, n: snap.size };
+      } catch (e) { debug?.("[recibos] excluir lote:", e?.message || e); return { ok: false, err: e.message }; }
+    };
+
     // ===== Disciplinares (advertencia/suspensao) — dado SENSIVEL =====
     // Gestor (admin/RH le tudo, lider le do turno dele). Sem orderBy nas queries com where
     // (evita indice composto); ordena no cliente. Auditoria no create/delete.
@@ -2888,6 +2990,19 @@
           const osnap = await db.collection("ocorrencias").where("funcionarioId", "==", u.funcionarioId).get();
           state.ocorrenciasColab = osnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         } catch (e) { debug?.("[colab] ocorrencias:", e?.message || e); state.ocorrenciasColab = []; }
+      }
+
+      // Meus recibos (folha de pagamento + cartão ponto em arquivo): SÓ metadados leves
+      // (o PDF fica na subcoleção arquivo e é buscado ao abrir). where(funcionarioId==) sem
+      // orderBy (sem índice composto); ordena por competência no cliente.
+      state.meusRecibos = [];
+      if (u.funcionarioId) {
+        try {
+          const rsnap = await db.collection("recibos").where("funcionarioId", "==", u.funcionarioId).get();
+          state.meusRecibos = rsnap.docs
+            .map((d) => { const x = d.data(); return { id: d.id, ...x, criadoEm: tsToIso(x.criadoEm) }; })
+            .sort((a, b) => String(b.competencia || "").localeCompare(String(a.competencia || "")));
+        } catch (e) { debug?.("[colab] recibos:", e?.message || e); state.meusRecibos = []; }
       }
 
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.

@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.17.0", d: "1 jul 2026", current: true, items: [
+    v: "1.18.0", d: "2 jul 2026", current: true, items: [
+      { type: "high", title: "Chegou a Folha de pagamento: um menu novo com os seus recibos, mês a mês. Abrem dentro do app, dá pra ler e baixar, e só você vê os seus. A assinatura eletrônica chega na próxima etapa." },
+      { type: "feat", title: "Em Meu ponto, quando o GP importar, aparece também o seu cartão ponto oficial do mês em arquivo, junto do espelho ao vivo." },
+      { type: "feat", aud: "gestor", title: "Documentos ganhou a aba \"Recibos e cartão ponto\": o GP importa um único PDF da folha (WK) e o sistema separa por funcionário pelo CPF, com conferência página a página (miniaturas reais) antes de gerar." },
+    ],
+  },
+  {
+    v: "1.17.0", d: "1 jul 2026", items: [
       { type: "high", title: "A sua Home ganhou um visual novo: uma saudação pelo horário do dia (bom dia, boa tarde, boa noite) com o seu nome, e no seu aniversário ela vira festa. No computador ela abre em duas colunas." },
       { type: "feat", title: "Agora você pode colocar a sua foto de perfil: toque no ícone de câmera na sua foto, na Conta. Ela aparece na saudação da Home, no topo e na Conta. Sem foto, ficam as suas iniciais." },
       { type: "feat", title: "Aniversariantes ficaram mais leves: no celular aparece só quem faz aniversário hoje; no computador, o mês inteiro." },
