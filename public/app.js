@@ -1149,8 +1149,12 @@ async function abrirReciboColab(id) {
           const blob = await (await fetch(dl)).blob();
           url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
         } catch (e) {
-          // cai no original abaixo, mas REGISTRA (CORS/rede do Storage não pode falhar mudo)
-          try { console.warn("[recibos] versão assinada não baixou, mostrando original:", e?.message || e); } catch (e2) {}
+          // Fetch bloqueado (CORS do bucket ainda não configurado) ou rede: NUNCA mostrar
+          // o original fingindo ser o assinado — abre a versão assinada em NOVA ABA.
+          try { console.warn("[recibos] fetch do assinado falhou, abrindo em nova aba:", e?.message || e); } catch (e2) {}
+          window.open(dl, "_blank", "noopener");
+          toast("A versão assinada abriu em nova aba.");
+          return;
         }
       }
     }
@@ -5398,9 +5402,48 @@ function dataUrlParaBlob(dataUrl) {
   return new Blob([arr], { type: mime });
 }
 
-// Visualizador in-app do documento (imagem inline ou PDF embutido). Overlay PRÓPRIO
-// (não usa #modal-root) — empilha POR CIMA de um modal aberto (ex.: sheet de assinar)
-// sem destruí-lo. Link externo (Drive) não embute: abre direto em nova aba.
+// Desenha TODAS as páginas do PDF em canvas (pdf.js) dentro do container do viewer.
+// Substitui o iframe nativo: iOS embutia só a 1ª página, e o chrome do navegador
+// poluía a tela. Escala 2x pela nitidez; falha cai numa nota com o botão Abrir.
+async function renderPdfPaginasViewer(dataUrl, cont) {
+  // Timeout de segurança por etapa: se o pdf.js empacar (worker, ambiente estranho),
+  // nunca deixa o "Abrindo..." eterno — cai na nota com o botão Abrir em nova aba.
+  const corre = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+  try {
+    const pdfjs = await loadPdfJs();
+    const buf = await dataUrlParaBlob(dataUrl).arrayBuffer();
+    const pdf = await corre(pdfjs.getDocument({ data: buf }).promise, 15000);
+    if (!document.contains(cont)) { try { pdf.destroy?.(); } catch (e) {} return; }
+    cont.innerHTML = "";
+    const largBase = Math.min(860, cont.clientWidth || 800);
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await corre(pdf.getPage(i), 10000);
+      if (!document.contains(cont)) break; // viewer fechou no meio
+      const vp0 = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: (largBase * 2) / vp0.width });
+      const cv = document.createElement("canvas");
+      cv.className = "cp-docpage-cv";
+      cv.width = vp.width; cv.height = vp.height;
+      cont.appendChild(cv);
+      await corre(page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise, 12000);
+    }
+    if (pdf.numPages > 1 && document.contains(cont)) {
+      const n = document.createElement("div");
+      n.className = "cp-docpages__n";
+      n.textContent = `${pdf.numPages} páginas`;
+      cont.appendChild(n);
+    }
+    try { pdf.destroy?.(); } catch (e) {}
+  } catch (e) {
+    if (document.contains(cont)) {
+      cont.innerHTML = `<div class="cp-docview__note"><span>Não consegui desenhar o documento aqui. Toque em Abrir em nova aba.</span></div>`;
+    }
+  }
+}
+
+// Visualizador in-app do documento (imagem inline ou PDF desenhado página a página).
+// Overlay PRÓPRIO (não usa #modal-root) — empilha POR CIMA de um modal aberto (ex.:
+// sheet de assinar) sem destruí-lo. Link externo (Drive) não embute: abre em nova aba.
 function openDocViewer(d) {
   const anexo = d && d.anexo;
   const url = anexo && anexo.url;
@@ -5421,12 +5464,13 @@ function openDocViewer(d) {
     corpo = `<div class="cp-docview__body"><img class="cp-docpage" src="${escapeHtml(url)}" alt="${escapeHtml(titulo)}"></div>`;
   } else if (ehPdf) {
     blobUrl = URL.createObjectURL(dataUrlParaBlob(url));
-    // #toolbar=0&navpanes=0: o visualizador nativo esconde a barra e o painel lateral —
-    // só o arquivo na tela (pedido do William). Navegadores que ignoram o fragmento
-    // seguem funcionando com o chrome deles.
+    // VIEWER PRÓPRIO (pdf.js → canvas): todas as páginas empilhadas, sem o chrome do
+    // navegador. Mata dois males de uma vez: o Safari/iOS que só renderiza a 1ª página
+    // de PDF embutido, e a barra/painel nativos que o William pediu pra sumir.
     corpo = `<div class="cp-docview__body cp-docview__body--pdf">
-        <iframe class="cp-docframe" src="${blobUrl}#toolbar=0&navpanes=0&view=FitH" title="${escapeHtml(titulo)}"></iframe>
-        <div class="cp-docview__note">${ic("info")}<span>Se o PDF não abrir aqui no seu celular, toque em Abrir.</span></div>
+        <div class="cp-docpages" data-docpages>
+          <div class="cp-docview__note">${ic("info")}<span>Abrindo o documento...</span></div>
+        </div>
       </div>`;
     abrirBtn = `<button class="btn btn--soft" data-doc-abrir>${ic("file")}<span>Abrir em nova aba</span></button>`;
   } else {
@@ -5464,6 +5508,8 @@ function openDocViewer(d) {
   if (ab && blobUrl) ab.addEventListener("click", () => window.open(blobUrl, "_blank", "noopener"));
   const asb = root.querySelector("[data-doc-assinar]");
   if (asb) asb.addEventListener("click", () => { fechar(); openAssinarReciboSheet(d.assinarRecibo); });
+  const pages = root.querySelector("[data-docpages]");
+  if (pages) renderPdfPaginasViewer(url, pages);
   setTimeout(() => root.querySelector("[data-docview-close]")?.focus(), 30);
 }
 
@@ -12181,7 +12227,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.21.2";
+window.CURRENT_VERSION = "1.22.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

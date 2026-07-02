@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.21.2", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.22.0", d: "2 jul 2026", current: true, items: [
+      { type: "high", title: "O visualizador de documentos foi refeito: agora o arquivo aparece limpo na tela, com TODAS as páginas (no iPhone só aparecia a primeira), sem barra nem painel do navegador." },
+      { type: "fix", aud: "gestor", title: "Ver um recibo assinado ficou confiável: se o download direto falhar, a versão carimbada abre em nova aba em vez de mostrar o original sem avisar." },
+    ],
+  },
+  {
+    v: "1.21.2", d: "2 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "Ocorrência automática agora tem a mesma conferência da manual: o líder abre a tela, vê previsto e batido, escolhe a Ação (obrigatória) e a observação antes de confirmar. Acabou o confirmar de um clique sem verificar." },
     ],
   },
