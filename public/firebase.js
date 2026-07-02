@@ -2467,14 +2467,14 @@
       const user = auth.currentUser;
       if (!user) throw new Error("Não está logado.");
       const uid = user.uid;
-      const value = base64OrNull || firebase.firestore.FieldValue.delete();
+      // Remoção DELIBERADA vira "" (string vazia), NÃO delete: o pipeline de fotos
+      // oficiais (WKRADAR) só preenche campo AUSENTE/null — "" significa "a pessoa
+      // tirou de propósito, não repor a foto oficial por cima".
+      const value = base64OrNull || "";
       await db.collection("users").doc(uid).update({ fotoBase64: value });
-      // Reflete no state local
+      // Reflete no state local ("" cai nas iniciais no aplicarAvatar)
       const me = (state.users || []).find((x) => x.id === uid);
-      if (me) {
-        if (base64OrNull) me.fotoBase64 = base64OrNull;
-        else delete me.fotoBase64;
-      }
+      if (me) me.fotoBase64 = value;
     };
 
     // Alterar a própria senha (usuário logado)

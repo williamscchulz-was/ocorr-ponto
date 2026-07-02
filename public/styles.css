@@ -4576,3 +4576,13 @@ code { font-family: inherit; }
 .rcb-tri__ln a { color: var(--plum); font-weight: 700; }
 .rcb-tri__hash { font-family: monospace; font-size: 11px; }
 .rcb-tri__ua { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+/* popup do espelho na lista do Banco de Horas */
+.bhpop-saldo { display: flex; align-items: baseline; justify-content: space-between; border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; margin-bottom: 12px; }
+.bhpop-saldo span { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.bhpop-saldo b { font-size: 22px; font-weight: 800; }
+.bhpop-saldo b.esp-pos { color: var(--plum); }
+.bhpop-saldo b.esp-neg { color: var(--danger); }
+.bhpop-saldo b.esp-zero { color: var(--text-muted); }
+.bhpop-lbl { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 6px; }
+.bhpop-lbl:first-child { margin-top: 0; }
+.bhpop-body { max-height: 46vh; overflow-y: auto; padding-right: 2px; }

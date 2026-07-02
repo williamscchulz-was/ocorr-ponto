@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.21.0", d: "2 jul 2026", current: true, items: [
+    v: "1.21.1", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "feat", title: "No Banco de Horas, clicar no funcionário abre o espelho do mês num popup (saldo + marcações), com atalho pra aba Espelho de ponto já com a pessoa selecionada." },
+    ],
+  },
+  {
+    v: "1.21.0", d: "2 jul 2026", items: [
       { type: "high", title: "Chegou a assinatura eletrônica: o recibo e o cartão ponto agora são assinados dentro do app, e a assinatura fica CARIMBADA no próprio arquivo, com seu nome em letra de assinatura, data, hora e local. O arquivo assinado fica guardado em cofre e não muda nunca mais." },
       { type: "feat", title: "Pra assinar, o app pede a sua localização (é o registro de onde você assinou, parte da validade) e a sua senha. A folha te guia passo a passo, inclusive na permissão do navegador." },
       { type: "feat", aud: "gestor", title: "O lote de recibos virou painel de adesão: quantos assinaram, quem falta, e a hora de cada assinatura. O Ver abre a versão carimbada de quem já assinou." },

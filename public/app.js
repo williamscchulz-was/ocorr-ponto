@@ -7923,7 +7923,7 @@ function renderBHList(funcionarios, animar) {
     const cargoSetor = [cargo, setor].filter(Boolean).join(" · ");
 
     return `
-      <article class="occ bh-card" style="grid-template-columns: 1fr auto; align-items: center;">
+      <article class="occ bh-card" data-bh-espelho="${escapeHtml(f.id)}" style="grid-template-columns: 1fr auto; align-items: center; cursor: pointer;" title="Ver o espelho do mês">
         <div class="occ__main" style="min-width:0;">
           <div class="occ__name">${escapeHtml(f.nome)}</div>
           <div class="occ__sub">${cargoSetor ? escapeHtml(cargoSetor) : (TURNOS[f.turno]?.label || "sem turno")}</div>
@@ -7933,7 +7933,77 @@ function renderBHList(funcionarios, animar) {
     `;
   }).join("")}</div>`;
 
+  // Espelho no clique (mock aprovado): a linha abre o popup do mês, sem sair da tela.
+  root.querySelectorAll("[data-bh-espelho]").forEach((el) =>
+    el.addEventListener("click", () => openEspelhoPopupBH(el.dataset.bhEspelho)));
+
   if (animar) animarEntrada(document.querySelector("#bh-list .list"));
+}
+
+// Popup do espelho direto da lista do Banco de Horas: saldo no topo, marcações do mês
+// vigente + anterior (mesma fonte do Espelho de ponto), e atalho pra aba completa com
+// a pessoa já selecionada (_espState.sel).
+async function openEspelhoPopupBH(funcionarioId) {
+  const f = (state.funcionarios || []).find((x) => x.id === funcionarioId);
+  if (!f) return;
+  const bh = (state.bancoHoras || {})[f.id] || null;
+  const saldoStr = bh ? formatSaldoHoras(bh.minutos) : "—";
+  const tone = bh ? (bh.minutos > 0 ? "esp-pos" : bh.minutos < 0 ? "esp-neg" : "esp-zero") : "esp-zero";
+  const cargoSetor = [f.cargo, f.setor].filter(Boolean).join(" · ") || (TURNOS[f.turno]?.label || "");
+  const shell = (corpo) => `
+    <div class="modal__header">
+      <div><h2>${escapeHtml(f.nome)}</h2><p>${escapeHtml(cargoSetor)}</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="bhpop-saldo"><span>Saldo atual</span><b class="${tone}">${escapeHtml(saldoStr)}</b></div>
+      ${corpo}
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+        <button class="btn btn--ghost" data-close>Fechar</button>
+        <button class="btn btn--primary" id="bhpop-abrir">${icon("conferir")}<span>Abrir no Espelho de ponto</span></button>
+      </div>
+    </div>`;
+  const bind = () => {
+    document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+    $("#bhpop-abrir")?.addEventListener("click", () => {
+      _espState.sel = f.id;
+      state.view.page = "espelho-ponto";
+      closeModal();
+      renderApp();
+    });
+  };
+  openModal(shell(`<div class="empty empty--mini"><p>Carregando o espelho...</p></div>`));
+  bind();
+  let dias;
+  try {
+    const cod = f.codigo != null ? String(f.codigo) : "";
+    const doc = (cod && typeof window.carregarEspelhoFuncionario === "function")
+      ? await window.carregarEspelhoFuncionario(cod) : null;
+    dias = (doc && Array.isArray(doc.dias)) ? doc.dias : [];
+  } catch (e) {
+    dias = /permission/i.test(e?.message || "")
+      ? "Apuração deste colaborador ainda não liberada pra você."
+      : "Não consegui carregar o espelho agora.";
+  }
+  if (!$("#bhpop-abrir")) return; // fechou antes do dado chegar
+  let corpo;
+  if (typeof dias === "string") corpo = `<div class="empty empty--mini"><p>${escapeHtml(dias)}</p></div>`;
+  else if (!dias.length) corpo = `<div class="empty empty--mini"><p>Sem marcações sincronizadas ainda. O espelho aparece quando a apuração do ponto rodar.</p></div>`;
+  else {
+    const grupos = [];
+    let atual = null;
+    for (const d of dias) {
+      const ym = String(d.dataIso || "").slice(0, 7);
+      if (!atual || atual.ym !== ym) { atual = { ym, dataIso: d.dataIso, dias: [] }; grupos.push(atual); }
+      atual.dias.push(d);
+    }
+    corpo = `<div class="bhpop-body">${grupos.map((g, i) => {
+      const m = cpMesLabel(g.dataIso);
+      return `<div class="bhpop-lbl">${escapeHtml(i === 0 ? `Espelho de ponto${m ? ` · ${m}` : ""}` : m)}</div>${g.dias.map(espDiaHtml).join("")}`;
+    }).join("")}</div>`;
+  }
+  openModal(shell(corpo));
+  bind();
 }
 
 function openImportBancoHorasModal() {
@@ -12031,7 +12101,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.21.0";
+window.CURRENT_VERSION = "1.21.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
