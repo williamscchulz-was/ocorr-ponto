@@ -360,6 +360,27 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isAdmin();
       }
+
+      // assinaturas/{uid}: a trilha da Fase B — create-only pelo DONO do recibo, com
+      // geolocalização EXIGIDA (decisão do William: sem local, não assina). Campos
+      // fechados; funcionarioId tem que bater com o do recibo pai (get); em = hora do
+      // servidor. Reassinar não existe: update/delete negados (2º set vira update => nega).
+      // Gestor NÃO assina pelo colaborador. arquivoPath aponta a versão carimbada no Storage.
+      match /assinaturas/{uid} {
+        allow read: if isAdmin() || temCap('recibos.gerenciar', isRH())
+                    || (isAuthed() && request.auth.uid == uid);
+        allow create: if isColaborador()
+          && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'em', 'userAgent', 'geo', 'hashSha256', 'aceiteTexto', 'arquivoPath'])
+          && request.resource.data.em == request.time
+          && request.resource.data.geo.lat is number
+          && request.resource.data.geo.lng is number
+          && euSouODono(request.resource.data.funcionarioId)
+          && request.resource.data.funcionarioId
+               == get(/databases/$(database)/documents/recibos/$(id)).data.funcionarioId;
+        allow update, delete: if false;
+      }
     }
 
     // ----- pipeline-rh (estrutura cur/hist · espelho do Comercial · SEM PII) -----

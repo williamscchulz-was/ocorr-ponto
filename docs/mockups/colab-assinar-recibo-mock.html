@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Assinar recibo com carimbo no arquivo (Fase B) mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 80px;font-family:Poppins,sans-serif;color:#EDF3EA}
+  .wrap{max-width:1200px;margin:0 auto}
+  .note{font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65;margin-bottom:26px}
+  .note b{color:#EDF3EA}
+  .capbig{font-size:12px;color:#EDF3EA;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid #1c241b}
+  .capbig span{color:#7F9E86;font-weight:600;text-transform:none;letter-spacing:0}
+  .row{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;justify-content:center}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin-top:9px;font-weight:600;max-width:340px}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .chrome-dark{
+    --bg:#0E130E;--milk:#0E130E;--surface:#161D15;--surface-warm:#1E261D;--milk-warm:#1E261D;
+    --border:#232C22;--border-strong:#2A332A;--text:#EDF3EA;--text-body:#EDF3EA;--text-muted:#8A9884;
+    --plum:#5FCB85;--plum-soft:#5FCB85;--plum-deep:#9FE0B5;--success:#5FCB85;--warning:#E8B468;--danger:#E68A86;
+  }
+  .phone{width:340px;background:#0E130E;border:1px solid #232C22;border-radius:26px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8);position:relative}
+  .phone__bar{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:11px;color:#EDF3EA;font-weight:600}
+  .scr{padding:15px 14px 22px;background:var(--bg);color:var(--text-body);min-height:520px;box-sizing:border-box}
+  .ptitle{font-size:17px;font-weight:700;margin:2px 0 14px}
+  /* viewer */
+  .viewer{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .viewer__bar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted)}
+  .paper{background:#fff;color:#222;margin:12px;border-radius:6px;padding:13px;font-size:7.5px;line-height:1.5;box-shadow:0 6px 20px -10px rgba(0,0,0,.5)}
+  .paper h4{margin:0 0 2px;font-size:9px}
+  .paper .grade{border:0.5px solid #ccc;border-radius:2px;margin-top:4px}
+  .paper .gr{display:flex;border-top:0.5px solid #eee}
+  .paper .gr:first-child{border-top:0;background:#f4f4f4;font-weight:700}
+  .paper .gr span{flex:1;padding:1.5px 4px;border-left:0.5px solid #eee}
+  .paper .gr span:first-child{border-left:0;flex:.5}
+  .rtag{font-size:9.5px;font-weight:700;border-radius:999px;padding:2px 8px}
+  .rtag--pend{background:rgba(232,180,104,.16);color:var(--warning)}
+  .rtag--ok{background:rgba(95,203,133,.16);color:var(--plum)}
+  .signnote{background:rgba(232,180,104,.1);border:1px solid rgba(232,180,104,.28);border-radius:10px;padding:9px 11px;font-size:11.5px;color:var(--text-body);margin:0 12px 12px;display:flex;gap:8px;align-items:center}
+  .signnote svg{width:15px;height:15px;color:var(--warning);flex:none}
+  .vbtns{display:flex;gap:8px;padding:12px}
+  .vbtn{flex:1;border-radius:11px;padding:11px;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface-warm);color:var(--text-body);display:flex;align-items:center;justify-content:center;gap:7px}
+  .vbtn--sign{background:var(--plum);color:#04210f;border-color:var(--plum);font-weight:700}
+  .vbtn svg{width:15px;height:15px}
+  /* sheet de assinatura */
+  .sheetov{position:absolute;inset:0;background:rgba(4,8,4,.65);display:flex;align-items:flex-end;z-index:8}
+  .sheet{width:100%;background:var(--surface);border-radius:22px 22px 0 0;padding:18px 16px 24px;border-top:1px solid var(--border);box-sizing:border-box}
+  .sheet h3{margin:0 0 4px;font-size:16px}
+  .sheet .sub{font-size:12px;color:var(--text-muted);margin:0 0 14px;line-height:1.5}
+  .passos{display:flex;gap:6px;margin-bottom:16px}
+  .passo{flex:1;height:4px;border-radius:99px;background:var(--surface-warm)}
+  .passo.on{background:var(--plum)}
+  .geo-card{background:var(--surface-warm);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+  .geo-card .ic{width:52px;height:52px;border-radius:50%;background:rgba(95,203,133,.14);color:var(--plum);display:flex;align-items:center;justify-content:center}
+  .geo-card .ic svg{width:25px;height:25px}
+  .geo-card b{font-size:14px}
+  .geo-card span{font-size:12px;color:var(--text-muted);line-height:1.5}
+  .btn-full{width:100%;border-radius:12px;padding:13px;font:inherit;font-size:14px;font-weight:700;border:0;background:var(--plum);color:#04210f;margin-top:12px}
+  .btn-ghost{width:100%;border-radius:12px;padding:11px;font:inherit;font-size:13px;font-weight:600;border:1px solid var(--border);background:none;color:var(--text-muted);margin-top:8px}
+  .geo-neg{background:rgba(230,138,134,.08);border:1px solid rgba(230,138,134,.3);border-radius:12px;padding:12px;font-size:12px;line-height:1.55;color:var(--text-body)}
+  .geo-neg b{color:var(--danger)}
+  .campo{margin-top:12px}
+  .campo label{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+  .campo input{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:11px;padding:12px;font:inherit;font-size:14px;background:var(--bg);color:var(--text-body)}
+  .aceite{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:12.5px;line-height:1.5;color:var(--text-body)}
+  .aceite .ck{width:22px;height:22px;border-radius:7px;background:var(--plum);color:#04210f;display:flex;align-items:center;justify-content:center;flex:none}
+  .aceite .ck svg{width:13px;height:13px}
+  .resumo{background:var(--surface-warm);border-radius:12px;padding:11px 13px;margin-top:14px;font-size:11.5px;color:var(--text-muted);line-height:1.7}
+  .resumo b{color:var(--text-body)}
+  /* teatro */
+  .teatro{display:flex;flex-direction:column;align-items:center;gap:14px;padding:34px 0 22px;text-align:center}
+  .selo-anim{width:84px;height:104px;background:#fff;border-radius:8px;box-shadow:0 10px 30px -12px rgba(0,0,0,.6);position:relative;overflow:hidden}
+  .selo-anim::after{content:"";position:absolute;left:10px;right:10px;bottom:12px;height:26px;border:1.5px solid #0B7A36;border-radius:4px;background:rgba(11,122,54,.06)}
+  .selo-anim i{position:absolute;left:14px;right:14px;height:3px;border-radius:2px;background:#e4e8e2}
+  .teatro b{font-size:15px}
+  .tsteps{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--text-muted);text-align:left}
+  .tsteps .done{color:var(--plum)}
+  .tsteps .on{color:var(--text-body);font-weight:600}
+  /* carimbo no papel */
+  .stampbox{border:1px solid #444;border-radius:4px;background:#fafafa;color:#222;padding:7px 9px;font-size:6.8px;line-height:1.55;width:88%;margin-top:6px}
+  .stampbox b{font-size:7.2px}
+  .stamp__sig{font-family:'Great Vibes',cursive;font-size:19px;color:#123a6b;line-height:1.1;margin-top:3px;border-top:0.5px solid #999;padding-top:2px}
+  /* gestor (claro) */
+  .panel{width:520px;max-width:94vw;background:var(--surface);border-radius:16px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);overflow:hidden;color:var(--text-body);padding:18px 22px 22px;box-sizing:border-box}
+  .panel h2{margin:0 0 3px;font-size:18px;color:var(--plum-deep)}
+  .panel .psub{font-size:12.5px;color:var(--text-muted);margin:0 0 16px}
+  .ades{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .ades__bd{flex:1;min-width:0}
+  .ades__bd b{font-size:14px}
+  .ades__bd span{display:block;font-size:11.5px;color:var(--text-muted);margin-top:2px}
+  .ades__bar{height:6px;border-radius:99px;background:var(--milk-warm);overflow:hidden;margin-top:7px}
+  .ades__bar i{display:block;height:100%;width:68%;background:var(--plum);border-radius:99px}
+  .ali{display:flex;align-items:center;gap:10px;padding:9px 4px;border-top:1px solid var(--border);font-size:13px}
+  .ali:first-of-type{border-top:0}
+  .ali b{flex:1;font-weight:600}
+  .ali .st-ok{font-size:11px;font-weight:700;color:var(--plum)}
+  .ali .st-pend{font-size:11px;font-weight:700;color:#96631a}
+  .ali .quando{font-size:11px;color:var(--text-muted)}
+</style></head>
+<body><div class="wrap">
+
+<div class="note">
+  <b>Mock · Fase B: assinar o recibo/cartão com o carimbo DENTRO do arquivo (método joinin, decisões já travadas).</b> Fluxo do colaborador em 5 passos: (1) o botão Assinar no visualizador, (2) <b>geolocalização EXIGIDA</b> (sem permitir, não assina; tela de socorro se negar), (3) senha + "Li e estou de acordo" com o resumo do que vai ser carimbado, (4) teatro de carimbo, (5) o arquivo assinado com o box "Termos de Assinatura e Registro Eletrônico" + <b>nome em fonte de assinatura</b>. A versão assinada vai pro <b>Firebase Storage</b> (agora funcional) e a trilha imutável (quem, quando, onde, hash) vai pra subcoleção + auditoria. O gestor acompanha a adesão por lote.
+</div>
+
+<div class="capbig">Passo 1 <span>o Assinar de verdade no visualizador</span></div>
+<div class="row">
+<div class="col"><div class="chrome-dark"><div class="phone">
+  <div class="phone__bar"><span>10:48</span><span>5G</span></div>
+  <div class="scr">
+    <div class="ptitle">Maio de 2026</div>
+    <div class="viewer">
+      <div class="viewer__bar"><span>Cartão ponto</span><span class="rtag rtag--pend">Assinatura pendente</span></div>
+      <div class="paper">
+        <h4>FIOBRAS LTDA</h4>
+        <div>Cartão Ponto · Período 01/05/2026 a 31/05/2026</div>
+        <div style="color:#666">Cod.: 1139 · ALAN CARLOS SANTOS BASTOS</div>
+        <div class="grade">
+          <div class="gr"><span>Dia</span><span>Marcações</span><span>Total</span></div>
+          <div class="gr"><span>04</span><span>07:28 · 10:54 · 13:11 · 17:30</span><span>07:45</span></div>
+          <div class="gr"><span>05</span><span>07:25 · 12:00 · 13:07 · 17:31</span><span>08:59</span></div>
+          <div class="gr"><span>06</span><span>07:32 · 12:00 · 13:08 · 17:30</span><span>08:50</span></div>
+        </div>
+        <div style="margin-top:10px;border-top:0.5px solid #999;width:60%;padding-top:2px;text-align:center;color:#666">Assinatura Empregado</div>
+      </div>
+      <div class="signnote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Este cartão precisa da sua assinatura.</div>
+      <div class="vbtns">
+        <button class="vbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar</button>
+        <button class="vbtn vbtn--sign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Assinar</button>
+      </div>
+    </div>
+  </div>
+</div></div><div class="cap">O botão que hoje não existe. Vale pro recibo de pagamento e pro cartão ponto.</div></div>
+
+<div class="col"><div class="chrome-dark"><div class="phone">
+  <div class="phone__bar"><span>10:48</span><span>5G</span></div>
+  <div class="scr" style="filter:brightness(.55)">
+    <div class="ptitle">Maio de 2026</div>
+    <div class="viewer"><div class="viewer__bar"><span>Cartão ponto</span></div></div>
+  </div>
+  <div class="sheetov"><div class="sheet">
+    <div class="passos"><div class="passo on"></div><div class="passo"></div><div class="passo"></div></div>
+    <h3>Assinar o cartão ponto</h3>
+    <p class="sub">Maio de 2026 · Alan Carlos Santos Bastos<br>A assinatura é eletrônica e fica carimbada dentro do arquivo, com data, hora e local.</p>
+    <div class="geo-card">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+      <b>Preciso da sua localização</b>
+      <span>É o registro de ONDE você assinou, parte da validade da assinatura. O navegador vai pedir a permissão: toque em Permitir.</span>
+    </div>
+    <button class="btn-full">Permitir localização e continuar</button>
+    <button class="btn-ghost">Agora não</button>
+  </div></div>
+</div></div><div class="cap">Passo 2: a localização é EXIGIDA (decisão travada, igual joinin). Explica o porquê antes de pedir.</div></div>
+
+<div class="col"><div class="chrome-dark"><div class="phone">
+  <div class="phone__bar"><span>10:48</span><span>5G</span></div>
+  <div class="scr" style="filter:brightness(.55)">
+    <div class="ptitle">Maio de 2026</div>
+    <div class="viewer"><div class="viewer__bar"><span>Cartão ponto</span></div></div>
+  </div>
+  <!-- prompt nativo simulado (o do Android/Chrome) -->
+  <div style="position:absolute;left:14px;right:14px;top:64px;z-index:9;background:#1f2937;border-radius:14px;padding:13px 15px;box-shadow:0 16px 40px -12px rgba(0,0,0,.7);font-size:12px;color:#e5e7eb">
+    <b style="font-size:12.5px">weave-fiobras.web.app quer</b><br>
+    <span style="opacity:.8">Saber a sua localização</span>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <span style="padding:6px 12px;border-radius:99px;background:#374151">Bloquear</span>
+      <span style="padding:6px 12px;border-radius:99px;background:#2563eb;color:#fff;font-weight:700;outline:2px solid #E8B468;outline-offset:2px">Permitir</span>
+    </div>
+  </div>
+  <div class="sheetov"><div class="sheet">
+    <div class="passos"><div class="passo on"></div><div class="passo"></div><div class="passo"></div></div>
+    <h3>O navegador está perguntando</h3>
+    <p class="sub">Apareceu uma pergunta aí em cima (ou embaixo, dependendo do celular).</p>
+    <div class="geo-card">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
+      <b>Toque em Permitir</b>
+      <span>É só isso. Assim que você permitir, a assinatura continua sozinha.</span>
+    </div>
+  </div></div>
+</div></div><div class="cap">A resposta da tua dúvida: ENQUANTO o navegador pergunta, a folha guia o colaborador ("toque em Permitir"), com o botão destacado. Ninguém fica perdido.</div></div>
+
+<div class="col"><div class="chrome-dark"><div class="phone">
+  <div class="phone__bar"><span>10:48</span><span>5G</span></div>
+  <div class="scr" style="filter:brightness(.55)">
+    <div class="ptitle">Maio de 2026</div>
+    <div class="viewer"><div class="viewer__bar"><span>Cartão ponto</span></div></div>
+  </div>
+  <div class="sheetov"><div class="sheet">
+    <div class="passos"><div class="passo on"></div><div class="passo"></div><div class="passo"></div></div>
+    <h3>Localização bloqueada</h3>
+    <p class="sub">Sem a localização não dá pra assinar. Ela foi negada neste navegador.</p>
+    <div class="geo-neg">
+      <b>Como liberar:</b> toque no cadeado (ou no ícone de configurações) ao lado do endereço do site, procure Localização e mude pra Permitir. Depois volte aqui e tente de novo.
+    </div>
+    <button class="btn-full">Tentar de novo</button>
+    <button class="btn-ghost">Voltar</button>
+  </div></div>
+</div></div><div class="cap">Se negar: tela de socorro com o caminho pra liberar. Nunca um beco sem saída.</div></div>
+</div>
+
+<div class="capbig">Passos 2 e 3 <span>identidade + aceite, e o teatro do carimbo</span></div>
+<div class="row">
+<div class="col"><div class="chrome-dark"><div class="phone">
+  <div class="phone__bar"><span>10:48</span><span>5G</span></div>
+  <div class="scr" style="filter:brightness(.55)">
+    <div class="ptitle">Maio de 2026</div>
+    <div class="viewer"><div class="viewer__bar"><span>Cartão ponto</span></div></div>
+  </div>
+  <div class="sheetov"><div class="sheet">
+    <div class="passos"><div class="passo on"></div><div class="passo on"></div><div class="passo"></div></div>
+    <h3>Confirme que é você</h3>
+    <p class="sub">Localização registrada. Agora digite a sua senha do portal pra confirmar a identidade.</p>
+    <div class="campo"><label>Sua senha</label><input type="password" value="········" readonly></div>
+    <div class="aceite">
+      <span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+      <span>Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura neste arquivo.</span>
+    </div>
+    <div class="resumo">
+      Vai ficar carimbado no arquivo:<br>
+      <b>Alan Carlos Santos Bastos</b> · cód 1139<br>
+      2 jul 2026, 10:48 · Local: -26.89, -49.23<br>
+      Nível: credenciais de acesso + geolocalização
+    </div>
+    <button class="btn-full">Assinar agora</button>
+  </div></div>
+</div></div><div class="cap">Passo 3: senha (reautenticação de verdade) + aceite + resumo transparente do que entra no carimbo.</div></div>
+
+<div class="col"><div class="chrome-dark"><div class="phone">
+  <div class="phone__bar"><span>10:48</span><span>5G</span></div>
+  <div class="scr">
+    <div class="teatro">
+      <div class="selo-anim"><i style="top:14px;width:56px"></i><i style="top:22px;width:44px"></i><i style="top:30px;width:50px"></i></div>
+      <b>Carimbando o arquivo...</b>
+      <div class="tsteps">
+        <span class="done">Identidade confirmada</span>
+        <span class="done">Localização registrada</span>
+        <span class="on">Carimbando a assinatura no arquivo</span>
+        <span>Guardando com segurança</span>
+      </div>
+    </div>
+  </div>
+</div></div><div class="cap">O teatro: cada etapa de verdade (reauth, geo, pdf-lib carimbando, upload pro Storage) vira um passo visível.</div></div>
+
+<div class="col"><div class="chrome-dark"><div class="phone">
+  <div class="phone__bar"><span>10:49</span><span>5G</span></div>
+  <div class="scr">
+    <div class="ptitle">Maio de 2026</div>
+    <div class="viewer">
+      <div class="viewer__bar"><span>Cartão ponto</span><span class="rtag rtag--ok">Assinado</span></div>
+      <div class="paper">
+        <h4>FIOBRAS LTDA</h4>
+        <div>Cartão Ponto · Período 01/05/2026 a 31/05/2026</div>
+        <div style="color:#666">Cod.: 1139 · ALAN CARLOS SANTOS BASTOS</div>
+        <div class="grade">
+          <div class="gr"><span>Dia</span><span>Marcações</span><span>Total</span></div>
+          <div class="gr"><span>04</span><span>07:28 · 10:54 · 13:11 · 17:30</span><span>07:45</span></div>
+          <div class="gr"><span>05</span><span>07:25 · 12:00 · 13:07 · 17:31</span><span>08:59</span></div>
+        </div>
+        <div class="stampbox">
+          <b>Termos de Assinatura e Registro Eletrônico</b><br>
+          Aceito: 02/07/2026 10:49<br>
+          ID: 7f3a91c2-d4e8-4b16-a05f-e91b2c<br>
+          Alan Carlos Santos Bastos · cód 1139<br>
+          Nível de Segurança: credenciais de acesso + geolocalização<br>
+          Local: -26.8912, -49.2301 (precisão 12 m)
+          <div class="stamp__sig">Alan Carlos Santos Bastos</div>
+        </div>
+      </div>
+      <div class="vbtns"><button class="vbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar assinado</button></div>
+    </div>
+  </div>
+</div></div><div class="cap">O resultado: o box carimbado DENTRO do PDF com o nome em fonte de assinatura, igual ao joinin. O arquivo assinado fica guardado no Storage e não muda nunca mais.</div></div>
+</div>
+
+<div class="capbig">Portal do Gestor <span>adesão por lote + status por pessoa</span></div>
+<div class="row"><div class="col">
+  <div class="panel">
+    <h2>Cartão ponto · Maio de 2026</h2>
+    <p class="psub">82 funcionários · 56 assinaram</p>
+    <div class="ades">
+      <div class="ades__bd"><b>56 de 82 assinaram</b><span>26 pendentes</span>
+        <div class="ades__bar"><i></i></div>
+      </div>
+    </div>
+    <div class="ali"><b>Acira Maria Inacio</b><span class="quando">2 jul, 10:12</span><span class="st-ok">Assinado</span></div>
+    <div class="ali"><b>Adelir Padilha</b><span class="quando">2 jul, 09:44</span><span class="st-ok">Assinado</span></div>
+    <div class="ali"><b>Adriano dos Santos</b><span class="quando"></span><span class="st-pend">Pendente</span></div>
+    <div class="ali"><b>Alan Carlos Santos Bastos</b><span class="quando">2 jul, 10:49</span><span class="st-ok">Assinado</span></div>
+  </div>
+  <div class="cap" style="max-width:520px">O detalhe do lote ganha a coluna de assinatura: quem assinou (com hora) e quem falta. O "56 gerados" da lista vira "56 de 82 assinaram" quando a assinatura entrar.</div>
+</div></div>
+
+</div></body></html>

@@ -170,6 +170,38 @@ test("colaborador NÃO atualiza recibo", async () =>
 test("RH NÃO deleta recibo (só admin)", async () =>
   assertFails(deleteDoc(doc(rh(), "recibos/f-100_2026-05"))));
 
+// ---- recibos/assinaturas (Fase B: trilha create-only pelo DONO, geo exigida) ----
+const assinaturaOk = () => ({
+  uid: "uColab", funcionarioId: "f-100", em: serverTimestamp(),
+  userAgent: "teste", geo: { lat: -26.89, lng: -49.23, acc: 12 },
+  hashSha256: "abc123", aceiteTexto: "Li e estou de acordo",
+  arquivoPath: "recibos/f-100/assinado/2026-05-recibo.pdf",
+});
+test("colaborador DONO assina o próprio recibo (geo + hora do servidor)", async () =>
+  assertSucceeds(setDoc(doc(colab(), "recibos/f-100_2026-05/assinaturas/uColab"), assinaturaOk())));
+test("colaborador NÃO assina recibo de TERCEIRO", async () =>
+  assertFails(setDoc(doc(colab(), "recibos/f-200_2026-05/assinaturas/uColab"), { ...assinaturaOk() })));
+test("assinatura SEM geo é negada (localização exigida)", async () => {
+  const { geo, ...semGeo } = assinaturaOk();
+  await assertFails(setDoc(doc(colab(), "recibos/f-100_2026-06/assinaturas/uColab"), semGeo));
+});
+test("assinatura com hora FALSIFICADA (não server) é negada", async () =>
+  assertFails(setDoc(doc(colab(), "recibos/f-100_2026-06/assinaturas/uColab"), { ...assinaturaOk(), em: new Date() })));
+test("assinatura com campo EXTRA é negada (payload fechado)", async () =>
+  assertFails(setDoc(doc(colab(), "recibos/f-100_2026-06/assinaturas/uColab"), { ...assinaturaOk(), extra: 1 })));
+test("assinatura em NOME DE OUTRO uid é negada", async () =>
+  assertFails(setDoc(doc(colab(), "recibos/f-100_2026-05/assinaturas/uColab2"), { ...assinaturaOk(), uid: "uColab2" })));
+test("RH NÃO assina pelo colaborador", async () =>
+  assertFails(setDoc(doc(rh(), "recibos/f-100_2026-05/assinaturas/uRh"), { ...assinaturaOk(), uid: "uRh" })));
+test("assinatura é IMUTÁVEL (2º set = update = negado)", async () =>
+  assertFails(setDoc(doc(colab(), "recibos/f-100_2026-05/assinaturas/uColab"), assinaturaOk())));
+test("RH LÊ a assinatura (painel de adesão)", async () =>
+  assertSucceeds(getDoc(doc(rh(), "recibos/f-100_2026-05/assinaturas/uColab"))));
+test("colaborador LÊ a própria assinatura", async () =>
+  assertSucceeds(getDoc(doc(colab(), "recibos/f-100_2026-05/assinaturas/uColab"))));
+test("terceiro NÃO lê assinatura alheia", async () =>
+  assertFails(getDoc(doc(colabT1(), "recibos/f-100_2026-05/assinaturas/uColab"))));
+
 // ---- recibos/arquivo (PDF base64 na subcoleção, separado dos metadados) ----
 test("colaborador LÊ o arquivo do próprio recibo", async () =>
   assertSucceeds(getDoc(doc(colab(), "recibos/f-100_2026-05/arquivo/pdf"))));

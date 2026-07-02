@@ -22,17 +22,28 @@ service firebase.storage {
         && request.auth.token.funcionarioId == funcionarioId;
     }
 
-    // recibos/{funcionarioId}/{arquivo...}
-    //   recibo de pagamento e, na Fase B, a versão assinada (carimbada).
-    //   Colaborador lê SÓ os do próprio funcionarioId (claim); admin/RH leem/escrevem tudo.
-    match /recibos/{funcionarioId}/{arquivo=**} {
+    // recibos/{funcionarioId}/original/{arquivo}
+    //   O arquivo importado (quando migrar do Firestore pro Storage). Gestor grava;
+    //   colaborador lê SÓ o do próprio funcionarioId (claim). Só PDF, teto 10 MB.
+    match /recibos/{funcionarioId}/original/{arquivo} {
       allow read:  if gestor() || ehDono(funcionarioId);
-      // Só PDF, teto de 10 MB (um recibo/cartão fatiado tem dezenas de KB; a folga
-      // cobre a versão assinada carimbada da Fase B). Delete (resource null) só gestor.
       allow write: if gestor()
         && (request.resource == null
             || (request.resource.contentType == 'application/pdf'
                 && request.resource.size < 10 * 1024 * 1024));
+    }
+
+    // recibos/{funcionarioId}/assinado/{arquivo}
+    //   A versão CARIMBADA (Fase B), gravada pelo PRÓPRIO colaborador no ato de assinar.
+    //   CREATE-ONLY de verdade (resource == null): depois de assinado, NINGUÉM sobrescreve
+    //   nem apaga pelo cliente — nem gestor (retenção/estorno é só via Admin, deliberado).
+    match /recibos/{funcionarioId}/assinado/{arquivo} {
+      allow read:  if gestor() || ehDono(funcionarioId);
+      allow write: if ehDono(funcionarioId)
+        && resource == null
+        && request.resource != null
+        && request.resource.contentType == 'application/pdf'
+        && request.resource.size < 10 * 1024 * 1024;
     }
 
     // Qualquer outro caminho: negado por padrão (não precisa de match explícito).
