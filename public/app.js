@@ -6565,8 +6565,10 @@ async function rcbAnalisar() {
   const file = $("#rcb-file")?.files && $("#rcb-file").files[0];
   if (!/^\d{4}-\d{2}$/.test(competencia)) return toast("Escolha a competência.", "danger");
   if (!file) return toast("Escolha o PDF.", "danger");
-  if ((state.recibos || []).some((r) => r.tipo === tipo && r.competencia === competencia))
-    return toast("Já existe um lote dessa competência. O admin precisa excluir o lote antes de reimportar.", "danger");
+  // Competência com lote (mesmo parcial) NÃO bloqueia mais: os já gerados são pulados
+  // no Gerar — é assim que se completa um lote que falhou no meio.
+  const jaTemN = (state.recibos || []).filter((r) => r.tipo === tipo && r.competencia === competencia).length;
+  if (jaTemN) toast(`${jaTemN} arquivo${jaTemN > 1 ? "s" : ""} dessa competência já existe${jaTemN > 1 ? "m" : ""}. Os prontos serão pulados; gera só o que falta.`);
 
   showFormBlocker("Lendo o PDF...", ["Lendo o PDF", "Identificando funcionários", "Conferência"]);
   try {
@@ -6655,11 +6657,23 @@ function rcbFuncDoGrupo(g) {
   return g.status === "ok" ? g.funcionarioId : null;
 }
 
+// Contagens da conferência: identificados (com funcionário), a resolver, e GERÁVEIS
+// (identificados que ainda NÃO têm doc dessa competência — lote parcial pula os prontos).
+function rcbContagemConf(st) {
+  const jaIds = new Set((state.recibos || []).map((r) => r.id));
+  let idN = 0, pendN = 0, gerN = 0;
+  for (const g of st.grupos) {
+    const fid = rcbFuncDoGrupo(g);
+    if (fid) { idN++; if (!jaIds.has(`${fid}_${st.competencia}_${st.tipo}`)) gerN++; }
+    if (g.status === "resolver" && !g.escolha) pendN++;
+  }
+  return { idN, pendN, gerN, jaIds };
+}
+
 function renderRcbConferencia() {
   const st = _rcbImport; if (!st) return;
   const total = st.grupos.length;
-  const okN = st.grupos.filter((g) => rcbFuncDoGrupo(g)).length;
-  const pendN = st.grupos.filter((g) => g.status === "resolver" && !g.escolha).length;
+  const { idN: okN, pendN, gerN, jaIds } = rcbContagemConf(st);
 
   const rowHtml = (g, i) => {
     const pags = g.paginas.length > 1 ? `páginas ${g.paginas[0]} a ${g.paginas[g.paginas.length - 1]}` : `página ${g.paginas[0]}`;
@@ -6669,9 +6683,10 @@ function renderRcbConferencia() {
         <span class="rcb-thumbbtn__zoom">${icon("search")}</span>
       </button>`;
     if (g.status === "ok") {
+      const ja = jaIds.has(`${g.funcionarioId}_${st.competencia}_${st.tipo}`);
       return `<div class="rcb-conf-row">${thumb}
         <div class="rcb-conf-bd"><b>${escapeHtml(g.nome)}</b><span>${pags} · ${escapeHtml(g.funcionarioId)} · CPF e nome bateram</span></div>
-        <span class="rcb-tag rcb-tag--ok">${g.paginas.length} pág${g.paginas.length > 1 ? "s" : ""}</span>
+        ${ja ? `<span class="rcb-tag rcb-tag--mut">já gerado</span>` : `<span class="rcb-tag rcb-tag--ok">${g.paginas.length} pág${g.paginas.length > 1 ? "s" : ""}</span>`}
       </div>`;
     }
     return `<div class="rcb-conf-row rcb-conf-row--warn">${thumb}
@@ -6698,7 +6713,7 @@ function renderRcbConferencia() {
       <div class="rcb-conf-list">${st.grupos.map(rowHtml).join("")}</div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
         <button class="btn btn--ghost" id="rcb-voltar">Voltar</button>
-        <button class="btn btn--primary" id="rcb-gerar" ${okN ? "" : "disabled"}>${icon("check")}<span id="rcb-gerar-lbl">Gerar ${okN} ${st.tipo === "recibo" ? "recibos" : "cartões"}</span></button>
+        <button class="btn btn--primary" id="rcb-gerar" ${gerN ? "" : "disabled"}>${icon("check")}<span id="rcb-gerar-lbl">Gerar ${gerN} ${st.tipo === "recibo" ? "recibos" : "cartões"}</span></button>
       </div>
     </div>`);
 
@@ -6842,13 +6857,12 @@ async function rcbVerPagina(numPag) {
 
 // Atualiza contadores e botão Gerar da conferência SEM re-renderizar o modal.
 function rcbAtualizarResumoConf(st) {
-  const okN = st.grupos.filter((g) => rcbFuncDoGrupo(g)).length;
-  const pendN = st.grupos.filter((g) => g.status === "resolver" && !g.escolha).length;
-  const nOk = $("#rcb-n-ok"); if (nOk) nOk.textContent = okN;
+  const { idN, pendN, gerN } = rcbContagemConf(st);
+  const nOk = $("#rcb-n-ok"); if (nOk) nOk.textContent = idN;
   const nPend = $("#rcb-n-pend"); if (nPend) nPend.textContent = pendN;
   $("#rcb-sum-pend")?.classList.toggle("rcb-sum--warn", pendN > 0);
-  const btn = $("#rcb-gerar"); if (btn) btn.disabled = !okN;
-  const lbl = $("#rcb-gerar-lbl"); if (lbl) lbl.textContent = `Gerar ${okN} ${st.tipo === "recibo" ? "recibos" : "cartões"}`;
+  const btn = $("#rcb-gerar"); if (btn) btn.disabled = !gerN;
+  const lbl = $("#rcb-gerar-lbl"); if (lbl) lbl.textContent = `Gerar ${gerN} ${st.tipo === "recibo" ? "recibos" : "cartões"}`;
 }
 
 // Miniaturas REAIS das páginas (pdf.js → canvas), renderizadas lazy conforme aparecem.
@@ -6891,22 +6905,28 @@ async function rcbGerar() {
     }
     vistos[fid] = g;
   }
+  // Recupera lote PARCIAL: quem já tem doc dessa competência é pulado (nunca vira
+  // update, que a regra nega). Reimportar o mesmo PDF completa o que faltou.
+  const jaIds = new Set((state.recibos || []).map((r) => r.id));
+  const aGerar = alvo.filter(({ fid }) => !jaIds.has(`${fid}_${st.competencia}_${st.tipo}`));
+  const pulados = alvo.length - aGerar.length;
+  if (!aGerar.length) return toast("Todos esses já estavam gerados nessa competência. Nada a fazer.", "danger");
   closeModal();
   showFormBlocker("Separando por funcionário...", ["Separando por funcionário", "Salvando", "Concluído"]);
   try {
     const PDFLib = await loadPdfLib();
     const src = await PDFLib.PDFDocument.load(st.buf);
-    const itens = []; const falhas = [];
-    for (let i = 0; i < alvo.length; i++) {
-      const { g, fid } = alvo[i];
-      if (i === 0 || i % 5 === 0) updateFormBlocker(`Separando ${i + 1} de ${alvo.length}...`, 0);
+    const itens = []; const grandes = [];
+    for (let i = 0; i < aGerar.length; i++) {
+      const { g, fid } = aGerar[i];
+      if (i === 0 || i % 5 === 0) updateFormBlocker(`Separando ${i + 1} de ${aGerar.length}...`, 0);
       const out = await PDFLib.PDFDocument.create();
       const pages = await out.copyPages(src, g.paginas.map((p) => p - 1));
       pages.forEach((p) => out.addPage(p));
       const dataUrl = await out.saveAsBase64({ dataUri: true });
       const f = getFuncionario(fid);
       const nome = (f && f.nome) || g.nome || "";
-      if (dataUrl.length > 900000) { falhas.push(nome || fid); continue; } // teto do doc (1 MB)
+      if (dataUrl.length > 900000) { grandes.push(nome || fid); continue; } // teto do doc (1 MB)
       itens.push({
         funcionarioId: fid, codigo: (f && f.codigo) || g.codigo || null, nome,
         competencia: st.competencia, tipo: st.tipo, paginas: g.paginas.length,
@@ -6914,15 +6934,36 @@ async function rcbGerar() {
       });
     }
     updateFormBlocker(`Salvando 0 de ${itens.length}...`, 1);
-    const r = await window.criarRecibosEmLote?.(itens, (feitos, tot) => updateFormBlocker(`Salvando ${feitos} de ${tot}...`, 1));
-    hideFormBlocker();
-    if (!r || !r.ok) return toast("Erro ao salvar: " + (r?.err || "?"), "danger");
+    const r = (await window.criarRecibosEmLote?.(itens, (feitos, tot) => updateFormBlocker(`Salvando ${feitos} de ${tot}...`, 1)))
+      || { ok: false, n: 0, falhas: itens.map((x) => x.nome), err: "backend indisponível" };
     try { st.pdf?.destroy?.(); } catch (e) {} // solta o worker/memória do pdf.js
     _rcbImport = null;
+    hideFormBlocker();
+    // A lista SEMPRE reflete o que entrou de verdade, com ou sem falha (lição do 24/82:
+    // a tela ficava parada e o William só descobriu os 24 no F5).
     await window.recarregarRecibosGestor?.();
-    toast(`${r.n} ${st.tipo === "recibo" ? "recibos" : "cartões ponto"} gerados.`
-      + (falhas.length ? ` ${falhas.length} não coube${falhas.length > 1 ? "ram" : ""} (arquivo grande demais).` : ""));
     renderApp();
+    const tipoLbl = st.tipo === "recibo" ? "recibos" : "cartões ponto";
+    const extras = [];
+    if (pulados) extras.push(`${pulados} já existia${pulados > 1 ? "m" : ""} (pulado${pulados > 1 ? "s" : ""})`);
+    if (grandes.length) extras.push(`${grandes.length} grande${grandes.length > 1 ? "s" : ""} demais`);
+    if (r.ok) {
+      toast(`${r.n} ${tipoLbl} gerados.` + (extras.length ? ` ${extras.join(" · ")}.` : ""));
+    } else {
+      // Falha (parcial ou total): erro PERSISTENTE, não toast de 2,6s.
+      openModal(`
+        <div class="modal__header">
+          <div><h2>Importação incompleta</h2><p>${r.n} de ${itens.length} ${tipoLbl} entraram</p></div>
+          <button class="modal__close" data-close>${icon("x")}</button>
+        </div>
+        <div class="modal__body">
+          <p class="rcb-parcial__tx">A gravação falhou no meio do caminho (provável instabilidade de conexão). O que entrou já aparece na lista. Pra completar: <b>importe de novo o MESMO PDF e competência</b>. Os já gerados são pulados automaticamente.</p>
+          ${r.falhas && r.falhas.length ? `<div class="rcb-parcial__lista"><b>Ficaram de fora (${r.falhas.length}):</b> ${escapeHtml(r.falhas.join(", "))}</div>` : ""}
+          ${r.err ? `<p class="rcb-parcial__err">Detalhe técnico: ${escapeHtml(String(r.err))}</p>` : ""}
+          <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn--primary" data-close>Entendi</button></div>
+        </div>`);
+      document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+    }
   } catch (e) {
     hideFormBlocker();
     toast("Falha ao gerar: " + (e?.message || e), "danger");
@@ -11598,7 +11639,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.20.0";
+window.CURRENT_VERSION = "1.20.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

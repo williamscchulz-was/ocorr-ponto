@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.20.0", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.20.1", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "fix", title: "Gravação do lote blindada: se a conexão falhar no meio, o sistema re-tenta, segue com os próximos e mostra um resumo claro de quem ficou de fora. A lista sempre atualiza sozinha (sem F5)." },
+      { type: "feat", title: "Lote parcial se completa sozinho: importe de novo o mesmo PDF e competência; os já gerados aparecem como \"já gerado\" na conferência e só o que falta é criado." },
+      { type: "feat", title: "Menores aprendizes agora são identificados no import: o diretório de identificação (pipeline) entrou no ar cobrindo todo o quadro." },
+    ],
+  },
+  {
+    v: "1.20.0", d: "2 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "A tela de Importar recibos ficou moderna: arraste e solte o PDF (ou toque pra escolher), veja o arquivo num card com nome e tamanho, e o Analisar só habilita com arquivo. Tipo e competência lado a lado." },
       { type: "feat", title: "Identificação mais completa no import: nova fonte de CPF que cobre TODO o quadro, inclusive menores aprendizes (que não têm banco de horas). Ativa assim que o pipeline popular." },
     ],

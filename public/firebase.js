@@ -1469,42 +1469,65 @@
       } catch (e) { debug?.("[recibos] load gestor:", e?.message || e); state.recibos = state.recibos || []; }
     };
 
-    // Grava o lote: metadados + arquivo (base64) por funcionário. Chunk pequeno (8) porque
-    // cada arquivo tem dezenas de KB e o commit tem teto de ~10 MB. onProgress(feitos, total).
+    // Grava o lote: metadados + arquivo (base64) por funcionário, em chunks de 8.
+    // RESILIENTE (lição do lote 24/82: uma falha transitória no 4º commit abortava os
+    // 58 restantes): falha num chunk NÃO derruba os seguintes — re-tenta 1x, confere
+    // se o commit chegou apesar do erro (o SDK pode aplicar e falhar só no retry
+    // interno) e no fim reporta quem ficou de fora. Retorna { ok, n, falhas, err }.
     window.criarRecibosEmLote = async function (itens, onProgress) {
       const uid = auth.currentUser && auth.currentUser.uid;
-      if (!uid) return { ok: false, err: "sem sessao" };
-      try {
-        let feitos = 0;
-        for (let i = 0; i < itens.length; i += 8) {
-          const chunk = itens.slice(i, i + 8);
-          const batch = db.batch();
-          for (const it of chunk) {
-            const id = `${it.funcionarioId}_${it.competencia}_${it.tipo}`;
-            const ref = db.collection("recibos").doc(id);
-            batch.set(ref, {
-              funcionarioId: it.funcionarioId,
-              codigo: it.codigo || null,
-              funcionarioNome: it.nome || "",
-              competencia: it.competencia,
-              tipo: it.tipo,
-              paginas: it.paginas || 1,
-              nomeArquivo: it.nomeArquivo || "recibo.pdf",
-              status: "disponivel",
-              criadoPor: uid,
-              criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-            batch.set(ref.collection("arquivo").doc("pdf"), { funcionarioId: it.funcionarioId, base64: it.pdfBase64 });
-          }
-          await batch.commit();
-          feitos += chunk.length;
-          onProgress?.(feitos, itens.length);
+      if (!uid) return { ok: false, n: 0, falhas: [], err: "sem sessao" };
+      const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+      const idDe = (it) => `${it.funcionarioId}_${it.competencia}_${it.tipo}`;
+      const montaBatch = (chunk) => {
+        const batch = db.batch();
+        for (const it of chunk) {
+          const ref = db.collection("recibos").doc(idDe(it));
+          batch.set(ref, {
+            funcionarioId: it.funcionarioId,
+            codigo: it.codigo || null,
+            funcionarioNome: it.nome || "",
+            competencia: it.competencia,
+            tipo: it.tipo,
+            paginas: it.paginas || 1,
+            nomeArquivo: it.nomeArquivo || "recibo.pdf",
+            status: "disponivel",
+            criadoPor: uid,
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          batch.set(ref.collection("arquivo").doc("pdf"), { funcionarioId: it.funcionarioId, base64: it.pdfBase64 });
         }
-        const alvo = `${itens.length} × ${itens[0]?.tipo || "recibo"} · ${itens[0]?.competencia || ""}`;
+        return batch;
+      };
+      // O commit chegou mesmo com erro? (batch é atômico: 1º doc existe = entrou tudo)
+      const chegou = async (chunk) => {
+        try { const s = await db.collection("recibos").doc(idDe(chunk[0])).get(); return s.exists; }
+        catch (e) { return false; }
+      };
+      let salvos = 0; const falhas = []; let ultimoErr = null;
+      for (let i = 0; i < itens.length; i += 8) {
+        const chunk = itens.slice(i, i + 8);
+        let okChunk = false;
+        for (let tentativa = 1; tentativa <= 2 && !okChunk; tentativa++) {
+          try { await montaBatch(chunk).commit(); okChunk = true; }
+          catch (e) {
+            ultimoErr = (e && (e.code ? e.code + ": " + e.message : e.message)) || String(e);
+            debug?.(`[recibos] chunk ${i / 8 + 1} falhou (tentativa ${tentativa}):`, ultimoErr);
+            await espera(900);
+            if (await chegou(chunk)) okChunk = true; // aplicou apesar do erro reportado
+          }
+        }
+        if (okChunk) salvos += chunk.length;
+        else falhas.push(...chunk.map((it) => it.nome || it.funcionarioId));
+        onProgress?.(salvos, itens.length);
+      }
+      if (salvos > 0) {
+        const alvo = `${salvos} × ${itens[0]?.tipo || "recibo"} · ${itens[0]?.competencia || ""}`
+          + (falhas.length ? ` (${falhas.length} falharam)` : "");
         window.registrarAuditoria?.({ tipo: "recibos", acao: "Importou lote de recibos", alvo });
         window.logEvento?.({ tipo: "recibos", acao: "Importou lote", alvo });
-        return { ok: true, n: itens.length };
-      } catch (e) { debug?.("[recibos] lote:", e?.message || e); return { ok: false, err: e.message }; }
+      }
+      return { ok: falhas.length === 0, n: salvos, falhas, err: ultimoErr };
     };
 
     // Busca o PDF (base64) de UM recibo, sob demanda (abrir/baixar).
