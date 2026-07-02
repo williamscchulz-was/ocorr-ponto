@@ -1052,3 +1052,25 @@ Ligadas no pipeline como etapas best-effort (7b/10 claims, 7c/10 fotos). Novas d
 Implementado: previsto vem da escala do cadastro (regex `HH:MM`, cobre os vários formatos inconsistentes de escala no WK); apurado vem do Espelho de Ponto (já fresco no pipeline) cruzando por código+data. Backfill separado pros 3 docs de julho já criados (upload é "cria-e-nunca-reabre", não alcançava quem já existia) — só fez merge dos 2 campos novos, confirmei que status/histórico do RH (`com_lider`/`dispensada`) ficaram intactos.
 
 Verificado: Luisana bateu exatamente com o que o William viu (previsto 05:00-09:00-09:30-13:30, apurado 05:45-09:30-10:02-13:32, 45min = duracaoFmt). Respondido pro PC com o exemplo.
+
+
+---
+
+## 2026-07-02 · 🎯 Avatar oficial Fiobras (opção B) — smoke test pronto, aguardando aprovação
+
+Missão grande do PC: rosto recortado do fundo original, composto sobre a bandeira verde Fiobras (visual de crachá, igual pra empresa inteira). William aprovou o mock e pediu reimportação das 73 fotos já sincronizadas.
+
+Pedi autorização explícita pro William antes de instalar os pacotes novos (reconhecimento facial é categoria sensível, bloqueio automático do harness por não ter pedido direto do usuário) — autorizado.
+
+**Stack**: `@vladmandic/face-api` + `@tensorflow/tfjs` puro JS backend wasm (NUNCA `tfjs-node`, o PC já tinha avisado do binário quebrado no Windows/Node 20+) + `@imgly/background-removal-node` + `sharp`.
+
+**3 conflitos de biblioteca nativa achados e resolvidos** durante a implementação:
+1. `sharp` + `@imgly/background-removal-node` no mesmo processo = SEGFAULT (onnxruntime nativo × libvips/Cairo). Fix: `bg-remove-worker.mjs`, processo-filho isolado.
+2. `sharp` com `canvas`+`tfjs-wasm` carregados travava `.composite()` de forma inconsistente (erro de dimensão mesmo com dimensões idênticas confirmadas). Fix: `compose-worker.mjs`, também isolado.
+3. Bug/particularidade do próprio sharp: encadear `.resize().extract()` quando o extract é um no-op, ou `.composite().resize()` sem materializar entre os dois, produz buffer com metadata correta mas que quebra na operação seguinte. Corrigido evitando esses encadeamentos.
+
+Nenhum precisou do fallback Python (`rembg`) que o PC sugeriu como plano B — a stack JS funcionou 100% depois do isolamento de processo.
+
+**Smoke test** (5 fotos variadas, conforme pedido): 785 boa / 671 escura / 1239 rosto pequeno / 949 rosto grande / 601 caso limite (sem rosto detectável nem em alta resolução — mantida como estava, corretamente). 4 tratadas com sucesso (score 0.94-1.00), 0 erros. Conferi visualmente 3 delas eu mesmo antes de mandar pro PC — recorte limpo, bem enquadrado, funciona até no caso escuro.
+
+**Parado aguardando aprovação** do William/PC antes de rodar o lote completo (73), conforme pedido explícito na missão.
