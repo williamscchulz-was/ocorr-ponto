@@ -992,3 +992,16 @@ Depois de habilitar o login dos aprendizes, William testou a tela nova de Confer
 Investigado: **não é bug** — é lacuna estrutural. Os 4 aprendizes (f-1200 a f-1203) existem em `funcionarios` mas sem CPF (regra de LGPD: CPF só em `banco-horas-saldos`). E eles não existem em `banco-horas-saldos`/`banco-horas-self`/`bancoHoras` porque **nunca aparecem no export de Banco de Horas do WK** (regime de aprendiz não gera banco de horas, vem de dentro do ERP, não é filtro do pipeline). Resultado: hoje não existe nenhuma coleção com CPF pros aprendizes.
 
 Mandado pro PC (`inbox-pc/2026-07-02-aprendizes-sem-cpf-nenhuma-colecao.md`) — conectei com o "diretório de identificação (código+nome+CPF)" que ele já tinha comentado que ia construir pra outra coisa (custom claims do Storage), sugerindo desenhar pensando nos dois usos de uma vez. Não mexi em nada, é decisão dele.
+
+
+---
+
+## 2026-07-02 · 🆕 Coleção identificacao criada — código+nome+CPF pra todo ativo
+
+William decidiu não esperar o desenho completo do PC e pediu pra já disponibilizar o CPF dos aprendizes (achado de mais cedo: eles não tinham CPF em nenhuma coleção). Perguntei o escopo — confirmado: todo mundo ativo, não só os 4 aprendizes, já que é o mesmo diretório que o PC vai precisar pro Storage.
+
+**`upload-identificacao.mjs`** (novo): grava `identificacao/{codigo}` = `{codigo, nome, cpf, atualizadoEm}` pra todo funcionário ativo (98 hoje). Fonte: `parsed-empregado.json`. Idempotente, com limpeza de órfão (demitido some do diretório na rodada seguinte) — mesmo padrão do `banco-horas-self`. Ligado no pipeline como etapa best-effort (6b/10).
+
+Rodei manual pra popular já: 98 docs, confirmei os 4 aprendizes com CPF certo.
+
+**Importante**: não criei rule nenhuma (domínio do PC) — sem regra casando, a coleção fica inacessível do cliente por padrão do Firestore. Avisado no bridge (`inbox-pc/2026-07-02-identificacao-no-ar.md`), junto com a ressalva de que o shape é uma primeira versão enxuta (só os 3 campos que ele descreveu) — se ele já tinha algo mais elaborado desenhado, é só falar que ajusto.
