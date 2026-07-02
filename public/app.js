@@ -2768,61 +2768,51 @@ function renderNav() {
   ativarProximidadeNav();
 }
 
+// Barra de baixo ENXUTA do gestor (3 itens · hub aprovado 2026-07-02, alinhada ao
+// colaborador): as demais telas moram nos atalhos da Home (gestorAtalhosHtml) e no
+// drawer (Conta); Nova ocorrência voltou a ser FAB flutuante (updateFab).
 function renderBottomNav() {
-  const u = currentUser();
-  const pending = pendingForUser(u).length;
-  const canCreate = can("ocorrencias.criar");
-
-  // Itens à esquerda do FAB
-  const left = [
-    { id: "dashboard", label: "Ocorrências", icon: "inbox", badge: pending },
-    { id: "banco-horas", label: "Banco", icon: "clock" },
-  ];
-  if (can("func.ver")) {
-    left.push({ id: "funcionarios", label: "Equipe", icon: "users" });
-  }
-
-  // Itens à direita do FAB
-  const right = [];
-  if (can("comunicados.gerenciar")) {
-    right.push({ id: "comunicados", label: "Avisos", icon: "megafone" });
-  }
-  if (can("documentos.gerenciar")) {
-    right.push({ id: "documentos", label: "Docs", icon: "file" });
-  }
-  if (can("sistema.config")) {
-    right.push({ id: "config", label: "Ajustes", icon: "settings" });
-  }
-  // Conta/logout sempre presente
-  right.push({ id: "__menu", label: "Conta", icon: "user" });
-
-  const renderItem = (it) => `
+  const items = [
+    { id: "dashboard", label: "Início", icon: "home" },
+    can("comunicados.gerenciar") ? { id: "comunicados", label: "Avisos", icon: "megafone" } : null,
+    { id: "__menu", label: "Conta", icon: "user" },
+  ].filter(Boolean);
+  $("#bottom-nav").innerHTML = items.map((it) => `
     <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}">
       ${icon(it.icon)}
       <span>${it.label}</span>
-      ${it.badge ? `<span class="bottom-nav__badge">${it.badge > 9 ? "9+" : it.badge}</span>` : ""}
-    </button>`;
-
-  const fabHtml = canCreate ? `
-    <button class="bottom-nav__item bottom-nav__item--fab" data-action="nova" aria-label="Nova ocorrência">
-      <span class="bottom-nav__fab">${icon("plus")}</span>
-    </button>` : "";
-
-  $("#bottom-nav").innerHTML =
-    left.map(renderItem).join("") +
-    fabHtml +
-    right.map(renderItem).join("");
-
+    </button>`).join("");
   $$("#bottom-nav .bottom-nav__item").forEach((btn) => {
-    const page = btn.dataset.page;
-    const action = btn.dataset.action;
     btn.addEventListener("click", () => {
-      if (action === "nova") return openNovaOcorrencia();
-      if (page === "__menu") return openSidebar();
-      state.view.page = page;
+      if (btn.dataset.page === "__menu") return openSidebar();
+      state.view.page = btn.dataset.page;
       renderApp();
     });
   });
+}
+
+// Hub de atalhos do GESTOR no celular (mock aprovado 2026-07-02): mesma anatomia do
+// hub do colaborador, tema claro. Só aparece no mobile (CSS esconde >900px).
+// Auditoria entra quando a tela da coleção /eventos existir.
+function gestorAtalhosHtml(u) {
+  const pend = pendingForUser(u).length + ocaDoEstagio("rh_confere").length + ocaDoEstagio("com_lider").length;
+  const rcbPend = (state.recibos || []).filter((r) => !(r.assinaturas || []).length).length;
+  const itens = [
+    { page: "dashboard", label: "Ocorrências", icon: "inbox", badge: pend },
+    { page: "banco-horas", label: "Banco de horas", icon: "clock" },
+    can("func.ver") ? { page: "funcionarios", label: "Equipe", icon: "users" } : null,
+    can("bancoHoras.ver") ? { page: "espelho-ponto", label: "Espelho de ponto", icon: "conferir" } : null,
+    can("documentos.gerenciar") ? { page: "documentos", tab: "recibos", label: "Recibos e cartão", icon: "clipboard", badge: rcbPend, tone: "amber" } : null,
+    can("comunicados.gerenciar") ? { page: "comunicados", label: "Avisos", icon: "megafone" } : null,
+    can("documentos.gerenciar") ? { page: "documentos", tab: "inst", label: "Documentos", icon: "file" } : null,
+    can("pj.ver") ? { page: "pj", label: "Controle PJ", icon: "briefcase" } : null,
+    can("sistema.config") ? { page: "config", label: "Ajustes", icon: "settings" } : null,
+  ].filter(Boolean);
+  return `<div class="ghub" role="navigation" aria-label="Atalhos">${itens.map((it) => `
+    <button class="ghub__it" data-ghub="${it.page}"${it.tab ? ` data-ghub-tab="${it.tab}"` : ""} aria-label="${escapeHtml(it.label)}${it.badge ? ` (${it.badge} pendentes)` : ""}">
+      <span class="ghub__ic">${icon(it.icon)}${it.badge ? `<span class="ghub__dot${it.tone === "amber" ? " ghub__dot--amber" : ""}">${it.badge > 9 ? "9+" : it.badge}</span>` : ""}</span>
+      <span class="ghub__lab">${escapeHtml(it.label)}</span>
+    </button>`).join("")}</div>`;
 }
 
 function pendingForUser(u) {
@@ -3239,6 +3229,7 @@ function renderDashboard() {
       </div>
       <div class="row">
         ${can("pipeline.monitor") ? monChipHtml() : ""}
+        <button class="version-pill version-pill--hub" type="button" title="Novidades e histórico de versões">v—</button>
         ${
           can("ocorrencias.criar")
             ? `<button class="btn btn--primary" id="btn-nova">${icon("plus")}<span>Nova ocorrência</span></button>`
@@ -3246,6 +3237,8 @@ function renderDashboard() {
         }
       </div>
     </header>
+
+    ${gestorAtalhosHtml(u)}
 
     <div class="stats stats--kpi">
       <div class="stat stat--accent stat--kpi">
@@ -3322,6 +3315,17 @@ function renderDashboard() {
 
   // Wire up
   if ($("#btn-nova")) $("#btn-nova").addEventListener("click", openNovaOcorrencia);
+  // Atalhos do hub mobile: navegam (com aba de Documentos quando indicada);
+  // o atalho Ocorrências rola até a lista, já que a Home É a tela de ocorrências.
+  $$("#view [data-ghub]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.ghub === "dashboard") return void $("#tabs")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (b.dataset.ghubTab) state.view.docTab = b.dataset.ghubTab;
+    state.view.page = b.dataset.ghub;
+    renderApp();
+  }));
+  // Pill de versão do hub (a topbar morreu no mobile): mesmo conteúdo/ação da pill global.
+  const vph = $("#view .version-pill--hub");
+  if (vph) { vph.textContent = "v" + window.CURRENT_VERSION; vph.addEventListener("click", openChangelog); }
   if ($("#btn-monitor")) $("#btn-monitor").addEventListener("click", openMonitorPipeline);
   if ($("#kpi-conferir")) $("#kpi-conferir").addEventListener("click", () => {
     state.view.filterTab = "pendentes";
@@ -12412,7 +12416,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.23.1";
+window.CURRENT_VERSION = "1.24.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

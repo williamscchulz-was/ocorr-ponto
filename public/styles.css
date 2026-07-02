@@ -979,9 +979,9 @@ textarea:focus-visible,
 .collab-toast__body strong { display: block; font-size: 13px; }
 .collab-toast__body small { color: var(--muted); font-size: 11px; }
 
-@media (max-width: 900px) {
-  .topbar { display: flex; }
-}
+/* Topo ZERO no mobile (rebrand 2026-07-02, os dois portais): a topbar não volta
+   mais; o título grande de cada página assume. A versão vive na pill do hub
+   (gestor) e na Conta (colaborador). */
 
 .sidebar-backdrop {
   display: none;
@@ -1972,18 +1972,18 @@ textarea:focus-visible,
 .bottom-nav {
   display: none;
   position: fixed;
-  bottom: calc(16px + env(safe-area-inset-bottom));
+  bottom: calc(14px + env(safe-area-inset-bottom));
   left: 16px;
   right: 16px;
   z-index: 60;
-  background: var(--surface);
-  border-radius: 24px;
-  padding: 10px;
-  box-shadow:
-    0 12px 32px rgba(22, 60, 30, 0.18),
-    0 4px 12px rgba(22, 60, 30, 0.1),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
-  height: 68px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(16, 48, 28, 0.10);
+  border-radius: 26px;
+  padding: 7px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 24px 48px -16px rgba(16, 48, 28, 0.45);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  height: auto;
 }
 
 .bottom-nav__item {
@@ -2012,59 +2012,41 @@ textarea:focus-visible,
 
 .bottom-nav__item.active {
   color: var(--plum);
-  background: var(--milk-warm);
-}
-
-.bottom-nav__badge {
-  position: absolute;
-  top: 4px;
-  right: 50%;
-  margin-right: -22px;
-  background: var(--danger);
-  color: white;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 1px 5px;
-  border-radius: 999px;
-  min-width: 16px;
-  text-align: center;
-  line-height: 1.3;
-}
-
-.bottom-nav__item--fab {
-  flex: 0 0 56px;
-  padding: 0;
-}
-
-.bottom-nav__item--fab .bottom-nav__fab {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  background: var(--plum);
-  color: var(--milk);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 4px 12px rgba(0, 136, 53, 0.4);
-  transition: var(--transition);
-}
-
-.bottom-nav__item--fab:hover .bottom-nav__fab,
-.bottom-nav__item--fab:active .bottom-nav__fab {
-  background: var(--plum-soft);
-  transform: scale(1.05);
-}
-
-.bottom-nav__item--fab .icon {
-  width: 22px;
-  height: 22px;
-  stroke-width: 2.5;
+  background: rgba(0, 136, 53, 0.10);
+  border-radius: 19px;
 }
 
 @media (max-width: 900px) {
   .bottom-nav { display: flex; }
-  .fab { display: none !important; }
-  .app__main { padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important; }
-  /* Topbar pode some no mobile pra dar mais espaço — sidebar acessada via "Conta" no nav */
+  /* Nova ocorrência volta a ser FAB flutuante, acima da ilha de vidro; o chat sobe
+     junto. O .show só exibe AQUI: no desktop o botão do cabeçalho continua sendo
+     o caminho (não existia regra de exibição pro FAB, era markup adormecido). */
+  .fab.show { display: flex; }
+  /* #fab (id) pra vencer o ".fab{bottom:92px !important}" do desktop, que vem depois no arquivo. */
+  #fab { bottom: calc(104px + env(safe-area-inset-bottom)) !important; right: 18px; }
+  .app__main {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+}
+
+/* Hub de atalhos do gestor na Home (mobile): mesma anatomia do hub do colaborador. */
+.ghub { display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 10px; margin: 2px 0 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.ghub::-webkit-scrollbar { display: none; }
+.ghub__it { flex: none; width: 76px; background: none; border: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 7px; font: inherit; }
+.ghub__ic { position: relative; width: 58px; height: 58px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0, 40, 20, 0.06); transition: transform .15s ease; }
+.ghub__it:active .ghub__ic { transform: scale(.94); }
+.ghub__ic .icon { width: 22px; height: 22px; color: var(--plum); }
+.ghub__lab { font-size: 10.5px; font-weight: 600; line-height: 1.15; text-align: center; color: var(--text-muted); max-width: 76px; }
+.ghub__dot { position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 9.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+.ghub__dot--amber { background: var(--warning); color: #3a2a05; }
+@media (min-width: 901px) {
+  /* Desktop segue com a sidebar: hub, pill do hub e nada de topbar não se aplicam. */
+  .ghub, .version-pill--hub { display: none; }
+}
+@media (max-width: 900px) {
+  /* O botão grande de Nova ocorrência sai do cabeçalho no mobile (o FAB assume). */
+  #btn-nova { display: none; }
 }
 
 /* Telas estreitas (ex.: 360px): admin tem 6 itens + FAB na barra flutuante.
@@ -2085,17 +2067,6 @@ textarea:focus-visible,
   .bottom-nav__item .icon {
     width: 20px;
     height: 20px;
-  }
-  .bottom-nav__item--fab {
-    flex: 0 0 48px;
-  }
-  .bottom-nav__item--fab .bottom-nav__fab {
-    width: 42px;
-    height: 42px;
-  }
-  /* Badge acompanha o ícone menor pra não vazar pro item vizinho. */
-  .bottom-nav__badge {
-    margin-right: -16px;
   }
 }
 
@@ -3575,7 +3546,7 @@ body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
 
 /* ---- Mobile: FAB acima da bottom-nav; painel em tela cheia ---- */
 @media (max-width: 900px) {
-  .chat-fab { bottom: calc(80px + env(safe-area-inset-bottom)); } /* acima da bottom-nav + safe-area */
+  .chat-fab { bottom: calc(172px + env(safe-area-inset-bottom)); } /* acima do FAB de nova ocorrência, que fica acima da ilha */
   .chat-widget { bottom: 0; right: 0; left: 0; width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; }
   .chat__bolha { max-width: 82%; }
 }
@@ -4319,12 +4290,14 @@ code { font-family: inherit; }
 @media (max-width: 900px) {
   .topbar__menu { display: none !important; }   /* bottom-nav substitui o hamburger */
   .sidebar-toggle { display: none !important; }  /* recolher o rail nao faz sentido no mobile */
-  #fab { display: none !important; }             /* a bottom-nav ja tem o FAB inline */
 }
 @media (max-width: 560px) {
   .toolbar { flex-direction: column; align-items: stretch; }
   .toolbar select, .toolbar__search { width: 100%; }
-  .stats { display: grid; grid-template-columns: 1fr; }
+  /* Resumo em grade 2x2 compacta (hub aprovado 2026-07-02), no lugar da pilha 1 coluna. */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { padding: 13px 14px; }
+  .stat__value { font-size: 24px; }
   .com-actions { margin-left: 0; }
   .com-mini { width: 40px; height: 40px; }       /* alvo de toque */
 }

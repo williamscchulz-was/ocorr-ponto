@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.23.1", d: "2 jul 2026", current: true, items: [
+    v: "1.24.0", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "high", title: "O Portal do Gestor no celular ganhou a mesma cara do app do colaborador: atalhos redondos na Home (com pendências), resumo compacto, barra de baixo com só 3 itens em ilha de vidro e o botão de Nova ocorrência flutuando acima dela." },
+      { type: "feat", title: "A versão do app agora aparece num selo ao lado da saudação (a barra do topo saiu de cena no celular)." },
+    ],
+  },
+  {
+    v: "1.23.1", d: "2 jul 2026", items: [
       { type: "high", title: "O aplicativo ficou mais limpo no celular: a barra do topo saiu de cena (o título da página assume o lugar) e a barra de baixo virou uma ilha flutuante de vidro, com o conteúdo passando por baixo. O tema e a versão do app agora vivem na Conta." },
     ],
   },

@@ -104,12 +104,8 @@ html.modo-colab.cp-dark #bottom-nav{
   border:1px solid rgba(255,255,255,.13);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 24px 48px -16px rgba(0,0,0,.85);
 }
-/* Topo ZERO no mobile (ideia 3): a topbar morre, o título grande da página assume.
-   Tema, Sair e a versão vivem na Conta. A safe area do notch vai pro conteúdo. */
-@media (max-width:900px){
-  .modo-colab .topbar{display:none}
-  .modo-colab .app__main{padding-top:calc(8px + env(safe-area-inset-top))}
-}
+/* Topo ZERO no mobile: regra agora é GLOBAL (styles.css, rebrand 2026-07-02),
+   vale pros dois portais. Aqui só o que é específico do colaborador. */
 /* Itens da nav: ícone EM CIMA do rótulo; o ativo ganha a pill de vidro verde. */
 .modo-colab .cp-bn-lab{display:block;font-size:10px;font-weight:500;line-height:1}
 .modo-colab .bottom-nav__item{flex:1;min-width:0;background:none;padding:8px 4px 7px;min-height:48px;flex-direction:column;gap:4px;color:var(--text-muted);border-radius:19px;transition:background .25s ease,color .25s ease}
