@@ -3075,8 +3075,11 @@ html.firebase-mode .login__forgot { display: block; }
 .esp-trow.on { background: var(--success-bg); }
 .esp-trow.on .esp-trow__n { color: var(--plum); }
 .esp-trow__av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(150deg, #1AA34F, #0B7A36); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex: none; }
-/* Avatar de funcionário COM FOTO (portal do gestor): a foto cobre o fundo/iniciais. */
-.av-foto { background-size: cover; background-position: center; color: transparent; }
+/* Avatar de funcionário COM FOTO (portal do gestor): a foto cobre o fundo/iniciais.
+   !important porque os avatares base (.func-av, .esp-ch__av, .disc-av...) usam o
+   atalho background:, que reseta background-size; o modificador tem que vencer
+   independente da ordem no arquivo. */
+.av-foto { background-size: cover !important; background-position: center !important; color: transparent !important; }
 .esp-trow__bd { flex: 1; min-width: 0; }
 .esp-trow__n { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .esp-trow__s { display: block; font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -3144,6 +3147,8 @@ html.firebase-mode .login__forgot { display: block; }
 .func-row:hover { background: var(--row-hover); }
 .func-row--semturno { box-shadow: inset 3px 0 0 var(--warning); }
 .func-row--inativo { opacity: 0.6; }
+/* foto do colaborador na lista (mock aprovado 2026-07-02); sem foto = iniciais */
+.func-av { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(150deg, #1AA34F, #0B7A36); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex: none; }
 .func-info { flex: 1; min-width: 0; }
 .func-nome { font-size: 14.5px; font-weight: 600; color: var(--text-body); }
 .func-sub {

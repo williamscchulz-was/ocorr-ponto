@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.22.2", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.22.3", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "feat", title: "A lista principal de Funcionários agora mostra a foto de cada colaborador (quem não tem segue com as iniciais)." },
+      { type: "fix", title: "Fotos que apareciam estouradas em alguns avatares do gestor (cartão do espelho e disciplinares) agora ficam sempre enquadradas." },
+    ],
+  },
+  {
+    v: "1.22.2", d: "2 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "Dispensar uma ocorrência automática agora pede o motivo (obrigatório). O porquê fica gravado na trilha." },
       { type: "feat", title: "Toda ocorrência automática abre o detalhe ao clicar no card, igual à manual: pessoa, marcações e a trilha completa, com o motivo da dispensa e a destinação escolhida pelo líder." },
     ],

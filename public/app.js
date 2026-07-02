@@ -4188,6 +4188,7 @@ function renderFuncList(animar) {
 
     return `
       <article class="func-row ${alertaSemTurno ? "func-row--semturno" : ""} ${inativo ? "func-row--inativo" : ""}" data-func="${f.id}" role="button" tabindex="0">
+        ${avatarFuncHtml(f, "func-av")}
         <div class="func-info">
           <div class="func-nome">${escapeHtml(f.nome)}</div>
           <div class="func-sub">${subHtml}</div>
@@ -12361,7 +12362,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.22.2";
+window.CURRENT_VERSION = "1.22.3";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
