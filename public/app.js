@@ -6304,6 +6304,23 @@ function loadPdfLib() {
   return _pdfLibPromise;
 }
 
+// Normaliza pra comparar nomes: MAIÚSCULO, sem acentos (̀-ͯ = diacríticos do NFD), 1 espaço.
+function rcbNorm(s) {
+  return String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+}
+function rcbFmtCpf(dig) {
+  const d = String(dig || "").replace(/\D/g, "");
+  return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : d;
+}
+// Resumo honesto do que deu errado (ou certo) num grupo da conferência.
+function rcbMotivoGrupo(g) {
+  if (!g) return "";
+  if (g.status === "ok") return `${g.nome} · CPF e nome bateram`;
+  if (!g.cpf) return "Página sem CPF legível";
+  if (!g.funcionarioId) return `CPF ${rcbFmtCpf(g.cpf)} não está no cadastro`;
+  return `CPF bateu com ${g.nome} (${g.funcionarioId}), mas esse nome não aparece na página`;
+}
+
 // Lotes = agrupamento de state.recibos por tipo+competência (mais recente primeiro).
 function rcbLotes() {
   const m = {};
@@ -6474,14 +6491,12 @@ async function rcbAnalisar() {
     }
 
     // Casa CPF→funcionarioId e confere o NOME do cadastro no texto da página (reforço).
-    // ̀-ͯ = diacríticos combinantes (remove acentos depois do NFD).
-    const norm = (s) => String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
     for (const g of grupos) {
       g.funcionarioId = g.cpf ? (mapa[g.cpf] || null) : null;
       const f = g.funcionarioId ? getFuncionario(g.funcionarioId) : null;
       g.nome = f ? f.nome : null;
       g.codigo = f ? (f.codigo || null) : null;
-      g.nomeConfere = !!(f && norm(paginas[g.paginas[0] - 1]).includes(norm(f.nome)));
+      g.nomeConfere = !!(f && rcbNorm(paginas[g.paginas[0] - 1]).includes(rcbNorm(f.nome)));
       g.status = (f && g.nomeConfere) ? "ok" : "resolver";
       g.escolha = null; // resolução manual (funcionarioId ou "ignorar")
     }
@@ -6521,26 +6536,25 @@ function renderRcbConferencia() {
   const total = st.grupos.length;
   const okN = st.grupos.filter((g) => rcbFuncDoGrupo(g)).length;
   const pendN = st.grupos.filter((g) => g.status === "resolver" && !g.escolha).length;
-  const funcs = (state.funcionarios || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
 
   const rowHtml = (g, i) => {
     const pags = g.paginas.length > 1 ? `páginas ${g.paginas[0]} a ${g.paginas[g.paginas.length - 1]}` : `página ${g.paginas[0]}`;
-    const thumb = `<canvas class="rcb-thumb" data-rcb-thumb="${g.paginas[0]}"></canvas>`;
+    // Miniatura CLICÁVEL: abre a página inteira ampliada (feedback do William: precisa VER pra resolver).
+    const thumb = `<button class="rcb-thumbbtn" data-rcb-ver="${g.paginas[0]}" title="Ver a página inteira" aria-label="Ver a página inteira">
+        <canvas class="rcb-thumb" data-rcb-thumb="${g.paginas[0]}"></canvas>
+        <span class="rcb-thumbbtn__zoom">${icon("search")}</span>
+      </button>`;
     if (g.status === "ok") {
       return `<div class="rcb-conf-row">${thumb}
         <div class="rcb-conf-bd"><b>${escapeHtml(g.nome)}</b><span>${pags} · ${escapeHtml(g.funcionarioId)} · CPF e nome bateram</span></div>
         <span class="rcb-tag rcb-tag--ok">${g.paginas.length} pág${g.paginas.length > 1 ? "s" : ""}</span>
       </div>`;
     }
-    const motivo = g.funcionarioId ? "CPF bateu, mas o nome não confere" : (g.cpf ? "CPF não está no cadastro" : "página sem CPF");
-    const sugerido = g.funcionarioId || "";
     return `<div class="rcb-conf-row rcb-conf-row--warn">${thumb}
-      <div class="rcb-conf-bd"><b>A resolver</b><span>${pags} · ${escapeHtml(motivo)} — olhe a página e diga de quem é</span>
-        <select class="rcb-conf-sel" data-rcb-sel="${i}">
-          <option value="">Escolher…</option>
-          ${funcs.map((f) => `<option value="${escapeHtml(f.id)}" ${f.id === (g.escolha || sugerido) ? "selected" : ""}>${escapeHtml(f.nome)}</option>`).join("")}
-          <option value="ignorar" ${g.escolha === "ignorar" ? "selected" : ""}>Ignorar (não gerar)</option>
-        </select>
+      <div class="rcb-conf-bd">
+        <b>A resolver</b>
+        <span>${pags} · ${escapeHtml(rcbMotivoGrupo(g))} · <button class="rcb-verlink" data-rcb-ver="${g.paginas[0]}">ver a página</button></span>
+        <div class="rcb-resolve" data-rcb-resolve="${i}">${rcbComboHtml(g, i)}</div>
       </div>
     </div>`;
   };
@@ -6564,13 +6578,47 @@ function renderRcbConferencia() {
       </div>
     </div>`);
 
-  // Resolução manual: atualiza o grupo e SÓ o resumo/botão, em cima do DOM vivo —
-  // NÃO re-renderiza o modal (isso destruiria as miniaturas já desenhadas nos canvas).
-  $$(".rcb-conf-sel").forEach((sel) => sel.addEventListener("change", () => {
-    const g = st.grupos[Number(sel.dataset.rcbSel)];
-    if (g) g.escolha = sel.value || null;
+  // Interações da conferência, DELEGADAS na lista (morrem com o modal): ver página,
+  // buscar por nome/código, escolher, ignorar, desfazer. Atualiza SÓ o necessário em
+  // cima do DOM vivo. NÃO re-renderiza o modal (destruiria as miniaturas nos canvas).
+  const listEl = document.querySelector("#modal-root .rcb-conf-list");
+  const aplicarEscolha = (i, valor) => {
+    const g = st.grupos[i]; if (!g) return;
+    g.escolha = valor;
+    const cont = listEl.querySelector(`[data-rcb-resolve="${i}"]`);
+    if (cont) cont.innerHTML = rcbComboHtml(g, i);
     rcbAtualizarResumoConf(st);
-  }));
+  };
+  listEl?.addEventListener("click", (e) => {
+    const ver = e.target.closest("[data-rcb-ver]");
+    if (ver) { rcbVerPagina(Number(ver.dataset.rcbVer)); return; }
+    const pick = e.target.closest("[data-rcb-pick]");
+    if (pick) { const [i, fid] = pick.dataset.rcbPick.split("|"); aplicarEscolha(Number(i), fid); return; }
+    const ign = e.target.closest("[data-rcb-ignorar]");
+    if (ign) { aplicarEscolha(Number(ign.dataset.rcbIgnorar), "ignorar"); return; }
+    const limpa = e.target.closest("[data-rcb-limpar]");
+    if (limpa) { aplicarEscolha(Number(limpa.dataset.rcbLimpar), null); return; }
+  });
+  listEl?.addEventListener("input", (e) => {
+    const inp = e.target.closest("[data-rcb-busca]");
+    if (!inp) return;
+    const i = Number(inp.dataset.rcbBusca);
+    const lista = listEl.querySelector(`[data-rcb-list="${i}"]`);
+    if (!lista) return;
+    const q = inp.value.trim();
+    if (q.length < 2) { lista.hidden = true; lista.innerHTML = ""; return; }
+    const nq = rcbNorm(q), dq = q.replace(/\D/g, "");
+    const hits = (state.funcionarios || [])
+      .filter((f) => rcbNorm(f.nome).includes(nq) || (dq && String(f.codigo || "").startsWith(dq)))
+      .slice(0, 8);
+    lista.innerHTML = hits.length
+      ? hits.map((f) => `<button class="rcb-combo__it" data-rcb-pick="${i}|${escapeHtml(f.id)}">
+          <b>${escapeHtml(f.nome)}</b>
+          <span>${f.codigo ? "cód " + escapeHtml(String(f.codigo)) : ""}${f.turno ? (f.codigo ? " · " : "") + (f.turno === "geral" ? "geral" : f.turno + "º turno") : ""}</span>
+        </button>`).join("")
+      : `<div class="rcb-combo__vazio">Ninguém encontrado com esse nome ou código.</div>`;
+    lista.hidden = false;
+  });
   $("#rcb-voltar")?.addEventListener("click", () => {
     try { st.pdf?.destroy?.(); } catch (e) {} // solta o worker/memória do pdf.js
     _rcbImport = null;
@@ -6578,6 +6626,86 @@ function renderRcbConferencia() {
   });
   $("#rcb-gerar")?.addEventListener("click", rcbGerar);
   rcbBindThumbs();
+}
+
+// Bloco de resolução de um grupo "a resolver": sugestão de 1 toque (quando o CPF bateu
+// mas o nome divergiu), busca por nome/código, e ignorar. Estado escolhido vira um chip
+// com Desfazer/Trocar. Renderizado in-place (o canvas da miniatura fica intacto).
+function rcbComboHtml(g, i) {
+  if (g.escolha === "ignorar") {
+    return `<div class="rcb-pick rcb-pick--ign">${icon("x")}<span>Página ignorada: não gera recibo</span><button class="rcb-pick__undo" data-rcb-limpar="${i}">Desfazer</button></div>`;
+  }
+  if (g.escolha) {
+    const f = getFuncionario(g.escolha);
+    return `<div class="rcb-pick rcb-pick--ok">${icon("check")}<span>${escapeHtml((f && f.nome) || g.escolha)}</span><button class="rcb-pick__undo" data-rcb-limpar="${i}">Trocar</button></div>`;
+  }
+  const sug = g.funcionarioId ? getFuncionario(g.funcionarioId) : null;
+  return `
+    ${sug ? `<button class="rcb-sug" data-rcb-pick="${i}|${escapeHtml(sug.id)}">${icon("check")}<span>Usar ${escapeHtml(sug.nome)} (o dono do CPF)</span></button>` : ""}
+    <div class="rcb-combo">
+      <input class="rcb-combo__inp" type="text" placeholder="Buscar por nome ou código" data-rcb-busca="${i}" autocomplete="off">
+      <div class="rcb-combo__list" data-rcb-list="${i}" hidden></div>
+    </div>
+    <button class="rcb-ign" data-rcb-ignorar="${i}">Ignorar esta página</button>`;
+}
+
+// Página inteira AMPLIADA (overlay que empilha por cima da conferência, padrão docview):
+// canvas grande via pdf.js + o motivo do grupo no cabeçalho + navegação entre as páginas.
+async function rcbVerPagina(numPag) {
+  const st = _rcbImport; if (!st) return;
+  const totalPag = st.pdf.numPages;
+  const prevFocus = document.activeElement;
+  const root = document.createElement("div");
+  root.className = "modal-backdrop modal-backdrop--docview";
+  root.innerHTML = `
+    <div class="rcb-pagever" role="dialog" aria-modal="true" aria-label="Página do PDF">
+      <div class="rcb-pagever__h">
+        <button class="x" data-pv-close aria-label="Fechar">${icon("x")}</button>
+        <div class="rcb-pagever__t"><b id="rcb-pv-titulo"></b><span id="rcb-pv-motivo"></span></div>
+        <div class="rcb-pagever__nav">
+          <button data-pv-prev aria-label="Página anterior">&lsaquo;</button>
+          <button data-pv-next aria-label="Próxima página">&rsaquo;</button>
+        </div>
+      </div>
+      <div class="rcb-pagever__body"><canvas id="rcb-pv-canvas"></canvas></div>
+    </div>`;
+  document.body.appendChild(root);
+  let pag = Math.min(Math.max(1, numPag), totalPag);
+  const fechar = () => {
+    document.removeEventListener("keydown", onKey, true);
+    root.remove();
+    if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch (e) {} }
+  };
+  const onKey = (e) => {
+    if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fechar(); }
+    if (e.key === "ArrowLeft") mostrar(pag - 1);
+    if (e.key === "ArrowRight") mostrar(pag + 1);
+  };
+  document.addEventListener("keydown", onKey, true);
+  root.addEventListener("click", (e) => { if (e.target === root) fechar(); });
+  root.querySelector("[data-pv-close]").addEventListener("click", fechar);
+  root.querySelector("[data-pv-prev]").addEventListener("click", () => mostrar(pag - 1));
+  root.querySelector("[data-pv-next]").addEventListener("click", () => mostrar(pag + 1));
+  async function mostrar(n) {
+    if (n < 1 || n > totalPag || !document.contains(root)) return;
+    pag = n;
+    root.querySelector("#rcb-pv-titulo").textContent = `Página ${pag} de ${totalPag}`;
+    const g = st.grupos.find((x) => x.paginas.includes(pag)) || null;
+    root.querySelector("#rcb-pv-motivo").textContent = rcbMotivoGrupo(g);
+    root.querySelector("[data-pv-prev]").disabled = pag <= 1;
+    root.querySelector("[data-pv-next]").disabled = pag >= totalPag;
+    try {
+      const page = await st.pdf.getPage(pag);
+      const vp0 = page.getViewport({ scale: 1 });
+      const alvo = Math.min(860, Math.floor(window.innerWidth * 0.88));
+      const vp = page.getViewport({ scale: (alvo * 2) / vp0.width }); // 2x pela nitidez
+      const cv = root.querySelector("#rcb-pv-canvas");
+      cv.width = vp.width; cv.height = vp.height;
+      await page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
+    } catch (e) { toast("Não consegui desenhar a página.", "danger"); }
+  }
+  mostrar(pag);
+  setTimeout(() => root.querySelector("[data-pv-close]")?.focus(), 30);
 }
 
 // Atualiza contadores e botão Gerar da conferência SEM re-renderizar o modal.
@@ -11338,7 +11466,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.18.0";
+window.CURRENT_VERSION = "1.18.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

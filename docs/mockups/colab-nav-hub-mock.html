@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Navegação do colaborador estilo hub (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 80px;font-family:Poppins,sans-serif;color:#EDF3EA}
+  .wrap{max-width:1180px;margin:0 auto}
+  .note{font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65;margin-bottom:26px}
+  .note b{color:#EDF3EA}
+  .capbig{font-size:12px;color:#EDF3EA;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid #1c241b}
+  .capbig span{color:#7F9E86;font-weight:600;text-transform:none;letter-spacing:0}
+  .row{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;justify-content:center}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin-top:9px;font-weight:600;max-width:360px}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .chrome-dark{
+    --bg:#0E130E;--milk:#0E130E;--surface:#161D15;--surface-warm:#1E261D;--milk-warm:#1E261D;
+    --border:#232C22;--border-strong:#2A332A;--text:#EDF3EA;--text-body:#EDF3EA;--text-muted:#8A9884;
+    --plum:#5FCB85;--plum-soft:#5FCB85;--plum-deep:#9FE0B5;--success:#5FCB85;--warning:#E8B468;--danger:#E68A86;
+  }
+  .phone{width:360px;background:#0E130E;border:1px solid #232C22;border-radius:28px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8);position:relative}
+  .phone__bar{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:11px;color:#EDF3EA;font-weight:600}
+  .scr{padding:14px 14px 86px;background:var(--bg);color:var(--text-body);min-height:560px;box-sizing:border-box}
+  /* saudação (padrão vivo v247) */
+  .grt{display:flex;align-items:center;gap:13px;margin-bottom:16px}
+  .grt__av{width:46px;height:46px;border-radius:15px;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex:none}
+  .grt h1{font-size:21px;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1}
+  .grt p{font-size:12px;color:var(--text-muted);margin:3px 0 0}
+  /* ===== A: fileira de atalhos estilo Nubank ===== */
+  .atl{display:flex;gap:6px;overflow-x:auto;margin:0 -14px 16px;padding:2px 14px 6px;scrollbar-width:none}
+  .atl::-webkit-scrollbar{display:none}
+  .atl__it{flex:none;width:76px;display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:0;color:var(--text-body);font:inherit;cursor:pointer}
+  .atl__c{position:relative;width:56px;height:56px;border-radius:50%;background:var(--surface-warm);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--plum)}
+  .atl__c svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .atl__b{position:absolute;top:-2px;right:-2px;min-width:17px;height:17px;border-radius:99px;background:var(--warning);color:#3a2a05;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg)}
+  .atl__l{font-size:10.5px;font-weight:600;color:var(--text-muted);text-align:center;line-height:1.25}
+  /* hero + cards resumidos */
+  .hero{background:linear-gradient(150deg,#1AA34F,#0B7A36);border-radius:18px;padding:15px 16px;color:#fff;margin-bottom:12px}
+  .hero small{font-size:11px;opacity:.85}.hero b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .cardz{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:13px 14px;margin-bottom:11px}
+  .cardz b{font-size:13.5px}.cardz span{display:block;font-size:11.5px;color:var(--text-muted);margin-top:2px}
+  .cardz--attn{border-color:rgba(232,180,104,.4)}
+  .pendtag{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:999px;padding:2px 8px;background:rgba(232,180,104,.16);color:var(--warning);margin-bottom:7px}
+  /* barra de baixo */
+  .bn{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:7px 6px calc(10px);z-index:5}
+  .bn__it{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;color:var(--text-muted);font:inherit;font-size:10px;font-weight:600;padding:5px 2px;position:relative;cursor:pointer}
+  .bn__it.on{color:var(--plum)}
+  .bn__it svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .bn__dot{position:absolute;top:2px;right:calc(50% - 15px);min-width:15px;height:15px;border-radius:99px;background:var(--warning);color:#3a2a05;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 3px}
+  /* B: sheet "Mais" */
+  .sheetov{position:absolute;inset:0;background:rgba(4,8,4,.6);display:flex;align-items:flex-end;z-index:8}
+  .sheet{width:100%;background:var(--surface);border-radius:20px 20px 0 0;padding:16px 16px 24px;border-top:1px solid var(--border)}
+  .sheet h3{margin:0 0 12px;font-size:14px}
+  .sh-row{display:flex;align-items:center;gap:12px;padding:12px 6px;border-top:1px solid var(--border);font-size:13.5px;font-weight:600}
+  .sh-row:first-of-type{border-top:0}
+  .sh-row .ic{width:36px;height:36px;border-radius:10px;background:var(--surface-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .sh-row .ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .rec{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;background:rgba(95,203,133,.15);color:#5FCB85;border:1px solid rgba(95,203,133,.35);border-radius:999px;padding:2px 10px;margin-left:8px;vertical-align:middle;text-transform:uppercase}
+</style></head>
+<body><div class="wrap">
+
+<div class="note">
+  <b>Mock · Navegação do colaborador no celular, estilo Nubank.</b> O portal cresceu (e vai crescer mais), e a barra de baixo só aguenta 5 ícones. A solução do Nubank: a <b>Home vira o hub</b>, com uma <b>fileira de atalhos redondos que rola pro lado</b> logo abaixo da saudação. Cabe quantos atalhos precisar (os próximos recursos só entram na fila), os mais usados ficam primeiro, e <b>pendência vira bolinha no atalho</b> (recibo pra assinar, aviso não lido). Com isso a <b>barra de baixo enxuga pra 3</b>: Início, Avisos e Conta. No desktop nada muda (menu lateral completo). A opção B, no fim, é a alternativa clássica pra comparar.
+</div>
+
+<div class="capbig">Opção A <span class="rec">Recomendada</span> <span>Home hub + atalhos roláveis + barra com 3</span></div>
+<div class="row">
+<div class="col">
+  <div class="chrome-dark"><div class="phone">
+    <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+    <div class="scr">
+      <div class="grt">
+        <div class="grt__av">PA</div>
+        <div><h1>Bom dia, <b>Pedro</b></h1><p>Quinta, 2 de julho · 1º turno</p></div>
+      </div>
+      <div class="atl">
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></span>
+          <span class="atl__l">Meu ponto</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg><span class="atl__b">1</span></span>
+          <span class="atl__l">Folha de pagamento</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg><span class="atl__b">2</span></span>
+          <span class="atl__l">Avisos</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+          <span class="atl__l">Documentos</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+          <span class="atl__l">Novidades</span>
+        </button>
+        <button class="atl__it" style="opacity:.55">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg></span>
+          <span class="atl__l">Conta</span>
+        </button>
+      </div>
+      <div class="hero"><small>Banco de horas · Julho</small><b>+05:30</b></div>
+      <div class="cardz cardz--attn">
+        <span class="pendtag">Precisa de você</span>
+        <b>Recibo de maio disponível</b>
+        <span>Toque pra ver. A assinatura chega em breve.</span>
+      </div>
+      <div class="cardz"><b>Comunicado fixado</b><span>Recesso de julho: escala atualizada no mural</span></div>
+    </div>
+    <div class="bn">
+      <button class="bn__it on"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</button>
+      <button class="bn__it"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Avisos<span class="bn__dot">2</span></button>
+      <button class="bn__it"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg>Conta</button>
+    </div>
+  </div></div>
+  <div class="cap">Atalhos rolam pro lado (o sexto aparece pela metade, convidando a rolar). Pendência = bolinha âmbar no atalho E na barra.</div>
+</div>
+
+<div class="col">
+  <div class="chrome-dark"><div class="phone">
+    <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+    <div class="scr">
+      <div class="grt">
+        <div class="grt__av">PA</div>
+        <div><h1>Bom dia, <b>Pedro</b></h1><p>Quinta, 2 de julho · 1º turno</p></div>
+      </div>
+      <div class="atl" style="transform:translateX(-84px)">
+        <button class="atl__it" style="opacity:.4">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
+          <span class="atl__l">Folha de pagamento</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg></span>
+          <span class="atl__l">Avisos</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+          <span class="atl__l">Documentos</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+          <span class="atl__l">Novidades</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg></span>
+          <span class="atl__l">Conta</span>
+        </button>
+        <button class="atl__it">
+          <span class="atl__c" style="border-style:dashed;color:var(--text-muted)"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+          <span class="atl__l">Próximos recursos</span>
+        </button>
+      </div>
+      <div class="hero"><small>Banco de horas · Julho</small><b>+05:30</b></div>
+      <div class="cardz"><b>Aniversariante de hoje</b><span>Hoje é aniversário da Jenifer</span></div>
+    </div>
+    <div class="bn">
+      <button class="bn__it on"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</button>
+      <button class="bn__it"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Avisos</button>
+      <button class="bn__it"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg>Conta</button>
+    </div>
+  </div></div>
+  <div class="cap">A fileira rolada: quando entrar reconhecimento, canal de ética ou avaliação, é só mais um atalho na fila. Nada de redesenhar menu.</div>
+</div>
+</div>
+
+<div class="capbig">Opção B <span>a clássica: barra com 5 + aba "Mais"</span></div>
+<div class="row">
+<div class="col">
+  <div class="chrome-dark"><div class="phone">
+    <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+    <div class="scr" style="filter:brightness(.75)">
+      <div class="grt">
+        <div class="grt__av">PA</div>
+        <div><h1>Bom dia, <b>Pedro</b></h1><p>Quinta, 2 de julho · 1º turno</p></div>
+      </div>
+      <div class="hero"><small>Banco de horas · Julho</small><b>+05:30</b></div>
+      <div class="cardz"><b>Comunicado fixado</b><span>Recesso de julho: escala atualizada</span></div>
+    </div>
+    <div class="sheetov"><div class="sheet">
+      <h3>Mais</h3>
+      <div class="sh-row"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>Documentos</div>
+      <div class="sh-row"><span class="ic"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>Novidades</div>
+      <div class="sh-row"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg></span>Conta</div>
+    </div></div>
+    <div class="bn">
+      <button class="bn__it"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</button>
+      <button class="bn__it"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Ponto</button>
+      <button class="bn__it"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>Folha<span class="bn__dot">1</span></button>
+      <button class="bn__it"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Avisos</button>
+      <button class="bn__it on"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</button>
+    </div>
+  </div></div>
+  <div class="cap">Opção B: Folha ganha lugar fixo na barra, e Documentos, Novidades e Conta vão pra folha "Mais". Funciona, mas o "Mais" esconde coisas e a barra já nasce cheia.</div>
+</div>
+</div>
+
+</div></body></html>
