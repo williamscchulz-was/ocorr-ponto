@@ -3477,7 +3477,8 @@ function renderOccList() {
   }
 
   root.innerHTML = `<div class="list">${autoList.map(ocaDashCardHtml).join("")}${list.map(renderOccCard).join("")}</div>`;
-  // Só os cards manuais abrem detalhe; os automáticos (data-oca-card) agem pelos próprios botões.
+  // Cards manuais abrem detalhe aqui; os automáticos (data-oca-card) abrem o
+  // detalhe próprio pelo handler delegado global (openDetalheAutoModal).
   $$("#occ-list .occ:not([data-oca-card])").forEach((el) => {
     el.addEventListener("click", () => openOcorrenciaDetail(el.dataset.id));
   });
@@ -7589,14 +7590,7 @@ function openConferirAutoModal(id) {
   const bat = ocaFmtMarc(o.marcacoesApuradas || o.marcacoes);
   const saldo = (o.saldoDiario == null || o.saldoDiario === "") ? "" : String(o.saldoDiario);
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
-  const histRot = { validou: "GP validou e enviou ao líder", dispensou: "Dispensada", confirmou: "Conferência confirmada" };
-  const histHtml = `
-    <div class="oca-hist">
-      <div class="oca-hist__ln"><b>Detectada pela apuração do ponto</b><span>automático · ${escapeHtml(dataLbl)}</span></div>
-      ${(o.historico || []).map((h) => `
-        <div class="oca-hist__ln"><b>${escapeHtml(histRot[h.acao] || h.acao || "")}</b><span>${escapeHtml(h.porNome || "")}${h.emIso ? ` · ${escapeHtml(comData(h.emIso))}` : ""}</span></div>`).join("")}
-      <div class="oca-hist__ln oca-hist__ln--next"><b>Aguardando conferência do líder</b><span>próxima etapa</span></div>
-    </div>`;
+  const histHtml = ocaHistHtml(o, "Aguardando conferência do líder");
   openModal(`
     <div class="modal__header">
       <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>Aguardando conferência do líder</p></div>
@@ -7650,6 +7644,115 @@ function openConferirAutoModal(id) {
     else { // demo local
       const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
       if (oo) { oo.status = "confirmada"; oo.acao = extras.acaoId; oo.observacao = extras.observacao; oo.historico = [...(oo.historico || []), { acao: "confirmou", porNome: currentUser()?.nome || "", emIso: nowIso(), destino: extras.acaoLabel }]; }
+      renderApp();
+    }
+    closeModal();
+  });
+}
+
+// Timeline do histórico da automática (compartilhada: conferir + detalhe + dispensa).
+// Mostra o destino (ação escolhida pelo líder) e a obs/motivo de cada passo.
+function ocaHistHtml(o, proximaEtapa) {
+  const histRot = { validou: "GP validou e enviou ao líder", dispensou: "Dispensada", confirmou: "Conferência confirmada" };
+  const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
+  return `
+    <div class="oca-hist">
+      <div class="oca-hist__ln"><b>Detectada pela apuração do ponto</b><span>automático · ${escapeHtml(dataLbl)}</span></div>
+      ${(o.historico || []).map((h) => `
+        <div class="oca-hist__ln">
+          <b>${escapeHtml(histRot[h.acao] || h.acao || "")}${h.destino ? ` · ${escapeHtml(h.destino)}` : ""}</b>
+          <span>${escapeHtml(h.porNome || "")}${h.emIso ? ` · ${escapeHtml(comData(h.emIso))}` : ""}</span>
+          ${h.obs ? `<span class="oca-hist__obs">${escapeHtml(h.obs)}</span>` : ""}
+        </div>`).join("")}
+      ${proximaEtapa ? `<div class="oca-hist__ln oca-hist__ln--next"><b>${escapeHtml(proximaEtapa)}</b><span>próxima etapa</span></div>` : ""}
+    </div>`;
+}
+
+// Detalhe de QUALQUER ocorrência automática ao clicar no card (a manual sempre teve
+// essa tela; pedido do William 2026-07-02): pessoa, marcações, trilha completa com
+// motivo da dispensa e destino da conferência, mais as ações do estágio.
+function openDetalheAutoModal(id) {
+  const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+  if (!o) return;
+  const est = ocaEstagio(o);
+  if (est === "com_lider") return openConferirAutoModal(id); // a tela de agir JÁ É o detalhe
+  const t = ocaTipo(o.tipo);
+  const prev = ocaFmtMarc(o.marcacoesPrevistas);
+  const bat = ocaFmtMarc(o.marcacoesApuradas || o.marcacoes);
+  const saldo = (o.saldoDiario == null || o.saldoDiario === "") ? "" : String(o.saldoDiario);
+  const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
+  const sub = { rh_confere: "Aguardando conferência da GP", confirmada: "Conferência confirmada", dispensada: "Dispensada pela GP" }[est] || "";
+  const acoesHtml = est === "rh_confere"
+    ? `<button class="btn btn--ghost" id="oca-det-dispensar">${icon("x")}<span>Dispensar</span></button>
+       <button class="btn btn--primary" id="oca-det-validar">${icon("check")}<span>Confirmar</span></button>`
+    : `<button class="btn btn--ghost" data-close>Fechar</button>`;
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>${escapeHtml(sub)}</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="row" style="margin-bottom:16px; gap:12px;">
+        ${avatarFuncHtml({ id: o.funcionarioId, nome: o.nome }, "avatar avatar--lg")}
+        <div>
+          <div style="font-weight:600; color:var(--plum); font-size:16px;">${escapeHtml(o.nome || "—")}</div>
+          <div class="muted text-sm">${escapeHtml(ocaSetorTurno(o))}</div>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-cell"><label>Tipo</label><strong>${escapeHtml(t.label)}</strong></div>
+        <div class="detail-cell"><label>Previsto</label><strong>${escapeHtml(prev || "—")}</strong></div>
+        <div class="detail-cell"><label>Batido</label><strong>${escapeHtml(bat || "sem marcação")}</strong></div>
+        ${saldo ? `<div class="detail-cell"><label>Saldo do dia</label><strong>${escapeHtml(saldo)}</strong></div>` : ""}
+      </div>
+      ${ocaHistHtml(o, est === "rh_confere" ? "GP valida e envia ao líder, ou dispensa" : "")}
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">${acoesHtml}</div>
+    </div>`);
+  document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+  $("#oca-det-validar")?.addEventListener("click", (e) => {
+    e.currentTarget.disabled = true;
+    ocaAcaoUI("validar", id);
+    closeModal();
+  });
+  // Troca DIRETO pro modal do motivo (openModal substitui; nunca closeModal antes).
+  $("#oca-det-dispensar")?.addEventListener("click", () => openDispensarAutoModal(id));
+}
+
+// Dispensa COM motivo obrigatório (pedido do William 2026-07-02): o porquê fica na
+// trilha (historico.obs) e no doc (observacao), visível ao clicar na dispensada.
+function openDispensarAutoModal(id) {
+  const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+  if (!o) return;
+  const t = ocaTipo(o.tipo);
+  const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Dispensar ocorrência</h2><p>${escapeHtml(o.nome || "—")} · ${escapeHtml(t.label)} · ${escapeHtml(dataLbl)}</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <label for="oca-disp-motivo">Motivo da dispensa <span style="color:var(--danger)">*</span></label>
+        <textarea id="oca-disp-motivo" rows="3" placeholder="Explique por que esta ocorrência não segue pro líder..."></textarea>
+        <span class="field__hint">O motivo fica registrado na trilha e aparece ao clicar na ocorrência dispensada.</span>
+        <div class="ass-erro" id="oca-disp-erro" hidden>Escreva o motivo antes de dispensar.</div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+        <button class="btn btn--ghost" data-close>Cancelar</button>
+        <button class="btn btn--danger" id="oca-disp-btn">${icon("x")}<span>Dispensar</span></button>
+      </div>
+    </div>`);
+  document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+  $("#oca-disp-motivo")?.focus();
+  $("#oca-disp-btn")?.addEventListener("click", async (e) => {
+    const motivo = ($("#oca-disp-motivo")?.value || "").trim();
+    const erro = $("#oca-disp-erro");
+    if (!motivo) { if (erro) erro.hidden = false; $("#oca-disp-motivo")?.focus(); return; }
+    const btn = e.currentTarget; btn.disabled = true;
+    if (window.dispensarOcorrenciaAuto) await window.dispensarOcorrenciaAuto(id, { observacao: motivo });
+    else { // demo local
+      const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+      if (oo) { oo.status = "dispensada"; oo.observacao = motivo; oo.historico = [...(oo.historico || []), { acao: "dispensou", porNome: currentUser()?.nome || "GP", emIso: nowIso(), obs: motivo }]; }
       renderApp();
     }
     closeModal();
@@ -7816,11 +7919,14 @@ if (!window._ocaBound) {
     const v = e.target.closest("[data-oca-validar]");
     if (v) { e.preventDefault(); e.stopPropagation(); v.disabled = true; ocaAcaoUI("validar", v.dataset.ocaValidar); return; }
     const d = e.target.closest("[data-oca-dispensar]");
-    if (d) { e.preventDefault(); e.stopPropagation(); d.disabled = true; ocaAcaoUI("dispensar", d.dataset.ocaDispensar); return; }
+    if (d) { e.preventDefault(); e.stopPropagation(); openDispensarAutoModal(d.dataset.ocaDispensar); return; }
     const c = e.target.closest("[data-oca-confirmar]");
     if (c) { e.preventDefault(); e.stopPropagation(); openConferirAutoModal(c.dataset.ocaConfirmar); return; }
     const b = e.target.closest("[data-oca-conferir]");
-    if (b) { e.preventDefault(); b.disabled = true; ocaConferirUI(b.dataset.ocaConferir); }
+    if (b) { e.preventDefault(); b.disabled = true; ocaConferirUI(b.dataset.ocaConferir); return; }
+    // Card automático clicável (fora dos botões): abre o detalhe, igual à manual.
+    const card = e.target.closest("[data-oca-card]");
+    if (card && !e.target.closest("button, a")) openDetalheAutoModal(card.dataset.ocaId);
   });
 }
 
@@ -12255,7 +12361,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.22.1";
+window.CURRENT_VERSION = "1.22.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.22.1", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.22.2", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "feat", title: "Dispensar uma ocorrência automática agora pede o motivo (obrigatório). O porquê fica gravado na trilha." },
+      { type: "feat", title: "Toda ocorrência automática abre o detalhe ao clicar no card, igual à manual: pessoa, marcações e a trilha completa, com o motivo da dispensa e a destinação escolhida pelo líder." },
+    ],
+  },
+  {
+    v: "1.22.1", d: "2 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "As fotos dos colaboradores agora aparecem também no Portal do Gestor: espelho de ponto, conferência de ocorrências, perfil do funcionário, disciplinares e popup do banco de horas." },
     ],
   },

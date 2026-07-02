@@ -1253,7 +1253,8 @@
       }
     }
     window.validarOcorrenciaAuto   = (id) => _transicaoOca(id, "com_lider",  "validou",   "Enviada para o líder.");
-    window.dispensarOcorrenciaAuto = (id) => _transicaoOca(id, "dispensada", "dispensou", "Ocorrência dispensada.");
+    // extras.observacao = motivo da dispensa (obrigatório na UI; a regra já aceita observacao)
+    window.dispensarOcorrenciaAuto = (id, extras) => _transicaoOca(id, "dispensada", "dispensou", "Ocorrência dispensada.", extras);
     window.confirmarOcorrenciaAuto = (id, extras) => _transicaoOca(id, "confirmada", "confirmou", "Conferência confirmada.", extras);
 
     // config/aniversariantes (sem PII: nome/dia/mes). Leitura autenticada (rule config/{doc}).

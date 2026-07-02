@@ -40,7 +40,7 @@ before(async () => {
     // fluxo novo (turno 1). rh_confere com historico vazio (mutacao -> size 1);
     // com_lider com historico size 1 (mutacao -> size 2). 1 doc por teste (sem estado compartilhado).
     const h1 = [{ acao: "validou", por: "uRh", emIso: "2026-06-30T12:00:00Z" }];
-    for (const id of ["ocaRH", "ocaRHv", "ocaRHd", "ocaRHlv", "ocaRHld", "ocaRHc"]) {
+    for (const id of ["ocaRH", "ocaRHv", "ocaRHd", "ocaRHm", "ocaRHlv", "ocaRHld", "ocaRHc"]) {
       await setDoc(doc(db, "ocorrencias-auto/" + id), baseDoc({ status: "rh_confere", turno: 1 }));
     }
     await setDoc(doc(db, "ocorrencias-auto/ocaLD"),  baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
@@ -120,6 +120,9 @@ test("RH valida: rh_confere -> com_lider", async () =>
   assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHv"), { status: "com_lider", historico: histN(1) })));
 test("RH dispensa: rh_confere -> dispensada", async () =>
   assertSucceeds(updateDoc(doc(admin(), "ocorrencias-auto/ocaRHd"), { status: "dispensada", historico: histN(1) })));
+// Motivo da dispensa (obrigatório na UI): vai em observacao + historico, e a regra aceita
+test("RH dispensa COM motivo (observacao)", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHm"), { status: "dispensada", historico: histN(1), observacao: "Falta abonada por atestado entregue depois." })));
 
 // Lider confirma (turno dele) (com_lider historico size 1 -> mutacao size 2)
 test("Líder do turno confirma: com_lider -> confirmada", async () =>
