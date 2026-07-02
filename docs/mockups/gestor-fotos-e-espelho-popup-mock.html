@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Importar fotos do Drive + espelho no clique (mocks)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/styles.css">
+<link rel="stylesheet" href="../../public/portal-colaborador.css">
+<style>
+  body{background:#070A07;margin:0;padding:30px 18px 80px;font-family:Poppins,sans-serif;color:#EDF3EA}
+  .wrap{max-width:1200px;margin:0 auto}
+  .note{font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65;margin-bottom:26px}
+  .note b{color:#EDF3EA}
+  .capbig{font-size:12px;color:#EDF3EA;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid #1c241b}
+  .capbig span{color:#7F9E84;font-weight:600;text-transform:none;letter-spacing:0}
+  .row{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;justify-content:center}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin-top:9px;font-weight:600;max-width:480px}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .panel{width:540px;max-width:94vw;background:var(--surface);border-radius:16px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);overflow:hidden;color:var(--text-body);padding:18px 22px 22px;box-sizing:border-box}
+  .panel h2{margin:0 0 3px;font-size:18px;color:var(--plum-deep)}
+  .panel .psub{font-size:12.5px;color:var(--text-muted);margin:0 0 16px;line-height:1.5}
+  .sumbar{display:flex;gap:10px;margin-bottom:14px}
+  .sum{flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 13px;background:var(--milk-warm)}
+  .sum b{display:block;font-size:20px;font-weight:800;line-height:1;color:var(--text-body)}
+  .sum span{font-size:11px;color:var(--text-muted)}
+  .sum--ok b{color:var(--plum)} .sum--warn b{color:#96631a} .sum--mut b{color:var(--text-muted)}
+  .frow{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:9px}
+  .frow--warn{background:rgba(224,163,58,.07);border-color:rgba(224,163,58,.35)}
+  .frow--skip{opacity:.55}
+  .fava{width:46px;height:46px;border-radius:50%;background-size:cover;background-position:center;flex:none;background-color:#0B7A36;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+  .fbd{flex:1;min-width:0}
+  .fbd b{font-size:13.5px;display:block}
+  .fbd span{font-size:11.5px;color:var(--text-muted)}
+  .ftag{font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .ftag--ok{background:rgba(0,136,53,.12);color:var(--plum)}
+  .ftag--skip{background:var(--milk-warm);color:var(--text-muted)}
+  .miniinp{border:1px solid var(--border);border-radius:8px;padding:7px 9px;font:inherit;font-size:12px;background:var(--surface);color:var(--text-body);margin-top:6px;width:100%;box-sizing:border-box}
+  .btns{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+  .btn2{border:0;border-radius:10px;padding:11px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .btn2--g{background:var(--plum);color:#fff}
+  .btn2--ghost{background:none;border:1px solid var(--border);color:var(--text-body)}
+  .gsync{display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px 10px;text-align:center}
+  .gsync .ic{width:56px;height:56px;border-radius:50%;background:rgba(0,136,53,.1);color:var(--plum);display:flex;align-items:center;justify-content:center}
+  .gsync .ic svg{width:26px;height:26px}
+  .gsync b{font-size:15px}
+  .gsync span{font-size:12.5px;color:var(--text-muted);line-height:1.55;max-width:380px}
+  /* espelho popup */
+  .esp-pop{width:560px;max-width:94vw;background:var(--surface);border-radius:16px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);color:var(--text-body);overflow:hidden}
+  .esp-pop__h{display:flex;align-items:center;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+  .esp-pop__h .fava{width:42px;height:42px}
+  .esp-pop__h b{font-size:15px;display:block}
+  .esp-pop__h span{font-size:11.5px;color:var(--text-muted)}
+  .esp-pop__saldo{margin-left:auto;text-align:right}
+  .esp-pop__saldo b{font-size:20px;color:var(--plum)}
+  .esp-pop__saldo span{font-size:10.5px}
+  .esp-pop__body{max-height:380px;overflow-y:auto;padding:12px 20px}
+  .esp-lbl{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 8px}
+  .dia{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border)}
+  .dia:first-of-type{border-top:0}
+  .dia__d{width:36px;text-align:center;flex:none}
+  .dia__d b{display:block;font-size:14px}
+  .dia__d span{font-size:9.5px;color:var(--text-muted);text-transform:lowercase}
+  .dia__m{flex:1;font-size:12.5px;color:var(--text-body)}
+  .dia__m--off{color:var(--text-muted);font-style:italic}
+  .dia__s{font-size:12px;font-weight:700}
+  .dia__s--pos{color:var(--plum)} .dia__s--neg{color:var(--danger)} .dia__s--zero{color:var(--text-muted)}
+  .esp-pop__foot{display:flex;justify-content:flex-end;gap:10px;padding:12px 20px;border-top:1px solid var(--border)}
+  .bhrow{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:8px;cursor:pointer;background:var(--surface);transition:box-shadow .15s}
+  .bhrow:hover{box-shadow:0 4px 14px -8px rgba(16,48,28,.3)}
+  .bhrow b{font-size:14px;display:block}
+  .bhrow span{font-size:11px;color:var(--text-muted)}
+  .bhrow .saldo{font-size:15px;font-weight:800;color:var(--plum)}
+</style></head>
+<body><div class="wrap">
+
+<div class="note">
+  <b>Dois mocks num pacote.</b> (1) <b>Importar fotos do Drive</b>: o GP conecta o Drive uma vez (mesma autorização que já usa nos contratos, com permissão de leitura adicional), o sistema lista a tua pasta de fotos, casa cada arquivo com o funcionário (por código ou nome no nome do arquivo) e mostra a conferência ANTES de importar. Regra de ouro: <b>só preenche quem NÃO tem foto</b> — se o funcionário já trocou a dele, ninguém mexe. Reimportar depois só pega os novos. (2) <b>Espelho no clique</b> (tua ideia no Banco de Horas): clicar no funcionário abre um popup com o espelho do mês vigente, sem sair da tela.
+</div>
+
+<div class="capbig">Mock 1 · Importar fotos <span>passo 1: conectar</span></div>
+<div class="row">
+<div class="col"><div class="panel">
+  <h2>Importar fotos do Drive</h2>
+  <p class="psub">As fotos oficiais ficam numa pasta do Drive. O sistema preenche a foto de quem ainda não tem.</p>
+  <div class="gsync">
+    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></svg></span>
+    <b>Conectar ao Drive</b>
+    <span>Mesma autorização dos contratos, com leitura da pasta de fotos. O Google vai pedir a permissão uma vez.</span>
+    <button class="btn2 btn2--g" style="margin-top:6px">Conectar e buscar as fotos</button>
+  </div>
+</div>
+<div class="cap">Entrada: Configurações → Usuários (botão "Importar fotos"). Um clique, o OAuth que o GP já conhece.</div>
+</div>
+
+<div class="col"><div class="panel">
+  <h2>Conferência das fotos</h2>
+  <p class="psub">94 arquivos na pasta · casados por código ou nome do arquivo</p>
+  <div class="sumbar">
+    <div class="sum sum--ok"><b>86</b><span>vão importar</span></div>
+    <div class="sum sum--warn"><b>3</b><span>a resolver</span></div>
+    <div class="sum sum--mut"><b>5</b><span>já têm foto (não mexe)</span></div>
+  </div>
+  <div class="frow">
+    <div class="fava" style="background-image:url('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80')"></div>
+    <div class="fbd"><b>Acira Maria Inacio</b><span>arquivo: 626.jpg · casou pelo código</span></div>
+    <span class="ftag ftag--ok">vai importar</span>
+  </div>
+  <div class="frow">
+    <div class="fava" style="background-image:url('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80')"></div>
+    <div class="fbd"><b>Alan Carlos Santos Bastos</b><span>arquivo: alan carlos santos bastos.jpg · casou pelo nome</span></div>
+    <span class="ftag ftag--ok">vai importar</span>
+  </div>
+  <div class="frow frow--warn">
+    <div class="fava" style="background-image:url('https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80')"></div>
+    <div class="fbd"><b>Quem é?</b><span>arquivo: IMG_4032.jpg · não casou com ninguém</span>
+      <select class="miniinp"><option>Buscar por nome ou código...</option><option>Ignorar este arquivo</option></select>
+    </div>
+  </div>
+  <div class="frow frow--skip">
+    <div class="fava">PA</div>
+    <div class="fbd"><b>Pedro Alves</b><span>já tem foto (ele mesmo colocou) · não mexe</span></div>
+    <span class="ftag ftag--skip">pulado</span>
+  </div>
+  <div class="btns"><button class="btn2 btn2--ghost">Cancelar</button><button class="btn2 btn2--g">Importar 86 fotos</button></div>
+</div>
+<div class="cap">O mesmo padrão da conferência de recibos: vê ANTES de gravar, resolve os órfãos na mão, e quem já tem foto é intocável. Importa com a barra de progresso e os nomes desfilando.</div>
+</div>
+</div>
+
+<div class="capbig">Mock 2 · Banco de Horas <span>clicar no funcionário abre o espelho do mês</span></div>
+<div class="row">
+<div class="col"><div class="panel" style="width:500px">
+  <h2>Banco de Horas</h2>
+  <p class="psub">A lista de hoje, agora clicável</p>
+  <div class="bhrow"><div><b>David Ramalho Simao</b><span>EXPEDIDOR DE MATERIAIS · EXPEDIÇÃO</span></div><span class="saldo">+0h12</span></div>
+  <div class="bhrow" style="outline:2px solid var(--plum);outline-offset:2px"><div><b>Djoniffer Krieck Goncalves</b><span>LIDER DE TURNO · ADMINISTRAÇÃO PRODUÇÃO</span></div><span class="saldo">+0h29</span></div>
+  <div class="bhrow"><div><b>Dioneia Cristine Ramos</b><span>OPERADOR DE MÁQUINA I · PREPARAÇÃO</span></div><span class="saldo" style="color:var(--text-muted)">0h00</span></div>
+</div>
+<div class="cap">Clicou na linha (destaque verde), abre o popup ao lado. Sem navegar, sem perder a rolagem da lista.</div>
+</div>
+
+<div class="col"><div class="esp-pop">
+  <div class="esp-pop__h">
+    <div class="fava">DK</div>
+    <div><b>Djoniffer Krieck Goncalves</b><span>LIDER DE TURNO · 1º turno</span></div>
+    <div class="esp-pop__saldo"><b>+0h29</b><span>saldo atual</span></div>
+  </div>
+  <div class="esp-pop__body">
+    <div class="esp-lbl">Espelho de ponto · Julho de 2026</div>
+    <div class="dia"><div class="dia__d"><b>02</b><span>qui</span></div><div class="dia__m">07:30</div><div class="dia__s dia__s--pos">+0h29</div></div>
+    <div class="dia"><div class="dia__d"><b>01</b><span>qua</span></div><div class="dia__m">07:28 · 12:00 · 13:06 · 17:31</div><div class="dia__s dia__s--pos">+0h21</div></div>
+    <div class="esp-lbl" style="margin-top:14px">Junho de 2026</div>
+    <div class="dia"><div class="dia__d"><b>30</b><span>ter</span></div><div class="dia__m">07:32 · 12:00 · 13:08 · 17:30</div><div class="dia__s dia__s--zero">0h00</div></div>
+    <div class="dia"><div class="dia__d"><b>29</b><span>seg</span></div><div class="dia__m dia__m--off">Folga</div><div class="dia__s dia__s--zero"></div></div>
+    <div class="dia"><div class="dia__d"><b>28</b><span>dom</span></div><div class="dia__m dia__m--off">Folga</div><div class="dia__s dia__s--zero"></div></div>
+    <div class="dia"><div class="dia__d"><b>27</b><span>sáb</span></div><div class="dia__m">07:25 · 11:32</div><div class="dia__s dia__s--neg">-0h08</div></div>
+  </div>
+  <div class="esp-pop__foot">
+    <button class="btn2 btn2--ghost">Fechar</button>
+    <button class="btn2 btn2--g">Abrir no Espelho de ponto</button>
+  </div>
+</div>
+<div class="cap">O popup reusa o espelho que já existe (mês vigente + anterior, mesma fonte de dados). "Abrir no Espelho de ponto" leva pra aba completa com a pessoa já selecionada.</div>
+</div>
+</div>
+
+</div></body></html>
