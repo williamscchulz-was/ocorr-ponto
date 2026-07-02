@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Visão geral do gestor (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== Fundacao FioPulse (copiada de public/styles.css, mock auto-contido) ===== */
+  :root{
+    --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+    --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+    --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text-body:#1E2D1A; --text-muted:#4A6245;
+    --success:#2F6B3F; --success-bg:#E0EAD8;
+    --warning:#B27429; --warning-bg:#F8E4C8; --warning-ink:#7A4A12;
+    --danger:#962F32; --danger-bg:#F4D6D2;
+    --info:#2F5A6B; --info-bg:#D8E6EA;
+    --radius-sm:8px; --radius:12px;
+    --transition:180ms cubic-bezier(.4,0,.2,1);
+    --row-hover:#FAFCF9;
+    /* cores do grafico de tendencia (tons suaves sobre o tema milk) */
+    --c-falta:#D67D74; --c-atraso:#E7B054; --c-saida:#7FA9CC;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Poppins,ui-sans-serif,system-ui,sans-serif;background:#070A07;margin:0;padding:30px 18px 80px;color:#EDF3EA}
+  .note{max-width:1100px;margin:0 auto 24px;font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65}
+  .note b{color:#EDF3EA}
+  .cap{max-width:1100px;margin:12px auto 0;text-align:center;font-size:11.5px;color:#8A9884;font-weight:600}
+
+  /* Moldura simulando a area de conteudo do Portal do Gestor (sidebar omitida) */
+  .screen{max-width:1100px;margin:0 auto;background:var(--bg);border-radius:18px;padding:28px 30px 26px;color:var(--text-body);box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
+
+  /* ===== Cabecalho da pagina ===== */
+  .page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  .page-header h1{font-size:21px;letter-spacing:-.02em;margin:0;color:var(--text-body);font-weight:700}
+  .page-header p{margin:2px 0 0;color:var(--text-muted);font-size:12.5px}
+  .upd{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:6px 13px;white-space:nowrap}
+  .upd svg{width:12px;height:12px;opacity:.8}
+
+  /* ===== Fila de KPIs ===== */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 17px 14px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .kpi__label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+  .kpi__label svg{width:15px;height:15px;opacity:.6;flex:none}
+  .kpi__value{font-size:30px;font-weight:800;color:var(--text-body);letter-spacing:-.02em;line-height:1.05;margin-top:8px;font-variant-numeric:tabular-nums}
+  .kpi__hint{font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.45}
+  .kpi--alert::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--warning)}
+  .kpi--alert .kpi__value{color:var(--warning-ink)}
+  .kpi--accent .kpi__value{color:var(--plum)}
+  .btn-mini{margin-top:10px;align-self:flex-start;display:inline-flex;align-items:center;gap:6px;border:0;background:var(--plum);color:#fff;font:inherit;font-size:11.5px;font-weight:600;padding:7px 13px;border-radius:8px;cursor:pointer;transition:var(--transition)}
+  .btn-mini:hover{background:var(--plum-deep)}
+  .btn-mini svg{width:12px;height:12px}
+
+  /* ===== Cards genericos ===== */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+  .card__h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px 18px 12px;border-bottom:1px solid var(--border)}
+  .card__h h2{margin:0;font-size:14px;font-weight:700;color:var(--text-body);letter-spacing:-.01em}
+  .card__h p{margin:2px 0 0;font-size:11.5px;color:var(--text-muted)}
+  .card__tag{font-size:10.5px;font-weight:700;color:var(--text-muted);background:var(--surface-warm);border-radius:999px;padding:4px 10px;white-space:nowrap;flex:none;margin-top:2px}
+  .card__tag--amber{background:var(--warning-bg);color:var(--warning-ink)}
+  .card__foot{padding:10px 18px;font-size:10.5px;color:var(--text-muted);border-top:1px solid var(--border);opacity:.9}
+
+  .row-main{display:grid;grid-template-columns:5fr 7fr;gap:14px;margin-bottom:14px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+
+  /* ===== Precisa de voce (pendencias acionaveis) ===== */
+  .pend{display:flex;align-items:center;gap:13px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--border);padding:13px 18px;font:inherit;color:var(--text-body);cursor:pointer;transition:var(--transition)}
+  .pend:last-of-type{border-bottom:0}
+  .pend:hover{background:var(--row-hover)}
+  .pend:hover .pend__chev{transform:translateX(3px);color:var(--plum-soft)}
+  .pend__ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
+  .pend__ic svg{width:16px;height:16px}
+  .pend__bd{flex:1;min-width:0}
+  .pend__bd b{display:block;font-size:13px;font-weight:600;line-height:1.35}
+  .pend__bd > span{display:block;font-size:11.5px;color:var(--text-muted);margin-top:1px}
+  .pend__n{font-size:13px;font-weight:700;min-width:30px;height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;flex:none}
+  .pend__chev{width:16px;height:16px;color:#b9c6b1;flex:none;transition:var(--transition)}
+  .t-amber{background:rgba(178,116,41,.12);color:var(--warning)}
+  .t-red{background:rgba(150,47,50,.10);color:var(--danger)}
+  .t-green{background:rgba(0,136,53,.10);color:var(--plum)}
+  .t-blue{background:rgba(0,118,190,.10);color:var(--fiobras-blue)}
+  .n-amber{background:var(--warning-bg);color:var(--warning-ink)}
+  .n-red{background:var(--danger-bg);color:var(--danger)}
+  .n-green{background:var(--success-bg);color:var(--plum-deep)}
+  .n-blue{background:var(--info-bg);color:var(--info)}
+  .pmini{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .pmini .track{flex:1;max-width:170px;height:5px;border-radius:999px;background:var(--milk-warm);overflow:hidden}
+  .pmini .track i{display:block;height:100%;width:0;background:var(--plum);border-radius:999px;transition:width .9s cubic-bezier(.4,0,.2,1)}
+  .pmini em{font-style:normal;font-size:10.5px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* ===== Grafico de tendencia ===== */
+  .legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:3px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text-muted);white-space:nowrap}
+  .legend i{width:9px;height:9px;border-radius:3px;display:inline-block}
+  .chwrap{position:relative;padding:12px 14px 6px;flex:1;display:flex;align-items:center}
+  .csvg{display:block;width:100%;height:auto}
+  .csvg text{font-family:inherit}
+  .seg,.tot{transition:opacity var(--transition)}
+  .csvg.hovering .cslot:not(.on) .seg{opacity:.3}
+  .csvg.hovering .cslot:not(.on) .tot{opacity:.25}
+  .cslot .hov{fill:transparent}
+  .cslot{cursor:default}
+  .tip{position:absolute;left:0;top:0;pointer-events:none;background:#22301E;color:#fff;border-radius:10px;padding:9px 12px;font-size:11.5px;line-height:1.55;opacity:0;transform:translate(-50%,calc(-100% - 10px));transition:opacity 120ms ease;white-space:nowrap;box-shadow:0 12px 30px rgba(0,0,0,.28);z-index:5}
+  .tip b{display:block;font-size:12px;margin-bottom:3px}
+  .tip .trow{display:flex;align-items:center;gap:7px}
+  .tip .trow i{width:8px;height:8px;border-radius:2.5px;flex:none}
+  .tip .ttotal{margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.18);font-weight:600}
+  .tip .tobs{color:#C8D6C2;font-size:10.5px}
+
+  /* ===== Pessoas: aniversariantes e admissoes ===== */
+  .aniv{display:flex;align-items:center;gap:11px;padding:9px 18px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}
+  .aniv:last-of-type{border-bottom:0}
+  .aniv__av{width:30px;height:30px;border-radius:50%;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:600;flex:none;letter-spacing:.02em}
+  .aniv__av--blue{background:linear-gradient(150deg,#3E96CE,#0076BE)}
+  .aniv > b{font-size:13px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .aniv .dia{font-size:11.5px;font-weight:600;color:var(--text-muted);flex:none}
+  .aniv--prox{background:rgba(0,136,53,.06)}
+  .prox-pill{font-size:10px;font-weight:700;color:var(--plum-deep);background:var(--success-bg);border-radius:999px;padding:3px 9px;flex:none}
+  .aniv.extra{display:none}
+  .card.aberto .aniv.extra{display:flex}
+  .toggle-all{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px 18px;border:0;border-top:1px solid var(--border);background:none;font:inherit;font-size:12px;font-weight:700;color:var(--plum);cursor:pointer;transition:var(--transition)}
+  .toggle-all:hover{background:var(--row-hover)}
+  .toggle-all svg{width:13px;height:13px;transition:var(--transition)}
+  .card.aberto .toggle-all svg{transform:rotate(180deg)}
+  .adm__bd{flex:1;min-width:0}
+  .adm__bd b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .adm__bd span{display:block;font-size:11px;color:var(--text-muted);margin-top:1px}
+  .adm__pill{font-size:10.5px;font-weight:600;color:var(--text-muted);background:var(--surface-warm);border-radius:999px;padding:4px 10px;flex:none;white-space:nowrap}
+
+  /* ===== Estrutura: demografia e ranking ===== */
+  .demo-body{padding:13px 18px 15px}
+  .dbar{display:grid;grid-template-columns:104px 1fr 28px;align-items:center;gap:10px;padding:6px 0}
+  .dbar label{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--text-muted)}
+  .dbar .track{height:10px;border-radius:999px;background:var(--milk-warm);overflow:hidden}
+  .dbar .track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#1AA34F,#0B7A36);width:0;transition:width .9s cubic-bezier(.4,0,.2,1)}
+  .dbar b{font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .demo-turnos{margin-top:13px;padding-top:12px;border-top:1px solid var(--border)}
+  .demo-turnos .mini{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+  .tpills{display:flex;gap:8px;flex-wrap:wrap}
+  .tpill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface-warm);border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;color:var(--text-muted)}
+  .tpill b{color:var(--text-body);font-weight:700;font-variant-numeric:tabular-nums}
+  .demo-note{font-size:10.5px;color:var(--text-muted);margin-top:10px;opacity:.85}
+  .rk{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border)}
+  .rk:last-of-type{border-bottom:0}
+  .rk__pos{width:26px;height:26px;border-radius:50%;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;background:var(--milk-warm);color:var(--text-muted);border:1px solid var(--border)}
+  .rk__pos--1{background:#F9EFCB;border-color:#EBDCA2;color:#8A6A14}
+  .rk__pos--2{background:#EFF1F3;border-color:#DCE1E5;color:#5A6570}
+  .rk__pos--3{background:#F5E7DA;border-color:#E7D0BA;color:#8A5A2E}
+  .rk__bd{flex:1;min-width:0}
+  .rk__bd b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rk__bd span{display:block;font-size:11px;color:var(--text-muted)}
+  .rk__anos{text-align:right;flex:none}
+  .rk__anos b{display:block;font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums}
+  .rk__anos span{font-size:10.5px;color:var(--text-muted)}
+
+  /* ===== Atividade recente (mesma anatomia da Auditoria) ===== */
+  .ev{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border);transition:var(--transition)}
+  .ev:hover{background:var(--row-hover)}
+  .ev__badge{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none}
+  .ev__badge svg{width:15px;height:15px}
+  .ev__bd{flex:1;min-width:0}
+  .ev__bd b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ev__bd span{display:block;font-size:11.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ev__hora{font-size:12px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;flex:none}
+  .b-login{background:rgba(0,118,190,.10);color:var(--fiobras-blue)}
+  .b-leitura{background:rgba(90,104,88,.12);color:#5A6858}
+  .b-assinatura{background:rgba(0,136,53,.10);color:var(--plum)}
+  .b-conferencia{background:rgba(178,116,41,.12);color:var(--warning)}
+  .b-alteracao{background:rgba(110,75,184,.10);color:#6E4BB8}
+  .linkall{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px 18px;font-size:12.5px;font-weight:700;color:var(--plum);text-decoration:none;border-top:1px solid var(--border);transition:var(--transition)}
+  .linkall:hover{background:var(--row-hover)}
+  .linkall svg{width:14px;height:14px;transition:var(--transition)}
+  .linkall:hover svg{transform:translateX(3px)}
+
+  @media (max-width:980px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .row-main,.grid-2{grid-template-columns:1fr}
+  }
+  @media (max-width:640px){
+    .screen{padding:18px 14px}
+    .kpis{grid-template-columns:1fr 1fr}
+  }
+</style></head>
+<body>
+
+<div class="note"><b>Mockup FioPulse · Visão geral (Portal do Gestor, desktop).</b> Aba nova de resumo executivo, primeiro item do menu do gestor: os widgets que hoje moram na página de Ocorrências (KPIs, aniversariantes, demografia, ranking de tempo de casa) mudam pra cá e ganham companhia: pendências acionáveis, tendência de 6 meses e atividade recente. <b>Passe o mouse nas barras do gráfico</b> pra ver o detalhe de cada mês e clique em <b>Mostrar todos</b> nos aniversariantes. Sidebar omitida de propósito, o mock mostra só o miolo da página.</div>
+
+<div class="screen">
+
+  <header class="page-header">
+    <div>
+      <h1>Visão geral</h1>
+      <p>O pulso da empresa num olhar.</p>
+    </div>
+    <span class="upd">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Atualizado às 15:40
+    </span>
+  </header>
+
+  <!-- ===== 1. Fila de KPIs ===== -->
+  <div class="kpis">
+    <div class="kpi kpi--alert">
+      <div class="kpi__label"><span>Ocorrências a conferir</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div class="kpi__value">2</div>
+      <div class="kpi__hint">1 automática · 1 manual</div>
+      <button type="button" class="btn-mini">Conferir agora<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+    </div>
+    <div class="kpi kpi--accent">
+      <div class="kpi__label"><span>Colaboradores ativos</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="kpi__value">98</div>
+      <div class="kpi__hint">91 na fábrica · 7 em adm e geral</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label"><span>Saldo médio de horas</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="kpi__value">0h00</div>
+      <div class="kpi__hint">banco de horas · julho de 2026</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__label"><span>Resolvidas no mês</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <div class="kpi__value">100</div>
+      <div class="kpi__hint">ocorrências fechadas nos últimos 30 dias</div>
+    </div>
+  </div>
+
+  <!-- ===== 2. Precisa de voce + tendencia ===== -->
+  <div class="row-main">
+
+    <section class="card">
+      <div class="card__h">
+        <div>
+          <h2>Precisa de você</h2>
+          <p>O que destrava o trabalho dos outros.</p>
+        </div>
+        <span class="card__tag card__tag--amber">21 itens</span>
+      </div>
+
+      <button type="button" class="pend">
+        <span class="pend__ic t-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+        <span class="pend__bd"><b>Ocorrências aguardando a GP</b><span>vindas da conferência automática do ponto</span></span>
+        <span class="pend__n n-amber">2</span>
+        <svg class="pend__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+
+      <button type="button" class="pend">
+        <span class="pend__ic t-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <span class="pend__bd"><b>Ocorrência com o líder há 3 dias</b><span>atraso de 28/06 · Márcia, 1º turno</span></span>
+        <span class="pend__n n-red">1</span>
+        <svg class="pend__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+
+      <button type="button" class="pend">
+        <span class="pend__ic t-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+        <span class="pend__bd">
+          <b>Recibos de junho sem assinatura</b>
+          <span class="pmini"><span class="track"><i data-w="78"></i></span><em>61 de 78 assinaram</em></span>
+        </span>
+        <span class="pend__n n-green">17</span>
+        <svg class="pend__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+
+      <button type="button" class="pend">
+        <span class="pend__ic t-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span class="pend__bd"><b>Funcionário sem turno definido</b><span>Marcos Vinicius · EXPEDIÇÃO</span></span>
+        <span class="pend__n n-blue">1</span>
+        <svg class="pend__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </section>
+
+    <!-- ===== 3. Tendencia de ocorrencias ===== -->
+    <section class="card">
+      <div class="card__h">
+        <div>
+          <h2>Tendência de ocorrências</h2>
+          <p>245 no semestre · julho parcial</p>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--c-falta)"></i>Falta</span>
+          <span><i style="background:var(--c-atraso)"></i>Atraso</span>
+          <span><i style="background:var(--c-saida)"></i>Saída antecipada</span>
+        </div>
+      </div>
+      <div class="chwrap" id="chwrap">
+        <svg id="csvg" class="csvg" viewBox="0 0 660 250" xmlns="http://www.w3.org/2000/svg" aria-label="Ocorrências por mês, empilhadas por tipo, de fevereiro a julho de 2026">
+          <line x1="44" y1="14"    x2="640" y2="14"    stroke="#E7EDE4"/>
+          <line x1="44" y1="78.7"  x2="640" y2="78.7"  stroke="#E7EDE4"/>
+          <line x1="44" y1="143.3" x2="640" y2="143.3" stroke="#E7EDE4"/>
+          <line x1="44" y1="208"   x2="640" y2="208"   stroke="#D8E2D3"/>
+          <text x="36" y="211"   text-anchor="end" font-size="10" fill="#4A6245" opacity=".7">0</text>
+          <text x="36" y="146.3" text-anchor="end" font-size="10" fill="#4A6245" opacity=".7">20</text>
+          <text x="36" y="81.7"  text-anchor="end" font-size="10" fill="#4A6245" opacity=".7">40</text>
+          <text x="36" y="17"    text-anchor="end" font-size="10" fill="#4A6245" opacity=".7">60</text>
+
+          <g class="cslot" data-mes="Fevereiro" data-falta="14" data-atraso="22" data-saida="8" data-total="44" data-cx="94" data-top="65.7">
+            <rect class="hov" x="57" y="10" width="74" height="212"/>
+            <rect class="seg" x="71" y="162.7" width="46" height="45.3" fill="var(--c-falta)"/>
+            <rect class="seg" x="71" y="91.6"  width="46" height="71.1" fill="var(--c-atraso)"/>
+            <rect class="seg" x="71" y="65.7"  width="46" height="25.9" fill="var(--c-saida)"/>
+            <text class="tot" x="94" y="57.7" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4A6245">44</text>
+            <text x="94" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#4A6245">fev</text>
+          </g>
+          <g class="cslot" data-mes="Março" data-falta="18" data-atraso="25" data-saida="9" data-total="52" data-cx="193" data-top="39.9">
+            <rect class="hov" x="156" y="10" width="74" height="212"/>
+            <rect class="seg" x="170" y="149.8" width="46" height="58.2" fill="var(--c-falta)"/>
+            <rect class="seg" x="170" y="69.0"  width="46" height="80.8" fill="var(--c-atraso)"/>
+            <rect class="seg" x="170" y="39.9"  width="46" height="29.1" fill="var(--c-saida)"/>
+            <text class="tot" x="193" y="31.9" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4A6245">52</text>
+            <text x="193" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#4A6245">mar</text>
+          </g>
+          <g class="cslot" data-mes="Abril" data-falta="12" data-atraso="19" data-saida="7" data-total="38" data-cx="292" data-top="85.2">
+            <rect class="hov" x="255" y="10" width="74" height="212"/>
+            <rect class="seg" x="269" y="169.2" width="46" height="38.8" fill="var(--c-falta)"/>
+            <rect class="seg" x="269" y="107.8" width="46" height="61.4" fill="var(--c-atraso)"/>
+            <rect class="seg" x="269" y="85.2"  width="46" height="22.6" fill="var(--c-saida)"/>
+            <text class="tot" x="292" y="77.2" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4A6245">38</text>
+            <text x="292" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#4A6245">abr</text>
+          </g>
+          <g class="cslot" data-mes="Maio" data-falta="16" data-atraso="28" data-saida="12" data-total="56" data-cx="392" data-top="27.0">
+            <rect class="hov" x="355" y="10" width="74" height="212"/>
+            <rect class="seg" x="369" y="156.3" width="46" height="51.7" fill="var(--c-falta)"/>
+            <rect class="seg" x="369" y="65.8"  width="46" height="90.5" fill="var(--c-atraso)"/>
+            <rect class="seg" x="369" y="27.0"  width="46" height="38.8" fill="var(--c-saida)"/>
+            <text class="tot" x="392" y="19.0" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4A6245">56</text>
+            <text x="392" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#4A6245">mai</text>
+          </g>
+          <g class="cslot" data-mes="Junho" data-falta="11" data-atraso="21" data-saida="10" data-total="42" data-cx="491" data-top="72.2">
+            <rect class="hov" x="454" y="10" width="74" height="212"/>
+            <rect class="seg" x="468" y="172.4" width="46" height="35.6" fill="var(--c-falta)"/>
+            <rect class="seg" x="468" y="104.5" width="46" height="67.9" fill="var(--c-atraso)"/>
+            <rect class="seg" x="468" y="72.2"  width="46" height="32.3" fill="var(--c-saida)"/>
+            <text class="tot" x="491" y="64.2" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4A6245">42</text>
+            <text x="491" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#4A6245">jun</text>
+          </g>
+          <g class="cslot" data-mes="Julho" data-falta="3" data-atraso="8" data-saida="2" data-total="13" data-cx="590" data-top="165.9" data-obs="parcial, até 2 de julho">
+            <rect class="hov" x="553" y="10" width="74" height="212"/>
+            <rect class="seg" x="567" y="198.3" width="46" height="9.7"  fill="var(--c-falta)"/>
+            <rect class="seg" x="567" y="172.4" width="46" height="25.9" fill="var(--c-atraso)"/>
+            <rect class="seg" x="567" y="165.9" width="46" height="6.5"  fill="var(--c-saida)"/>
+            <text class="tot" x="590" y="157.9" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4A6245">13</text>
+            <text x="590" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#4A6245">jul</text>
+            <text x="590" y="240" text-anchor="middle" font-size="9" fill="#4A6245" opacity=".7">parcial</text>
+          </g>
+        </svg>
+        <div class="tip" id="tip"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== 4. Pessoas ===== -->
+  <div class="grid-2">
+
+    <section class="card" id="card-aniv">
+      <div class="card__h">
+        <div>
+          <h2>Aniversariantes de julho</h2>
+          <p>Próximo: Patrick, dia 05.</p>
+        </div>
+        <span class="card__tag">9 pessoas</span>
+      </div>
+      <div class="aniv aniv--prox"><span class="aniv__av">PW</span><b>Patrick Willrich</b><span class="prox-pill">em 3 dias</span><span class="dia">dia 05</span></div>
+      <div class="aniv"><span class="aniv__av">KF</span><b>Klebson Ferreira</b><span class="dia">dia 07</span></div>
+      <div class="aniv"><span class="aniv__av">DS</span><b>Daiane Schmitt</b><span class="dia">dia 08</span></div>
+      <div class="aniv"><span class="aniv__av">EC</span><b>Edna Carvalho</b><span class="dia">dia 12</span></div>
+      <div class="aniv"><span class="aniv__av">KB</span><b>Katiana Borges</b><span class="dia">dia 13</span></div>
+      <div class="aniv extra"><span class="aniv__av">JD</span><b>Jhenyffer Duarte</b><span class="dia">dia 17</span></div>
+      <div class="aniv extra"><span class="aniv__av">JR</span><b>Josielem Ramos</b><span class="dia">dia 17</span></div>
+      <div class="aniv extra"><span class="aniv__av">TK</span><b>Talya Krueger</b><span class="dia">dia 21</span></div>
+      <div class="aniv extra"><span class="aniv__av">ES</span><b>Eliziane Souza</b><span class="dia">dia 31</span></div>
+      <button type="button" class="toggle-all" id="toggle-aniv">
+        <span id="toggle-aniv-txt">Mostrar todos os 9</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </section>
+
+    <section class="card">
+      <div class="card__h">
+        <div>
+          <h2>Admissões recentes</h2>
+          <p>Quem acabou de chegar.</p>
+        </div>
+        <span class="card__tag">3 pessoas</span>
+      </div>
+      <div class="aniv"><span class="aniv__av aniv__av--blue">GS</span><span class="adm__bd"><b>Gabriel Steinbach</b><span>TECELAGEM · 2º turno</span></span><span class="adm__pill">chegou há 12 dias</span></div>
+      <div class="aniv"><span class="aniv__av aniv__av--blue">LW</span><span class="adm__bd"><b>Larissa Wehmuth</b><span>ACABAMENTO · 1º turno</span></span><span class="adm__pill">chegou há 26 dias</span></div>
+      <div class="aniv"><span class="aniv__av aniv__av--blue">RC</span><span class="adm__bd"><b>Rodrigo Campos</b><span>PREPARAÇÃO · 3º turno</span></span><span class="adm__pill">chegou há 41 dias</span></div>
+      <div class="card__foot">Chegadas puxadas automaticamente do cadastro da GP.</div>
+    </section>
+  </div>
+
+  <!-- ===== 5. Estrutura ===== -->
+  <div class="grid-2">
+
+    <section class="card">
+      <div class="card__h">
+        <div>
+          <h2>Demografia da empresa</h2>
+          <p>Colaboradores por setor e turno.</p>
+        </div>
+        <span class="card__tag">91 na fábrica</span>
+      </div>
+      <div class="demo-body">
+        <div class="dbar"><label>TECELAGEM</label><span class="track"><i data-w="100"></i></span><b>31</b></div>
+        <div class="dbar"><label>PREPARAÇÃO</label><span class="track"><i data-w="77.4"></i></span><b>24</b></div>
+        <div class="dbar"><label>ACABAMENTO</label><span class="track"><i data-w="58.1"></i></span><b>18</b></div>
+        <div class="dbar"><label>EXPEDIÇÃO</label><span class="track"><i data-w="38.7"></i></span><b>12</b></div>
+        <div class="dbar"><label>QUALIDADE</label><span class="track"><i data-w="19.4"></i></span><b>6</b></div>
+        <div class="demo-turnos">
+          <div class="mini">Por turno</div>
+          <div class="tpills">
+            <span class="tpill">1º turno <b>38</b></span>
+            <span class="tpill">2º turno <b>33</b></span>
+            <span class="tpill">3º turno <b>20</b></span>
+          </div>
+          <div class="demo-note">Adm e geral (7 pessoas) ficam fora da conta por turno.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__h">
+        <div>
+          <h2>Tempo de casa</h2>
+          <p>Os 5 mais antigos da equipe.</p>
+        </div>
+        <span class="card__tag">top 5</span>
+      </div>
+      <div class="rk"><span class="rk__pos rk__pos--1">1</span><span class="rk__bd"><b>Djalma Roberto Kessler</b><span>QUALIDADE</span></span><span class="rk__anos"><b>27 anos</b><span>desde 1999</span></span></div>
+      <div class="rk"><span class="rk__pos rk__pos--2">2</span><span class="rk__bd"><b>Rosane Kreutzfeld</b><span>ADMINISTRAÇÃO</span></span><span class="rk__anos"><b>22 anos</b><span>desde 2004</span></span></div>
+      <div class="rk"><span class="rk__pos rk__pos--3">3</span><span class="rk__bd"><b>Nelson Wachholz</b><span>TECELAGEM</span></span><span class="rk__anos"><b>19 anos</b><span>desde 2007</span></span></div>
+      <div class="rk"><span class="rk__pos">4</span><span class="rk__bd"><b>Marlene Buzzi</b><span>ACABAMENTO</span></span><span class="rk__anos"><b>17 anos</b><span>desde 2009</span></span></div>
+      <div class="rk"><span class="rk__pos">5</span><span class="rk__bd"><b>Claudio Zimmermann</b><span>PREPARAÇÃO</span></span><span class="rk__anos"><b>15 anos</b><span>desde 2011</span></span></div>
+    </section>
+  </div>
+
+  <!-- ===== 6. Atividade recente ===== -->
+  <section class="card">
+    <div class="card__h">
+      <div>
+        <h2>Atividade recente</h2>
+        <p>Últimos eventos da trilha de auditoria.</p>
+      </div>
+      <span class="card__tag">hoje</span>
+    </div>
+    <div class="ev"><span class="ev__badge b-assinatura"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="ev__bd"><b>Fernanda Ribeiro Martins</b><span>Assinou o recibo de junho de 2026</span></span><span class="ev__hora">14:32</span></div>
+    <div class="ev"><span class="ev__badge b-conferencia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="ev__bd"><b>Márcia Regina Deschamps</b><span>Confirmou a conferência de atraso do dia 30/06</span></span><span class="ev__hora">11:42</span></div>
+    <div class="ev"><span class="ev__badge b-alteracao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span><span class="ev__bd"><b>Rosane Kreutzfeld</b><span>Alterou o turno de Pedro Alves para o 2º turno</span></span><span class="ev__hora">10:15</span></div>
+    <div class="ev"><span class="ev__badge b-leitura"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="ev__bd"><b>Bruno Henrique Lima</b><span>Leu o comunicado Férias coletivas</span></span><span class="ev__hora">09:03</span></div>
+    <div class="ev"><span class="ev__badge b-login"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span><span class="ev__bd"><b>João Vitor Cardoso</b><span>Entrou no portal</span></span><span class="ev__hora">07:58</span></div>
+    <a class="linkall" href="#" onclick="return false">
+      Ver auditoria completa
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </section>
+
+</div>
+
+<div class="note" style="margin-top:24px"><b>O que muda no app.</b> A página de Ocorrências perde os widgets de resumo e fica só com o trabalho: as abas de conferência (Aguardando GP, Com o líder, Resolvidas) e a lista de ocorrências. Tudo que é leitura de contexto passa a morar aqui na Visão geral, que vira o primeiro item do menu do gestor. No mobile, a Visão geral vira um atalho no hub da Home, com bolinha de pendência quando o "Precisa de você" tiver itens.</div>
+<p class="cap">Portal do Gestor · aba Visão geral · dados de exemplo, números fictícios</p>
+
+<script>
+(function(){
+  /* barras (demografia e progresso de recibos) animam na carga */
+  setTimeout(function(){
+    document.querySelectorAll('[data-w]').forEach(function(el){
+      el.style.width = el.dataset.w + '%';
+    });
+  }, 80);
+
+  /* tooltip do grafico de tendencia */
+  var wrap = document.getElementById('chwrap');
+  var svg  = document.getElementById('csvg');
+  var tip  = document.getElementById('tip');
+  var CORES = {falta:'#D67D74', atraso:'#E7B054', saida:'#7FA9CC'};
+
+  Array.prototype.forEach.call(document.querySelectorAll('.cslot'), function(g){
+    g.addEventListener('mouseenter', function(){
+      var d = g.dataset;
+      tip.innerHTML =
+        '<b>' + d.mes + '</b>' +
+        '<span class="trow"><i style="background:' + CORES.falta + '"></i>Falta · ' + d.falta + '</span>' +
+        '<span class="trow"><i style="background:' + CORES.atraso + '"></i>Atraso · ' + d.atraso + '</span>' +
+        '<span class="trow"><i style="background:' + CORES.saida + '"></i>Saída antecipada · ' + d.saida + '</span>' +
+        '<span class="trow ttotal">' + d.total + ' no total</span>' +
+        (d.obs ? '<span class="trow tobs">' + d.obs + '</span>' : '');
+      var r = svg.getBoundingClientRect();
+      var wr = wrap.getBoundingClientRect();
+      var s = r.width / 660;
+      tip.style.left = (r.left - wr.left + parseFloat(d.cx) * s) + 'px';
+      tip.style.top  = (r.top  - wr.top  + parseFloat(d.top) * s) + 'px';
+      tip.style.opacity = '1';
+      svg.classList.add('hovering');
+      g.classList.add('on');
+    });
+    g.addEventListener('mouseleave', function(){
+      tip.style.opacity = '0';
+      svg.classList.remove('hovering');
+      g.classList.remove('on');
+    });
+  });
+
+  /* colapsavel dos aniversariantes */
+  var cardAniv = document.getElementById('card-aniv');
+  var btnAniv  = document.getElementById('toggle-aniv');
+  var txtAniv  = document.getElementById('toggle-aniv-txt');
+  btnAniv.addEventListener('click', function(){
+    var aberto = cardAniv.classList.toggle('aberto');
+    txtAniv.textContent = aberto ? 'Mostrar menos' : 'Mostrar todos os 9';
+  });
+})();
+</script>
+</body></html>
