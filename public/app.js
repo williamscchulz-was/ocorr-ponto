@@ -6911,7 +6911,8 @@ async function rcbGerar() {
   const aGerar = alvo.filter(({ fid }) => !jaIds.has(`${fid}_${st.competencia}_${st.tipo}`));
   const pulados = alvo.length - aGerar.length;
   if (!aGerar.length) return toast("Todos esses já estavam gerados nessa competência. Nada a fazer.", "danger");
-  closeModal();
+  // NÃO fecha o modal aqui: o overlay de progresso vive DENTRO do modal (o de fechar
+  // antes deixava os 20-40s de trabalho invisíveis — parecia travado e convidava ao F5).
   showFormBlocker("Separando por funcionário...", ["Separando por funcionário", "Salvando", "Concluído"]);
   try {
     const PDFLib = await loadPdfLib();
@@ -6948,9 +6949,11 @@ async function rcbGerar() {
     if (pulados) extras.push(`${pulados} já existia${pulados > 1 ? "m" : ""} (pulado${pulados > 1 ? "s" : ""})`);
     if (grandes.length) extras.push(`${grandes.length} grande${grandes.length > 1 ? "s" : ""} demais`);
     if (r.ok) {
+      closeModal(); // fecha a conferência SÓ agora, com tudo gravado e a lista atualizada
       toast(`${r.n} ${tipoLbl} gerados.` + (extras.length ? ` ${extras.join(" · ")}.` : ""));
     } else {
-      // Falha (parcial ou total): erro PERSISTENTE, não toast de 2,6s.
+      // Falha (parcial ou total): erro PERSISTENTE, não toast de 2,6s. openModal REPLACE
+      // (sem closeModal antes: o wipe atrasado de 140ms apagaria o modal novo).
       openModal(`
         <div class="modal__header">
           <div><h2>Importação incompleta</h2><p>${r.n} de ${itens.length} ${tipoLbl} entraram</p></div>
@@ -11639,7 +11642,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.20.1";
+window.CURRENT_VERSION = "1.20.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

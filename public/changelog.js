@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.20.1", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.20.2", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "fix", title: "Corrigido: ao clicar em Gerar, a barra de progresso sumia na hora e a geração rodava invisível (parecia que nada acontecia). Agora o progresso aparece por cima da conferência, do início ao fim." },
+    ],
+  },
+  {
+    v: "1.20.1", d: "2 jul 2026", aud: "gestor", items: [
       { type: "fix", title: "Gravação do lote blindada: se a conexão falhar no meio, o sistema re-tenta, segue com os próximos e mostra um resumo claro de quem ficou de fora. A lista sempre atualiza sozinha (sem F5)." },
       { type: "feat", title: "Lote parcial se completa sozinho: importe de novo o mesmo PDF e competência; os já gerados aparecem como \"já gerado\" na conferência e só o que falta é criado." },
       { type: "feat", title: "Menores aprendizes agora são identificados no import: o diretório de identificação (pipeline) entrou no ar cobrindo todo o quadro." },
