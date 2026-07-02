@@ -1225,17 +1225,25 @@
     //   validar:   rh_confere -> com_lider   (RH/admin)
     //   dispensar: rh_confere -> dispensada  (RH/admin)
     //   confirmar: com_lider  -> confirmada  (líder do turno OU RH/admin)
-    async function _transicaoOca(id, novoStatus, acao, msgOk) {
+    // extras (opcional): { acaoId, acaoLabel, observacao } — a DESTINAÇÃO escolhida
+    // pelo líder ao confirmar (mesma liturgia da ocorrência manual). Vai no doc
+    // (acao/observacao) e na entrada do histórico (destino/obs).
+    async function _transicaoOca(id, novoStatus, acao, msgOk, extras) {
       const u = currentUser();
       const uid = (auth.currentUser && auth.currentUser.uid) || null;
       const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
       if (!o) return;
       const entrada = { acao, por: uid, porNome: u?.nome || "", emIso: new Date().toISOString() };
+      if (extras?.acaoLabel) entrada.destino = extras.acaoLabel;
+      if (extras?.observacao) entrada.obs = extras.observacao;
       const novoHist = [...(Array.isArray(o.historico) ? o.historico : []), entrada];
+      const patch = { status: novoStatus, historico: novoHist };
+      if (extras?.acaoId) patch.acao = extras.acaoId;
+      if (extras?.observacao) patch.observacao = extras.observacao;
       try {
-        await db.collection("ocorrencias-auto").doc(id).update({ status: novoStatus, historico: novoHist });
-        o.status = novoStatus; o.historico = novoHist; // otimista local
-        window.registrarAuditoria?.({ tipo: "ocorrencia-auto", acao: "Ocorrência automática: " + acao, alvo: `${o.nome || ""} · ${o.data || ""} · ${o.tipo || ""}` });
+        await db.collection("ocorrencias-auto").doc(id).update(patch);
+        Object.assign(o, patch); // otimista local
+        window.registrarAuditoria?.({ tipo: "ocorrencia-auto", acao: "Ocorrência automática: " + acao + (extras?.acaoLabel ? ` (${extras.acaoLabel})` : ""), alvo: `${o.nome || ""} · ${o.data || ""} · ${o.tipo || ""}` });
         toast?.(msgOk);
         renderApp();
       } catch (e) {
@@ -1246,7 +1254,7 @@
     }
     window.validarOcorrenciaAuto   = (id) => _transicaoOca(id, "com_lider",  "validou",   "Enviada para o líder.");
     window.dispensarOcorrenciaAuto = (id) => _transicaoOca(id, "dispensada", "dispensou", "Ocorrência dispensada.");
-    window.confirmarOcorrenciaAuto = (id) => _transicaoOca(id, "confirmada", "confirmou", "Conferência confirmada.");
+    window.confirmarOcorrenciaAuto = (id, extras) => _transicaoOca(id, "confirmada", "confirmou", "Conferência confirmada.", extras);
 
     // config/aniversariantes (sem PII: nome/dia/mes). Leitura autenticada (rule config/{doc}).
     window.carregarAniversariantes = async function () {

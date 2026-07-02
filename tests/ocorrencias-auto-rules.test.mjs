@@ -45,6 +45,8 @@ before(async () => {
     }
     await setDoc(doc(db, "ocorrencias-auto/ocaLD"),  baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLD2"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaLD3"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaLD4"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaDone"), baseDoc({ status: "confirmada", turno: 1, historico: h1 }));
   });
 });
@@ -122,6 +124,11 @@ test("RH dispensa: rh_confere -> dispensada", async () =>
 // Lider confirma (turno dele) (com_lider historico size 1 -> mutacao size 2)
 test("Líder do turno confirma: com_lider -> confirmada", async () =>
   assertSucceeds(updateDoc(doc(lider(), "ocorrencias-auto/ocaLD"), { status: "confirmada", historico: histN(2) })));
+// Destinação da conferência (liturgia da manual): acao + observacao entram no update
+test("Líder confirma COM ação e observação (destinação)", async () =>
+  assertSucceeds(updateDoc(doc(lider(), "ocorrencias-auto/ocaLD3"), { status: "confirmada", historico: histN(2), acao: "advertencia-verbal", observacao: "Conversado com o colaborador." })));
+test("Líder NÃO grava campo INTRUSO junto da conferência", async () =>
+  assertFails(updateDoc(doc(lider(), "ocorrencias-auto/ocaLD4"), { status: "confirmada", historico: histN(2), acao: "abono", nome: "Hackeado" })));
 test("Líder de OUTRO turno NÃO confirma", async () =>
   assertFails(updateDoc(doc(lider2(), "ocorrencias-auto/ocaLD2"), { status: "confirmada", historico: histN(2) })));
 

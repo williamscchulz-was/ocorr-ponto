@@ -523,7 +523,10 @@ service cloud.firestore {
       allow read: if isAdmin() || isRH()
                   || (isLider() && resource.data.turno == userDoc().turno);
 
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico'])
+      // acao/observacao: a DESTINAÇÃO que o líder escolhe ao conferir (mesma liturgia
+      // da ocorrência manual — pedido do William 2026-07-02). Continuam gated pelas
+      // mesmas transições de status abaixo.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao'])
         && request.resource.data.historico.size() == resource.data.historico.size() + 1
         && (
           // RH/admin no estagio "RH confere": manda pro lider, dispensa, ou conclui direto.

@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.21.1", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.21.2", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "feat", title: "Ocorrência automática agora tem a mesma conferência da manual: o líder abre a tela, vê previsto e batido, escolhe a Ação (obrigatória) e a observação antes de confirmar. Acabou o confirmar de um clique sem verificar." },
+    ],
+  },
+  {
+    v: "1.21.1", d: "2 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "No Banco de Horas, clicar no funcionário abre o espelho do mês num popup (saldo + marcações), com atalho pra aba Espelho de ponto já com a pessoa selecionada." },
     ],
   },
