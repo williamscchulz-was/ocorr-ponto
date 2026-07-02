@@ -1005,3 +1005,20 @@ William decidiu não esperar o desenho completo do PC e pediu pra já disponibil
 Rodei manual pra popular já: 98 docs, confirmei os 4 aprendizes com CPF certo.
 
 **Importante**: não criei rule nenhuma (domínio do PC) — sem regra casando, a coleção fica inacessível do cliente por padrão do Firestore. Avisado no bridge (`inbox-pc/2026-07-02-identificacao-no-ar.md`), junto com a ressalva de que o shape é uma primeira versão enxuta (só os 3 campos que ele descreveu) — se ele já tinha algo mais elaborado desenhado, é só falar que ajusto.
+
+
+---
+
+## 2026-07-02 · 🔑 Custom claims (role+funcionarioId) implementadas — destrava Storage dos recibos
+
+Missão do PC (spec completo, `inbox-wkradar/2026-07-01-recibos-cpf-e-custom-claims.md`): sem essas 2 claims no token do Firebase Auth, a regra do Storage nega leitura de recibo em PDF pra todo mundo, inclusive admin/RH — as rules do Storage não conseguem ler o Firestore, então o controle de acesso ao arquivo depende do token.
+
+Perguntei ao William se via risco grande antes de implementar — avaliação: baixo, já que `setCustomUserClaims` não desloga ninguém nem muda comportamento até o PC forçar refresh do token do lado dele (que ele só faz depois de eu confirmar). Autorizado, implementei:
+
+- **`custom-claims-helper.mjs`**: função idempotente `ensureCustomClaims` — só escreve se a claim realmente mudou (evita invalidar token à toa), funcionarioId fica ausente (não string vazia) quando não se aplica.
+- **`backfill-custom-claims.mjs`**: passada única sobre TODOS os `users/{uid}` (todos os papéis, não só quem o pipeline cria). Rodado: 103 usuários, 103 atualizados, 0 erros. Idempotência confirmada numa segunda rodada em `--dry`.
+- **`sync-colaborador-users.mjs`**: manutenção contínua pro lado colaborador — seta a claim na criação/reativação, e autocura em quem já existe (defensivo, sem escrita redundante).
+
+**Aviso pro PC**: contas de gestor (admin/rh/líder/supervisor) são criadas pelo lado dele — o backfill cobriu quem já existe, mas gestor novo precisa da mesma lógica no fluxo de criação dele, senão nasce sem claim.
+
+Mandado pro bridge (`inbox-pc/2026-07-02-claims-backfill-feito.md`) com o handshake de teste que ele pediu (2 uids — 1 colaborador, 1 rh — claims confirmadas em ambos).
