@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Mockup: modais de formulário em 2 colunas no desktop</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== fundação FioPulse (copiada de public/styles.css) ===== */
+  :root{
+    --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+    --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+    --danger:#962F32; --danger-bg:#F4D6D2;
+    --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+    --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+    --font:'Poppins',system-ui,sans-serif; --font-display:'Poppins',var(--font);
+    --transition:180ms cubic-bezier(.4,0,.2,1);
+  }
+  *{box-sizing:border-box}
+  body{background:#070A07;margin:0;padding:30px 18px 90px;font-family:var(--font);color:#EDF3EA}
+  .wrap{max-width:1080px;margin:0 auto}
+  .note{font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65;margin-bottom:22px}
+  .note b{color:#EDF3EA}
+  .capbig{font-size:12px;color:#EDF3EA;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:38px 0 14px;padding-bottom:6px;border-bottom:1px solid #1c241b}
+  .capbig span{color:#7F9E86;font-weight:600;text-transform:none;letter-spacing:0}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin:10px auto 0;font-weight:600;max-width:520px}
+
+  /* ===== toggle Antes e Depois ===== */
+  .ctrl{position:sticky;top:0;z-index:50;background:rgba(7,10,7,.94);backdrop-filter:blur(8px);padding:12px 0 14px;margin-bottom:4px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:1px solid #151c14}
+  .seg{display:inline-flex;background:#10160F;border:1px solid #2A332A;border-radius:12px;padding:4px;gap:4px}
+  .seg button{border:0;background:none;color:#8A9884;font:inherit;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;cursor:pointer;transition:var(--transition)}
+  .seg button.on{background:var(--plum);color:#fff}
+  .ctrl__lbl{font-size:12px;color:#8A9884;font-weight:600}
+  .ctrl__lbl b{color:#EDF3EA;font-weight:700}
+
+  /* ===== modal (classes reais do app) ===== */
+  .modal{background:var(--surface);border-radius:var(--radius-xl);max-width:480px;width:100%;margin:0 auto;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);color:var(--text-body);transition:max-width 280ms cubic-bezier(.4,0,.2,1)}
+  body.duas .modal{max-width:720px}
+  .modal__header{padding:24px 28px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .modal__header h2{font-family:var(--font-display);font-size:22px;letter-spacing:-.01em;font-weight:700;margin:0;color:var(--plum)}
+  .modal__header p{margin:4px 0 0;font-size:13px;color:var(--text-muted)}
+  .modal__close{width:44px;height:44px;border-radius:8px;display:grid;place-items:center;color:var(--text-muted);border:0;background:none;cursor:pointer;transition:var(--transition);flex-shrink:0}
+  .modal__close:hover{background:var(--surface-warm);color:var(--plum)}
+  .modal__close svg{width:18px;height:18px}
+  .modal__body{padding:8px 28px 8px}
+  .modal__footer{padding:16px 28px 24px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+  /* ===== campos (classes reais do app) ===== */
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .field label{font-size:13px;font-weight:600;color:var(--plum)}
+  .field input,.field select,.field textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:16px;font-family:inherit;color:var(--text-body);transition:var(--transition);width:100%}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(0,136,53,.12)}
+  .field textarea{resize:vertical;min-height:80px}
+  .field__hint{font-size:12px;color:var(--text-muted)}
+  .req{color:var(--danger)}
+  .muted{color:var(--text-muted)} .text-xs{font-size:12px;font-weight:400}
+
+  /* ===== a grade proposta: 1 coluna no Antes, 2 no Depois ===== */
+  .mgrid{display:grid;grid-template-columns:1fr;column-gap:18px}
+  body.duas .mgrid{grid-template-columns:1fr 1fr}
+  .mgrid .span2{grid-column:1 / -1}
+  /* celular: sempre 1 coluna, mesmo no Depois */
+  @media(max-width:740px){
+    body.duas .mgrid{grid-template-columns:1fr}
+    body.duas .modal{max-width:480px}
+  }
+
+  /* ===== botões (classes reais do app) ===== */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:inherit;transition:var(--transition);white-space:nowrap;border:1px solid transparent;cursor:pointer}
+  .btn--primary{background:var(--plum);color:var(--text-on-plum)}
+  .btn--primary:hover{background:var(--plum-soft)}
+  .btn--ghost{background:transparent;color:var(--plum);border-color:var(--border-strong)}
+  .btn--ghost:hover{background:var(--surface-warm)}
+  .btn svg{width:16px;height:16px}
+
+  /* ===== marcadores (checkboxes na mesma linha) ===== */
+  .ckrow{display:flex;gap:22px;flex-wrap:wrap;padding:4px 0 2px}
+  .ckbox{display:inline-flex;align-items:center;gap:9px;font-size:14px;color:var(--text-body);cursor:pointer;user-select:none}
+  .ckbox input{position:absolute;opacity:0;width:0;height:0}
+  .ckbox__box{width:19px;height:19px;border-radius:5px;border:1.5px solid var(--border-strong);background:var(--surface);display:flex;align-items:center;justify-content:center;transition:var(--transition);flex:none}
+  .ckbox__box svg{width:12px;height:12px;opacity:0;transition:var(--transition)}
+  .ckbox input:checked + .ckbox__box{background:var(--plum);border-color:var(--plum)}
+  .ckbox input:checked + .ckbox__box svg{opacity:1}
+  .ckbox span.ckbox__txt{font-weight:500}
+
+  /* ===== select com busca (Funcionário) ===== */
+  .buscasel{position:relative}
+  .buscasel__ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--text-muted);pointer-events:none}
+  .buscasel input{padding-left:40px}
+  .buscasel__list{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);max-height:224px;overflow-y:auto;z-index:30;display:none}
+  .buscasel.aberto .buscasel__list{display:block}
+  .buscasel__opt{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border)}
+  .buscasel__opt:last-child{border-bottom:0}
+  .buscasel__opt:hover{background:var(--surface-warm)}
+  .buscasel__opt b{display:block;font-size:14px;font-weight:600;color:var(--text-body)}
+  .buscasel__opt span{font-size:12px;color:var(--text-muted)}
+  .buscasel__vazio{padding:12px 14px;font-size:13px;color:var(--text-muted)}
+</style></head>
+<body class="duas"><div class="wrap">
+
+<div class="note">
+  <b>Mockup FioPulse · Modais de formulário em 2 colunas no desktop.</b>
+  Hoje os modais são uma coluna só e ficam compridos na tela grande. A proposta: no desktop o modal
+  alarga (720px) e os campos se organizam em grade de 2 colunas. Campos longos (nome completo,
+  observação) seguem ocupando a largura toda. Use o botão abaixo pra comparar ao vivo.
+</div>
+
+<div class="ctrl">
+  <div class="seg" role="group" aria-label="Comparar layouts">
+    <button type="button" id="btn-antes">Antes (1 coluna)</button>
+    <button type="button" id="btn-depois" class="on">Depois (2 colunas)</button>
+  </div>
+  <div class="ctrl__lbl" id="ctrl-lbl"><b>Depois:</b> modal de 720px, campos em grade de 2 colunas.</div>
+  <div class="ctrl__lbl">No celular permanece 1 coluna, nada muda.</div>
+</div>
+
+<!-- ============ MODAL 1: NOVO FUNCIONARIO ============ -->
+<div class="capbig">Modal 1 <span>Novo funcionário</span></div>
+
+<div class="modal">
+  <div class="modal__header">
+    <div>
+      <h2>Novo funcionário</h2>
+      <p>Será incluído no cadastro.</p>
+    </div>
+    <button class="modal__close" type="button" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <form class="modal__body" onsubmit="return false">
+    <div class="mgrid">
+      <div class="field span2">
+        <label for="nf-nome">Nome completo <span class="req">*</span></label>
+        <input type="text" id="nf-nome" value="Ricardo Antônio Weber" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="nf-codigo">Código/Matrícula</label>
+        <input type="text" id="nf-codigo" value="1123" placeholder="ex: 1234">
+      </div>
+      <div class="field">
+        <label for="nf-setor">Setor</label>
+        <select id="nf-setor">
+          <option value="">Não definido</option>
+          <option>PREPARACAO</option>
+          <option selected>TECELAGEM</option>
+          <option>ACABAMENTO</option>
+          <option>EXPEDICAO</option>
+          <option>QUALIDADE</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="nf-turno">Turno</label>
+        <select id="nf-turno">
+          <option value="">Sem turno</option>
+          <option selected>1º Turno (06:00 às 14:00)</option>
+          <option>2º Turno (14:00 às 22:00)</option>
+          <option>3º Turno (22:00 às 06:00)</option>
+          <option>Geral (horário comercial)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="nf-escala">Escala</label>
+        <select id="nf-escala">
+          <option selected>6x1</option>
+          <option>5x2</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="nf-turma">Turma</label>
+        <input type="text" id="nf-turma" value="Turma B" placeholder="ex: Turma A">
+      </div>
+      <div class="field">
+        <label for="nf-admissao">Data de admissão</label>
+        <input type="date" id="nf-admissao" value="2026-07-06">
+      </div>
+      <div class="field span2">
+        <label>Marcadores</label>
+        <div class="ckrow">
+          <label class="ckbox">
+            <input type="checkbox">
+            <span class="ckbox__box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span class="ckbox__txt">Diretor</span>
+          </label>
+          <label class="ckbox">
+            <input type="checkbox">
+            <span class="ckbox__box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span class="ckbox__txt">Menor Aprendiz</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </form>
+  <div class="modal__footer">
+    <button class="btn btn--ghost" type="button">Cancelar</button>
+    <button class="btn btn--primary" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Salvar</span>
+    </button>
+  </div>
+</div>
+<div class="cap">Nome completo atravessa a largura toda. Os pares Código e Setor, Turno e Escala, Turma e Admissão dividem a linha. Marcadores ficam juntos numa linha só.</div>
+
+<!-- ============ MODAL 2: REGISTRAR OCORRENCIA ============ -->
+<div class="capbig">Modal 2 <span>Registrar ocorrência</span></div>
+
+<div class="modal">
+  <div class="modal__header">
+    <div>
+      <h2>Registrar ocorrência</h2>
+      <p>Preencha os dados que o GP conhece. O líder cuida da conferência depois.</p>
+    </div>
+    <button class="modal__close" type="button" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <form class="modal__body" onsubmit="return false">
+    <div class="mgrid">
+      <div class="field span2">
+        <label for="oc-func">Funcionário <span class="req">*</span></label>
+        <div class="buscasel" id="buscasel">
+          <svg class="buscasel__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="oc-func" placeholder="Digite o nome ou o código" autocomplete="off" value="Marcos Vinícius Teixeira">
+          <div class="buscasel__list" id="func-list"></div>
+        </div>
+        <span class="field__hint">Busca pelo nome ou pelo código, digitando.</span>
+      </div>
+      <div class="field">
+        <label for="oc-data">Data <span class="req">*</span></label>
+        <input type="date" id="oc-data" value="2026-07-01" max="2026-07-02">
+      </div>
+      <div class="field">
+        <label for="oc-tipo">Tipo <span class="req">*</span></label>
+        <select id="oc-tipo">
+          <option value="">Selecione...</option>
+          <option selected>Atraso</option>
+          <option>Falta Injustificada</option>
+          <option>Saída Antecipada</option>
+          <option>Saída Intermediária</option>
+          <option>Não Registrou Entrada</option>
+          <option>Não Registrou Saída</option>
+          <option>Não Registrou Entrada/Saída Lanche</option>
+          <option>Chamada de Emergência</option>
+          <option>Esqueceu Crachá</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="oc-acao">Ação ou destinação</label>
+        <select id="oc-acao">
+          <option value="" selected>Selecione...</option>
+          <option>Banco de Horas</option>
+          <option>Descontar</option>
+          <option>Atestado Médico</option>
+          <option>Esquecimento</option>
+          <option>Cartão Ponto com Problema</option>
+          <option>Chamada de Emergência</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="oc-horas">Horas</label>
+        <input type="text" id="oc-horas" value="01:20" placeholder="ex: 01:30" inputmode="numeric">
+      </div>
+      <div class="field span2">
+        <label for="oc-obs">Observação <span class="muted text-xs">(opcional)</span></label>
+        <textarea id="oc-obs" placeholder="Contexto, justificativa, anexos referenciados...">Chegou às 07:20, avisou o líder na véspera.</textarea>
+        <span class="field__hint">O líder poderá adicionar mais informações na conferência.</span>
+      </div>
+    </div>
+  </form>
+  <div class="modal__footer">
+    <button class="btn btn--ghost" type="button">Cancelar</button>
+    <button class="btn btn--primary" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Registrar</span>
+    </button>
+  </div>
+</div>
+<div class="cap">O select de funcionário tem busca e atravessa a largura toda. Data e Tipo dividem uma linha, Ação e Horas dividem outra, a observação fecha embaixo inteira.</div>
+
+</div>
+
+<script>
+(function () {
+  // ---- toggle Antes e Depois ----
+  var btnAntes = document.getElementById("btn-antes");
+  var btnDepois = document.getElementById("btn-depois");
+  var lbl = document.getElementById("ctrl-lbl");
+
+  function setModo(duas) {
+    document.body.classList.toggle("duas", duas);
+    btnAntes.classList.toggle("on", !duas);
+    btnDepois.classList.toggle("on", duas);
+    lbl.innerHTML = duas
+      ? "<b>Depois:</b> modal de 720px, campos em grade de 2 colunas."
+      : "<b>Antes:</b> modal de 480px, todos os campos empilhados.";
+  }
+  btnAntes.addEventListener("click", function () { setModo(false); });
+  btnDepois.addEventListener("click", function () { setModo(true); });
+
+  // ---- select com busca (Funcionário) ----
+  var FUNCS = [
+    { nome: "Ana Carolina Ferreira",      codigo: "1041", setor: "TECELAGEM",  turno: "1º Turno" },
+    { nome: "Bruno Henrique Lima",        codigo: "1042", setor: "PREPARACAO", turno: "2º Turno" },
+    { nome: "Carlos Eduardo Nascimento",  codigo: "1057", setor: "ACABAMENTO", turno: "3º Turno" },
+    { nome: "Daniela Cristina Moreira",   codigo: "1063", setor: "QUALIDADE",  turno: "1º Turno" },
+    { nome: "Eduardo José Santana",       codigo: "1078", setor: "EXPEDICAO",  turno: "2º Turno" },
+    { nome: "Fernanda Alves Ribeiro",     codigo: "1085", setor: "TECELAGEM",  turno: "1º Turno" },
+    { nome: "Jenifer Caroline Gulart",    codigo: "1088", setor: "ACABAMENTO", turno: "2º Turno" },
+    { nome: "Gustavo Pereira da Rosa",    codigo: "1090", setor: "PREPARACAO", turno: "3º Turno" },
+    { nome: "Marcos Vinícius Teixeira",   codigo: "1102", setor: "EXPEDICAO",  turno: "1º Turno" },
+    { nome: "Patrícia Souza Machado",     codigo: "1110", setor: "QUALIDADE",  turno: "2º Turno" }
+  ];
+
+  var wrap = document.getElementById("buscasel");
+  var inp = document.getElementById("oc-func");
+  var list = document.getElementById("func-list");
+
+  // remove acentos: tira os diacríticos combinantes (U+0300 a U+036F) depois do NFD
+  var DIACRITICOS = new RegExp("[" + String.fromCharCode(0x300) + "-" + String.fromCharCode(0x36f) + "]", "g");
+  function normaliza(s) {
+    return s.toLowerCase().normalize("NFD").replace(DIACRITICOS, "");
+  }
+
+  function renderLista(filtro) {
+    var q = normaliza(filtro || "");
+    var achados = FUNCS.filter(function (f) {
+      return !q || normaliza(f.nome).indexOf(q) >= 0 || f.codigo.indexOf(q) >= 0;
+    });
+    if (!achados.length) {
+      list.innerHTML = '<div class="buscasel__vazio">Nenhum funcionário encontrado.</div>';
+      return;
+    }
+    list.innerHTML = achados.map(function (f) {
+      return '<div class="buscasel__opt" data-nome="' + f.nome + '">' +
+        "<b>" + f.nome + "</b>" +
+        "<span>" + f.codigo + " · " + f.setor + " · " + f.turno + "</span>" +
+        "</div>";
+    }).join("");
+  }
+
+  inp.addEventListener("focus", function () {
+    renderLista("");
+    wrap.classList.add("aberto");
+  });
+  inp.addEventListener("input", function () {
+    renderLista(inp.value);
+    wrap.classList.add("aberto");
+  });
+  list.addEventListener("click", function (e) {
+    var opt = e.target.closest(".buscasel__opt");
+    if (!opt) return;
+    inp.value = opt.dataset.nome;
+    wrap.classList.remove("aberto");
+  });
+  document.addEventListener("click", function (e) {
+    if (!wrap.contains(e.target)) wrap.classList.remove("aberto");
+  });
+})();
+</script>
+</body></html>

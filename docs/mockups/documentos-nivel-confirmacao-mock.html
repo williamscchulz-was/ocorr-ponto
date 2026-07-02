@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Documentos institucionais: nível de confirmação por documento e comprovante de assinatura (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --milk:#F7F9F6;--milk-warm:#EEF3EC;--plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;
+    --surface:#FFFFFF;--border:#E7EDE4;--border-strong:#D8E2D3;
+    --text-body:#1E2D1A;--text-muted:#4A6245;
+    --success:#2F6B3F;--warning:#B27429;--danger:#962F32;
+  }
+  body{background:#070A07;margin:0;padding:30px 18px 90px;font-family:Poppins,sans-serif;color:#EDF3EA}
+  .wrap{max-width:1180px;margin:0 auto}
+  .note{font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65;margin-bottom:20px}
+  .note b{color:#EDF3EA}
+  .capbig{font-size:12px;color:#EDF3EA;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:30px 0 14px;padding-bottom:6px;border-bottom:1px solid #1c241b}
+  .capbig span{color:#7F9E86;font-weight:600;text-transform:none;letter-spacing:0}
+  .row{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start;justify-content:flex-start}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin-top:9px;font-weight:600;max-width:460px}
+  .col{display:flex;flex-direction:column;align-items:center}
+  /* abas grandes do mock */
+  .bigtabs{position:sticky;top:0;z-index:40;display:flex;gap:8px;background:rgba(7,10,7,.94);backdrop-filter:blur(8px);padding:10px 0 14px}
+  .bigtab{border:1px solid #1c241b;background:#10160F;color:#8A9884;font:inherit;font-size:13px;font-weight:600;padding:10px 22px;border-radius:999px;cursor:pointer;transition:color .15s,background .15s,border-color .15s}
+  .bigtab:hover{color:#EDF3EA}
+  .bigtab.on{background:rgba(95,203,133,.13);border-color:rgba(95,203,133,.4);color:#5FCB85}
+  .pane{display:none}
+  .pane.on{display:block}
+  /* painel GESTOR (claro) */
+  .panel{background:var(--surface);border-radius:16px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);overflow:hidden;color:var(--text-body)}
+  .panel--form{width:560px;max-width:94vw}
+  .panel--main{width:620px;max-width:94vw}
+  .panel--side{width:410px;max-width:94vw}
+  .panel__h{padding:18px 22px 15px;border-bottom:1px solid var(--border)}
+  .panel__h h2{margin:0;font-size:19px;color:var(--plum-deep);font-weight:700}
+  .panel__h h2 .selo{margin-left:8px}
+  .panel__h p{margin:4px 0 0;font-size:12.5px;color:var(--text-muted)}
+  .panel__b{padding:18px 22px 22px}
+  .htop{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+  .fld{margin-bottom:15px}
+  .fld>label{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+  .inp{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:10px;padding:11px 12px;font:inherit;font-size:14px;color:var(--text-body);background:var(--milk-warm)}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--milk-warm);border:1px solid var(--border);border-radius:999px;padding:5px 8px 5px 12px;font-size:13px;font-weight:600;color:var(--text-body)}
+  .chipx{width:18px;height:18px;border-radius:50%;background:var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:11px}
+  .two{display:flex;gap:12px}.two>*{flex:1}
+  .drop{border:1.5px dashed var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;background:var(--milk-warm)}
+  .drop__ic{width:44px;height:44px;border-radius:11px;background:rgba(0,136,53,.1);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .drop__ic svg{width:22px;height:22px}
+  .drop b{font-size:13.5px;color:var(--text-body)}
+  .drop span{font-size:12px;color:var(--text-muted);display:block;margin-top:2px}
+  .btns{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+  .btn{border:0;border-radius:10px;padding:11px 18px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .btn svg{width:15px;height:15px}
+  .btn--g{background:var(--plum);color:#fff}
+  .btn--ghost{background:none;border:1px solid var(--border);color:var(--text-body)}
+  .btn--sm{padding:8px 13px;font-size:12.5px;border-radius:9px;white-space:nowrap}
+  /* radio-cards de nivel de confirmacao */
+  .nivel{display:flex;flex-direction:column;gap:10px}
+  .ncard{position:relative;display:flex;gap:13px;align-items:flex-start;border:1.5px solid var(--border);border-radius:14px;padding:14px 42px 14px 14px;background:var(--surface);cursor:pointer;transition:border-color .15s,background .15s;text-align:left;font:inherit}
+  .ncard:hover{border-color:var(--border-strong)}
+  .ncard.on{border-color:var(--plum);background:rgba(0,136,53,.045)}
+  .ncard__ic{width:40px;height:40px;border-radius:11px;background:var(--milk-warm);color:var(--text-muted);display:flex;align-items:center;justify-content:center;flex:none;transition:background .15s,color .15s}
+  .ncard__ic svg{width:20px;height:20px}
+  .ncard.on .ncard__ic{background:rgba(0,136,53,.1);color:var(--plum)}
+  .ncard__bd b{font-size:14px;color:var(--text-body)}
+  .ncard__bd p{margin:3px 0 0;font-size:12px;color:var(--text-muted);line-height:1.55}
+  .ncard__ex{display:inline-block;margin-top:8px;font-size:11px;font-weight:600;color:var(--text-muted);background:var(--milk-warm);border-radius:999px;padding:2px 10px}
+  .ncard.on .ncard__ex{background:rgba(0,136,53,.09);color:var(--plum)}
+  .ncard__check{position:absolute;top:13px;right:13px;width:21px;height:21px;border-radius:50%;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;color:transparent;transition:background .15s,border-color .15s,color .15s}
+  .ncard__check svg{width:12px;height:12px}
+  .ncard.on .ncard__check{background:var(--plum);border-color:var(--plum);color:#fff}
+  .hintbox{margin-top:12px;background:var(--milk-warm);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--text-muted);line-height:1.6}
+  .hintbox b{color:var(--text-body)}
+  /* selos de nivel */
+  .selo{font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px;vertical-align:2px;white-space:nowrap}
+  .selo svg{width:11px;height:11px}
+  .selo--sign{background:rgba(0,136,53,.1);color:var(--plum)}
+  .selo--aceite{background:rgba(29,111,168,.1);color:#1d6fa8}
+  .selo--info{background:var(--milk-warm);color:var(--text-muted)}
+  /* adesao */
+  .ades{border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:15px;background:var(--milk-warm)}
+  .ades__top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .ades__top b{font-size:15.5px;font-weight:700}
+  .ades__pct{font-size:21px;font-weight:800;color:var(--plum)}
+  .ades__bar{height:7px;border-radius:99px;background:#DCE5D7;overflow:hidden;margin-top:9px}
+  .ades__bar i{display:block;height:100%;background:var(--plum);border-radius:99px}
+  .ades__sub{font-size:11.5px;color:var(--text-muted);margin-top:6px}
+  /* busca */
+  .srch{display:flex;align-items:center;gap:9px;border:1px solid var(--border);border-radius:10px;padding:9px 12px;background:var(--surface);margin-bottom:4px}
+  .srch svg{width:15px;height:15px;color:var(--text-muted);flex:none}
+  .srch input{border:0;outline:0;flex:1;font:inherit;font-size:13px;color:var(--text-body);background:none}
+  .srch input::placeholder{color:var(--text-muted);opacity:.7}
+  /* lista de pessoas */
+  .prow{display:flex;align-items:center;gap:11px;padding:10px 6px;border-top:1px solid var(--border)}
+  .plist .prow:first-child{border-top:0}
+  .prow--ok{cursor:pointer;transition:background .12s}
+  .prow--ok:hover,.prow--ok:focus-visible{background:var(--milk-warm);outline:none}
+  .pav{width:36px;height:36px;border-radius:50%;background:rgba(0,136,53,.1);color:var(--plum);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex:none}
+  .pav--pend{background:rgba(178,116,41,.1);color:var(--warning)}
+  .pav--lg{width:42px;height:42px;font-size:13px}
+  .prow__bd{flex:1;min-width:0}
+  .prow__bd b{display:block;font-size:13.5px;font-weight:600}
+  .prow__bd span{font-size:11.5px;color:var(--text-muted)}
+  .pst--ok{text-align:right}
+  .pst--ok b{display:block;font-size:12px;font-weight:700;color:var(--plum)}
+  .pst--ok span{font-size:10.5px;color:var(--text-muted)}
+  .tagpend{font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 10px;background:rgba(178,116,41,.12);color:var(--warning);white-space:nowrap}
+  .prow__chev{color:var(--border-strong);flex:none}
+  .prow__chev svg{width:16px;height:16px}
+  .plistfoot{font-size:11px;color:var(--text-muted);padding:10px 6px 0;border-top:1px solid var(--border)}
+  .nores{display:none;font-size:12.5px;color:var(--text-muted);text-align:center;padding:22px 0 10px}
+  /* trilha curta (aceite simples) */
+  .mcrow{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--border)}
+  .mclist .mcrow:first-child{border-top:0}
+  .mcok{color:var(--plum);flex:none}
+  .mcok svg{width:16px;height:16px}
+  /* comprovante A4 */
+  .a4wrap{display:flex;justify-content:center;padding:20px 16px 24px;background:var(--milk-warm)}
+  .a4{width:330px;max-width:100%;background:#fff;color:#26301f;border-radius:6px;box-shadow:0 18px 44px -18px rgba(0,0,0,.45);padding:26px 24px 16px;font-size:10px;line-height:1.6;box-sizing:border-box}
+  .a4__top{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #008835;padding-bottom:8px;gap:10px}
+  .a4__brand{font-weight:800;font-size:15px;color:#008835}
+  .a4__kind{font-size:8px;color:#667565;letter-spacing:.06em;text-transform:uppercase;font-weight:600;text-align:right}
+  .a4__doc{margin:13px 0 11px;font-weight:700;font-size:12.5px;color:#141c10}
+  .a4__doc span{display:block;font-weight:500;font-size:9px;color:#66735f;margin-top:1px}
+  .a4__row{margin-bottom:8px}
+  .a4__row label{display:block;font-size:7.8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8a9484}
+  .a4__row div{font-size:9.6px;color:#222b1c}
+  .a4__row code{font-family:ui-monospace,Consolas,monospace;font-size:8.6px;color:#33402c;word-break:break-all;background:#f4f6f1;border-radius:4px;padding:4px 7px;display:block;margin-top:3px}
+  .a4__aceite{border:1px solid #dfe5da;border-left:3px solid #008835;border-radius:4px;background:#f8faf6;padding:7px 10px;font-size:9px;font-style:italic;color:#40503a;margin:11px 0 16px;line-height:1.55}
+  .a4__script{font-family:'Great Vibes',cursive;font-size:25px;color:#123a6b;text-align:center;line-height:1.1}
+  .a4__sigline{border-top:1px solid #9aa694;width:75%;margin:3px auto 0;text-align:center;font-size:8px;color:#7c8874;padding-top:3px}
+  .a4__foot{margin-top:15px;border-top:1px solid #e4e8e0;padding-top:7px;font-size:7.8px;color:#8a9484;text-align:center}
+  /* modal trilha */
+  .mov{position:fixed;inset:0;background:rgba(4,8,4,.66);display:none;align-items:flex-start;justify-content:center;padding:36px 16px;overflow-y:auto;z-index:60}
+  .mov.show{display:flex}
+  .mpanel{width:100%;max-width:480px;background:var(--surface);border-radius:16px;overflow:hidden;color:var(--text-body);box-shadow:0 40px 90px -30px rgba(0,0,0,.8)}
+  .mh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+  .mh h3{margin:0;font-size:16px;color:var(--plum-deep);font-weight:700}
+  .mh p{margin:3px 0 0;font-size:11.5px;color:var(--text-muted)}
+  .mx{border:0;background:var(--milk-warm);color:var(--text-muted);width:30px;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+  .mx svg{width:15px;height:15px}
+  .mb{padding:16px 20px 6px}
+  .mperson{display:flex;gap:11px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px}
+  .mperson b{display:block;font-size:14.5px}
+  .mperson span{font-size:11.5px;color:var(--text-muted)}
+  .trow{margin-bottom:13px}
+  .trow>label{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:4px}
+  .trow>label svg{width:12px;height:12px}
+  .tv{font-size:13px;color:var(--text-body);line-height:1.5}
+  .tv a{color:var(--plum);font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+  .tv a svg{width:12px;height:12px}
+  .quote{border-left:3px solid var(--plum);background:var(--milk-warm);border-radius:0 8px 8px 0;padding:8px 12px;font-size:12px;font-style:italic;color:var(--text-body);line-height:1.55}
+  .hashv{font-family:ui-monospace,Consolas,monospace;font-size:11px;background:var(--milk-warm);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text-body);word-break:break-all;display:block}
+  .mf{padding:14px 20px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  /* COLABORADOR (dark) */
+  .chrome-dark{
+    --bg:#0E130E;--milk:#0E130E;--surface:#161D15;--surface-warm:#1E261D;--milk-warm:#1E261D;
+    --border:#232C22;--border-strong:#2A332A;--text:#EDF3EA;--text-body:#EDF3EA;--text-muted:#8A9884;
+    --plum:#5FCB85;--plum-soft:#5FCB85;--plum-deep:#9FE0B5;--success:#5FCB85;--warning:#E8B468;--danger:#E68A86;
+  }
+  .phone{width:390px;max-width:96vw;background:#0E130E;border:1px solid #232C22;border-radius:28px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .phone__bar{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:11px;color:#EDF3EA;font-weight:600}
+  .scr{padding:16px 15px 26px;background:var(--bg);color:var(--text-body);min-height:600px;box-sizing:border-box}
+  .ptitle{font-size:17px;font-weight:700;margin:2px 0 14px}
+  .dcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:11px;overflow:hidden}
+  .dcard__top{display:flex;align-items:center;gap:12px;padding:13px 14px}
+  .rc__ic{width:42px;height:42px;border-radius:11px;background:var(--surface-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .rc__ic svg{width:21px;height:21px}
+  .rc__bd{flex:1;min-width:0}
+  .rc__t{font-size:14px;font-weight:600}
+  .rc__s{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+  .rtag{font-size:9.5px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;flex:none}
+  .rtag svg{width:10px;height:10px}
+  .rtag--pend{background:rgba(232,180,104,.16);color:var(--warning)}
+  .rtag--read{background:rgba(127,196,240,.16);color:#7FC4F0}
+  .rtag--ok{background:rgba(95,203,133,.16);color:var(--plum)}
+  .rtag--none{background:var(--surface-warm);color:var(--text-muted)}
+  .dcard__body{border-top:1px solid var(--border);padding:13px 14px 15px}
+  .passos{display:flex;gap:5px;margin:0 0 11px}
+  .passo{flex:1;height:4px;border-radius:99px;background:var(--surface-warm)}
+  .passo.on{background:var(--plum)}
+  .hintbox-d{background:var(--surface-warm);border-radius:10px;padding:10px 12px;font-size:11.5px;color:var(--text-muted);line-height:1.6;margin-bottom:11px}
+  .hintbox-d b{color:var(--text-body);font-weight:600}
+  .step1{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:12px}
+  .step1__ic{width:36px;height:36px;border-radius:50%;background:rgba(95,203,133,.14);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .step1__ic svg{width:17px;height:17px}
+  .step1 b{display:block;font-size:12.5px}
+  .step1 span{font-size:11px;color:var(--text-muted);line-height:1.5;display:block;margin-top:2px}
+  .btn-full{width:100%;border-radius:12px;padding:13px;font:inherit;font-size:14px;font-weight:700;border:0;background:var(--plum);color:#04210f;cursor:pointer}
+</style></head>
+<body><div class="wrap">
+
+<div class="note">
+  <b>Mockup FioPulse · Documentos institucionais com nível de confirmação por documento.</b>
+  Hoje todo documento tem o mesmo aceite e o comprovante é uma listagem pobre. A proposta: cada documento escolhe o quanto exige do colaborador, <b>nenhuma confirmação</b> (cardápio do refeitório), <b>aceite simples</b> (Manual da Cultura) ou <b>assinatura eletrônica</b> (Regulamento Interno, o mesmo processo dos recibos: senha, localização e carimbo gravado no arquivo). E cada assinatura ganha trilha completa e um comprovante em PDF decente.
+</div>
+
+<div class="bigtabs" role="tablist">
+  <button class="bigtab on" data-tab="publicar" role="tab">Publicar documento</button>
+  <button class="bigtab" data-tab="painel" role="tab">Painel do documento</button>
+  <button class="bigtab" data-tab="colab" role="tab">Colaborador</button>
+</div>
+
+<!-- =============== ABA 1 · PUBLICAR =============== -->
+<section class="pane on" id="pane-publicar">
+  <div class="capbig">Gestor · Publicar documento <span>o formulário ganha o bloco de confirmação</span></div>
+  <div class="row"><div class="col">
+    <div class="panel panel--form">
+      <div class="panel__h"><h2>Publicar documento</h2><p>Documentos institucionais</p></div>
+      <div class="panel__b">
+        <div class="fld"><label>Título</label><div class="inp">Regulamento Interno 2026</div></div>
+        <div class="two">
+          <div class="fld"><label>Tipo</label><div class="inp">Regras &#9662;</div></div>
+          <div class="fld"><label>Versão</label><div class="inp">3.0</div></div>
+        </div>
+        <div class="fld"><label>Arquivo</label>
+          <div class="drop">
+            <div class="drop__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+            <div><b>Regulamento Interno · 2026.pdf</b><span>412 KB · 18 páginas</span></div>
+          </div>
+        </div>
+        <div class="fld"><label>Público</label><span class="chip">Todos os colaboradores <span class="chipx">&times;</span></span></div>
+
+        <div class="fld" style="margin-bottom:0"><label>Confirmação do colaborador</label>
+          <div class="nivel" id="nivelCards">
+            <button type="button" class="ncard" data-nivel="sem">
+              <span class="ncard__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+              <span class="ncard__bd">
+                <b>Sem confirmação</b>
+                <p>Documento apenas informativo. Fica disponível pra consulta e ninguém precisa confirmar nada.</p>
+                <span class="ncard__ex">Exemplo: cardápio do refeitório</span>
+              </span>
+              <span class="ncard__check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </button>
+            <button type="button" class="ncard" data-nivel="aceite">
+              <span class="ncard__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.27"/></svg></span>
+              <span class="ncard__bd">
+                <b>Aceite simples</b>
+                <p>O colaborador toca em Li e aceito. Fica registrado quem aceitou, quando e em qual dispositivo.</p>
+                <span class="ncard__ex">Exemplo: Manual da Cultura</span>
+              </span>
+              <span class="ncard__check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </button>
+            <button type="button" class="ncard on" data-nivel="assin">
+              <span class="ncard__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+              <span class="ncard__bd">
+                <b>Assinatura eletrônica</b>
+                <p>Senha + localização + carimbo gravado no arquivo. O mesmo processo dos recibos de pagamento.</p>
+                <span class="ncard__ex">Exemplo: Regulamento Interno</span>
+              </span>
+              <span class="ncard__check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </button>
+          </div>
+          <div class="hintbox" id="nivelHint"><b>Com assinatura eletrônica:</b> cada colaborador vê a pendência Assinatura pendente e passa pela folha de 3 passos dos recibos: localização, revisão e senha.</div>
+        </div>
+
+        <div class="btns"><button class="btn btn--ghost">Salvar rascunho</button><button class="btn btn--g">Publicar</button></div>
+      </div>
+    </div>
+    <div class="cap">O nível escolhido define a pendência que o colaborador vê e a trilha que o RH guarda. Clique nos cards pra trocar.</div>
+  </div></div>
+</section>
+
+<!-- =============== ABA 2 · PAINEL =============== -->
+<section class="pane" id="pane-painel">
+  <div class="capbig">Gestor · Painel do documento <span>adesão, busca e trilha por pessoa</span></div>
+  <div class="row">
+
+    <div class="col">
+      <div class="panel panel--main">
+        <div class="panel__h">
+          <div class="htop">
+            <div>
+              <h2>Regulamento Interno 2026 <span class="selo selo--sign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Assinatura eletrônica</span></h2>
+              <p>Versão 3.0 · publicado em 01 de julho de 2026 · Todos os colaboradores</p>
+            </div>
+            <button class="btn btn--ghost btn--sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar relação (PDF)</button>
+          </div>
+        </div>
+        <div class="panel__b">
+          <div class="ades">
+            <div class="ades__top"><b>61 de 78 assinaram</b><span class="ades__pct">78%</span></div>
+            <div class="ades__bar"><i style="width:78%"></i></div>
+            <div class="ades__sub">17 pendentes · última assinatura hoje às 05:41</div>
+          </div>
+          <div class="srch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="buscaNome" type="text" placeholder="Buscar por nome" autocomplete="off">
+          </div>
+          <div class="plist" id="plist">
+            <div class="prow prow--ok" tabindex="0" role="button" data-tri="ana" data-nome="Ana Carolina Souza Lima">
+              <div class="pav">AL</div>
+              <div class="prow__bd"><b>Ana Carolina Souza Lima</b><span>1041 · TECELAGEM · 1&ordm; turno</span></div>
+              <div class="pst--ok"><b>Assinado</b><span>01 jul, 07:58</span></div>
+              <span class="prow__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="prow prow--ok" tabindex="0" role="button" data-tri="bruno" data-nome="Bruno Henrique Lima">
+              <div class="pav">BL</div>
+              <div class="prow__bd"><b>Bruno Henrique Lima</b><span>1042 · PREPARACAO · 2&ordm; turno</span></div>
+              <div class="pst--ok"><b>Assinado</b><span>01 jul, 14:22</span></div>
+              <span class="prow__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="prow" data-nome="Carla Regina Mendes">
+              <div class="pav pav--pend">CM</div>
+              <div class="prow__bd"><b>Carla Regina Mendes</b><span>1057 · ACABAMENTO · 1&ordm; turno</span></div>
+              <span class="tagpend">Pendente</span>
+            </div>
+            <div class="prow prow--ok" tabindex="0" role="button" data-tri="diego" data-nome="Diego Fernandes da Rosa">
+              <div class="pav">DR</div>
+              <div class="prow__bd"><b>Diego Fernandes da Rosa</b><span>1063 · EXPEDICAO · 3&ordm; turno</span></div>
+              <div class="pst--ok"><b>Assinado</b><span>02 jul, 05:41</span></div>
+              <span class="prow__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="prow prow--ok" tabindex="0" role="button" data-tri="fernanda" data-nome="Fernanda Tavares Ribeiro">
+              <div class="pav">FR</div>
+              <div class="prow__bd"><b>Fernanda Tavares Ribeiro</b><span>1071 · QUALIDADE · 1&ordm; turno</span></div>
+              <div class="pst--ok"><b>Assinado</b><span>01 jul, 09:15</span></div>
+              <span class="prow__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="prow" data-nome="João Pedro Alves Correia">
+              <div class="pav pav--pend">JC</div>
+              <div class="prow__bd"><b>João Pedro Alves Correia</b><span>1088 · TECELAGEM · 2&ordm; turno</span></div>
+              <span class="tagpend">Pendente</span>
+            </div>
+            <div class="prow prow--ok" tabindex="0" role="button" data-tri="marcos" data-nome="Marcos Vinícius Brito">
+              <div class="pav">MB</div>
+              <div class="prow__bd"><b>Marcos Vinícius Brito</b><span>1094 · PREPARACAO · 1&ordm; turno</span></div>
+              <div class="pst--ok"><b>Assinado</b><span>01 jul, 08:03</span></div>
+              <span class="prow__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+            </div>
+            <div class="prow" data-nome="Patrícia Gonçalves Nunes">
+              <div class="pav pav--pend">PN</div>
+              <div class="prow__bd"><b>Patrícia Gonçalves Nunes</b><span>1102 · ACABAMENTO · 3&ordm; turno</span></div>
+              <span class="tagpend">Pendente</span>
+            </div>
+          </div>
+          <div class="nores" id="noRes">Ninguém com esse nome nesta prévia.</div>
+          <div class="plistfoot">Mostrando 8 de 78 pessoas nesta prévia. Na tela real a lista é completa e a busca cobre todo mundo.</div>
+        </div>
+      </div>
+      <div class="cap" style="max-width:620px">Linha verde é clicável: abre a trilha completa da assinatura. O Exportar relação gera o PDF com a lista inteira e o status de cada um.</div>
+    </div>
+
+    <div class="col">
+      <div class="panel panel--side">
+        <div class="panel__h">
+          <h2 style="font-size:16.5px">Manual da Cultura <span class="selo selo--aceite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.27"/></svg>Aceite simples</span></h2>
+          <p>Versão 1.4 · 74 de 78 aceitaram</p>
+        </div>
+        <div class="panel__b">
+          <div class="ades" style="margin-bottom:12px">
+            <div class="ades__top"><b>74 de 78 aceitaram</b><span class="ades__pct" style="color:#1d6fa8">95%</span></div>
+            <div class="ades__bar"><i style="width:95%;background:#1d6fa8"></i></div>
+          </div>
+          <div class="mclist">
+            <div class="mcrow">
+              <div class="pav" style="background:rgba(29,111,168,.1);color:#1d6fa8">AL</div>
+              <div class="prow__bd"><b>Ana Carolina Souza Lima</b><span>Aceitou em 01 jul, 10:12 · Android 15, Chrome</span></div>
+              <span class="mcok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+            <div class="mcrow">
+              <div class="pav" style="background:rgba(29,111,168,.1);color:#1d6fa8">BL</div>
+              <div class="prow__bd"><b>Bruno Henrique Lima</b><span>Aceitou em 01 jul, 12:40 · iPhone 13, Safari</span></div>
+              <span class="mcok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+            <div class="mcrow">
+              <div class="pav" style="background:rgba(29,111,168,.1);color:#1d6fa8">FR</div>
+              <div class="prow__bd"><b>Fernanda Tavares Ribeiro</b><span>Aceitou em 02 jul, 06:05 · Android 14, Chrome</span></div>
+              <span class="mcok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            </div>
+          </div>
+          <div class="hintbox" style="margin-top:14px">No aceite simples a trilha guarda quem, quando e o dispositivo. Sem senha, sem local e sem carimbo no arquivo.</div>
+        </div>
+      </div>
+      <div class="cap">O contraste: o Manual da Cultura só pede o aceite, então a trilha é curta de propósito.</div>
+
+      <div class="panel panel--side" style="margin-top:26px">
+        <div class="panel__h">
+          <h2 style="font-size:16.5px">Comprovante gerado</h2>
+          <p>É o PDF que o botão Baixar comprovante entrega.</p>
+        </div>
+        <div class="a4wrap">
+          <div class="a4">
+            <div class="a4__top">
+              <span class="a4__brand">FioPulse</span>
+              <span class="a4__kind">Comprovante de<br>assinatura eletrônica</span>
+            </div>
+            <div class="a4__doc">Regulamento Interno 2026 <span>versão 3.0 · documento institucional · Fiobras</span></div>
+            <div class="a4__row"><label>Colaborador</label><div>Diego Fernandes da Rosa · cód 1063 · EXPEDICAO · 3&ordm; turno</div></div>
+            <div class="a4__row"><label>Nível de confirmação</label><div>Assinatura eletrônica: senha + localização + carimbo no arquivo</div></div>
+            <div class="a4__row"><label>Data e hora</label><div>quinta-feira, 02 de julho de 2026, 05:41:37 (horário de Brasília)</div></div>
+            <div class="a4__row"><label>Local</label><div>-26.8934, -49.2287 (precisão 11 m) · Indaial/SC</div></div>
+            <div class="a4__row"><label>Hash SHA-256 do arquivo assinado</label><code>3b1f0ac8 3f2e9d6a 51c47bde 8a90f2c4 d7e5b6a1 928c3f40 d1e2a5b7 c8d90e14</code></div>
+            <div class="a4__aceite">"Li o Regulamento Interno 2026, versão 3.0, e estou de acordo. Autorizo o registro eletrônico da minha assinatura neste arquivo."</div>
+            <div class="a4__script">Diego Fernandes da Rosa</div>
+            <div class="a4__sigline">assinatura eletrônica registrada no arquivo</div>
+            <div class="a4__foot">Comprovante n&ordm; FP-2026-000482 · gerado pelo FioPulse · confira pelo hash acima</div>
+          </div>
+        </div>
+      </div>
+      <div class="cap">Folha A4 de verdade: wordmark, pessoa, nível, quando, onde, hash e o texto do aceite. Nada de listagem pobre.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- =============== ABA 3 · COLABORADOR =============== -->
+<section class="pane" id="pane-colab">
+  <div class="capbig">Colaborador · Documentos <span>um badge por estado, e o mesmo caminho dos recibos</span></div>
+  <div class="row" style="justify-content:center">
+    <div class="col">
+      <div class="chrome-dark"><div class="phone">
+        <div class="phone__bar"><span>9:41</span><span>5G</span></div>
+        <div class="scr">
+          <div class="ptitle">Documentos</div>
+
+          <div class="dcard">
+            <div class="dcard__top">
+              <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+              <div class="rc__bd"><div class="rc__t">Regulamento Interno 2026</div><div class="rc__s">Versão 3.0 · publicado em 01 de julho</div></div>
+              <span class="rtag rtag--pend">Assinatura pendente</span>
+            </div>
+            <div class="dcard__body">
+              <div class="hintbox-d"><b>Assinar é igual aos recibos de pagamento</b>, em 3 passos: localização, revisão e senha.</div>
+              <div class="passos"><div class="passo on"></div><div class="passo"></div><div class="passo"></div></div>
+              <div class="step1">
+                <span class="step1__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                <div><b>Passo 1 de 3: localização</b><span>O registro de onde você assinou faz parte da validade. O navegador vai pedir a permissão: toque em Permitir.</span></div>
+              </div>
+              <button class="btn-full">Assinar documento</button>
+            </div>
+          </div>
+
+          <div class="dcard">
+            <div class="dcard__top">
+              <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+              <div class="rc__bd"><div class="rc__t">Manual da Cultura</div><div class="rc__s">Versão 1.4 · leitura de 10 minutos</div></div>
+              <span class="rtag rtag--read">Confirmar leitura</span>
+            </div>
+          </div>
+
+          <div class="dcard">
+            <div class="dcard__top">
+              <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+              <div class="rc__bd"><div class="rc__t">Política de Privacidade e LGPD</div><div class="rc__s">Versão 2.2 · assinado em 15 de maio</div></div>
+              <span class="rtag rtag--ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Em dia</span>
+            </div>
+          </div>
+
+          <div class="dcard" style="margin-bottom:0">
+            <div class="dcard__top">
+              <div class="rc__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
+              <div class="rc__bd"><div class="rc__t">Cardápio do refeitório, julho</div><div class="rc__s">Apenas informativo, sem confirmação</div></div>
+              <span class="rtag rtag--none">Informativo</span>
+            </div>
+          </div>
+
+        </div>
+      </div></div>
+      <div class="cap">Cada documento carrega o próprio estado: âmbar pede assinatura, azul pede o Li e aceito, verde está em dia e o informativo não cobra nada. O card aberto mostra só o passo 1, o resto é a folha que já existe nos recibos.</div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- MODAL · trilha de assinatura -->
+<div class="mov" id="movTrilha">
+  <div class="mpanel" role="dialog" aria-modal="true" aria-label="Trilha de assinatura">
+    <div class="mh">
+      <div>
+        <h3>Trilha de assinatura</h3>
+        <p>Regulamento Interno 2026 · versão 3.0 · assinatura eletrônica</p>
+      </div>
+      <button class="mx" id="triClose" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="mb">
+      <div class="mperson">
+        <div class="pav pav--lg" id="triAv">DR</div>
+        <div><b id="triNome">Diego Fernandes da Rosa</b><span id="triSub">1063 · EXPEDICAO · 3&ordm; turno</span></div>
+      </div>
+      <div class="trow">
+        <label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>Quando</label>
+        <div class="tv" id="triQuando"></div>
+      </div>
+      <div class="trow">
+        <label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.27"/></svg>Texto do aceite</label>
+        <div class="quote">"Li o Regulamento Interno 2026, versão 3.0, e estou de acordo. Autorizo o registro eletrônico da minha assinatura neste arquivo."</div>
+      </div>
+      <div class="trow">
+        <label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Local</label>
+        <div class="tv"><span id="triLocal"></span> · <a href="#" id="triMapa">Ver no mapa <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></div>
+      </div>
+      <div class="trow">
+        <label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>Hash SHA-256 do arquivo assinado</label>
+        <code class="hashv" id="triHash"></code>
+      </div>
+      <div class="trow">
+        <label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Dispositivo</label>
+        <div class="tv" id="triDisp"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Ver arquivo carimbado</button>
+      <button class="btn btn--g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar comprovante (PDF)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* abas do mock */
+  var tabs=document.querySelectorAll('.bigtab');
+  tabs.forEach(function(t){
+    t.addEventListener('click',function(){
+      tabs.forEach(function(x){x.classList.remove('on')});
+      t.classList.add('on');
+      document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on')});
+      document.getElementById('pane-'+t.dataset.tab).classList.add('on');
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+
+  /* radio-cards de nivel */
+  var hints={
+    sem:'<b>Sem confirmação:</b> publica e pronto. O documento fica disponível pra consulta e ninguém recebe pendência.',
+    aceite:'<b>Com aceite simples:</b> cada colaborador vê a pendência Confirmar leitura. O toque em Li e aceito registra quem, quando e o dispositivo.',
+    assin:'<b>Com assinatura eletrônica:</b> cada colaborador vê a pendência Assinatura pendente e passa pela folha de 3 passos dos recibos: localização, revisão e senha.'
+  };
+  var ncards=document.querySelectorAll('#nivelCards .ncard');
+  ncards.forEach(function(c){
+    c.addEventListener('click',function(){
+      ncards.forEach(function(x){x.classList.remove('on')});
+      c.classList.add('on');
+      document.getElementById('nivelHint').innerHTML=hints[c.dataset.nivel];
+    });
+  });
+
+  /* busca por nome */
+  function norm(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()}
+  var busca=document.getElementById('buscaNome');
+  busca.addEventListener('input',function(){
+    var q=norm(this.value.trim());
+    var alguma=false;
+    document.querySelectorAll('#plist .prow').forEach(function(r){
+      var mostra=!q||norm(r.dataset.nome).indexOf(q)>-1;
+      r.style.display=mostra?'':'none';
+      if(mostra)alguma=true;
+    });
+    document.getElementById('noRes').style.display=alguma?'none':'block';
+  });
+
+  /* trilhas por pessoa */
+  var TRI={
+    ana:{nome:'Ana Carolina Souza Lima',sub:'1041 · TECELAGEM · 1º turno',av:'AL',
+      quando:'quarta-feira, 01 de julho de 2026, 07:58:12 (horário de Brasília)',
+      local:'-26.8907, -49.2315 (precisão 9 m) · Indaial/SC',
+      hash:'7c9a2f4e61b8d3a50e4f92c7b16a8d405f3e7c92a8b4d016e94c25f87d30a1b6',
+      disp:'Android 15 · Chrome 138 · Samsung Galaxy A54'},
+    bruno:{nome:'Bruno Henrique Lima',sub:'1042 · PREPARACAO · 2º turno',av:'BL',
+      quando:'quarta-feira, 01 de julho de 2026, 14:22:48 (horário de Brasília)',
+      local:'-26.8921, -49.2298 (precisão 14 m) · Indaial/SC',
+      hash:'d41f8a279c05e3b672da4f183b96c0e5a17d842f60c3b9eaf5281d4709e6c3ba',
+      disp:'Android 14 · Chrome 138 · Motorola Moto G84'},
+    diego:{nome:'Diego Fernandes da Rosa',sub:'1063 · EXPEDICAO · 3º turno',av:'DR',
+      quando:'quinta-feira, 02 de julho de 2026, 05:41:37 (horário de Brasília)',
+      local:'-26.8934, -49.2287 (precisão 11 m) · Indaial/SC',
+      hash:'3b1f0ac83f2e9d6a51c47bde8a90f2c4d7e5b6a1928c3f40d1e2a5b7c8d90e14',
+      disp:'iPhone 13 · Safari'},
+    fernanda:{nome:'Fernanda Tavares Ribeiro',sub:'1071 · QUALIDADE · 1º turno',av:'FR',
+      quando:'quarta-feira, 01 de julho de 2026, 09:15:03 (horário de Brasília)',
+      local:'-26.8899, -49.2340 (precisão 8 m) · Indaial/SC',
+      hash:'a802e5c14d7b9f3608c2e6d491fa35b7c6e01d285b49f7a33d82c60eb1f49a75',
+      disp:'Android 15 · Chrome 137 · Xiaomi Redmi Note 13'},
+    marcos:{nome:'Marcos Vinícius Brito',sub:'1094 · PREPARACAO · 1º turno',av:'MB',
+      quando:'quarta-feira, 01 de julho de 2026, 08:03:56 (horário de Brasília)',
+      local:'-26.8916, -49.2309 (precisão 12 m) · Indaial/SC',
+      hash:'5e93b0d721f6a48ce07d3b9246a8c5f1b3d97e208c14f6a572e0b9d34a61f8c2',
+      disp:'Android 13 · Chrome 138 · Samsung Galaxy A23'}
+  };
+  var mov=document.getElementById('movTrilha');
+  function abreTrilha(key){
+    var t=TRI[key];if(!t)return;
+    document.getElementById('triAv').textContent=t.av;
+    document.getElementById('triNome').textContent=t.nome;
+    document.getElementById('triSub').textContent=t.sub;
+    document.getElementById('triQuando').textContent=t.quando;
+    document.getElementById('triLocal').textContent=t.local;
+    document.getElementById('triHash').textContent=t.hash;
+    document.getElementById('triDisp').textContent=t.disp;
+    mov.classList.add('show');
+  }
+  document.querySelectorAll('.prow--ok').forEach(function(r){
+    r.addEventListener('click',function(){abreTrilha(r.dataset.tri)});
+    r.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();abreTrilha(r.dataset.tri)}});
+  });
+  document.getElementById('triClose').addEventListener('click',function(){mov.classList.remove('show')});
+  mov.addEventListener('click',function(e){if(e.target===mov)mov.classList.remove('show')});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')mov.classList.remove('show')});
+  document.getElementById('triMapa').addEventListener('click',function(e){e.preventDefault()});
+})();
+</script>
+</body></html>

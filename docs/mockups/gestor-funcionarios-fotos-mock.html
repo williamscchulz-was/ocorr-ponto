@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Fotos na lista de Funcionários (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== Fundação FioPulse (copiada de public/styles.css, mock auto-contido) ===== */
+  :root{
+    --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+    --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text-body:#1E2D1A; --text-muted:#4A6245;
+    --success:#2F6B3F; --success-bg:#E0EAD8;
+    --warning:#B27429; --warning-bg:#F8E4C8; --warning-ink:#7A4A12;
+    --danger:#962F32; --danger-bg:#F4D6D2;
+    --info:#2F5A6B; --info-bg:#D8E6EA;
+    --radius-sm:8px; --radius:12px;
+    --transition:180ms cubic-bezier(.4,0,.2,1);
+    --row-hover:#FAFCF9;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Poppins,ui-sans-serif,system-ui,sans-serif;background:#0d130d;margin:0;padding:34px 18px 70px;color:#EDF3EA}
+  .note{max-width:860px;margin:0 auto 24px;font-size:13px;color:#b9c7b2;background:#10160f;border:1px dashed #2a332a;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#edf3ea}
+  .cap{max-width:860px;margin:10px auto 0;text-align:center;font-size:12px;color:#8fa08a;font-weight:600}
+
+  /* Moldura simulando a área de conteúdo do Portal do Gestor */
+  .screen{max-width:860px;margin:0 auto;background:var(--bg);border-radius:18px;padding:26px 28px 24px;color:var(--text-body);box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
+
+  /* ===== Cabeçalho da página ===== */
+  .page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+  .page-header h1{font-size:21px;letter-spacing:-.02em;margin:0;color:var(--text-body);font-weight:700}
+  .page-header p{margin:2px 0 0;color:var(--text-muted);font-size:12.5px}
+
+  /* ===== Stats (bloco contido, hairlines colapsadas) ===== */
+  .stats{display:flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);margin:0 0 20px;overflow:hidden}
+  .stat{flex:1 1 0;min-width:0;border-left:1px solid var(--border);border-top:1px solid var(--border);margin:-1px 0 0 -1px;padding:14px 16px;position:relative;overflow:hidden}
+  .stat__label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
+  .stat__value{font-size:24px;font-weight:700;color:var(--text-body);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+  .stat__hint{font-size:11px;color:var(--text-muted);opacity:.85}
+  .stat--accent .stat__value{color:var(--plum)}
+  .stat--kpi{flex:1.7 1 0}
+  .stat--kpi .stat__value{font-size:32px}
+  .stat--kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--plum)}
+  .lista-rodape{font-size:11.5px;color:var(--text-muted);text-align:right;margin:10px 4px 18px;font-variant-numeric:tabular-nums}
+
+  /* ===== Toolbar: busca + chips de filtro ===== */
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .toolbar__search{flex:1;min-width:220px;position:relative}
+  .toolbar__search input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px 10px 38px;font:inherit;font-size:14px;color:var(--text-body);transition:var(--transition)}
+  .toolbar__search input:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(0,136,53,.10)}
+  .toolbar__search .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-muted)}
+  .fchips{display:flex;gap:8px}
+  .fchip{border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font:inherit;font-size:12.5px;font-weight:600;padding:8px 15px;border-radius:999px;cursor:pointer;transition:var(--transition)}
+  .fchip:hover{border-color:var(--border-strong)}
+  .fchip.on{background:var(--success-bg);border-color:rgba(0,136,53,.35);color:var(--plum-deep)}
+
+  /* ===== Lista de funcionários (anatomia real do app + avatar novo) ===== */
+  .func-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .func-row{display:flex;align-items:center;gap:14px;width:100%;padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--transition);font-variant-numeric:tabular-nums}
+  .func-row:last-child{border-bottom:0}
+  .func-row:hover{background:var(--row-hover)}
+  .func-row--semturno{box-shadow:inset 3px 0 0 var(--warning)}
+  .func-row--inativo{opacity:.6}
+  .func-info{flex:1;min-width:0}
+  .func-nome{font-size:14.5px;font-weight:600;color:var(--text-body)}
+  .func-sub{font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .func-sub .dot{width:3px;height:3px;border-radius:50%;background:#c2cdba;display:inline-block}
+  .func-demit{color:var(--danger);font-weight:500}
+  .func-turno{font-size:11.5px;font-weight:600;color:var(--text-muted);background:var(--milk-warm);border-radius:6px;padding:3px 9px;flex-shrink:0}
+  .func-turno--sem{color:var(--warning);background:var(--warning-bg);display:inline-flex;align-items:center;gap:5px}
+  .func-turno__dot{width:5px;height:5px;border-radius:50%;background:var(--warning)}
+  .func-stag{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);border:1px solid var(--border-strong);border-radius:6px;padding:1px 7px;flex-shrink:0}
+  .func-chev{width:18px;height:18px;color:#b9c6b1;flex-shrink:0;transition:var(--transition)}
+  .func-row:hover .func-chev{transform:translateX(3px);color:var(--plum-soft)}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;flex-shrink:0}
+  .badge--warning{background:var(--warning-bg);color:var(--warning-ink)}
+  .badge--info{background:var(--info-bg);color:var(--info)}
+  .badge--neutral{background:var(--surface-warm);color:var(--text-muted)}
+
+  /* NOVO: foto redonda de 40px antes do nome. Sem foto, iniciais no gradiente
+     verde padrão do app (mesmo dos avatares do espelho). */
+  .func-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;flex:none}
+  .av-foto{background-size:cover;background-position:center;color:transparent}
+
+  .empty-mini{display:none;padding:26px 18px;text-align:center;font-size:13px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+  .legenda{font-size:11.5px;color:var(--text-muted);text-align:center;margin:14px 4px 0;line-height:1.6}
+
+  @media (max-width:640px){
+    .screen{padding:18px 14px}
+    .stat--kpi .stat__value{font-size:28px}
+  }
+</style></head>
+<body>
+
+<div class="note"><b>Mockup FioPulse · Fotos na lista de Funcionários (Portal do Gestor, desktop).</b> A lista principal ganha a <b>foto oficial do colaborador</b> (40px, redonda) antes do nome, a mesma foto que já aparece nos outros avatares do gestor. Quem não tem foto continua com as iniciais no verde de sempre. Busca e chips funcionam de verdade aqui no mock: o filtro <b>Ativos</b> vem selecionado, clique em <b>Todos</b> ou <b>Inativos</b> pra ver a linha esmaecida da Vanessa.</div>
+
+<div class="screen">
+
+  <header class="page-header">
+    <div>
+      <h1>Funcionários</h1>
+      <p>Clique num funcionário pra definir turno e setor.</p>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat stat--accent stat--kpi">
+      <div class="stat__label">Total ativos</div>
+      <div class="stat__value">78</div>
+      <div class="stat__hint">+ 4 inativos</div>
+    </div>
+    <div class="stat stat--accent">
+      <div class="stat__label">Sem turno definido</div>
+      <div class="stat__value">1</div>
+      <div class="stat__hint">ajustar antes de líderes verem</div>
+    </div>
+  </div>
+  <p class="lista-rodape">Atualizado hoje, 06:12 · pipeline de GP roda 3x ao dia</p>
+
+  <div class="toolbar">
+    <div class="toolbar__search">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="func-search" placeholder="Buscar por nome ou código..." aria-label="Buscar funcionário por nome ou código">
+    </div>
+    <div class="fchips" role="group" aria-label="Filtrar por status">
+      <button type="button" class="fchip on" data-status="ativo">Ativos</button>
+      <button type="button" class="fchip" data-status="inativo">Inativos</button>
+      <button type="button" class="fchip" data-status="todos">Todos</button>
+    </div>
+  </div>
+
+  <!-- Fotos: https://i.pravatar.cc/96?img=N é PLACEHOLDER só deste mock.
+       No app entra a foto oficial (users.fotoBase64 via avatarFuncHtml),
+       a mesma dos demais avatares do Portal do Gestor. -->
+  <div class="func-list" id="func-list">
+
+    <article class="func-row func-row--semturno" data-ativo="1" data-busca="marcos vinicius pereira leite 1187" role="button" tabindex="0">
+      <div class="func-av av-foto" style="background-image:url('https://i.pravatar.cc/96?img=12')" role="img" aria-label="Foto de Marcos Vinicius Pereira Leite"></div>
+      <div class="func-info">
+        <div class="func-nome">Marcos Vinicius Pereira Leite</div>
+        <div class="func-sub">cód: 1187<span class="dot"></span>EXPEDIÇÃO</div>
+      </div>
+      <span class="func-turno func-turno--sem"><span class="func-turno__dot"></span>Sem turno</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row" data-ativo="1" data-busca="ana carolina ferreira duarte 1041" role="button" tabindex="0">
+      <div class="func-av av-foto" style="background-image:url('https://i.pravatar.cc/96?img=47')" role="img" aria-label="Foto de Ana Carolina Ferreira Duarte"></div>
+      <div class="func-info">
+        <div class="func-nome">Ana Carolina Ferreira Duarte</div>
+        <div class="func-sub">cód: 1041<span class="dot"></span>TECELAGEM</div>
+      </div>
+      <span class="func-turno">1º Turno</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row" data-ativo="1" data-busca="bruna aparecida santos lima 1102" role="button" tabindex="0">
+      <div class="func-av">BL</div>
+      <div class="func-info">
+        <div class="func-nome">Bruna Aparecida Santos Lima</div>
+        <div class="func-sub">cód: 1102<span class="dot"></span>QUALIDADE</div>
+      </div>
+      <span class="func-turno">2º Turno</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row" data-ativo="1" data-busca="carlos eduardo nascimento rocha 0978" role="button" tabindex="0">
+      <div class="func-av av-foto" style="background-image:url('https://i.pravatar.cc/96?img=53')" role="img" aria-label="Foto de Carlos Eduardo Nascimento Rocha"></div>
+      <div class="func-info">
+        <div class="func-nome">Carlos Eduardo Nascimento Rocha</div>
+        <div class="func-sub">cód: 0978<span class="dot"></span>PREPARAÇÃO</div>
+      </div>
+      <span class="func-turno">3º Turno</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row" data-ativo="1" data-busca="djalma roberto kessler 0102" role="button" tabindex="0">
+      <div class="func-av av-foto" style="background-image:url('https://i.pravatar.cc/96?img=59')" role="img" aria-label="Foto de Djalma Roberto Kessler"></div>
+      <div class="func-info">
+        <div class="func-nome">Djalma Roberto Kessler</div>
+        <div class="func-sub">cód: 0102<span class="dot"></span>QUALIDADE</div>
+      </div>
+      <span class="badge badge--info">Diretor</span>
+      <span class="func-turno">Geral</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row" data-ativo="1" data-busca="gabriela cristina moraes pinto 1230" role="button" tabindex="0">
+      <div class="func-av av-foto" style="background-image:url('https://i.pravatar.cc/96?img=44')" role="img" aria-label="Foto de Gabriela Cristina Moraes Pinto"></div>
+      <div class="func-info">
+        <div class="func-nome">Gabriela Cristina Moraes Pinto</div>
+        <div class="func-sub">cód: 1230<span class="dot"></span>TECELAGEM</div>
+      </div>
+      <span class="badge badge--neutral">Menor Aprendiz</span>
+      <span class="func-turno">1º Turno</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row" data-ativo="1" data-busca="helena beatriz souza campos 1015" role="button" tabindex="0">
+      <div class="func-av">HC</div>
+      <div class="func-info">
+        <div class="func-nome">Helena Beatriz Souza Campos</div>
+        <div class="func-sub">cód: 1015<span class="dot"></span>ACABAMENTO</div>
+      </div>
+      <span class="badge badge--warning">Afastado</span>
+      <span class="func-turno">2º Turno</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row" data-ativo="1" data-busca="joao pedro almeida castro 1198" role="button" tabindex="0">
+      <div class="func-av av-foto" style="background-image:url('https://i.pravatar.cc/96?img=68')" role="img" aria-label="Foto de João Pedro Almeida Castro"></div>
+      <div class="func-info">
+        <div class="func-nome">João Pedro Almeida Castro</div>
+        <div class="func-sub">cód: 1198<span class="dot"></span>EXPEDIÇÃO</div>
+      </div>
+      <span class="func-turno">1º Turno</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row" data-ativo="1" data-busca="rafael augusto klein machado 0892" role="button" tabindex="0">
+      <div class="func-av">RM</div>
+      <div class="func-info">
+        <div class="func-nome">Rafael Augusto Klein Machado</div>
+        <div class="func-sub">cód: 0892<span class="dot"></span>PREPARAÇÃO</div>
+      </div>
+      <span class="func-turno">3º Turno</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+    <article class="func-row func-row--inativo" data-ativo="0" data-busca="vanessa regina oliveira prates 0871" role="button" tabindex="0">
+      <div class="func-av av-foto" style="background-image:url('https://i.pravatar.cc/96?img=31')" role="img" aria-label="Foto de Vanessa Regina Oliveira Prates"></div>
+      <div class="func-info">
+        <div class="func-nome">Vanessa Regina Oliveira Prates</div>
+        <div class="func-sub">cód: 0871<span class="dot"></span>QUALIDADE<span class="dot"></span><span class="func-demit">Demitido em 01/07/2026</span></div>
+      </div>
+      <span class="func-stag">Inativo</span>
+      <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </article>
+
+  </div>
+
+  <div class="empty-mini" id="empty-mini">Nenhum resultado. Tente ajustar a busca ou os filtros.</div>
+
+  <p class="legenda">Quem não tem foto continua com as iniciais no verde de sempre. Nada mais muda na linha: nome, código, setor, badges e turno ficam exatamente onde estão.</p>
+
+</div>
+
+<p class="cap">A foto entra pela mesma função que já veste os outros avatares do gestor (avatarFuncHtml), então a lista pega de graça as fotos oficiais importadas do Drive e as que o colaborador trocou.</p>
+
+<script>
+(function(){
+  var search = document.getElementById("func-search");
+  var chips = Array.prototype.slice.call(document.querySelectorAll(".fchip"));
+  var rows = Array.prototype.slice.call(document.querySelectorAll(".func-row"));
+  var empty = document.getElementById("empty-mini");
+  var list = document.getElementById("func-list");
+  var status = "ativo";
+
+  function aplica(){
+    var q = (search.value || "").toLowerCase().trim();
+    var visiveis = 0;
+    rows.forEach(function(r){
+      var okStatus =
+        status === "todos" ? true :
+        status === "inativo" ? r.dataset.ativo === "0" :
+        r.dataset.ativo === "1";
+      var okBusca = !q || r.dataset.busca.indexOf(q) !== -1;
+      var mostra = okStatus && okBusca;
+      r.style.display = mostra ? "" : "none";
+      if (mostra) visiveis++;
+    });
+    list.style.display = visiveis ? "" : "none";
+    empty.style.display = visiveis ? "none" : "block";
+  }
+
+  chips.forEach(function(c){
+    c.addEventListener("click", function(){
+      chips.forEach(function(x){ x.classList.remove("on"); });
+      c.classList.add("on");
+      status = c.dataset.status;
+      aplica();
+    });
+  });
+  search.addEventListener("input", aplica);
+  aplica();
+})();
+</script>
+</body></html>

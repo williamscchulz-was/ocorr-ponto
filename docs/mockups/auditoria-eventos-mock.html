@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Auditoria de eventos (mock, Portal do Gestor)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== Fundacao FioPulse (copiada de public/styles.css, mock auto-contido) ===== */
+  :root{
+    --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+    --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+    --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+    --success:#2F6B3F; --success-bg:#E0EAD8;
+    --warning:#B27429; --warning-bg:#F8E4C8;
+    --danger:#962F32; --danger-bg:#F4D6D2;
+    --info:#2F5A6B; --info-bg:#D8E6EA;
+    --font:"Poppins",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+    --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+    --transition:180ms cubic-bezier(.4,0,.2,1);
+  }
+  body{background:#070A07;margin:0;padding:30px 18px 80px;font-family:var(--font);color:#EDF3EA}
+  .wrap{max-width:1180px;margin:0 auto}
+  .note{font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65;margin-bottom:26px}
+  .note b{color:#EDF3EA}
+  .note code{background:#1b241a;color:#cfe6c6;padding:1px 6px;border-radius:5px;font-size:12px}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin-top:12px;font-weight:600}
+
+  /* ===== Painel do gestor (claro) ===== */
+  .panel{max-width:940px;margin:0 auto;background:var(--surface);border-radius:16px;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);overflow:hidden;color:var(--text-body)}
+  .panel__h{padding:22px 26px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+  .panel__h h2{margin:0;font-size:21px;color:var(--plum-deep);font-weight:700;letter-spacing:-.01em}
+  .panel__h p{margin:3px 0 0;font-size:12.5px;color:var(--text-muted)}
+  .ro-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text-muted);background:var(--milk-warm);border:1px solid var(--border);border-radius:999px;padding:5px 12px;white-space:nowrap;margin-top:3px}
+  .ro-pill svg{width:12px;height:12px}
+  .panel__b{padding:20px 26px 22px}
+
+  /* cards de resumo */
+  .sums{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .sum{border:1px solid var(--border);border-radius:var(--radius);background:var(--milk-warm);padding:13px 15px}
+  .sum__top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:600;color:var(--text-muted)}
+  .sum__top svg{width:15px;height:15px;color:var(--text-muted);opacity:.7;flex:none}
+  .sum b{display:block;font-size:24px;font-weight:800;line-height:1.15;color:var(--text-body);margin-top:5px;font-variant-numeric:tabular-nums}
+  @media(max-width:720px){.sums{grid-template-columns:repeat(2,1fr)}}
+
+  /* barra de filtros */
+  .fbar{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:16px}
+  .fchip{border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);font:inherit;font-size:12.5px;font-weight:600;border-radius:999px;padding:7px 14px;cursor:pointer;transition:var(--transition)}
+  .fchip:hover{background:var(--surface-warm)}
+  .fchip.on{border-color:var(--plum);background:var(--success-bg);color:var(--plum)}
+  .fbar__gap{flex:1}
+  .fsel{border:1px solid var(--border);border-radius:10px;padding:8px 11px;font:inherit;font-size:12.5px;font-weight:500;color:var(--text-body);background:var(--surface)}
+  .fbusca{position:relative}
+  .fbusca svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-muted);pointer-events:none}
+  .fbusca input{width:210px;box-sizing:border-box;border:1px solid var(--border);border-radius:10px;padding:8px 11px 8px 33px;font:inherit;font-size:12.5px;color:var(--text-body);background:var(--surface)}
+  .fbusca input::placeholder{color:var(--text-muted);opacity:.75}
+  .fbusca input:focus{outline:2px solid rgba(0,136,53,.25);border-color:var(--plum)}
+
+  /* lista agrupada por dia */
+  .grp{margin-bottom:6px}
+  .grp__h{display:flex;align-items:baseline;gap:8px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);padding:12px 2px 7px;border-bottom:1px solid var(--border);margin-bottom:6px}
+  .grp__h em{font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-muted);opacity:.75}
+  .grp__n{margin-left:auto;font-weight:600;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+  .ev{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;text-align:left;background:none;border:0;border-radius:var(--radius);padding:10px 8px;font:inherit;color:var(--text-body);cursor:pointer;transition:var(--transition)}
+  .ev:hover{background:var(--surface-warm)}
+  .ev.oculto{display:none}
+  .ev__badge{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
+  .ev__badge svg{width:17px;height:17px}
+  .ev__av{width:30px;height:30px;border-radius:50%;background:var(--milk-warm);border:1px solid var(--border);color:var(--plum-deep);font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;letter-spacing:.02em}
+  .ev__bd{flex:1;min-width:0}
+  .ev__nome{display:block;font-size:13.5px;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ev__desc{display:block;font-size:12px;color:var(--text-muted);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ev__hora{font-size:12.5px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;flex:none}
+  .ev__chev{color:var(--text-muted);opacity:.6;flex:none;display:flex}
+  .ev__chev svg{width:15px;height:15px}
+
+  /* cores dos tipos */
+  .b-login{background:rgba(0,118,190,.10);color:var(--fiobras-blue)}
+  .b-leitura{background:rgba(90,104,88,.12);color:#5A6858}
+  .b-assinatura{background:rgba(0,136,53,.10);color:var(--plum)}
+  .b-conferencia{background:rgba(178,116,41,.12);color:var(--warning)}
+  .b-alteracao{background:rgba(110,75,184,.10);color:#6E4BB8}
+
+  .vazio{display:none;text-align:center;padding:36px 10px;color:var(--text-muted)}
+  .vazio svg{width:26px;height:26px;opacity:.5;margin-bottom:8px}
+  .vazio p{margin:0;font-size:13px}
+
+  /* rodape LGPD do painel */
+  .lgpd{display:flex;align-items:center;gap:9px;margin-top:16px;padding:11px 14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-muted);line-height:1.5}
+  .lgpd svg{width:14px;height:14px;flex:none;opacity:.8}
+
+  /* ===== Modal (padrao do app) ===== */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(31,11,28,.55);display:grid;place-items:center;z-index:200;animation:fadeIn 180ms ease-out;padding:16px}
+  .modal-backdrop[hidden]{display:none}
+  .modal{background:var(--surface);border-radius:var(--radius-xl);max-width:470px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp 220ms cubic-bezier(.4,0,.2,1);color:var(--text-body)}
+  .modal__header{padding:24px 26px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .modal__header h2{font-size:20px;letter-spacing:-.01em;font-weight:700;margin:0;color:var(--plum)}
+  .modal__header p{margin:4px 0 0;font-size:12.5px;color:var(--text-muted)}
+  .modal__close{width:40px;height:40px;border:0;background:none;border-radius:8px;display:grid;place-items:center;color:var(--text-muted);cursor:pointer;transition:var(--transition);flex-shrink:0;font:inherit}
+  .modal__close:hover{background:var(--surface-warm);color:var(--plum)}
+  .modal__close svg{width:17px;height:17px}
+  .modal__body{padding:4px 26px 8px}
+  .modal__footer{padding:14px 26px 22px;display:flex;gap:8px;justify-content:flex-end}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:var(--radius-sm);font:inherit;font-size:14px;font-weight:600;transition:var(--transition);white-space:nowrap;border:1px solid transparent;cursor:pointer}
+  .btn--ghost{background:transparent;color:var(--plum);border-color:var(--border-strong)}
+  .btn--ghost:hover{background:var(--surface-warm)}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+  /* linhas de detalhe do modal */
+  .dr{display:flex;align-items:flex-start;gap:14px;padding:9px 0;border-bottom:1px solid var(--border)}
+  .dr:last-child{border-bottom:0}
+  .dr__l{width:112px;flex:none;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);padding-top:3px}
+  .dr__v{flex:1;min-width:0;font-size:13.5px;line-height:1.45}
+  .mbadge{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;border-radius:999px;padding:5px 12px}
+  .mbadge svg{width:13px;height:13px}
+  .mpessoa{display:flex;align-items:center;gap:10px}
+  .mpessoa .ev__av{width:34px;height:34px;font-size:11.5px}
+  .mpessoa b{display:block;font-size:13.5px;font-weight:600;line-height:1.3}
+  .mpessoa span{display:block;font-size:11.5px;color:var(--text-muted)}
+  .mid{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;background:var(--milk-warm);border:1px solid var(--border);border-radius:7px;padding:4px 9px;color:var(--text-body)}
+  .mnote{display:flex;align-items:center;gap:9px;background:var(--milk-warm);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-size:11.5px;color:var(--text-muted);line-height:1.5;margin:14px 0 4px}
+  .mnote svg{width:14px;height:14px;flex:none;color:var(--plum)}
+</style></head>
+<body><div class="wrap">
+
+<div class="note">
+  <b>Mockup FioPulse · Auditoria (coleção <code>/eventos</code>).</b> Tela nova do Portal do Gestor, desktop, acesso admin: consulta da trilha imutável que o app já grava (logins, leituras de documento, assinaturas de recibo, conferências de ocorrência, alterações de cadastro). Os chips de tipo e a busca por nome <b>filtram de verdade</b>; o período é só visual. Clique numa linha pra abrir o detalhe do evento.
+</div>
+
+<div class="panel">
+  <div class="panel__h">
+    <div>
+      <h2>Auditoria</h2>
+      <p>Trilha imutável de eventos do portal</p>
+    </div>
+    <span class="ro-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Somente leitura</span>
+  </div>
+  <div class="panel__b">
+
+    <div class="sums">
+      <div class="sum"><div class="sum__top"><span>Eventos hoje</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><b>47</b></div>
+      <div class="sum"><div class="sum__top"><span>Logins hoje</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div><b>23</b></div>
+      <div class="sum"><div class="sum__top"><span>Assinaturas em 7 dias</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><b>61</b></div>
+      <div class="sum"><div class="sum__top"><span>Pessoas ativas hoje</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><b>19</b></div>
+    </div>
+
+    <div class="fbar" id="fbar">
+      <button class="fchip on" data-t="todos">Todos</button>
+      <button class="fchip" data-t="login">Login</button>
+      <button class="fchip" data-t="leitura">Leitura</button>
+      <button class="fchip" data-t="assinatura">Assinatura</button>
+      <button class="fchip" data-t="conferencia">Conferência</button>
+      <button class="fchip" data-t="alteracao">Alteração</button>
+      <span class="fbar__gap"></span>
+      <select class="fsel" title="Período">
+        <option>Hoje</option>
+        <option>7 dias</option>
+        <option selected>30 dias</option>
+      </select>
+      <span class="fbusca">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="busca" placeholder="Buscar por nome">
+      </span>
+    </div>
+
+    <div id="lista"></div>
+
+    <div class="vazio" id="vazio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <p>Nenhum evento com esses filtros.</p>
+    </div>
+
+    <div class="lgpd">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Acesso restrito à administração. Os registros não podem ser editados nem apagados.
+    </div>
+
+  </div>
+</div>
+<div class="cap">Portal do Gestor · menu Auditoria (só admin enxerga) · consulta da coleção /eventos</div>
+
+<!-- modal de detalhe -->
+<div class="modal-backdrop" id="mBack" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitulo">
+    <div class="modal__header">
+      <div><h2 id="mTitulo">Detalhe do evento</h2><p id="mSub"></p></div>
+      <button class="modal__close" id="mX" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="dr"><span class="dr__l">Tipo</span><span class="dr__v" id="mTipo"></span></div>
+      <div class="dr"><span class="dr__l">Pessoa</span><span class="dr__v" id="mPessoa"></span></div>
+      <div class="dr"><span class="dr__l">Data e hora</span><span class="dr__v" id="mQuando"></span></div>
+      <div class="dr"><span class="dr__l">Dispositivo</span><span class="dr__v" id="mDisp"></span></div>
+      <div class="dr"><span class="dr__l">Plataforma</span><span class="dr__v" id="mPlat"></span></div>
+      <div class="dr"><span class="dr__l">Alvo do evento</span><span class="dr__v" id="mAlvo"></span></div>
+      <div class="dr"><span class="dr__l">ID do evento</span><span class="dr__v"><span class="mid" id="mId"></span></span></div>
+      <div class="mnote">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Registro imutável, gravado pelo próprio aplicativo no momento do evento.
+      </div>
+    </div>
+    <div class="modal__footer"><button class="btn btn--ghost" id="mFechar">Fechar</button></div>
+  </div>
+</div>
+
+</div>
+<script>
+(function(){
+  var ICONES={
+    login:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',
+    leitura:'<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
+    assinatura:'<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+    conferencia:'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    alteracao:'<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>'
+  };
+  var ROTULO={login:'Login',leitura:'Leitura',assinatura:'Assinatura',conferencia:'Conferência',alteracao:'Alteração'};
+  var GRUPOS=[
+    {k:'hoje',lbl:'Hoje',sub:'quinta, 2 de julho'},
+    {k:'ontem',lbl:'Ontem',sub:'quarta, 1 de julho'},
+    {k:'30jun',lbl:'30 jun 2026',sub:'terça'}
+  ];
+  var DATA_LONGA={hoje:'Quinta-feira, 2 de julho de 2026',ontem:'Quarta-feira, 1 de julho de 2026','30jun':'Terça-feira, 30 de junho de 2026'};
+
+  var EVENTOS=[
+    {dia:'hoje',tipo:'assinatura',nome:'Ana Carolina Souza',papel:'Colaboradora · 1041 · TECELAGEM · 1º turno',desc:'Assinou o recibo de junho de 2026',hora:'09:41',seg:'23',disp:'iPhone 13, Safari',plat:'App instalado',alvo:'recibo 2026-06 folha',id:'evt_9f3ba2c7e1d64a0f'},
+    {dia:'hoje',tipo:'login',nome:'Bruno Henrique Lima',papel:'Colaborador · 1042 · PREPARACAO · 2º turno',desc:'Entrou no portal',hora:'09:12',seg:'08',disp:'Samsung Galaxy A54, Chrome',plat:'App instalado',alvo:'sessão do portal',id:'evt_4c81d20fa6b34e7d'},
+    {dia:'hoje',tipo:'conferencia',nome:'Márcia Regina Deschamps',papel:'Líder · 1º turno',desc:'Conferiu a ocorrência de falta do dia 28/06 e destinou para advertência verbal',hora:'08:57',seg:'41',disp:'Windows 11, Chrome',plat:'Navegador',alvo:'ocorrência de falta, 28/06/2026, funcionário 1052',id:'evt_b7e94a1c3d5f6082'},
+    {dia:'hoje',tipo:'leitura',nome:'Jenifer Caroline Gulart',papel:'Colaboradora · 1088 · ACABAMENTO · 3º turno',desc:'Leu o comunicado Férias coletivas',hora:'08:30',seg:'55',disp:'Motorola Moto G84, Chrome',plat:'App instalado',alvo:'comunicado Férias coletivas',id:'evt_e2a56f8b9c0d4137'},
+    {dia:'hoje',tipo:'alteracao',nome:'Rosane Kreutzfeld',papel:'RH',desc:'Alterou o turno do funcionário Pedro Alves',hora:'08:14',seg:'02',disp:'Windows 11, Edge',plat:'Navegador',alvo:'cadastro do funcionário 1077, Pedro Alves',id:'evt_71f0c3e8a2b95d46'},
+    {dia:'hoje',tipo:'login',nome:'Márcia Regina Deschamps',papel:'Líder · 1º turno',desc:'Entrou no portal',hora:'07:58',seg:'19',disp:'Windows 11, Chrome',plat:'Navegador',alvo:'sessão do portal',id:'evt_0d3e7b52c891fa64'},
+    {dia:'hoje',tipo:'assinatura',nome:'Carlos Eduardo Furtado',papel:'Colaborador · 1059 · EXPEDICAO · 2º turno',desc:'Assinou o cartão ponto de junho de 2026',hora:'07:22',seg:'37',disp:'iPhone 12, Safari',plat:'App instalado',alvo:'cartão ponto 2026-06',id:'evt_5a2c9e0f7d4b8316'},
+
+    {dia:'ontem',tipo:'leitura',nome:'Pedro Augusto Alves',papel:'Colaborador · 1077 · QUALIDADE · 1º turno',desc:'Leu o documento Regulamento do banco de horas',hora:'17:45',seg:'12',disp:'Samsung Galaxy S23, Chrome',plat:'App instalado',alvo:'documento Regulamento do banco de horas',id:'evt_c4f81a6d2e0b9573'},
+    {dia:'ontem',tipo:'assinatura',nome:'Fernanda Ribeiro Martins',papel:'Colaboradora · 1063 · TECELAGEM · 2º turno',desc:'Assinou o recibo de junho de 2026',hora:'16:03',seg:'48',disp:'iPhone 14, Safari',plat:'App instalado',alvo:'recibo 2026-06 folha',id:'evt_38d0b5c7f6a12e94'},
+    {dia:'ontem',tipo:'conferencia',nome:'Jonas Willrich',papel:'Líder · 2º turno',desc:'Conferiu a ocorrência de atraso do dia 27/06 e dispensou sem ação',hora:'14:20',seg:'30',disp:'Windows 11, Chrome',plat:'Navegador',alvo:'ocorrência de atraso, 27/06/2026, funcionário 1063',id:'evt_9b6e2f4a8c1d0375'},
+    {dia:'ontem',tipo:'login',nome:'Ana Carolina Souza',papel:'Colaboradora · 1041 · TECELAGEM · 1º turno',desc:'Entrou no portal',hora:'13:36',seg:'06',disp:'iPhone 13, Safari',plat:'App instalado',alvo:'sessão do portal',id:'evt_f57a3d9e1b8c2046'},
+    {dia:'ontem',tipo:'alteracao',nome:'William Schulz',papel:'Administrador',desc:'Alterou o setor da funcionária Juliana Costa para QUALIDADE',hora:'10:05',seg:'51',disp:'Windows 11, Chrome',plat:'Navegador',alvo:'cadastro da funcionária 1090, Juliana Costa',id:'evt_2e8c5b0a4f7d9613'},
+
+    {dia:'30jun',tipo:'assinatura',nome:'João Vitor Cardoso',papel:'Colaborador · 1105 · PREPARACAO · 3º turno',desc:'Assinou o recibo de junho de 2026',hora:'22:41',seg:'14',disp:'Samsung Galaxy A34, Chrome',plat:'App instalado',alvo:'recibo 2026-06 folha',id:'evt_6d1f8e3a5c2b7409'},
+    {dia:'30jun',tipo:'login',nome:'João Vitor Cardoso',papel:'Colaborador · 1105 · PREPARACAO · 3º turno',desc:'Entrou no portal',hora:'22:38',seg:'59',disp:'Samsung Galaxy A34, Chrome',plat:'App instalado',alvo:'sessão do portal',id:'evt_a09d4c7e2f5b8361'},
+    {dia:'30jun',tipo:'leitura',nome:'Luana Beatriz Ferreira',papel:'Colaboradora · 1071 · ACABAMENTO · 1º turno',desc:'Leu o aviso Parada programada da Tecelagem',hora:'15:12',seg:'27',disp:'iPhone 11, Safari',plat:'App instalado',alvo:'aviso Parada programada da Tecelagem',id:'evt_84b2e6f0d9c35a17'},
+    {dia:'30jun',tipo:'conferencia',nome:'Márcia Regina Deschamps',papel:'Líder · 1º turno',desc:'Conferiu a ocorrência de saída antecipada do dia 26/06 e confirmou para desconto',hora:'11:47',seg:'33',disp:'Windows 11, Chrome',plat:'Navegador',alvo:'ocorrência de saída antecipada, 26/06/2026, funcionário 1041',id:'evt_1c7f0a9b3e6d5284'},
+    {dia:'30jun',tipo:'login',nome:'Rosane Kreutzfeld',papel:'RH',desc:'Entrou no portal',hora:'07:31',seg:'44',disp:'Windows 11, Edge',plat:'Navegador',alvo:'sessão do portal',id:'evt_d3a8f5c14e0b7962'}
+  ];
+
+  function svgTipo(t,extra){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'+(extra||'')+'>'+ICONES[t]+'</svg>';
+  }
+  function iniciais(nome){
+    var p=nome.trim().split(/\s+/);
+    return (p[0][0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase();
+  }
+  function normalizar(s){
+    return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  }
+
+  /* monta a lista agrupada */
+  var lista=document.getElementById('lista');
+  GRUPOS.forEach(function(g){
+    var grp=document.createElement('div');
+    grp.className='grp'; grp.dataset.dia=g.k;
+    grp.innerHTML='<div class="grp__h"><span>'+g.lbl+'</span><em>'+g.sub+'</em><b class="grp__n"></b></div><div class="grp__list"></div>';
+    var box=grp.querySelector('.grp__list');
+    EVENTOS.forEach(function(ev,i){
+      if(ev.dia!==g.k) return;
+      var b=document.createElement('button');
+      b.type='button'; b.className='ev'; b.dataset.i=i; b.dataset.tipo=ev.tipo; b.dataset.nome=normalizar(ev.nome);
+      b.innerHTML=
+        '<span class="ev__badge b-'+ev.tipo+'">'+svgTipo(ev.tipo)+'</span>'+
+        '<span class="ev__av">'+iniciais(ev.nome)+'</span>'+
+        '<span class="ev__bd"><span class="ev__nome">'+ev.nome+'</span><span class="ev__desc">'+ev.desc+'</span></span>'+
+        '<span class="ev__hora">'+ev.hora+'</span>'+
+        '<span class="ev__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>';
+      b.addEventListener('click',function(){abrir(ev,g);});
+      box.appendChild(b);
+    });
+    lista.appendChild(grp);
+  });
+
+  /* filtros */
+  var tipoAtivo='todos';
+  var busca=document.getElementById('busca');
+  function filtrar(){
+    var q=normalizar(busca.value.trim());
+    var total=0;
+    document.querySelectorAll('.grp').forEach(function(grp){
+      var vis=0;
+      grp.querySelectorAll('.ev').forEach(function(row){
+        var ok=(tipoAtivo==='todos'||row.dataset.tipo===tipoAtivo)&&(!q||row.dataset.nome.indexOf(q)>-1);
+        row.classList.toggle('oculto',!ok);
+        if(ok) vis++;
+      });
+      grp.style.display=vis?'':'none';
+      grp.querySelector('.grp__n').textContent=vis+(vis===1?' evento':' eventos');
+      total+=vis;
+    });
+    document.getElementById('vazio').style.display=total?'none':'block';
+  }
+  document.querySelectorAll('#fbar .fchip').forEach(function(ch){
+    ch.addEventListener('click',function(){
+      document.querySelectorAll('#fbar .fchip').forEach(function(c){c.classList.remove('on');});
+      ch.classList.add('on');
+      tipoAtivo=ch.dataset.t;
+      filtrar();
+    });
+  });
+  busca.addEventListener('input',filtrar);
+  filtrar();
+
+  /* modal de detalhe */
+  var back=document.getElementById('mBack');
+  function abrir(ev,g){
+    document.getElementById('mSub').textContent=ROTULO[ev.tipo]+' · '+g.lbl+' às '+ev.hora;
+    document.getElementById('mTipo').innerHTML='<span class="mbadge b-'+ev.tipo+'">'+svgTipo(ev.tipo)+ROTULO[ev.tipo]+'</span>';
+    document.getElementById('mPessoa').innerHTML='<span class="mpessoa"><span class="ev__av">'+iniciais(ev.nome)+'</span><span><b>'+ev.nome+'</b><span>'+ev.papel+'</span></span></span>';
+    document.getElementById('mQuando').textContent=DATA_LONGA[ev.dia]+' às '+ev.hora+':'+ev.seg;
+    document.getElementById('mDisp').textContent=ev.disp;
+    document.getElementById('mPlat').textContent=ev.plat;
+    document.getElementById('mAlvo').textContent=ev.alvo;
+    document.getElementById('mId').textContent=ev.id;
+    back.hidden=false;
+    document.getElementById('mFechar').focus();
+  }
+  function fechar(){back.hidden=true;}
+  document.getElementById('mX').addEventListener('click',fechar);
+  document.getElementById('mFechar').addEventListener('click',fechar);
+  back.addEventListener('click',function(e){if(e.target===back)fechar();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!back.hidden)fechar();});
+})();
+</script>
+</body></html>
