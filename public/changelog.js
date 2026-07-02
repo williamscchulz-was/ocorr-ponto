@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.19.1", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.20.0", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "feat", title: "A tela de Importar recibos ficou moderna: arraste e solte o PDF (ou toque pra escolher), veja o arquivo num card com nome e tamanho, e o Analisar só habilita com arquivo. Tipo e competência lado a lado." },
+      { type: "feat", title: "Identificação mais completa no import: nova fonte de CPF que cobre TODO o quadro, inclusive menores aprendizes (que não têm banco de horas). Ativa assim que o pipeline popular." },
+    ],
+  },
+  {
+    v: "1.19.1", d: "2 jul 2026", aud: "gestor", items: [
       { type: "fix", title: "Corrigido: as janelas de importar recibos, conferência e lote não fechavam no X nem no Cancelar. Fechar a conferência também libera a memória do PDF." },
     ],
   },

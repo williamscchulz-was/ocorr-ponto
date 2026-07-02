@@ -368,6 +368,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ----- identificacao (diretório código→{nome, cpf} de TODOS os ativos · PII) -----
+    // Fonte do casamento CPF→funcionário no import de recibos: cobre quem NÃO tem banco
+    // de horas (ex.: menor aprendiz, que nunca entra em banco-horas-saldos). Populada
+    // pelo pipeline (WKRADAR, Admin SDK). Leitura só admin/RH (LGPD); ninguém escreve
+    // pelo cliente. O CPF daqui NUNCA persiste nos docs do colaborador.
+    match /identificacao/{codigo} {
+      allow read: if isAdmin() || isRH();
+      allow write: if false;
+    }
+
     // ===== Pacote Gestor (ADITIVO) — Comunicados + Documentos institucionais =====
 
     // ----- comunicados (canal oficial 1→N originado no gestor) -----

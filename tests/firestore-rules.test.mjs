@@ -33,6 +33,8 @@ before(async () => {
     await setDoc(doc(db, "ocorrencias/o200"), { funcionarioId: "f-200", funcionarioTurno: 2, tipo: "falta", acao: null, dataConferencia: null });
     // chave REAL de producao: codigo CRU (banco-horas-saldos/{codigo}), sem o prefixo f-
     await setDoc(doc(db, "banco-horas-saldos/100"), { cpf: "000.000.000-00", saldoMin: 150 });
+    // identificacao: diretório código→{nome,cpf} de TODOS (inclui quem não tem BH, ex. aprendiz)
+    await setDoc(doc(db, "identificacao/1200"), { nome: "Lavinia Coelho", cpf: "111.222.333-44" });
     await setDoc(doc(db, "banco-horas-self/100"), { saldoMin: 30, saldoFormatado: "+00:30" });
     await setDoc(doc(db, "banco-horas-self/200"), { saldoMin: -24, saldoFormatado: "-00:24" });
 
@@ -123,6 +125,14 @@ test("colaborador NÃO lê banco-horas-saldos (PII, nem o próprio)", async () =
   assertFails(getDoc(doc(colab(), "banco-horas-saldos/100"))));
 test("RH lê banco-horas-saldos (sem regressão)", async () =>
   assertSucceeds(getDoc(doc(rh(), "banco-horas-saldos/100"))));
+
+// ---- identificacao (diretório código→{nome,cpf} · PII · pipeline) ----
+test("RH lê identificacao (fonte do casamento por CPF)", async () =>
+  assertSucceeds(getDoc(doc(rh(), "identificacao/1200"))));
+test("colaborador NÃO lê identificacao (PII)", async () =>
+  assertFails(getDoc(doc(colab(), "identificacao/1200"))));
+test("ninguém escreve identificacao pelo cliente (só pipeline)", async () =>
+  assertFails(setDoc(doc(rh(), "identificacao/9999"), { nome: "X", cpf: "000" })));
 
 // ---- banco-horas-self (saldo SELF, SEM PII · doc por código) ----
 test("colaborador LÊ o próprio banco-horas-self (codigo coagido)", async () =>

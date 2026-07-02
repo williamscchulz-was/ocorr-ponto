@@ -1432,21 +1432,31 @@
     // vive na subcoleção arquivo/pdf — a lista lê só o pai, o arquivo vem sob demanda.
     // Colaborador lê SÓ o dele (rule SELF); admin/RH gerenciam (cap recibos.gerenciar).
 
-    // CPF -> funcionarioId a partir de banco-horas-saldos (admin/RH only). TRANSITÓRIO:
-    // vive só na memória do navegador do gestor durante o import, pra rotear as páginas.
-    // O CPF NUNCA persiste no doc do recibo (LGPD).
+    // CPF -> funcionarioId (admin/RH only). DUAS fontes, ambas chaveadas pelo código
+    // CRU (ex.: "1041"; o funcionarioId do app = "f-"+codigo, diferente de bancoHoras):
+    //   1) /identificacao: diretório de TODOS os ativos (pipeline) — cobre quem não tem
+    //      banco de horas (ex.: menor aprendiz). Tem PRECEDÊNCIA.
+    //   2) /banco-horas-saldos: fallback (só quem participa de BH).
+    // TRANSITÓRIO: vive só na memória do navegador do gestor durante o import, pra
+    // rotear as páginas. O CPF NUNCA persiste no doc do recibo (LGPD).
     window.carregarMapaCpf = async function () {
       const u = currentUser();
       if (!u || (u.role !== "admin" && u.role !== "rh")) return null;
       try {
-        const snap = await db.collection("banco-horas-saldos").get();
+        const [bhSnap, idSnap] = await Promise.all([
+          db.collection("banco-horas-saldos").get().catch((e) => { debug?.("[recibos] saldos:", e?.message || e); return null; }),
+          db.collection("identificacao").get().catch((e) => { debug?.("[recibos] identificacao:", e?.message || e); return null; }),
+        ]);
         const mapa = {};
-        for (const d of snap.docs) {
-          const cpf = String(d.data().cpf || "").replace(/\D/g, "");
-          // ATENÇÃO à chave: banco-horas-saldos/{codigo} é o código CRU (ex.: "1041"),
-          // diferente de bancoHoras/{f-codigo}. O funcionarioId do app = "f-"+codigo.
-          if (cpf.length === 11) mapa[cpf] = "f-" + d.id;
-        }
+        const absorve = (snap) => {
+          if (!snap) return;
+          for (const d of snap.docs) {
+            const cpf = String(d.data().cpf || "").replace(/\D/g, "");
+            if (cpf.length === 11) mapa[cpf] = "f-" + d.id;
+          }
+        };
+        absorve(bhSnap);
+        absorve(idSnap); // por último = sobrepõe (fonte mais completa)
         return mapa;
       } catch (e) { debug?.("[recibos] mapa cpf:", e?.message || e); return null; }
     };

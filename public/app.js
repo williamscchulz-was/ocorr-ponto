@@ -6504,22 +6504,58 @@ function openReciboImportModal() {
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
-      <div class="field"><label>Unidade</label><input type="text" value="FIOBRAS LTDA" disabled></div>
-      <div class="form-row">
+      <div class="rcb-imp-uni"><span class="rcb-uni-chip">${icon("check")}<span>FIOBRAS LTDA</span></span></div>
+      <div class="rcb-imp-row">
         <div class="field"><label for="rcb-tipo">Tipo do arquivo</label>
           <select id="rcb-tipo"><option value="recibo">Recibo de pagamento</option><option value="cartao-ponto">Cartão ponto</option></select>
         </div>
         <div class="field"><label for="rcb-comp">Competência</label><input type="month" id="rcb-comp" value="${compDefault}"></div>
       </div>
-      <div class="field"><label for="rcb-file">Arquivo (PDF da folha)</label><input type="file" id="rcb-file" accept="application/pdf"></div>
+      <input type="file" id="rcb-file" accept="application/pdf" hidden>
+      <div class="rcb-drop" id="rcb-drop" role="button" tabindex="0" aria-label="Escolher o PDF da folha">
+        <span class="rcb-drop__ic">${icon("upload")}</span>
+        <span class="rcb-drop__tx"><b>Escolha o PDF da folha</b><span>ou arraste e solte o arquivo aqui</span></span>
+      </div>
+      <div class="rcb-filecard" id="rcb-filecard" hidden>
+        <span class="rcb-filecard__ic">${icon("file")}</span>
+        <span class="rcb-filecard__bd"><b id="rcb-file-nome"></b><span id="rcb-file-info"></span></span>
+        <button class="com-mini" id="rcb-file-trocar" aria-label="Trocar o arquivo" title="Trocar o arquivo">${icon("x")}</button>
+      </div>
       <p class="rcb-hint">${icon("info")} Identificação por CPF (está em toda página), com nome e código do cadastro como reforço. Nada é gravado antes da conferência.</p>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
         <button class="btn btn--ghost" data-close>Cancelar</button>
-        <button class="btn btn--primary" id="rcb-analisar">${icon("search")}<span>Analisar</span></button>
+        <button class="btn btn--primary" id="rcb-analisar" disabled>${icon("search")}<span>Analisar</span></button>
       </div>
     </div>`);
   // Convenção do projeto: cada modal liga o próprio [data-close] (X e Cancelar).
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+
+  // Dropzone: clique/Enter abre o seletor; arrastar e soltar também vale. Depois de
+  // escolhido, a zona vira um card com nome + tamanho e um X pra trocar.
+  const inp = $("#rcb-file"), drop = $("#rcb-drop"), card = $("#rcb-filecard");
+  const fmtTam = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1).replace(".", ",") + " MB" : Math.max(1, Math.round(n / 1024)) + " KB");
+  const refletirArquivo = () => {
+    const f = inp.files && inp.files[0];
+    drop.hidden = !!f; card.hidden = !f;
+    const btn = $("#rcb-analisar"); if (btn) btn.disabled = !f;
+    if (f) {
+      $("#rcb-file-nome").textContent = f.name;
+      $("#rcb-file-info").textContent = `${fmtTam(f.size)} · PDF`;
+    }
+  };
+  drop.addEventListener("click", () => inp.click());
+  drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inp.click(); } });
+  ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("is-over"); }));
+  ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("is-over"); }));
+  drop.addEventListener("drop", (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    if (!(f.type === "application/pdf" || /\.pdf$/i.test(f.name || ""))) return toast("Só PDF aqui. Arraste o arquivo da folha.", "danger");
+    const dt = new DataTransfer(); dt.items.add(f); inp.files = dt.files;
+    refletirArquivo();
+  });
+  inp.addEventListener("change", refletirArquivo);
+  $("#rcb-file-trocar")?.addEventListener("click", () => { inp.value = ""; refletirArquivo(); });
   $("#rcb-analisar")?.addEventListener("click", rcbAnalisar);
 }
 
@@ -11562,7 +11598,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.19.1";
+window.CURRENT_VERSION = "1.20.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
