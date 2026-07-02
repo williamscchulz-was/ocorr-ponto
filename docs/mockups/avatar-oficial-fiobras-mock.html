@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Avatar oficial Fiobras (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== Fundação FioPulse (copiada de public/styles.css, mock auto-contido) ===== */
+  :root{
+    --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+    --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text-body:#1E2D1A; --text-muted:#4A6245;
+    --success:#2F6B3F; --success-bg:#E0EAD8;
+    --warning:#B27429; --warning-bg:#F8E4C8; --warning-ink:#7A4A12;
+    --danger:#962F32; --danger-bg:#F4D6D2;
+    --info:#2F5A6B; --info-bg:#D8E6EA;
+    --radius-sm:8px; --radius:12px;
+    --transition:180ms cubic-bezier(.4,0,.2,1);
+    --row-hover:#FAFCF9;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Poppins,ui-sans-serif,system-ui,sans-serif;background:#0d130d;margin:0;padding:34px 18px 70px;color:#EDF3EA}
+  .note{max-width:860px;margin:0 auto 24px;font-size:13px;color:#b9c7b2;background:#10160f;border:1px dashed #2a332a;border-radius:12px;padding:12px 16px;line-height:1.6}
+  .note b{color:#edf3ea}
+  .cap{max-width:860px;margin:10px auto 0;text-align:center;font-size:12px;color:#8fa08a;font-weight:600;line-height:1.6}
+
+  .screen{max-width:860px;margin:0 auto;background:var(--bg);border-radius:18px;padding:26px 28px 24px;color:var(--text-body);box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
+
+  .page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:8px;flex-wrap:wrap}
+  .page-header h1{font-size:21px;letter-spacing:-.02em;margin:0;color:var(--text-body);font-weight:700}
+  .page-header p{margin:2px 0 0;color:var(--text-muted);font-size:12.5px}
+
+  .sec{margin-top:26px}
+  .sec-head{margin-bottom:14px}
+  .sec-head h2{font-size:15.5px;font-weight:700;margin:0;letter-spacing:-.01em;color:var(--text-body)}
+  .sec-head p{margin:3px 0 0;font-size:12.5px;color:var(--text-muted)}
+  .legenda{font-size:11.5px;color:var(--text-muted);text-align:center;margin:14px 4px 0;line-height:1.6}
+
+  /* ===== Avatares (base redonda em vários tamanhos) ===== */
+  .av{border-radius:50%;overflow:hidden;position:relative;flex:none;background:var(--milk-warm);box-shadow:inset 0 0 0 1px rgba(20,45,20,.08)}
+  .av-40{width:40px;height:40px}
+  .av-48{width:48px;height:48px}
+  .av-56{width:56px;height:56px}
+  .av-72{width:72px;height:72px}
+  .av-96{width:96px;height:96px}
+  .av svg{display:block;width:100%;height:100%}
+  .av-foto-c{background-size:155%;background-position:50% 30%;background-repeat:no-repeat}
+
+  /* Avatar com as 3 variantes empilhadas; a opção escolhida decide qual aparece */
+  .av-multi .av-a,.av-multi .av-b,.av-multi .av-c{position:absolute;inset:0;width:100%;height:100%;display:none}
+  .av-multi .av-a{background-size:155%;background-position:50% 30%;background-repeat:no-repeat}
+  body[data-opcao="a"] .av-multi .av-a{display:block}
+  body[data-opcao="b"] .av-multi .av-b{display:block}
+  body[data-opcao="c"] .av-multi .av-c{display:block}
+
+  /* ===== Tira do tratamento (3 passos) ===== */
+  .trat{display:flex;align-items:stretch;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 14px 18px;flex-wrap:wrap;justify-content:center}
+  .passo{flex:1 1 0;min-width:170px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:4px 10px}
+  .passo__tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);background:var(--milk-warm);border-radius:999px;padding:3px 11px}
+  .passo__tag--on{background:var(--success-bg);color:var(--plum-deep)}
+  .passo__nome{font-size:13px;font-weight:600;color:var(--text-body)}
+  .passo__cap{font-size:11.5px;color:var(--text-muted);line-height:1.5;max-width:210px}
+  .trat-seta{align-self:center;color:#b9c6b1;width:20px;height:20px;flex:none}
+  @media (max-width:640px){.trat-seta{transform:rotate(90deg)}}
+
+  /* Foto "como chega do Drive": pessoa pequena e num canto, ambiente borrado atrás */
+  .foto-orig{width:96px;height:96px;border-radius:50%;overflow:hidden;position:relative;flex:none;background:#cfc8bd;box-shadow:inset 0 0 0 1px rgba(20,45,20,.08)}
+  .foto-orig__amb{position:absolute;inset:-10%;background-size:cover;background-position:62% 12%;filter:blur(8px) saturate(.75) brightness(1.04);transform:scale(1.12)}
+  .foto-orig__img{position:absolute;width:60%;height:60%;left:3%;top:35%;object-fit:cover;
+    -webkit-mask-image:radial-gradient(closest-side,#000 52%,transparent 97%);
+    mask-image:radial-gradient(closest-side,#000 52%,transparent 97%)}
+
+  /* ===== Radio-cards das opções ===== */
+  .opts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:680px){.opts{grid-template-columns:1fr}}
+  .opt{position:relative;display:flex;flex-direction:column;gap:10px;align-items:flex-start;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 16px 15px;cursor:pointer;transition:var(--transition);text-align:left;font:inherit;color:var(--text-body)}
+  .opt:hover{border-color:var(--border-strong);background:var(--row-hover)}
+  .opt:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(0,136,53,.25)}
+  .opt.on{border-color:var(--plum);box-shadow:0 0 0 3px rgba(0,136,53,.10);background:var(--surface)}
+  .opt__radio{position:absolute;top:14px;right:14px;width:18px;height:18px;border-radius:50%;border:2px solid var(--border-strong);transition:var(--transition);background:var(--surface)}
+  .opt.on .opt__radio{border-color:var(--plum);background:radial-gradient(circle,var(--plum) 0 42%,transparent 48%)}
+  .opt__letra{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted)}
+  .opt.on .opt__letra{color:var(--plum-deep)}
+  .opt__nome{font-size:14px;font-weight:700;letter-spacing:-.01em}
+  .opt__cap{display:block;font-size:12px;color:var(--text-muted);line-height:1.55;margin:0}
+
+  /* ===== Contexto: lista + popup + perfil ===== */
+  .contexto{display:grid;grid-template-columns:1.45fr 1fr;gap:14px;align-items:start}
+  @media (max-width:760px){.contexto{grid-template-columns:1fr}}
+  .mini-cards{display:flex;flex-direction:column;gap:16px}
+  .mini-cap{font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px;line-height:1.5}
+
+  /* Lista de funcionários (mesma anatomia do mock aprovado) */
+  .func-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .func-row{display:flex;align-items:center;gap:14px;width:100%;padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--transition);font-variant-numeric:tabular-nums}
+  .func-row:last-child{border-bottom:0}
+  .func-row:hover{background:var(--row-hover)}
+  .func-info{flex:1;min-width:0}
+  .func-nome{font-size:14.5px;font-weight:600;color:var(--text-body)}
+  .func-sub{font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .func-sub .dot{width:3px;height:3px;border-radius:50%;background:#c2cdba;display:inline-block}
+  .func-turno{font-size:11.5px;font-weight:600;color:var(--text-muted);background:var(--milk-warm);border-radius:6px;padding:3px 9px;flex-shrink:0}
+  .func-chev{width:18px;height:18px;color:#b9c6b1;flex-shrink:0;transition:var(--transition)}
+  .func-row:hover .func-chev{transform:translateX(3px);color:var(--plum-soft)}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;flex-shrink:0}
+  .badge--neutral{background:var(--surface-warm);color:var(--text-muted)}
+
+  /* Popup do banco de horas e cartão de perfil */
+  .pop{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 18px 40px -18px rgba(20,40,20,.28);padding:16px}
+  .pop__titulo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:0 0 12px}
+  .pop__pessoa{display:flex;align-items:center;gap:12px}
+  .pop__nome{font-size:13.5px;font-weight:600;color:var(--text-body);line-height:1.3}
+  .pop__meta{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+  .pop__saldo{font-size:26px;font-weight:700;color:var(--success);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:12px;line-height:1}
+  .pop__sub{font-size:11px;color:var(--text-muted);margin-top:5px}
+  .perfil{display:flex;align-items:center;gap:14px}
+  .perfil__nome{font-size:15px;font-weight:700;color:var(--text-body);letter-spacing:-.01em}
+  .perfil__meta{font-size:12px;color:var(--text-muted);margin-top:3px}
+
+  /* ===== Regras do tratamento ===== */
+  .regras{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px 18px}
+  .regra{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text-muted);line-height:1.55;align-items:flex-start}
+  .regra:last-child{border-bottom:0}
+  .regra .icon{width:16px;height:16px;color:var(--plum);flex:none;margin-top:2px}
+  .regra b{color:var(--text-body);font-weight:600}
+
+  @media (max-width:640px){
+    .screen{padding:18px 14px}
+    .passo{min-width:140px}
+  }
+</style></head>
+<body data-opcao="b">
+
+<!-- ============================================================
+     ASSET REUTILIZÁVEL: fundo bandeira Fiobras (recriação em SVG
+     da imagem de referência do William: faixas onduladas diagonais
+     em tons de verde + grão sutil via feTurbulence) e fundo liso.
+     Silhuetas de busto usadas só neste mock, no lugar da foto real.
+     ============================================================ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gb-base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1AA34F"/>
+      <stop offset=".55" stop-color="#008835"/>
+      <stop offset="1" stop-color="#0B6B2F"/>
+    </linearGradient>
+    <linearGradient id="gl-base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14A04A"/>
+      <stop offset=".6" stop-color="#008835"/>
+      <stop offset="1" stop-color="#077230"/>
+    </linearGradient>
+    <radialGradient id="gb-luz" cx=".32" cy=".18" r=".95">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".15"/>
+      <stop offset=".55" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="gb-grao" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35" intercept="0"/></feComponentTransfer>
+    </filter>
+
+    <g id="fundo-bandeira">
+      <rect width="100" height="100" fill="url(#gb-base)"/>
+      <path d="M-10 30 C 12 14, 34 36, 58 22 C 76 12, 92 18, 110 4 L 110 -12 L -10 -12 Z" fill="#1AA34F" opacity=".32"/>
+      <path d="M-10 47 C 14 32, 36 54, 60 40 C 78 30, 94 36, 110 22" fill="none" stroke="#1AA34F" stroke-width="2.5" opacity=".35"/>
+      <path d="M-10 66 C 12 50, 30 76, 52 60 C 72 46, 86 54, 110 36 L 110 112 L -10 112 Z" fill="#0B6B2F" opacity=".7"/>
+      <path d="M-10 82 C 14 68, 36 92, 60 76 C 78 64, 92 70, 110 54 L 110 112 L -10 112 Z" fill="#1AA34F" opacity=".42"/>
+      <rect width="100" height="100" fill="url(#gb-luz)"/>
+      <rect width="100" height="100" filter="url(#gb-grao)" opacity=".35"/>
+    </g>
+
+    <g id="fundo-liso">
+      <rect width="100" height="100" fill="url(#gl-base)"/>
+      <rect width="100" height="100" fill="url(#gb-luz)"/>
+    </g>
+
+    <g id="busto-a">
+      <ellipse cx="50" cy="108" rx="36" ry="34" fill="#37423B"/>
+      <rect x="43" y="48" width="14" height="26" rx="6" fill="#B0714E"/>
+      <circle cx="50" cy="40" r="16.5" fill="#C68863"/>
+      <path d="M33.5 40 C33.5 27 40.5 22.8 50 22.8 C59.5 22.8 66.5 27 66.5 40 C66.5 41.6 66.2 43 65.8 44 C64.6 36.6 59.4 32.4 50 32.4 C40.6 32.4 35.4 36.6 34.2 44 C33.8 43 33.5 41.6 33.5 40 Z" fill="#2E241E"/>
+    </g>
+    <g id="busto-b">
+      <path d="M29 92 C26.5 62 29.5 43 34.5 34 C38.5 25.5 43.8 20.6 50 20.6 C56.2 20.6 61.5 25.5 65.5 34 C70.5 43 73.5 62 71 92 Z" fill="#4A3423"/>
+      <ellipse cx="50" cy="108" rx="35" ry="33" fill="#566063"/>
+      <rect x="44" y="48" width="12" height="26" rx="5" fill="#D89F72"/>
+      <circle cx="50" cy="40" r="15.5" fill="#E8B48E"/>
+      <path d="M34.5 41 C33.6 28.5 40 23 50 23 C60 23 66.4 28.5 65.5 41 C63.8 33.6 58.8 30.2 50 30.2 C41.2 30.2 36.2 33.6 34.5 41 Z" fill="#4A3423"/>
+    </g>
+    <g id="busto-c">
+      <ellipse cx="50" cy="108" rx="36" ry="34" fill="#4C555E"/>
+      <rect x="43" y="48" width="14" height="26" rx="6" fill="#5C3A26"/>
+      <circle cx="50" cy="40" r="16.5" fill="#6B4630"/>
+      <path d="M34 39 C34 27.5 40.8 23.4 50 23.4 C59.2 23.4 66 27.5 66 39 C63.8 32 58.6 28.8 50 28.8 C41.4 28.8 36.2 32 34 39 Z" fill="#171310"/>
+    </g>
+    <g id="busto-d">
+      <circle cx="50" cy="20" r="7" fill="#2E2018"/>
+      <ellipse cx="50" cy="108" rx="35" ry="33" fill="#2F3A44"/>
+      <rect x="44" y="48" width="12" height="26" rx="5" fill="#B87F5C"/>
+      <circle cx="50" cy="40" r="15.5" fill="#C98F68"/>
+      <path d="M34.5 40 C33.8 27.5 40.5 22.6 50 22.6 C59.5 22.6 66.2 27.5 65.5 40 C63.6 32.8 58.6 29.6 50 29.6 C41.4 29.6 36.4 32.8 34.5 40 Z" fill="#2E2018"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="note"><b>Mockup FioPulse · Avatar oficial Fiobras.</b> Hoje a foto do Drive entra crua no app: rosto pequeno, descentralizado e cada fundo de um jeito. A proposta é um tratamento automático no pipeline que centraliza o rosto e pode colocar o fundo da marca atrás da pessoa: compare as 3 opções abaixo e veja o app inteiro mudar junto.</div>
+
+<div class="screen">
+
+  <header class="page-header">
+    <div>
+      <h1>Avatar oficial Fiobras</h1>
+      <p>Tratamento automático das fotos importadas do Drive, pra aprovação.</p>
+    </div>
+  </header>
+
+  <!-- ===== 1. O tratamento ===== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>O tratamento</h2>
+      <p>O que a rotina faz com cada foto, na ordem.</p>
+    </div>
+
+    <div class="trat">
+      <div class="passo">
+        <span class="passo__tag">Original</span>
+        <div class="foto-orig" role="img" aria-label="Foto original: rosto pequeno num canto, fundo aleatório">
+          <div class="foto-orig__amb" style="background-image:url('https://i.pravatar.cc/300?img=68')"></div>
+          <img class="foto-orig__img" src="https://i.pravatar.cc/300?img=68" alt="">
+        </div>
+        <div class="passo__nome">Como chega do Drive</div>
+        <div class="passo__cap">Rosto pequeno num canto do quadro, fundo aleatório de onde a foto foi tirada.</div>
+      </div>
+
+      <svg class="trat-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+
+      <div class="passo">
+        <span class="passo__tag passo__tag--on">Passo 1</span>
+        <div class="av av-96 av-foto-c" style="background-image:url('https://i.pravatar.cc/300?img=68')" role="img" aria-label="Mesma foto com o rosto centralizado"></div>
+        <div class="passo__nome">Rosto centralizado</div>
+        <div class="passo__cap">A rotina encontra o rosto e reenquadra: crop fechado, olhos na mesma altura em todo avatar.</div>
+      </div>
+
+      <svg class="trat-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+
+      <div class="passo">
+        <span class="passo__tag passo__tag--on">Passo 2</span>
+        <div class="av av-96" role="img" aria-label="Busto recortado sobre o fundo bandeira Fiobras">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-bandeira"/><use href="#busto-a"/></svg>
+        </div>
+        <div class="passo__nome">Fundo da marca</div>
+        <div class="passo__cap">A pessoa é recortada do fundo original e ganha a bandeira Fiobras atrás, igual pra todo mundo.</div>
+      </div>
+    </div>
+
+    <p class="legenda">No app entra a foto real da pessoa, recortada automaticamente. As silhuetas deste mock são só ilustração, pra mostrar o efeito do recorte sobre o fundo da marca.</p>
+  </section>
+
+  <!-- ===== 2. As opções ===== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>As opções</h2>
+      <p>Clique numa opção: a lista, o popup e o perfil logo abaixo mudam na hora.</p>
+    </div>
+
+    <div class="opts" role="radiogroup" aria-label="Opções de tratamento do avatar">
+      <button type="button" class="opt" role="radio" aria-checked="false" data-opcao="a">
+        <span class="opt__radio" aria-hidden="true"></span>
+        <span class="av av-56 av-foto-c" style="background-image:url('https://i.pravatar.cc/300?img=68')" aria-hidden="true"></span>
+        <span class="opt__letra">Opção A</span>
+        <span class="opt__nome">Só centralizar</span>
+        <span class="opt__cap">Rosto centralizado, fundo original da foto mantido. O tratamento mais simples e o mais fiel à foto.</span>
+      </button>
+
+      <button type="button" class="opt on" role="radio" aria-checked="true" data-opcao="b">
+        <span class="opt__radio" aria-hidden="true"></span>
+        <span class="av av-56" aria-hidden="true">
+          <svg viewBox="0 0 100 100"><use href="#fundo-bandeira"/><use href="#busto-a"/></svg>
+        </span>
+        <span class="opt__letra">Opção B</span>
+        <span class="opt__nome">Fundo da marca</span>
+        <span class="opt__cap">Rosto recortado sobre a bandeira Fiobras. Visual de crachá oficial, uniforme pra empresa inteira.</span>
+      </button>
+
+      <button type="button" class="opt" role="radio" aria-checked="false" data-opcao="c">
+        <span class="opt__radio" aria-hidden="true"></span>
+        <span class="av av-56" aria-hidden="true">
+          <svg viewBox="0 0 100 100"><use href="#fundo-liso"/><use href="#busto-a"/></svg>
+        </span>
+        <span class="opt__letra">Opção C</span>
+        <span class="opt__nome">Fundo liso</span>
+        <span class="opt__cap">Rosto recortado sobre o verde da marca com gradiente sutil. Uniforme e minimalista, o fundo não disputa com o rosto.</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== 3. Como fica no app ===== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Como fica no app</h2>
+      <p>As mesmas telas de sempre, com a opção selecionada aplicada.</p>
+    </div>
+
+    <div class="contexto">
+      <div>
+        <div class="func-list">
+
+          <article class="func-row" role="button" tabindex="0">
+            <div class="av av-40 av-multi" role="img" aria-label="Foto de Ana Carolina Ferreira Duarte">
+              <div class="av-a" style="background-image:url('https://i.pravatar.cc/300?img=47')"></div>
+              <svg class="av-b" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-bandeira"/><use href="#busto-b"/></svg>
+              <svg class="av-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-liso"/><use href="#busto-b"/></svg>
+            </div>
+            <div class="func-info">
+              <div class="func-nome">Ana Carolina Ferreira Duarte</div>
+              <div class="func-sub">cód: 1041<span class="dot"></span>TECELAGEM</div>
+            </div>
+            <span class="func-turno">1º Turno</span>
+            <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </article>
+
+          <article class="func-row" role="button" tabindex="0">
+            <div class="av av-40 av-multi" role="img" aria-label="Foto de João Pedro Almeida Castro">
+              <div class="av-a" style="background-image:url('https://i.pravatar.cc/300?img=68')"></div>
+              <svg class="av-b" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-bandeira"/><use href="#busto-a"/></svg>
+              <svg class="av-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-liso"/><use href="#busto-a"/></svg>
+            </div>
+            <div class="func-info">
+              <div class="func-nome">João Pedro Almeida Castro</div>
+              <div class="func-sub">cód: 1198<span class="dot"></span>EXPEDIÇÃO</div>
+            </div>
+            <span class="func-turno">1º Turno</span>
+            <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </article>
+
+          <article class="func-row" role="button" tabindex="0">
+            <div class="av av-40 av-multi" role="img" aria-label="Foto de Carlos Eduardo Nascimento Rocha">
+              <div class="av-a" style="background-image:url('https://i.pravatar.cc/300?img=53')"></div>
+              <svg class="av-b" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-bandeira"/><use href="#busto-c"/></svg>
+              <svg class="av-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-liso"/><use href="#busto-c"/></svg>
+            </div>
+            <div class="func-info">
+              <div class="func-nome">Carlos Eduardo Nascimento Rocha</div>
+              <div class="func-sub">cód: 0978<span class="dot"></span>PREPARAÇÃO</div>
+            </div>
+            <span class="func-turno">3º Turno</span>
+            <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </article>
+
+          <article class="func-row" role="button" tabindex="0">
+            <div class="av av-40 av-multi" role="img" aria-label="Foto de Gabriela Cristina Moraes Pinto">
+              <div class="av-a" style="background-image:url('https://i.pravatar.cc/300?img=44')"></div>
+              <svg class="av-b" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-bandeira"/><use href="#busto-d"/></svg>
+              <svg class="av-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-liso"/><use href="#busto-d"/></svg>
+            </div>
+            <div class="func-info">
+              <div class="func-nome">Gabriela Cristina Moraes Pinto</div>
+              <div class="func-sub">cód: 1230<span class="dot"></span>TECELAGEM</div>
+            </div>
+            <span class="badge badge--neutral">Menor Aprendiz</span>
+            <span class="func-turno">1º Turno</span>
+            <svg class="func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </article>
+
+        </div>
+        <p class="mini-cap">Lista de Funcionários, a mesma do mock aprovado.</p>
+      </div>
+
+      <div class="mini-cards">
+        <div>
+          <div class="pop">
+            <p class="pop__titulo">Banco de horas</p>
+            <div class="pop__pessoa">
+              <div class="av av-48 av-multi" role="img" aria-label="Foto de Ana Carolina Ferreira Duarte">
+                <div class="av-a" style="background-image:url('https://i.pravatar.cc/300?img=47')"></div>
+                <svg class="av-b" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-bandeira"/><use href="#busto-b"/></svg>
+                <svg class="av-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-liso"/><use href="#busto-b"/></svg>
+              </div>
+              <div>
+                <div class="pop__nome">Ana Carolina Ferreira Duarte</div>
+                <div class="pop__meta">1º Turno · TECELAGEM</div>
+              </div>
+            </div>
+            <div class="pop__saldo">+12h 45min</div>
+            <div class="pop__sub">atualizado hoje, 06:12</div>
+          </div>
+          <p class="mini-cap">Popup do banco de horas, avatar ao lado do saldo.</p>
+        </div>
+
+        <div>
+          <div class="pop">
+            <p class="pop__titulo">Perfil do colaborador</p>
+            <div class="perfil">
+              <div class="av av-72 av-multi" role="img" aria-label="Foto de João Pedro Almeida Castro">
+                <div class="av-a" style="background-image:url('https://i.pravatar.cc/300?img=68')"></div>
+                <svg class="av-b" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-bandeira"/><use href="#busto-a"/></svg>
+                <svg class="av-c" viewBox="0 0 100 100" aria-hidden="true"><use href="#fundo-liso"/><use href="#busto-a"/></svg>
+              </div>
+              <div>
+                <div class="perfil__nome">João Pedro Almeida Castro</div>
+                <div class="perfil__meta">cód: 1198 · EXPEDIÇÃO · 1º Turno</div>
+              </div>
+            </div>
+          </div>
+          <p class="mini-cap">Avatar grande de perfil, 72px.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 4. Regras do tratamento ===== -->
+  <section class="sec">
+    <div class="sec-head">
+      <h2>Regras do tratamento</h2>
+      <p>O combinado, sem letra miúda.</p>
+    </div>
+    <div class="regras">
+      <div class="regra">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <div><b>Roda uma vez por foto, no pipeline.</b> A mesma rotina que já importa as fotos do Drive 3x ao dia aplica o tratamento na entrada. Nada acontece em tempo real na tela.</div>
+      </div>
+      <div class="regra">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+        <div><b>Foto que o colaborador escolheu não é tocada.</b> O tratamento vale só pra foto oficial importada. Se a pessoa trocou a própria foto no app, ela fica exatamente como a pessoa deixou.</div>
+      </div>
+      <div class="regra">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div><b>Sem rosto detectável, sem mágica.</b> Se a rotina não encontrar um rosto com confiança, a foto entra como está, sem corte no escuro.</div>
+      </div>
+      <div class="regra">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        <div><b>A original fica guardada.</b> O arquivo cru do Drive continua salvo. Dá pra desfazer o tratamento ou reprocessar tudo quando a opção escolhida mudar.</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<p class="cap">O fundo bandeira e o fundo liso são um único asset SVG reutilizado em todos os avatares deste mock: gradiente da marca, faixas onduladas diagonais e grão leve por feTurbulence. No pipeline, o mesmo desenho é rasterizado atrás do recorte da foto real de cada pessoa.</p>
+
+<script>
+(function(){
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".opt"));
+  function seleciona(card){
+    cards.forEach(function(c){
+      var on = c === card;
+      c.classList.toggle("on", on);
+      c.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    document.body.dataset.opcao = card.dataset.opcao;
+  }
+  cards.forEach(function(c){
+    c.addEventListener("click", function(){ seleciona(c); });
+    c.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); seleciona(c); }
+    });
+  });
+})();
+</script>
+</body></html>
