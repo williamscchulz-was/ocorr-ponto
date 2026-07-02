@@ -970,3 +970,14 @@ Descartei primeiro a hipótese de ser o serviço `wksauto` (William reiniciou, n
 **Dispositivo de auto-recuperação criado** pra não precisar repetir essa investigação manual: `find-and-clear-wk-lock.ps1` (usa a API RestartManager do Windows, a mesma por trás do Monitor de Recursos) + `wk-lock-recovery.mjs`. Regra de segurança rígida: só encerra um processo automaticamente se ele bater OS DOIS critérios — nome numa whitelist conhecida (hoje só `Ponto`) E processo-pai não existe (órfão confirmado). Fora desse padrão exato, nunca mata nada, só loga quem está segurando (nome+PID) pra investigação manual continuar possível. Testado (com um processo de teste, não com o WK de verdade): confirma que NÃO mata quando o nome não bate a whitelist, e mata+libera quando bate.
 
 Aplicado em `update-config-dates.mjs` e `export-ocorrencias.mjs` — os 2 pontos que reescrevem config do WK via rename atômico. Documentado no `WKRADAR-PLAYBOOK.md` com o passo a passo manual (Monitor de Recursos) como fallback, caso o automático não reconheça o padrão numa próxima vez.
+
+
+---
+
+## 2026-07-02 · 🔓 Login de menor aprendiz habilitado no Portal (folha de pagamento)
+
+William pediu pra habilitar login dos menores aprendizes porque precisam ver a própria folha de pagamento (holerite recebido do GP) no Portal do Colaborador.
+
+O código tinha uma exclusão deliberada pra essa categoria (`sync-colaborador-users.mjs`, decisão do próprio William em 2026-06-24 — "Menor aprendiz: NÃO cria e revoga"). Como é dado de menor de idade + informação financeira/salarial sensível (LGPD tem regra especial pra dado de criança/adolescente), não apliquei de primeira — perguntei se isso já tinha sido validado com jurídico/RH antes de reverter a trava. Confirmado que sim, pode liberar.
+
+**Mudança em `sync-colaborador-users.mjs`**: removida a exclusão de `aprendiz` da lógica de `motivoSemAcesso` (Diretoria e Aposentadoria por Invalidez continuam sem acesso, inalterado). Testado com `--dry` antes de aplicar de verdade: **4 aprendizes reativados** (contas já existiam desde antes da regra de 06-24, só estavam revogadas — não foram criadas do zero), 0 erros.
