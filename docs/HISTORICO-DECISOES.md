@@ -936,3 +936,22 @@ William pediu um mockup completo inspirado no "Liquid Glass" da Apple pra Home d
 William pediu pra ver os 3 conceitos originais separados (não só a síntese) e arquivos `.html` de verdade em vez de só o preview inline — gerei os 4 (3 conceitos + síntese) como arquivos standalone que abrem sozinhos no navegador.
 
 **Aprovado**: a direção "profundidade em camadas" — o card de Banco de Horas vira uma "ilha flutuante" com glow radial atrás e uma animação de luz que atravessa a superfície ao tocar/passar o mouse. Copiado pro repo em `docs/mockups/colab-home-liquid-glass-mock.html` e mandado pro PC (`inbox-pc/2026-07-01-mockup-liquid-glass-aprovado-home.md`) como referência visual — é HTML solto, não código real do app, e o William autorizou o PC a remockar/melhorar se tiver ideias melhores (não é uma trava rígida).
+
+
+---
+
+## 2026-07-02 · 🔍 Export de Ocorrências travado desde 30/06 — causa raiz achada e corrigida
+
+William reparou no widget "Status do pipeline" que o export de Banco de Horas estava com 18h de atraso ("1 atenção"). Investigando isso, achei que o pipeline rodou mas o `.exe` do WK travou por timeout (180s) — sem processo zumbi, sem evento de RAID no log do Windows, primeira ocorrência desse tipo no histórico do log. Best-effort, sem impacto grave (autocorrige na próxima rodada).
+
+**Achado maior, junto**: o export de Ocorrências (`ExpAuto_Ocorrencias.txt`) não estava atualizando desde **30/06 14:00** — 12+ rodadas reportando "OK" sem nunca escrever um arquivo novo. William confirmou na tela do Modelador do WK que EXISTEM ocorrências reais de 01/07 e 02/07 batendo os filtros — não era falta de dado.
+
+**Causa raiz** (achada lendo o `.log` que o próprio WK grava ao lado do config, mesma pasta): `WK.WKConsistenciaException: Não existem informações para emissão do relatório.` — o motor de apuração do WK decide "sem dado" pra uma janela muito curta e recente (só os 2 dias do mês corrente) e sai com sucesso (exit 0) sem escrever nada. Nosso script só conferia exit 0 + tamanho do CSV > 50 bytes — nunca detectava isso.
+
+**2 fixes aplicados em `export-ocorrencias.mjs`** (autorizados pelo William):
+1. Compara mtime do CSV antes/depois do `.exe` rodar — se não mudou, falha alto e claro, lendo o `.log` irmão do config e citando a exceção do WK na mensagem de erro (em vez de "OK" silencioso).
+2. `DataInicial` passa a ser 1º do mês **anterior** (não do mês atual) — mesma correção já aplicada hoje cedo em `export-espelho.mjs`/BH. Janela mais larga garante que o WK sempre tenha apuração "fechada" de sobra pra reportar; a regra de go-live no parser já descarta tudo antes de 01/07, então não vaza dado antigo.
+
+**Verificado**: rodei de novo, CSV mudou (17089→19812 bytes), parse foi de 0→3 ocorrências finais de 01/07 — batendo EXATAMENTE (nome, situação, horário) com o que William viu na tela do WK.
+
+**Caso à parte, em acompanhamento**: a ocorrência da Dioneia (f-1244, contratada 29/06) de 01/07 continua ausente do export mesmo já aparecendo na UI do WK — só ela, as outras 3 bateram certinho. Provável atraso de sincronização ligado à contratação muito recente. Criei uma scheduled task (`watch-dioneia-ocorrencia-0701`, roda 15h todo dia) que checa o CSV, avisa só quando resolver (ou depois de 7 dias sem resolver), e se autodesliga quando terminar.

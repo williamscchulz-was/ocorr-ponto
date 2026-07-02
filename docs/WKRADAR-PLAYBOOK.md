@@ -233,3 +233,22 @@ Ao gerar um relatório de ocorrências via **Integrador WK** + `ExportacaoAutoma
 **Implicação:** filtre as situações que interessam **no parser** (código), não confie no filtro do config. No pipeline RH isso é feito no `process-ocorrencias.mjs` (mantém só 32/36/37/38 + regra do Geral + D-1).
 
 **Bônus:** o Integrador **auto-incrementa** o nome do config se já existir (`...Apurações.txt` → `...Apurações1.txt`). E o modelo de export herda o layout do modelo selecionado no Minerador (no caso, o da apuração, com previsto×apurado + saldo — mais rico que o "Relação de Ocorrências" de 9 colunas).
+
+---
+
+## Quirk: ExportacaoAutomatica.exe pode sair OK (exit 0) sem gerar arquivo, se a janela não tiver apuração "fechada" (2026-07-02)
+
+Achado depois de 12+ rodadas do export headless de Ocorrências (`Config_Relatorio_de_Apurações1.txt`) "passarem" (exit 0, CSV existente > 50 bytes) sem NUNCA atualizar o arquivo — ficou preso 2 dias inteiros mesmo com dado real visível na tela do Modelador.
+
+**Causa**: quando a janela `DataInicial`→`DataFinal` é curta e muito recente (ex.: só os 2 primeiros dias do mês corrente, logo após virar o mês), o motor de apuração do WK pode não ter nada "fechado" ainda pra reportar nessa janela específica — mesmo que uma grade/tela "ao vivo" (ex.: Situação) já mostre os registros. Quando isso acontece, o `.exe` grava um `.log` **do lado do arquivo de config** (mesmo nome, extensão `.log` — ex.: `Config_Relatorio_de_Apurações1.log`) com:
+
+```
+Não foi possível exportar o relatório de ExpAuto_Relatorio_de_Apuracoes, WK.WKConsistenciaException:
+Não existem informações para emissão do relatório.
+```
+
+...e sai com **exit code 0** (sucesso), sem tocar no arquivo de saída. Um script que só confere `exit 0` + "arquivo existe e não está vazio" nunca detecta isso — o arquivo antigo continua passando no teste.
+
+**Implicação / mitigação:**
+1. **Sempre confira o `mtime` do arquivo de saída antes/depois de rodar o `.exe`**, não só exit code + tamanho. Se o mtime não avançou, trate como falha e leia o `.log` irmão do config (mesmo nome, `.txt`→`.log`) pra ver se tem uma `WKConsistenciaException` — foi implementado em `export-ocorrencias.mjs` no pipeline RH.
+2. **Alargue a janela de exportação** pra sempre incluir um período com apuração certamente "fechada" (ex.: `DataInicial` = 1º do mês **anterior**, não do mês corrente) — reduz a chance do WK achar "zero apuração" na janela toda. Regras de negócio (ex.: go-live) que decidem o que é *mostrado* pro usuário final continuam sendo aplicadas no parser (código), não no config do WK — a janela mais larga é só pra dar ao WK "algo" pra reportar.
