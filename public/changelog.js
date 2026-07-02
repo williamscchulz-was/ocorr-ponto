@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.18.1", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.19.0", d: "2 jul 2026", current: true, items: [
+      { type: "high", title: "A Home ganhou atalhos no estilo do app do seu banco: uma fileira de botões redondos que rola pro lado (Meu ponto, Folha de pagamento, Avisos, Documentos, Novidades, Conta). Pendência aparece como bolinha no atalho: recibo novo, aviso não lido, documento pra assinar." },
+      { type: "feat", title: "No celular, a barra de baixo ficou mais limpa: Início, Avisos e Conta. O resto está nos atalhos da Home e no menu." },
+      { type: "fix", aud: "gestor", title: "Conferência do import: a leitura do nome ficou tolerante ao jeito que o PDF quebra o texto (menos falsos \"a resolver\"), e o código impresso na página (Cod.) agora vale como confirmação e vira sugestão quando o CPF não resolve." },
+    ],
+  },
+  {
+    v: "1.18.1", d: "2 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "Conferência do import de recibos melhorou: a miniatura agora abre a página inteira ampliada (com navegação entre páginas), o erro mostra o CPF lido, e o \"a resolver\" ganhou busca por nome ou código com sugestão de um toque." },
     ],
   },

@@ -814,17 +814,18 @@ function renderNavColaborador() {
   }));
 }
 
+// Barra de baixo ENXUTA (3 itens · hub estilo Nubank aprovado 2026-07-02): Meu ponto,
+// Folha e Documentos moram nos atalhos da Home e no menu lateral (drawer).
 function renderBottomNavColaborador() {
+  const nAvisos = colabAvisosNaoLidos();
   const items = [
-    { id: "colab-home", label: "Início", icon: "home" },
-    { id: "colab-ponto", label: "Ponto", icon: "clock" },
-    { id: "colab-comunicados", label: "Avisos", icon: "megafone" },
-    { id: "colab-documentos", label: "Docs", icon: "file" },
-    { id: "colab-conta", label: "Conta", icon: "user" },
+    { id: "colab-home", label: "Início", icon: "home", badge: 0 },
+    { id: "colab-comunicados", label: "Avisos", icon: "megafone", badge: nAvisos },
+    { id: "colab-conta", label: "Conta", icon: "user", badge: 0 },
   ];
   $("#bottom-nav").innerHTML = items.map((it) => `
-    <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}">
-      <span class="cp-bn-ic">${cpIcon(it.icon)}</span><span class="cp-bn-lab">${it.label}</span>
+    <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}${it.badge ? ` (${it.badge} não lidos)` : ""}">
+      <span class="cp-bn-ic">${cpIcon(it.icon)}${it.badge ? `<span class="cp-bn-dot">${it.badge > 9 ? "9+" : it.badge}</span>` : ""}</span><span class="cp-bn-lab">${it.label}</span>
     </button>`).join("");
   $$("#bottom-nav .bottom-nav__item").forEach((btn) => btn.addEventListener("click", () => {
     state.view.page = btn.dataset.page; renderApp();
@@ -1135,6 +1136,7 @@ async function abrirReciboColab(id) {
       exigeAssinatura: true,
       anexo: { url: base64, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
     });
+    rcbMarcarVisto(id); // some da bolinha de pendência dos atalhos (local, por navegador)
     window.logEvento?.({ tipo: "recibos", acao: "Abriu recibo", alvo: `${RCB_TIPOS[r.tipo] || r.tipo} · ${r.competencia}` });
   } finally { _rcbAbrindo = false; }
 }
@@ -1447,12 +1449,55 @@ function colabGreetHtml(f, nome) {
   </div>`;
 }
 
+// "Vistos" locais dos recibos (por navegador, igual last-seen-version das Novidades):
+// alimenta as bolinhas de pendência dos atalhos sem precisar de write no banco.
+const _rcbVistosMem = new Set(); // fallback da sessão (iOS modo privado nega localStorage)
+function rcbVistosLocal() {
+  try { return JSON.parse(localStorage.getItem("fiopulse:recibos-vistos") || "[]"); } catch (e) { return []; }
+}
+function rcbMarcarVisto(id) {
+  _rcbVistosMem.add(id); // some da bolinha nesta sessão mesmo se o storage falhar
+  try {
+    const v = rcbVistosLocal();
+    if (!v.includes(id)) { v.push(id); localStorage.setItem("fiopulse:recibos-vistos", JSON.stringify(v.slice(-1000))); }
+  } catch (e) {}
+}
+function rcbNaoVistos(tipo) {
+  const v = rcbVistosLocal();
+  return (state.meusRecibos || []).filter((r) => r.tipo === tipo && !v.includes(r.id) && !_rcbVistosMem.has(r.id)).length;
+}
+function colabAvisosNaoLidos() {
+  return (state.comunicadosColab || []).filter((c) => !c.minhaLeitura).length;
+}
+
+// Fileira de atalhos da Home (hub estilo app de banco, aprovado 2026-07-02): rola pro
+// lado, pendência vira bolinha âmbar no atalho. Mobile; no desktop o menu lateral cobre.
+function colabAtalhosHtml() {
+  const b = (n) => (n > 0 ? `<span class="pp-atl__b">${n > 9 ? "9+" : n}</span>` : "");
+  const itens = [
+    { id: "colab-ponto", label: "Meu ponto", icon: "clock", badge: rcbNaoVistos("cartao-ponto") },
+    { id: "colab-folha", label: "Folha de pagamento", icon: "briefcase", badge: rcbNaoVistos("recibo") },
+    { id: "colab-comunicados", label: "Avisos", icon: "megafone", badge: colabAvisosNaoLidos() },
+    { id: "colab-documentos", label: "Documentos", icon: "file", badge: (state.documentosColab || []).filter(colabDocPendente).length },
+    { id: "colab-roadmap", label: "Novidades", icon: "roadmap", badge: 0 },
+    { id: "colab-conta", label: "Conta", icon: "user", badge: 0 },
+  ];
+  return `<div class="pp-atl">
+    ${itens.map((it) => `
+      <button class="pp-atl__it" data-nav="${it.id}" aria-label="${it.label}${it.badge ? ` (${it.badge} pendente${it.badge > 1 ? "s" : ""})` : ""}">
+        <span class="pp-atl__c">${cpIcon(it.icon)}${b(it.badge)}</span>
+        <span class="pp-atl__l">${it.label}</span>
+      </button>`).join("")}
+  </div>`;
+}
+
 function renderColaboradorHome() {
   const view = $("#view");
   const u = currentUser();
   // Dados reais do próprio funcionário (carregado no boot: state.funcionarios[0] = só o doc dele).
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
+  // noviCard só no desktop (no mobile o atalho "Novidades" do hub cobre; CSS esconde).
   const noviCard = `<button class="pp-novi" data-nav="colab-roadmap">
       <span class="pp-novi__ic">${cpIcon("roadmap")}</span>
       <span class="pp-novi__bd"><span class="pp-novi__t">Novidades</span><span class="pp-novi__s">Veja a evolução do portal e o que chegou</span></span>
@@ -1461,6 +1506,7 @@ function renderColaboradorHome() {
   view.innerHTML = `
     <div class="pp-fade pp-home">
       ${colabGreetHtml(f, nome)}
+      ${colabAtalhosHtml()}
       <div class="pp-home__grid">
         <div class="pp-home__col">
           ${bhHeroHtml(f)}
@@ -6312,6 +6358,34 @@ function rcbFmtCpf(dig) {
   const d = String(dig || "").replace(/\D/g, "");
   return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : d;
 }
+
+// O funcionário do cadastro "bate" com o texto da página? TOLERANTE ao jeito que o
+// pdf.js quebra o texto (um item pode partir palavra no meio e a junção cria espaço
+// espúrio dentro do nome). Três níveis de nome + o código impresso como reforço:
+//   1) nome contíguo ("ALAN CARLOS SANTOS BASTOS")
+//   2) nome contíguo IGNORANDO espaços ("ALANCARLO SSANTOS..." ainda casa)
+//   3) todos os pedaços do nome presentes na página (sem espaços)
+//   4) código do cadastro impresso na página ("Cod.: 1139", cabeçalho do cartão ponto)
+function rcbFuncionarioBateNaPagina(f, textoPagina) {
+  if (!f) return false;
+  const pn = rcbNorm(textoPagina);
+  const pnZ = pn.replace(/ /g, "");
+  const nomeN = rcbNorm(f.nome);
+  if (nomeN && (pn.includes(nomeN) || pnZ.includes(nomeN.replace(/ /g, "")))) return true;
+  const tokens = nomeN.split(" ").filter((t) => t.length >= 2);
+  if (tokens.length && tokens.every((t) => pnZ.includes(t))) return true;
+  const cod = String(f.codigo || "").replace(/\D/g, "");
+  if (cod && new RegExp("COD\\.?:?\\s*0*" + cod + "(?!\\d)").test(pn)) return true;
+  return false;
+}
+
+// Código impresso na página ("Cod.: NNNN") -> funcionário do cadastro. Usado como
+// SUGESTÃO quando o CPF não resolveu (nunca confirma sozinho: o GP decide).
+function rcbFuncionarioPeloCodigoDaPagina(textoPagina) {
+  const m = rcbNorm(textoPagina).match(/COD\.?:?\s*0*(\d{1,6})(?!\d)/);
+  if (!m) return null;
+  return (state.funcionarios || []).find((x) => String(x.codigo || "") === m[1]) || null;
+}
 // Resumo honesto do que deu errado (ou certo) num grupo da conferência.
 function rcbMotivoGrupo(g) {
   if (!g) return "";
@@ -6490,15 +6564,23 @@ async function rcbAnalisar() {
       else grupos.push({ cpf: c, paginas: [i + 1] });
     }
 
-    // Casa CPF→funcionarioId e confere o NOME do cadastro no texto da página (reforço).
+    // Casa CPF→funcionarioId e confere nome/código do cadastro no texto da página
+    // (comparação TOLERANTE às quebras do pdf.js; ver rcbFuncionarioBateNaPagina).
     for (const g of grupos) {
+      const txt = paginas[g.paginas[0] - 1];
       g.funcionarioId = g.cpf ? (mapa[g.cpf] || null) : null;
       const f = g.funcionarioId ? getFuncionario(g.funcionarioId) : null;
       g.nome = f ? f.nome : null;
       g.codigo = f ? (f.codigo || null) : null;
-      g.nomeConfere = !!(f && rcbNorm(paginas[g.paginas[0] - 1]).includes(rcbNorm(f.nome)));
+      g.nomeConfere = rcbFuncionarioBateNaPagina(f, txt);
       g.status = (f && g.nomeConfere) ? "ok" : "resolver";
       g.escolha = null; // resolução manual (funcionarioId ou "ignorar")
+      // Sem CPF resolvido: o código impresso na página ("Cod.: NNNN") vira sugestão.
+      g.sugestaoId = null;
+      if (!g.funcionarioId) {
+        const fc = rcbFuncionarioPeloCodigoDaPagina(txt);
+        if (fc) g.sugestaoId = fc.id;
+      }
     }
 
     // Reforço: o "Período da Folha: M/AAAA" impresso nas páginas tem que bater com a
@@ -6639,9 +6721,11 @@ function rcbComboHtml(g, i) {
     const f = getFuncionario(g.escolha);
     return `<div class="rcb-pick rcb-pick--ok">${icon("check")}<span>${escapeHtml((f && f.nome) || g.escolha)}</span><button class="rcb-pick__undo" data-rcb-limpar="${i}">Trocar</button></div>`;
   }
-  const sug = g.funcionarioId ? getFuncionario(g.funcionarioId) : null;
+  const sugId = g.funcionarioId || g.sugestaoId || null;
+  const sug = sugId ? getFuncionario(sugId) : null;
+  const sugPorque = g.funcionarioId ? "o dono do CPF" : "o código impresso na página";
   return `
-    ${sug ? `<button class="rcb-sug" data-rcb-pick="${i}|${escapeHtml(sug.id)}">${icon("check")}<span>Usar ${escapeHtml(sug.nome)} (o dono do CPF)</span></button>` : ""}
+    ${sug ? `<button class="rcb-sug" data-rcb-pick="${i}|${escapeHtml(sug.id)}">${icon("check")}<span>Usar ${escapeHtml(sug.nome)} (${sugPorque})</span></button>` : ""}
     <div class="rcb-combo">
       <input class="rcb-combo__inp" type="text" placeholder="Buscar por nome ou código" data-rcb-busca="${i}" autocomplete="off">
       <div class="rcb-combo__list" data-rcb-list="${i}" hidden></div>
@@ -11466,7 +11550,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.18.1";
+window.CURRENT_VERSION = "1.19.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
