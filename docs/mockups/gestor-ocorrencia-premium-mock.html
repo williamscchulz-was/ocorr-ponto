@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Mockup: modal premium da ocorrência automática (desktop)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== fundação FioPulse (copiada de public/styles.css) ===== */
+  :root{
+    --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+    --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+    --danger:#962F32; --danger-bg:#F4D6D2;
+    --success:#2F6B3F; --success-bg:#E0EAD8;
+    --warning:#B27429; --warning-bg:#F8E4C8; --warning-ink:#7A4A12;
+    --radius-sm:8px; --radius:12px; --radius-lg:18px; --radius-xl:28px;
+    --shadow-lg:0 16px 50px rgba(0,40,20,.16);
+    --font:'Poppins',system-ui,sans-serif; --font-display:'Poppins',var(--font);
+    --transition:180ms cubic-bezier(.4,0,.2,1);
+  }
+  *{box-sizing:border-box}
+  body{background:#070A07;margin:0;padding:30px 18px 90px;font-family:var(--font);color:#EDF3EA}
+  .wrap{max-width:1080px;margin:0 auto}
+  .note{font-size:13px;color:#b9c7b2;background:#10160F;border:1px dashed #2A332A;border-radius:12px;padding:13px 16px;line-height:1.65;margin-bottom:22px}
+  .note b{color:#EDF3EA}
+  .capbig{font-size:12px;color:#EDF3EA;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:38px 0 14px;padding-bottom:6px;border-bottom:1px solid #1c241b}
+  .capbig span{color:#7F9E86;font-weight:600;text-transform:none;letter-spacing:0}
+  .cap{text-align:center;font-size:11.5px;color:#8A9884;margin:12px auto 0;font-weight:600;max-width:560px;line-height:1.6}
+
+  /* ===== toggle entre os dois estados ===== */
+  .ctrl{position:sticky;top:0;z-index:50;background:rgba(7,10,7,.94);backdrop-filter:blur(8px);padding:12px 0 14px;margin-bottom:4px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:1px solid #151c14}
+  .seg{display:inline-flex;background:#10160F;border:1px solid #2A332A;border-radius:12px;padding:4px;gap:4px}
+  .seg button{border:0;background:none;color:#8A9884;font:inherit;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;cursor:pointer;transition:var(--transition)}
+  .seg button.on{background:var(--plum);color:#fff}
+  .ctrl__lbl{font-size:12px;color:#8A9884;font-weight:600}
+  .ctrl__lbl b{color:#EDF3EA;font-weight:700}
+
+  /* ===== modal (classes reais do app, alargado pra 840px) ===== */
+  .modal{background:var(--surface);border-radius:var(--radius-xl);max-width:840px;width:100%;margin:0 auto;box-shadow:0 30px 70px -30px rgba(0,0,0,.7);color:var(--text-body)}
+  .modal__header{padding:24px 30px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .modal__header h2{font-family:var(--font-display);font-size:22px;letter-spacing:-.01em;font-weight:700;margin:0;color:var(--plum)}
+  .modal__header p{margin:4px 0 0;font-size:13px;color:var(--text-muted)}
+  .modal__close{width:44px;height:44px;border-radius:8px;display:grid;place-items:center;color:var(--text-muted);border:0;background:none;cursor:pointer;transition:var(--transition);flex-shrink:0}
+  .modal__close:hover{background:var(--surface-warm);color:var(--plum)}
+  .modal__close svg{width:18px;height:18px}
+  .modal__body{padding:10px 30px 8px}
+  .modal__footer{padding:16px 30px 24px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+  /* ===== as duas colunas: fatos à esquerda, ação à direita ===== */
+  .duo{display:grid;grid-template-columns:1.08fr 1fr;column-gap:0}
+  .duo__fatos{padding-right:28px}
+  .duo__acao{border-left:1px solid var(--border);padding-left:28px}
+  @media(max-width:740px){
+    .modal{max-width:480px}
+    .modal__header{padding:24px 24px 14px}
+    .modal__body{padding:8px 24px 8px}
+    .modal__footer{padding:16px 24px 24px}
+    .duo{grid-template-columns:1fr}
+    .duo__fatos{padding-right:0;padding-bottom:18px}
+    .duo__acao{border-left:0;padding-left:0;border-top:1px solid var(--border);padding-top:18px}
+  }
+  @media(max-width:540px){.detail-grid{grid-template-columns:1fr}}
+
+  /* ===== cabeçalho da pessoa ===== */
+  .quem{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .quem__foto{width:56px;height:56px;border-radius:50%;object-fit:cover;flex:none;border:2px solid var(--border)}
+  .avatar{width:56px;height:56px;border-radius:50%;background:var(--milk);color:var(--plum);display:grid;place-items:center;font-weight:700;font-size:18px;flex-shrink:0;border:2px solid var(--border)}
+  .quem__nome{font-weight:700;font-size:14.5px;color:var(--text-body);line-height:1.35}
+  .quem__sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+  /* ===== células de detalhe (classes reais do app) ===== */
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .detail-cell{padding:12px 14px;background:var(--surface-warm);border-radius:var(--radius)}
+  .detail-cell label{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .detail-cell strong{font-size:15px;color:var(--plum);font-weight:600}
+  .detail-cell strong.neg{color:var(--danger);font-variant-numeric:tabular-nums}
+
+  /* ===== jornada do dia: prevista x batidas ===== */
+  .jr{background:var(--surface-warm);border-radius:var(--radius);padding:13px 14px 14px;margin-bottom:12px}
+  .jr__cap{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:9px}
+  .jr__row{display:flex;align-items:center;gap:10px;padding:4px 0}
+  .jr__row + .jr__row{border-top:1px dashed var(--border-strong);margin-top:6px;padding-top:9px}
+  .jr__lbl{flex:none;width:62px;font-size:11.5px;font-weight:600;color:var(--text-muted)}
+  .jr__times{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+  .jr__t{font-size:15px;font-weight:600;color:var(--text-body)}
+  .jr__t--prev{color:var(--text-muted);font-weight:500}
+  .jr__t--late{display:inline-flex;align-items:baseline;gap:7px;background:var(--warning-bg);color:var(--warning-ink);font-weight:700;padding:3px 9px;border-radius:8px}
+  .jr__was{font-size:12px;font-weight:500;color:var(--warning-ink);opacity:.55;text-decoration:line-through;text-decoration-thickness:1px}
+  .jr__vazio{font-size:13px;color:var(--text-muted);font-style:italic}
+
+  /* ===== badge grande de atraso + saldo do dia ===== */
+  .veredito{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .late-badge{display:flex;align-items:center;gap:10px;background:var(--warning-bg);color:var(--warning-ink);border-radius:var(--radius);padding:12px 14px;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+  .late-badge svg{width:20px;height:20px;flex:none}
+  @media(max-width:740px){.veredito{grid-template-columns:1fr}}
+
+  .obs-wk{font-size:12px;color:var(--text-muted);font-style:italic;padding:2px 2px 0}
+  .obs-wk b{font-weight:600;font-style:normal;color:var(--text-muted)}
+
+  /* ===== campos (classes reais do app) ===== */
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .field label{font-size:13px;font-weight:600;color:var(--plum)}
+  .field select,.field textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:16px;font-family:inherit;color:var(--text-body);transition:var(--transition);width:100%}
+  .field select:focus,.field textarea:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 3px rgba(0,136,53,.12)}
+  .field textarea{resize:vertical;min-height:72px}
+  .field__hint{font-size:12px;color:var(--text-muted)}
+  .field.erro select{border-color:var(--danger);box-shadow:0 0 0 3px rgba(150,47,50,.12)}
+  .field.erro .field__hint{color:var(--danger)}
+  .req{color:var(--danger)}
+  .muted{color:var(--text-muted)} .text-xs{font-size:12px;font-weight:400}
+
+  /* ===== trilha (mesma linguagem do .oca-hist do app) ===== */
+  .trilha-cap{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:2px 0 10px}
+  .oca-hist{display:flex;flex-direction:column;gap:10px;margin-top:2px}
+  .oca-hist__ln{position:relative;padding-left:18px}
+  .oca-hist__ln::before{content:"";position:absolute;left:2px;top:5px;width:8px;height:8px;border-radius:50%;border:2px solid var(--plum);background:var(--surface)}
+  .oca-hist__ln--next::before{border-color:var(--border-strong)}
+  .oca-hist__ln b{display:block;font-size:12.5px;color:var(--text-body);font-weight:600}
+  .oca-hist__ln--next b{color:var(--text-muted);font-weight:500}
+  .oca-hist__ln span{font-size:11px;color:var(--text-muted)}
+  .oca-hist__obs{display:block;font-size:12px;color:var(--text-muted);font-style:italic;margin-top:2px}
+
+  /* ===== botões (classes reais do app) ===== */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:inherit;transition:var(--transition);white-space:nowrap;border:1px solid transparent;cursor:pointer}
+  .btn--primary{background:var(--plum);color:var(--text-on-plum)}
+  .btn--primary:hover{background:var(--plum-soft)}
+  .btn--ghost{background:transparent;color:var(--plum);border-color:var(--border-strong)}
+  .btn--ghost:hover{background:var(--surface-warm)}
+  .btn svg{width:16px;height:16px}
+
+  .estado{display:none}
+  .estado.on{display:block}
+</style></head>
+<body><div class="wrap">
+
+<div class="note">
+  <b>Mockup FioPulse · Modal premium da ocorrência automática no desktop (Portal do Gestor).</b>
+  Hoje o modal tem 480px e mostra pouco: tipo, previsto quase sempre vazio, batido como "sem marcação" e a trilha.
+  A proposta: modal de 840px em duas colunas, os fatos à esquerda (jornada prevista, batidas reais do dia,
+  tempo de atraso e saldo do dia) e a ação do líder com a trilha à direita.
+  <b>Nota honesta:</b> a hora batida e o tempo de atraso dependem do preenchimento do pipeline
+  (campos marcacoesPrevistas, marcacoesApuradas, horario, duracaoFmt e saldoDiario; missão já escrita pro WKRADAR).
+  Quando o dado não existir, o bloco degrada pra "sem marcação no dia", como no estado 2.
+</div>
+
+<div class="ctrl">
+  <div class="seg" role="group" aria-label="Alternar estado do modal">
+    <button type="button" id="btn-conf" class="on">Conferência do líder</button>
+    <button type="button" id="btn-disp">Detalhe de dispensada</button>
+  </div>
+  <div class="ctrl__lbl" id="ctrl-lbl"><b>Estado 1:</b> atraso com dados completos do pipeline, o líder confere e escolhe a ação.</div>
+</div>
+
+<!-- ============ ESTADO 1: CONFERENCIA DO LIDER ============ -->
+<div class="estado on" id="estado-conf">
+<div class="capbig">Estado 1 <span>Conferência do líder, atraso com dados completos</span></div>
+
+<div class="modal">
+  <div class="modal__header">
+    <div>
+      <h2>Conferência da ocorrência</h2>
+      <p>O líder confere os fatos e define a ação.</p>
+    </div>
+    <button class="modal__close" type="button" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="modal__body">
+    <div class="duo">
+
+      <!-- coluna esquerda: os fatos -->
+      <div class="duo__fatos">
+        <div class="quem">
+          <img class="quem__foto" src="https://i.pravatar.cc/96?img=32" alt="Foto de Luisana">
+          <div>
+            <div class="quem__nome">LUISANA CAROLINA CABRICES PALMA</div>
+            <div class="quem__sub">REPASSE · 1º Turno</div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-cell">
+            <label>Tipo</label>
+            <strong>Atraso</strong>
+          </div>
+          <div class="detail-cell">
+            <label>Dia</label>
+            <strong>01/07/2026</strong>
+          </div>
+        </div>
+
+        <div class="jr">
+          <span class="jr__cap">Jornada do dia</span>
+          <div class="jr__row">
+            <span class="jr__lbl">Prevista</span>
+            <div class="jr__times">
+              <span class="jr__t jr__t--prev">07:00</span>
+              <span class="jr__t jr__t--prev">12:00</span>
+              <span class="jr__t jr__t--prev">13:30</span>
+              <span class="jr__t jr__t--prev">17:18</span>
+            </div>
+          </div>
+          <div class="jr__row">
+            <span class="jr__lbl">Batidas</span>
+            <div class="jr__times">
+              <span class="jr__t jr__t--late">07:32 <s class="jr__was">07:00</s></span>
+              <span class="jr__t">12:01</span>
+              <span class="jr__t">13:30</span>
+              <span class="jr__t">17:20</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="veredito">
+          <div class="late-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Atraso de 32 min</span>
+          </div>
+          <div class="detail-cell">
+            <label>Saldo do dia</label>
+            <strong class="neg">&minus;00:32</strong>
+          </div>
+        </div>
+
+        <p class="obs-wk"><b>Observação do WK:</b> entrada após tolerância.</p>
+      </div>
+
+      <!-- coluna direita: a ação -->
+      <div class="duo__acao">
+        <div class="field" id="f-acao">
+          <label for="conf-acao">Ação <span class="req">*</span></label>
+          <select id="conf-acao">
+            <option value="">Selecione...</option>
+            <option>Advertência verbal</option>
+            <option>Advertência escrita</option>
+            <option>Desconto em folha</option>
+            <option>Abonar com justificativa</option>
+            <option>Compensar no banco de horas</option>
+          </select>
+          <span class="field__hint" id="f-acao-hint">A data da conferência será marcada automaticamente.</span>
+        </div>
+
+        <div class="field">
+          <label for="conf-obs">Observação <span class="muted text-xs">(opcional)</span></label>
+          <textarea id="conf-obs" placeholder="Contexto que só o líder conhece..."></textarea>
+        </div>
+
+        <span class="trilha-cap">Trilha</span>
+        <div class="oca-hist">
+          <div class="oca-hist__ln">
+            <b>Detectada pela apuração do ponto</b>
+            <span>automático · 01/07/2026</span>
+          </div>
+          <div class="oca-hist__ln">
+            <b>Gerada automaticamente</b>
+            <span>02/07 08:57</span>
+          </div>
+          <div class="oca-hist__ln">
+            <b>GP validou e enviou ao líder</b>
+            <span>Suyanne Soares dos Santos · 02/07 11:42</span>
+          </div>
+          <div class="oca-hist__ln oca-hist__ln--next">
+            <b>Aguardando conferência do líder</b>
+            <span>próxima etapa</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="modal__footer">
+    <button class="btn btn--ghost" type="button">Fechar</button>
+    <button class="btn btn--primary" type="button" id="btn-confirmar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Confirmar conferência</span>
+    </button>
+  </div>
+</div>
+<div class="cap">
+  Duas colunas no desktop: fatos à esquerda, ação e trilha à direita. A primeira batida ganha o destaque âmbar
+  com a hora prevista riscada ao lado. No celular o modal volta a uma coluna, os fatos primeiro, a ação e a trilha depois.
+</div>
+</div>
+
+<!-- ============ ESTADO 2: DETALHE DE DISPENSADA ============ -->
+<div class="estado" id="estado-disp">
+<div class="capbig">Estado 2 <span>Detalhe de dispensada, sem marcação no dia</span></div>
+
+<div class="modal">
+  <div class="modal__header">
+    <div>
+      <h2>Detalhe da ocorrência</h2>
+      <p>Dispensada pelo GP, sem ação pendente.</p>
+    </div>
+    <button class="modal__close" type="button" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="modal__body">
+    <div class="duo">
+
+      <!-- coluna esquerda: os fatos -->
+      <div class="duo__fatos">
+        <div class="quem">
+          <div class="avatar">YR</div>
+          <div>
+            <div class="quem__nome">YUSMARY DEL CARMEN ROVAINA ROMERO</div>
+            <div class="quem__sub">PREPARAÇÃO · 2º Turno</div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-cell">
+            <label>Tipo</label>
+            <strong>Falta injustificada</strong>
+          </div>
+          <div class="detail-cell">
+            <label>Dia</label>
+            <strong>01/07/2026</strong>
+          </div>
+        </div>
+
+        <div class="jr">
+          <span class="jr__cap">Jornada do dia</span>
+          <div class="jr__row">
+            <span class="jr__lbl">Prevista</span>
+            <div class="jr__times">
+              <span class="jr__t jr__t--prev">13:48</span>
+              <span class="jr__t jr__t--prev">23:15</span>
+            </div>
+          </div>
+          <div class="jr__row">
+            <span class="jr__lbl">Batidas</span>
+            <div class="jr__times">
+              <span class="jr__vazio">sem marcação no dia</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- coluna direita: só a trilha -->
+      <div class="duo__acao">
+        <span class="trilha-cap">Trilha</span>
+        <div class="oca-hist">
+          <div class="oca-hist__ln">
+            <b>Detectada pela apuração do ponto</b>
+            <span>automático · 01/07/2026</span>
+          </div>
+          <div class="oca-hist__ln">
+            <b>Gerada automaticamente</b>
+            <span>02/07 08:57</span>
+          </div>
+          <div class="oca-hist__ln">
+            <b>Dispensada</b>
+            <span>Suyanne Soares dos Santos · 02/07 11:48</span>
+            <span class="oca-hist__obs">Motivo: Atestado entregue depois do fechamento da apuração.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="modal__footer">
+    <button class="btn btn--ghost" type="button">Fechar</button>
+  </div>
+</div>
+<div class="cap">
+  Sem dados de batida, o bloco degrada pra "sem marcação no dia" em cinza, sem badge de atraso.
+  A coluna da ação some e fica só a trilha, com o motivo da dispensa em itálico.
+</div>
+</div>
+
+</div>
+
+<script>
+(function () {
+  // ---- toggle entre os dois estados ----
+  var btnConf = document.getElementById("btn-conf");
+  var btnDisp = document.getElementById("btn-disp");
+  var estConf = document.getElementById("estado-conf");
+  var estDisp = document.getElementById("estado-disp");
+  var lbl = document.getElementById("ctrl-lbl");
+
+  function setEstado(conf) {
+    btnConf.classList.toggle("on", conf);
+    btnDisp.classList.toggle("on", !conf);
+    estConf.classList.toggle("on", conf);
+    estDisp.classList.toggle("on", !conf);
+    lbl.innerHTML = conf
+      ? "<b>Estado 1:</b> atraso com dados completos do pipeline, o líder confere e escolhe a ação."
+      : "<b>Estado 2:</b> falta dispensada pelo GP, sem batidas no dia, só leitura da trilha.";
+  }
+  btnConf.addEventListener("click", function () { setEstado(true); });
+  btnDisp.addEventListener("click", function () { setEstado(false); });
+
+  // ---- validação leve da ação obrigatória ----
+  var fAcao = document.getElementById("f-acao");
+  var selAcao = document.getElementById("conf-acao");
+  var hint = document.getElementById("f-acao-hint");
+  var hintPadrao = hint.textContent;
+  var btnConfirmar = document.getElementById("btn-confirmar");
+
+  btnConfirmar.addEventListener("click", function () {
+    if (!selAcao.value) {
+      fAcao.classList.add("erro");
+      hint.textContent = "Escolha a ação antes de confirmar.";
+      selAcao.focus();
+      return;
+    }
+    var span = btnConfirmar.querySelector("span");
+    span.textContent = "Conferência registrada";
+    btnConfirmar.disabled = true;
+    setTimeout(function () {
+      span.textContent = "Confirmar conferência";
+      btnConfirmar.disabled = false;
+    }, 1600);
+  });
+
+  selAcao.addEventListener("change", function () {
+    if (selAcao.value) {
+      fAcao.classList.remove("erro");
+      hint.textContent = hintPadrao;
+    }
+  });
+})();
+</script>
+</body></html>
