@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Auditoria de polimento · proposta consolidada (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== Fundacao FioPulse (tokens copiados de public/styles.css) ===== */
+  :root{
+    --milk:#F7F9F6; --milk-warm:#EEF3EC; --milk-edge:#D8E2D3;
+    --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+    --fiobras-yellow:#FFCB00; --fiobras-blue:#0076BE;
+    --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+    --border:#E7EDE4; --border-strong:#D8E2D3;
+    --text-body:#1E2D1A; --text-muted:#4A6245;
+    --success:#2F6B3F; --success-bg:#E0EAD8;
+    --warning:#B27429; --warning-bg:#F8E4C8; --warning-ink:#7A4A12;
+    --danger:#962F32; --danger-bg:#F4D6D2;
+    --info:#2F5A6B; --info-bg:#D8E6EA;
+    --radius-sm:8px; --radius:12px;
+    --transition:180ms cubic-bezier(.4,0,.2,1);
+    --row-hover:#FAFCF9;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:Poppins,ui-sans-serif,system-ui,sans-serif;background:#070A07;margin:0;padding:0 0 90px;color:#EDF3EA}
+
+  /* ===== Capa ===== */
+  .hero{max-width:1200px;margin:0 auto;padding:52px 18px 8px}
+  .hero .eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7FBF97}
+  .hero h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:10px 0 8px;color:#F2F7F0;line-height:1.2}
+  .hero .metodo{font-size:13px;color:#b9c7b2;max-width:760px;line-height:1.7;margin:0}
+  .placar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:1200px;margin:26px auto 0;padding:0 18px}
+  .pl{background:#10160F;border:1px solid #232D22;border-radius:14px;padding:16px 18px 14px}
+  .pl b{display:block;font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums;color:#F2F7F0}
+  .pl span{display:block;font-size:11px;color:#94A48D;margin-top:5px;line-height:1.5}
+  .pl--total b{color:#8FE3AE}
+  .pl--grave b{color:#F0A9A6}
+  .pl--medio b{color:#EFC98A}
+  .pl--baixo b{color:#B9C7B2}
+  .pl .ok{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:10.5px;font-weight:700;color:#8FE3AE;background:rgba(0,136,53,.14);border:1px solid rgba(0,136,53,.35);border-radius:999px;padding:3px 9px}
+  .pl .ok svg{width:11px;height:11px}
+  .cats{max-width:1200px;margin:14px auto 0;padding:0 18px;display:flex;gap:8px;flex-wrap:wrap}
+  .cat{font-size:11.5px;font-weight:600;color:#b9c7b2;border:1px solid #232D22;border-radius:999px;padding:6px 12px;background:#0C110B}
+  .cat b{color:#EDF3EA;font-weight:700;font-variant-numeric:tabular-nums}
+  .hero-note{max-width:1200px;margin:14px auto 0;padding:0 18px;font-size:11.5px;color:#7E8D78;line-height:1.65}
+
+  /* ===== Navegacao por ancoras ===== */
+  .topnav{position:sticky;top:0;z-index:60;background:rgba(7,10,7,.93);backdrop-filter:blur(10px);border-bottom:1px solid #1B231A;margin-top:28px}
+  .topnav .inner{max-width:1200px;margin:0 auto;padding:10px 18px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+  .topnav .inner::-webkit-scrollbar{display:none}
+  .nchip{white-space:nowrap;font-size:12px;font-weight:600;color:#b9c7b2;border:1px solid #2A332A;border-radius:999px;padding:6px 13px;text-decoration:none;transition:var(--transition);flex:none}
+  .nchip:hover{color:#EDF3EA;border-color:#3A473A}
+  .nchip.on{background:rgba(0,136,53,.18);color:#8FE3AE;border-color:rgba(0,136,53,.55)}
+
+  /* ===== Secoes ===== */
+  .sec{max-width:1200px;margin:0 auto;padding:44px 18px 0;scroll-margin-top:64px}
+  .sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+  .sec-h .letra{flex:none;width:26px;height:26px;border-radius:8px;background:rgba(0,136,53,.16);border:1px solid rgba(0,136,53,.4);color:#8FE3AE;font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;transform:translateY(4px)}
+  .sec-h h2{font-size:19px;font-weight:800;letter-spacing:-.015em;color:#F2F7F0;margin:0}
+  .sec-lead{font-size:12.5px;color:#b9c7b2;line-height:1.7;margin:0 0 16px;max-width:820px}
+
+  .screen{background:var(--bg);border-radius:18px;padding:22px;color:var(--text-body);box-shadow:0 30px 70px -30px rgba(0,0,0,.7)}
+
+  /* antes / depois */
+  .duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+  .pane{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;position:relative}
+  .pane--hoje{border-color:#EAD2CE}
+  .pane--prop{border-color:#CFE2CB}
+  .tagline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:4px 11px}
+  .tag--hoje{background:var(--danger-bg);color:var(--danger)}
+  .tag--prop{background:var(--success-bg);color:var(--plum-deep)}
+  .tag svg{width:11px;height:11px}
+  .tagline .ctx{font-size:10.5px;color:var(--text-muted);font-weight:600;text-align:right}
+  .prova{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:11.5px;color:var(--text-muted);line-height:1.6;background:var(--surface);border:1px dashed var(--border-strong);border-radius:10px;padding:10px 13px}
+  .prova .pv{flex:none;font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--plum-deep);background:var(--success-bg);border-radius:6px;padding:3px 7px;margin-top:1px}
+  .prova code{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;background:var(--milk-warm);border-radius:5px;padding:1px 5px;color:var(--text-body)}
+
+  .anno{font-size:10.5px;font-weight:700;line-height:1.45}
+  .anno--bad{color:var(--danger)}
+  .anno--good{color:var(--plum-deep)}
+
+  /* ===== Performance ===== */
+  .perf-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+  .pm{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px}
+  .pm label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+  .pm b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-top:5px;font-variant-numeric:tabular-nums}
+  .pm span{display:block;font-size:10.5px;color:var(--text-muted);margin-top:3px;line-height:1.45}
+  .pm--ok b{color:var(--plum)}
+  .pm--warn b{color:var(--warning-ink)}
+  .pm .pill-ok{display:inline-block;margin-top:7px;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--plum-deep);background:var(--success-bg);border-radius:999px;padding:3px 8px}
+  .pm .pill-warn{display:inline-block;margin-top:7px;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--warning-ink);background:var(--warning-bg);border-radius:999px;padding:3px 8px}
+  .perf-props{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+  .pp{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 17px}
+  .pp .n{display:inline-flex;width:22px;height:22px;border-radius:7px;background:var(--plum);color:#fff;font-size:12px;font-weight:800;align-items:center;justify-content:center;margin-bottom:9px}
+  .pp b{display:block;font-size:13.5px;font-weight:700}
+  .pp p{margin:5px 0 0;font-size:12px;color:var(--text-muted);line-height:1.65}
+  .pp .delta{display:inline-flex;align-items:center;gap:7px;margin-top:10px;font-size:12px;font-weight:700;background:var(--milk-warm);border-radius:8px;padding:6px 11px;font-variant-numeric:tabular-nums}
+  .pp .delta svg{width:13px;height:13px;color:var(--plum)}
+  .perf-foot{margin-top:13px;display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--plum-deep);background:var(--success-bg);border-radius:10px;padding:11px 14px;line-height:1.6;font-weight:600}
+  .perf-foot svg{width:15px;height:15px;flex:none;margin-top:2px}
+
+  /* ===== Recriacoes do app: KPI / sidebar / abas / listas ===== */
+  .kpi-mini{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden}
+  .kpi-mini::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--warning)}
+  .kpi-mini label{display:block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+  .kpi-mini b{display:block;font-size:26px;font-weight:800;margin-top:4px;color:var(--warning-ink);font-variant-numeric:tabular-nums;line-height:1}
+  .snav{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:rgba(0,136,53,.08);color:var(--plum-deep);font-weight:600;font-size:13px}
+  .snav svg{width:15px;height:15px;flex:none}
+  .snav .pill{margin-left:auto;font-size:11px;font-weight:700;background:var(--warning-bg);color:var(--warning-ink);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums}
+  .trio{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:stretch}
+  .trio .snav{align-self:center}
+
+  .dtabs{display:flex;gap:18px;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text-muted);font-weight:500;margin-top:12px}
+  .dtab{padding:0 0 9px;display:inline-flex;align-items:center;gap:6px;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .dtab.on{color:var(--plum-deep);font-weight:600;border-bottom-color:var(--plum)}
+  .dtab i{font-style:normal;font-size:10.5px;font-weight:600;background:var(--border);color:var(--text-muted);border-radius:999px;padding:0 6px;font-variant-numeric:tabular-nums}
+  .dtab.on i{background:var(--success-bg);color:var(--success)}
+  .dtab.bad i{background:var(--danger-bg);color:var(--danger)}
+  .ordem{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .ordem .dt{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--milk-warm);border:1px solid var(--border);border-radius:7px;padding:4px 8px;color:var(--text-body)}
+  .ordem .dt--bad{border-color:#EAD2CE;color:var(--danger)}
+  .ordem svg{width:11px;height:11px;color:var(--text-muted);opacity:.6;flex:none}
+
+  /* lista de ocorrencias desktop */
+  .rlist{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface);position:relative}
+  .rocc{display:grid;align-items:center;gap:13px;padding:11px 14px;border-bottom:1px solid var(--border);font-size:12.5px}
+  .rocc:last-child{border-bottom:0}
+  .rocc--auto{grid-template-columns:52px minmax(0,1fr) auto auto auto}
+  .rocc--fix{grid-template-columns:52px minmax(0,1fr) 66px 122px 62px;gap:10px}
+  .rdate{text-align:center;border-right:1px solid var(--border);padding-right:11px}
+  .rdate b{display:block;font-size:14px;font-weight:700;color:var(--text-muted);line-height:1}
+  .rdate span{display:block;font-size:9.5px;text-transform:uppercase;font-weight:600;letter-spacing:.05em;color:var(--text-muted);margin-top:2px}
+  .rmain{min-width:0}
+  .rmain b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rmain span{display:block;font-size:11px;color:var(--text-muted);margin-top:2px}
+  .rtime{font-size:14.5px;font-weight:700;color:var(--plum);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .rtime--dash{font-size:15px}
+  .rtime--fix{font-weight:700}
+  .rtime .prev{display:block;font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted)}
+  .rtime--sem{font-size:10.5px;font-weight:600;color:var(--text-muted);opacity:.75}
+  .bdg{font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;justify-self:start}
+  .bdg--danger{background:var(--danger-bg);color:var(--danger)}
+  .bdg--amber{background:var(--warning-bg);color:var(--warning-ink)}
+  .bdg--amber-raw{background:var(--warning-bg);color:var(--warning)}
+  .bdg--info{background:var(--info-bg);color:var(--info)}
+  .rchev{width:15px;height:15px;color:#b9c6b1;justify-self:end}
+  .rbtn{font-size:10.5px;font-weight:700;background:var(--plum);color:#fff;border:0;border-radius:7px;padding:5px 10px;justify-self:end;white-space:nowrap}
+  .guide{position:absolute;top:0;bottom:0;border-left:1.5px dashed rgba(150,47,50,.55);pointer-events:none;z-index:2}
+  .guide--good{border-left:1.5px solid rgba(0,136,53,.45)}
+
+  /* modal premium */
+  .mframe{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 18px 44px -18px rgba(0,40,20,.28);overflow:hidden}
+  .mframe .mh{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)}
+  .mframe .mh b{font-size:13.5px;font-weight:700}
+  .mframe .mh span{font-size:16px;color:var(--text-muted);line-height:1}
+  .mframe .mb{padding:14px 16px 16px}
+  .desvio{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;background:var(--warning-bg);border-radius:999px;padding:5px 12px;margin-bottom:12px}
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dcell{background:var(--milk-warm);border-radius:10px;padding:10px 13px}
+  .dcell label{display:block;font-size:9.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .dcell strong{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* ===== Telefones ===== */
+  .phwrap{display:flex;justify-content:center}
+  .ph{width:308px;background:var(--bg);border:1px solid var(--border-strong);border-radius:24px;padding:16px 12px 14px;box-shadow:0 16px 36px -20px rgba(0,40,20,.35);position:relative;overflow:hidden}
+  .ph .ph-title{font-size:14px;font-weight:700;margin:0 2px 10px}
+
+  /* abas mobile */
+  .mtabs{position:relative;border-bottom:1px solid var(--border);font-size:11.5px;color:var(--text-muted);font-weight:500}
+  .mtabs .row{display:flex;gap:9px 12px;flex-wrap:wrap}
+  .mtab{padding:6px 0 9px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .mtab.on{color:var(--plum-deep);font-weight:600}
+  .mtab i{font-style:normal;font-size:10px;font-weight:600;background:var(--border);color:var(--text-muted);border-radius:999px;padding:0 5px;font-variant-numeric:tabular-nums}
+  .mtab.on i{background:var(--success-bg);color:var(--success)}
+  .ink-bug{position:absolute;height:2px;background:var(--plum);bottom:-1px;left:0;width:0}
+  .mtabs-scroll{position:relative}
+  .mtabs-scroll .rail{display:flex;gap:16px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);padding-bottom:0}
+  .mtabs-scroll .rail::-webkit-scrollbar{display:none}
+  .mtabs-scroll .mtab{flex:none;border-bottom:2px solid transparent;margin-bottom:-1px;padding-bottom:9px}
+  .mtabs-scroll .mtab.on{border-bottom-color:var(--plum)}
+  .mtabs-scroll::before,.mtabs-scroll::after{content:"";position:absolute;top:0;bottom:1px;width:22px;z-index:3;pointer-events:none}
+  .mtabs-scroll::before{left:0;background:linear-gradient(90deg,var(--bg),rgba(247,249,246,0));opacity:0;transition:opacity 150ms}
+  .mtabs-scroll.rolou::before{opacity:1}
+  .mtabs-scroll::after{right:0;background:linear-gradient(270deg,var(--bg),rgba(247,249,246,0))}
+
+  /* cards mobile */
+  .mocc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:10px;font-size:12px;position:relative}
+  .mocc .g{display:grid;grid-template-columns:46px 1fr auto;gap:10px;align-items:start}
+  .mocc .g3{display:grid;grid-template-columns:46px 1fr 22px;gap:10px;align-items:center}
+  .mdate{text-align:center;border-right:1px solid var(--border);padding:2px 9px 2px 0}
+  .mdate b{display:block;font-size:13px;font-weight:700;color:var(--text-muted);line-height:1}
+  .mdate span{display:block;font-size:9px;text-transform:uppercase;font-weight:600;color:var(--text-muted);margin-top:2px;letter-spacing:.04em}
+  .mmain{min-width:0}
+  .mmain b{display:block;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mmain .sub{font-size:10.5px;color:var(--text-muted);margin-top:2px;line-height:1.5}
+  .mmain .stline{display:flex;align-items:center;gap:7px;margin-top:7px;flex-wrap:wrap}
+  .mmain .stline .hora{font-size:11px;font-weight:700;color:var(--text-muted);font-variant-numeric:tabular-nums}
+  .orphan{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .orphan .btnl{font-size:10.5px;font-weight:700;background:var(--plum);color:#fff;border:0;border-radius:7px;padding:5px 11px}
+  .orphan svg{width:14px;height:14px;color:#b9c6b1}
+  .mchev{width:15px;height:15px;color:#b9c6b1;justify-self:end;align-self:center}
+
+  .frow{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-top:10px;font-size:12px}
+  .frow .l1{display:flex;align-items:center;gap:8px;min-width:0}
+  .frow .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(150deg,#1AA34F,#0B7A36);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex:none}
+  .frow .nm{display:block;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .frow .nm--2l{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
+  .frow .sub{display:block;font-size:10px;color:var(--text-muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip{flex:none;font-size:9.5px;font-weight:700;border-radius:999px;padding:2px 8px;white-space:nowrap}
+  .chip--apr{background:var(--info-bg);color:var(--info)}
+  .chip--turno{background:var(--milk-warm);border:1px solid var(--border);color:var(--text-muted)}
+  .chip--sem{background:var(--warning-bg);color:var(--warning-ink)}
+  .frow .l2{display:flex;gap:6px;margin-top:8px;margin-left:38px;flex-wrap:wrap}
+  .frow svg{width:14px;height:14px;color:#b9c6b1;flex:none;margin-left:auto}
+  .frow .l1 svg{margin-left:auto}
+
+  /* chrome mobile: zonas */
+  .zona{position:relative;height:394px;border:1px solid var(--border);border-radius:18px;background:var(--bg);overflow:hidden}
+  .zrow{position:absolute;left:12px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;height:44px;display:flex;align-items:center;gap:9px;padding:0 12px;font-size:11px;font-weight:600;color:var(--text-body)}
+  .zrow .zic{width:22px;height:22px;border-radius:7px;background:var(--milk-warm);flex:none;display:flex;align-items:center;justify-content:center}
+  .zrow .zic svg{width:12px;height:12px;color:var(--text-muted)}
+  .zrow .edit{margin-left:auto;width:26px;height:26px;border-radius:8px;background:var(--milk-warm);display:flex;align-items:center;justify-content:center;flex:none}
+  .zrow .edit svg{width:12px;height:12px;color:var(--plum)}
+  .ilha{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;width:196px;height:44px;border-radius:999px;background:rgba(255,255,255,.82);border:1px solid var(--border-strong);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:space-around;box-shadow:0 8px 22px -8px rgba(0,40,20,.25);z-index:6}
+  .ilha svg{width:16px;height:16px;color:var(--text-muted)}
+  .ilha .on{color:var(--plum)}
+  .zfab{position:absolute;right:14px;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px -8px rgba(0,40,20,.4);z-index:6}
+  .zfab svg{width:18px;height:18px}
+  .zfab--plus{background:var(--plum);color:#fff}
+  .zfab--chat{background:#fff;border:1px solid var(--border-strong);color:var(--plum)}
+  .medline{position:absolute;left:12px;right:70px;border-top:1.5px dashed rgba(150,47,50,.6);z-index:7}
+  .medline.good{border-top-color:rgba(0,136,53,.55)}
+  .medline span{position:absolute;left:0;top:3px;font-size:9px;font-weight:700;color:var(--danger);background:rgba(255,255,255,.88);border-radius:5px;padding:1px 6px}
+  .medline.good span{color:var(--plum-deep)}
+
+  /* espelho sheet */
+  .sheet{position:absolute;left:6px;right:6px;bottom:6px;background:var(--surface);border:1px solid var(--border-strong);border-radius:18px 18px 14px 14px;box-shadow:0 -12px 34px -12px rgba(0,40,20,.35);padding:10px 14px 12px;z-index:8}
+  .sheet .grab{width:38px;height:4px;border-radius:999px;background:var(--border-strong);margin:0 auto 9px}
+  .sheet b{display:block;font-size:12.5px;font-weight:700}
+  .sheet .esprow{display:flex;justify-content:space-between;font-size:11px;font-variant-numeric:tabular-nums;color:var(--text-body);padding:6px 0;border-bottom:1px solid var(--border)}
+  .sheet .esprow:last-of-type{border-bottom:0}
+  .sheet .esprow .dia{color:var(--text-muted);font-weight:600}
+  .sheet .saldo{font-weight:700;color:var(--danger)}
+  .fora{margin:10px 6px 0;border:1.5px dashed var(--danger-bg);border-radius:12px;padding:9px 12px;background:rgba(244,214,210,.25)}
+  .fora .anno--bad{margin-top:5px}
+  .viewport-edge{border-top:2px dashed rgba(150,47,50,.5);margin:12px -12px 0;position:relative}
+  .viewport-edge em{position:absolute;right:10px;top:-9px;font-style:normal;font-size:9px;font-weight:700;color:var(--danger);background:var(--bg);padding:0 6px}
+
+  /* voz e confianca */
+  .swap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+  .swap .onde{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:9px}
+  .swap .par{display:grid;grid-template-columns:1fr 26px 1fr;gap:12px;align-items:center}
+  .swap .velho{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:var(--danger);background:rgba(244,214,210,.35);border:1px solid var(--danger-bg);border-radius:8px;padding:9px 11px;text-decoration:line-through;text-decoration-thickness:1.5px;line-height:1.6;word-break:break-word}
+  .swap .novo{font-size:12px;color:var(--text-body);background:var(--success-bg);border:1px solid #CFE2CB;border-radius:8px;padding:9px 11px;line-height:1.6}
+  .swap .novo em{font-style:normal;color:var(--plum-deep);font-weight:700}
+  .swap .seta{display:flex;align-items:center;justify-content:center;color:var(--plum)}
+  .swap .seta svg{width:16px;height:16px}
+  .swap .lado{display:flex;flex-direction:column;gap:7px;min-width:0}
+  .swap .lado .tag{align-self:flex-start}
+  .empties{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:4px}
+  .emptyp{text-align:center;padding:22px 16px 18px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+  .emptyp .ic{width:42px;height:42px;border-radius:12px;background:rgba(0,136,53,.09);color:var(--plum);display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+  .emptyp .ic svg{width:19px;height:19px}
+  .emptyp b{display:block;font-size:13px;font-weight:700}
+  .emptyp p{margin:5px 0 0;font-size:11.5px;color:var(--text-muted);line-height:1.6}
+  .emptyp .act{display:inline-flex;align-items:center;gap:6px;margin-top:11px;font-size:12px;font-weight:700;color:var(--plum);cursor:pointer}
+  .emptyp .act svg{width:12px;height:12px}
+
+  /* a11y */
+  .focus-demo{display:flex;flex-direction:column;gap:14px}
+  .fd-input{height:42px;border:1px solid var(--border-strong);background:var(--surface);padding:0 14px;font:inherit;font-size:13px;color:var(--text-body);width:100%}
+  .fd-input--bug{border-radius:4px;outline:2px solid var(--plum);outline-offset:0}
+  .fd-input--ok{border-radius:12px;outline:2px solid var(--plum);outline-offset:2px}
+  .fd-card{border:1px solid var(--border);background:var(--surface);padding:13px 15px;font-size:12.5px;font-weight:600}
+  .fd-card span{display:block;font-size:11px;color:var(--text-muted);font-weight:500;margin-top:2px}
+  .fd-card--bug{border-radius:4px;outline:2px solid var(--plum);outline-offset:0}
+  .fd-card--ok{border-radius:14px;outline:2px solid var(--plum);outline-offset:3px}
+  .fd-note{font-size:10.5px;color:var(--text-muted);font-weight:600}
+  .codechip{display:inline-flex;font-family:ui-monospace,Consolas,monospace;font-size:10.5px;background:#22301E;color:#C9E4CE;border-radius:6px;padding:3px 8px;margin-right:6px}
+  .kbd-card{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px 14px;outline:2px solid var(--plum);outline-offset:3px;max-width:430px}
+  .kbd-card b{font-size:12.5px}
+  .kbd-card .sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+  /* selo pendente / temas */
+  .temawrap{border-radius:14px;padding:16px;transition:background var(--transition)}
+  .temawrap.claro{background:var(--bg);border:1px solid var(--border)}
+  .temawrap.escuro{background:#12180F;border:1px solid #26311F;color:#E8EFE4}
+  .segtema{display:inline-flex;background:var(--milk-warm);border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px;margin-bottom:14px}
+  .segtema button{border:0;background:transparent;font:inherit;font-size:11.5px;font-weight:700;color:var(--text-muted);border-radius:999px;padding:5px 14px;cursor:pointer;transition:var(--transition)}
+  .segtema button.on{background:var(--plum);color:#fff}
+  .cpocc{display:flex;align-items:center;gap:10px;border-radius:13px;padding:11px 13px;font-size:12px;border:1px solid}
+  .temawrap.claro .cpocc{background:#fff;border-color:var(--border)}
+  .temawrap.escuro .cpocc{background:#1A2415;border-color:#2C3826}
+  .cpocc .cbd{flex:1;min-width:0}
+  .cpocc .cbd b{display:block;font-size:12.5px;font-weight:600}
+  .cpocc .cbd span{display:block;font-size:10.5px;opacity:.72;margin-top:1px}
+  .selo{flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700}
+  .selo .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .ratio{font-size:10px;font-weight:800;font-variant-numeric:tabular-nums;border-radius:6px;padding:2px 7px;margin-left:8px}
+  .ratio--bad{background:var(--danger-bg);color:var(--danger)}
+  .ratio--ok{background:var(--success-bg);color:var(--plum-deep)}
+  .temawrap.escuro .ratio--bad{background:rgba(240,169,166,.16);color:#F0A9A6}
+  .temawrap.escuro .ratio--ok{background:rgba(0,136,53,.22);color:#8FE3AE}
+  .paircap{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.65;margin:12px 0 7px}
+
+  /* miudezas */
+  .minis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .mini{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 14px;display:flex;flex-direction:column}
+  .mini h4{margin:0 0 3px;font-size:12px;font-weight:700;line-height:1.4}
+  .mini .de{font-size:10px;color:var(--text-muted);margin-bottom:10px}
+  .mini .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;flex:1}
+  .mini .box{border-radius:9px;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:86px}
+  .mini .box--h{background:rgba(244,214,210,.22);border:1px solid var(--danger-bg)}
+  .mini .box--p{background:rgba(224,234,216,.35);border:1px solid #CFE2CB}
+  .mini .microtag{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+  .mini .box--h .microtag{color:var(--danger)}
+  .mini .box--p .microtag{color:var(--plum-deep)}
+  .mini .cap{margin-top:9px;font-size:10px;color:var(--text-muted);line-height:1.5}
+  .m-file{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);border-radius:9px;padding:7px}
+  .m-file .fic{width:24px;height:24px;border-radius:7px;background:rgba(0,136,53,.1);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .m-file .fic svg{width:12px;height:12px}
+  .m-file .x{margin-left:auto;color:var(--text-muted);font-size:12px;line-height:1}
+  .m-drop{border:1.5px dashed var(--border-strong);border-radius:9px;padding:9px 7px;text-align:center;font-size:9.5px;color:var(--text-muted);font-weight:600}
+  .m-caixa{border:1.5px dashed var(--border-strong);background:var(--milk);border-radius:9px;height:64px;display:flex;align-items:center;justify-content:center;color:var(--border-strong);font-weight:700}
+  .m-leaf{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:10px}
+  .m-leaf .n{font-size:9px;font-weight:700;color:var(--text-muted);min-width:20px;text-align:center}
+  .m-navic{position:relative;width:34px;height:34px;border-radius:10px;background:var(--milk-warm);display:flex;align-items:center;justify-content:center;margin:4px auto}
+  .m-navic svg{width:16px;height:16px;color:var(--text-muted)}
+  .m-navic .pillbad{position:absolute;inset:auto;left:5px;top:6px;font-size:9px;font-weight:700;background:var(--warning-bg);color:var(--warning-ink);border-radius:999px;padding:1px 7px}
+  .m-navic .dotok{position:absolute;right:-3px;top:-3px;width:9px;height:9px;border-radius:50%;background:var(--warning);border:2px solid #fff}
+  .m-stats{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px}
+  .m-stat{background:#fff;border:1px solid var(--border);border-radius:7px;padding:5px 7px;font-size:8.5px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+  .m-stat b{display:block;font-size:11px;color:var(--text-body);margin-top:2px;text-transform:none;letter-spacing:0}
+  .m-stat--full{grid-column:1/-1}
+  .m-check{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:var(--text-muted)}
+  .m-ring{width:26px;height:26px;border-radius:50%;background:var(--plum);display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+  .m-ring svg{width:13px;height:13px}
+  .m-cklabel{font-size:10px;display:flex;align-items:center;gap:6px;color:var(--text-body)}
+  .m-cklabel input{width:14px;height:14px;margin:0}
+  .m-orfa{font-size:10px;line-height:1.5;color:var(--text-body);max-width:110px}
+  .m-orfa em{font-style:normal;background:var(--danger-bg);border-radius:3px;padding:0 2px}
+  .m-head{display:flex;align-items:center;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+  .m-head .um{margin-left:auto;font-size:11px;color:var(--text-body)}
+  .m-head .badge1{margin-left:6px;font-size:9px;background:var(--warning-bg);color:var(--warning-ink);border-radius:999px;padding:1px 7px;font-weight:800}
+
+  /* tabela final */
+  .tblwrap{border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:auto;max-height:560px}
+  table.tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:760px}
+  .tbl th{position:sticky;top:0;background:var(--surface);z-index:2;text-align:left;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);padding:10px 12px;border-bottom:1px solid var(--border-strong)}
+  .tbl td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl .grupo td{background:var(--milk-warm);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);padding:8px 12px}
+  .gpill{display:inline-flex;font-size:10px;font-weight:800;border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .gpill--a{background:var(--danger-bg);color:var(--danger)}
+  .gpill--m{background:var(--warning-bg);color:var(--warning-ink)}
+  .gpill--b{background:var(--milk-warm);color:var(--text-muted);border:1px solid var(--border)}
+  .tbl .tela{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:11.5px}
+  .tbl .bp{color:var(--text-muted);font-size:11px;white-space:nowrap}
+  .tbl .prop{color:var(--plum-deep);font-weight:600;min-width:170px}
+  .tbl-foot{margin-top:13px;display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--text-muted);line-height:1.65;border:1px dashed var(--border-strong);border-radius:10px;padding:11px 14px;background:var(--surface)}
+  .tbl-foot svg{width:15px;height:15px;flex:none;color:var(--plum);margin-top:2px}
+  .tbl-foot b{color:var(--text-body)}
+
+  .cap{max-width:1200px;margin:36px auto 0;text-align:center;font-size:11.5px;color:#8A9884;font-weight:600;padding:0 18px}
+
+  @media (max-width:960px){
+    .placar{grid-template-columns:1fr 1fr}
+    .duo,.perf-props,.perf-grid,.empties,.trio{grid-template-columns:minmax(0,1fr)}
+    .minis{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    .swap .par{grid-template-columns:1fr}
+    .swap .seta{transform:rotate(90deg);justify-content:flex-start;padding-left:4px}
+  }
+  @media (max-width:560px){
+    .minis{grid-template-columns:minmax(0,1fr)}
+    .hero h1{font-size:24px}
+    .screen{padding:14px}
+    .ph{width:100%;max-width:308px}
+    .rlist{overflow-x:auto}
+    .rocc{min-width:540px}
+    .dtabs{overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+    .dtabs::-webkit-scrollbar{display:none}
+    .dtab{flex:none}
+    .tbl .tela{max-width:140px}
+  }
+</style></head>
+<body>
+
+<!-- ================= CAPA ================= -->
+<header class="hero">
+  <div class="eyebrow">FioPulse · mockup de proposta · julho de 2026</div>
+  <h1>Auditoria de polimento · proposta consolidada</h1>
+  <p class="metodo">Método em uma linha: Playwright ao vivo sobre o app logado (sem tocar produção), tela a tela nos dois breakpoints (desktop 1440 e mobile 390), com verificação adversarial independente dos achados graves. Este mockup mostra tudo que será proposto, pra aprovação de uma vez.</p>
+</header>
+
+<div class="placar">
+  <div class="pl pl--total"><b>140</b><span>achados na varredura completa (22 agentes, 967 chamadas, ~35 min ao vivo)</span></div>
+  <div class="pl pl--grave"><b>12</b><span>graves confirmados por verificação adversarial</span>
+    <span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>12 de 12 confirmados</span></div>
+  <div class="pl pl--medio"><b>73</b><span>achados médios: consistência, contraste, alinhamento, microcopy</span></div>
+  <div class="pl pl--baixo"><b>49</b><span>achados baixos: miudezas que somam no acabamento</span></div>
+</div>
+
+<div class="cats">
+  <span class="cat">visual <b>35</b></span>
+  <span class="cat">consistência <b>30</b></span>
+  <span class="cat">conteúdo <b>26</b></span>
+  <span class="cat">interação <b>24</b></span>
+  <span class="cat">acessibilidade <b>19</b></span>
+  <span class="cat">performance <b>6</b></span>
+</div>
+<p class="hero-note">A varredura apontou 18 achados como graves; os 12 mais críticos passaram pelo verificador cético (que tenta refutar cada um reproduzindo do zero) e todos se confirmaram. Três dos seis restantes ganharam demonstração abaixo; os outros seguem na tabela final. Nada aqui mexe no app: é proposta pra aprovar, recusar ou ajustar item a item.</p>
+
+<!-- ================= NAV ================= -->
+<nav class="topnav"><div class="inner" id="navchips">
+  <a class="nchip" href="#perf">Performance</a>
+  <a class="nchip" href="#numeros">a · Números</a>
+  <a class="nchip" href="#lista">b · Lista</a>
+  <a class="nchip" href="#modal">c · Modal</a>
+  <a class="nchip" href="#abas">d · Abas</a>
+  <a class="nchip" href="#cards">e · Cards</a>
+  <a class="nchip" href="#chrome">f · Chrome</a>
+  <a class="nchip" href="#voz">g · Voz</a>
+  <a class="nchip" href="#a11y">h · Acessibilidade</a>
+  <a class="nchip" href="#miudezas">i · Miudezas</a>
+  <a class="nchip" href="#tabela">Tabela final</a>
+</div></nav>
+
+<!-- ================= PERFORMANCE ================= -->
+<section class="sec" id="perf">
+  <div class="sec-h"><span class="letra">P</span><h2>Performance: medida, não estimada</h2></div>
+  <p class="sec-lead">Boot, scroll e latência foram medidos com dados em escala de produção (90 funcionários + 120 ocorrências). O runtime passou no budget premium; o único débito real é o peso do JavaScript que todo mundo baixa e parseia a cada abertura.</p>
+  <div class="screen">
+    <div class="perf-grid">
+      <div class="pm pm--ok"><label>DCL no boot</label><b>201ms</b><span>DOMContentLoaded, mediana de 5 runs</span><span class="pill-ok">passa</span></div>
+      <div class="pm pm--ok"><label>FCP no boot</label><b>212ms</b><span>primeiro conteúdo pintado</span><span class="pill-ok">passa</span></div>
+      <div class="pm pm--ok"><label>fps e latência</label><b>ok</b><span>scroll e clique dentro do budget premium em escala real</span><span class="pill-ok">passa</span></div>
+      <div class="pm pm--warn"><label>Peso de JS</label><b>904KB</b><span>11 scripts síncronos · app.js sozinho tem 621KB</span><span class="pill-warn">único débito</span></div>
+    </div>
+    <div class="perf-props">
+      <div class="pp">
+        <span class="n">1</span>
+        <b>Minificar os bundles no deploy</b>
+        <p>Mesmos arquivos, mesma arquitetura, mesmo <code style="font-size:11px">?v=</code>: só passa um minificador na hora de publicar. Ninguém edita código minificado; o fonte continua legível no repositório.</p>
+        <span class="delta">app.js 621KB <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> ~200KB estimado</span>
+      </div>
+      <div class="pp">
+        <span class="n">2</span>
+        <b>Carga sob demanda do que não é boot</b>
+        <p>O defer já existe nos scripts. O passo que falta é dividir changelog e roadmap pra carregarem só quando o usuário abre Novidades, em vez de virem no boot de todo mundo.</p>
+        <span class="delta">changelog + roadmap <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> só quando abrir</span>
+      </div>
+    </div>
+    <div class="perf-foot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span>fps de scroll e latência de input passaram: performance de runtime não precisa de correção nenhuma. As duas propostas acima atacam só o custo de download e parse na primeira abertura (celular da fábrica, cache frio).</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= A · NUMEROS ================= -->
+<section class="sec" id="numeros">
+  <div class="sec-h"><span class="letra">a</span><h2>Números confiáveis</h2></div>
+  <p class="sec-lead">Hoje a mesma pendência tem três contagens na mesma tela, a aba Todas não soma tudo e a lista sai fora de ordem. A proposta: uma única função de contagem alimenta KPI, sidebar e aba; Todas inclui os quatro estágios; e tudo em ordem cronológica.</p>
+  <div class="screen">
+    <div class="duo">
+      <div class="pane pane--hoje">
+        <div class="tagline"><span class="tag tag--hoje">hoje</span><span class="ctx">Dashboard do gestor, mesma tela</span></div>
+        <div class="trio">
+          <div class="kpi-mini"><label>Ocorrências a conferir</label><b>2</b></div>
+          <div class="snav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Ocorrências<span class="pill">2</span></div>
+        </div>
+        <div class="dtabs">
+          <span class="dtab">GP confere <i>1</i></span>
+          <span class="dtab on bad">Pendentes <i>3</i></span>
+          <span class="dtab">Conferidas <i>2</i></span>
+          <span class="dtab bad">Todas <i>6</i></span>
+        </div>
+        <div class="anno anno--bad" style="margin-top:10px">KPI diz 2, sidebar diz 2, a aba diz 3. E "Todas 6" ao lado de abas que somam 8.</div>
+        <div class="ordem">
+          <span class="dt dt--bad">01/07</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="dt dt--bad">28/06</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="dt dt--bad">02/07</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="dt dt--bad">01/07</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="dt dt--bad">29/06</span>
+        </div>
+        <div class="anno anno--bad" style="margin-top:7px">Aba Todas: automáticas empilhadas antes das manuais, datas embaralhadas.</div>
+      </div>
+      <div class="pane pane--prop">
+        <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">uma função de contagem, três lugares</span></div>
+        <div class="trio">
+          <div class="kpi-mini"><label>Ocorrências a conferir</label><b>3</b></div>
+          <div class="snav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Ocorrências<span class="pill">3</span></div>
+        </div>
+        <div class="dtabs">
+          <span class="dtab">GP confere <i>1</i></span>
+          <span class="dtab on">Pendentes <i>3</i></span>
+          <span class="dtab">Conferidas <i>2</i></span>
+          <span class="dtab">Todas <i>8</i></span>
+        </div>
+        <div class="anno anno--good" style="margin-top:10px">3 em todo lugar. Todas passa a incluir os quatro estágios: a soma fecha.</div>
+        <div class="ordem">
+          <span class="dt">02/07</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="dt">01/07</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="dt">01/07</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="dt">29/06</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="dt">28/06</span>
+        </div>
+        <div class="anno anno--good" style="margin-top:7px">Merge das duas listas, ordenado por data. Um líder cuja única pendência é automática deixa de ver KPI 0.</div>
+      </div>
+    </div>
+    <div class="prova"><span class="pv">medido</span><span>Na mesma tela, ao vivo: KPI <code>2</code> · badge da sidebar <code>2</code> · aba Pendentes <code>3</code>; abas vizinhas somam <code>8</code> com "Todas 6"; a aba Todas renderiza <code>01/07, 28/06, 02/07, 01/07, 29/06</code>.</span></div>
+  </div>
+</section>
+
+<!-- ================= B · LISTA PREMIUM ================= -->
+<section class="sec" id="lista">
+  <div class="sec-h"><span class="letra">b</span><h2>Lista de ocorrências premium (desktop)</h2></div>
+  <p class="sec-lead">Cada linha hoje é um grid independente: horário e status dançam de posição, o travessão verde bold grita onde não há informação, o mesmo tipo muda de grafia e cor conforme a origem, e horário previsto se veste de batida real.</p>
+  <div class="screen">
+    <div class="duo">
+      <div class="pane pane--hoje">
+        <div class="tagline"><span class="tag tag--hoje">hoje</span><span class="ctx">aba Todas, colunas soltas</span></div>
+        <div class="rlist">
+          <div class="guide" style="left:64%"></div>
+          <div class="rocc rocc--auto">
+            <span class="rdate"><b>02</b><span>jul</span></span>
+            <span class="rmain"><b>Jair Fernandes Costa</b><span>TECELAGEM · 3º turno · automática</span></span>
+            <span class="rtime">22:00</span>
+            <span class="bdg bdg--amber-raw">Falta injustificada</span>
+            <button class="rbtn" type="button">Conferir</button>
+          </div>
+          <div class="rocc rocc--auto">
+            <span class="rdate"><b>01</b><span>jul</span></span>
+            <span class="rmain"><b>Marcos Paulo Vieira</b><span>PREPARAÇÃO · 1º turno · manual</span></span>
+            <span class="rtime rtime--dash">&mdash;</span>
+            <span class="bdg bdg--danger">Falta Injustificada</span>
+            <svg class="rchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="rocc rocc--auto">
+            <span class="rdate"><b>01</b><span>jul</span></span>
+            <span class="rmain"><b>Ana Carolina Santos</b><span>ACABAMENTO · 2º turno · manual</span></span>
+            <span class="rtime">15:40</span>
+            <span class="bdg bdg--info">Saída Antecipada</span>
+            <svg class="rchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="rocc rocc--auto">
+            <span class="rdate"><b>29</b><span>jun</span></span>
+            <span class="rmain"><b>Bruna Silveira Lopes</b><span>QUALIDADE · 1º turno · automática</span></span>
+            <span class="rtime">16:12</span>
+            <span class="bdg bdg--amber-raw">Saída antecipada</span>
+            <svg class="rchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+        <div class="anno anno--bad" style="margin-top:10px">A linha tracejada mostra a deriva: horários e badges em x diferente a cada linha. O "22:00" do Jair é horário PREVISTO (ele não bateu ponto nenhum) e "Falta Injustificada" e "Falta injustificada" são o mesmo tipo com duas caras.</div>
+      </div>
+      <div class="pane pane--prop">
+        <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">grid com colunas fixas</span></div>
+        <div class="rlist">
+          <div class="guide guide--good" style="left:62%"></div>
+          <div class="rocc rocc--fix">
+            <span class="rdate"><b>02</b><span>jul</span></span>
+            <span class="rmain"><b>Jair Fernandes Costa</b><span>TECELAGEM · 3º turno · automática</span></span>
+            <span class="rtime rtime--fix"><span class="prev">prev.</span>22:00</span>
+            <span class="bdg bdg--danger">Falta injustificada</span>
+            <button class="rbtn" type="button">Conferir</button>
+          </div>
+          <div class="rocc rocc--fix">
+            <span class="rdate"><b>01</b><span>jul</span></span>
+            <span class="rmain"><b>Marcos Paulo Vieira</b><span>PREPARAÇÃO · 1º turno · manual</span></span>
+            <span class="rtime rtime--sem">sem batida</span>
+            <span class="bdg bdg--danger">Falta injustificada</span>
+            <svg class="rchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="rocc rocc--fix">
+            <span class="rdate"><b>01</b><span>jul</span></span>
+            <span class="rmain"><b>Ana Carolina Santos</b><span>ACABAMENTO · 2º turno · manual</span></span>
+            <span class="rtime rtime--fix">15:40</span>
+            <span class="bdg bdg--info">Saída antecipada</span>
+            <svg class="rchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="rocc rocc--fix">
+            <span class="rdate"><b>29</b><span>jun</span></span>
+            <span class="rmain"><b>Bruna Silveira Lopes</b><span>QUALIDADE · 1º turno · automática</span></span>
+            <span class="rtime rtime--fix">16:12</span>
+            <span class="bdg bdg--info">Saída antecipada</span>
+            <svg class="rchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+        <div class="anno anno--good" style="margin-top:10px">Colunas fixas: horário, badge e ação sempre no mesmo x. Sem batida vira célula discreta, previsto ganha o rótulo "prev." e cada tipo tem UMA grafia e UMA cor num dicionário compartilhado pelas duas origens.</div>
+      </div>
+    </div>
+    <div class="prova"><span class="pv">medido</span><span>Posição x do horário na mesma lista: <code>1211, 1112, 1234, 1234, 1118, 1172</code>. Travessão em <code>rgb(0,136,53)</code> 16px bold em 4 de 6 linhas; a falta do Jair mostra "22:00" sem nenhuma batida real.</span></div>
+  </div>
+</section>
+
+<!-- ================= C · MODAL ================= -->
+<section class="sec" id="modal">
+  <div class="sec-h"><span class="letra">c</span><h2>Modal de conferência premium</h2></div>
+  <p class="sec-lead">No ponto mais sensível da tela, um atraso com saldo negativo aparece pintado no verde de sucesso, e o tamanho do desvio (a informação que o líder precisa ler) reprova contraste AA.</p>
+  <div class="screen">
+    <div class="duo">
+      <div class="pane pane--hoje">
+        <div class="tagline"><span class="tag tag--hoje">hoje</span><span class="ctx">conferência de atraso</span></div>
+        <div class="mframe">
+          <div class="mh"><b>Conferir atraso · Márcia Regina · 30/06</b><span>&times;</span></div>
+          <div class="mb">
+            <span class="desvio" style="color:var(--warning)">Atraso de 45 min</span>
+            <div class="dgrid">
+              <div class="dcell"><label>Primeira batida</label><strong style="color:var(--plum)">08:45</strong></div>
+              <div class="dcell"><label>Saldo do dia</label><strong style="color:var(--plum)">-00:45</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno anno--bad" style="margin-top:10px">O -00:45 sai no verde da marca (a regra .detail-cell strong vence a .esp-neg por especificidade) e o badge âmbar mede 3.1:1 de contraste.</div>
+      </div>
+      <div class="pane pane--prop">
+        <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">semântica e contraste corretos</span></div>
+        <div class="mframe">
+          <div class="mh"><b>Conferir atraso · Márcia Regina · 30/06</b><span>&times;</span></div>
+          <div class="mb">
+            <span class="desvio" style="color:var(--warning-ink)">Atraso de 45 min</span>
+            <div class="dgrid">
+              <div class="dcell"><label>Primeira batida</label><strong style="color:var(--plum)">08:45</strong></div>
+              <div class="dcell"><label>Saldo do dia</label><strong style="color:var(--danger)">-00:45</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno anno--good" style="margin-top:10px">Saldo negativo em vermelho (.detail-cell strong.esp-neg) e o badge com o token --warning-ink, que já existe no styles.css justamente pra isso.</div>
+      </div>
+    </div>
+    <div class="prova"><span class="pv">medido</span><span>Computado ao vivo: o -00:45 renderiza <code>rgb(0,136,53)</code> com <code>--danger</code> valendo <code>#962F32</code>; o badge mede <code>3.1:1</code> e com <code>--warning-ink</code> passa de <code>4.5:1</code> (AA) com folga.</span></div>
+  </div>
+</section>
+
+<!-- ================= D · ABAS MOBILE ================= -->
+<section class="sec" id="abas">
+  <div class="sec-h"><span class="letra">d</span><h2>Abas mobile em uma linha rolável</h2></div>
+  <p class="sec-lead">Com 6 abas em 390px o flex-wrap quebra em duas linhas e o indicador de aba ativa, posicionado só por bottom, sublinha a aba errada. A proposta é o padrão iOS: uma linha, rolagem horizontal, fade nas bordas.</p>
+  <div class="screen">
+    <div class="duo">
+      <div class="pane pane--hoje">
+        <div class="tagline"><span class="tag tag--hoje">hoje</span><span class="ctx">390px · admin com 6 abas</span></div>
+        <div class="phwrap"><div class="ph">
+          <div class="ph-title">Ocorrências</div>
+          <div class="mtabs">
+            <div class="row">
+              <span class="mtab">GP confere <i>1</i></span>
+              <span class="mtab on">Pendentes <i>3</i></span>
+              <span class="mtab">Conferidas <i>2</i></span>
+              <span class="mtab">Lançadas <i>1</i></span>
+              <span class="mtab">Dispensadas <i>1</i></span>
+              <span class="mtab" id="tab-todas-bug">Todas <i>6</i></span>
+            </div>
+            <span class="ink-bug" id="ink-bug"></span>
+          </div>
+          <div class="anno anno--bad" style="margin-top:12px">"Pendentes" está ativa na primeira linha, mas o traço verde aparece embaixo de "Todas", na segunda. 53px de desvio, em toda tela de gestor no celular.</div>
+        </div></div>
+      </div>
+      <div class="pane pane--prop">
+        <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">uma linha, rolável de verdade (arrasta)</span></div>
+        <div class="phwrap"><div class="ph">
+          <div class="ph-title">Ocorrências</div>
+          <div class="mtabs-scroll" id="rail-scroll">
+            <div class="rail">
+              <span class="mtab">GP confere <i>1</i></span>
+              <span class="mtab on">Pendentes <i>3</i></span>
+              <span class="mtab">Conferidas <i>2</i></span>
+              <span class="mtab">Lançadas <i>1</i></span>
+              <span class="mtab">Dispensadas <i>1</i></span>
+              <span class="mtab">Todas <i>8</i></span>
+            </div>
+          </div>
+          <div class="anno anno--good" style="margin-top:12px">flex-wrap vira nowrap + overflow-x, o ink acompanha a aba ativa e o fade nas bordas avisa que tem mais aba adiante. Nada quebra em duas linhas.</div>
+        </div></div>
+      </div>
+    </div>
+    <div class="prova"><span class="pv">medido</span><span>Ink com top <code>642.1</code> contra bottom <code>589.1</code> da aba ativa: <code>53px</code> abaixo, sublinhando outra aba. Reproduzido e confirmado pelo verificador adversarial.</span></div>
+  </div>
+</section>
+
+<!-- ================= E · CARDS MOBILE ================= -->
+<section class="sec" id="cards">
+  <div class="sec-h"><span class="letra">e</span><h2>Cards de ocorrência e pessoas no mobile</h2></div>
+  <p class="sec-lead">No mobile o card manual perde uma coluna e o quinto item cai órfão no canto; na lista de pessoas os badges esmagam o nome até sobrarem duas letras. A proposta re-gradeia o card e dá aos badges uma linha própria.</p>
+  <div class="screen">
+    <div class="duo">
+      <div class="pane pane--hoje">
+        <div class="tagline"><span class="tag tag--hoje">hoje</span><span class="ctx">390px · grade quebrada</span></div>
+        <div class="phwrap"><div class="ph">
+          <div class="mocc">
+            <div class="g">
+              <span class="mdate"><b>30</b><span>jun</span></span>
+              <span class="mmain">
+                <b>Carlos Eduardo Nascimen&hellip;</b>
+                <span class="sub">Atraso · TECELAGEM · 1º turno · conferida pela liderança</span>
+              </span>
+              <span class="bdg bdg--amber" style="justify-self:end">Banco de Horas</span>
+            </div>
+            <div class="orphan">
+              <button class="btnl" type="button">Lançar</button>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              <span class="anno anno--bad">botão e chevron soltos no canto inferior esquerdo</span>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="l1">
+              <span class="av">GC</span>
+              <span style="min-width:0;flex:0 1 auto;max-width:34px"><span class="nm">Ga&hellip;</span><span class="sub">QUALIDAD</span></span>
+              <span class="chip chip--apr">Menor Aprendiz</span>
+              <span class="chip chip--turno">1º turno</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+          <div class="anno anno--bad" style="margin-top:10px">O nome da Gabriela sobrou com 36px visíveis e o setor clipa no meio do glifo, sem reticências.</div>
+        </div></div>
+      </div>
+      <div class="pane pane--prop">
+        <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">re-gradeado, nada some</span></div>
+        <div class="phwrap"><div class="ph">
+          <div class="mocc">
+            <div class="g3">
+              <span class="mdate"><b>30</b><span>jun</span></span>
+              <span class="mmain">
+                <b>Carlos Eduardo Nascimento Rocha</b>
+                <span class="sub">Atraso · 1º turno</span>
+                <span class="stline"><span class="bdg bdg--amber" style="justify-self:auto">Banco de Horas</span><span class="hora">08:45</span><button class="rbtn" type="button" style="justify-self:auto">Lançar</button></span>
+              </span>
+              <svg class="mchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="l1">
+              <span class="av">GC</span>
+              <span style="min-width:0;flex:1"><span class="nm nm--2l" style="white-space:normal">Gabriela Cristina Moraes Pinto</span><span class="sub">QUALIDADE · cód:&nbsp;1187</span></span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="l2">
+              <span class="chip chip--apr">Menor Aprendiz</span>
+              <span class="chip chip--turno">1º turno</span>
+            </div>
+          </div>
+          <div class="anno anno--good" style="margin-top:10px">Data pill, conteúdo e chevron em três colunas; status e horário empilham dentro do conteúdo (o horário deixa de sumir). Nome em até 2 linhas e os badges quebram pra uma linha própria.</div>
+        </div></div>
+      </div>
+    </div>
+    <div class="prova"><span class="pv">medido</span><span>Nome visível de <code>36px</code> ("Ga&hellip;") e <code>101px</code> ("Djalma Rob&hellip;"); 6 de 6 linhas com nome cortado. Chevron órfão em <code>x=31, y=840</code> num card que começa em <code>y=740</code>.</span></div>
+  </div>
+</section>
+
+<!-- ================= F · CHROME MOBILE ================= -->
+<section class="sec" id="chrome">
+  <div class="sec-h"><span class="letra">f</span><h2>Chrome mobile do gestor: zonas que não brigam</h2></div>
+  <p class="sec-lead">A pilha ilha + FAB + chat ocupa mais espaço do que o conteúdo reserva: as últimas ações ficam permanentemente cobertas. E no Espelho de ponto o detalhe renderiza fora da tela, então o toque parece não fazer nada.</p>
+  <div class="screen">
+    <div class="duo">
+      <div class="pane pane--hoje">
+        <div class="tagline"><span class="tag tag--hoje">hoje</span><span class="ctx">padding-bottom 104px · pilha até 172px</span></div>
+        <div class="zona">
+          <div class="zrow" style="top:16px"><span class="zic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Hora Extra<span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span></div>
+          <div class="zrow" style="top:68px"><span class="zic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Atestado Médico<span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span></div>
+          <div class="zrow" style="top:120px"><span class="zic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Chamada de Emergência<span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span></div>
+          <div class="zrow" style="bottom:150px"><span class="zic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Trabalho em Feriado<span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span></div>
+          <div class="medline" style="top:246px"><span>fim do conteúdo (y=740): o lápis fica embaixo do chat PRA SEMPRE</span></div>
+          <div class="zfab zfab--chat" style="bottom:172px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="zfab zfab--plus" style="bottom:104px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+          <div class="ilha">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="on"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
+        <div class="anno anno--bad" style="margin-top:10px">Chat em y=616 a 672, FAB em y=684 a 740, e o conteúdo termina exatamente em y=740: as últimas ações de Configurações, Permissões e Funcionários ficam cobertas sem como rolar pra fora.</div>
+      </div>
+      <div class="pane pane--prop">
+        <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">padding-bottom ~240px limpa a pilha</span></div>
+        <div class="zona">
+          <div class="zrow" style="top:16px"><span class="zic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Atestado Médico<span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span></div>
+          <div class="zrow" style="top:68px"><span class="zic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Chamada de Emergência<span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span></div>
+          <div class="zrow" style="top:120px"><span class="zic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Trabalho em Feriado<span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span></div>
+          <div class="medline good" style="top:170px"><span>fim do conteúdo rola ACIMA do chat: nada fica coberto</span></div>
+          <div class="zfab zfab--chat" style="bottom:172px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="zfab zfab--plus" style="bottom:104px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+          <div class="ilha">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="on"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
+        <div class="anno anno--good" style="margin-top:10px">O conteúdo reserva a altura da pilha inteira: no fim do scroll a última linha para acima do chat. Ilha, FAB e chat continuam onde estão, empilhados e alinhados.</div>
+      </div>
+    </div>
+
+    <div class="duo" style="margin-top:16px">
+      <div class="pane pane--hoje">
+        <div class="tagline"><span class="tag tag--hoje">hoje</span><span class="ctx">Espelho de ponto · o toque "não responde"</span></div>
+        <div class="phwrap"><div class="ph">
+          <div class="ph-title">Espelho de ponto</div>
+          <div class="frow" style="border-color:var(--plum);box-shadow:0 0 0 1px rgba(0,136,53,.25)">
+            <div class="l1"><span class="av">CE</span><span style="min-width:0;flex:1"><span class="nm">Carlos Eduardo Nascimento&hellip;</span><span class="sub">TECELAGEM · 1º turno</span></span></div>
+          </div>
+          <div class="frow"><div class="l1"><span class="av">DK</span><span style="min-width:0;flex:1"><span class="nm">Djalma Roberto Kessler</span><span class="sub">QUALIDADE · 1º turno</span></span></div></div>
+          <div class="viewport-edge"><em>fim da tela</em></div>
+          <div class="fora">
+            <div style="font-size:11px;font-weight:700;opacity:.55">Espelho de Carlos Eduardo</div>
+            <div style="font-size:10px;opacity:.45;margin-top:3px">SEG 30/06 &nbsp; 07:52 &nbsp; 12:00 &nbsp; 13:02 &nbsp; 17:30</div>
+            <div class="anno anno--bad">o detalhe renderiza aqui, em y=768, abaixo da ilha: o usuário nunca vê</div>
+          </div>
+        </div></div>
+      </div>
+      <div class="pane pane--prop">
+        <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">detalhe abre como sheet por cima</span></div>
+        <div class="phwrap"><div class="ph" style="padding-bottom:10px">
+          <div class="ph-title" style="opacity:.4">Espelho de ponto</div>
+          <div class="frow" style="opacity:.4"><div class="l1"><span class="av">CE</span><span style="min-width:0;flex:1"><span class="nm">Carlos Eduardo Nascimento&hellip;</span><span class="sub">TECELAGEM · 1º turno</span></span></div></div>
+          <div class="frow" style="opacity:.35"><div class="l1"><span class="av">DK</span><span style="min-width:0;flex:1"><span class="nm">Djalma Roberto Kessler</span><span class="sub">QUALIDADE · 1º turno</span></span></div></div>
+          <div style="height:150px"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <b>Carlos Eduardo Nascimento Rocha</b>
+            <div style="font-size:10px;color:var(--text-muted);margin:1px 0 7px">TECELAGEM · 1º turno · junho de 2026</div>
+            <div class="esprow"><span class="dia">SEG 30/06</span><span>07:52 · 12:00 · 13:02 · 17:30</span><span class="saldo">-00:45</span></div>
+            <div class="esprow"><span class="dia">SEX 27/06</span><span>07:00 · 12:00 · 13:00 · 17:00</span><span style="font-weight:700;color:var(--text-muted)">0:00</span></div>
+          </div>
+        </div></div>
+        <div class="anno anno--good" style="margin-top:10px">Tocar numa pessoa abre uma sheet por cima da lista: feedback imediato, gesto conhecido, e a ilha não briga com o conteúdo.</div>
+      </div>
+    </div>
+    <div class="prova"><span class="pv">medido</span><span>Pilha: chat <code>y=616 a 672</code>, FAB <code>y=684 a 740</code>, padding do conteúdo <code>104px</code>, conteúdo termina em <code>y=740</code>. Espelho: toque não muda o scroll (<code>0</code> pra <code>0</code>) e o painel fica em <code>y=768</code> com a ilha em <code>y=762</code>.</span></div>
+  </div>
+</section>
+
+<!-- ================= G · CONFIANCA E VOZ ================= -->
+<section class="sec" id="voz">
+  <div class="sec-h"><span class="letra">g</span><h2>Confiança e voz</h2></div>
+  <p class="sec-lead">Três textos no ar hoje falam a língua do desenvolvedor (dois vazam erro cru do Firestore) e um contradiz a própria tela. Saem os diagnósticos, entram estados vazios que explicam e orientam.</p>
+  <div class="screen">
+    <div class="swap">
+      <div class="onde">Banco de Horas · gestor, sem saldo importado</div>
+      <div class="par">
+        <div class="lado"><span class="tag tag--hoje">hoje</span><span class="velho">diag BH · doc existe: ? · carregados: 0 · erro: nenhum</span></div>
+        <span class="seta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        <div class="lado"><span class="tag tag--prop">proposto</span><span class="novo"><em>Nenhum saldo importado ainda.</em> Importe a planilha do ponto pra ver os saldos aqui. O diagnóstico técnico vai pro console, atrás de uma flag.</span></div>
+      </div>
+    </div>
+    <div class="swap">
+      <div class="onde">Avisos e Documentos · colaborador, estado vazio</div>
+      <div class="par">
+        <div class="lado"><span class="tag tag--hoje">hoje</span><span class="velho">diag avisos: 0 carregados · permission-denied</span></div>
+        <span class="seta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        <div class="lado"><span class="tag tag--prop">proposto</span><span class="novo"><em>Linha removida da tela.</em> Erro real vira um estado de falha honesto, com botão Tentar de novo; o código do erro vai pro console.</span></div>
+      </div>
+    </div>
+    <div class="swap">
+      <div class="onde">Folha de pagamento · nota desatualizada ao lado do selo "Assinatura pendente"</div>
+      <div class="par">
+        <div class="lado"><span class="tag tag--hoje">hoje</span><span class="velho" style="font-family:inherit;font-size:11.5px">A assinatura eletrônica chega em breve; enquanto isso, dá pra ler e baixar.</span></div>
+        <span class="seta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        <div class="lado"><span class="tag tag--prop">proposto</span><span class="novo"><em>Só você vê os seus recibos.</em> Toque num recibo pra ler, baixar e assinar.</span></div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin:18px 0 10px;text-transform:uppercase;letter-spacing:.06em">Estados vazios premium: ícone + frase útil + ação</div>
+    <div class="empties">
+      <div class="emptyp">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+        <b>Nenhum aviso por enquanto</b>
+        <p>Quando a GP publicar um aviso, ele aparece aqui e a bolinha avisa na Home.</p>
+        <span class="act">Atualizar<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
+      </div>
+      <div class="emptyp">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        <b>Nenhum documento pra você</b>
+        <p>Os documentos da empresa chegam aqui assim que forem publicados pela GP.</p>
+        <span class="act">Atualizar<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
+      </div>
+      <div class="emptyp">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <b>Nenhum saldo importado ainda</b>
+        <p>Importe a planilha do ponto pra acompanhar o banco de horas de todo mundo.</p>
+        <span class="act">Importar saldos<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+      </div>
+    </div>
+    <div class="prova"><span class="pv">no ar hoje</span><span>Os três textos estão em produção (<code>app.js 922</code>, <code>1382</code> e <code>~8160</code>); dois deles imprimem <code>permission-denied</code> na tela do colaborador e o terceiro nega uma função lançada na v257.</span></div>
+  </div>
+</section>
+
+<!-- ================= H · ACESSIBILIDADE ================= -->
+<section class="sec" id="a11y">
+  <div class="sec-h"><span class="letra">h</span><h2>Acessibilidade invisível, mas sentida</h2></div>
+  <p class="sec-lead">Foco de teclado que deforma o componente, cards que o Tab nunca alcança e um selo quase invisível no sol do chão de fábrica. Três correções que ninguém percebe quando estão certas, e todo mundo sente quando estão erradas.</p>
+  <div class="screen">
+    <div class="duo">
+      <div class="pane pane--hoje">
+        <div class="tagline"><span class="tag tag--hoje">hoje</span><span class="ctx">foco simulado: o componente muda de forma</span></div>
+        <div class="focus-demo">
+          <div>
+            <input class="fd-input fd-input--bug" type="text" value="ana.carolina@fiobras.com.br" readonly>
+            <div class="fd-note" style="margin-top:6px">o campo tem raio 12px, mas ao focar o border-radius global de 4px achata os cantos (animado pela transition, o morfar é visível)</div>
+          </div>
+          <div>
+            <div class="fd-card fd-card--bug">Atraso · Márcia Regina<span>30/06 · aguardando conferência</span></div>
+            <div class="fd-note" style="margin-top:6px">cards de 12 a 20px de raio saltam pra 4px no Tab</div>
+          </div>
+        </div>
+      </div>
+      <div class="pane pane--prop">
+        <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">anel offset que respeita o raio</span></div>
+        <div class="focus-demo">
+          <div>
+            <input class="fd-input fd-input--ok" type="text" value="ana.carolina@fiobras.com.br" readonly>
+            <div class="fd-note" style="margin-top:6px">remove o border-radius da regra de :focus-visible: o outline acompanha o raio próprio do elemento, com offset de 2px</div>
+          </div>
+          <div>
+            <div class="fd-card fd-card--ok">Atraso · Márcia Regina<span>30/06 · aguardando conferência</span></div>
+            <div class="fd-note" style="margin-top:6px">o anel abraça o card sem deformar a geometria</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane pane--prop" style="margin-top:16px">
+      <div class="tagline"><span class="tag tag--prop">proposto</span><span class="ctx">cards automáticos entram na ordem de tabulação</span></div>
+      <div class="kbd-card">
+        <b>Falta injustificada · Jair Fernandes Costa</b>
+        <div class="sub">02/07 · dispensada pela GP · Enter abre a trilha</div>
+      </div>
+      <div style="margin-top:11px">
+        <span class="codechip">role="button"</span><span class="codechip">tabindex="0"</span>
+        <span style="font-size:11.5px;color:var(--text-muted)">no article do card automático: o handler de Enter e Space que já existe pros manuais passa a cobrir os automáticos de graça. Hoje uma dispensada só abre com mouse.</span>
+      </div>
+    </div>
+
+    <div class="pane" style="margin-top:16px">
+      <div class="tagline"><span class="tag tag--prop">selo Pendente legível nos 2 temas</span><span class="ctx">alterne o tema pra comparar</span></div>
+      <div class="segtema" id="segtema">
+        <button type="button" class="on" data-tema="claro">Tema claro</button>
+        <button type="button" data-tema="escuro">Tema escuro</button>
+      </div>
+      <div class="temawrap claro" id="temawrap">
+        <div class="paircap">hoje</div>
+        <div class="cpocc">
+          <span class="cbd"><b>Atraso</b><span>28/06 · registrado pela liderança</span></span>
+          <span class="selo selo-hoje"><span class="dot"></span>Pendente</span>
+          <span class="ratio ratio-hoje">1.98:1</span>
+        </div>
+        <div class="paircap">proposto</div>
+        <div class="cpocc">
+          <span class="cbd"><b>Atraso</b><span>28/06 · registrado pela liderança</span></span>
+          <span class="selo selo-prop"><span class="dot"></span>Pendente</span>
+          <span class="ratio ratio--ok ratio-prop">4.6:1</span>
+        </div>
+        <div class="anno tema-anno anno--good" style="margin-top:11px">No claro o texto escurece pra passar de 4.5:1 (AA) mantendo o fundo âmbar. No escuro o selo já mede 5.9:1 e fica exatamente como está.</div>
+      </div>
+    </div>
+    <div class="prova"><span class="pv">medido</span><span>Raio do input morfa de <code>12px</code> pra <code>4.13px</code> ao focar; Tab varre 29 paradas sem alcançar o card automático (focus() forçado não pega); selo Pendente mede <code>1.98:1</code> no claro contra <code>5.9:1</code> no escuro.</span></div>
+  </div>
+</section>
+
+<!-- ================= I · MIUDEZAS ================= -->
+<section class="sec" id="miudezas">
+  <div class="sec-h"><span class="letra">i</span><h2>Miudezas que somam</h2></div>
+  <p class="sec-lead">Oito consertos pequenos, visíveis em miniatura. Individualmente ninguém reclama; juntos são a diferença entre "funciona" e "é caprichado".</p>
+  <div class="screen">
+    <div class="minis">
+
+      <div class="mini">
+        <h4>Cartão fantasma no Importar recibos</h4>
+        <div class="de">Documentos · desktop · grave confirmado</div>
+        <div class="split">
+          <div class="box box--h"><span class="microtag">hoje</span>
+            <div class="m-drop">Arraste o PDF aqui</div>
+            <div class="m-file"><span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></span><span class="x">&times;</span></div>
+          </div>
+          <div class="box box--p"><span class="microtag">proposto</span>
+            <div class="m-drop">Arraste o PDF aqui</div>
+          </div>
+        </div>
+        <div class="cap">O display:flex vence o atributo hidden: um card vazio com X aparece antes de qualquer arquivo. Uma regra [hidden] resolve.</div>
+      </div>
+
+      <div class="mini">
+        <h4>Item sem número vira caixão no roadmap</h4>
+        <div class="de">Novidades · ambos · grave confirmado</div>
+        <div class="split">
+          <div class="box box--h"><span class="microtag">hoje</span>
+            <div class="m-caixa">&mdash;</div>
+          </div>
+          <div class="box box--p"><span class="microtag">proposto</span>
+            <div class="m-leaf"><span class="n">&nbsp;</span>Modo offline do ponto</div>
+            <div class="m-leaf"><span class="n">38</span>Filtro por setor</div>
+          </div>
+        </div>
+        <div class="cap">A classe global .empty do gestor sequestra o span do roadmap: 29 de 72 itens viram caixas de 166px. Renomear pra fp-lnum--vazio devolve os 39px.</div>
+      </div>
+
+      <div class="mini">
+        <h4>Badge cobre o ícone na sidebar recolhida</h4>
+        <div class="de">Todas as páginas do gestor · desktop</div>
+        <div class="split">
+          <div class="box box--h"><span class="microtag">hoje</span>
+            <div class="m-navic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="pillbad">2</span></div>
+          </div>
+          <div class="box box--p"><span class="microtag">proposto</span>
+            <div class="m-navic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="dotok"></span></div>
+          </div>
+        </div>
+        <div class="cap">Recolhida, o pill de pendências senta em cima do desenho do ícone. Vira um dot de 9px ancorado no canto.</div>
+      </div>
+
+      <div class="mini">
+        <h4>Card órfão no Banco de Horas mobile</h4>
+        <div class="de">Banco de Horas · mobile</div>
+        <div class="split">
+          <div class="box box--h"><span class="microtag">hoje</span>
+            <div class="m-stats">
+              <span class="m-stat">Com saldo<b>0</b></span>
+              <span class="m-stat">A compensar<b>0h00</b></span>
+              <span class="m-stat">Última atualização<b>aguardando 1ª sincronização</b></span>
+            </div>
+          </div>
+          <div class="box box--p"><span class="microtag">proposto</span>
+            <div class="m-stats">
+              <span class="m-stat">Com saldo<b>0</b></span>
+              <span class="m-stat">A compensar<b>0h00</b></span>
+              <span class="m-stat m-stat--full">Última atualização<b>aguardando 1ª sincronização</b></span>
+            </div>
+          </div>
+        </div>
+        <div class="cap">O terceiro card cai sozinho com um vão vazio ao lado. grid-column: 1/-1 fecha a grade.</div>
+      </div>
+
+      <div class="mini">
+        <h4>Checkbox azul do sistema no login</h4>
+        <div class="de">Login gestor e colaborador · ambos</div>
+        <div class="split">
+          <div class="box box--h"><span class="microtag">hoje</span>
+            <label class="m-cklabel"><input type="checkbox" checked style="accent-color:#0075FF">Manter conectado</label>
+          </div>
+          <div class="box box--p"><span class="microtag">proposto</span>
+            <label class="m-cklabel"><input type="checkbox" checked style="accent-color:var(--plum)">Manter conectado</label>
+          </div>
+        </div>
+        <div class="cap">Único componente da tela sem a identidade da marca. accent-color: var(--plum) resolve nos dois formulários.</div>
+      </div>
+
+      <div class="mini">
+        <h4>Palavra órfã no "Fixar no topo"</h4>
+        <div class="de">Comunicados · compositor · desktop</div>
+        <div class="split">
+          <div class="box box--h"><span class="microtag">hoje</span>
+            <div class="m-orfa">Mantém o aviso destacado acima dos<br><em>demais</em></div>
+          </div>
+          <div class="box box--p"><span class="microtag">proposto</span>
+            <div class="m-orfa">Mantém o aviso acima dos demais</div>
+          </div>
+        </div>
+        <div class="cap">"demais" cai sozinho na segunda linha em todos os estados do compositor. Texto mais curto, quebra limpa.</div>
+      </div>
+
+      <div class="mini">
+        <h4>Contador solto a 990px do rótulo</h4>
+        <div class="de">Documentos do colaborador · desktop</div>
+        <div class="split">
+          <div class="box box--h"><span class="microtag">hoje</span>
+            <div class="m-head">Precisa de você<span class="um">1</span></div>
+          </div>
+          <div class="box box--p"><span class="microtag">proposto</span>
+            <div class="m-head">Precisa de você<span class="badge1">1</span></div>
+          </div>
+        </div>
+        <div class="cap">O "1" flutua quase na borda da linha de 1100px, parecendo caractere perdido. Encosta no rótulo como badge, igual à Home.</div>
+      </div>
+
+      <div class="mini">
+        <h4>Check da fase concluída não aparece</h4>
+        <div class="de">Novidades · roadmap · ambos</div>
+        <div class="split">
+          <div class="box box--h"><span class="microtag">hoje</span>
+            <div class="m-check"><span class="m-ring"></span>Fase 0 · Concluída</div>
+          </div>
+          <div class="box box--p"><span class="microtag">proposto</span>
+            <div class="m-check"><span class="m-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Fase 0 · Concluída</div>
+          </div>
+        </div>
+        <div class="cap">O JS renderiza o check e o CSS mata com display:none: sobra um disco cheio sem símbolo. Um lado decide, o outro sai (regra do código morto).</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================= TABELA FINAL ================= -->
+<section class="sec" id="tabela">
+  <div class="sec-h"><span class="letra">T</span><h2>Tudo que não ganhou demonstração</h2></div>
+  <p class="sec-lead">Os 109 achados restantes (3 graves, 60 médios, 46 baixos), agrupados por gravidade, cada um com a proposta em poucas palavras. Os 31 demonstrados acima completam os 140.</p>
+  <div class="screen">
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th style="width:74px">Gravidade</th><th style="width:74px">Tela</th><th style="width:190px">Onde</th><th>Achado</th><th style="width:220px">Proposta</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="tbl-foot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span><b>Nada será implementado sem aprovação.</b> Depois do sim, a implementação re-roda a mesma bateria de verificação (Playwright nos dois breakpoints, medições e verificação adversarial) pra provar que ficou igual ao aprovado e que nada quebrou.</span>
+    </div>
+  </div>
+</section>
+
+<p class="cap">FioPulse · auditoria de polimento 2026 · mockup consolidado · dados de exemplo, medições reais da varredura de 02/07</p>
+
+<script>
+(function(){
+  /* ===== dados: achados sem demonstracao (gerados do JSON da auditoria) ===== */
+  var ACHADOS = [{"g":"m","bp":"desktop","tela":"Dashboard gestor, aba Pendentes","t":"Na aba Pendentes, o card automático que exige ação não tem a barra âmbar de pendência","p":"Barra âmbar também no com_lider"},{"g":"m","bp":"desktop","tela":"Modais: Nova ocorrência vs conferência/dispensa de automática","t":"Dois paradigmas de validação e foco inicial inconsistente entre modais irmãos","p":"Validação inline e foco padronizados"},{"g":"b","bp":"desktop","tela":"Modais de conferência e dispensa","t":"Modal inteiro pula ao exibir a mensagem de validação","p":"Reservar a altura da mensagem"},{"g":"b","bp":"desktop","tela":"Dashboard gestor, toolbar de busca e filtros","t":"Campo de busca com 43px e selects com 44px na mesma linha","p":"Altura única de 44px na toolbar"},{"g":"b","bp":"desktop","tela":"Dashboard gestor, widgets entre KPIs e abas","t":"Raio de canto do widget Demografia (10px) difere dos vizinhos (12px) e o gap acima dele quebra o ritmo","p":"Raio 12px e margem normalizada"},{"g":"b","bp":"desktop","tela":"Dashboard gestor, barra de abas","t":"A aba Dispensadas aparece e some conforme a contagem","p":"Aba sempre visível com contador 0"},{"g":"b","bp":"desktop","tela":"Textos do fluxo GP (empty states, modais, form)","t":"Gênero inconsistente para \"GP\" nos microtextos","p":"Padronizar \"a GP\" nos microtextos"},{"g":"b","bp":"desktop","tela":"Modais de detalhe de automática (somente leitura)","t":"Clique no backdrop não fecha nem os modais somente leitura","p":"Backdrop fecha modais somente leitura"},{"g":"m","bp":"desktop","tela":"Funcionários","t":"Três estilos de chip diferentes convivendo na mesma linha da lista","p":"Um componente único de chip"},{"g":"m","bp":"desktop","tela":"Funcionários","t":"Chip 'Sem turno' com contraste 3.1:1 (reprova WCAG AA)","p":"Texto do chip com token AA"},{"g":"m","bp":"desktop","tela":"Funcionários","t":"FAB de chat cobre o chevron da última linha no fim do scroll","p":"Padding no fim da lista"},{"g":"m","bp":"desktop","tela":"Espelho de ponto","t":"Painel de detalhe vazio pobre e desequilibrado, com copy que culpa permissão","p":"Empty state padrão, centrado"},{"g":"m","bp":"desktop","tela":"Espelho de ponto","t":"Campo de busca com estilo diferente das páginas irmãs","p":"Busca unificada nas telas de pessoas"},{"g":"m","bp":"desktop","tela":"Banco de Horas","t":"'Funcionários ativos: 7' contradiz o 'Total ativos: 9' da tela ao lado","p":"Hint alinhado à contagem real"},{"g":"m","bp":"mobile","tela":"Espelho de ponto","t":"Espelho de ponto não atualiza o título do topbar (fica o da página anterior)","p":"Atualizar o título do topbar"},{"g":"m","bp":"desktop","tela":"Funcionários","t":"Trocar filtro de status derruba o foco do teclado pro body","p":"Devolver o foco ao select"},{"g":"b","bp":"desktop","tela":"Funcionários (perfil modal)","t":"Perfil sem dados do ERP vira parede de nove travessões","p":"Nota única \"ERP não sincronizado\""},{"g":"b","bp":"desktop","tela":"Funcionários","t":"Rodapé 'Atualizado — · aguardando 1ª sincronização' lê quebrado","p":"Só \"Aguardando 1ª sincronização\""},{"g":"b","bp":"desktop","tela":"Funcionários","t":"Contadores do filtro de turno ignoram o filtro de status","p":"Contagens respeitando o filtro ativo"},{"g":"b","bp":"desktop","tela":"Disciplinar","t":"Botões de fechar modal sem nome acessível e foco inicial inconsistente","p":"aria-label Fechar e foco padrão"},{"g":"b","bp":"desktop","tela":"Disciplinar","t":"Mesma ação com dois rótulos na mesma tela ('Registrar ocorrência' vs 'Registrar primeira')","p":"Mesmo rótulo nos dois botões"},{"g":"b","bp":"desktop","tela":"Funcionários","t":"1px de desalinhamento entre busca e selects na toolbar","p":"Altura fixa de 44px"},{"g":"b","bp":"desktop","tela":"Disciplinar","t":"Verde da marca como cor universal apaga a semântica (vazio, alerta e ação iguais)","p":"Verde só pra ação e sucesso"},{"g":"m","bp":"desktop","tela":"Comunicados > compositor (Novo comunicado)","t":"Modal inteiro pula verticalmente enquanto o gestor preenche (recentralização a cada mudança de conteúdo)","p":"Ancorar o modal pelo topo"},{"g":"m","bp":"desktop","tela":"Comunicados > compositor (segmento Por turno)","t":"Nomenclatura de turno inconsistente dentro do mesmo modal: select diz 'Turno matutino (1)', preview diz '1º Turno'","p":"Padronizar \"1º Turno\" nas options"},{"g":"m","bp":"ambos","tela":"Comunicados (estado vazio e compositor)","t":"Acentos faltando em textos visíveis: 'Voce escolhe' e 'refeitorio'","p":"Corrigir \"Você\" e \"refeitório\""},{"g":"m","bp":"ambos","tela":"Auditoria e Configurações > Permissões","t":"Travessão em textos de UI viola a regra da casa (sem hífen/travessão nos textos)","p":"Trocar travessão por dois pontos"},{"g":"m","bp":"desktop","tela":"Auditoria (feed vazio)","t":"Estado vazio da Auditoria é uma linha de texto seca, destoando dos empty states ricos do resto do app","p":"Empty com ícone de escudo"},{"g":"m","bp":"desktop","tela":"Sidebar recolhida (todas as páginas do gestor)","t":"Ícones da sidebar recolhida não têm tooltip nem aria-label; hover só muda o fundo","p":"aria-label e tooltip nos ícones"},{"g":"m","bp":"desktop","tela":"Configurações > Permissões (matriz Papéis & acessos)","t":"Hint da matriz diz 'toque pra abrir' no desktop e continua dizendo 'abrir' com a matriz já aberta","p":"Verbo único e hint dinâmico"},{"g":"m","bp":"ambos","tela":"Configurações > Permissões (matriz Papéis & acessos)","t":"Células editáveis da matriz têm alvo de 26x26px, bem abaixo de 44px pra touch","p":"Clique no td inteiro (44px)"},{"g":"b","bp":"desktop","tela":"Comunicados, Documentos, Recibos e Controle PJ (estados vazios)","t":"Empty states reciclam o mesmo ícone de documento e misturam dois padrões de rótulo no CTA","p":"Ícone próprio por domínio no vazio"},{"g":"b","bp":"ambos","tela":"Sidebar e Configurações (rótulos)","t":"Capitalização mista nos rótulos de navegação: 'Banco de Horas' vs 'Espelho de ponto'","p":"Sentence case nos rótulos do menu"},{"g":"b","bp":"ambos","tela":"Configurações > Permissões (matriz)","t":"Rótulo '(beta)' ficou pra trás em 'Conferir ocorrências automáticas'","p":"Remover \"(beta)\" do rótulo"},{"g":"b","bp":"desktop","tela":"Documentos (header + tabs)","t":"H1 da página duplica literalmente o rótulo da aba ativa logo abaixo","p":"H1 fixo \"Documentos\""},{"g":"m","bp":"mobile","tela":"Home gestor mobile · FABs","t":"Chat-fab e FAB de Nova ocorrência desalinhados 6px no eixo vertical direito","p":"Mesmo right pros dois FABs"},{"g":"m","bp":"mobile","tela":"Home gestor mobile · chat-fab sobre a lista","t":"Chat-fab não recolhe ao rolar e fica cobrindo conteúdo dos cards (badges Pendente / Banco de Horas)","p":"Chat recolhe ao rolar também"},{"g":"m","bp":"mobile","tela":"Home gestor mobile · hub de atalhos","t":"Hub de atalhos sem affordance de rolagem em repouso: 5º item fica 100% fora da tela","p":"Meio atalho visível + scroll-snap"},{"g":"m","bp":"mobile","tela":"Home gestor mobile · resumo 2x2","t":"Células do resumo 2x2 com bordas assimétricas (só topo+esquerda) e cantos mistos","p":"Borda completa e raio por célula"},{"g":"m","bp":"mobile","tela":"Modal de conferência (com_lider)","t":"CTA 'Confirmar conferência' fora da dobra: modais de ocorrência automática não usam o rodapé sticky do design system","p":"Ações no rodapé sticky do modal"},{"g":"m","bp":"mobile","tela":"Lista de ocorrências (auto vs manual)","t":"Cards automático e manual na mesma lista com colunas desalinhadas e truncamento só no manual","p":"Coluna de data com largura única"},{"g":"m","bp":"mobile","tela":"Lista de ocorrências · aba Pendentes","t":"Pendência sem barra âmbar no card automático 'com o líder'","p":"Barra âmbar no com_lider"},{"g":"m","bp":"mobile","tela":"Lista de ocorrências · aba Conferidas","t":"Card automático confirmado com badge e autoria centralizados enquanto todo o resto é alinhado à esquerda","p":"Alinhar o bloco à esquerda"},{"g":"m","bp":"mobile","tela":"Home gestor mobile · abas","t":"Touch target das abas de ocorrências com 34px de altura (< 44px)","p":"Abas com 44px de altura"},{"g":"b","bp":"mobile","tela":"Home gestor mobile · cabeçalho","t":"Pill de versão (27px) e chip MONITOR (35px) lado a lado com anatomias e alturas diferentes","p":"Chips do cabeçalho com altura igual"},{"g":"b","bp":"mobile","tela":"Modal de conferência · fatos","t":"Saldo do dia negativo (-00:45 / -08:00) pintado no verde da marca","p":"Saldo colorido pela semântica"},{"g":"b","bp":"mobile","tela":"Home gestor mobile · safe area topo","t":"Sem topbar, o conteúdo começa a só 8px do limite superior quando env(safe-area-inset-top)=0","p":"Respiro mínimo de 16px no topo"},{"g":"m","bp":"mobile","tela":"Comunicados / Documentos / Controle PJ / Configurações","t":"FAB + de 'Nova ocorrência' aparece em todas as telas e engana o contexto","p":"FAB + só nas telas de ocorrências"},{"g":"m","bp":"mobile","tela":"Banco de Horas","t":"Painel de diagnóstico interno ('diag BH') exposto na UI com botão de 27px","p":"Estado vazio amigável + botão 44px"},{"g":"m","bp":"mobile","tela":"Funcionários (perfil modal)","t":"Nome completo do funcionário não aparece em lugar nenhum (trunca até no modal)","p":"Nome quebra em 2 linhas no modal"},{"g":"m","bp":"mobile","tela":"Funcionários (e dashboard)","t":"Chip âmbar 'Sem turno' com contraste 3,1:1 em texto de 11,5px","p":"Texto do chip escurecido (AA)"},{"g":"m","bp":"mobile","tela":"Configurações / Documentos / dashboard (componente de abas)","t":"Touch targets abaixo de 44px em todas as abas","p":"Abas mobile com 44px"},{"g":"m","bp":"mobile","tela":"Funcionários vs Banco de Horas vs Espelho de ponto","t":"Três anatomias diferentes de 'linha de pessoa' em telas irmãs","p":"Componente único de linha de pessoa"},{"g":"m","bp":"mobile","tela":"Documentos (abas)","t":"Trocar de aba troca o título da página inteira acima das próprias abas","p":"Título fixo, CTA dentro da aba"},{"g":"m","bp":"mobile","tela":"Todas as telas do gestor","t":"Título a 8px do topo e nenhum contexto persistente ao rolar","p":"Respiro de 16px + título sticky"},{"g":"b","bp":"ambos","tela":"Comunicados (estado vazio e compositor) / Configurações (Permissões)","t":"Typos e violação da regra tipográfica do projeto","p":"Corrigir typos e reescrever a dica"},{"g":"b","bp":"mobile","tela":"Configurações (Permissões)","t":"Placeholder da busca cortado e separador pendurado no card do usuário","p":"Placeholder curto e quebra controlada"},{"g":"m","bp":"mobile","tela":"colab-folha e colab-ponto (linhas de recibo/cartão ponto)","t":"Selo 'Assinatura pendente' (156px) trunca o subtítulo da linha: 'Recibo de pagam…' / 'Cartão ponto · 2 p…'","p":"Encurtar o selo pra \"Pendente\""},{"g":"m","bp":"mobile","tela":"colab-home, colab-ponto, colab-folha (tema claro)","t":"Família de cores fixas em hex falha no tema claro; no escuro passa com folga (inconsistência claro x escuro)","p":"Tokens tematizados no lugar de hex"},{"g":"m","bp":"mobile","tela":"ilha de vidro (bottom-nav)","t":"Ilha fica sem nenhum item ativo em 4 dos 7 destinos (Meu ponto, Folha, Documentos, Novidades)","p":"Início ativo nas telas filhas"},{"g":"m","bp":"mobile","tela":"colab-home e colab-ponto (herói Banco de horas)","t":"Subtítulo do herói BH ('Atualizado hoje às 13:37 · A compensar') em ~2.4 a 2.8:1 sobre o gradiente","p":"Subtítulo mais legível sobre o gradiente"},{"g":"m","bp":"mobile","tela":"colab-home (estado vazio, padrão do rollout)","t":"Home sem comunicado/pendência deixa ~55% do viewport em branco entre o herói e a ilha","p":"Card de Novidades preenche a Home"},{"g":"m","bp":"mobile","tela":"colab-ponto (aba Banco de horas)","t":"'Banco de horas' aparece 2x empilhado (chip ativo + rótulo do herói) e o herói é um botão que navega pra própria tela","p":"Rótulo \"Saldo do mês\", sem navegação"},{"g":"b","bp":"mobile","tela":"colab-home (hub de atalhos)","t":"'Folha de pagamento' é o único rótulo do hub em 2 linhas: baseline do trilho fica irregular","p":"Encurtar pra \"Pagamento\""},{"g":"b","bp":"mobile","tela":"colab-ponto / colab-folha (cards e linhas)","t":"Raios de canto misturados entre componentes vizinhos: 13/14/15/16/18/26px na mesma tela","p":"Migrar os raios pros tokens pp"},{"g":"b","bp":"mobile","tela":"ilha de vidro + Conta (linguagem de motion)","t":"Pill ativa da ilha não desliza entre itens (só fade), enquanto o segmented da Conta tem pill deslizante","p":"Pill deslizante única na ilha"},{"g":"b","bp":"mobile","tela":"colab-ponto (chips de aba) e colab-home (link 'Ver todos')","t":"Alvos de toque abaixo de 44px: chips de aba com 40px de altura e link 'Ver todos' de ~14px","p":"Alvos de 44px nos chips"},{"g":"a","bp":"mobile","tela":"colab-conta","t":"Trocar senha abre o modal 'Minha conta' do gestor, camada redundante com Sair duplicado e outro estilo visual","p":"Sheet direto de trocar senha"},{"g":"m","bp":"mobile","tela":"colab-conta","t":"Admissão exibida com um dia a menos (fuso horário em data string)","p":"Tratar yyyy-mm-dd como data civil"},{"g":"m","bp":"mobile","tela":"colab-conta (após visitar colab-comunicados/documentos)","t":"Refresh ao abrir Avisos/Documentos zera os dados antes de buscar; se a leitura falha a Conta degrada em silêncio","p":"Fetch-then-swap, sem zerar dados"},{"g":"m","bp":"mobile","tela":"colab-conta","t":"Sair desloga na hora, sem confirmação, e ainda exibe chevron de navegação","p":"Confirmação leve antes de sair"},{"g":"m","bp":"mobile","tela":"colab-roadmap + colab-conta","t":"Touch targets abaixo de 44px em controles primários","p":"Área clicável de 44px"},{"g":"m","bp":"mobile","tela":"colab-roadmap","t":"Dica manda 'passar o mouse' numa tela de toque","p":"\"Toque num item\" no lugar de mouse"},{"g":"m","bp":"mobile","tela":"colab-roadmap","t":"Zigzag do trilho desperdiça quase metade da largura útil em 390px","p":"Coluna única no mobile"},{"g":"m","bp":"mobile","tela":"colab-roadmap","t":"Roadmap expõe backlog em jargão de dev para o colaborador de fábrica","p":"Nome público por item do roadmap"},{"g":"m","bp":"mobile","tela":"colab-roadmap + colab-documentos","t":"Telas fora das 3 abas ficam sem nenhuma orientação: nenhuma aba ativa, e o roadmap nem título tem","p":"Título \"Novidades\" + Início ativo"},{"g":"m","bp":"mobile","tela":"colab-roadmap","t":"Roadmap entra com corte seco enquanto todas as telas irmãs fazem fade escalonado","p":"Entrada com fade igual às irmãs"},{"g":"m","bp":"mobile","tela":"colab-roadmap","t":"Badges de status das fases com 9px e contraste 3.29 no tema claro","p":"Selos com 10px e contraste AA"},{"g":"b","bp":"mobile","tela":"colab-conta vs colab-home","t":"Mesmo hero de banco de horas com dois textos: 'em breve'/'Em breve' e subs diferentes","p":"Constante única pro estado sem saldo"},{"g":"b","bp":"ambos","tela":"todas as secundárias","t":"Sopa de raios de canto: 12, 13, 14, 15, 16 e 18px convivendo no mesmo portal","p":"Raios apontando pros tokens pp"},{"g":"b","bp":"mobile","tela":"colab-conta","t":"Segmented de Aparência não anima: trocar tema recria a página inteira e o pill teleporta","p":"Trocar o tema sem re-render total"},{"g":"b","bp":"mobile","tela":"colab-conta","t":"Dados pessoais vira parede de travessões quando o cadastro é incompleto","p":"Filtrar as linhas sem valor"},{"g":"b","bp":"mobile","tela":"colab-roadmap","t":"Resumo do roadmap: grade 3+2 com célula fantasma, rótulo que quebra e verde com dois significados","p":"Grade 2x2 + total em destaque"},{"g":"b","bp":"mobile","tela":"colab-conta vs colab-home","t":"Iniciais do avatar divergem entre Home e Conta quando nome de login difere do cadastro","p":"Fonte única pras iniciais do avatar"},{"g":"m","bp":"desktop","tela":"colab-ponto","t":"Conteúdo estica até 1100px sem max-width: hero gigante, botões de 1069px, segmented de 1070px e linhas de texto de ~135 caracteres","p":"Cap de ~720px no miolo"},{"g":"m","bp":"desktop","tela":"colab-folha","t":"Nenhum card ou linha clicável tem estado de hover no desktop; só o roadmap tem","p":"Hover padrão único no portal"},{"g":"m","bp":"desktop","tela":"colab-roadmap","t":"Em Novidades a sidebar fica sem nenhum item ativo e a página é a única sem título","p":"\"Novidades\" na sidebar + h1 próprio"},{"g":"m","bp":"desktop","tela":"colab-home","t":"Aviso não visto não tem nenhum indicador no desktop (mobile tem badge, sidebar não)","p":"Bolinha âmbar na sidebar desktop"},{"g":"m","bp":"ambos","tela":"colab-home","t":"Link \"Ver todos\" dos Comunicados é <a> sem href: inacessível por teclado","p":"Trocar o <a> por <button>"},{"g":"b","bp":"ambos","tela":"colab-home","t":"Raio de canto do hero (18px) difere dos cards irmãos (16px) e gaps oscilam 9/10px","p":"Token único de raio e gap"},{"g":"b","bp":"ambos","tela":"colab-ponto","t":"Capitalização divergente do mesmo rótulo: sidebar \"Meu Ponto\" vs h1 \"Meu ponto\"","p":"Padronizar \"Meu ponto\""},{"g":"b","bp":"desktop","tela":"colab-conta","t":"Microcopy de toque no desktop: \"Toque para ver o detalhe\" e rodapé do roadmap mistura \"toque\" com \"mouse\" na mesma frase","p":"Verbo neutro: \"abra pra ver\""},{"g":"b","bp":"ambos","tela":"colab-conta","t":"Saldo do banco de horas aparece duas vezes em sequência na Conta, ambos levando ao mesmo lugar","p":"Remover a linha duplicada"},{"g":"b","bp":"ambos","tela":"colab-documentos","t":"Tipo de documento cru em minúsculas nos subtítulos e versão duplicada no card pendente","p":"Rótulos legíveis pros tipos"},{"g":"b","bp":"desktop","tela":"colab-roadmap","t":"Zigzag da trilha (margens alternadas) e tocos de conector parecem desalinhamento na largura desktop","p":"Lista única alinhada no desktop"},{"g":"a","bp":"ambos","tela":"Login gestor","t":"Email malformado dispara balão nativo do navegador (em inglês, estilo sistema) em vez do erro estilizado do app","p":"novalidate + erro estilizado em português"},{"g":"a","bp":"ambos","tela":"Login colaborador","t":"Colaborador digita CPF mas o erro de senha errada diz Email ou senha inválidos","p":"Erro fala \"CPF ou senha\""},{"g":"m","bp":"ambos","tela":"Login gestor e colaborador","t":"Mensagem de erro empurra checkbox e botão Entrar cerca de 20px para baixo (layout shift)","p":"Reservar a altura do erro"},{"g":"m","bp":"mobile","tela":"Login gestor e colaborador","t":"Alvos de toque abaixo de 44px: Voltar 22px, olho da senha 34px, linha do checkbox 22px, Esqueci minha senha 22px","p":"Alvos de toque de 44px"},{"g":"m","bp":"ambos","tela":"Splash","t":"Wordmark FioPulse do splash nunca termina de entrar: aparece aos 2.45s e o splash começa a sair aos 2.9s","p":"Wordmark pousa antes do fade"},{"g":"b","bp":"ambos","tela":"Splash","t":"Primeiros 500ms do splash são tela praticamente preta","p":"Halo e estrelas no frame zero"},{"g":"b","bp":"ambos","tela":"Login gestor e colaborador","t":"Erro crítico em 12px sem ícone nem fundo, com menos peso visual que o hint de primeiro acesso","p":"Erro em pílula com ícone"},{"g":"b","bp":"ambos","tela":"Login colaborador","t":"Erro de CPF incompleto aparece embaixo do campo Senha, longe do campo CPF que o causou","p":"Erro inline no campo CPF"},{"g":"b","bp":"ambos","tela":"Login colaborador","t":"Colaborador não tem nenhum caminho de recuperação de senha na tela","p":"Linha \"Esqueceu? Fale com a GP\""},{"g":"b","bp":"ambos","tela":"Tela de acesso vs telas de login","t":"Fio de cor no topo aparece só nas telas de login, some na tela de acesso do mesmo fluxo","p":"Mesmo fio de topo no acesso"},{"g":"m","bp":"ambos","tela":"Boot / app shell (todas as telas)","t":"Service worker network-first sem timeout deixa o boot refém da latência da rede","p":"Cache-first nos assets versionados"},{"g":"b","bp":"ambos","tela":"Boot / app shell (todas as telas)","t":"Google Fonts render-blocking no boot (Poppins/Michroma não são self-hosted)","p":"Self-hostar Poppins e Michroma"},{"g":"b","bp":"ambos","tela":"Todas as telas do gestor (1ª visita por sessão)","t":"Skeleton fixo de 300ms cobre um render que custa 5 a 52ms com dados já em memória","p":"Teatro calibrado pra ~180ms"},{"g":"b","bp":"ambos","tela":"Ocorrências (aba Todas) e listas em geral","t":"Re-render total via innerHTML cresce linear com o volume; folga de budget encolhe além de ~300 ocorrências","p":"Paginar a aba Todas"}];
+
+  var GN = {a:'grave', m:'médio', b:'baixo'};
+  var GT = {a:'Graves restantes', m:'Médios', b:'Baixos'};
+  var BP = {desktop:'desktop', mobile:'mobile', ambos:'ambos'};
+
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+  var tbody = document.getElementById('tbody');
+  var html = '';
+  ['a','m','b'].forEach(function(g){
+    var grupo = ACHADOS.filter(function(x){return x.g===g;});
+    if(!grupo.length) return;
+    html += '<tr class="grupo"><td colspan="5">' + GT[g] + ' · ' + grupo.length + '</td></tr>';
+    grupo.forEach(function(x){
+      html += '<tr>'
+        + '<td><span class="gpill gpill--' + g + '">' + GN[g] + '</span></td>'
+        + '<td class="bp">' + esc(BP[x.bp] || x.bp) + '</td>'
+        + '<td class="tela" title="' + esc(x.tela) + '">' + esc(x.tela) + '</td>'
+        + '<td>' + esc(x.t) + '</td>'
+        + '<td class="prop">' + esc(x.p) + '</td>'
+        + '</tr>';
+    });
+  });
+  tbody.innerHTML = html;
+
+  /* ===== toggle de tema do selo Pendente ===== */
+  var seg = document.getElementById('segtema');
+  var wrap = document.getElementById('temawrap');
+  var seloHoje = wrap.querySelector('.selo-hoje');
+  var seloProp = wrap.querySelector('.selo-prop');
+  var ratioHoje = wrap.querySelector('.ratio-hoje');
+  var ratioProp = wrap.querySelector('.ratio-prop');
+  var anno = wrap.querySelector('.tema-anno');
+
+  function aplicaTema(t){
+    wrap.classList.toggle('claro', t==='claro');
+    wrap.classList.toggle('escuro', t==='escuro');
+    if(t==='claro'){
+      /* medido no app: #E0A33A sobre #FAF1E1 = 1.98:1; proposto #96631F = 4.6:1 */
+      seloHoje.style.background = '#FAF1E1'; seloHoje.style.color = '#E0A33A';
+      seloProp.style.background = '#FAF1E1'; seloProp.style.color = '#96631F';
+      ratioHoje.className = 'ratio ratio--bad ratio-hoje'; ratioHoje.textContent = '1.98:1';
+      ratioProp.textContent = '4.6:1';
+      anno.textContent = 'No claro o texto escurece pra passar de 4.5:1 (AA) mantendo o fundo âmbar. No escuro o selo já mede 5.9:1 e fica exatamente como está.';
+    } else {
+      /* no escuro o mesmo hex passa: 5.9:1 */
+      seloHoje.style.background = 'rgba(224,163,58,.15)'; seloHoje.style.color = '#E0A33A';
+      seloProp.style.background = 'rgba(224,163,58,.15)'; seloProp.style.color = '#E0A33A';
+      ratioHoje.className = 'ratio ratio--ok ratio-hoje'; ratioHoje.textContent = '5.9:1';
+      ratioProp.textContent = '5.9:1';
+      anno.textContent = 'No escuro o âmbar sobre o fundo escuro já passa com folga: nada muda. Só o tema claro estava quebrado.';
+    }
+  }
+  seg.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    seg.querySelectorAll('button').forEach(function(x){x.classList.toggle('on', x===b);});
+    aplicaTema(b.dataset.tema);
+  });
+  aplicaTema('claro');
+
+  /* ===== recriacao fiel do ink bugado (so left/width, como no app) ===== */
+  function posicionaInkBug(){
+    var alvo = document.getElementById('tab-todas-bug');
+    var ink = document.getElementById('ink-bug');
+    if(!alvo || !ink) return;
+    ink.style.left = alvo.offsetLeft + 'px';
+    ink.style.width = alvo.offsetWidth + 'px';
+  }
+  posicionaInkBug();
+  window.addEventListener('resize', posicionaInkBug);
+
+  /* ===== fade esquerdo do rail proposto so quando rolou ===== */
+  var railWrap = document.getElementById('rail-scroll');
+  if(railWrap){
+    var rail = railWrap.querySelector('.rail');
+    rail.addEventListener('scroll', function(){
+      railWrap.classList.toggle('rolou', rail.scrollLeft > 4);
+    }, {passive:true});
+  }
+
+  /* ===== chip ativo na navegacao ===== */
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.nchip'));
+  var secs = chips.map(function(c){return document.querySelector(c.getAttribute('href'));});
+  function marca(){
+    var y = window.scrollY + 120, idx = 0;
+    secs.forEach(function(s,i){ if(s && s.offsetTop <= y) idx = i; });
+    chips.forEach(function(c,i){ c.classList.toggle('on', i===idx); });
+  }
+  window.addEventListener('scroll', marca, {passive:true});
+  marca();
+})();
+</script>
+</body></html>
