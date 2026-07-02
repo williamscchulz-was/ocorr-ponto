@@ -6491,6 +6491,15 @@ async function excluirLoteRecibosUI(tipo, competencia) {
 // ---- Importar: modal → Analisar (pdf.js) → Conferência (miniaturas) → Gerar (pdf-lib) ----
 let _rcbImport = null;
 
+// F5/fechar aba no MEIO do processamento mata o trabalho silenciosamente (foi assim
+// que nasceu o lote 24/82). Enquanto analisa ou gera, o navegador avisa antes de sair.
+let _rcbProcessando = false;
+window.addEventListener("beforeunload", (e) => {
+  if (!_rcbProcessando) return;
+  e.preventDefault();
+  e.returnValue = ""; // exigido pelo Chrome pra exibir o aviso nativo
+});
+
 function openReciboImportModal() {
   // Análise pendurada de uma conferência fechada no Esc/X: solta o pdf.js antes de recomeçar.
   try { _rcbImport?.pdf?.destroy?.(); } catch (e) {}
@@ -6570,6 +6579,7 @@ async function rcbAnalisar() {
   const jaTemN = (state.recibos || []).filter((r) => r.tipo === tipo && r.competencia === competencia).length;
   if (jaTemN) toast(`${jaTemN} arquivo${jaTemN > 1 ? "s" : ""} dessa competência já existe${jaTemN > 1 ? "m" : ""}. Os prontos serão pulados; gera só o que falta.`);
 
+  _rcbProcessando = true;
   showFormBlocker("Lendo o PDF...", ["Lendo o PDF", "Identificando funcionários", "Conferência"]);
   try {
     const pdfjs = await loadPdfJs();
@@ -6647,6 +6657,8 @@ async function rcbAnalisar() {
   } catch (e) {
     hideFormBlocker();
     toast("Falha ao analisar: " + (e?.message || e), "danger");
+  } finally {
+    _rcbProcessando = false;
   }
 }
 
@@ -6913,6 +6925,7 @@ async function rcbGerar() {
   if (!aGerar.length) return toast("Todos esses já estavam gerados nessa competência. Nada a fazer.", "danger");
   // NÃO fecha o modal aqui: o overlay de progresso vive DENTRO do modal (o de fechar
   // antes deixava os 20-40s de trabalho invisíveis — parecia travado e convidava ao F5).
+  _rcbProcessando = true;
   showFormBlocker("Separando por funcionário...", ["Separando por funcionário", "Salvando", "Concluído"]);
   try {
     const PDFLib = await loadPdfLib();
@@ -6970,6 +6983,8 @@ async function rcbGerar() {
   } catch (e) {
     hideFormBlocker();
     toast("Falha ao gerar: " + (e?.message || e), "danger");
+  } finally {
+    _rcbProcessando = false;
   }
 }
 
@@ -11642,7 +11657,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.20.2";
+window.CURRENT_VERSION = "1.20.3";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

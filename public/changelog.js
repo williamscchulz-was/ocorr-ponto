@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.20.2", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.20.3", d: "2 jul 2026", current: true, aud: "gestor", items: [
+      { type: "fix", title: "Gravação do lote aguenta conexão instável: se o canal com o banco cair no meio, o sistema recicla a conexão e tenta de novo (3 vezes), com lotes mais leves e pausa entre eles." },
+      { type: "feat", title: "Sair ou atualizar a página no meio de uma importação agora dispara o aviso do navegador (era assim que lotes morriam pela metade sem ninguém ver)." },
+    ],
+  },
+  {
+    v: "1.20.2", d: "2 jul 2026", aud: "gestor", items: [
       { type: "fix", title: "Corrigido: ao clicar em Gerar, a barra de progresso sumia na hora e a geração rodava invisível (parecia que nada acontecia). Agora o progresso aparece por cima da conferência, do início ao fim." },
     ],
   },

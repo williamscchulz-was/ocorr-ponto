@@ -1504,26 +1504,38 @@
         try { const s = await db.collection("recibos").doc(idDe(chunk[0])).get(); return s.exists; }
         catch (e) { return false; }
       };
+      // Padrão REAL de falha (24/82 e 56/82, sempre N lotes exatos): o canal do Firestore
+      // morre no meio e tudo depois falha em série. Re-tentar no canal morto não adianta:
+      // RECICLA a conexão (disableNetwork/enableNetwork) antes de tentar de novo.
+      const reciclarConexao = async () => {
+        try { await db.disableNetwork(); } catch (e) {}
+        await espera(400);
+        try { await db.enableNetwork(); } catch (e) {}
+        await espera(600);
+      };
+      const TAM = 6; // commits mais leves aguentam melhor conexão fraca
       let salvos = 0; const falhas = []; let ultimoErr = null;
-      for (let i = 0; i < itens.length; i += 8) {
-        const chunk = itens.slice(i, i + 8);
+      for (let i = 0; i < itens.length; i += TAM) {
+        const chunk = itens.slice(i, i + TAM);
         let okChunk = false;
-        for (let tentativa = 1; tentativa <= 2 && !okChunk; tentativa++) {
+        for (let tentativa = 1; tentativa <= 3 && !okChunk; tentativa++) {
           try { await montaBatch(chunk).commit(); okChunk = true; }
           catch (e) {
             ultimoErr = (e && (e.code ? e.code + ": " + e.message : e.message)) || String(e);
-            debug?.(`[recibos] chunk ${i / 8 + 1} falhou (tentativa ${tentativa}):`, ultimoErr);
+            debug?.(`[recibos] chunk ${Math.floor(i / TAM) + 1} falhou (tentativa ${tentativa}):`, ultimoErr);
             await espera(900);
-            if (await chegou(chunk)) okChunk = true; // aplicou apesar do erro reportado
+            if (await chegou(chunk)) { okChunk = true; break; } // aplicou apesar do erro
+            if (tentativa < 3) await reciclarConexao(); // canal pode ter morrido: renova
           }
         }
         if (okChunk) salvos += chunk.length;
         else falhas.push(...chunk.map((it) => it.nome || it.funcionarioId));
         onProgress?.(salvos, itens.length);
+        await espera(150); // respiro entre commits (não afoga o canal)
       }
       if (salvos > 0) {
         const alvo = `${salvos} × ${itens[0]?.tipo || "recibo"} · ${itens[0]?.competencia || ""}`
-          + (falhas.length ? ` (${falhas.length} falharam)` : "");
+          + (falhas.length ? ` (${falhas.length} falharam · ${String(ultimoErr || "").slice(0, 120)})` : "");
         window.registrarAuditoria?.({ tipo: "recibos", acao: "Importou lote de recibos", alvo });
         window.logEvento?.({ tipo: "recibos", acao: "Importou lote", alvo });
       }
