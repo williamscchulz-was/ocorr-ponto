@@ -87,26 +87,34 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
 /* Banco de horas (card da home) */
 /* Herói de banco de horas: único bloco saturado de marca (mesmo gradiente verde em dark/claro). */
 
-/* Nav inferior do colaborador (mobile): barra ANCORADA no rodapé (não pílula
-   flutuante). Sem o vão de 16px embaixo, o conteúdo deixa de vazar atrás/abaixo
-   da barra. Backdrop sólido + cantos arredondados em cima. Alinha com o mockup
-   aprovado. Só-ícone, ativo em círculo verde. */
+/* Nav inferior do colaborador (mobile): ILHA DE VIDRO flutuante (ideia 3 do
+   rebranding do shell, aprovada 2026-07-02): descolada das bordas, blur de
+   verdade, o conteúdo rola por baixo. Item ativo com preenchimento verde suave. */
 .modo-colab #bottom-nav{
   justify-content:space-around;
-  left:0;right:0;bottom:0;height:auto;border-radius:18px 18px 0 0;
-  background:var(--surface);
-  box-shadow:0 -8px 24px -10px rgba(16,48,28,.18),0 -1px 0 var(--border);
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom));height:auto;
+  border-radius:26px;padding:7px;
+  background:rgba(255,255,255,.66);
+  border:1px solid rgba(16,48,28,.10);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 24px 48px -16px rgba(16,48,28,.45);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);
 }
 html.modo-colab.cp-dark #bottom-nav{
-  background:rgba(22,29,21,.96);
-  box-shadow:0 -8px 24px -10px rgba(0,0,0,.55),0 -1px 0 var(--border);
+  background:rgba(21,29,20,.55);
+  border:1px solid rgba(255,255,255,.13);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 24px 48px -16px rgba(0,0,0,.85);
 }
-/* Itens da nav: ícone EM CIMA do rótulo, ativo em verde (sem círculo) — idêntico
-   ao mockup aprovado. */
+/* Topo ZERO no mobile (ideia 3): a topbar morre, o título grande da página assume.
+   Tema, Sair e a versão vivem na Conta. A safe area do notch vai pro conteúdo. */
+@media (max-width:900px){
+  .modo-colab .topbar{display:none}
+  .modo-colab .app__main{padding-top:calc(8px + env(safe-area-inset-top))}
+}
+/* Itens da nav: ícone EM CIMA do rótulo; o ativo ganha a pill de vidro verde. */
 .modo-colab .cp-bn-lab{display:block;font-size:10px;font-weight:500;line-height:1}
-.modo-colab .bottom-nav__item{flex:1;min-width:0;background:none;padding:8px 4px;min-height:48px;flex-direction:column;gap:4px;color:var(--text-muted)}
-.modo-colab .bottom-nav__item.active{background:none;color:var(--plum)}
+.modo-colab .bottom-nav__item{flex:1;min-width:0;background:none;padding:8px 4px 7px;min-height:48px;flex-direction:column;gap:4px;color:var(--text-muted);border-radius:19px;transition:background .25s ease,color .25s ease}
+.modo-colab .bottom-nav__item.active{background:rgba(0,136,53,.10);color:var(--plum)}
+html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)}
 .modo-colab .cp-bn-ic{width:auto;height:auto;border-radius:0;background:none;display:flex;align-items:center;justify-content:center;color:inherit}
 .modo-colab .bottom-nav__item.active .cp-bn-ic{background:none;color:inherit}
 .modo-colab .bottom-nav__item .icon{width:23px;height:23px}
@@ -285,7 +293,6 @@ html.modo-colab.cp-dark #bottom-nav{
    MOBILE FRIENDLY (auditoria) — Portal do Colaborador
    ============================================================ */
 .cp-senha input{font-size:16px}                       /* >=16px evita zoom no foco (iOS) */
-.modo-colab #bottom-nav{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
 @media (max-width:540px){
   .cp-tema{width:40px;height:40px}                    /* alvos de toque */
   /* empilha status/acoes e botao full-width */

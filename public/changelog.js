@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.23.0", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.23.1", d: "2 jul 2026", current: true, items: [
+      { type: "high", title: "O aplicativo ficou mais limpo no celular: a barra do topo saiu de cena (o título da página assume o lugar) e a barra de baixo virou uma ilha flutuante de vidro, com o conteúdo passando por baixo. O tema e a versão do app agora vivem na Conta." },
+    ],
+  },
+  {
+    v: "1.23.0", d: "2 jul 2026", aud: "gestor", items: [
       { type: "high", title: "A tela da ocorrência automática cresceu no desktop: duas colunas, com a jornada prevista lado a lado com as batidas do dia, a primeira batida do atraso em destaque e o tempo do atraso calculado (Atraso de 32 min). Vale pra GP conferir e pro líder destinar." },
       { type: "note", title: "Enquanto o pipeline não preencher as marcações de julho, a tela mostra 'sem marcação no dia' e segue funcionando normal." },
     ],
