@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.20.4", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.21.0", d: "2 jul 2026", current: true, items: [
+      { type: "high", title: "Chegou a assinatura eletrônica: o recibo e o cartão ponto agora são assinados dentro do app, e a assinatura fica CARIMBADA no próprio arquivo, com seu nome em letra de assinatura, data, hora e local. O arquivo assinado fica guardado em cofre e não muda nunca mais." },
+      { type: "feat", title: "Pra assinar, o app pede a sua localização (é o registro de onde você assinou, parte da validade) e a sua senha. A folha te guia passo a passo, inclusive na permissão do navegador." },
+      { type: "feat", aud: "gestor", title: "O lote de recibos virou painel de adesão: quantos assinaram, quem falta, e a hora de cada assinatura. O Ver abre a versão carimbada de quem já assinou." },
+    ],
+  },
+  {
+    v: "1.20.4", d: "2 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "O progresso da importação ganhou vida: os nomes dos funcionários desfilam com um check verde enquanto os arquivos são separados e salvos." },
     ],
   },

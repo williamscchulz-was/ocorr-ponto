@@ -1462,10 +1462,20 @@
     };
 
     // Lista do gestor (metadados de todos). Lazy: chamada quando a aba abre.
+    // Fase B: junto vêm as assinaturas de cada recibo (padrão do recarregarDocumentos) —
+    // alimenta a adesão do lote ("X de N assinaram") e o status por pessoa.
     window.recarregarRecibosGestor = async function () {
       try {
         const snap = await db.collection("recibos").orderBy("criadoEm", "desc").limit(2000).get();
-        state.recibos = snap.docs.map((d) => { const x = d.data(); return { id: d.id, ...x, criadoEm: tsToIso(x.criadoEm) }; });
+        const arr = snap.docs.map((d) => { const x = d.data(); return { id: d.id, _ref: d.ref, ...x, criadoEm: tsToIso(x.criadoEm) }; });
+        await Promise.all(arr.map(async (r) => {
+          try {
+            const asn = await r._ref.collection("assinaturas").get();
+            r.assinaturas = asn.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) }));
+          } catch (e) { r.assinaturas = []; }
+          delete r._ref;
+        }));
+        state.recibos = arr;
       } catch (e) { debug?.("[recibos] load gestor:", e?.message || e); state.recibos = state.recibos || []; }
     };
 
@@ -1573,6 +1583,82 @@
         await window.recarregarRecibosGestor();
         return { ok: true, n: snap.size };
       } catch (e) { debug?.("[recibos] excluir lote:", e?.message || e); return { ok: false, err: e.message }; }
+    };
+
+    // ===== Fase B: assinatura carimbada do recibo/cartão =====
+
+    // Reautentica com a senha AGORA (prova de presença, padrão N1 dos documentos).
+    window.reautenticarSenha = async function (senha) {
+      const user = auth.currentUser;
+      if (!user) return { ok: false, msg: "Sessão expirada. Entre de novo." };
+      if (!senha) return { ok: false, msg: "Digite sua senha pra confirmar." };
+      try {
+        const cred = firebase.auth.EmailAuthProvider.credential(user.email, senha);
+        await user.reauthenticateWithCredential(cred);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, msg: "Senha incorreta. Confira e tente de novo." };
+      }
+    };
+
+    // Guarda a versão CARIMBADA no Storage (create-only) + a trilha imutável no Firestore.
+    // Identidade já foi reautenticada pelo caller (reautenticarSenha). Se o upload achar o
+    // arquivo de uma tentativa anterior, reaproveita e recalcula o hash DO ARQUIVO REAL
+    // (a trilha nunca aponta hash de um arquivo que não é o do cofre).
+    window.assinarReciboColab = async function (reciboId, geo, pdfAssinadoDataUrl, hashSha256) {
+      const user = auth.currentUser;
+      if (!user) return { ok: false, msg: "Sessão expirada. Entre de novo." };
+      const u = currentUser();
+      const r = (state.meusRecibos || []).find((x) => x.id === reciboId);
+      if (!r || !u || r.funcionarioId !== u.funcionarioId) return { ok: false, msg: "Recibo não encontrado." };
+      if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number")
+        return { ok: false, msg: "Localização ausente. Tente de novo." };
+      const arquivoPath = `recibos/${r.funcionarioId}/assinado/${r.competencia}-${r.tipo}.pdf`;
+      const ref = firebase.storage().ref(arquivoPath);
+      let hashFinal = hashSha256 || "";
+      const subir = () => ref.putString(pdfAssinadoDataUrl, "data_url", { contentType: "application/pdf" });
+      try {
+        await subir();
+      } catch (e) {
+        // token pode estar sem as claims (sessão anterior ao backfill): renova e re-tenta
+        try { await user.getIdToken(true); await subir(); }
+        catch (e2) {
+          // create-only: se JÁ existe (tentativa anterior que falhou só na trilha), reusa
+          // o arquivo do cofre e recalcula o hash a partir DELE.
+          try {
+            const url = await ref.getDownloadURL();
+            const buf = await (await fetch(url)).arrayBuffer();
+            const h = await crypto.subtle.digest("SHA-256", buf);
+            hashFinal = Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
+          } catch (e3) {
+            return { ok: false, msg: "Não consegui guardar o arquivo assinado: " + (e2?.message || e2) };
+          }
+        }
+      }
+      try {
+        await db.collection("recibos").doc(reciboId).collection("assinaturas").doc(user.uid).set({
+          uid: user.uid,
+          funcionarioId: r.funcionarioId,
+          em: firebase.firestore.FieldValue.serverTimestamp(),
+          userAgent: String(navigator.userAgent || "").slice(0, 200),
+          geo: { lat: geo.lat, lng: geo.lng, acc: (typeof geo.acc === "number" ? Math.round(geo.acc) : null) },
+          hashSha256: hashFinal,
+          aceiteTexto: "Li e estou de acordo",
+          arquivoPath,
+        });
+      } catch (e) {
+        return { ok: false, msg: "O arquivo foi guardado, mas o registro da assinatura falhou (" + (e?.message || e) + "). Toque em Assinar de novo que ele completa." };
+      }
+      r.minhaAssinatura = { uid: user.uid, em: new Date().toISOString(), arquivoPath, geo };
+      window.logEvento?.({ tipo: "recibos", acao: "Assinou", alvo: `${r.tipo} · ${r.competencia}` });
+      window.registrarAuditoria?.({ tipo: "recibos", acao: "Assinou recibo (carimbado no arquivo)", alvo: `${r.funcionarioNome || r.funcionarioId} · ${r.tipo} · ${r.competencia}` });
+      return { ok: true, arquivoPath };
+    };
+
+    // URL de download da versão assinada (Storage). null se não der (regra/estado).
+    window.urlArquivoAssinado = async function (arquivoPath) {
+      try { return await firebase.storage().ref(arquivoPath).getDownloadURL(); }
+      catch (e) { debug?.("[recibos] url assinado:", e?.message || e); return null; }
     };
 
     // ===== Disciplinares (advertencia/suspensao) — dado SENSIVEL =====
@@ -3054,6 +3140,15 @@
           state.meusRecibos = rsnap.docs
             .map((d) => { const x = d.data(); return { id: d.id, ...x, criadoEm: tsToIso(x.criadoEm) }; })
             .sort((a, b) => String(b.competencia || "").localeCompare(String(a.competencia || "")));
+          // Fase B: a MINHA assinatura de cada recibo (1 get por recibo, <=12/ano) —
+          // alimenta o selo Assinado/pendente e o viewer da versão carimbada.
+          const uidR = auth.currentUser && auth.currentUser.uid;
+          await Promise.all(state.meusRecibos.map(async (r) => {
+            try {
+              const a = await db.collection("recibos").doc(r.id).collection("assinaturas").doc(uidR).get();
+              r.minhaAssinatura = a.exists ? { ...a.data(), em: tsToIso(a.data().em) } : null;
+            } catch (e) { r.minhaAssinatura = null; }
+          }));
         } catch (e) { debug?.("[colab] recibos:", e?.message || e); state.meusRecibos = []; }
       }
 

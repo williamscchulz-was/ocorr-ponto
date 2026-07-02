@@ -1105,21 +1105,30 @@ function rcbCompetenciaLabel(comp) {
   } catch (e) { return String(comp || ""); }
 }
 
-// Linha de recibo do colaborador (Folha de pagamento e Meu ponto). Fase A: ver e baixar;
-// tudo nasce com o selo âmbar "Assinatura pendente" (a assinatura chega na Fase B).
+// Linha de recibo do colaborador (Folha de pagamento e Meu ponto): pendente = selo
+// âmbar; assinado = check verde (a versão carimbada abre do cofre).
 function colabReciboRowHtml(r) {
   const tipoLbl = RCB_TIPOS[r.tipo] || "Documento";
+  const ass = !!r.minhaAssinatura;
   return `<div class="pp-rw" data-recibo-abrir="${escapeHtml(r.id)}" style="cursor:pointer">
-    <span class="pp-ico pp-ico--amber">${cpIcon(r.tipo === "cartao-ponto" ? "clock" : "briefcase")}</span>
+    <span class="pp-ico ${ass ? "pp-ico--green" : "pp-ico--amber"}">${cpIcon(r.tipo === "cartao-ponto" ? "clock" : "briefcase")}</span>
     <span class="pp-rw__bd">
       <span class="pp-rw__t">${escapeHtml(rcbCompetenciaLabel(r.competencia))}</span>
       <span class="pp-rw__s">${escapeHtml(tipoLbl)} · ${r.paginas || 1} pág${(r.paginas || 1) > 1 ? "s" : ""}</span>
     </span>
-    <span class="pp-badge pp-badge--amber">${cpIcon("edit")}Assinatura pendente</span>
+    ${ass
+      ? `<span class="pp-rw__ro">${cpIcon("check")}Assinado</span>`
+      : `<span class="pp-badge pp-badge--amber">${cpIcon("edit")}Assinatura pendente</span>`}
   </div>`;
 }
 
-// Abre o recibo: busca o base64 sob demanda e reusa o visualizador in-app dos documentos.
+// A assinatura do recibo (colab = minhaAssinatura; gestor = 1ª da lista carregada).
+function rcbAssinaturaDe(r) {
+  return r.minhaAssinatura || ((r.assinaturas && r.assinaturas[0]) || null);
+}
+
+// Abre o recibo no visualizador in-app. Assinado: mostra a versão CARIMBADA do cofre
+// (Storage); pendente: o original + o botão Assinar (só pro dono colaborador).
 let _rcbAbrindo = false;
 async function abrirReciboColab(id) {
   if (_rcbAbrindo) return;
@@ -1128,17 +1137,203 @@ async function abrirReciboColab(id) {
   if (!r) return;
   _rcbAbrindo = true;
   try {
-    const base64 = (typeof window.carregarArquivoRecibo === "function") ? await window.carregarArquivoRecibo(id) : null;
-    if (!base64) { toast("Não consegui abrir o arquivo. Tente de novo.", "danger"); return; }
+    const ass = rcbAssinaturaDe(r);
+    const ehMeuPendente = !ass && currentUser()?.role === "colaborador"
+      && (state.meusRecibos || []).some((x) => x.id === id);
+    let url = null;
+    if (ass && ass.arquivoPath && typeof window.urlArquivoAssinado === "function") {
+      // versão carimbada: baixa do Storage e vira data: pro viewer embutir
+      const dl = await window.urlArquivoAssinado(ass.arquivoPath);
+      if (dl) {
+        try {
+          const blob = await (await fetch(dl)).blob();
+          url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
+        } catch (e) {
+          // cai no original abaixo, mas REGISTRA (CORS/rede do Storage não pode falhar mudo)
+          try { console.warn("[recibos] versão assinada não baixou, mostrando original:", e?.message || e); } catch (e2) {}
+        }
+      }
+    }
+    if (!url) url = (typeof window.carregarArquivoRecibo === "function") ? await window.carregarArquivoRecibo(id) : null;
+    if (!url) { toast("Não consegui abrir o arquivo. Tente de novo.", "danger"); return; }
+    if (!/^data:/i.test(url)) url = "data:application/pdf;base64," + url; // defensivo (base64 cru)
     openDocViewer({
       titulo: `${RCB_TIPOS[r.tipo] || "Documento"} · ${rcbCompetenciaLabel(r.competencia)}`,
-      tipo: RCB_TIPOS[r.tipo] || "documento",
-      exigeAssinatura: true,
-      anexo: { url: base64, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
+      tipo: ass ? "Assinado" : (RCB_TIPOS[r.tipo] || "documento"),
+      exigeAssinatura: !ass,
+      anexo: { url, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
+      assinarRecibo: ehMeuPendente ? id : null,
     });
     rcbMarcarVisto(id); // some da bolinha de pendência dos atalhos (local, por navegador)
     window.logEvento?.({ tipo: "recibos", acao: "Abriu recibo", alvo: `${RCB_TIPOS[r.tipo] || r.tipo} · ${r.competencia}` });
   } finally { _rcbAbrindo = false; }
+}
+
+// ---- Assinar (Fase B): folha em 3 passos — localização EXIGIDA, senha + aceite,
+// teatro do carimbo. Decisões do William: geo obrigatória, assinatura obrigatória,
+// nome em fonte de assinatura automático. ----
+let _assState = null;
+function openAssinarReciboSheet(reciboId) {
+  const r = (state.meusRecibos || []).find((x) => x.id === reciboId);
+  if (!r) return;
+  if (r.minhaAssinatura) return toast("Este documento já está assinado.");
+  _assState = { r, geo: null, passo: "geo", aceite: false, erro: null };
+  assRender();
+}
+
+function assRender() {
+  const st = _assState; if (!st) return;
+  const r = st.r;
+  const tipoLbl = RCB_TIPOS[r.tipo] || "Documento";
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const nome = (f && f.nome) || currentUser()?.nome || "";
+  const passos = `<div class="ass-passos">
+      <span class="on"></span>
+      <span class="${st.passo === "senha" ? "on" : ""}"></span>
+      <span></span>
+    </div>`;
+  let corpo = "";
+  if (st.passo === "geo") {
+    corpo = `
+      <div class="ass-geocard">
+        <span class="ass-geocard__ic">${cpIcon("info")}</span>
+        <b>Preciso da sua localização</b>
+        <span>É o registro de ONDE você assinou, parte da validade da assinatura. O navegador vai pedir a permissão: toque em Permitir.</span>
+      </div>
+      <button class="ass-btn" data-ass-geo>Permitir localização e continuar</button>
+      <button class="ass-btn ass-btn--ghost" data-close>Agora não</button>`;
+  } else if (st.passo === "pedindo") {
+    corpo = `
+      <div class="ass-geocard">
+        <span class="ass-geocard__ic ass-geocard__ic--pulse">${cpIcon("chevron")}</span>
+        <b>O navegador está perguntando</b>
+        <span>Apareceu uma pergunta na tela (em cima ou embaixo, dependendo do celular). É só tocar em <b>Permitir</b> que a assinatura continua sozinha.</span>
+      </div>`;
+  } else if (st.passo === "bloqueado") {
+    corpo = `
+      <div class="ass-neg">
+        <b>Localização bloqueada.</b> Sem ela não dá pra assinar. Como liberar: toque no cadeado (ou nas configurações) ao lado do endereço do site, procure Localização e mude pra Permitir. Depois tente de novo.
+      </div>
+      <button class="ass-btn" data-ass-geo>Tentar de novo</button>
+      <button class="ass-btn ass-btn--ghost" data-close>Voltar</button>`;
+  } else if (st.passo === "senha") {
+    const g = st.geo || {};
+    const agora = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    corpo = `
+      <p class="ass-ok">${cpIcon("check")} Localização registrada.</p>
+      <div class="ass-campo">
+        <label for="ass-senha">Sua senha do portal</label>
+        <input type="password" id="ass-senha" autocomplete="current-password" placeholder="Digite a senha">
+        ${st.erro ? `<div class="ass-erro">${escapeHtml(st.erro)}</div>` : ""}
+      </div>
+      <button class="ass-aceite ${st.aceite ? "on" : ""}" data-ass-aceite aria-pressed="${st.aceite}">
+        <span class="ass-aceite__ck">${st.aceite ? cpIcon("check") : ""}</span>
+        <span>Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura neste arquivo.</span>
+      </button>
+      <div class="ass-resumo">
+        Vai ficar carimbado no arquivo:<br>
+        <b>${escapeHtml(nome)}</b>${f && f.codigo ? ` · cód ${escapeHtml(String(f.codigo))}` : ""}<br>
+        ${escapeHtml(agora)} · Local: ${Number(g.lat).toFixed(4)}, ${Number(g.lng).toFixed(4)}<br>
+        Nível: credenciais de acesso + geolocalização
+      </div>
+      <button class="ass-btn" data-ass-assinar ${st.aceite ? "" : "disabled"}>Assinar agora</button>`;
+  }
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Assinar o ${escapeHtml(tipoLbl.toLowerCase())}</h2><p>${escapeHtml(rcbCompetenciaLabel(r.competencia))} · ${escapeHtml(nome)}</p></div>
+      <button class="modal__close" data-close>${cpIcon("x")}</button>
+    </div>
+    <div class="modal__body">${passos}${corpo}</div>`);
+  document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", () => { _assState = null; closeModal(); }));
+  document.querySelector("#modal-root [data-ass-geo]")?.addEventListener("click", assPedirGeo);
+  document.querySelector("#modal-root [data-ass-aceite]")?.addEventListener("click", () => {
+    st.aceite = !st.aceite; st.erro = null;
+    const senha = $("#ass-senha")?.value || ""; // preserva o que já foi digitado
+    assRender();
+    const inp = $("#ass-senha"); if (inp) inp.value = senha;
+  });
+  document.querySelector("#modal-root [data-ass-assinar]")?.addEventListener("click", assAssinar);
+}
+
+function assPedirGeo() {
+  const st = _assState; if (!st) return;
+  if (!navigator.geolocation) { st.passo = "bloqueado"; return assRender(); }
+  st.passo = "pedindo"; assRender();
+  // Guard de SESSÃO: o callback pode chegar até 20s depois. Se o usuário fechou e
+  // reabriu a folha (outro _assState), o callback velho não pode mexer no novo.
+  const minhaSessao = st;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      if (_assState !== minhaSessao) return;
+      _assState.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
+      _assState.passo = "senha";
+      assRender();
+    },
+    (err) => {
+      if (_assState !== minhaSessao) return;
+      _assState.passo = (err && err.code === 1) ? "bloqueado" : "geo";
+      if (err && err.code !== 1) toast("Não consegui obter a localização. Tente de novo.", "danger");
+      assRender();
+    },
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+  );
+}
+
+async function assAssinar() {
+  const st = _assState; if (!st || !st.aceite || !st.geo) return;
+  const senha = $("#ass-senha")?.value || "";
+  if (!senha) { st.erro = "Digite sua senha pra confirmar."; return assRender(); }
+  const r = st.r;
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const nome = (f && f.nome) || currentUser()?.nome || "";
+  _rcbProcessando = true;
+  showFormBlocker("Confirmando identidade...", ["Confirmando identidade", "Carimbando o arquivo", "Guardando com segurança"]);
+  try {
+    // 1) identidade (reautenticação com a senha AGORA)
+    const auth = await window.reautenticarSenha?.(senha);
+    if (!auth || !auth.ok) {
+      hideFormBlocker();
+      st.erro = (auth && auth.msg) || "Senha incorreta.";
+      st.passo = "senha";
+      return assRender();
+    }
+    // 2) carimbo no arquivo (pdf-lib + fonte cursiva)
+    updateFormBlocker("Carimbando a assinatura no arquivo...", 1);
+    const original = await window.carregarArquivoRecibo?.(r.id);
+    if (!original) throw new Error("Não consegui abrir o arquivo original.");
+    const quando = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const idAss = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())).slice(0, 30);
+    const { dataUrl, bytes } = await rcbCarimbarPdf(original, {
+      nome, codigo: (f && f.codigo) || r.codigo || "", quando, id: idAss, tipo: r.tipo,
+      lat: Number(st.geo.lat).toFixed(5), lng: Number(st.geo.lng).toFixed(5),
+      acc: (typeof st.geo.acc === "number" ? Math.round(st.geo.acc) : null),
+    });
+    const hash = await sha256Hex(bytes);
+    // 3) cofre + trilha
+    updateFormBlocker("Guardando com segurança...", 2);
+    const res = await window.assinarReciboColab?.(r.id, st.geo, dataUrl, hash);
+    hideFormBlocker();
+    if (!res || !res.ok) {
+      st.erro = (res && res.msg) || "Não consegui concluir. Tente de novo.";
+      st.passo = "senha";
+      return assRender();
+    }
+    _assState = null;
+    closeModal();
+    toast("Assinado. O carimbo já está dentro do arquivo.");
+    renderApp();
+    // mostra na hora a versão carimbada (sem esperar o Storage: temos ela local)
+    openDocViewer({
+      titulo: `${RCB_TIPOS[r.tipo] || "Documento"} · ${rcbCompetenciaLabel(r.competencia)}`,
+      tipo: "Assinado",
+      anexo: { url: dataUrl, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
+    });
+  } catch (e) {
+    hideFormBlocker();
+    toast("Falha ao assinar: " + (e?.message || e), "danger");
+  } finally {
+    _rcbProcessando = false;
+  }
 }
 
 function renderColabFolha() {
@@ -5226,14 +5421,24 @@ function openDocViewer(d) {
     corpo = `<div class="cp-docview__body"><img class="cp-docpage" src="${escapeHtml(url)}" alt="${escapeHtml(titulo)}"></div>`;
   } else if (ehPdf) {
     blobUrl = URL.createObjectURL(dataUrlParaBlob(url));
+    // #toolbar=0&navpanes=0: o visualizador nativo esconde a barra e o painel lateral —
+    // só o arquivo na tela (pedido do William). Navegadores que ignoram o fragmento
+    // seguem funcionando com o chrome deles.
     corpo = `<div class="cp-docview__body cp-docview__body--pdf">
-        <iframe class="cp-docframe" src="${blobUrl}" title="${escapeHtml(titulo)}"></iframe>
+        <iframe class="cp-docframe" src="${blobUrl}#toolbar=0&navpanes=0&view=FitH" title="${escapeHtml(titulo)}"></iframe>
         <div class="cp-docview__note">${ic("info")}<span>Se o PDF não abrir aqui no seu celular, toque em Abrir.</span></div>
       </div>`;
     abrirBtn = `<button class="btn btn--soft" data-doc-abrir>${ic("file")}<span>Abrir em nova aba</span></button>`;
   } else {
     corpo = `<div class="cp-docview__body"><div class="cp-docview__note">${ic("info")}<span>Formato não visualizável aqui.</span></div></div>`;
   }
+  // Recibo pendente do próprio colaborador: aviso + botão Assinar (Fase B).
+  const assinarBtn = d.assinarRecibo
+    ? `<button class="btn btn--primary" data-doc-assinar>${ic("edit")}<span>Assinar</span></button>`
+    : "";
+  const assinarNota = d.assinarRecibo
+    ? `<div class="cp-docview__note cp-docview__note--assinar">${ic("edit")}<span>Este documento precisa da sua assinatura.</span></div>`
+    : "";
   root.innerHTML = `
     <div class="cp-docview" role="dialog" aria-modal="true" aria-label="${escapeHtml(titulo)}">
       <div class="cp-docview__h">
@@ -5241,7 +5446,8 @@ function openDocViewer(d) {
         <div class="cp-docview__t"><b>${escapeHtml(titulo)}</b>${sub ? `<span>${escapeHtml(sub)}</span>` : ""}</div>
       </div>
       ${corpo}
-      ${abrirBtn ? `<div class="cp-docview__foot">${abrirBtn}</div>` : ""}
+      ${assinarNota}
+      ${abrirBtn || assinarBtn ? `<div class="cp-docview__foot">${abrirBtn}${assinarBtn}</div>` : ""}
     </div>`;
   document.body.appendChild(root);
   const fechar = () => {
@@ -5256,6 +5462,8 @@ function openDocViewer(d) {
   root.querySelector("[data-docview-close]").addEventListener("click", fechar);
   const ab = root.querySelector("[data-doc-abrir]");
   if (ab && blobUrl) ab.addEventListener("click", () => window.open(blobUrl, "_blank", "noopener"));
+  const asb = root.querySelector("[data-doc-assinar]");
+  if (asb) asb.addEventListener("click", () => { fechar(); openAssinarReciboSheet(d.assinarRecibo); });
   setTimeout(() => root.querySelector("[data-docview-close]")?.focus(), 30);
 }
 
@@ -6350,6 +6558,82 @@ function loadPdfLib() {
   return _pdfLibPromise;
 }
 
+// fontkit sob demanda (CDN, sem build): o pdf-lib precisa dele pra embarcar a fonte
+// cursiva (Great Vibes, public/fonts) que desenha o nome no carimbo da assinatura.
+let _fontkitPromise = null;
+function loadFontkit() {
+  if (_fontkitPromise) return _fontkitPromise;
+  _fontkitPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js";
+    s.onload = () => (window.fontkit ? resolve(window.fontkit) : reject(new Error("fontkit não expôs o global")));
+    s.onerror = () => { _fontkitPromise = null; reject(new Error("Falha ao carregar o fontkit")); };
+    document.head.appendChild(s);
+  });
+  return _fontkitPromise;
+}
+let _fonteAssinaturaBytes = null;
+async function fonteAssinaturaBytes() {
+  if (_fonteAssinaturaBytes) return _fonteAssinaturaBytes;
+  const resp = await fetch("fonts/GreatVibes-Regular.ttf");
+  if (!resp.ok) throw new Error("A fonte da assinatura não carregou.");
+  _fonteAssinaturaBytes = await resp.arrayBuffer();
+  return _fonteAssinaturaBytes;
+}
+function bytesParaBase64(bytes) {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+async function sha256Hex(bytes) {
+  const h = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Carimba o box "Termos de Assinatura e Registro Eletrônico" + nome em fonte de
+// assinatura na ÚLTIMA página (área da assinatura física do WK). Retorna
+// { dataUrl, bytes } do PDF carimbado. Provado no arquivo real (split 45KB → 46KB).
+async function rcbCarimbarPdf(dataUrlOriginal, dados) {
+  const PDFLib = await loadPdfLib();
+  const fontkit = await loadFontkit();
+  const fonte = await fonteAssinaturaBytes();
+  // aceita dataURL OU base64 cru (defensivo: o campo guarda dataURL, mas não custa)
+  const sPdf = String(dataUrlOriginal);
+  const b64 = sPdf.includes(",") ? sPdf.split(",")[1] : sPdf;
+  const doc = await PDFLib.PDFDocument.load(b64);
+  doc.registerFontkit(fontkit);
+  const fCursiva = await doc.embedFont(fonte, { subset: true });
+  const fN = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+  const fB = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const rgb = PDFLib.rgb;
+  const pg = doc.getPage(doc.getPageCount() - 1);
+  const pgW = pg.getSize().width;
+  // Posição por tipo (medida no arquivo REAL do WK): o cartão ponto tem a linha
+  // "Assinatura Empregado" CENTRALIZADA (y~53 de 578) => carimbo centrado, base y=44,
+  // o nome cursivo cai exatamente na linha (a do Responsável, no rodapé, fica livre).
+  // O recibo assina no canto inferior ESQUERDO ("recebi a importância líquida").
+  const bw = 264, bh = 98;
+  const cartao = dados.tipo === "cartao-ponto";
+  const bx = cartao ? Math.max(20, (pgW - bw) / 2) : 26;
+  const by = cartao ? 44 : 18;
+  pg.drawRectangle({ x: bx, y: by, width: bw, height: bh, color: rgb(0.985, 0.985, 0.98), borderColor: rgb(0.25, 0.25, 0.25), borderWidth: 0.9 });
+  pg.drawText("Termos de Assinatura e Registro Eletrônico", { x: bx + 9, y: by + bh - 15, size: 7.4, font: fB, color: rgb(0.08, 0.08, 0.08) });
+  const linhas = [
+    `Aceito: ${dados.quando}`,
+    `ID: ${dados.id}`,
+    `${dados.nome}${dados.codigo ? ` · cód ${dados.codigo}` : ""}`,
+    "Nível de Segurança: credenciais de acesso + geolocalização",
+    `Local: ${dados.lat}, ${dados.lng}${dados.acc != null ? ` (precisão ${dados.acc} m)` : ""}`,
+  ];
+  linhas.forEach((t, i) => pg.drawText(t, { x: bx + 9, y: by + bh - 27 - i * 9.5, size: 6.4, font: fN, color: rgb(0.22, 0.22, 0.22) }));
+  pg.drawLine({ start: { x: bx + 9, y: by + 25 }, end: { x: bx + bw - 9, y: by + 25 }, thickness: 0.5, color: rgb(0.55, 0.55, 0.55) });
+  let sigSize = 17;
+  while (sigSize > 9 && fCursiva.widthOfTextAtSize(dados.nome, sigSize) > bw - 24) sigSize -= 1;
+  pg.drawText(dados.nome, { x: bx + 12, y: by + 7, size: sigSize, font: fCursiva, color: rgb(0.07, 0.23, 0.42) });
+  const bytes = await doc.save();
+  return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
+}
+
 // Normaliza pra comparar nomes: MAIÚSCULO, sem acentos (̀-ͯ = diacríticos do NFD), 1 espaço.
 function rcbNorm(s) {
   return String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
@@ -6445,7 +6729,7 @@ function renderRecibosGestor(tabsHtml) {
           <span class="rcb-lote__ic">${icon(l.tipo === "cartao-ponto" ? "conferir" : "file")}</span>
           <span class="rcb-lote__bd">
             <b>${escapeHtml(RCB_TIPOS[l.tipo] || l.tipo)} · ${escapeHtml(rcbCompetenciaLabel(l.competencia))}</b>
-            <span>${l.itens.length} funcionário${l.itens.length > 1 ? "s" : ""}</span>
+            <span>${l.itens.length} funcionário${l.itens.length > 1 ? "s" : ""} · ${l.itens.filter((r) => (r.assinaturas || []).length).length} assinaram</span>
           </span>
           <span class="rcb-lote__pill">${l.itens.length} gerados</span>
           ${ehAdmin ? `<button class="com-mini" data-rcb-excluir="${escapeHtml(l.tipo)}" data-rcb-comp="${escapeHtml(l.competencia)}" aria-label="Excluir lote" title="Excluir lote" style="color:var(--danger)">${icon("trash")}</button>` : ""}
@@ -6453,26 +6737,77 @@ function renderRecibosGestor(tabsHtml) {
     </div>`;
 }
 
-// Detalhe do lote: lista de funcionários com "Ver" (abre o PDF individual sob demanda).
+// Detalhe do lote: painel de adesão ("X de N assinaram") + status por pessoa com hora.
+// "Ver" abre o PDF individual (a versão CARIMBADA quando já assinado).
 function openLoteRecibos(tipo, competencia) {
   const itens = (state.recibos || [])
     .filter((r) => r.tipo === tipo && r.competencia === competencia)
     .sort((a, b) => String(a.funcionarioNome || "").localeCompare(String(b.funcionarioNome || ""), "pt-BR"));
+  const assinados = itens.filter((r) => (r.assinaturas || []).length).length;
+  const pct = itens.length ? Math.round((assinados / itens.length) * 100) : 0;
+  const quandoFmt = (iso) => {
+    try { return new Date(iso).toLocaleString("pt-BR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+    catch (e) { return ""; }
+  };
   openModal(`
     <div class="modal__header">
       <div><h2>${escapeHtml(RCB_TIPOS[tipo] || tipo)}</h2><p>${escapeHtml(rcbCompetenciaLabel(competencia))} · ${itens.length} funcionários</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <div class="modal__body">
+      <div class="rcb-ades">
+        <b>${assinados} de ${itens.length} assinaram</b>
+        <span>${itens.length - assinados} pendente${itens.length - assinados === 1 ? "" : "s"}</span>
+        <div class="rcb-ades__bar"><i style="width:${pct}%"></i></div>
+      </div>
       <div class="rcb-lote-list">
-        ${itens.map((r) => `
+        ${itens.map((r) => {
+          const a = (r.assinaturas || [])[0] || null;
+          return `
           <div class="rcb-lote-row">
-            <span class="rcb-lote-row__bd"><b>${escapeHtml(r.funcionarioNome || r.funcionarioId)}</b><span>${r.paginas || 1} pág${(r.paginas || 1) > 1 ? "s" : ""} · assinatura pendente</span></span>
+            <span class="rcb-lote-row__bd">
+              <b>${escapeHtml(r.funcionarioNome || r.funcionarioId)}</b>
+              <span>${r.paginas || 1} pág${(r.paginas || 1) > 1 ? "s" : ""}${a && a.em ? ` · ${escapeHtml(quandoFmt(a.em))}` : ""}</span>
+            </span>
+            ${a ? `<button class="rcb-st rcb-st--ok rcb-st--btn" data-rcb-trilha="${escapeHtml(r.id)}" title="Ver a trilha da assinatura">Assinado</button>` : `<span class="rcb-st rcb-st--pend">Pendente</span>`}
             <button class="btn btn--soft" data-recibo-abrir="${escapeHtml(r.id)}">${icon("eye")}<span>Ver</span></button>
-          </div>`).join("")}
+          </div>`;
+        }).join("")}
       </div>
     </div>`);
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+}
+
+// Trilha completa de UMA assinatura (pro admin/RH): quem, quando, onde (com link pro
+// mapa), hash do arquivo e dispositivo. Voltar reabre o lote.
+function openTrilhaAssinatura(reciboId) {
+  const r = (state.recibos || []).find((x) => x.id === reciboId);
+  const a = r && (r.assinaturas || [])[0];
+  if (!r || !a) return;
+  const quando = (() => { try { return new Date(a.em).toLocaleString("pt-BR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch (e) { return a.em || ""; } })();
+  const geo = a.geo || {};
+  const temGeo = typeof geo.lat === "number" && typeof geo.lng === "number";
+  const linha = (rot, val) => `<div class="rcb-tri__ln"><span>${rot}</span><b>${val}</b></div>`;
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Trilha da assinatura</h2><p>${escapeHtml(r.funcionarioNome || r.funcionarioId)} · ${escapeHtml(RCB_TIPOS[r.tipo] || r.tipo)} · ${escapeHtml(rcbCompetenciaLabel(r.competencia))}</p></div>
+      <button class="modal__close" data-close>${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="rcb-tri">
+        ${linha("Assinado em", escapeHtml(quando))}
+        ${linha("Aceite", escapeHtml(a.aceiteTexto || "Li e estou de acordo"))}
+        ${temGeo ? linha("Local", `${geo.lat.toFixed(5)}, ${geo.lng.toFixed(5)}${geo.acc != null ? ` · precisão ${geo.acc} m` : ""} <a href="https://maps.google.com/?q=${geo.lat},${geo.lng}" target="_blank" rel="noopener">abrir no mapa</a>`) : ""}
+        ${a.hashSha256 ? linha("Hash do arquivo (SHA-256)", `<span class="rcb-tri__hash">${escapeHtml(a.hashSha256)}</span>`) : ""}
+        ${a.userAgent ? linha("Dispositivo", `<span class="rcb-tri__ua">${escapeHtml(a.userAgent)}</span>`) : ""}
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+        <button class="btn btn--ghost" id="rcb-tri-voltar">Voltar</button>
+        <button class="btn btn--primary" data-recibo-abrir="${escapeHtml(r.id)}">${icon("eye")}<span>Ver o arquivo assinado</span></button>
+      </div>
+    </div>`);
+  document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+  $("#rcb-tri-voltar")?.addEventListener("click", () => openLoteRecibos(r.tipo, r.competencia));
 }
 
 async function excluirLoteRecibosUI(tipo, competencia) {
@@ -7037,6 +7372,8 @@ if (!window._rcbBound) {
     if (im) { openReciboImportModal(); return; }
     const ex = e.target.closest("[data-rcb-excluir]");
     if (ex) { e.stopPropagation(); excluirLoteRecibosUI(ex.dataset.rcbExcluir, ex.dataset.rcbComp); return; }
+    const tr = e.target.closest("[data-rcb-trilha]");
+    if (tr) { openTrilhaAssinatura(tr.dataset.rcbTrilha); return; }
     const lt = e.target.closest("[data-rcb-lote]");
     if (lt) { openLoteRecibos(lt.dataset.rcbLote, lt.dataset.rcbComp); return; }
   });
@@ -11694,7 +12031,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.20.4";
+window.CURRENT_VERSION = "1.21.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
