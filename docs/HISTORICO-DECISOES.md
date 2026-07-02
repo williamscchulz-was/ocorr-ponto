@@ -1039,3 +1039,16 @@ Service account já tinha acesso de leitura na pasta do Drive — não precisou 
 **Testado**: 80 imagens na pasta do Drive, 76 casaram (74 por código + 2 por nome), 4 não bateram (nomes que não existem no roster atual — Alexander Schacht Sasse, Hernandes Schlickamann, Joacir Branger, Edilson Locks — logado claro no relatório pro PC ver o padrão com o William se quiser). 73 gravados de verdade (3 casaram mas ainda não têm login criado). 0 erros. Rodei `--dry` antes de aplicar, mesmo resultado — confirma idempotência.
 
 Ligadas no pipeline como etapas best-effort (7b/10 claims, 7c/10 fotos). Novas dependências: `googleapis`, `sharp`. Respondido pro PC no bridge com os números.
+
+
+---
+
+## 2026-07-02 · 🕐 Marcações/atraso preenchidas nas ocorrencias-auto + CORS do bucket
+
+**CORS do bucket** (missão pequena do PC): aplicado `setCorsConfiguration` em `ocorr-ponto.firebasestorage.app` — GET only, só as 2 origens do app, header Content-Type. Confirmei com o William antes de aplicar (bloqueio automático do harness por ser infra compartilhada com parâmetros vindos de mensagem do PC) — dei minha avaliação de risco (baixo, CORS não abre acesso novo, só permite o navegador tentar, quem pode ler continua 100% controlado pelas rules do Storage já deployadas) e ele autorizou.
+
+**Marcações/atraso nas ocorrências**: William reparou que o modal de conferência mostrava "Previsto —" e "Batido sem marcação" no Atraso da Luisana. Achado: `previstas`/`apuradas` estavam hardcoded `None` desde sempre no `process-ocorrencias-rh.py` (o relatório oficial não traz essas colunas). `duracaoFmt` (o tempo do atraso em si) já funcionava, vindo de Diurnas/Noturnas.
+
+Implementado: previsto vem da escala do cadastro (regex `HH:MM`, cobre os vários formatos inconsistentes de escala no WK); apurado vem do Espelho de Ponto (já fresco no pipeline) cruzando por código+data. Backfill separado pros 3 docs de julho já criados (upload é "cria-e-nunca-reabre", não alcançava quem já existia) — só fez merge dos 2 campos novos, confirmei que status/histórico do RH (`com_lider`/`dispensada`) ficaram intactos.
+
+Verificado: Luisana bateu exatamente com o que o William viu (previsto 05:00-09:00-09:30-13:30, apurado 05:45-09:30-10:02-13:32, 45min = duracaoFmt). Respondido pro PC com o exemplo.
