@@ -6472,6 +6472,7 @@ function openLoteRecibos(tipo, competencia) {
           </div>`).join("")}
       </div>
     </div>`);
+  document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
 }
 
 async function excluirLoteRecibosUI(tipo, competencia) {
@@ -6491,6 +6492,9 @@ async function excluirLoteRecibosUI(tipo, competencia) {
 let _rcbImport = null;
 
 function openReciboImportModal() {
+  // Análise pendurada de uma conferência fechada no Esc/X: solta o pdf.js antes de recomeçar.
+  try { _rcbImport?.pdf?.destroy?.(); } catch (e) {}
+  _rcbImport = null;
   // Competência default: mês anterior (a folha fecha e chega depois do mês virar).
   const d = new Date(); d.setMonth(d.getMonth() - 1);
   const compDefault = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -6514,6 +6518,8 @@ function openReciboImportModal() {
         <button class="btn btn--primary" id="rcb-analisar">${icon("search")}<span>Analisar</span></button>
       </div>
     </div>`);
+  // Convenção do projeto: cada modal liga o próprio [data-close] (X e Cancelar).
+  document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
   $("#rcb-analisar")?.addEventListener("click", rcbAnalisar);
 }
 
@@ -6701,6 +6707,12 @@ function renderRcbConferencia() {
       : `<div class="rcb-combo__vazio">Ninguém encontrado com esse nome ou código.</div>`;
     lista.hidden = false;
   });
+  // X fecha a conferência (convenção [data-close]) e descarta a análise, soltando o pdf.js.
+  document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", () => {
+    try { st.pdf?.destroy?.(); } catch (e) {}
+    _rcbImport = null;
+    closeModal();
+  }));
   $("#rcb-voltar")?.addEventListener("click", () => {
     try { st.pdf?.destroy?.(); } catch (e) {} // solta o worker/memória do pdf.js
     _rcbImport = null;
@@ -11550,7 +11562,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.19.0";
+window.CURRENT_VERSION = "1.19.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
