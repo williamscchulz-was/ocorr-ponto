@@ -955,3 +955,18 @@ William reparou no widget "Status do pipeline" que o export de Banco de Horas es
 **Verificado**: rodei de novo, CSV mudou (17089→19812 bytes), parse foi de 0→3 ocorrências finais de 01/07 — batendo EXATAMENTE (nome, situação, horário) com o que William viu na tela do WK.
 
 **Caso à parte, em acompanhamento**: a ocorrência da Dioneia (f-1244, contratada 29/06) de 01/07 continua ausente do export mesmo já aparecendo na UI do WK — só ela, as outras 3 bateram certinho. Provável atraso de sincronização ligado à contratação muito recente. Criei uma scheduled task (`watch-dioneia-ocorrencia-0701`, roda 15h todo dia) que checa o CSV, avisa só quando resolver (ou depois de 7 dias sem resolver), e se autodesliga quando terminar.
+
+
+---
+
+## 2026-07-02 · 🔧 BH resolvido de vez: processo órfão do WK + dispositivo de auto-recuperação
+
+Continuação do achado de mais cedo (export de BH travando). Aumentei o timeout (180s→5min) e coloquei um respiro de 2s entre chamadas consecutivas do WK_EXE, mas o problema persistiu — mesmo código de crash (355941) e um EPERM novo no rename do config.
+
+**Causa raiz real, achada com o Monitor de Recursos (Windows, nativo)**: um processo **órfão**, `Ponto.exe -AutoExport:...` — não é o terminal de ponto dos funcionários, é o worker interno que o `ExportacaoAutomatica.exe` invoca pra fazer o export de verdade. O pai (`ExportacaoAutomatica.exe`) tinha crashado (355941) sem avisar o filho, que ficou rodando sozinho desde as 08:00 (quase 2h), segurando o config de Banco de Horas travado o tempo todo.
+
+Descartei primeiro a hipótese de ser o serviço `wksauto` (William reiniciou, não resolveu) antes de achar o `Ponto.exe` órfão de verdade via Monitor de Recursos → Identificadores Associados. Confirmado órfão (processo-pai não existe) e encerrado com autorização do William — resolveu na hora, BH rodou limpo em 27s.
+
+**Dispositivo de auto-recuperação criado** pra não precisar repetir essa investigação manual: `find-and-clear-wk-lock.ps1` (usa a API RestartManager do Windows, a mesma por trás do Monitor de Recursos) + `wk-lock-recovery.mjs`. Regra de segurança rígida: só encerra um processo automaticamente se ele bater OS DOIS critérios — nome numa whitelist conhecida (hoje só `Ponto`) E processo-pai não existe (órfão confirmado). Fora desse padrão exato, nunca mata nada, só loga quem está segurando (nome+PID) pra investigação manual continuar possível. Testado (com um processo de teste, não com o WK de verdade): confirma que NÃO mata quando o nome não bate a whitelist, e mata+libera quando bate.
+
+Aplicado em `update-config-dates.mjs` e `export-ocorrencias.mjs` — os 2 pontos que reescrevem config do WK via rename atômico. Documentado no `WKRADAR-PLAYBOOK.md` com o passo a passo manual (Monitor de Recursos) como fallback, caso o automático não reconheça o padrão numa próxima vez.

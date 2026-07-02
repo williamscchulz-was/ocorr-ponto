@@ -252,3 +252,19 @@ Não existem informações para emissão do relatório.
 **Implicação / mitigação:**
 1. **Sempre confira o `mtime` do arquivo de saída antes/depois de rodar o `.exe`**, não só exit code + tamanho. Se o mtime não avançou, trate como falha e leia o `.log` irmão do config (mesmo nome, `.txt`→`.log`) pra ver se tem uma `WKConsistenciaException` — foi implementado em `export-ocorrencias.mjs` no pipeline RH.
 2. **Alargue a janela de exportação** pra sempre incluir um período com apuração certamente "fechada" (ex.: `DataInicial` = 1º do mês **anterior**, não do mês corrente) — reduz a chance do WK achar "zero apuração" na janela toda. Regras de negócio (ex.: go-live) que decidem o que é *mostrado* pro usuário final continuam sendo aplicadas no parser (código), não no config do WK — a janela mais larga é só pra dar ao WK "algo" pra reportar.
+
+---
+
+## Quirk: config do WK pode ficar travado >1h por um processo ÓRFÃO do próprio WK (2026-07-02)
+
+No mesmo incidente acima, o export de **Banco de Horas** (`Config_Banco_de_Horas.txt`) também estava falhando — mas por uma causa BEM diferente: `update-config-dates.mjs` dava `EPERM: operation not permitted, rename ...` ao tentar reescrever a janela de datas.
+
+**Achado via Monitor de Recursos** (`resmon.exe` → aba CPU → "Identificadores Associados" → pesquisar o nome do arquivo — é built-in do Windows, não precisa baixar nada): o arquivo estava aberto por **`Ponto.exe`**, rodando com a linha de comando `Ponto.exe -AutoExport:00000300;000002FC`. Isso **não é** o terminal de ponto que os funcionários usam — é o processo-filho que o próprio `ExportacaoAutomatica.exe` invoca internamente pra fazer o export de verdade. Confirmado órfão: o processo-pai (`ExportacaoAutomatica.exe`, que tinha crashado antes com exit code 355941) **não existia mais**, e o `Ponto.exe -AutoExport` tinha ficado rodando sozinho, travado, segurando o config — desde as 08:00 daquele dia (a 1ª rodada agendada), quase 2h.
+
+**Como confirmar/limpar manualmente** (se o dispositivo automático abaixo não resolver):
+1. `resmon.exe` → CPU → Identificadores Associados → pesquisar o nome do arquivo travado.
+2. Anota o PID do processo que aparece.
+3. Confirma que é órfão: `Get-CimInstance Win32_Process -Filter "ProcessId = <PID>" | Select ParentProcessId`, depois `Get-Process -Id <ParentProcessId>` — se der erro/vazio, o pai não existe, é seguro encerrar.
+4. `Stop-Process -Id <PID> -Force`.
+
+**Automatizado desde 2026-07-02** (`fiobras-pipeline-rh/wk-lock-recovery.mjs` + `find-and-clear-wk-lock.ps1`): usa a API RestartManager do Windows (a mesma por trás do Monitor de Recursos) pra achar quem segura o arquivo, e SÓ encerra automaticamente se bater os dois critérios acima (nome numa whitelist conhecida — hoje só `Ponto` — E processo-pai não existe). Qualquer outra coisa, só loga quem está segurando (nome+PID+se tem pai vivo) e desiste, preservando o comportamento best-effort — nunca mata um processo que não reconhece com certeza.
