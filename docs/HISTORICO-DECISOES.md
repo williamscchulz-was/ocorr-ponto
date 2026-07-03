@@ -1074,3 +1074,20 @@ Nenhum precisou do fallback Python (`rembg`) que o PC sugeriu como plano B — a
 **Smoke test** (5 fotos variadas, conforme pedido): 785 boa / 671 escura / 1239 rosto pequeno / 949 rosto grande / 601 caso limite (sem rosto detectável nem em alta resolução — mantida como estava, corretamente). 4 tratadas com sucesso (score 0.94-1.00), 0 erros. Conferi visualmente 3 delas eu mesmo antes de mandar pro PC — recorte limpo, bem enquadrado, funciona até no caso escuro.
 
 **Parado aguardando aprovação** do William/PC antes de rodar o lote completo (73), conforme pedido explícito na missão.
+
+
+---
+
+## 2026-07-03 · 🚨 26 "Faltas Injustificadas" falsas — atraso de fechamento do WK, causa raiz corrigida
+
+William reparou (comparando o relatório bruto do WK com a tela de Ocorrências) que uma leva grande de "Falta Injustificada" surgiu pra 02/07 na fila do RH — 26 pessoas de departamentos bem diferentes, implausível todas terem faltado no mesmo dia.
+
+**Investigado**: os 26 docs foram TODOS criados na mesma rodada — a primeira do dia (08h de hoje), logo que 02/07 "formou" de dia aberto pra fechado. Rodei um export fresco mais tarde (mesma janela de datas, ~08h50) e comparei: **só 3 das 26 ainda batem** (Paulo Cesar Coelho Santos, Manuel Alejandro Quintero Avendano, Yusmary Del Carmen) — as outras 23 já não aparecem mais, confirmando que eram falso positivo.
+
+**Causa raiz**: o próprio WK Radar não termina de processar/fechar o dia anterior instantaneamente à meia-noite — parece ter um fechamento que roda de madrugada e ainda não tinha terminado às 08h. Como `ocorrencias-auto` é "cria-e-nunca-reabre", essa leitura prematura vira permanente.
+
+**Ações tomadas** (autorizadas pelo William):
+1. **Apagados os 23 falsos positivos confirmados** — só depois de checar que nenhum tinha status diferente de `rh_confere` (RH não tinha mexido em nenhum, sem trabalho perdido).
+2. **Horário do Task Scheduler mudado de 08h/10h/14h para 09h/11h/14h** — dá uma hora a mais de folga antes da primeira rodada do dia, tempo suficiente pro WK terminar de fechar o dia anterior (confirmado empiricamente: dados já estavam certos por volta das 08h50).
+
+Nada mudou do lado do PC — é ajuste puro de agendamento + limpeza de dado no pipeline.
