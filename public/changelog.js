@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.24.0", d: "2 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.25.0", d: "3 jul 2026", current: true, aud: "gestor", items: [
+      { type: "high", title: "Nasceu a Visão geral: o novo início do portal, com o pulso da empresa num olhar. Cartão Precisa de você com as pendências acionáveis, gráfico de ocorrências por mês, aniversariantes, admissões recentes, demografia, ranking e atividade recente." },
+      { type: "feat", title: "A página de Ocorrências ficou só com o trabalho: abas de conferência, busca e lista. Cada cartão da Visão geral respeita a sua permissão e mostra os números do seu recorte (líder vê o turno dele)." },
+    ],
+  },
+  {
+    v: "1.24.0", d: "2 jul 2026", aud: "gestor", items: [
       { type: "high", title: "O Portal do Gestor no celular ganhou a mesma cara do app do colaborador: atalhos redondos na Home (com pendências), resumo compacto, barra de baixo com só 3 itens em ilha de vidro e o botão de Nova ocorrência flutuando acima dela." },
       { type: "feat", title: "A versão do app agora aparece num selo ao lado da saudação (a barra do topo saiu de cena no celular)." },
     ],

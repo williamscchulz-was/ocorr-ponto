@@ -4,7 +4,7 @@
 
 const state = {
   ...store.init(),
-  view: { page: "dashboard", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" },
+  view: { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" },
 };
 
 // Subscription da conversa de chat aberta no momento (cancelada ao trocar de
@@ -623,7 +623,7 @@ function login(userId, senha) {
   store.save({ ...state, view: undefined });
   $("#login").classList.add("hidden");
   $("#app").classList.remove("hidden");
-  state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
+  state.view = { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
   renderApp();
   return true;
 }
@@ -2723,6 +2723,7 @@ function renderNav() {
   const pending = pendingForUser(u).length;
 
   const items = [];
+  items.push({ id: "visao-geral", label: "Visão geral", icon: "pulso" });
   items.push({ id: "dashboard", label: "Ocorrências", icon: "clipboard", badge: pending });
   items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
   if (can("bancoHoras.ver")) items.push({ id: "espelho-ponto", label: "Espelho de ponto", icon: "conferir" });
@@ -2773,7 +2774,7 @@ function renderNav() {
 // drawer (Conta); Nova ocorrência voltou a ser FAB flutuante (updateFab).
 function renderBottomNav() {
   const items = [
-    { id: "dashboard", label: "Início", icon: "home" },
+    { id: "visao-geral", label: "Início", icon: "home" },
     can("comunicados.gerenciar") ? { id: "comunicados", label: "Avisos", icon: "megafone" } : null,
     { id: "__menu", label: "Conta", icon: "user" },
   ].filter(Boolean);
@@ -2897,6 +2898,7 @@ function renderView() {
 
   if (page === "dashboard") return renderDashboard();
   if (page === "banco-horas") return renderBancoHoras();
+  if (page === "visao-geral") return renderVisaoGeral();
   if (page === "espelho-ponto") return renderEspelhoPontoGestor();
   if (page === "funcionarios") return renderFuncionarios();
   if (page === "pj") return renderControlePJ();
@@ -3187,6 +3189,212 @@ function mesAnoLabel(ym) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// ============================================
+// VISÃO GERAL (mock aprovado 2026-07-03): o resumo executivo sai da página de
+// Ocorrências e vira aba própria, o Início do gestor. Resposta à pergunta do
+// William sobre permissões: CADA cartão respeita a permissão que já existe
+// (sem acesso = o cartão nem renderiza) e os NÚMEROS são do recorte do usuário
+// (líder vê o turno dele, supervisor vê os funcionariosVisiveis dele).
+// ============================================
+
+// Pendências acionáveis: cada linha leva direto pro lugar de resolver.
+function vgPrecisaDeVoce(u) {
+  const visible = visibleOcorrencias();
+  const pending = visible.filter(isPending);
+  const podeRh = can("ocorrencias.revisarAuto");
+  const nRhConfere = podeRh ? ocaDoEstagio("rh_confere").length : 0;
+  const nComLider = ocaDoEstagio("com_lider").length;
+  const linhas = [];
+  if (nRhConfere) linhas.push({ ir: "rh-confere", ic: "shield", txt: `${nRhConfere} ocorrência${nRhConfere > 1 ? "s" : ""} aguardando a GP` });
+  const pendConf = pending.length + nComLider;
+  if (pendConf) linhas.push({ ir: "pendentes", ic: "clipboard", txt: `${pendConf} pendente${pendConf > 1 ? "s" : ""} de conferência` });
+  if (can("func.ver")) {
+    const semTurno = (state.funcionarios || []).filter((f) => f.ativo !== false && !f.turno && f.diretor !== true).length;
+    if (semTurno) linhas.push({ page: "funcionarios", ic: "users", txt: `${semTurno} funcionário${semTurno > 1 ? "s" : ""} sem turno definido` });
+  }
+  if (can("documentos.gerenciar") && Array.isArray(state.recibos) && state.recibos.length) {
+    const semAss = state.recibos.filter((r) => !(r.assinaturas || []).length).length;
+    if (semAss) linhas.push({ page: "documentos", tab: "recibos", ic: "file", txt: `${semAss} recibo${semAss > 1 ? "s" : ""} aguardando assinatura` });
+  }
+  return `
+    <section class="vg-card">
+      <h3 class="vg-h">${icon("alert")}<span>Precisa de você</span></h3>
+      ${linhas.length ? linhas.map((l) => `
+        <button class="vg-pend" ${l.ir ? `data-vg-ir="${l.ir}"` : ""} ${l.page ? `data-vg-page="${l.page}"` : ""} ${l.tab ? `data-vg-tab="${l.tab}"` : ""}>
+          ${icon(l.ic)}<span>${escapeHtml(l.txt)}</span>${icon("chevron")}
+        </button>`).join("") : `<div class="vg-ok">${icon("check")}<span>Tudo em dia. Nada esperando por você.</span></div>`}
+    </section>`;
+}
+
+// Barras empilhadas dos últimos 6 meses (faltas/atrasos/saídas), do RECORTE do
+// usuário (visibleOcorrencias + automáticas que a regra deixou ele carregar).
+function vgTendenciaHtml() {
+  const agora = new Date();
+  const meses = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+    meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  const grupo = (rot) => { const t = String(rot || "").toLowerCase(); return t.includes("falta") ? 0 : t.includes("atraso") ? 1 : 2; };
+  const dados = meses.map(() => [0, 0, 0]);
+  visibleOcorrencias().forEach((o) => {
+    const i = meses.indexOf(String(o.data || "").slice(0, 7));
+    if (i >= 0) dados[i][grupo(getTipo(o.tipo)?.label || o.tipo)]++;
+  });
+  (state.ocorrenciasAuto || []).forEach((o) => {
+    const i = meses.indexOf(String(o.dataIso || "").slice(0, 7));
+    if (i >= 0) dados[i][grupo(o.tipo)]++;
+  });
+  const tot = dados.map((d) => d[0] + d[1] + d[2]);
+  if (!tot.some(Boolean)) return "";
+  const max = Math.max(...tot, 1);
+  const W = 560, H = 150, pad = 8, bw = 44, gap = (W - pad * 2 - bw * 6) / 5;
+  const cores = ["#C9595E", "#D9A441", "#5B8FD9"];
+  let sv = "";
+  dados.forEach((d, i) => {
+    const x = pad + i * (bw + gap);
+    let y = H - 24;
+    d.forEach((v, gi) => {
+      if (!v) return;
+      const h = Math.max(3, (v / max) * (H - 52));
+      y -= h;
+      sv += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" fill="${cores[gi]}" opacity=".85"><title>${v}</title></rect>`;
+    });
+    const mm = parseInt(meses[i].slice(5), 10);
+    sv += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#7A8578">${OCA_MESES[mm - 1] || mm}</text>`;
+    if (tot[i]) sv += `<text x="${x + bw / 2}" y="${y - 5}" text-anchor="middle" font-size="10" font-weight="700" fill="#4A554A">${tot[i]}</text>`;
+  });
+  return `
+    <section class="vg-card">
+      <h3 class="vg-h">${icon("clipboard")}<span>Ocorrências por mês</span></h3>
+      <svg viewBox="0 0 ${W} ${H}" class="vg-chart" role="img" aria-label="Ocorrências por mês, últimos 6 meses">${sv}</svg>
+      <div class="vg-leg"><span><i style="background:#C9595E"></i>Faltas</span><span><i style="background:#D9A441"></i>Atrasos</span><span><i style="background:#5B8FD9"></i>Saídas</span></div>
+    </section>`;
+}
+
+// Admissões dos últimos 120 dias, no recorte do papel (some se não houver).
+function vgAdmissoesHtml(u) {
+  if (!can("func.ver")) return "";
+  const hoje = new Date();
+  const rec = (state.funcionarios || [])
+    .filter((f) => f.ativo !== false && f.admissao)
+    .filter((f) => (u.role === "lider" ? f.turno === u.turno : u.role === "supervisor" ? podeVerFuncionario(u, f) : true))
+    .filter((f) => (hoje - new Date(f.admissao)) / 864e5 <= 120)
+    .sort((a, b) => String(b.admissao).localeCompare(String(a.admissao)))
+    .slice(0, 3);
+  if (!rec.length) return "";
+  return `
+    <section class="vg-card">
+      <h3 class="vg-h">${icon("users")}<span>Chegaram há pouco</span></h3>
+      ${rec.map((f) => {
+        const dias = Math.max(1, Math.round((hoje - new Date(f.admissao)) / 864e5));
+        return `<div class="vg-adm">${avatarFuncHtml(f, "avatar")}<div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(f.setor || "")} · chegou há ${dias} dia${dias > 1 ? "s" : ""}</span></div></div>`;
+      }).join("")}
+    </section>`;
+}
+
+// Últimos eventos da trilha (só quem pode ler /eventos: admin e cap auditoria.ver).
+function vgAtividadeHtml() {
+  if (!can("auditoria.ver")) return "";
+  if (state.eventosRecentes == null) {
+    if (window.carregarEventosRecentes && !state._evtCarregando) {
+      state._evtCarregando = true;
+      window.carregarEventosRecentes(5).finally(() => {
+        state._evtCarregando = false;
+        if (state.view.page === "visao-geral") renderApp();
+      });
+    }
+    return `<section class="vg-card"><h3 class="vg-h">${icon("shield")}<span>Atividade recente</span></h3><div class="vg-ok"><span>Carregando a trilha...</span></div></section>`;
+  }
+  const evs = state.eventosRecentes || [];
+  return `
+    <section class="vg-card">
+      <h3 class="vg-h">${icon("shield")}<span>Atividade recente</span></h3>
+      ${evs.length ? evs.map((e) => {
+        const hora = e.em && e.em.toDate ? e.em.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+        return `<div class="vg-evt"><span class="vg-evt__tipo">${escapeHtml(e.tipo || "evento")}</span><span class="vg-evt__acao">${escapeHtml(e.acao || "")}</span><span class="vg-evt__h">${escapeHtml(hora)}</span></div>`;
+      }).join("") : `<div class="vg-ok"><span>Sem eventos registrados ainda.</span></div>`}
+      <button class="btn btn--soft btn--sm vg-vera" data-vg-page="auditoria">${icon("shield")}<span>Ver auditoria completa</span></button>
+    </section>`;
+}
+
+function renderVisaoGeral() {
+  const u = currentUser();
+  $("#topbar-title").textContent = "Visão geral";
+  if (["admin", "rh", "lider"].includes(u.role)) ensureOcaCarregada();
+
+  const visible = visibleOcorrencias();
+  const pending = visible.filter(isPending);
+  const done = visible.filter((o) => !isPending(o));
+  const nComLider = ocaDoEstagio("com_lider").length;
+  const aConferir = pending.length + nComLider + (can("ocorrencias.revisarAuto") ? ocaDoEstagio("rh_confere").length : 0);
+
+  $("#view").innerHTML = `
+    <header class="page-header">
+      <div>
+        <h1>${greetingText(u)}</h1>
+        <p>O pulso da empresa num olhar.</p>
+      </div>
+      <div class="row">
+        <button class="version-pill version-pill--hub" type="button" title="Novidades e histórico de versões">v—</button>
+      </div>
+    </header>
+
+    ${gestorAtalhosHtml(u)}
+
+    <div class="stats stats--kpi">
+      <div class="stat ${aConferir ? "stat--accent" : ""} stat--kpi">
+        <div class="stat__label">Ocorrências a conferir</div>
+        <div class="stat__value">${aConferir}</div>
+        <div class="stat__hint">${aConferir ? `<button class="btn btn--soft btn--sm" data-vg-ir="pendentes">${icon("check")}<span>Conferir agora</span></button>` : "tudo em dia"}</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Colaboradores ativos</div>
+        <div class="stat__value">${countActiveFuncs(u)}</div>
+        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Saldo de horas (média)</div>
+        <div class="stat__value num">${escapeHtml(dashBhMedia())}</div>
+        <div class="stat__hint">${currentMonthLabel()}</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Resolvidas no mês</div>
+        <div class="stat__value">${done.length}</div>
+        <div class="stat__hint">conferidas + lançadas</div>
+      </div>
+    </div>
+
+    ${vgPrecisaDeVoce(u)}
+    ${vgTendenciaHtml()}
+    <div class="vg-grid">
+      ${renderAniversariantesWidget(u)}
+      ${vgAdmissoesHtml(u)}
+    </div>
+    <div class="vg-grid">
+      ${renderDemografiaWidget(u)}
+      ${renderRankingTempoCasaWidget(u)}
+    </div>
+    ${renderObrigacoesWidget(u)}
+    ${vgAtividadeHtml()}
+  `;
+
+  // Pill de versão (a topbar morreu no mobile): mesmo conteúdo/ação da pill global.
+  const vph = $("#view .version-pill--hub");
+  if (vph) { vph.textContent = "v" + window.CURRENT_VERSION; vph.addEventListener("click", openChangelog); }
+  // Atalhos do hub (mobile) e linhas/botões de pendência: navegação real.
+  $$("#view [data-ghub]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.ghubTab) state.view.docTab = b.dataset.ghubTab;
+    state.view.page = b.dataset.ghub;
+    renderApp();
+  }));
+  $$("#view [data-vg-ir], #view [data-vg-page]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.vgIr) { state.view.page = "dashboard"; state.view.filterTab = b.dataset.vgIr; }
+    else { if (b.dataset.vgTab) state.view.docTab = b.dataset.vgTab; state.view.page = b.dataset.vgPage; }
+    renderApp();
+  }));
+}
+
 function renderDashboard() {
   const u = currentUser();
   $("#topbar-title").textContent = "Ocorrências";
@@ -3211,7 +3419,8 @@ function renderDashboard() {
   if (state.view.filterMes && !mesesDisponiveis.includes(state.view.filterMes)) mesesDisponiveis.push(state.view.filterMes);
   mesesDisponiveis.sort().reverse();
 
-  const greeting = greetingText(u);
+  // Página de TRABALHO (Visão geral concentra o resumo; aprovado 2026-07-03):
+  // só cabeçalho enxuto + abas de conferência + toolbar + lista.
   const subtitle =
     u.role === "lider"
       ? `Você visualiza apenas ocorrências do ${u.turno}º turno.`
@@ -3219,17 +3428,16 @@ function renderDashboard() {
       ? "Você visualiza apenas os funcionários sob sua supervisão."
       : u.role === "rh"
       ? "Registre e acompanhe ocorrências de todos os turnos."
-      : "Você tem acesso completo ao sistema.";
+      : "Registre, confira e destine as ocorrências do ponto.";
 
   $("#view").innerHTML = `
     <header class="page-header">
       <div>
-        <h1>${greeting}</h1>
+        <h1>Ocorrências</h1>
         <p>${subtitle}</p>
       </div>
       <div class="row">
         ${can("pipeline.monitor") ? monChipHtml() : ""}
-        <button class="version-pill version-pill--hub" type="button" title="Novidades e histórico de versões">v—</button>
         ${
           can("ocorrencias.criar")
             ? `<button class="btn btn--primary" id="btn-nova">${icon("plus")}<span>Nova ocorrência</span></button>`
@@ -3237,36 +3445,6 @@ function renderDashboard() {
         }
       </div>
     </header>
-
-    ${gestorAtalhosHtml(u)}
-
-    <div class="stats stats--kpi">
-      <div class="stat stat--accent stat--kpi">
-        <div class="stat__label">Ocorrências a conferir</div>
-        <div class="stat__value">${pending.length}</div>
-        <div class="stat__hint">${pending.length ? `<button class="btn btn--soft btn--sm" id="kpi-conferir">${icon("check")}<span>Conferir agora</span></button>` : "tudo em dia"}</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Colaboradores ativos</div>
-        <div class="stat__value">${countActiveFuncs(u)}</div>
-        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Saldo de horas (média)</div>
-        <div class="stat__value num">${escapeHtml(dashBhMedia())}</div>
-        <div class="stat__hint">${currentMonthLabel()}</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Resolvidas no mês</div>
-        <div class="stat__value">${done.length}</div>
-        <div class="stat__hint">conferidas + lançadas</div>
-      </div>
-    </div>
-
-    ${renderObrigacoesWidget(u)}
-    ${renderAniversariantesWidget(u)}
-    ${renderDemografiaWidget(u)}
-    ${renderRankingTempoCasaWidget(u)}
 
     <div class="tabs" id="tabs">
       ${podeRh ? `<button class="tab ${state.view.filterTab === "rh-confere" ? "active" : ""}" data-tab="rh-confere">
@@ -3315,26 +3493,7 @@ function renderDashboard() {
 
   // Wire up
   if ($("#btn-nova")) $("#btn-nova").addEventListener("click", openNovaOcorrencia);
-  // Atalhos do hub mobile: navegam (com aba de Documentos quando indicada);
-  // o atalho Ocorrências rola até a lista, já que a Home É a tela de ocorrências.
-  $$("#view [data-ghub]").forEach((b) => b.addEventListener("click", () => {
-    if (b.dataset.ghub === "dashboard") return void $("#tabs")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    if (b.dataset.ghubTab) state.view.docTab = b.dataset.ghubTab;
-    state.view.page = b.dataset.ghub;
-    renderApp();
-  }));
-  // Pill de versão do hub (a topbar morreu no mobile): mesmo conteúdo/ação da pill global.
-  const vph = $("#view .version-pill--hub");
-  if (vph) { vph.textContent = "v" + window.CURRENT_VERSION; vph.addEventListener("click", openChangelog); }
   if ($("#btn-monitor")) $("#btn-monitor").addEventListener("click", openMonitorPipeline);
-  if ($("#kpi-conferir")) $("#kpi-conferir").addEventListener("click", () => {
-    state.view.filterTab = "pendentes";
-    $$("#tabs .tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === "pendentes"));
-    const ink = $("#tabs .tabs__ink"), at = $("#tabs .tab.active");
-    if (ink && at) { ink.style.left = at.offsetLeft + "px"; ink.style.width = at.offsetWidth + "px"; }
-    renderOccList();
-    $("#occ-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
 
   // Ink deslizante: troca de aba move só a lista (não re-renderiza o dashboard),
   // então a barrinha transiciona da aba antiga pra nova em vez de pular.
@@ -11459,7 +11618,7 @@ function renderUsuariosInto(selector) {
       })) {
         const fresh = store.reset();
         Object.assign(state, fresh);
-        state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
+        state.view = { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
         toast("Dados resetados.");
         renderApp();
       }
@@ -12416,7 +12575,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.24.0";
+window.CURRENT_VERSION = "1.25.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -12573,7 +12732,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("#acesso")?.classList.add("hidden");
     $("#login").classList.add("hidden");
     $("#app").classList.remove("hidden");
-    state.view = { page: "dashboard", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
+    state.view = { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
     renderApp();
   }
 
