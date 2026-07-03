@@ -1131,3 +1131,18 @@ estavam), 4 puladas (já tratada/removida/escolha do colaborador), 3 sem login a
 (claude-bridge/inbox-pc/2026-07-03-avatar-lote-completo.md). Script
 sync-fotos-drive-tratamento.mjs continua fora do run-pipeline.mjs por ora (roda sob
 demanda) — vira rotina agendada só se pedido.
+
+
+---
+
+## 2026-07-03 · Avatar: fallback de 2 estágios na detecção de rosto — recupera 6 de 7 "sem-rosto"
+
+William reportou 2 pessoas do lote de 73 avatares (Anderson Dobuchak/612, Moises Silva de Carvalho/1215) com foto "errada" no app — investigado e confirmado visualmente que ambos têm fotos originais claras, rosto bem visível a olho humano, mas o detector (face-api SsdMobilenetv1) não achou o rosto.
+
+**Causa raiz** (achada testando várias escalas de redimensionamento): o `minConfidence` default do modelo é 0.5, e as 7 pessoas "sem-rosto" do lote tinham sinal real mas abaixo desse limiar em certas escalas — não é ausência de rosto, é threshold cortando detecção marginal.
+
+**Consultado o conselheiro (Fable)** antes de implementar — vetou a ideia inicial (tentar 7 escalas cegamente) e desenhou um fallback de 2 estágios mais preciso: estágio 1 intocado (resolução original, threshold 0.5); estágio 2 só se o 1º falhar — 3 escalas (1600/800/480px), threshold 0.35, escolhe o maior score, com filtro de sanidade de proporção e reprovação automática se a detecção de baixa confiança não passar no crivo do `confiancaMatte()` (some pra "sem-rosto" em vez de gravar algo arriscado). Também recomendou uma válvula de escape manual (`overrides-rosto.json`) pros casos que nenhum algoritmo pega.
+
+**Implementado por um agente Opus, verificado por um agente Sonnet** (diff conferido campo a campo + dry-run real nos 7 casos + inspeção visual das boxes detectadas). Rodado de verdade nos 7 códigos: **6 recuperados** (601, 1215, 1218, 1039, 476, 612 — mais que os 3 previstos no diagnóstico inicial, sem nenhum falso positivo), só Paula Cristina dos Santos (1048) continua sem rosto detectável em nenhuma escala — fica pendente de override manual se quiserem tratar ela também.
+
+Registrado em memória (`feedback_orquestracao_agentes.md`) os princípios de orquestração que o William formalizou nesta sessão: modelo caro só decide (nunca mecânico), lentes estreitas por agente, agente propõe/humano decide, registrar acerto validado (não só erro), ceticismo com arquitetura badalada importada sem necessidade real.
