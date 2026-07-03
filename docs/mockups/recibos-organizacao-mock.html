@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Organizar "Recibos e cartão ponto" (3 propostas)</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ---- Tema gestor (claro), copiado do styles.css real ---- */
+  :root{
+    --milk-warm:#EEF3EC; --plum:#008835; --plum-deep:#006328;
+    --surface:#FFFFFF; --border:#E7EDE4; --text-body:#1E2D1A; --text-muted:#4A6245;
+    --warning:#B27429; --danger:#962F32; --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  *{box-sizing:border-box}
+  body{background:#EEF1EA;margin:0;padding:26px 18px 90px;font-family:Poppins,sans-serif;color:var(--text-body)}
+  .wrap{max-width:1180px;margin:0 auto}
+
+  /* faixa do problema */
+  .brief{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--plum);border-radius:14px;padding:16px 20px;line-height:1.6;font-size:13.5px;color:var(--text-body);margin-bottom:22px;box-shadow:0 12px 30px -22px rgba(16,48,28,.35)}
+  .brief b{color:var(--plum-deep)}
+  .brief .quote{display:block;margin:8px 0;padding:9px 14px;background:var(--milk-warm);border-radius:10px;font-style:italic;color:var(--text-muted);font-size:13px}
+  .brief .sub{font-size:12.5px;color:var(--text-muted);margin-top:6px}
+
+  /* seletor de propostas (abas grandes) */
+  .picker{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+  .pick{flex:1;min-width:230px;text-align:left;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:13px 16px;cursor:pointer;transition:border-color .15s var(--ease),box-shadow .15s var(--ease);font-family:inherit}
+  .pick:hover{box-shadow:0 8px 22px -16px rgba(16,48,28,.4)}
+  .pick.on{border-color:var(--plum);box-shadow:0 10px 26px -18px rgba(0,136,53,.55)}
+  .pick__k{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--plum);background:rgba(0,136,53,.1);border-radius:999px;padding:2px 9px;margin-bottom:8px}
+  .pick__t{font-size:15px;font-weight:700;color:var(--text-body)}
+  .pick__d{font-size:12px;color:var(--text-muted);margin-top:3px;line-height:1.5}
+
+  /* painel simulando a aba de Documentos */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 24px 60px -34px rgba(16,48,28,.5)}
+  .panel__h{padding:16px 22px 0;border-bottom:1px solid var(--border)}
+  .panel__h h2{margin:0;font-size:20px;color:var(--plum-deep);font-weight:700}
+  .tabs{display:flex;gap:2px;margin-top:14px}
+  .tab{padding:9px 14px;font-size:13px;font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;cursor:default}
+  .tab.on{color:var(--plum);border-bottom-color:var(--plum)}
+  .panel__b{padding:18px 22px 26px}
+
+  /* barra de ação (doc-actbar real) */
+  .doc-actbar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:0 0 16px;flex-wrap:wrap}
+  .doc-actbar p{flex:1;min-width:0;margin:0;font-size:12.5px;color:var(--text-muted)}
+  .btn{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .btn svg{width:16px;height:16px}
+  .btn--primary{background:var(--plum);color:#fff}
+  .btn--primary:hover{background:var(--plum-deep)}
+
+  /* card de lote (rcb-lote real) */
+  .rcb-lotes{display:flex;flex-direction:column;gap:10px;max-width:640px}
+  .rcb-lote{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--surface);cursor:pointer;transition:box-shadow .15s var(--ease)}
+  .rcb-lote:hover{box-shadow:0 4px 14px -8px rgba(16,48,28,.28)}
+  .rcb-lote__ic{width:40px;height:40px;border-radius:10px;background:var(--milk-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .rcb-lote__ic svg{width:20px;height:20px}
+  .rcb-lote__bd{flex:1;min-width:0;display:flex;flex-direction:column}
+  .rcb-lote__bd b{font-size:14px;color:var(--text-body);font-weight:600}
+  .rcb-lote__bd span{font-size:11.5px;color:var(--text-muted)}
+  .rcb-lote__pill{font-size:11px;font-weight:700;color:var(--plum);background:rgba(0,136,53,.1);border-radius:999px;padding:3px 10px;white-space:nowrap}
+
+  /* ==== OPÇÃO A: cabeçalho de ano + card por mês com sub-linhas ==== */
+  .yr{max-width:660px;margin:0 0 12px}
+  .yr__h{display:flex;align-items:center;gap:11px;width:100%;background:var(--milk-warm);border:1px solid var(--border);border-radius:12px;padding:11px 15px;cursor:pointer;font:inherit;text-align:left;transition:box-shadow .15s var(--ease)}
+  .yr__h:hover{box-shadow:0 4px 14px -8px rgba(16,48,28,.28)}
+  .yr__chev{color:var(--text-muted);display:flex;transition:transform .18s var(--ease)}
+  .yr__chev svg{width:18px;height:18px}
+  .yr.open .yr__chev{transform:rotate(0deg)}
+  .yr__chev{transform:rotate(-90deg)}
+  .yr.open .yr__chev{transform:rotate(0deg)}
+  .yr__n{font-size:16px;font-weight:800;color:var(--plum-deep)}
+  .yr__c{font-size:12px;color:var(--text-muted);margin-left:auto;font-weight:600}
+  .yr__body{display:none;padding:11px 0 4px 6px}
+  .yr.open .yr__body{display:block}
+
+  .mcard{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:11px 14px 8px;margin-bottom:9px;transition:box-shadow .15s var(--ease)}
+  .mcard:hover{box-shadow:0 4px 14px -8px rgba(16,48,28,.28)}
+  .mcard__h{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .mcard__mo{font-size:14px;font-weight:700;color:var(--text-body)}
+  .mcard__badge{font-size:10.5px;font-weight:700;color:var(--text-muted);background:var(--milk-warm);border-radius:999px;padding:2px 9px;margin-left:auto}
+  .subrow{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;cursor:pointer;transition:background .12s var(--ease)}
+  .subrow:hover{background:var(--milk-warm)}
+  .subrow+.subrow{margin-top:2px}
+  .subrow__ic{width:30px;height:30px;border-radius:8px;background:var(--milk-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .subrow__ic svg{width:16px;height:16px}
+  .subrow__bd{flex:1;min-width:0}
+  .subrow__t{font-size:13px;font-weight:600;color:var(--text-body)}
+  .subrow__s{font-size:11px;color:var(--text-muted);margin-top:1px}
+  .adchip{font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .adchip--full{background:rgba(0,136,53,.12);color:var(--plum-deep)}
+  .adchip--part{background:rgba(178,116,41,.14);color:var(--warning)}
+  .adchip--zero{background:var(--milk-warm);color:var(--text-muted)}
+
+  /* ==== OPÇÃO B: duas colunas por tipo ==== */
+  .cols{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+  .colw{flex:1;min-width:290px}
+  .colw__h{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--border)}
+  .colw__ic{width:34px;height:34px;border-radius:9px;background:var(--milk-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .colw__ic svg{width:18px;height:18px}
+  .colw__t{font-size:14.5px;font-weight:700;color:var(--text-body)}
+  .colw__c{font-size:11.5px;color:var(--text-muted);margin-left:auto;font-weight:600}
+  .loterow{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:11px;padding:10px 12px;margin-bottom:8px;background:var(--surface);cursor:pointer;transition:box-shadow .15s var(--ease)}
+  .loterow:hover{box-shadow:0 4px 14px -8px rgba(16,48,28,.28)}
+  .loterow__bd{flex:1;min-width:0}
+  .loterow__t{font-size:13.5px;font-weight:600;color:var(--text-body)}
+  .loterow__s{font-size:11px;color:var(--text-muted);margin-top:1px}
+
+  /* ==== OPÇÃO C: filtros sobre a lista atual ==== */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:12px 14px;background:var(--milk-warm);border:1px solid var(--border);border-radius:12px}
+  .fchips{display:flex;gap:6px}
+  .fchip{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 13px;font:inherit;font-size:12.5px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all .12s var(--ease)}
+  .fchip.on{background:var(--plum);color:#fff;border-color:var(--plum)}
+  .fsel{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 11px;font:inherit;font-size:12.5px;color:var(--text-body);cursor:pointer}
+  .fsearch{position:relative;flex:1;min-width:150px}
+  .fsearch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text-muted)}
+  .fsearch input{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 11px 8px 32px;font:inherit;font-size:12.5px;color:var(--text-body)}
+  .fsearch input:focus{outline:none;border-color:var(--plum)}
+  .fcount{font-size:12px;color:var(--text-muted);margin:0 0 12px;font-weight:600}
+  .nonemsg{font-size:13px;color:var(--text-muted);padding:24px;text-align:center;border:1px dashed var(--border);border-radius:12px}
+
+  .footnote{margin-top:26px;font-size:12.5px;color:var(--text-muted);background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:14px 18px;line-height:1.65}
+  .footnote b{color:var(--text-body)}
+
+  @media(max-width:640px){
+    .cols{flex-direction:column}
+    .colw{width:100%}
+  }
+</style></head>
+<body><div class="wrap">
+
+<div class="brief">
+  <b>O problema.</b> Hoje a lista de "Recibos e cartão ponto" é uma pilha única: um card por lote, sem separação. Com poucos meses funciona, mas o William olhou a tela e falou:
+  <span class="quote">"precisa de uma separação melhor, imagina quando tiver 20 meses lançados vai ficar meio bagunça"</span>
+  Cada mês gera até 2 lotes (um recibo, um cartão ponto), então 20 e poucos meses viram quase 40 cards soltos. Abaixo, <b>3 propostas</b> pra reorganizar a mesma lista. O dado de teste cobre 2024, 2025 e 2026 (até julho) de propósito, pra você ver como cada uma se comporta cheia. Escolha uma.
+  <span class="sub">Todas rodam de verdade neste mock: expandir e recolher anos, trocar de coluna, filtrar. O botão "Importar" é só decorativo aqui.</span>
+</div>
+
+<div class="picker">
+  <button class="pick on" data-opt="a">
+    <span class="pick__k">Opção A</span>
+    <div class="pick__t">Por ano e mês</div>
+    <div class="pick__d">Anos recolhíveis. Dentro, um cartão por mês com os dois tipos como sub-linhas. Compacta o volume nos dois eixos.</div>
+  </button>
+  <button class="pick" data-opt="b">
+    <span class="pick__k">Opção B</span>
+    <div class="pick__t">Duas colunas por tipo</div>
+    <div class="pick__d">Cartão ponto de um lado, Recibo do outro. Cada coluna com seus anos recolhíveis. Bom pra focar num tipo.</div>
+  </button>
+  <button class="pick" data-opt="c">
+    <span class="pick__k">Opção C</span>
+    <div class="pick__t">Filtro sobre a lista atual</div>
+    <div class="pick__d">A lista de hoje intacta, com uma barra de filtros no topo: tipo, ano e busca por mês. A mudança mais leve.</div>
+  </button>
+</div>
+
+<div class="panel">
+  <div class="panel__h">
+    <h2>Documentos</h2>
+    <div class="tabs"><div class="tab">Institucionais</div><div class="tab on">Recibos e cartão ponto</div></div>
+  </div>
+  <div class="panel__b">
+    <div class="doc-actbar">
+      <p>Importe o PDF da folha. O sistema separa por funcionário e cada um vê só o dele.</p>
+      <button class="btn btn--primary" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Importar</span></button>
+    </div>
+    <div id="mount"></div>
+  </div>
+</div>
+
+<div class="footnote">
+  <b>O que acontece depois:</b> a opção que você escolher vira a estrutura real da aba "Recibos e cartão ponto" no Portal do Gestor. É só apresentação: o modelo de dados (a coleção <b>recibos</b>, o agrupamento por <b>tipo</b> e <b>competência</b>, a regra de acesso e a adesão de assinatura) fica idêntico. Muda como a lista se organiza na tela, nada por baixo.
+</div>
+
+</div>
+
+<script>
+/* ---------- Ícones (paths copiados do app real: utils.js e app.js) ---------- */
+var IC = {
+  recibo: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+  cartao: '<rect x="5" y="4" width="14" height="17" rx="2.2"/><path d="M9 4V3.2A1.2 1.2 0 0 1 10.2 2h3.6A1.2 1.2 0 0 1 15 3.2V4"/><path d="M8.5 13l2.2 2.2L15.5 10"/>',
+  chevrondown: '<polyline points="6 9 12 15 18 9"/>',
+  search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'
+};
+function svg(name, w){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'+(w?' style="width:'+w+'px;height:'+w+'px"':'')+'>'+IC[name]+'</svg>'; }
+
+var TIPO_LABEL = { "recibo": "Recibo de pagamento", "cartao-ponto": "Cartão ponto" };
+var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+function compLabel(comp){ var p = comp.split("-"); return MESES[parseInt(p[1],10)-1] + " de " + p[0]; }
+function mesNome(comp){ return MESES[parseInt(comp.split("-")[1],10)-1]; }
+
+/* ---------- Dado de teste: denso e realista, 2024 a 2026 (até julho) ----------
+   Regra: quase todo mês tem os 2 tipos. Alguns meses raros só um tipo (assimetria).
+   Funcionários entre 78 e 105. Adesão: meses antigos quase completos,
+   meses recentes baixos/em andamento (como seria na vida real). */
+function gerarLotes(){
+  var lotes = [];
+  var hoje = { ano: 2026, mes: 7 }; // julho de 2026 (mês corrente)
+  // meses que, de propósito, só têm UM tipo (pra provar que aguenta assimetria)
+  var soRecibo = { "2024-01": true, "2025-08": true }; // só recibo
+  var soCartao = { "2024-07": true, "2026-02": true };  // só cartão ponto
+
+  for (var ano = 2024; ano <= 2026; ano++){
+    var mesFim = (ano === 2026) ? 7 : 12;
+    for (var mes = 1; mes <= mesFim; mes++){
+      var comp = ano + "-" + String(mes).padStart(2,"0");
+      // quão "no passado" está esse mês (0 = mês corrente)
+      var idade = (hoje.ano - ano) * 12 + (hoje.mes - mes);
+      // total de funcionários plausível, cresce devagar com o tempo
+      var base = 78 + ((ano - 2024) * 6) + (mes % 5);
+      var total = Math.min(105, base);
+      // adesão: antigos altos, recentes baixos
+      var pct;
+      if (idade >= 6) pct = 0.90 + (Math.sin(mes*1.7+ano) * 0.10); // 0.80..1.00
+      else if (idade >= 3) pct = 0.55 + (Math.abs(Math.sin(mes*2.3)) * 0.35); // ~0.55..0.90
+      else if (idade >= 1) pct = 0.15 + (Math.abs(Math.sin(mes*3.1+ano)) * 0.35); // ~0.15..0.50
+      else pct = 0.00 + (Math.abs(Math.sin(mes)) * 0.06); // mês corrente: quase ninguém
+      pct = Math.max(0, Math.min(1, pct));
+      var assin = Math.round(total * pct);
+
+      function push(tipo){
+        var t = tipo === "cartao-ponto" ? Math.max(0, Math.min(total, assin - (idade<2?2:0))) : assin;
+        lotes.push({ tipo: tipo, competencia: comp, total: total, assinaram: t });
+      }
+      if (soRecibo[comp]) { push("recibo"); }
+      else if (soCartao[comp]) { push("cartao-ponto"); }
+      else { push("cartao-ponto"); push("recibo"); }
+    }
+  }
+  // mais recente primeiro, e dentro do mesmo mês: cartão-ponto antes de recibo (localeCompare como no app)
+  lotes.sort(function(a,b){
+    return String(b.competencia).localeCompare(String(a.competencia)) || String(a.tipo).localeCompare(String(b.tipo));
+  });
+  return lotes;
+}
+var LOTES = gerarLotes();
+
+function icoTipo(tipo){ return tipo === "cartao-ponto" ? "cartao" : "recibo"; }
+function adChipClass(l){ if (l.assinaram === 0) return "adchip--zero"; if (l.assinaram >= l.total) return "adchip--full"; return "adchip--part"; }
+function adTexto(l){ return l.assinaram + " de " + l.total + " assinaram"; }
+
+/* ---------- OPÇÃO A: por ano e mês ---------- */
+function renderA(){
+  // agrupa por ano -> mês -> tipos
+  var anos = {};
+  LOTES.forEach(function(l){
+    var ano = l.competencia.split("-")[0];
+    var mes = l.competencia;
+    anos[ano] = anos[ano] || { lotes: 0, meses: {} };
+    anos[ano].lotes++;
+    (anos[ano].meses[mes] = anos[ano].meses[mes] || []).push(l);
+  });
+  var anosOrd = Object.keys(anos).sort().reverse();
+  var anoCorrente = "2026";
+  var html = '<div id="optA">';
+  anosOrd.forEach(function(ano){
+    var a = anos[ano];
+    var mesesOrd = Object.keys(a.meses).sort().reverse();
+    var aberto = (ano === anoCorrente);
+    html += '<div class="yr '+(aberto?"open":"")+'" data-yr="'+ano+'">';
+    html += '<button class="yr__h" type="button" data-yrtoggle="'+ano+'">';
+    html += '<span class="yr__chev">'+svg("chevrondown")+'</span>';
+    html += '<span class="yr__n">'+ano+'</span>';
+    html += '<span class="yr__c">'+a.lotes+' lote'+(a.lotes>1?"s":"")+'</span>';
+    html += '</button>';
+    html += '<div class="yr__body">';
+    mesesOrd.forEach(function(mes){
+      var tipos = a.meses[mes];
+      // ordena cartão-ponto antes de recibo dentro do card
+      tipos.sort(function(x,y){ return String(x.tipo).localeCompare(String(y.tipo)); });
+      html += '<div class="mcard">';
+      html += '<div class="mcard__h"><span class="mcard__mo">'+mesNome(mes)+'</span>';
+      html += '<span class="mcard__badge">'+tipos.length+' de 2 tipos</span></div>';
+      tipos.forEach(function(l){
+        html += '<div class="subrow" title="Abrir o lote">';
+        html += '<span class="subrow__ic">'+svg(icoTipo(l.tipo),16)+'</span>';
+        html += '<span class="subrow__bd"><div class="subrow__t">'+TIPO_LABEL[l.tipo]+'</div>';
+        html += '<div class="subrow__s">'+l.total+' gerados · '+l.assinaram+' assinaram</div></span>';
+        html += '<span class="adchip '+adChipClass(l)+'">'+Math.round(l.assinaram/l.total*100)+'%</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById("mount").innerHTML = html;
+  document.querySelectorAll("[data-yrtoggle]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var el = document.querySelector('.yr[data-yr="'+b.getAttribute("data-yrtoggle")+'"]');
+      el.classList.toggle("open");
+    });
+  });
+}
+
+/* ---------- OPÇÃO B: duas colunas por tipo ---------- */
+function renderB(){
+  function colunaHtml(tipo){
+    var doTipo = LOTES.filter(function(l){ return l.tipo === tipo; });
+    var anos = {};
+    doTipo.forEach(function(l){
+      var ano = l.competencia.split("-")[0];
+      (anos[ano] = anos[ano] || []).push(l);
+    });
+    var anosOrd = Object.keys(anos).sort().reverse();
+    var anoCorrente = "2026";
+    var h = '<div class="colw" data-coltipo="'+tipo+'">';
+    h += '<div class="colw__h"><span class="colw__ic">'+svg(icoTipo(tipo),18)+'</span>';
+    h += '<span class="colw__t">'+TIPO_LABEL[tipo]+'</span>';
+    h += '<span class="colw__c">'+doTipo.length+' lote'+(doTipo.length>1?"s":"")+'</span></div>';
+    anosOrd.forEach(function(ano){
+      var lst = anos[ano];
+      var aberto = (ano === anoCorrente);
+      h += '<div class="yr '+(aberto?"open":"")+'" data-yrb="'+tipo+'-'+ano+'" style="max-width:none">';
+      h += '<button class="yr__h" type="button" data-yrbtoggle="'+tipo+'-'+ano+'">';
+      h += '<span class="yr__chev">'+svg("chevrondown")+'</span>';
+      h += '<span class="yr__n">'+ano+'</span>';
+      h += '<span class="yr__c">'+lst.length+' lote'+(lst.length>1?"s":"")+'</span>';
+      h += '</button><div class="yr__body">';
+      lst.forEach(function(l){
+        h += '<div class="loterow" title="Abrir o lote">';
+        h += '<span class="rcb-lote__ic" style="width:34px;height:34px">'+svg(icoTipo(l.tipo),17)+'</span>';
+        h += '<span class="loterow__bd"><div class="loterow__t">'+compLabel(l.competencia)+'</div>';
+        h += '<div class="loterow__s">'+l.total+' gerados · '+l.assinaram+' assinaram</div></span>';
+        h += '<span class="adchip '+adChipClass(l)+'">'+Math.round(l.assinaram/l.total*100)+'%</span>';
+        h += '</div>';
+      });
+      h += '</div></div>';
+    });
+    h += '</div>';
+    return h;
+  }
+  document.getElementById("mount").innerHTML = '<div class="cols">'+colunaHtml("cartao-ponto")+colunaHtml("recibo")+'</div>';
+  document.querySelectorAll("[data-yrbtoggle]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var el = document.querySelector('.yr[data-yrb="'+b.getAttribute("data-yrbtoggle")+'"]');
+      el.classList.toggle("open");
+    });
+  });
+}
+
+/* ---------- OPÇÃO C: filtro sobre a lista atual (flat, como hoje) ---------- */
+var filtroC = { tipo: "todos", ano: "todos", busca: "" };
+function renderC(){
+  var anosDisp = {};
+  LOTES.forEach(function(l){ anosDisp[l.competencia.split("-")[0]] = true; });
+  var anosOrd = Object.keys(anosDisp).sort().reverse();
+  var h = '<div class="filters">';
+  h += '<div class="fchips">';
+  [["todos","Todos"],["cartao-ponto","Cartão ponto"],["recibo","Recibo de pagamento"]].forEach(function(t){
+    h += '<button type="button" class="fchip '+(filtroC.tipo===t[0]?"on":"")+'" data-ftipo="'+t[0]+'">'+t[1]+'</button>';
+  });
+  h += '</div>';
+  h += '<select class="fsel" id="fano"><option value="todos">Todos os anos</option>';
+  anosOrd.forEach(function(a){ h += '<option value="'+a+'"'+(filtroC.ano===a?" selected":"")+'>'+a+'</option>'; });
+  h += '</select>';
+  h += '<div class="fsearch">'+svg("search")+'<input id="fbusca" type="text" placeholder="Buscar por mês (ex: Junho)" value="'+filtroC.busca.replace(/"/g,"&quot;")+'"></div>';
+  h += '</div>';
+  h += '<div class="fcount" id="fcount"></div>';
+  h += '<div class="rcb-lotes" id="flista"></div>';
+  document.getElementById("mount").innerHTML = h;
+
+  document.querySelectorAll("[data-ftipo]").forEach(function(b){
+    b.addEventListener("click", function(){ filtroC.tipo = b.getAttribute("data-ftipo"); renderC(); });
+  });
+  document.getElementById("fano").addEventListener("change", function(e){ filtroC.ano = e.target.value; aplicaC(); });
+  var inp = document.getElementById("fbusca");
+  inp.addEventListener("input", function(e){ filtroC.busca = e.target.value; aplicaC(); });
+  aplicaC();
+}
+function aplicaC(){
+  var termo = filtroC.busca.trim().toLowerCase();
+  var vis = LOTES.filter(function(l){
+    if (filtroC.tipo !== "todos" && l.tipo !== filtroC.tipo) return false;
+    if (filtroC.ano !== "todos" && l.competencia.split("-")[0] !== filtroC.ano) return false;
+    if (termo && mesNome(l.competencia).toLowerCase().indexOf(termo) === -1 && compLabel(l.competencia).toLowerCase().indexOf(termo) === -1) return false;
+    return true;
+  });
+  var lista = document.getElementById("flista");
+  if (!vis.length){
+    lista.innerHTML = '<div class="nonemsg">Nenhum lote com esses filtros. Ajuste o tipo, o ano ou a busca.</div>';
+  } else {
+    lista.innerHTML = vis.map(function(l){
+      return '<div class="rcb-lote" title="Abrir o lote">'
+        + '<span class="rcb-lote__ic">'+svg(icoTipo(l.tipo),20)+'</span>'
+        + '<span class="rcb-lote__bd"><b>'+TIPO_LABEL[l.tipo]+' · '+compLabel(l.competencia)+'</b>'
+        + '<span>'+l.total+' funcionários · '+l.assinaram+' assinaram</span></span>'
+        + '<span class="rcb-lote__pill">'+l.total+' gerados</span>'
+        + '</div>';
+    }).join("");
+  }
+  var c = document.getElementById("fcount");
+  if (c) c.textContent = vis.length + " de " + LOTES.length + " lotes";
+}
+
+/* ---------- Troca de proposta ---------- */
+function trocar(opt){
+  document.querySelectorAll(".pick").forEach(function(p){ p.classList.toggle("on", p.getAttribute("data-opt") === opt); });
+  if (opt === "a") renderA();
+  else if (opt === "b") renderB();
+  else renderC();
+}
+document.querySelectorAll(".pick").forEach(function(p){
+  p.addEventListener("click", function(){ trocar(p.getAttribute("data-opt")); });
+});
+trocar("a");
+</script>
+</body></html>

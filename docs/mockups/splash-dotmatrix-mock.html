@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · animação de abertura (dot matrix)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --verde:#008835;
+    --verde-claro:#1AA34F;
+    --verde-escuro:#0B7A36;
+    --amarelo:#FFCB00;
+    --azul:#0076BE;
+    --azul-claro:#4AA8E6;
+    --font-brand:"Michroma", system-ui, sans-serif;
+    --font-ui:"Poppins", system-ui, sans-serif;
+    --tinta:#cfe9d8;
+    --tinta-fraca:#7fa591;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font-ui);
+    background:#04100a;
+    color:var(--tinta);
+    -webkit-font-smoothing:antialiased;
+    padding:28px 18px 64px;
+  }
+  header.topo{
+    max-width:1180px;margin:0 auto 22px;text-align:center;
+  }
+  header.topo h1{
+    font-family:var(--font-brand);
+    font-size:22px;font-weight:400;letter-spacing:.02em;
+    color:#fff;margin:0 0 8px;
+  }
+  header.topo p{
+    margin:0 auto;max-width:640px;font-size:13.5px;line-height:1.55;
+    color:var(--tinta-fraca);
+  }
+
+  /* seletor global de hora do dia */
+  .periodo{
+    display:flex;gap:8px;justify-content:center;margin:18px auto 4px;flex-wrap:wrap;
+  }
+  .periodo button{
+    font-family:var(--font-ui);font-size:12.5px;font-weight:500;
+    color:var(--tinta-fraca);
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:999px;padding:7px 16px;cursor:pointer;
+    transition:color .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .periodo button:hover{color:#fff;border-color:rgba(255,255,255,.2);}
+  .periodo button[aria-pressed="true"]{
+    color:#04100a;background:var(--amarelo);border-color:var(--amarelo);font-weight:600;
+  }
+  .periodo-legenda{text-align:center;font-size:11.5px;color:var(--tinta-fraca);margin:2px 0 26px;}
+
+  /* grade dos 3 aparelhos */
+  .palco{
+    display:flex;gap:26px;justify-content:center;align-items:flex-start;flex-wrap:wrap;
+    max-width:1300px;margin:0 auto;
+  }
+  .coluna{width:390px;max-width:100%;}
+  .coluna h2{
+    font-family:var(--font-ui);font-size:15px;font-weight:600;color:#fff;
+    margin:0 0 4px;text-align:center;
+  }
+  .coluna .conceito{
+    font-size:12.5px;line-height:1.5;color:var(--tinta-fraca);
+    text-align:center;margin:0 auto 14px;min-height:36px;max-width:330px;
+  }
+
+  /* aparelho de celular */
+  .celular{
+    width:390px;max-width:100%;height:720px;margin:0 auto;
+    border-radius:44px;
+    background:#000;
+    padding:12px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.05) inset;
+    position:relative;
+  }
+  .tela{
+    width:100%;height:100%;border-radius:34px;overflow:hidden;position:relative;
+    /* fundo IGUAL ao splash real */
+    background:radial-gradient(120% 90% at 50% 40%, #0A1A12 0%, #06120C 72%);
+  }
+  .entalhe{
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    width:120px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:3;
+  }
+  canvas{display:block;width:100%;height:100%;}
+
+  .rodape-cel{
+    position:absolute;left:0;right:0;bottom:20px;text-align:center;z-index:2;
+    font-family:var(--font-ui);font-size:11px;color:rgba(207,233,216,.35);
+    letter-spacing:.14em;text-transform:uppercase;pointer-events:none;
+  }
+
+  .controles{
+    display:flex;justify-content:center;margin-top:14px;
+  }
+  .btn-repetir{
+    font-family:var(--font-ui);font-size:12.5px;font-weight:500;
+    color:var(--tinta);
+    background:rgba(26,163,79,.14);
+    border:1px solid rgba(26,163,79,.35);
+    border-radius:999px;padding:8px 18px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;
+    transition:background .18s ease, border-color .18s ease, color .18s ease;
+  }
+  .btn-repetir:hover{background:rgba(26,163,79,.26);border-color:var(--verde-claro);color:#fff;}
+  .btn-repetir svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+  footer.nota{
+    max-width:820px;margin:56px auto 0;padding:22px 24px;
+    border:1px solid rgba(255,255,255,.07);border-radius:16px;
+    background:rgba(255,255,255,.02);
+    font-size:12.5px;line-height:1.65;color:var(--tinta-fraca);
+  }
+  footer.nota strong{color:var(--tinta);font-weight:600;}
+  footer.nota p{margin:0 0 10px;}
+  footer.nota p:last-child{margin-bottom:0;}
+
+  @media (max-width:520px){
+    .celular{height:640px;}
+  }
+</style>
+</head>
+<body>
+
+  <header class="topo">
+    <h1>FioPulse</h1>
+    <p>Três direções para a animação de abertura, todas em grade de pontos com movimento quantizado (passos discretos, tique de letreiro de estação). Cada aparelho roda de verdade e reinicia em laço só para demonstração.</p>
+    <div class="periodo" role="group" aria-label="Hora do dia">
+      <button type="button" data-periodo="manha" aria-pressed="false">Manhã</button>
+      <button type="button" data-periodo="tarde" aria-pressed="true">Tarde</button>
+      <button type="button" data-periodo="noite" aria-pressed="false">Noite</button>
+    </div>
+    <div class="periodo-legenda">A abertura sabe a hora do dia: o tom esfria de manhã e esquenta à noite, e a moldura dá a saudação certa.</div>
+  </header>
+
+  <div class="palco">
+
+    <section class="coluna">
+      <h2>Pulso de LED</h2>
+      <p class="conceito">A linha do pulso varre o painel acendendo pontos, bate um pico no meio, e os pontos se rearranjam até formar o wordmark.</p>
+      <div class="celular">
+        <div class="entalhe"></div>
+        <div class="tela">
+          <canvas id="cv-pulso" width="366" height="696"></canvas>
+          <div class="rodape-cel">Abrindo</div>
+        </div>
+      </div>
+      <div class="controles">
+        <button type="button" class="btn-repetir" data-alvo="pulso">
+          <svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Reproduzir de novo
+        </button>
+      </div>
+    </section>
+
+    <section class="coluna">
+      <h2>Fio no tear</h2>
+      <p class="conceito">Uma lançadeira pontilhada cruza a tela indo e voltando, descendo em zigue-zague, e o rastro compõe o wordmark.</p>
+      <div class="celular">
+        <div class="entalhe"></div>
+        <div class="tela">
+          <canvas id="cv-tear" width="366" height="696"></canvas>
+          <div class="rodape-cel">Abrindo</div>
+        </div>
+      </div>
+      <div class="controles">
+        <button type="button" class="btn-repetir" data-alvo="tear">
+          <svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Reproduzir de novo
+        </button>
+      </div>
+    </section>
+
+    <section class="coluna">
+      <h2>Mascote novelo</h2>
+      <p class="conceito">Um carretel de linha em pixel art rola pela base desenrolando um fio de pontos, que ao fim do percurso vira o wordmark.</p>
+      <div class="celular">
+        <div class="entalhe"></div>
+        <div class="tela">
+          <canvas id="cv-novelo" width="366" height="696"></canvas>
+          <div class="rodape-cel">Abrindo</div>
+        </div>
+      </div>
+      <div class="controles">
+        <button type="button" class="btn-repetir" data-alvo="novelo">
+          <svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Reproduzir de novo
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="nota">
+    <p><strong>Decisão de frequência já tomada.</strong> A animação toca só na primeira abertura do app no dia. Nas aberturas seguintes do mesmo dia o FioPulse abre direto, sem splash animado. Aqui no mock ela roda em laço apenas para você conseguir avaliar o efeito.</p>
+    <p><strong>O que é real neste protótipo.</strong> Nas três direções, os únicos elementos fiéis ao produto são a paleta da marca, o wordmark e a mecânica de movimento quantizado (passos discretos, sem easing contínuo). Painel monocromático verde com um único estalo amarelo no instante em que o nome trava. O restante é ilustração de conceito.</p>
+    <p><strong>Escolha da direção.</strong> A decisão de qual das três seguir é do William.</p>
+  </footer>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Paletas por hora do dia ----------
+  // Painel de LED monocromático: uma cor base em 3 a 4 níveis de brilho.
+  // "aceso" e "quente" ficam dentro da mesma família de brilho da base para
+  // ler como um único painel físico. O amarelo entra SÓ no estalo do trave.
+  var TEMAS = {
+    manha: { base:[74,168,230],  aceso:[120,196,240], quente:[150,210,245], flash:[255,203,0], saudacao:"Bom dia",   nome:"manha" },
+    tarde: { base:[26,163,79],   aceso:[70,196,120],  quente:[120,220,160], flash:[255,203,0], saudacao:"Boa tarde", nome:"tarde" },
+    noite: { base:[16,140,64],   aceso:[60,180,108],  quente:[110,210,150], flash:[255,203,0], saudacao:"Boa noite", nome:"noite" }
+  };
+  var temaAtivo = "tarde";
+
+  // ---------- Micro tipografia 5x7 em grade de pontos ----------
+  // Uma ÚNICA fonte pixel para o wordmark E para a moldura/saudação, para o
+  // painel ler com a MESMA densidade de pixel em toda parte.
+  // Cada glifo: 7 linhas x 5 colunas (1 = ponto aceso).
+  var GLIFOS = {
+    "F":["11111","10000","10000","11110","10000","10000","10000"],
+    "i":["00100","00000","00100","00100","00100","00100","00100"],
+    "o":["00000","00000","01110","10001","10001","10001","01110"],
+    "P":["11110","10001","10001","11110","10000","10000","10000"],
+    "u":["00000","00000","10001","10001","10001","10001","01111"],
+    "l":["00100","00100","00100","00100","00100","00100","00100"],
+    "s":["00000","00000","01111","10000","01110","00001","11110"],
+    "e":["00000","00000","01110","10001","11111","10000","01110"],
+    // glifos extra para a saudação da moldura (mesma matriz 5x7)
+    "B":["11110","10001","10001","11110","10001","10001","11110"],
+    "m":["00000","00000","11010","10101","10101","10101","10101"],
+    "d":["00001","00001","01101","10011","10001","10011","01101"],
+    "a":["00000","00000","01110","00001","01111","10001","01111"],
+    "t":["00100","00100","11111","00100","00100","00100","00011"],
+    "r":["00000","00000","10110","11001","10000","10000","10000"],
+    "n":["00000","00000","10110","11001","10001","10001","10001"]
+  };
+
+  // Gera a lista de pontos-alvo (em coordenadas de célula) para uma palavra,
+  // num sistema de colunas contínuo. Retorna { pts:[{col,row}], largura, altura }.
+  function textoParaPontos(palavra){
+    var pts=[]; var colBase=0;
+    for(var k=0;k<palavra.length;k++){
+      var ch=palavra[k];
+      if(ch===" "){ colBase+=4; continue; }        // espaço = 3 col + o passo normal
+      var g=GLIFOS[ch];
+      if(!g){ colBase+=6; continue; }
+      for(var r=0;r<7;r++) for(var c=0;c<5;c++){
+        if(g[r][c]==="1") pts.push({col:colBase+c, row:r});
+      }
+      colBase+=6; // 5 de largura + 1 de espaço
+    }
+    return { pts:pts, largura:colBase-1, altura:7 };
+  }
+  function alvosWordmark(){ return textoParaPontos("FioPulse"); }
+
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function corRGBA(rgb, alpha){ return "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+","+alpha+")"; }
+  function escurece(rgb,f){ return [Math.round(rgb[0]*f),Math.round(rgb[1]*f),Math.round(rgb[2]*f)]; }
+  function clareia(rgb,f){ return [Math.min(255,Math.round(rgb[0]+(255-rgb[0])*f)),Math.min(255,Math.round(rgb[1]+(255-rgb[1])*f)),Math.min(255,Math.round(rgb[2]+(255-rgb[2])*f))]; }
+
+  // ---------- Ponto de LED com níveis de brilho e halo ----------
+  // nivel: 0 apagado, 1 fraco, 2 medio, 3 aceso (com halo). "boost" (0..1)
+  // ergue o brilho no momento da "respiracao" antes do trave.
+  // Desenha CIRCULO (não quadrado). O halo é um circulo maior semitransparente
+  // por baixo, sem filter:blur (barato no canvas).
+  function ledPonto(ctx, x, y, raio, rgb, nivel, boost){
+    boost = boost||0;
+    if(nivel<=0){
+      // ponto apagado: pequeno ponto escuro para ler a grade do painel
+      ctx.beginPath();
+      ctx.arc(x,y,raio*0.62,0,6.2832);
+      ctx.fillStyle="rgba(210,235,220,0.030)";
+      ctx.fill();
+      return;
+    }
+    var alpha, escala, cor;
+    if(nivel===1){ alpha=0.34; escala=0.78; cor=escurece(rgb,0.72); }
+    else if(nivel===2){ alpha=0.66; escala=0.92; cor=rgb; }
+    else { alpha=0.98; escala=1.0; cor=clareia(rgb,0.10); }
+    alpha=Math.min(1, alpha + boost*0.35);
+    // halo (nivel 2 e 3, ou quando ha boost)
+    if(nivel>=2 || boost>0){
+      var haloA=(nivel>=3?0.22:0.12) + boost*0.18;
+      ctx.beginPath();
+      ctx.arc(x,y,raio*(1.85+boost*0.6),0,6.2832);
+      ctx.fillStyle=corRGBA(cor, haloA*0.5);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x,y,raio*1.35,0,6.2832);
+      ctx.fillStyle=corRGBA(cor, haloA);
+      ctx.fill();
+    }
+    // corpo do LED
+    ctx.beginPath();
+    ctx.arc(x,y,raio*escala,0,6.2832);
+    ctx.fillStyle=corRGBA(cor, alpha);
+    ctx.fill();
+    // brilho especular minusculo no aceso
+    if(nivel>=3){
+      ctx.beginPath();
+      ctx.arc(x-raio*0.22,y-raio*0.22,raio*0.30,0,6.2832);
+      ctx.fillStyle="rgba(255,255,255,0.55)";
+      ctx.fill();
+    }
+  }
+
+  // ---------- Grão / estática sutil ----------
+  // Um padrao de pontinhos aleatorios, regenerado a cada N ticks, desenhado
+  // por cima do painel com opacidade baixa. Dá a imperfeicao de tela antiga.
+  function novoGrao(W,H,qtd){
+    var pts=[];
+    for(var i=0;i<qtd;i++){
+      pts.push({ x:Math.random()*W, y:Math.random()*H, a:0.03+Math.random()*0.05, r:0.5+Math.random()*1.1 });
+    }
+    return pts;
+  }
+  function desenhaGrao(ctx,grao){
+    if(!grao) return;
+    for(var i=0;i<grao.length;i++){
+      var g=grao[i];
+      ctx.beginPath();
+      ctx.arc(g.x,g.y,g.r,0,6.2832);
+      ctx.fillStyle="rgba(230,255,240,"+g.a+")";
+      ctx.fill();
+    }
+  }
+
+  // ---------- Moldura tipo bilhete/marquise (dashed) ----------
+  // Caixinha de borda pontilhada com cantos arredondados, ACIMA da cena,
+  // com a saudacao desenhada NA MESMA fonte pixel do wordmark.
+  function desenhaMoldura(ctx, W, passoX, passoY, tema, boost){
+    var texto = tema.saudacao;
+    var wm = textoParaPontos(texto);
+    // A saudacao pode ter 9+ colunas de largura; escala a celula para caber
+    // numa faixa central do painel (independente do passo da grade).
+    var alvoLarg = W*0.78;
+    var cellW = Math.min(passoX*0.92, alvoLarg/wm.largura);
+    var cellH = cellW;                                  // celula quadrada = pixel uniforme
+    var pr = cellW*0.42;                                // raio do LED da saudacao
+    var largTxt = wm.largura*cellW;
+    var altTxt = wm.altura*cellH;
+    var padX = 14, padY = 11;
+    var boxW = largTxt + padX*2;
+    var boxH = altTxt + padY*2;
+    var bx = (W-boxW)/2;
+    var by = passoY*3.2;                                 // posicionada no alto do painel
+    // borda pontilhada (dashed) com cantos arredondados
+    ctx.save();
+    ctx.strokeStyle=corRGBA(clareia(tema.base,0.15), 0.55 + boost*0.3);
+    ctx.lineWidth=1.4;
+    ctx.setLineDash([3,4]);
+    var rr=12;
+    ctx.beginPath();
+    ctx.moveTo(bx+rr,by);
+    ctx.arcTo(bx+boxW,by,bx+boxW,by+boxH,rr);
+    ctx.arcTo(bx+boxW,by+boxH,bx,by+boxH,rr);
+    ctx.arcTo(bx,by+boxH,bx,by,rr);
+    ctx.arcTo(bx,by,bx+boxW,by,rr);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    // texto da saudacao em LEDs (mesma familia de brilho do painel)
+    var x0 = bx+padX;
+    var y0 = by+padY;
+    for(var i=0;i<wm.pts.length;i++){
+      var p=wm.pts[i];
+      var x=x0 + (p.col+0.5)*cellW;
+      var y=y0 + (p.row+0.5)*cellH;
+      ledPonto(ctx, x, y, pr, tema.aceso, 2, boost*0.5);
+    }
+  }
+
+  // ---------- Ajuda: desenha a grade apagada inteira ----------
+  function desenhaGradeApagada(ctx, COLS, ROWS, passoX, passoY, raio, boost){
+    for(var c=0;c<COLS;c++){
+      for(var r=0;r<ROWS;r++){
+        var x=(c+0.5)*passoX, y=(r+0.5)*passoY;
+        // no boost (respiracao antes do trave) a grade toda sobe um degrau
+        if(boost>0.02){
+          ledPonto(ctx,x,y,raio, escurece([200,235,215],0.5), 1, boost*0.8);
+        } else {
+          ledPonto(ctx,x,y,raio, [0,0,0], 0, 0);
+        }
+      }
+    }
+  }
+
+  // ---------- Motor genérico de tick quantizado ----------
+  // Cada animação implementa avancar(estado) e desenhar(ctx, estado).
+  // O motor chama avancar a cada PASSO ms (passo discreto), nunca interpola.
+  function Motor(canvas, def){
+    var ctx = canvas.getContext("2d");
+    var W = canvas.width, H = canvas.height;
+    var estado = null;
+    var acumulador = 0;
+    var ultimo = 0;
+    var rodando = false;
+    var raf = 0;
+
+    function reiniciar(){
+      estado = def.iniciar(W,H);
+      acumulador = 0;
+      ultimo = performance.now();
+      if(!rodando){ rodando = true; raf = requestAnimationFrame(loop); }
+      redesenha();
+    }
+
+    function redesenha(){
+      ctx.clearRect(0,0,W,H);
+      def.desenhar(ctx, estado, W, H, TEMAS[temaAtivo]);
+    }
+
+    function loop(agora){
+      if(!rodando) return;
+      var dt = agora - ultimo;
+      ultimo = agora;
+      acumulador += dt;
+      var passo = def.passoMs(estado);
+      var avancou = false;
+      var guarda = 0;
+      while(acumulador >= passo){
+        acumulador -= passo;
+        def.avancar(estado);
+        avancou = true;
+        passo = def.passoMs(estado);
+        if(++guarda > 60) { acumulador = 0; break; }
+      }
+      if(avancou){ redesenha(); }
+      raf = requestAnimationFrame(loop);
+    }
+
+    // ---- Hook de depuracao sincrono (QA): reseta e avanca N ticks sem RAF. ----
+    function debugAvancar(n){
+      estado = def.iniciar(W,H);
+      acumulador = 0;
+      for(var i=0;i<n;i++){ def.avancar(estado); }
+      redesenha();
+    }
+
+    function pausar(){ rodando=false; if(raf) cancelAnimationFrame(raf); }
+
+    return { reiniciar:reiniciar, debugAvancar:debugAvancar, estadoAtual:function(){ return estado; }, pausar:pausar };
+  }
+
+  // Helpers de fase compartilhados: gerencia respiracao (antecipacao) e flash.
+  // Cada def guarda em s: preTrave (ticks de respiracao), flashTicks (estalo).
+  function nivelBoost(s){
+    // durante a respiracao pre-trave, boost sobe e desce (0..1..0)
+    if(s.preTrave>0){
+      var t=(s.preTraveTotal - s.preTrave)/s.preTraveTotal; // 0..1
+      return Math.sin(t*Math.PI); // sobe e desce
+    }
+    return 0;
+  }
+
+  // ============================================================
+  // DIREÇÃO 1: "Pulso de LED"
+  // ============================================================
+  var pulsoDef = (function(){
+    var COLS = 54, ROWS = 96;
+    function iniciar(W,H){
+      var passoX = W/COLS, passoY = H/ROWS;
+      var meio = Math.floor(ROWS*0.52);
+      var linha = [];
+      for(var c=0;c<COLS;c++){
+        var t = c/(COLS-1);
+        var y;
+        if(t < 0.30)      y = meio;
+        else if(t < 0.42) y = Math.round(lerp(meio, meio-26, (t-0.30)/0.12));
+        else if(t < 0.54) y = Math.round(lerp(meio-26, meio+20, (t-0.42)/0.12));
+        else if(t < 0.64) y = Math.round(lerp(meio+20, meio-9, (t-0.54)/0.10));
+        else              y = meio-9;
+        linha.push(Math.max(2, Math.min(ROWS-3, y)));
+      }
+      var wm = alvosWordmark();
+      var offCol = Math.floor((COLS - wm.largura)/2);
+      var offRow = Math.floor(ROWS*0.46);
+      var alvos = wm.pts.map(function(p){ return { col:p.col+offCol, row:p.row+offRow }; });
+
+      return {
+        COLS:COLS, ROWS:ROWS, passoX:passoX, passoY:passoY,
+        linha:linha, alvos:alvos,
+        fase:"varre",
+        varreCol:0,
+        varreHist:[],       // posicoes anteriores da cabeca de varredura (ghosting)
+        acesos:[],
+        montaIdx:0,
+        seguraTicks:0,
+        preTrave:0, preTraveTotal:4,   // respiracao antes do trave
+        flashTicks:0,                  // estalo amarelo no trave
+        grao:novoGrao(W,H,140),
+        ticks:0
+      };
+    }
+    function passoMs(s){
+      if(s.fase==="varre") return 42;
+      if(s.fase==="respira") return 40;
+      if(s.fase==="monta") return 26;
+      if(s.fase==="segura") return 90;
+      return 80;
+    }
+    function avancar(s){
+      s.ticks++;
+      if(s.ticks%3===0){ s.grao=novoGrao(s.COLS*s.passoX,s.ROWS*s.passoY,140); }
+      if(s.flashTicks>0) s.flashTicks--;
+
+      if(s.fase==="varre"){
+        // varre 2 colunas por tick (painel fino tem muitas colunas)
+        for(var vp=0; vp<2 && s.varreCol<s.COLS; vp++){
+          var r = s.linha[s.varreCol];
+          // ghosting: guarda ate 3 posicoes anteriores da cabeca
+          s.varreHist.unshift({col:s.varreCol,row:r});
+          if(s.varreHist.length>3) s.varreHist.pop();
+          s.acesos.push({col:s.varreCol, row:r, tipo:"pulso"});
+          s.acesos.push({col:s.varreCol, row:r-1, tipo:"pulso2"});
+          s.varreCol++;
+        }
+        if(s.varreCol>=s.COLS){ s.fase="respira"; s.preTrave=s.preTraveTotal; }
+        return;
+      }
+      if(s.fase==="respira"){
+        // pausa breve com respiracao de brilho antes de montar o nome
+        s.preTrave--;
+        if(s.preTrave<=0){ s.fase="monta"; }
+        return;
+      }
+      if(s.fase==="monta"){
+        // apaga o rastro da varredura (nunca os pontos ja montados do wordmark)
+        for(var k=0;k<12 && s.acesos.length>0 && s.acesos[0].tipo!=="wm";k++){
+          s.acesos.shift();
+        }
+        for(var j=0;j<8 && s.montaIdx<s.alvos.length;j++){
+          var a = s.alvos[s.montaIdx++];
+          s.acesos.push({col:a.col, row:a.row, tipo:"wm"});
+        }
+        if(s.montaIdx>=s.alvos.length){
+          s.acesos = s.acesos.filter(function(p){return p.tipo==="wm";});
+          s.fase="segura"; s.seguraTicks=0;
+          s.flashTicks=3;   // ESTALO amarelo no instante do trave
+        }
+        return;
+      }
+      if(s.fase==="segura"){
+        s.seguraTicks++;
+        if(s.seguraTicks>20){ s.fase="reinicia"; }
+        return;
+      }
+      if(s.fase==="reinicia"){
+        var novo = iniciar(s.COLS*s.passoX, s.ROWS*s.passoY);
+        for(var key in novo){ s[key]=novo[key]; }
+      }
+    }
+    function desenhar(ctx,s,W,H,tema){
+      var raio = Math.min(s.passoX,s.passoY)*0.60*0.66;
+      var boost = (s.fase==="respira") ? nivelBoost(s) : 0;
+      desenhaGradeApagada(ctx, s.COLS, s.ROWS, s.passoX, s.passoY, raio, boost);
+      desenhaMoldura(ctx, W, s.passoX, s.passoY, tema, boost);
+
+      // ghosting da cabeca de varredura (posicoes antigas, opacidade decrescente)
+      for(var h=s.varreHist.length-1;h>=1;h--){
+        var g=s.varreHist[h];
+        var gx=(g.col+0.5)*s.passoX, gy=(g.row+0.5)*s.passoY;
+        var fade=1 - h/(s.varreHist.length);
+        ledPonto(ctx,gx,gy,raio, tema.aceso, 1, 0);
+        ctx.globalAlpha=fade*0.4; ledPonto(ctx,gx,gy,raio, tema.aceso, 2, 0); ctx.globalAlpha=1;
+      }
+
+      // flash amarelo no trave: pinta o wordmark inteiro em amarelo por 3 ticks
+      var flashOn = s.flashTicks>0;
+      for(var i=0;i<s.acesos.length;i++){
+        var p=s.acesos[i];
+        var x=(p.col+0.5)*s.passoX, y=(p.row+0.5)*s.passoY;
+        if(p.tipo==="wm"){
+          var cor = flashOn ? tema.flash : tema.quente;
+          ledPonto(ctx,x,y,raio, cor, 3, flashOn?0.6:0);
+        } else if(p.tipo==="pulso"){
+          ledPonto(ctx,x,y,raio, tema.aceso, 3, 0);
+        } else {
+          ledPonto(ctx,x,y,raio, tema.base, 2, 0);
+        }
+      }
+      desenhaGrao(ctx,s.grao);
+    }
+    return { iniciar:iniciar, passoMs:passoMs, avancar:avancar, desenhar:desenhar };
+  })();
+
+  // ============================================================
+  // DIREÇÃO 2: "Fio no tear"
+  // ============================================================
+  var tearDef = (function(){
+    var COLS = 54, ROWS = 96;
+    function iniciar(W,H){
+      var passoX=W/COLS, passoY=H/ROWS;
+      var wm = alvosWordmark();
+      var offCol = Math.floor((COLS - wm.largura)/2);
+      var offRow = Math.floor(ROWS*0.46);
+      var setAlvo = {};
+      wm.pts.forEach(function(p){ setAlvo[(p.col+offCol)+","+(p.row+offRow)]=true; });
+      var fileiras=[];
+      for(var r=0;r<7;r++) fileiras.push(offRow+r);
+      return {
+        COLS:COLS, ROWS:ROWS, passoX:passoX, passoY:passoY,
+        setAlvo:setAlvo, offCol:offCol,
+        fileiras:fileiras,
+        fileiraIdx:0,
+        col:offCol-2,
+        sentido:1,
+        colIni:offCol-2, colFim:offCol+wm.largura+2,
+        acesos:{},
+        casadas:[],          // ordem em que as celulas casaram (p/ flash saber "acabou")
+        rastro:[],           // trilha da lançadeira (ghosting explicito)
+        fase:"tece",
+        preTrave:0, preTraveTotal:4,
+        flashTicks:0,
+        seguraTicks:0, ticks:0,
+        grao:novoGrao(W,H,140),
+        wmLargura:wm.largura
+      };
+    }
+    function passoMs(s){
+      if(s.fase==="tece") return 30;
+      if(s.fase==="respira") return 40;
+      if(s.fase==="segura") return 90;
+      return 80;
+    }
+    function avancar(s){
+      s.ticks++;
+      if(s.ticks%3===0){ s.grao=novoGrao(s.COLS*s.passoX,s.ROWS*s.passoY,140); }
+      if(s.flashTicks>0) s.flashTicks--;
+
+      if(s.fase==="tece"){
+        // a lançadeira avanca varias colunas por tick (painel fino tem muitas
+        // colunas); marca CADA celula intermediaria que casa com o wordmark e
+        // deixa rastro em todas, para o fio ler continuo mesmo com passo largo.
+        var r = s.fileiras[s.fileiraIdx];
+        var PASSO_COL = 6;
+        for(var pc0=0; pc0<PASSO_COL; pc0++){
+          var chave = s.col+","+r;
+          if(s.setAlvo[chave]){ s.acesos[chave]=true; s.casadas.push(chave); }
+          s.rastro.push({col:s.col,row:r,vida:6});
+          s.col += s.sentido;
+          if(s.sentido===1 && s.col>s.colFim){
+            s.sentido=-1; s.fileiraIdx++; s.col=s.colFim; break;
+          } else if(s.sentido===-1 && s.col<s.colIni){
+            s.sentido=1; s.fileiraIdx++; s.col=s.colIni; break;
+          }
+        }
+        for(var i=s.rastro.length-1;i>=0;i--){ if(--s.rastro[i].vida<=0) s.rastro.splice(i,1); }
+        if(s.fileiraIdx>=s.fileiras.length){ s.fase="respira"; s.preTrave=s.preTraveTotal; s.rastro=[]; }
+        return;
+      }
+      if(s.fase==="respira"){
+        s.preTrave--;
+        if(s.preTrave<=0){ s.fase="segura"; s.seguraTicks=0; s.flashTicks=3; }
+        return;
+      }
+      if(s.fase==="segura"){
+        s.seguraTicks++;
+        if(s.seguraTicks>11) s.fase="reinicia";
+        return;
+      }
+      if(s.fase==="reinicia"){
+        var novo=iniciar(s.COLS*s.passoX, s.ROWS*s.passoY);
+        for(var key in novo){ s[key]=novo[key]; }
+      }
+    }
+    function desenhar(ctx,s,W,H,tema){
+      var raio=Math.min(s.passoX,s.passoY)*0.60*0.66;
+      var boost = (s.fase==="respira") ? nivelBoost(s) : 0;
+      desenhaGradeApagada(ctx, s.COLS, s.ROWS, s.passoX, s.passoY, raio, boost);
+      desenhaMoldura(ctx, W, s.passoX, s.passoY, tema, boost);
+
+      var flashOn = s.flashTicks>0;
+      // pontos casados (o texto se formando)
+      for(var chave in s.acesos){
+        var pc=chave.split(","); var x=(+pc[0]+0.5)*s.passoX, y=(+pc[1]+0.5)*s.passoY;
+        var cor = flashOn ? tema.flash : tema.quente;
+        ledPonto(ctx,x,y,raio, cor, 3, flashOn?0.6:0);
+      }
+      // rastro da lançadeira (ghosting: opacidade decrescente pela vida)
+      for(var i=0;i<s.rastro.length;i++){
+        var t=s.rastro[i];
+        var nivel = t.vida>=5?2:1;
+        var rx=(t.col+0.5)*s.passoX, ry=(t.row+0.5)*s.passoY;
+        ctx.globalAlpha=(t.vida/6);
+        ledPonto(ctx,rx,ry,raio, tema.aceso, nivel, 0);
+        ctx.globalAlpha=1;
+      }
+      // cabeca da lançadeira
+      if(s.fase==="tece"){
+        var rr=s.fileiras[s.fileiraIdx]||s.fileiras[s.fileiras.length-1];
+        var hx=(s.col+0.5)*s.passoX, hy=(rr+0.5)*s.passoY;
+        ledPonto(ctx,hx,hy,raio, clareia(tema.aceso,0.4), 3, 0.4);
+      }
+      desenhaGrao(ctx,s.grao);
+    }
+    return { iniciar:iniciar, passoMs:passoMs, avancar:avancar, desenhar:desenhar };
+  })();
+
+  // ============================================================
+  // DIREÇÃO 3: "Mascote novelo"
+  // 8 a 12 frames com baloico vertical (respiracao) + 2 olhinhos.
+  // ============================================================
+  var noveloDef = (function(){
+    var COLS = 54, ROWS = 96;
+    // Novelo bem maior: silhueta circular lisa gerada por distancia (nao mais
+    // um desenho pixel a pixel apertado em 7x7) — a mesma ideia do carretel,
+    // so que com resolucao de verdade pra nao ficar um blob confuso. R = raio
+    // em celulas a partir do centro; RR = raio^2 com uma folga pra fechar o
+    // circulo sem cantos jagged demais.
+    var R = 6, RR = 41;
+    function dentroDoCorpo(dr,dc){ return dr*dr+dc*dc <= RR; }
+    // pontas de fio soltas acima do corpo: assimetricas (colunas e alturas
+    // diferentes), flutuam fora de fase do baloico do corpo (periodo 5, o
+    // corpo usa periodo 8) para nao ficarem sincronizadas — leem como fisica
+    // propria, nao decoracao presa ao personagem.
+    var PONTAS = [
+      {dc:-4, altura:3, fase:0},
+      {dc:-1, altura:2, fase:2},
+      {dc:3,  altura:3, fase:1}
+    ];
+    // sombreamento em 3 tons por posicao (luz vinda de cima-esquerda): 1=realce,
+    // 2=sombra, 0=tom medio. Aplicado por cima de qualquer celula do circulo —
+    // nao redesenha a silhueta, so da volume ao mesmo corpo.
+    function sombraCel(dr,dc){
+      var d = dr + dc;   // -12 (topo-esquerda) .. 12 (base-direita)
+      if(d <= -6) return 1;
+      if(d >= 6)  return 2;
+      return 0;
+    }
+    // cadencia NAO uniforme do rolar: pausa de antecipacao antes da queda,
+    // passo rapido na queda, e um leve "acomodar" antes de levantar de novo.
+    // Repete 2x por volta completa (8 frames = 2 pousos).
+    var TEMPOS_ROLA = [95,48,42,60,92,46,40,58];
+    var BOB_ROLA     = [0, 0,-1,-1, 0, 0,-1,-1];
+    // posicoes de olho (linha,col) e piscar por frame
+    function iniciar(W,H){
+      var passoX=W/COLS, passoY=H/ROWS;
+      var wm=alvosWordmark();
+      var offCol=Math.floor((COLS-wm.largura)/2);
+      var offRow=Math.floor(ROWS*0.44);
+      var porColuna={};
+      var colMin=Infinity, colMax=-Infinity;
+      wm.pts.forEach(function(p){
+        var col=p.col+offCol, row=p.row+offRow;
+        (porColuna[col]=porColuna[col]||[]).push(row);
+        if(col<colMin)colMin=col; if(col>colMax)colMax=col;
+      });
+      return {
+        COLS:COLS, ROWS:ROWS, passoX:passoX, passoY:passoY,
+        porColuna:porColuna, colMin:colMin, colMax:colMax,
+        baseRow:ROWS-R-3,      // linha do CENTRO do circulo (nao mais o topo)
+        cx:colMin-R,
+        fioLagCx:colMin-R,     // posicao do fio junto ao carretel, com atraso proprio
+        frame:0,               // 0..7 (8 frames de personagem)
+        bob:0,                 // deslocamento vertical do baloico (em subcelulas)
+        piscando:false,
+        acesos:[],
+        histCx:[],             // posicoes anteriores do carretel (ghosting)
+        colAtual:colMin,
+        fase:"rola",
+        preTrave:0, preTraveTotal:4,
+        flashTicks:0,
+        seguraTicks:0, ticks:0,
+        grao:novoGrao(W,H,140)
+      };
+    }
+    function passoMs(s){
+      if(s.fase==="rola") return TEMPOS_ROLA[s.frame];
+      if(s.fase==="respira") return 40;
+      if(s.fase==="segura") return 90;
+      return 80;
+    }
+    function avancar(s){
+      s.ticks++;
+      if(s.ticks%3===0){ s.grao=novoGrao(s.COLS*s.passoX,s.ROWS*s.passoY,140); }
+      if(s.flashTicks>0) s.flashTicks--;
+
+      if(s.fase==="rola"){
+        s.frame=(s.frame+1)%8;
+        // baloico vertical NAO uniforme: pousa, segura, levanta com uma pausa
+        s.bob = BOB_ROLA[s.frame];
+        // pisca de vez em quando
+        s.piscando = (s.frame===3);
+        // ghosting do carretel
+        s.histCx.unshift(s.cx);
+        if(s.histCx.length>3) s.histCx.pop();
+        s.cx++;
+        // o fio junto ao carretel segue com atraso proprio (arrasto), nunca
+        // gruda na posicao atual — e por isso que ele "pesa" ao curvar
+        s.fioLagCx += (s.cx - s.fioLagCx)*0.4;
+        if(s.porColuna[s.colAtual] && s.cx>=s.colAtual){
+          s.porColuna[s.colAtual].forEach(function(row){
+            s.acesos.push({col:s.colAtual,row:row});
+          });
+          do { s.colAtual++; } while(s.colAtual<=s.colMax && !s.porColuna[s.colAtual]);
+        }
+        if(s.cx>s.colMax+2){ s.fase="respira"; s.preTrave=s.preTraveTotal; s.fioLagCx=s.cx; }
+        return;
+      }
+      if(s.fase==="respira"){
+        s.preTrave--;
+        if(s.preTrave<=0){ s.fase="segura"; s.seguraTicks=0; s.flashTicks=3; }
+        return;
+      }
+      if(s.fase==="segura"){
+        s.seguraTicks++;
+        if(s.seguraTicks>11) s.fase="reinicia";
+        return;
+      }
+      if(s.fase==="reinicia"){
+        var novo=iniciar(s.COLS*s.passoX,s.ROWS*s.passoY);
+        for(var key in novo){ s[key]=novo[key]; }
+      }
+    }
+    function desenharCarretel(ctx,s,cx,tema,raio,alpha){
+      var bobPx = s.bob*s.passoY*0.5;
+      // inclinacao: so a metade de cima (cabeca) inclina na direcao do
+      // movimento enquanto rola; volta a ereto assim que para
+      var shearPx = (s.fase==="rola") ? s.passoX*0.32 : 0;
+      for(var dr=-R;dr<=R;dr++) for(var dc=-R;dc<=R;dc++){
+        if(!dentroDoCorpo(dr,dc)) continue;
+        var gx=(cx+dc), gy=(s.baseRow+dr);
+        if(gx<0||gx>=s.COLS) continue;
+        var lean = (dr<=-3) ? shearPx : 0;
+        var x=(gx+0.5)*s.passoX + lean, y=(gy+0.5)*s.passoY + bobPx;
+        var sh = sombraCel(dr,dc);
+        var cor = sh===1 ? clareia(tema.aceso,0.5) : (sh===2 ? escurece(tema.base,0.7) : tema.aceso);
+        var nivel = sh===2 ? 2 : 3;
+        var boost = sh===1 ? 0.22 : 0;
+        ctx.globalAlpha=alpha;
+        ledPonto(ctx,x,y,raio, cor, nivel, boost);
+        ctx.globalAlpha=1;
+      }
+      // marca unica que orbita a superficie (um "no" do fio) — sinaliza que a
+      // bola esta girando de verdade sem precisar de textura interna poluida
+      var angulo = (s.frame/8)*Math.PI*2;
+      var raioMarca = R-2;
+      var mgx = cx + Math.cos(angulo)*raioMarca;
+      var mgy = s.baseRow + Math.sin(angulo)*raioMarca;
+      var mx=(mgx+0.5)*s.passoX + ((Math.sin(angulo)*raioMarca<=-3)?shearPx:0), my=(mgy+0.5)*s.passoY + bobPx;
+      ctx.globalAlpha=alpha;
+      ledPonto(ctx,mx,my,raio*0.5, clareia(tema.aceso,0.35), 3, 0.15);
+      ctx.globalAlpha=1;
+      // pontas de fio soltas no topo: silhueta assimetrica, sempre visiveis
+      // (altura minima nunca some) mas flutuam mais alto de vez em quando,
+      // com periodo proprio (nao sincronizado ao baloico do corpo)
+      for(var pi=0;pi<PONTAS.length;pi++){
+        var pt=PONTAS[pi];
+        var flut = ((s.frame+pt.fase)%5<2) ? 1 : 0;
+        var altura = pt.altura + flut;
+        for(var h=1; h<=altura; h++){
+          var pgx=(cx+pt.dc), pgy=(s.baseRow-R-h);
+          if(pgx<0||pgx>=s.COLS) continue;
+          var px=(pgx+0.5)*s.passoX + shearPx, py=(pgy+0.5)*s.passoY + bobPx;
+          ctx.globalAlpha=alpha;
+          ledPonto(ctx,px,py,raio*0.62, clareia(tema.aceso,0.4), 3, 0.1);
+          ctx.globalAlpha=1;
+        }
+      }
+      // 2 olhos escuros, bem maiores que uma celula normal (olho grande =
+      // fofo): apagam o corpo aceso por baixo (contraste real, nao so um LED
+      // mais claro) e ganham um brilho minusculo automatico (o proprio
+      // ledPonto especula em nivel 3). Somem quando piscando, mostrando o
+      // corpo aceso por baixo = olho fechado.
+      if(!s.piscando){
+        var olhos=[[1,-2],[1,2]];
+        for(var o=0;o<olhos.length;o++){
+          var ox=(cx+olhos[o][1]+0.5)*s.passoX;
+          var oy=(s.baseRow+olhos[o][0]+0.5)*s.passoY + bobPx;
+          ctx.globalAlpha=alpha;
+          ledPonto(ctx,ox,oy,raio*1.15,[7,19,13],3,0);
+          ctx.globalAlpha=1;
+        }
+      }
+    }
+    function desenhar(ctx,s,W,H,tema){
+      var raio=Math.min(s.passoX,s.passoY)*0.60*0.66;
+      var boost = (s.fase==="respira") ? nivelBoost(s) : 0;
+      desenhaGradeApagada(ctx, s.COLS, s.ROWS, s.passoX, s.passoY, raio, boost);
+      desenhaMoldura(ctx, W, s.passoX, s.passoY, tema, boost);
+
+      // trilho pontilhado na base (ancorado perto do fundo do canvas, nao do
+      // tamanho do carretel)
+      for(var c2=0;c2<s.COLS;c2++){
+        if(c2%2===0){
+          ledPonto(ctx,(c2+0.5)*s.passoX,(s.ROWS-0.5)*s.passoY,raio*0.85,tema.base,1,0);
+        }
+      }
+      // sombra de contato: alarga quando o novelo pousa (bob=-1), estreita
+      // quando esta no ar (bob=0) — da peso ao baloico, muda de forma junto
+      if(s.fase==="rola"){
+        var largSombra = (s.bob===-1) ? R-2 : R-3;
+        for(var sd=-largSombra; sd<=largSombra; sd++){
+          var nivelSombra = (Math.abs(sd)<=largSombra*0.5) ? 2 : 1;
+          ledPonto(ctx,(s.cx+sd+0.5)*s.passoX,(s.baseRow+R+1.15)*s.passoY,raio*0.75,tema.base,nivelSombra,0);
+        }
+      }
+      // fio vertical ligando o topo do carretel a coluna em preenchimento:
+      // arrasta com atraso proprio perto do carretel (fioLagCx) e fica fiel a
+      // coluna certa perto de onde esta sendo tecido — curva como um fio pesado
+      if(s.fase==="rola"){
+        var topoCarretel = s.baseRow-R;
+        var topoFio=Math.floor(s.ROWS*0.44)+3;
+        for(var yy=topoCarretel; yy>topoFio; yy--){
+          if((yy%2)===0){
+            var tRow=(topoCarretel-yy)/(topoCarretel-topoFio);
+            var xRow=lerp(s.fioLagCx, s.cx, tRow);
+            ledPonto(ctx,(xRow+0.5)*s.passoX,(yy+0.5)*s.passoY,raio*0.7,tema.aceso,1,0);
+          }
+        }
+      }
+      // pontos do fio ja desenrolado (o texto)
+      var flashOn = s.flashTicks>0;
+      for(var i=0;i<s.acesos.length;i++){
+        var p=s.acesos[i]; var x=(p.col+0.5)*s.passoX, y=(p.row+0.5)*s.passoY;
+        var cor = flashOn ? tema.flash : tema.quente;
+        ledPonto(ctx,x,y,raio, cor, 3, flashOn?0.6:0);
+      }
+      // ghosting do carretel (posicoes antigas, bem fracas)
+      if(s.fase==="rola"){
+        for(var h=s.histCx.length-1;h>=1;h--){
+          desenharCarretel(ctx,s,s.histCx[h],tema,raio, (1-h/s.histCx.length)*0.28);
+        }
+        desenharCarretel(ctx,s,s.cx,tema,raio,1);
+      }
+      desenhaGrao(ctx,s.grao);
+    }
+    return { iniciar:iniciar, passoMs:passoMs, avancar:avancar, desenhar:desenhar };
+  })();
+
+  // ---------- Instancia os três motores ----------
+  var motores = {
+    pulso:  Motor(document.getElementById("cv-pulso"),  pulsoDef),
+    tear:   Motor(document.getElementById("cv-tear"),   tearDef),
+    novelo: Motor(document.getElementById("cv-novelo"), noveloDef)
+  };
+
+  motores.pulso.reiniciar();
+  motores.tear.reiniciar();
+  motores.novelo.reiniciar();
+
+  // ---------- Botões "Reproduzir de novo" ----------
+  document.querySelectorAll(".btn-repetir").forEach(function(b){
+    b.addEventListener("click", function(){
+      var alvo=b.getAttribute("data-alvo");
+      if(motores[alvo]) motores[alvo].reiniciar();
+    });
+  });
+
+  // ---------- Seletor de hora do dia ----------
+  document.querySelectorAll(".periodo button").forEach(function(b){
+    b.addEventListener("click", function(){
+      temaAtivo=b.getAttribute("data-periodo");
+      document.querySelectorAll(".periodo button").forEach(function(x){
+        x.setAttribute("aria-pressed", x===b ? "true":"false");
+      });
+    });
+  });
+
+  // ---------- Hook de depuracao sincrono (QA) ----------
+  // window.__debugAvancar(direcaoIndex, nTicks): reseta o estado da direcao e
+  // chama avancar() em loop sincrono nTicks vezes, redesenhando uma vez no fim.
+  // Nao depende de requestAnimationFrame nem de tempo real. 0=Pulso 1=Tear 2=Novelo.
+  var ORDEM=["pulso","tear","novelo"];
+  window.__debugAvancar=function(direcaoIndex, nTicks){
+    var nome=ORDEM[direcaoIndex];
+    if(!nome || !motores[nome]) return false;
+    motores[nome].debugAvancar(nTicks|0);
+    return true;
+  };
+  // permite ao QA trocar o tema antes de forcar frames
+  window.__debugTema=function(t){ if(TEMAS[t]) temaAtivo=t; };
+  // permite ao QA ler a coluna atual do carretel do Mascote novelo (pra
+  // centralizar capturas de zoom sem adivinhar a posicao)
+  window.__debugNoveloCx=function(){
+    var e=motores.novelo.estadoAtual();
+    return e ? e.cx : null;
+  };
+  // pausa o laco rAF real de uma direcao (evita corrida entre o loop ao vivo
+  // e o debugAvancar sincrono durante inspecao determinista via QA)
+  window.__debugPausar=function(direcaoIndex){
+    var nome=ORDEM[direcaoIndex];
+    if(nome && motores[nome]) motores[nome].pausar();
+  };
+
+})();
+</script>
+</body>
+</html>
