@@ -152,6 +152,15 @@
       const u = currentUser();
       const func = getFuncionario(funcionarioId);
       if (!func) return toast("Funcionário inválido.", "danger");
+      // A REGRA exige turno definido (funcionarioTurno in [1,2,3,'geral']): sem
+      // isso a escrita era rejeitada e a Suyanne via a ocorrência "fantasma" do
+      // cache até o rollback, sem gravar nada (achado do WKRADAR 2026-07-03).
+      if (![1, 2, 3, "geral"].includes(func.turno)) {
+        const el = document.getElementById("f-erro");
+        if (el) { el.hidden = false; el.textContent = `${func.nome} está sem turno definido. Defina o turno na tela Funcionários antes de registrar a ocorrência.`; }
+        toast("Funcionário sem turno definido.", "danger");
+        return;
+      }
 
       const now = firebase.firestore.FieldValue.serverTimestamp();
       const novo = {
@@ -190,7 +199,11 @@
         renderApp();
       } catch (err) {
         debug?.(err);
-        toast("Erro ao salvar: " + err.message, "danger");
+        // Falha TEM que ser barulhenta: o form fica aberto com o erro FIXO
+        // (o toast de 2.6s passava batido e a perda de dado era silenciosa).
+        const el = document.getElementById("f-erro");
+        if (el) { el.hidden = false; el.textContent = "A ocorrência NÃO foi gravada: " + (err?.message || err) + ". Tente de novo; se repetir, avise o administrador."; }
+        toast("A ocorrência NÃO foi gravada.", "danger");
       }
     };
 

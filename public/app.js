@@ -3804,6 +3804,7 @@ function openNovaOcorrencia() {
         <textarea id="f-obs" placeholder="Contexto, justificativa, anexos referenciados..."></textarea>
         <span class="field__hint">O líder poderá adicionar mais informações na conferência.</span>
       </div>
+      <div class="ass-erro" id="f-erro" hidden></div>
     </form>
     <div class="modal__footer">
       <button class="btn btn--ghost" data-close>Cancelar</button>
@@ -3812,7 +3813,10 @@ function openNovaOcorrencia() {
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      $("#btn-save").addEventListener("click", saveNovaOcorrencia);
+      $("#btn-save").addEventListener("click", () => {
+        const fe = document.getElementById("f-erro"); if (fe) { fe.hidden = true; fe.textContent = ""; }
+        saveNovaOcorrencia();
+      });
       const linkImport = $("#link-import");
       if (linkImport) {
         linkImport.addEventListener("click", (e) => {
@@ -12627,7 +12631,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.26.0";
+window.CURRENT_VERSION = "1.26.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

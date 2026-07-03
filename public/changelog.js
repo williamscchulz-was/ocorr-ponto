@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.26.0", d: "3 jul 2026", current: true, items: [
+    v: "1.26.1", d: "3 jul 2026", current: true, aud: "gestor", items: [
+      { type: "fix", title: "Registrar ocorrência ficou à prova de silêncio: funcionário sem turno definido é barrado na hora com instrução clara, e qualquer falha de gravação agora fica escrita no formulário até você resolver (antes um aviso de 2 segundos podia passar batido e a ocorrência não era salva)." },
+    ],
+  },
+  {
+    v: "1.26.0", d: "3 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Grande polimento da auditoria: números de pendências iguais em toda parte, aba Todas completa e em ordem cronológica, lista de ocorrências com colunas alinhadas, tipos com a mesma grafia e cor em qualquer origem, e o saldo negativo do modal agora é vermelho de verdade." },
       { type: "feat", aud: "gestor", title: "No celular: abas numa linha só rolável (o sublinhado agora fica na aba certa), cards re-organizados sem esconder o horário, nomes não são mais cortados na lista de Funcionários, nada fica escondido atrás dos botões flutuantes, e o espelho do funcionário abre numa folha por cima da lista." },
       { type: "feat", title: "Textos internos de diagnóstico sumiram das telas, selos com melhor leitura nos dois temas, navegação por teclado alcança as ocorrências automáticas e o foco não deforma mais os cantos dos campos." },
