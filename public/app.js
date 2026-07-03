@@ -1844,7 +1844,11 @@ function colabBhTabHtml(f) {
     ? `<div class="pp-ovl" style="margin-top:18px">Cartão ponto (arquivo)</div><div class="pp-grp">${arquivos.map(colabReciboRowHtml).join("")}</div>`
     : "";
   if (f && f.bhExempt) return `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("clock")}</div><p>Seu cargo não tem controle de banco de horas.</p></div>${cartaoSec}`;
-  const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias)) ? state.meuSaldoBH.dias : [];
+  // maduro:false = o WK ainda pode estar apurando (buffer de 2 dias). O colaborador NAO
+  // ve dia imaturo, pra nao se assustar com marcacao/saldo incompleto que muda sozinho.
+  // Dia sem o campo (dado legado) conta como maduro. O gestor ve tudo (espDiaHtml nao filtra).
+  const dias = (state.meuSaldoBH && Array.isArray(state.meuSaldoBH.dias))
+    ? state.meuSaldoBH.dias.filter((d) => d.maduro !== false) : [];
   let detalhe;
   if (dias.length) {
     // Agrupa por mês (YYYY-MM), preservando a ordem (mais recente primeiro). Cobre mês vigente
@@ -2702,7 +2706,10 @@ function espDiaHtml(d) {
   const sFmt = String(d.saldoDiaFmt || "").trim();
   const sCls = sFmt.startsWith("-") ? "esp-neg" : (/^\+?0+:0{2}$/.test(sFmt) ? "esp-zero" : "esp-pos");
   const saldo = sFmt ? `<div class="esp-dia__s ${sCls}">${escapeHtml(sFmt)}</div>` : "";
-  return `<div class="esp-dia"><div class="esp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div><div class="esp-dia__m${off ? " esp-dia__m--off" : ""}">${escapeHtml(corpo)}</div>${saldo}</div>`;
+  // O gestor VE o dia imaturo (precisa investigar dado quente), mas com um selo avisando
+  // que o WK ainda pode mexer nele. maduro:false = em apuracao; sem o campo = ja fechado.
+  const wip = d.maduro === false ? `<span class="esp-dia__wip" title="O WK ainda pode ajustar este dia">em apuração</span>` : "";
+  return `<div class="esp-dia${d.maduro === false ? " esp-dia--wip" : ""}"><div class="esp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div><div class="esp-dia__m${off ? " esp-dia__m--off" : ""}">${escapeHtml(corpo)}${wip}</div>${saldo}</div>`;
 }
 
 // O cartão-ponto de UM funcionário (herói + meses). Lê do cache; sinaliza carregando/erro.
@@ -12808,7 +12815,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.28.0";
+window.CURRENT_VERSION = "1.29.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.28.0", d: "3 jul 2026", current: true, items: [
+    v: "1.29.0", d: "3 jul 2026", current: true, items: [
+      { type: "fix", title: "No espelho de ponto, um dia que a apuração ainda pode ajustar não confunde mais: pro colaborador ele só aparece depois de fechar, e pro gestor aparece marcado como em apuração." },
+    ],
+  },
+  {
+    v: "1.28.0", d: "3 jul 2026", items: [
       { type: "high", title: "Nova tela de abertura: na primeira vez que você abre o app no dia, um cone de fio desenha o nome FioPulse. Nas próximas aberturas do mesmo dia o app abre direto." },
       { type: "feat", title: "Ajustes pra manter você conectado por mais tempo entre aberturas, pra digitar a senha com menos frequência (no iPhone o sistema ainda pode pedir login de vez em quando)." },
     ],
