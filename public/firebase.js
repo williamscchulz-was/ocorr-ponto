@@ -2182,8 +2182,16 @@
       if (err) err.classList.add("hidden");
       const dig = String(cpf || "").replace(/\D/g, "");
       const setErr = (m) => { if (err) { err.textContent = m; err.classList.remove("hidden"); } };
-      if (dig.length !== 11) { setErr("Digite um CPF completo (11 números)."); return false; }
-      if (!senha) { setErr("Digite sua senha."); return false; }
+      // CPF incompleto: validação inline colada no campo (borda vermelha + msg
+      // sob o input), não no slot fixo depois da senha.
+      if (dig.length !== 11) {
+        if (window.campoInvalido) return window.campoInvalido("#colab-cpf", "Digite um CPF completo (11 números).");
+        setErr("Digite um CPF completo (11 números)."); return false;
+      }
+      if (!senha) {
+        if (window.campoInvalido) return window.campoInvalido("#colab-senha", "Digite sua senha.");
+        setErr("Digite sua senha."); return false;
+      }
       const email = dig + "@colaborador.fiobras.local";
       const auto = !!$("#colab-remember")?.checked;
       try { localStorage.setItem("fiopulse:manterConectado", auto ? "1" : "0"); } catch {}
@@ -2195,7 +2203,10 @@
         try { localStorage.setItem("fiopulse:ultimoCpf", String(cpf || "")); } catch {}
         return true; // onAuthStateChanged assume daqui (carrega + renderiza)
       } catch (e) {
-        setErr(traduzErroAuth(e));
+        // A tela do colaborador só tem CPF + senha; erro de credencial não pode
+        // vazar "Email" (detalhe do login sintético). Reescreve pra CPF.
+        const cred = e && (e.code === "auth/invalid-credential" || e.code === "auth/wrong-password" || e.code === "auth/user-not-found");
+        setErr(cred ? "CPF ou senha inválidos." : traduzErroAuth(e));
         return false;
       }
     };
@@ -3059,23 +3070,29 @@
     // funcionário — compatível com as rules de HOJE e com as endurecidas. As telas self usam
     // coleções próprias (banco-horas-self, documentos, etc.) nas fases seguintes.
     if (u && u.role === "colaborador") {
-      state.funcionarios = []; state.tiposCustom = []; state.acoesCustom = [];
+      state.tiposCustom = []; state.acoesCustom = [];
       state.obrigacoes = []; state.bancoHoras = {}; state.pipelineMeta = null;
       state.ocorrencias = state.ocorrencias || [];
+      // Fetch-then-swap (mesmo padrão do BH gestor v206): NÃO zera funcionarios/meuSaldoBH antes
+      // da leitura — se a releitura falhar, a Conta mantém os dados em vez de virar parede de "—".
       if (u.funcionarioId) {
         try {
           const meu = await db.collection("funcionarios").doc(u.funcionarioId).get();
           if (meu.exists) state.funcionarios = [{ id: meu.id, ...meu.data() }];
+          else state.funcionarios = [];
         } catch (e) { debug?.("[colab] meu funcionario:", e?.message || e); }
+      } else {
+        state.funcionarios = [];
       }
       // Saldo SELF do banco de horas (sem PII), por código. Coleção banco-horas-self é populada
       // pelo pipeline; a rule SELF é deploy separado (autorizado). Sem rule/dado -> null -> "em breve".
-      state.meuSaldoBH = null;
       if (u.codigo) {
         try {
           const bh = await db.collection("banco-horas-self").doc(String(u.codigo)).get();
-          if (bh.exists) state.meuSaldoBH = bh.data();
+          state.meuSaldoBH = bh.exists ? bh.data() : null;
         } catch (e) { debug?.("[colab] saldo BH self:", e?.message || e); }
+      } else {
+        state.meuSaldoBH = null;
       }
       // Comunicados do SEGMENTO do colaborador. A rule não filtra query: faço uma
       // query por segmento (todos / turno dele / setor dele) — cada uma só retorna

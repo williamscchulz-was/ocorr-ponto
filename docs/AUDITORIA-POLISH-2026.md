@@ -164,6 +164,64 @@ pelos verificadores (não regressões): ink 4.8px à esquerda no 1º render a fr
 até o swap da Poppins (se corrige sozinho); busca da aba Todas casa o tipo BRUTO
 da automática, não o rótulo exibido.
 
-### Pendente (Onda 2)
+### Onda 2 (v270, 2026-07-03) — os ~106 médios/baixos em 9 lotes
 
-Os ~106 achados médios/baixos da tabela do mockup que não entraram na Onda 1.
+Os 9 lotes do plano (`onda2-plano.md`) foram implementados por agentes Opus e
+verificados por bateria adversarial no mesmo harness (`o2v1`..`o2v9`), depois um
+passe final de reparo (`o2fim-`) fechou as falhas reportadas.
+
+**Itens aplicados por lote** (contagem de linhas do plano):
+Lote 1 (login/splash) 11 · Lote 2 (colab contraste/cor) 9 · Lote 3 (colab copy/nav) 11 ·
+Lote 4 (colab Conta/roadmap) 12 · Lote 5 (gestor mobile ocorrências) 12 ·
+Lote 6 (gestor mobile pessoas) 8 · Lote 7 (gestor desktop) 12 · Lote 8 (detalhes finos) 15 ·
+Lote 9 (perf/limpeza) 4.
+
+**Falhas reparadas no passe final** (reportadas pelos verificadores, corrigidas e re-provadas):
+- **L2-1** selo do recibo pendente encurtado de "Assinatura pendente" pra "Assinar"
+  (string em `app.js` `colabReciboRowHtml`); subtítulo "Recibo de pagamento · 2 págs"
+  deixou de truncar (medido: scrollWidth = clientWidth nas linhas pendente E assinada).
+- **L2-2** âmbar COMO TEXTO no tema claro: novo token `--warning-tx` (= `--warning-ink`
+  #7A4A12 no claro, = `--warning` no escuro) aplicado a `.pp-rw__val--neg`, `.troca-banner`,
+  `.pp-ico--amber`, `.pp-badge--amber`; contraste medido subiu de 3.66-3.87:1 pra
+  6.0-7.46:1 (AA). Fundos seguem em `--warning` (não recolori background).
+- **L2-8** pill da ilha inferior agora DESLIZA: um único `.bn-pill` absoluto com
+  `transform:translateX(var(--bn-i))` e `transition:transform` (padrão da `.pp-seg__pill`);
+  o JS nasce a pill na posição anterior e migra pro índice novo em rAF (provado: 0 → 2).
+- **L3-11** iniciais do avatar unificadas: `renderPortalColaborador` passa o nome do
+  cadastro (`funcionarios[0].nome`) pro `#user-avatar`, igual à saudação/Conta; a mesma
+  pessoa mostra "AD" na sidebar E no cabeçalho (era "AF" vs "AD").
+- **L5-2** no mobile a coluna de data do card automático (`.occ--rh`) baixou de 64px+16px
+  pra 54px+12px, batendo com o track do card manual; nome começa no mesmo x (medido:
+  mainLeft 97px nos dois; era 111 vs 97).
+- **L5-4** alvo de toque das abas: a regra `.tab{padding-top:14px}` do mobile foi movida
+  pra DEPOIS do `.tab` base (mesma especificidade, o shorthand `padding:0 0 12px` zerava
+  de volta); abas de Ocorrências/Config/Documentos agora medem 48px (era ~34px).
+- **L4-4** fetch-then-swap de `carregarDadosCompletos`: verificado que já estava correto
+  (colab e gestor atribuem `state.funcionarios` DEPOIS do `.get()`, catch do colab não
+  zera); prova por análise estática + simulação isolada (rejeição preserva dados, sucesso
+  troca). Sem mudança de código necessária.
+
+**Pulados legítimos** (mantidos, com motivo):
+- **L3-6, L7-5, L8-10** já estavam corrigidos por lotes anteriores (nota da Folha desktop
+  sem "chega em breve"; `.func-turno--sem` já em `--warning-ink`; H1 "Documentos" fixo,
+  "Recibos e cartão ponto" só como rótulo de aba).
+- **L6-5** unificar as 3 telas de pessoas (Funcionários/BH/Espelho) num componente único
+  de linha é redesign cross-screen com right-slots e handlers diferentes; aplicada só a
+  parte concreta (avatar no Banco de Horas).
+- **L6-8** mini-título sticky (large-title iOS que colapsa) é redesign transversal com
+  scroll listeners por tela; o respiro do topo pertence ao L5-12.
+
+Ritual de release: `node --check` limpo nos 4 JS; smoke final ZERO erros de console
+(gestor desktop visão-geral+dashboard, gestor mobile visão-geral, colab mobile home+folha);
+bump 1.27.0 (`changelog.js` topo + `CURRENT_VERSION` + `index.html` ?v=270 + `sw.js`
+fiopulse-v270); deploy `hosting:weave` (predeploy minificou 946KB → 675KB, -29%); home ao
+vivo confirmada com ?v=270 e `CURRENT_VERSION="1.27.0"`.
+
+### Pendente (decisão do William) — 18 adiados
+
+Os 18 achados adiados do plano (`onda2-plano.md`, seção "Adiados") continuam
+pendentes de decisão: são subjetivos, dependem de direção de arte/copy do William,
+ou são redesenhos grandes (empty state do espelho desktop #20, busca unificada das
+3 telas #21, contagem de ativos do BH #22, cap de largura do colab desktop #110 e
+seus dependentes #119/#120, foco inicial dos ~10 modais #28, `nomePublico` do roadmap
+#97, split de bundle por portal #135, paginação preventiva #139, entre outros).

@@ -3,6 +3,21 @@
    Palette: Milk #FFF3E6 + Plum #381932
    ============================================ */
 
+/* Fontes self-hosted (Poppins + Michroma). Substituem o stylesheet do
+   Google Fonts pra tirar o request cross-origin do caminho crítico do boot.
+   font-display: swap: texto aparece na fonte de sistema e troca ao carregar.
+   Subsets latin + latin-ext cobrem o português (acentos inclusos). */
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/poppins-400-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/poppins-400-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/poppins-500-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/poppins-500-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/poppins-600-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/poppins-600-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/poppins-700-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/poppins-700-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Michroma"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/michroma-400-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Michroma"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/michroma-400-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
 :root {
   /* Paleta oficial Fiobras (Manual de Marca, jan/2026):
      Verde #008835, Amarelo #FFCB00, Azul #0076BE.
@@ -120,7 +135,7 @@ a:hover { color: var(--plum-soft); }
   background: radial-gradient(120% 90% at 50% 40%, #0A1A12 0%, #06120C 72%);
   opacity: 1; transition: opacity .55s ease;
   --draw-dur: 2.1s; --draw-ease: cubic-bezier(.65, 0, .35, 1);
-  --stroke-w: 2.6; --fill-dur: .7s; --fill-start: .82; --word-delay: 2.45s;
+  --stroke-w: 2.6; --fill-dur: .7s; --fill-start: .82; --word-delay: 1.9s;
   --logo-size: min(240px, 56vw);
 }
 .splash--out { opacity: 0; pointer-events: none; }
@@ -129,12 +144,14 @@ a:hover { color: var(--plum-soft); }
   content: ""; position: absolute; left: 50%; top: 44%;
   width: min(420px, 80vw); height: min(420px, 80vw); transform: translate(-50%, -50%);
   background: radial-gradient(circle, rgba(0, 136, 53, .42) 0%, transparent 62%);
-  filter: blur(8px); opacity: 0; animation: splHalo 2.2s ease-out .3s forwards;
+  filter: blur(8px); opacity: 0; animation: splHalo 2.2s ease-out forwards;
 }
 .splash__stars { position: absolute; inset: 0; pointer-events: none; }
 .splash__stars i {
   position: absolute; width: 2px; height: 2px; border-radius: 50%;
-  background: #cfe9d8; opacity: 0; animation: splTwinkle 3s ease-in-out infinite;
+  /* opacity base >0: as estrelas com delay grande ainda aparecem no frame 0
+     (senão ficam invisíveis até o delay vencer, deixando a tela quase preta). */
+  background: #cfe9d8; opacity: .22; animation: splTwinkle 3s ease-in-out infinite;
 }
 .splash__stage { position: relative; z-index: 2; display: grid; justify-items: center; gap: 18px; }
 .splash__logo { width: var(--logo-size); height: auto; overflow: visible; display: block; }
@@ -161,7 +178,7 @@ a:hover { color: var(--plum-soft); }
 }
 @keyframes splRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes splHalo { to { opacity: 1; } }
-@keyframes splTwinkle { 0%, 100% { opacity: 0; } 50% { opacity: .8; } }
+@keyframes splTwinkle { 0%, 100% { opacity: .25; } 50% { opacity: .8; } }
 @media (prefers-reduced-motion: reduce) {
   .splash .fill, .splash__word, .splash__sub { opacity: 1; animation: none; }
   .splash .stroke { stroke-dashoffset: 0; animation: none; }
@@ -177,8 +194,9 @@ a:hover { color: var(--plum-soft); }
   padding: 24px;
   position: relative;
 }
-/* fiozinho de cor no topo da tela */
-.login::before {
+/* fiozinho de cor no topo da tela (acesso + login, pra continuidade visual) */
+.login::before,
+.acesso::before {
   content: "";
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -390,6 +408,63 @@ a:hover { color: var(--plum-soft); }
   background: #FDF6F5;
 }
 
+/* ============================================
+   LOGIN — slots de erro, checkbox, alvos de toque
+   ============================================ */
+
+/* Slot de erro fixo (gestor + colaborador): pílula com ícone de alerta e fundo
+   âmbar-vinho, no padrão dos toasts. min-height reservada pra a mensagem não
+   empurrar o checkbox e o botão Entrar quando aparece. */
+#login-error, #colab-login-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+#login-error::before, #colab-login-error::before {
+  content: "";
+  flex: none;
+  width: 16px; height: 16px;
+  margin-top: 1px;
+  background: var(--danger);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+/* Escondido reserva o espaço (visibility, não display) pra a mensagem nunca
+   empurrar o checkbox e o botão Entrar ao aparecer. Precisa reverter o
+   display:none !important do .hidden global só pra estes dois slots. */
+#login-error.hidden, #colab-login-error.hidden {
+  display: flex !important;
+  visibility: hidden;
+  background: none;
+}
+
+/* Checkbox "Manter conectado"/"Login automático" na cor da marca. */
+.login__remember input { accent-color: var(--plum); }
+/* Label do checkbox clicável por inteiro, com respiro vertical de toque. */
+.login__remember { padding: 6px 0; }
+
+/* Alvos de toque >=44px no login sem mexer no visual: olho da senha, Voltar e
+   "Esqueci minha senha" ganham área; o desenho fica centralizado. */
+.login .field-senha__olho { width: 44px; height: 44px; right: 2px; }
+.login__voltar {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 11px 8px 11px 0;
+  background: none; border: 0; font: inherit; cursor: pointer;
+  color: var(--text-muted); font-size: 13px; font-weight: 600;
+  align-self: flex-start;
+}
+.login__voltar:hover { color: var(--plum); }
+.login__voltar svg { width: 18px; height: 18px; }
+.login__forgot button { padding: 11px 4px; }
+
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -502,7 +577,18 @@ a:hover { color: var(--plum-soft); }
   .app--rail .app__brand-text { display: none; }
   .app--rail .nav__item { justify-content: center; padding: 11px 0; gap: 0; position: relative; }
   .app--rail .nav__item > span:not(.nav__badge) { display: none; }
-  .app--rail .nav__badge { position: absolute; top: 3px; right: 12px; }
+  /* Recolhido: badge vira um dot no canto do ícone (o número não cabe sem cobrir
+     o desenho). font-size 0 zera o texto mantendo o mesmo elemento/cores. */
+  .app--rail .nav__badge {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 9px; height: 9px;
+    min-width: 0;
+    padding: 0;
+    font-size: 0;
+    border-radius: 50%;
+    transform: translate(9px, -13px);
+  }
   .app--rail .app__bottom { align-items: center; }
   .app--rail .app__user { justify-content: center; padding: 10px 0; }
   .app--rail .app__user-info,
@@ -752,7 +838,9 @@ textarea:focus-visible,
 .app__user-logout:hover { background: rgba(255, 243, 230, .1); color: var(--milk); }
 
 .app__main {
-  padding: 32px 40px;
+  /* padding-bottom folgado: a última linha das listas (Funcionários, Banco de
+     horas) escapa do chat-fab fixo no canto inferior direito. */
+  padding: 32px 40px 96px;
   overflow-x: hidden;
 }
 
@@ -791,6 +879,17 @@ textarea:focus-visible,
 /* Pill de versão fica discreto no verde da topbar (mobile). */
 .topbar .version-pill { background: rgba(255, 243, 230, .16); color: var(--milk); border-color: rgba(255, 243, 230, .28); }
 .topbar .version-pill:hover { background: rgba(255, 243, 230, .26); color: #fff; }
+/* Mobile: iguala a altura da pill ao chip do Monitor (~32px) e garante alvo de
+   toque >=44px via ::after invisível (a pill abre o changelog). */
+@media (max-width: 900px) {
+  .topbar .version-pill, .version-pill--hub {
+    padding: 7px 12px; font-size: 12px; position: relative;
+  }
+  .topbar .version-pill::after, .version-pill--hub::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%);
+  }
+}
 .topbar__menu {
   width: 44px; height: 44px; /* WCAG 2.5.5 touch target */
   display: grid; place-items: center;
@@ -1032,7 +1131,7 @@ textarea:focus-visible,
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  margin: 0 0 20px;
+  margin: 0 0 16px;
   overflow: hidden;
 }
 
@@ -1146,6 +1245,7 @@ textarea:focus-visible,
 
 .toolbar__search input {
   width: 100%;
+  min-height: 44px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1170,6 +1270,7 @@ textarea:focus-visible,
 }
 
 .toolbar select {
+  min-height: 44px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1245,6 +1346,13 @@ textarea:focus-visible,
   font-weight: 600;
 }
 .tab.active .tab__count { background: var(--success-bg); color: var(--success); }
+
+@media (max-width: 900px) {
+  /* Alvo de toque >=44px sem mover o sublinhado (ancorado ao fundo): o padding
+     cresce PRA CIMA. Precisa vir DEPOIS do .tab base (mesma especificidade) pra
+     o shorthand `padding:0 0 12px` não zerar o padding-top de volta. */
+  .tab { padding-top: 14px; }
+}
 
 /* ============================================
    OCORRÊNCIA CARDS / TABLE
@@ -1465,11 +1573,16 @@ textarea:focus-visible,
 .modal-backdrop {
   position: fixed; inset: 0;
   background: rgba(31, 11, 28, .55);
-  display: grid;
-  place-items: center;
+  /* Ancora o modal pelo TOPO (não recentraliza): quando o corpo cresce ao
+     validar/mostrar erro, o cabeçalho fica parado em vez de saltar. Rola a
+     coluna inteira se o modal passar da tela. */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
   z-index: 200;
   animation: fadeIn 180ms ease-out;
-  padding: 16px;
+  padding: 6vh 16px 16px;
 }
 /* Overlay de confirmação: empilha ACIMA de qualquer modal aberto */
 .modal-backdrop--confirm { z-index: 9990; }
@@ -1746,6 +1859,9 @@ textarea:focus-visible,
 .perm-matrix[open] > summary::before { transform: rotate(45deg); }
 .perm-matrix__t { font-weight: 700; font-size: 14px; color: var(--text-body); }
 .perm-matrix__h { font-size: 12px; color: var(--text-muted); }
+.perm-matrix__h--aberto { display: none; }
+.perm-matrix[open] .perm-matrix__h--fechado { display: none; }
+.perm-matrix[open] .perm-matrix__h--aberto { display: inline; }
 .perm-table-wrap { overflow-x: auto; border-top: 1px solid var(--border); }
 .perm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .perm-corner {
@@ -1784,7 +1900,10 @@ textarea:focus-visible,
 .perm-row:hover { background: var(--row-hover); }
 .perm-name { padding: 10px 16px; color: var(--text-body); font-weight: 500; }
 .perm-c { text-align: center; border-left: 1px solid var(--border); }
+/* Alvo de toque = td inteiro quando a célula é editável (o handler mora no td). */
+.perm-c:has(.perm-cell--edit) { cursor: pointer; }
 .perm-cell { display: inline-grid; place-items: center; width: 26px; height: 26px; }
+.perm-cell--edit { cursor: pointer; }
 .perm-cell svg { width: 16px; height: 16px; color: var(--success); }
 .perm-cell--lock svg { color: var(--plum-soft); }
 .perm-cell--no { color: #c0ccb8; font-size: 15px; line-height: 1; }
@@ -2067,7 +2186,9 @@ textarea:focus-visible,
   #fab { bottom: calc(104px + env(safe-area-inset-bottom)) !important; right: 18px; }
   .app__main {
     padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
-    padding-top: calc(8px + env(safe-area-inset-top));
+    /* Aparelho sem notch: env=0 fazia o h1 colar 8px do topo. max() garante ao
+       menos 16px de respiro; com notch usa o inset real. */
+    padding-top: calc(max(env(safe-area-inset-top), 16px) + 8px);
   }
   /* GESTOR empilha chat (topo 228px) + FAB sobre a ilha: o conteúdo precisa de
      folga pra NADA ficar coberto no fim do scroll (auditoria 2026-07-02). O
@@ -2113,9 +2234,11 @@ textarea:focus-visible,
 .vg-vera { margin-top: 10px; }
 
 /* Hub de atalhos do gestor na Home (mobile): mesma anatomia do hub do colaborador. */
-.ghub { display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 10px; margin: 2px 0 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.ghub { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 10px; margin: 2px 0 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
 .ghub::-webkit-scrollbar { display: none; }
-.ghub__it { flex: none; width: 76px; background: none; border: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 7px; font: inherit; }
+/* Largura/gap calibrados pra sobrar ~meio 5º atalho em repouso (affordance de
+   rolagem, padrão Nubank); scroll-snap alinha o item ao parar. */
+.ghub__it { flex: none; width: 72px; background: none; border: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 7px; font: inherit; scroll-snap-align: start; }
 .ghub__ic { position: relative; width: 58px; height: 58px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0, 40, 20, 0.06); transition: transform .15s ease; }
 .ghub__it:active .ghub__ic { transform: scale(.94); }
 .ghub__ic .icon { width: 22px; height: 22px; color: var(--plum); }
@@ -2528,7 +2651,7 @@ html.firebase-mode .login__forgot { display: block; }
 .dashboard-demografia {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   margin-bottom: 16px;
   padding: 12px 16px;
 }
@@ -2638,8 +2761,11 @@ html.firebase-mode .login__forgot { display: block; }
   font-weight: 700;
   color: var(--plum);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Nome longo quebra em ate 2 linhas no cabecalho do modal (antes truncava numa so). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.2;
 }
 .func-perfil-header__sub {
   font-size: 12px;
@@ -2914,15 +3040,6 @@ html.firebase-mode .login__forgot { display: block; }
 }
 .aud__quem { font-size: 11.5px; font-weight: 600; color: var(--text-body); }
 .aud__hora { font-size: 11px; color: var(--text-muted); }
-.aud__vazio {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
-  padding: 36px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
 @media (max-width: 560px) {
   .aud__meta { max-width: 96px; }
   .aud__quem { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 96px; }
@@ -3090,6 +3207,8 @@ html.firebase-mode .login__forgot { display: block; }
 .cfg-main { flex: 1; min-width: 0; }
 .cfg-name { font-size: 14px; font-weight: 600; color: var(--text-body); }
 .cfg-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+/* Cada segmento (email / "· escopo") quebra inteiro; o separador nunca fica solto. */
+.cfg-sub__part { display: inline-block; white-space: nowrap; }
 .cfg-tone { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
 /* Permissões: busca + usuários agrupados por papel + colaboradores recolhíveis */
 .cfg-toolbar { display: flex; gap: 12px; align-items: center; margin: 0 0 6px; flex-wrap: wrap; }
@@ -3233,32 +3352,37 @@ html.firebase-mode .login__forgot { display: block; }
   display: inline-block;
 }
 .func-demit { color: var(--danger); font-weight: 500; }
+/* Chips da linha de Funcionários: mesma anatomia do .badge (pílula, 11px,
+   3px 9px); só a cor muda por semântica. Turno = neutro, sem turno = âmbar,
+   inativo = neutro. */
 .func-turno {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: var(--milk-warm);
-  border-radius: 6px;
-  padding: 3px 9px;
-  flex-shrink: 0;
-}
-.func-turno--sem {
-  color: var(--warning);
-  background: var(--warning-bg);
   display: inline-flex;
   align-items: center;
   gap: 5px;
-}
-.func-turno__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warning); }
-.func-stag {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
   color: var(--text-muted);
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  padding: 1px 7px;
+  background: var(--milk-warm);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.func-turno--sem {
+  color: var(--warning-ink);
+  background: var(--warning-bg);
+}
+.func-turno__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--warning-ink); }
+.func-stag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-warm);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 .func-chev { width: 18px; height: 18px; color: #b9c6b1; flex-shrink: 0; }
@@ -3640,7 +3764,7 @@ body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
 
 /* ---- Mobile: FAB acima da bottom-nav; painel em tela cheia ---- */
 @media (max-width: 900px) {
-  .chat-fab { bottom: calc(172px + env(safe-area-inset-bottom)); } /* acima do FAB de nova ocorrência, que fica acima da ilha */
+  .chat-fab { bottom: calc(172px + env(safe-area-inset-bottom)); right: 18px; } /* acima do FAB de nova ocorrência (mesmo right que #fab pra alinhar no eixo) */
   .chat-widget { bottom: 0; right: 0; left: 0; width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; }
   .chat__bolha { max-width: 82%; }
 }
@@ -3714,9 +3838,9 @@ body.modal-aberto .chat-fab, body.modal-aberto .fab { display: none; }
 /* Profundidade ao rolar: topbar ganha sombra; FAB recolhe ao descer. */
 .topbar { transition: box-shadow .2s ease; }
 .topbar--elev { box-shadow: 0 4px 16px rgba(0, 40, 20, .18); }
-.fab { transition: transform .26s var(--ease), opacity .26s ease, background 120ms; }
+.fab, .chat-fab { transition: transform .26s var(--ease), opacity .26s ease, box-shadow .15s, background 120ms; }
 .fab--rec { transform: translateY(96px) scale(.7); opacity: 0; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .fab { transition: none; } .fab--rec { transform: none; opacity: 1; pointer-events: auto; } }
+@media (prefers-reduced-motion: reduce) { .fab, .chat-fab { transition: none; } .fab--rec { transform: none; opacity: 1; pointer-events: auto; } }
 
 /* 5 · Proximidade na barra lateral — base; o JS aplica o scale por distância */
 .nav__item {
@@ -4210,6 +4334,10 @@ code { font-family: inherit; }
    DOCUMENTOS INSTITUCIONAIS (Pacote Gestor) — reusa .com-* onde possivel
    ============================================ */
 
+/* Barra de acao da aba (CTA contextual movido pra dentro do conteudo, pra o
+   cabecalho "Documentos" ficar estavel ao trocar de aba). */
+.doc-actbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 0 0 16px; flex-wrap: wrap; }
+.doc-actbar p { flex: 1; min-width: 0; margin: 0; font-size: 12.5px; color: var(--text-muted); }
 .doc-filtros { display: flex; flex-wrap: wrap; gap: 7px; margin: 4px 0 16px; }
 .doc-chip {
   font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
@@ -4390,9 +4518,20 @@ code { font-family: inherit; }
 @media (max-width: 560px) {
   .toolbar { flex-direction: column; align-items: stretch; }
   .toolbar select, .toolbar__search { width: 100%; }
-  /* Resumo em grade 2x2 compacta (hub aprovado 2026-07-02), no lugar da pilha 1 coluna. */
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat { padding: 13px 14px; }
+  /* Resumo em grade 2x2 compacta (hub aprovado 2026-07-02), no lugar da pilha 1 coluna.
+     Cada célula é um cartão próprio (borda inteira + raio); o container solta a
+     moldura/overflow herdados do flex desktop pra não deixar bordas tortas. */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border: 0; background: transparent; overflow: visible; }
+  .stat {
+    padding: 13px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 0;
+    background: var(--surface);
+  }
+  /* Numero impar de cards (ex.: Banco de Horas com 3): o ultimo ocupa a linha
+     inteira em vez de ficar orfao com um vao vazio ao lado. */
+  .stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .stat__value { font-size: 24px; }
   .com-actions { margin-left: 0; }
   .com-mini { width: 40px; height: 40px; }       /* alvo de toque */
@@ -4497,27 +4636,59 @@ code { font-family: inherit; }
 
 /* Ocorrências automáticas (fluxo RH→Líder) dentro da aba Ocorrências */
 .occ--rh{display:flex;align-items:center;gap:16px}
+/* Coluna de data fixa na largura do track do card manual (grid 64px) pra o nome
+   começar no mesmo x das linhas irmãs; box-sizing inclui o padding-right/borda. */
+.occ--rh .occ__date{flex:none;width:64px;box-sizing:border-box}
 .occ--rh .occ__main{flex:1;min-width:0}
 .occ--rh .rhacts{flex:none;display:flex;align-items:center;gap:8px}
 .occ--resc{box-shadow:0 0 0 1.5px var(--danger),0 1px 3px rgba(0,40,20,.06)}
 .oca-confdone{flex-direction:column;align-items:flex-end;gap:2px}
 .oca-confby{font-size:11px;color:var(--text-muted)}
-@media(max-width:720px){.occ--rh{flex-wrap:wrap}.occ--rh .rhacts{width:100%}.occ--rh .rhacts .btn{flex:1}}
+@media(max-width:720px){.occ--rh{flex-wrap:wrap;gap:12px}
+  /* No mobile o card manual usa track de data 54px + gap 12px; o auto acompanha
+     pra o nome começar no mesmo x nas linhas irmãs (era 64px+16px, 14px à direita). */
+  .occ--rh .occ__date{width:54px}
+  .occ--rh .rhacts{width:100%}.occ--rh .rhacts .btn{flex:1}
+  /* Card confirmado/dispensado: badge + autoria à esquerda, alinhado ao conteúdo
+     (era o único bloco centralizado/à direita da lista no celular). */
+  .occ--rh .rhacts.oca-confdone{align-items:flex-start}}
 
 /* ===== Recibos e cartão ponto (aba de Documentos · Fase A) ===== */
 .rcb-tabs { display: flex; gap: 2px; margin: -6px 0 18px; border-bottom: 1px solid var(--border); }
 .rcb-tab { padding: 9px 14px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted); background: none; border: 0; border-bottom: 2px solid transparent; cursor: pointer; }
 .rcb-tab:hover { color: var(--text-body); }
 .rcb-tab.on { color: var(--plum); border-bottom-color: var(--plum); }
-.rcb-lotes { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
-.rcb-lote { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface); cursor: pointer; transition: box-shadow .15s var(--ease); }
+.rcb-lote { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface); cursor: pointer; transition: box-shadow .15s var(--ease); max-width: 640px; }
 .rcb-lote:hover { box-shadow: 0 4px 14px -8px rgba(16, 48, 28, .28); }
 .rcb-lote__ic { width: 40px; height: 40px; border-radius: 10px; background: var(--milk-warm); color: var(--plum); display: flex; align-items: center; justify-content: center; flex: none; }
 .rcb-lote__ic svg { width: 20px; height: 20px; }
 .rcb-lote__bd { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .rcb-lote__bd b { font-size: 14px; color: var(--text-body); font-weight: 600; }
 .rcb-lote__bd span { font-size: 11.5px; color: var(--text-muted); }
-.rcb-lote__pill { font-size: 11px; font-weight: 700; color: var(--plum); background: rgba(0, 136, 53, .1); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+/* Opção B (mock aprovado): duas colunas por tipo, cada uma com anos recolhíveis. */
+.rcb-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.rcb-col__head { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+.rcb-col__head .colw__t { font-size: 14.5px; font-weight: 700; color: var(--text-body); }
+.rcb-col__c { font-size: 11.5px; color: var(--text-muted); margin-left: auto; font-weight: 600; }
+.rcb-yr { margin: 0 0 10px; }
+.rcb-yr__head { display: flex; align-items: center; gap: 10px; width: 100%; background: var(--milk-warm); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; cursor: pointer; font: inherit; text-align: left; transition: box-shadow .15s var(--ease); }
+.rcb-yr__head:hover { box-shadow: 0 4px 14px -8px rgba(16, 48, 28, .28); }
+.rcb-yr__chev { color: var(--text-muted); display: flex; flex: none; transform: rotate(-90deg); transition: transform .18s var(--ease); }
+.rcb-yr__chev svg { width: 18px; height: 18px; }
+.rcb-yr.open .rcb-yr__chev { transform: rotate(0deg); }
+.rcb-yr__n { font-size: 15px; font-weight: 800; color: var(--plum-deep); }
+.rcb-yr__c { font-size: 11.5px; color: var(--text-muted); margin-left: auto; font-weight: 600; }
+.rcb-yr__body { display: none; padding: 10px 0 2px 4px; }
+.rcb-yr.open .rcb-yr__body { display: block; }
+.rcb-lote--mini { padding: 9px 11px; margin-bottom: 7px; max-width: none; }
+.rcb-lote--mini:last-child { margin-bottom: 0; }
+.rcb-lote--mini .rcb-lote__ic { width: 32px; height: 32px; }
+.rcb-lote--mini .rcb-lote__ic svg { width: 16px; height: 16px; }
+.rcb-lote--mini .rcb-lote__bd b { font-size: 13px; }
+.rcb-pct { font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 3px 9px; white-space: nowrap; flex: none; }
+.rcb-pct--ok { background: rgba(47, 107, 63, .14); color: var(--success); }
+.rcb-pct--warn { background: rgba(178, 116, 41, .14); color: var(--warning); }
+@media (max-width: 860px) { .rcb-cols { grid-template-columns: 1fr; } }
 .rcb-hint { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-muted); margin: 10px 0 0; }
 .rcb-hint svg { width: 14px; height: 14px; flex: none; }
 .rcb-sumbar { display: flex; gap: 10px; margin-bottom: 14px; }

@@ -10,11 +10,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="styles.css?v=269" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=269" />
+  <link rel="stylesheet" href="styles.css?v=270" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=270" />
   <!-- Decide ANTES de renderizar: se "manter conectado" estava ligado, há
        sessão pra restaurar → mostra o splash "Entrando…" em vez do login
        (que só some quando o Firebase confirma). Zero flash do formulário. -->
@@ -81,7 +78,7 @@
        LOGIN SCREEN (gestor) — começa escondido; revelado pela tela de acesso
        ============================================ -->
   <section id="login" class="login hidden">
-    <form class="login__form" id="login-form" autocomplete="off">
+    <form class="login__form" id="login-form" autocomplete="off" novalidate>
       <button type="button" class="login__voltar" id="login-voltar" aria-label="Voltar à tela de acesso">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Voltar
@@ -166,7 +163,7 @@
 
       <button type="submit" class="btn btn--primary btn--block btn--lg">Entrar</button>
 
-      <div class="colab-dica">Primeiro acesso? Sua senha é a <b>data de nascimento</b>, só números. Ex.: 14071990</div>
+      <div class="colab-dica">Primeiro acesso? Sua senha é a <b>data de nascimento</b>, só números. Ex.: 14071990<br>Esqueceu a senha? Fale com a GP.</div>
     </form>
     <div class="login__rodape">© 2026 Fiobras · acesso restrito</div>
   </section>
@@ -297,16 +294,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=269"></script>
-  <script defer src="data.js?v=269"></script>
-  <!-- roadmap.js: dados estáticos do Roadmap do Portal (window.ROADMAP). -->
-  <script defer src="roadmap.js?v=269"></script>
-  <script defer src="app.js?v=269"></script>
+  <script defer src="utils.js?v=270"></script>
+  <script defer src="data.js?v=270"></script>
+  <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
+       só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
+  <script defer src="app.js?v=270"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=269"></script>
-  <script defer src="google-drive.js?v=269"></script>
+  <script defer src="firebase.js?v=270"></script>
+  <script defer src="google-drive.js?v=270"></script>
 </body>
 </html>

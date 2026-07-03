@@ -117,7 +117,12 @@ const formatDateTime = (iso) => {
 function tsToDateStr(ts) {
   if (!ts) return null;
   let d = null;
-  if (typeof ts === "string") d = new Date(ts);
+  if (typeof ts === "string") {
+    // "yyyy-mm-dd" é data civil: monta com componentes locais pra não voltar um dia
+    // por fuso (new Date("2021-03-10") vira UTC meia-noite e recua no fuso do Brasil).
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ts.trim());
+    d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(ts);
+  }
   else if (ts.toDate) d = ts.toDate();
   else if (ts.seconds) d = new Date(ts.seconds * 1000);
   else if (ts instanceof Date) d = ts;

@@ -108,9 +108,13 @@ html.modo-colab.cp-dark #bottom-nav{
    vale pros dois portais. Aqui só o que é específico do colaborador. */
 /* Itens da nav: ícone EM CIMA do rótulo; o ativo ganha a pill de vidro verde. */
 .modo-colab .cp-bn-lab{display:block;font-size:10px;font-weight:500;line-height:1}
-.modo-colab .bottom-nav__item{flex:1;min-width:0;background:none;padding:8px 4px 7px;min-height:48px;flex-direction:column;gap:4px;color:var(--text-muted);border-radius:19px;transition:background .25s ease,color .25s ease}
-.modo-colab .bottom-nav__item.active{background:rgba(0,136,53,.10);color:var(--plum)}
-html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)}
+.modo-colab .bottom-nav__item{flex:1;min-width:0;background:none;padding:8px 4px 7px;min-height:48px;flex-direction:column;gap:4px;color:var(--text-muted);border-radius:19px;transition:color .22s ease;position:relative;z-index:1}
+.modo-colab .bottom-nav__item.active{color:var(--plum)}
+/* Pill deslizante (igual .pp-seg__pill da Conta): um só elemento absoluto que
+   desliza por transform. Largura = 1/3 do interior (3 itens de flex igual, menos
+   os 7px de padding de cada lado). Posição vem do --bn-i setado no JS. */
+.modo-colab #bottom-nav .bn-pill{position:absolute;top:7px;bottom:7px;left:7px;width:calc((100% - 14px)/3);border-radius:19px;background:rgba(0,136,53,.10);transform:translateX(calc(var(--bn-i,0)*100%));transition:transform .28s var(--ease);z-index:0;pointer-events:none}
+html.modo-colab.cp-dark #bottom-nav .bn-pill{background:rgba(95,203,133,.17)}
 .modo-colab .cp-bn-ic{width:auto;height:auto;border-radius:0;background:none;display:flex;align-items:center;justify-content:center;color:inherit}
 .modo-colab .bottom-nav__item.active .cp-bn-ic{background:none;color:inherit}
 .modo-colab .bottom-nav__item .icon{width:23px;height:23px}
@@ -140,19 +144,26 @@ html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)
 }
 .fp-root *{box-sizing:border-box}
 .fp-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
-@media(max-width:520px){.fp-summary{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:360px){.fp-summary{grid-template-columns:repeat(2,1fr)}}
-.fp-stat{background:var(--card);border:1px solid var(--bd);border-radius:13px;padding:10px 12px;box-shadow:var(--sh1)}
+/* Mobile: linha única rolável (sem célula fantasma do antigo grid 3+2). */
+@media(max-width:520px){
+  .fp-summary{display:flex;overflow-x:auto;gap:8px;padding-bottom:4px;scrollbar-width:none}
+  .fp-summary::-webkit-scrollbar{display:none}
+  .fp-stat{flex:0 0 auto;min-width:96px}
+}
+.fp-stat{background:var(--card);border:1px solid var(--bd);border-radius:var(--pp-ri);padding:10px 12px;box-shadow:var(--sh1)}
 .fp-stat .n{font-size:clamp(18px,5vw,22px);font-weight:700;line-height:1;letter-spacing:-.5px}
 .fp-stat .l{font-size:10px;color:var(--tx2);margin-top:6px;display:flex;align-items:center;gap:5px;font-weight:500}
 .fp-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
-.fp-stat.tot{background:transparent} .fp-stat.tot .n{color:var(--green)}
+/* Total é neutro: verde o confundia com "Concluídas". */
+.fp-stat.tot{background:transparent} .fp-stat.tot .n{color:var(--tx)}
 .fp-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .fp-legend{display:flex;gap:11px;flex-wrap:wrap;font-size:10.5px;color:var(--tx2);font-weight:500}
+/* Mobile: a legenda repete os mesmos status do resumo acima — esconde pra não duplicar. */
+@media(max-width:520px){.fp-legend{display:none}}
 .fp-legend span{display:inline-flex;align-items:center;gap:5px}
 .fp-lg{width:14px;height:8px;border-radius:3px;flex:0 0 auto}
 .fp-btns{display:flex;gap:7px}
-.fp-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;font:inherit;font-size:11.5px;font-weight:600;background:var(--card);border:1px solid var(--bd2);color:var(--tx2);cursor:pointer;transition:.16s;white-space:nowrap}
+.fp-btn{display:inline-flex;align-items:center;gap:6px;padding:13px 12px;border-radius:10px;font:inherit;font-size:11.5px;font-weight:600;background:var(--card);border:1px solid var(--bd2);color:var(--tx2);cursor:pointer;transition:.16s;white-space:nowrap}
 .fp-btn:hover{color:var(--tx);border-color:var(--brand)}
 .fp-btn svg{width:15px;height:15px}
 .fp-stage{position:relative}
@@ -174,7 +185,7 @@ html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)
 .fp-ring svg{display:none}
 .fp-ring.foc::after{content:"";position:absolute;inset:-2px;border-radius:50%;animation:fpPing 2.2s ease-out infinite}
 @keyframes fpPing{0%{box-shadow:0 0 0 0 rgba(232,180,104,.5)}70%{box-shadow:0 0 0 10px rgba(232,180,104,0)}100%{box-shadow:0 0 0 0 rgba(232,180,104,0)}}
-.fp-phase{background:var(--card);border:1px solid var(--bd);border-radius:15px;overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:var(--sh1)}
+.fp-phase{background:var(--card);border:1px solid var(--bd);border-radius:var(--pp-rc);overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:var(--sh1)}
 .fp-phase:hover{box-shadow:var(--sh2)}
 .fp-phase.focus{border-color:color-mix(in srgb,var(--brand) 55%,var(--bd))}
 .fp-phead{display:flex;align-items:center;gap:11px;cursor:pointer;padding:13px 14px;user-select:none}
@@ -187,7 +198,7 @@ html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)
 .fp-chev{color:var(--tx3);transition:transform .25s;flex:0 0 auto;display:flex}
 .fp-chev svg{width:18px;height:18px}
 .fp-phase.open .fp-chev{transform:rotate(180deg)}
-.fp-sb{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:6px}
+.fp-sb{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:6px}
 .sb-done{color:var(--green);background:color-mix(in srgb,var(--brand) 16%,transparent)}
 .sb-plan{color:var(--tx2);border:1px solid var(--bd2)}
 .fp-here{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#0E130E;background:var(--amber);padding:3px 8px;border-radius:6px;animation:fpPing 2s ease-out infinite}
@@ -221,16 +232,27 @@ html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)
 .fp-tag.pri{color:var(--green);border-color:color-mix(in srgb,var(--brand) 40%,var(--bd2))}
 .fp-tag.pri-crit{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,var(--bd2))}
 @media(max-width:400px){.fp-meta{display:none}.fp-leaf.show .fp-meta{display:flex;max-width:200px;opacity:1}}
+/* No mobile o zigzag l/r deixava metade da largura vazia ao lado de cada cartão: empilha
+   em coluna única de largura cheia (o trilho já é lateral pela station), sem os conectores. */
+@media(max-width:520px){
+  .fp-leaf.r,.fp-leaf.l{margin-left:0;margin-right:0}
+  .fp-leaf.r:hover,.fp-leaf.l:hover{transform:none}
+  .fp-trib-svg{display:none}
+}
 .fp-hint{font-size:10.5px;color:var(--tx3);text-align:center;padding:14px 14px 2px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:500}
 .fp-hint svg{width:14px;height:14px}
 @media (prefers-reduced-motion:reduce){.fp-orb::after,.fp-ring.foc::after,.fp-here,.fp-leaf.fp-st-em_andamento .fp-lico{animation:none}}
 
 /* ---- Stub (telas em construção) ---- */
-.cp-stub{text-align:center;color:var(--text-muted);padding:30px 18px;background:var(--surface);border:1px dashed var(--border-strong);border-radius:14px}
+.cp-stub{text-align:center;color:var(--text-muted);padding:30px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-ri)}
 .cp-stub__ic{width:48px;height:48px;border-radius:14px;background:var(--surface-warm);color:var(--plum-deep);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
 .cp-stub__ic svg{width:24px;height:24px}
 .cp-stub p{font-size:13px;line-height:1.6;max-width:42ch;margin:0 auto}
 .cp-stub__tag{display:inline-block;margin-top:12px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--plum-deep);background:var(--success-bg);padding:3px 10px;border-radius:999px}
+/* Estado vazio de Avisos/Documentos: centrado no espaço livre em vez de colar no topo. */
+.cp-stub--vazio{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:46vh}
+.cp-stub__atz{margin-top:16px;display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:999px;background:var(--surface-warm);border:1px solid var(--border);color:var(--text-body);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.cp-stub__atz svg{width:15px;height:15px}
 
 @media (prefers-reduced-motion:reduce){.acesso__half{transition:none}}
 
@@ -243,7 +265,7 @@ html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)
 .troca-ov[hidden]{display:none}
 .troca-card{background:var(--surface);width:100%;max-width:382px;border-radius:18px;padding:24px 22px;box-shadow:0 18px 50px rgba(0,40,20,.3);animation:troca-up .26s cubic-bezier(.4,0,.2,1)}
 @keyframes troca-up{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
-.troca-banner{display:flex;align-items:center;gap:8px;justify-content:center;background:var(--warning-bg);color:var(--warning);font-size:11.5px;font-weight:600;padding:8px 12px;border-radius:999px;margin-bottom:16px}
+.troca-banner{display:flex;align-items:center;gap:8px;justify-content:center;background:var(--warning-bg);color:var(--warning-tx);font-size:11.5px;font-weight:600;padding:8px 12px;border-radius:999px;margin-bottom:16px}
 .troca-banner svg{width:15px;height:15px;flex:none}
 .troca-card__t{font-size:19px;font-weight:800;color:var(--text-body);text-align:center;letter-spacing:-.01em}
 .troca-card__p{font-size:13px;color:var(--text-muted);line-height:1.5;text-align:center;margin:4px 0 18px}
@@ -257,7 +279,7 @@ html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)
    AVISOS (Comunicados) do colaborador — tokens do portal, dark-aware
    ============================================================ */
 
-.cp-av{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:15px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,40,20,.05)}
+.cp-av{background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);padding:15px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,40,20,.05)}
 
 /* ---- Documentos do colaborador ---- */
 .cp-doc__seal{width:42px;height:42px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--success-bg);color:var(--plum)}
@@ -304,10 +326,14 @@ html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)
   --pp-ri:14px;--pp-rc:16px;--pp-rh:18px;
   --pp-sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
   --pp-sh-hero:0 8px 26px -8px rgba(0,40,20,.28),0 2px 8px rgba(0,40,20,.10);
+  /* âmbar COMO TEXTO: no claro, --warning (#B27429) fica <4.5:1 sobre surface/bg;
+     usa o ink escuro que passa AA. No escuro o âmbar claro já passa. */
+  --warning-tx:var(--warning-ink);
 }
 html.modo-colab.cp-dark{
   --pp-sh-card:0 2px 10px -4px rgba(0,0,0,.55);
   --pp-sh-hero:0 14px 34px -14px rgba(0,0,0,.7);
+  --warning-tx:var(--warning);
 }
 
 /* perfil */
@@ -336,7 +362,7 @@ html.modo-colab.cp-dark{
 .pp-ico{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
 .pp-ico svg{width:19px;height:19px;stroke-width:2}
 .pp-ico--green{background:var(--success-bg);color:var(--plum)}
-.pp-ico--amber{background:var(--warning-bg);color:var(--warning)}
+.pp-ico--amber{background:var(--warning-bg);color:var(--warning-tx)}
 .pp-ico--info{background:var(--info-bg);color:var(--info)}
 .pp-ico--neutral{background:var(--surface-warm);color:var(--text-muted)}
 .pp-ico--danger{background:var(--danger-bg);color:var(--danger)}
@@ -346,7 +372,7 @@ html.modo-colab.cp-dark{
 .pp-rw__chev{flex:none;color:var(--text-muted);display:flex}
 .pp-rw__chev svg{width:18px;height:18px}
 .pp-rw__val{flex:none;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
-.pp-rw__val--neg{color:var(--warning)}.pp-rw__val--pos{color:var(--plum)}
+.pp-rw__val--neg{color:var(--warning-tx)}.pp-rw__val--pos{color:var(--plum)}
 .pp-rw__ro{flex:none;display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:var(--surface-warm);color:var(--text-muted);font-size:10.5px;font-weight:500}
 .pp-rw__ro svg{width:12px;height:12px}
 .pp-rw--danger .pp-rw__t{color:var(--danger)}
@@ -362,16 +388,18 @@ html.modo-colab.cp-dark{
 .pp-hero__badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-size:10.5px;font-weight:600;border:1px solid rgba(255,255,255,.2)}
 .pp-hero__badge svg{width:13px;height:13px}
 .pp-hero__val{position:relative;z-index:1;margin-top:9px;font-size:38px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
-.pp-hero__sub{position:relative;z-index:1;margin-top:7px;font-size:11.5px;color:rgba(255,255,255,.82);font-weight:400}
+/* Gradiente do herói é fixo nos 2 temas (verde/âmbar), então o subtítulo sobe
+   pra .95 + sombra sutil pra garantir AA sobre o fim mais claro do gradiente. */
+.pp-hero__sub{position:relative;z-index:1;margin-top:7px;font-size:11.5px;color:rgba(255,255,255,.95);font-weight:400;text-shadow:0 1px 2px rgba(0,40,20,.28)}
 
 /* segmented com pill deslizante */
 .pp-seg-row{padding:14px 14px 15px}
 .pp-seg-cap{font-size:13px;font-weight:500;display:flex;align-items:center;gap:9px;margin-bottom:11px;color:var(--text-body)}
 .pp-seg-cap .pp-ico{width:30px;height:30px}.pp-seg-cap .pp-ico svg{width:16px;height:16px}
-.pp-seg{display:flex;background:var(--surface-warm);border:1px solid var(--border);border-radius:12px;padding:3px;position:relative}
-.pp-seg button{flex:1;height:36px;border:0;background:transparent;color:var(--text-muted);font:inherit;font-size:12px;font-weight:500;cursor:pointer;border-radius:9px;z-index:1;display:flex;align-items:center;justify-content:center;gap:5px;transition:color .18s;white-space:nowrap}
+.pp-seg{display:flex;background:var(--surface-warm);border:1px solid var(--border);border-radius:var(--pp-ri);padding:3px;position:relative}
+.pp-seg button{flex:1;height:44px;border:0;background:transparent;color:var(--text-muted);font:inherit;font-size:12px;font-weight:500;cursor:pointer;border-radius:9px;z-index:1;display:flex;align-items:center;justify-content:center;gap:5px;transition:color .18s;white-space:nowrap}
 .pp-seg button.on{color:#fff}
-.pp-seg__pill{position:absolute;top:3px;left:3px;height:36px;background:linear-gradient(150deg,#1AA34F,#0B7A36);border-radius:9px;box-shadow:0 2px 8px -2px rgba(0,0,0,.4);transition:transform .22s cubic-bezier(.4,0,.2,1)}
+.pp-seg__pill{position:absolute;top:3px;left:3px;height:44px;background:linear-gradient(150deg,#1AA34F,#0B7A36);border-radius:9px;box-shadow:0 2px 8px -2px rgba(0,0,0,.4);transition:transform .22s cubic-bezier(.4,0,.2,1)}
 
 /* switch iOS */
 .pp-sw-rw{display:flex;align-items:center;gap:12px;padding:13px 14px;min-height:60px;border-top:1px solid var(--border)}
@@ -434,6 +462,11 @@ html.modo-colab.cp-dark{
   .pp-home__grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:start}
   .pp-bday-m{display:none}
   .pp-aniv-d{display:block}
+  /* Roadmap desktop: lista alinhada, sem alternância l/r nem tocos de conector soltos
+     (os fp-trib-svg pareciam artefato de renderização numa lista já vertical). */
+  .fp-leaf.r,.fp-leaf.l{margin-left:0;margin-right:0}
+  .fp-leaf.r:hover,.fp-leaf.l:hover{transform:none}
+  .fp-trib-svg{display:none}
 }
 
 /* card de comunicado (home) */
@@ -470,7 +503,7 @@ html.modo-colab.cp-dark{
 /* chips de filtro (Avisos) */
 .pp-chips-f{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
 .pp-chips-f::-webkit-scrollbar{display:none}
-.pp-chip-f{flex:none;height:40px;padding:0 15px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease)}
+.pp-chip-f{flex:none;height:44px;padding:0 15px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease)}
 .pp-chip-f.on{background:#1AA34F;border-color:transparent;color:#fff}
 .pp-chip-f__c{font-size:11px;opacity:.85;font-variant-numeric:tabular-nums}
 
@@ -478,7 +511,7 @@ html.modo-colab.cp-dark{
 .pp-badge{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:600}
 .pp-badge svg{width:13px;height:13px}
 .pp-badge--green{background:var(--success-bg);color:var(--plum)}
-.pp-badge--amber{background:var(--warning-bg);color:var(--warning)}
+.pp-badge--amber{background:var(--warning-bg);color:var(--warning-tx)}
 .pp-badge--info{background:var(--info-bg);color:var(--info)}
 .pp-badge--neutral{background:var(--surface-warm);color:var(--text-muted)}
 
@@ -498,7 +531,8 @@ html.modo-colab.cp-dark{
 .pp-card{position:relative}
 .cp-novo{position:absolute;top:11px;right:11px;z-index:2;width:10px;height:10px;border-radius:50%;background:#1FB558;box-shadow:0 0 0 3px rgba(31,181,88,.2)}
 .cp-seen{display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);font-size:12px;font-weight:500}
-.cp-seen .icon{width:14px;height:14px;color:#1FB558}
+.cp-seen .icon{width:14px;height:14px;color:#128A43}
+html.modo-colab.cp-dark .cp-seen .icon{color:#1FB558}
 /* Selo "Aviso" (subtipo) vs selo de segmento no card do colaborador (do mock aprovado). */
 .cp-avisotag{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:rgba(224,163,58,.16);color:#E0A33A;font-size:11px;font-weight:700;margin-bottom:8px}
 .cp-avisotag .icon{width:13px;height:13px}
@@ -508,8 +542,9 @@ html.modo-colab.cp-dark{
 
 /* Meu ponto: nota informativa + ocorrência read-only (.cp-occ) + últimos 10 dias (.cp-dia) */
 .cp-bhnote{margin-top:10px;display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--text-muted);line-height:1.5}
-.cp-bhnote .icon{width:14px;height:14px;flex:none;margin-top:1px;color:#1FB558}
-.cp-occ{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:9px}
+.cp-bhnote .icon{width:14px;height:14px;flex:none;margin-top:1px;color:#128A43}
+html.modo-colab.cp-dark .cp-bhnote .icon{color:#1FB558}
+.cp-occ{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-ri);padding:12px 13px;margin-bottom:9px}
 .cp-occ__date{flex:none;width:46px;height:46px;border-radius:11px;background:var(--surface-warm);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
 .cp-occ__date b{font-size:17px;font-weight:700;color:var(--text-body)}
 .cp-occ__date span{font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
@@ -527,16 +562,20 @@ html.modo-colab.cp-dark .cp-occ__st--ok{background:rgba(31,181,88,.16);color:#5F
 html.modo-colab.cp-dark .cp-occ__st--pend{background:rgba(224,163,58,.20);color:#F2C063}
 html.modo-colab.cp-dark .cp-occ__st--lanc{background:rgba(74,168,230,.18);color:#8FCBF2}
 .cp-occ__st .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
-.cp-dia{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:10px 13px;margin-bottom:8px}
+.cp-dia{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-ri);padding:10px 13px;margin-bottom:8px}
 .cp-dia__d{flex:none;width:42px;text-align:center;line-height:1}
 .cp-dia__d b{font-size:16px;font-weight:700;color:var(--text-body)}
 .cp-dia__d span{display:block;font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-top:2px}
 .cp-dia__m{flex:1;min-width:0;font-size:13px;color:var(--text-body);font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .cp-dia__m--off{color:var(--text-muted);font-style:italic;letter-spacing:0}
 .cp-dia__s{flex:none;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
-.cp-dia__s--pos{color:#1FB558}
-.cp-dia__s--neg{color:#E06A5A}
+/* Saldos do dia com contraste AA no claro (auditoria 2026-07-02: os verdes/vermelhos
+   claros reprovavam). Claro: tinta escura; escuro: mantém a tinta viva original. */
+.cp-dia__s--pos{color:#128A43}
+.cp-dia__s--neg{color:#C4483A}
 .cp-dia__s--zero{color:var(--text-muted)}
+html.modo-colab.cp-dark .cp-dia__s--pos{color:#1FB558}
+html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 
 /* Aviso aberto em tela cheia (post) — tocar no card abre. Reusa o .modal do app. */
 .cp-post{display:flex;flex-direction:column}
@@ -584,8 +623,32 @@ html.modo-colab.cp-dark .cp-occ__st--lanc{background:rgba(74,168,230,.18);color:
 .pp-atl__b{position:absolute;top:-2px;right:-2px;min-width:17px;height:17px;border-radius:999px;background:var(--warning);color:#3a2a05;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg)}
 .pp-atl__l{font-size:10.5px;font-weight:600;color:var(--text-muted);text-align:center;line-height:1.25}
 @media (min-width:901px){.pp-atl{display:none}}
-/* No mobile o atalho "Novidades" cobre o card; no desktop o card segue no grid. */
-@media (max-width:900px){.pp-home .pp-novi{display:none}}
+/* No mobile o atalho "Novidades" cobre o card; no desktop o card segue no grid. Exceção:
+   Home vazia (sem pendência nem comunicado) mostra o card pra preencher o vão. */
+@media (max-width:900px){
+  .pp-home .pp-novi{display:none}
+  .pp-home--vazia .pp-novi{display:flex}
+}
 /* Badge de não lidos na barra de baixo (âncora no ícone) */
 .modo-colab .cp-bn-ic{position:relative}
 .cp-bn-dot{position:absolute;top:-4px;right:-10px;min-width:15px;height:15px;border-radius:999px;background:var(--warning);color:#3a2a05;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+/* Home: herói e cards irmãos com o mesmo raio (16) e ritmo vertical de 10px.
+   Escopado em .pp-home pra não mexer no herói de outras telas (que fica em 18). */
+.pp-home__col{display:flex;flex-direction:column;gap:10px}
+.pp-home .pp-hero{border-radius:var(--pp-rc)}
+.pp-home__col>.pp-novi,.pp-home__col>.pp-pend{margin:0}
+
+/* Alvos de toque ≥44px sem inflar o visual (área de clique via pseudo-elemento). */
+.pp-avcam::before{content:"";position:absolute;inset:-7px;border-radius:50%}
+.pp-ovl a{position:relative;padding:12px 4px;margin-top:-12px;margin-bottom:-12px;margin-right:-4px}
+
+/* Hover padrão no desktop pra todo clicável do portal: cards ganham elevação sutil +
+   borda mais forte; as linhas do grupo (border-top, não caixa) ganham tint, não transform. */
+@media (hover:hover){
+  .pp-novi:hover,.pp-card:hover,.pp-pend:hover,.pp-hero:hover{
+    transform:translateY(-1px);box-shadow:var(--pp-sh-hero);border-color:var(--border-strong);
+    transition:transform .15s,box-shadow .15s,border-color .15s;
+  }
+  .modo-colab .pp-rw:hover{background:var(--surface-warm)}
+}

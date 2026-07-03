@@ -121,10 +121,11 @@ if (!window._scrollFxBound) {
       : (t.scrollTop || 0);
     const tb = document.querySelector(".topbar");
     if (tb) tb.classList.toggle("topbar--elev", y > 4);
-    const fab = document.querySelector(".fab");
-    if (fab) {
-      if (y > _lastY + 6 && y > 60) fab.classList.add("fab--rec");
-      else if (y < _lastY - 6) fab.classList.remove("fab--rec");
+    // FAB "+" e chat-fab recolhem juntos ao descer, voltam ao subir.
+    const fabs = document.querySelectorAll(".fab, .chat-fab");
+    if (fabs.length) {
+      if (y > _lastY + 6 && y > 60) fabs.forEach((f) => f.classList.add("fab--rec"));
+      else if (y < _lastY - 6) fabs.forEach((f) => f.classList.remove("fab--rec"));
     }
     _lastY = y;
   }, { passive: true, capture: true });
@@ -217,6 +218,8 @@ function campoInvalido(inputSel, msg) {
   });
   return false;
 }
+// Exposto pro firebase.js reusar a validação inline no login do colaborador.
+window.campoInvalido = campoInvalido;
 
 // ---------- Modal ----------
 
@@ -754,6 +757,7 @@ function cpIcon(name) {
     pulso: '<path d="M3 12h4l2 5 4-12 2 7h6"/>',
     briefcase: '<rect x="2.5" y="7" width="19" height="13.5" rx="2.2"/><path d="M8 7V5.2A2.2 2.2 0 0 1 10.2 3h3.6A2.2 2.2 0 0 1 16 5.2V7"/><path d="M2.5 12.5h19"/>',
     camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+    refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -781,8 +785,10 @@ function cpToggleTema() {
 // Aparência (segmented na Conta): auto = segue o sistema; claro/escuro = fixo.
 function cpSetTema(modo) {
   try { if (modo === "auto") localStorage.removeItem("fiopulse:tema"); else localStorage.setItem("fiopulse:tema", modo); } catch {}
+  // In-place: só a classe cp-dark + o botão do topbar. Sem renderApp pra o pill deslizar
+  // e o DOM da Conta sobreviver (o handler do segmented atualiza o pill/estado on os nós vivos).
   cpAplicarTema();
-  renderApp();
+  cpAtualizarBotaoTema();
 }
 function cpInjetarToggleTema() {
   const tb = document.querySelector(".topbar"); if (!tb) return;
@@ -807,8 +813,12 @@ function renderPortalColaborador(u) {
   document.documentElement.classList.add("modo-colab");
   cpAplicarTema();
   cpInjetarToggleTema();
-  aplicarAvatar($("#user-avatar"), u);
-  $("#user-name").textContent = u.nome;
+  // Iniciais do avatar seguem o nome do CADASTRO (mesma fonte da saudação/Conta),
+  // pra a mesma pessoa não mostrar "AF" na sidebar e "AD" no cabeçalho.
+  const fColab = (state.funcionarios && state.funcionarios[0]) || null;
+  const nomeColab = (fColab && fColab.nome) || u.nome;
+  aplicarAvatar($("#user-avatar"), { ...u, nome: nomeColab });
+  $("#user-name").textContent = nomeColab;
   $("#user-role").textContent = "Colaborador";
   if ($("#presence")) $("#presence").innerHTML = "";
   renderNavColaborador();
@@ -820,10 +830,11 @@ function renderPortalColaborador(u) {
 
 const COLAB_NAV = [
   { id: "colab-home", label: "Início", icon: "home" },
-  { id: "colab-ponto", label: "Meu Ponto", icon: "clock" },
+  { id: "colab-ponto", label: "Meu ponto", icon: "clock" },
   { id: "colab-folha", label: "Folha de pagamento", icon: "briefcase" },
   { id: "colab-comunicados", label: "Avisos", icon: "megafone" },
   { id: "colab-documentos", label: "Documentos", icon: "file" },
+  { id: "colab-roadmap", label: "Novidades", icon: "roadmap" },
   { id: "colab-conta", label: "Conta", icon: "user" },
 ];
 
@@ -851,10 +862,21 @@ function renderBottomNavColaborador() {
     { id: "colab-comunicados", label: "Avisos", icon: "megafone", badge: nAvisos },
     { id: "colab-conta", label: "Conta", icon: "user", badge: 0 },
   ];
-  $("#bottom-nav").innerHTML = items.map((it) => `
-    <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}${it.badge ? ` (${it.badge} não lidos)` : ""}">
+  // Telas filhas do hub (acessadas por atalho da Home) não têm item próprio na barra:
+  // acendem "Início" pra a barra nunca ficar sem item ativo.
+  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap"];
+  const pageAtiva = filhasDoHub.includes(state.view.page) ? "colab-home" : state.view.page;
+  const idxAtivo = Math.max(0, items.findIndex((it) => it.id === pageAtiva));
+  // A barra é rebuilt a cada render; pra pill DESLIZAR (não teleportar), nasce na
+  // posição anterior e migra pro índice novo no próximo frame.
+  const idxAnterior = window.__bnIdx != null ? window.__bnIdx : idxAtivo;
+  $("#bottom-nav").innerHTML = `<span class="bn-pill" style="--bn-i:${idxAnterior}"></span>` + items.map((it) => `
+    <button class="bottom-nav__item ${pageAtiva === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}${it.badge ? ` (${it.badge} não lidos)` : ""}">
       <span class="cp-bn-ic">${cpIcon(it.icon)}${it.badge ? `<span class="cp-bn-dot">${it.badge > 9 ? "9+" : it.badge}</span>` : ""}</span><span class="cp-bn-lab">${it.label}</span>
     </button>`).join("");
+  const pill = $("#bottom-nav .bn-pill");
+  if (pill && idxAnterior !== idxAtivo) requestAnimationFrame(() => pill.style.setProperty("--bn-i", idxAtivo));
+  window.__bnIdx = idxAtivo;
   $$("#bottom-nav .bottom-nav__item").forEach((btn) => btn.addEventListener("click", () => {
     state.view.page = btn.dataset.page; renderApp();
   }));
@@ -868,7 +890,7 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu Ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Roadmap", "colab-conta": "Conta" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Novidades", "colab-conta": "Conta" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conta") return renderColabConta();
   if (page === "colab-roadmap") return renderPortalRoadmap();
@@ -887,6 +909,25 @@ function renderColabStub(titulo, msg, ic) {
       <p>${escapeHtml(msg)}</p>
       <span class="cp-stub__tag">Próximas fases do Portal</span>
     </div>`;
+}
+
+// Estado vazio de Avisos/Documentos: centrado no espaço livre, superfície sólida (sem
+// tracejado de wireframe) e um botão discreto "Atualizar" que refaz a leitura volátil.
+function colabVazioHtml(ic, msg) {
+  return `<div class="cp-stub cp-stub--vazio">
+      <div class="cp-stub__ic">${cpIcon(ic)}</div>
+      <p>${escapeHtml(msg)}</p>
+      <button class="cp-stub__atz" data-acao="atualizar">${cpIcon("refresh")}Atualizar</button>
+    </div>`;
+}
+function bindColabVazioAtz(root) {
+  const btn = root && root.querySelector('[data-acao="atualizar"]');
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    if (!window.recarregarVolateis) { renderApp(); return; }
+    btn.disabled = true;
+    window.recarregarVolateis().then(() => renderApp()).catch(() => { btn.disabled = false; });
+  });
 }
 
 // ===== Avisos (Comunicados) do colaborador — lê + confirma ciência =====
@@ -918,7 +959,8 @@ function renderColabComunicados() {
   if (todos.length === 0) {
     $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>
       ${discSec}
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("megafone")}</div><p>Nenhum aviso pra você por enquanto. Quando o GP publicar algo do seu setor ou turno, aparece aqui.</p></div></div>`;
+      ${colabVazioHtml("megafone", "Nenhum aviso pra você por enquanto. Quando a GP publicar algo do seu setor ou turno, aparece aqui.")}</div>`;
+    bindColabVazioAtz($("#view"));
     return;
   }
   const filtro = (state.view.avFiltro === "naovistos" || state.view.avFiltro === "naolidos") ? "naovistos" : "todos";
@@ -1145,7 +1187,7 @@ function colabReciboRowHtml(r) {
     </span>
     ${ass
       ? `<span class="pp-rw__ro">${cpIcon("check")}Assinado</span>`
-      : `<span class="pp-badge pp-badge--amber">${cpIcon("edit")}Assinatura pendente</span>`}
+      : `<span class="pp-badge pp-badge--amber">${cpIcon("edit")}Assinar</span>`}
   </div>`;
 }
 
@@ -1372,7 +1414,7 @@ function renderColabFolha() {
   const lista = (state.meusRecibos || []).filter((r) => r.tipo === "recibo");
   if (lista.length === 0) {
     $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("briefcase")}</div><p>Nenhum recibo por enquanto. Quando o GP importar a folha do mês, o seu recibo aparece aqui.</p></div></div>`;
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("briefcase")}</div><p>Nenhum recibo por enquanto. Quando a GP importar a folha do mês, o seu recibo aparece aqui.</p></div></div>`;
     return;
   }
   $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
@@ -1389,7 +1431,8 @@ function renderColabDocumentos() {
   const emdia = lista.filter((d) => !colabDocPendente(d));
   if (lista.length === 0) {
     $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("file")}</div><p>Nenhum documento pra você por enquanto. Quando o GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p></div></div>`;
+      ${colabVazioHtml("file", "Nenhum documento pra você por enquanto. Quando a GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.")}</div>`;
+    bindColabVazioAtz($("#view"));
     return;
   }
   $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>`
@@ -1574,11 +1617,11 @@ function comunicadoFixadoHtml() {
   const fix = lista.find((c) => c.fixado);
   if (!fix) return "";
   const ehAviso = (fix.tipo === "aviso");
-  return `<div class="pp-ovl">Comunicados<a data-nav="colab-comunicados">Ver todos</a></div>
+  return `<div class="pp-ovl">Comunicados<button class="pp-ovl__link" data-nav="colab-comunicados" style="margin-left:auto;margin-right:-4px;background:none;border:0;color:var(--plum);font:inherit;font-size:11.5px;font-weight:600;letter-spacing:0;text-transform:none;padding:12px 4px;cursor:pointer">Ver todos</button></div>
     <button class="pp-card pp-card--pin${ehAviso ? " cp-avisocard" : ""}" data-nav="colab-comunicados">
       <div class="pp-card__bd">
         ${ehAviso ? `<span class="cp-avisotag">${cpIcon("megafone")}Aviso</span>` : ""}
-        <div class="pp-card__meta">${cpIcon("pin")}<span>Fixado pelo GP</span></div>
+        <div class="pp-card__meta">${cpIcon("pin")}<span>Fixado pela GP</span></div>
         <div class="pp-card__t">${escapeHtml(fix.titulo || "")}</div>
         ${fix.corpo ? `<div class="pp-card__x">${escapeHtml(fix.corpo)}</div>` : ""}
       </div>
@@ -1612,9 +1655,16 @@ function precisaAtencaoHtml() {
   return `<div class="pp-ovl">Precisa da sua atenção<span class="pp-ct">${n} ${n > 1 ? "itens" : "item"}</span></div>${rows}`;
 }
 
-// Herói de banco de horas (home): 3 estados com selo. Mesmo gradiente verde sempre; o sinal
+// Texto único do estado "sem saldo ainda" (compartilhado pelos heróis da Home e da Conta,
+// que antes divergiam em "em breve"/"Em breve" e subtítulo).
+const CP_SALDO_VAZIO = "Em breve";
+const CP_SALDO_VAZIO_SUB = "Seu saldo aparece aqui assim que a GP sincronizar";
+
+// Herói de banco de horas: 3 estados com selo. Mesmo gradiente verde sempre; o sinal
 // e o selo comunicam. Esconde pro bhExempt (diretor/Geral sem ponto).
-function bhHeroHtml(f) {
+// estatico=true (dentro do Meu ponto): vira bloco não clicável rotulado "Saldo do mês"
+// (não navega pra própria tela nem duplica o rótulo do chip ativo).
+function bhHeroHtml(f, estatico) {
   if (f && f.bhExempt) return "";
   const bh = state.meuSaldoBH || null;
   const bhMin = bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null;
@@ -1631,16 +1681,21 @@ function bhHeroHtml(f) {
   const _mes = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const mesCap = _mes.charAt(0).toUpperCase() + _mes.slice(1);
   const sub = estado === "semdado"
-    ? "Seu saldo aparece aqui assim que o GP sincronizar"
-    : (ctx ? `Atualizado ${ctx} · ${selTxt}` : (selTxt || "Toque para ver o detalhe"));
-  return `<button class="pp-hero ${cls}" data-nav="colab-ponto" aria-label="Banco de horas" style="margin-bottom:4px">
+    ? CP_SALDO_VAZIO_SUB
+    : (ctx ? `Atualizado ${ctx} · ${selTxt}` : (selTxt || ""));
+  const lbl = estatico ? "Saldo do mês" : "Banco de horas";
+  const tag = estatico ? "div" : "button";
+  const attrs = estatico ? "" : ` data-nav="colab-ponto" aria-label="Banco de horas"`;
+  // estático: cancela o cursor:pointer do .pp-hero (não é clicável dentro do Meu ponto).
+  const estilo = estatico ? "margin-bottom:4px;cursor:default" : "margin-bottom:4px";
+  return `<${tag} class="pp-hero ${cls}"${attrs} style="${estilo}">
     <div class="pp-hero__top">
-      <span class="pp-hero__lbl">${cpIcon("clock")}Banco de horas</span>
+      <span class="pp-hero__lbl">${cpIcon("clock")}${lbl}</span>
       <span class="pp-hero__badge">${escapeHtml(mesCap)}</span>
     </div>
-    <div class="pp-hero__val">${bhStr ? escapeHtml(bhStr) : "em breve"}</div>
+    <div class="pp-hero__val">${bhStr ? escapeHtml(bhStr) : CP_SALDO_VAZIO}</div>
     <div class="pp-hero__sub">${escapeHtml(sub)}</div>
-  </button>`;
+  </${tag}>`;
 }
 
 // Saudação criativa da home: avatar + saudação por horário ("Bom dia/tarde/noite, Nome") +
@@ -1701,7 +1756,8 @@ function colabAtalhosHtml() {
   const b = (n) => (n > 0 ? `<span class="pp-atl__b">${n > 9 ? "9+" : n}</span>` : "");
   const itens = [
     { id: "colab-ponto", label: "Meu ponto", icon: "clock", badge: rcbNaoVistos("cartao-ponto") },
-    { id: "colab-folha", label: "Folha de pagamento", icon: "briefcase", badge: rcbNaoVistos("recibo") },
+    // "Pagamento" (não "Folha de pagamento") pra o rótulo do atalho caber em 1 linha, igual aos outros.
+    { id: "colab-folha", label: "Pagamento", icon: "briefcase", badge: rcbNaoVistos("recibo") },
     { id: "colab-comunicados", label: "Avisos", icon: "megafone", badge: colabAvisosNaoLidos() },
     { id: "colab-documentos", label: "Documentos", icon: "file", badge: (state.documentosColab || []).filter(colabDocPendente).length },
     { id: "colab-roadmap", label: "Novidades", icon: "roadmap", badge: 0 },
@@ -1728,8 +1784,11 @@ function renderColaboradorHome() {
       <span class="pp-novi__bd"><span class="pp-novi__t">Novidades</span><span class="pp-novi__s">Veja a evolução do portal e o que chegou</span></span>
       <span class="pp-novi__chev">${cpIcon("chevron")}</span>
     </button>`;
+  // Home "vazia": sem pendência e sem comunicado fixado. Aí o card Novidades aparece também
+  // no mobile (pp-home--vazia), pra não sobrar ~55% de tela em branco entre herói e ilha.
+  const homeVazia = !precisaAtencaoHtml() && !comunicadoFixadoHtml();
   view.innerHTML = `
-    <div class="pp-fade pp-home">
+    <div class="pp-fade pp-home${homeVazia ? " pp-home--vazia" : ""}">
       ${colabGreetHtml(f, nome)}
       ${colabAtalhosHtml()}
       <div class="pp-home__grid">
@@ -1806,7 +1865,7 @@ function colabBhTabHtml(f) {
   } else {
     detalhe = `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O espelho do mês aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
   }
-  return `${bhHeroHtml(f)}${cartaoSec}${detalhe}`;
+  return `${bhHeroHtml(f, true)}${cartaoSec}${detalhe}`;
 }
 
 function cpDow(dataIso) {
@@ -1911,6 +1970,12 @@ function openColabFotoSheet() {
   });
 }
 
+// Sair pede confirmação leve: um toque acidental não derruba a sessão.
+async function confirmarSairColab() {
+  if (!(await confirmar({ titulo: "Sair da conta?", msg: "Você precisará entrar de novo com CPF e senha.", okLabel: "Sair", perigo: true }))) return;
+  if (window.logout) window.logout(); else logout();
+}
+
 function renderColabConta() {
   const view = $("#view");
   const u = currentUser();
@@ -1932,7 +1997,7 @@ function renderColabConta() {
   const _mes = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const mesCap = _mes.charAt(0).toUpperCase() + _mes.slice(1);
   // PII fora do portal do colaborador: Nascimento NAO aparece (regra LGPD). Mantem nao sensiveis.
-  const dados = f ? [
+  const dados = (f ? [
     ["Idade", f.idade ? `${f.idade} anos` : null],
     ["Sexo", f.sexo],
     ["Estado civil", f.estadoCivil],
@@ -1940,7 +2005,7 @@ function renderColabConta() {
     ["Setor", f.setor],
     ["Admissão", ts(f.admissao)],
     ["Tempo de casa", f.diasNaEmpresa ? tempoDeCasa(f.diasNaEmpresa) : null],
-  ] : [];
+  ] : []).filter(([, v]) => v != null && v !== "");
   view.innerHTML = `
     <div class="pp-fade">
       <div class="pp-prof">
@@ -1962,8 +2027,8 @@ function renderColabConta() {
           <span class="pp-hero__lbl">${cpIcon("clock")}Saldo atual</span>
           <span class="pp-hero__badge">${escapeHtml(mesCap)}</span>
         </div>
-        <div class="pp-hero__val">${escapeHtml(bhStr || "Em breve")}</div>
-        <div class="pp-hero__sub">${bhStr ? "Toque para ver o detalhe" : "Seu saldo aparece aqui assim que sincronizar"}</div>
+        <div class="pp-hero__val">${escapeHtml(bhStr || CP_SALDO_VAZIO)}</div>
+        <div class="pp-hero__sub">${bhStr ? "Abra para ver o detalhe" : CP_SALDO_VAZIO_SUB}</div>
       </button>
 
       <div class="pp-ovl">Meus dados</div>
@@ -2010,7 +2075,6 @@ function renderColabConta() {
         <button class="pp-rw pp-rw--danger" data-acao="sair">
           <span class="pp-ico pp-ico--danger">${cpIcon("logout")}</span>
           <span class="pp-rw__bd"><span class="pp-rw__t">Sair</span></span>
-          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
         </button>
       </div>
 
@@ -2018,13 +2082,22 @@ function renderColabConta() {
     </div>
   `;
   view.querySelector('[data-acao="dados-toggle"]')?.addEventListener("click", () => $("#cp-dados")?.classList.toggle("hidden"));
-  aplicarAvatar($("#colab-av"), u); // aplica a foto do perfil, se houver
+  // Nome do cadastro (f.nome) tem prioridade nas iniciais, igual à saudação da Home,
+  // pra a mesma pessoa não mostrar "AF" na Conta e "AD" na Home.
+  aplicarAvatar($("#colab-av"), { ...u, nome });
   view.querySelector("#colab-av-cam")?.addEventListener("click", openColabFotoSheet);
-  view.querySelector('[data-acao="trocar-senha"]')?.addEventListener("click", () => { if (typeof openProfileModal === "function") openProfileModal(); });
-  view.querySelector('[data-acao="sair"]')?.addEventListener("click", () => (window.logout ? window.logout() : logout()));
+  view.querySelector('[data-acao="trocar-senha"]')?.addEventListener("click", () => {
+    // Abre direto o form de nova senha (padrão de sheet do colaborador), sem passar
+    // pelo modal "Minha conta" do gestor (que trazia um segundo Sair e outra linguagem).
+    if (typeof window.alterarMinhaSenha === "function") openTrocarSenhaModal();
+    else toast("Troca de senha disponível apenas no app conectado.", "danger");
+  });
+  view.querySelector('[data-acao="sair"]')?.addEventListener("click", confirmarSairColab);
   const _seg = view.querySelector("#cp-seg-tema");
   const _pill = _seg?.querySelector(".pp-seg__pill");
   _seg?.querySelectorAll("button").forEach((b, i) => b.addEventListener("click", () => {
+    // Aplica o tema in-place (só a classe cp-dark + pill deslizante), sem renderApp: assim
+    // o pill desliza em vez de teleportar e o DOM da Conta não é recriado a cada clique.
     cpSetTema(b.dataset.tema);
     _seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
     if (_pill) _pill.style.transform = `translateX(${i * 100}%)`;
@@ -2036,6 +2109,20 @@ function renderColabConta() {
     try { localStorage.setItem("fiopulse:notif", on ? "0" : "1"); } catch {}
   });
   bindColabNav(view);
+}
+
+// roadmap.js (~86KB de dados estáticos) só é usado na tela Novidades do
+// colaborador. Carrega sob demanda pra não pesar no boot de quem nunca a abre.
+let _roadmapEstado = "ausente"; // ausente | carregando | pronto | falhou
+function carregarRoadmap(cb) {
+  if (window.ROADMAP) { _roadmapEstado = "pronto"; cb && cb(); return; }
+  if (_roadmapEstado === "carregando") return; // já em voo: o onload pendente re-renderiza
+  _roadmapEstado = "carregando";
+  const s = document.createElement("script");
+  s.src = "roadmap.js?v=" + (window.CURRENT_VERSION || "1");
+  s.onload = () => { _roadmapEstado = window.ROADMAP ? "pronto" : "falhou"; cb && cb(); };
+  s.onerror = () => { _roadmapEstado = "falhou"; cb && cb(); };
+  document.head.appendChild(s);
 }
 
 function cpRoadmapFocoIdx() {
@@ -2052,7 +2139,16 @@ const _CP_PRI = { critica: "Crítica", alta: "Alta", media: "Média", baixa: "Ba
 function renderPortalRoadmap() {
   const view = $("#view");
   const R = window.ROADMAP;
-  if (!R || !R.itens) { view.innerHTML = `<div class="cp-stub"><p>Roadmap indisponível.</p></div>`; return; }
+  if (!R || !R.itens) {
+    // Dados ainda não baixados: carrega sob demanda e re-renderiza ao chegar.
+    if (!R && _roadmapEstado !== "falhou") {
+      view.innerHTML = `<div class="cp-stub"><p>Carregando novidades...</p></div>`;
+      carregarRoadmap(() => { if (state.view.page === "colab-roadmap") renderPortalRoadmap(); });
+      return;
+    }
+    view.innerHTML = `<div class="cp-stub"><p>Novidades indisponíveis.</p></div>`;
+    return;
+  }
   const focoIdx = cpRoadmapFocoIdx();
   const conta = (its) => { const c = { concluido: 0, em_andamento: 0, planejado: 0, pendente: 0, total: its.length }; its.forEach((i) => { if (i.status in c) c[i.status]++; }); return c; };
   const G = conta(R.itens);
@@ -2087,7 +2183,9 @@ function renderPortalRoadmap() {
     const solid = estado === "concluida", foc = estado === "em_foco";
     const ringCol = solid ? "var(--done)" : foc ? "var(--prog)" : "var(--plan)";
     const ringPct = solid ? 100 : pct;
-    const ringInner = solid ? cpIcon("check") : `<b>${ringPct}%</b>`;
+    // display inline vence o `.fp-ring svg{display:none}` do CSS (que, sem esta regra,
+    // engolia o check e deixava o anel concluído como um disco vazio).
+    const ringInner = solid ? cpIcon("check").replace("<svg ", '<svg style="display:block" ') : `<b>${ringPct}%</b>`;
     const ringCls = "fp-ring" + (solid ? " solid" : "") + (foc ? " foc" : "");
     const badge = solid ? '<span class="fp-sb sb-done">Concluída</span>'
       : foc ? `<span class="fp-here">${cpIcon("mappin")}Você está aqui</span>`
@@ -2109,7 +2207,7 @@ function renderPortalRoadmap() {
       + `</div></div>`;
   };
   const stat = (n, col, dotStyle, label) => `<div class="fp-stat"><div class="n" style="color:${col}">${n}</div><div class="l"><span class="fp-dot" style="${dotStyle}"></span>${label}</div></div>`;
-  view.innerHTML = `<div class="fp-root">
+  view.innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Novidades</h1></div><div class="fp-root">
     <div class="fp-summary">
       ${stat(G.concluido, "var(--success)", "background:var(--success)", "Concluídas")}
       ${stat(G.em_andamento, "var(--warning)", "background:var(--warning)", "Em andamento")}
@@ -2136,8 +2234,8 @@ function renderPortalRoadmap() {
         ${fases.map(stationHtml).join("")}
       </div>
     </div></div>
-    <div class="fp-hint">${cpIcon("info")}Toque numa fase para abrir os itens; passe o mouse num item para ver prioridade e complexidade</div>
-  </div>`;
+    <div class="fp-hint">${cpIcon("info")}Toque numa fase para abrir os itens; toque num item para ver prioridade e complexidade</div>
+  </div></div>`;
   // ---- interações + trilho ----
   const flow = view.querySelector("#fp-flow");
   const railSvg = view.querySelector("#fp-rail");
@@ -2437,7 +2535,7 @@ function renderPresence() {
 function montarTooltipPresence(usr) {
   const ROLE_LABELS = { admin: "Admin", rh: "GP", lider: "Líder" };
   const PAGE_LABELS = {
-    dashboard: "Ocorrências", "banco-horas": "Banco de Horas", "espelho-ponto": "Espelho de ponto",
+    dashboard: "Ocorrências", "banco-horas": "Banco de horas", "espelho-ponto": "Espelho de ponto",
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
   };
   const role = ROLE_LABELS[usr.role] || "";
@@ -2474,7 +2572,7 @@ function abrirPresenceDropdown(online) {
 
   const ROLE_LABELS = { admin: "Admin", rh: "GP", lider: "Líder" };
   const PAGE_LABELS = {
-    dashboard: "Ocorrências", "banco-horas": "Banco de Horas", "espelho-ponto": "Espelho de ponto",
+    dashboard: "Ocorrências", "banco-horas": "Banco de horas", "espelho-ponto": "Espelho de ponto",
     funcionarios: "Funcionários", pj: "Controle PJ", config: "Configurações",
   };
 
@@ -2690,6 +2788,7 @@ function espSelecionar(f, viaToque) {
 }
 
 function renderEspelhoPontoGestor() {
+  $("#topbar-title").textContent = "Espelho de ponto";
   const u = currentUser();
   const time = funcionariosVisiveisPara(u).slice().sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
   const escopoTxt = u.role === "lider" ? (u.turno === "geral" ? "Horário geral" : `${u.turno}º Turno`)
@@ -2752,7 +2851,7 @@ function renderNav() {
   const items = [];
   items.push({ id: "visao-geral", label: "Visão geral", icon: "pulso" });
   items.push({ id: "dashboard", label: "Ocorrências", icon: "clipboard", badge: pending });
-  items.push({ id: "banco-horas", label: "Banco de Horas", icon: "clock" });
+  items.push({ id: "banco-horas", label: "Banco de horas", icon: "clock" });
   if (can("bancoHoras.ver")) items.push({ id: "espelho-ponto", label: "Espelho de ponto", icon: "conferir" });
   // "Conferência (beta)" foi fundida na aba Ocorrências (estágio "RH confere"); sem item próprio.
 
@@ -2777,7 +2876,7 @@ function renderNav() {
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
   $("#nav").innerHTML = items.map((it) => `
-    <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
+    <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${escapeHtml(it.label)}" title="${escapeHtml(it.label)}">
       ${icon(it.icon)}
       <span>${it.label}</span>
       ${it.beta ? `<span class="nav__beta">beta</span>` : ""}
@@ -2877,9 +2976,10 @@ function visibleOcorrencias() {
 }
 
 function updateFab() {
-  const u = currentUser();
   const fab = $("#fab");
-  if (can("ocorrencias.criar")) {
+  // O "+" cria ocorrência: só faz sentido na lista de Ocorrências (dashboard).
+  // Fora dela virava um atalho fantasma sobre Comunicados/Documentos/PJ.
+  if (can("ocorrencias.criar") && state.view.page === "dashboard") {
     fab.classList.add("show");
     fab.onclick = () => openNovaOcorrencia();
   } else {
@@ -2890,11 +2990,11 @@ function updateFab() {
 // ---------- Views ----------
 
 // Teatro calibrado (aprovado no mock skeleton-premium): na 1ª visita da aba
-// (por sessão) mostra skeleton por 300ms antes do conteúdo pré-carregado
-// entrar em cascata. Visitas seguintes renderizam direto — o app nunca fica
+// (por sessão) mostra skeleton por 190ms antes do conteúdo pré-carregado
+// entrar em cascata. Visitas seguintes renderizam direto, o app nunca fica
 // mais lento que instantâneo no uso repetido. prefers-reduced-motion pula tudo.
 const _skelVisto = new Set();
-const _SKEL_PAGES = { "banco-horas": "Banco de Horas", "funcionarios": "Funcionários", "pj": "Controle PJ" };
+const _SKEL_PAGES = { "banco-horas": "Banco de horas", "funcionarios": "Funcionários", "pj": "Controle PJ" };
 
 function skeletonViewHtml() {
   const stat = `<div class="stat" aria-hidden="true"><div class="sk-c" style="height:10px;width:60%"></div><div class="sk-c" style="height:26px;width:40%;margin-top:10px"></div></div>`;
@@ -2919,7 +3019,7 @@ function renderView() {
     _skelVisto.add(page);
     $("#topbar-title").textContent = _SKEL_PAGES[page];
     view.innerHTML = skeletonViewHtml();
-    setTimeout(() => { if (state.view.page === page) renderView(); }, 300);
+    setTimeout(() => { if (state.view.page === page) renderView(); }, 190);
     return;
   }
 
@@ -3491,7 +3591,7 @@ function renderDashboard() {
       <button class="tab ${state.view.filterTab === "todas" ? "active" : ""}" data-tab="todas">
         Todas <span class="tab__count">${visible.length + nComLider + nConfAuto + nRhConfere + nDispensadas}</span>
       </button>
-      ${podeRh && nDispensadas ? `<button class="tab ${state.view.filterTab === "dispensadas" ? "active" : ""}" data-tab="dispensadas">
+      ${podeRh ? `<button class="tab ${state.view.filterTab === "dispensadas" ? "active" : ""}" data-tab="dispensadas">
         Dispensadas <span class="tab__count">${nDispensadas}</span>
       </button>` : ""}
       <span class="tabs__ink" aria-hidden="true"></span>
@@ -3656,9 +3756,9 @@ function renderOccList() {
         <h3>${temFiltroAtivo ? "Nada por aqui" : "Tudo em dia"}</h3>
         <p>${temFiltroAtivo
           ? "Nenhum registro com a busca/filtro atual."
-          : (tab === "rh-confere" ? "Nada para o GP conferir agora."
+          : (tab === "rh-confere" ? "Nada para a GP conferir agora."
             : tab === "dispensadas" ? "Nenhuma ocorrência dispensada."
-            : tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando o GP lançar algo, aparece aqui."
+            : tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando a GP lançar algo, aparece aqui."
             : "Nenhum registro encontrado.")}</p>
         ${temFiltroAtivo ? `<button class="btn btn--ghost" id="btn-limpar-occ">${icon("x")}<span>Limpar filtros</span></button>` : ""}
         ${podeCriar ? `<button class="btn btn--primary" id="btn-empty-nova">${icon("plus")}<span>Nova ocorrência</span></button>` : ""}
@@ -3759,7 +3859,7 @@ function openNovaOcorrencia() {
     <div class="modal__header">
       <div>
         <h2>Nova ocorrência</h2>
-        <p>Preencha os dados que o GP conhece. O líder cuida da conferência depois.</p>
+        <p>Preencha os dados que a GP conhece. O líder cuida da conferência depois.</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
@@ -3804,7 +3904,6 @@ function openNovaOcorrencia() {
         <textarea id="f-obs" placeholder="Contexto, justificativa, anexos referenciados..."></textarea>
         <span class="field__hint">O líder poderá adicionar mais informações na conferência.</span>
       </div>
-      <div class="ass-erro" id="f-erro" hidden></div>
     </form>
     <div class="modal__footer">
       <button class="btn btn--ghost" data-close>Cancelar</button>
@@ -3813,10 +3912,7 @@ function openNovaOcorrencia() {
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      $("#btn-save").addEventListener("click", () => {
-        const fe = document.getElementById("f-erro"); if (fe) { fe.hidden = true; fe.textContent = ""; }
-        saveNovaOcorrencia();
-      });
+      $("#btn-save").addEventListener("click", saveNovaOcorrencia);
       const linkImport = $("#link-import");
       if (linkImport) {
         linkImport.addEventListener("click", (e) => {
@@ -4316,6 +4412,34 @@ function renderFuncionarios() {
   animarNumeros("#view");
 }
 
+// Reescreve as options do #func-turno-filter com contagens do universo passado
+// (já filtrado por status). Preserva o valor selecionado e devolve o foco se o
+// select estava focado — senão o re-render derrubaria o teclado (auditoria).
+function atualizarTurnoFilterCounts(universo, selecionado) {
+  const sel = $("#func-turno-filter");
+  if (!sel) return;
+  const total = universo.length;
+  const semN = universo.filter((f) => !f.turno).length;
+  const t1 = universo.filter((f) => f.turno === 1).length;
+  const t2 = universo.filter((f) => f.turno === 2).length;
+  const t3 = universo.filter((f) => f.turno === 3).length;
+  const tg = universo.filter((f) => f.turno === "geral").length;
+  const opts = [
+    ["", `Todos os turnos (${total})`],
+    ["sem", `Sem turno (${semN})`],
+    ["1", `1º Turno (${t1})`],
+    ["2", `2º Turno (${t2})`],
+    ["3", `3º Turno (${t3})`],
+    ["geral", `Geral (${tg})`],
+  ];
+  const novoHtml = opts.map(([v, label]) => `<option value="${v}" ${selecionado === v ? "selected" : ""}>${label}</option>`).join("");
+  if (sel.innerHTML === novoHtml) return; // nada mudou: não mexe no foco
+  const tinhaFoco = document.activeElement === sel;
+  sel.innerHTML = novoHtml;
+  sel.value = selecionado;
+  if (tinhaFoco) { try { sel.focus(); } catch (e) {} }
+}
+
 function renderFuncList(animar) {
   const u = currentUser();
   const search = ($("#func-search")?.value || "").toLowerCase();
@@ -4335,6 +4459,12 @@ function renderFuncList(animar) {
   else if (statusFilter === "aprendiz") list = list.filter((f) => f.aprendiz === true);
   else if (statusFilter === "inativo") list = list.filter((f) => f.ativo === false);
   // "todos" não filtra
+
+  // Contagens do filtro de turno respeitam o status ativo (auditoria): "Apenas
+  // inativos" mostra quantos inativos há por turno, não os ativos. Universo =
+  // lista após status, antes de busca/turno. Reescreve só as options do select
+  // (preserva valor + foco, técnica do #search) pra não derrubar o teclado.
+  atualizarTurnoFilterCounts(list, filter);
 
   if (search) {
     list = list.filter((f) =>
@@ -4491,7 +4621,24 @@ function renderFuncPerfilSecoes(f) {
   // Header com avatar grande + nome + cargo/setor/turno
   const turnoLabel = f.turno && TURNOS[f.turno] ? TURNOS[f.turno].label : null;
 
-  const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
+  // Seção em grade que COLAPSA os vazios (auditoria): só renderiza os itens com
+  // valor; se nenhum tem, mostra uma nota única em vez de uma parede de "—".
+  // itens: [{ label, valor, full? }]. valor null/""/undefined é omitido.
+  const gridSecao = (titulo, itens) => {
+    const cheios = itens.filter((it) => it.valor !== null && it.valor !== undefined && it.valor !== "");
+    const corpo = cheios.length
+      ? `<div class="func-perfil-grid">${cheios.map((it) => `
+          <div class="func-perfil-grid__item"${it.full ? ` style="grid-column: span 2;"` : ""}>
+            <label>${it.label}</label>
+            <span>${escapeHtml(String(it.valor))}</span>
+          </div>`).join("")}</div>`
+      : `<div class="text-xs muted">Dados do ERP ainda não sincronizados.</div>`;
+    return `
+    <div class="func-perfil-secao">
+      <div class="func-perfil-secao__titulo">${titulo}</div>
+      ${corpo}
+    </div>`;
+  };
 
   return `
     <div class="func-perfil-header">
@@ -4528,35 +4675,14 @@ function renderFuncPerfilSecoes(f) {
       </div>
     ` : ""}
 
-    <div class="func-perfil-secao">
-      <div class="func-perfil-secao__titulo">Dados pessoais</div>
-      <div class="func-perfil-grid">
-        <div class="func-perfil-grid__item">
-          <label>Idade</label>
-          <span>${dash(f.idade ? `${f.idade} anos` : null)}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Nascimento</label>
-          <span>${dash(nascStr)}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Sexo</label>
-          <span>${dash(f.sexo)}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Estado civil</label>
-          <span>${dash(f.estadoCivil)}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Grau de instrução</label>
-          <span>${escapeHtml(dash(f.grauInstrucao))}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Naturalidade</label>
-          <span>${escapeHtml(dash(f.naturalidade))}</span>
-        </div>
-      </div>
-    </div>
+    ${gridSecao("Dados pessoais", [
+      { label: "Idade", valor: f.idade ? `${f.idade} anos` : null },
+      { label: "Nascimento", valor: nascStr },
+      { label: "Sexo", valor: f.sexo },
+      { label: "Estado civil", valor: f.estadoCivil },
+      { label: "Grau de instrução", valor: f.grauInstrucao },
+      { label: "Naturalidade", valor: f.naturalidade },
+    ])}
 
     ${temGraficoBH ? `
     <div class="func-perfil-secao">
@@ -4575,35 +4701,14 @@ function renderFuncPerfilSecoes(f) {
     </div>
     ` : ""}
 
-    <div class="func-perfil-secao">
-      <div class="func-perfil-secao__titulo">Trabalho</div>
-      <div class="func-perfil-grid">
-        <div class="func-perfil-grid__item">
-          <label>Cargo</label>
-          <span>${escapeHtml(dash(f.cargo))}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Admissão</label>
-          <span>${dash(admStr)}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Tempo de casa</label>
-          <span>${tempoDeCasa(f.diasNaEmpresa)}</span>
-        </div>
-        <div class="func-perfil-grid__item" style="grid-column: span 2;">
-          <label>Escala</label>
-          <span>${escapeHtml(dash(f.escala))}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Carga horária / semana</label>
-          <span>${dash(f.cargaHorariaSemana ? `${f.cargaHorariaSemana}h` : null)}</span>
-        </div>
-        <div class="func-perfil-grid__item">
-          <label>Carga horária / mês</label>
-          <span>${dash(f.cargaHorariaMes ? `${f.cargaHorariaMes}h` : null)}</span>
-        </div>
-      </div>
-    </div>
+    ${gridSecao("Trabalho", [
+      { label: "Cargo", valor: f.cargo },
+      { label: "Admissão", valor: admStr },
+      { label: "Tempo de casa", valor: f.diasNaEmpresa ? tempoDeCasa(f.diasNaEmpresa) : null },
+      { label: "Escala", valor: f.escala, full: true },
+      { label: "Carga horária / semana", valor: f.cargaHorariaSemana ? `${f.cargaHorariaSemana}h` : null },
+      { label: "Carga horária / mês", valor: f.cargaHorariaMes ? `${f.cargaHorariaMes}h` : null },
+    ])}
 
     <!-- Container vazio: preenchido async se user é admin/RH (PII vem de banco-horas-saldos) -->
     <div id="func-perfil-pii"></div>
@@ -5259,7 +5364,7 @@ function renderObrigacoes() {
     <header class="page-header">
       <div>
         <h1>Obrigações</h1>
-        <p>As rotinas do GP. O sistema acompanha mês a mês e zera no período seguinte.</p>
+        <p>As rotinas da GP. O sistema acompanha mês a mês e zera no período seguinte.</p>
       </div>
       <button class="btn btn--primary" data-obrig-nova>${icon("plus")}<span>Nova obrigação</span></button>
     </header>`;
@@ -5326,7 +5431,7 @@ function openObrigacaoModal(id) {
   const rec = o?.recorrencia || "mensal";
   openModal(`
     <div class="modal__header">
-      <div><h2>${o ? "Editar obrigação" : "Nova obrigação"}</h2><p>Rotina recorrente do GP.</p></div>
+      <div><h2>${o ? "Editar obrigação" : "Nova obrigação"}</h2><p>Rotina recorrente da GP.</p></div>
       <button class="modal__close" data-close>${icon("x")}</button>
     </div>
     <form class="modal__body" id="obrig-form" onsubmit="return false">
@@ -5520,7 +5625,7 @@ function renderComunicados() {
       <div class="empty">
         <div class="empty__icon">${icon("megafone")}</div>
         <h3>Nenhum comunicado publicado</h3>
-        <p>Crie o primeiro aviso para a equipe. Voce escolhe quem recebe (todos, por turno ou por setor) e acompanha quem leu.</p>
+        <p>Crie o primeiro aviso para a equipe. Você escolhe quem recebe (todos, por turno ou por setor) e acompanha quem leu.</p>
         <button class="btn btn--primary" data-com-nova>${icon("plus")}<span>Novo comunicado</span></button>
       </div>`;
     return;
@@ -5800,7 +5905,7 @@ function openComunicadoModal(id) {
       <div class="mform2__col">
       <div class="field">
         <label for="com-titulo">Título</label>
-        <input type="text" id="com-titulo" maxlength="140" value="${c ? escapeHtml(c.titulo) : ""}" placeholder="Ex.: Parada programada do refeitorio" />
+        <input type="text" id="com-titulo" maxlength="140" value="${c ? escapeHtml(c.titulo) : ""}" placeholder="Ex.: Parada programada do refeitório" />
       </div>
       <div class="field">
         <label for="com-corpo">Corpo <span class="muted text-xs">(texto simples, quebras preservadas)</span></label>
@@ -5826,9 +5931,9 @@ function openComunicadoModal(id) {
         </div>
         <div class="com-seg__detail" id="com-seg-turno" style="${seg.tipo === "turno" ? "" : "display:none"}">
           <select id="com-turno">
-            <option value="1" ${turnoVal === 1 ? "selected" : ""}>Turno matutino (1)</option>
-            <option value="2" ${turnoVal === 2 ? "selected" : ""}>Turno vespertino (2)</option>
-            <option value="3" ${turnoVal === 3 ? "selected" : ""}>Turno noturno (3)</option>
+            <option value="1" ${turnoVal === 1 ? "selected" : ""}>1º Turno</option>
+            <option value="2" ${turnoVal === 2 ? "selected" : ""}>2º Turno</option>
+            <option value="3" ${turnoVal === 3 ? "selected" : ""}>3º Turno</option>
             <option value="geral" ${turnoVal === "geral" ? "selected" : ""}>Geral / Administrativo</option>
           </select>
         </div>
@@ -5839,7 +5944,7 @@ function openComunicadoModal(id) {
         </div>
       </div>
       <div class="com-toggle">
-        <div class="com-toggle__t">${icon("pin")}<div><b>Fixar no topo</b><span>Mantém o aviso destacado acima dos demais</span></div></div>
+        <div class="com-toggle__t">${icon("pin")}<div><b>Fixar no topo</b><span>Mantém o aviso acima dos demais</span></div></div>
         <button type="button" class="com-sw ${c?.fixado ? "is-on" : ""}" id="com-fixar" role="switch" aria-checked="${c?.fixado ? "true" : "false"}" aria-label="Fixar no topo"></button>
       </div>
       <div class="com-preview">
@@ -6130,7 +6235,7 @@ function renderDisciplinar() {
 
   const cab = `
     <header class="page-header">
-      <div><h1>Controle disciplinar</h1><p>Advertências e suspensões. Dado sensível com acesso restrito e trilha de auditoria.</p></div>
+      <div><h1>Disciplinar</h1><p>Advertências e suspensões. Dado sensível com acesso restrito e trilha de auditoria.</p></div>
       ${podeRegistrar ? `<button class="btn btn--primary" data-disc-novo>${icon("plus")}<span>Registrar ocorrência</span></button>` : ""}
     </header>`;
 
@@ -6140,7 +6245,7 @@ function renderDisciplinar() {
         <div class="empty__icon">${icon("alert")}</div>
         <h3>Nenhuma ocorrência registrada</h3>
         <p>${podeRegistrar ? "Registre advertências e suspensões aqui. O funcionário vê a própria no portal e dá ciência." : "Quando houver ocorrências do seu turno, aparecem aqui."}</p>
-        ${podeRegistrar ? `<button class="btn btn--primary" data-disc-novo>${icon("plus")}<span>Registrar primeira</span></button>` : ""}
+        ${podeRegistrar ? `<button class="btn btn--primary" data-disc-novo>${icon("plus")}<span>Registrar ocorrência</span></button>` : ""}
       </div>`;
     bindDiscActions();
     return;
@@ -6377,24 +6482,25 @@ function renderDocumentos() {
       <button class="rcb-tab ${!abaRecibos ? "on" : ""}" data-doc-tab="inst">Institucionais</button>
       <button class="rcb-tab ${abaRecibos ? "on" : ""}" data-doc-tab="recibos">Recibos e cartão ponto</button>
     </div>` : "";
-  if (abaRecibos) return renderRecibosGestor(tabsHtml);
+  // Cabecalho estavel: h1/subtitulo nao mudam ao trocar de aba (o CTA vai pro
+  // conteudo de cada aba). Subtitulo cobre o contexto que o usuario enxerga.
+  const cabDocs = `
+    <header class="page-header">
+      <div>
+        <h1>Documentos</h1>
+        <p>${tabsHtml ? "Documentos institucionais e recibos, num só lugar." : "Publique regras, conduta, cultura e políticas. Acompanhe quem leu e assinou."}</p>
+      </div>
+    </header>` + tabsHtml;
+
+  if (abaRecibos) return renderRecibosGestor(cabDocs);
   const filtro = state.view.docFiltro || "todos";
   let lista = docAtivos().slice().sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
   if (filtro === "rascunho") lista = lista.filter((d) => d.status === "rascunho");
   else if (filtro !== "todos") lista = lista.filter((d) => d.tipo === filtro);
   const m = docMetrics();
 
-  const cab = `
-    <header class="page-header">
-      <div>
-        <h1>Documentos institucionais</h1>
-        <p>Publique regras, conduta, cultura e políticas. Acompanhe quem leu e assinou.</p>
-      </div>
-      <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Novo documento</span></button>
-    </header>` + tabsHtml;
-
   if (docAtivos().length === 0) {
-    $("#view").innerHTML = cab + `
+    $("#view").innerHTML = cabDocs + `
       <div class="empty">
         <div class="empty__icon">${icon("file")}</div>
         <h3>Nenhum documento publicado</h3>
@@ -6408,7 +6514,10 @@ function renderDocumentos() {
     <div class="stat"><div class="stat__label">${icon(icn)} ${label}</div><div class="stat__value">${value}</div></div>`;
   const filtros = [["todos", "Todos"], ["rascunho", "Rascunhos"], ...DOC_TIPOS.map((t) => [t.k, t.n])];
 
-  $("#view").innerHTML = cab + `
+  $("#view").innerHTML = cabDocs + `
+    <div class="doc-actbar">
+      <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Novo documento</span></button>
+    </div>
     <div class="stats">
       ${stat("Publicados", m.publicados, "file")}
       ${stat("Assinatura pendente", m.pendentes, "edit")}
@@ -6559,9 +6668,9 @@ function openDocumentoModal(id) {
         </div>
         <div class="com-seg__detail" id="doc-seg-turno" style="${seg.tipo === "turno" ? "" : "display:none"}">
           <select id="doc-turno">
-            <option value="1" ${turnoVal === 1 ? "selected" : ""}>Turno matutino (1)</option>
-            <option value="2" ${turnoVal === 2 ? "selected" : ""}>Turno vespertino (2)</option>
-            <option value="3" ${turnoVal === 3 ? "selected" : ""}>Turno noturno (3)</option>
+            <option value="1" ${turnoVal === 1 ? "selected" : ""}>1º Turno</option>
+            <option value="2" ${turnoVal === 2 ? "selected" : ""}>2º Turno</option>
+            <option value="3" ${turnoVal === 3 ? "selected" : ""}>3º Turno</option>
             <option value="geral" ${turnoVal === "geral" ? "selected" : ""}>Geral / Administrativo</option>
           </select>
         </div>
@@ -6979,15 +7088,31 @@ function rcbLotes() {
     String(b.competencia || "").localeCompare(String(a.competencia || "")) || String(a.tipo).localeCompare(String(b.tipo)));
 }
 
-function renderRecibosGestor(tabsHtml) {
-  const cab = `
-    <header class="page-header">
-      <div>
-        <h1>Recibos e cartão ponto</h1>
-        <p>Importe o PDF da folha. O sistema separa por funcionário e cada um vê só o dele.</p>
-      </div>
-      <button class="btn btn--primary" data-rcb-importar>${icon("plus")}<span>Importar</span></button>
-    </header>` + tabsHtml;
+// Duas colunas por tipo (cartão ponto, depois recibo), cada uma agrupada por ano
+// (mais recente primeiro; dentro do ano, os lotes já vêm ordenados de rcbLotes,
+// mês mais recente primeiro). Opção B do mock aprovado por William
+// (docs/mockups/recibos-organizacao-mock.html). O ano corrente vem sempre aberto.
+function rcbColunasPorTipo() {
+  const lotes = rcbLotes();
+  const anoCorrente = String(new Date().getFullYear());
+  return ["cartao-ponto", "recibo"].map((tipo) => {
+    const doTipo = lotes.filter((l) => l.tipo === tipo);
+    const porAno = {};
+    for (const l of doTipo) {
+      const ano = String(l.competencia || "").slice(0, 4);
+      (porAno[ano] = porAno[ano] || []).push(l);
+    }
+    const anos = Object.keys(porAno).sort().reverse().map((ano) => ({
+      ano, aberto: ano === anoCorrente, lotes: porAno[ano],
+    }));
+    return { tipo, total: doTipo.length, anos };
+  });
+}
+
+// Recebe o cabecalho estavel de Documentos (h1 fixo + abas); a CTA "Importar" mora
+// no conteudo desta aba, nao no cabecalho que as duas abas compartilham.
+function renderRecibosGestor(cabDocs) {
+  const cab = cabDocs;
 
   // Lazy: 1ª visita carrega os metadados (leves) e re-renderiza.
   if (state.recibos == null) {
@@ -7011,18 +7136,48 @@ function renderRecibosGestor(tabsHtml) {
   }
 
   const ehAdmin = currentUser()?.role === "admin";
-  $("#view").innerHTML = cab + `
-    <div class="rcb-lotes">
-      ${lotes.map((l) => `
-        <div class="rcb-lote" data-rcb-lote="${escapeHtml(l.tipo)}" data-rcb-comp="${escapeHtml(l.competencia)}">
+  const colunas = rcbColunasPorTipo();
+  const loteMiniHtml = (l) => {
+    const assinaram = l.itens.filter((r) => (r.assinaturas || []).length).length;
+    const pct = l.itens.length ? Math.round((assinaram / l.itens.length) * 100) : 0;
+    return `
+        <div class="rcb-lote rcb-lote--mini" data-rcb-lote="${escapeHtml(l.tipo)}" data-rcb-comp="${escapeHtml(l.competencia)}">
           <span class="rcb-lote__ic">${icon(l.tipo === "cartao-ponto" ? "conferir" : "file")}</span>
           <span class="rcb-lote__bd">
-            <b>${escapeHtml(RCB_TIPOS[l.tipo] || l.tipo)} · ${escapeHtml(rcbCompetenciaLabel(l.competencia))}</b>
-            <span>${l.itens.length} funcionário${l.itens.length > 1 ? "s" : ""} · ${l.itens.filter((r) => (r.assinaturas || []).length).length} assinaram</span>
+            <b>${escapeHtml(rcbCompetenciaLabel(l.competencia))}</b>
+            <span>${l.itens.length} gerados · ${assinaram} assinaram</span>
           </span>
-          <span class="rcb-lote__pill">${l.itens.length} gerados</span>
+          <span class="rcb-pct ${pct >= 100 ? "rcb-pct--ok" : "rcb-pct--warn"}">${pct}%</span>
           ${ehAdmin ? `<button class="com-mini" data-rcb-excluir="${escapeHtml(l.tipo)}" data-rcb-comp="${escapeHtml(l.competencia)}" aria-label="Excluir lote" title="Excluir lote" style="color:var(--danger)">${icon("trash")}</button>` : ""}
-        </div>`).join("")}
+        </div>`;
+  };
+  const colunaHtml = (col) => `
+      <div class="rcb-col">
+        <div class="rcb-col__head">
+          <span class="rcb-lote__ic">${icon(col.tipo === "cartao-ponto" ? "conferir" : "file")}</span>
+          <span class="colw__t">${escapeHtml(RCB_TIPOS[col.tipo] || col.tipo)}</span>
+          <span class="rcb-col__c">${col.total} lote${col.total > 1 ? "s" : ""}</span>
+        </div>
+        ${col.anos.map((a) => `
+          <div class="rcb-yr ${a.aberto ? "open" : ""}">
+            <button class="rcb-yr__head" type="button" data-rcb-yr-toggle>
+              <span class="rcb-yr__chev">${icon("chevrondown")}</span>
+              <span class="rcb-yr__n">${a.ano}</span>
+              <span class="rcb-yr__c">${a.lotes.length} lote${a.lotes.length > 1 ? "s" : ""}</span>
+            </button>
+            <div class="rcb-yr__body">
+              ${a.lotes.map(loteMiniHtml).join("")}
+            </div>
+          </div>`).join("")}
+      </div>`;
+
+  $("#view").innerHTML = cab + `
+    <div class="doc-actbar">
+      <p>Importe o PDF da folha. O sistema separa por funcionário e cada um vê só o dele.</p>
+      <button class="btn btn--primary" data-rcb-importar>${icon("plus")}<span>Importar</span></button>
+    </div>
+    <div class="rcb-cols">
+      ${colunas.map(colunaHtml).join("")}
     </div>`;
 }
 
@@ -7665,6 +7820,8 @@ if (!window._rcbBound) {
     if (tr) { openTrilhaAssinatura(tr.dataset.rcbTrilha); return; }
     const lt = e.target.closest("[data-rcb-lote]");
     if (lt) { openLoteRecibos(lt.dataset.rcbLote, lt.dataset.rcbComp); return; }
+    const yr = e.target.closest("[data-rcb-yr-toggle]");
+    if (yr) { yr.closest(".rcb-yr")?.classList.toggle("open"); return; }
   });
 }
 
@@ -7775,7 +7932,7 @@ function ocaDashCardHtml(o) {
     acoes = `<div class="rhacts oca-confdone"><span class="badge badge--neutral"><span class="dot"></span>Dispensada</span>${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}</span>` : ""}</div>`;
   }
   return `
-    <article class="occ occ--rh${est === "rh_confere" ? " occ--pendente" : ""}${demit ? " occ--resc" : ""}" data-oca-card="1" data-oca-id="${escapeHtml(o.id)}" role="button" tabindex="0" aria-label="Ocorrência de ${escapeHtml(o.nome || "")}, ${escapeHtml(t.label)}, abrir detalhe">
+    <article class="occ occ--rh${est === "rh_confere" || est === "com_lider" ? " occ--pendente" : ""}${demit ? " occ--resc" : ""}" data-oca-card="1" data-oca-id="${escapeHtml(o.id)}" role="button" tabindex="0" aria-label="Ocorrência de ${escapeHtml(o.nome || "")}, ${escapeHtml(t.label)}, abrir detalhe">
       <div class="occ__date"><strong>${escapeHtml(dia)}</strong><span>${mes}</span></div>
       <div class="occ__main">
         <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
@@ -7828,12 +7985,12 @@ function openConferirAutoModal(id) {
             <textarea id="oca-obs" rows="3" placeholder="Adicione contexto, justificativas ou notas..."></textarea>
           </div>
           ${ocaHistHtml(o, "Aguardando conferência do líder")}
-          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
-            <button class="btn btn--ghost" data-close>Fechar</button>
-            <button class="btn btn--primary" id="oca-confirmar-btn">${icon("check")}<span>Confirmar conferência</span></button>
-          </div>
         </div>
       </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Fechar</button>
+      <button class="btn btn--primary" id="oca-confirmar-btn">${icon("check")}<span>Confirmar conferência</span></button>
     </div>`);
   document.querySelector("#modal-root .modal")?.classList.add("modal--oca");
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
@@ -7975,7 +8132,11 @@ function openDetalheAutoModal(id) {
           <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">${acoesHtml}</div>
         </div>
       </div>
-    </div>`);
+    </div>`, {
+    // Só-leitura (confirmada/dispensada): clique fora fecha. rh_confere tem
+    // ação de validar/dispensar, então mantém o bloqueio do clique no backdrop.
+    dismissOnBackdrop: est === "confirmada" || est === "dispensada",
+  });
   document.querySelector("#modal-root .modal")?.classList.add("modal--oca");
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
   $("#oca-det-validar")?.addEventListener("click", (e) => {
@@ -8006,10 +8167,10 @@ function openDispensarAutoModal(id) {
         <span class="field__hint">O motivo fica registrado na trilha e aparece ao clicar na ocorrência dispensada.</span>
         <div class="ass-erro" id="oca-disp-erro" hidden>Escreva o motivo antes de dispensar.</div>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
-        <button class="btn btn--ghost" data-close>Cancelar</button>
-        <button class="btn btn--danger" id="oca-disp-btn">${icon("x")}<span>Dispensar</span></button>
-      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Cancelar</button>
+      <button class="btn btn--danger" id="oca-disp-btn">${icon("x")}<span>Dispensar</span></button>
     </div>`);
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
   $("#oca-disp-motivo")?.focus();
@@ -8087,7 +8248,7 @@ function renderOcorrenciasAuto() {
       <div class="stat">
         <div class="stat__label">Conferidas</div>
         <div class="stat__value">${conf.length}</div>
-        <div class="stat__hint">marcadas pelo GP</div>
+        <div class="stat__hint">marcadas pela GP</div>
       </div>
       <div class="stat">
         <div class="stat__label">Total importado</div>
@@ -8322,7 +8483,7 @@ function bhFrescorSelo(u) {
 
 function renderBancoHoras() {
   const u = currentUser();
-  $("#topbar-title").textContent = "Banco de Horas";
+  $("#topbar-title").textContent = "Banco de horas";
 
   // Escopo de visibilidade: admin/rh = todos, líder = turno, supervisor = lista
   let visibles = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true && f.aprendiz !== true && podeVerFuncionario(u, f));
@@ -8341,7 +8502,7 @@ function renderBancoHoras() {
   $("#view").innerHTML = `
     <header class="page-header">
       <div>
-        <h1>Banco de Horas</h1>
+        <h1>Banco de horas</h1>
         <p>${subtitle}</p>
       </div>
       ${bhFrescorSelo(u)}
@@ -8373,7 +8534,7 @@ function renderBancoHoras() {
 
     ${comSaldo === 0 && (u.role === "admin" || u.role === "rh") ? `
     <div style="margin:0 0 14px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text-muted);line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span>Nenhum saldo importado ainda. Os saldos chegam com a próxima sincronização do GP${state._dbgBhErr ? ", e a última leitura falhou" : ""}.</span>
+      <span>Nenhum saldo importado ainda. Os saldos chegam com a próxima sincronização da GP${state._dbgBhErr ? ", e a última leitura falhou" : ""}.</span>
       <button id="bh-diag-retry" class="btn btn--ghost" style="padding:3px 12px;font-size:12px;">Recarregar</button>
     </div>` : ""}
 
@@ -8452,7 +8613,8 @@ function renderBHList(funcionarios, animar) {
     const cargoSetor = [cargo, setor].filter(Boolean).join(" · ");
 
     return `
-      <article class="occ bh-card" data-bh-espelho="${escapeHtml(f.id)}" style="grid-template-columns: 1fr auto; align-items: center; cursor: pointer;" title="Ver o espelho do mês">
+      <article class="occ bh-card" data-bh-espelho="${escapeHtml(f.id)}" style="grid-template-columns: auto 1fr auto; align-items: center; cursor: pointer;" title="Ver o espelho do mês">
+        ${avatarFuncHtml(f, "func-av")}
         <div class="occ__main" style="min-width:0;">
           <div class="occ__name">${escapeHtml(f.nome)}</div>
           <div class="occ__sub">${cargoSetor ? escapeHtml(cargoSetor) : (TURNOS[f.turno]?.label || "sem turno")}</div>
@@ -8541,7 +8703,7 @@ function openImportBancoHorasModal() {
   openModal(`
     <div class="modal__header">
       <div>
-        <h2>Importar Banco de Horas</h2>
+        <h2>Importar banco de horas</h2>
         <p>Lê o XLSX exportado pelo sistema de ponto e substitui o saldo de todos os funcionários encontrados. Match por código.</p>
       </div>
       <button class="modal__close" data-close>${icon("x")}</button>
@@ -8663,7 +8825,7 @@ async function handleBancoHorasFile(file) {
       <div class="text-sm muted" style="margin-top:8px; line-height:1.6;">
         Saldos: positivo (${positivos}) · negativo (${negativos}) · zerado (${zerados})<br/>
         ${matchInativos.length > 0 ? `
-          <span style="color: var(--muted);">${matchInativos.length} código(s) de funcionário(s) <strong>inativo(s)</strong> — saldo será gravado mas não aparece na listagem do Banco de Horas.</span><br/>
+          <span style="color: var(--muted);">${matchInativos.length} código(s) de funcionário(s) <strong>inativo(s)</strong>: saldo será gravado mas não aparece na listagem do banco de horas.</span><br/>
         ` : ""}
         ${semMatch.length > 0 ? `
           <span style="color: var(--warning);">${semMatch.length} código(s) não cadastrado(s) — serão ignorados: ${semMatch.slice(0, 5).map(e => e.codigo).join(", ")}${semMatch.length > 5 ? "..." : ""}</span>
@@ -8804,13 +8966,13 @@ function renderPJList(animar) {
     const semFiltro = !search && !filter;
     root.innerHTML = `
       <div class="empty">
-        <div class="empty__icon">${icon("file")}</div>
+        <div class="empty__icon">${icon("briefcase")}</div>
         <h3>${semFiltro ? "Nenhum PJ cadastrado" : "Sem resultados"}</h3>
         <p>${semFiltro
           ? "Cadastre o primeiro prestador de serviço com contratos, valores e contato."
           : "Ajuste a busca ou o filtro."}</p>
         ${semFiltro
-          ? `<button class="btn btn--primary" id="btn-novo-pj-2">${icon("plus")}<span>Novo PJ</span></button>`
+          ? `<button class="btn btn--primary" id="btn-novo-pj-2">${icon("plus")}<span>Cadastrar o primeiro PJ</span></button>`
           : `<button class="btn btn--ghost" id="btn-limpar-pj">${icon("x")}<span>Limpar filtros</span></button>`}
       </div>`;
     const b = $("#btn-novo-pj-2");
@@ -10696,7 +10858,7 @@ function renderAuditoria() {
     <header class="page-header">
       <div>
         <h1>Auditoria</h1>
-        <p>Quem fez o quê e quando — ocorrências e PJ. Apenas Admin e GP.</p>
+        <p>Quem fez o quê e quando: ocorrências e PJ. Apenas Admin e GP.</p>
       </div>
     </header>
     <div class="aud">
@@ -10765,7 +10927,15 @@ function pintarFeedAuditoria(animar) {
   });
 
   if (!itens.length) {
-    feed.innerHTML = `<div class="aud__vazio">Nenhuma atividade encontrada.</div>`;
+    const filtrando = !!termo || cat !== "tudo";
+    feed.innerHTML = `
+      <div class="empty">
+        <div class="empty__icon">${icon("shield")}</div>
+        <h3>${filtrando ? "Nada com esse filtro" : "Sem atividade registrada"}</h3>
+        <p>${filtrando
+          ? "Ajuste a busca ou a categoria para ver outros eventos."
+          : "Cada lançamento, edição, exclusão e assinatura aparece aqui, com quem fez e quando."}</p>
+      </div>`;
     return;
   }
 
@@ -10856,7 +11026,7 @@ function renderConfig() {
   if (!state.view.configTab) state.view.configTab = "tipos";
 
   const tabs = [
-    { id: "tipos", label: "Tipos de Ocorrência", icon: "tag" },
+    { id: "tipos", label: "Tipos de ocorrência", icon: "tag" },
     { id: "acoes", label: "Ações", icon: "check" },
   ];
   if (can("sistema.usuarios")) tabs.push({ id: "usuarios", label: "Permissões", icon: "shield" });
@@ -11304,9 +11474,9 @@ const PERM_CAPS = [
     { k: "ocorrencias.lancar", n: "Marcar como lançada" },
     { k: "ocorrencias.editarTudo", n: "Editar o lançamento inteiro" },
     { k: "ocorrencias.excluir", n: "Excluir" },
-    { k: "ocorrencias.revisarAuto", n: "Conferir ocorrências automáticas (beta)" },
+    { k: "ocorrencias.revisarAuto", n: "Conferir ocorrências automáticas" },
   ]},
-  { area: "Banco de Horas", caps: [
+  { area: "Banco de horas", caps: [
     { k: "bancoHoras.ver", n: "Ver saldos", scoped: true },
     { k: "bancoHoras.importar", n: "Importar planilha" },
     { k: "pipeline.monitor", n: "Ver status do pipeline (monitor)" },
@@ -11495,7 +11665,8 @@ function permissoesMatrizHtml() {
     <details class="perm-matrix">
       <summary>
         <span class="perm-matrix__t">Papéis &amp; acessos</span>
-        <span class="perm-matrix__h">toque pra abrir — clique numa célula pra ligar/desligar</span>
+        <span class="perm-matrix__h perm-matrix__h--fechado">clique pra abrir</span>
+        <span class="perm-matrix__h perm-matrix__h--aberto">clique numa célula pra ligar/desligar</span>
       </summary>
       <div class="perm-table-wrap">
         <table class="perm-table">
@@ -11536,7 +11707,9 @@ function subUsuarioLinha(u) {
     return cs || "Acesso aos próprios dados";
   }
   const esc = escopoUsuario(u);
-  return `${escapeHtml(u.email || ("@" + u.id))}${esc ? " · " + escapeHtml(esc) : ""}`;
+  // Quebra "email · escopo" entre os dois segmentos: o separador fica colado ao
+  // escopo (nunca pendurado no fim da linha).
+  return `<span class="cfg-sub__part">${escapeHtml(u.email || ("@" + u.id))}</span>${esc ? ` <span class="cfg-sub__part">· ${escapeHtml(esc)}</span>` : ""}`;
 }
 
 function cfgUserRowHtml(u, isFirebaseMode) {
@@ -11587,7 +11760,7 @@ function renderUsuariosInto(selector) {
     ${permissoesMatrizHtml()}
     <div class="cfg-actbar"><p>Quem acessa, com qual papel e qual escopo.${isFirebaseMode ? " Clique numa linha pra editar." : ""}</p></div>
     <div class="cfg-toolbar">
-      <div class="cfg-srch">${icon("search")}<input type="text" id="cfg-user-search" placeholder="Buscar por nome ou email..." autocomplete="off"></div>
+      <div class="cfg-srch">${icon("search")}<input type="text" id="cfg-user-search" placeholder="Buscar usuário…" autocomplete="off"></div>
       <button class="btn btn--primary" id="btn-novo-user" ${!isFirebaseMode ? `disabled title="Disponível apenas em modo Firebase"` : ""}>${icon("plus")}<span>Novo usuário</span></button>
     </div>
     <div class="cfg-groups">${gestoresHtml}${colabHtml}</div>
@@ -11615,7 +11788,11 @@ function renderUsuariosInto(selector) {
       pintarPermCell(cell, novoVal);
       salvarPermissoesDebounced();
     };
-    cell.addEventListener("click", toggle);
+    // Alvo de toque = a célula inteira (td.perm-c, com padding): o quadrado de 26px
+    // é pequeno demais no dedo. O clique no td delega pro toggle; o span segue
+    // focável pro teclado (Enter/Espaço).
+    const td = cell.closest("td.perm-c");
+    (td || cell).addEventListener("click", toggle);
     cell.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
   });
 
@@ -12631,7 +12808,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.26.1";
+window.CURRENT_VERSION = "1.27.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
