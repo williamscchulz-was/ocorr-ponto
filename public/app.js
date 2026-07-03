@@ -485,7 +485,7 @@ async function openCropFotoModal(file, onConfirm) {
         <h2>Ajustar foto</h2>
         <p>Arraste pra posicionar e use o zoom pra enquadrar.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div style="display:flex; flex-direction:column; align-items:center; gap:14px;">
@@ -840,10 +840,16 @@ const COLAB_NAV = [
 
 function renderNavColaborador() {
   // Tema NÃO entra aqui: o toggle vive na topbar (cp-tema-btn) e na Conta (Aparência).
-  $("#nav").innerHTML = COLAB_NAV.map((it) => `
+  // Badge de avisos não lidos: mesma contagem da ilha mobile, que faltava no desktop.
+  const nAvisos = colabAvisosNaoLidos();
+  $("#nav").innerHTML = COLAB_NAV.map((it) => {
+    const badge = it.id === "colab-comunicados" ? nAvisos : 0;
+    return `
     <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
       ${cpIcon(it.icon)}<span>${it.label}</span>
-    </button>`).join("") + `
+      ${badge ? `<span class="nav__badge nav__badge--pend">${badge > 9 ? "9+" : badge}</span>` : ""}
+    </button>`;
+  }).join("") + `
     <button class="nav__item nav__item--sair" data-acao="sair">
       ${cpIcon("logout")}<span>Sair</span>
     </button>`;
@@ -1314,7 +1320,7 @@ function assRender() {
   openModal(`
     <div class="modal__header">
       <div><h2>Assinar o ${escapeHtml(tipoLbl.toLowerCase())}</h2><p>${escapeHtml(rcbCompetenciaLabel(r.competencia))} · ${escapeHtml(nome)}</p></div>
-      <button class="modal__close" data-close>${cpIcon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${cpIcon("x")}</button>
     </div>
     <div class="modal__body">${passos}${corpo}</div>`);
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", () => { _assState = null; closeModal(); }));
@@ -1458,7 +1464,7 @@ function colabDocCardHtml(d) {
         </div>
         <div style="display:flex;gap:12px;align-items:center">
           <span class="pp-ico pp-ico--amber">${cpIcon(ic)}</span>
-          <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(d.tipo || "documento")} · v${d.versao || 1}</span></span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(docTipoLabel(d.tipo))} · v${d.versao || 1}</span></span>
         </div>
         <div style="margin-top:13px">${verBtn}${acaoBtn}</div>
       </div>
@@ -1474,7 +1480,7 @@ function colabDocRowHtml(d) {
     : "Lido";
   return `<div class="pp-rw"${temAnexo ? ` data-doc-view="${d.id}" style="cursor:pointer"` : ` style="cursor:default"`}>
     <span class="pp-ico pp-ico--green">${cpIcon(ic)}</span>
-    <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(d.tipo || "documento")} · ${statusTxt}</span></span>
+    <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(docTipoLabel(d.tipo))} · ${statusTxt}</span></span>
     ${temAnexo ? `<span class="pp-rw__ro">${cpIcon("file")}Abrir</span>` : `<span class="pp-rw__ro">${cpIcon("check")}OK</span>`}
   </div>`;
 }
@@ -1494,12 +1500,12 @@ function openColabAssinarSheet(docId) {
   openModal(`
     <div class="modal__header">
       <div><h2>Assinar documento</h2><p>Aceite N1 · versão ${d.versao || 1}</p></div>
-      <button class="modal__close" data-close>${cpIcon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${cpIcon("x")}</button>
     </div>
     <div class="modal__body cp-assinar">
       <div class="cp-assinar__doc">
         <span class="cp-doc__seal">${cpIcon(COLAB_DOC_IC[d.tipo] || "file")}</span>
-        <div class="cp-assinar__docinfo"><b>${escapeHtml(d.titulo || "")}</b><span>${escapeHtml(d.tipo || "doc")} · v${d.versao || 1}</span></div>
+        <div class="cp-assinar__docinfo"><b>${escapeHtml(d.titulo || "")}</b><span>${escapeHtml(docTipoLabel(d.tipo))} · v${d.versao || 1}</span></div>
         ${temAnexo ? `<button type="button" class="cp-assinar__ler" data-docview-ler>${cpIcon("file")}ler</button>` : ""}
       </div>
       <button type="button" class="cp-aceite" id="cp-aceite" aria-pressed="false">
@@ -1943,7 +1949,7 @@ function openColabFotoSheet() {
   openModal(`
     <div class="modal__header">
       <div><h2>Foto do perfil</h2><p>Aparece na Home, no topo e na Conta</p></div>
-      <button class="modal__close" data-close>${cpIcon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${cpIcon("x")}</button>
     </div>
     <div class="modal__body">
       <input type="file" id="colab-foto-input" accept="image/*" hidden />
@@ -2043,12 +2049,6 @@ function renderColabConta() {
           <span class="pp-rw__ro">${cpIcon("lock")}Somente leitura</span>
         </button>
         <div class="pp-dados hidden" id="cp-dados">${dados.map(([k, v]) => `<div class="pp-dados__row"><span>${k}</span><span>${escapeHtml(String(dash(v)))}</span></div>`).join("") || '<div class="pp-dados__row"><span>Sem dados de cadastro</span><span>—</span></div>'}</div>
-        <button class="pp-rw" data-nav="colab-ponto">
-          <span class="pp-ico pp-ico--green">${cpIcon("clock")}</span>
-          <span class="pp-rw__bd"><span class="pp-rw__t">Meu banco de horas</span><span class="pp-rw__s">Saldo e referência</span></span>
-          ${bhStr ? `<span class="pp-rw__val ${bhTone === "neg" ? "pp-rw__val--neg" : bhTone === "" ? "pp-rw__val--pos" : ""}">${escapeHtml(bhStr)}</span>` : ""}
-          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
-        </button>
       </div>
 
       <div class="pp-ovl">Preferências</div>
@@ -3410,18 +3410,21 @@ function vgTendenciaHtml() {
 function vgAdmissoesHtml(u) {
   if (!can("func.ver")) return "";
   const hoje = new Date();
+  // admissao pode vir como string ISO OU Timestamp do Firestore: normaliza antes de
+  // contar/ordenar (new Date(Timestamp) daria NaN e a admissão sumiria da lista).
+  const admDe = (f) => tsParaData(f.admissao);
   const rec = (state.funcionarios || [])
-    .filter((f) => f.ativo !== false && f.admissao)
+    .filter((f) => f.ativo !== false && admDe(f))
     .filter((f) => (u.role === "lider" ? f.turno === u.turno : u.role === "supervisor" ? podeVerFuncionario(u, f) : true))
-    .filter((f) => (hoje - new Date(f.admissao)) / 864e5 <= 120)
-    .sort((a, b) => String(b.admissao).localeCompare(String(a.admissao)))
+    .filter((f) => (hoje - admDe(f)) / 864e5 <= 120)
+    .sort((a, b) => admDe(b) - admDe(a))
     .slice(0, 3);
   if (!rec.length) return "";
   return `
     <section class="vg-card">
       <h3 class="vg-h">${icon("users")}<span>Chegaram há pouco</span></h3>
       ${rec.map((f) => {
-        const dias = Math.max(1, Math.round((hoje - new Date(f.admissao)) / 864e5));
+        const dias = Math.max(1, Math.round((hoje - admDe(f)) / 864e5));
         return `<div class="vg-adm">${avatarFuncHtml(f, "avatar")}<div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(f.setor || "")} · chegou há ${dias} dia${dias > 1 ? "s" : ""}</span></div></div>`;
       }).join("")}
     </section>`;
@@ -3868,7 +3871,7 @@ function openNovaOcorrencia() {
         <h2>Nova ocorrência</h2>
         <p>Preencha os dados que a GP conhece. O líder cuida da conferência depois.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="nova-form">
       <div class="field-row">
@@ -3986,7 +3989,7 @@ function openOcorrenciaDetail(id) {
         <h2>Ocorrência · ${formatDateFull(o.data)}</h2>
         <p>${pending ? "Aguardando conferência do líder" : "Conferida em " + formatDateFull(o.dataConferencia)}</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
 
     <div class="modal__body">
@@ -4171,7 +4174,7 @@ function openEditOcorrenciaModal(id) {
         <h2>Editar ocorrência</h2>
         <p>Admin pode ajustar qualquer campo. Mudanças sobrescrevem o registro original.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="edit-form" onsubmit="return false">
       <div class="field-row">
@@ -4382,7 +4385,7 @@ function renderFuncionarios() {
         <div class="stat__hint">${semTurno > 0 ? "ajustar antes de líderes verem" : "tudo certo"}</div>
       </div>
     </div>
-    <p class="lista-rodape">Atualizado ${ultima.value} · ${ultima.hint}</p>`;
+    <p class="lista-rodape">${ultima.empty ? ultima.full : `Atualizado ${ultima.value} · ${ultima.hint}`}</p>`;
     })()}
 
     <div class="toolbar">
@@ -4736,7 +4739,7 @@ function openFuncionarioModal(id) {
         <h2>${isNew ? "Novo funcionário" : "Perfil do funcionário"}</h2>
         <p>${isNew ? "Será incluído no cadastro." : podeEditarFunc ? "Dados vêm do ERP · campos editáveis abaixo." : "Dados vêm do ERP."}</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       ${isNew ? "" : renderFuncPerfilSecoes(f)}
@@ -4792,7 +4795,7 @@ function openFuncionarioModal(id) {
       ` : ""}
     </div>
     <div class="modal__footer">
-      ${podeEditarFunc && !isNew ? `<button class="btn btn--danger" id="btn-del-func">${icon("trash")}<span>Excluir</span></button>` : ""}
+      ${podeEditarFunc && !isNew ? `<button class="btn btn--danger-ghost" id="btn-del-func" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
       <button class="btn btn--ghost" data-close>${podeEditarFunc ? "Cancelar" : "Fechar"}</button>
       ${podeEditarFunc ? `<button class="btn btn--primary" id="btn-save-func">${icon("check")}<span>${isNew ? "Criar" : "Salvar"}</span></button>` : ""}
     </div>
@@ -4913,7 +4916,7 @@ function openProfileModal() {
         <h2>Minha conta</h2>
         <p>Configurações de perfil e sessão.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="row" style="gap:14px; padding: 12px 0 16px; align-items:center;">
@@ -5020,7 +5023,7 @@ function openTrocarSenhaModal() {
         <h2>Alterar senha</h2>
         <p>Informe sua senha atual e a nova. Mínimo 6 caracteres.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="form-trocar-senha" onsubmit="return false">
       <div class="field">
@@ -5100,7 +5103,7 @@ function openImportFuncModal() {
         <h2>Importar funcionários</h2>
         <p>Selecione um arquivo <code>.json</code> com a lista. Estrutura esperada: <code>[{ codigo, nome, turno, liderNome, setor, ativo }, ...]</code></p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="field">
@@ -5439,7 +5442,7 @@ function openObrigacaoModal(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>${o ? "Editar obrigação" : "Nova obrigação"}</h2><p>Rotina recorrente da GP.</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="obrig-form" onsubmit="return false">
       <div class="field">
@@ -5810,7 +5813,7 @@ function openDocViewer(d) {
 
   const ic = (typeof cpIcon === "function" && document.documentElement.classList.contains("modo-colab")) ? cpIcon : icon;
   const titulo = d.titulo || anexo.nome || "Documento";
-  const sub = [d.tipo, d.versao ? "v" + d.versao : "", d.exigeAssinatura ? "exige assinatura" : ""].filter(Boolean).join(" · ");
+  const sub = [d.tipo ? docTipoLabel(d.tipo) : "", d.versao ? "v" + d.versao : "", d.exigeAssinatura ? "exige assinatura" : ""].filter(Boolean).join(" · ");
   const prevFocus = document.activeElement;
   const root = document.createElement("div");
   root.className = "modal-backdrop modal-backdrop--docview";
@@ -5899,7 +5902,7 @@ function openComunicadoModal(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>${c ? "Editar comunicado" : "Novo comunicado"}</h2><p>Publica como ${escapeHtml(currentUser()?.nome || "gestor")}. Alcance e leituras seguem o segmento.</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body mform2" id="com-form" onsubmit="return false">
       <div class="field mform-full">
@@ -6116,7 +6119,7 @@ function abrirLeiturasComunicado(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>Visualizações</h2><p>${escapeHtml(c.titulo)}</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="com-tabs">
@@ -6173,6 +6176,15 @@ const DOC_TIPOS = [
   { k: "outro", n: "Outro", icon: "file" },
 ];
 function docTipoMeta(k) { return DOC_TIPOS.find((t) => t.k === k) || DOC_TIPOS[DOC_TIPOS.length - 1]; }
+// Rótulo legível do tipo de documento institucional. Tipo conhecido → nome do DOC_TIPOS;
+// desconhecido → capitaliza a 1ª letra (nunca quebra); vazio → "Documento".
+function docTipoLabel(k) {
+  if (!k) return "Documento";
+  const t = DOC_TIPOS.find((x) => x.k === k);
+  if (t) return t.n;
+  const s = String(k);
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 // Documentos institucionais carregados (ignora os pessoais, que sao outra tela).
 function docAtivos() { return (state.documentos || []).filter((d) => d.escopo === "institucional"); }
@@ -6330,7 +6342,7 @@ function openDisciplinarModal() {
   openModal(`
     <div class="modal__header">
       <div><h2>Registrar ocorrência disciplinar</h2><p>Dado sensível. Fica registrado quem aplicou, data e hora.</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="disc-form" onsubmit="return false">
       <div class="field">
@@ -6456,7 +6468,7 @@ function excluirDisciplinarUI(id) {
   if (currentUser()?.role !== "admin") return toast("Apenas o administrador pode excluir.", "danger");
   const d = (state.disciplinares || []).find((x) => x.id === id);
   openModal(`
-    <div class="modal__header"><div><h2>Excluir ocorrência</h2><p>Esta ação não pode ser desfeita.</p></div><button class="modal__close" data-close>${icon("x")}</button></div>
+    <div class="modal__header"><div><h2>Excluir ocorrência</h2><p>Esta ação não pode ser desfeita.</p></div><button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button></div>
     <div class="modal__body"><p>Excluir a ocorrência disciplinar de <strong>${escapeHtml((d && d.funcionarioNome) || "este funcionário")}</strong>? Sai do painel e do portal do colaborador.</p></div>
     <div class="modal__footer"><button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--danger" id="disc-del-go">${icon("trash")}<span>Excluir</span></button></div>
   `, { onMount: (modal) => {
@@ -6583,7 +6595,7 @@ function excluirDocumentoUI(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>Excluir documento</h2><p>Esta ação não pode ser desfeita.</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <p>Tem certeza que deseja excluir <strong>${escapeHtml(d?.titulo || "este documento")}</strong>? Ele sai do painel e do portal do colaborador. As leituras e assinaturas registradas também deixam de ser acessíveis.</p>
@@ -6625,7 +6637,7 @@ function openDocumentoModal(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>${d ? "Editar documento" : "Novo documento institucional"}</h2><p>Regras, conduta, cultura e políticas para um segmento.</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body mform2" id="doc-form" onsubmit="return false">
       ${(d && d.status === "publicado" && d.exigeAssinatura) ? `<div class="doc-warn mform-full">${icon("alert")}<span>Documento publicado com assinatura. Para trocar conteúdo ou segmento use Nova versão (reabre a assinatura). Aqui você ajusta só a descrição.</span></div>` : ""}
@@ -6836,7 +6848,7 @@ function novaVersaoDocumentoUI(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>Nova versão</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} &rarr; v${(d.versao || 1) + 1}</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="doc-nv-form" onsubmit="return false">
       <div class="doc-warn">${icon("alert")}<span>Trocar a versão reabre a assinatura: os colaboradores do segmento precisarão dar ciência de novo.</span></div>
@@ -6892,7 +6904,7 @@ function abrirAdesaoDocumento(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>Adesão</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "exige assinatura" : "ciência"}</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="doc-big">${a.pct}% <small>${a.verbo} · ${a.X} de ${a.Y}</small></div>
@@ -7203,7 +7215,7 @@ function openLoteRecibos(tipo, competencia) {
   openModal(`
     <div class="modal__header">
       <div><h2>${escapeHtml(RCB_TIPOS[tipo] || tipo)}</h2><p>${escapeHtml(rcbCompetenciaLabel(competencia))} · ${itens.length} funcionários</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="rcb-ades">
@@ -7242,7 +7254,7 @@ function openTrilhaAssinatura(reciboId) {
   openModal(`
     <div class="modal__header">
       <div><h2>Trilha da assinatura</h2><p>${escapeHtml(r.funcionarioNome || r.funcionarioId)} · ${escapeHtml(RCB_TIPOS[r.tipo] || r.tipo)} · ${escapeHtml(rcbCompetenciaLabel(r.competencia))}</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="rcb-tri">
@@ -7328,7 +7340,7 @@ function openReciboImportModal() {
   openModal(`
     <div class="modal__header">
       <div><h2>Importar</h2><p>Um PDF com todos os funcionários. O sistema separa por CPF.</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="rcb-imp-uni"><span class="rcb-uni-chip">${icon("check")}<span>FIOBRAS LTDA</span></span></div>
@@ -7531,7 +7543,7 @@ function renderRcbConferencia() {
   openModal(`
     <div class="modal__header">
       <div><h2>Conferência</h2><p>${st.pdf.numPages} páginas lidas · ${total} funcionários no arquivo</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="rcb-sumbar">
@@ -7792,7 +7804,7 @@ async function rcbGerar() {
       openModal(`
         <div class="modal__header">
           <div><h2>Importação incompleta</h2><p>${r.n} de ${itens.length} ${tipoLbl} entraram</p></div>
-          <button class="modal__close" data-close>${icon("x")}</button>
+          <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
         </div>
         <div class="modal__body">
           <p class="rcb-parcial__tx">A gravação falhou no meio do caminho (provável instabilidade de conexão). O que entrou já aparece na lista. Pra completar: <b>importe de novo o MESMO PDF e competência</b>. Os já gerados são pulados automaticamente.</p>
@@ -7972,7 +7984,7 @@ function openConferirAutoModal(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>Aguardando conferência do líder</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="oca-duo">
@@ -8129,7 +8141,7 @@ function openDetalheAutoModal(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>${escapeHtml(sub)}</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="oca-duo">
@@ -8165,7 +8177,7 @@ function openDispensarAutoModal(id) {
   openModal(`
     <div class="modal__header">
       <div><h2>Dispensar ocorrência</h2><p>${escapeHtml(o.nome || "—")} · ${escapeHtml(t.label)} · ${escapeHtml(dataLbl)}</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="field">
@@ -8492,8 +8504,10 @@ function renderBancoHoras() {
   const u = currentUser();
   $("#topbar-title").textContent = "Banco de horas";
 
-  // Escopo de visibilidade: admin/rh = todos, líder = turno, supervisor = lista
-  let visibles = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true && f.aprendiz !== true && podeVerFuncionario(u, f));
+  // Escopo de visibilidade: admin/rh = todos, líder = turno, supervisor = lista.
+  // Fora da lista quem não tem banco de horas (bhExempt: diretoria, aprendizes e afins),
+  // pra o número do resumo bater com a lista. diretor/aprendiz por segurança do dado legado.
+  let visibles = (state.funcionarios || []).filter((f) => f.ativo !== false && !f.bhExempt && f.diretor !== true && f.aprendiz !== true && podeVerFuncionario(u, f));
 
   const totalFunc = visibles.length;
   // Por enquanto saldo vem do state (placeholder). Depois vem do Firestore /bancoHoras
@@ -8519,7 +8533,7 @@ function renderBancoHoras() {
       <div class="stat">
         <div class="stat__label">Funcionários ativos</div>
         <div class="stat__value">${totalFunc}</div>
-        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "inativos não aparecem aqui"}</div>
+        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "sem diretoria e aprendizes"}</div>
       </div>
       <div class="stat">
         <div class="stat__label">Com saldo registrado</div>
@@ -8651,7 +8665,7 @@ async function openEspelhoPopupBH(funcionarioId) {
   const shell = (corpo) => `
     <div class="modal__header">
       <div><h2>${escapeHtml(f.nome)}</h2><p>${escapeHtml(cargoSetor)}</p></div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="bhpop-saldo">${avatarFuncHtml(f, "avatar")}<span style="margin-right:auto">Saldo atual</span><b class="${tone}">${escapeHtml(saldoStr)}</b></div>
@@ -8713,7 +8727,7 @@ function openImportBancoHorasModal() {
         <h2>Importar banco de horas</h2>
         <p>Lê o XLSX exportado pelo sistema de ponto e substitui o saldo de todos os funcionários encontrados. Match por código.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="field">
@@ -9172,7 +9186,7 @@ function openPJModal(id) {
         <h2>${isNew ? "Novo PJ" : pj.nome}</h2>
         <p>${isNew ? "Cadastre um novo prestador de serviço." : "Detalhes, contratos e histórico."}</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div id="modal-colab-banner" class="modal-colab-banner" style="display:none;"></div>
     <form class="modal__body" id="pj-form" onsubmit="return false">
@@ -10247,7 +10261,7 @@ function openReajusteModal(id) {
             ? "Reajuste fora do ciclo anual (15/01). Use pra casos especiais — não substitui o reajuste oficial."
             : `Reajuste anual de 15/01/${anoVigente}. Busca o IPCA via Banco Central conforme o período escolhido.`}</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="reajuste-form" onsubmit="return false">
       ${reajusteExtra ? `
@@ -10651,7 +10665,7 @@ function openAddFeriasModal(pjId) {
         <h2>Dar baixa em férias · ${escapeHtml(pj.nome)}</h2>
         <p>Saldo disponível: <strong style="color: var(--plum);">${r.saldo} dia${Math.abs(r.saldo) !== 1 ? "s" : ""}</strong></p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="ferias-form" onsubmit="return false">
       <div class="field">
@@ -11140,7 +11154,7 @@ function openEditAcaoModal(id) {
           ? "Ação padrão do sistema. Você pode renomear, mas o id <code>" + id + "</code> fica fixo (preserva ocorrências antigas)."
           : "Renomear. O id <code>" + id + "</code> não muda."}</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="form-edit-acao" onsubmit="return false">
       <div class="field">
@@ -11185,7 +11199,7 @@ function openNovaAcaoModal() {
         <h2>Nova ação</h2>
         <p>Aparece no dropdown que o líder usa pra encaminhar a ocorrência.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="form-acao" onsubmit="return false">
       <div class="field">
@@ -11336,7 +11350,7 @@ function openEditTipoModal(id) {
           ? "Tipo padrão do sistema. Você pode renomear e mudar a cor, mas o id <code>" + id + "</code> fica fixo (preserva ocorrências antigas)."
           : "Renomear e/ou trocar a cor."}</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="form-edit-tipo" onsubmit="return false">
       <div class="field">
@@ -11389,7 +11403,7 @@ function openNovoTipoModal() {
         <h2>Novo tipo de ocorrência</h2>
         <p>Será adicionado ao formulário e a quem registrar daqui pra frente.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="form-tipo" onsubmit="return false">
       <div class="field">
@@ -11873,7 +11887,7 @@ function openNovoUsuarioModal() {
         <h2>Novo usuário</h2>
         <p>Cria a conta no Firebase Auth e o perfil em Firestore. O usuário recebe email pra definir a própria senha.</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="user-form" onsubmit="return false">
       <div class="field">
@@ -11990,7 +12004,7 @@ function openEditarUsuarioModal(uid) {
         <h2>Editar usuário</h2>
         <p>${escapeHtml(u.email || "(sem email)")} ${ehVoceMesmo ? `<span class="badge badge--neutral" style="margin-left:6px;">VOCÊ</span>` : ""}</p>
       </div>
-      <button class="modal__close" data-close>${icon("x")}</button>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <form class="modal__body" id="edit-user-form" onsubmit="return false">
       <div class="field">
@@ -12815,7 +12829,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.29.0";
+window.CURRENT_VERSION = "1.30.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -114,7 +114,8 @@ const formatDateTime = (iso) => {
 // Helpers pros campos do pipeline RH (funcionários enriquecidos).
 // Firestore Timestamp tem .toDate(); ISO string já é string; null → null.
 // Use em: f.nascimento, f.admissao, f.demissao (vêm como Timestamp do Firestore).
-function tsToDateStr(ts) {
+// Aceita string ISO, Timestamp (.toDate()/{seconds}), Date ou ms. Nunca lança; inválido → null.
+function tsParaData(ts) {
   if (!ts) return null;
   let d = null;
   if (typeof ts === "string") {
@@ -123,10 +124,15 @@ function tsToDateStr(ts) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ts.trim());
     d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(ts);
   }
+  else if (typeof ts === "number") d = new Date(ts);
   else if (ts.toDate) d = ts.toDate();
   else if (ts.seconds) d = new Date(ts.seconds * 1000);
   else if (ts instanceof Date) d = ts;
-  if (!d || isNaN(d.getTime())) return null;
+  return d && !isNaN(d.getTime()) ? d : null;
+}
+function tsToDateStr(ts) {
+  const d = tsParaData(ts);
+  if (!d) return null;
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
@@ -159,7 +165,8 @@ function formatUltimaAtualizacao(dates) {
     .filter((n) => !Number.isNaN(n) && n > 0);
 
   if (ms.length === 0) {
-    return { value: "—", hint: "aguardando 1ª sincronização" };
+    // Sem nenhuma data ainda: quem exibe deve usar `full` (sem o "Atualizado —" solto).
+    return { value: "—", hint: "aguardando 1ª sincronização", empty: true, full: "Aguardando a primeira sincronização do ponto." };
   }
 
   const max = Math.max(...ms);

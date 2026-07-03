@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.29.0", d: "3 jul 2026", current: true, items: [
+    v: "1.30.0", d: "3 jul 2026", current: true, items: [
+      { type: "feat", title: "No portal do colaborador: o tipo de cada documento aparece com nome legível, o aviso não lido agora também aparece no computador, o saldo do banco de horas na Conta não repete mais, e as Novidades ficaram em linguagem mais clara." },
+      { type: "feat", aud: "gestor", title: "No portal do gestor: a contagem de ativos do banco de horas passou a bater com a lista (sem diretoria e aprendizes), a tela de advertências usa uma cor mais séria nos alertas, e o botão de excluir do perfil ficou mais discreto pra não ser clicado sem querer." },
+      { type: "fix", title: "Acessibilidade dos avisos em tela melhorada e a data de admissão passou a exibir certo em qualquer formato." },
+    ],
+  },
+  {
+    v: "1.29.0", d: "3 jul 2026", items: [
       { type: "fix", title: "No espelho de ponto, um dia que a apuração ainda pode ajustar não confunde mais: pro colaborador ele só aparece depois de fechar, e pro gestor aparece marcado como em apuração." },
     ],
   },

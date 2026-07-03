@@ -482,6 +482,15 @@ html.splash-off .splash { display: none; }
 }
 .btn--danger:hover { background: #7B1F22; }
 
+/* Excluir discreto: mantém o sinal de perigo (texto vermelho) sem o preenchimento
+   sólido que competia com a ação primária. */
+.btn--danger-ghost {
+  background: transparent;
+  color: var(--danger);
+  border-color: transparent;
+}
+.btn--danger-ghost:hover { background: var(--danger-bg); }
+
 .btn--block { width: 100%; }
 .btn--sm { padding: 11px 14px; font-size: 13px; min-height: 36px; } /* min-h ajuda touch */
 .btn--lg { padding: 14px 22px; font-size: 15px; }
@@ -4515,7 +4524,8 @@ code { font-family: inherit; }
 .disc-bar--verbal{background:var(--warning)}
 .disc-bar--escrita{background:#C26A22}
 .disc-bar--susp{background:var(--danger)}
-.disc-av{flex:none;width:44px;height:44px;border-radius:13px;background:var(--success-bg);color:var(--success);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+/* Avatar do registro disciplinar em tom sóbrio (não o verde da marca): é contexto de severidade, o verde suavizava a gravidade. */
+.disc-av{flex:none;width:44px;height:44px;border-radius:13px;background:var(--surface-warm);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
 .disc-main{flex:1;min-width:0}
 .disc-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .disc-nome{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text-body)}
