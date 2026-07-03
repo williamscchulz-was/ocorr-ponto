@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.27.0", d: "3 jul 2026", current: true, items: [
+    v: "1.28.0", d: "3 jul 2026", current: true, items: [
+      { type: "high", title: "Nova tela de abertura: na primeira vez que você abre o app no dia, um cone de fio desenha o nome FioPulse. Nas próximas aberturas do mesmo dia o app abre direto." },
+      { type: "feat", title: "Ajustes pra manter você conectado por mais tempo entre aberturas, pra digitar a senha com menos frequência (no iPhone o sistema ainda pode pedir login de vez em quando)." },
+    ],
+  },
+  {
+    v: "1.27.0", d: "3 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Segunda leva de polimento: no celular as abas de Ocorrências, Configurações e Documentos ficaram maiores e mais fáceis de tocar, e as linhas de cada dia alinham o nome no mesmo lugar tenha a ocorrência vindo do relógio ou lançada à mão." },
       { type: "feat", title: "No Portal do Colaborador: os selos de saldo e de recibo pendente ficaram mais legíveis no tema claro, o recibo a assinar mostra um selo curto sem cortar o texto, e a barra de baixo agora tem o verde deslizando de um item pro outro." },
       { type: "fix", title: "As iniciais do seu avatar são as mesmas em todo canto do portal (antes a saudação e o menu lateral podiam mostrar letras diferentes)." },

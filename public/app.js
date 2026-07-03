@@ -12808,7 +12808,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.27.0";
+window.CURRENT_VERSION = "1.28.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -12818,7 +12818,7 @@ window.hideSplash = function hideSplash() {
   var sp = document.getElementById("splash");
   if (!sp || sp.dataset.splashHiding) return;
   sp.dataset.splashHiding = "1";
-  var MIN = 2900;
+  var MIN = (typeof window.__splashMin === "number") ? window.__splashMin : 2900;
   var t0 = window.__splashT0 || Date.now();
   var wait = Math.max(0, MIN - (Date.now() - t0));
   setTimeout(function () {

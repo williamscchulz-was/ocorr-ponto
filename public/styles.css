@@ -126,63 +126,26 @@ a:hover { color: var(--plum-soft); }
    LOGIN SCREEN
    ============================================ */
 
-/* Splash de boot — a logo "se desenha" (one-shot). Some sozinha por timer;
-   NUNCA trava o app (hideSplash + cap no firebase + fallback duro no <head>).
-   Constantes do desenho ajustáveis nas vars de .splash abaixo. */
+/* Splash de boot — cena "O fio escreve" (cone de fio escrevendo "FioPulse").
+   Roda uma vez por dia (modo decidido no <head>: splash-intro anima, os demais
+   modos mostram o estado formado). NUNCA trava o app (hideSplash + cap no
+   firebase + fallback duro no <head>). Markup e animacao vivem no index.html. */
 .splash {
   position: fixed; inset: 0; z-index: 9999;
   display: grid; place-items: center;
   background: radial-gradient(120% 90% at 50% 40%, #0A1A12 0%, #06120C 72%);
   opacity: 1; transition: opacity .55s ease;
-  --draw-dur: 2.1s; --draw-ease: cubic-bezier(.65, 0, .35, 1);
-  --stroke-w: 2.6; --fill-dur: .7s; --fill-start: .82; --word-delay: 1.9s;
-  --logo-size: min(240px, 56vw);
 }
 .splash--out { opacity: 0; pointer-events: none; }
 .sessao-restaurando #login { display: none !important; }
-.splash::before {
-  content: ""; position: absolute; left: 50%; top: 44%;
-  width: min(420px, 80vw); height: min(420px, 80vw); transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(0, 136, 53, .42) 0%, transparent 62%);
-  filter: blur(8px); opacity: 0; animation: splHalo 2.2s ease-out forwards;
-}
-.splash__stars { position: absolute; inset: 0; pointer-events: none; }
-.splash__stars i {
-  position: absolute; width: 2px; height: 2px; border-radius: 50%;
-  /* opacity base >0: as estrelas com delay grande ainda aparecem no frame 0
-     (senão ficam invisíveis até o delay vencer, deixando a tela quase preta). */
-  background: #cfe9d8; opacity: .22; animation: splTwinkle 3s ease-in-out infinite;
-}
-.splash__stage { position: relative; z-index: 2; display: grid; justify-items: center; gap: 18px; }
-.splash__logo { width: var(--logo-size); height: auto; overflow: visible; display: block; }
-.splash .fill {
-  opacity: 0; animation: splFill var(--fill-dur) ease forwards;
-  animation-delay: calc(var(--delay, 0s) + var(--draw-dur) * var(--fill-start));
-}
-.splash .stroke {
-  stroke-width: var(--stroke-w); stroke-linecap: round; stroke-linejoin: round;
-  stroke-dasharray: 1; stroke-dashoffset: 1;
-  animation: splDraw var(--draw-dur) var(--draw-ease) forwards;
-  animation-delay: var(--delay, 0s);
-}
-@keyframes splDraw { to { stroke-dashoffset: 0; } }
-@keyframes splFill { to { opacity: 1; } }
-.splash__word {
-  font-family: var(--font-brand); font-size: 30px; color: #fff;
-  opacity: 0; animation: splRise .7s var(--draw-ease) var(--word-delay) forwards;
-}
-.splash__word b { color: var(--fiobras-yellow); font-weight: 400; }
-.splash__sub {
-  font-size: 11.5px; color: #9fc7ad; letter-spacing: .04em; margin-top: -8px;
-  opacity: 0; animation: splRise .7s var(--draw-ease) calc(var(--word-delay) + .12s) forwards;
-}
-@keyframes splRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes splHalo { to { opacity: 1; } }
-@keyframes splTwinkle { 0%, 100% { opacity: .25; } 50% { opacity: .8; } }
+/* Ja viu a intro hoje e nao ha sessao pra restaurar: abre direto, sem splash. */
+html.splash-off .splash { display: none; }
+/* A cena SVG preenche a tela; o gradiente do overlay cobre as margens. */
+.splash__cena { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* Reduced-motion: o JS ja renderiza o estado formado estatico (sem rAF). Nada
+   a animar aqui; a regra fica explicita pra deixar claro que o splash e estatico. */
 @media (prefers-reduced-motion: reduce) {
-  .splash .fill, .splash__word, .splash__sub { opacity: 1; animation: none; }
-  .splash .stroke { stroke-dashoffset: 0; animation: none; }
-  .splash::before { opacity: 1; animation: none; }
+  .splash__cena { animation: none; }
 }
 
 /* Login minimalista — card flutuante (variante C aprovada) */

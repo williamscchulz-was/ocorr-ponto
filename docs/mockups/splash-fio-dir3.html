@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · abertura · Pulso (direção 3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --verde:#008835;
+    --verde-claro:#1AA34F;
+    --verde-escuro:#0B7A36;
+    --amarelo:#FFCB00;
+    --azul:#0076BE;
+    --magenta:#E5177B;
+    --magenta-claro:#FF3FA0;
+    --font-brand:"Michroma", system-ui, sans-serif;
+    --font-ui:"Poppins", system-ui, sans-serif;
+    --tinta:#cfe9d8;
+    --tinta-fraca:#7fa591;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font-ui);
+    background:#04100a;
+    color:var(--tinta);
+    -webkit-font-smoothing:antialiased;
+    padding:28px 18px 64px;
+  }
+  header.topo{
+    max-width:1180px;margin:0 auto 30px;text-align:center;
+  }
+  header.topo h1{
+    font-family:var(--font-brand);
+    font-size:22px;font-weight:400;letter-spacing:.02em;
+    color:#fff;margin:0 0 8px;
+  }
+  header.topo p{
+    margin:0 auto;max-width:640px;font-size:13.5px;line-height:1.55;
+    color:var(--tinta-fraca);
+  }
+
+  /* aparelho de celular (moldura reusada do mock dot-matrix) */
+  .celular{
+    width:390px;max-width:100%;height:720px;margin:0 auto;
+    border-radius:44px;
+    background:#000;
+    padding:12px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.05) inset;
+    position:relative;
+  }
+  .tela{
+    width:100%;height:100%;border-radius:34px;overflow:hidden;position:relative;
+    background:radial-gradient(120% 90% at 50% 40%, #0A1A12 0%, #06120C 72%);
+  }
+  .entalhe{
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    width:120px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:3;
+  }
+  .rodape-cel{
+    position:absolute;left:0;right:0;bottom:20px;text-align:center;z-index:2;
+    font-family:var(--font-ui);font-size:11px;color:rgba(207,233,216,.35);
+    letter-spacing:.14em;text-transform:uppercase;pointer-events:none;
+  }
+  .controles{
+    display:flex;justify-content:center;margin-top:14px;
+  }
+  .btn-repetir{
+    font-family:var(--font-ui);font-size:12.5px;font-weight:500;
+    color:var(--tinta);
+    background:rgba(26,163,79,.14);
+    border:1px solid rgba(26,163,79,.35);
+    border-radius:999px;padding:8px 18px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;
+    transition:background .18s ease, border-color .18s ease, color .18s ease;
+  }
+  .btn-repetir:hover{background:rgba(26,163,79,.26);border-color:var(--verde-claro);color:#fff;}
+  .btn-repetir svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+  /* cena */
+  .cena{position:absolute;inset:0;}
+  .cena svg{display:block;width:100%;height:100%;}
+
+  /* wordmark em HTML por cima do SVG, pra tipografia nitida */
+  .wordmark{
+    position:absolute;left:0;right:0;bottom:16.5%;
+    text-align:center;z-index:2;pointer-events:none;
+    opacity:0;
+  }
+  .wordmark .nome{
+    font-family:var(--font-brand);
+    font-size:30px;letter-spacing:.06em;
+    color:#fff;
+    display:inline-block;
+  }
+  .wordmark .nome .fio{color:#fff;}
+  .wordmark .nome .pulse{color:var(--magenta-claro);}
+  .wordmark .subtitulo{
+    margin-top:10px;font-family:var(--font-ui);font-weight:500;
+    font-size:11.5px;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--tinta-fraca);
+  }
+</style>
+</head>
+<body>
+
+  <header class="topo">
+    <h1>FioPulse</h1>
+    <p>Direção 3, Pulso. O cone de fio já está formado e em repouso. Um pulso de luz sobe pela espiral do enrolamento, da base ao topo, o cone floresce em cor, e no pico o nome trava com uma faísca amarela. Roda em laço só para demonstração.</p>
+  </header>
+
+  <div class="celular">
+    <div class="entalhe"></div>
+    <div class="tela">
+      <div class="cena" id="cena"></div>
+      <div class="wordmark" id="wordmark">
+        <div class="nome"><span class="fio">Fio</span><span class="pulse">Pulse</span></div>
+        <div class="subtitulo">Recursos Humanos · Fiobras</div>
+      </div>
+      <div class="rodape-cel">Abrindo</div>
+    </div>
+  </div>
+
+  <div class="controles">
+    <button type="button" class="btn-repetir" id="btn-repetir">
+      <svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Reproduzir de novo
+    </button>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var VBW = 390, VBH = 720;         // sistema de coordenadas da cena
+
+  // ---- Geometria do cone (mais largo embaixo, estreito no topo) ----
+  var CX = VBW/2;                    // eixo central do cone
+  var TOPO_Y = 250;                  // base do nucleo preto (topo do fio enrolado)
+  var BASE_Y = 520;                  // base do cone
+  var RAIO_TOPO = 34;                // meia largura do fio no topo
+  var RAIO_BASE = 96;                // meia largura do fio na base
+  var NUCLEO_ALT = 42;               // altura do tubo preto acima do fio
+  var NUCLEO_RAIO = 22;
+
+  // raio do corpo do fio numa altura y (interpola topo->base)
+  function raioEm(y){
+    var t = (y - TOPO_Y) / (BASE_Y - TOPO_Y);
+    return RAIO_TOPO + (RAIO_BASE - RAIO_TOPO) * t;
+  }
+
+  var cena = document.getElementById("cena");
+  var wordmark = document.getElementById("wordmark");
+  var svg, elFloresce, elPulso, elFaisca, elFaiscaRaios, elBrilhoBase;
+  var linhasDiag = [];               // as espirais de enrolamento (path)
+
+  // ---------- Construção da cena SVG ----------
+  function construir(){
+    cena.innerHTML = "";
+    linhasDiag = [];
+
+    svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("viewBox", "0 0 "+VBW+" "+VBH);
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+    // ===== defs: gradientes, mascaras, blur =====
+    var defs = el("defs");
+
+    // gradiente do corpo do cone (magenta), com brilho especular de um lado
+    var gCorpo = grad("gCorpo", [
+      [0,   "#3a0a20"],   // borda esquerda em sombra
+      [0.30,"#8f0f4d"],
+      [0.50,"#E5177B"],   // magenta cheio
+      [0.62,"#FF4FA6"],   // realce especular
+      [0.74,"#E5177B"],
+      [1,   "#54082e"]    // borda direita em sombra
+    ], true);
+    defs.appendChild(gCorpo);
+
+    // gradiente do nucleo preto (tubo)
+    var gNucleo = grad("gNucleo", [
+      [0,"#000000"],[0.45,"#20242a"],[0.6,"#3a4048"],[0.75,"#181b20"],[1,"#000000"]
+    ], true);
+    defs.appendChild(gNucleo);
+
+    // gradiente vertical do "floresce": cor viva que ganha luz de baixo pra cima
+    var gFlor = grad("gFlor", [
+      [0,   "#FF63B4"],
+      [0.5, "#E5177B"],
+      [1,   "#7a0c42"]
+    ], false);
+    defs.appendChild(gFlor);
+
+    // brilho radial do pulso
+    var rPulso = document.createElementNS(SVGNS,"radialGradient");
+    rPulso.setAttribute("id","gPulso");
+    rPulso.appendChild(stop(0,"#FFFFFF",1));
+    rPulso.appendChild(stop(0.3,"#FF8FCB",0.95));
+    rPulso.appendChild(stop(0.65,"#E5177B",0.5));
+    rPulso.appendChild(stop(1,"#E5177B",0));
+    defs.appendChild(rPulso);
+
+    // faisca amarela radial
+    var rFaisca = document.createElementNS(SVGNS,"radialGradient");
+    rFaisca.setAttribute("id","gFaisca");
+    rFaisca.appendChild(stop(0,"#FFFFFF",1));
+    rFaisca.appendChild(stop(0.35,"#FFE27A",1));
+    rFaisca.appendChild(stop(0.7,"#FFCB00",0.6));
+    rFaisca.appendChild(stop(1,"#FFCB00",0));
+    defs.appendChild(rFaisca);
+
+    // desfoque suave para os brilhos
+    defs.appendChild(filtroBlur("blurSuave", 6));
+    defs.appendChild(filtroBlur("blurForte", 12));
+
+    // mascara com o contorno do cone (recorta enrolamento e floresce)
+    var maskCone = document.createElementNS(SVGNS,"mask");
+    maskCone.setAttribute("id","maskCone");
+    var mPath = el("path");
+    mPath.setAttribute("d", pathCorpo());
+    mPath.setAttribute("fill","#fff");
+    maskCone.appendChild(mPath);
+    defs.appendChild(maskCone);
+
+    svg.appendChild(defs);
+
+    // ===== sombra de contato sob o cone =====
+    var sombra = el("ellipse");
+    sombra.setAttribute("cx", CX);
+    sombra.setAttribute("cy", BASE_Y+14);
+    sombra.setAttribute("rx", RAIO_BASE*1.05);
+    sombra.setAttribute("ry", 20);
+    sombra.setAttribute("fill","#000");
+    sombra.setAttribute("opacity","0.5");
+    sombra.setAttribute("filter","url(#blurSuave)");
+    svg.appendChild(sombra);
+
+    // ===== corpo do cone (base magenta em repouso, escura) =====
+    var corpo = el("path");
+    corpo.setAttribute("d", pathCorpo());
+    corpo.setAttribute("fill","url(#gCorpo)");
+    svg.appendChild(corpo);
+
+    // sombreado interno esquerdo (mais volume)
+    var sombraInt = el("path");
+    sombraInt.setAttribute("d", pathCorpo());
+    sombraInt.setAttribute("fill","#000");
+    sombraInt.setAttribute("opacity","0.16");
+    svg.appendChild(sombraInt);
+
+    // ===== camada "floresce": cor extra viva, revelada de baixo pra cima =====
+    // um retangulo com gradiente, recortado pela mascara do cone, cuja opacidade
+    // sobe conforme o pulso avança. Um clip por cima controla a altura revelada.
+    var grpFlor = el("g");
+    grpFlor.setAttribute("mask","url(#maskCone)");
+    elFloresce = el("rect");
+    elFloresce.setAttribute("x", CX-RAIO_BASE-4);
+    elFloresce.setAttribute("y", TOPO_Y-4);
+    elFloresce.setAttribute("width", (RAIO_BASE+4)*2);
+    elFloresce.setAttribute("height", BASE_Y-TOPO_Y+8);
+    elFloresce.setAttribute("fill","url(#gFlor)");
+    elFloresce.setAttribute("opacity","0");
+    grpFlor.appendChild(elFloresce);
+    svg.appendChild(grpFlor);
+
+    // ===== enrolamento cruzado em losango (espirais diagonais) =====
+    // dois feixes de diagonais opostas, recortados pela mascara do cone.
+    var grpFio = el("g");
+    grpFio.setAttribute("mask","url(#maskCone)");
+    construirEnrolamento(grpFio);
+    svg.appendChild(grpFio);
+
+    // realce especular por cima do enrolamento (faixa clara de um lado)
+    var espec = el("path");
+    espec.setAttribute("d", pathCorpo());
+    espec.setAttribute("fill","url(#gEspec)");
+    // gradiente especular estreito
+    var gEspec = document.createElementNS(SVGNS,"linearGradient");
+    gEspec.setAttribute("id","gEspec");
+    gEspec.setAttribute("x1","0");gEspec.setAttribute("y1","0");
+    gEspec.setAttribute("x2","1");gEspec.setAttribute("y2","0");
+    gEspec.appendChild(stop(0,"#fff",0));
+    gEspec.appendChild(stop(0.52,"#fff",0));
+    gEspec.appendChild(stop(0.62,"#fff",0.34));
+    gEspec.appendChild(stop(0.70,"#fff",0));
+    gEspec.appendChild(stop(1,"#fff",0));
+    defs.appendChild(gEspec);
+    espec.setAttribute("opacity","0.9");
+    svg.appendChild(espec);
+
+    // ===== nucleo preto (tubo) no topo =====
+    var nucleo = el("path");
+    nucleo.setAttribute("d", pathNucleo());
+    nucleo.setAttribute("fill","url(#gNucleo)");
+    svg.appendChild(nucleo);
+    // elipse superior do tubo (boca)
+    var boca = el("ellipse");
+    boca.setAttribute("cx",CX);
+    boca.setAttribute("cy",TOPO_Y-NUCLEO_ALT);
+    boca.setAttribute("rx",NUCLEO_RAIO);
+    boca.setAttribute("ry",7);
+    boca.setAttribute("fill","#05070a");
+    boca.setAttribute("stroke","#2a2f36");
+    boca.setAttribute("stroke-width","1.2");
+    svg.appendChild(boca);
+
+    // ===== brilho ambiente na base (acende quando floresce) =====
+    elBrilhoBase = el("ellipse");
+    elBrilhoBase.setAttribute("cx",CX);
+    elBrilhoBase.setAttribute("cy",BASE_Y-6);
+    elBrilhoBase.setAttribute("rx",RAIO_BASE*1.4);
+    elBrilhoBase.setAttribute("ry",60);
+    elBrilhoBase.setAttribute("fill","url(#gPulso)");
+    elBrilhoBase.setAttribute("opacity","0");
+    elBrilhoBase.setAttribute("filter","url(#blurForte)");
+    svg.insertBefore(elBrilhoBase, sombra.nextSibling); // atras do corpo
+
+    // ===== o pulso luminoso (banda que sobe pela espiral) =====
+    // uma elipse horizontal brilhante, recortada pelo cone, que sobe em y.
+    var grpPulso = el("g");
+    grpPulso.setAttribute("mask","url(#maskCone)");
+    elPulso = el("ellipse");
+    elPulso.setAttribute("cx",CX);
+    elPulso.setAttribute("cy",BASE_Y);
+    elPulso.setAttribute("rx",RAIO_BASE);
+    elPulso.setAttribute("ry",30);
+    elPulso.setAttribute("fill","url(#gPulso)");
+    elPulso.setAttribute("opacity","0");
+    elPulso.setAttribute("filter","url(#blurSuave)");
+    grpPulso.appendChild(elPulso);
+    svg.appendChild(grpPulso);
+
+    // ===== faisca amarela no trave (no topo do cone) =====
+    elFaisca = el("circle");
+    elFaisca.setAttribute("cx",CX);
+    elFaisca.setAttribute("cy",TOPO_Y-NUCLEO_ALT);
+    elFaisca.setAttribute("r",70);
+    elFaisca.setAttribute("fill","url(#gFaisca)");
+    elFaisca.setAttribute("opacity","0");
+    svg.appendChild(elFaisca);
+
+    // raios finos da faisca
+    elFaiscaRaios = el("g");
+    elFaiscaRaios.setAttribute("opacity","0");
+    var fx = CX, fy = TOPO_Y-NUCLEO_ALT;
+    for(var i=0;i<8;i++){
+      var ang = (Math.PI*2/8)*i - Math.PI/2;
+      var r1 = 16, r2 = 46 + (i%2? 14:0);
+      var ray = el("line");
+      ray.setAttribute("x1", fx+Math.cos(ang)*r1);
+      ray.setAttribute("y1", fy+Math.sin(ang)*r1);
+      ray.setAttribute("x2", fx+Math.cos(ang)*r2);
+      ray.setAttribute("y2", fy+Math.sin(ang)*r2);
+      ray.setAttribute("stroke","#FFE27A");
+      ray.setAttribute("stroke-width","2");
+      ray.setAttribute("stroke-linecap","round");
+      elFaiscaRaios.appendChild(ray);
+    }
+    svg.appendChild(elFaiscaRaios);
+
+    cena.appendChild(svg);
+  }
+
+  // path do contorno do corpo do cone (trapezio de lados curvos)
+  function pathCorpo(){
+    var xTL = CX-RAIO_TOPO, xTR = CX+RAIO_TOPO;
+    var xBL = CX-RAIO_BASE, xBR = CX+RAIO_BASE;
+    // topo curvado levemente (boca do fio) e base curvada (elipse)
+    return "M "+xTL+" "+TOPO_Y+
+      " Q "+CX+" "+(TOPO_Y-14)+" "+xTR+" "+TOPO_Y+
+      " L "+xBR+" "+BASE_Y+
+      " Q "+CX+" "+(BASE_Y+26)+" "+xBL+" "+BASE_Y+
+      " Z";
+  }
+  function pathNucleo(){
+    var yTopo = TOPO_Y-NUCLEO_ALT;
+    return "M "+(CX-NUCLEO_RAIO)+" "+yTopo+
+      " L "+(CX-RAIO_TOPO+4)+" "+TOPO_Y+
+      " Q "+CX+" "+(TOPO_Y+8)+" "+(CX+RAIO_TOPO-4)+" "+TOPO_Y+
+      " L "+(CX+NUCLEO_RAIO)+" "+yTopo+
+      " Q "+CX+" "+(yTopo-8)+" "+(CX-NUCLEO_RAIO)+" "+yTopo+" Z";
+  }
+
+  // Constroi as espirais diagonais (padrao losango cruzado). Cada linha e um
+  // path que segue a superficie do cone; guardamos todas em linhasDiag pra
+  // animar o "acender" com stroke-dashoffset conforme o pulso sobe.
+  function construirEnrolamento(grp){
+    var passos = 60;                 // resolucao vertical de cada linha
+    var N = 13;                      // quantas diagonais por feixe
+    var inclin = 1.7;                // quantas voltas visuais (fase por altura)
+
+    for(var feixe=0; feixe<2; feixe++){
+      var dir = feixe===0 ? 1 : -1;
+      for(var k=0;k<N;k++){
+        var faseBase = (k/N)*Math.PI*2;
+        var d = "";
+        for(var s=0;s<=passos;s++){
+          var y = TOPO_Y + (BASE_Y-TOPO_Y)*(s/passos);
+          var r = raioEm(y);
+          var fase = faseBase + dir*inclin*(s/passos)*Math.PI*2;
+          // x na projecao: seno da fase escalado pelo raio; achatamento leve
+          var x = CX + Math.sin(fase)*r;
+          d += (s===0?"M ":"L ") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+        }
+        var ln = el("path");
+        ln.setAttribute("d", d);
+        ln.setAttribute("fill","none");
+        ln.setAttribute("stroke", feixe===0 ? "#FF9AD0" : "#C7135F");
+        ln.setAttribute("stroke-width", feixe===0 ? "1.1" : "1.0");
+        ln.setAttribute("stroke-linecap","round");
+        ln.setAttribute("opacity","0.32");
+        grp.appendChild(ln);
+        linhasDiag.push(ln);
+      }
+    }
+  }
+
+  // ---------- helpers SVG ----------
+  function el(tag){ return document.createElementNS(SVGNS, tag); }
+  function stop(off, cor, op){
+    var s = el("stop");
+    s.setAttribute("offset", off);
+    s.setAttribute("stop-color", cor);
+    if(op!=null) s.setAttribute("stop-opacity", op);
+    return s;
+  }
+  function grad(id, paradas, horizontal){
+    var g = el("linearGradient");
+    g.setAttribute("id", id);
+    if(horizontal){
+      g.setAttribute("x1","0");g.setAttribute("y1","0");
+      g.setAttribute("x2","1");g.setAttribute("y2","0");
+    } else {
+      g.setAttribute("x1","0");g.setAttribute("y1","1");
+      g.setAttribute("x2","0");g.setAttribute("y2","0");
+    }
+    paradas.forEach(function(p){ g.appendChild(stop(p[0], p[1], 1)); });
+    return g;
+  }
+  function filtroBlur(id, dev){
+    var f = el("filter");
+    f.setAttribute("id", id);
+    f.setAttribute("x","-60%");f.setAttribute("y","-60%");
+    f.setAttribute("width","220%");f.setAttribute("height","220%");
+    var b = el("feGaussianBlur");
+    b.setAttribute("in","SourceGraphic");
+    b.setAttribute("stdDeviation", dev);
+    f.appendChild(b);
+    return f;
+  }
+
+  // ---------- Timeline da animação ----------
+  // Fases (ms):
+  //   repouso  0     -> 380   cone parado, escuro
+  //   sobe     380   -> 1750  pulso da base ao topo, enrolamento acende, floresce
+  //   antecipa 1750  -> 1950  micro pausa antes do trave (acomodar)
+  //   trave    1950  -> 2250  faisca amarela + wordmark trava
+  //   segura   2250  -> 3600  tudo aceso, respira de leve
+  //   fim      -> reinicia
+  var DUR_TOTAL = 3600;
+  var t0 = 0, raf = 0, rodando = false;
+
+  function easeOutCubic(t){ return 1 - Math.pow(1-t, 3); }
+  function easeInOutSine(t){ return -(Math.cos(Math.PI*t)-1)/2; }
+  function clamp01(x){ return x<0?0:(x>1?1:x); }
+  function faixa(t, a, b){ return clamp01((t-a)/(b-a)); }
+
+  // comprimentos das linhas, medidos apos entrarem no DOM
+  var comprimentos = [];
+  function medirLinhas(){
+    comprimentos = linhasDiag.map(function(ln){
+      var L = ln.getTotalLength();
+      ln.style.strokeDasharray = L;
+      ln.style.strokeDashoffset = L;   // começa apagada
+      return L;
+    });
+  }
+
+  function aplicar(t){
+    // t em ms desde o inicio
+    var pSobe = faixa(t, 380, 1750);
+    var yPulso = BASE_Y + (TOPO_Y-NUCLEO_ALT - BASE_Y) * easeOutCubic(pSobe);
+
+    // ---- pulso luminoso ----
+    if(t>=340 && t<1900){
+      var apar = faixa(t,340,520) * (1 - faixa(t,1650,1900));
+      elPulso.setAttribute("opacity", (0.9*apar).toFixed(3));
+      elPulso.setAttribute("cy", yPulso.toFixed(1));
+      var rP = raioEm(Math.max(TOPO_Y, Math.min(BASE_Y, yPulso)));
+      elPulso.setAttribute("rx", (rP*1.05).toFixed(1));
+      elPulso.setAttribute("ry", (Math.max(14, rP*0.32)).toFixed(1));
+    } else {
+      elPulso.setAttribute("opacity","0");
+    }
+
+    // brilho ambiente na base logo no comeco da subida
+    var bb = faixa(t,380,900) * (1 - faixa(t,1400,2000));
+    elBrilhoBase.setAttribute("opacity", (0.55*bb).toFixed(3));
+
+    // ---- enrolamento acende conforme o pulso passa ----
+    // cada linha acende quando o pulso ultrapassa a altura media dela.
+    for(var i=0;i<linhasDiag.length;i++){
+      var L = comprimentos[i];
+      // fracao acesa cresce com o progresso da subida (todas juntas, com um
+      // leve escalonamento por indice pra nao acender em bloco)
+      var atraso = (i % 13) * 0.012;
+      var prog = clamp01((pSobe - atraso) / (1 - atraso));
+      var e = easeInOutSine(prog);
+      linhasDiag[i].style.strokeDashoffset = (L*(1-e)).toFixed(1);
+      // opacidade sobe do repouso (0.32) ate aceso (0.9)
+      var op = 0.32 + 0.58*e;
+      // no trave, um pisca extra de brilho
+      op += 0.1 * faixa(t,1950,2100) * (1-faixa(t,2100,2350));
+      linhasDiag[i].setAttribute("opacity", Math.min(1,op).toFixed(3));
+    }
+
+    // ---- floresce: cor viva revelada de baixo pra cima ----
+    var flor = faixa(t, 480, 1800);
+    elFloresce.setAttribute("opacity", (0.85*easeOutCubic(flor)).toFixed(3));
+
+    // ---- faisca amarela no trave ----
+    var fIn = faixa(t,1950,2050);
+    var fOut = faixa(t,2100,2500);
+    var fOp = fIn * (1-fOut);
+    elFaisca.setAttribute("opacity", (fOp).toFixed(3));
+    var fEsc = 0.7 + 0.6*easeOutCubic(fIn);
+    elFaisca.setAttribute("r", (70*fEsc).toFixed(1));
+    elFaiscaRaios.setAttribute("opacity", (fOp*0.9).toFixed(3));
+    var rot = 30*easeOutCubic(fIn);
+    elFaiscaRaios.setAttribute("transform","rotate("+rot.toFixed(1)+" "+CX+" "+(TOPO_Y-NUCLEO_ALT)+")");
+
+    // ---- wordmark: aparece no trave, com leve subida ----
+    var wIn = faixa(t, 1990, 2320);
+    var wEase = easeOutCubic(wIn);
+    wordmark.style.opacity = wEase.toFixed(3);
+    var wy = 14*(1-wEase);
+    wordmark.style.transform = "translateY("+wy.toFixed(1)+"px)";
+
+    // respiro suave do brilho na fase segura
+    if(t>2400){
+      var resp = Math.sin((t-2400)/520*Math.PI*2)*0.5+0.5;
+      elFaisca.setAttribute("opacity", (0.10*resp).toFixed(3)); // brasa residual
+    }
+  }
+
+  function loop(agora){
+    if(!rodando) return;
+    var t = agora - t0;
+    if(t >= DUR_TOTAL){
+      // pequena pausa no fim antes de reiniciar
+      if(t >= DUR_TOTAL + 500){ reiniciar(); return; }
+    }
+    aplicar(Math.min(t, DUR_TOTAL));
+    raf = requestAnimationFrame(loop);
+  }
+
+  function reiniciar(){
+    if(raf) cancelAnimationFrame(raf);
+    construir();
+    // medir apos o proximo frame (elementos ja no DOM)
+    requestAnimationFrame(function(){
+      medirLinhas();
+      aplicar(0);
+      wordmark.style.opacity = "0";
+      t0 = performance.now();
+      rodando = true;
+      raf = requestAnimationFrame(loop);
+    });
+  }
+
+  document.getElementById("btn-repetir").addEventListener("click", reiniciar);
+
+  // arranca
+  reiniciar();
+
+  // hook de QA: forca um instante t (ms) da timeline sem depender do relogio
+  window.__debugEm = function(ms){
+    rodando = false;
+    if(raf) cancelAnimationFrame(raf);
+    aplicar(ms|0);
+    return true;
+  };
+})();
+</script>
+</body>
+</html>

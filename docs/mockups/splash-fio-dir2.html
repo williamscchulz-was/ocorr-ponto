@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · abertura · O fio escreve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Poppins:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --verde:#008835;
+    --verde-claro:#1AA34F;
+    --verde-escuro:#0B7A36;
+    --amarelo:#FFCB00;
+    --azul:#0076BE;
+    --azul-claro:#4AA8E6;
+    --font-brand:"Michroma", system-ui, sans-serif;
+    --font-ui:"Poppins", system-ui, sans-serif;
+    --tinta:#cfe9d8;
+    --tinta-fraca:#7fa591;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font-ui);
+    background:#04100a;
+    color:var(--tinta);
+    -webkit-font-smoothing:antialiased;
+    padding:28px 18px 64px;
+  }
+  header.topo{
+    max-width:760px;margin:0 auto 30px;text-align:center;
+  }
+  header.topo h1{
+    font-family:var(--font-brand);
+    font-size:22px;font-weight:400;letter-spacing:.02em;
+    color:#fff;margin:0 0 10px;
+  }
+  header.topo p{
+    margin:0 auto;max-width:600px;font-size:13.5px;line-height:1.6;
+    color:var(--tinta-fraca);
+  }
+  header.topo .conceito-titulo{
+    display:inline-block;margin-top:16px;font-size:12px;font-weight:600;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--verde-claro);
+    border:1px solid rgba(26,163,79,.35);border-radius:999px;padding:6px 16px;
+    background:rgba(26,163,79,.08);
+  }
+
+  .palco{
+    display:flex;justify-content:center;margin:0 auto;
+  }
+  .coluna{width:390px;max-width:100%;}
+
+  /* aparelho de celular (reaproveitado do mock dot-matrix) */
+  .celular{
+    width:390px;max-width:100%;height:720px;margin:0 auto;
+    border-radius:44px;
+    background:#000;
+    padding:12px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.05) inset;
+    position:relative;
+  }
+  .tela{
+    width:100%;height:100%;border-radius:34px;overflow:hidden;position:relative;
+    background:radial-gradient(120% 90% at 50% 40%, #0A1A12 0%, #06120C 72%);
+  }
+  .entalhe{
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    width:120px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:3;
+  }
+  .rodape-cel{
+    position:absolute;left:0;right:0;bottom:20px;text-align:center;z-index:2;
+    font-family:var(--font-ui);font-size:11px;color:rgba(207,233,216,.35);
+    letter-spacing:.14em;text-transform:uppercase;pointer-events:none;
+  }
+
+  .controles{
+    display:flex;justify-content:center;margin-top:18px;
+  }
+  .btn-repetir{
+    font-family:var(--font-ui);font-size:12.5px;font-weight:500;
+    color:var(--tinta);
+    background:rgba(26,163,79,.14);
+    border:1px solid rgba(26,163,79,.35);
+    border-radius:999px;padding:8px 18px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;
+    transition:background .18s ease, border-color .18s ease, color .18s ease;
+  }
+  .btn-repetir:hover{background:rgba(26,163,79,.26);border-color:var(--verde-claro);color:#fff;}
+  .btn-repetir svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+  /* a cena SVG ocupa a tela toda */
+  .cena{position:absolute;inset:0;width:100%;height:100%;display:block;}
+
+  footer.nota{
+    max-width:640px;margin:44px auto 0;padding:22px 24px;
+    border:1px solid rgba(255,255,255,.07);border-radius:16px;
+    background:rgba(255,255,255,.02);
+    font-size:12.5px;line-height:1.65;color:var(--tinta-fraca);
+  }
+  footer.nota strong{color:var(--tinta);font-weight:600;}
+  footer.nota p{margin:0 0 10px;}
+  footer.nota p:last-child{margin-bottom:0;}
+
+  @media (max-width:520px){
+    .celular{height:640px;}
+  }
+</style>
+</head>
+<body>
+
+  <header class="topo">
+    <h1>FioPulse</h1>
+    <p>Direção de arte para a animação de abertura do PWA de Gestão de Pessoas da Fiobras. Um cone de fio, o produto real da fábrica, entrega a marca sem letreiro mecânico. Roda em laço aqui só para demonstração.</p>
+    <span class="conceito-titulo">2 · O fio escreve</span>
+  </header>
+
+  <div class="palco">
+    <section class="coluna">
+      <div class="celular">
+        <div class="entalhe"></div>
+        <div class="tela">
+          <svg class="cena" id="cena" viewBox="0 0 390 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <!-- corpo cônico do cone: gradiente lateral com brilho especular -->
+              <linearGradient id="coneCorpo" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0"    stop-color="#0B7A36"/>
+                <stop offset="0.28" stop-color="#1AA34F"/>
+                <stop offset="0.46" stop-color="#4FD182"/>
+                <stop offset="0.60" stop-color="#1AA34F"/>
+                <stop offset="1"    stop-color="#05532A"/>
+              </linearGradient>
+              <!-- topo elíptico (visto de cima) do enrolamento -->
+              <radialGradient id="coneTopo" cx="0.42" cy="0.38" r="0.75">
+                <stop offset="0"   stop-color="#5FDC92"/>
+                <stop offset="0.55" stop-color="#1AA34F"/>
+                <stop offset="1"   stop-color="#0B7A36"/>
+              </radialGradient>
+              <!-- núcleo/tubo preto no topo -->
+              <radialGradient id="nucleo" cx="0.4" cy="0.35" r="0.8">
+                <stop offset="0"   stop-color="#2a2f2c"/>
+                <stop offset="0.6" stop-color="#0d100e"/>
+                <stop offset="1"   stop-color="#000"/>
+              </radialGradient>
+              <!-- glow do fio que escreve -->
+              <linearGradient id="fioTinta" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0"   stop-color="#1AA34F"/>
+                <stop offset="0.5" stop-color="#4FD182"/>
+                <stop offset="1"   stop-color="#7CEBA8"/>
+              </linearGradient>
+              <radialGradient id="fagulha" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0"   stop-color="#FFF6CC"/>
+                <stop offset="0.35" stop-color="#FFCB00"/>
+                <stop offset="1"   stop-color="rgba(255,203,0,0)"/>
+              </radialGradient>
+              <radialGradient id="pisoGlow" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0"   stop-color="rgba(26,163,79,0.28)"/>
+                <stop offset="1"   stop-color="rgba(26,163,79,0)"/>
+              </radialGradient>
+              <filter id="brilhoSuave" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="3.2" result="b"/>
+                <feMerge>
+                  <feMergeNode in="b"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              <filter id="blurForte" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="7"/>
+              </filter>
+              <!-- máscara diagonal do enrolamento cruzado (losango) -->
+              <pattern id="losango" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+                <path d="M0,8 L8,0 M8,16 L16,8 M-4,4 L4,-4 M12,20 L20,12" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+                <path d="M0,8 L8,16 M8,0 L16,8 M-4,12 L4,20 M12,-4 L20,4" stroke="rgba(0,0,0,0.20)" stroke-width="1"/>
+              </pattern>
+            </defs>
+
+            <!-- brilho no piso sob o cone -->
+            <ellipse id="piso" cx="300" cy="628" rx="86" ry="20" fill="url(#pisoGlow)"/>
+
+            <!-- ================= CONE DE FIO (canto inferior direito) ================= -->
+            <g id="cone" transform="translate(300 560)">
+              <!-- sombra de contato -->
+              <ellipse cx="0" cy="70" rx="62" ry="14" fill="rgba(0,0,0,0.35)"/>
+              <!-- corpo cônico: largo embaixo, estreito no topo -->
+              <path id="coneBody"
+                d="M -58,66
+                   C -58,74 58,74 58,66
+                   L 22,-74
+                   C 22,-80 -22,-80 -22,-74 Z"
+                fill="url(#coneCorpo)"/>
+              <!-- textura de enrolamento cruzado por cima do corpo -->
+              <path
+                d="M -58,66
+                   C -58,74 58,74 58,66
+                   L 22,-74
+                   C 22,-80 -22,-80 -22,-74 Z"
+                fill="url(#losango)" opacity="0.9"/>
+              <!-- brilho especular do lado esquerdo -->
+              <path
+                d="M -50,60 C -46,20 -34,-40 -18,-72 C -30,-40 -40,10 -42,60 Z"
+                fill="rgba(255,255,255,0.22)" filter="url(#brilhoSuave)"/>
+              <!-- topo elíptico do enrolamento -->
+              <ellipse cx="0" cy="-74" rx="22" ry="7" fill="url(#coneTopo)"/>
+              <ellipse cx="0" cy="-74" rx="22" ry="7" fill="url(#losango)" opacity="0.6"/>
+              <!-- núcleo/tubo preto saindo do topo -->
+              <ellipse cx="0" cy="-84" rx="9" ry="3.4" fill="url(#nucleo)"/>
+              <rect x="-9" y="-84" width="18" height="12" fill="#0d100e"/>
+              <ellipse cx="0" cy="-72" rx="9" ry="3" fill="#05130c"/>
+              <!-- realce fino na crista do topo -->
+              <ellipse cx="0" cy="-74" rx="22" ry="7" fill="none" stroke="rgba(124,235,168,0.5)" stroke-width="1"/>
+            </g>
+
+            <!-- ================= FIO QUE ESCREVE ================= -->
+            <!-- trecho livre: do topo do cone ate o inicio do wordmark (segue a ponta) -->
+            <path id="fioLivre" fill="none" stroke="url(#fioTinta)" stroke-width="2.4"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+
+            <!-- wordmark desenhado em traco unico continuo -->
+            <!-- halo por baixo -->
+            <path id="wmHalo" fill="none" stroke="#4FD182" stroke-width="7"
+                  stroke-linecap="round" stroke-linejoin="round"
+                  opacity="0.0" filter="url(#blurForte)"/>
+            <!-- traco principal -->
+            <path id="wmPath" fill="none" stroke="url(#fioTinta)" stroke-width="3.1"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+
+            <!-- ponta luminosa que escreve -->
+            <circle id="ponta" r="4.2" fill="#EAFBF0" filter="url(#brilhoSuave)" opacity="0"/>
+            <!-- fagulha amarela do momento do trave -->
+            <circle id="spark" cx="0" cy="0" r="30" fill="url(#fagulha)" opacity="0"/>
+
+            <!-- assinatura discreta -->
+            <text id="assinatura" x="195" y="470" text-anchor="middle"
+                  font-family="Poppins, sans-serif" font-size="12" font-weight="500"
+                  letter-spacing="3" fill="rgba(207,233,216,0.0)">GESTÃO DE PESSOAS</text>
+          </svg>
+          <div class="rodape-cel">Abrindo</div>
+        </div>
+      </div>
+
+      <div class="controles">
+        <button type="button" class="btn-repetir" id="btnRepetir">
+          <svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Reproduzir de novo
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <footer class="nota">
+    <p><strong>O fio escreve.</strong> O cone de fio já formado descansa no canto. Um único fio contínuo se desenrola dele e sobe desenhando a palavra FioPulse num traço só, como se a máquina escrevesse o nome com linha. No instante em que o nome trava, uma fagulha amarela, cor da marca, marca o ponto e o fio fica tenso.</p>
+    <p><strong>O que é fiel ao produto.</strong> O corpo cônico, o núcleo preto no topo e a textura de enrolamento cruzado em losango reproduzem o cone de fio real da fábrica. A paleta é a da marca Fiobras, verde no cone e no traço, amarelo reservado só para a fagulha do trave.</p>
+  </footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var svg   = document.getElementById("cena");
+  var fioLivre = document.getElementById("fioLivre");
+  var wmPath   = document.getElementById("wmPath");
+  var wmHalo   = document.getElementById("wmHalo");
+  var ponta    = document.getElementById("ponta");
+  var spark    = document.getElementById("spark");
+  var cone     = document.getElementById("cone");
+  var piso     = document.getElementById("piso");
+  var assinatura = document.getElementById("assinatura");
+
+  // ----- ponto de saida do fio no topo do cone (coordenadas do viewBox) -----
+  // cone esta em translate(300,560); topo do nucleo em y=-84 local => (300, 476)
+  var SAIDA = { x: 300, y: 476 };
+
+  // ---------------------------------------------------------------
+  // Path do wordmark "FioPulse" desenhado como UM traco unico continuo.
+  // A caneta nunca levanta: liga letra a letra por baixo da linha de base,
+  // como um fio de verdade que passa de uma letra pra outra.
+  // Coordenadas pensadas numa faixa central da tela (y de base ~ 300).
+  // ---------------------------------------------------------------
+  // F le como F: haste vertical, barra do topo, barra do meio.
+  // O conector pro i sai da ALTURA DO MEIO (y=266), nunca da linha de base,
+  // pra nao criar um traco horizontal na base que faria o F virar E.
+  // Traco o mais continuo possivel da esquerda pra direita: a caneta so levanta
+  // no pingo do i (unico corte aceitavel). Sobrepor haste ja desenhada e normal
+  // em desenho de uma linha so.
+  var WORDMARK_D = [
+    // F: entra pelo topo, barra do topo (dir->esq), desce a haste ate a base,
+    // retorna pela haste ate o meio e faz a barra do meio, saindo no meio
+    "M 116,232",
+    "L 78,232",
+    "L 78,300",
+    "L 78,266",
+    "L 110,266",
+    // ponte F -> i saindo da altura do meio (sem horizontal na base)
+    "C 118,278 126,300 130,300",
+    // i: haste ate a altura de x, hairline fino ate um pingo (laco minusculo)
+    // e volta pela haste, TUDO num subpath continuo (sem corte M) pra revelacao
+    // por stroke-dashoffset nunca vazar o pingo antes da ponta chegar
+    "L 130,258",
+    "L 130,248",
+    "C 127,245 127,241 130,241", "C 133,241 133,245 130,248",
+    "L 130,258",
+    // ponte i -> o por cima
+    "C 132,300 150,308 168,300",
+    // o: laco fechado, volta ao lado direito na base
+    "C 150,300 150,262 168,262",
+    "C 186,262 186,300 168,300",
+    // ponte o -> P
+    "C 188,306 205,306 208,300",
+    // P: sobe a haste, barriga, desce ate a base
+    "L 208,232",
+    "C 240,232 240,270 208,270",
+    "L 208,300",
+    // ponte P -> u terminando no topo da haste esquerda do u (sem corte)
+    "C 226,320 248,318 248,262",
+    // u: desce, curva no fundo, sobe a haste direita
+    "L 248,290", "C 248,304 276,304 276,290", "L 276,262",
+    // ponte u -> l terminando no topo do l (sem corte)
+    "C 280,300 292,300 298,300", "L 298,232",
+    // desce o l e ponte ao s (sem corte)
+    "C 300,320 322,320 336,270",
+    // s: curva de cima, espinha, curva de baixo
+    "C 337,259 318,258 316,270", "C 314,281 336,282 336,292", "C 336,304 318,305 314,294",
+    // ponte s -> e terminando na ponta esquerda da barra do e (sem corte)
+    "C 320,302 342,304 350,284",
+    // e: barra do meio, laco por cima, abertura embaixo a direita
+    "L 372,284", "C 373,269 350,266 350,285", "C 350,301 366,303 374,293"
+  ].join(" ");
+
+  wmPath.setAttribute("d", WORDMARK_D);
+  wmHalo.setAttribute("d", WORDMARK_D);
+
+  var LEN = wmPath.getTotalLength();
+  wmPath.style.strokeDasharray  = LEN;
+  wmHalo.style.strokeDasharray  = LEN;
+
+  // primeiro ponto do wordmark (inicio do traco) para conectar o fio livre
+  var pInicio = wmPath.getPointAtLength(0);
+
+  // ---------- easing ----------
+  function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+  function easeOut(t){ return 1-Math.pow(1-t,3); }
+  function easeIn(t){ return t*t*t; }
+  function clamp01(t){ return t<0?0:t>1?1:t; }
+
+  // ---------- linha do tempo (ms) ----------
+  // antecipacao curta, escrita longa, trave com fagulha, acomodar, respiro.
+  // A escrita e a fase mais longa: o nome nasce vazio e vai surgindo letra a
+  // letra sob a ponta, no ritmo do fio tecendo.
+  var T = {
+    antecipa:  [0,     460],   // cone respira, ponta se arma na saida
+    escreve:   [460,  3160],   // fio sobe escrevendo o wordmark (traco unico, ~2700ms)
+    trave:     [3160, 3480],   // ultima curva fecha, fagulha amarela
+    acomoda:   [3480, 3920],   // cone assenta, fio fica tenso, assinatura entra
+    respira:   [3920, 4800]    // segura a marca formada
+  };
+  var DUR = 4800;
+  var LACO_PAUSA = 900;        // pausa antes de reiniciar o laco
+
+  var losango = document.getElementById("losango");
+
+  var t0 = 0;
+  var raf = 0;
+  var rodando = false;
+
+  function faseProg(agora, faixa){
+    return clamp01((agora - faixa[0])/(faixa[1]-faixa[0]));
+  }
+
+  // Cone com vida continua: micro balanco senoidal (translada e gira uma fracao
+  // de grau) somado a ajustes de fase (escala na antecipacao, settle ao acomodar).
+  // Nunca fica estatico enquanto a animacao roda.
+  function setCone(e, extraY, escala){
+    var swayX = Math.sin(e/1400) * 1.4;
+    var swayY = Math.sin(e/1700 + 0.6) * 1.1;
+    var swayR = Math.sin(e/1600) * 0.4;
+    var tx = (300 + swayX).toFixed(2);
+    var ty = (560 + swayY + (extraY||0)).toFixed(2);
+    var t = "translate(" + tx + " " + ty + ") rotate(" + swayR.toFixed(3) + ")";
+    if(escala && escala !== 1) t += " scale(" + escala.toFixed(4) + ")";
+    cone.setAttribute("transform", t);
+    // textura de enrolamento gira devagar, como o cone desenrolando o fio
+    if(losango) losango.setAttribute("patternTransform", "rotate(" + (e*0.006).toFixed(2) + ")");
+  }
+
+  function desenhaFioLivre(pontaX, pontaY, tensao){
+    // curva Bezier da saida do cone ate a ponta que escreve.
+    // "tensao" 0..1: quanto mais tenso, menos barriga na curva (fio esticando).
+    var barriga = (1 - tensao) * 46;
+    var mx = (SAIDA.x + pontaX)/2;
+    var my = (SAIDA.y + pontaY)/2 + barriga;
+    var cx1 = SAIDA.x - barriga*0.5, cy1 = SAIDA.y - 8;
+    var d = "M " + SAIDA.x + "," + SAIDA.y +
+            " C " + cx1 + "," + cy1 + " " + mx + "," + my + " " + pontaX + "," + pontaY;
+    fioLivre.setAttribute("d", d);
+  }
+
+  // Desenha UM instante da timeline dado o elapsed "e" (ms), sem depender de
+  // tempo real. O laco e o hook de QA (__debugEm) chamam esta mesma funcao.
+  function draw(e){
+
+    // ---------- ANTECIPA ----------
+    if(e < T.antecipa[1]){
+      var pa = faseProg(e, T.antecipa);
+      // cone respira (leve escala) alem do balanco continuo, e piso pulsa
+      setCone(e, 0, 1 + Math.sin(pa*Math.PI)*0.02);
+      piso.setAttribute("opacity", 0.6 + Math.sin(pa*Math.PI)*0.3);
+      // fio livre da saida ate o inicio do wordmark, ainda sem escrever
+      var px = SAIDA.x + (pInicio.x - SAIDA.x)*easeOut(pa);
+      var py = SAIDA.y + (pInicio.y - SAIDA.y)*easeOut(pa);
+      desenhaFioLivre(px, py, 0.15);
+      wmPath.style.strokeDashoffset = LEN;
+      wmHalo.style.strokeDashoffset = LEN;
+      ponta.setAttribute("opacity", easeOut(pa));
+      ponta.setAttribute("cx", px);
+      ponta.setAttribute("cy", py);
+      return;
+    }
+
+    // ---------- ESCREVE ----------
+    if(e < T.escreve[1]){
+      setCone(e, 0, 1);
+      var pe = faseProg(e, T.escreve);
+      var eased = easeInOut(pe);
+      var revelado = eased * LEN;
+      wmPath.style.strokeDashoffset = LEN - revelado;
+      // halo acompanha suave, entra a partir do meio
+      wmHalo.style.strokeDashoffset = LEN - revelado;
+      wmHalo.setAttribute("opacity", (0.10 + 0.25*pe).toFixed(3));
+      // ponta na cabeca do traco (a posicao atual do fio que escreve)
+      var pt = wmPath.getPointAtLength(Math.min(revelado, LEN));
+      ponta.setAttribute("cx", pt.x);
+      ponta.setAttribute("cy", pt.y);
+      ponta.setAttribute("opacity", 1);
+      // fio livre SEMPRE ligado a ponta atual: le como "o fio esta desenhando agora"
+      desenhaFioLivre(pt.x, pt.y, 0.25 + pe*0.35);
+      piso.setAttribute("opacity", 0.55);
+      return;
+    }
+    wmPath.style.strokeDashoffset = 0;
+    wmHalo.style.strokeDashoffset = 0;
+
+    // ---------- TRAVE (fagulha amarela) ----------
+    if(e < T.trave[1]){
+      setCone(e, 0, 1);
+      var pv = faseProg(e, T.trave);
+      var fim = wmPath.getPointAtLength(LEN);
+      ponta.setAttribute("cx", fim.x);
+      ponta.setAttribute("cy", fim.y);
+      ponta.setAttribute("opacity", 1);
+      // fagulha: cresce e some
+      var g = Math.sin(pv*Math.PI);
+      spark.setAttribute("cx", fim.x);
+      spark.setAttribute("cy", fim.y);
+      spark.setAttribute("opacity", (g*0.95).toFixed(3));
+      spark.setAttribute("r", (18 + g*22).toFixed(1));
+      // halo do wordmark ganha um flash amarelado no pico
+      wmHalo.setAttribute("stroke", pv<0.6 ? "#FFCB00" : "#4FD182");
+      wmHalo.setAttribute("opacity", (0.35 + g*0.4).toFixed(3));
+      // fio livre esticando
+      desenhaFioLivre(fim.x, fim.y, 0.6 + pv*0.3);
+      return;
+    }
+    spark.setAttribute("opacity", 0);
+    wmHalo.setAttribute("stroke", "#4FD182");
+
+    // ---------- ACOMODA (fio tenso, assinatura entra) ----------
+    if(e < T.acomoda[1]){
+      var pc = faseProg(e, T.acomoda);
+      var fim2 = wmPath.getPointAtLength(LEN);
+      // fio livre chega quase reto (fio tenso)
+      desenhaFioLivre(fim2.x, fim2.y, 0.9 + pc*0.1);
+      // ponta desvanece
+      ponta.setAttribute("opacity", 1 - easeIn(pc));
+      // halo assenta num brilho estavel
+      wmHalo.setAttribute("opacity", (0.35 - pc*0.15).toFixed(3));
+      // assinatura sobe do 0
+      assinatura.setAttribute("fill", "rgba(207,233,216," + (0.55*easeOut(pc)).toFixed(3) + ")");
+      // cone da um leve acomodar (settle) vertical sobre o balanco continuo
+      setCone(e, Math.sin(pc*Math.PI) * 2.2, 1);
+      return;
+    }
+    ponta.setAttribute("opacity", 0);
+
+    // ---------- RESPIRA (segura a marca) ----------
+    if(e < T.respira[1]){
+      setCone(e, 0, 1);
+      var pr = faseProg(e, T.respira);
+      // respiro sutil do halo
+      var resp = 0.20 + Math.sin(pr*Math.PI*2)*0.06;
+      wmHalo.setAttribute("opacity", resp.toFixed(3));
+      assinatura.setAttribute("fill", "rgba(207,233,216,0.55)");
+      return;
+    }
+
+    // marca formada, segurando (cone segue com vida)
+    setCone(e, 0, 1);
+    wmHalo.setAttribute("opacity", 0.20);
+    assinatura.setAttribute("fill", "rgba(207,233,216,0.55)");
+  }
+
+  function frame(agora){
+    if(!rodando) return;
+    var e = agora - t0;
+    draw(e);
+    if(e < DUR + LACO_PAUSA){
+      raf = requestAnimationFrame(frame);
+      return;
+    }
+    iniciar();
+  }
+
+  function iniciar(){
+    t0 = performance.now();
+    // reset visual
+    wmPath.style.strokeDashoffset = LEN;
+    wmHalo.style.strokeDashoffset = LEN;
+    wmHalo.setAttribute("opacity", 0);
+    wmHalo.setAttribute("stroke", "#4FD182");
+    spark.setAttribute("opacity", 0);
+    ponta.setAttribute("opacity", 0);
+    assinatura.setAttribute("fill", "rgba(207,233,216,0)");
+    setCone(0, 0, 1);
+    desenhaFioLivre(pInicio.x, pInicio.y, 0.15);
+    if(!rodando){ rodando = true; }
+    if(raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(frame);
+  }
+
+  document.getElementById("btnRepetir").addEventListener("click", iniciar);
+
+  // Hook de QA: para o laco e renderiza UM instante deterministico da timeline.
+  window.__debugEm = function(ms){
+    rodando = false;
+    if(raf){ cancelAnimationFrame(raf); raf = 0; }
+    draw(ms);
+  };
+
+  iniciar();
+
+})();
+</script>
+</body>
+</html>

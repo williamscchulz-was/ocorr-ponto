@@ -90,6 +90,13 @@
         debug?.("[Auth] setPersistence falhou:", e);
       }
 
+      // Storage persistente: pede ao browser pra NÃO despejar o armazenamento
+      // (IndexedDB do Firebase Auth + localStorage). No Android/Chrome, quando
+      // concedido (silencioso, sem popup), a sessão sobrevive muito mais tempo.
+      // No iOS o Safari ainda pode despejar após ~7 dias sem abrir (limite da
+      // Apple, não do app), mas pedir não custa e não atrapalha. Fire-and-forget.
+      try { navigator.storage?.persist?.().then((ok) => debug?.("[Storage] persistente:", ok)).catch(() => {}); } catch {}
+
       window.FIREBASE = { app, auth, db, storage };
 
       installFirebaseStore(auth, db);
