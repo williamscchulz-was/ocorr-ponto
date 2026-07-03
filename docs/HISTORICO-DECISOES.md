@@ -1165,3 +1165,12 @@ William reparou no "Meu ponto" que o dia 29/06 da Lucivane (545) mostrava só 2 
 **Corrigido**: `marcacoes` agora prefere Apuradas (só cai pra Originais se Apuradas vier vazio, defensivo). Rodado de verdade (`process-espelho-ponto.mjs` + `upload-banco-horas-self.mjs`), conferido no Firestore que o doc da Lucivane já reflete os 4 horários certos. Propaga pra todo mundo na próxima rodada agendada também (já rodou agora manualmente).
 
 Sobre o "dia de hoje" (03/07) não aparecer: confirmado que **não é bug** — o export do Espelho do WK simplesmente ainda não tem a linha de hoje (mesmo atraso de fechamento documentado no incidente das 26 Faltas falsas e no detector de "Marcações Não Identificadas"). Comportamento esperado, dado ainda não existe na fonte.
+
+
+---
+
+## 2026-07-03 · Confirmado (de novo): dado "incompleto" era só imaturidade, não bug — e fechado gap de lock-recovery
+
+William apontou que 02/07 (ontem) da Lucivane ainda mostrava só 1 marcação — certo dele, já devia ter assentado. Reexportei o Espelho fresco: 02/07 realmente já tinha as 4 marcações completas (situação virou "Trabalhando"), e agora é o 03/07 (hoje) que está com só 1 — o mesmo padrão de atraso de fechamento do WK andou um dia pra frente, confirmando de novo (3ª vez nesta sessão: Faltas falsas, detector 999, agora isso) que não existe bug de dado aqui, é característica do WK mesmo. Reprocessado e resubido pro Firestore com o dado fresco.
+
+No caminho, achei e corrigi um gap real: `export-espelho.mjs` era o único dos 3 scripts que reescrevem config do WK ainda usando `fs.renameSync` puro (sem o `wk-lock-recovery.mjs` que os outros 2 já tinham desde 2026-07-01/02) — travou 2x hoje no mesmo `Config_Relatorio_de_Apurações4.txt`, preso por um `Ponto.exe` órfão. Corrigido pra usar o mesmo mecanismo dos outros.
