@@ -1116,3 +1116,18 @@ A revisão também teve uma inconsistência interna curiosa: 2 achados sobre o c
 ## 2026-07-03 · Investigação do caso Charles: users/{uid} sem funcionarioTurno
 
 PC confirmou e corrigiu (v269) a causa raiz da ocorrência manual do Charles que sumiu: regra do Firestore exige `funcionarioTurno in [1,2,3,'geral']`, e o form deixava selecionar funcionário sem turno definido. Ao investigar de onde vinha o "sem turno", conferi as 2 fontes que controlo: WK Radar e `funcionarios/f-1204` (Firestore) — as duas SEMPRE tiveram turno=1 certo. Achei o gap real: `users/{uid}` (doc de auth/login) não tem o campo `funcionarioTurno` — só `funcionarioId`/`role`/`nome`/`ativo`. Nunca escrevi esse campo lá (só denormalizei `funcionarioTurno` em `banco-horas-self`, pedido de 01/07). Reportado ao PC pra confirmar se é essa a coleção que o form/rule consulta — se for, é fácil eu adicionar (mesmo padrão do funcionarioId/custom claims).
+
+
+---
+
+## 2026-07-03 · Lote completo de avatares (opção B) rodado — 62 tratados, 0 erros
+
+Smoke test de 5 fotos aprovado pelo William direto no app ("está aprovado, gostei muito
+do resultado", relatado pelo PC) e reconfirmado direto no chat comigo. Rodado o lote
+completo: 80 imagens na pasta do Drive -> 62 tratadas (rosto detectado + fundo removido
++ composto na bandeira da marca), 0 degradadas, 7 sem rosto detectável (mantidas como
+estavam), 4 puladas (já tratada/removida/escolha do colaborador), 3 sem login ainda,
+0 erros. Fotos finais ~4-11KB cada. Relatório completo mandado pro PC
+(claude-bridge/inbox-pc/2026-07-03-avatar-lote-completo.md). Script
+sync-fotos-drive-tratamento.mjs continua fora do run-pipeline.mjs por ora (roda sob
+demanda) — vira rotina agendada só se pedido.
