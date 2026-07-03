@@ -1196,3 +1196,12 @@ William usou a tela de gestor (Espelho de outro colaborador, não "Meu ponto" pr
 Corrigido: voltei a mandar TODOS os dias no array `dias[]`, e adicionei `maduro:true/false` em cada dia (mesmo buffer de 2 dias). Quem decide esconder ou não agora é a tela — "Meu ponto" do colaborador deve filtrar `maduro`, "Espelho de Ponto do gestor" deve mostrar tudo. Avisado o PC, precisa de ajuste do lado dele pro "Meu ponto" aplicar o filtro (a mudança de dado já está no ar, mas sem o filtro client-side o colaborador volta a ver o dia instável até o PC aplicar).
 
 Lição: ao decidir "esconder X", pensar em TODAS as telas que consomem o mesmo dado, não só a que motivou o pedido.
+
+
+---
+
+## 2026-07-03 · Buffer de maturidade ajustado pra 1 dia (não 2) — Espelho de Ponto
+
+William apontou que esconder D-1 não fazia sentido, só o dia corrente. Reconferido com a evidência do próprio dia (02/07 assentou entre manhã e tarde do MESMO dia) — o buffer de 2 dias emprestado do detector de ocorrências (999) era conservador demais pra esse caso de uso específico. Ajustado `process-espelho-ponto.mjs` pra `maduro:false` só no dia corrente. Já rodado e resubido.
+
+Caso do saldo zero da Lucivane (01/07, ~2h44 de excesso trabalhado, saldo fechou 00:00) permanece sem explicação — descartado bug de exibição (app só renderiza o campo puro) e bug de parser (confirmado no CSV bruto do WK nos dois relatórios). Mandada mensagem pro PC pedindo ajuda, mas ambos concordamos que provavelmente só resolve com alguém checando a política de Banco de Horas direto na tela do WK Radar — nenhum dos dois Claudes tem acesso à UI do sistema, só aos exports.
