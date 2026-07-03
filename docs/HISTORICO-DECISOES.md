@@ -1152,3 +1152,16 @@ Registrado em memória (`feedback_orquestracao_agentes.md`) os princípios de or
 ## 2026-07-03 · Fechamento da investigação do caso Charles: `users/{uid}.funcionarioTurno` NÃO é o gap
 
 Conferido o código antes de aceitar a hipótese do WKRADAR (não chutar em cima do relato). O form de "Nova ocorrência" nunca leu nem lerá `users/{uid}`: `public/firebase.js:153` busca `func = getFuncionario(funcionarioId)` do cache de `funcionarios/{codigo}`, a validação em `firebase.js:158` confere `func.turno`, o campo `funcionarioTurno` do documento novo é denormalizado de `func.turno` no momento da escrita (`firebase.js:170`), e a regra (`docs/firestore.rules:266`) confere `request.resource.data.funcionarioTurno` — o campo do doc sendo criado, nunca `users/`. Como o WKRADAR já confirmou que `funcionarios/f-1204.turno` (Charles) sempre foi 1 nas duas fontes, o plano de adicionar `funcionarioTurno` em `users/{uid}` foi descartado — não resolveria nada porque nunca foi lá que o app lia. O gap real já estava fechado pela v269 (funcionário sem turno em `funcionarios/{codigo}` agora bloqueia na UI com instrução fixa, nunca mais falha silenciosa). Resposta completa em `claude-bridge/inbox-wkradar/2026-07-03-1440-resposta-gap-turno-e-status.md`.
+
+
+---
+
+## 2026-07-03 · Bug real: Espelho de Ponto mostrava marcação incompleta (9% dos dias da empresa)
+
+William reparou no "Meu ponto" que o dia 29/06 da Lucivane (545) mostrava só 2 marcações (07:26 · 12:02), parecendo falta de registro. Investigado: o WK Radar tem 2 colunas no Espelho — "Originais" (scan bruto) e "Apuradas" (reconciliação do próprio WK, que enche buraco quando confia). Pra esse dia, Originais tinha só 2, mas Apuradas tinha as 4 completas (07:26-12:02-13:12-17:30), situação "Trabalhando" (nunca virou 999). `process-espelho-ponto.mjs` estava montando o campo `marcacoes` (o que o Portal mostra) a partir de Originais em vez de Apuradas.
+
+**Escopo real**: não era só a Lucivane — checado no CSV cru, **230 de 2570 dias-marcação da empresa inteira (8.9%)** têm Originais mais curto que Apuradas. Bug afetava o "Meu ponto" de qualquer colaborador nesses dias.
+
+**Corrigido**: `marcacoes` agora prefere Apuradas (só cai pra Originais se Apuradas vier vazio, defensivo). Rodado de verdade (`process-espelho-ponto.mjs` + `upload-banco-horas-self.mjs`), conferido no Firestore que o doc da Lucivane já reflete os 4 horários certos. Propaga pra todo mundo na próxima rodada agendada também (já rodou agora manualmente).
+
+Sobre o "dia de hoje" (03/07) não aparecer: confirmado que **não é bug** — o export do Espelho do WK simplesmente ainda não tem a linha de hoje (mesmo atraso de fechamento documentado no incidente das 26 Faltas falsas e no detector de "Marcações Não Identificadas"). Comportamento esperado, dado ainda não existe na fonte.
