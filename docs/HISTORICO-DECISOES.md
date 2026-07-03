@@ -1091,3 +1091,28 @@ William reparou (comparando o relatório bruto do WK com a tela de Ocorrências)
 2. **Horário do Task Scheduler mudado de 08h/10h/14h para 09h/11h/14h** — dá uma hora a mais de folga antes da primeira rodada do dia, tempo suficiente pro WK terminar de fechar o dia anterior (confirmado empiricamente: dados já estavam certos por volta das 08h50).
 
 Nada mudou do lado do PC — é ajuste puro de agendamento + limpeza de dado no pipeline.
+
+
+---
+
+## 2026-07-03 · Detector de "marcação não identificada" (código WK 999) — novo tipo de ocorrência automática
+
+Investigação do caso do Charles Andre Marowski (f-1204, "não registrou saída" sumida da tela) levou a descobrir que o Espelho de Ponto do WK tem uma situação interna própria, código 999 "Marcações Não Identificadas" (confirmada na tela "Relação de Situações" do próprio WK), pra dias com marcação incompleta/ambígua.
+
+**Testado empiricamente antes de implementar** (pedido do William): comparar previstas x apuradas em toda linha do Espelho, sem olhar o código 999, deu 237 "casos" — ruído demais (turno com hora-extra, escalas com menos marcações por natureza). Filtrando por situação==999 + maturidade de >=2 dias (o Espelho assenta mais devagar que a Relação de Ocorrências — mesma causa raiz do incidente das 26 Faltas falsas), 40 casos brutos viraram 3 candidatos limpos: Edmar Leite da Silva (753) e Charles (1204) faltando a saída, Jhenyffer Caroline Silva Pereira (1151, 3º turno) faltando a entrada.
+
+Turno noturno inicialmente foi excluído por precaução (medo do WK quebrar a virada de meia-noite em 2 linhas de data) — conferido nos dados crus de 3 funcionários do 3º turno num mês inteiro e não é isso: o turno inteiro sempre cai numa linha só, na data de início. Exclusão removida.
+
+**Revisão adversarial (workflow, 3 ângulos + verificação)** antes de ligar no pipeline pegou 4 problemas reais, todos corrigidos:
+1. Matching guloso de previstas x apuradas podia errar a posição quando 2 horários previstos ficam próximos — trocado por tentativa posicional (testa cada posição como candidata a ausente, exige bater todo o resto dentro da janela; ambíguo se mais de 1 posição bate).
+2. dedupId sem prefixo de fonte — hoje não colide por acaso (rótulos diferentes das 4 situações oficiais), mas sem garantia estrutural. Adicionado prefixo `esp_` só na fonte nova (a antiga já tem docs reais, não mexe no formato dela).
+3. Filtro "Geral e líderes de turno: só Falta gera, resto vira BH" não estava replicado no detector novo — adicionado.
+4. Ocorrência gerada por essa fonte não tinha nenhum campo estruturado sinalizando "isso é heurística, não fato oficial do WK" — adicionado `fonteInferida: true` no Firestore (era só texto livre no histórico antes).
+
+A revisão também teve uma inconsistência interna curiosa: 2 achados sobre o campo "setor" se contradisseram entre si (um dizia que o código novo usava a chave errada, outro dizia o oposto) — resolvido conferindo o schema real do `parsed-empregado.json` (o campo é `departamento`, meu código já estava certo; o achado que dizia "usa a chave errada" tinha até concluído "está FALSO" no texto mas ficou marcado como confirmado por engano no campo estruturado).
+
+**Já está ligado no pipeline em produção** (só editei `process-ocorrencias-rh.py` e `upload-ocorrencias-auto.mjs`, ambos já rodam via `run-pipeline.mjs` nos passos [OCR-parse]/[OCR-upload] — sem passo novo pra ligar).
+
+## 2026-07-03 · Investigação do caso Charles: users/{uid} sem funcionarioTurno
+
+PC confirmou e corrigiu (v269) a causa raiz da ocorrência manual do Charles que sumiu: regra do Firestore exige `funcionarioTurno in [1,2,3,'geral']`, e o form deixava selecionar funcionário sem turno definido. Ao investigar de onde vinha o "sem turno", conferi as 2 fontes que controlo: WK Radar e `funcionarios/f-1204` (Firestore) — as duas SEMPRE tiveram turno=1 certo. Achei o gap real: `users/{uid}` (doc de auth/login) não tem o campo `funcionarioTurno` — só `funcionarioId`/`role`/`nome`/`ativo`. Nunca escrevi esse campo lá (só denormalizei `funcionarioTurno` em `banco-horas-self`, pedido de 01/07). Reportado ao PC pra confirmar se é essa a coleção que o form/rule consulta — se for, é fácil eu adicionar (mesmo padrão do funcionarioId/custom claims).
