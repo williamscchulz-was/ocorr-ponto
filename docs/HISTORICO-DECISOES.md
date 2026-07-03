@@ -1185,3 +1185,14 @@ Depois de confirmar (de novo) que o dia incompleto era só o WK ainda processand
 Implementado em `process-espelho-ponto.mjs`: dia com menos de 2 dias (mesmo buffer já validado nesta sessão pras Faltas falsas e pro detector 999) não entra no array `dias` do `banco-horas-self`. Roda com `dataIso <= hoje-2dias`. É janela ROLANTE — o dia aparece sozinho assim que completa 2 dias na próxima rodada, não precisa de nenhuma ação manual. NÃO filtra por situação: um caso genuíno de marcação faltando (tipo Charles 1204) continua aparecendo depois de maduro — a intenção é esconder só enquanto o dado ainda PODE mudar sozinho, não esconder informação real.
 
 Rodado e resubido pro Firestore — Lucivane agora mostra até 01/07 (2 dias atrás), 02/07 e 03/07 saem da lista até maturarem.
+
+
+---
+
+## 2026-07-03 · Correção do fix anterior: esconder dia imaturo quebrava a tela do gestor
+
+William usou a tela de gestor (Espelho de outro colaborador, não "Meu ponto" próprio) pra investigar o caso do saldo -00:08 da Lucivane, e bateu de frente com o fix de "esconder dia imaturo" de mais cedo — o dia 02/07 (que ele precisava ver pra achar a causa) tinha sumido de lá também, já que gestor e colaborador leem a mesma coleção `banco-horas-self`.
+
+Corrigido: voltei a mandar TODOS os dias no array `dias[]`, e adicionei `maduro:true/false` em cada dia (mesmo buffer de 2 dias). Quem decide esconder ou não agora é a tela — "Meu ponto" do colaborador deve filtrar `maduro`, "Espelho de Ponto do gestor" deve mostrar tudo. Avisado o PC, precisa de ajuste do lado dele pro "Meu ponto" aplicar o filtro (a mudança de dado já está no ar, mas sem o filtro client-side o colaborador volta a ver o dia instável até o PC aplicar).
+
+Lição: ao decidir "esconder X", pensar em TODAS as telas que consomem o mesmo dado, não só a que motivou o pedido.
