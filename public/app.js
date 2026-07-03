@@ -232,9 +232,10 @@ function openModal(html, opts = {}) {
   // Guarda quem tinha foco antes de abrir pra restaurar no closeModal (a11y).
   window._modalPrevFocus = document.activeElement;
   document.body.classList.add("modal-aberto"); // some os FABs por baixo do modal
+  const clsExtra = opts.className ? " " + opts.className : "";
   root.innerHTML = `
     <div class="modal-backdrop" id="modal-backdrop">
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" tabindex="-1">${html}</div>
+      <div class="modal${clsExtra}" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" tabindex="-1">${html}</div>
     </div>
   `;
   const modal = root.querySelector(".modal");
@@ -310,6 +311,32 @@ function closeModal() {
   if (prev && typeof prev.focus === "function" && document.contains(prev)) {
     try { prev.focus(); } catch {}
   }
+}
+
+// Busca unificada das telas de pessoas (Funcionários, Banco de horas, Espelho):
+// mesmo shell .toolbar__search (44px, fundo branco, lupa à esquerda), mesmo
+// placeholder e um botão de limpar (x) que aparece só quando há texto.
+const BUSCA_PLACEHOLDER = "Buscar por nome ou código";
+function buscaUnificadaHtml(id, extraAttrs = "") {
+  return `${icon("search")}<input type="text" id="${id}" placeholder="${BUSCA_PLACEHOLDER}" aria-label="${BUSCA_PLACEHOLDER}"${extraAttrs ? " " + extraAttrs : ""} />
+    <button type="button" class="u-clear" data-clear="${id}" aria-label="Limpar busca">${icon("x")}</button>`;
+}
+// Liga o botão limpar ao input: mostra/esconde conforme o texto, e ao clicar
+// limpa + dispara "input" (reusa o filtro de cada tela) + devolve o foco.
+function bindBuscaClear(id) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const btn = inp.parentElement && inp.parentElement.querySelector(`.u-clear[data-clear="${id}"]`);
+  if (!btn) return;
+  const sync = () => btn.classList.toggle("show", !!inp.value.trim());
+  sync();
+  inp.addEventListener("input", sync);
+  btn.addEventListener("click", () => {
+    inp.value = "";
+    inp.dispatchEvent(new Event("input", { bubbles: true }));
+    sync();
+    inp.focus();
+  });
 }
 
 // Modal de confirmação estilizado (substitui window.confirm).
@@ -2712,13 +2739,39 @@ function espDiaHtml(d) {
   return `<div class="esp-dia${d.maduro === false ? " esp-dia--wip" : ""}"><div class="esp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div><div class="esp-dia__m${off ? " esp-dia__m--off" : ""}">${escapeHtml(corpo)}${wip}</div>${saldo}</div>`;
 }
 
+// Empty state do desktop: nada selecionado ainda. Convida a escolher alguém.
+function espEmptyHtml() {
+  return `<div class="esp-empty">
+      <div class="esp-empty__ill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14l2.4 2.4L16 12" stroke-width="1.9"/></svg></div>
+      <p class="esp-empty__t">Selecione um liderado</p>
+      <p class="esp-empty__p">Escolha uma pessoa na lista ao lado pra ver o cartão ponto do mês atual e do mês anterior, direto da apuração.</p>
+      <span class="esp-empty__hint">${icon("chevron-left")}Toque em um nome à esquerda</span>
+    </div>`;
+}
+
+// Um estado honesto do painel de detalhe, sob o cabeçalho da pessoa.
+// kind "perm" = falta de permissão real (cadeado). Qualquer outro = sem dado (âmbar neutro).
+function espStateHtml(kind) {
+  if (kind === "perm") {
+    return `<div class="esp-state esp-state--perm">
+        <div class="esp-state__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+        <p class="esp-state__t">Você não tem acesso a este colaborador</p>
+        <p class="esp-state__p">Ele está fora do seu escopo (turno ou lista de atribuídos). Fale com o RH se precisar ver o ponto dele.</p>
+      </div>`;
+  }
+  return `<div class="esp-state esp-state--pend">
+      <div class="esp-state__ic">${icon("clock")}</div>
+      <p class="esp-state__t">Sem espelho apurado ainda</p>
+      <p class="esp-state__p">O cartão ponto aparece aqui assim que a apuração do mês sincronizar. Volte mais tarde.</p>
+    </div>`;
+}
+
 // O cartão-ponto de UM funcionário (herói + meses). Lê do cache; sinaliza carregando/erro.
 function espCartaoHtml(f) {
-  if (!f) return "";
+  if (!f) return espEmptyHtml();
   const cod = f.codigo != null ? String(f.codigo) : "";
   if (!cod) return `<div class="esp-card"><div class="empty empty--mini"><p>Sem código de apuração pra este funcionário.</p></div></div>`;
   if (_espState.loading[cod]) return `<div class="esp-card"><div class="esp-skel">${icon("clock")}<span>Carregando o espelho...</span></div></div>`;
-  if (_espState.erro[cod]) return `<div class="esp-card"><div class="empty empty--mini"><p>${escapeHtml(_espState.erro[cod])}</p></div></div>`;
   const doc = _espState.cache[cod];
   const dias = (doc && Array.isArray(doc.dias)) ? doc.dias : [];
   const saldo = doc && (doc.saldoFormatado || null);
@@ -2733,7 +2786,10 @@ function espCartaoHtml(f) {
       ${saldo ? `<div class="esp-ch__bh"><b class="${sCls}">${escapeHtml(saldo)}</b><span>saldo atual</span></div>` : ""}
     </div>`;
   let corpo;
-  if (dias.length) {
+  if (_espState.erro[cod] === "perm") {
+    // Estado de permissão só aparece pra quem realmente não tem acesso (nunca pro admin/rh).
+    corpo = espStateHtml("perm");
+  } else if (dias.length) {
     const grupos = [];
     let atual = null;
     for (const d of dias) {
@@ -2743,7 +2799,8 @@ function espCartaoHtml(f) {
     }
     corpo = grupos.map((g) => `<div class="esp-mes">${escapeHtml(cpMesLabel(g.dataIso))}</div>${g.dias.map(espDiaHtml).join("")}`).join("");
   } else {
-    corpo = `<div class="empty empty--mini"><p>Sem espelho apurado pra este funcionário ainda.</p></div>`;
+    // Sem dado ainda (padrão honesto): não sincronizou, sem culpar permissão.
+    corpo = espStateHtml("pend");
   }
   return `<div class="esp-card">${head}${corpo}</div>`;
 }
@@ -2771,7 +2828,7 @@ function espAbrirSheetMobile() {
 
 function espSelecionar(f, viaToque) {
   const det = $("#esp-detalhe");
-  if (!f) { if (det) det.innerHTML = ""; return; }
+  if (!f) { if (det) det.innerHTML = espEmptyHtml(); return; }
   const cod = f.codigo != null ? String(f.codigo) : "";
   // A folha mobile só abre em seleção INTENCIONAL (toque na lista ou atalho do
   // perfil/popup BH via _espState.querSheet); a pré-seleção padrão do render
@@ -2787,7 +2844,12 @@ function espSelecionar(f, viaToque) {
   window.carregarEspelhoFuncionario(cod).then((doc) => {
     _espState.cache[cod] = doc || { dias: [] };
   }).catch((e) => {
-    _espState.erro[cod] = (e && /permission/i.test(e.message || "")) ? "Apuração deste colaborador ainda não liberada pra você." : "Não consegui carregar o espelho agora.";
+    // "perm" (cadeado) só pra quem realmente não tem acesso; admin/rh (acesso total)
+    // e falhas genéricas caem no estado neutro "sem dado ainda" (cache vazio).
+    const u = currentUser();
+    const permReal = /permission/i.test((e && e.message) || "") && u && u.role !== "admin" && u.role !== "rh";
+    if (permReal) _espState.erro[cod] = "perm";
+    else _espState.cache[cod] = { dias: [] };
   }).finally(() => {
     _espState.loading[cod] = false;
     if (_espState.sel === f.id && $("#esp-detalhe")) $("#esp-detalhe").innerHTML = espCartaoHtml(f);
@@ -2805,8 +2867,10 @@ function renderEspelhoPontoGestor() {
       <div class="empty"><div class="empty__cel"><div class="empty__cel-circ">${icon("users")}</div></div><p>Nenhum liderado no seu escopo por enquanto.</p></div>`;
     return;
   }
-  if (!_espState.sel || !time.some((f) => f.id === _espState.sel)) _espState.sel = time[0].id;
-  const sel = time.find((f) => f.id === _espState.sel) || time[0];
+  // Sem auto-seleção: o desktop abre no empty state acolhedor (#20). Só mantém a
+  // seleção anterior se a pessoa ainda estiver visível; senão zera pro empty state.
+  if (_espState.sel && !time.some((f) => f.id === _espState.sel)) _espState.sel = null;
+  const sel = _espState.sel ? (time.find((f) => f.id === _espState.sel) || null) : null;
 
   const bhSaldo = (f) => {
     const bh = (state.bancoHoras && state.bancoHoras[f.id]) || null;
@@ -2815,7 +2879,7 @@ function renderEspelhoPontoGestor() {
     const cls = min == null ? "esp-zero" : (min > 0 ? "esp-pos" : min < 0 ? "esp-neg" : "esp-zero");
     return s ? `<span class="esp-trow__bh ${cls}">${escapeHtml(s)}</span>` : "";
   };
-  const rows = time.map((f) => `<button class="esp-trow ${f.id === sel.id ? "on" : ""}" data-esp-sel="${f.id}">
+  const rows = time.map((f) => `<button class="esp-trow ${sel && f.id === sel.id ? "on" : ""}" data-esp-sel="${f.id}">
       ${avatarFuncHtml(f, "esp-trow__av")}
       <span class="esp-trow__bd"><span class="esp-trow__n">${escapeHtml(f.nome || "")}</span><span class="esp-trow__s">${escapeHtml([f.cargo, f.setor].filter(Boolean).join(" · ") || "—")}</span></span>
       ${bhSaldo(f)}
@@ -2825,7 +2889,7 @@ function renderEspelhoPontoGestor() {
     <header class="page-header"><div><h1>Espelho de ponto</h1><p>Cartão-ponto dos seus liderados. Mês atual e mês anterior, direto da apuração.</p></div></header>
     <div class="esp-layout">
       <div class="esp-team">
-        <div class="esp-team__srch">${icon("search")}<input type="text" id="esp-busca" placeholder="Buscar liderado..." autocomplete="off"></div>
+        <div class="esp-team__srch"><div class="toolbar__search">${buscaUnificadaHtml("esp-busca", 'autocomplete="off"')}</div></div>
         <div class="esp-scope">${icon("users")}<span>${escapeHtml(escopoTxt)} · ${time.length} ${time.length === 1 ? "pessoa" : "pessoas"}</span></div>
         <div class="esp-rows" id="esp-rows">${rows}</div>
       </div>
@@ -2841,6 +2905,7 @@ function renderEspelhoPontoGestor() {
       r.style.display = (!t || (nome + " " + sub).toLowerCase().includes(t)) ? "" : "none";
     });
   });
+  bindBuscaClear("esp-busca");
   $$("#esp-rows .esp-trow").forEach((btn) => btn.addEventListener("click", () => {
     _espState.sel = btn.dataset.espSel;
     $$("#esp-rows .esp-trow").forEach((b) => b.classList.toggle("on", b === btn));
@@ -4389,10 +4454,7 @@ function renderFuncionarios() {
     })()}
 
     <div class="toolbar">
-      <div class="toolbar__search">
-        ${icon("search")}
-        <input type="text" id="func-search" placeholder="Buscar por nome ou código..." aria-label="Buscar funcionário por nome ou código" />
-      </div>
+      <div class="toolbar__search">${buscaUnificadaHtml("func-search")}</div>
       <select id="func-status-filter" aria-label="Filtrar por status">
         <option value="ativo" selected>Apenas ativos</option>
         <option value="operacional">Operacionais</option>
@@ -4416,6 +4478,7 @@ function renderFuncionarios() {
   `;
 
   $("#func-search").addEventListener("input", debounce(() => renderFuncList(), 150));
+  bindBuscaClear("func-search");
   $("#func-status-filter").addEventListener("change", () => renderFuncList());
   $("#func-turno-filter").addEventListener("change", () => renderFuncList());
   renderFuncList(true);
@@ -5016,40 +5079,59 @@ function openProfileModal() {
   });
 }
 
+// Ícones do olhinho (ver/ocultar) na mesma família stroke do cpIcon do portal.
+const PW_EYE = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>';
+const PW_EYE_OFF = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/><line x1="1" y1="1" x2="23" y2="23"/>';
+const pwEyeSvg = (off) => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${off ? PW_EYE_OFF : PW_EYE}</svg>`;
+
+// Sheet de trocar senha no padrão pp do portal do colaborador (alça, olhinho,
+// regra que acende, botão primário em bloco). A lógica de troca não muda.
 function openTrocarSenhaModal() {
+  const campo = (id, label, autoc) => `
+    <div class="pp-fld">
+      <label for="${id}">${label}</label>
+      <div class="pp-inwrap">
+        <input type="password" id="${id}" autocomplete="${autoc}" />
+        <button type="button" class="pp-eye" data-eye="${id}" aria-label="Ver senha">${pwEyeSvg(false)}</button>
+      </div>
+    </div>`;
   openModal(`
-    <div class="modal__header">
-      <div>
-        <h2>Alterar senha</h2>
-        <p>Informe sua senha atual e a nova. Mínimo 6 caracteres.</p>
-      </div>
-      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+    <div class="pp-sheet__grip"></div>
+    <div class="pp-sheet__head">
+      <h2>Trocar senha</h2>
+      <p>Confirme a senha atual e escolha uma nova, só sua.</p>
     </div>
-    <form class="modal__body" id="form-trocar-senha" onsubmit="return false">
-      <div class="field">
-        <label for="pw-current">Senha atual <span style="color:var(--danger)">*</span></label>
-        <input type="password" id="pw-current" required autocomplete="current-password" />
-      </div>
-      <div class="field">
-        <label for="pw-new">Nova senha <span style="color:var(--danger)">*</span></label>
-        <input type="password" id="pw-new" required minlength="6" autocomplete="new-password" />
-        <span class="field__hint">Use 6 caracteres ou mais. Misture letras e números pra mais segurança.</span>
-      </div>
-      <div class="field">
-        <label for="pw-confirm">Confirmar nova senha <span style="color:var(--danger)">*</span></label>
-        <input type="password" id="pw-confirm" required autocomplete="new-password" />
-      </div>
-      <div id="pw-error" class="field__error hidden"></div>
+    <form class="pp-sheet__body" id="form-trocar-senha" onsubmit="return false">
+      ${campo("pw-current", "Senha atual", "current-password")}
+      ${campo("pw-new", "Nova senha", "new-password")}
+      <div class="pp-rule" id="pw-rule">6 caracteres ou mais, diferente da atual</div>
+      ${campo("pw-confirm", "Confirmar nova senha", "new-password")}
+      <div id="pw-error" class="pp-sheet__err hidden">${icon("alert")}<span></span></div>
     </form>
-    <div class="modal__footer">
-      <button class="btn btn--ghost" data-close>Cancelar</button>
-      <button class="btn btn--primary" id="btn-save-senha">${icon("check")}<span>Salvar</span></button>
+    <div class="pp-sheet__foot">
+      <button class="pp-btn pp-btn--primary pp-btn--block" id="btn-save-senha">${cpIcon("lock")}Salvar nova senha</button>
     </div>
   `, {
+    className: "modal--pp",
     onMount: (modal) => {
-      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      modal.querySelectorAll("[data-eye]").forEach((btn) => btn.addEventListener("click", () => {
+        const inp = $("#" + btn.dataset.eye);
+        if (!inp) return;
+        const mostrar = inp.type === "password";
+        inp.type = mostrar ? "text" : "password";
+        btn.innerHTML = pwEyeSvg(mostrar);
+        btn.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Ver senha");
+      }));
+      const rule = $("#pw-rule");
+      const nova = $("#pw-new");
+      const atual = $("#pw-current");
+      const syncRule = () => {
+        const ok = nova.value.length >= 6 && nova.value !== atual.value && atual.value !== "";
+        rule.classList.toggle("ok", ok);
+      };
+      [nova, atual].forEach((el) => el.addEventListener("input", syncRule));
       $("#btn-save-senha").addEventListener("click", trocarSenha);
-      setTimeout(() => $("#pw-current").focus(), 100);
+      setTimeout(() => atual.focus(), 100);
     },
   });
 }
@@ -5059,38 +5141,28 @@ async function trocarSenha() {
   const nova = $("#pw-new").value;
   const confirm = $("#pw-confirm").value;
   const err = $("#pw-error");
+  // A caixa de erro pp mantém o ícone fixo; a mensagem vai no <span>.
+  const setErr = (msg) => {
+    const alvo = err.querySelector("span") || err;
+    alvo.textContent = msg;
+    err.classList.remove("hidden");
+  };
   err.classList.add("hidden");
 
-  if (!atual || !nova || !confirm) {
-    err.textContent = "Preencha todos os campos.";
-    err.classList.remove("hidden");
-    return;
-  }
-  if (nova !== confirm) {
-    err.textContent = "Nova senha e confirmação não batem.";
-    err.classList.remove("hidden");
-    return;
-  }
-  if (nova.length < 6) {
-    err.textContent = "Senha precisa ter no mínimo 6 caracteres.";
-    err.classList.remove("hidden");
-    return;
-  }
+  if (!atual || !nova || !confirm) { setErr("Preencha todos os campos."); return; }
+  if (nova !== confirm) { setErr("Nova senha e confirmação não batem."); return; }
+  if (nova.length < 6) { setErr("Senha precisa ter no mínimo 6 caracteres."); return; }
 
   const btn = $("#btn-save-senha");
   btn.disabled = true;
   const origHTML = btn.innerHTML;
-  btn.innerHTML = icon("clock") + "<span>Alterando...</span>";
+  btn.innerHTML = cpIcon("clock") + "Alterando...";
 
   const res = await window.alterarMinhaSenha(atual, nova);
   btn.disabled = false;
   btn.innerHTML = origHTML;
 
-  if (!res.ok) {
-    err.textContent = res.err || "Erro ao alterar.";
-    err.classList.remove("hidden");
-    return;
-  }
+  if (!res.ok) { setErr(res.err || "Erro ao alterar."); return; }
 
   closeModal();
   toast("Senha alterada com sucesso!");
@@ -8560,10 +8632,7 @@ function renderBancoHoras() {
     </div>` : ""}
 
     <div class="toolbar">
-      <div class="toolbar__search">
-        ${icon("search")}
-        <input type="text" id="bh-search" placeholder="Buscar funcionário..." aria-label="Buscar funcionário no banco de horas" />
-      </div>
+      <div class="toolbar__search">${buscaUnificadaHtml("bh-search")}</div>
     </div>
 
     <div id="bh-list"></div>
@@ -8581,6 +8650,7 @@ function renderBancoHoras() {
     });
   }
   $("#bh-search").addEventListener("input", debounce(() => renderBHList(visibles), 150));
+  bindBuscaClear("bh-search");
   renderBHList(visibles, true);
   animarNumeros("#view");
 }
@@ -8694,9 +8764,11 @@ async function openEspelhoPopupBH(funcionarioId) {
       ? await window.carregarEspelhoFuncionario(cod) : null;
     dias = (doc && Array.isArray(doc.dias)) ? doc.dias : [];
   } catch (e) {
-    dias = /permission/i.test(e?.message || "")
-      ? "Apuração deste colaborador ainda não liberada pra você."
-      : "Não consegui carregar o espelho agora.";
+    // Permissão só culpa permissão pra quem realmente não tem acesso; admin/rh
+    // (acesso total) e falhas genéricas caem no estado neutro "sem dado" (array vazio).
+    const uu = currentUser();
+    const permReal = /permission/i.test(e?.message || "") && uu && uu.role !== "admin" && uu.role !== "rh";
+    dias = permReal ? "Você não tem acesso ao ponto deste colaborador." : [];
   }
   if (!$("#bhpop-abrir")) return; // fechou antes do dado chegar
   let corpo;
@@ -12829,7 +12901,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.30.0";
+window.CURRENT_VERSION = "1.31.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

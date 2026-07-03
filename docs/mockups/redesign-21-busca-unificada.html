@@ -1,0 +1,181 @@
+<link rel="stylesheet" href="/public/styles.css?v=273" />
+<link rel="stylesheet" href="/public/portal-colaborador.css?v=273" />
+
+<style>
+  /* ===== chrome do mock (fora do app, self-contained) ===== */
+  body { background: var(--bg); color: var(--text-body); font-family: inherit; margin: 0; padding: 0 20px 64px; }
+  .mk-head { max-width: 1080px; margin: 28px auto 8px; }
+  .mk-head h1 { font-size: 20px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
+  .mk-head p { font-size: 14px; color: var(--text-muted); margin: 0; line-height: 1.5; max-width: 720px; }
+  .mk-kicker { display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--plum); margin-bottom: 8px; }
+
+  .mk-cols { max-width: 1080px; margin: 24px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 860px) { .mk-cols { grid-template-columns: 1fr; } }
+
+  .mk-col > .mk-coltag { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 14px; }
+  .mk-coltag .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .mk-col--before .mk-coltag { color: var(--text-muted); }
+  .mk-col--before .dot { background: var(--text-muted); }
+  .mk-col--after .mk-coltag { color: var(--plum); }
+  .mk-col--after .dot { background: var(--plum); }
+
+  /* cada tela vira um cartaozinho pra dar contexto de qual e qual */
+  .mk-screen { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 14px 16px; margin-bottom: 14px; }
+  .mk-screen__t { display: flex; align-items: baseline; gap: 8px; margin: 0 0 11px; }
+  .mk-screen__t b { font-size: 13.5px; font-weight: 700; }
+  .mk-screen__t span { font-size: 11.5px; color: var(--text-muted); }
+
+  /* legenda das diferencas na coluna "antes" */
+  .mk-diff { list-style: none; margin: 22px auto 0; padding: 14px 16px; max-width: 1080px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: var(--radius); }
+  .mk-diff h3 { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 0 0 10px; }
+  .mk-diff ul { margin: 0; padding-left: 18px; }
+  .mk-diff li { font-size: 13px; color: var(--text-body); line-height: 1.7; }
+  .mk-diff li b { color: var(--plum); }
+
+  /* botao limpar do componente unificado (proposto, nao existe no app hoje) */
+  .u-clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 24px; border: 0; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-warm); color: var(--text-muted); cursor: pointer;
+    padding: 0; transition: var(--transition);
+  }
+  .u-clear:hover { background: var(--border-strong); color: var(--text-body); }
+  .u-clear svg { width: 13px; height: 13px; }
+  /* garante o mesmo shell nas 3 telas do "depois", inclusive quando dentro de painel */
+  .mk-col--after .toolbar__search { flex: 1 1 auto; min-width: 0; }
+  .mk-col--after .toolbar { margin: 0; }
+</style>
+
+<div class="mk-head">
+  <span class="mk-kicker">Redesenho #21</span>
+  <h1>Busca unificada nas 3 telas de pessoas</h1>
+  <p>Funcionarios, Banco de horas e Espelho de ponto usam hoje campos de busca com alturas, cantos, fontes e comportamentos diferentes. A proposta e um unico componente de busca, mesmo visual, mesmo lugar, mesmo placeholder e um botao de limpar consistente, identico nas tres.</p>
+</div>
+
+<div class="mk-cols">
+
+  <!-- ============ ANTES ============ -->
+  <div class="mk-col mk-col--before">
+    <div class="mk-coltag"><span class="dot"></span>Antes · tres estilos diferentes</div>
+
+    <div class="mk-screen">
+      <div class="mk-screen__t"><b>Funcionarios</b><span>.toolbar__search · 44px · fonte 14</span></div>
+      <div class="toolbar">
+        <div class="toolbar__search">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input type="text" placeholder="Buscar por nome ou código..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="mk-screen">
+      <div class="mk-screen__t"><b>Banco de horas</b><span>.toolbar__search · placeholder diferente</span></div>
+      <div class="toolbar">
+        <div class="toolbar__search">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input type="text" placeholder="Buscar funcionário..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="mk-screen">
+      <div class="mk-screen__t"><b>Espelho de ponto</b><span>.esp-team__srch · 10px · fonte 13 · fundo cru</span></div>
+      <!-- reproducao fiel do painel do espelho, onde a busca mora dentro da coluna de time -->
+      <div class="esp-team" style="border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+        <div class="esp-team__srch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input type="text" placeholder="Buscar liderado..." autocomplete="off">
+        </div>
+        <div class="esp-scope">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Seu turno · 12 pessoas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DEPOIS ============ -->
+  <div class="mk-col mk-col--after">
+    <div class="mk-coltag"><span class="dot"></span>Depois · um componente so</div>
+
+    <div class="mk-screen">
+      <div class="mk-screen__t"><b>Funcionarios</b><span>busca unificada</span></div>
+      <div class="toolbar">
+        <div class="toolbar__search">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input type="text" class="u-input" placeholder="Buscar por nome ou código" />
+          <button type="button" class="u-clear" aria-label="Limpar busca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mk-screen">
+      <div class="mk-screen__t"><b>Banco de horas</b><span>busca unificada</span></div>
+      <div class="toolbar">
+        <div class="toolbar__search">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input type="text" class="u-input" placeholder="Buscar por nome ou código" />
+          <button type="button" class="u-clear" aria-label="Limpar busca">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mk-screen">
+      <div class="mk-screen__t"><b>Espelho de ponto</b><span>busca unificada</span></div>
+      <!-- mesmo painel do espelho, mas a busca agora usa o shell unificado -->
+      <div class="esp-team" style="border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+        <div class="esp-team__srch" style="border-bottom:1px solid var(--border);">
+          <div class="toolbar__search" style="flex:1;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            <input type="text" class="u-input" placeholder="Buscar por nome ou código" autocomplete="off">
+            <button type="button" class="u-clear" aria-label="Limpar busca">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="esp-scope">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Seu turno · 12 pessoas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="mk-diff">
+  <h3>O que muda</h3>
+  <ul>
+    <li>Mesmo <b>shell</b> nas tres: altura 44px, cantos radius-sm, fonte 14, fundo branco, icone de lupa na esquerda.</li>
+    <li>Mesmo <b>placeholder</b> "Buscar por nome ou código" nas tres, no lugar de tres textos diferentes.</li>
+    <li>Botao de <b>limpar</b> (x) padronizado, aparece quando ha texto e some quando vazio, igual nas tres.</li>
+    <li>No Espelho, o campo passa a viver dentro do mesmo shell, sem o visual menor e o fundo cru de antes.</li>
+  </ul>
+</div>
+
+<script>
+  // teatro leve: o botao limpar so aparece com texto digitado, e limpa ao clicar.
+  (function () {
+    function sync(input) {
+      var wrap = input.closest('.toolbar__search');
+      var btn = wrap && wrap.querySelector('.u-clear');
+      if (!btn) return;
+      btn.style.display = input.value.trim() ? 'flex' : 'none';
+    }
+    document.querySelectorAll('.u-input').forEach(function (input) {
+      sync(input);
+      input.addEventListener('input', function () { sync(input); });
+      var wrap = input.closest('.toolbar__search');
+      var btn = wrap && wrap.querySelector('.u-clear');
+      if (btn) btn.addEventListener('click', function () { input.value = ''; sync(input); input.focus(); });
+    });
+    // deixa um deles preenchido pra mostrar o botao ativo no primeiro olhar
+    var first = document.querySelector('.mk-col--after .u-input');
+    if (first) { first.value = 'Luisana'; sync(first); }
+  })();
+</script>

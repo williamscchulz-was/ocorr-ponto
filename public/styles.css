@@ -1240,6 +1240,22 @@ textarea:focus-visible,
   width: 16px; height: 16px;
   color: var(--text-muted);
 }
+/* Botão limpar (x) unificado: aparece só quando há texto no campo de busca. */
+.toolbar__search:has(.u-clear) input { padding-right: 40px; }
+.u-clear {
+  position: absolute;
+  right: 8px; top: 50%;
+  transform: translateY(-50%);
+  width: 24px; height: 24px;
+  border: 0; border-radius: 50%;
+  display: none; align-items: center; justify-content: center;
+  background: var(--surface-warm); color: var(--text-muted);
+  cursor: pointer; padding: 0;
+  transition: var(--transition);
+}
+.u-clear.show { display: flex; }
+.u-clear:hover { background: var(--border-strong); color: var(--text-body); }
+.u-clear svg { width: 13px; height: 13px; }
 
 .toolbar select {
   min-height: 44px;
@@ -3207,9 +3223,10 @@ html.firebase-mode .login__forgot { display: block; }
 /* ===== Espelho de ponto (Portal do Gestor): lista da equipe + cartão-ponto ===== */
 .esp-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; margin-top: 4px; }
 .esp-team { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; position: sticky; top: 12px; }
-.esp-team__srch { padding: 12px; border-bottom: 1px solid var(--border); position: relative; display: flex; align-items: center; }
-.esp-team__srch svg { position: absolute; left: 23px; width: 16px; height: 16px; color: var(--text-muted); pointer-events: none; }
-.esp-team__srch input { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px 9px 34px; font: inherit; font-size: 13px; background: var(--bg); color: var(--text-body); }
+/* Wrapper da busca do espelho: só o padding + borda; o campo em si é o shell
+   unificado .toolbar__search (busca unificada #21). */
+.esp-team__srch { padding: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+.esp-team__srch .toolbar__search { flex: 1; min-width: 0; }
 .esp-scope { display: flex; align-items: center; gap: 7px; padding: 9px 14px; font-size: 11.5px; color: var(--text-muted); background: var(--success-bg); border-bottom: 1px solid var(--border); }
 .esp-scope svg { width: 14px; height: 14px; color: var(--plum); flex: none; }
 .esp-rows { max-height: 62vh; overflow: auto; }
@@ -3253,6 +3270,22 @@ html.firebase-mode .login__forgot { display: block; }
 .esp-dia__wip { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; color: var(--warning-ink, #7A4A12); background: rgba(178, 116, 41, .14); vertical-align: middle; }
 .esp-skel { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 44px 16px; color: var(--text-muted); font-size: 13px; }
 .esp-skel svg { width: 16px; height: 16px; opacity: .6; }
+/* Empty state (desktop): nada selecionado ainda. Convida à ação. */
+.esp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 54px 30px; min-height: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
+.esp-empty__ill { width: 76px; height: 76px; border-radius: 22px; background: var(--success-bg); color: var(--plum); display: grid; place-items: center; margin-bottom: 18px; }
+.esp-empty__ill svg { width: 38px; height: 38px; }
+.esp-empty__t { font-size: 18px; font-weight: 700; letter-spacing: -.01em; color: var(--plum-deep); margin: 0 0 6px; }
+.esp-empty__p { font-size: 13.5px; color: var(--text-muted); max-width: 320px; line-height: 1.5; margin: 0; }
+.esp-empty__hint { display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; font-size: 12px; color: var(--text-muted); background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 6px 13px; }
+.esp-empty__hint svg { width: 14px; height: 14px; color: var(--plum); }
+/* Estados honestos do painel: sem dado (âmbar neutro) vs sem permissão (cadeado). */
+.esp-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 42px 28px; min-height: 300px; }
+.esp-state__ic { width: 60px; height: 60px; border-radius: 18px; display: grid; place-items: center; margin-bottom: 14px; }
+.esp-state__ic svg { width: 28px; height: 28px; }
+.esp-state--pend .esp-state__ic { background: rgba(178, 116, 41, .14); color: var(--warning-ink, #7A4A12); }
+.esp-state--perm .esp-state__ic { background: rgba(180, 60, 60, .12); color: #a33; }
+.esp-state__t { font-size: 15px; font-weight: 700; color: var(--text-body); margin: 0 0 5px; }
+.esp-state__p { font-size: 13px; color: var(--text-muted); max-width: 300px; line-height: 1.5; margin: 0; }
 @media (max-width: 760px) { .esp-layout { grid-template-columns: 1fr; } .esp-team { position: static; } .esp-rows { max-height: none; } }
 .cfg-iconbtn {
   width: 30px;

@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.30.0", d: "3 jul 2026", current: true, items: [
+    v: "1.31.0", d: "3 jul 2026", current: true, items: [
+      { type: "feat", title: "No portal do colaborador: trocar senha virou uma tela mais clara e bonita, e no computador o conteúdo passou a ficar num tamanho confortável em vez de esticar na largura toda." },
+      { type: "feat", aud: "gestor", title: "No Espelho de ponto, quando ninguém está selecionado a tela convida a escolher um liderado em vez de mostrar um painel vazio, e só fala de permissão quando é falta de permissão de verdade. A busca ficou igual nas telas de Funcionários, Banco de horas e Espelho." },
+    ],
+  },
+  {
+    v: "1.30.0", d: "3 jul 2026", items: [
       { type: "feat", title: "No portal do colaborador: o tipo de cada documento aparece com nome legível, o aviso não lido agora também aparece no computador, o saldo do banco de horas na Conta não repete mais, e as Novidades ficaram em linguagem mais clara." },
       { type: "feat", aud: "gestor", title: "No portal do gestor: a contagem de ativos do banco de horas passou a bater com a lista (sem diretoria e aprendizes), a tela de advertências usa uma cor mais séria nos alertas, e o botão de excluir do perfil ficou mais discreto pra não ser clicado sem querer." },
       { type: "fix", title: "Acessibilidade dos avisos em tela melhorada e a data de admissão passou a exibir certo em qualquer formato." },

@@ -1,0 +1,225 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Redesign 89 · Sheet de trocar senha</title>
+<link rel="stylesheet" href="/public/styles.css?v=273" />
+<link rel="stylesheet" href="/public/portal-colaborador.css?v=273" />
+
+<style>
+  /* ====== Chrome do MOCK (fora do app, só pra apresentar antes/depois) ====== */
+  :root { color-scheme: light; }
+  body { margin: 0; background: #EEF2EA; font-family: var(--font-body, system-ui, -apple-system, "Segoe UI", sans-serif); color: #1E2D1A; -webkit-font-smoothing: antialiased; }
+  .mk-head { max-width: 980px; margin: 0 auto; padding: 30px 22px 10px; }
+  .mk-head h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; margin: 0; color: #006328; }
+  .mk-head p { font-size: 13.5px; line-height: 1.55; color: #4A6245; margin: 7px 0 0; max-width: 640px; }
+
+  .mk-stage { max-width: 980px; margin: 0 auto; padding: 8px 22px 60px; display: flex; gap: 34px; flex-wrap: wrap; justify-content: center; }
+  .mk-col { flex: 1 1 340px; max-width: 400px; }
+  .mk-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #4A6245; margin: 0 0 12px 4px; }
+  .mk-tag .dot { width: 8px; height: 8px; border-radius: 50%; background: #B7C4B2; }
+  .mk-col--after .mk-tag { color: #006328; }
+  .mk-col--after .mk-tag .dot { background: #1AA34F; }
+
+  /* Moldura de celular: encapsula o portal real (modo-colab) pra mostrar o sheet sobre o fundo do app */
+  .phone { position: relative; height: 720px; border-radius: 42px; background: #0d1a10; padding: 11px; box-shadow: 0 30px 60px -22px rgba(0,50,25,.5), 0 0 0 1px rgba(0,0,0,.06); overflow: hidden; }
+  .phone__scr { position: relative; height: 100%; border-radius: 32px; overflow: hidden; background: var(--bg); }
+
+  /* Fundo do portal (Conta > Segurança) atrás do sheet — usa classes/tokens reais */
+  .scr-bg { position: absolute; inset: 0; overflow-y: auto; padding: 0 0 26px; }
+  .scr-topbar { position: sticky; top: 0; z-index: 2; height: 12px; }
+  .scr-pad { padding: 20px 17px 0; }
+
+  /* Backdrop do sheet: o mesmo tom do .modal-backdrop do app, ancorado embaixo */
+  .sheet-back { position: absolute; inset: 0; z-index: 5; background: rgba(31,11,28,.42); display: flex; align-items: flex-end; }
+  .mk-note { font-size: 12px; color: #4A6245; line-height: 1.5; margin: 14px 4px 0; }
+  .mk-note b { color: #1E2D1A; font-weight: 600; }
+
+  /* No mock, o .modal precisa se comportar como sheet mesmo fora do @media mobile do app */
+  .phone .modal { max-width: none; width: 100%; border-radius: 26px 26px 0 0; max-height: 84%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -18px 48px rgba(0,40,20,.22); animation: none; }
+  .phone .modal__body { flex: 1; min-height: 0; overflow-y: auto; }
+  .phone .modal__footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface); }
+
+  /* ====== ANTES: chrome genérico do modal do gestor (o que está no ar hoje) ====== */
+  /* usa .modal / .field / .btn reais, sem retoque */
+
+  /* ====== DEPOIS: linguagem pp (portal polish) ====== */
+  .pp-sheet__grip { width: 38px; height: 5px; border-radius: 3px; background: var(--border-strong); margin: 9px auto 2px; }
+  .pp-sheet__head { padding: 6px 22px 4px; }
+  .pp-sheet__head h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-body); margin: 0; }
+  .pp-sheet__head p { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 5px 0 0; }
+  .pp-sheet__body { padding: 14px 22px 6px; overflow-y: auto; }
+  .pp-sheet__foot { padding: 14px 22px calc(20px + env(safe-area-inset-bottom,0px)); }
+
+  .pp-fld { margin-bottom: 14px; }
+  .pp-fld > label { display: block; font-size: 12px; font-weight: 600; color: var(--text-body); margin-bottom: 7px; }
+  .pp-inwrap { position: relative; display: flex; align-items: center; }
+  .pp-fld input { width: 100%; background: var(--bg); border: 1px solid var(--border-strong); border-radius: 12px; color: var(--text-body); font: inherit; font-size: 16px; padding: 12px 44px 12px 13px; transition: border-color .15s, box-shadow .15s; }
+  .pp-fld input:focus { outline: none; border-color: var(--plum); box-shadow: 0 0 0 3px rgba(0,136,53,.12); }
+  .pp-eye { position: absolute; right: 6px; width: 34px; height: 34px; display: grid; place-items: center; border: 0; background: none; color: var(--text-muted); border-radius: 9px; cursor: pointer; }
+  .pp-eye:hover { color: var(--plum); }
+  .pp-eye svg { width: 18px; height: 18px; }
+
+  .pp-rule { font-size: 11.5px; color: var(--text-muted); margin: -4px 0 15px; display: flex; align-items: center; gap: 7px; }
+  .pp-rule::before { content: ""; width: 15px; height: 15px; border-radius: 50%; border: 1.8px solid var(--border-strong); flex: none; }
+  .pp-rule.ok { color: var(--plum-deep); }
+  .pp-rule.ok::before { background: var(--plum); border-color: var(--plum); }
+
+  .pp-focusdemo { border-color: var(--plum) !important; box-shadow: 0 0 0 3px rgba(0,136,53,.12) !important; }
+
+  /* iconografia stroke (mesma família do cpIcon do portal) */
+  .ic { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  @media (max-width: 760px){ .phone { height: 640px; } }
+</style>
+
+<header class="mk-head">
+  <h1>Redesign 89 · Sheet de trocar senha no padrão do portal</h1>
+  <p>A troca de senha do colaborador vira um bottom sheet na mesma linguagem dos outros sheets do portal (alça, título, campos e botão primário da marca), no lugar do modal genérico herdado do gestor.</p>
+</header>
+
+<div class="mk-stage">
+
+  <!-- ================= ANTES ================= -->
+  <div class="mk-col mk-col--before">
+    <div class="mk-tag"><span class="dot"></span>Antes · modal genérico</div>
+    <div class="phone modo-colab">
+      <div class="phone__scr">
+
+        <!-- fundo do portal: Conta > Segurança -->
+        <div class="scr-bg">
+          <div class="scr-topbar"></div>
+          <div class="scr-pad">
+            <div class="pp-ovl">Segurança</div>
+            <div class="pp-grp" style="display:flex;flex-direction:column;gap:2px">
+              <button class="pp-rw" type="button">
+                <span class="pp-ico pp-ico--neutral"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                <span class="pp-rw__bd"><span class="pp-rw__t">Trocar senha</span></span>
+                <span class="pp-rw__chev"><svg class="ic" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></span>
+              </button>
+              <button class="pp-rw pp-rw--danger" type="button">
+                <span class="pp-ico pp-ico--danger"><svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+                <span class="pp-rw__bd"><span class="pp-rw__t">Sair</span></span>
+              </button>
+            </div>
+            <div class="pp-foot" style="margin-top:22px">FioPulse · Portal do Colaborador · v273</div>
+          </div>
+        </div>
+
+        <!-- modal atual (chrome do gestor) -->
+        <div class="sheet-back">
+          <div class="modal" role="dialog" aria-label="Alterar senha">
+            <div class="modal__header">
+              <div>
+                <h2>Alterar senha</h2>
+                <p>Informe sua senha atual e a nova. Mínimo 6 caracteres.</p>
+              </div>
+              <button class="modal__close" aria-label="Fechar">
+                <svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <form class="modal__body" onsubmit="return false">
+              <div class="field">
+                <label>Senha atual <span style="color:var(--danger)">*</span></label>
+                <input type="password" value="••••••" />
+              </div>
+              <div class="field">
+                <label>Nova senha <span style="color:var(--danger)">*</span></label>
+                <input type="password" />
+                <span class="field__hint">Use 6 caracteres ou mais. Misture letras e números pra mais segurança.</span>
+              </div>
+              <div class="field">
+                <label>Confirmar nova senha <span style="color:var(--danger)">*</span></label>
+                <input type="password" />
+              </div>
+            </form>
+            <div class="modal__footer">
+              <button class="btn btn--ghost">Cancelar</button>
+              <button class="btn btn--primary">
+                <svg class="ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span>Salvar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="mk-note">Herdado do <b>gestor</b>: título em fonte display verdão, campos <b>.field</b> genéricos, rodapé com dois botões lado a lado. Fora da linguagem pp do resto do portal.</p>
+  </div>
+
+  <!-- ================= DEPOIS ================= -->
+  <div class="mk-col mk-col--after">
+    <div class="mk-tag"><span class="dot"></span>Depois · sheet pp</div>
+    <div class="phone modo-colab">
+      <div class="phone__scr">
+
+        <!-- mesmo fundo do portal -->
+        <div class="scr-bg">
+          <div class="scr-topbar"></div>
+          <div class="scr-pad">
+            <div class="pp-ovl">Segurança</div>
+            <div class="pp-grp" style="display:flex;flex-direction:column;gap:2px">
+              <button class="pp-rw" type="button">
+                <span class="pp-ico pp-ico--neutral"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                <span class="pp-rw__bd"><span class="pp-rw__t">Trocar senha</span></span>
+                <span class="pp-rw__chev"><svg class="ic" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></span>
+              </button>
+              <button class="pp-rw pp-rw--danger" type="button">
+                <span class="pp-ico pp-ico--danger"><svg class="ic" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+                <span class="pp-rw__bd"><span class="pp-rw__t">Sair</span></span>
+              </button>
+            </div>
+            <div class="pp-foot" style="margin-top:22px">FioPulse · Portal do Colaborador · v273</div>
+          </div>
+        </div>
+
+        <!-- sheet pp -->
+        <div class="sheet-back">
+          <div class="modal" role="dialog" aria-label="Trocar senha">
+            <div class="pp-sheet__grip"></div>
+            <div class="pp-sheet__head">
+              <h2>Trocar senha</h2>
+              <p>Confirme a senha atual e escolha uma nova, só sua.</p>
+            </div>
+            <form class="pp-sheet__body" onsubmit="return false">
+              <div class="pp-fld">
+                <label>Senha atual</label>
+                <div class="pp-inwrap">
+                  <input type="password" value="••••••••" />
+                  <button type="button" class="pp-eye" aria-label="Ver senha">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="pp-fld">
+                <label>Nova senha</label>
+                <div class="pp-inwrap">
+                  <input type="text" class="pp-focusdemo" value="rio2026" />
+                  <button type="button" class="pp-eye" aria-label="Ocultar senha">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="pp-rule ok">6 caracteres ou mais, diferente da atual</div>
+              <div class="pp-fld">
+                <label>Confirmar nova senha</label>
+                <div class="pp-inwrap">
+                  <input type="password" value="••••••" />
+                  <button type="button" class="pp-eye" aria-label="Ver senha">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+            </form>
+            <div class="pp-sheet__foot">
+              <button class="pp-btn pp-btn--primary pp-btn--block">
+                <svg class="ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                Salvar nova senha
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="mk-note">Linguagem <b>pp</b>: alça no topo, título e microcopy do portal, campos com olhinho, regra que acende quando cumprida e o botão primário da marca em bloco (<b>pp-btn--primary</b>).</p>
+  </div>
+
+</div>

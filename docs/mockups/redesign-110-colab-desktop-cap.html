@@ -1,0 +1,231 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Redesign 110 · Colaborador no desktop (cap de largura)</title>
+<link rel="stylesheet" href="/public/styles.css?v=273" />
+<link rel="stylesheet" href="/public/portal-colaborador.css?v=273" />
+<style>
+  /* ===== chrome do mock (fora do app; so pra apresentar antes/depois) ===== */
+  html.modo-colab { }
+  body { margin: 0; background: var(--bg); color: var(--text-body);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .mk-head { padding: 26px 28px 6px; max-width: 1180px; margin: 0 auto; }
+  .mk-head h1 { font-size: 21px; font-weight: 800; letter-spacing: -.02em; margin: 0; color: var(--text-body); }
+  .mk-head p { margin: 7px 0 0; font-size: 13.5px; color: var(--text-muted); line-height: 1.5; max-width: 74ch; }
+  .mk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px;
+    max-width: 1180px; margin: 18px auto 60px; padding: 0 28px; align-items: start; }
+  @media (max-width: 980px) { .mk-grid { grid-template-columns: 1fr; } }
+  .mk-col { min-width: 0; }
+  .mk-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; padding: 5px 11px; border-radius: 999px; margin-bottom: 12px; }
+  .mk-tag--before { background: var(--danger-bg); color: var(--danger); }
+  .mk-tag--after { background: var(--success-bg); color: var(--plum); }
+  .mk-note { font-size: 12px; color: var(--text-muted); margin: 3px 4px 12px; line-height: 1.5; }
+  .mk-note b { color: var(--text-body); font-weight: 600; }
+
+  /* Moldura de "janela desktop": simula .app__main largo (padding 32px 40px) do app real.
+     A largura da moldura (nao do conteudo) e o palco largo onde o problema aparece. */
+  .mk-win { border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+    background: var(--bg); box-shadow: var(--pp-sh-card, 0 1px 3px rgba(0,40,20,.08)); }
+  .mk-win__bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px;
+    background: var(--surface); border-bottom: 1px solid var(--border); }
+  .mk-win__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border-strong); }
+  .mk-win__u { margin-left: 10px; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  /* o "conteudo largo" do app: replica o padding do .app__main desktop */
+  .mk-main { padding: 30px 40px 34px; background: var(--bg); }
+
+  /* ===== A PROPOSTA: o container central com cap =====
+     No app iria em portal-colaborador.css escopado em .modo-colab,
+     aplicado ao wrapper do #view no desktop (>=901px). */
+  .pp-cap { max-width: 780px; margin-inline: auto; }
+
+  /* rótulo tenue de cap so pro mock (nao vai pro app) */
+  .mk-capline { position: relative; }
+  .mk-capline::before, .mk-capline::after { content: ""; position: absolute; top: 0; bottom: 0;
+    width: 1px; background: repeating-linear-gradient(var(--border-strong) 0 6px, transparent 6px 12px); opacity: .5; }
+  .mk-capline::before { left: calc(50% - 390px); }
+  .mk-capline::after { left: calc(50% + 390px); }
+</style>
+
+<div class="mk-head">
+  <h1>Colaborador no desktop: limite de largura</h1>
+  <p>Hoje o portal do colaborador esparrama todo o conteudo na largura da tela no desktop, hero do banco de horas, botoes, segmented, listas e o contador da aba Documentos ficam esticados e soltos. A proposta e um container central com cap (max width 780px, conteudo centralizado) que deixa o portal elegante no desktop sem tocar no mobile. O contador da aba Documentos encaixa junto do seu titulo em vez de flutuar la na borda.</p>
+</div>
+
+<div class="mk-grid">
+
+  <!-- ================= ANTES ================= -->
+  <div class="mk-col">
+    <span class="mk-tag mk-tag--before">Antes · esticado</span>
+    <div class="mk-win">
+      <div class="mk-win__bar">
+        <span class="mk-win__dot"></span><span class="mk-win__dot"></span><span class="mk-win__dot"></span>
+        <span class="mk-win__u">fiopulse · Documentos</span>
+      </div>
+      <div class="mk-main">
+        <div class="pp-fade">
+          <div class="pp-hi"><h1>Documentos</h1></div>
+
+          <!-- contador "1" solto: pp-ovl e flex e o pp-ct vai com margin-left:auto
+               ate a borda direita da tela larga, longe do titulo -->
+          <div class="pp-ovl">Precisa de voce<span class="pp-ct">1</span></div>
+
+          <article class="pp-card pp-card--attn">
+            <div class="pp-card__bd">
+              <div class="pp-card__foot" style="margin:0 0 11px">
+                <span class="pp-badge pp-badge--amber">Assinatura pendente · v1</span>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center">
+                <span class="pp-ico pp-ico--amber"></span>
+                <span class="pp-rw__bd"><span class="pp-rw__t">Politica de conduta interna</span><span class="pp-rw__s">Politica · v1</span></span>
+              </div>
+              <div style="margin-top:13px">
+                <button class="pp-btn pp-btn--soft pp-btn--block" style="margin-bottom:8px">Ver documento</button>
+                <button class="pp-btn pp-btn--primary pp-btn--block">Assinar agora</button>
+              </div>
+            </div>
+          </article>
+
+          <div class="pp-ovl">Publicados</div>
+          <div class="pp-grp">
+            <div class="pp-rw" style="cursor:pointer">
+              <span class="pp-ico pp-ico--green"></span>
+              <span class="pp-rw__bd"><span class="pp-rw__t">Regras do banco de horas</span><span class="pp-rw__s">Regra · Lido</span></span>
+              <span class="pp-rw__ro">Abrir</span>
+            </div>
+            <div class="pp-rw" style="cursor:pointer">
+              <span class="pp-ico pp-ico--green"></span>
+              <span class="pp-rw__bd"><span class="pp-rw__t">Codigo de etica Fiobras</span><span class="pp-rw__s">Politica · Assinado · v2</span></span>
+              <span class="pp-rw__ro">Abrir</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="mk-note">O botao <b>Ver documento</b> e o <b>Assinar agora</b> viram barras de ponta a ponta. O <b>1</b> do contador flutua no extremo direito, desligado da frase Precisa de voce.</p>
+  </div>
+
+  <!-- ================= DEPOIS ================= -->
+  <div class="mk-col">
+    <span class="mk-tag mk-tag--after">Depois · com cap</span>
+    <div class="mk-win">
+      <div class="mk-win__bar">
+        <span class="mk-win__dot"></span><span class="mk-win__dot"></span><span class="mk-win__dot"></span>
+        <span class="mk-win__u">fiopulse · Documentos</span>
+      </div>
+      <div class="mk-main mk-capline">
+        <!-- a unica mudanca real: o #view do desktop ganha .pp-cap (max-width + centro) -->
+        <div class="pp-cap">
+          <div class="pp-fade">
+            <div class="pp-hi"><h1>Documentos</h1></div>
+
+            <!-- mesmo markup; agora o pp-ct encaixa junto do titulo dentro do cap -->
+            <div class="pp-ovl">Precisa de voce<span class="pp-ct">1</span></div>
+
+            <article class="pp-card pp-card--attn">
+              <div class="pp-card__bd">
+                <div class="pp-card__foot" style="margin:0 0 11px">
+                  <span class="pp-badge pp-badge--amber">Assinatura pendente · v1</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center">
+                  <span class="pp-ico pp-ico--amber"></span>
+                  <span class="pp-rw__bd"><span class="pp-rw__t">Politica de conduta interna</span><span class="pp-rw__s">Politica · v1</span></span>
+                </div>
+                <div style="margin-top:13px">
+                  <button class="pp-btn pp-btn--soft pp-btn--block" style="margin-bottom:8px">Ver documento</button>
+                  <button class="pp-btn pp-btn--primary pp-btn--block">Assinar agora</button>
+                </div>
+              </div>
+            </article>
+
+            <div class="pp-ovl">Publicados</div>
+            <div class="pp-grp">
+              <div class="pp-rw" style="cursor:pointer">
+                <span class="pp-ico pp-ico--green"></span>
+                <span class="pp-rw__bd"><span class="pp-rw__t">Regras do banco de horas</span><span class="pp-rw__s">Regra · Lido</span></span>
+                <span class="pp-rw__ro">Abrir</span>
+              </div>
+              <div class="pp-rw" style="cursor:pointer">
+                <span class="pp-ico pp-ico--green"></span>
+                <span class="pp-rw__bd"><span class="pp-rw__t">Codigo de etica Fiobras</span><span class="pp-rw__s">Politica · Assinado · v2</span></span>
+                <span class="pp-rw__ro">Abrir</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="mk-note">Conteudo centrado num container de <b>780px</b>. Botoes com largura humana, contador <b>1</b> colado no seu titulo. As guias tracejadas marcam o cap (so no mock).</p>
+  </div>
+</div>
+
+<!-- ================= segundo par: Banco de horas (o hero tambem se beneficia) ================= -->
+<div class="mk-head" style="padding-top:8px">
+  <h1 style="font-size:16px">O mesmo cap na aba Banco de horas</h1>
+  <p style="font-size:12.5px">O hero do saldo, o segmented e os cartoes seguem o mesmo container. Nada disso muda no mobile: abaixo de 901px o cap nao entra e o portal continua exatamente como esta.</p>
+</div>
+
+<div class="mk-grid" style="margin-top:8px">
+  <div class="mk-col">
+    <span class="mk-tag mk-tag--before">Antes · esticado</span>
+    <div class="mk-win">
+      <div class="mk-win__bar">
+        <span class="mk-win__dot"></span><span class="mk-win__dot"></span><span class="mk-win__dot"></span>
+        <span class="mk-win__u">fiopulse · Banco de horas</span>
+      </div>
+      <div class="mk-main">
+        <div class="pp-fade pp-home">
+          <div class="pp-hi"><h1>Banco de horas</h1></div>
+          <button class="pp-hero">
+            <div class="pp-hero__top">
+              <span class="pp-hero__lbl">Saldo atual</span>
+              <span class="pp-hero__badge">Fechado ontem</span>
+            </div>
+            <div class="pp-hero__val">+04:12</div>
+            <div class="pp-hero__sub">Atualizado com o fechamento de 02/07</div>
+          </button>
+          <div class="pp-ovl">Ultimos dias</div>
+          <div class="pp-grp">
+            <div class="pp-rw"><span class="pp-ico pp-ico--green"></span><span class="pp-rw__bd"><span class="pp-rw__t">Quarta, 02/07</span><span class="pp-rw__s">08:00 · 12:00 · 13:00 · 17:24</span></span><span class="pp-rw__ro">+24m</span></div>
+            <div class="pp-rw"><span class="pp-ico pp-ico--neutral"></span><span class="pp-rw__bd"><span class="pp-rw__t">Terca, 01/07</span><span class="pp-rw__s">08:03 · 12:00 · 13:00 · 17:00</span></span><span class="pp-rw__ro">0m</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mk-col">
+    <span class="mk-tag mk-tag--after">Depois · com cap</span>
+    <div class="mk-win">
+      <div class="mk-win__bar">
+        <span class="mk-win__dot"></span><span class="mk-win__dot"></span><span class="mk-win__dot"></span>
+        <span class="mk-win__u">fiopulse · Banco de horas</span>
+      </div>
+      <div class="mk-main mk-capline">
+        <div class="pp-cap">
+          <div class="pp-fade pp-home">
+            <div class="pp-hi"><h1>Banco de horas</h1></div>
+            <button class="pp-hero">
+              <div class="pp-hero__top">
+                <span class="pp-hero__lbl">Saldo atual</span>
+                <span class="pp-hero__badge">Fechado ontem</span>
+              </div>
+              <div class="pp-hero__val">+04:12</div>
+              <div class="pp-hero__sub">Atualizado com o fechamento de 02/07</div>
+            </button>
+            <div class="pp-ovl">Ultimos dias</div>
+            <div class="pp-grp">
+              <div class="pp-rw"><span class="pp-ico pp-ico--green"></span><span class="pp-rw__bd"><span class="pp-rw__t">Quarta, 02/07</span><span class="pp-rw__s">08:00 · 12:00 · 13:00 · 17:24</span></span><span class="pp-rw__ro">+24m</span></div>
+              <div class="pp-rw"><span class="pp-ico pp-ico--neutral"></span><span class="pp-rw__bd"><span class="pp-rw__t">Terca, 01/07</span><span class="pp-rw__s">08:03 · 12:00 · 13:00 · 17:00</span></span><span class="pp-rw__ro">0m</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // O portal define modo-colab no <html> em runtime; aqui forcamos pro CSS escopado
+  // (.modo-colab { ... } e tokens cp-light) pegar no mock.
+  document.documentElement.classList.add("modo-colab");
+</script>
