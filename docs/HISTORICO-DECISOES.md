@@ -1218,3 +1218,12 @@ Depois de várias idas e voltas sobre o saldo "errado" da Lucivane e o pressenti
 Isso explica RETROATIVAMENTE por que junho pareceu consistente (nenhuma virada de mês dentro do período) e julho pareceu bagunçado (toda comparação dia-a-dia cruzando 30/06→01/07 pega o reset, não o trabalho real daquele dia) — inclusive o caso original da Lucivane (fechou junho em -00:13, resetou pra 00:00 em 01/07, por isso as 2h44 de hora extra que ela trabalhou naquele dia não aparecem refletidas ali).
 
 **Não é bug do pipeline** — é comportamento real e consistente do "Banco Horas Mensal" do próprio WK, fielmente refletido pelos meus scripts. **Pergunta de negócio em aberto, não técnica**: reset mensal é a política pretendida da empresa (banco "use ou perca" mensal) ou é configuração errada no WK (deveria ser corrido/perpétuo)? E por que 33 de 88 não resetaram — outro tipo de banco, ou inconsistência? Só William/RH/quem configura o WK pode responder — não é algo que dá pra decidir ou corrigir a partir dos exports.
+
+
+---
+
+## 2026-07-03 · Caso do saldo da Lucivane (01/07) — encerrado: confirmado problema do lado do WK
+
+William confirmou: o problema é do lado do WK (lançamento/configuração dentro do sistema deles), vai ser corrigido por lá. Fechando o registro da investigação.
+
+Checagens finais feitas antes de encerrar: reexportado o Espelho fresco (3ª vez ao longo do dia) — valor de 01/07 estável em 00:00, não é mais dado assentando. Conferido que não existe segundo tipo de Banco de Horas pra ela (só "Geral", código 2; existe também "Produção", código 1, pra outro grupo). Nenhum rastro das 2h44 de hora extra em nenhum dos 2 arquivos do WK que o pipeline lê. Duas hipóteses ficaram em aberto sem confirmação possível a partir dos exports: (a) nunca foi lançada, precisa de correção manual dentro do WK; (b) foi paga em dinheiro na folha em vez de banco de horas (relatório que o pipeline não tem acesso). Não é bug do pipeline — dado fielmente refletido dos exports do WK.
