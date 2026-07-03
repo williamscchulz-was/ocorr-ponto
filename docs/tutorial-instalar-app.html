@@ -1,0 +1,564 @@
+<meta charset="utf-8">
+<title>FioPulse · Como instalar o app no seu celular</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --verde:#008835;
+    --verde-esc:#005a24;
+    --verde-claro:#e7f4ec;
+    --verde-linha:#cbe6d5;
+    --amarelo:#FFCB00;
+    --azul:#0076BE;
+    --tinta:#1f2a24;
+    --tinta-suave:#5a6b61;
+    --papel:#ffffff;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  body{
+    font-family:'Poppins', system-ui, sans-serif;
+    color:var(--tinta);
+    background:#eceeec;
+    font-size:11pt;
+    line-height:1.35;
+  }
+
+  @page{ size:A4 portrait; margin:0; }
+
+  .pagina{
+    width:210mm;
+    min-height:297mm;
+    background:var(--papel);
+    margin:0 auto;
+    padding:14mm 15mm 12mm;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  }
+  .pagina + .pagina{ margin-top:8mm; }
+
+  @media print{
+    body{ background:#fff; }
+    .pagina{ margin:0; box-shadow:none; }
+    .pagina.p2{ page-break-before:always; }
+  }
+  @media screen{
+    .pagina{ box-shadow:0 6px 30px rgba(0,0,0,.14); border-radius:2px; }
+  }
+
+  /* ---------- Cabecalho / capa ---------- */
+  .capa{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding-bottom:14px;
+    border-bottom:3px solid var(--verde);
+  }
+  .capa .marca{ flex:0 0 auto; }
+  .capa .titulos{ flex:1 1 auto; }
+  .kicker{
+    font-size:8.5pt;
+    font-weight:600;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--verde);
+  }
+  .capa h1{
+    font-size:26pt;
+    font-weight:800;
+    line-height:1.02;
+    color:var(--verde-esc);
+    letter-spacing:-.01em;
+  }
+  .capa .sub{
+    font-size:12pt;
+    font-weight:500;
+    color:var(--tinta-suave);
+    margin-top:2px;
+  }
+
+  /* ---------- Faixa do endereco + QR ---------- */
+  .endereco{
+    margin-top:14px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    background:var(--verde-claro);
+    border:1.5px solid var(--verde-linha);
+    border-radius:14px;
+    padding:14px 16px;
+  }
+  .endereco .txt{ flex:1 1 auto; }
+  .endereco .rotulo{
+    font-size:9.5pt;
+    font-weight:600;
+    color:var(--tinta-suave);
+  }
+  .endereco .url{
+    font-size:16.5pt;
+    font-weight:700;
+    color:var(--verde-esc);
+    letter-spacing:-.005em;
+    margin-top:1px;
+    white-space:nowrap;
+  }
+  .endereco .dica{
+    font-size:9pt;
+    color:var(--tinta-suave);
+    margin-top:3px;
+  }
+  .qr-bloco{
+    flex:0 0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+  }
+  .qr-cartao{
+    width:82px; height:82px;
+    background:#fff;
+    border:1.5px solid var(--verde-linha);
+    border-radius:12px;
+    padding:8px;
+  }
+  .qr-cartao svg{ width:100%; height:100%; display:block; }
+  .qr-legenda{
+    font-size:7.5pt;
+    font-weight:600;
+    color:var(--tinta-suave);
+    text-align:center;
+  }
+
+  /* ---------- Cabecalho de secao ---------- */
+  .secao-cab{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:20px;
+    margin-bottom:12px;
+  }
+  .plataforma{
+    flex:0 0 auto;
+    width:40px; height:40px;
+    border-radius:11px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .plataforma.android{ background:var(--verde-claro); }
+  .plataforma.iphone{ background:#eef2f6; }
+  .secao-cab .rot{ line-height:1.1; }
+  .secao-cab h2{
+    font-size:15pt;
+    font-weight:700;
+    color:var(--verde-esc);
+  }
+  .secao-cab .nav{
+    font-size:9.5pt;
+    font-weight:500;
+    color:var(--tinta-suave);
+  }
+
+  /* ---------- Passos ---------- */
+  .passos{ display:flex; flex-direction:column; gap:9px; }
+  .passo{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    border:1.5px solid #e6ece8;
+    border-radius:14px;
+    padding:11px 14px;
+  }
+  .passo .num{
+    flex:0 0 auto;
+    width:30px; height:30px;
+    border-radius:50%;
+    background:var(--verde);
+    color:#fff;
+    font-weight:700;
+    font-size:13pt;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .passo .ilustra{
+    flex:0 0 auto;
+    width:66px; height:66px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .passo .ilustra svg{ width:100%; height:100%; display:block; }
+  .passo .fala{ flex:1 1 auto; }
+  .passo .fala .t{
+    font-size:12pt;
+    font-weight:600;
+    color:var(--tinta);
+    line-height:1.25;
+  }
+  .passo .fala .t b{ color:var(--verde-esc); font-weight:700; }
+  .passo .fala .d{
+    font-size:9.5pt;
+    color:var(--tinta-suave);
+    margin-top:2px;
+  }
+
+  /* ---------- Nota final ---------- */
+  .nota{
+    margin-top:16px;
+    display:flex;
+    align-items:center;
+    gap:13px;
+    background:var(--verde-esc);
+    border-radius:14px;
+    padding:14px 18px;
+    color:#fff;
+  }
+  .nota .ic{ flex:0 0 auto; }
+  .nota .t{ font-size:11.5pt; font-weight:600; line-height:1.3; }
+  .nota .t span{ color:var(--amarelo); }
+
+  .rodape{
+    margin-top:auto;
+    padding-top:12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-size:8pt;
+    color:#9aa8a0;
+    border-top:1px solid #eef1ef;
+  }
+  .rodape .marca-mini{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--verde); }
+
+  .pag-num{ font-weight:600; }
+
+  /* Mini telinha do passo final: celular com o app instalado */
+  .telinha{
+    width:66px; height:66px;
+    border:2px solid #cbd6cf;
+    border-radius:12px;
+    background:#f3f6f4;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+  }
+  .telinha .app-icon{ width:26px; height:26px; }
+  .telinha .rotulo-app{
+    font-size:6pt;
+    font-weight:600;
+    color:var(--tinta);
+  }
+  .telinha .check{
+    position:absolute;
+    top:-6px; right:-6px;
+    width:20px; height:20px;
+    background:var(--amarelo);
+    border:2px solid #fff;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .telinha .check svg{ width:11px; height:11px; }
+
+  /* Icone real do app FioPulse (mesmo da tela do celular) */
+  .app-icon{
+    display:inline-block;
+    background-image:url("data:image/png;base64,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");
+    background-size:cover;
+    background-position:center;
+    border-radius:22%;
+  }
+</style>
+
+<!-- =================== PAGINA 1 =================== -->
+<section class="pagina p1">
+
+  <!-- Capa -->
+  <header class="capa">
+    <div class="marca">
+      <!-- Icone real do app FioPulse, o mesmo que aparece na tela do celular -->
+      <span class="app-icon" style="width:62px;height:62px" role="img" aria-label="Icone FioPulse"></span>
+    </div>
+    <div class="titulos">
+      <div class="kicker">Fiobras · Gestão de Pessoas</div>
+      <h1>FioPulse</h1>
+      <div class="sub">Como instalar o app no seu celular</div>
+    </div>
+  </header>
+
+  <!-- Endereco + QR -->
+  <div class="endereco">
+    <div class="txt">
+      <div class="rotulo">Abra este endereço no navegador do celular</div>
+      <div class="url">weave-fiobras.web.app</div>
+      <div class="dica">Ou aponte a câmera do celular para o quadradinho ao lado.</div>
+    </div>
+    <div class="qr-bloco">
+      <div class="qr-cartao" aria-label="QR code do endereço do FioPulse"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><path stroke="#005a24" d="M0 0.5h7m3 0h1m1 0h1m2 0h2m2 0h2m1 0h7M0 1.5h1m5 0h1m10 0h1m4 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m2 0h2m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h2m1 0h1m4 0h2m1 0h1m2 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h4m1 0h3m2 0h2m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h1m2 0h1m1 0h4m3 0h1m1 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h1m4 0h1m1 0h1m3 0h1M0 8.5h1m1 0h5m2 0h1m2 0h1m1 0h2m1 0h1m2 0h1m1 0h5M2 9.5h2m4 0h3m4 0h2m1 0h7m3 0h1M1 10.5h3m2 0h3m3 0h1m4 0h2m1 0h1M3 11.5h1m1 0h1m4 0h2m2 0h1m1 0h1m1 0h1m4 0h3m1 0h1M0 12.5h2m1 0h1m2 0h3m2 0h2m3 0h3m2 0h1m1 0h1m1 0h2M0 13.5h1m3 0h2m4 0h1m1 0h4m1 0h8m3 0h1M1 14.5h1m2 0h1m1 0h2m2 0h8m4 0h5M2 15.5h2m1 0h1m1 0h1m1 0h2m2 0h1m1 0h1m2 0h2m4 0h1m2 0h1M0 16.5h2m2 0h1m1 0h1m2 0h2m3 0h2m1 0h1m2 0h1m4 0h2M0 17.5h1m4 0h1m1 0h3m5 0h2m1 0h7m1 0h1m1 0h1M0 18.5h1m1 0h2m1 0h2m4 0h2m5 0h1m4 0h2m1 0h1M0 19.5h1m1 0h2m3 0h1m3 0h2m1 0h1m1 0h1m2 0h1m1 0h4m2 0h1M0 20.5h1m1 0h1m2 0h4m2 0h1m4 0h2m2 0h5m1 0h3M8 21.5h1m1 0h2m1 0h3m4 0h1m3 0h5M0 22.5h7m2 0h3m1 0h4m1 0h3m1 0h1m1 0h3M0 23.5h1m5 0h1m1 0h1m2 0h3m1 0h1m2 0h3m3 0h1M0 24.5h1m1 0h3m1 0h1m1 0h3m1 0h1m1 0h2m1 0h1m2 0h5m1 0h1m1 0h1M0 25.5h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h1m1 0h2m2 0h2m4 0h2M0 26.5h1m1 0h3m1 0h1m1 0h2m1 0h1m6 0h10M0 27.5h1m5 0h1m2 0h5m2 0h1m1 0h1m1 0h4m1 0h1m1 0h1M0 28.5h7m1 0h1m3 0h2m4 0h2m3 0h4"/></svg></div>
+      <div class="qr-legenda">Aponte a câmera</div>
+    </div>
+  </div>
+
+  <!-- Secao ANDROID -->
+  <div class="secao-cab">
+    <div class="plataforma android">
+      <!-- Robozinho Android simplificado -->
+      <svg width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="#008835">
+          <path d="M6 10.5h12v7.2a1.3 1.3 0 0 1-1.3 1.3H7.3A1.3 1.3 0 0 1 6 17.7z"/>
+          <rect x="3.2" y="10.6" width="2.1" height="6.2" rx="1.05"/>
+          <rect x="18.7" y="10.6" width="2.1" height="6.2" rx="1.05"/>
+          <rect x="8" y="18.4" width="2.1" height="4" rx="1.05"/>
+          <rect x="13.9" y="18.4" width="2.1" height="4" rx="1.05"/>
+          <path d="M6 9.6C6.2 6.7 8.8 4.4 12 4.4s5.8 2.3 6 5.2z"/>
+        </g>
+        <circle cx="9.4" cy="7.3" r=".85" fill="#fff"/>
+        <circle cx="14.6" cy="7.3" r=".85" fill="#fff"/>
+        <path d="M8.6 3.4l1.3 1.7M15.4 3.4l-1.3 1.7" stroke="#008835" stroke-width="1.1" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="rot">
+      <h2>No Android</h2>
+      <div class="nav">Use o navegador Chrome</div>
+    </div>
+  </div>
+
+  <div class="passos">
+
+    <!-- A1 -->
+    <div class="passo">
+      <div class="num">1</div>
+      <div class="ilustra">
+        <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="18" y="6" width="52" height="76" rx="9" fill="#f3f6f4" stroke="#cbd6cf" stroke-width="2"/>
+          <rect x="24" y="15" width="40" height="7" rx="3.5" fill="#fff" stroke="#cbd6cf" stroke-width="1.5"/>
+          <text x="30" y="20.3" font-family="Poppins" font-size="4.4" fill="#5a6b61">weave-fiobras…</text>
+          <rect x="24" y="30" width="40" height="30" rx="4" fill="#e7f4ec"/>
+          <path d="M30 50 C36 40, 46 39, 54 37" stroke="#008835" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+          <path d="M34 55 C40 47, 48 46, 56 45" stroke="#0076BE" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+          <path d="M50 38 L60 55 M60 38 L50 55" stroke="#FFCB00" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="fala">
+        <div class="t">Abra o <b>Chrome</b> e digite o endereço <b>weave-fiobras.web.app</b></div>
+        <div class="d">Toque em ir. A tela do FioPulse vai aparecer.</div>
+      </div>
+    </div>
+
+    <!-- A2 -->
+    <div class="passo">
+      <div class="num">2</div>
+      <div class="ilustra">
+        <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="14" y="8" width="60" height="72" rx="9" fill="#f3f6f4" stroke="#cbd6cf" stroke-width="2"/>
+          <!-- barra de topo do navegador -->
+          <rect x="14" y="8" width="60" height="16" rx="9" fill="#fff"/>
+          <rect x="14" y="18" width="60" height="6" fill="#fff"/>
+          <rect x="19" y="13" width="30" height="6" rx="3" fill="#eef2ef"/>
+          <!-- botao de menu destacado (tres pontinhos) -->
+          <circle cx="63" cy="16" r="10" fill="none" stroke="#008835" stroke-width="2" stroke-dasharray="3 3"/>
+          <circle cx="63" cy="16" r="6.5" fill="#008835"/>
+          <circle cx="63" cy="12.7" r="1.7" fill="#fff"/>
+          <circle cx="63" cy="16" r="1.7" fill="#fff"/>
+          <circle cx="63" cy="19.3" r="1.7" fill="#fff"/>
+          <!-- corpo da pagina -->
+          <rect x="20" y="32" width="48" height="4" rx="2" fill="#e2e8e4"/>
+          <rect x="20" y="41" width="40" height="4" rx="2" fill="#e2e8e4"/>
+          <rect x="20" y="50" width="44" height="4" rx="2" fill="#e2e8e4"/>
+          <!-- seta apontando para o botao -->
+          <path d="M63 46 v-18" stroke="#008835" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M59 32 l4 -5 l4 5" stroke="#008835" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="fala">
+        <div class="t">Toque nos <b>três pontinhos</b> no canto de cima</div>
+        <div class="d">É o botão de menu do Chrome.</div>
+      </div>
+    </div>
+
+    <!-- A3 -->
+    <div class="passo">
+      <div class="num">3</div>
+      <div class="ilustra">
+        <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="14" width="68" height="60" rx="8" fill="#fff" stroke="#cbd6cf" stroke-width="2"/>
+          <rect x="16" y="22" width="40" height="4.5" rx="2.25" fill="#dfe6e1"/>
+          <rect x="16" y="33" width="46" height="4.5" rx="2.25" fill="#dfe6e1"/>
+          <!-- item destacado -->
+          <rect x="13" y="43" width="62" height="15" rx="5" fill="#e7f4ec" stroke="#008835" stroke-width="1.8"/>
+          <path d="M20 50.5 v-4 h6 v4 M18.5 50.5 h9 M23 44 v-2.4" stroke="#008835" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+          <rect x="31" y="48.7" width="40" height="3.6" rx="1.8" fill="#008835"/>
+          <rect x="16" y="64" width="34" height="4.5" rx="2.25" fill="#dfe6e1"/>
+        </svg>
+      </div>
+      <div class="fala">
+        <div class="t">Toque em <b>Instalar aplicativo</b></div>
+        <div class="d">Em alguns aparelhos aparece como Adicionar à tela inicial.</div>
+      </div>
+    </div>
+
+    <!-- A4 -->
+    <div class="passo">
+      <div class="num">4</div>
+      <div class="ilustra">
+        <div class="telinha" aria-hidden="true">
+          <span class="app-icon"></span>
+          <span class="rotulo-app">FioPulse</span>
+          <span class="check">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 12.5l4 4 8-9" stroke="#005a24" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+      </div>
+      <div class="fala">
+        <div class="t">Confirme e <b>pronto</b></div>
+        <div class="d">O ícone do FioPulse aparece na tela inicial, junto dos outros apps.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="rodape">
+    <span class="marca-mini">FioPulse · Fiobras</span>
+    <span class="pag-num">Página 1 de 2 · Android</span>
+  </footer>
+
+</section>
+
+<!-- =================== PAGINA 2 =================== -->
+<section class="pagina p2">
+
+  <!-- Cabecalho reduzido -->
+  <header class="capa">
+    <div class="marca">
+      <span class="app-icon" style="width:54px;height:54px" role="img" aria-label="Icone FioPulse"></span>
+    </div>
+    <div class="titulos">
+      <div class="kicker">Fiobras · Gestão de Pessoas</div>
+      <h1 style="font-size:22pt">Instalar no iPhone</h1>
+      <div class="sub">Agora o passo a passo para quem tem iPhone</div>
+    </div>
+  </header>
+
+  <!-- Secao IPHONE -->
+  <div class="secao-cab">
+    <div class="plataforma iphone">
+      <!-- macaçã simplificada -->
+      <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M16.7 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2-.05 1.6-.75 3-.75s1.8.75 3 .72c1.2-.02 2-1.1 2.8-2.2.5-.75.9-1.5 1.2-2.4-2.7-1-2.4-3.9-2.4-3.9z" fill="#0076BE"/>
+        <path d="M14.2 5.8c.65-.8 1.1-1.9.95-3-.95.05-2.1.65-2.75 1.45-.6.7-1.1 1.8-.95 2.9 1.05.08 2.1-.55 2.75-1.35z" fill="#0076BE"/>
+      </svg>
+    </div>
+    <div class="rot">
+      <h2>No iPhone</h2>
+      <div class="nav">Precisa ser o navegador Safari</div>
+    </div>
+  </div>
+
+  <div class="passos">
+
+    <!-- I1 -->
+    <div class="passo">
+      <div class="num">1</div>
+      <div class="ilustra">
+        <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="18" y="6" width="52" height="76" rx="9" fill="#f3f6f4" stroke="#cbd6cf" stroke-width="2"/>
+          <rect x="24" y="15" width="40" height="7" rx="3.5" fill="#fff" stroke="#cbd6cf" stroke-width="1.5"/>
+          <text x="30" y="20.3" font-family="Poppins" font-size="4.4" fill="#5a6b61">weave-fiobras…</text>
+          <rect x="24" y="30" width="40" height="30" rx="4" fill="#e7f4ec"/>
+          <path d="M30 50 C36 40, 46 39, 54 37" stroke="#008835" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+          <path d="M34 55 C40 47, 48 46, 56 45" stroke="#0076BE" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+          <path d="M50 38 L60 55 M60 38 L50 55" stroke="#FFCB00" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="fala">
+        <div class="t">Abra o <b>Safari</b> e digite <b>weave-fiobras.web.app</b></div>
+        <div class="d">No iPhone precisa ser o Safari, não o Chrome.</div>
+      </div>
+    </div>
+
+    <!-- I2 -->
+    <div class="passo">
+      <div class="num">2</div>
+      <div class="ilustra">
+        <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="14" y="8" width="60" height="72" rx="9" fill="#f3f6f4" stroke="#cbd6cf" stroke-width="2"/>
+          <!-- botao Compartilhar do Safari, grande e centralizado -->
+          <rect x="30" y="24" width="28" height="34" rx="9" fill="none" stroke="#0076BE" stroke-width="2.2" stroke-dasharray="4 3"/>
+          <!-- caixinha -->
+          <path d="M37 41 v9 a3 3 0 0 0 3 3 h8 a3 3 0 0 0 3 -3 v-9" fill="none" stroke="#0076BE" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- seta pra cima, saindo da caixa -->
+          <path d="M44 44 v-14" stroke="#0076BE" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M39.5 33.5 L44 29 L48.5 33.5" fill="none" stroke="#0076BE" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- barra inferior do safari -->
+          <rect x="14" y="66" width="60" height="14" rx="0" fill="#eef2f6"/>
+          <rect x="14" y="78" width="60" height="2" rx="0" fill="#eef2f6"/>
+          <path d="M23 73 v-1 M27 73 v-1" stroke="#b7c2ba" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="fala">
+        <div class="t">Toque no botão <b>Compartilhar</b></div>
+        <div class="d">É o quadradinho com uma seta apontando para cima, embaixo na tela.</div>
+      </div>
+    </div>
+
+    <!-- I3 -->
+    <div class="passo">
+      <div class="num">3</div>
+      <div class="ilustra">
+        <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="10" y="12" width="68" height="64" rx="9" fill="#fff" stroke="#cbd6cf" stroke-width="2"/>
+          <rect x="16" y="20" width="42" height="4.5" rx="2.25" fill="#dfe6e1"/>
+          <rect x="16" y="31" width="36" height="4.5" rx="2.25" fill="#dfe6e1"/>
+          <!-- item destacado: Adicionar a Tela de Inicio -->
+          <rect x="13" y="42" width="62" height="16" rx="5" fill="#eef4fa" stroke="#0076BE" stroke-width="1.8"/>
+          <rect x="19" y="46.5" width="8" height="8" rx="2" fill="none" stroke="#0076BE" stroke-width="1.6"/>
+          <path d="M23 48.5 v4 M21 50.5 h4" stroke="#0076BE" stroke-width="1.6" stroke-linecap="round"/>
+          <rect x="32" y="48.3" width="38" height="3.6" rx="1.8" fill="#0076BE"/>
+          <rect x="16" y="64" width="30" height="4.5" rx="2.25" fill="#dfe6e1"/>
+        </svg>
+      </div>
+      <div class="fala">
+        <div class="t">Role para baixo e toque em <b>Adicionar à Tela de Início</b></div>
+        <div class="d">A lista de opções é grande, pode ser preciso rolar um pouco.</div>
+      </div>
+    </div>
+
+    <!-- I4 -->
+    <div class="passo">
+      <div class="num">4</div>
+      <div class="ilustra">
+        <div class="telinha" aria-hidden="true">
+          <span class="app-icon"></span>
+          <span class="rotulo-app">FioPulse</span>
+          <span class="check">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 12.5l4 4 8-9" stroke="#005a24" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+      </div>
+      <div class="fala">
+        <div class="t">Toque em <b>Adicionar</b> no canto de cima e pronto</div>
+        <div class="d">O ícone do FioPulse aparece na tela inicial do iPhone.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Nota final -->
+  <div class="nota">
+    <div class="ic">
+      <svg width="34" height="34" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="#FFCB00"/>
+        <circle cx="12" cy="7.6" r="1.5" fill="#005a24"/>
+        <path d="M12 11.2v6.4" stroke="#005a24" stroke-width="2.6" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="t">Depois de instalado, é só <span>tocar no ícone do FioPulse</span> para abrir. Você não precisa digitar o endereço de novo.</div>
+  </div>
+
+  <footer class="rodape">
+    <span class="marca-mini">FioPulse · Fiobras</span>
+    <span class="pag-num">Página 2 de 2 · iPhone</span>
+  </footer>
+
+</section>
