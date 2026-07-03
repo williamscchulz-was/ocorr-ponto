@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · avatar clicável (lightbox)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+<link rel="stylesheet" href="/public/styles.css?v=274" />
+<style>
+  body{font-family:"Poppins",system-ui,sans-serif;background:var(--bg,#eef2ee);color:var(--text,#12211a);margin:0;padding:28px 18px 64px;}
+  .wrap{max-width:640px;margin:0 auto;}
+  .topo h1{font-size:20px;margin:0 0 4px;}
+  .topo p{margin:0 0 22px;color:var(--text-muted,#5c6b62);font-size:13.5px;line-height:1.5;}
+  .card{background:var(--surface,#fff);border:1px solid var(--border,#e2e8e4);border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.05);}
+  .row{display:flex;align-items:center;gap:14px;padding:13px 18px;border-top:1px solid var(--border,#e8eee9);}
+  .row:first-child{border-top:0;}
+  /* foto pequena: mesmo look do app (.av-foto), clicável */
+  .avf{width:44px;height:44px;border-radius:50%;background-size:cover;background-position:center;flex:none;
+       cursor:zoom-in;position:relative;outline:2px solid transparent;transition:outline-color .15s ease, transform .15s ease;}
+  .avf:hover,.avf:focus-visible{outline-color:var(--brand,#008835);transform:scale(1.04);}
+  .avf::after{content:"";position:absolute;right:-1px;bottom:-1px;width:15px;height:15px;border-radius:50%;
+       background:var(--brand,#008835) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'/%3E%3C/svg%3E") center/9px no-repeat;
+       border:2px solid var(--surface,#fff);opacity:0;transition:opacity .15s ease;}
+  .avf:hover::after,.avf:focus-visible::after{opacity:1;}
+  .row__bd b{display:block;font-size:14.5px;}
+  .row__bd span{font-size:12.5px;color:var(--text-muted,#5c6b62);}
+  .dica{margin:16px 2px 0;font-size:12.5px;color:var(--text-muted,#5c6b62);}
+
+  /* lightbox */
+  .lb{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;
+      background:rgba(6,18,12,.72);backdrop-filter:blur(3px);padding:24px;}
+  .lb.open{display:flex;animation:lbin .18s ease;}
+  @keyframes lbin{from{opacity:0}to{opacity:1}}
+  .lb__stage{position:relative;text-align:center;animation:lbpop .22s cubic-bezier(.2,.9,.3,1);}
+  @keyframes lbpop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+  .lb__img{width:min(78vw,340px);height:min(78vw,340px);border-radius:24px;background-size:cover;background-position:center;
+      box-shadow:0 24px 60px rgba(0,0,0,.5);border:3px solid rgba(255,255,255,.9);}
+  .lb__nome{margin-top:16px;color:#fff;font-size:17px;font-weight:600;}
+  .lb__sub{color:rgba(255,255,255,.7);font-size:13px;margin-top:2px;}
+  .lb__x{position:absolute;top:-14px;right:-14px;width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+      background:#fff;color:#12211a;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.35);}
+  .lb__x svg{width:18px;height:18px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topo">
+      <h1>Avatar clicável, abre a foto ampliada</h1>
+      <p>Nas telas onde a foto do funcionário aparece pequena (lista de Funcionários, cards, perfil, espelho), tocar na foto abre ela ampliada num lightbox simples. Fecha no X, clicando fora ou com Esc. Passe o mouse na foto pra ver o sinal de que dá pra ampliar. Fotos reais entram no app pelo avatarFuncHtml; aqui são de exemplo.</p>
+    </div>
+
+    <div class="card" id="lista"></div>
+    <div class="dica">Toque em qualquer foto acima.</div>
+  </div>
+
+  <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+    <div class="lb__stage">
+      <button class="lb__x" id="lbx" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="lb__img" id="lbimg"></div>
+      <div class="lb__nome" id="lbnome"></div>
+      <div class="lb__sub" id="lbsub"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  var pessoas = [
+    { nome:"Ana Carolina Ferreira Duarte", sub:"Tecelã · TECELAGEM", foto:"https://i.pravatar.cc/300?img=47" },
+    { nome:"Carlos Eduardo Nascimento Rocha", sub:"Preparador · PREPARAÇÃO", foto:"https://i.pravatar.cc/300?img=12" },
+    { nome:"Bruna Aparecida Santos Lima", sub:"Analista · QUALIDADE", foto:"https://i.pravatar.cc/300?img=32" },
+    { nome:"Jair Knoth", sub:"Operador · PREPARAÇÃO", foto:"https://i.pravatar.cc/300?img=52" }
+  ];
+  var lista = document.getElementById("lista");
+  lista.innerHTML = pessoas.map(function(p, i){
+    return '<div class="row">'
+      + '<div class="avf" tabindex="0" role="button" aria-label="Ampliar foto de ' + p.nome + '" data-i="' + i + '" style="background-image:url(\'' + p.foto + '\')"></div>'
+      + '<div class="row__bd"><b>' + p.nome + '</b><span>' + p.sub + '</span></div>'
+      + '</div>';
+  }).join("");
+
+  var lb = document.getElementById("lb");
+  var lbimg = document.getElementById("lbimg");
+  var lbnome = document.getElementById("lbnome");
+  var lbsub = document.getElementById("lbsub");
+  var ultimoFoco = null;
+
+  function abrir(i){
+    var p = pessoas[i]; if(!p) return;
+    lbimg.style.backgroundImage = "url('" + p.foto + "')";
+    lbnome.textContent = p.nome;
+    lbsub.textContent = p.sub;
+    lb.classList.add("open");
+    document.getElementById("lbx").focus();
+  }
+  function fechar(){ lb.classList.remove("open"); if(ultimoFoco) ultimoFoco.focus(); }
+
+  lista.addEventListener("click", function(e){
+    var av = e.target.closest(".avf"); if(!av) return;
+    ultimoFoco = av; abrir(+av.getAttribute("data-i"));
+  });
+  lista.addEventListener("keydown", function(e){
+    var av = e.target.closest(".avf"); if(!av) return;
+    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); ultimoFoco = av; abrir(+av.getAttribute("data-i")); }
+  });
+  document.getElementById("lbx").addEventListener("click", fechar);
+  lb.addEventListener("click", function(e){ if(e.target === lb) fechar(); });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape" && lb.classList.contains("open")) fechar(); });
+})();
+</script>
+</body>
+</html>
