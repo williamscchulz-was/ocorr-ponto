@@ -121,8 +121,49 @@ Mockup verificado headless nos dois breakpoints (zero erros, sem overflow).
 
 ## Aprovação do William
 
-(pendente)
+**2026-07-03: "pode aplicar aquele teu mockup!"** — proposta consolidada aprovada
+integralmente, sem cortes.
 
 ## Implementação e re-verificação
 
-(pendente)
+### Onda 1 (v268, 2026-07-03) — os 12 graves + seções demonstradas + performance
+
+Implementado: números de pendência unificados (badge = KPI = aba, uma função só);
+aba Todas com os 4 estágios e fluxo único em ordem cronológica (autos e manuais
+intercaladas); tipos com grafia/tone único nas duas origens (OCA_TIPOS espelha
+data.js); lista com colunas alinhadas, "sem batida" discreto no lugar do travessão
+verde e horário previsto ROTULADO ("prev. 22:00"); modal premium com saldo negativo
+em --danger e badge de atraso em --warning-ink (AA 6.0:1); abas mobile em 1 linha
+rolável com ink correto + fade (só na faixa de ocorrências) + scrollIntoView da
+ativa; cards re-gradeados no mobile (grid-areas, horário visível); nomes de
+Funcionários em até 2 linhas com badges quebrando (specificity 2 classes vencendo
+as regras base + .func-nome removido do grupo de truncamento global); padding do
+gestor mobile 248px (nada coberto pela pilha chat+FAB; colab mantém 104px); espelho
+mobile em FOLHA (#esp-sheet, nó movido e devolvido) aberta só em seleção
+intencional; textos de debug removidos (diag BH/avisos/docs) com estados vazios
+decentes e nota da Folha atualizada; foco sem border-radius forçado; cards
+automáticos com role/tabindex/aria-label (Enter/Espaço abrem o detalhe); selos do
+colab com contraste AA nos 2 temas; .rcb-filecard[hidden] de verdade; roadmap
+fp-lnum--vazio (colisão com .empty global); ícone pulso adicionado ao icon() do
+utils.js (dois mapas de ícones: o global vive em utils, o do app.js é o cpIcon).
+**Performance**: build de deploy `scripts/build-dist.mjs` (esbuild, whitespace+
+syntax, identificadores preservados porque os globals entre arquivos são API):
+931KB → 669KB de JS (-28%); hosting weave agora serve `dist/` com predeploy
+automático; fontes seguem legíveis em `public/`.
+
+### Re-verificação (mesma bateria, 13 verificadores independentes)
+
+11/13 confirmados de primeira; 2 refutados e corrigidos na hora com nova prova:
+truncamento de Funcionários (a cascata anulava o bloco: regras base vinham depois
+no arquivo; corrigido com seletores de 2 classes; re-medido: nome 244px/2 linhas
+nos 3 casos críticos) e folha do espelho abrindo sozinha ao entrar na página
+(agora só em toque/atalho; re-provado). Smoke geral: 11 blocos, ZERO erros de
+console/pageerror, dist minificada renderiza idêntica à fonte (viewLen iguais),
+sem overflow horizontal em nenhuma tela. Observações pré-existentes registradas
+pelos verificadores (não regressões): ink 4.8px à esquerda no 1º render a frio
+até o swap da Poppins (se corrige sozinho); busca da aba Todas casa o tipo BRUTO
+da automática, não o rótulo exibido.
+
+### Pendente (Onda 2)
+
+Os ~106 achados médios/baixos da tabela do mockup que não entraram na Onda 1.

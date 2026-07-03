@@ -213,7 +213,7 @@ html.modo-colab.cp-dark .bottom-nav__item.active{background:rgba(95,203,133,.17)
 @keyframes fpSpin{0%,100%{opacity:1}50%{opacity:.35}}
 .fp-lico.planejado{border:1.5px solid var(--plan);border-radius:50%;width:13px;height:13px} .fp-lico.pendente{border:1.5px dashed var(--pend);border-radius:50%;width:13px;height:13px}
 .fp-lnum{flex:0 0 auto;font-size:10px;font-weight:700;color:var(--tx3);min-width:30px;text-align:center;font-variant-numeric:tabular-nums}
-.fp-lnum.empty{color:var(--bd2)}
+.fp-lnum--vazio{color:var(--bd2)}
 .fp-ltext{flex:1;min-width:0;font-size:12px;font-weight:500;line-height:1.3;color:var(--tx)}
 .fp-meta{display:flex;gap:5px;flex:0 0 auto;max-width:0;overflow:hidden;opacity:0;transition:max-width .28s,opacity .2s}
 .fp-leaf:hover .fp-meta,.fp-leaf.show .fp-meta{max-width:170px;opacity:1}
@@ -517,9 +517,15 @@ html.modo-colab.cp-dark{
 .cp-occ__t{font-size:14.5px;font-weight:600;color:var(--text-body)}
 .cp-occ__s{font-size:12px;color:var(--text-muted);margin-top:2px}
 .cp-occ__st{flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:700}
-.cp-occ__st--ok{background:var(--success-bg);color:#1FB558}
-.cp-occ__st--pend{background:rgba(224,163,58,.15);color:#E0A33A}
-.cp-occ__st--lanc{background:rgba(74,168,230,.14);color:#6FB6E8}
+/* Cores dos selos com contraste AA nos DOIS temas (auditoria 2026-07-02:
+   o Pendente reprovava nos dois). Claro: tinta escura sobre fundo suave;
+   escuro: tinta clara com fundo mais presente. */
+.cp-occ__st--ok{background:var(--success-bg);color:#157A3F}
+.cp-occ__st--pend{background:rgba(224,163,58,.18);color:#8A5B10}
+.cp-occ__st--lanc{background:rgba(74,168,230,.16);color:#1F6EA8}
+html.modo-colab.cp-dark .cp-occ__st--ok{background:rgba(31,181,88,.16);color:#5FDB92}
+html.modo-colab.cp-dark .cp-occ__st--pend{background:rgba(224,163,58,.20);color:#F2C063}
+html.modo-colab.cp-dark .cp-occ__st--lanc{background:rgba(74,168,230,.18);color:#8FCBF2}
 .cp-occ__st .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .cp-dia{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:10px 13px;margin-bottom:8px}
 .cp-dia__d{flex:none;width:42px;text-align:center;line-height:1}

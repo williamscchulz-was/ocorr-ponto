@@ -918,8 +918,7 @@ function renderColabComunicados() {
   if (todos.length === 0) {
     $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>
       ${discSec}
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("megafone")}</div><p>Nenhum aviso pra você por enquanto. Quando o GP publicar algo do seu setor ou turno, aparece aqui.</p></div>
-      <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.6">diag avisos: ${state._dbgComN ?? "?"} carregados · ${state._dbgComErr ? escapeHtml(String(state._dbgComErr)).slice(0, 100) : "sem erro de query"}</div></div>`;
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("megafone")}</div><p>Nenhum aviso pra você por enquanto. Quando o GP publicar algo do seu setor ou turno, aparece aqui.</p></div></div>`;
     return;
   }
   const filtro = (state.view.avFiltro === "naovistos" || state.view.avFiltro === "naolidos") ? "naovistos" : "todos";
@@ -1379,7 +1378,7 @@ function renderColabFolha() {
   $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
     <div class="pp-ovl">Meus recibos</div>
     <div class="pp-grp">${lista.map(colabReciboRowHtml).join("")}</div>
-    <div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>Só você vê os seus recibos. A assinatura eletrônica chega em breve; enquanto isso, dá pra ler e baixar.</span></div>
+    <div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>Só você vê os seus recibos. Assine com sua senha e localização; o arquivo carimbado fica guardado e não muda mais.</span></div>
   </div>`;
 }
 
@@ -1390,8 +1389,7 @@ function renderColabDocumentos() {
   const emdia = lista.filter((d) => !colabDocPendente(d));
   if (lista.length === 0) {
     $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("file")}</div><p>Nenhum documento pra você por enquanto. Quando o GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p></div>
-      <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:12px;opacity:.6">diag docs: ${state._dbgDocN ?? "?"} carregados · ${state._dbgDocErr ? escapeHtml(String(state._dbgDocErr)).slice(0, 100) : "sem erro de query"}</div></div>`;
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("file")}</div><p>Nenhum documento pra você por enquanto. Quando o GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.</p></div></div>`;
     return;
   }
   $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>`
@@ -2067,7 +2065,9 @@ function renderPortalRoadmap() {
   const leafHtml = (it, ix) => {
     const side = ix % 2 === 0 ? "r" : "l";
     const num = it.numero != null ? `#${it.numero}` : "—";
-    const numCls = it.numero != null ? "" : " empty";
+    // "fp-lnum--vazio" e não "empty": a classe global .empty é o empty-state de
+    // lista e transformava o numerozinho num caixote de 166px (auditoria 2026-07-02).
+    const numCls = it.numero != null ? "" : " fp-lnum--vazio";
     let ico;
     if (it.status === "concluido") ico = `<span class="fp-lico">${cpIcon("check")}</span>`;
     else if (it.status === "em_andamento") ico = `<span class="fp-lico">${cpIcon("spinner")}</span>`;
@@ -2644,11 +2644,36 @@ function espCartaoHtml(f) {
 }
 
 // Carrega (sob demanda) o espelho do funcionário e re-renderiza só o painel de detalhe.
-function espSelecionar(f) {
+// No celular o detalhe do espelho renderizava FORA da viewport (embaixo da ilha
+// da nav): o toque parecia morto (auditoria 2026-07-02). Vira uma FOLHA por cima
+// da lista, movendo o MESMO nó (listeners preservados) e devolvendo ao fechar.
+function espAbrirSheetMobile() {
+  if (!window.matchMedia("(max-width: 760px)").matches) return;
+  if (document.getElementById("esp-sheet")) return; // já aberta: o conteúdo é o mesmo nó
+  const det = $("#esp-detalhe");
+  if (!det) return;
+  const casa = det.parentElement;
+  const ov = document.createElement("div");
+  ov.id = "esp-sheet";
+  ov.className = "esp-sheet";
+  ov.innerHTML = `<div class="esp-sheet__folha" role="dialog" aria-label="Espelho do funcionário"><button class="esp-sheet__x" aria-label="Fechar">${icon("x")}</button><div class="esp-sheet__corpo"></div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector(".esp-sheet__corpo").appendChild(det);
+  const fechar = () => { casa.appendChild(det); ov.remove(); };
+  ov.addEventListener("click", (e) => { if (e.target === ov) fechar(); });
+  ov.querySelector(".esp-sheet__x").addEventListener("click", fechar);
+}
+
+function espSelecionar(f, viaToque) {
   const det = $("#esp-detalhe");
   if (!f) { if (det) det.innerHTML = ""; return; }
   const cod = f.codigo != null ? String(f.codigo) : "";
-  if (det) det.innerHTML = espCartaoHtml(f);
+  // A folha mobile só abre em seleção INTENCIONAL (toque na lista ou atalho do
+  // perfil/popup BH via _espState.querSheet); a pré-seleção padrão do render
+  // não pode cobrir a lista sozinha (re-verificação 2026-07-03).
+  const querSheet = viaToque || _espState.querSheet;
+  _espState.querSheet = false;
+  if (det) { det.innerHTML = espCartaoHtml(f); if (querSheet) espAbrirSheetMobile(); }
   if (!cod || _espState.cache[cod] || _espState.erro[cod]) return;
   if (!window.carregarEspelhoFuncionario) { _espState.cache[cod] = { dias: [] }; if ($("#esp-detalhe")) $("#esp-detalhe").innerHTML = espCartaoHtml(f); return; }
   if (_espState.loading[cod]) return;
@@ -2713,14 +2738,16 @@ function renderEspelhoPontoGestor() {
   $$("#esp-rows .esp-trow").forEach((btn) => btn.addEventListener("click", () => {
     _espState.sel = btn.dataset.espSel;
     $$("#esp-rows .esp-trow").forEach((b) => b.classList.toggle("on", b === btn));
-    espSelecionar(time.find((x) => x.id === _espState.sel));
+    espSelecionar(time.find((x) => x.id === _espState.sel), true);
   }));
   espSelecionar(sel);
 }
 
 function renderNav() {
   const u = currentUser();
-  const pending = pendingForUser(u).length;
+  // Badge = a MESMA conta da aba Pendentes (manuais + automáticas com o líder);
+  // três números diferentes pra "pendente" na mesma tela minava a confiança.
+  const pending = pendingForUser(u).length + ocaDoEstagio("com_lider").length;
 
   const items = [];
   items.push({ id: "visao-geral", label: "Visão geral", icon: "pulso" });
@@ -3326,8 +3353,10 @@ function renderVisaoGeral() {
   const visible = visibleOcorrencias();
   const pending = visible.filter(isPending);
   const done = visible.filter((o) => !isPending(o));
+  // KPI = a mesma conta da aba Pendentes e do badge da sidebar (uma verdade só);
+  // o estágio "GP confere" tem linha própria no Precisa de você.
   const nComLider = ocaDoEstagio("com_lider").length;
-  const aConferir = pending.length + nComLider + (can("ocorrencias.revisarAuto") ? ocaDoEstagio("rh_confere").length : 0);
+  const aConferir = pending.length + nComLider;
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -3460,7 +3489,7 @@ function renderDashboard() {
         Lançadas <span class="tab__count">${lancadas.length}</span>
       </button>
       <button class="tab ${state.view.filterTab === "todas" ? "active" : ""}" data-tab="todas">
-        Todas <span class="tab__count">${visible.length + nComLider + nConfAuto}</span>
+        Todas <span class="tab__count">${visible.length + nComLider + nConfAuto + nRhConfere + nDispensadas}</span>
       </button>
       ${podeRh && nDispensadas ? `<button class="tab ${state.view.filterTab === "dispensadas" ? "active" : ""}" data-tab="dispensadas">
         Dispensadas <span class="tab__count">${nDispensadas}</span>
@@ -3501,6 +3530,8 @@ function renderDashboard() {
   const moverInk = () => {
     const at = $("#tabs .tab.active");
     if (_ink && at) { _ink.style.left = at.offsetLeft + "px"; _ink.style.width = at.offsetWidth + "px"; }
+    // Mobile: as abas rolam numa linha só; a ativa se traz pra vista.
+    if (at && window.innerWidth <= 900) at.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   };
   requestAnimationFrame(moverInk);
   $$("#tabs .tab").forEach((t) => {
@@ -3567,7 +3598,16 @@ function renderOccList() {
   else if (tab === "pendentes") { list = list.filter(isPending); autoList = ocaDoEstagio("com_lider", true); }
   else if (tab === "conferidas") { list = list.filter(isConferida); autoList = ocaDoEstagio("confirmada", true); }
   else if (tab === "lancadas") list = list.filter(isLancada);
-  else if (tab === "todas") autoList = [...ocaDoEstagio("com_lider", true), ...ocaDoEstagio("confirmada", true)];
+  else if (tab === "todas") {
+    // TODAS é todas mesmo (auditoria): os 4 estágios das automáticas pra quem os vê.
+    const podeRhTab = can("ocorrencias.revisarAuto");
+    autoList = [
+      ...(podeRhTab ? ocaDoEstagio("rh_confere", true) : []),
+      ...ocaDoEstagio("com_lider", true),
+      ...ocaDoEstagio("confirmada", true),
+      ...(podeRhTab ? ocaDoEstagio("dispensada", true) : []),
+    ];
+  }
 
   if (turno) {
     list = list.filter((o) => {
@@ -3639,7 +3679,13 @@ function renderOccList() {
     return;
   }
 
-  root.innerHTML = `<div class="list">${autoList.map(ocaDashCardHtml).join("")}${list.map(renderOccCard).join("")}</div>`;
+  // Fluxo ÚNICO em ordem cronológica (auditoria 2026-07-02): automáticas e manuais
+  // intercaladas por data, recentes primeiro, em vez de dois blocos concatenados.
+  const fluxo = [
+    ...autoList.map((o) => ({ d: String(o.dataIso || ""), html: ocaDashCardHtml(o) })),
+    ...list.map((o) => ({ d: String(o.data || ""), html: renderOccCard(o) })),
+  ].sort((a, b) => b.d.localeCompare(a.d));
+  root.innerHTML = `<div class="list">${fluxo.map((x) => x.html).join("")}</div>`;
   // Cards manuais abrem detalhe aqui; os automáticos (data-oca-card) abrem o
   // detalhe próprio pelo handler delegado global (openDetalheAutoModal).
   $$("#occ-list .occ:not([data-oca-card])").forEach((el) => {
@@ -3683,8 +3729,8 @@ function renderOccCard(o) {
           <span>${f?.setor || "—"} · ${TURNOS[f?.turno]?.label || "—"}</span>
         </div>
       </div>
-      <div class="occ__time">${o.horario || "—"}</div>
-      <div>
+      ${o.horario ? `<div class="occ__time">${escapeHtml(o.horario)}</div>` : `<div class="occ__time occ__time--nulo">sem batida</div>`}
+      <div class="occ__status">
         ${pending
           ? `<span class="badge badge--warning"><span class="dot"></span>Pendente</span>`
           : isLancada(o)
@@ -7622,11 +7668,13 @@ if (!window._rcbBound) {
 // Lê a coleção SEPARADA `ocorrencias-auto` (pipeline da apuração do ponto WK). É ADITIVO:
 // não toca no fluxo manual de ocorrências. Gated por cap ocorrencias.revisarAuto (admin/RH).
 // O conteúdo é escrito só pelo servidor; aqui o RH apenas confere (status -> conferida + trilha).
+// Rótulos e cores IGUAIS aos tipos manuais (data.js): o mesmo conceito não pode
+// mudar de grafia nem de cor conforme a origem do registro (auditoria 2026-07-02).
 const OCA_TIPOS = {
   "Atrasos": { label: "Atraso", tone: "warning" },
-  "Faltas Injustificadas": { label: "Falta injustificada", tone: "danger" },
-  "Saída Antecipada": { label: "Saída antecipada", tone: "warning" },
-  "Saída Intermediária": { label: "Saída intermediária", tone: "warning" },
+  "Faltas Injustificadas": { label: "Falta Injustificada", tone: "danger" },
+  "Saída Antecipada": { label: "Saída Antecipada", tone: "warning" },
+  "Saída Intermediária": { label: "Saída Intermediária", tone: "info" },
 };
 const OCA_MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 function ocaTipo(t) { return OCA_TIPOS[t] || { label: t || "—", tone: "neutral" }; }
@@ -7699,7 +7747,10 @@ function ocaDashCardHtml(o) {
   const demit = ocaDemitido(o);
   const setorTurno = ocaSetorTurno(o);
   const sub = demit ? `${setorTurno} · ${ocaFaltasMes(o)} faltas no mês` : setorTurno;
-  const hora = o.horario || (ocaFmtMarc(o.marcacoesPrevistas).split(/\s+/)[0] || "");
+  // Horário da linha: batida REAL primeiro; sem batida, o previsto vai ROTULADO
+  // (antes a falta do Jair mostrava "22:00" em destaque como se ele tivesse batido).
+  const batida1 = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean)[0] || "";
+  const prev1 = o.horario || String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean)[0] || "";
   let acoes = "";
   if (est === "rh_confere") {
     acoes = `<div class="rhacts">
@@ -7720,7 +7771,7 @@ function ocaDashCardHtml(o) {
     acoes = `<div class="rhacts oca-confdone"><span class="badge badge--neutral"><span class="dot"></span>Dispensada</span>${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}</span>` : ""}</div>`;
   }
   return `
-    <article class="occ occ--rh${est === "rh_confere" ? " occ--pendente" : ""}${demit ? " occ--resc" : ""}" data-oca-card="1" data-oca-id="${escapeHtml(o.id)}">
+    <article class="occ occ--rh${est === "rh_confere" ? " occ--pendente" : ""}${demit ? " occ--resc" : ""}" data-oca-card="1" data-oca-id="${escapeHtml(o.id)}" role="button" tabindex="0" aria-label="Ocorrência de ${escapeHtml(o.nome || "")}, ${escapeHtml(t.label)}, abrir detalhe">
       <div class="occ__date"><strong>${escapeHtml(dia)}</strong><span>${mes}</span></div>
       <div class="occ__main">
         <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
@@ -7731,7 +7782,7 @@ function ocaDashCardHtml(o) {
           <span>${escapeHtml(sub)}</span>
         </div>
       </div>
-      ${hora ? `<div class="occ__time">${escapeHtml(hora)}</div>` : ""}
+      ${batida1 ? `<div class="occ__time">${escapeHtml(batida1)}</div>` : prev1 ? `<div class="occ__time occ__time--prev">prev. ${escapeHtml(prev1)}</div>` : `<div class="occ__time occ__time--nulo">sem batida</div>`}
       ${acoes}
     </article>`;
 }
@@ -8317,9 +8368,9 @@ function renderBancoHoras() {
     </div>
 
     ${comSaldo === 0 && (u.role === "admin" || u.role === "rh") ? `
-    <div style="margin:0 0 14px;padding:10px 14px;border:1px dashed var(--border);border-radius:10px;font-size:12.5px;color:var(--muted);line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span><strong style="color:var(--text);font-weight:600;">diag BH</strong> · doc existe: ${state._dbgBhExists === true ? "sim" : state._dbgBhExists === false ? "nao" : "?"} · carregados: ${state._dbgBhN ?? 0} · erro: ${state._dbgBhErr ? escapeHtml(String(state._dbgBhErr)) : "nenhum"}</span>
-      <button id="bh-diag-retry" class="btn btn--ghost" style="padding:3px 12px;font-size:12px;">Tentar de novo</button>
+    <div style="margin:0 0 14px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text-muted);line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span>Nenhum saldo importado ainda. Os saldos chegam com a próxima sincronização do GP${state._dbgBhErr ? ", e a última leitura falhou" : ""}.</span>
+      <button id="bh-diag-retry" class="btn btn--ghost" style="padding:3px 12px;font-size:12px;">Recarregar</button>
     </div>` : ""}
 
     <div class="toolbar">
@@ -8441,6 +8492,7 @@ async function openEspelhoPopupBH(funcionarioId) {
     document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
     $("#bhpop-abrir")?.addEventListener("click", () => {
       _espState.sel = f.id;
+      _espState.querSheet = true; // veio de escolha explícita: no mobile abre a folha
       state.view.page = "espelho-ponto";
       closeModal();
       renderApp();
@@ -12575,7 +12627,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.25.0";
+window.CURRENT_VERSION = "1.26.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -2,7 +2,8 @@
   "hosting": [
     {
       "target": "weave",
-      "public": "public",
+      "public": "dist",
+      "predeploy": ["node scripts/build-dist.mjs"],
       "ignore": [
         "firebase.config.example.js",
         "funcionarios.json",

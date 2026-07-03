@@ -14,7 +14,15 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.25.0", d: "3 jul 2026", current: true, aud: "gestor", items: [
+    v: "1.26.0", d: "3 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Grande polimento da auditoria: números de pendências iguais em toda parte, aba Todas completa e em ordem cronológica, lista de ocorrências com colunas alinhadas, tipos com a mesma grafia e cor em qualquer origem, e o saldo negativo do modal agora é vermelho de verdade." },
+      { type: "feat", aud: "gestor", title: "No celular: abas numa linha só rolável (o sublinhado agora fica na aba certa), cards re-organizados sem esconder o horário, nomes não são mais cortados na lista de Funcionários, nada fica escondido atrás dos botões flutuantes, e o espelho do funcionário abre numa folha por cima da lista." },
+      { type: "feat", title: "Textos internos de diagnóstico sumiram das telas, selos com melhor leitura nos dois temas, navegação por teclado alcança as ocorrências automáticas e o foco não deforma mais os cantos dos campos." },
+      { type: "note", title: "O app ficou mais leve de carregar: os arquivos agora vão minificados pro ar." },
+    ],
+  },
+  {
+    v: "1.25.0", d: "3 jul 2026", aud: "gestor", items: [
       { type: "high", title: "Nasceu a Visão geral: o novo início do portal, com o pulso da empresa num olhar. Cartão Precisa de você com as pendências acionáveis, gráfico de ocorrências por mês, aniversariantes, admissões recentes, demografia, ranking e atividade recente." },
       { type: "feat", title: "A página de Ocorrências ficou só com o trabalho: abas de conferência, busca e lista. Cada cartão da Visão geral respeita a sua permissão e mostra os números do seu recorte (líder vê o turno dele)." },
     ],
