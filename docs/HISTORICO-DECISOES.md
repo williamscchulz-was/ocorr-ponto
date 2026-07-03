@@ -1205,3 +1205,16 @@ Lição: ao decidir "esconder X", pensar em TODAS as telas que consomem o mesmo 
 William apontou que esconder D-1 não fazia sentido, só o dia corrente. Reconferido com a evidência do próprio dia (02/07 assentou entre manhã e tarde do MESMO dia) — o buffer de 2 dias emprestado do detector de ocorrências (999) era conservador demais pra esse caso de uso específico. Ajustado `process-espelho-ponto.mjs` pra `maduro:false` só no dia corrente. Já rodado e resubido.
 
 Caso do saldo zero da Lucivane (01/07, ~2h44 de excesso trabalhado, saldo fechou 00:00) permanece sem explicação — descartado bug de exibição (app só renderiza o campo puro) e bug de parser (confirmado no CSV bruto do WK nos dois relatórios). Mandada mensagem pro PC pedindo ajuda, mas ambos concordamos que provavelmente só resolve com alguém checando a política de Banco de Horas direto na tela do WK Radar — nenhum dos dois Claudes tem acesso à UI do sistema, só aos exports.
+
+
+---
+
+## 2026-07-03 · CAUSA RAIZ ACHADA: Banco de Horas Mensal reseta na virada do mês (explica todo o "saldo errado")
+
+Depois de várias idas e voltas sobre o saldo "errado" da Lucivane e o pressentimento do William de que "junho tava tudo certo" — investigação sistemática confirmou: o WK tem o "Banco Horas Mensal - Geral" configurado como tipo "Mês" (campo `Tipo Per. B.H.` no export), e esse contador **reseta pra 00:00 na virada de cada mês**, pra maioria dos funcionários.
+
+**Prova concreta**: Paulo Cesar Coelho Santos (1221) fechou junho com -12:33 acumulado (visível subindo/descendo a coluna saldo do Espelho o mês inteiro) e virou 00:00 em 01/07 — delta exato de +12:33 (753min), batendo com o "salto gigante" achado na auditoria. Confirmado em 88 pessoas: 55 resetam assim, 33 não resetam (carregam saldo normal) — segunda coisa a esclarecer, pode ser diferença de tipo de contrato/política ou inconsistência real.
+
+Isso explica RETROATIVAMENTE por que junho pareceu consistente (nenhuma virada de mês dentro do período) e julho pareceu bagunçado (toda comparação dia-a-dia cruzando 30/06→01/07 pega o reset, não o trabalho real daquele dia) — inclusive o caso original da Lucivane (fechou junho em -00:13, resetou pra 00:00 em 01/07, por isso as 2h44 de hora extra que ela trabalhou naquele dia não aparecem refletidas ali).
+
+**Não é bug do pipeline** — é comportamento real e consistente do "Banco Horas Mensal" do próprio WK, fielmente refletido pelos meus scripts. **Pergunta de negócio em aberto, não técnica**: reset mensal é a política pretendida da empresa (banco "use ou perca" mensal) ou é configuração errada no WK (deveria ser corrido/perpétuo)? E por que 33 de 88 não resetaram — outro tipo de banco, ou inconsistência? Só William/RH/quem configura o WK pode responder — não é algo que dá pra decidir ou corrigir a partir dos exports.
