@@ -443,6 +443,12 @@ service cloud.firestore {
     // criadoEm/criadoPor/escopo imutáveis. Em doc publicado+exigeAssinatura, segmento/anexo
     // imutáveis por update direto (CORREÇÃO 4): a ÚNICA forma de trocar anexo é novaVersao
     // (versao incrementa em 1). Subcoleções amarradas ao pai; versaoAssinada == versao atual.
+    //
+    // NÍVEL DE CONFIRMAÇÃO (ADITIVO): campo `confirmacao` em ['nenhuma','aceite','assinatura'].
+    // O legado (exigeAssinatura, sem confirmacao) segue valendo: nível efetivo derivado só
+    // pela UI/backend; a rule apenas RESTRINGE o valor de confirmacao quando presente e trava
+    // que o colaborador o altere (não pode escrever no doc pai de qualquer forma). Só quem já
+    // pode criar/editar documentos grava confirmacao (mesma condição gated do match).
     match /documentos/{id} {
       allow read: if isAdmin() || temCap('documentos.gerenciar', isRH())
         || (isColaborador() && resource.data.status == 'publicado' && (
@@ -453,6 +459,8 @@ service cloud.firestore {
       allow create: if (isAdmin() || temCap('documentos.gerenciar', isRH()))
         && request.resource.data.criadoPor == request.auth.uid
         && request.resource.data.criadoEm == request.time
+        && (!('confirmacao' in request.resource.data)
+            || request.resource.data.confirmacao in ['nenhuma', 'aceite', 'assinatura'])
         && (
           (request.resource.data.escopo == 'institucional'
             && !('funcionarioId' in request.resource.data))
@@ -464,6 +472,8 @@ service cloud.firestore {
         && request.resource.data.criadoEm == resource.data.criadoEm
         && request.resource.data.criadoPor == resource.data.criadoPor
         && request.resource.data.escopo == resource.data.escopo
+        && (!('confirmacao' in request.resource.data)
+            || request.resource.data.confirmacao in ['nenhuma', 'aceite', 'assinatura'])
         && (
           // só trava quando já publicado E exige assinatura; senão update livre (gated)
           !(resource.data.status == 'publicado' && resource.data.exigeAssinatura == true)
@@ -479,18 +489,52 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
 
-      // assinaturas/{uid}: aceite N1 create-only. versaoAssinada DEVE == versao atual
-      // do doc pai (CORREÇÃO 7); amarrada ao segmento/dono do pai (CORREÇÃO 6).
+      // aceites/{uid}: NÍVEL 'aceite' — o "Li e aceito" simples (sem senha/local/carimbo).
+      // Create-only pelo colaborador DONO (uid == auth.uid). Payload mínimo e fechado;
+      // em == hora do servidor; amarrado ao segmento/dono do pai. Append-only (imutável).
+      // Separado de 'assinaturas' de propósito: aqui NÃO há geo nem hash de arquivo.
+      match /aceites/{uid} {
+        allow read: if isAdmin() || temCap('documentos.gerenciar', isRH())
+                    || (isAuthed() && request.auth.uid == uid);
+        allow create: if isAuthed()
+                    && request.auth.uid == uid
+                    && request.resource.data.uid == uid
+                    && request.resource.data.keys().hasOnly(['uid', 'em', 'userAgent', 'versao'])
+                    && request.resource.data.em == request.time
+                    && (isAdmin() || temCap('documentos.gerenciar', isRH())
+                        || podeVerDoc(get(/databases/$(database)/documents/documentos/$(id)).data));
+        allow update, delete: if false;
+      }
+
+      // assinaturas/{uid}: create-only pelo DONO, versaoAssinada == versao atual do pai
+      // (CORREÇÃO 7); amarrada ao segmento/dono do pai (CORREÇÃO 6). DUAS formas aceitas
+      // (aditivo, retrocompatível):
+      //  (a) LEGADO N1: uid/funcionarioId/versaoAssinada/hashSha256/aceiteTexto/em/userAgent
+      //      — o "Li e aceito" com hash do anexo, SEM geo (fluxo já no ar).
+      //  (b) NÍVEL 'assinatura' CARIMBADO (espelha recibos): + geo.lat/lng number e
+      //      arquivoPath — senha+localização+carimbo no arquivo. em == hora do servidor.
+      // Em ambas: em == request.time, versaoAssinada number == versao do pai. Append-only.
       match /assinaturas/{uid} {
         allow read: if isAdmin() || temCap('documentos.gerenciar', isRH())
                     || (isAuthed() && request.auth.uid == uid);
         allow create: if isAuthed()
                     && request.auth.uid == uid
                     && request.resource.data.uid == uid
-                    && request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'versaoAssinada', 'hashSha256', 'aceiteTexto', 'em', 'userAgent'])
+                    && request.resource.data.em == request.time
                     && request.resource.data.versaoAssinada is number
                     && request.resource.data.versaoAssinada
                          == get(/databases/$(database)/documents/documentos/$(id)).data.versao
+                    && (
+                      // (a) legado N1 (sem geo)
+                      request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'versaoAssinada', 'hashSha256', 'aceiteTexto', 'em', 'userAgent'])
+                      // (b) carimbo com geo (espelha recibos)
+                      || (
+                        request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'versaoAssinada', 'hashSha256', 'aceiteTexto', 'em', 'userAgent', 'geo', 'arquivoPath'])
+                        && request.resource.data.geo.lat is number
+                        && request.resource.data.geo.lng is number
+                        && request.resource.data.arquivoPath is string
+                      )
+                    )
                     && (isAdmin() || temCap('documentos.gerenciar', isRH())
                         || podeVerDoc(get(/databases/$(database)/documents/documentos/$(id)).data));
         allow update, delete: if false;
