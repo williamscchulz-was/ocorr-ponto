@@ -1174,3 +1174,14 @@ Sobre o "dia de hoje" (03/07) não aparecer: confirmado que **não é bug** — 
 William apontou que 02/07 (ontem) da Lucivane ainda mostrava só 1 marcação — certo dele, já devia ter assentado. Reexportei o Espelho fresco: 02/07 realmente já tinha as 4 marcações completas (situação virou "Trabalhando"), e agora é o 03/07 (hoje) que está com só 1 — o mesmo padrão de atraso de fechamento do WK andou um dia pra frente, confirmando de novo (3ª vez nesta sessão: Faltas falsas, detector 999, agora isso) que não existe bug de dado aqui, é característica do WK mesmo. Reprocessado e resubido pro Firestore com o dado fresco.
 
 No caminho, achei e corrigi um gap real: `export-espelho.mjs` era o único dos 3 scripts que reescrevem config do WK ainda usando `fs.renameSync` puro (sem o `wk-lock-recovery.mjs` que os outros 2 já tinham desde 2026-07-01/02) — travou 2x hoje no mesmo `Config_Relatorio_de_Apurações4.txt`, preso por um `Ponto.exe` órfão. Corrigido pra usar o mesmo mecanismo dos outros.
+
+
+---
+
+## 2026-07-03 · "Meu ponto" agora esconde dia não maduro (William: "isso não pode acontecer")
+
+Depois de confirmar (de novo) que o dia incompleto era só o WK ainda processando, o William foi direto ao ponto: mostrar pro colaborador um dia que parece errado mas na verdade só não fechou ainda **não pode acontecer**, mesmo sendo "esperado" do lado do WK. Perguntei o formato (esconder vs. mostrar com aviso "em apuração") — ele escolheu esconder.
+
+Implementado em `process-espelho-ponto.mjs`: dia com menos de 2 dias (mesmo buffer já validado nesta sessão pras Faltas falsas e pro detector 999) não entra no array `dias` do `banco-horas-self`. Roda com `dataIso <= hoje-2dias`. É janela ROLANTE — o dia aparece sozinho assim que completa 2 dias na próxima rodada, não precisa de nenhuma ação manual. NÃO filtra por situação: um caso genuíno de marcação faltando (tipo Charles 1204) continua aparecendo depois de maduro — a intenção é esconder só enquanto o dado ainda PODE mudar sozinho, não esconder informação real.
+
+Rodado e resubido pro Firestore — Lucivane agora mostra até 01/07 (2 dias atrás), 02/07 e 03/07 saem da lista até maturarem.
