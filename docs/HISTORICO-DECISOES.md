@@ -1091,3 +1091,58 @@ William reparou (comparando o relatório bruto do WK com a tela de Ocorrências)
 2. **Horário do Task Scheduler mudado de 08h/10h/14h para 09h/11h/14h** — dá uma hora a mais de folga antes da primeira rodada do dia, tempo suficiente pro WK terminar de fechar o dia anterior (confirmado empiricamente: dados já estavam certos por volta das 08h50).
 
 Nada mudou do lado do PC — é ajuste puro de agendamento + limpeza de dado no pipeline.
+
+
+---
+
+## 2026-07-03 · Detector de "marcação não identificada" (código WK 999) — novo tipo de ocorrência automática
+
+Investigação do caso do Charles Andre Marowski (f-1204, "não registrou saída" sumida da tela) levou a descobrir que o Espelho de Ponto do WK tem uma situação interna própria, código 999 "Marcações Não Identificadas" (confirmada na tela "Relação de Situações" do próprio WK), pra dias com marcação incompleta/ambígua.
+
+**Testado empiricamente antes de implementar** (pedido do William): comparar previstas x apuradas em toda linha do Espelho, sem olhar o código 999, deu 237 "casos" — ruído demais (turno com hora-extra, escalas com menos marcações por natureza). Filtrando por situação==999 + maturidade de >=2 dias (o Espelho assenta mais devagar que a Relação de Ocorrências — mesma causa raiz do incidente das 26 Faltas falsas), 40 casos brutos viraram 3 candidatos limpos: Edmar Leite da Silva (753) e Charles (1204) faltando a saída, Jhenyffer Caroline Silva Pereira (1151, 3º turno) faltando a entrada.
+
+Turno noturno inicialmente foi excluído por precaução (medo do WK quebrar a virada de meia-noite em 2 linhas de data) — conferido nos dados crus de 3 funcionários do 3º turno num mês inteiro e não é isso: o turno inteiro sempre cai numa linha só, na data de início. Exclusão removida.
+
+**Revisão adversarial (workflow, 3 ângulos + verificação)** antes de ligar no pipeline pegou 4 problemas reais, todos corrigidos:
+1. Matching guloso de previstas x apuradas podia errar a posição quando 2 horários previstos ficam próximos — trocado por tentativa posicional (testa cada posição como candidata a ausente, exige bater todo o resto dentro da janela; ambíguo se mais de 1 posição bate).
+2. dedupId sem prefixo de fonte — hoje não colide por acaso (rótulos diferentes das 4 situações oficiais), mas sem garantia estrutural. Adicionado prefixo `esp_` só na fonte nova (a antiga já tem docs reais, não mexe no formato dela).
+3. Filtro "Geral e líderes de turno: só Falta gera, resto vira BH" não estava replicado no detector novo — adicionado.
+4. Ocorrência gerada por essa fonte não tinha nenhum campo estruturado sinalizando "isso é heurística, não fato oficial do WK" — adicionado `fonteInferida: true` no Firestore (era só texto livre no histórico antes).
+
+A revisão também teve uma inconsistência interna curiosa: 2 achados sobre o campo "setor" se contradisseram entre si (um dizia que o código novo usava a chave errada, outro dizia o oposto) — resolvido conferindo o schema real do `parsed-empregado.json` (o campo é `departamento`, meu código já estava certo; o achado que dizia "usa a chave errada" tinha até concluído "está FALSO" no texto mas ficou marcado como confirmado por engano no campo estruturado).
+
+**Já está ligado no pipeline em produção** (só editei `process-ocorrencias-rh.py` e `upload-ocorrencias-auto.mjs`, ambos já rodam via `run-pipeline.mjs` nos passos [OCR-parse]/[OCR-upload] — sem passo novo pra ligar).
+
+## 2026-07-03 · Investigação do caso Charles: users/{uid} sem funcionarioTurno
+
+PC confirmou e corrigiu (v269) a causa raiz da ocorrência manual do Charles que sumiu: regra do Firestore exige `funcionarioTurno in [1,2,3,'geral']`, e o form deixava selecionar funcionário sem turno definido. Ao investigar de onde vinha o "sem turno", conferi as 2 fontes que controlo: WK Radar e `funcionarios/f-1204` (Firestore) — as duas SEMPRE tiveram turno=1 certo. Achei o gap real: `users/{uid}` (doc de auth/login) não tem o campo `funcionarioTurno` — só `funcionarioId`/`role`/`nome`/`ativo`. Nunca escrevi esse campo lá (só denormalizei `funcionarioTurno` em `banco-horas-self`, pedido de 01/07). Reportado ao PC pra confirmar se é essa a coleção que o form/rule consulta — se for, é fácil eu adicionar (mesmo padrão do funcionarioId/custom claims).
+
+
+---
+
+## 2026-07-03 · Lote completo de avatares (opção B) rodado — 62 tratados, 0 erros
+
+Smoke test de 5 fotos aprovado pelo William direto no app ("está aprovado, gostei muito
+do resultado", relatado pelo PC) e reconfirmado direto no chat comigo. Rodado o lote
+completo: 80 imagens na pasta do Drive -> 62 tratadas (rosto detectado + fundo removido
++ composto na bandeira da marca), 0 degradadas, 7 sem rosto detectável (mantidas como
+estavam), 4 puladas (já tratada/removida/escolha do colaborador), 3 sem login ainda,
+0 erros. Fotos finais ~4-11KB cada. Relatório completo mandado pro PC
+(claude-bridge/inbox-pc/2026-07-03-avatar-lote-completo.md). Script
+sync-fotos-drive-tratamento.mjs continua fora do run-pipeline.mjs por ora (roda sob
+demanda) — vira rotina agendada só se pedido.
+
+
+---
+
+## 2026-07-03 · Avatar: fallback de 2 estágios na detecção de rosto — recupera 6 de 7 "sem-rosto"
+
+William reportou 2 pessoas do lote de 73 avatares (Anderson Dobuchak/612, Moises Silva de Carvalho/1215) com foto "errada" no app — investigado e confirmado visualmente que ambos têm fotos originais claras, rosto bem visível a olho humano, mas o detector (face-api SsdMobilenetv1) não achou o rosto.
+
+**Causa raiz** (achada testando várias escalas de redimensionamento): o `minConfidence` default do modelo é 0.5, e as 7 pessoas "sem-rosto" do lote tinham sinal real mas abaixo desse limiar em certas escalas — não é ausência de rosto, é threshold cortando detecção marginal.
+
+**Consultado o conselheiro (Fable)** antes de implementar — vetou a ideia inicial (tentar 7 escalas cegamente) e desenhou um fallback de 2 estágios mais preciso: estágio 1 intocado (resolução original, threshold 0.5); estágio 2 só se o 1º falhar — 3 escalas (1600/800/480px), threshold 0.35, escolhe o maior score, com filtro de sanidade de proporção e reprovação automática se a detecção de baixa confiança não passar no crivo do `confiancaMatte()` (some pra "sem-rosto" em vez de gravar algo arriscado). Também recomendou uma válvula de escape manual (`overrides-rosto.json`) pros casos que nenhum algoritmo pega.
+
+**Implementado por um agente Opus, verificado por um agente Sonnet** (diff conferido campo a campo + dry-run real nos 7 casos + inspeção visual das boxes detectadas). Rodado de verdade nos 7 códigos: **6 recuperados** (601, 1215, 1218, 1039, 476, 612 — mais que os 3 previstos no diagnóstico inicial, sem nenhum falso positivo), só Paula Cristina dos Santos (1048) continua sem rosto detectável em nenhuma escala — fica pendente de override manual se quiserem tratar ela também.
+
+Registrado em memória (`feedback_orquestracao_agentes.md`) os princípios de orquestração que o William formalizou nesta sessão: modelo caro só decide (nunca mecânico), lentes estreitas por agente, agente propõe/humano decide, registrar acerto validado (não só erro), ceticismo com arquitetura badalada importada sem necessidade real.
