@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.34.0", d: "5 jul 2026", current: true, items: [
+    v: "1.35.0", d: "5 jul 2026", current: true, items: [
+      { type: "fix", title: "O login ficou bem mais rápido e mostra um indicador girando enquanto entra, em vez de parecer travado. E abrir um documento não pisca mais na tela: aparece um carregando e o arquivo entra suave." },
+    ],
+  },
+  {
+    v: "1.34.0", d: "5 jul 2026", items: [
       { type: "feat", title: "O documento que você assina agora vira um PDF único: o conteúdo assinado mais uma página de autenticação no fim, com seu nome, data, local e o código de integridade. As páginas ficam numeradas, mais fácil de guardar e mais forte como prova." },
       { type: "feat", aud: "gestor", title: "O documento assinado passou a ser um arquivo só, no padrão dos serviços de assinatura eletrônica: conteúdo original mais página de autenticação com a trilha, numeração de páginas e o original embutido pra conferência de integridade." },
     ],

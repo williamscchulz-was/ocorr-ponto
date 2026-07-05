@@ -10,8 +10,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=277" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=277" />
+  <link rel="stylesheet" href="styles.css?v=278" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=278" />
   <!-- Decide ANTES de renderizar, sincrono, o MODO do splash. Cadencia: a
        animacao do fio escrevendo o nome roda UMA VEZ POR DIA. Nos demais boots
        do dia mostra so o estado formado (cobre restauracao de sessao) ou abre
@@ -596,16 +596,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=277"></script>
-  <script defer src="data.js?v=277"></script>
+  <script defer src="utils.js?v=278"></script>
+  <script defer src="data.js?v=278"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=277"></script>
+  <script defer src="app.js?v=278"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=277"></script>
-  <script defer src="google-drive.js?v=277"></script>
+  <script defer src="firebase.js?v=278"></script>
+  <script defer src="google-drive.js?v=278"></script>
 </body>
 </html>

@@ -1591,7 +1591,8 @@ textarea:focus-visible,
 /* Visualizador in-app de documento (imagem/PDF base64 do anexo). Overlay próprio,
    full-screen, empilha por cima de um modal aberto. Serve gestor (claro) e colab
    (escuro) via tokens; a área de leitura é sempre escura, como um leitor de PDF. */
-.modal-backdrop--docview { z-index: 9985; padding: 0; display: block; background: rgba(0, 0, 0, .74); }
+@keyframes docviewIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-backdrop--docview { z-index: 9985; padding: 0; display: block; background: rgba(0, 0, 0, .74); animation: docviewIn .16s ease both; }
 .cp-docview {
   display: flex; flex-direction: column;
   width: 100%; height: 100%;

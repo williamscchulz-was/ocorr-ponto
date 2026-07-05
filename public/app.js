@@ -5939,8 +5939,11 @@ async function renderPdfPaginasViewer(dataUrl, cont) {
     const buf = await dataUrlParaBlob(dataUrl).arrayBuffer();
     const pdf = await corre(pdfjs.getDocument({ data: buf }).promise, 15000);
     if (!document.contains(cont)) { try { pdf.destroy?.(); } catch (e) {} return; }
-    cont.innerHTML = "";
     const largBase = Math.min(860, cont.clientWidth || 800);
+    // Anti-flicker: NÃO esvazia a nota "Abrindo..." antes da hora. Desenha cada página
+    // num canvas destacado e só troca a nota pelo conteúdo quando a 1ª já está PRONTA
+    // (numa tacada), sem passar pelo vazio-escuro que fazia a tela "piscar".
+    let trocado = false;
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await corre(pdf.getPage(i), 10000);
       if (!document.contains(cont)) break; // viewer fechou no meio
@@ -5949,10 +5952,12 @@ async function renderPdfPaginasViewer(dataUrl, cont) {
       const cv = document.createElement("canvas");
       cv.className = "cp-docpage-cv";
       cv.width = vp.width; cv.height = vp.height;
-      cont.appendChild(cv);
       await corre(page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise, 12000);
+      if (!document.contains(cont)) break;
+      if (!trocado) { cont.innerHTML = ""; trocado = true; }
+      cont.appendChild(cv);
     }
-    if (pdf.numPages > 1 && document.contains(cont)) {
+    if (pdf.numPages > 1 && document.contains(cont) && trocado) {
       const n = document.createElement("div");
       n.className = "cp-docpages__n";
       n.textContent = `${pdf.numPages} páginas`;
@@ -5994,7 +5999,7 @@ function openDocViewer(d) {
     // de PDF embutido, e a barra/painel nativos que o William pediu pra sumir.
     corpo = `<div class="cp-docview__body cp-docview__body--pdf">
         <div class="cp-docpages" data-docpages>
-          <div class="cp-docview__note">${ic("info")}<span>Abrindo o documento...</span></div>
+          <div class="cp-docview__note"><svg class="icon spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Abrindo o documento...</span></div>
         </div>
       </div>`;
     abrirBtn = `<button class="btn btn--soft" data-doc-abrir>${ic("file")}<span>Abrir em nova aba</span></button>`;
@@ -7318,7 +7323,11 @@ async function rcbCarimbarPdf(dataUrlOriginal, dados) {
   const fN = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
   const fB = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
   const rgb = PDFLib.rgb;
+  if (doc.getPageCount() === 0) throw new Error("PDF do recibo sem páginas.");
   const pg = doc.getPage(doc.getPageCount() - 1);
+  // Nome vem do ERP (dado do usuário): sanitiza pro WinAnsi/cursiva, senão um caractere
+  // fora da fonte (emoji/CJK) derruba o drawText. Mesmo endurecimento dos documentos.
+  const nomeSeguro = winAnsiSeguro(dados.nome || "");
   const pgW = pg.getSize().width;
   // Posição por tipo (medida no arquivo REAL do WK): o cartão ponto tem a linha
   // "Assinatura Empregado" CENTRALIZADA (y~53 de 578) => carimbo centrado, base y=44,
@@ -7333,15 +7342,15 @@ async function rcbCarimbarPdf(dataUrlOriginal, dados) {
   const linhas = [
     `Aceito: ${dados.quando}`,
     `ID: ${dados.id}`,
-    `${dados.nome}${dados.codigo ? ` · cód ${dados.codigo}` : ""}`,
+    `${nomeSeguro}${dados.codigo ? ` · cód ${dados.codigo}` : ""}`,
     "Nível de Segurança: credenciais de acesso + geolocalização",
     `Local: ${dados.lat}, ${dados.lng}${dados.acc != null ? ` (precisão ${dados.acc} m)` : ""}`,
   ];
   linhas.forEach((t, i) => pg.drawText(t, { x: bx + 9, y: by + bh - 27 - i * 9.5, size: 6.4, font: fN, color: rgb(0.22, 0.22, 0.22) }));
   pg.drawLine({ start: { x: bx + 9, y: by + 25 }, end: { x: bx + bw - 9, y: by + 25 }, thickness: 0.5, color: rgb(0.55, 0.55, 0.55) });
   let sigSize = 17;
-  while (sigSize > 9 && fCursiva.widthOfTextAtSize(dados.nome, sigSize) > bw - 24) sigSize -= 1;
-  pg.drawText(dados.nome, { x: bx + 12, y: by + 7, size: sigSize, font: fCursiva, color: rgb(0.07, 0.23, 0.42) });
+  while (sigSize > 9 && fCursiva.widthOfTextAtSize(nomeSeguro, sigSize) > bw - 24) sigSize -= 1;
+  pg.drawText(nomeSeguro, { x: bx + 12, y: by + 7, size: sigSize, font: fCursiva, color: rgb(0.07, 0.23, 0.42) });
   const bytes = await doc.save();
   return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
 }
@@ -13595,7 +13604,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.34.0";
+window.CURRENT_VERSION = "1.35.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -13828,7 +13837,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const cpf = $("#colab-cpf").value, senha = $("#colab-senha").value;
     window.__colabSenhaLogin = senha; // guardado pra reautenticar na troca obrigatória
     const orig = btn.innerHTML;
-    btn.disabled = true; btn.textContent = "Entrando...";
+    // Spinner que gira (mesmo do login do gestor): "Entrando..." estático parecia travado.
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="icon spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Entrando...</span>`;
     $("#colab-cpf").disabled = true; $("#colab-senha").disabled = true;
     let ok = false;
     try {

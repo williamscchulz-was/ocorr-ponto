@@ -3113,6 +3113,14 @@
       } else {
         state.funcionarios = [];
       }
+
+      // O resto do boot do colaborador roda em PARALELO. Os blocos são independentes entre
+      // si (só comunicados/documentos dependem do funcionário, já carregado acima). Antes
+      // eram ~7 idas à rede EM SÉRIE, o que fazia o login "parecer travado" no celular. Cada
+      // bloco mantém seu próprio try/catch e fetch-then-swap, então uma falha isolada não
+      // derruba as outras nem o boot.
+      await Promise.all([
+      (async () => {
       // Saldo SELF do banco de horas (sem PII), por código. Coleção banco-horas-self é populada
       // pelo pipeline; a rule SELF é deploy separado (autorizado). Sem rule/dado -> null -> "em breve".
       if (u.codigo) {
@@ -3123,6 +3131,8 @@
       } else {
         state.meuSaldoBH = null;
       }
+      })(),
+      (async () => {
       // Comunicados do SEGMENTO do colaborador. A rule não filtra query: faço uma
       // query por segmento (todos / turno dele / setor dele) — cada uma só retorna
       // o que a rule já permite. turno/setor vêm do funcionário (WKRADAR mantém ==
@@ -3157,7 +3167,8 @@
         }));
         state.comunicadosColab = arr; state._dbgComN = arr.length;
       } catch (e) { debug?.("[colab] comunicados:", e?.message || e); state._dbgComErr = (e && (e.code || e.message)) || String(e); state.comunicadosColab = []; }
-
+      })(),
+      (async () => {
       // Documentos institucionais publicados do segmento. Mesma lógica de query por
       // segmento (a rule não filtra). O ramo 'pessoal' entra quando existir doc pessoal.
       state.documentosColab = [];
@@ -3180,7 +3191,8 @@
         }));
         state.documentosColab = darr; state._dbgDocN = darr.length;
       } catch (e) { debug?.("[colab] documentos:", e?.message || e); state._dbgDocErr = (e && (e.code || e.message)) || String(e); state.documentosColab = []; }
-
+      })(),
+      (async () => {
       // Registro disciplinar do PROPRIO colaborador (advertencia/suspensao). where(funcionarioId==)
       // sem orderBy (sem indice composto); ordena no cliente. Le tambem a propria ciencia.
       state.disciplinaresColab = [];
@@ -3199,7 +3211,8 @@
           state.disciplinaresColab = arr;
         } catch (e) { debug?.("[colab] disciplinares:", e?.message || e); state.disciplinaresColab = []; }
       }
-
+      })(),
+      (async () => {
       // Minhas ocorrências (read-only): a rule deixa o colaborador ler SÓ as próprias
       // (isColaborador && euSouODono(funcionarioId)). Sem PII de terceiros.
       state.ocorrenciasColab = [];
@@ -3209,7 +3222,8 @@
           state.ocorrenciasColab = osnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         } catch (e) { debug?.("[colab] ocorrencias:", e?.message || e); state.ocorrenciasColab = []; }
       }
-
+      })(),
+      (async () => {
       // Meus recibos (folha de pagamento + cartão ponto em arquivo): SÓ metadados leves
       // (o PDF fica na subcoleção arquivo e é buscado ao abrir). where(funcionarioId==) sem
       // orderBy (sem índice composto); ordena por competência no cliente.
@@ -3231,9 +3245,12 @@
           }));
         } catch (e) { debug?.("[colab] recibos:", e?.message || e); state.meusRecibos = []; }
       }
-
+      })(),
+      (async () => {
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
       try { await window.carregarAniversariantes(); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
+      })(),
+      ]);
       return;
     }
 
