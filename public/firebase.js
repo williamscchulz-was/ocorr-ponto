@@ -1400,27 +1400,8 @@
       } catch (e) { toast("Erro: " + e.message, "danger"); }
     };
 
-    // App do colaborador (fase futura): aceite N1 e leitura de documento.
-    window.registrarAssinaturaDocumento = async function (docId, opts = {}) {
-      const uid = auth.currentUser && auth.currentUser.uid;
-      if (!uid) return { ok: false, err: "sem sessao" };
-      const u = currentUser();
-      const d = (state.documentos || []).find((x) => x.id === docId);
-      try {
-        await db.collection("documentos").doc(docId).collection("assinaturas").doc(uid).set({
-          uid,
-          funcionarioId: (u && u.funcionarioId) || null,
-          versaoAssinada: d ? (d.versao || 1) : (opts.versao || 1),
-          hashSha256: (d && d.anexo && d.anexo.hashSha256) || opts.hashSha256 || "",
-          aceiteTexto: opts.aceiteTexto || "Li e estou de acordo",
-          em: firebase.firestore.FieldValue.serverTimestamp(),
-          userAgent: String(navigator.userAgent || "").slice(0, 200),
-        });
-        window.logEvento?.({ tipo: "ciencias", acao: "Assinou documento", alvo: (d?.titulo || docId) + " v" + (d?.versao || opts.versao || 1) });
-        window.registrarAuditoria?.({ tipo: "documento", acao: "Assinou documento (N1)", alvo: (d?.titulo || docId) + " v" + (d?.versao || opts.versao || 1) });
-        return { ok: true };
-      } catch (e) { return { ok: false, err: e.message }; }
-    };
+    // App do colaborador: leitura (ciência) de documento. A assinatura N1 só-senha foi
+    // substituída pela assinatura carimbada (geo+comprovante, assinarDocumentoCarimbado).
     window.registrarLeituraDocumento = async function (docId, opts = {}) {
       const uid = auth.currentUser && auth.currentUser.uid;
       if (!uid) return { ok: false, err: "sem sessao" };
@@ -1435,29 +1416,6 @@
       } catch (e) { return { ok: false, err: e.message }; }
     };
 
-    // App do colaborador: assina documento com RE-AUTENTICAÇÃO no ato (redigita a senha).
-    // Prova que quem sabe a senha está presente agora; só então grava a assinatura N1.
-    window.assinarDocumentoColab = async function (docId, senha) {
-      const user = auth.currentUser;
-      if (!user) return { ok: false, err: "sem sessao" };
-      if (!senha) return { ok: false, err: "senha", msg: "Digite sua senha pra confirmar." };
-      try {
-        const cred = firebase.auth.EmailAuthProvider.credential(user.email, senha);
-        await user.reauthenticateWithCredential(cred);
-      } catch (e) {
-        return { ok: false, err: "senha", msg: "Senha incorreta. Confira e tente de novo." };
-      }
-      const d = (state.documentosColab || []).find((x) => x.id === docId);
-      const r = await window.registrarAssinaturaDocumento(docId, { versao: d ? d.versao : 1, hashSha256: (d && d.anexo && d.anexo.hashSha256) || "" });
-      if (r && r.ok) {
-        if (d) d.minhaAssinatura = { versaoAssinada: d.versao, em: new Date().toISOString() };
-        toast("Documento assinado.");
-        renderApp();
-      } else {
-        toast("Não consegui registrar: " + ((r && r.err) || "?"), "danger");
-      }
-      return r;
-    };
     // Documento de só ciência (sem assinatura): marca como lido.
     window.confirmarLeituraDocumentoColab = async function (docId) {
       const r = await window.registrarLeituraDocumento(docId, { confirmar: true });
@@ -1695,6 +1653,65 @@
       r.minhaAssinatura = { uid: user.uid, em: new Date().toISOString(), arquivoPath, geo };
       window.logEvento?.({ tipo: "recibos", acao: "Assinou", alvo: `${r.tipo} · ${r.competencia}` });
       window.registrarAuditoria?.({ tipo: "recibos", acao: "Assinou recibo (carimbado no arquivo)", alvo: `${r.funcionarioNome || r.funcionarioId} · ${r.tipo} · ${r.competencia}` });
+      return { ok: true, arquivoPath };
+    };
+
+    // Assinatura eletrônica CARIMBADA de DOCUMENTO institucional (nível 'assinatura').
+    // Espelha assinarReciboColab: sobe um COMPROVANTE (PDF novo, gerado no cliente) no
+    // Storage e grava a trilha imutável no Firestore. Identidade já foi reautenticada pelo
+    // caller (reautenticarSenha). O hash é do CONTEÚDO ORIGINAL (anexo ou texto), calculado
+    // no cliente e passado aqui — NUNCA é o hash do comprovante.
+    window.assinarDocumentoCarimbado = async function (docId, geo, comprovanteDataUrl, hashOriginal) {
+      const user = auth.currentUser;
+      if (!user) return { ok: false, msg: "Sessão expirada. Entre de novo." };
+      const u = currentUser();
+      const d = (state.documentosColab || []).find((x) => x.id === docId);
+      if (!d) return { ok: false, msg: "Documento não encontrado." };
+      if (!geo || typeof geo.lat !== "number" || typeof geo.lng !== "number")
+        return { ok: false, msg: "Localização ausente. Tente de novo." };
+      const versaoDoDocumento = Number(d.versao) || 1;
+      // ponytail: a versão vai no NOME do arquivo pra cada versão virar um comprovante
+      // distinto; mas a trilha usa a chave uid create-only (docId/assinaturas/{uid}), então
+      // re-assinar uma NOVA versão hoje é barrado pela rule (o doc do uid já existe). Upgrade
+      // futuro: chave `{uid}_v{n}` + rule aditiva que valide o sufixo == versaoAssinada.
+      const arquivoPath = `documentos-assinados/${u?.funcionarioId || user.uid}/${docId}-v${versaoDoDocumento}.pdf`;
+      const ref = firebase.storage().ref(arquivoPath);
+      const subir = () => ref.putString(comprovanteDataUrl, "data_url", { contentType: "application/pdf" });
+      try {
+        await subir();
+      } catch (e) {
+        // token pode estar sem as claims (sessão anterior ao backfill): renova e re-tenta
+        try { await user.getIdToken(true); await subir(); }
+        catch (e2) {
+          // create-only no Storage: se o comprovante JÁ existe (tentativa anterior que morreu
+          // antes de gravar a trilha), ele serve — segue DIRETO pra trilha. O hash é do
+          // ORIGINAL (não do comprovante), então não há nada a recomputar. Só distinguimos
+          // "já existe" de "falha real" perguntando ao cofre se o objeto está lá.
+          let jaExiste = false;
+          try { await ref.getMetadata(); jaExiste = true; } catch (e3) { /* não existe / sem acesso */ }
+          if (!jaExiste) return { ok: false, msg: "Não consegui guardar o comprovante: " + (e2?.message || e2) };
+          // segue pra trilha
+        }
+      }
+      const aceiteTexto = "Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura.";
+      try {
+        await db.collection("documentos").doc(docId).collection("assinaturas").doc(user.uid).set({
+          uid: user.uid,
+          funcionarioId: (u && u.funcionarioId) || null,
+          versaoAssinada: versaoDoDocumento,
+          hashSha256: hashOriginal || "",
+          aceiteTexto,
+          em: firebase.firestore.FieldValue.serverTimestamp(),
+          userAgent: String(navigator.userAgent || "").slice(0, 200),
+          geo: { lat: geo.lat, lng: geo.lng, acc: (typeof geo.acc === "number" ? Math.round(geo.acc) : null) },
+          arquivoPath,
+        });
+      } catch (e) {
+        return { ok: false, msg: "O comprovante foi guardado, mas o registro da assinatura falhou (" + (e?.message || e) + "). Toque em Assinar de novo que ele completa." };
+      }
+      d.minhaAssinatura = { uid: user.uid, versaoAssinada: versaoDoDocumento, em: new Date().toISOString(), arquivoPath, geo, hashSha256: hashOriginal || "", aceiteTexto };
+      window.logEvento?.({ tipo: "ciencias", acao: "Assinou documento", alvo: (d.titulo || docId) + " v" + versaoDoDocumento });
+      window.registrarAuditoria?.({ tipo: "documento", acao: "Assinou documento (carimbado)", alvo: (d.titulo || docId) + " v" + versaoDoDocumento });
       return { ok: true, arquivoPath };
     };
 

@@ -1334,17 +1334,51 @@ function openAssinarReciboSheet(reciboId) {
   const r = (state.meusRecibos || []).find((x) => x.id === reciboId);
   if (!r) return;
   if (r.minhaAssinatura) return toast("Este documento já está assinado.");
-  _assState = { r, geo: null, passo: "geo", aceite: false, erro: null };
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const nome = (f && f.nome) || currentUser()?.nome || "";
+  const tipoLbl = RCB_TIPOS[r.tipo] || "Documento";
+  const alvo = {
+    titulo: `Assinar o ${tipoLbl.toLowerCase()}`,
+    sub: `${rcbCompetenciaLabel(r.competencia)} · ${nome}`,
+    nome,
+    codigo: (f && f.codigo) || r.codigo || "",
+    // Miolo original de assAssinar: carrega o recibo, carimba o ARQUIVO e grava a trilha.
+    finalizar: async (st) => {
+      updateFormBlocker("Carimbando a assinatura no arquivo...", 1);
+      const original = await window.carregarArquivoRecibo?.(r.id);
+      if (!original) throw new Error("Não consegui abrir o arquivo original.");
+      const quando = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      const idAss = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())).slice(0, 30);
+      const { dataUrl, bytes } = await rcbCarimbarPdf(original, {
+        nome, codigo: (f && f.codigo) || r.codigo || "", quando, id: idAss, tipo: r.tipo,
+        lat: Number(st.geo.lat).toFixed(5), lng: Number(st.geo.lng).toFixed(5),
+        acc: (typeof st.geo.acc === "number" ? Math.round(st.geo.acc) : null),
+      });
+      const hash = await sha256Hex(bytes);
+      updateFormBlocker("Guardando com segurança...", 2);
+      const res = await window.assinarReciboColab?.(r.id, st.geo, dataUrl, hash);
+      if (!res || !res.ok) return { ok: false, msg: (res && res.msg) || "Não consegui concluir. Tente de novo." };
+      return {
+        ok: true,
+        okToast: "Assinado. O carimbo já está dentro do arquivo.",
+        // mostra na hora a versão carimbada (temos ela local, sem esperar o Storage)
+        verComprovante: {
+          titulo: `${RCB_TIPOS[r.tipo] || "Documento"} · ${rcbCompetenciaLabel(r.competencia)}`,
+          tipo: "Assinado",
+          anexo: { url: dataUrl, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
+        },
+      };
+    },
+  };
+  _assState = { alvo, geo: null, passo: "geo", aceite: false, erro: null };
   assRender();
 }
 
 function assRender() {
   const st = _assState; if (!st) return;
-  const r = st.r;
-  const tipoLbl = RCB_TIPOS[r.tipo] || "Documento";
-  const f = (state.funcionarios && state.funcionarios[0]) || null;
-  const nome = (f && f.nome) || currentUser()?.nome || "";
-  const passos = `<div class="ass-passos">
+  const nome = st.alvo.nome || "";
+  const cod = st.alvo.codigo || "";
+  const passos =`<div class="ass-passos">
       <span class="on"></span>
       <span class="${st.passo === "senha" ? "on" : ""}"></span>
       <span></span>
@@ -1385,11 +1419,11 @@ function assRender() {
       </div>
       <button class="ass-aceite ${st.aceite ? "on" : ""}" data-ass-aceite aria-pressed="${st.aceite}">
         <span class="ass-aceite__ck">${st.aceite ? cpIcon("check") : ""}</span>
-        <span>Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura neste arquivo.</span>
+        <span>Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura.</span>
       </button>
       <div class="ass-resumo">
-        Vai ficar carimbado no arquivo:<br>
-        <b>${escapeHtml(nome)}</b>${f && f.codigo ? ` · cód ${escapeHtml(String(f.codigo))}` : ""}<br>
+        Vai ficar registrado:<br>
+        <b>${escapeHtml(nome)}</b>${cod ? ` · cód ${escapeHtml(String(cod))}` : ""}<br>
         ${escapeHtml(agora)} · Local: ${Number(g.lat).toFixed(4)}, ${Number(g.lng).toFixed(4)}<br>
         Nível: credenciais de acesso + geolocalização
       </div>
@@ -1397,7 +1431,7 @@ function assRender() {
   }
   openModal(`
     <div class="modal__header">
-      <div><h2>Assinar o ${escapeHtml(tipoLbl.toLowerCase())}</h2><p>${escapeHtml(rcbCompetenciaLabel(r.competencia))} · ${escapeHtml(nome)}</p></div>
+      <div><h2>${escapeHtml(st.alvo.titulo || "Assinar")}</h2><p>${escapeHtml(st.alvo.sub || "")}</p></div>
       <button class="modal__close" data-close aria-label="Fechar">${cpIcon("x")}</button>
     </div>
     <div class="modal__body">${passos}${corpo}</div>`);
@@ -1440,13 +1474,10 @@ async function assAssinar() {
   const st = _assState; if (!st || !st.aceite || !st.geo) return;
   const senha = $("#ass-senha")?.value || "";
   if (!senha) { st.erro = "Digite sua senha pra confirmar."; return assRender(); }
-  const r = st.r;
-  const f = (state.funcionarios && state.funcionarios[0]) || null;
-  const nome = (f && f.nome) || currentUser()?.nome || "";
   _rcbProcessando = true;
-  showFormBlocker("Confirmando identidade...", ["Confirmando identidade", "Carimbando o arquivo", "Guardando com segurança"]);
+  showFormBlocker("Confirmando identidade...", st.alvo.blockerPassos || ["Confirmando identidade", "Carimbando o arquivo", "Guardando com segurança"]);
   try {
-    // 1) identidade (reautenticação com a senha AGORA)
+    // 1) identidade (reautenticação com a senha AGORA) — comum a todos os alvos
     const auth = await window.reautenticarSenha?.(senha);
     if (!auth || !auth.ok) {
       hideFormBlocker();
@@ -1454,21 +1485,8 @@ async function assAssinar() {
       st.passo = "senha";
       return assRender();
     }
-    // 2) carimbo no arquivo (pdf-lib + fonte cursiva)
-    updateFormBlocker("Carimbando a assinatura no arquivo...", 1);
-    const original = await window.carregarArquivoRecibo?.(r.id);
-    if (!original) throw new Error("Não consegui abrir o arquivo original.");
-    const quando = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    const idAss = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())).slice(0, 30);
-    const { dataUrl, bytes } = await rcbCarimbarPdf(original, {
-      nome, codigo: (f && f.codigo) || r.codigo || "", quando, id: idAss, tipo: r.tipo,
-      lat: Number(st.geo.lat).toFixed(5), lng: Number(st.geo.lng).toFixed(5),
-      acc: (typeof st.geo.acc === "number" ? Math.round(st.geo.acc) : null),
-    });
-    const hash = await sha256Hex(bytes);
-    // 3) cofre + trilha
-    updateFormBlocker("Guardando com segurança...", 2);
-    const res = await window.assinarReciboColab?.(r.id, st.geo, dataUrl, hash);
+    // 2) miolo específico do alvo (recibo carimba o arquivo; documento gera o comprovante)
+    const res = await st.alvo.finalizar(st, senha);
     hideFormBlocker();
     if (!res || !res.ok) {
       st.erro = (res && res.msg) || "Não consegui concluir. Tente de novo.";
@@ -1477,14 +1495,10 @@ async function assAssinar() {
     }
     _assState = null;
     closeModal();
-    toast("Assinado. O carimbo já está dentro do arquivo.");
+    if (res.okToast) toast(res.okToast);
     renderApp();
-    // mostra na hora a versão carimbada (sem esperar o Storage: temos ela local)
-    openDocViewer({
-      titulo: `${RCB_TIPOS[r.tipo] || "Documento"} · ${rcbCompetenciaLabel(r.competencia)}`,
-      tipo: "Assinado",
-      anexo: { url: dataUrl, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
-    });
+    // mostra na hora o comprovante/versão assinada (temos localmente, sem esperar o Storage)
+    if (res.verComprovante) openDocViewer(res.verComprovante);
   } catch (e) {
     hideFormBlocker();
     toast("Falha ao assinar: " + (e?.message || e), "danger");
@@ -1561,11 +1575,26 @@ function colabDocRowHtml(d) {
     : nivel === "assinatura" ? `Assinado · v${(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada) || d.versao || 1}`
     : "Em dia";
   const infoOnly = nivel === "nenhuma";
+  const temComprovante = nivel === "assinatura" && d.minhaAssinatura && d.minhaAssinatura.arquivoPath;
+  const ro = temComprovante
+    ? `<button type="button" class="pp-rw__ro" data-doc-comprovante="${d.id}">${cpIcon("file")}Comprovante</button>`
+    : (temAnexo ? `<span class="pp-rw__ro">${cpIcon("file")}Abrir</span>` : (infoOnly ? "" : `<span class="pp-rw__ro">${cpIcon("check")}OK</span>`));
   return `<div class="pp-rw"${temAnexo ? ` data-doc-view="${d.id}" style="cursor:pointer"` : ` style="cursor:default"`}>
     <span class="pp-ico ${infoOnly ? "pp-ico--neutral" : "pp-ico--green"}">${cpIcon(ic)}</span>
     <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(docTipoLabel(d.tipo))} · ${statusTxt}</span></span>
-    ${temAnexo ? `<span class="pp-rw__ro">${cpIcon("file")}Abrir</span>` : (infoOnly ? "" : `<span class="pp-rw__ro">${cpIcon("check")}OK</span>`)}
+    ${ro}
   </div>`;
+}
+
+// Abre o COMPROVANTE de assinatura guardado no cofre (Storage). Busca a URL assinada e
+// mostra no viewer pdf.js. Rede de segurança: se a URL não vier (regra/estado), avisa.
+async function abrirComprovanteColab(docId) {
+  const d = (state.documentosColab || []).find((x) => x.id === docId);
+  const path = d && d.minhaAssinatura && d.minhaAssinatura.arquivoPath;
+  if (!path) return toast("Comprovante indisponível.", "danger");
+  const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(path) : null;
+  if (!url) return toast("Não consegui abrir o comprovante agora. Tente de novo em instantes.", "danger");
+  openDocViewer({ titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
 }
 
 function colabLerDocUI(id) {
@@ -1576,72 +1605,63 @@ function colabLerDocUI(id) {
   toast("Leitura registrada."); renderApp();
 }
 
+// Assinatura eletrônica CARIMBADA de documento institucional (nível 'assinatura').
+// Reusa a folha em passos dos recibos (geo obrigatória → senha+aceite): monta um `alvo`
+// cujo `finalizar` gera o COMPROVANTE (PDF novo), calcula o hash do ORIGINAL e grava a
+// trilha via assinarDocumentoCarimbado. No sucesso mostra o comprovante local.
 function openColabAssinarSheet(docId) {
   const d = (state.documentosColab || []).find((x) => x.id === docId);
   if (!d) return;
-  const temAnexo = !!(d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url));
-  openModal(`
-    <div class="modal__header">
-      <div><h2>Assinar documento</h2><p>Aceite N1 · versão ${d.versao || 1}</p></div>
-      <button class="modal__close" data-close aria-label="Fechar">${cpIcon("x")}</button>
-    </div>
-    <div class="modal__body cp-assinar">
-      <div class="cp-assinar__doc">
-        <span class="cp-doc__seal">${cpIcon(COLAB_DOC_IC[d.tipo] || "file")}</span>
-        <div class="cp-assinar__docinfo"><b>${escapeHtml(d.titulo || "")}</b><span>${escapeHtml(docTipoLabel(d.tipo))} · v${d.versao || 1}</span></div>
-        ${temAnexo ? `<button type="button" class="cp-assinar__ler" data-docview-ler>${cpIcon("file")}ler</button>` : ""}
-      </div>
-      <button type="button" class="cp-aceite" id="cp-aceite" aria-pressed="false">
-        <span class="cp-aceite__box">${cpIcon("check")}</span>
-        <span class="cp-aceite__t">Li e estou de acordo com o conteúdo deste documento.</span>
-      </button>
-      <div class="field cp-senha" id="cp-senha-wrap" style="display:none">
-        <label for="cp-senha">Confirme com sua senha</label>
-        <input type="password" id="cp-senha" autocomplete="current-password" placeholder="Sua senha" />
-      </div>
-      <div class="cp-assinar__note">${cpIcon("info")}<span>Pra confirmar, você redigita a senha. Registra seu nome, data e hora (do servidor) e a versão assinada.</span></div>
-    </div>
-    <div class="modal__footer">
-      <button class="btn btn--ghost" data-close>Cancelar</button>
-      <button class="btn btn--primary" id="cp-assinar-ok" disabled>${cpIcon("check")}<span>Confirmar assinatura</span></button>
-    </div>
-  `, {
-    onMount: (modal) => {
-      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      const lerBtn = modal.querySelector("[data-docview-ler]");
-      if (lerBtn) lerBtn.addEventListener("click", () => openDocViewer(d));
-      const aceite = $("#cp-aceite"), btn = $("#cp-assinar-ok"), senhaWrap = $("#cp-senha-wrap");
-      aceite.addEventListener("click", () => {
-        const on = aceite.getAttribute("aria-pressed") === "true";
-        aceite.setAttribute("aria-pressed", String(!on));
-        aceite.classList.toggle("is-on", !on);
-        senhaWrap.style.display = !on ? "" : "none";
-        btn.disabled = on;
-        if (!on) setTimeout(() => $("#cp-senha") && $("#cp-senha").focus(), 50);
+  if (d.minhaAssinatura && d.minhaAssinatura.versaoAssinada === d.versao) return toast("Você já assinou esta versão.");
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const nome = (f && f.nome) || currentUser()?.nome || "";
+  const codigo = (f && f.codigo) || "";
+  const versaoAssinada = Number(d.versao) || 1;
+  const alvo = {
+    titulo: "Assinar o documento",
+    sub: `${d.titulo || docTipoLabel(d.tipo)} · v${versaoAssinada}`,
+    nome, codigo,
+    blockerPassos: ["Confirmando identidade", "Gerando o comprovante", "Guardando com segurança"],
+    finalizar: async (st) => {
+      updateFormBlocker("Gerando o comprovante...", 1);
+      const quando = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      // hash do CONTEÚDO ORIGINAL (anexo com hash → anexo sem hash → texto). O comprovante
+      // já resolve a mesma cadeia internamente; recalculamos aqui pra passar à trilha.
+      let hashOriginal = "";
+      const anexo = d.anexo;
+      if (anexo && anexo.hashSha256) hashOriginal = String(anexo.hashSha256);
+      else if (anexo && anexo.url && ehUrlSegura(anexo.url)) {
+        try { hashOriginal = await sha256Hex(new Uint8Array(await dataUrlParaBlob(anexo.url).arrayBuffer())); }
+        catch (e) { hashOriginal = await sha256Hex(new TextEncoder().encode(String(d.descricao || ""))); }
+      } else hashOriginal = await sha256Hex(new TextEncoder().encode(String(d.descricao || "")));
+      const { dataUrl } = await gerarComprovantePdf(d, {
+        titulo: d.titulo || docTipoLabel(d.tipo),
+        tipoLabel: docTipoLabel(d.tipo),
+        docId, versaoAssinada, nome, codigo, quando,
+        geo: st.geo,
+        aceiteTexto: "Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura.",
       });
-      btn.addEventListener("click", async () => {
-        const senha = $("#cp-senha") ? $("#cp-senha").value : "";
-        if (!senha) return campoInvalido("#cp-senha", "Digite sua senha pra confirmar.");
-        btn.disabled = true;
-        if (window.assinarDocumentoColab) {
-          const r = await window.assinarDocumentoColab(docId, senha);
-          if (r && r.ok) { closeModal(); }
-          else { btn.disabled = false; campoInvalido("#cp-senha", (r && r.msg) || "Não consegui confirmar. Tente de novo."); }
-        } else {
-          const dd = (state.documentosColab || []).find((x) => x.id === docId);
-          if (dd) dd.minhaAssinatura = { versaoAssinada: dd.versao, em: nowIso() };
-          if (typeof store !== "undefined") store.save(state);
-          closeModal(); toast("Documento assinado."); renderApp();
-        }
-      });
-      setTimeout(() => $("#cp-aceite") && $("#cp-aceite").focus(), 60);
+      updateFormBlocker("Guardando com segurança...", 2);
+      const res = await window.assinarDocumentoCarimbado?.(docId, st.geo, dataUrl, hashOriginal);
+      if (!res || !res.ok) return { ok: false, msg: (res && res.msg) || "Não consegui concluir. Tente de novo." };
+      return {
+        ok: true,
+        okToast: "Documento assinado. O comprovante já está guardado.",
+        verComprovante: { titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url: dataUrl, nome: "comprovante.pdf", mime: "application/pdf" } },
+      };
     },
-  });
+  };
+  _assState = { alvo, geo: null, passo: "geo", aceite: false, erro: null };
+  assRender();
 }
 
 if (!window._colabDocBound) {
   window._colabDocBound = true;
   document.addEventListener("click", (e) => {
+    // Comprovante ANTES do data-doc-view: o botão vive dentro da linha (que também abre
+    // o original), então precisa vencer e barrar a propagação pra não disparar os dois.
+    const cp = e.target.closest("[data-doc-comprovante]");
+    if (cp) { e.preventDefault(); e.stopPropagation(); abrirComprovanteColab(cp.dataset.docComprovante); return; }
     const dv = e.target.closest("[data-doc-view]");
     if (dv) {
       e.preventDefault();
@@ -7133,6 +7153,9 @@ function abrirTrilhaConfirmacao(d, f, x, assina) {
   const temGeo = typeof geo.lat === "number" && typeof geo.lng === "number";
   const linha = (lbl, val) => val ? `<div class="trg-row"><label>${escapeHtml(lbl)}</label><div>${val}</div></div>` : "";
   const hash = x.hashSha256 ? `<code class="trg-hash">${escapeHtml(x.hashSha256)}</code>` : "";
+  // Carimbo (nível assinatura) guarda o comprovante no cofre; o hash é do CONTEÚDO
+  // ORIGINAL assinado (arquivo ou texto), não do comprovante. Legado N1 não tem arquivoPath.
+  const temComprovante = !!x.arquivoPath;
   openModal(`
     <div class="modal__header">
       <div><h2>${assina ? "Trilha de assinatura" : "Trilha de aceite"}</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "assinatura eletrônica" : "aceite simples"}</p></div>
@@ -7146,11 +7169,22 @@ function abrirTrilhaConfirmacao(d, f, x, assina) {
       ${linha(assina ? "Assinou em" : "Aceitou em", escapeHtml(comData(x.em)))}
       ${x.aceiteTexto ? `<div class="trg-row"><label>Texto do aceite</label><div class="trg-quote">${escapeHtml(x.aceiteTexto)}</div></div>` : ""}
       ${temGeo ? linha("Local", `${geo.lat.toFixed(5)}, ${geo.lng.toFixed(5)}${typeof geo.acc === "number" ? ` · precisão ${geo.acc} m` : ""} <a href="https://maps.google.com/?q=${geo.lat},${geo.lng}" target="_blank" rel="noopener">ver no mapa</a>`) : ""}
-      ${hash ? `<div class="trg-row"><label>Hash SHA-256 do arquivo assinado</label>${hash}</div>` : ""}
+      ${hash ? `<div class="trg-row"><label>Hash SHA-256 do conteúdo assinado</label>${hash}</div>` : ""}
       ${linha("Dispositivo", escapeHtml(x.userAgent || "não registrado"))}
     </div>
-    <div class="modal__footer"><button class="btn btn--ghost" data-close>Fechar</button></div>
-  `, { onMount: (modal) => modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal)) });
+    <div class="modal__footer">
+      ${temComprovante ? `<button class="btn btn--soft" data-trg-comprovante>${icon("file")}<span>Ver comprovante</span></button>` : ""}
+      <button class="btn btn--ghost" data-close>Fechar</button>
+    </div>
+  `, { onMount: (modal) => {
+    modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+    const cb = modal.querySelector("[data-trg-comprovante]");
+    if (cb) cb.addEventListener("click", async () => {
+      const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(x.arquivoPath) : null;
+      if (!url) return toast("Não consegui abrir o comprovante agora.", "danger");
+      openDocViewer({ titulo: `Comprovante · ${d.titulo}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
+    });
+  } });
 }
 
 if (!window._docBound) {
@@ -7269,6 +7303,132 @@ async function rcbCarimbarPdf(dataUrlOriginal, dados) {
   pg.drawText(dados.nome, { x: bx + 12, y: by + 7, size: sigSize, font: fCursiva, color: rgb(0.07, 0.23, 0.42) });
   const bytes = await doc.save();
   return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
+}
+
+// Comprovante de assinatura eletrônica de DOCUMENTO institucional. Diferente do recibo,
+// o documento pode ser só texto (sem PDF), então NÃO carimbamos o original: geramos um
+// PDF A4 NOVO que atesta o ato e prende o SHA-256 do CONTEÚDO ORIGINAL (anexo, se houver;
+// senão o texto de `descricao`). Reusa os mesmos helpers do carimbo do recibo (pdf-lib,
+// fontkit, Great Vibes). Retorna { dataUrl, bytes }.
+async function gerarComprovantePdf(doc, dados) {
+  const PDFLib = await loadPdfLib();
+  const fontkit = await loadFontkit();
+  const fonte = await fonteAssinaturaBytes();
+  const pdf = await PDFLib.PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const fCursiva = await pdf.embedFont(fonte, { subset: true });
+  const fN = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+  const fB = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const rgb = PDFLib.rgb;
+
+  // Hash do conteúdo ORIGINAL + rótulo do que ele cobre. Ordem: anexo com hash pronto →
+  // anexo sem hash (computa dos bytes) → só texto (SHA do UTF-8 de descricao).
+  let hashOriginal = "";
+  let hashRotulo = "SHA-256 do texto";
+  const anexo = doc && doc.anexo;
+  if (anexo && anexo.hashSha256) {
+    hashOriginal = String(anexo.hashSha256);
+    hashRotulo = "SHA-256 do arquivo";
+  } else if (anexo && anexo.url && ehUrlSegura(anexo.url)) {
+    try {
+      const buf = await dataUrlParaBlob(anexo.url).arrayBuffer();
+      hashOriginal = await sha256Hex(new Uint8Array(buf));
+      hashRotulo = "SHA-256 do arquivo";
+    } catch (e) {
+      hashOriginal = await sha256Hex(new TextEncoder().encode(String((doc && doc.descricao) || "")));
+      hashRotulo = "SHA-256 do texto";
+    }
+  } else {
+    hashOriginal = await sha256Hex(new TextEncoder().encode(String((doc && doc.descricao) || "")));
+    hashRotulo = "SHA-256 do texto";
+  }
+
+  const idComprovante = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+  const uaCurto = String(dados.userAgent || navigator.userAgent || "").slice(0, 120);
+  const geo = dados.geo || {};
+  const lat = typeof geo.lat === "number" ? geo.lat.toFixed(5) : "";
+  const lng = typeof geo.lng === "number" ? geo.lng.toFixed(5) : "";
+  const acc = typeof geo.acc === "number" ? Math.round(geo.acc) : null;
+
+  const pg = pdf.addPage([595.28, 841.89]); // A4 em pontos
+  const W = pg.getWidth();
+  const mx = 48; // margem lateral
+  let y = 800;
+  const verde = rgb(0, 0.533, 0.208); // #008835 (marca Fiobras)
+  const cinza = rgb(0.33, 0.33, 0.33);
+  const preto = rgb(0.1, 0.1, 0.1);
+
+  // Cabeçalho
+  pg.drawRectangle({ x: 0, y: 812, width: W, height: 30, color: verde });
+  pg.drawText("FioPulse", { x: mx, y: 820, size: 14, font: fB, color: rgb(1, 1, 1) });
+  pg.drawText("Comprovante de assinatura eletrônica", { x: mx, y: 786, size: 15, font: fB, color: preto });
+  y = 762;
+
+  // Blocos rótulo→valor. Valores longos (hash, UA) quebram em várias linhas monoespaçadas.
+  const bloco = (lbl, val, mono) => {
+    pg.drawText(lbl, { x: mx, y, size: 7.5, font: fB, color: cinza });
+    y -= 13;
+    const size = mono ? 8 : 9.5; // hash/UA menores; todos em Helvetica (fN)
+    const maxW = W - mx * 2;
+    const linhas = quebrarTexto(String(val == null ? "—" : val), fN, size, maxW);
+    for (const ln of linhas) { pg.drawText(ln, { x: mx, y, size, font: fN, color: preto }); y -= size + 3; }
+    y -= 8;
+  };
+
+  bloco("Documento", `${dados.titulo || "Documento"}${dados.tipoLabel ? ` · ${dados.tipoLabel}` : ""}`);
+  bloco("Versão assinada", `v${dados.versaoAssinada}`);
+  bloco("Identificador do documento", dados.docId || "—", true);
+  bloco(hashRotulo + " (conteúdo original assinado)", hashOriginal || "—", true);
+  bloco("Signatário", `${dados.nome || "—"}${dados.codigo ? ` · cód ${dados.codigo}` : ""}`);
+  bloco("Data e hora", dados.quando || "—");
+  bloco("Localização", (lat && lng) ? `${lat}, ${lng}${acc != null ? ` · precisão ${acc} m` : ""}` : "não registrada");
+  bloco("Dispositivo", uaCurto || "—", true);
+  bloco("Identificador do comprovante", idComprovante, true);
+  bloco("Nível de segurança", "credenciais de acesso + geolocalização");
+  bloco("Texto do aceite", dados.aceiteTexto || "");
+
+  // Linha de assinatura cursiva
+  y -= 6;
+  pg.drawLine({ start: { x: mx, y }, end: { x: mx + 260, y }, thickness: 0.6, color: rgb(0.55, 0.55, 0.55) });
+  y -= 6;
+  let sigSize = 26;
+  const nomeSig = String(dados.nome || "");
+  while (sigSize > 12 && fCursiva.widthOfTextAtSize(nomeSig, sigSize) > 256) sigSize -= 1;
+  pg.drawText(nomeSig, { x: mx + 4, y: y - sigSize + 6, size: sigSize, font: fCursiva, color: rgb(0.07, 0.23, 0.42) });
+  y -= sigSize + 6;
+  pg.drawText("Assinatura eletrônica do signatário", { x: mx, y, size: 7.5, font: fN, color: cinza });
+
+  // Rodapé
+  pg.drawText("Documento gerado eletronicamente pelo FioPulse. A validade depende da trilha registrada no sistema.", { x: mx, y: 40, size: 7, font: fN, color: cinza });
+
+  const bytes = await pdf.save();
+  return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
+}
+
+// Quebra um texto no maior nº de palavras que cabe em `maxW` (fonte pdf-lib). Palavra
+// única mais larga que a caixa quebra por caractere (hash, userAgent). Só p/ o comprovante.
+function quebrarTexto(txt, font, size, maxW) {
+  const out = [];
+  const empurra = (palavra) => {
+    // palavra sozinha estoura: fatia por caractere
+    let atual = "";
+    for (const ch of palavra) {
+      if (font.widthOfTextAtSize(atual + ch, size) > maxW && atual) { out.push(atual); atual = ch; }
+      else atual += ch;
+    }
+    if (atual) out.push(atual);
+  };
+  let linha = "";
+  for (const palavra of String(txt).split(/\s+/)) {
+    if (!palavra) continue;
+    const tent = linha ? linha + " " + palavra : palavra;
+    if (font.widthOfTextAtSize(tent, size) <= maxW) { linha = tent; continue; }
+    if (linha) { out.push(linha); linha = ""; }
+    if (font.widthOfTextAtSize(palavra, size) > maxW) empurra(palavra);
+    else linha = palavra;
+  }
+  if (linha) out.push(linha);
+  return out.length ? out : [""];
 }
 
 // Normaliza pra comparar nomes: MAIÚSCULO, sem acentos (̀-ͯ = diacríticos do NFD), 1 espaço.
@@ -13123,7 +13283,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.32.0";
+window.CURRENT_VERSION = "1.33.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

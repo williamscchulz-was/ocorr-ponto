@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.32.0", d: "5 jul 2026", current: true, items: [
+    v: "1.33.0", d: "5 jul 2026", current: true, items: [
+      { type: "feat", title: "Ao assinar um documento que pede assinatura eletrônica, fica registrado com a sua localização e um comprovante em PDF, com a mesma validade da assinatura dos recibos. Você pode abrir o comprovante quando quiser." },
+      { type: "feat", aud: "gestor", title: "Na trilha de quem confirmou um documento, dá pra abrir o comprovante de cada assinatura, com local e o código de integridade do arquivo." },
+    ],
+  },
+  {
+    v: "1.32.0", d: "5 jul 2026", items: [
       { type: "feat", title: "Toque na foto de qualquer pessoa pra ver ela ampliada, e cada documento mostra se você só precisa ler, confirmar leitura ou assinar." },
       { type: "feat", aud: "gestor", title: "Nova tela de Auditoria com a trilha de tudo que acontece no portal (login, leitura, assinatura, conferência, alteração). Ao publicar um documento você escolhe se o colaborador só lê, dá um aceite, ou assina. E os formulários de cadastro no computador ficaram em duas colunas, mais rápidos de preencher." },
     ],
