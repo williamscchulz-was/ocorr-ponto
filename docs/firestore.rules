@@ -553,6 +553,48 @@ service cloud.firestore {
       }
     }
 
+    // ===== Mural de aniversario (celebracao social entre colegas) =====
+    // postId = "{funcionarioId}_{ano}". NAO exige doc pai (subcolecoes valem sem ele);
+    // por isso o proprio /muralAniversario/{postId} nunca e escrito pelo cliente.
+    // Conteudo entre colegas: reacao (coracao, uma por pessoa, toggle) e recado (texto
+    // curto, varios por pessoa). Leitura: qualquer autenticado (a festa e compartilhada).
+    // Escrita: so como voce mesmo (autorUid/uid == auth.uid). Recado apaga o proprio autor
+    // OU gestor (moderacao/LGPD); o autorUid fica gravado como trilha de quem escreveu.
+    // Append-only (sem update). em == hora do servidor.
+    match /muralAniversario/{postId} {
+      allow read: if isAuthed();
+      allow write: if false; // doc pai nunca e escrito pelo cliente
+
+      match /reacoes/{uid} {
+        allow read: if isAuthed();
+        allow create: if isAuthed()
+                    && request.auth.uid == uid
+                    && request.resource.data.uid == uid
+                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'em'])
+                    && request.resource.data.tipo == 'coracao'
+                    && request.resource.data.em == request.time;
+        allow delete: if isAuthed() && (request.auth.uid == uid || isAdmin() || isRH());
+        allow update: if false;
+      }
+
+      match /recados/{recadoId} {
+        allow read: if isAuthed();
+        allow create: if isAuthed()
+                    && request.resource.data.autorUid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['autorUid', 'autorNome', 'texto', 'em'])
+                    && request.resource.data.autorNome is string
+                    && request.resource.data.autorNome.size() <= 80
+                    && request.resource.data.autorNome == userDoc().nome
+                    && request.resource.data.texto is string
+                    && request.resource.data.texto.size() >= 1
+                    && request.resource.data.texto.size() <= 500
+                    && request.resource.data.em == request.time;
+        allow delete: if isAuthed()
+                    && (resource.data.autorUid == request.auth.uid || isAdmin() || isRH());
+        allow update: if false;
+      }
+    }
+
     // ===== ocorrencias-auto (TESTE / sandbox) =====
     // Ocorrências geradas pelo pipeline da apuração do ponto (WK). Coleção SEPARADA da
     // 'ocorrencias' de produção: zero impacto no fluxo manual. O CONTEÚDO é escrito só pelo
