@@ -10,35 +10,35 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=278" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=278" />
-  <!-- Decide ANTES de renderizar, sincrono, o MODO do splash. Cadencia: a
-       animacao do fio escrevendo o nome roda UMA VEZ POR DIA. Nos demais boots
-       do dia mostra so o estado formado (cobre restauracao de sessao) ou abre
-       direto. Mantem __splashT0 e o fallback duro de 8s (nunca prende o app). -->
+  <link rel="stylesheet" href="styles.css?v=279" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=279" />
+  <!-- Decide ANTES de renderizar, sincrono, o MODO da abertura. Estilo Apple:
+       a abertura padrao e o ESQUELETO da home (cobre so o load, some assim que
+       o app fica pronto, sem tempo fixo). O "fio escreve" roda so na ESTREIA
+       (primeiro acesso do aparelho). __splashT0 + fallback duro de 8s no fim. -->
   <script>
     window.__splashT0 = Date.now();
     try {
       var _root = document.documentElement;
-      var _d = new Date();
-      var _hoje = _d.getFullYear() + "-" + String(_d.getMonth()+1).padStart(2,"0") + "-" + String(_d.getDate()).padStart(2,"0");
-      var _primeira = localStorage.getItem("fiopulse:splashDia") !== _hoje;
+      var _estreia = !localStorage.getItem("fiopulse:estreia");
       var _manter = localStorage.getItem("fiopulse:manterConectado") === "1";
       var _reduz = false;
       try { _reduz = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-      if (_primeira) {
-        _root.classList.add("splash-intro");
-        localStorage.setItem("fiopulse:splashDia", _hoje); // marca ja: nao repete hoje mesmo se recarregar no meio
-        window.__splashMin = _reduz ? 900 : 3600;          // segura o splash ate a animacao terminar
-        if (_manter) _root.classList.add("sessao-restaurando"); // cobre a restauracao de sessao tambem
+      if (_estreia) {
+        // Primeiro acesso NESTE aparelho: "o fio escreve" uma vez, de boas-vindas.
+        localStorage.setItem("fiopulse:estreia", "1");
+        if (_reduz) { _root.classList.add("splash-skeleton"); window.__splashMin = 300; }
+        else { _root.classList.add("splash-estreia"); window.__splashMin = 3600; }
       } else if (_manter) {
-        _root.classList.add("sessao-restaurando");         // cobertura minima (nome ja formado), sem animacao longa
-        window.__splashMin = 500;
+        // Padrao: esqueleto da home cobre a restauracao e some quando fica pronto.
+        _root.classList.add("splash-skeleton");
+        window.__splashMin = 300;
       } else {
-        _root.classList.add("splash-off");                 // ja viu hoje e sem sessao: abre direto
+        // Sem sessao pra restaurar: vai direto pro acesso/login, sem abertura.
+        _root.classList.add("splash-off");
         window.__splashMin = 0;
       }
-    } catch (e) {}
+    } catch (e) { document.documentElement.classList.add("splash-off"); }
     // Salvaguarda ABSOLUTA do splash: nunca pode prender o app. Some em 8s
     // mesmo se app.js/firebase.js não carregarem.
     setTimeout(function () {
@@ -49,12 +49,17 @@
 </head>
 <body>
 
-  <!-- Splash de boot (visivel por padrao; escondido em html.splash-off).
-       Cena "O fio escreve": um cone de fio verde no canto de onde um fio sobe e
-       ESCREVE "FioPulse" em caligrafia. Portada de docs/mockups/splash-fio-dir2.html
-       (sem moldura, sem laco: roda UMA vez). Ids prefixados splash* p/ nao colidir.
-       O gradiente do overlay (.splash) preenche as margens em telas largas. -->
+  <!-- Abertura de boot. Por padrao (html.splash-skeleton) mostra o ESQUELETO da
+       home (shimmer), que cobre o load e some ao ficar pronto. Na ESTREIA
+       (html.splash-estreia) mostra a cena "O fio escreve" (SVG abaixo, portada de
+       docs/mockups/splash-fio-dir2.html). Em html.splash-off nao aparece. -->
   <div id="splash" class="splash">
+    <div class="splash-sk" aria-hidden="true">
+      <div class="splash-sk__row"><span class="fps fps--av"></span><span class="fps-col"><span class="fps fps--l1"></span><span class="fps fps--l2"></span></span></div>
+      <div class="splash-sk__circ"><span class="fps fps--c"></span><span class="fps fps--c"></span><span class="fps fps--c"></span><span class="fps fps--c"></span><span class="fps fps--c"></span></div>
+      <div class="fps fps--card"></div>
+      <div class="fps fps--card fps--card2"></div>
+    </div>
     <svg class="splash__cena" id="splashCena" viewBox="0 0 390 720" preserveAspectRatio="xMidYMid meet" role="img" aria-label="FioPulse" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="splashConeCorpo" x1="0" y1="0" x2="1" y2="0">
@@ -342,9 +347,9 @@
       var root = document.documentElement;
       var reduz = false;
       try { reduz = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-      if (root.classList.contains("splash-intro") && !reduz) {
+      if (root.classList.contains("splash-estreia") && !reduz) {
         iniciar();
-      } else {
+      } else if (root.classList.contains("splash-estreia")) {
         mostrarFormado();
       }
     } catch (e) { /* qualquer falha: o splash some pelos caminhos normais */ }
@@ -596,16 +601,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=278"></script>
-  <script defer src="data.js?v=278"></script>
+  <script defer src="utils.js?v=279"></script>
+  <script defer src="data.js?v=279"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=278"></script>
+  <script defer src="app.js?v=279"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=278"></script>
-  <script defer src="google-drive.js?v=278"></script>
+  <script defer src="firebase.js?v=279"></script>
+  <script defer src="google-drive.js?v=279"></script>
 </body>
 </html>

@@ -72,13 +72,10 @@
       let manterConectadoBoot = false;
       try { manterConectadoBoot = localStorage.getItem("fiopulse:manterConectado") === "1"; }
       catch {}
-      // Splash "Entrando…": o inline script do <head> já marcou .sessao-restaurando
-      // quando manterConectado=1. Salvaguarda: se o auth travar (rede), esconde
-      // o splash após 7s pra não prender o usuário (cai no login).
+      // Salvaguarda: com sessão a restaurar (esqueleto no ar), se o auth travar
+      // (rede), esconde a abertura após 7s pra não prender o usuário (cai no login).
       if (manterConectadoBoot) {
         setTimeout(() => { if (window.hideSplash) window.hideSplash(); }, 7000);
-      } else {
-        document.documentElement.classList.remove("sessao-restaurando");
       }
       const initialPersistence = manterConectadoBoot
         ? firebase.auth.Auth.Persistence.LOCAL
@@ -1298,6 +1295,76 @@
         debug?.("[aniversariantes] carregar:", e?.message || e);
         state.aniversariantes = null;
       }
+    };
+
+    // ===== Mural de aniversario (reacao coracao + recados entre colegas) =====
+    // Coleção muralAniversario/{postId}: doc pai NUNCA é escrito pelo cliente (rule write:false);
+    // só as subcoleções reacoes/{uid} e recados/{auto} valem. Tudo LAZY (só ao abrir o mural),
+    // fora do boot/carregarDadosCompletos. Rules já deployadas (tests/mural-rules.test.mjs).
+
+    // Lê reações e recados do post. Recados ordenados por 'em' asc; se faltar índice, ordena
+    // no cliente. minhaReacao = existe reacoes/{meuUid}. em -> ISO via tsToIso.
+    window.carregarMuralAniversario = async function (postId) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      const base = db.collection("muralAniversario").doc(postId);
+      try {
+        let recadosSnap;
+        try {
+          recadosSnap = await base.collection("recados").orderBy("em", "asc").get();
+        } catch (e) {
+          // sem índice / campo em ainda pendente do serverTimestamp: cai pra leitura crua + sort local
+          recadosSnap = await base.collection("recados").get();
+        }
+        const [reacoesSnap] = await Promise.all([base.collection("reacoes").get()]);
+        const reacoes = reacoesSnap.docs.map((d) => ({ uid: d.data().uid || d.id }));
+        let recados = recadosSnap.docs.map((d) => {
+          const x = d.data();
+          return { id: d.id, autorUid: x.autorUid, autorNome: x.autorNome, texto: x.texto, em: tsToIso(x.em) };
+        });
+        recados.sort((a, b) => String(a.em || "").localeCompare(String(b.em || "")));
+        const minhaReacao = !!(uid && reacoes.some((r) => r.uid === uid));
+        return { reacoes, recados, minhaReacao, total: reacoes.length };
+      } catch (e) {
+        debug?.("[mural] carregar:", e?.message || e);
+        return { reacoes: [], recados: [], minhaReacao: false, total: 0, err: e.message };
+      }
+    };
+
+    // Toggle da reação coração. ligar=true -> set reacoes/{uid}; ligar=false -> delete.
+    // Retorna o novo estado (bool). Id da doc = uid (rule exige request.auth.uid == uid).
+    window.toggleReacaoAniversario = async function (postId, ligar) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!uid) throw new Error("sem sessao");
+      const ref = db.collection("muralAniversario").doc(postId).collection("reacoes").doc(uid);
+      if (ligar) {
+        await ref.set({ uid, tipo: "coracao", em: firebase.firestore.FieldValue.serverTimestamp() });
+        return true;
+      }
+      await ref.delete();
+      return false;
+    };
+
+    // Envia um recado. autorNome = nome REAL do usuário logado (nunca arbitrário). texto trim 1..500.
+    window.enviarRecadoAniversario = async function (postId, texto) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!uid) throw new Error("sem sessao");
+      const u = currentUser();
+      const nome = String((u && u.nome) || "").slice(0, 80);
+      const t = String(texto || "").trim().slice(0, 500);
+      if (!t) throw new Error("recado vazio");
+      const ref = await db.collection("muralAniversario").doc(postId).collection("recados").add({
+        autorUid: uid, autorNome: nome, texto: t,
+        em: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return { id: ref.id, autorUid: uid, autorNome: nome, texto: t, em: new Date().toISOString() };
+    };
+
+    // Remove um recado. A regra deixa o autor OU gestor (admin/rh) apagar (moderação/LGPD).
+    window.removerRecadoAniversario = async function (postId, recadoId) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!uid) throw new Error("sem sessao");
+      await db.collection("muralAniversario").doc(postId).collection("recados").doc(recadoId).delete();
+      return true;
     };
 
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
@@ -2858,10 +2925,10 @@
       }
     });
 
-    // Splash de restauração de sessão: esconde o overlay "Entrando…".
+    // Esconde a abertura de boot (esqueleto ou, na estreia, o fio).
     function esconderSplash() {
       if (window.hideSplash) window.hideSplash();
-      else document.documentElement.classList.remove("sessao-restaurando");
+      else { var sp = document.getElementById("splash"); if (sp) sp.classList.add("splash--out"); }
     }
 
     // Observador de autenticação

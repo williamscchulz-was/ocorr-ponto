@@ -28,7 +28,6 @@
 .acesso__half--gestor .acesso__arr{color:var(--border-strong)}
 .acesso__arr svg{width:20px;height:20px;stroke-width:2.2}
 .acesso__rod{margin-top:26px;font-size:11px;color:var(--text-muted);text-align:center}
-.sessao-restaurando #acesso{display:none !important}
 
 /* ---- Voltar no login ---- */
 .login__voltar{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:none;border:0;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px}
@@ -682,3 +681,66 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
   }
   .modo-colab .pp-rw:hover{background:var(--surface-warm)}
 }
+
+/* ---- Card de aniversário de hoje quando vira botão (abre o mural) ---- */
+button.pp-bday{width:100%;text-align:left;font:inherit;cursor:pointer;color:inherit}
+button.pp-bday:active{transform:scale(.995)}
+.pp-bday__chev{flex:none;color:var(--text-muted);position:relative;z-index:1;display:inline-flex}
+.pp-bday__chev svg{width:18px;height:18px}
+button.pp-greet--bday{width:100%;text-align:left;font:inherit;cursor:pointer;color:inherit;border:0;background:none;padding:0}
+
+/* ============================================================
+   MURAL DE ANIVERSÁRIO (overlay social · direção A)
+   Reusa .modal-backdrop--docview (backdrop escuro, full-screen). Tema claro do colab.
+   ============================================================ */
+.mural{position:absolute;inset:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#eef5ef 0%,#e6f1e8 100%);color:var(--text-body)}
+.modo-colab.cp-dark .mural{background:var(--bg)}
+@media (min-width:560px){
+  .mural{position:relative;margin:5vh auto;width:420px;max-width:calc(100% - 24px);height:min(88vh,760px);border-radius:24px;overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,.45)}
+}
+.mural__h{flex:none;display:flex;align-items:center;gap:12px;padding:14px 14px 10px;background:var(--surface);border-bottom:1px solid var(--border)}
+.mural__h .x{width:34px;height:34px;border-radius:50%;background:var(--surface-warm);border:1px solid var(--border);color:var(--text-body);display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer}
+.mural__h .x svg{width:16px;height:16px}
+.mural__ht{font-size:16px;font-weight:800;color:var(--text-body)}
+.mural__scroll{flex:1;overflow:auto;padding:12px 14px 14px;-webkit-overflow-scrolling:touch}
+.mural__loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px 0;color:var(--text-muted);font-size:13px}
+.mural__loading svg{width:18px;height:18px;animation:spin 1s linear infinite}
+
+.mural__post{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 10px 30px rgba(15,55,30,.10);overflow:hidden}
+.mural__hero{position:relative;padding:22px 18px 18px;text-align:center;color:#fff;background:radial-gradient(120% 90% at 50% -10%,rgba(255,203,0,.16),transparent 60%),linear-gradient(160deg,#0B7A36 0%,#1AA34F 62%,#12903f 100%)}
+.mural__av{width:84px;height:84px;border-radius:50%;margin:0 auto 12px;border:3px solid rgba(255,255,255,.9);display:grid;place-items:center;font-size:28px;font-weight:800;color:#fff;box-shadow:0 8px 22px rgba(0,0,0,.28)}
+.mural__hero h3{font-size:19px;font-weight:800;margin:0 0 3px}
+.mural__sub{font-size:13px;font-weight:500;opacity:.92;margin:0}
+
+.mural__react{padding:14px 16px 10px;border-bottom:1px solid var(--border)}
+.mural__parab{width:100%;height:48px;border:0;border-radius:14px;background:var(--plum);color:#fff;font-family:inherit;font-size:15px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;box-shadow:0 8px 20px rgba(0,136,53,.28);transition:.16s}
+.mural__parab svg{width:19px;height:19px}
+.mural__parab.on{background:var(--surface-warm);color:var(--plum-deep);box-shadow:none;border:1px solid var(--plum)}
+.mural__parab:active{transform:scale(.98)}
+.mural__rsummary{display:flex;align-items:center;gap:9px;padding:11px 2px 2px}
+.mural__stack{display:flex}
+.mural__stk{width:24px;height:24px;border-radius:50%;border:2px solid var(--surface);margin-left:-8px}
+.mural__stk:first-child{margin-left:0}
+.mural__rsummary span{font-size:12.5px;color:var(--text-muted)}
+.mural__rsummary b{color:var(--text-body)}
+
+.mural__cmts{padding:12px 16px 6px}
+.mural__cmtsh{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:2px 0 12px}
+.mural__vazio{font-size:13px;color:var(--text-muted);padding:2px 0 10px}
+.mural__cmt{display:flex;gap:10px;margin-bottom:14px}
+.mural__cav{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff}
+.mural__cb{flex:1;min-width:0}
+.mural__bubble{background:var(--surface-warm);border:1px solid var(--border);border-radius:4px 14px 14px 14px;padding:8px 12px}
+.mural__nome{font-size:12.5px;font-weight:800;color:var(--text-body)}
+.mural__txt{font-size:13.5px;color:var(--text-body);line-height:1.45;margin-top:1px;word-wrap:break-word;overflow-wrap:anywhere}
+.mural__meta{display:flex;align-items:center;gap:12px;padding:4px 4px 0;font-size:11px;color:var(--text-muted)}
+.mural__rm{background:none;border:0;color:var(--text-muted);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;padding:0}
+.mural__rm:hover{color:var(--danger,#c0392b)}
+
+.mural__composer{flex:none;display:flex;align-items:center;gap:9px;padding:11px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);background:var(--surface)}
+.mural__composer .mural__cav{width:32px;height:32px}
+.mural__inp{flex:1;height:42px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-warm);padding:0 16px;font-family:inherit;font-size:14px;color:var(--text-body);outline:none}
+.mural__inp:focus{border-color:var(--plum)}
+.mural__send{width:42px;height:42px;border-radius:50%;border:0;background:var(--plum);color:#fff;display:grid;place-items:center;flex:none;cursor:pointer}
+.mural__send svg{width:18px;height:18px}
+.mural__send:active{transform:scale(.96)}

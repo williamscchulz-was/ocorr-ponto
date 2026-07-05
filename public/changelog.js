@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.35.0", d: "5 jul 2026", current: true, items: [
+    v: "1.36.0", d: "5 jul 2026", current: true, items: [
+      { type: "fix", title: "A abertura do app ficou instantânea. Em vez de segurar a animação, aparece um esboço da tela que preenche assim que carrega, no espírito de abrir um app da Apple. A animação do fio escrevendo FioPulse agora roda só na estreia, no primeiro acesso do aparelho." },
+    ],
+  },
+  {
+    v: "1.35.0", d: "5 jul 2026", items: [
       { type: "fix", title: "O login ficou bem mais rápido e mostra um indicador girando enquanto entra, em vez de parecer travado. E abrir um documento não pisca mais na tela: aparece um carregando e o arquivo entra suave." },
     ],
   },

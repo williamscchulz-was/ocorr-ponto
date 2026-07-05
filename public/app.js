@@ -787,6 +787,7 @@ function cpIcon(name) {
     briefcase: '<rect x="2.5" y="7" width="19" height="13.5" rx="2.2"/><path d="M8 7V5.2A2.2 2.2 0 0 1 10.2 3h3.6A2.2 2.2 0 0 1 16 5.2V7"/><path d="M2.5 12.5h19"/>',
     camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
     refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+    enviar: '<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -1684,7 +1685,222 @@ if (!window._colabDocBound) {
     if (as) { e.preventDefault(); openColabAssinarSheet(as.dataset.colabAssinar); return; }
     const lr = e.target.closest("[data-colab-lerdoc]");
     if (lr) { e.preventDefault(); lr.disabled = true; colabLerDocUI(lr.dataset.colabLerdoc); return; }
+    const mu = e.target.closest("[data-mural]");
+    if (mu) {
+      e.preventDefault();
+      openMuralAniversario({ nome: mu.dataset.muralNome || "", dia: Number(mu.dataset.muralDia) || 0, mes: Number(mu.dataset.muralMes) || 0 });
+      return;
+    }
   });
+}
+
+// postId do mural = "aniv-<slug do nome>-<ano corrente>". config/aniversariantes não tem
+// funcionarioId (só nome/dia/mês), por isso a chave é por nome. Reusa o slugify de utils.js.
+// ponytail: se o WKRADAR passar a mandar um id estável por pessoa, chavear por ele aqui.
+function muralPostId(nome) {
+  const ano = new Date().getFullYear();
+  return `aniv-${slugify(String(nome || ""))}-${ano}`;
+}
+
+// "há X" mínimo para os recados (o app não tinha um tempoRelativo pronto). ISO -> "agora",
+// "há Nmin", "há Nh", "há Nd"; acima disso, data curta pt-BR.
+function _muralTempoRel(iso) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return "";
+  const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (s < 60) return "agora";
+  const m = Math.floor(s / 60); if (m < 60) return `há ${m} min`;
+  const h = Math.floor(m / 60); if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24); if (d < 7) return `há ${d}d`;
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+}
+
+// Cor determinística por nome para os avatares de iniciais (paleta sóbria da marca).
+function _muralCor(nome) {
+  const cores = ["#008835", "#0076BE", "#1AA34F", "#7a4fbf", "#c48a1a", "#0B7A36"];
+  const s = String(nome || "");
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return cores[h % cores.length];
+}
+
+const _muralHeart = (on) => `<svg class="icon" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg>`;
+
+// Mural social de aniversário (direção A): post com herói, um coração pra parabenizar,
+// resumo de quem parabenizou e o mural de recados com composer. Espelha o padrão de overlay
+// do openDocViewer (backdrop próprio, fecha por X/Esc/clique fora, restaura foco). Escrita
+// otimista (coração e recado ligam na hora; revertem no catch com toast).
+function openMuralAniversario(pessoa) {
+  const nome = (pessoa && pessoa.nome) || "";
+  const postId = muralPostId(nome);
+  const uid = (state && state.currentUserId) || null;
+  const u = currentUser();
+  const meuNome = (u && u.nome) || "";
+  const podeModerar = (typeof can === "function" && can("comunicados.gerenciar")) || (u && (u.role === "admin" || u.role === "rh"));
+  const primeiro = (nome.trim().split(/\s+/)[0]) || "?";
+
+  const prevFocus = document.activeElement;
+  const root = document.createElement("div");
+  root.className = "modal-backdrop modal-backdrop--docview";
+  root.innerHTML = `
+    <div class="mural" role="dialog" aria-modal="true" aria-label="Aniversário de ${escapeHtml(primeiro)}">
+      <div class="mural__h">
+        <button class="x" data-mural-close aria-label="Fechar">${cpIcon("x")}</button>
+        <div class="mural__ht">Aniversário</div>
+      </div>
+      <div class="mural__scroll" data-mural-scroll>
+        <div class="mural__loading">${cpIcon("spinner")}<span>Abrindo o mural...</span></div>
+      </div>
+      <form class="mural__composer" data-mural-form hidden>
+        <div class="mural__cav" style="background:${_muralCor(meuNome)}">${escapeHtml(initials(meuNome || "?"))}</div>
+        <input class="mural__inp" data-mural-input type="text" maxlength="500" autocomplete="off" placeholder="Deixe um recado para ${escapeHtml(primeiro)}...">
+        <button class="mural__send" type="submit" aria-label="Enviar recado">${cpIcon("enviar")}</button>
+      </form>
+    </div>`;
+  document.body.appendChild(root);
+
+  const scroll = root.querySelector("[data-mural-scroll]");
+  const form = root.querySelector("[data-mural-form]");
+  const input = root.querySelector("[data-mural-input]");
+
+  const fechar = () => {
+    document.removeEventListener("keydown", onKey, true);
+    root.remove();
+    if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch {} }
+  };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fechar(); } };
+  document.addEventListener("keydown", onKey, true);
+  root.addEventListener("click", (e) => { if (e.target === root) fechar(); });
+  root.querySelector("[data-mural-close]").addEventListener("click", fechar);
+
+  // Estado local do mural (mutado pelas ações otimistas; render redesenha o miolo).
+  let dados = { reacoes: [], recados: [], minhaReacao: false, total: 0 };
+
+  const heroHtml = () => `
+    <div class="mural__hero">
+      <div class="mural__av" style="background:${_muralCor(nome)}">${escapeHtml(initials(nome || "?"))}</div>
+      <h3>${escapeHtml(nome || primeiro)}</h3>
+      <p class="mural__sub">faz aniversário hoje</p>
+    </div>`;
+
+  const resumoHtml = () => {
+    const outros = dados.total - (dados.minhaReacao ? 1 : 0);
+    let txt;
+    if (dados.total === 0) txt = "Seja o primeiro a parabenizar";
+    else if (dados.minhaReacao) txt = outros > 0 ? `<b>Você e mais ${outros}</b> parabenizaram` : `<b>Você</b> parabenizou`;
+    else txt = `<b>${dados.total}</b> ${dados.total === 1 ? "pessoa parabenizou" : "pessoas parabenizaram"}`;
+    // avatares empilhados: até 4 iniciais de quem parabenizou (uid não carrega nome; usa "•")
+    const stack = dados.reacoes.slice(0, 4).map((r, i) => `<span class="mural__stk" style="background:${_muralCor(r.uid + i)}"></span>`).join("");
+    return `<div class="mural__rsummary">${stack ? `<div class="mural__stack">${stack}</div>` : ""}<span>${txt}</span></div>`;
+  };
+
+  const recadoHtml = (r) => {
+    const meu = uid && r.autorUid === uid;
+    const rem = (meu || podeModerar)
+      ? `<button class="mural__rm" data-mural-rm="${escapeHtml(r.id)}" type="button">Remover</button>` : "";
+    return `<div class="mural__cmt" data-mural-cmt="${escapeHtml(r.id)}">
+      <div class="mural__cav" style="background:${_muralCor(r.autorNome)}">${escapeHtml(initials(r.autorNome || "?"))}</div>
+      <div class="mural__cb">
+        <div class="mural__bubble"><div class="mural__nome">${escapeHtml(r.autorNome || "")}</div><div class="mural__txt">${escapeHtml(r.texto || "")}</div></div>
+        <div class="mural__meta"><span>${escapeHtml(_muralTempoRel(r.em))}</span>${rem}</div>
+      </div>
+    </div>`;
+  };
+
+  const render = () => {
+    const n = dados.recados.length;
+    scroll.innerHTML = `
+      <div class="mural__post">
+        ${heroHtml()}
+        <div class="mural__react">
+          <button class="mural__parab${dados.minhaReacao ? " on" : ""}" data-mural-heart type="button">
+            ${_muralHeart(dados.minhaReacao)}<span>${dados.minhaReacao ? "Você parabenizou" : "Parabenizar"}</span>
+          </button>
+          ${resumoHtml()}
+        </div>
+        <div class="mural__cmts">
+          <div class="mural__cmtsh">${n === 0 ? "Recados" : `Recados · ${n}`}</div>
+          ${n === 0 ? `<div class="mural__vazio">Nenhum recado ainda. Comece a festa.</div>` : dados.recados.map(recadoHtml).join("")}
+        </div>
+      </div>`;
+  };
+
+  // Coração otimista: alterna estado + total na hora, chama toggle, reverte no catch.
+  const onHeart = async () => {
+    const ligar = !dados.minhaReacao;
+    dados.minhaReacao = ligar;
+    dados.total += ligar ? 1 : -1;
+    if (ligar) dados.reacoes = [...dados.reacoes, { uid }];
+    else dados.reacoes = dados.reacoes.filter((r) => r.uid !== uid);
+    render();
+    try {
+      await window.toggleReacaoAniversario(postId, ligar);
+    } catch (err) {
+      dados.minhaReacao = !ligar;
+      dados.total += ligar ? -1 : 1;
+      if (ligar) dados.reacoes = dados.reacoes.filter((r) => r.uid !== uid);
+      else dados.reacoes = [...dados.reacoes, { uid }];
+      render();
+      toast("Não consegui registrar. Tente de novo.", "danger");
+    }
+  };
+
+  // Recado otimista: adiciona na lista com id temporário, limpa o input; troca pelo id real
+  // no sucesso, remove no erro.
+  const onEnviar = async (e) => {
+    e.preventDefault();
+    const texto = (input.value || "").trim();
+    if (!texto) return;
+    const tmpId = "tmp-" + Date.now();
+    const otim = { id: tmpId, autorUid: uid, autorNome: meuNome, texto, em: new Date().toISOString() };
+    dados.recados = [...dados.recados, otim];
+    input.value = "";
+    render();
+    scroll.scrollTop = scroll.scrollHeight;
+    try {
+      const criado = await window.enviarRecadoAniversario(postId, texto);
+      const i = dados.recados.findIndex((r) => r.id === tmpId);
+      if (i >= 0 && criado && criado.id) dados.recados[i] = { ...otim, id: criado.id, em: criado.em || otim.em };
+      render();
+    } catch (err) {
+      dados.recados = dados.recados.filter((r) => r.id !== tmpId);
+      input.value = texto;
+      render();
+      toast("Não consegui enviar o recado. Tente de novo.", "danger");
+    }
+  };
+
+  const onRemover = async (id) => {
+    const antes = dados.recados;
+    dados.recados = dados.recados.filter((r) => r.id !== id);
+    render();
+    try {
+      await window.removerRecadoAniversario(postId, id);
+    } catch (err) {
+      dados.recados = antes;
+      render();
+      toast("Não consegui remover o recado.", "danger");
+    }
+  };
+
+  // Delegação dentro do overlay (nós redesenhados a cada render).
+  scroll.addEventListener("click", (e) => {
+    if (e.target.closest("[data-mural-heart]")) { onHeart(); return; }
+    const rm = e.target.closest("[data-mural-rm]");
+    if (rm) { onRemover(rm.dataset.muralRm); return; }
+  });
+  form.addEventListener("submit", onEnviar);
+
+  // Carga lazy. Enquanto carrega, o composer fica escondido (evita enviar antes de ler).
+  (async () => {
+    if (typeof window.carregarMuralAniversario === "function") {
+      dados = await window.carregarMuralAniversario(postId);
+    }
+    render();
+    form.hidden = false;
+    setTimeout(() => root.querySelector("[data-mural-close]")?.focus(), 30);
+  })();
 }
 
 // Aniversariantes do mês na home do colaborador. Lê config/aniversariantes (sem PII:
@@ -13604,7 +13820,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.35.0";
+window.CURRENT_VERSION = "1.36.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -13619,7 +13835,6 @@ window.hideSplash = function hideSplash() {
   var wait = Math.max(0, MIN - (Date.now() - t0));
   setTimeout(function () {
     sp.classList.add("splash--out");
-    try { document.documentElement.classList.remove("sessao-restaurando"); } catch (e) {}
     setTimeout(function () { if (sp && sp.parentNode) sp.style.display = "none"; }, 650);
   }, wait);
 };
