@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.31.0", d: "3 jul 2026", current: true, items: [
+    v: "1.32.0", d: "5 jul 2026", current: true, items: [
+      { type: "feat", title: "Toque na foto de qualquer pessoa pra ver ela ampliada, e cada documento mostra se você só precisa ler, confirmar leitura ou assinar." },
+      { type: "feat", aud: "gestor", title: "Nova tela de Auditoria com a trilha de tudo que acontece no portal (login, leitura, assinatura, conferência, alteração). Ao publicar um documento você escolhe se o colaborador só lê, dá um aceite, ou assina. E os formulários de cadastro no computador ficaram em duas colunas, mais rápidos de preencher." },
+    ],
+  },
+  {
+    v: "1.31.0", d: "3 jul 2026", items: [
       { type: "feat", title: "No portal do colaborador: trocar senha virou uma tela mais clara e bonita, e no computador o conteúdo passou a ficar num tamanho confortável em vez de esticar na largura toda." },
       { type: "feat", aud: "gestor", title: "No Espelho de ponto, quando ninguém está selecionado a tela convida a escolher um liderado em vez de mostrar um painel vazio, e só fala de permissão quando é falta de permissão de verdade. A busca ficou igual nas telas de Funcionários, Banco de horas e Espelho." },
     ],

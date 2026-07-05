@@ -1312,6 +1312,7 @@
         anexo: (dados.anexo && ehUrlSegura(dados.anexo.url)) ? dados.anexo : null,
         versao: 1,
         exigeAssinatura: !!dados.exigeAssinatura,
+        confirmacao: ["nenhuma", "aceite", "assinatura"].includes(dados.confirmacao) ? dados.confirmacao : (dados.exigeAssinatura ? "assinatura" : "aceite"),
         status: "rascunho",
         alcanceEstimado: Number(dados.alcanceEstimado) || 0,
         criadoPor: (auth.currentUser && auth.currentUser.uid) || u?.id || null,
@@ -1339,6 +1340,7 @@
         segmento: patch.segmento || { tipo: "todos", valores: [] },
         anexo: (patch.anexo && ehUrlSegura(patch.anexo.url)) ? patch.anexo : null,
         exigeAssinatura: !!patch.exigeAssinatura,
+        confirmacao: ["nenhuma", "aceite", "assinatura"].includes(patch.confirmacao) ? patch.confirmacao : (patch.exigeAssinatura ? "assinatura" : "aceite"),
         alcanceEstimado: Number(patch.alcanceEstimado) || 0,
       };
       try {

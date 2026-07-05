@@ -465,7 +465,9 @@ function fotoDoFuncionario(funcionarioId) {
 function avatarFuncHtml(f, cls, styleExtra) {
   const foto = fotoDoFuncionario(f && f.id);
   const st = [styleExtra || "", foto ? `background-image:url('${foto}')` : ""].filter(Boolean).join(";");
-  if (foto) return `<div class="${cls} av-foto"${st ? ` style="${st}"` : ""} role="img" aria-label="Foto de ${escapeHtml((f && f.nome) || "funcionário")}"></div>`;
+  // Com foto: marca como ampliável (av-zoom + data-avatar-zoom); o handler delegado
+  // global abre o lightbox. Avatar de iniciais (sem foto) não é ampliável.
+  if (foto) return `<div class="${cls} av-foto av-zoom" data-avatar-zoom="${escapeHtml((f && f.id) || "")}" role="button" tabindex="0" aria-label="Ampliar foto de ${escapeHtml((f && f.nome) || "funcionário")}"${st ? ` style="${st}"` : ""}></div>`;
   return `<div class="${cls}"${st ? ` style="${st}"` : ""}>${escapeHtml(initials((f && f.nome) || "?"))}</div>`;
 }
 
@@ -1044,6 +1046,17 @@ function colabCienteUI(id) {
 
 if (!window._colabAvisoBound) {
   window._colabAvisoBound = true;
+  // Foto ampliável: capture phase pra vencer o clique da linha (a linha costuma ser
+  // um <button> com listener próprio no bubble; stopPropagation no bubble seria tarde).
+  document.addEventListener("click", (e) => {
+    const az = e.target.closest("[data-avatar-zoom]");
+    if (az) { e.stopPropagation(); e.preventDefault(); openAvatarLightbox(az.getAttribute("data-avatar-zoom"), az); }
+  }, true);
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const az = e.target.closest && e.target.closest("[data-avatar-zoom]");
+    if (az) { e.stopPropagation(); e.preventDefault(); openAvatarLightbox(az.getAttribute("data-avatar-zoom"), az); }
+  }, true);
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-colab-ciente]");
     if (b) { e.preventDefault(); b.disabled = true; colabCienteUI(b.dataset.colabCiente); return; }
@@ -1150,6 +1163,42 @@ function openColabImgLightbox(url) {
 }
 window.openColabImgLightbox = openColabImgLightbox;
 
+// Lightbox da foto do funcionário: imagem grande, nome e cargo embaixo, X no canto.
+// Fecha no X, clicando fora ou com Esc. Foco vai pro X ao abrir e volta pro gatilho.
+function openAvatarLightbox(funcId, trigger) {
+  const foto = fotoDoFuncionario(funcId);
+  if (!foto) return;
+  const f = (typeof getFuncionario === "function" && getFuncionario(funcId)) || null;
+  const nome = (f && f.nome) || (trigger && trigger.getAttribute("aria-label") || "").replace(/^Ampliar foto de\s*/, "") || "";
+  const sub = f ? [f.cargo, f.setor].filter(Boolean).join(" · ") : "";
+  const foco = trigger || document.activeElement;
+  const root = document.createElement("div");
+  root.className = "av-lb";
+  root.setAttribute("role", "dialog");
+  root.setAttribute("aria-modal", "true");
+  root.setAttribute("aria-label", nome ? `Foto de ${nome}` : "Foto ampliada");
+  root.innerHTML = `
+    <div class="av-lb__stage">
+      <button class="av-lb__x" aria-label="Fechar">${icon("x")}</button>
+      <div class="av-lb__img" style="background-image:url('${foto}')"></div>
+      ${nome ? `<div class="av-lb__nome">${escapeHtml(nome)}</div>` : ""}
+      ${sub ? `<div class="av-lb__sub">${escapeHtml(sub)}</div>` : ""}
+    </div>`;
+  document.body.appendChild(root);
+  document.body.classList.add("modal-aberto");
+  const fechar = () => {
+    root.remove();
+    document.body.classList.remove("modal-aberto");
+    document.removeEventListener("keydown", onKey, true);
+    if (foco && typeof foco.focus === "function") foco.focus();
+  };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); fechar(); } };
+  document.addEventListener("keydown", onKey, true);
+  root.querySelector(".av-lb__x").addEventListener("click", fechar);
+  root.addEventListener("click", (e) => { if (e.target === root) fechar(); });
+  root.querySelector(".av-lb__x").focus();
+}
+
 // ===== Registro disciplinar do colaborador (advertencia/suspensao) — le + da ciencia =====
 const COLAB_DISC = {
   verbal: { label: "Advertência verbal", ic: "megafone", badge: "amber" },
@@ -1192,8 +1241,10 @@ function colabDiscSecaoHtml() {
 const COLAB_DOC_IC = { regras: "clipboard", conduta: "shield", cultura: "smile", privacidade: "lock", termo: "file", outro: "file" };
 
 function colabDocPendente(d) {
-  if (d.exigeAssinatura) return !(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada === d.versao);
-  return !(d.minhaLeitura && d.minhaLeitura.confirmado);
+  const nivel = docNivel(d);
+  if (nivel === "nenhuma") return false; // informativo: nunca cobra nada
+  if (nivel === "assinatura") return !(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada === d.versao);
+  return !(d.minhaLeitura && d.minhaLeitura.confirmado); // aceite
 }
 
 // ---- Folha de pagamento (recibos) + cartão ponto em arquivo (SELF) ----
@@ -1477,17 +1528,20 @@ function renderColabDocumentos() {
 // Documento PENDENTE: card-herói com borda âmbar + botão grande (assinar/ler).
 function colabDocCardHtml(d) {
   const ic = COLAB_DOC_IC[d.tipo] || "file";
-  const exige = !!d.exigeAssinatura;
+  const exige = docNivel(d) === "assinatura";
   const temAnexo = !!(d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url));
   const verBtn = temAnexo ? `<button class="pp-btn pp-btn--soft pp-btn--block" data-doc-view="${d.id}" style="margin-bottom:8px">${cpIcon("file")}Ver documento</button>` : "";
   const acaoBtn = exige
     ? `<button class="pp-btn pp-btn--primary pp-btn--block" data-colab-assinar="${d.id}">${cpIcon("edit")}Assinar agora</button>`
-    : `<button class="pp-btn pp-btn--soft pp-btn--block" data-colab-lerdoc="${d.id}">${cpIcon("check")}Marcar como lido</button>`;
+    : `<button class="pp-btn pp-btn--soft pp-btn--block" data-colab-lerdoc="${d.id}">${cpIcon("check")}Confirmar leitura</button>`;
+  const badge = exige
+    ? `<span class="pp-badge pp-badge--amber">${cpIcon("edit")}Assinatura pendente · v${d.versao || 1}</span>`
+    : `<span class="pp-badge pp-badge--info">${cpIcon("check")}Confirmar leitura</span>`;
   return `
     <article class="pp-card pp-card--attn">
       <div class="pp-card__bd">
         <div class="pp-card__foot" style="margin:0 0 11px">
-          <span class="pp-badge pp-badge--amber">${cpIcon(exige ? "edit" : "info")}${exige ? `Assinatura pendente · v${d.versao || 1}` : "Leitura pendente"}</span>
+          ${badge}
         </div>
         <div style="display:flex;gap:12px;align-items:center">
           <span class="pp-ico pp-ico--amber">${cpIcon(ic)}</span>
@@ -1498,17 +1552,19 @@ function colabDocCardHtml(d) {
     </article>`;
 }
 
-// Documento EM DIA (lido/assinado): linha compacta no grupo "Publicados".
+// Documento EM DIA (informativo/lido/assinado): linha compacta no grupo "Publicados".
 function colabDocRowHtml(d) {
   const ic = COLAB_DOC_IC[d.tipo] || "file";
+  const nivel = docNivel(d);
   const temAnexo = !!(d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url));
-  const statusTxt = d.exigeAssinatura
-    ? `Assinado · v${(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada) || d.versao || 1}`
-    : "Lido";
+  const statusTxt = nivel === "nenhuma" ? "Informativo"
+    : nivel === "assinatura" ? `Assinado · v${(d.minhaAssinatura && d.minhaAssinatura.versaoAssinada) || d.versao || 1}`
+    : "Em dia";
+  const infoOnly = nivel === "nenhuma";
   return `<div class="pp-rw"${temAnexo ? ` data-doc-view="${d.id}" style="cursor:pointer"` : ` style="cursor:default"`}>
-    <span class="pp-ico pp-ico--green">${cpIcon(ic)}</span>
+    <span class="pp-ico ${infoOnly ? "pp-ico--neutral" : "pp-ico--green"}">${cpIcon(ic)}</span>
     <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(d.titulo || "")}</span><span class="pp-rw__s">${escapeHtml(docTipoLabel(d.tipo))} · ${statusTxt}</span></span>
-    ${temAnexo ? `<span class="pp-rw__ro">${cpIcon("file")}Abrir</span>` : `<span class="pp-rw__ro">${cpIcon("check")}OK</span>`}
+    ${temAnexo ? `<span class="pp-rw__ro">${cpIcon("file")}Abrir</span>` : (infoOnly ? "" : `<span class="pp-rw__ro">${cpIcon("check")}OK</span>`)}
   </div>`;
 }
 
@@ -1666,12 +1722,15 @@ function comunicadoFixadoHtml() {
 function precisaAtencaoHtml() {
   const docs = (state.documentosColab || []).filter((d) => typeof colabDocPendente === "function" && colabDocPendente(d));
   const itens = [];
-  docs.forEach((d) => itens.push({
-    page: "colab-documentos", tone: d.exigeAssinatura ? "amber" : "info",
-    ic: d.exigeAssinatura ? "edit" : "file",
-    t: d.exigeAssinatura ? "Documento a assinar" : "Documento a ler",
-    s: d.titulo || "", bd: d.exigeAssinatura ? "Assinar" : "Ler",
-  }));
+  docs.forEach((d) => {
+    const exige = docNivel(d) === "assinatura";
+    itens.push({
+      page: "colab-documentos", tone: exige ? "amber" : "info",
+      ic: exige ? "edit" : "file",
+      t: exige ? "Documento a assinar" : "Documento a confirmar",
+      s: d.titulo || "", bd: exige ? "Assinar" : "Confirmar",
+    });
+  });
   const disc = (state.disciplinaresColab || []).filter((d) => !d.minhaCiencia);
   disc.forEach((d) => itens.push({
     page: "colab-comunicados", tone: "amber", ic: "alert",
@@ -3938,19 +3997,17 @@ function openNovaOcorrencia() {
       </div>
       <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
-    <form class="modal__body" id="nova-form">
-      <div class="field-row">
-        <div class="field">
-          <label for="f-data">Data <span style="color:var(--danger)">*</span></label>
-          <input type="date" id="f-data" required aria-required="true" value="${today}" max="${today}" />
-        </div>
-        <div class="field">
-          <label for="f-horario">Horário <span style="color:var(--danger)">*</span></label>
-          <input type="time" id="f-horario" required aria-required="true" />
-        </div>
+    <form class="modal__body form2" id="nova-form">
+      <div class="field">
+        <label for="f-data">Data <span style="color:var(--danger)">*</span></label>
+        <input type="date" id="f-data" required aria-required="true" value="${today}" max="${today}" />
+      </div>
+      <div class="field">
+        <label for="f-horario">Horário <span style="color:var(--danger)">*</span></label>
+        <input type="time" id="f-horario" required aria-required="true" />
       </div>
 
-      <div class="field">
+      <div class="field span2">
         <label for="f-func">Funcionário <span style="color:var(--danger)">*</span></label>
         <select id="f-func" required aria-required="true">
           <option value="">Selecione...</option>
@@ -3966,7 +4023,7 @@ function openNovaOcorrencia() {
           : ""}
       </div>
 
-      <div class="field">
+      <div class="field span2">
         <label for="f-tipo">Tipo de ocorrência <span style="color:var(--danger)">*</span></label>
         <select id="f-tipo" required aria-required="true">
           <option value="">Selecione...</option>
@@ -3974,7 +4031,7 @@ function openNovaOcorrencia() {
         </select>
       </div>
 
-      <div class="field">
+      <div class="field span2">
         <label for="f-obs">Observação <span class="muted text-xs">(opcional)</span></label>
         <textarea id="f-obs" placeholder="Contexto, justificativa, anexos referenciados..."></textarea>
         <span class="field__hint">O líder poderá adicionar mais informações na conferência.</span>
@@ -3985,6 +4042,7 @@ function openNovaOcorrencia() {
       <button class="btn btn--primary" id="btn-save">${icon("check")}<span>Registrar</span></button>
     </div>
   `, {
+    className: "modal--form2",
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#btn-save").addEventListener("click", saveNovaOcorrencia);
@@ -4241,19 +4299,17 @@ function openEditOcorrenciaModal(id) {
       </div>
       <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
-    <form class="modal__body" id="edit-form" onsubmit="return false">
-      <div class="field-row">
-        <div class="field">
-          <label for="ef-data">Data</label>
-          <input type="date" id="ef-data" required value="${o.data}" max="${today}" />
-        </div>
-        <div class="field">
-          <label for="ef-horario">Horário</label>
-          <input type="time" id="ef-horario" required value="${o.horario || ""}" />
-        </div>
+    <form class="modal__body form2" id="edit-form" onsubmit="return false">
+      <div class="field">
+        <label for="ef-data">Data</label>
+        <input type="date" id="ef-data" required value="${o.data}" max="${today}" />
+      </div>
+      <div class="field">
+        <label for="ef-horario">Horário</label>
+        <input type="time" id="ef-horario" required value="${o.horario || ""}" />
       </div>
 
-      <div class="field">
+      <div class="field span2">
         <label for="ef-func">Funcionário</label>
         <select id="ef-func" required>
           ${state.funcionarios
@@ -4264,23 +4320,21 @@ function openEditOcorrenciaModal(id) {
         </select>
       </div>
 
-      <div class="field-row">
-        <div class="field">
-          <label for="ef-tipo">Tipo de ocorrência</label>
-          <select id="ef-tipo" required>
-            ${getAllTipos().map((t) => `<option value="${t.id}" ${t.id === o.tipo ? "selected" : ""}>${t.label}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field">
-          <label for="ef-acao">Ação <span class="muted text-xs">(opcional — vazio = pendente)</span></label>
-          <select id="ef-acao">
-            <option value="">— Pendente —</option>
-            ${getAllAcoes().map((a) => `<option value="${a.id}" ${a.id === o.acao ? "selected" : ""}>${a.label}</option>`).join("")}
-          </select>
-        </div>
+      <div class="field">
+        <label for="ef-tipo">Tipo de ocorrência</label>
+        <select id="ef-tipo" required>
+          ${getAllTipos().map((t) => `<option value="${t.id}" ${t.id === o.tipo ? "selected" : ""}>${t.label}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field">
+        <label for="ef-acao">Ação <span class="muted text-xs">(opcional — vazio = pendente)</span></label>
+        <select id="ef-acao">
+          <option value="">— Pendente —</option>
+          ${getAllAcoes().map((a) => `<option value="${a.id}" ${a.id === o.acao ? "selected" : ""}>${a.label}</option>`).join("")}
+        </select>
       </div>
 
-      <div class="field">
+      <div class="field span2">
         <label for="ef-obs">Observação</label>
         <textarea id="ef-obs" placeholder="Contexto, justificativa...">${escapeHtml(o.observacao || "")}</textarea>
       </div>
@@ -4290,6 +4344,7 @@ function openEditOcorrenciaModal(id) {
       <button class="btn btn--primary" id="btn-save-edit-occ">${icon("check")}<span>Salvar alterações</span></button>
     </div>
   `, {
+    className: "modal--form2",
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       $("#btn-save-edit-occ").addEventListener("click", () => saveEditOcorrencia(id));
@@ -4810,26 +4865,24 @@ function openFuncionarioModal(id) {
       ${podeEditarFunc ? `
       <div class="func-perfil-secao" ${isNew ? "" : `style="border-top:1px solid var(--border); padding-top:14px; margin-top:4px;"`}>
         ${isNew ? "" : `<div class="func-perfil-secao__titulo">Editar (turno / setor / status)</div>`}
-        <form id="func-form" onsubmit="return false">
-          <div class="field">
+        <form id="func-form" class="${isNew ? "form2" : ""}" onsubmit="return false">
+          <div class="field span2">
             <label for="func-nome">Nome completo <span style="color:var(--danger)">*</span></label>
             <input type="text" id="func-nome" required aria-required="true" value="${escapeHtml(f?.nome || "")}" ${!isNew ? "readonly style='background:var(--surface-warm); cursor:not-allowed;'" : ""} />
             ${!isNew ? `<span class="field__hint">Nome vem do ERP. Para alterar, ajuste lá.</span>` : ""}
           </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="func-codigo">Código/Matrícula</label>
-              <input type="text" id="func-codigo" value="${escapeHtml(f?.codigo || "")}" placeholder="ex: 1234" ${!isNew ? "readonly style='background:var(--surface-warm); cursor:not-allowed;'" : ""} />
-            </div>
-            <div class="field">
-              <label for="func-turno">Turno</label>
-              <select id="func-turno">
-                <option value="">— Sem turno —</option>
-                ${[1, 2, 3, "geral"].map((t) => `<option value="${t}" ${f?.turno === t ? "selected" : ""}>${TURNOS[t].label} (${TURNOS[t].horario})</option>`).join("")}
-              </select>
-            </div>
+          <div class="field">
+            <label for="func-codigo">Código/Matrícula</label>
+            <input type="text" id="func-codigo" value="${escapeHtml(f?.codigo || "")}" placeholder="ex: 1234" ${!isNew ? "readonly style='background:var(--surface-warm); cursor:not-allowed;'" : ""} />
           </div>
           <div class="field">
+            <label for="func-turno">Turno</label>
+            <select id="func-turno">
+              <option value="">— Sem turno —</option>
+              ${[1, 2, 3, "geral"].map((t) => `<option value="${t}" ${f?.turno === t ? "selected" : ""}>${TURNOS[t].label} (${TURNOS[t].horario})</option>`).join("")}
+            </select>
+          </div>
+          <div class="field span2">
             <label for="func-setor">Setor</label>
             <select id="func-setor">
               <option value="">— Não definido —</option>
@@ -4837,7 +4890,7 @@ function openFuncionarioModal(id) {
               ${f?.setor && !getSetores().includes(f.setor) ? `<option value="${escapeHtml(f.setor)}" selected>${escapeHtml(f.setor)} (legado)</option>` : ""}
             </select>
           </div>
-          <div class="toggle-row">
+          <div class="toggle-row span2">
             <div class="toggle-row__info">
               <strong>Funcionário ativo</strong>
               <span>Inativos não aparecem no formulário de nova ocorrência.</span>
@@ -4845,7 +4898,7 @@ function openFuncionarioModal(id) {
             <label class="toggle"><input type="checkbox" id="func-ativo" ${f?.ativo !== false ? "checked" : ""} /><span class="toggle__slider"></span></label>
           </div>
           ${ehAdmin ? `
-            <div class="toggle-row">
+            <div class="toggle-row span2">
               <div class="toggle-row__info">
                 <strong>Isento do banco de horas</strong>
                 <span>O pipeline ignora o saldo — pra afastados, diretoria, estagiários.</span>
@@ -4863,6 +4916,7 @@ function openFuncionarioModal(id) {
       ${podeEditarFunc ? `<button class="btn btn--primary" id="btn-save-func">${icon("check")}<span>${isNew ? "Criar" : "Salvar"}</span></button>` : ""}
     </div>
   `, {
+    className: isNew ? "modal--form2" : "",
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       if ($("#btn-save-func")) $("#btn-save-func").addEventListener("click", () => saveFuncionario(id));
@@ -6248,6 +6302,25 @@ const DOC_TIPOS = [
   { k: "outro", n: "Outro", icon: "file" },
 ];
 function docTipoMeta(k) { return DOC_TIPOS.find((t) => t.k === k) || DOC_TIPOS[DOC_TIPOS.length - 1]; }
+
+// Nível de confirmação que o documento exige do colaborador. Campo `confirmacao`
+// (aditivo, restrito pela rule a estes três valores). Doc legado sem `confirmacao`
+// deriva do bool exigeAssinatura: true -> assinatura; false -> aceite (ciência).
+const DOC_NIVEIS = [
+  { k: "nenhuma", n: "Sem confirmação", icon: "info", desc: "Documento apenas informativo. Fica disponível pra consulta e ninguém precisa confirmar nada.", ex: "Exemplo: cardápio do refeitório" },
+  { k: "aceite", n: "Aceite simples", icon: "check", desc: "O colaborador toca em Li e aceito. Fica registrado quem aceitou, quando e em qual dispositivo.", ex: "Exemplo: Manual da Cultura" },
+  { k: "assinatura", n: "Assinatura eletrônica", icon: "edit", desc: "Senha e confirmação de identidade. O mesmo aceite N1 com data, hora e versão por colaborador.", ex: "Exemplo: Regulamento Interno" },
+];
+const DOC_NIVEL_HINT = {
+  nenhuma: "<b>Sem confirmação:</b> publica e pronto. O documento fica disponível pra consulta e ninguém recebe pendência.",
+  aceite: "<b>Com aceite simples:</b> cada colaborador vê a pendência Confirmar leitura. O toque em Li e aceito registra quem, quando e o dispositivo.",
+  assinatura: "<b>Com assinatura eletrônica:</b> cada colaborador vê a pendência Assinatura pendente e confirma com a senha, registrando data, hora e a versão assinada.",
+};
+function docNivel(d) {
+  if (d && DOC_NIVEIS.some((n) => n.k === d.confirmacao)) return d.confirmacao;
+  return (d && d.exigeAssinatura) ? "assinatura" : "aceite";
+}
+function docNivelMeta(k) { return DOC_NIVEIS.find((n) => n.k === k) || DOC_NIVEIS[1]; }
 // Rótulo legível do tipo de documento institucional. Tipo conhecido → nome do DOC_TIPOS;
 // desconhecido → capitaliza a 1ª letra (nunca quebra); vazio → "Documento".
 function docTipoLabel(k) {
@@ -6261,27 +6334,31 @@ function docTipoLabel(k) {
 // Documentos institucionais carregados (ignora os pessoais, que sao outra tela).
 function docAtivos() { return (state.documentos || []).filter((d) => d.escopo === "institucional"); }
 
-// Adesao de um documento: X assinaram (da versao atual) ou leram, de Y do segmento.
+// Adesao de um documento por nível: assinatura conta assinaturas da versão atual;
+// aceite conta leituras; nenhuma (informativo) não cobra ninguém.
 function docAdesao(d) {
   const seg = d.segmento || { tipo: "todos", valores: [] };
   const Y = (typeof d.alcanceEstimado === "number" && d.status === "publicado") ? d.alcanceEstimado : comAlcance(seg);
-  const assina = !!d.exigeAssinatura;
+  const nivel = docNivel(d);
+  if (nivel === "nenhuma") return { X: 0, Y, pct: 0, verbo: "informativo", nivel };
+  const assina = nivel === "assinatura";
   const X = assina
     ? (d.assinaturas || []).filter((a) => a.versaoAssinada === d.versao).length
     : (d.leituras || []).length;
   const pct = Y > 0 ? Math.min(100, Math.round((X / Y) * 100)) : 0;
-  return { X, Y, pct, verbo: assina ? "assinaram" : "leram" };
+  return { X, Y, pct, verbo: assina ? "assinaram" : "aceitaram", nivel };
 }
 
 function docMetrics() {
   const pubs = docAtivos().filter((d) => d.status === "publicado");
-  let pendentes = 0, somaPct = 0;
+  let pendentes = 0, somaPct = 0, comConf = 0;
   for (const d of pubs) {
     const a = docAdesao(d);
-    if (d.exigeAssinatura) pendentes += Math.max(0, a.Y - a.X);
-    somaPct += a.pct;
+    if (a.nivel === "nenhuma") continue; // informativo não entra na média nem nos pendentes
+    if (a.nivel === "assinatura") pendentes += Math.max(0, a.Y - a.X);
+    somaPct += a.pct; comConf++;
   }
-  return { publicados: pubs.length, pendentes, media: pubs.length ? Math.round(somaPct / pubs.length) : 0 };
+  return { publicados: pubs.length, pendentes, media: comConf ? Math.round(somaPct / comConf) : 0 };
 }
 
 // ===== Controle disciplinar (advertencia/suspensao) — gestor =====
@@ -6630,9 +6707,12 @@ function docCardHtml(d) {
   const statusBadge = rascunho
     ? `<span class="badge badge--warning"><span>Rascunho</span></span>`
     : `<span class="badge badge--success"><span>Publicado</span></span>`;
+  const nivel = docNivel(d);
   const adesao = rascunho
     ? `<div class="cf-read"><span>Aguardando publicação</span><span class="com-bar"><i style="width:0%"></i></span></div>`
-    : `<div class="cf-read"><span><b>${a.X}</b> de ${a.Y} ${a.verbo}</span><span class="com-bar"><i style="width:${a.pct}%"></i></span></div>`;
+    : nivel === "nenhuma"
+      ? `<div class="cf-read"><span>Informativo · sem confirmação</span></div>`
+      : `<div class="cf-read"><span><b>${a.X}</b> de ${a.Y} ${a.verbo}</span><span class="com-bar"><i style="width:${a.pct}%"></i></span></div>`;
   const temAnexo = !!(d.anexo && d.anexo.url && ehUrlSegura(d.anexo.url));
   const verBtn = temAnexo ? `<button class="com-mini" data-doc-ver="${d.id}" aria-label="Ver documento" title="Ver documento">${icon("file")}</button>` : "";
   const acts = rascunho
@@ -6644,7 +6724,7 @@ function docCardHtml(d) {
       <div class="dcf-cover ${rascunho ? "dcf-cover--rasc" : "dcf-cover--pub"}" data-doc-editar="${d.id}">
         ${icon(tm.icon)}
         <span class="dcf-type">${escapeHtml(tm.n)}</span>
-        ${d.exigeAssinatura ? `<span class="dcf-sign">${icon("edit")}Assinatura</span>` : ""}
+        ${nivel === "assinatura" ? `<span class="dcf-sign">${icon("edit")}Assinatura</span>` : nivel === "aceite" ? `<span class="dcf-sign dcf-sign--aceite">${icon("check")}Aceite</span>` : ""}
       </div>
       <div class="cf-bd">
         <div class="cf-title" data-doc-editar="${d.id}">${escapeHtml(d.titulo || "(sem titulo)")}</div>
@@ -6699,6 +6779,7 @@ function openDocumentoModal(id) {
   const turnoVal = seg.tipo === "turno" ? (seg.valores || [])[0] : 1;
   const setorVal = seg.tipo === "setor" ? (seg.valores || [])[0] : (setores[0] || "");
   const tipoAtual = d?.tipo || "regras";
+  const nivelAtual = d ? docNivel(d) : "assinatura";
   const temAnexo = !!(d?.anexo && d.anexo.url);
   // Anexo pode ser in-app (data URL base64) OU link do Drive (https). Só o link vai
   // pro input de texto; o arquivo in-app abre pelo _docAnexoInApp/showBox.
@@ -6771,9 +6852,21 @@ function openDocumentoModal(id) {
           </select>
         </div>
       </div>
-      <div class="com-toggle">
-        <div class="com-toggle__t">${icon("edit")}<div><b>Exige assinatura / ciência</b><span>Registra trilha N1 com data, hora e versão por colaborador</span></div></div>
-        <button type="button" class="com-sw ${d?.exigeAssinatura ? "is-on" : ""}" id="doc-assina" role="switch" aria-checked="${d?.exigeAssinatura ? "true" : "false"}" aria-label="Exige assinatura"></button>
+      <div class="field">
+        <label>Confirmação do colaborador</label>
+        <div class="doc-nivel" id="doc-nivel-cards" role="radiogroup" aria-label="Confirmação do colaborador">
+          ${DOC_NIVEIS.map((n) => `
+            <button type="button" class="doc-ncard ${n.k === nivelAtual ? "is-on" : ""}" data-doc-nivel="${n.k}" role="radio" aria-checked="${n.k === nivelAtual ? "true" : "false"}">
+              <span class="doc-ncard__ic">${icon(n.icon)}</span>
+              <span class="doc-ncard__bd">
+                <b>${escapeHtml(n.n)}</b>
+                <span class="doc-ncard__p">${escapeHtml(n.desc)}</span>
+                <span class="doc-ncard__ex">${escapeHtml(n.ex)}</span>
+              </span>
+              <span class="doc-ncard__chk">${icon("check")}</span>
+            </button>`).join("")}
+        </div>
+        <div class="doc-nivel-hint" id="doc-nivel-hint">${DOC_NIVEL_HINT[nivelAtual]}</div>
       </div>
       </div>
     </form>
@@ -6786,7 +6879,7 @@ function openDocumentoModal(id) {
     onMount: (modal) => {
       modal.classList.add("modal--wide");
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      let segTipo = seg.tipo, tipo = tipoAtual, modo = temAnexo ? "anexo" : "texto";
+      let segTipo = seg.tipo, tipo = tipoAtual, modo = temAnexo ? "anexo" : "texto", nivel = nivelAtual;
       const groupPick = (sel, attr, set) => modal.querySelectorAll(sel).forEach((ch) => ch.addEventListener("click", () => {
         ch.parentElement.querySelectorAll(".com-seg__chip").forEach((c2) => c2.classList.remove("is-on"));
         ch.classList.add("is-on"); set(ch.dataset[attr]);
@@ -6803,10 +6896,11 @@ function openDocumentoModal(id) {
         $("#doc-seg-turno").style.display = segTipo === "turno" ? "" : "none";
         $("#doc-seg-setor").style.display = segTipo === "setor" ? "" : "none";
       }));
-      $("#doc-assina").addEventListener("click", () => {
-        const el = $("#doc-assina"); const on = el.getAttribute("aria-checked") === "true";
-        el.setAttribute("aria-checked", String(!on)); el.classList.toggle("is-on", !on);
-      });
+      modal.querySelectorAll("[data-doc-nivel]").forEach((ch) => ch.addEventListener("click", () => {
+        modal.querySelectorAll("[data-doc-nivel]").forEach((c2) => { c2.classList.remove("is-on"); c2.setAttribute("aria-checked", "false"); });
+        ch.classList.add("is-on"); ch.setAttribute("aria-checked", "true"); nivel = ch.dataset.docNivel;
+        const h = $("#doc-nivel-hint"); if (h) h.innerHTML = DOC_NIVEL_HINT[nivel] || "";
+      }));
 
       // Anexo in-app: lê a imagem/PDF e guarda base64 no _docAnexoInApp (vai pro doc
       // do Firestore). Editando um anexo in-app existente, já mostra a linha do arquivo.
@@ -6840,8 +6934,8 @@ function openDocumentoModal(id) {
         });
       }
 
-      $("#doc-rascunho").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo }), false));
-      $("#doc-publicar").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo }), true));
+      $("#doc-rascunho").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo, nivel }), false));
+      $("#doc-publicar").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo, nivel }), true));
       setTimeout(() => $("#doc-titulo")?.focus(), 60);
     },
   });
@@ -6859,11 +6953,14 @@ function docFileRowHtml(nome, url, mime) {
 }
 
 function salvarDocumentoForm(id, getState, publicar) {
-  const { segTipo, tipo, modo } = getState();
+  const { segTipo, tipo, modo, nivel } = getState();
   const titulo = $("#doc-titulo").value.trim();
   if (!titulo || titulo.length < 3) return campoInvalido("#doc-titulo", "Dê um título ao documento (mín. 3 letras).");
   const seg = docSegmentoDoForm(segTipo);
-  const dados = { titulo, tipo, segmento: seg, exigeAssinatura: $("#doc-assina").getAttribute("aria-checked") === "true", alcanceEstimado: comAlcance(seg) };
+  // `confirmacao` é a fonte de verdade do nível; exigeAssinatura fica em sincronia
+  // (compat com o legado e com a rule que trava anexo/segmento quando exige assinatura).
+  const nivelSel = DOC_NIVEIS.some((n) => n.k === nivel) ? nivel : "aceite";
+  const dados = { titulo, tipo, segmento: seg, confirmacao: nivelSel, exigeAssinatura: nivelSel === "assinatura", alcanceEstimado: comAlcance(seg) };
   if (modo === "anexo") {
     const link = $("#doc-anexo-url").value.trim();
     if (_docAnexoInApp && _docAnexoInApp.url) {
@@ -6957,7 +7054,21 @@ function abrirAdesaoDocumento(id) {
   if (!d) return;
   const seg = d.segmento || { tipo: "todos", valores: [] };
   const a = docAdesao(d);
-  const assina = !!d.exigeAssinatura;
+  const nivel = docNivel(d);
+  if (nivel === "nenhuma") {
+    openModal(`
+      <div class="modal__header">
+        <div><h2>Adesão</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · informativo</p></div>
+        <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+      </div>
+      <div class="modal__body">
+        <p class="muted" style="padding:8px 2px">Documento apenas informativo. Fica disponível pra consulta e não pede confirmação, então não há trilha de adesão.</p>
+      </div>
+      <div class="modal__footer"><button class="btn btn--ghost" data-close>Fechar</button></div>
+    `, { onMount: (modal) => modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal)) });
+    return;
+  }
+  const assina = nivel === "assinatura";
   const fontes = assina ? (d.assinaturas || []).filter((x) => x.versaoAssinada === d.versao) : (d.leituras || []);
   const feitoIds = new Set(fontes.map((x) => x.funcionarioId));
   const elegiveis = comFuncsDoSegmento(seg);
@@ -6967,22 +7078,25 @@ function abrirAdesaoDocumento(id) {
     const x = fontes.find((y) => y.funcionarioId === f.id);
     const quando = ok && x ? comData(x.em) : "";
     const sub = [(typeof TURNOS !== "undefined" && TURNOS[f.turno]?.label) || "", f.setor || ""].filter(Boolean).join(" · ");
-    return `<div class="com-person">
+    // Linha feita é clicável: abre a trilha por pessoa (quando, dispositivo e, se houver, local/hash).
+    const clic = ok && x ? ` com-person--clic" data-doc-trilha="${escapeHtml(f.id)}" role="button" tabindex="0` : "";
+    return `<div class="com-person${clic}">
       <span class="com-person__av">${escapeHtml(comIniciais(f.nome))}</span>
       <div class="com-person__info"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
       <span class="com-person__tag ${ok ? "is-ok" : "is-pend"}">${ok ? `${icon("check")}${escapeHtml(quando)}` : "pendente"}</span>
+      ${ok && x ? `<span class="com-person__chev">${icon("chevron")}</span>` : ""}
     </div>`;
   };
   openModal(`
     <div class="modal__header">
-      <div><h2>Adesão</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "exige assinatura" : "ciência"}</p></div>
+      <div><h2>Adesão</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "assinatura eletrônica" : "aceite simples"}</p></div>
       <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
       <div class="doc-big">${a.pct}% <small>${a.verbo} · ${a.X} de ${a.Y}</small></div>
       <div class="com-bar" style="margin:6px 0 16px"><i style="width:${a.pct}%"></i></div>
       <div class="com-tabs">
-        <button class="com-tab is-on" data-doc-tab="ok">${icon("check")}<span>${assina ? "Assinaram" : "Leram"}</span> <i>${feitos.length}</i></button>
+        <button class="com-tab is-on" data-doc-tab="ok">${icon("check")}<span>${assina ? "Assinaram" : "Aceitaram"}</span> <i>${feitos.length}</i></button>
         <button class="com-tab" data-doc-tab="pend">${icon("clock")}<span>Pendentes</span> <i>${pendentes.length}</i></button>
       </div>
       <div class="com-people" id="doc-people-ok">${feitos.length ? feitos.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguém ${a.verbo} ainda.</p>`}</div>
@@ -7001,8 +7115,42 @@ function abrirAdesaoDocumento(id) {
         $("#doc-people-ok").style.display = ok ? "" : "none";
         $("#doc-people-pend").style.display = ok ? "none" : "";
       }));
+      const abre = (el) => { const f = elegiveis.find((y) => y.id === el.dataset.docTrilha); const x = fontes.find((y) => y.funcionarioId === el.dataset.docTrilha); if (f && x) abrirTrilhaConfirmacao(d, f, x, assina); };
+      modal.querySelectorAll("[data-doc-trilha]").forEach((el) => {
+        el.addEventListener("click", () => abre(el));
+        el.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); abre(el); } });
+      });
     },
   });
+}
+
+// Trilha por pessoa de UMA confirmação. Assinatura mostra o que o backend expõe
+// (data, dispositivo e, quando existir carimbo, local/hash). Aceite mostra data e
+// dispositivo. Degrada com elegância quando um dado não veio.
+function abrirTrilhaConfirmacao(d, f, x, assina) {
+  const sub = [(typeof TURNOS !== "undefined" && TURNOS[f.turno]?.label) || "", f.setor || ""].filter(Boolean).join(" · ");
+  const geo = x.geo || {};
+  const temGeo = typeof geo.lat === "number" && typeof geo.lng === "number";
+  const linha = (lbl, val) => val ? `<div class="trg-row"><label>${escapeHtml(lbl)}</label><div>${val}</div></div>` : "";
+  const hash = x.hashSha256 ? `<code class="trg-hash">${escapeHtml(x.hashSha256)}</code>` : "";
+  openModal(`
+    <div class="modal__header">
+      <div><h2>${assina ? "Trilha de assinatura" : "Trilha de aceite"}</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "assinatura eletrônica" : "aceite simples"}</p></div>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="com-person" style="margin-bottom:14px">
+        <span class="com-person__av">${escapeHtml(comIniciais(f.nome))}</span>
+        <div class="com-person__info"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
+      </div>
+      ${linha(assina ? "Assinou em" : "Aceitou em", escapeHtml(comData(x.em)))}
+      ${x.aceiteTexto ? `<div class="trg-row"><label>Texto do aceite</label><div class="trg-quote">${escapeHtml(x.aceiteTexto)}</div></div>` : ""}
+      ${temGeo ? linha("Local", `${geo.lat.toFixed(5)}, ${geo.lng.toFixed(5)}${typeof geo.acc === "number" ? ` · precisão ${geo.acc} m` : ""} <a href="https://maps.google.com/?q=${geo.lat},${geo.lng}" target="_blank" rel="noopener">ver no mapa</a>`) : ""}
+      ${hash ? `<div class="trg-row"><label>Hash SHA-256 do arquivo assinado</label>${hash}</div>` : ""}
+      ${linha("Dispositivo", escapeHtml(x.userAgent || "não registrado"))}
+    </div>
+    <div class="modal__footer"><button class="btn btn--ghost" data-close>Fechar</button></div>
+  `, { onMount: (modal) => modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal)) });
 }
 
 if (!window._docBound) {
@@ -10879,100 +11027,136 @@ async function deletePJ(id) {
 // Sem coleção nova, sem escrita extra, vale retroativo.
 // ============================================
 
+// Chips por TIPO de evento (mock aprovado). "todos" mostra tudo, inclusive o
+// que não cai num dos 5 tipos nomeados (badge neutro "outros").
 const AUD_FILTROS = [
-  { id: "tudo", label: "Tudo" },
-  { id: "acessos", label: "Acessos" },
-  { id: "senha", label: "Senha" },
-  { id: "dados", label: "Dados" },
-  { id: "ciencias", label: "Ciências" },
-  { id: "conferencias", label: "Conferências" },
-  { id: "lancamentos", label: "Lançamentos" },
-  { id: "edicoes", label: "Edições" },
-  { id: "criacoes", label: "Criações" },
+  { id: "todos", label: "Todos" },
+  { id: "login", label: "Login" },
+  { id: "leitura", label: "Leitura" },
+  { id: "assinatura", label: "Assinatura" },
+  { id: "conferencia", label: "Conferência" },
+  { id: "alteracao", label: "Alteração" },
 ];
 
-// Classifica uma ação textual do histórico em categoria + visual (cor + ícone).
-function classificarAcaoAuditoria(acao) {
+// Rótulo + ícone de cada tipo (cores vêm da classe .aud-t-<tipo> no CSS).
+const AUD_TIPOS = {
+  login: { rotulo: "Login", ic: "login" },
+  leitura: { rotulo: "Leitura", ic: "eye" },
+  assinatura: { rotulo: "Assinatura", ic: "feather" },
+  conferencia: { rotulo: "Conferência", ic: "conferir" },
+  alteracao: { rotulo: "Alteração", ic: "edit" },
+  outros: { rotulo: "Evento", ic: "clock" },
+};
+
+// Deriva o tipo do mock a partir do texto da ação (a coleção /eventos guarda
+// ação livre; classificamos no cliente pra alimentar chips e badge).
+function tipoEventoAud(acao) {
   const a = (acao || "").toLowerCase();
-  if (a.includes("entrou") || a.includes("saiu")) return { cat: "acessos", dot: "ok", ic: "shield" };
-  if (a.includes("senha") || a.includes("reset")) return { cat: "senha", dot: "warn", ic: "lock" };
-  if (a.includes("ciência") || a.includes("ciencia") || a.includes("assinou") || a.includes("visualizou") || a.includes("leitura")) return { cat: "ciencias", dot: "neu", ic: "check" };
-  if (a.includes("usuário") || a.includes("usuario") || a.includes("funcionário") || a.includes("funcionario") || a.includes("permiss") || a.includes("importou") || a.includes("tipo")) return { cat: "dados", dot: "info", ic: "users" };
-  if (a.includes("conferiu")) return { cat: "conferencias", dot: "ok", ic: "check" };
-  if (a.includes("desfez")) return { cat: "lancamentos", dot: "warn", ic: "undo" };
-  if (a.includes("lançada") || a.includes("lancada") || a.includes("lançou") || a.includes("lancou"))
-    return { cat: "lancamentos", dot: "info", ic: "send" };
-  if (a.includes("criou") || a.includes("adicionou")) return { cat: "criacoes", dot: "neu", ic: "plus" };
-  if (a.includes("removeu") || a.includes("excluiu")) return { cat: "edicoes", dot: "dang", ic: "trash" };
-  if (a.includes("reajust") || a.includes("alterou")) return { cat: "edicoes", dot: "warn", ic: "edit" };
-  if (a.includes("editou") || a.includes("editada")) return { cat: "edicoes", dot: "warn", ic: "edit" };
-  if (a.includes("observa")) return { cat: "edicoes", dot: "neu", ic: "message" };
-  return { cat: "outros", dot: "neu", ic: "clock" };
+  if (a.includes("entrou") || a.includes("saiu")) return "login";
+  if (a.includes("assinou")) return "assinatura";
+  if (a.includes("conferiu")) return "conferencia";
+  if (a.includes("leu") || a.includes("visualizou") || a.includes("leitura")) return "leitura";
+  if (a.includes("alterou") || a.includes("editou") || a.includes("editada") || a.includes("reajust") ||
+    a.includes("atualizou") || a.includes("importou") || a.includes("criou") || a.includes("adicionou") ||
+    a.includes("removeu") || a.includes("excluiu") || a.includes("convidou") || a.includes("permiss") ||
+    a.includes("ciência") || a.includes("ciencia")) return "alteracao";
+  return "outros";
 }
 
-// Junta todos os historico[] das ocorrências num array plano, ordenado do mais recente.
+// Junta a trilha /eventos (login, leitura, assinatura, conferência, alteração) num
+// array plano normalizado, do mais recente pro mais antigo. Lê de state.eventos
+// (append-only, carregado por carregarEventosGlobal). Também traz o log global de
+// exclusões (state.auditoriaGlobal), que é trilha imutável da mesma natureza.
 function coletarAuditoria() {
   const itens = [];
-  for (const o of state.ocorrencias) {
-    for (const h of (Array.isArray(o.historico) ? o.historico : [])) {
-      if (!h || !h.em) continue;
-      itens.push({ tipo: "occ", em: h.em, por: h.por, acao: h.acao || "—", o });
-    }
-  }
-  // Ações de PJ (criar/editar/reajustar/remover valor) — cada PJ grava seu
-  // próprio historico[]; agregamos aqui junto das ocorrências.
-  for (const p of (state.pjs || [])) {
-    for (const h of (Array.isArray(p.historico) ? p.historico : [])) {
-      if (!h || !h.em) continue;
-      itens.push({ tipo: "pj", em: h.em, por: h.por, acao: h.acao || "—", pj: p });
-    }
-  }
-  // Log global imutável — eventos que somem do registro normal (exclusões).
-  for (const ev of (state.auditoriaGlobal || [])) {
-    if (!ev || !ev.em) continue;
-    itens.push({ tipo: "log", em: ev.em, por: ev.por, acao: ev.acao || "—", alvoTexto: ev.alvo || "" });
-  }
-  // Eventos estruturados (/eventos): login, senha, dados, ciência/assinatura de todo usuário.
-  // porNome vem no doc (o ator pode ser colaborador, cujo uid não está no state.users do gestor).
   for (const ev of (state.eventos || [])) {
     if (!ev || !ev.em) continue;
-    itens.push({ tipo: "evento", em: ev.em, por: ev.por, acao: ev.acao || "—", alvoTexto: ev.alvo || "", porNome: ev.porNome || "", porRole: ev.porRole || "" });
+    // porNome é o nome gravado no momento do evento (fonte de verdade da trilha);
+    // getUser é só fallback pra registros antigos sem porNome.
+    const quem = ev.porNome || getUser(ev.por)?.nome || ev.por || "—";
+    itens.push({
+      id: ev.id || "",
+      em: ev.em,
+      acao: ev.acao || "—",
+      quem,
+      papel: ev.porRole || "",
+      alvo: ev.alvo || "",
+      tipoEv: ev.tipo || "",
+      tipo: tipoEventoAud(ev.acao),
+    });
+  }
+  // Log global imutável: exclusões que somem do registro normal (mesma trilha).
+  for (const ev of (state.auditoriaGlobal || [])) {
+    if (!ev || !ev.em) continue;
+    itens.push({
+      id: ev.id || "",
+      em: ev.em,
+      acao: ev.acao || "—",
+      quem: getUser(ev.por)?.nome || ev.por || "—",
+      papel: "",
+      alvo: ev.alvo || "",
+      tipoEv: "exclusao",
+      tipo: tipoEventoAud(ev.acao),
+    });
   }
   itens.sort((a, b) => String(b.em).localeCompare(String(a.em)));
   return itens;
 }
 
+// Resumo do topo (cards): números do recorte já carregado.
+function resumoAuditoria(itens) {
+  const hoje = todayIso();
+  const seteDias = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const pessoasHoje = new Set();
+  let evHoje = 0, loginHoje = 0, assin7 = 0;
+  for (const it of itens) {
+    const dia = String(it.em).slice(0, 10);
+    if (dia === hoje) {
+      evHoje++;
+      if (it.tipo === "login") loginHoje++;
+      if (it.quem && it.quem !== "—") pessoasHoje.add(it.quem);
+    }
+    if (it.tipo === "assinatura" && dia >= seteDias) assin7++;
+  }
+  return { evHoje, loginHoje, assin7, pessoas: pessoasHoje.size };
+}
+
 function renderAuditoria() {
   $("#topbar-title").textContent = "Auditoria";
-  if (!state.view.audCat) state.view.audCat = "tudo";
+  if (!state.view.audCat) state.view.audCat = "todos";
   if (state.view.audBusca == null) state.view.audBusca = "";
 
   $("#view").innerHTML = `
     <header class="page-header">
       <div>
         <h1>Auditoria</h1>
-        <p>Quem fez o quê e quando: ocorrências e PJ. Apenas Admin e GP.</p>
+        <p>Trilha imutável de eventos do portal. Apenas Admin e GP.</p>
       </div>
+      <span class="aud__ro">${icon("lock")}Somente leitura</span>
     </header>
     <div class="aud">
+      <div class="aud__sums" id="aud-sums"></div>
       <div class="aud__filtros">
-        <div class="aud__busca">
-          ${icon("search")}
-          <input id="aud-busca" type="search" placeholder="Buscar por funcionário ou usuário…" value="${escapeHtml(state.view.audBusca)}" />
-        </div>
         <div class="aud__seg" id="aud-seg">
           ${AUD_FILTROS.map((f) => `<button data-cat="${f.id}" class="${state.view.audCat === f.id ? "on" : ""}">${f.label}</button>`).join("")}
         </div>
+        <div class="aud__busca">
+          ${icon("search")}
+          <input id="aud-busca" type="search" placeholder="Buscar por nome" value="${escapeHtml(state.view.audBusca)}" />
+        </div>
       </div>
       <div id="aud-feed"></div>
+      <div class="aud__lgpd">
+        ${icon("lock")}
+        Acesso restrito à administração. Os registros não podem ser editados nem apagados.
+      </div>
     </div>
   `;
 
   pintarFeedAuditoria(true);
 
-  // Lazy: carrega o log global (exclusões) só na 1ª vez que a Auditoria abre —
-  // não pesa no boot. Depois fica em cache na sessão (atualizações vêm do push
-  // otimista do registrarAuditoria).
+  // Lazy: carrega /eventos + o log global de exclusões só na 1ª vez que a
+  // Auditoria abre — não pesa no boot. Depois fica em cache na sessão.
   if (!state._audGlobalCarregado) {
     state._audGlobalCarregado = true;
     Promise.all([
@@ -10997,38 +11181,48 @@ function renderAuditoria() {
   });
 }
 
-// Repinta só o feed (preserva foco da busca).
+// Repinta cards + feed (preserva foco da busca).
 function pintarFeedAuditoria(animar) {
   const feed = $("#aud-feed");
   if (!feed) return;
 
-  const cat = state.view.audCat || "tudo";
-  const termo = (state.view.audBusca || "").trim().toLowerCase();
+  const cat = state.view.audCat || "todos";
+  const termo = normalizarBusca(state.view.audBusca || "");
+  const todos = coletarAuditoria();
 
-  const itens = coletarAuditoria().filter((it) => {
-    if (cat !== "tudo" && classificarAcaoAuditoria(it.acao).cat !== cat) return false;
-    if (termo) {
-      const quem = (getUser(it.por)?.nome || it.porNome || it.por || "").toLowerCase();
-      const alvo = (it.tipo === "pj"
-        ? (it.pj?.nome || "")
-        : (it.tipo === "log" || it.tipo === "evento")
-          ? (it.alvoTexto || "")
-          : (it.o?.funcionarioNome || getFuncionario(it.o?.funcionarioId)?.nome || "")).toLowerCase();
-      if (!quem.includes(termo) && !alvo.includes(termo)) return false;
-    }
+  // Cards de resumo: sempre sobre o recorte inteiro (não seguem chip/busca).
+  const sums = $("#aud-sums");
+  if (sums) {
+    const r = resumoAuditoria(todos);
+    sums.innerHTML = [
+      ["Eventos hoje", "pulso", r.evHoje],
+      ["Logins hoje", "login", r.loginHoje],
+      ["Assinaturas em 7 dias", "feather", r.assin7],
+      ["Pessoas ativas hoje", "users", r.pessoas],
+    ].map(([lbl, ic, n]) => `
+      <div class="aud__sum">
+        <div class="aud__sum-top"><span>${lbl}</span>${icon(ic)}</div>
+        <b>${n}</b>
+      </div>`).join("");
+  }
+
+  const itens = todos.filter((it) => {
+    if (cat !== "todos" && it.tipo !== cat) return false;
+    if (termo && !normalizarBusca(it.quem).includes(termo) && !normalizarBusca(it.alvo).includes(termo)) return false;
     return true;
   });
 
   if (!itens.length) {
-    const filtrando = !!termo || cat !== "tudo";
+    const filtrando = !!termo || cat !== "todos";
     feed.innerHTML = `
       <div class="empty">
-        <div class="empty__icon">${icon("shield")}</div>
-        <h3>${filtrando ? "Nada com esse filtro" : "Sem atividade registrada"}</h3>
+        <div class="empty__icon">${icon("search")}</div>
+        <h3>${filtrando ? "Nenhum evento com esses filtros" : "Sem atividade registrada"}</h3>
         <p>${filtrando
-          ? "Ajuste a busca ou a categoria para ver outros eventos."
-          : "Cada lançamento, edição, exclusão e assinatura aparece aqui, com quem fez e quando."}</p>
+          ? "Ajuste a busca ou o tipo para ver outros eventos."
+          : "Cada login, leitura, assinatura, conferência e alteração aparece aqui, com quem fez e quando."}</p>
       </div>`;
+    if (animar) animarEntrada(feed);
     return;
   }
 
@@ -11042,52 +11236,33 @@ function pintarFeedAuditoria(animar) {
     if (!atual || atual.dia !== dia) { atual = { dia, itens: [] }; grupos.push(atual); }
     atual.itens.push(it);
   }
+  // Guarda o recorte pra o modal de detalhe achar o evento pelo índice.
+  state._audItens = itens;
 
   const labelDia = (dia) =>
     dia === hoje ? `Hoje · ${formatDate(dia)}`
       : dia === ontem ? `Ontem · ${formatDate(dia)}`
         : formatDate(dia);
-  const hora = (em) => {
-    try { return new Date(em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
-    catch (e) { return ""; }
-  };
 
+  let idx = 0;
   feed.innerHTML = grupos.map((g) => `
     <div class="aud__dia">
-      <div class="aud__dia-h">${labelDia(g.dia)}</div>
+      <div class="aud__dia-h">${labelDia(g.dia)} · ${g.itens.length} ${g.itens.length === 1 ? "evento" : "eventos"}</div>
       <div class="aud__feed">
         ${g.itens.map((it) => {
-          const cl = classificarAcaoAuditoria(it.acao);
-          const quem = getUser(it.por)?.nome || it.porNome || it.por || "—";
-          let alvo, attr;
-          if (it.tipo === "pj") {
-            alvo = "PJ · " + (it.pj?.nome || "—");
-            attr = `data-pj="${escapeHtml(it.pj?.id || "")}"`;
-          } else if (it.tipo === "log") {
-            // Registro já não existe (foi excluído) — sem clique.
-            alvo = it.alvoTexto || "—";
-            attr = "";
-          } else if (it.tipo === "evento") {
-            alvo = it.alvoTexto || "—";
-            attr = "";
-          } else {
-            const func = it.o.funcionarioNome || getFuncionario(it.o.funcionarioId)?.nome || "—";
-            const tp = getTipo(it.o.tipo)?.label || "—";
-            alvo = `${func} · ${tp} · ${formatDate(it.o.data)}`;
-            attr = `data-occ="${escapeHtml(it.o.id)}"`;
-          }
+          const t = AUD_TIPOS[it.tipo] || AUD_TIPOS.outros;
           const acaoHtml = escapeHtml(it.acao).replace(/\(([^)]+)\)/, "(<b>$1</b>)");
           return `
-            <button class="aud__row${attr ? "" : " aud__row--static"}" ${attr}>
-              <span class="aud__dot aud__dot--${cl.dot}">${icon(cl.ic)}</span>
+            <button class="aud__row" data-i="${idx++}">
+              <span class="aud__badge aud-t-${it.tipo}">${icon(t.ic)}</span>
               <span class="aud__rc">
-                <span class="aud__acao">${acaoHtml}</span>
-                <span class="aud__alvo">${escapeHtml(alvo)}</span>
+                <span class="aud__acao">${escapeHtml(it.quem)}</span>
+                <span class="aud__alvo">${acaoHtml}</span>
               </span>
               <span class="aud__meta">
-                <span class="aud__quem">${escapeHtml(quem)}</span>
-                <span class="aud__hora">${hora(it.em)}</span>
+                <span class="aud__hora">${horaAud(it.em)}</span>
               </span>
+              <span class="aud__chev">${icon("chevron")}</span>
             </button>
           `;
         }).join("")}
@@ -11097,12 +11272,59 @@ function pintarFeedAuditoria(animar) {
 
   $$("#aud-feed .aud__row").forEach((row) => {
     row.addEventListener("click", () => {
-      if (row.dataset.pj) openPJModal(row.dataset.pj);
-      else if (row.dataset.occ) openOcorrenciaDetail(row.dataset.occ);
+      const it = (state._audItens || [])[+row.dataset.i];
+      if (it) openAuditoriaDetalhe(it);
     });
   });
 
   if (animar) animarEntrada(feed);
+}
+
+function horaAud(em) {
+  try { return new Date(em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+  catch (e) { return ""; }
+}
+function normalizarBusca(s) {
+  return String(s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+// Modal de detalhe de um evento da trilha: pessoa, quando, ação, alvo, id e a
+// nota de imutabilidade. Sem edição — é só leitura de um registro append-only.
+function openAuditoriaDetalhe(it) {
+  const t = AUD_TIPOS[it.tipo] || AUD_TIPOS.outros;
+  let quando = it.em;
+  try {
+    quando = new Date(it.em).toLocaleString("pt-BR", {
+      weekday: "long", day: "2-digit", month: "long", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    });
+  } catch (e) {}
+  const linha = (l, v) => `<div class="audd__row"><span class="audd__l">${l}</span><span class="audd__v">${v}</span></div>`;
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>Detalhe do evento</h2>
+        <p>${escapeHtml(t.rotulo)} · ${horaAud(it.em)}</p>
+      </div>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      ${linha("Tipo", `<span class="audd__badge aud-t-${it.tipo}">${icon(t.ic)}${escapeHtml(t.rotulo)}</span>`)}
+      ${linha("Pessoa", `<b>${escapeHtml(it.quem)}</b>${it.papel ? `<div style="font-size:11.5px;color:var(--text-muted)">${escapeHtml(it.papel)}</div>` : ""}`)}
+      ${linha("Ação", escapeHtml(it.acao))}
+      ${linha("Data e hora", escapeHtml(quando))}
+      ${it.alvo ? linha("Alvo do evento", escapeHtml(it.alvo)) : ""}
+      ${it.id ? linha("ID do evento", `<span class="audd__id">${escapeHtml(it.id)}</span>`) : ""}
+      <div class="audd__nota">
+        ${icon("lock")}
+        Registro imutável, gravado pelo próprio aplicativo no momento do evento.
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" data-close>Fechar</button>
+    </div>
+  `, { dismissOnBackdrop: true });
+  $$("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
 }
 
 // ---------- Configurações (Admin/RH) ----------
@@ -12901,7 +13123,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.31.0";
+window.CURRENT_VERSION = "1.32.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
