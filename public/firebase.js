@@ -1676,7 +1676,10 @@
       // futuro: chave `{uid}_v{n}` + rule aditiva que valide o sufixo == versaoAssinada.
       const arquivoPath = `documentos-assinados/${u?.funcionarioId || user.uid}/${docId}-v${versaoDoDocumento}.pdf`;
       const ref = firebase.storage().ref(arquivoPath);
-      const subir = () => ref.putString(comprovanteDataUrl, "data_url", { contentType: "application/pdf" });
+      // sha256Original em customMetadata é cinto e suspensório: o hash do conteúdo original
+      // também vive na trilha (Firestore) e na página de autenticação do PDF; guardar no
+      // objeto do Storage dá uma terceira âncora. A rule do Storage não restringe metadata.
+      const subir = () => ref.putString(comprovanteDataUrl, "data_url", { contentType: "application/pdf", customMetadata: { sha256Original: String(hashOriginal || "") } });
       try {
         await subir();
       } catch (e) {

@@ -1621,33 +1621,44 @@ function openColabAssinarSheet(docId) {
     titulo: "Assinar o documento",
     sub: `${d.titulo || docTipoLabel(d.tipo)} · v${versaoAssinada}`,
     nome, codigo,
-    blockerPassos: ["Confirmando identidade", "Gerando o comprovante", "Guardando com segurança"],
+    blockerPassos: ["Confirmando identidade", "Gerando o documento", "Guardando com segurança"],
     finalizar: async (st) => {
-      updateFormBlocker("Gerando o comprovante...", 1);
+      updateFormBlocker("Gerando o documento...", 1);
       const quando = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-      // hash do CONTEÚDO ORIGINAL (anexo com hash → anexo sem hash → texto). O comprovante
-      // já resolve a mesma cadeia internamente; recalculamos aqui pra passar à trilha.
-      let hashOriginal = "";
-      const anexo = d.anexo;
-      if (anexo && anexo.hashSha256) hashOriginal = String(anexo.hashSha256);
-      else if (anexo && anexo.url && ehUrlSegura(anexo.url)) {
-        try { hashOriginal = await sha256Hex(new Uint8Array(await dataUrlParaBlob(anexo.url).arrayBuffer())); }
-        catch (e) { hashOriginal = await sha256Hex(new TextEncoder().encode(String(d.descricao || ""))); }
-      } else hashOriginal = await sha256Hex(new TextEncoder().encode(String(d.descricao || "")));
-      const { dataUrl } = await gerarComprovantePdf(d, {
+      // Hash do CONTEÚDO ORIGINAL — dos MESMOS bytes que serão anexados ao PDF final
+      // (conteudoOriginalDoDoc é a fonte única). Assim o SHA-256 gravado na trilha bate
+      // exatamente com o attachment embutido. Vai pra trilha E pra página de autenticação.
+      const orig = await conteudoOriginalDoDoc(d);
+      const hashOriginal = await sha256Hex(orig.bytes);
+      const dadosDoc = {
         titulo: d.titulo || docTipoLabel(d.tipo),
         tipoLabel: docTipoLabel(d.tipo),
         docId, versaoAssinada, nome, codigo, quando,
-        geo: st.geo,
+        geo: st.geo, hashOriginal,
         aceiteTexto: "Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura.",
-      });
+      };
+      // Cascata: monta o documento assinado (conteúdo + página de autenticação, 1 PDF só) →
+      // se falhar (PDF legado que o pdf-lib não carrega), rasteriza via pdf.js e embute como
+      // imagem → se ISSO falhar, cai no comprovante A4 standalone (v276). Nunca trava.
+      let dataUrl;
+      try {
+        ({ dataUrl } = await gerarDocumentoAssinado(d, dadosDoc));
+      } catch (e1) {
+        debug?.("[assinatura] montar falhou, rasterizando:", e1?.message || e1);
+        try {
+          ({ dataUrl } = await rasterizarDocumentoAssinado(d, dadosDoc));
+        } catch (e2) {
+          debug?.("[assinatura] rasterizar falhou, comprovante standalone:", e2?.message || e2);
+          ({ dataUrl } = await gerarComprovantePdf(d, dadosDoc));
+        }
+      }
       updateFormBlocker("Guardando com segurança...", 2);
       const res = await window.assinarDocumentoCarimbado?.(docId, st.geo, dataUrl, hashOriginal);
       if (!res || !res.ok) return { ok: false, msg: (res && res.msg) || "Não consegui concluir. Tente de novo." };
       return {
         ok: true,
-        okToast: "Documento assinado. O comprovante já está guardado.",
-        verComprovante: { titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url: dataUrl, nome: "comprovante.pdf", mime: "application/pdf" } },
+        okToast: "Documento assinado. O documento já está guardado.",
+        verComprovante: { titulo: `Documento assinado · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url: dataUrl, nome: "documento-assinado.pdf", mime: "application/pdf" } },
       };
     },
   };
@@ -5889,6 +5900,16 @@ async function docArquivoParaAnexo(file) {
     url = await lerArquivoDataUrl(file); mime = "application/pdf";
     if (!/^data:application\/pdf/i.test(url)) throw new Error("Arquivo não parece um PDF válido.");
     if (url.length > 950000) throw new Error("PDF acima de ~680 KB. Comprima o PDF (ex.: ilovepdf) ou cole um link do Drive.");
+    // Valida agora que o pdf-lib consegue abrir o PDF. Um PDF cifrado (senha de dono) ou
+    // corrompido passaria na publicação e só quebraria depois, na hora do colaborador
+    // assinar (o gerarDocumentoAssinado precisa carregar o original). Falha aqui é erro
+    // claro pro RH; um PDF são não trava.
+    try {
+      const PDFLib = await loadPdfLib();
+      await PDFLib.PDFDocument.load(url.split(",")[1]);
+    } catch (e) {
+      throw new Error("PDF protegido ou inválido. Exporte sem senha e tente de novo.");
+    }
   }
   return { url, mime, nome: (file.name || "arquivo").slice(0, 140) };
 }
@@ -6988,6 +7009,10 @@ function salvarDocumentoForm(id, getState, publicar) {
       dados.anexo = { url: _docAnexoInApp.url, nome: _docAnexoInApp.nome || titulo, mime: _docAnexoInApp.mime || "", hashSha256: "" };
     } else if (link) {
       if (!ehUrlSegura(link)) return campoInvalido("#doc-anexo-url", "Link inválido. Use uma URL https.");
+      // Assinatura eletrônica exige o conteúdo real (arquivo in-app ou texto) pra que o
+      // hash SHA-256 prove o que foi assinado. Um link externo (Drive) não traz bytes, o
+      // hash cairia em sha256("") e não provaria nada — barra na publicação.
+      if (nivelSel === "assinatura") return campoInvalido("#doc-anexo-url", "A assinatura eletrônica exige o arquivo no app ou o texto do documento, não serve link externo.");
       const anexoNome = ($("#doc-anexo-url").dataset.nome || "").trim() || titulo;
       // Link do Drive mantém o shape antigo (sem mime) — preserva a igualdade do
       // anexo exigida pela rule ao editar doc publicado+assinatura já existente.
@@ -7261,6 +7286,22 @@ async function sha256Hex(bytes) {
   return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Limpa um texto pra caber no WinAnsi (o encoding das fontes-padrão do PDF, Helvetica).
+// drawText CRASHA em glifo fora do WinAnsi (emoji, CJK, setas). Acento PT-BR passa (está
+// no WinAnsi); o resto vira "?". Usar em TODO texto que vá pra uma fonte StandardFonts.
+function winAnsiSeguro(txt) {
+  return String(txt == null ? "" : txt)
+    .normalize("NFC")
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[“”„‟]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/ /g, " ")
+    // \x20-\x7E = ASCII imprimível; \xA0-\xFF = Latin-1 (cobre acentos PT-BR e o "·").
+    // Qualquer outra coisa (emoji, CJK) fora do WinAnsi vira "?" pra não quebrar drawText.
+    .replace(/[^\x20-\x7E -ÿ]/g, "?");
+}
+
 // Carimba o box "Termos de Assinatura e Registro Eletrônico" + nome em fonte de
 // assinatura na ÚLTIMA página (área da assinatura física do WK). Retorna
 // { dataUrl, bytes } do PDF carimbado. Provado no arquivo real (split 45KB → 46KB).
@@ -7305,11 +7346,276 @@ async function rcbCarimbarPdf(dataUrlOriginal, dados) {
   return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
 }
 
-// Comprovante de assinatura eletrônica de DOCUMENTO institucional. Diferente do recibo,
-// o documento pode ser só texto (sem PDF), então NÃO carimbamos o original: geramos um
-// PDF A4 NOVO que atesta o ato e prende o SHA-256 do CONTEÚDO ORIGINAL (anexo, se houver;
-// senão o texto de `descricao`). Reusa os mesmos helpers do carimbo do recibo (pdf-lib,
-// fontkit, Great Vibes). Retorna { dataUrl, bytes }.
+// Resolve os BYTES EXATOS do conteúdo original assinado + como anexá-los. Anexo in-app
+// (imagem/PDF) → bytes crus do dataURL; só-texto → a `descricao` como UTF-8 .txt. É o
+// mesmo conteúdo cujo SHA-256 vai pra trilha, então estes bytes DEVEM bater com o hash
+// gravado. Link externo não entra aqui (barrado na publicação p/ nível assinatura).
+async function conteudoOriginalDoDoc(doc) {
+  const anexo = doc && doc.anexo;
+  if (anexo && anexo.url && /^data:/i.test(String(anexo.url)) && ehUrlSegura(anexo.url)) {
+    const blob = dataUrlParaBlob(anexo.url);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const ehPdf = /^data:application\/pdf/i.test(anexo.url) || /pdf/i.test(anexo.mime || "");
+    const ehImg = /^data:image\//i.test(anexo.url) || /^image\//i.test(anexo.mime || "");
+    let nomeArq = String(anexo.nome || "documento");
+    if (ehPdf && !/\.pdf$/i.test(nomeArq)) nomeArq += ".pdf";
+    return { bytes, nomeArq, mime: anexo.mime || (ehPdf ? "application/pdf" : ""), ehPdf, ehImg, ehTexto: false };
+  }
+  // Só-texto: o conteúdo assinado é a `descricao`. Anexa como .txt pra sobreviver mesmo
+  // que uma nova versão troque o corpo no sistema.
+  const bytes = new TextEncoder().encode(String((doc && doc.descricao) || ""));
+  return { bytes, nomeArq: "documento.txt", mime: "text/plain", ehPdf: false, ehImg: false, ehTexto: true };
+}
+
+// Desenha o rodapé de autenticação ("Página X de Y · ID ...") no rodapé de uma página.
+// Envolvido em try/catch pelo caller: página rotacionada ou com cropbox deslocada pode
+// posicionar o texto fora do papel; aceitamos a imperfeição em vez de quebrar tudo.
+function carimbarRodapeAutent(pg, fN, rgb, idAssinatura, i, total) {
+  const txt = winAnsiSeguro(`Página ${i} de ${total} · ID ${idAssinatura}`);
+  const size = 6.5;
+  const w = fN.widthOfTextAtSize(txt, size);
+  const pw = pg.getWidth();
+  pg.drawRectangle({ x: 0, y: 0, width: pw, height: 15, color: rgb(1, 1, 1), opacity: 0.82 });
+  pg.drawText(txt, { x: Math.max(6, (pw - w) / 2), y: 5, size, font: fN, color: rgb(0.4, 0.4, 0.4) });
+}
+
+// DOCUMENTO ASSINADO = conteúdo original + página de autenticação, num PDF só. Monta o
+// conteúdo conforme o formato (PDF → mantém as N páginas; imagem → embuti numa página;
+// só-texto → pagina a `descricao` em A4), carimba o rodapé de autenticação em cada página,
+// acrescenta a página de autenticação no fim e ANEXA os bytes exatos do original (pdf.attach)
+// pra o conteúdo assinado sobreviver a uma futura troca de versão. `dados.hashOriginal` é o
+// MESMO hash que vai pra trilha (bate com os bytes anexados). Retorna { dataUrl, bytes }.
+async function gerarDocumentoAssinado(doc, dados) {
+  const PDFLib = await loadPdfLib();
+  const fontkit = await loadFontkit();
+  const fonte = await fonteAssinaturaBytes();
+  const rgb = PDFLib.rgb;
+  const original = await conteudoOriginalDoDoc(doc);
+  const idAssinatura = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+
+  // ---- 1) Monta o PDF do CONTEÚDO conforme o formato ----
+  let pdf;
+  if (original.ehPdf) {
+    pdf = await PDFLib.PDFDocument.load(original.bytes); // mantém as N páginas do PDF
+  } else {
+    pdf = await PDFLib.PDFDocument.create();
+    if (original.ehImg) {
+      let img;
+      const ehPng = /^data:image\/png/i.test(doc.anexo.url) || /png/i.test(original.mime || "");
+      try { img = ehPng ? await pdf.embedPng(original.bytes) : await pdf.embedJpg(original.bytes); }
+      catch (e) { img = await pdf.embedPng(original.bytes); } // fallback: header mentiu sobre o tipo
+      const A4 = [595.28, 841.89];
+      const pg = pdf.addPage(A4);
+      const m = 28;
+      const maxW = A4[0] - m * 2, maxH = A4[1] - m * 2;
+      const esc = Math.min(maxW / img.width, maxH / img.height, 1);
+      const w = img.width * esc, h = img.height * esc;
+      pg.drawImage(img, { x: (A4[0] - w) / 2, y: (A4[1] - h) / 2, width: w, height: h });
+    } else {
+      // Só-texto: pagina a `descricao` em A4 (sanitizada pro WinAnsi da Helvetica).
+      const fTxt = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+      const fTit = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+      const A4 = [595.28, 841.89];
+      const mx = 56, topo = 792, base = 64;
+      const largura = A4[0] - mx * 2, size = 10.5, lh = size + 5;
+      const titulo = winAnsiSeguro(dados.titulo || "Documento");
+      const corpo = winAnsiSeguro(doc && doc.descricao || "");
+      let pg = pdf.addPage(A4);
+      let y = topo;
+      pg.drawText(titulo, { x: mx, y, size: 15, font: fTit, color: rgb(0.1, 0.1, 0.1) });
+      y -= 28;
+      // Preserva quebras de parágrafo do RH; cada parágrafo re-quebra por largura.
+      const paras = corpo.split(/\n/);
+      for (const para of paras) {
+        const linhas = para.trim() ? quebrarTexto(para, fTxt, size, largura) : [""];
+        for (const ln of linhas) {
+          if (y < base) { pg = pdf.addPage(A4); y = topo; }
+          if (ln) pg.drawText(ln, { x: mx, y, size, font: fTxt, color: rgb(0.13, 0.13, 0.13) });
+          y -= lh;
+        }
+      }
+    }
+  }
+
+  // ---- 2) Página de autenticação no fim ----
+  await construirPaginaAutenticacao(pdf, dados, doc, original, idAssinatura);
+
+  // ---- 3) Rodapé de autenticação em TODA página (a de autent. inclusive) ----
+  const fRodape = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+  const pgs = pdf.getPages();
+  pgs.forEach((pg, i) => {
+    try { carimbarRodapeAutent(pg, fRodape, rgb, idAssinatura, i + 1, pgs.length); }
+    catch (e) { /* página rotacionada/cropbox: aceita sem rodapé em vez de quebrar */ }
+  });
+
+  // ---- 4) Anexa os BYTES EXATOS do original (sobrevive à troca de versão) ----
+  try {
+    await pdf.attach(original.bytes, original.nomeArq, {
+      mimeType: original.mime || "application/octet-stream",
+      description: "Conteúdo original assinado (SHA-256 " + String(dados.hashOriginal || "") + ")",
+      creationDate: new Date(), modificationDate: new Date(),
+    });
+  } catch (e) { debug?.("[assinatura] attach falhou:", e?.message || e); }
+
+  const bytes = await pdf.save();
+  return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
+}
+
+// Acrescenta a PÁGINA DE AUTENTICAÇÃO (A4) no fim do PDF: os blocos do comprovante + a
+// frase de escopo (quantas páginas, quem, quando, onde), o escopo do hash, a versão e a
+// política declarada. Fonte-padrão (Helvetica) + Great Vibes pro nome. Tudo sanitizado.
+async function construirPaginaAutenticacao(pdf, dados, doc, original, idAssinatura) {
+  const PDFLib = await loadPdfLib();
+  const fontkit = await loadFontkit();
+  const fonte = await fonteAssinaturaBytes();
+  pdf.registerFontkit(fontkit);
+  const fCursiva = await pdf.embedFont(fonte, { subset: true });
+  const fN = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+  const fB = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const rgb = PDFLib.rgb;
+
+  const hashOriginal = String(dados.hashOriginal || "");
+  const hashRotulo = original.ehTexto ? "SHA-256 do texto" : "SHA-256 do arquivo";
+  const uaCurto = winAnsiSeguro(String(dados.userAgent || navigator.userAgent || "").slice(0, 120));
+  const geo = dados.geo || {};
+  const lat = typeof geo.lat === "number" ? geo.lat.toFixed(5) : "";
+  const lng = typeof geo.lng === "number" ? geo.lng.toFixed(5) : "";
+  const acc = typeof geo.acc === "number" ? Math.round(geo.acc) : null;
+  // Nº de páginas de CONTEÚDO = tudo que já existe antes de acrescentar esta.
+  const nConteudo = pdf.getPageCount();
+
+  const pg = pdf.addPage([595.28, 841.89]);
+  const W = pg.getWidth();
+  const mx = 48;
+  let y = 800;
+  const verde = rgb(0, 0.533, 0.208); // #008835 (marca Fiobras)
+  const cinza = rgb(0.33, 0.33, 0.33);
+  const preto = rgb(0.1, 0.1, 0.1);
+
+  pg.drawRectangle({ x: 0, y: 812, width: W, height: 30, color: verde });
+  pg.drawText("FioPulse", { x: mx, y: 820, size: 14, font: fB, color: rgb(1, 1, 1) });
+  pg.drawText(winAnsiSeguro("Página de autenticação"), { x: mx, y: 786, size: 15, font: fB, color: preto });
+  y = 762;
+
+  const bloco = (lbl, val, mono) => {
+    pg.drawText(winAnsiSeguro(lbl), { x: mx, y, size: 7.5, font: fB, color: cinza });
+    y -= 13;
+    const size = mono ? 8 : 9.5;
+    const maxW = W - mx * 2;
+    const linhas = quebrarTexto(winAnsiSeguro(val == null ? "—" : val), fN, size, maxW);
+    for (const ln of linhas) { pg.drawText(ln, { x: mx, y, size, font: fN, color: preto }); y -= size + 3; }
+    y -= 8;
+  };
+  // Parágrafo corrido (frase de escopo, política): quebra por largura, sem rótulo.
+  const paragrafo = (txt, size) => {
+    const s = size || 8.5;
+    const linhas = quebrarTexto(winAnsiSeguro(txt), fN, s, W - mx * 2);
+    for (const ln of linhas) { pg.drawText(ln, { x: mx, y, size: s, font: fN, color: rgb(0.2, 0.2, 0.2) }); y -= s + 3; }
+    y -= 6;
+  };
+
+  const nomeS = dados.nome || "—";
+  const quandoPartes = String(dados.quando || "").split(" ");
+  const dataStr = quandoPartes[0] || String(dados.quando || "");
+  const horaStr = quandoPartes.slice(1).join(" ");
+  const localStr = (lat && lng) ? `${lat}, ${lng}${acc != null ? ` (precisão ${acc} m)` : ""}` : "local não registrado";
+
+  // Frase de escopo humana (o que exatamente foi assinado).
+  paragrafo(`Este documento tem ${nConteudo} ${nConteudo === 1 ? "página" : "páginas"}. As páginas 1 a ${nConteudo} foram assinadas eletronicamente por ${nomeS} em ${dataStr}${horaStr ? ` às ${horaStr}` : ""}, em ${localStr}.`, 9);
+  y -= 2;
+
+  bloco("Documento", `${dados.titulo || "Documento"}${dados.tipoLabel ? ` · ${dados.tipoLabel}` : ""}`);
+  bloco("Versão assinada", `v${dados.versaoAssinada}`);
+  bloco("Identificador do documento", dados.docId || "—", true);
+  bloco(hashRotulo + " do arquivo original, anexado a este PDF", hashOriginal || "—", true);
+  bloco("Signatário", `${dados.nome || "—"}${dados.codigo ? ` · cód ${dados.codigo}` : ""}`);
+  bloco("Data e hora", dados.quando || "—");
+  bloco("Localização", (lat && lng) ? `${lat}, ${lng}${acc != null ? ` · precisão ${acc} m` : ""}` : "não registrada");
+  bloco("Dispositivo", uaCurto || "—", true);
+  bloco("Identificador da assinatura", idAssinatura, true);
+  bloco("Texto do aceite", dados.aceiteTexto || "");
+
+  // Política declarada (como a identidade e o tempo foram estabelecidos).
+  pg.drawText(winAnsiSeguro("Política de assinatura"), { x: mx, y, size: 7.5, font: fB, color: cinza });
+  y -= 13;
+  paragrafo("Data e hora do carimbo obtidas do servidor Firebase (não do relógio do dispositivo). Localização aproximada capturada pela geolocalização do dispositivo no ato. Identidade autenticada por credenciais pessoais, com a senha reconfirmada no momento da assinatura.", 8.5);
+
+  // Linha de assinatura cursiva
+  y -= 4;
+  pg.drawLine({ start: { x: mx, y }, end: { x: mx + 260, y }, thickness: 0.6, color: rgb(0.55, 0.55, 0.55) });
+  y -= 6;
+  let sigSize = 26;
+  const nomeSig = winAnsiSeguro(dados.nome || "");
+  while (sigSize > 12 && fCursiva.widthOfTextAtSize(nomeSig, sigSize) > 256) sigSize -= 1;
+  pg.drawText(nomeSig, { x: mx + 4, y: y - sigSize + 6, size: sigSize, font: fCursiva, color: rgb(0.07, 0.23, 0.42) });
+  y -= sigSize + 6;
+  pg.drawText(winAnsiSeguro("Assinatura eletrônica do signatário"), { x: mx, y, size: 7.5, font: fN, color: cinza });
+
+  pg.drawText(winAnsiSeguro("Documento assinado eletronicamente pelo FioPulse. A validade depende da trilha registrada no sistema."), { x: mx, y: 40, size: 7, font: fN, color: cinza });
+}
+
+// FALLBACK 1 (rasterização): quando o PDF original é legado/corrompido e o pdf-lib não
+// carrega (PDFDocument.load lança), o pdf.js AINDA costuma desenhá-lo. Rasteriza cada
+// página em JPEG, monta um PDF novo com essas imagens, acrescenta a página de autenticação
+// e anexa os bytes exatos do original. Mesmo contrato de gerarDocumentoAssinado.
+async function rasterizarDocumentoAssinado(doc, dados) {
+  const PDFLib = await loadPdfLib();
+  const rgb = PDFLib.rgb;
+  const original = await conteudoOriginalDoDoc(doc);
+  const idAssinatura = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+  const pdf = await PDFLib.PDFDocument.create();
+
+  if (original.ehPdf) {
+    const pdfjs = await loadPdfJs();
+    const src = await pdfjs.getDocument({ data: original.bytes.slice() }).promise;
+    for (let i = 1; i <= src.numPages; i++) {
+      const page = await src.getPage(i);
+      const vp = page.getViewport({ scale: 2 });
+      const cv = document.createElement("canvas");
+      cv.width = vp.width; cv.height = vp.height;
+      await page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
+      const jpg = cv.toDataURL("image/jpeg", 0.82);
+      const img = await pdf.embedJpg(jpg.split(",")[1] ? Uint8Array.from(atob(jpg.split(",")[1]), (c) => c.charCodeAt(0)) : new Uint8Array());
+      // Página do tamanho da imagem (mantém a proporção original de cada folha).
+      const pg = pdf.addPage([img.width, img.height]);
+      pg.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+    }
+    try { src.destroy?.(); } catch (e) {}
+  } else if (original.ehImg) {
+    const ehPng = /^data:image\/png/i.test(doc.anexo.url) || /png/i.test(original.mime || "");
+    let img;
+    try { img = ehPng ? await pdf.embedPng(original.bytes) : await pdf.embedJpg(original.bytes); }
+    catch (e) { img = await pdf.embedPng(original.bytes); }
+    const A4 = [595.28, 841.89], m = 28;
+    const esc = Math.min((A4[0] - m * 2) / img.width, (A4[1] - m * 2) / img.height, 1);
+    const w = img.width * esc, h = img.height * esc;
+    const pg = pdf.addPage(A4);
+    pg.drawImage(img, { x: (A4[0] - w) / 2, y: (A4[1] - h) / 2, width: w, height: h });
+  } else {
+    // Só-texto que rasterização nem se aplica: uma página com aviso, o conteúdo vai anexado.
+    const fN = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+    const pg = pdf.addPage([595.28, 841.89]);
+    pg.drawText(winAnsiSeguro("O conteúdo original está anexado a este PDF."), { x: 56, y: 760, size: 11, font: fN, color: rgb(0.13, 0.13, 0.13) });
+  }
+
+  await construirPaginaAutenticacao(pdf, dados, doc, original, idAssinatura);
+  const fRodape = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+  const pgs = pdf.getPages();
+  pgs.forEach((pg, i) => { try { carimbarRodapeAutent(pg, fRodape, rgb, idAssinatura, i + 1, pgs.length); } catch (e) {} });
+  try {
+    await pdf.attach(original.bytes, original.nomeArq, {
+      mimeType: original.mime || "application/octet-stream",
+      description: "Conteúdo original assinado (SHA-256 " + String(dados.hashOriginal || "") + ")",
+      creationDate: new Date(), modificationDate: new Date(),
+    });
+  } catch (e) { debug?.("[assinatura] attach (raster) falhou:", e?.message || e); }
+  const bytes = await pdf.save();
+  return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
+}
+
+// FALLBACK 2 standalone (comprovante A4 SEPARADO, v276). Último recurso, quando nem montar
+// nem rasterizar deu certo. Gera um PDF A4 NOVO que atesta o ato e prende o SHA-256 do
+// CONTEÚDO ORIGINAL, sem anexar o conteúdo. Retorna { dataUrl, bytes }.
 async function gerarComprovantePdf(doc, dados) {
   const PDFLib = await loadPdfLib();
   const fontkit = await loadFontkit();
@@ -7321,12 +7627,16 @@ async function gerarComprovantePdf(doc, dados) {
   const fB = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
   const rgb = PDFLib.rgb;
 
-  // Hash do conteúdo ORIGINAL + rótulo do que ele cobre. Ordem: anexo com hash pronto →
-  // anexo sem hash (computa dos bytes) → só texto (SHA do UTF-8 de descricao).
+  // Hash do conteúdo ORIGINAL + rótulo do que ele cobre. Se o caller já passou o hash
+  // (mesma cadeia, calculado p/ a trilha), usa ele — garante que o hash mostrado == o
+  // gravado. Senão recomputa: anexo com hash pronto → anexo (bytes) → texto (UTF-8).
   let hashOriginal = "";
   let hashRotulo = "SHA-256 do texto";
   const anexo = doc && doc.anexo;
-  if (anexo && anexo.hashSha256) {
+  if (dados.hashOriginal) {
+    hashOriginal = String(dados.hashOriginal);
+    hashRotulo = (anexo && anexo.url && !/^data:text/i.test(String(anexo.url))) ? "SHA-256 do arquivo" : "SHA-256 do texto";
+  } else if (anexo && anexo.hashSha256) {
     hashOriginal = String(anexo.hashSha256);
     hashRotulo = "SHA-256 do arquivo";
   } else if (anexo && anexo.url && ehUrlSegura(anexo.url)) {
@@ -7365,12 +7675,14 @@ async function gerarComprovantePdf(doc, dados) {
   y = 762;
 
   // Blocos rótulo→valor. Valores longos (hash, UA) quebram em várias linhas monoespaçadas.
+  // Título/aceite podem trazer glifo fora do WinAnsi (colado pelo RH): sanitiza antes do
+  // drawText, senão a Helvetica crasha (o rótulo é constante nosso, não precisa).
   const bloco = (lbl, val, mono) => {
     pg.drawText(lbl, { x: mx, y, size: 7.5, font: fB, color: cinza });
     y -= 13;
     const size = mono ? 8 : 9.5; // hash/UA menores; todos em Helvetica (fN)
     const maxW = W - mx * 2;
-    const linhas = quebrarTexto(String(val == null ? "—" : val), fN, size, maxW);
+    const linhas = quebrarTexto(winAnsiSeguro(val == null ? "—" : val), fN, size, maxW);
     for (const ln of linhas) { pg.drawText(ln, { x: mx, y, size, font: fN, color: preto }); y -= size + 3; }
     y -= 8;
   };
@@ -7392,7 +7704,7 @@ async function gerarComprovantePdf(doc, dados) {
   pg.drawLine({ start: { x: mx, y }, end: { x: mx + 260, y }, thickness: 0.6, color: rgb(0.55, 0.55, 0.55) });
   y -= 6;
   let sigSize = 26;
-  const nomeSig = String(dados.nome || "");
+  const nomeSig = winAnsiSeguro(dados.nome || "");
   while (sigSize > 12 && fCursiva.widthOfTextAtSize(nomeSig, sigSize) > 256) sigSize -= 1;
   pg.drawText(nomeSig, { x: mx + 4, y: y - sigSize + 6, size: sigSize, font: fCursiva, color: rgb(0.07, 0.23, 0.42) });
   y -= sigSize + 6;
@@ -13283,7 +13595,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.33.0";
+window.CURRENT_VERSION = "1.34.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

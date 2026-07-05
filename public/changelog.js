@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.33.0", d: "5 jul 2026", current: true, items: [
+    v: "1.34.0", d: "5 jul 2026", current: true, items: [
+      { type: "feat", title: "O documento que você assina agora vira um PDF único: o conteúdo assinado mais uma página de autenticação no fim, com seu nome, data, local e o código de integridade. As páginas ficam numeradas, mais fácil de guardar e mais forte como prova." },
+      { type: "feat", aud: "gestor", title: "O documento assinado passou a ser um arquivo só, no padrão dos serviços de assinatura eletrônica: conteúdo original mais página de autenticação com a trilha, numeração de páginas e o original embutido pra conferência de integridade." },
+    ],
+  },
+  {
+    v: "1.33.0", d: "5 jul 2026", items: [
       { type: "feat", title: "Ao assinar um documento que pede assinatura eletrônica, fica registrado com a sua localização e um comprovante em PDF, com a mesma validade da assinatura dos recibos. Você pode abrir o comprovante quando quiser." },
       { type: "feat", aud: "gestor", title: "Na trilha de quem confirmou um documento, dá pra abrir o comprovante de cada assinatura, com local e o código de integridade do arquivo." },
     ],
