@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.36.0", d: "5 jul 2026", current: true, items: [
+    v: "1.37.0", d: "5 jul 2026", current: true, items: [
+      { type: "feat", title: "No aniversário de um colega, agora dá pra parabenizar com um toque no coração, ali no card mesmo, e você vê quantos já parabenizaram. No seu aniversário, você vê quantos colegas já te desejaram feliz aniversário." },
+    ],
+  },
+  {
+    v: "1.36.0", d: "5 jul 2026", items: [
       { type: "fix", title: "A abertura do app ficou instantânea. Em vez de segurar a animação, aparece um esboço da tela que preenche assim que carrega, no espírito de abrir um app da Apple. A animação do fio escrevendo FioPulse agora roda só na estreia, no primeiro acesso do aparelho." },
     ],
   },

@@ -1297,36 +1297,23 @@
       }
     };
 
-    // ===== Mural de aniversario (reacao coracao + recados entre colegas) =====
+    // ===== Aniversario (reacao coracao "Parabenizar" no card da home) =====
     // Coleção muralAniversario/{postId}: doc pai NUNCA é escrito pelo cliente (rule write:false);
-    // só as subcoleções reacoes/{uid} e recados/{auto} valem. Tudo LAZY (só ao abrir o mural),
-    // fora do boot/carregarDadosCompletos. Rules já deployadas (tests/mural-rules.test.mjs).
+    // só a subcoleção reacoes/{uid} vale. Tudo LAZY (só ao renderizar a home), fora do
+    // boot/carregarDadosCompletos. Rules já deployadas (tests/mural-rules.test.mjs).
 
-    // Lê reações e recados do post. Recados ordenados por 'em' asc; se faltar índice, ordena
-    // no cliente. minhaReacao = existe reacoes/{meuUid}. em -> ISO via tsToIso.
-    window.carregarMuralAniversario = async function (postId) {
+    // Lê só as reações do post. minhaReacao = existe reacoes/{meuUid}.
+    window.carregarReacoesAniversario = async function (postId) {
       const uid = auth.currentUser && auth.currentUser.uid;
       const base = db.collection("muralAniversario").doc(postId);
       try {
-        let recadosSnap;
-        try {
-          recadosSnap = await base.collection("recados").orderBy("em", "asc").get();
-        } catch (e) {
-          // sem índice / campo em ainda pendente do serverTimestamp: cai pra leitura crua + sort local
-          recadosSnap = await base.collection("recados").get();
-        }
-        const [reacoesSnap] = await Promise.all([base.collection("reacoes").get()]);
+        const reacoesSnap = await base.collection("reacoes").get();
         const reacoes = reacoesSnap.docs.map((d) => ({ uid: d.data().uid || d.id }));
-        let recados = recadosSnap.docs.map((d) => {
-          const x = d.data();
-          return { id: d.id, autorUid: x.autorUid, autorNome: x.autorNome, texto: x.texto, em: tsToIso(x.em) };
-        });
-        recados.sort((a, b) => String(a.em || "").localeCompare(String(b.em || "")));
         const minhaReacao = !!(uid && reacoes.some((r) => r.uid === uid));
-        return { reacoes, recados, minhaReacao, total: reacoes.length };
+        return { reacoes, minhaReacao, total: reacoes.length };
       } catch (e) {
-        debug?.("[mural] carregar:", e?.message || e);
-        return { reacoes: [], recados: [], minhaReacao: false, total: 0, err: e.message };
+        debug?.("[aniv reacoes] carregar:", e?.message || e);
+        return { reacoes: [], minhaReacao: false, total: 0, err: e.message };
       }
     };
 
@@ -1342,29 +1329,6 @@
       }
       await ref.delete();
       return false;
-    };
-
-    // Envia um recado. autorNome = nome REAL do usuário logado (nunca arbitrário). texto trim 1..500.
-    window.enviarRecadoAniversario = async function (postId, texto) {
-      const uid = auth.currentUser && auth.currentUser.uid;
-      if (!uid) throw new Error("sem sessao");
-      const u = currentUser();
-      const nome = String((u && u.nome) || "").slice(0, 80);
-      const t = String(texto || "").trim().slice(0, 500);
-      if (!t) throw new Error("recado vazio");
-      const ref = await db.collection("muralAniversario").doc(postId).collection("recados").add({
-        autorUid: uid, autorNome: nome, texto: t,
-        em: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-      return { id: ref.id, autorUid: uid, autorNome: nome, texto: t, em: new Date().toISOString() };
-    };
-
-    // Remove um recado. A regra deixa o autor OU gestor (admin/rh) apagar (moderação/LGPD).
-    window.removerRecadoAniversario = async function (postId, recadoId) {
-      const uid = auth.currentUser && auth.currentUser.uid;
-      if (!uid) throw new Error("sem sessao");
-      await db.collection("muralAniversario").doc(postId).collection("recados").doc(recadoId).delete();
-      return true;
     };
 
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
