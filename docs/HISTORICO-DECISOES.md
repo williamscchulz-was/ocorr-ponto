@@ -1370,3 +1370,25 @@ próxima entrada quando decididas):**
 
 Commits: `f572929` (migração Minerador), `924aa84` (apurações bloqueada),
 `8355b5e` + `77fb505` (horarioRelevante + fix do uploader + backfill).
+
+## 2026-07-06 (fim de tarde) — Correção: líderes de turno voltam pro BH automático
+
+Reverte a entrada anterior sobre "remover exceção de LIDERES" (mesma tarde). William
+confirmou por engano que líder de turno (Adelir Padilha 785, Djoniffer Krieck 866)
+seria categoria Turno normal (RH conferindo em vez de outro líder) — corrigiu na
+sequência, ao ver o Atraso do Djoniffer (01/07) aparecendo na fila real do RH: a regra
+de fato é **Djoniffer e Adelir vão direto pro banco de horas igual ao Geral, sem
+exceção nenhuma — só Falta Injustificada gera conferência**, mesma regra de antes.
+
+Restaurada a constante `LIDERES = {"785", "866"}` em `process-ocorrencias-rh.py`
+(commit `826dcd5`, reverte `d9b7711`). Os 3 registros que tinham sido criados
+incorretamente enquanto a regra estava trocada (todos ainda em `rh_confere`, nenhum
+GP tinha mexido) foram apagados do Firestore com autorização explícita do William:
+`785_2026-07-03_saida-antecipada`, `866_2026-07-01_atrasos`, `866_2026-07-02_atrasos`.
+A Falta Injustificada do Djoniffer (04/07) permanece — essa sempre gera conferência,
+para Geral, Turno e líderes por igual.
+
+**Lição**: mesmo com autorização direta do usuário, uma regra de negócio que muda o
+roteamento de conferência do RH merece uma pergunta de confirmação extra antes de
+implementar — a resposta inicial ("o RH mesmo faz essa conferência no caso dos dois
+líderes") tinha uma leitura ambígua que levou à interpretação errada.
