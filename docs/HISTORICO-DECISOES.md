@@ -1489,3 +1489,21 @@ casos reais conhecidos. Detalhe de escala: sábado turno 2 = 09:00-13:00 no WK (
 
 **Proposta em aberto (decidir com William)**: resync como passo agendado do pipeline,
 pra conteúdo de doc rh_confere nunca mais congelar quando parser/WK mudarem.
+
+## 2026-07-07 (madrugada) — Compensação no dia + resync agendado + saldoDiario
+
+1. **Caso Nagela (atraso compensado)**: novos campos `duracaoPrevistaDiaMin`/
+   `duracaoTrabalhadaDiaMin`/`compensadoNoDia` (minutos de relógio, diagnóstico —
+   oficial continua `duracaoFmt`). O Saldo Diário do Espelho NÃO serve de sinal de
+   compensação pra Turno (verificado: 00:00 tanto pra Nagela que compensou quanto pra
+   Eliziane devendo 18min — pendência de autorização zera o saldo). Testado com conta
+   manual em 5 casos reais; resync em produção. PC avisado (selo "Compensou no dia").
+2. **Resync agendado** (GO do William via bridge): passo [OCR-resync] no pipeline,
+   toda rodada, guardas: só `rh_confere`, só campos de dado, idempotente, loga
+   contagem. Fecha de vez a classe "dado congelado em cria-e-nunca-reabre".
+3. **saldoDiario**: parser junta o Saldo Diário oficial do Espelho por (código,data)
+   nos dois loops; resync propaga conforme assenta. 14 docs preenchidos em produção.
+4. Auditoria total em andamento: órfão Ponto.exe (PID 53700, desde 11:00) morto com
+   verificação de pai; pilot A-parsers concluído (achados F1-F8, destaque: CSV
+   só-header bypassa a guarda last-known-good do process-empregado; PII-cleanup +
+   falha do passo 3 derruba o parser de ocorrências); fan-out B-F disparado.
