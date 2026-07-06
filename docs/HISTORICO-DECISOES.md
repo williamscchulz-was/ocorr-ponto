@@ -1392,3 +1392,58 @@ para Geral, Turno e líderes por igual.
 roteamento de conferência do RH merece uma pergunta de confirmação extra antes de
 implementar — a resposta inicial ("o RH mesmo faz essa conferência no caso dos dois
 líderes") tinha uma leitura ambígua que levou à interpretação errada.
+
+## 2026-07-06 (noite) — Circuit breaker em upload-banco-horas-self.mjs + resgate de commit preso em stash
+
+**Mudança principal**: `upload-banco-horas-self.mjs` ganhou um circuit breaker na
+limpeza de docs órfãos (linhas ~84-99 do arquivo): se a limpeza fosse apagar **mais
+de 50%** dos docs existentes na coleção `banco-horas-self`, o script agora **aborta**
+(só a limpeza — o `set` dos docs elegíveis já rodado antes continua normal) e loga
+`console.error`, em vez de proceder cegamente. Mesmo padrão do circuit breaker que já
+existia em `upload-ocorrencias-auto.mjs` (bloco "candidatosResolver"/"abortaResolver").
+
+**Por quê**: sem essa guarda, um CSV de Banco de Horas truncado-mas-parseável (export
+do WK que quebra no meio, mas ainda gera um arquivo sintaticamente válido) faria o
+script interpretar "sumiu do CSV desta rodada" como "não é mais elegível" — e apagaria
+o doc de saldo de gente que deveria continuar visível no Portal do Colaborador. É a
+mesma classe de risco que já tinha motivado o breaker do `upload-ocorrencias-auto.mjs`.
+
+**Testado**: rodado de verdade (`node upload-banco-horas-self.mjs`) contra o Firestore
+de produção — 94 docs, 0 órfãos nesta rodada, breaker não disparou (comportamento
+normal preservado).
+
+**Achado no caminho — commit preso em stash**: antes de documentar, chequei o estado
+do arquivo no repo e o circuit breaker **não estava no working tree nem commitado** —
+estava só dentro de um `git stash` no `master` (`stash@{0}`, "WIP on master"), junto
+com **mais 8 arquivos** de correções do mesmo dia (18 renomeações de scripts de
+depuração pra `_scratch/` incluídas). Ou seja: o trabalho tinha sido feito e testado,
+mas ficou preso sem commit — risco real de se perder (stash não teria sobrevivido a um
+`git stash drop`/limpeza acidental). Com autorização do William, restaurei o stash
+inteiro e commitei tudo junto (`df2a946`, master), já que as mudanças eram do mesmo dia
+e complementares. Conteúdo do commit, além do circuit breaker:
+
+- `process-empregado.mjs`: **não sobrescreve mais** `parsed-empregado.json` com
+  `funcionarios:[]` quando o CSV de cadastro sumir — preserva o último cadastro bom
+  conhecido. Resolve a pendência "Falha em `process-empregado.mjs` pode causar cascata
+  destrutiva" listada na entrada de 2026-07-01 (revisão do Fable) acima.
+- `upload-to-firestore.mjs` / `upload-identificacao.mjs`: guardas contra
+  `empregadoMap`/`elegiveis` vazio — não inativa em massa nem apaga a coleção
+  `identificacao` inteira quando o enriquecimento do cadastro vier vazio (mesma
+  motivação do item acima, defesa em profundidade).
+- `process-espelho-ponto.mjs`: quando o WK quebra o dia em 2+ linhas no export de
+  apuração, usa o array de marcações **estritamente mais longo** já visto pro dia (não
+  mais só a 1ª linha encontrada).
+- `process-ocorrencias-rh.py`: `LIDERES`/`ESCALA_SABADO`/`ESCALA_DOMINGO` saem de
+  hardcoded no `.py` e vão pra `CONFIG` (fonte única, passados via argv por
+  `run-pipeline.mjs`); corrige comparação de ausência em turno noturno pra usar desvio
+  circular (mod 1440) em vez de diferença crua de minutos (virada de meia-noite
+  quebrava a janela de match); extrai `desvios_todas_posicoes()` e expõe campo novo
+  `desviosMin[]` (desvio por posição, não só o vencedor).
+- `sync-colaborador-users.mjs`: mascara o e-mail sintético (que embute CPF) antes de
+  gravar no relatório persistido (relatório fica indefinidamente no disco).
+- `write-monitor.mjs`: agenda atualizada pra `09:00 · 11:00 · 14:00` e `passos:10`.
+
+**Lição pro processo**: quando uma mudança "já foi feita e testada" segundo o relato,
+vale conferir o estado real do arquivo/commit antes de documentar como fato — nesse
+caso a mudança existia de verdade, mas só dentro de um stash, não no histórico do git.
+Documentar sem checar teria registrado como "commitado" algo que ainda podia se perder.

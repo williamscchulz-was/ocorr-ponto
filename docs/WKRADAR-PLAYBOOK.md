@@ -281,3 +281,20 @@ O item 3 dos quirks gerais ("`Hash` não valida conteúdo — é só identificad
 1. **Antes de assumir que copiar um config recria um relatório específico, CONFIRME rodando de verdade e conferindo o cabeçalho do CSV de saída** — não confie em "era esse Hash que gerava X da última vez que vi", porque a definição pode ter sido re-salva por cima desde então (inclusive por outro trabalho seu mesmo, dias atrás).
 2. **Se o layout esperado não existir mais em nenhum Hash salvo**, a única forma de recuperar é reabrir o **Modelador do WK Radar** (UI, ação humana) e recriar/re-salvar o relatório com as colunas certas — vira um NOVO config/Hash. Não dá pra reconstruir por edição de texto/arquivo.
 3. Ao herdar um projeto de automação de relatórios WK, **documente o Hash junto com uma amostra do cabeçalho esperado** (não só o nome do config) — se o Hash for reaproveitado depois, o cabeçalho real muda mas o arquivo de config `.txt` continua "parecendo" o mesmo.
+
+---
+
+## Padrão: circuit breaker de 50% em toda limpeza/delete em massa nos uploaders (desde 2026-07-06)
+
+Todo uploader do pipeline RH que faz **limpeza de docs órfãos** (deletar quem "sumiu" do CSV desta rodada, porque saiu da empresa ou saiu do escopo) roda sobre uma fonte que pode vir **truncada-mas-parseável**: o `.exe` do WK crasha/timeout no meio do export, ou o CSV de cadastro (`process-empregado.mjs`) falha em ler o arquivo — em ambos os casos o script consumidor recebe um JSON sintaticamente válido, só que **incompleto**. Sem uma guarda, "sumiu do CSV desta rodada" vira "não é mais elegível", e o uploader apaga em massa gente que devia continuar visível no app.
+
+**O padrão-ouro (mesma receita nos 2 lugares que já usam):**
+1. Antes de deletar, conta quantos docs **existem hoje** na coleção (`existingSnap.size`) e quantos seriam **apagados nesta rodada** (`orfaos.length`).
+2. Se `orfaos.length > existingSnap.size * 0.5` (deletaria mais de metade da coleção), **aborta só a limpeza** (não mexe em nada) e loga `console.error` explicando a suspeita — o resto do upload (o `set`/upsert dos docs elegíveis, que já rodou antes da limpeza) segue normal.
+3. Nunca aborta o script inteiro por causa disso — só a etapa destrutiva. Rodadas seguintes com CSV bom voltam a limpar normalmente (não idempotente-bloqueante).
+
+**Onde já está implementado:**
+- `upload-ocorrencias-auto.mjs` — bloco `candidatosResolver`/`abortaResolver` (original, é daqui que o padrão vem).
+- `upload-banco-horas-self.mjs` — limpeza de `banco-horas-self` (2026-07-06, ver `HISTORICO-DECISOES.md` do mesmo dia). Testado contra produção: 94 docs, 0 órfãos, breaker não disparou.
+
+**Quando aplicar em algo novo**: qualquer uploader futuro que apague com base em "ausência no CSV desta rodada" (não em campo explícito tipo `Demissão`) deveria nascer já com esse breaker — é mais barato copiar o padrão de cara do que descobrir o buraco depois de um export truncado de verdade apagar saldo/dado de alguém em produção. Threshold de 50% é o que já está validado nos 2 lugares acima; não há necessidade de recalibrar por coleção sem um motivo concreto.
