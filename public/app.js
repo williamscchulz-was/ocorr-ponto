@@ -754,6 +754,66 @@ function mostrarTrocaSenha() {
     renderApp(); // re-render já sem a pendência
   };
 }
+
+// Termo de adesão à assinatura eletrônica no 1º acesso do colaborador (overlay
+// bloqueante, sem como fechar a não ser aceitando). Some quando registrarTermoAdesao
+// dá certo. Texto do termo VERBATIM do mock docs/mockups/onboarding-primeiro-acesso.html
+// (tela 3); os campos nome/CPF/local/data são auto-preenchidos e destacados.
+function _formatarCpf(raw) {
+  const d = String(raw || "").replace(/\D/g, "").slice(0, 11);
+  if (d.length !== 11) return String(raw || "");
+  return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+}
+function mostrarTermoAdesao() {
+  if (document.getElementById("termo-overlay")) return; // já montado
+  const fColab = (state.funcionarios && state.funcionarios[0]) || null;
+  const u = currentUser();
+  const nome = escapeHtml((fColab && fColab.nome) || (u && u.nome) || "");
+  let cpfRaw = ""; try { cpfRaw = localStorage.getItem("fiopulse:ultimoCpf") || ""; } catch {}
+  const cpf = escapeHtml(_formatarCpf(cpfRaw));
+  const local = "Jaraguá do Sul, SC"; // sede (William confirma depois)
+  const dataExt = escapeHtml(new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }));
+  const c = (v, dica) => `<span class="termo-campo" title="${escapeHtml(dica || "preenchido com os seus dados")}">${v}</span>`;
+
+  const ov = document.createElement("div");
+  ov.id = "termo-overlay";
+  ov.className = "termo-ov";
+  ov.innerHTML = `
+    <div class="termo-card" role="dialog" aria-modal="true" aria-labelledby="termo-titulo">
+      <h2 class="termo-card__t" id="termo-titulo">Termo de adesão à assinatura eletrônica</h2>
+      <div class="termo-card__s">Leia e dê o seu aceite pra começar a usar o app.</div>
+      <div class="termo-box" tabindex="0">
+        <p>Pelo presente termo, eu, ${c(nome)}, portador(a) do CPF nº ${c(cpf)}, funcionário(a) da FIOBRAS (razão social e CNPJ completos), declaro estar ciente e de acordo com as disposições a seguir.</p>
+        <p><b>1. Do objeto.</b> A Fiobras disponibiliza o aplicativo interno FioPulse para a assinatura eletrônica de documentos relacionados à relação de emprego, incluindo, entre outros, recibos de pagamento, comunicados internos, advertências e demais documentos institucionais. Por meio deste termo, consinto em assinar tais documentos eletronicamente quando disponibilizados no FioPulse, dispensada, para esses fins, a assinatura em papel.</p>
+        <p><b>2. Da natureza e validade da assinatura.</b> A assinatura realizada no FioPulse constitui assinatura eletrônica avançada, na forma da Lei nº 14.063/2020 e do art. 10, §2º, da Medida Provisória nº 2.200-2/2001, produzida mediante autenticação por credenciais pessoais (CPF e senha reconfirmada no ato), associada a carimbo de data e hora do servidor, geolocalização do dispositivo utilizado no momento da assinatura e hash SHA-256 do arquivo original, elementos que compõem trilha de auditoria imutável e são anexados, em página própria de autenticação, ao próprio documento assinado. A senha cadastrada é de meu conhecimento exclusivo, armazenada de forma criptografada, não tendo a Fiobras, após o primeiro acesso, qualquer meio técnico de visualizá-la, recuperá-la ou de assinar documentos em meu nome. Reconheço, em razão disso, que a autoria de cada assinatura eletrônica realizada com minhas credenciais é exclusivamente minha, não sendo cabível alegação posterior de que a própria empresa a teria produzido ou alterado. Reconheço, ainda, que essa assinatura tem validade jurídica entre as partes e produz, para os fins internos da relação de emprego, os mesmos efeitos da assinatura de próprio punho, nos termos do art. 411, II, do Código de Processo Civil.</p>
+        <p><b>3. Do consentimento para tratamento de dados pessoais (LGPD).</b> Em conformidade com a Lei nº 13.709/2018, consinto expressamente com a coleta e o tratamento, no momento de cada assinatura eletrônica, dos seguintes dados: credenciais de autenticação (CPF e confirmação de senha), geolocalização do dispositivo utilizado e metadados técnicos do ato (data, hora e hash do arquivo), com a finalidade específica de comprovação de autoria, integridade e validade jurídica dos documentos assinados. Esses dados serão tratados unicamente para essa finalidade, pelo tempo necessário à guarda dos documentos a que se referem.</p>
+        <p><b>4. Do acesso aos documentos assinados.</b> Fica assegurado o direito de solicitar, a qualquer tempo, cópia de qualquer documento assinado eletronicamente por meio do FioPulse, mediante solicitação ao setor de Recursos Humanos ou diretamente pelo aplicativo.</p>
+        <p>Declaro ter lido e compreendido o presente termo, firmando-o livremente.</p>
+        <p>${c(local)}, ${c(dataExt)}.</p>
+        <p>Nome completo: ${c(nome)}. CPF: ${c(cpf)}. Assinatura: ciência eletrônica registrada no ato.</p>
+      </div>
+      <label class="termo-aceite" for="termo-chk">
+        <input type="checkbox" id="termo-chk" />
+        <span>Li e concordo com o termo acima</span>
+      </label>
+      <button class="btn btn--primary btn--block btn--lg" id="termo-aceitar" disabled>Aceitar e continuar</button>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const chk = ov.querySelector("#termo-chk");
+  const btn = ov.querySelector("#termo-aceitar");
+  chk.addEventListener("change", () => { btn.disabled = !chk.checked; });
+  btn.addEventListener("click", () => withBusy("termo-aceitar", btn, async () => {
+    const res = await window.registrarTermoAdesao?.();
+    if (res && res.ok) {
+      state.termoAdesaoOk = true;
+      ov.remove(); vibrar(20);
+      renderApp(); // re-render já com o app liberado
+    } else {
+      toast((res && res.msg) || "Não consegui registrar o aceite. Tente de novo.", "danger");
+    }
+  }));
+}
 // Chamado pelo firebase.js quando não há sessão (boot/logout). Mostra a escolha
 // por padrão; vai direto ao login só se algo pediu (ex.: erro de perfil no Auth).
 window.__portaoSemSessao = function () {
@@ -862,8 +922,13 @@ function renderPortalColaborador(u) {
   renderNavColaborador();
   renderBottomNavColaborador();
   renderViewColaborador();
-  // 1º acesso: troca obrigatória de senha, bloqueante.
-  if (u.precisaTrocarSenha) mostrarTrocaSenha();
+  // 1º acesso, na ordem: (1) troca obrigatória de senha, depois (2) termo de adesão.
+  if (u.precisaTrocarSenha) { mostrarTrocaSenha(); return; }
+  // Termo de adesão (1º acesso): SÓ com sessão real (o boot do colaborador seta
+  // termoAdesaoOk true/false/null; em modo demo/prévia fica undefined → nunca mostra).
+  // false = precisa aceitar; null = leitura de rede falhou, mostra mesmo assim (o
+  // registrarTermoAdesao trata o "já existe" e não trava pra sempre).
+  if (state.termoAdesaoOk === false || state.termoAdesaoOk === null) mostrarTermoAdesao();
 }
 
 const COLAB_NAV = [
@@ -13788,7 +13853,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.42.0";
+window.CURRENT_VERSION = "1.43.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

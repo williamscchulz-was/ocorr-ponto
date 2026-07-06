@@ -53,6 +53,16 @@ const debug = (...args) => {
   if (_ehDev || window.DEBUG === true) console.log(...args);
 };
 
+// ---------- Constantes compartilhadas ----------
+// Versão do Termo de adesão à assinatura eletrônica (1º acesso do colaborador).
+// Vive aqui porque utils.js carrega ANTES de app.js e firebase.js: o app compara
+// (state.termoAdesaoOk = doc.versao === TERMO_VERSAO) e o firebase grava esse valor.
+// Ao republicar o termo (texto novo), bumpar aqui força o gate a reaparecer.
+const TERMO_VERSAO = "2026-07-v1";
+// SHA-256 do texto canonico congelado (docs/termo-adesao-2026-07-v1.txt, LF). CRAVADO na
+// regra Firestore: o aceite so vale se hashSha256 == este valor. Ancora QUAL texto foi aceito.
+const TERMO_HASH = "931a476238918cb6e771e30238b307403606b224b1b32745ce21f6197e16c805";
+
 // ---------- Segurança / validação ----------
 // Escapa HTML pra evitar XSS quando interpolando dados de usuário em
 // innerHTML. Aplicar em: nomes, observações, CNPJs, razão social,

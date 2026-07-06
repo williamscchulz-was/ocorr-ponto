@@ -553,6 +553,29 @@ service cloud.firestore {
       }
     }
 
+    // ===== Termo de adesao a assinatura eletronica (ciencia no 1o acesso) =====
+    // Um registro por pessoa (id = uid), IMUTAVEL: a ciencia do termo de adesao ao meio
+    // eletronico, dada no primeiro acesso (depois de criar a senha). O app so mostra o
+    // termo se este doc NAO existir. Ler: o proprio dono E o gestor (auditoria/LGPD).
+    // ponytail: se o termo mudar de versao um dia, migrar pra id {uid}__{versao} pra
+    // permitir readesao; hoje e create-only por id fixo (uma ciencia por pessoa).
+    match /termoAdesao/{uid} {
+      allow read: if isAuthed() && (request.auth.uid == uid || isAdmin() || temCap('documentos.gerenciar', isRH()));
+      allow create: if isAuthed()
+                  && request.auth.uid == uid
+                  && request.resource.data.uid == uid
+                  && request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'versao', 'hashSha256', 'em', 'userAgent'])
+                  && euSouODono(request.resource.data.funcionarioId)
+                  && request.resource.data.versao == '2026-07-v1'
+                  && request.resource.data.hashSha256 == '931a476238918cb6e771e30238b307403606b224b1b32745ce21f6197e16c805'
+                  && request.resource.data.userAgent is string
+                  && request.resource.data.em == request.time;
+      allow update, delete: if false;
+    }
+    // versao + hashSha256 CRAVADOS na regra (Fable): a versao e o sha256 do texto canonico
+    // congelado (docs/termo-adesao-2026-07-v1.txt, LF) ancoram QUAL texto foi aceito, fora do
+    // controle unilateral da empresa. Bump de versao = novo hash aqui + readesao.
+
     // ===== Mural de aniversario (celebracao social entre colegas) =====
     // postId = "{funcionarioId}_{ano}". NAO exige doc pai (subcolecoes valem sem ele);
     // por isso o proprio /muralAniversario/{postId} nunca e escrito pelo cliente.

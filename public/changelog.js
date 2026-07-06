@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.42.0", d: "6 jul 2026", current: true, items: [
+    v: "1.43.0", d: "6 jul 2026", current: true, items: [
+      { type: "feat", title: "No primeiro acesso, depois de criar a sua senha, você lê e dá o aceite no Termo de Adesão à Assinatura Eletrônica, com o seu nome e CPF já preenchidos. É rápido, aparece só uma vez, e é o que dá validade jurídica às suas assinaturas no app." },
+    ],
+  },
+  {
+    v: "1.42.0", d: "6 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, o horário em destaque passou a ser o da marcação que gerou a ocorrência (a saída, numa saída antecipada; a entrada, num atraso), em vez de mostrar sempre a primeira batida do dia." },
     ],
   },

@@ -1867,6 +1867,40 @@
       } catch (e) { toast("Não consegui registrar: " + (e?.message || e), "danger"); return { ok: false }; }
     };
 
+    // Termo de adesão à assinatura eletrônica (1º acesso do colaborador). Self-write
+    // create-only em /termoAdesao/{uid} (id = uid). A rule é imutável e valida hasOnly dos
+    // 6 campos exatos + funcionarioId == users/{uid}.funcionarioId (euSouODono) + versao e
+    // hashSha256 CRAVADOS na regra. Se o doc JÁ existe (create-only barra o 2º write),
+    // tratamos como "já aceitou" e resolvemos ok.
+    window.registrarTermoAdesao = async function () {
+      const user = auth.currentUser;
+      if (!user) return { ok: false, msg: "Sessão expirada. Entre de novo." };
+      const u = currentUser();
+      if (!u || u.role !== "colaborador" || !u.funcionarioId)
+        return { ok: false, msg: "Termo indisponível para este acesso." };
+      const ref = db.collection("termoAdesao").doc(user.uid);
+      try {
+        await ref.set({
+          uid: user.uid,
+          funcionarioId: u.funcionarioId,
+          versao: TERMO_VERSAO,
+          hashSha256: TERMO_HASH,
+          em: firebase.firestore.FieldValue.serverTimestamp(),
+          userAgent: String(navigator.userAgent || "").slice(0, 200),
+        });
+        state.termoAdesaoOk = true;
+        window.logEvento?.({ tipo: "acessos", acao: "Aderiu à assinatura eletrônica", alvo: `termo ${TERMO_VERSAO}` });
+        return { ok: true };
+      } catch (e) {
+        // create-only: doc já existe (aceitou num acesso anterior) → já ok, não quebra.
+        try {
+          const snap = await ref.get();
+          if (snap.exists) { state.termoAdesaoOk = true; return { ok: true, jaExistia: true }; }
+        } catch (e2) { /* leitura de confirmação falhou; cai no erro genérico abaixo */ }
+        return { ok: false, msg: "Não consegui registrar o aceite: " + (e?.message || e) };
+      }
+    };
+
     // Import Banco de Horas: substituição completa em /bancoHoras
     window.doImportBancoHorasFirebase = async function (entries) {
       const u = currentUser();
@@ -3320,6 +3354,17 @@
       (async () => {
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
       try { await window.carregarAniversariantes(); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
+      })(),
+      (async () => {
+      // Termo de adesão à assinatura eletrônica (1º acesso): true = já aceitou a versão
+      // atual (não mostra o gate); false = precisa aceitar. null = leitura falhou (rede):
+      // o gate mostra mesmo assim e o registrarTermoAdesao trata o "já existe" sem travar.
+      state.termoAdesaoOk = null;
+      try {
+        const uidT = auth.currentUser && auth.currentUser.uid;
+        const t = await db.collection("termoAdesao").doc(uidT).get();
+        state.termoAdesaoOk = t.exists && t.data().versao === TERMO_VERSAO;
+      } catch (e) { debug?.("[colab] termo adesão:", e?.message || e); state.termoAdesaoOk = null; }
       })(),
       ]);
       return;

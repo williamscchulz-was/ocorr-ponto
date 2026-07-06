@@ -1,0 +1,18 @@
+TERMO DE ADESAO A ASSINATURA ELETRONICA
+Versao 2026-07-v1
+
+Pelo presente termo, eu, [NOME], portador(a) do CPF no [CPF], funcionario(a) da FIOBRAS LTDA, inscrita no CNPJ no 01.475.188/0001-97, declaro estar ciente e de acordo com as disposicoes a seguir.
+
+1. Do objeto. A Fiobras disponibiliza o aplicativo interno FioPulse para a assinatura eletronica de documentos relacionados a relacao de emprego, incluindo, entre outros, recibos de pagamento, comunicados internos, advertencias e demais documentos institucionais. Por meio deste termo, consinto em assinar tais documentos eletronicamente quando disponibilizados no FioPulse, dispensada, para esses fins, a assinatura em papel.
+
+2. Da natureza e validade da assinatura. A assinatura realizada no FioPulse constitui assinatura eletronica avancada, na forma da Lei no 14.063/2020 e do art. 10, parag. 2o, da Medida Provisoria no 2.200-2/2001, produzida mediante autenticacao por credenciais pessoais (CPF e senha reconfirmada no ato), associada a carimbo de data e hora do servidor, geolocalizacao do dispositivo utilizado no momento da assinatura e hash SHA-256 do arquivo original, elementos que compoem trilha de auditoria imutavel e sao anexados, em pagina propria de autenticacao, ao proprio documento assinado. A senha cadastrada e de meu conhecimento exclusivo, armazenada de forma criptografada, nao tendo a Fiobras, apos o primeiro acesso, qualquer meio tecnico de visualiza-la, recupera-la ou de assinar documentos em meu nome. Reconheco, em razao disso, que a autoria de cada assinatura eletronica realizada com minhas credenciais e exclusivamente minha, nao sendo cabivel alegacao posterior de que a propria empresa a teria produzido ou alterado. Reconheco, ainda, que essa assinatura tem validade juridica entre as partes e produz, para os fins internos da relacao de emprego, os mesmos efeitos da assinatura de proprio punho, nos termos do art. 411, II, do Codigo de Processo Civil.
+
+3. Do consentimento para tratamento de dados pessoais (LGPD). Em conformidade com a Lei no 13.709/2018, consinto expressamente com a coleta e o tratamento, no momento de cada assinatura eletronica, dos seguintes dados: credenciais de autenticacao (CPF e confirmacao de senha), geolocalizacao do dispositivo utilizado e metadados tecnicos do ato (data, hora e hash do arquivo), com a finalidade especifica de comprovacao de autoria, integridade e validade juridica dos documentos assinados. Esses dados serao tratados unicamente para essa finalidade, pelo tempo necessario a guarda dos documentos a que se referem.
+
+4. Do acesso aos documentos assinados. Fica assegurado o direito de solicitar, a qualquer tempo, copia de qualquer documento assinado eletronicamente por meio do FioPulse, mediante solicitacao ao setor de Recursos Humanos ou diretamente pelo aplicativo.
+
+Declaro ter lido e compreendido o presente termo, firmando-o livremente.
+
+[LOCAL], [DATA].
+
+Nome completo: [NOME]. CPF: [CPF]. Ciencia eletronica registrada no ato.
