@@ -9101,7 +9101,7 @@ function ocaTrilhaHtml(o) {
   // Falta / sem marcação relevante: a magnitude do dia vai abaixo (não cabe num card só).
   const abaixo = (ofi < 0 && desvio != null && desvio > 0)
     ? `<div class="oca-desvio">${icon("clock")}<span>${escapeHtml(ehAtraso ? "Atraso" : t.label)} de ${escapeHtml(ocaDuracaoHumana(desvio))}</span></div>` : "";
-  return `<div class="oca-trilha${n <= 2 ? " oca-trilha--dois" : ""}">${cards.join("")}</div>${abaixo}`;
+  return `<div class="oca-trilha">${cards.join("")}</div>${abaixo}`;
 }
 
 // Coluna dos FATOS da ocorrência automática (mock premium aprovado 2026-07-02): pessoa,

@@ -5112,9 +5112,8 @@ code { font-family: inherit; }
 /* Trilha de batidas do dia: cada marcação com previsto riscado -> batido; selo de desvio
    só na marcação que gerou a ocorrência (horarioRelevante/duracaoFmt do WK). Versão interim:
    quando o WK mandar desvio POR marcação, cada card ganha o próprio selo. */
-.oca-trilha { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0 10px; }
-.oca-trilha--dois { grid-template-columns: repeat(2, 1fr); }
-@media (max-width: 860px) { .oca-trilha, .oca-trilha--dois { grid-template-columns: 1fr 1fr; } }
+/* 2 por linha: a trilha vive na coluna dos fatos (~half do modal); 4 em linha grudava. */
+.oca-trilha { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px 0 10px; }
 .oca-trilha__card { position: relative; border: 1px solid var(--border); border-radius: 14px; padding: 15px 14px 13px; background: var(--surface-warm); display: flex; flex-direction: column; gap: 9px; }
 .oca-trilha__card--oficial { border: 1.5px solid var(--plum); box-shadow: 0 0 0 3px rgba(0,136,53,.10); }
 .oca-trilha__oficial-tag { position: absolute; top: -11px; left: 12px; background: var(--plum); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; }
