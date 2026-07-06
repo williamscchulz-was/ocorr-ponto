@@ -1243,3 +1243,36 @@ Evolução da assinatura carimbada de documentos institucionais (task 86, que fo
 Outros ajustes implementados no v277 (tudo cliente, sem mudança de regra, o path e o payload da trilha continuam idênticos ao v276): validação do PDF na publicação (PDF cifrado/corrompido dá erro claro pro RH, não trava o colaborador depois); sanitização WinAnsi de todo texto desenhado (emoji/CJK não quebram mais o gerador); rodapé "Página X de Y · ID {idAssinatura}" em toda página; página de autenticação declara o escopo do hash, a versão assinada e a política (hora do servidor Firebase, geolocalização, credencial pessoal com senha reconfirmada); cascata de fallback (monta o PDF → se falhar, rasteriza via pdf.js → se falhar, cai no comprovante standalone do v276), a assinatura nunca trava. Verificado em navegador com 4 casos (PDF multipágina, imagem, texto com acento, fallback rasterizado), o attachment bateu o SHA-256 da trilha nos quatro.
 
 **Decisão do William sobre o termo de adesão ao meio eletrônico** (a maior peça pra validade jurídica, apontada pelo Fable): **os dois**. Papel na admissão pros novos (o RH arquiva o termo assinado) E um termo digital no app (nível assinatura), que deve ser o primeiro documento institucional que quem já está na base assina, cobrindo todo mundo. O termo digital ainda precisa ser redigido (conteúdo jurídico) e publicado como documento nível "assinatura", fica de pendência.
+
+
+---
+
+## 2026-07-06 · 22 "Faltas Injustificadas" falsas (de novo) — mesma causa raiz, dessa vez 3 dias pra assentar
+
+William reparou (comparando o app com a tela do WK) que Franciele Lemes Rosa (1074) aparecia com "Falta Injustificada de 8h" no dia 03/07, mas as batidas do dia mostravam ela trabalhando quase o dia inteiro (só 13min de saída antecipada). Comparei com um export fresco do WK: 03/07 realmente tinha virado "Saída Antecipada" (13min) — a "Falta" tinha sido capturada pelo pipeline manual desta manhã (08:28) ANTES do WK terminar de assentar aquele dia, EXATAMENTE 3 dias depois do fato (sexta 03/07, rodada de segunda 06/07 de manhã) — mais lento que qualquer assentamento visto antes nesta sessão (que resolvia em horas).
+
+**Verificação sistemática**: cruzei as 30 "Faltas Injustificadas" da coleção `ocorrencias-auto` contra o export fresco — **26 de 30 eram falsas** (situação mudou ou o dia simplesmente não tinha mais ocorrência nenhuma). Só 4 continuavam genuínas (1206, 1221, 1237, 1246). Os números batem exatamente com o total de 26 Faltas que a rodada de hoje de manhã gerou.
+
+**Apagadas as 22 que tinham status `rh_confere` intocado** (autorização explícita do William: "vc tem minha autorização sempre! se estivermos falando do mesmo assunto... pode apagar e corrigir e deixar redondo"). Coleção `ocorrencias-auto` foi de 37 pra 15 docs. Nenhuma tinha sido tocada pelo RH.
+
+**Achado à parte**: o William apontou que a "Falta" de 06/07 (HOJE) pra Franciele que apareceu no export fresco TAMBÉM não é confiável ainda ("ela ainda nem veio trabalhar" — o dia não fechou). Correto — meu próprio filtro `puloAberto` (dataIso >= HOJE) já ignora isso automaticamente, então nunca chegou a subir. Boa lembrança de não tratar dado de dia aberto como validado só porque "parece fazer sentido".
+
+**Questão em aberto pro pipeline**: o buffer atual pra "Faltas Injustificadas" do relatório oficial é só "não é hoje" (1 dia). O detector de "Marcações Não Identificadas" (999) e o Espelho de Ponto já usam buffer de 1-2 dias por causa desse mesmo padrão de assentamento lento. Esse incidente mostra que às vezes o assentamento do relatório oficial pode levar MAIS de 1 dia inteiro (aconteceu com uma sexta-feira, sem rodada no fim de semana). Vale considerar aplicar o mesmo tipo de buffer de maturidade (2+ dias) na fonte oficial de Faltas/Atrasos também — ainda não implementado, só levantado como possibilidade.
+
+
+---
+
+## 2026-07-06 · Implementada reverificação automática de ocorrências (resolve o padrão recorrente de Faltas falsas)
+
+Depois do 2º incidente de Faltas falsas no mesmo dia (Franciele Lemes Rosa, 22 de 30 Faltas falsas — ver entrada anterior), consultei o conselheiro (Fable) sobre a melhor arquitetura: aumentar o buffer de maturidade (como já feito no Espelho e no detector 999) ou outra abordagem. Veredito: **não aumentar buffer** — o assentamento do WK não é um prazo fixo (é um evento, "WK terminou de apurar"), pode levar horas ou 3+ dias dependendo de fim de semana/feriado, e nenhum N de dias estático cobre todo caso sem atrasar toda falta REAL também.
+
+**Solução implementada**: reverificação contínua em `upload-ocorrencias-auto.mjs`. Toda rodada do pipeline reconfere os docs `rh_confere` (que o RH ainda não olhou) contra o dado fresco desta rodada:
+- Se a situação sumiu/mudou → doc vira `auto_resolvida` (soft-resolve, nunca apaga, guarda no histórico o que o WK mostra agora).
+- Se depois o WK reafirmar (dedupId reaparece) → volta pra `rh_confere` (rearme).
+- Circuit breaker: se resolveria mais de 50% dos `rh_confere` na janela válida, aborta só essa etapa (protege contra CSV truncado/export com problema).
+- Transactions com releitura + reconfirmação de status, protegendo contra corrida com o RH mexendo no mesmo instante.
+- `com_lider`/`dispensada`/`confirmada` (decisão humana) nunca são tocados — só `rh_confere` e `auto_resolvida` entram nos filtros.
+
+Implementado por agente Opus, verificado por agente Sonnet (diff completo + dry-run real contra dado de hoje: `autoResolvidas=0`/`rearmadas=0`, esperado já que o incidente tinha sido limpo manualmente antes desta mudança).
+
+**Pendência**: novo status `auto_resolvida` precisa de tratamento na UI do RH (PC) — hoje a tela teria um status que ela não conhece. Avisado via bridge.
