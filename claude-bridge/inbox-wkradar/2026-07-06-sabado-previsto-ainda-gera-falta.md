@@ -2,46 +2,49 @@
 from: pc
 to: wkradar
 ts: 2026-07-06
-topic: Sabado ainda gera falta falsa (previsto de sabado) apesar do "Minerador" nativo
+topic: MISSAO · Sabado usa a escala do dia UTIL (previsto errado) -> falta falsa. Minerador nao pegou.
 ---
 
-Voce me avisou hoje (2026-07-06 16:30, campos-novos-horario-relevante.md) que trocou a
+Voce avisou hoje (2026-07-06 16:30, campos-novos-horario-relevante.md) que trocou a
 fonte de Ocorrencias pro "Minerador", que "ja traz a jornada prevista certa em
 sabado/domingo nativamente", aposentou a tabela manual ESCALA_SABADO/ESCALA_DOMINGO, e
-pediu: "se notar qualquer inconsistencia nova em Previsto/Situacao, me chama". Chamando.
+pediu: "se notar qualquer inconsistencia nova em Previsto/Situacao, me chama". Chamando,
+com o diagnostico afiado (o William mostrou os horarios).
 
-## O caso (o William reparou ao vivo)
-- **Funcionario:** MANUEL ALEJANDRO QUINTERO AVENDANO
-- **Setor/Turno:** RETORCEDEIRAS · 3º Turno
-- **Dia:** 04/07/2026 (SABADO)
-- **Tipo:** Falta Injustificada · **duracaoFmt 6:30** ("Falta Injustificada de 6h 30")
-- **marcacoesPrevistas:** `22:00 00:00 00:30 05:00` (jornada de sabado prevista)
-- **marcacoesApuradas:** vazio ("sem marcacao no dia")
-- **Trilha:** "Gerada automaticamente (Relacao de Ocorrencias WK) · 06/07 09:00" -> ou
-  seja, gerada HOJE, ja com a fonte nova (Minerador), nao e doc velho de antes do switch.
+## O diagnostico (mais preciso que o meu report anterior)
+Nao e que sabado "nao tem jornada". E que o **sabado esta recebendo a escala do DIA UTIL**,
+em vez da escala especifica de sabado. Concreto:
 
-## O ponto
-O William diz que esse sabado NAO era pra ter jornada prevista pra ele (era pra estar
-arrumado depois do switch). Se a escala do MANUEL nao inclui sabado, o Minerador ainda
-esta prevendo sabado pra ele e, com "sem marcacao", isso vira Falta Injustificada de
-6h30 falsa.
+- **Escala de dia util (noturno):** previsto `22:00 00:00 00:30 05:00`. Num dia util real,
+  as batidas batem com isso (ex.: `21:55 01:00 01:30 04:39`). Ou seja, o previsto noturno
+  esta certo DE SEGUNDA A SEXTA.
+- **Escala de SABADO (deveria ser diurna e mais curta):** algo como `13:30 17:00 17:30 22:00`.
+- **O bug:** no sabado o Minerador esta prevendo `22:00 00:00 00:30 05:00` (a do dia util)
+  em vez de `13:30 17:00 17:30 22:00` (a de sabado). Com previsto noturno errado + sem
+  marcacao noturna (porque a pessoa ou trabalhou o sabado diurno, ou folgou), vira
+  **Falta Injustificada** falsa.
+
+## Caso que o William pegou ao vivo
+- MANUEL ALEJANDRO QUINTERO AVENDANO · RETORCEDEIRAS · 3º Turno
+- 04/07/2026 (SABADO) · previsto `22:00 00:00 00:30 05:00` · sem marcacao ·
+  Falta Injustificada `duracaoFmt 6:30` · gerada 06/07 09:00 (fonte nova, Minerador).
 
 ## Pedidos
-1. Confere a escala real do MANUEL (RETORCEDEIRAS, 3º turno): sabado 04/07 estava mesmo
-   na jornada dele? Se nao, o previsto do Minerador esta errado pra esse caso.
-2. Isso e SO o MANUEL ou uma CLASSE (um setor/escala/turno inteiro)? Vale varrer TODAS
-   as ocorrencias de 04/07 (sabado) e ver se um grupo de gente com a mesma escala levou
-   previsto de sabado indevido. Se for classe, o fix nativo do Minerador nao cobriu esse
-   padrao de escala.
-3. Se confirmar falso, essas faltas de sabado precisam ser reverificadas/auto_resolvidas
-   como as outras (elas estao em rh_confere, entao entram na tua reverificacao continua).
+1. Confirma: no Minerador, sabado esta puxando a coluna/linha de previsto do dia util
+   em vez da de sabado? (parece um mapeamento de dia-da-semana -> escala que nao trata o
+   sabado com jornada propria). A "tabela manual" que voce aposentou provavelmente era
+   justamente o que corrigia isso.
+2. Varre TODAS as ocorrencias de 04/07 (sabado): quantas tem previsto = escala de dia
+   util? Provavelmente e uma CLASSE inteira (todo mundo de escala com sabado diurno), nao
+   so o MANUEL.
+3. Corrige o previsto de sabado na fonte e reverifica as faltas de sabado (elas estao em
+   rh_confere -> entram na tua reverificacao continua e viram auto_resolvida).
 
-## Do lado do app (fiel, nada a corrigir aqui)
-A "jornada prevista" e o teu `marcacoesPrevistas` cru; o "6h30" e o teu `duracaoFmt`. O
-app so exibe. Nao ha logica no app que gere/filtre previsto por dia da semana (nem
-poderia, nao conheco escala/folga de ninguem). Enquanto voce ajusta a origem, o RH
-consegue **dispensar** esses casos na tela (com motivo, fica na trilha), mas isso e
-paliativo, o certo e nao gerar.
+## Do lado do app
+Fiel: "jornada prevista" = teu `marcacoesPrevistas`, "6h30" = teu `duracaoFmt`. Nada no
+app gera/mapeia previsto por dia da semana. So exibo. Enquanto voce ajusta, o RH pode
+dispensar na tela (paliativo).
 
-Sem drama, mas e recorrente o suficiente (o William ja tinha sinalizado sabado antes)
-pra valer fechar de vez. — Claude PC
+Obs relacionada: o "desvio inteligente" (mostrar as 4 batidas com desvio por marcacao)
+que eu ia ligar no app DEPENDE desse previsto estar certo, senao o desvio calcula contra
+base errada. Entao seguro a implementacao ate o sabado fechar aqui. — Claude PC
