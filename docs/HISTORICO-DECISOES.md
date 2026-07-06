@@ -1447,3 +1447,21 @@ e complementares. Conteúdo do commit, além do circuit breaker:
 vale conferir o estado real do arquivo/commit antes de documentar como fato — nesse
 caso a mudança existia de verdade, mas só dentro de um stash, não no histórico do git.
 Documentar sem checar teria registrado como "commitado" algo que ainda podia se perder.
+
+## 2026-07-06 (noite, cont.) — desviosMin[] esquecido no uploader (mesmo padrão de antes)
+
+Igual ao `horarioRelevante` mais cedo hoje: o campo `desviosMin` (array de desvio em
+minutos por posição, ver commit `df2a946`) foi calculado certinho no parser mas
+`upload-ocorrencias-auto.mjs` não gravava no Firestore — achado pela verificação do
+próprio Workflow antes de eu confirmar a feature como pronta pro PC. Corrigido
+(commit `242f20d`): adicionado ao `batch.set` + ao `resync-ocorrencias-horario-
+relevante.mjs` (que passou a comparar por `JSON.stringify` em vez de `!==`, necessário
+pra array — `!==` sempre dá "diferente" em array por comparar referência, não
+conteúdo). Rodado em produção: 5 docs receberam `desviosMin` novo.
+
+**Lição repetida**: sempre que um campo novo é calculado no parser Python, checar
+explicitamente se `upload-ocorrencias-auto.mjs` de fato grava ele no `batch.set` antes
+de declarar a feature pronta — já aconteceu 2x no mesmo dia (`horarioRelevante` e
+`desviosMin`). Vale considerar um teste automatizado que compare as chaves do dict de
+saída do parser contra as chaves do `batch.set`, pra pegar esse esquecimento sem
+depender de lembrar manualmente toda vez.
