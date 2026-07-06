@@ -1465,3 +1465,27 @@ de declarar a feature pronta — já aconteceu 2x no mesmo dia (`horarioRelevant
 `desviosMin`). Vale considerar um teste automatizado que compare as chaves do dict de
 saída do parser contra as chaves do `batch.set`, pra pegar esse esquecimento sem
 depender de lembrar manualmente toda vez.
+
+## 2026-07-06 (madrugada) — Sábado Franciele: dado congelado (não bug de extração) + tag direcional
+
+Caso reportado pelo PC/William: doc da Franciele (04/07, sábado, 2º turno) exibia
+previsto de DIA ÚTIL. Rastreado ponta a ponta: fonte Minerador CORRETA (09:00-13:00),
+parser atual CORRETO — o doc foi criado às 09:02 de segunda (rodada ANTES da migração
+Minerador) e o cria-e-nunca-reabre congelou o `marcacoesPrevistas` antigo; os backfills
+do dia só cobriam os campos novos → doc internamente inconsistente. **Reparo**: resync
+estendido pra `marcacoesPrevistas`/`marcacoesApuradas` (guarda de rh_confere mantida),
+11 docs reparados em produção (classe de sábado inteira), 12 já decididos intocados.
+A ocorrência da Franciele é GENUÍNA (saiu 60min antes) — só a exibição estava errada.
+
+**Segundo fix no mesmo commit** (`36da871`): tag "gerou a ocorrência" caía na marcação
+errada quando o maior desvio absoluto era na direção INOFENSIVA (Franciele 03/07:
+chegou 14min adiantada e a tag ficava na entrada, em vez da saída 13min antes; Nagela
+04/07: ficou 4h a mais no fim e a tag ficava na saída, em vez do atraso de 3h55 na
+entrada). Nova `desvios_problematicos()`: entrada só conta ATRASO, saída final só
+SAIR ANTES, pausa só ESTOURO de duração; tudo-zero cai no absoluto. `desviosMin`
+(contrato do app v289) inalterado. Validado 1:1 contra a classificação do WK nos 6
+casos reais conhecidos. Detalhe de escala: sábado turno 2 = 09:00-13:00 no WK (não
+08:00 como a tabela manual dizia — evidência: Josineire 09:06 = "Atraso de 6min").
+
+**Proposta em aberto (decidir com William)**: resync como passo agendado do pipeline,
+pra conteúdo de doc rh_confere nunca mais congelar quando parser/WK mudarem.
