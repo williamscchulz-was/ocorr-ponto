@@ -1297,3 +1297,76 @@ Depois do 2º incidente de Faltas falsas no mesmo dia (Franciele Lemes Rosa, 22 
 Implementado por agente Opus, verificado por agente Sonnet (diff completo + dry-run real contra dado de hoje: `autoResolvidas=0`/`rearmadas=0`, esperado já que o incidente tinha sido limpo manualmente antes desta mudança).
 
 **Pendência**: novo status `auto_resolvida` precisa de tratamento na UI do RH (PC) — hoje a tela teria um status que ela não conhece. Avisado via bridge.
+
+## 2026-07-06 (tarde) — Ocorrências: fonte Minerador do WK + campo horarioRelevante
+
+**O que mudou:**
+1. Fonte de "Ocorrências" trocada do relatório headless de 9 colunas
+   (`Config_Relatorio_de_Apurações1.txt` → `ExpAuto_Ocorrencias.txt`) para um
+   relatório novo construído pelo William no WK ("Minerador",
+   `Config_Minerador_Ocorrencias.txt` → `ExpAuto_Ocorrencias_Minerador.txt`).
+   Mesmas 9 colunas de sempre (validadas linha a linha idênticas pro
+   04/07/2026) + 3 colunas nativas do WK: Previstas/Originais/Apuradas — já
+   corretas por dia, inclusive sábado/domingo com escala diferente da semana
+   (validado: Nagela 961 sábado turno 1, Franciele 1074/Josineire 1115 sábado
+   turno 2, Djoniffer 866/Rosenildo 1133 turno 3 sem mudança). Isso elimina a
+   tabela manual `ESCALA_SABADO`/`ESCALA_DOMINGO` no loop principal do
+   `process-ocorrencias-rh.py` — ela continua existindo só pro detector de
+   "Marcações Não Identificadas" (999), que opera sobre o Espelho de Ponto
+   (sem coluna Previstas nativa).
+2. Config do Minerador corrigido antes de virar produção: `GerarSemAspas`
+   estava "0" (campos com aspas) e `IdsFuncionarios` tinha lista estática de
+   ~155 IDs (mesmo bug de excluir contratado novo já corrigido antes no
+   config antigo) — ambos corrigidos pra `1`/vazio.
+3. Tentativa de colocar "Apurações" (outro relatório) em produção —
+   BLOQUEADA: o relatório rico de 20 colunas que `process-apuracoes.mjs`
+   espera não existe mais como definição distinta no WK (o Hash/config foi
+   reaproveitado internamente pela migração acima). `export-apuracoes.mjs`
+   foi criado mas NÃO ligado no `run-pipeline.mjs`. Decisão (validada pelo
+   Fable): não vale recriar o relatório rico no Modelador — o Minerador já
+   cobre Previstas/Originais/Apuradas por ocorrência e o Espelho cobre o
+   dia-a-dia; o que só existia no relatório rico (Tipo Situação/Motivo/
+   Observação/Turma) ninguém consome hoje. Fica pausado; reabrir só se o RH
+   pedir campo que só exista lá.
+4. `rh-export-auto.ps1` (automação de UI, nunca esteve no Task Scheduler)
+   formalmente aposentado como fallback — só deixou de ser mencionado nos
+   comentários, arquivo continua no disco intocado.
+5. **Bug reportado pelo RH** (caso Eliziane Waier 979, 03/07/2026, "Saída
+   Antecipada"): o card mostrava "21:55" (a ENTRADA) como horário de
+   destaque, quando o evento real foi a saída às 04:39 (previsto 05:00).
+   Campos novos adicionados: `originais`, `horarioRelevante`,
+   `horarioPrevistoRelevante`, `observacaoHoraNoturna`. 1ª tentativa usou
+   "maior desvio |apurada-prevista| genérico" — CONTRA-EXEMPLO no próprio
+   caso Eliziane: o intervalo de almoço dela deslocou 1h inteira (mesma
+   duração, só mais tarde), gerando desvio maior que os 21min da saída real.
+   Corrigido pra usar o PRÓPRIO rótulo de situação: "Atrasos"→sempre entrada
+   (posição 0), "Saída Antecipada"→sempre saída final (última posição); o
+   desvio genérico (com correção circular mod 1440 pra virada de meia-noite)
+   fica só como fallback pra tipos sem mapeamento óbvio (ex. "Saída
+   Intermediária"). `observacaoHoraNoturna` é só texto informativo — NUNCA
+   calcula duração nova (hora noturna reduzida do WK, ~1,14x, não é
+   subtração simples de horário — ver achado do William no mesmo dia).
+6. **Achado da revisão do Fable** (conselheiro sob demanda, revisão geral do
+   pipeline): os 4 campos do item 5 eram calculados no parser Python mas
+   `upload-ocorrencias-auto.mjs` não os gravava no `batch.set` — o fix não
+   chegava no Firestore. Corrigido + rodado `backfill-ocorrencias-horario-
+   relevante.mjs` (merge aditivo, nunca toca status/histórico, mesmo padrão
+   do `backfill-ocorrencias-marcacoes.mjs`) pra alcançar os 14 docs já
+   criados antes do fix, incluindo o da própria Eliziane.
+
+**Pendências abertas da revisão do Fable (não resolvidas ainda, ver
+próxima entrada quando decididas):**
+- Reset de virada de mês (`run-pipeline.mjs`) vai apagar TODO `ocorrencias-
+  auto` e recriar julho inteiro como pendente em 01/08 — nunca disparou de
+  verdade ainda (junho era pré-go-live). Precisa virar poda seletiva antes
+  de agosto.
+- Repositório `fiobras-pipeline-rh` não tem remote no GitHub — só existe no
+  disco local (mesmo disco com histórico de SSD degradando).
+- Timeout do `export-ocorrencias.mjs` mata o processo Node mas deixa o
+  `.exe` do WK órfão (aconteceu de verdade numa rodada hoje).
+- Falha em `process-empregado.mjs` agora pode causar cascata destrutiva
+  (inativação, reset de senha, ou apagar `identificacao` inteira) porque o
+  PII-cleanup remove a rede de segurança do JSON antigo a cada rodada.
+
+Commits: `f572929` (migração Minerador), `924aa84` (apurações bloqueada),
+`8355b5e` + `77fb505` (horarioRelevante + fix do uploader + backfill).
