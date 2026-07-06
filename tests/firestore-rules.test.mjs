@@ -310,3 +310,15 @@ test("RH NÃO troca segmento de doc publicado+assinatura por update direto (CORR
   assertFails(updateDoc(doc(rh(), "documentos/dPub"), { segmento: { tipo: "turno", valores: [1] } })));
 test("RH faz novaVersao (versao 1→2 + troca anexo) em doc publicado+assinatura", async () =>
   assertSucceeds(updateDoc(doc(rh(), "documentos/dPub"), { versao: 2, anexo: { url: "https://drive.google.com/v2", nome: "a2.pdf", hashSha256: "xyz" }, versaoEm: serverTimestamp(), versaoPor: "uRh" })));
+
+// ----- presence: só gestor escreve, com o role REAL (guarda Fable 2026-07-06) -----
+test("RH grava a própria presença com role real", async () =>
+  assertSucceeds(setDoc(doc(rh(), "presence/uRh"), { uid: "uRh", nome: "GH", role: "rh", turno: null, page: "dashboard", lastSeen: serverTimestamp() })));
+test("líder grava a própria presença com role real", async () =>
+  assertSucceeds(setDoc(doc(liderT1(), "presence/uLiderT1"), { uid: "uLiderT1", nome: "Lider T1", role: "lider", turno: 1, page: "dashboard", lastSeen: serverTimestamp() })));
+test("RH NÃO se pinta de admin na presença (role forjado)", async () =>
+  assertFails(setDoc(doc(rh(), "presence/uRh"), { uid: "uRh", nome: "GH", role: "admin", lastSeen: serverTimestamp() })));
+test("colaborador NÃO escreve presença (nem com role forjado)", async () =>
+  assertFails(setDoc(doc(colab(), "presence/uColab"), { uid: "uColab", nome: "Maria", role: "admin", lastSeen: serverTimestamp() })));
+test("ninguém escreve presença de OUTRO uid", async () =>
+  assertFails(setDoc(doc(rh(), "presence/uOutro"), { uid: "uOutro", nome: "GH", role: "rh", lastSeen: serverTimestamp() })));

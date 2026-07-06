@@ -70,6 +70,10 @@ service cloud.firestore {
         ? get(/databases/$(database)/documents/config/permissoes).data
         : {};
     }
+    // ATENCAO (invariante, Fable 2026-07-06): o retorno e BOOLEANO. Os valores 'turno' e
+    // 'atrib' da matriz viram apenas "ligado"; o ESCOPO (filtrar por turno do lider, por
+    // funcionariosVisiveis do supervisor) e SEMPRE aplicado hardcoded no match que usa a
+    // cap, NUNCA inferido daqui. Cap scoped nova sem esse filtro no match = furo de acesso.
     function temCap(cap, fallback) {
       let m = permDoc();
       let role = userDoc().role;
@@ -218,10 +222,14 @@ service cloud.firestore {
     }
 
     // ----- presence (quem está online agora) -----
+    // So GESTOR escreve (o portal do colaborador nunca liga presenca/chat, gate ehColab no
+    // firebase.js) e o role gravado tem que ser o REAL do users/{uid} (antes validava so o
+    // payload, entao qualquer autenticado se pintava de 'admin' no painel · Fable 2026-07-06).
     match /presence/{uid} {
       allow read: if isAuthed();
       allow create, update: if isAuthed() && request.auth.uid == uid
-        && request.resource.data.role in ['admin', 'rh', 'lider', 'supervisor']
+        && (isAdmin() || isRH() || isLider() || isSupervisor())
+        && request.resource.data.role == userDoc().role
         && request.resource.data.nome is string
         && request.resource.data.nome.size() <= 100;
       allow delete: if isAuthed() && request.auth.uid == uid;
@@ -639,7 +647,10 @@ service cloud.firestore {
       // 'tipo' e 'duracaoFmt' junto da transicao (nunca deixa em rh_confere, onde o
       // pipeline reprocessaria e reverteria a correcao); o lider NAO reclassifica, so
       // confirma, entao seu ramo segue travado nos 4 campos originais.
-      allow update: if request.resource.data.historico.size() == resource.data.historico.size() + 1
+      // 'is list' primeiro (guarda Fable 2026-07-06): sem ele, uma STRING/MAP com size()
+      // == +1 passaria e a trilha inteira viraria lixo (perda de dado irreversivel).
+      allow update: if request.resource.data.historico is list
+        && request.resource.data.historico.size() == resource.data.historico.size() + 1
         && (
           // RH/admin no estagio "RH confere": manda pro lider, dispensa, ou conclui direto.
           // Pode corrigir tipo/duracaoFmt no mesmo update (a transicao tira de rh_confere).

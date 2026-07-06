@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.46.0", d: "6 jul 2026", current: true, items: [
+    v: "1.47.0", d: "6 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Nos desvios de cada batida, a cor agora indica o sinal, na mesma linguagem do saldo: vermelho quando pesa contra (atraso, saída antecipada, pausa mais longa), verde quando é a favor (chegou antes, saiu depois), cinza dentro da tolerância." },
+    ],
+  },
+  {
+    v: "1.46.0", d: "6 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, as batidas do dia agora aparecem lado a lado (previsto e batido), cada uma com o seu desvio, e a que gerou a ocorrência fica destacada. Antes só dava pra ver a primeira batida, mesmo quando o problema estava em outra, como uma volta de almoço mais longa." },
     ],
   },

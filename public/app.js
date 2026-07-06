@@ -9048,11 +9048,22 @@ function ocaMarcLabels(n) {
   if (n === 1) return ["Marcação"];
   return Array.from({ length: n }, (_, i) => "Marcação " + (i + 1));
 }
-// Gravidade do selo de desvio por minutos (neutro <=5, âmbar <=20, vermelho acima).
-function ocaSeloTom(min) {
-  if (min == null || min <= 5) return "pequeno";
-  if (min <= 20) return "medio";
-  return "grande";
+// Diferença assinada batido-previsto em minutos, normalizada pra virada de meia-noite
+// (range -720..720, turno 3 cruza 00:00). Decide só o SINAL do selo; a magnitude
+// exibida vem do WK (desviosMin/duracaoFmt), que trata hora noturna.
+function ocaDiffAssinado(prev, bat) {
+  const p = ocaMin(prev), b = ocaMin(bat);
+  if (p == null || b == null) return null;
+  let d = (b - p) % 1440;
+  if (d > 720) d -= 1440;
+  if (d < -720) d += 1440;
+  return d;
+}
+// Cor do selo pelo SINAL (pedido do William 2026-07-06, mesma linguagem do saldo do BH):
+// vermelho pesa contra, verde a favor, cinza neutro (tolerância 5 min ou sem direção).
+function ocaSeloTom(favorMin) {
+  if (favorMin == null || Math.abs(favorMin) <= 5) return "neutro";
+  return favorMin > 0 ? "pos" : "neg";
 }
 // Trilha das batidas do dia: as marcações pareadas previsto -> batido, lado a lado, com o
 // selo de desvio em CADA marcação (o WK manda desviosMin[] alinhado por posição, minutos
@@ -9086,8 +9097,11 @@ function ocaTrilhaHtml(o) {
     let dmin = null;
     if (dvm) dmin = (typeof dvm[i] === "number" && isFinite(dvm[i])) ? dvm[i] : null;
     else if (isOfi) dmin = desvio; // fallback interim: só a marcação relevante
+    // Sinal: posição PAR é entrada (bater depois pesa contra), ÍMPAR é saída (bater antes pesa contra).
+    const diff = ocaDiffAssinado(prev, bat);
+    const favor = diff == null ? null : (i % 2 === 0 ? -diff : diff);
     const selo = (dmin != null && dmin > 0)
-      ? `<span class="oca-selo oca-selo--${ocaSeloTom(dmin)}">${escapeHtml(ocaDuracaoHumana(dmin))}</span>` : "";
+      ? `<span class="oca-selo oca-selo--${ocaSeloTom(favor)}">${escapeHtml(ocaDuracaoHumana(dmin))}</span>` : "";
     cards.push(`<div class="oca-trilha__card${isOfi ? " oca-trilha__card--oficial" : ""}">
       ${isOfi ? `<span class="oca-trilha__oficial-tag">Gerou a ocorrência</span>` : ""}
       <span class="oca-trilha__label">${escapeHtml(labels[i])}</span>
@@ -14016,7 +14030,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.46.0";
+window.CURRENT_VERSION = "1.47.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

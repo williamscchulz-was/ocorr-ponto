@@ -42,7 +42,7 @@ before(async () => {
     const h1 = [{ acao: "validou", por: "uRh", emIso: "2026-06-30T12:00:00Z" }];
     for (const id of ["ocaRH", "ocaRHv", "ocaRHd", "ocaRHm", "ocaRHlv", "ocaRHld", "ocaRHc",
                       "ocaRHedTD", "ocaRHedT", "ocaRHedD", "ocaRHedStay", "ocaRHedIntr", "ocaRHedDisp",
-                      "ocaRHedDel", "ocaRHedNum", "ocaRHedBig"]) {
+                      "ocaRHedDel", "ocaRHedNum", "ocaRHedBig", "ocaRHhStr", "ocaRHhMap"]) {
       await setDoc(doc(db, "ocorrencias-auto/" + id), baseDoc({ status: "rh_confere", turno: 1 }));
     }
     // Este PRECISA ter duracaoFmt pra o teste de delete ser uma mudança real (baseDoc não tem).
@@ -207,4 +207,14 @@ test("RH NÃO DELETA a duração na correção", async () =>
 test("RH NÃO grava duracaoFmt absurdamente longa (> 20 chars)", async () =>
   assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedBig"), {
     status: "com_lider", historico: histN(1), duracaoFmt: "0".repeat(30),
+  })));
+
+// ---- trilha não pode virar não-lista (guarda Fable: string/map tem size() e passaria no +1) ----
+test("RH NÃO transforma historico em STRING (perda de dado da trilha)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHhStr"), {
+    status: "com_lider", historico: "x",
+  })));
+test("RH NÃO transforma historico em MAP (perda de dado da trilha)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHhMap"), {
+    status: "com_lider", historico: { a: 1 },
   })));
