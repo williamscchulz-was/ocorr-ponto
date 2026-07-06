@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.38.0", d: "6 jul 2026", current: true, items: [
+    v: "1.39.0", d: "6 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Ocorrências automáticas que o relógio de ponto corrige sozinho (ex.: uma falta que virou nada quando o dia fechou) agora saem da fila de conferência com o selo 'Resolvida pelo WK', em vez de ficar pendurada como pendência falsa. Aparece na aba Todas pra auditoria." },
+    ],
+  },
+  {
+    v: "1.38.0", d: "6 jul 2026", items: [
       { type: "fix", title: "A abertura do app ficou mais visível: o esboço da tela aparece direito com um 'Carregando' enquanto os dados chegam, não parece mais travado." },
       { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, quando é uma falta mas o dia tem batidas completas, aparece um aviso pra conferir o espelho antes de confirmar, evitando confirmar uma falta falsa gerada pelo relógio de ponto." },
     ],

@@ -3987,6 +3987,7 @@ function renderOccList() {
       ...ocaDoEstagio("com_lider", true),
       ...ocaDoEstagio("confirmada", true),
       ...(podeRhTab ? ocaDoEstagio("dispensada", true) : []),
+      ...(podeRhTab ? ocaDoEstagio("auto_resolvida", true) : []),
     ];
   }
 
@@ -8696,6 +8697,7 @@ function ocaEstagio(o) {
   if (s === "com_lider") return "com_lider";
   if (s === "confirmada" || s === "conferida") return "confirmada";
   if (s === "dispensada") return "dispensada";
+  if (s === "auto_resolvida") return "auto_resolvida"; // WK reprocessou e autocorrigiu: sai da fila do RH
   return "rh_confere"; // desconhecido cai no 1º filtro do RH
 }
 function ocaDemitido(o) { return !!o.demitido || o.situacaoFunc === "Rescisão"; }
@@ -8766,6 +8768,8 @@ function ocaDashCardHtml(o) {
     const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "dispensou");
     const quem = (ult && ult.porNome) || "";
     acoes = `<div class="rhacts oca-confdone"><span class="badge badge--neutral"><span class="dot"></span>Dispensada</span>${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}</span>` : ""}</div>`;
+  } else if (est === "auto_resolvida") {
+    acoes = `<div class="rhacts oca-confdone"><span class="badge badge--neutral"><span class="dot"></span>Resolvida pelo WK</span></div>`;
   }
   return `
     <article class="occ occ--rh${est === "rh_confere" || est === "com_lider" ? " occ--pendente" : ""}${demit ? " occ--resc" : ""}" data-oca-card="1" data-oca-id="${escapeHtml(o.id)}" role="button" tabindex="0" aria-label="Ocorrência de ${escapeHtml(o.nome || "")}, ${escapeHtml(t.label)}, abrir detalhe">
@@ -8956,7 +8960,7 @@ function openDetalheAutoModal(id) {
   const est = ocaEstagio(o);
   if (est === "com_lider") return openConferirAutoModal(id); // a tela de agir JÁ É o detalhe
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
-  const sub = { rh_confere: "Aguardando conferência da GP", confirmada: "Conferência confirmada", dispensada: "Dispensada pela GP" }[est] || "";
+  const sub = { rh_confere: "Aguardando conferência da GP", confirmada: "Conferência confirmada", dispensada: "Dispensada pela GP", auto_resolvida: "Resolvida automaticamente pelo WK" }[est] || "";
   const acoesHtml = est === "rh_confere"
     ? `<button class="btn btn--ghost" id="oca-det-dispensar">${icon("x")}<span>Dispensar</span></button>
        <button class="btn btn--primary" id="oca-det-validar">${icon("check")}<span>Confirmar</span></button>`
@@ -13726,7 +13730,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.38.0";
+window.CURRENT_VERSION = "1.39.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
