@@ -635,18 +635,35 @@ service cloud.firestore {
       // acao/observacao: a DESTINAÇÃO que o líder escolhe ao conferir (mesma liturgia
       // da ocorrência manual — pedido do William 2026-07-02). Continuam gated pelas
       // mesmas transições de status abaixo.
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao'])
-        && request.resource.data.historico.size() == resource.data.historico.size() + 1
+      // O lock de campos (hasOnly) vive DENTRO de cada ramo: o RH/admin pode CORRIGIR
+      // 'tipo' e 'duracaoFmt' junto da transicao (nunca deixa em rh_confere, onde o
+      // pipeline reprocessaria e reverteria a correcao); o lider NAO reclassifica, so
+      // confirma, entao seu ramo segue travado nos 4 campos originais.
+      allow update: if request.resource.data.historico.size() == resource.data.historico.size() + 1
         && (
           // RH/admin no estagio "RH confere": manda pro lider, dispensa, ou conclui direto.
+          // Pode corrigir tipo/duracaoFmt no mesmo update (a transicao tira de rh_confere).
           ( (isAdmin() || temCap('ocorrencias.revisarAuto', isRH()))
             && resource.data.status in ['rh_confere', 'aguardando_conferencia', 'com_lider']
-            && request.resource.data.status in ['com_lider', 'dispensada', 'confirmada', 'conferida'] )
+            && request.resource.data.status in ['com_lider', 'dispensada', 'confirmada', 'conferida']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao', 'tipo', 'duracaoFmt'])
+            // Se a correcao TOCOU o campo, ele tem que continuar string plausivel: barra o
+            // delete (o WK nao repoe fora de rh_confere -> seria perda de dado irreversivel)
+            // e valor nao-string. Quem nao toca o campo passa igual (aditivo, inclui legado).
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['tipo'])
+                || (request.resource.data.tipo is string
+                    && request.resource.data.tipo.size() >= 1
+                    && request.resource.data.tipo.size() <= 80))
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['duracaoFmt'])
+                || (request.resource.data.duracaoFmt is string
+                    && request.resource.data.duracaoFmt.size() >= 1
+                    && request.resource.data.duracaoFmt.size() <= 20)) )
           ||
-          // Lider do TURNO confirma o que esta "com o lider".
+          // Lider do TURNO confirma o que esta "com o lider" — sem tocar na classificacao.
           ( isLider() && resource.data.turno == userDoc().turno
             && resource.data.status == 'com_lider'
-            && request.resource.data.status == 'confirmada' )
+            && request.resource.data.status == 'confirmada'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao']) )
         );
 
       // Conteúdo nasce e some só pelo servidor (Admin SDK bypassa rules).

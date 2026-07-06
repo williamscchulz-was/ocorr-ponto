@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.43.0", d: "6 jul 2026", current: true, items: [
+    v: "1.44.0", d: "6 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Na conferência de ocorrências automáticas, a GP agora pode corrigir uma ocorrência antes de enviar ao líder: reclassificar o tipo e ajustar a duração do desvio. A correção vai junto do envio e fica registrada na trilha, com o que mudou e o motivo." },
+    ],
+  },
+  {
+    v: "1.43.0", d: "6 jul 2026", items: [
       { type: "feat", title: "No primeiro acesso, depois de criar a sua senha, você lê e dá o aceite no Termo de Adesão à Assinatura Eletrônica, com o seu nome e CPF já preenchidos. É rápido, aparece só uma vez, e é o que dá validade jurídica às suas assinaturas no app." },
     ],
   },

@@ -8980,7 +8980,7 @@ function openConferirAutoModal(id) {
 // Timeline do histórico da automática (compartilhada: conferir + detalhe + dispensa).
 // Mostra o destino (ação escolhida pelo líder) e a obs/motivo de cada passo.
 function ocaHistHtml(o, proximaEtapa) {
-  const histRot = { validou: "GP validou e enviou ao líder", dispensou: "Dispensada", confirmou: "Conferência confirmada" };
+  const histRot = { validou: "GP validou e enviou ao líder", dispensou: "Dispensada", confirmou: "Conferência confirmada", corrigiu: "GP corrigiu e enviou ao líder" };
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
   return `
     <div class="oca-hist">
@@ -8989,6 +8989,7 @@ function ocaHistHtml(o, proximaEtapa) {
         <div class="oca-hist__ln">
           <b>${escapeHtml(histRot[h.acao] || h.acao || "")}${h.destino ? ` · ${escapeHtml(h.destino)}` : ""}</b>
           <span>${escapeHtml(h.porNome || "")}${h.emIso ? ` · ${escapeHtml(comData(h.emIso))}` : ""}</span>
+          ${h.alterou ? `<span class="oca-hist__obs">${escapeHtml(h.alterou)}</span>` : ""}
           ${h.obs ? `<span class="oca-hist__obs">${escapeHtml(h.obs)}</span>` : ""}
         </div>`).join("")}
       ${proximaEtapa ? `<div class="oca-hist__ln oca-hist__ln--next"><b>${escapeHtml(proximaEtapa)}</b><span>próxima etapa</span></div>` : ""}
@@ -9006,6 +9007,19 @@ function ocaDuracaoHumana(min) {
   const h = Math.floor(min / 60), m = min % 60;
   return h ? `${h}h ${String(m).padStart(2, "0")}` : `${m} min`;
 }
+// "1h 00" / "45 min" / "01:00" / "90" -> minutos (null se não reconhecer). Formas que o RH
+// digita ao corrigir a duração do desvio; o valor gravado vira "H:MM" via minParaDuracaoFmt.
+function parseDuracaoHumana(str) {
+  const s = String(str || "").trim().toLowerCase();
+  if (!s) return null;
+  let m;
+  if ((m = /^(\d{1,3}):(\d{2})$/.exec(s))) return +m[1] * 60 + +m[2];
+  if ((m = /^(\d{1,3})\s*h(?:\s*(\d{1,2}))?$/.exec(s))) return +m[1] * 60 + (m[2] ? +m[2] : 0);
+  if ((m = /^(\d{1,4})\s*(?:min|m)?$/.exec(s))) return +m[1];
+  return null;
+}
+// minutos -> "H:MM" (mesmo formato que o WK grava em duracaoFmt e que ocaMin lê).
+function minParaDuracaoFmt(min) { return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`; }
 // Tamanho do desvio em minutos: usa duracaoFmt do doc (fonte WK); sem ele, calcula
 // das marcações (atraso: 1ª batida x 1º previsto; saída: último previsto x última
 // batida). Falta não tem desvio (retorna null).
@@ -9085,7 +9099,8 @@ function openDetalheAutoModal(id) {
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
   const sub = { rh_confere: "Aguardando conferência da GP", confirmada: "Conferência confirmada", dispensada: "Dispensada pela GP", auto_resolvida: "Resolvida automaticamente pelo WK" }[est] || "";
   const acoesHtml = est === "rh_confere"
-    ? `<button class="btn btn--ghost" id="oca-det-dispensar">${icon("x")}<span>Dispensar</span></button>
+    ? `<button class="btn btn--ghost" id="oca-det-editar">${icon("edit")}<span>Editar</span></button>
+       <button class="btn btn--ghost" id="oca-det-dispensar">${icon("x")}<span>Dispensar</span></button>
        <button class="btn btn--primary" id="oca-det-validar">${icon("check")}<span>Confirmar</span></button>`
     : `<button class="btn btn--ghost" data-close>Fechar</button>`;
   openModal(`
@@ -9115,6 +9130,7 @@ function openDetalheAutoModal(id) {
   });
   // Troca DIRETO pro modal do motivo (openModal substitui; nunca closeModal antes).
   $("#oca-det-dispensar")?.addEventListener("click", () => openDispensarAutoModal(id));
+  $("#oca-det-editar")?.addEventListener("click", () => openEditarAutoModal(id));
 }
 
 // Dispensa COM motivo obrigatório (pedido do William 2026-07-02): o porquê fica na
@@ -9152,6 +9168,104 @@ function openDispensarAutoModal(id) {
     else { // demo local
       const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
       if (oo) { oo.status = "dispensada"; oo.observacao = motivo; oo.historico = [...(oo.historico || []), { acao: "dispensou", porNome: currentUser()?.nome || "GP", emIso: nowIso(), obs: motivo }]; }
+      renderApp();
+    }
+    closeModal();
+  });
+}
+
+// Correção da ocorrência automática pelo RH (pedido do William 2026-07-06): reclassificar o
+// tipo e/ou ajustar a duração do desvio ANTES de mandar pro líder. A correção vai JUNTO da
+// transição pra com_lider num único update — a regra não deixa editar mantendo em rh_confere
+// (ali o pipeline WK reprocessa e reverteria). As batidas/jornada (dado do relógio) NÃO são
+// editáveis aqui. Motivo obrigatório, registrado na trilha (quem, o quê mudou, por quê).
+function openEditarAutoModal(id) {
+  const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+  if (!o || ocaEstagio(o) !== "rh_confere") return;
+  const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
+  const tipos = Object.keys(OCA_TIPOS);
+  if (o.tipo && !tipos.includes(o.tipo)) tipos.unshift(o.tipo); // preserva o valor atual mesmo fora do mapa
+  const tipoOpts = tipos.map((k) => `<option value="${escapeHtml(k)}"${k === o.tipo ? " selected" : ""}>${escapeHtml(ocaTipo(k).label)}</option>`).join("");
+  const durMinAtual = ocaDesvioMin(o); // magnitude exibida hoje (duracaoFmt do WK ou calculada das marcações)
+  const durHuman = ocaDuracaoHumana(durMinAtual) || "";
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Corrigir ocorrência · ${escapeHtml(dataLbl)}</h2><p>Reclassifique antes de enviar ao líder</p></div>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="oca-duo">
+        <div>
+          ${ocaFatosHtml(o)}
+          <p class="muted text-sm" style="margin-top:10px">As batidas vêm do relógio de ponto e não são editáveis aqui.</p>
+        </div>
+        <div>
+          <div class="field">
+            <label for="oca-ed-tipo">Tipo</label>
+            <select id="oca-ed-tipo">${tipoOpts}</select>
+            <span class="field__hint">Reclassifica a ocorrência antes de enviar ao líder.</span>
+          </div>
+          <div class="field">
+            <label for="oca-ed-dur">Duração do desvio</label>
+            <input type="text" id="oca-ed-dur" value="${escapeHtml(durHuman)}" placeholder="ex.: 45 min ou 1h 00" autocomplete="off" />
+            <span class="field__hint" id="oca-ed-dur-hint">Formato Xh MM ou MM min. Deixe em branco se não se aplica.</span>
+          </div>
+          <div class="field">
+            <label for="oca-ed-motivo">Motivo da correção <span style="color:var(--danger)">*</span></label>
+            <textarea id="oca-ed-motivo" rows="3" placeholder="Explique o porquê da correção. Fica registrado na trilha."></textarea>
+            <div class="ass-erro" id="oca-ed-erro" hidden></div>
+          </div>
+          ${ocaHistHtml(o, "GP corrige e envia ao líder")}
+        </div>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" id="oca-ed-cancelar">Cancelar</button>
+      <button class="btn btn--primary" id="oca-ed-btn">${icon("check")}<span>Confirmar com correção</span></button>
+    </div>`);
+  document.querySelector("#modal-root .modal")?.classList.add("modal--oca");
+  document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+  // Cancelar volta pra tela de conferência (não perde o contexto). openModal substitui.
+  $("#oca-ed-cancelar")?.addEventListener("click", () => openDetalheAutoModal(id));
+  // Preview do parse da duração: evita gravar um valor mal interpretado silenciosamente.
+  const durInput = $("#oca-ed-dur"), durHint = $("#oca-ed-dur-hint");
+  durInput?.addEventListener("input", () => {
+    const v = durInput.value.trim();
+    if (!v) { durHint.textContent = "Formato Xh MM ou MM min. Deixe em branco se não se aplica."; durHint.style.color = ""; return; }
+    const min = parseDuracaoHumana(v);
+    if (min == null) { durHint.textContent = "Não entendi. Use 1h 00 ou 45 min."; durHint.style.color = "var(--danger)"; }
+    else { durHint.textContent = "= " + (ocaDuracaoHumana(min) || "0 min"); durHint.style.color = ""; }
+  });
+  $("#oca-ed-btn")?.addEventListener("click", async (e) => {
+    const erro = $("#oca-ed-erro");
+    const setErro = (m) => { if (erro) { erro.textContent = m; erro.hidden = false; } };
+    const motivo = ($("#oca-ed-motivo")?.value || "").trim();
+    if (!motivo) { setErro("Escreva o motivo da correção."); $("#oca-ed-motivo")?.focus(); return; }
+    const novoTipo = $("#oca-ed-tipo")?.value || o.tipo;
+    const durStr = ($("#oca-ed-dur")?.value || "").trim();
+    let durMinNovo = null;
+    if (durStr) {
+      durMinNovo = parseDuracaoHumana(durStr);
+      if (durMinNovo == null) { setErro("Não entendi a duração. Use 1h 00 ou 45 min."); $("#oca-ed-dur")?.focus(); return; }
+    }
+    const tipoMudou = novoTipo !== o.tipo;
+    const durMudou = durStr !== "" && durMinNovo != null && durMinNovo !== durMinAtual;
+    if (!tipoMudou && !durMudou) { setErro("Altere o tipo ou a duração, ou use Confirmar sem correção."); return; }
+    const extras = { observacao: motivo };
+    const partes = [];
+    if (tipoMudou) { extras.tipo = novoTipo; partes.push(`Tipo: ${ocaTipo(o.tipo).label} → ${ocaTipo(novoTipo).label}`); }
+    if (durMudou) { extras.duracaoFmt = minParaDuracaoFmt(durMinNovo); partes.push(`Duração: ${ocaDuracaoHumana(durMinAtual) || "—"} → ${ocaDuracaoHumana(durMinNovo)}`); }
+    extras.alterou = partes.join(" · ");
+    const btn = e.currentTarget; btn.disabled = true;
+    if (window.corrigirOcorrenciaAuto) await window.corrigirOcorrenciaAuto(id, extras);
+    else { // demo local (sem firebase)
+      const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+      if (oo) {
+        oo.status = "com_lider";
+        if (extras.tipo) oo.tipo = extras.tipo;
+        if (extras.duracaoFmt) oo.duracaoFmt = extras.duracaoFmt;
+        oo.historico = [...(oo.historico || []), { acao: "corrigiu", porNome: currentUser()?.nome || "", emIso: nowIso(), obs: motivo, alterou: extras.alterou }];
+      }
       renderApp();
     }
     closeModal();
@@ -13853,7 +13967,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.43.0";
+window.CURRENT_VERSION = "1.44.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

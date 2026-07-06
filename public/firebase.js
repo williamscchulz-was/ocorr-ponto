@@ -1253,10 +1253,15 @@
       const entrada = { acao, por: uid, porNome: u?.nome || "", emIso: new Date().toISOString() };
       if (extras?.acaoLabel) entrada.destino = extras.acaoLabel;
       if (extras?.observacao) entrada.obs = extras.observacao;
+      if (extras?.alterou) entrada.alterou = extras.alterou; // resumo da correção (Tipo/Duração de→para)
       const novoHist = [...(Array.isArray(o.historico) ? o.historico : []), entrada];
       const patch = { status: novoStatus, historico: novoHist };
       if (extras?.acaoId) patch.acao = extras.acaoId;
       if (extras?.observacao) patch.observacao = extras.observacao;
+      // Correção do RH: reclassifica tipo/duracaoFmt no MESMO update. A regra só aceita
+      // fora de rh_confere (novoStatus != rh_confere), pra não expor a edição ao reprocessamento do WK.
+      if (extras?.tipo != null) patch.tipo = extras.tipo;
+      if (extras?.duracaoFmt != null) patch.duracaoFmt = extras.duracaoFmt;
       try {
         await db.collection("ocorrencias-auto").doc(id).update(patch);
         Object.assign(o, patch); // otimista local
@@ -1273,6 +1278,10 @@
     // extras.observacao = motivo da dispensa (obrigatório na UI; a regra já aceita observacao)
     window.dispensarOcorrenciaAuto = (id, extras) => _transicaoOca(id, "dispensada", "dispensou", "Ocorrência dispensada.", extras);
     window.confirmarOcorrenciaAuto = (id, extras) => _transicaoOca(id, "confirmada", "confirmou", "Conferência confirmada.", extras);
+    // Correção do RH: reclassifica tipo/duracaoFmt E envia ao líder num único update (a regra
+    // exige sair de rh_confere; editar-e-ficar seria revertido pelo pipeline). extras:
+    // { tipo?, duracaoFmt?, observacao (motivo, obrigatório na UI), alterou (resumo p/ trilha) }.
+    window.corrigirOcorrenciaAuto  = (id, extras) => _transicaoOca(id, "com_lider", "corrigiu", "Correção enviada ao líder.", extras);
 
     // Últimos eventos da trilha (Visão geral). A rule de /eventos limita a leitura
     // a admin e cap auditoria.ver; quem não pode nem chama (o cartão não renderiza).

@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { test, before, after } from "node:test";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField } from "firebase/firestore";
 
 let env;
 
@@ -40,13 +40,19 @@ before(async () => {
     // fluxo novo (turno 1). rh_confere com historico vazio (mutacao -> size 1);
     // com_lider com historico size 1 (mutacao -> size 2). 1 doc por teste (sem estado compartilhado).
     const h1 = [{ acao: "validou", por: "uRh", emIso: "2026-06-30T12:00:00Z" }];
-    for (const id of ["ocaRH", "ocaRHv", "ocaRHd", "ocaRHm", "ocaRHlv", "ocaRHld", "ocaRHc"]) {
+    for (const id of ["ocaRH", "ocaRHv", "ocaRHd", "ocaRHm", "ocaRHlv", "ocaRHld", "ocaRHc",
+                      "ocaRHedTD", "ocaRHedT", "ocaRHedD", "ocaRHedStay", "ocaRHedIntr", "ocaRHedDisp",
+                      "ocaRHedDel", "ocaRHedNum", "ocaRHedBig"]) {
       await setDoc(doc(db, "ocorrencias-auto/" + id), baseDoc({ status: "rh_confere", turno: 1 }));
     }
+    // Este PRECISA ter duracaoFmt pra o teste de delete ser uma mudança real (baseDoc não tem).
+    await setDoc(doc(db, "ocorrencias-auto/ocaRHedDelD"), baseDoc({ status: "rh_confere", turno: 1, duracaoFmt: "1:00" }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLD"),  baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLD2"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLD3"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLD4"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaLDedT"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaLDedD"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaDone"), baseDoc({ status: "confirmada", turno: 1, historico: h1 }));
   });
 });
@@ -146,3 +152,59 @@ test("Ninguém reabre confirmada -> rh_confere", async () =>
   assertFails(updateDoc(doc(admin(), "ocorrencias-auto/ocaDone"), { status: "rh_confere", historico: histN(2) })));
 test("Colaborador NÃO age no fluxo novo", async () =>
   assertFails(updateDoc(doc(colab(), "ocorrencias-auto/ocaRHc"), { status: "com_lider", historico: histN(1) })));
+
+// ===== Correção do RH (reclassificar tipo/duracao) JUNTO da transicao pra fora de rh_confere =====
+// A edicao tem que sair de rh_confere no mesmo update, senao o pipeline (WK) reprocessaria e
+// reverteria. Regra: o ramo RH/admin aceita tipo+duracaoFmt no hasOnly; o do lider NAO.
+test("RH corrige tipo + duracao e envia ao líder (rh_confere -> com_lider)", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedTD"), {
+    status: "com_lider", historico: histN(1), tipo: "Atrasos", duracaoFmt: "0:45",
+  })));
+test("RH corrige só o tipo junto da transição", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "ocorrencias-auto/ocaRHedT"), {
+    status: "com_lider", historico: histN(1), tipo: "Atrasos",
+  })));
+test("RH corrige só a duração junto da transição", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedD"), {
+    status: "com_lider", historico: histN(1), duracaoFmt: "1:15",
+  })));
+test("RH corrige o tipo e dispensa (também sai de rh_confere)", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedDisp"), {
+    status: "dispensada", historico: histN(1), tipo: "Atrasos", observacao: "Reclassificado antes de dispensar.",
+  })));
+
+// ---- bloqueios da correção ----
+test("RH NÃO corrige tipo mantendo em rh_confere (edicao fica exposta ao WK)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedStay"), {
+    status: "rh_confere", historico: histN(1), tipo: "Atrasos",
+  })));
+test("RH NÃO grava campo intruso junto da correção", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedIntr"), {
+    status: "com_lider", historico: histN(1), tipo: "Atrasos", marcacoesApuradas: "22:33 06:30",
+  })));
+test("Líder NÃO reclassifica o tipo ao confirmar", async () =>
+  assertFails(updateDoc(doc(lider(), "ocorrencias-auto/ocaLDedT"), {
+    status: "confirmada", historico: histN(2), tipo: "Atrasos",
+  })));
+test("Líder NÃO altera a duração ao confirmar", async () =>
+  assertFails(updateDoc(doc(lider(), "ocorrencias-auto/ocaLDedD"), {
+    status: "confirmada", historico: histN(2), duracaoFmt: "0:30",
+  })));
+
+// ---- correção não pode virar perda de dado (delete) nem valor não-string (guarda Fable) ----
+test("RH NÃO DELETA o tipo na correção (WK não repõe fora de rh_confere)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedDel"), {
+    status: "com_lider", historico: histN(1), tipo: deleteField(),
+  })));
+test("RH NÃO grava tipo não-string (numérico)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedNum"), {
+    status: "com_lider", historico: histN(1), tipo: 42,
+  })));
+test("RH NÃO DELETA a duração na correção", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedDelD"), {
+    status: "com_lider", historico: histN(1), duracaoFmt: deleteField(),
+  })));
+test("RH NÃO grava duracaoFmt absurdamente longa (> 20 chars)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedBig"), {
+    status: "com_lider", historico: histN(1), duracaoFmt: "0".repeat(30),
+  })));
