@@ -20,6 +20,24 @@ const debounce = (fn, ms = 150) => {
   };
 };
 
+// ---------- Feedback de clique + trava de re-clique ----------
+// withBusy(chave, el, fn): roda fn UMA vez por chave enquanto ela estiver "em voo".
+// A trava é por CHAVE string (não pelo nó, que some no re-render): um 2º clique com a
+// mesma chave só re-aplica o spinner e retorna, NUNCA dispara fn de novo. Mata o
+// duplo-clique que duplicava registro e dá feedback imediato no botão. O visual
+// (.is-busy) é best-effort no nó clicado; sobrevive a re-render porque é CSS puro.
+// toast/renderApp resolvem em runtime (definidos no app.js, mesmo escopo global).
+const _emVoo = new Set();
+async function withBusy(chave, el, fn) {
+  if (_emVoo.has(chave)) { _busyOn(el); return; }
+  _emVoo.add(chave); _busyOn(el);
+  try { return await fn(); }
+  catch (e) { toast("Não deu certo: " + (e?.message || e), "danger"); }
+  finally { _emVoo.delete(chave); _busyOff(el); }
+}
+function _busyOn(el)  { if (el && el.isConnected) { el.classList.add("is-busy"); el.setAttribute("aria-busy", "true"); if ("disabled" in el) el.disabled = true; } }
+function _busyOff(el) { if (el && el.isConnected) { el.classList.remove("is-busy"); el.removeAttribute("aria-busy"); if ("disabled" in el) el.disabled = false; } }
+
 // ---------- Log ----------
 // Logger gateado: console.log que carrega PII (emails, nomes, CNPJs)
 // deve usar debug() em vez de console.log direto. Só imprime em localhost

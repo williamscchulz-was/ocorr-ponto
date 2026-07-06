@@ -18,6 +18,15 @@ function pararEscutaConversa() {
 // Exposto pro firebase.js cancelar no logout (limparPresenca).
 window.pararEscutaConversa = pararEscutaConversa;
 
+// ---------- Frescor por TTL (loaders lazy por página) ----------
+// Carimba Date.now() por loader e diz se o dado ficou velho. Usado no lazy-load das
+// páginas (recarrega em vez de servir cache eterno) e no re-fetch ao foco/visibilidade.
+// Não é listener: é um .get() pontual quando a tela pede e o dado passou do TTL.
+const _cargas = {};
+const FRESCOR_TTL = 60000; // 60s
+function marcarCarga(chave) { _cargas[chave] = Date.now(); }
+function estale(chave, ttl = FRESCOR_TTL) { const t = _cargas[chave]; return !t || (Date.now() - t) > ttl; }
+
 // ---------- Helpers ----------
 
 // Helpers puros (DOM $/$$, debounce, debug, validação, datas/formatação,
@@ -1036,7 +1045,7 @@ function colabAvisoHtml(c) {
 
 // Confirma ciência (dual-mode: firebase override ou fallback demo local).
 function colabCienteUI(id) {
-  if (window.confirmarCienciaComunicado) return void window.confirmarCienciaComunicado(id);
+  if (window.confirmarCienciaComunicado) return window.confirmarCienciaComunicado(id);
   const c = (state.comunicadosColab || []).find((x) => x.id === id);
   if (c) c.minhaLeitura = { confirmado: true, em: nowIso() };
   if (typeof store !== "undefined") store.save(state);
@@ -1059,9 +1068,9 @@ if (!window._colabAvisoBound) {
   }, true);
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-colab-ciente]");
-    if (b) { e.preventDefault(); b.disabled = true; colabCienteUI(b.dataset.colabCiente); return; }
+    if (b) { e.preventDefault(); const cid = b.dataset.colabCiente; withBusy("ciente:" + cid, b, () => colabCienteUI(cid)); return; }
     const dc = e.target.closest("[data-colab-disc-ciente]");
-    if (dc) { e.preventDefault(); dc.disabled = true; (window.darCienciaDisciplinar ? window.darCienciaDisciplinar(dc.dataset.colabDiscCiente) : null); return; }
+    if (dc) { e.preventDefault(); const did = dc.dataset.colabDiscCiente; withBusy("disc-ciente:" + did, dc, () => (window.darCienciaDisciplinar ? window.darCienciaDisciplinar(did) : null)); return; }
     // Abrir o aviso em tela cheia (tocar no card). Vem DEPOIS da ciência: clicar no
     // botão "Li e estou ciente" confirma direto; clicar no resto do card abre o post.
     const av = e.target.closest("[data-colab-aviso]");
@@ -1282,48 +1291,45 @@ function rcbAssinaturaDe(r) {
 
 // Abre o recibo no visualizador in-app. Assinado: mostra a versão CARIMBADA do cofre
 // (Storage); pendente: o original + o botão Assinar (só pro dono colaborador).
-let _rcbAbrindo = false;
+// A trava de re-clique agora vem do withBusy no handler ([data-recibo-abrir], chave
+// "recibo:<id>"): não precisa mais do flag _rcbAbrindo aqui.
 async function abrirReciboColab(id) {
-  if (_rcbAbrindo) return;
   const r = (state.meusRecibos || []).find((x) => x.id === id)
     || (state.recibos || []).find((x) => x.id === id); // gestor conferindo um recibo gerado
   if (!r) return;
-  _rcbAbrindo = true;
-  try {
-    const ass = rcbAssinaturaDe(r);
-    const ehMeuPendente = !ass && currentUser()?.role === "colaborador"
-      && (state.meusRecibos || []).some((x) => x.id === id);
-    let url = null;
-    if (ass && ass.arquivoPath && typeof window.urlArquivoAssinado === "function") {
-      // versão carimbada: baixa do Storage e vira data: pro viewer embutir
-      const dl = await window.urlArquivoAssinado(ass.arquivoPath);
-      if (dl) {
-        try {
-          const blob = await (await fetch(dl)).blob();
-          url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
-        } catch (e) {
-          // Fetch bloqueado (CORS do bucket ainda não configurado) ou rede: NUNCA mostrar
-          // o original fingindo ser o assinado — abre a versão assinada em NOVA ABA.
-          try { console.warn("[recibos] fetch do assinado falhou, abrindo em nova aba:", e?.message || e); } catch (e2) {}
-          window.open(dl, "_blank", "noopener");
-          toast("A versão assinada abriu em nova aba.");
-          return;
-        }
+  const ass = rcbAssinaturaDe(r);
+  const ehMeuPendente = !ass && currentUser()?.role === "colaborador"
+    && (state.meusRecibos || []).some((x) => x.id === id);
+  let url = null;
+  if (ass && ass.arquivoPath && typeof window.urlArquivoAssinado === "function") {
+    // versão carimbada: baixa do Storage e vira data: pro viewer embutir
+    const dl = await window.urlArquivoAssinado(ass.arquivoPath);
+    if (dl) {
+      try {
+        const blob = await (await fetch(dl)).blob();
+        url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
+      } catch (e) {
+        // Fetch bloqueado (CORS do bucket ainda não configurado) ou rede: NUNCA mostrar
+        // o original fingindo ser o assinado — abre a versão assinada em NOVA ABA.
+        try { console.warn("[recibos] fetch do assinado falhou, abrindo em nova aba:", e?.message || e); } catch (e2) {}
+        window.open(dl, "_blank", "noopener");
+        toast("A versão assinada abriu em nova aba.");
+        return;
       }
     }
-    if (!url) url = (typeof window.carregarArquivoRecibo === "function") ? await window.carregarArquivoRecibo(id) : null;
-    if (!url) { toast("Não consegui abrir o arquivo. Tente de novo.", "danger"); return; }
-    if (!/^data:/i.test(url)) url = "data:application/pdf;base64," + url; // defensivo (base64 cru)
-    openDocViewer({
-      titulo: `${RCB_TIPOS[r.tipo] || "Documento"} · ${rcbCompetenciaLabel(r.competencia)}`,
-      tipo: ass ? "Assinado" : (RCB_TIPOS[r.tipo] || "documento"),
-      exigeAssinatura: !ass,
-      anexo: { url, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
-      assinarRecibo: ehMeuPendente ? id : null,
-    });
-    rcbMarcarVisto(id); // some da bolinha de pendência dos atalhos (local, por navegador)
-    window.logEvento?.({ tipo: "recibos", acao: "Abriu recibo", alvo: `${RCB_TIPOS[r.tipo] || r.tipo} · ${r.competencia}` });
-  } finally { _rcbAbrindo = false; }
+  }
+  if (!url) url = (typeof window.carregarArquivoRecibo === "function") ? await window.carregarArquivoRecibo(id) : null;
+  if (!url) { toast("Não consegui abrir o arquivo. Tente de novo.", "danger"); return; }
+  if (!/^data:/i.test(url)) url = "data:application/pdf;base64," + url; // defensivo (base64 cru)
+  openDocViewer({
+    titulo: `${RCB_TIPOS[r.tipo] || "Documento"} · ${rcbCompetenciaLabel(r.competencia)}`,
+    tipo: ass ? "Assinado" : (RCB_TIPOS[r.tipo] || "documento"),
+    exigeAssinatura: !ass,
+    anexo: { url, nome: r.nomeArquivo || "recibo.pdf", mime: "application/pdf" },
+    assinarRecibo: ehMeuPendente ? id : null,
+  });
+  rcbMarcarVisto(id); // some da bolinha de pendência dos atalhos (local, por navegador)
+  window.logEvento?.({ tipo: "recibos", acao: "Abriu recibo", alvo: `${RCB_TIPOS[r.tipo] || r.tipo} · ${r.competencia}` });
 }
 
 // ---- Assinar (Fase B): folha em 3 passos — localização EXIGIDA, senha + aceite,
@@ -1598,7 +1604,7 @@ async function abrirComprovanteColab(docId) {
 }
 
 function colabLerDocUI(id) {
-  if (window.confirmarLeituraDocumentoColab) return void window.confirmarLeituraDocumentoColab(id);
+  if (window.confirmarLeituraDocumentoColab) return window.confirmarLeituraDocumentoColab(id);
   const d = (state.documentosColab || []).find((x) => x.id === id);
   if (d) d.minhaLeitura = { confirmado: true, em: nowIso() };
   if (typeof store !== "undefined") store.save(state);
@@ -1672,18 +1678,19 @@ if (!window._colabDocBound) {
     // Comprovante ANTES do data-doc-view: o botão vive dentro da linha (que também abre
     // o original), então precisa vencer e barrar a propagação pra não disparar os dois.
     const cp = e.target.closest("[data-doc-comprovante]");
-    if (cp) { e.preventDefault(); e.stopPropagation(); abrirComprovanteColab(cp.dataset.docComprovante); return; }
+    if (cp) { e.preventDefault(); e.stopPropagation(); const cid = cp.dataset.docComprovante; withBusy("comprovante:" + cid, cp, () => abrirComprovanteColab(cid)); return; }
     const dv = e.target.closest("[data-doc-view]");
     if (dv) {
       e.preventDefault();
-      const d = (state.documentosColab || []).find((x) => x.id === dv.dataset.docView);
-      if (d) openDocViewer(d);
+      const did = dv.dataset.docView;
+      const d = (state.documentosColab || []).find((x) => x.id === did);
+      if (d) withBusy("docview:" + did, dv, () => openDocViewer(d));
       return;
     }
     const as = e.target.closest("[data-colab-assinar]");
     if (as) { e.preventDefault(); openColabAssinarSheet(as.dataset.colabAssinar); return; }
     const lr = e.target.closest("[data-colab-lerdoc]");
-    if (lr) { e.preventDefault(); lr.disabled = true; colabLerDocUI(lr.dataset.colabLerdoc); return; }
+    if (lr) { e.preventDefault(); const lid = lr.dataset.colabLerdoc; withBusy("lerdoc:" + lid, lr, () => colabLerDocUI(lid)); return; }
     const bh = e.target.closest("[data-bday-heart]");
     if (bh) { e.preventDefault(); onParabenizar(bh); return; }
   });
@@ -4193,7 +4200,7 @@ function openNovaOcorrencia() {
     className: "modal--form2",
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      $("#btn-save").addEventListener("click", saveNovaOcorrencia);
+      $("#btn-save").addEventListener("click", (e) => withBusy("ocorrencia:nova", e.currentTarget, () => saveNovaOcorrencia()));
       const linkImport = $("#link-import");
       if (linkImport) {
         linkImport.addEventListener("click", (e) => {
@@ -5770,7 +5777,7 @@ function openObrigacaoModal(id) {
         $("#ob-f-unica").style.display = v === "unica" ? "" : "none";
       };
       recSel.addEventListener("change", sync); sync();
-      $("#ob-save").addEventListener("click", () => salvarObrigacaoForm(id));
+      $("#ob-save").addEventListener("click", (e) => withBusy("obrigacao:" + (id || "novo"), e.currentTarget, () => salvarObrigacaoForm(id)));
       const del = modal.querySelector("[data-obrig-del]");
       if (del) del.addEventListener("click", () => removerObrigacao(del.dataset.obrigDel));
       setTimeout(() => $("#ob-titulo")?.focus(), 60);
@@ -5786,7 +5793,7 @@ function salvarObrigacaoForm(id) {
   if (rec === "mensal") dados.dia = Math.min(31, Math.max(1, Number($("#ob-dia").value) || 1));
   else if (rec === "anual") { dados.mes = Number($("#ob-mes").value) || 1; dados.dia = Math.min(31, Math.max(1, Number($("#ob-diaa").value) || 1)); }
   else { const d = $("#ob-data").value; if (!d) return campoInvalido("#ob-data", "Escolha a data."); dados.data = d; }
-  salvarObrigacao(dados, id);
+  return salvarObrigacao(dados, id); // retorna a promise: withBusy segura a trava até o write terminar
 }
 
 // --- CRUD (versão demo; firebase.js sobrescreve window.* pra gravar no Firestore) ---
@@ -6092,6 +6099,7 @@ async function renderPdfPaginasViewer(dataUrl, cont) {
 // Overlay PRÓPRIO (não usa #modal-root) — empilha POR CIMA de um modal aberto (ex.:
 // sheet de assinar) sem destruí-lo. Link externo (Drive) não embute: abre em nova aba.
 function openDocViewer(d) {
+  if (document.querySelector(".modal-backdrop--docview")) return; // ja ha um viewer aberto: nao empilha outro no duplo-clique
   const anexo = d && d.anexo;
   const url = anexo && anexo.url;
   if (!url || !ehUrlSegura(url)) { toast("Documento sem arquivo pra abrir.", "danger"); return; }
@@ -6317,7 +6325,7 @@ function openComunicadoModal(id) {
       ["com-titulo", "com-corpo"].forEach((idf) => $("#" + idf).addEventListener("input", () => comPreview(segTipo, tipoAtual)));
       $("#com-turno").addEventListener("change", () => comPreview(segTipo, tipoAtual));
       $("#com-setor")?.addEventListener("change", () => comPreview(segTipo, tipoAtual));
-      $("#com-save").addEventListener("click", () => salvarComunicadoForm(id, segTipo, tipoAtual));
+      $("#com-save").addEventListener("click", (e) => withBusy("comunicado:" + (id || "novo"), e.currentTarget, () => salvarComunicadoForm(id, segTipo, tipoAtual)));
       const desp = modal.querySelector("[data-com-despublicar]");
       if (desp) desp.addEventListener("click", () => despublicarComunicadoUI(desp.dataset.comDespublicar));
       sync(); // estado inicial coerente (esconde segmento se editar um aviso)
@@ -6341,8 +6349,10 @@ function salvarComunicadoForm(id, segTipo, tipoCom) {
     alcanceEstimado: comAlcance(seg),
     imagem: _comImagem || null,
   };
-  if (window.criarComunicado && !id) return void window.criarComunicado(dados);
-  if (window.editarComunicado && id) return void window.editarComunicado(id, dados);
+  // Retorna a promise (sem void): withBusy a aguarda e só solta a trava no fim do
+  // write — é o que impede o duplo-clique de duplicar o registro.
+  if (window.criarComunicado && !id) return window.criarComunicado(dados);
+  if (window.editarComunicado && id) return window.editarComunicado(id, dados);
   salvarComunicadoLocal(dados, id);
 }
 
@@ -7097,8 +7107,10 @@ function openDocumentoModal(id) {
         });
       }
 
-      $("#doc-rascunho").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo, nivel }), false));
-      $("#doc-publicar").addEventListener("click", () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo, nivel }), true));
+      // Rascunho e Publicar compartilham a MESMA chave: enquanto um write voa, o outro
+      // botão também fica travado (senão Rascunho+Publicar em sequência criaria 2 docs).
+      $("#doc-rascunho").addEventListener("click", (e) => withBusy("documento:" + (id || "novo"), e.currentTarget, () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo, nivel }), false)));
+      $("#doc-publicar").addEventListener("click", (e) => withBusy("documento:" + (id || "novo"), e.currentTarget, () => salvarDocumentoForm(id, () => ({ segTipo, tipo, modo, nivel }), true)));
       setTimeout(() => $("#doc-titulo")?.focus(), 60);
     },
   });
@@ -7147,8 +7159,9 @@ function salvarDocumentoForm(id, getState, publicar) {
     dados.descricao = $("#doc-corpo").value.trim();
     dados.anexo = null;
   }
-  if (window.criarDocumentoInstitucional && !id) return void window.criarDocumentoInstitucional(dados, publicar);
-  if (window.editarDocumento && id) return void window.editarDocumento(id, dados, publicar);
+  // Retorna a promise (sem void) pra withBusy segurar a trava até o fim do write.
+  if (window.criarDocumentoInstitucional && !id) return window.criarDocumentoInstitucional(dados, publicar);
+  if (window.editarDocumento && id) return window.editarDocumento(id, dados, publicar);
   salvarDocumentoLocal(dados, id, publicar);
 }
 
@@ -7220,7 +7233,6 @@ function abrirAdesaoDocumento(id) {
   const d = (state.documentos || []).find((x) => x.id === id);
   if (!d) return;
   const seg = d.segmento || { tipo: "todos", valores: [] };
-  const a = docAdesao(d);
   const nivel = docNivel(d);
   if (nivel === "nenhuma") {
     openModal(`
@@ -7236,57 +7248,79 @@ function abrirAdesaoDocumento(id) {
     return;
   }
   const assina = nivel === "assinatura";
-  const fontes = assina ? (d.assinaturas || []).filter((x) => x.versaoAssinada === d.versao) : (d.leituras || []);
-  const feitoIds = new Set(fontes.map((x) => x.funcionarioId));
   const elegiveis = comFuncsDoSegmento(seg);
-  const feitos = elegiveis.filter((f) => feitoIds.has(f.id));
-  const pendentes = elegiveis.filter((f) => !feitoIds.has(f.id));
-  const linha = (f, ok) => {
-    const x = fontes.find((y) => y.funcionarioId === f.id);
-    const quando = ok && x ? comData(x.em) : "";
-    const sub = [(typeof TURNOS !== "undefined" && TURNOS[f.turno]?.label) || "", f.setor || ""].filter(Boolean).join(" · ");
-    // Linha feita é clicável: abre a trilha por pessoa (quando, dispositivo e, se houver, local/hash).
-    const clic = ok && x ? ` com-person--clic" data-doc-trilha="${escapeHtml(f.id)}" role="button" tabindex="0` : "";
-    return `<div class="com-person${clic}">
-      <span class="com-person__av">${escapeHtml(comIniciais(f.nome))}</span>
-      <div class="com-person__info"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
-      <span class="com-person__tag ${ok ? "is-ok" : "is-pend"}">${ok ? `${icon("check")}${escapeHtml(quando)}` : "pendente"}</span>
-      ${ok && x ? `<span class="com-person__chev">${icon("chevron")}</span>` : ""}
-    </div>`;
+  // Miolo do corpo a partir do state ATUAL de `d` — chamado ao abrir e no repaint
+  // pós-refresh (assinaturas/leituras podem ter chegado). Reusa `d` por referência: o
+  // refresh direcionado atualiza d.assinaturas/d.leituras in place, então re-ler daqui basta.
+  const miolo = () => {
+    const dNow = (state.documentos || []).find((x) => x.id === id) || d;
+    const aNow = docAdesao(dNow);
+    const fontes = assina ? (dNow.assinaturas || []).filter((x) => x.versaoAssinada === dNow.versao) : (dNow.leituras || []);
+    const feitoIds = new Set(fontes.map((x) => x.funcionarioId));
+    const feitos = elegiveis.filter((f) => feitoIds.has(f.id));
+    const pendentes = elegiveis.filter((f) => !feitoIds.has(f.id));
+    const linha = (f, ok) => {
+      const x = fontes.find((y) => y.funcionarioId === f.id);
+      const quando = ok && x ? comData(x.em) : "";
+      const sub = [(typeof TURNOS !== "undefined" && TURNOS[f.turno]?.label) || "", f.setor || ""].filter(Boolean).join(" · ");
+      // Linha feita é clicável: abre a trilha por pessoa (quando, dispositivo e, se houver, local/hash).
+      const clic = ok && x ? ` com-person--clic" data-doc-trilha="${escapeHtml(f.id)}" role="button" tabindex="0` : "";
+      return `<div class="com-person${clic}">
+        <span class="com-person__av">${escapeHtml(comIniciais(f.nome))}</span>
+        <div class="com-person__info"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(sub)}</span></div>
+        <span class="com-person__tag ${ok ? "is-ok" : "is-pend"}">${ok ? `${icon("check")}${escapeHtml(quando)}` : "pendente"}</span>
+        ${ok && x ? `<span class="com-person__chev">${icon("chevron")}</span>` : ""}
+      </div>`;
+    };
+    return `
+      <div class="doc-big">${aNow.pct}% <small>${aNow.verbo} · ${aNow.X} de ${aNow.Y}</small></div>
+      <div class="com-bar" style="margin:6px 0 16px"><i style="width:${aNow.pct}%"></i></div>
+      <div class="com-tabs">
+        <button class="com-tab is-on" data-doc-tab="ok">${icon("check")}<span>${assina ? "Assinaram" : "Aceitaram"}</span> <i>${feitos.length}</i></button>
+        <button class="com-tab" data-doc-tab="pend">${icon("clock")}<span>Pendentes</span> <i>${pendentes.length}</i></button>
+      </div>
+      <div class="com-people" id="doc-people-ok">${feitos.length ? feitos.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguém ${aNow.verbo} ainda.</p>`}</div>
+      <div class="com-people" id="doc-people-pend" style="display:none">${pendentes.length ? pendentes.map((f) => linha(f, false)).join("") : `<p class="muted" style="padding:14px 2px">Todos em dia.</p>`}</div>`;
+  };
+  // (Re)liga os handlers do corpo: tabs + linhas clicáveis da trilha. Chamado no onMount
+  // e de novo após o repaint (o innerHTML novo perde os listeners anteriores).
+  const ligarCorpo = (modal) => {
+    const dNow = (state.documentos || []).find((x) => x.id === id) || d;
+    const fontes = assina ? (dNow.assinaturas || []).filter((x) => x.versaoAssinada === dNow.versao) : (dNow.leituras || []);
+    modal.querySelectorAll("[data-doc-tab]").forEach((tb) => tb.addEventListener("click", () => {
+      modal.querySelectorAll(".com-tab").forEach((t) => t.classList.remove("is-on"));
+      tb.classList.add("is-on");
+      const ok = tb.dataset.docTab === "ok";
+      $("#doc-people-ok").style.display = ok ? "" : "none";
+      $("#doc-people-pend").style.display = ok ? "none" : "";
+    }));
+    const abre = (el) => { const f = elegiveis.find((y) => y.id === el.dataset.docTrilha); const x = fontes.find((y) => y.funcionarioId === el.dataset.docTrilha); if (f && x) abrirTrilhaConfirmacao(dNow, f, x, assina); };
+    modal.querySelectorAll("[data-doc-trilha]").forEach((el) => {
+      el.addEventListener("click", () => abre(el));
+      el.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); abre(el); } });
+    });
   };
   openModal(`
     <div class="modal__header">
       <div><h2>Adesão</h2><p>${escapeHtml(d.titulo)} · v${d.versao || 1} · ${assina ? "assinatura eletrônica" : "aceite simples"}</p></div>
       <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
-    <div class="modal__body">
-      <div class="doc-big">${a.pct}% <small>${a.verbo} · ${a.X} de ${a.Y}</small></div>
-      <div class="com-bar" style="margin:6px 0 16px"><i style="width:${a.pct}%"></i></div>
-      <div class="com-tabs">
-        <button class="com-tab is-on" data-doc-tab="ok">${icon("check")}<span>${assina ? "Assinaram" : "Aceitaram"}</span> <i>${feitos.length}</i></button>
-        <button class="com-tab" data-doc-tab="pend">${icon("clock")}<span>Pendentes</span> <i>${pendentes.length}</i></button>
-      </div>
-      <div class="com-people" id="doc-people-ok">${feitos.length ? feitos.map((f) => linha(f, true)).join("") : `<p class="muted" style="padding:14px 2px">Ninguém ${a.verbo} ainda.</p>`}</div>
-      <div class="com-people" id="doc-people-pend" style="display:none">${pendentes.length ? pendentes.map((f) => linha(f, false)).join("") : `<p class="muted" style="padding:14px 2px">Todos em dia.</p>`}</div>
-    </div>
+    <div class="modal__body" data-adesao-doc="${escapeHtml(id)}">${miolo()}</div>
     <div class="modal__footer">
       <button class="btn btn--ghost" data-close>Fechar</button>
     </div>
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      modal.querySelectorAll("[data-doc-tab]").forEach((tb) => tb.addEventListener("click", () => {
-        modal.querySelectorAll(".com-tab").forEach((t) => t.classList.remove("is-on"));
-        tb.classList.add("is-on");
-        const ok = tb.dataset.docTab === "ok";
-        $("#doc-people-ok").style.display = ok ? "" : "none";
-        $("#doc-people-pend").style.display = ok ? "none" : "";
-      }));
-      const abre = (el) => { const f = elegiveis.find((y) => y.id === el.dataset.docTrilha); const x = fontes.find((y) => y.funcionarioId === el.dataset.docTrilha); if (f && x) abrirTrilhaConfirmacao(d, f, x, assina); };
-      modal.querySelectorAll("[data-doc-trilha]").forEach((el) => {
-        el.addEventListener("click", () => abre(el));
-        el.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); abre(el); } });
-      });
+      ligarCorpo(modal);
+      // Frescor pós-escrita: relê assinaturas+leituras deste doc e repinta o corpo SÓ se
+      // este mesmo modal de adesão ainda estiver aberto (troca innerHTML, não reabre).
+      if (typeof window.recarregarAdesaoDocumento === "function") {
+        window.recarregarAdesaoDocumento(id).then(() => {
+          const corpo = document.querySelector(`#modal-root .modal__body[data-adesao-doc="${CSS.escape(id)}"]`);
+          if (corpo) { corpo.innerHTML = miolo(); ligarCorpo(corpo); }
+        });
+      }
     },
   });
 }
@@ -7951,13 +7985,19 @@ function rcbColunasPorTipo() {
 function renderRecibosGestor(cabDocs) {
   const cab = cabDocs;
 
-  // Lazy: 1ª visita carrega os metadados (leves) e re-renderiza.
-  if (state.recibos == null) {
-    $("#view").innerHTML = cab + `<div class="empty empty--mini"><p>Carregando lotes…</p></div>`;
+  // Lazy: 1ª visita carrega os metadados (leves) e re-renderiza. Sem cache eterno:
+  // se o dado ficou velho (TTL), recarrega ao reentrar na tela.
+  const temRecibos = state.recibos != null;
+  if (!temRecibos || estale("recibos")) {
     if (typeof window.recarregarRecibosGestor === "function") {
+      marcarCarga("recibos"); // marca ANTES de disparar pra não re-disparar a cada render no meio do voo
       window.recarregarRecibosGestor().then(() => renderApp());
-    } else { state.recibos = []; }
-    return;
+      if (!temRecibos) { // 1ª vez: sem nada pra pintar, mostra o carregando e espera
+        $("#view").innerHTML = cab + `<div class="empty empty--mini"><p>Carregando lotes…</p></div>`;
+        return;
+      }
+      // Já havia conteúdo (só estava velho): segue pintando o atual; o refresh repinta ao voltar.
+    } else if (!temRecibos) { state.recibos = []; marcarCarga("recibos"); }
   }
 
   const lotes = rcbLotes();
@@ -8021,21 +8061,20 @@ function renderRecibosGestor(cabDocs) {
 // Detalhe do lote: painel de adesão ("X de N assinaram") + status por pessoa com hora.
 // "Ver" abre o PDF individual (a versão CARIMBADA quando já assinado).
 function openLoteRecibos(tipo, competencia) {
-  const itens = (state.recibos || [])
-    .filter((r) => r.tipo === tipo && r.competencia === competencia)
-    .sort((a, b) => String(a.funcionarioNome || "").localeCompare(String(b.funcionarioNome || ""), "pt-BR"));
-  const assinados = itens.filter((r) => (r.assinaturas || []).length).length;
-  const pct = itens.length ? Math.round((assinados / itens.length) * 100) : 0;
   const quandoFmt = (iso) => {
     try { return new Date(iso).toLocaleString("pt-BR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
     catch (e) { return ""; }
   };
-  openModal(`
-    <div class="modal__header">
-      <div><h2>${escapeHtml(RCB_TIPOS[tipo] || tipo)}</h2><p>${escapeHtml(rcbCompetenciaLabel(competencia))} · ${itens.length} funcionários</p></div>
-      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
-    </div>
-    <div class="modal__body">
+  const loteKey = tipo + "|" + competencia;
+  // Miolo do modal a partir do state ATUAL — chamado ao abrir e de novo no repaint
+  // pós-refresh (as assinaturas podem ter chegado desde então).
+  const miolo = () => {
+    const itens = (state.recibos || [])
+      .filter((r) => r.tipo === tipo && r.competencia === competencia)
+      .sort((a, b) => String(a.funcionarioNome || "").localeCompare(String(b.funcionarioNome || ""), "pt-BR"));
+    const assinados = itens.filter((r) => (r.assinaturas || []).length).length;
+    const pct = itens.length ? Math.round((assinados / itens.length) * 100) : 0;
+    return `
       <div class="rcb-ades">
         <b>${assinados} de ${itens.length} assinaram</b>
         <span>${itens.length - assinados} pendente${itens.length - assinados === 1 ? "" : "s"}</span>
@@ -8054,9 +8093,25 @@ function openLoteRecibos(tipo, competencia) {
             <button class="btn btn--soft" data-recibo-abrir="${escapeHtml(r.id)}">${icon("eye")}<span>Ver</span></button>
           </div>`;
         }).join("")}
-      </div>
-    </div>`);
+      </div>`;
+  };
+  const totalIni = (state.recibos || []).filter((r) => r.tipo === tipo && r.competencia === competencia).length;
+  const idsExibidos = (state.recibos || []).filter((r) => r.tipo === tipo && r.competencia === competencia).map((r) => r.id);
+  openModal(`
+    <div class="modal__header">
+      <div><h2>${escapeHtml(RCB_TIPOS[tipo] || tipo)}</h2><p>${escapeHtml(rcbCompetenciaLabel(competencia))} · ${totalIni} funcionários</p></div>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+    </div>
+    <div class="modal__body" data-lote-key="${escapeHtml(loteKey)}">${miolo()}</div>`);
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
+  // Frescor pós-escrita: relê as assinaturas dos recibos exibidos e repinta o miolo SÓ se
+  // este mesmo modal ainda estiver aberto (não reabre nada — troca o innerHTML do corpo).
+  if (typeof window.recarregarAssinaturasRecibos === "function") {
+    window.recarregarAssinaturasRecibos(idsExibidos).then(() => {
+      const corpo = document.querySelector(`#modal-root .modal__body[data-lote-key="${CSS.escape(loteKey)}"]`);
+      if (corpo) corpo.innerHTML = miolo();
+    });
+  }
 }
 
 // Trilha completa de UMA assinatura (pro admin/RH): quem, quando, onde (com link pro
@@ -8646,7 +8701,7 @@ if (!window._rcbBound) {
   window._rcbBound = true;
   document.addEventListener("click", (e) => {
     const ab = e.target.closest("[data-recibo-abrir]");
-    if (ab) { abrirReciboColab(ab.dataset.reciboAbrir); return; }
+    if (ab) { const rid = ab.dataset.reciboAbrir; withBusy("recibo:" + rid, ab, () => abrirReciboColab(rid)); return; }
     const tb = e.target.closest("[data-doc-tab]");
     if (tb) { state.view.docTab = tb.dataset.docTab; renderApp(); return; }
     const im = e.target.closest("[data-rcb-importar]");
@@ -8791,7 +8846,7 @@ function ocaDashCardHtml(o) {
 // Ação dos botões das automáticas (delegado). Chama a transição no firebase.js.
 function ocaAcaoUI(acao, id) {
   const fn = { validar: window.validarOcorrenciaAuto, dispensar: window.dispensarOcorrenciaAuto, confirmar: window.confirmarOcorrenciaAuto }[acao];
-  if (fn) return void fn(id);
+  if (fn) return fn(id); // retorna a promise pra withBusy segurar a trava
   renderApp(); // sem backend (demo): só re-habilita
 }
 
@@ -9193,13 +9248,13 @@ if (!window._ocaBound) {
   window._ocaBound = true;
   document.addEventListener("click", (e) => {
     const v = e.target.closest("[data-oca-validar]");
-    if (v) { e.preventDefault(); e.stopPropagation(); v.disabled = true; ocaAcaoUI("validar", v.dataset.ocaValidar); return; }
+    if (v) { e.preventDefault(); e.stopPropagation(); const vid = v.dataset.ocaValidar; withBusy("oca-validar:" + vid, v, () => ocaAcaoUI("validar", vid)); return; }
     const d = e.target.closest("[data-oca-dispensar]");
     if (d) { e.preventDefault(); e.stopPropagation(); openDispensarAutoModal(d.dataset.ocaDispensar); return; }
     const c = e.target.closest("[data-oca-confirmar]");
     if (c) { e.preventDefault(); e.stopPropagation(); openConferirAutoModal(c.dataset.ocaConfirmar); return; }
     const b = e.target.closest("[data-oca-conferir]");
-    if (b) { e.preventDefault(); b.disabled = true; ocaConferirUI(b.dataset.ocaConferir); return; }
+    if (b) { e.preventDefault(); const bid = b.dataset.ocaConferir; withBusy("oca-conferir:" + bid, b, () => ocaConferirUI(bid)); return; }
     // Card automático clicável (fora dos botões): abre o detalhe, igual à manual.
     const card = e.target.closest("[data-oca-card]");
     if (card && !e.target.closest("button, a")) openDetalheAutoModal(card.dataset.ocaId);
@@ -9207,7 +9262,7 @@ if (!window._ocaBound) {
 }
 
 function ocaConferirUI(id) {
-  if (window.conferirOcorrenciaAuto) return void window.conferirOcorrenciaAuto(id);
+  if (window.conferirOcorrenciaAuto) return window.conferirOcorrenciaAuto(id);
   // Fallback demo local (sem firebase)
   const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
   if (o) { o.status = "conferida"; o.historico = [...(o.historico || []), { acao: "conferida", por: "local", porNome: currentUser()?.nome || "GP", emIso: nowIso() }]; }
@@ -13730,7 +13785,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.40.0";
+window.CURRENT_VERSION = "1.41.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

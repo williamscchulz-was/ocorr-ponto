@@ -1511,6 +1511,38 @@
       } catch (e) { debug?.("[recibos] load gestor:", e?.message || e); state.recibos = state.recibos || []; }
     };
 
+    // Frescor pós-escrita (o "assinou e não aparece"): relê SÓ a subcoleção assinaturas
+    // dos recibos cujos ids foram passados e atualiza state.recibos IN PLACE. Sem listener
+    // novo — é um .get() pontual dos ids que o modal de adesão está exibindo.
+    window.recarregarAssinaturasRecibos = async function (ids) {
+      const alvo = (ids || []).filter(Boolean);
+      if (!alvo.length) return;
+      await Promise.all(alvo.map(async (id) => {
+        try {
+          const asn = await db.collection("recibos").doc(id).collection("assinaturas").get();
+          const r = (state.recibos || []).find((x) => x.id === id);
+          if (r) r.assinaturas = asn.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) }));
+        } catch (e) { debug?.("[recibos] frescor assinaturas:", e?.message || e); }
+      }));
+    };
+
+    // Análogo pro documento institucional: relê assinaturas + leituras daquele doc e
+    // atualiza state.documentos in place. Alimenta o painel de adesão sem re-boot.
+    window.recarregarAdesaoDocumento = async function (docId) {
+      if (!docId) return;
+      try {
+        const ref = db.collection("documentos").doc(docId);
+        const [asn, lei] = await Promise.all([
+          ref.collection("assinaturas").get().catch(() => null),
+          ref.collection("leituras").get().catch(() => null),
+        ]);
+        const d = (state.documentos || []).find((x) => x.id === docId);
+        if (!d) return;
+        if (asn) d.assinaturas = asn.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) }));
+        if (lei) d.leituras = lei.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) }));
+      } catch (e) { debug?.("[documento] frescor adesao:", e?.message || e); }
+    };
+
     // Grava o lote: metadados + arquivo (base64) por funcionário, em chunks de 8.
     // RESILIENTE (lição do lote 24/82: uma falha transitória no 4º commit abortava os
     // 58 restantes): falha num chunk NÃO derruba os seguintes — re-tenta 1x, confere
@@ -3094,6 +3126,11 @@
       if (window.recarregarComunicados) tarefas.push(window.recarregarComunicados());
       if (window.recarregarDocumentos) tarefas.push(window.recarregarDocumentos());
       if (state.ocorrenciasAuto != null && window.recarregarOcorrenciasAuto) tarefas.push(window.recarregarOcorrenciasAuto());
+      // Recibos e disciplinares ficavam de fora — daí o "assinou/registrou e não aparece"
+      // ao voltar o foco. Só recarrega recibos se a aba já foi aberta uma vez (state.recibos
+      // != null); disciplinares o boot sempre carrega no gestor.
+      if (state.recibos != null && window.recarregarRecibosGestor) tarefas.push(window.recarregarRecibosGestor());
+      if (window.recarregarDisciplinares) tarefas.push(window.recarregarDisciplinares());
       if ((u.role === "admin" || u.role === "rh") && window.carregarMonitorPipeline) tarefas.push(window.carregarMonitorPipeline());
       await Promise.all(tarefas.map((p) => Promise.resolve(p).catch(() => {})));
     }
@@ -3113,6 +3150,9 @@
     try {
       await recarregarVolateis();
       _ultimoRefetch = Date.now();
+      // recarregarVolateis já releu recibos (quando a aba foi aberta) — carimba o TTL pra
+      // o lazy-load da tela não disparar um 2º fetch redundante logo em seguida.
+      if (typeof marcarCarga === "function" && state.recibos != null) marcarCarga("recibos");
       if (typeof renderApp === "function") renderApp();
     } catch (e) { debug?.("[refetch foco] falhou:", e?.message || e); }
     finally { _refetchEmAndamento = false; }

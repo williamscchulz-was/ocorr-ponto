@@ -2505,6 +2505,12 @@ textarea:focus-visible,
 }
 .icon.spin { animation: spin 0.8s linear infinite; }
 
+/* Feedback de clique (withBusy): trava o nó e mostra um spinner por cima.
+   CSS puro pra sobreviver ao re-render; o miolo esmaece, o anel gira. */
+.is-busy { position: relative; pointer-events: none; }
+.is-busy > * { opacity: .45; }
+.is-busy::after { content: ""; position: absolute; inset: 0; margin: auto; width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: spin .8s linear infinite; }
+
 .divider {
   height: 1px;
   background: var(--border);
@@ -4640,7 +4646,6 @@ code { font-family: inherit; }
 .doc-file__x .icon { width: 16px; height: 16px; }
 .doc-or { display: flex; align-items: center; gap: 10px; margin: 12px 0 8px; color: var(--text-muted); font-size: 11.5px; }
 .doc-or::before, .doc-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Selo de frescor do Banco de Horas (re-fetch ao foco) */
 .bh-frescor { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-size: 11.5px; font-weight: 600; color: var(--text-muted); background: var(--surface-warm); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; white-space: nowrap; }

@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.40.0", d: "6 jul 2026", current: true, items: [
+    v: "1.41.0", d: "6 jul 2026", current: true, items: [
+      { type: "fix", title: "A resposta ao toque ficou melhor no app inteiro. Quando você clica em algo que carrega, ver um recibo, abrir um documento, o botão mostra na hora que está trabalhando, então não parece mais que travou, e não dá mais pra registrar duas vezes sem querer por clique repetido." },
+      { type: "fix", aud: "gestor", title: "O que outra pessoa faz aparece atualizado ao voltar na tela, sem precisar recarregar. Por exemplo, quando um colaborador assina um recibo, a contagem de assinaturas se atualiza sozinha." },
+    ],
+  },
+  {
+    v: "1.40.0", d: "6 jul 2026", items: [
       { type: "fix", title: "No computador, a tela de abertura agora mostra a silhueta do painel (barra lateral e cards) enquanto carrega, em vez do cartão estreito do celular perdido no meio da tela." },
     ],
   },
