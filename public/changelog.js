@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.41.0", d: "6 jul 2026", current: true, items: [
+    v: "1.42.0", d: "6 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, o horário em destaque passou a ser o da marcação que gerou a ocorrência (a saída, numa saída antecipada; a entrada, num atraso), em vez de mostrar sempre a primeira batida do dia." },
+    ],
+  },
+  {
+    v: "1.41.0", d: "6 jul 2026", items: [
       { type: "fix", title: "A resposta ao toque ficou melhor no app inteiro. Quando você clica em algo que carrega, ver um recibo, abrir um documento, o botão mostra na hora que está trabalhando, então não parece mais que travou, e não dá mais pra registrar duas vezes sem querer por clique repetido." },
       { type: "fix", aud: "gestor", title: "O que outra pessoa faz aparece atualizado ao voltar na tela, sem precisar recarregar. Por exemplo, quando um colaborador assina um recibo, a contagem de assinaturas se atualiza sozinha." },
     ],

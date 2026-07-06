@@ -8801,10 +8801,13 @@ function ocaDashCardHtml(o) {
   const demit = ocaDemitido(o);
   const setorTurno = ocaSetorTurno(o);
   const sub = demit ? `${setorTurno} · ${ocaFaltasMes(o)} faltas no mês` : setorTurno;
-  // Horário da linha: batida REAL primeiro; sem batida, o previsto vai ROTULADO
-  // (antes a falta do Jair mostrava "22:00" em destaque como se ele tivesse batido).
-  const batida1 = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean)[0] || "";
-  const prev1 = o.horario || String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean)[0] || "";
+  // Horário da linha: usa o horarioRelevante do WK (a marcação que GEROU a ocorrência,
+  // correta por tipo: entrada no atraso, saída na saída antecipada), com fallback pra 1a
+  // batida. Antes pegava sempre a 1a batida, e a saída antecipada mostrava a ENTRADA
+  // (caso Eliziane: 21:55 no lugar da saída 04:39). Sem batida (falta), horarioRelevante
+  // vem null e o previsto vai ROTULADO.
+  const batida1 = o.horarioRelevante || String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean)[0] || "";
+  const prev1 = o.horarioPrevistoRelevante || o.horario || String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean)[0] || "";
   let acoes = "";
   if (est === "rh_confere") {
     acoes = `<div class="rhacts">
@@ -13785,7 +13788,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.41.0";
+window.CURRENT_VERSION = "1.42.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
