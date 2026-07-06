@@ -1258,3 +1258,21 @@ William reparou (comparando o app com a tela do WK) que Franciele Lemes Rosa (10
 **Achado à parte**: o William apontou que a "Falta" de 06/07 (HOJE) pra Franciele que apareceu no export fresco TAMBÉM não é confiável ainda ("ela ainda nem veio trabalhar" — o dia não fechou). Correto — meu próprio filtro `puloAberto` (dataIso >= HOJE) já ignora isso automaticamente, então nunca chegou a subir. Boa lembrança de não tratar dado de dia aberto como validado só porque "parece fazer sentido".
 
 **Questão em aberto pro pipeline**: o buffer atual pra "Faltas Injustificadas" do relatório oficial é só "não é hoje" (1 dia). O detector de "Marcações Não Identificadas" (999) e o Espelho de Ponto já usam buffer de 1-2 dias por causa desse mesmo padrão de assentamento lento. Esse incidente mostra que às vezes o assentamento do relatório oficial pode levar MAIS de 1 dia inteiro (aconteceu com uma sexta-feira, sem rodada no fim de semana). Vale considerar aplicar o mesmo tipo de buffer de maturidade (2+ dias) na fonte oficial de Faltas/Atrasos também — ainda não implementado, só levantado como possibilidade.
+
+
+---
+
+## 2026-07-06 · Implementada reverificação automática de ocorrências (resolve o padrão recorrente de Faltas falsas)
+
+Depois do 2º incidente de Faltas falsas no mesmo dia (Franciele Lemes Rosa, 22 de 30 Faltas falsas — ver entrada anterior), consultei o conselheiro (Fable) sobre a melhor arquitetura: aumentar o buffer de maturidade (como já feito no Espelho e no detector 999) ou outra abordagem. Veredito: **não aumentar buffer** — o assentamento do WK não é um prazo fixo (é um evento, "WK terminou de apurar"), pode levar horas ou 3+ dias dependendo de fim de semana/feriado, e nenhum N de dias estático cobre todo caso sem atrasar toda falta REAL também.
+
+**Solução implementada**: reverificação contínua em `upload-ocorrencias-auto.mjs`. Toda rodada do pipeline reconfere os docs `rh_confere` (que o RH ainda não olhou) contra o dado fresco desta rodada:
+- Se a situação sumiu/mudou → doc vira `auto_resolvida` (soft-resolve, nunca apaga, guarda no histórico o que o WK mostra agora).
+- Se depois o WK reafirmar (dedupId reaparece) → volta pra `rh_confere` (rearme).
+- Circuit breaker: se resolveria mais de 50% dos `rh_confere` na janela válida, aborta só essa etapa (protege contra CSV truncado/export com problema).
+- Transactions com releitura + reconfirmação de status, protegendo contra corrida com o RH mexendo no mesmo instante.
+- `com_lider`/`dispensada`/`confirmada` (decisão humana) nunca são tocados — só `rh_confere` e `auto_resolvida` entram nos filtros.
+
+Implementado por agente Opus, verificado por agente Sonnet (diff completo + dry-run real contra dado de hoje: `autoResolvidas=0`/`rearmadas=0`, esperado já que o incidente tinha sido limpo manualmente antes desta mudança).
+
+**Pendência**: novo status `auto_resolvida` precisa de tratamento na UI do RH (PC) — hoje a tela teria um status que ela não conhece. Avisado via bridge.
