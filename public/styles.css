@@ -148,7 +148,7 @@ html.splash-estreia .splash-sk { display: none; }
 .splash-sk { position: absolute; inset: 0; padding: calc(env(safe-area-inset-top, 0px) + 58px) 20px 20px; max-width: 460px; margin: 0 auto; }
 .splash-sk__row { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
 .fps-col { display: block; }
-.fps { display: block; border-radius: 9px; background: linear-gradient(90deg, #dce9df 25%, #edf5ef 37%, #dce9df 63%); background-size: 400% 100%; animation: fpSheen 1.4s linear infinite; }
+.fps { display: block; border-radius: 9px; background: linear-gradient(90deg, #c3d6c9 25%, #e6efe9 37%, #c3d6c9 63%); background-size: 400% 100%; animation: fpSheen 1.4s linear infinite; }
 .fps--av { width: 52px; height: 52px; border-radius: 50%; flex: none; }
 .fps--l1 { width: 154px; height: 15px; margin-bottom: 9px; }
 .fps--l2 { width: 98px; height: 11px; }
@@ -156,6 +156,10 @@ html.splash-estreia .splash-sk { display: none; }
 .fps--c { width: 54px; height: 54px; border-radius: 50%; }
 .fps--card { height: 80px; border-radius: 16px; margin-bottom: 14px; }
 .fps--card2 { height: 72px; }
+.splash-sk__msg { text-align: center; margin-top: 24px; font-size: 13.5px; font-weight: 500; color: #4e6357; letter-spacing: .02em; }
+/* Aviso na conferência: falta com batidas completas (provável falso positivo do WK). */
+.oca-alerta { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; padding: 11px 13px; border-radius: 12px; background: #fdf3e0; border: 1px solid #e6b24d; color: #8a5a12; font-size: 13px; line-height: 1.4; font-weight: 500; }
+.oca-alerta svg { width: 17px; height: 17px; flex: none; margin-top: 1px; }
 @keyframes fpSheen { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .fps { animation: none; } .splash__cena { animation: none; } }
 

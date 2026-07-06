@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.37.0", d: "5 jul 2026", current: true, items: [
+    v: "1.38.0", d: "6 jul 2026", current: true, items: [
+      { type: "fix", title: "A abertura do app ficou mais visível: o esboço da tela aparece direito com um 'Carregando' enquanto os dados chegam, não parece mais travado." },
+      { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, quando é uma falta mas o dia tem batidas completas, aparece um aviso pra conferir o espelho antes de confirmar, evitando confirmar uma falta falsa gerada pelo relógio de ponto." },
+    ],
+  },
+  {
+    v: "1.37.0", d: "5 jul 2026", items: [
       { type: "feat", title: "No aniversário de um colega, agora dá pra parabenizar com um toque no coração, ali no card mesmo, e você vê quantos já parabenizaram. No seu aniversário, você vê quantos colegas já te desejaram feliz aniversário." },
     ],
   },

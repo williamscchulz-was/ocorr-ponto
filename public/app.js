@@ -8909,6 +8909,11 @@ function ocaFatosHtml(o) {
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
   const prevArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
   const batArr = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
+  // Rede de segurança: o WK gera "falta" provisória do dia corrente pra quem ainda não
+  // bateu; se é falta MAS as batidas do dia estão completas, avisa a GP pra conferir o
+  // espelho antes de confirmar (evita confirmar falta falsa). Raiz é no pipeline/WK.
+  const ehFalta = /falta/i.test(String(o.tipo || ""));
+  const batCompletas = batArr.length > 0 && prevArr.length > 0 && batArr.length >= prevArr.length;
   const saldo = (o.saldoDiario == null || o.saldoDiario === "" || o.saldoDiario === "00:00") ? "" : String(o.saldoDiario);
   const desvio = ocaDesvioMin(o);
   const ehAtraso = String(o.tipo || "").toLowerCase().includes("atraso");
@@ -8937,6 +8942,7 @@ function ocaFatosHtml(o) {
       <div><span class="oca-jr__k">Jornada prevista</span><div>${prevArr.length ? chips(prevArr) : `<span class="oca-bat--miss">não informada</span>`}</div></div>
       <div><span class="oca-jr__k">Batidas do dia</span><div>${batidas}</div></div>
     </div>
+    ${(ehFalta && batCompletas) ? `<div class="oca-alerta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Atenção: há batidas completas neste dia. Confira o espelho antes de confirmar a falta.</span></div>` : ""}
     ${desvio ? `<div class="oca-desvio">${icon("clock")}<span>${escapeHtml(rotDesvio)} de ${escapeHtml(ocaDuracaoHumana(desvio))}</span></div>` : ""}
     ${o.observacaoWK ? `<div class="oca-obswk">Observação do WK: ${escapeHtml(o.observacaoWK)}</div>` : ""}`;
 }
@@ -13720,7 +13726,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.37.0";
+window.CURRENT_VERSION = "1.38.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
