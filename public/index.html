@@ -10,8 +10,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=282" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=282" />
+  <link rel="stylesheet" href="styles.css?v=283" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=283" />
   <!-- Decide ANTES de renderizar, sincrono, o MODO da abertura. Estilo Apple:
        a abertura padrao e o ESQUELETO da home (cobre so o load, some assim que
        o app fica pronto, sem tempo fixo). O "fio escreve" roda so na ESTREIA
@@ -60,6 +60,19 @@
         <div class="splash-sk__circ"><span class="fps fps--c"></span><span class="fps fps--c"></span><span class="fps fps--c"></span><span class="fps fps--c"></span><span class="fps fps--c"></span></div>
         <div class="fps fps--card"></div>
         <div class="fps fps--card fps--card2"></div>
+      </div>
+      <div class="splash-sk__desk" aria-hidden="true">
+        <div class="splash-sk__side">
+          <span class="fps fps--logo"></span>
+          <span class="fps fps--nav"></span><span class="fps fps--nav short"></span>
+          <span class="fps fps--nav"></span><span class="fps fps--nav short"></span>
+          <span class="fps fps--nav"></span>
+        </div>
+        <div class="splash-sk__main">
+          <div class="splash-sk__drow"><span class="fps fps--av"></span><span class="fps-col"><span class="fps fps--l1"></span><span class="fps fps--l2"></span></span></div>
+          <div class="splash-sk__kpis"><span class="fps fps--kpi"></span><span class="fps fps--kpi"></span><span class="fps fps--kpi"></span><span class="fps fps--kpi"></span></div>
+          <div class="splash-sk__cols"><span class="fps fps--dcard"></span><span class="fps fps--dcard"></span></div>
+        </div>
       </div>
       <div class="splash-sk__msg" role="status">Carregando...</div>
     </div>
@@ -604,16 +617,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=282"></script>
-  <script defer src="data.js?v=282"></script>
+  <script defer src="utils.js?v=283"></script>
+  <script defer src="data.js?v=283"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=282"></script>
+  <script defer src="app.js?v=283"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=282"></script>
-  <script defer src="google-drive.js?v=282"></script>
+  <script defer src="firebase.js?v=283"></script>
+  <script defer src="google-drive.js?v=283"></script>
 </body>
 </html>

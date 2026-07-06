@@ -145,7 +145,8 @@ html.splash-estreia .splash__cena { position: absolute; inset: 0; width: 100%; h
 html.splash-estreia .splash-sk { display: none; }
 
 /* Esqueleto da home (shimmer): o app "ja parece estar la" enquanto carrega. */
-.splash-sk { position: absolute; inset: 0; padding: calc(env(safe-area-inset-top, 0px) + 58px) 20px 20px; max-width: 460px; margin: 0 auto; }
+.splash-sk { position: absolute; inset: 0; }
+.splash-sk__shapes { max-width: 460px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 58px) 20px 20px; }
 .splash-sk__row { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
 .fps-col { display: block; }
 .fps { display: block; border-radius: 9px; background: linear-gradient(90deg, #c3d6c9 25%, #e6efe9 37%, #c3d6c9 63%); background-size: 400% 100%; animation: fpSheen 1.4s linear infinite; }
@@ -157,6 +158,23 @@ html.splash-estreia .splash-sk { display: none; }
 .fps--card { height: 80px; border-radius: 16px; margin-bottom: 14px; }
 .fps--card2 { height: 72px; }
 .splash-sk__msg { text-align: center; margin-top: 24px; font-size: 13.5px; font-weight: 500; color: #4e6357; letter-spacing: .02em; }
+/* Desktop (>=901px): silhueta larga imitando o painel (sidebar + grade), no lugar do cartao estreito. */
+.splash-sk__desk { display: none; }
+@media (min-width: 901px) {
+  .splash-sk__shapes { display: none; }
+  .splash-sk__desk { display: flex; height: 100%; }
+  .splash-sk__side { width: 230px; flex: none; border-right: 1px solid rgba(0,60,30,.06); padding: 24px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .splash-sk__main { flex: 1; min-width: 0; padding: 30px 34px; }
+  .splash-sk__drow { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+  .splash-sk__kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
+  .splash-sk__cols { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+  .fps--logo { width: 120px; height: 26px; border-radius: 8px; margin-bottom: 14px; }
+  .fps--nav { width: 100%; height: 16px; border-radius: 8px; }
+  .fps--nav.short { width: 70%; }
+  .fps--kpi { height: 92px; border-radius: 16px; }
+  .fps--dcard { height: 210px; border-radius: 16px; }
+  .splash-sk__msg { position: absolute; margin-top: 0; bottom: 26px; }
+}
 /* Aviso na conferência: falta com batidas completas (provável falso positivo do WK). */
 .oca-alerta { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; padding: 11px 13px; border-radius: 12px; background: #fdf3e0; border: 1px solid #e6b24d; color: #8a5a12; font-size: 13px; line-height: 1.4; font-weight: 500; }
 .oca-alerta svg { width: 17px; height: 17px; flex: none; margin-top: 1px; }

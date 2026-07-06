@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.39.0", d: "6 jul 2026", current: true, items: [
+    v: "1.40.0", d: "6 jul 2026", current: true, items: [
+      { type: "fix", title: "No computador, a tela de abertura agora mostra a silhueta do painel (barra lateral e cards) enquanto carrega, em vez do cartão estreito do celular perdido no meio da tela." },
+    ],
+  },
+  {
+    v: "1.39.0", d: "6 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Ocorrências automáticas que o relógio de ponto corrige sozinho (ex.: uma falta que virou nada quando o dia fechou) agora saem da fila de conferência com o selo 'Resolvida pelo WK', em vez de ficar pendurada como pendência falsa. Aparece na aba Todas pra auditoria." },
     ],
   },
