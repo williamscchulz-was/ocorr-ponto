@@ -9055,10 +9055,10 @@ function ocaSeloTom(min) {
   return "grande";
 }
 // Trilha das batidas do dia: as marcações pareadas previsto -> batido, lado a lado, com o
-// selo de desvio SÓ na marcação que gerou a ocorrência (o WK já manda horarioRelevante
-// correto por tipo, incluindo a lógica de duração de pausa). Versão interim: quando o WK
-// mandar desvio POR marcação, cada card ganha o próprio selo. Falta (dia inteiro sem
-// marcação relevante) mostra a magnitude abaixo. Degrada sem previsto/batida.
+// selo de desvio em CADA marcação (o WK manda desviosMin[] alinhado por posição, minutos
+// crus). A que gerou a ocorrência ganha a tag "Gerou a ocorrência" (via horarioRelevante,
+// já correto por tipo incl. duração de pausa). Sem desviosMin (doc antigo), cai no fallback:
+// selo só na relevante. Falta (dia inteiro) mostra a magnitude abaixo. Degrada sem dado.
 function ocaTrilhaHtml(o) {
   const t = ocaTipo(o.tipo);
   const prevArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
@@ -9076,13 +9076,18 @@ function ocaTrilhaHtml(o) {
     if (ofi < 0 && o.horarioPrevistoRelevante) ofi = prevArr.indexOf(o.horarioPrevistoRelevante);
     if (ofi < 0 && desvio != null && desvio > 0) ofi = ehAtraso ? 0 : (batArr.length - 1);
   }
-  const tom = ocaSeloTom(desvio);
+  // desviosMin[] do WK: minutos crus por posição, alinhado com previstas/apuradas (null onde
+  // não há desvio próprio; campo inteiro null quando os tamanhos diferem). Sem ele, fallback.
+  const dvm = (Array.isArray(o.desviosMin) && o.desviosMin.length === n) ? o.desviosMin : null;
   const cards = [];
   for (let i = 0; i < n; i++) {
     const prev = prevArr[i] || "", bat = batArr[i] || "";
     const isOfi = i === ofi;
-    const selo = (isOfi && desvio != null && desvio > 0)
-      ? `<span class="oca-selo oca-selo--${tom}">${escapeHtml(ocaDuracaoHumana(desvio))}</span>` : "";
+    let dmin = null;
+    if (dvm) dmin = (typeof dvm[i] === "number" && isFinite(dvm[i])) ? dvm[i] : null;
+    else if (isOfi) dmin = desvio; // fallback interim: só a marcação relevante
+    const selo = (dmin != null && dmin > 0)
+      ? `<span class="oca-selo oca-selo--${ocaSeloTom(dmin)}">${escapeHtml(ocaDuracaoHumana(dmin))}</span>` : "";
     cards.push(`<div class="oca-trilha__card${isOfi ? " oca-trilha__card--oficial" : ""}">
       ${isOfi ? `<span class="oca-trilha__oficial-tag">Gerou a ocorrência</span>` : ""}
       <span class="oca-trilha__label">${escapeHtml(labels[i])}</span>
@@ -14011,7 +14016,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.45.0";
+window.CURRENT_VERSION = "1.46.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

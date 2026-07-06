@@ -14,8 +14,8 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.45.0", d: "6 jul 2026", current: true, items: [
-      { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, as batidas do dia agora aparecem lado a lado (previsto e batido), com a marcação que gerou a ocorrência destacada e o desvio nela. Antes destacava sempre a primeira batida, mesmo quando o problema era outro, como uma volta de almoço mais longa." },
+    v: "1.46.0", d: "6 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, as batidas do dia agora aparecem lado a lado (previsto e batido), cada uma com o seu desvio, e a que gerou a ocorrência fica destacada. Antes só dava pra ver a primeira batida, mesmo quando o problema estava em outra, como uma volta de almoço mais longa." },
     ],
   },
   {
