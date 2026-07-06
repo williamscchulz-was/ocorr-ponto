@@ -9041,10 +9041,67 @@ function ocaDesvioMin(o) {
   return diff != null && diff > 0 ? diff : null;
 }
 
-// Coluna dos FATOS da ocorrência automática (mock premium aprovado 2026-07-02):
-// pessoa, tipo/dia, jornada prevista x batidas (1ª batida do atraso em destaque com o
-// previsto riscado), badge do desvio, saldo do dia e observação do WK. Degrada com
-// elegância quando o pipeline ainda não preencheu (sem marcação no dia, sem badge).
+// Rótulos das marcações por posição (2 = entrada/saída; 4 = entrada/almoço/volta/saída).
+function ocaMarcLabels(n) {
+  if (n === 4) return ["Entrada", "Saída almoço", "Volta almoço", "Saída final"];
+  if (n === 2) return ["Entrada", "Saída"];
+  if (n === 1) return ["Marcação"];
+  return Array.from({ length: n }, (_, i) => "Marcação " + (i + 1));
+}
+// Gravidade do selo de desvio por minutos (neutro <=5, âmbar <=20, vermelho acima).
+function ocaSeloTom(min) {
+  if (min == null || min <= 5) return "pequeno";
+  if (min <= 20) return "medio";
+  return "grande";
+}
+// Trilha das batidas do dia: as marcações pareadas previsto -> batido, lado a lado, com o
+// selo de desvio SÓ na marcação que gerou a ocorrência (o WK já manda horarioRelevante
+// correto por tipo, incluindo a lógica de duração de pausa). Versão interim: quando o WK
+// mandar desvio POR marcação, cada card ganha o próprio selo. Falta (dia inteiro sem
+// marcação relevante) mostra a magnitude abaixo. Degrada sem previsto/batida.
+function ocaTrilhaHtml(o) {
+  const t = ocaTipo(o.tipo);
+  const prevArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
+  const batArr = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
+  const n = Math.max(prevArr.length, batArr.length);
+  if (!n) return `<p class="muted text-sm" style="margin:14px 0">Jornada não informada.</p>`;
+  const labels = ocaMarcLabels(n);
+  const desvio = ocaDesvioMin(o);
+  const ehAtraso = String(o.tipo || "").toLowerCase().includes("atraso");
+  const ehFalta = /falta/i.test(String(o.tipo || ""));
+  // Índice da marcação que gerou a ocorrência (só quando há batida; a falta é o dia todo).
+  let ofi = -1;
+  if (!ehFalta && batArr.length) {
+    if (o.horarioRelevante) ofi = batArr.indexOf(o.horarioRelevante);
+    if (ofi < 0 && o.horarioPrevistoRelevante) ofi = prevArr.indexOf(o.horarioPrevistoRelevante);
+    if (ofi < 0 && desvio != null && desvio > 0) ofi = ehAtraso ? 0 : (batArr.length - 1);
+  }
+  const tom = ocaSeloTom(desvio);
+  const cards = [];
+  for (let i = 0; i < n; i++) {
+    const prev = prevArr[i] || "", bat = batArr[i] || "";
+    const isOfi = i === ofi;
+    const selo = (isOfi && desvio != null && desvio > 0)
+      ? `<span class="oca-selo oca-selo--${tom}">${escapeHtml(ocaDuracaoHumana(desvio))}</span>` : "";
+    cards.push(`<div class="oca-trilha__card${isOfi ? " oca-trilha__card--oficial" : ""}">
+      ${isOfi ? `<span class="oca-trilha__oficial-tag">Gerou a ocorrência</span>` : ""}
+      <span class="oca-trilha__label">${escapeHtml(labels[i])}</span>
+      <div class="oca-trilha__horarios">
+        ${prev ? `<span class="oca-trilha__prev">${escapeHtml(prev)}</span>` : ""}
+        ${bat ? `<span class="oca-trilha__bat">${escapeHtml(bat)}</span>` : `<span class="oca-trilha__miss">sem batida</span>`}
+      </div>
+      ${selo}
+    </div>`);
+  }
+  // Falta / sem marcação relevante: a magnitude do dia vai abaixo (não cabe num card só).
+  const abaixo = (ofi < 0 && desvio != null && desvio > 0)
+    ? `<div class="oca-desvio">${icon("clock")}<span>${escapeHtml(ehAtraso ? "Atraso" : t.label)} de ${escapeHtml(ocaDuracaoHumana(desvio))}</span></div>` : "";
+  return `<div class="oca-trilha${n <= 2 ? " oca-trilha--dois" : ""}">${cards.join("")}</div>${abaixo}`;
+}
+
+// Coluna dos FATOS da ocorrência automática (mock premium aprovado 2026-07-02): pessoa,
+// tipo/dia, trilha das batidas (previsto x batido, com a marcação relevante destacada),
+// saldo do dia e observação do WK. Degrada com elegância quando o pipeline não preencheu.
 function ocaFatosHtml(o) {
   const t = ocaTipo(o.tipo);
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
@@ -9056,15 +9113,6 @@ function ocaFatosHtml(o) {
   const ehFalta = /falta/i.test(String(o.tipo || ""));
   const batCompletas = batArr.length > 0 && prevArr.length > 0 && batArr.length >= prevArr.length;
   const saldo = (o.saldoDiario == null || o.saldoDiario === "" || o.saldoDiario === "00:00") ? "" : String(o.saldoDiario);
-  const desvio = ocaDesvioMin(o);
-  const ehAtraso = String(o.tipo || "").toLowerCase().includes("atraso");
-  const chips = (arr) => arr.map((x) => `<span class="oca-bat">${escapeHtml(x)}</span>`).join("");
-  const batidas = batArr.length
-    ? batArr.map((b, i) => (i === 0 && ehAtraso && desvio)
-        ? `<span class="oca-bat oca-bat--off">${escapeHtml(b)}${prevArr[0] ? ` <s>${escapeHtml(prevArr[0])}</s>` : ""}</span>`
-        : `<span class="oca-bat">${escapeHtml(b)}</span>`).join("")
-    : `<span class="oca-bat--miss">sem marcação no dia</span>`;
-  const rotDesvio = ehAtraso ? "Atraso" : t.label;
   return `
     <div class="row" style="margin-bottom:14px; gap:12px;">
       ${avatarFuncHtml({ id: o.funcionarioId, nome: o.nome }, "avatar avatar--lg")}
@@ -9079,12 +9127,8 @@ function ocaFatosHtml(o) {
       ${o.horario ? `<div class="detail-cell"><label>Horário</label><strong>${escapeHtml(o.horario)}</strong></div>` : ""}
       ${saldo ? `<div class="detail-cell"><label>Saldo do dia</label><strong class="${saldo.startsWith("-") ? "esp-neg" : ""}">${escapeHtml(saldo)}</strong></div>` : ""}
     </div>
-    <div class="oca-jornada">
-      <div><span class="oca-jr__k">Jornada prevista</span><div>${prevArr.length ? chips(prevArr) : `<span class="oca-bat--miss">não informada</span>`}</div></div>
-      <div><span class="oca-jr__k">Batidas do dia</span><div>${batidas}</div></div>
-    </div>
+    ${ocaTrilhaHtml(o)}
     ${(ehFalta && batCompletas) ? `<div class="oca-alerta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Atenção: há batidas completas neste dia. Confira o espelho antes de confirmar a falta.</span></div>` : ""}
-    ${desvio ? `<div class="oca-desvio">${icon("clock")}<span>${escapeHtml(rotDesvio)} de ${escapeHtml(ocaDuracaoHumana(desvio))}</span></div>` : ""}
     ${o.observacaoWK ? `<div class="oca-obswk">Observação do WK: ${escapeHtml(o.observacaoWK)}</div>` : ""}`;
 }
 
@@ -13967,7 +14011,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.44.0";
+window.CURRENT_VERSION = "1.45.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

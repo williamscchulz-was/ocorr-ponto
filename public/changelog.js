@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.44.0", d: "6 jul 2026", current: true, items: [
+    v: "1.45.0", d: "6 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, as batidas do dia agora aparecem lado a lado (previsto e batido), com a marcação que gerou a ocorrência destacada e o desvio nela. Antes destacava sempre a primeira batida, mesmo quando o problema era outro, como uma volta de almoço mais longa." },
+    ],
+  },
+  {
+    v: "1.44.0", d: "6 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Na conferência de ocorrências automáticas, a GP agora pode corrigir uma ocorrência antes de enviar ao líder: reclassificar o tipo e ajustar a duração do desvio. A correção vai junto do envio e fica registrada na trilha, com o que mudou e o motivo." },
     ],
   },
