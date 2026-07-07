@@ -2904,6 +2904,10 @@
               funcionarioNome: f.nome,
               minutos: f.saldoAtualMin,
               saldoFormatado: f.saldoAtualFmt,
+              // Saldo ORIGINAL (folga, hora por hora; caso Jenifer 2026-07-07). Nomes
+              // canonizados iguais aos dos docs bancoHoras/banco-horas-self do WK.
+              minutosOriginal: (typeof f.saldoOriginalMin === "number") ? f.saldoOriginalMin : null,
+              saldoOriginalFormatado: f.saldoOriginalFmt || null,
               atualizadoEm,
               ultimaDataIso: f.ultimaDataIso,
               lancamentos: Array.isArray(f.lancamentos) ? f.lancamentos : [],

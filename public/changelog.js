@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.49.0", d: "7 jul 2026", current: true, items: [
+    v: "1.50.0", d: "7 jul 2026", current: true, items: [
+      { type: "high", title: "O saldo do banco de horas agora mostra o valor pra FOLGA (hora por hora, sem o percentual das horas extras). O valor com adicionais, que vale quando é pago em folha, aparece como informação secundária no perfil do funcionário." },
+      { type: "feat", aud: "gestor", title: "Ocorrências em que o sistema não confirmou qual marcação faltou agora chegam na fila com o selo Conferir e o motivo escrito no card, em vez de serem descartadas em silêncio. O detalhe avisa que as posições da jornada podem não corresponder." },
+    ],
+  },
+  {
+    v: "1.49.0", d: "7 jul 2026", items: [
       { type: "note", aud: "gestor", title: "O chat interno foi desativado e removido do app. A comunicação com a equipe segue pelos Comunicados e Avisos." },
     ],
   },

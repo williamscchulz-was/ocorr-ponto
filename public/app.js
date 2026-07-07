@@ -2022,8 +2022,9 @@ const CP_SALDO_VAZIO_SUB = "Seu saldo aparece aqui assim que a GP sincronizar";
 function bhHeroHtml(f, estatico) {
   if (f && f.bhExempt) return "";
   const bh = state.meuSaldoBH || null;
-  const bhMin = bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null;
-  let bhStr = bh ? (bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null)) : null;
+  const _bhOrig = bhFolgaMin(bh); // saldo pra folga (original); null = sem sincronizacao ainda
+  const bhMin = _bhOrig != null ? _bhOrig : (bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null);
+  let bhStr = _bhOrig != null ? bhFolgaStr(bh) : (bh ? (bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null)) : null);
   const estado = bhMin == null ? "semdado" : (bhMin > 0 ? "pos" : (bhMin < 0 ? "neg" : "zero"));
   if (estado === "zero") bhStr = "00:00";
   const selos = { pos: ["check", "A favor"], neg: [null, "A compensar"], zero: ["check", "Em dia"], semdado: [null, ""] };
@@ -2352,8 +2353,9 @@ function renderColabConta() {
   const nome = (f && f.nome) || (u && u.nome) || "";
   const cargoSetor = [f && f.cargo, f && f.setor].filter(Boolean).join(" · ") || "—";
   const bh = state.meuSaldoBH || null;
-  const bhMin = bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null;
-  const bhStr = bh ? (bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null)) : null;
+  const _bhOrig = bhFolgaMin(bh); // saldo pra folga (original); null = sem sincronizacao ainda
+  const bhMin = _bhOrig != null ? _bhOrig : (bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null);
+  const bhStr = _bhOrig != null ? bhFolgaStr(bh) : (bh ? (bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null)) : null);
   let pref = null; try { pref = localStorage.getItem("fiopulse:tema"); } catch {}
   const tema = pref === "claro" ? "claro" : pref === "escuro" ? "escuro" : "auto";
   const temaIdx = tema === "auto" ? 0 : tema === "claro" ? 1 : 2;
@@ -3084,8 +3086,9 @@ function espCartaoHtml(f) {
   if (_espState.loading[cod]) return `<div class="esp-card"><div class="esp-skel">${icon("clock")}<span>Carregando o espelho...</span></div></div>`;
   const doc = _espState.cache[cod];
   const dias = (doc && Array.isArray(doc.dias)) ? doc.dias : [];
-  const saldo = doc && (doc.saldoFormatado || null);
-  const saldoMin = doc ? (typeof doc.minutos === "number" ? doc.minutos : (typeof doc.saldoMin === "number" ? doc.saldoMin : null)) : null;
+  const _eOrig = bhFolgaMin(doc);
+  const saldo = doc ? (_eOrig != null ? bhFolgaStr(doc) : (doc.saldoFormatado || null)) : null;
+  const saldoMin = _eOrig != null ? _eOrig : (doc ? (typeof doc.minutos === "number" ? doc.minutos : (typeof doc.saldoMin === "number" ? doc.saldoMin : null)) : null);
   const sCls = saldoMin == null ? "" : (saldoMin > 0 ? "esp-pos" : saldoMin < 0 ? "esp-neg" : "esp-zero");
   const cargoSetor = [f.cargo, f.setor].filter(Boolean).join(" · ");
   const turnoLbl = (f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label
@@ -3184,8 +3187,9 @@ function renderEspelhoPontoGestor() {
 
   const bhSaldo = (f) => {
     const bh = (state.bancoHoras && state.bancoHoras[f.id]) || null;
-    const s = bh && (bh.saldoFormatado || null);
-    const min = bh ? (typeof bh.minutos === "number" ? bh.minutos : null) : null;
+    const _rOrig = bhFolgaMin(bh);
+    const s = bh && (_rOrig != null ? bhFolgaStr(bh) : (bh.saldoFormatado || null));
+    const min = _rOrig != null ? _rOrig : (bh ? (typeof bh.minutos === "number" ? bh.minutos : null) : null);
     const cls = min == null ? "esp-zero" : (min > 0 ? "esp-pos" : min < 0 ? "esp-neg" : "esp-zero");
     return s ? `<span class="esp-trow__bh ${cls}">${escapeHtml(s)}</span>` : "";
   };
@@ -3660,10 +3664,28 @@ function renderDemografiaWidget(u) {
     </details>`;
 }
 
+// Saldo pra FOLGA (original, hora por hora; caso Jenifer 2026-07-07): o valor
+// multiplicado pelo percentual da situação (extra 75% = x1,75) só vale se pago em
+// folha. Preferir o original em TODA exibição de saldo; null = WK ainda não
+// sincronizou este funcionário (fallback: exibir o multiplicado como antes).
+function bhFolgaMin(bh) {
+  return (bh && typeof bh.minutosOriginal === "number") ? bh.minutosOriginal : null;
+}
+function bhFolgaStr(bh) {
+  const m = bhFolgaMin(bh);
+  if (m == null) return null;
+  return bh.saldoOriginalFormatado || (typeof formatSaldoHoras === "function" ? formatSaldoHoras(m) : String(m));
+}
+
 // Saldo de horas médio do escopo carregado (KPI do dashboard). "—" se sem dado.
+// Média do saldo de FOLGA quando o WK já sincronizou (fallback por doc no multiplicado).
 function dashBhMedia() {
   const vals = Object.values(state.bancoHoras || {})
-    .map((b) => (typeof b.minutos === "number" ? b.minutos : (typeof b.saldoMin === "number" ? b.saldoMin : null)))
+    .map((b) => {
+      const o = bhFolgaMin(b);
+      if (o != null) return o;
+      return typeof b.minutos === "number" ? b.minutos : (typeof b.saldoMin === "number" ? b.saldoMin : null);
+    })
     .filter((v) => v != null);
   if (!vals.length) return "—";
   const m = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
@@ -4977,7 +4999,8 @@ function renderFuncPerfilSecoes(f) {
       if (m >= 1 && m <= 12) bhMesLabel = " · " + NOMES[m - 1];
     }
   }
-  const bhTone = !bh ? "neutral" : (bh.minutos > 0 ? "success" : bh.minutos < 0 ? "danger" : "neutral");
+  const bhPerfilMin = bh ? (bhFolgaMin(bh) != null ? bhFolgaMin(bh) : bh.minutos) : null;
+  const bhTone = !bh ? "neutral" : (bhPerfilMin > 0 ? "success" : bhPerfilMin < 0 ? "danger" : "neutral");
 
   // Header com avatar grande + nome + cargo/setor/turno
   const turnoLabel = f.turno && TURNOS[f.turno] ? TURNOS[f.turno].label : null;
@@ -5050,9 +5073,11 @@ function renderFuncPerfilSecoes(f) {
       <div class="func-perfil-secao__titulo">Banco de horas${bhMesLabel}</div>
       <div class="bh-perfil">
         <div class="bh-perfil__top">
-          <span class="text-xs muted">Saldo atual</span>
-          <span class="bh-saldo bh-saldo--${bhTone}">${escapeHtml(bh.saldoFormatado || formatSaldoHoras(bh.minutos))}</span>
+          <span class="text-xs muted">${bhFolgaMin(bh) != null ? "Saldo pra folga" : "Saldo atual"}</span>
+          <span class="bh-saldo bh-saldo--${bhTone}">${escapeHtml(bhFolgaStr(bh) || bh.saldoFormatado || formatSaldoHoras(bh.minutos))}</span>
         </div>
+        ${bhFolgaMin(bh) != null && typeof bh.minutos === "number" && bh.minutos !== bhFolgaMin(bh) ? `
+        <div class="bh-perfil__orig">Com adicionais (se pago em folha): <strong>${escapeHtml(bh.saldoFormatado || formatSaldoHoras(bh.minutos))}</strong></div>` : ""}
         ${graficoBarrasBH(lanc)}
         <div class="bh-perfil__meta">
           <span>Pico <strong>${formatSaldoHoras(bhPico)}</strong></span>
@@ -8747,6 +8772,9 @@ function ocaDashCardHtml(o) {
     const ri = o.horarioPrevistoRelevante ? pArr.indexOf(o.horarioPrevistoRelevante) : -1;
     batida1 = ri >= 0 ? String(o.apuradasAlinhadas[ri] || "").trim() : (o.horarioRelevante || "");
   }
+  // Classificação incerta (999-detector sem posição confirmada): não pesca a 1ª batida
+  // crua, ela pode ser QUALQUER marcação. Sem horarioRelevante, cai no previsto rotulado.
+  if (o.classificacaoIncerta === true) batida1 = o.horarioRelevante || "";
   let acoes = "";
   if (est === "rh_confere") {
     acoes = `<div class="rhacts">
@@ -8775,9 +8803,11 @@ function ocaDashCardHtml(o) {
         <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
         <div class="occ__sub">
           <span class="badge badge--${t.tone}">${escapeHtml(t.label)}</span>
+          ${o.classificacaoIncerta === true ? `<span class="badge badge--warning">Conferir</span>` : ""}
           ${demit ? `<span class="badge badge--danger">Em rescisão</span>` : ""}
           <span class="dot"></span>
           <span>${escapeHtml(sub)}</span>
+          ${o.classificacaoIncerta === true && o.motivoIncerteza ? `<span class="dot"></span><span class="occ__incerto">${escapeHtml(o.motivoIncerteza)}</span>` : ""}
         </div>
       </div>
       ${batida1 ? `<div class="occ__time">${escapeHtml(batida1)}</div>` : prev1 ? `<div class="occ__time occ__time--prev">prev. ${escapeHtml(prev1)}</div>` : `<div class="occ__time occ__time--nulo">sem batida</div>`}
@@ -9057,6 +9087,7 @@ function ocaFatosHtml(o) {
       ${o.horario ? `<div class="detail-cell"><label>Horário</label><strong>${escapeHtml(o.horario)}</strong></div>` : ""}
       ${saldo ? `<div class="detail-cell"><label>Saldo do dia</label><strong class="${saldo.startsWith("-") ? "esp-neg" : ""}">${escapeHtml(saldo)}</strong></div>` : ""}
     </div>
+    ${o.classificacaoIncerta === true ? `<div class="oca-alerta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Conferir: o sistema não confirmou qual marcação faltou${o.motivoIncerteza ? ` (${escapeHtml(o.motivoIncerteza)})` : ""}. As posições abaixo podem não corresponder, confira o espelho antes de decidir.</span></div>` : ""}
     ${ocaTrilhaHtml(o)}
     ${ocaCompensadoHtml(o)}
     ${(ehFalta && batCompletas) ? `<div class="oca-alerta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Atenção: há batidas completas neste dia. Confira o espelho antes de confirmar a falta.</span></div>` : ""}
@@ -9512,14 +9543,13 @@ function renderBHList(funcionarios, animar) {
 
   root.innerHTML = `<div class="list">${list.map((f) => {
     const saldo = bh[f.id];
-    const saldoStr = saldo
-      ? formatSaldoHoras(saldo.minutos)
-      : "—";
+    const _sMin = saldo ? (bhFolgaMin(saldo) != null ? bhFolgaMin(saldo) : saldo.minutos) : null;
+    const saldoStr = saldo ? (bhFolgaStr(saldo) || formatSaldoHoras(saldo.minutos)) : "—";
     const ultima = saldo?.atualizadoEm
       ? formatDate((typeof saldo.atualizadoEm === "string" ? saldo.atualizadoEm : "").slice(0, 10) || null)
       : "sem dado";
     const tone = saldo
-      ? (saldo.minutos > 0 ? "success" : saldo.minutos < 0 ? "danger" : "neutral")
+      ? (_sMin > 0 ? "success" : _sMin < 0 ? "danger" : "neutral")
       : "neutral";
 
     // Minimalista (variação aprovada): nome + cargo·setor à esquerda,
@@ -9555,8 +9585,9 @@ async function openEspelhoPopupBH(funcionarioId) {
   const f = (state.funcionarios || []).find((x) => x.id === funcionarioId);
   if (!f) return;
   const bh = (state.bancoHoras || {})[f.id] || null;
-  const saldoStr = bh ? formatSaldoHoras(bh.minutos) : "—";
-  const tone = bh ? (bh.minutos > 0 ? "esp-pos" : bh.minutos < 0 ? "esp-neg" : "esp-zero") : "esp-zero";
+  const _pMin = bh ? (bhFolgaMin(bh) != null ? bhFolgaMin(bh) : bh.minutos) : null;
+  const saldoStr = bh ? (bhFolgaStr(bh) || formatSaldoHoras(bh.minutos)) : "—";
+  const tone = bh ? (_pMin > 0 ? "esp-pos" : _pMin < 0 ? "esp-neg" : "esp-zero") : "esp-zero";
   const cargoSetor = [f.cargo, f.setor].filter(Boolean).join(" · ") || (TURNOS[f.turno]?.label || "");
   const shell = (corpo) => `
     <div class="modal__header">
@@ -13204,7 +13235,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.49.0";
+window.CURRENT_VERSION = "1.50.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock · Saldo original (folga) nas 2 telas</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --plum:#008835; --milk:#FFF3E6; --bg:#eef5ef; --surface:#fff; --border:#e2e9e3; --text:#1d2b22; --muted:#5c6f63; --danger:#c0392b; --amber:#7A4A12; --amber-bg:#fdf3e0; }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:Poppins,sans-serif; background:var(--bg); color:var(--text); padding:28px 16px 60px; }
+  .wrap { max-width:960px; margin:0 auto; display:flex; flex-direction:column; gap:26px; }
+  h1 { font-size:19px; } h1 small { display:block; font-size:12.5px; font-weight:400; color:var(--muted); margin-top:4px; }
+  h2 { font-size:14px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .par { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:720px){ .par { grid-template-columns:1fr; } }
+  .col h3 { font-size:12px; font-weight:600; margin-bottom:8px; }
+  .col--antes h3 { color:var(--danger); } .col--depois h3 { color:var(--plum); }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,40,20,.06); }
+  .rot { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; font-weight:600; }
+  .saldo { font-size:30px; font-weight:800; color:var(--plum); letter-spacing:-.01em; }
+  .saldo--errado { color:var(--danger); }
+  .sub { font-size:12px; color:var(--muted); margin-top:6px; }
+  .linha2 { display:flex; align-items:baseline; gap:8px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); font-size:12px; color:var(--muted); }
+  .linha2 strong { color:var(--text); font-weight:600; }
+  .nota { background:var(--amber-bg); border:1px solid #e6b24d; color:var(--amber); border-radius:12px; padding:11px 13px; font-size:12.5px; line-height:1.5; }
+  .hero { background:linear-gradient(135deg,#0a9a44,#067a35); color:#fff; border-radius:20px; padding:18px 20px; }
+  .hero .rot { color:rgba(255,255,255,.75); }
+  .hero .saldo { color:#fff; }
+  .hero .selo { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; background:rgba(255,255,255,.18); border-radius:999px; padding:3px 10px; margin-top:8px; }
+  .hero .sub { color:rgba(255,255,255,.75); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Saldo do banco de horas: original (folga) no lugar do multiplicado
+    <small>Caso real da Jenifer (funcId 671): saldo multiplicado 01:43, original 00:59. Folga compensa hora por hora; o percentual (ex.: extra 75%) só vale se pago em folha.</small>
+  </h1>
+
+  <div>
+    <h2>Tela 1 · Perfil do funcionário, seção Banco de horas (admin/GP)</h2>
+    <div class="par" style="margin-top:10px">
+      <div class="col col--antes">
+        <h3>ANTES (o que a Jenifer vê hoje, errado pra folga)</h3>
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:baseline">
+            <span class="rot">Saldo atual</span>
+            <span class="saldo saldo--errado">01:43</span>
+          </div>
+          <div class="sub">Valor multiplicado pelo percentual da situação (extra 75% vira ×1,75)</div>
+        </div>
+      </div>
+      <div class="col col--depois">
+        <h3>DEPOIS (proposta)</h3>
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:baseline">
+            <span class="rot">Saldo pra folga</span>
+            <span class="saldo">00:59</span>
+          </div>
+          <div class="linha2">Com adicionais (se pago em folha): <strong>01:43</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h2>Tela 2 · Portal do Colaborador, card Banco de horas (home e Meu ponto)</h2>
+    <div class="par" style="margin-top:10px">
+      <div class="col col--antes">
+        <h3>ANTES</h3>
+        <div class="hero">
+          <span class="rot">Banco de horas</span>
+          <div class="saldo" style="margin-top:6px">01:43</div>
+          <span class="selo">A favor</span>
+          <div class="sub" style="margin-top:8px">Colaborador acha que pode folgar 1h43, mas só compensa 59min</div>
+        </div>
+      </div>
+      <div class="col col--depois">
+        <h3>DEPOIS (proposta)</h3>
+        <div class="hero">
+          <span class="rot">Banco de horas</span>
+          <div class="saldo" style="margin-top:6px">00:59</div>
+          <span class="selo">A favor</span>
+          <div class="sub" style="margin-top:8px">Só o número muda de fonte; o card fica idêntico. Sem linha secundária aqui: o multiplicado confundiria de novo.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nota">
+    Fallback: enquanto um funcionário não tiver o campo novo sincronizado (backfill do WKRADAR sai depois da confirmação), a tela continua mostrando o valor atual, sem quebrar.
+    Fora do pedido, mas com o MESMO dado disponível: a aba Banco de horas do gestor e o popup do espelho também mostram o multiplicado; dá pra trocar no mesmo passe se você quiser.
+  </div>
+</div>
+</body>
+</html>

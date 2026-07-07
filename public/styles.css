@@ -1455,6 +1455,9 @@ textarea:focus-visible,
 }
 
 .occ__sub .dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .4; }
+/* Motivo da classificação incerta (999-detector): visível no card, sem depender de
+   tooltip (touch não tem hover). Âmbar do alerta, discreto. */
+.occ__incerto { color: var(--warning-ink); font-weight: 500; }
 
 /* Banco de Horas — saldo grande colorido (variação minimalista) */
 .bh-saldo {
@@ -2856,6 +2859,9 @@ html.firebase-mode .login__forgot { display: block; }
   color: var(--text-muted);
 }
 .bh-perfil__meta strong { color: var(--text); }
+/* Linha secundária do saldo: o multiplicado pelo percentual (vale só se pago em folha). */
+.bh-perfil__orig { margin: -2px 0 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); font-size: 11.5px; color: var(--text-muted); }
+.bh-perfil__orig strong { color: var(--text); font-weight: 600; }
 
 /* ============================================
    Auditoria — linha do tempo global (Admin/RH)
