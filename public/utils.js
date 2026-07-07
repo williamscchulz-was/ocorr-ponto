@@ -252,41 +252,12 @@ function formatHoraCurta(iso) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// Dia local (YYYY-MM-DD no fuso do usuário) — en-CA produz esse formato.
-// O chat usa isto pra separar/rotular dias SEM o erro de fuso do toISOString
-// (UTC): em BRT, msg entre 21h–00h cairia no dia UTC seguinte e mostrava
-// "ontem"/data errada nas últimas ~3h. Aqui a comparação é sempre local.
-const diaLocalISO = (d) => {
-  const dt = (d instanceof Date) ? d : new Date(d);
-  if (isNaN(dt.getTime())) return "";
-  return dt.toLocaleDateString("en-CA");
-};
 
 // Valida foto base64 (data:image...) antes de injetar em background-image:url().
 // Bloqueia CSS-injection/XSS por foto adulterada vinda do Firestore. "" se inválida.
 const fotoSegura = (foto) => (typeof foto === "string"
   && /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(foto)) ? foto : "";
 
-// Hora curta se for hoje; "ontem"; senão data curta. Usado na lista de conversas.
-function formatHoraOuDia(iso) {
-  if (!iso) return "";
-  const diaMsg = diaLocalISO(iso);
-  const hoje = diaLocalISO(new Date());
-  const ontem = diaLocalISO(new Date(Date.now() - 86400000));
-  if (diaMsg === hoje) return formatHoraCurta(iso);
-  if (diaMsg === ontem) return "ontem";
-  return formatDate(diaMsg);
-}
-
-// Rótulo do separador de dia dentro da thread do chat. Recebe um dia LOCAL
-// (diaLocalISO) e compara com hoje/ontem locais.
-function labelDiaChat(dia) {
-  const hoje = diaLocalISO(new Date());
-  const ontem = diaLocalISO(new Date(Date.now() - 86400000));
-  if (dia === hoje) return "Hoje";
-  if (dia === ontem) return "Ontem";
-  return formatDate(dia);
-}
 
 // ---------- Texto ----------
 const initials = (nome) => {

@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.48.3", d: "7 jul 2026", current: true, items: [
+    v: "1.49.0", d: "7 jul 2026", current: true, items: [
+      { type: "note", aud: "gestor", title: "O chat interno foi desativado e removido do app. A comunicação com a equipe segue pelos Comunicados e Avisos." },
+    ],
+  },
+  {
+    v: "1.48.3", d: "7 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Na lista de ocorrências, quando a marcação que gerou a ocorrência ficou sem batida (ex.: não registrou a entrada), o horário do card mostra o previsto rotulado (prev. 13:30) em vez de uma batida de outra marcação do dia." },
     ],
   },

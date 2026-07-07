@@ -7,16 +7,6 @@ const state = {
   view: { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" },
 };
 
-// Subscription da conversa de chat aberta no momento (cancelada ao trocar de
-// peer ou sair da página chat) — evita vazar listeners do Firestore.
-let _chatConvUnsub = null;
-// Estado do render incremental da conversa aberta (anexa só msgs novas).
-let _chatRender = null;
-function pararEscutaConversa() {
-  if (_chatConvUnsub) { _chatConvUnsub(); _chatConvUnsub = null; }
-}
-// Exposto pro firebase.js cancelar no logout (limparPresenca).
-window.pararEscutaConversa = pararEscutaConversa;
 
 // ---------- Frescor por TTL (loaders lazy por página) ----------
 // Carimba Date.now() por loader e diz se o dado ficou velho. Usado no lazy-load das
@@ -151,8 +141,8 @@ if (!window._scrollFxBound) {
       : (t.scrollTop || 0);
     const tb = document.querySelector(".topbar");
     if (tb) tb.classList.toggle("topbar--elev", y > 4);
-    // FAB "+" e chat-fab recolhem juntos ao descer, voltam ao subir.
-    const fabs = document.querySelectorAll(".fab, .chat-fab");
+    // FAB "+" recolhe ao descer, volta ao subir.
+    const fabs = document.querySelectorAll(".fab");
     if (fabs.length) {
       if (y > window._lastScrollY + 6 && y > 60) fabs.forEach((f) => f.classList.add("fab--rec"));
       else if (y < window._lastScrollY - 6) fabs.forEach((f) => f.classList.remove("fab--rec"));
@@ -165,7 +155,7 @@ if (!window._scrollFxBound) {
 // recolhimento em vez de herdar o da tela anterior.
 function resetFabScrollState() {
   window._lastScrollY = 0;
-  document.querySelectorAll(".fab, .chat-fab").forEach((f) => f.classList.remove("fab--rec"));
+  document.querySelectorAll(".fab").forEach((f) => f.classList.remove("fab--rec"));
 }
 
 // Proximidade na sidebar: itens crescem de leve conforme o cursor se aproxima
@@ -966,7 +956,7 @@ const CP_CX = { muito_facil: { t: "Muito fácil", n: 1 }, facil: { t: "Fácil", 
 
 // ---- Shell do colaborador (chrome reaproveitado) ----
 function renderPortalColaborador(u) {
-  // Modo colaborador: esconde o chrome de gestor (chat #chat-fab, FAB #fab, presença).
+  // Modo colaborador: esconde o chrome de gestor (FAB #fab, presença).
   document.documentElement.classList.add("modo-colab");
   cpAplicarTema();
   cpInjetarToggleTema();
@@ -2671,7 +2661,6 @@ function renderApp() {
   renderPresence();
   renderView();
   updateFab();
-  window.atualizarBadgeChat();
 
   // Toast de aniversariantes do dia — uma vez por sessão (post-login).
   // Líder vê só do próprio turno; admin/RH veem todos.
@@ -2894,13 +2883,6 @@ function renderPresence() {
   if (document.querySelector(".presence-dropdown")) {
     abrirPresenceDropdown(online);
   }
-
-  // Se o widget de chat está aberto, atualiza a lista (pontos verdes online/offline)
-  // e o status da conversa aberta (online/offline/digitando…).
-  if (!$("#chat-widget")?.hidden) {
-    atualizarPontosOnlineChat(); // incremental: não repinta a lista a cada heartbeat
-    atualizarStatusThread();
-  }
 }
 
 // Tooltip helper (compartilhado entre topbar + sidebar)
@@ -2965,11 +2947,6 @@ function abrirPresenceDropdown(online) {
       atividade = "ausente";
     }
     const avatarHTML = buildPresenceAvatar(usr, { size: 32, borderColor: "var(--surface)" });
-    // Botão "Mensagem" pra abrir o chat 1:1 (só pra outros, e só em modo Firebase)
-    const podeChat = !ehVoce && typeof window.enviarMensagem === "function";
-    const btnChat = podeChat
-      ? `<button type="button" class="presence-dropdown__chat" data-chat-uid="${escapeHtml(usr.id)}" data-chat-nome="${escapeHtml(usr.nome || "?")}" title="Enviar mensagem" aria-label="Enviar mensagem para ${escapeHtml(usr.nome || "usuário")}">${icon("message")}</button>`
-      : "";
     return `
       <div class="presence-dropdown__item ${ausente ? "is-idle" : ""}">
         ${avatarHTML}
@@ -2983,7 +2960,6 @@ function abrirPresenceDropdown(online) {
             ${atividade ? `<span class="presence-dropdown__activity">${atividade}</span>` : ""}
           </div>
         </div>
-        ${btnChat}
       </div>`;
   }).join("");
 
@@ -2999,14 +2975,6 @@ function abrirPresenceDropdown(online) {
     <div class="presence-dropdown__list">${items || `<div class="muted text-sm" style="padding:16px; text-align:center;">Ninguém mais aqui agora.</div>`}</div>
   `;
   document.body.appendChild(dropdown);
-
-  // Wire dos botões "Mensagem" → abre o chat já no peer escolhido
-  dropdown.querySelectorAll(".presence-dropdown__chat").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      abrirChatCom(btn.dataset.chatUid, btn.dataset.chatNome);
-    });
-  });
 
   // Posiciona abaixo do stack na topbar
   const stack = document.getElementById("presence-stack");
@@ -3360,29 +3328,6 @@ function pendingForUser(u) {
   return state.ocorrencias.filter((o) => isPending(o) && podeVerOcorrenciaUI(u, o));
 }
 
-// ---------- Chat: contadores / badge ----------
-
-// Total de não-lidas — soma POR CONVERSA (mesma fonte da lista de conversas).
-// Antes contava state.mensagensRecebidas cru, o que incluía mensagens sem
-// remetente válido / pra si mesmo (que não viram conversa abrível) → badge
-// "fantasma" aceso sem nenhuma conversa pendente. Agora badge ⇔ conversa pendente.
-function contarNaoLidas() {
-  return (state.conversas || []).reduce((acc, c) => acc + (c.naoLidas || 0), 0);
-}
-
-// Chamado pelo listener global pra atualizar só o badge do FAB de chat.
-window.atualizarBadgeChat = function () {
-  const n = contarNaoLidas();
-  const b = $("#chat-fab-badge");
-  const fab = $("#chat-fab");
-  if (fab) fab.setAttribute("aria-label", n > 0 ? `Mensagens, ${n} não lida${n > 1 ? "s" : ""}` : "Mensagens");
-  if (!b) return;
-  b.setAttribute("aria-hidden", "true"); // a contagem vai no aria-label do FAB
-  if (n > 0) { b.textContent = n > 99 ? "99+" : String(n); b.hidden = false; }
-  else { b.hidden = true; }
-  // Se o widget está aberto, refresca a lista pra refletir novas msgs
-  if (!$("#chat-widget")?.hidden) renderChatLista();
-};
 
 function visibleOcorrencias() {
   const u = currentUser();
@@ -13219,595 +13164,6 @@ function openEditarUsuarioModal(uid) {
   });
 }
 
-// ============================================================
-// ---------- Chat interno 1:1 ----------
-// Mensagens de texto entre usuários online. Conversa some em 3 dias (TTL
-// via expiraEm no Firestore). Lista esquerda = conversas existentes (de
-// state.mensagensRecebidas) + quem está online agora (state.presence).
-// Subscription da conversa aberta vive em _chatConvUnsub (módulo, topo).
-// ============================================================
-
-// Firebase disponível? (modo demo não tem as funções window.* do chat)
-function chatDisponivel() {
-  return typeof window.enviarMensagem === "function"
-    && typeof window.escutarConversa === "function";
-}
-
-// uid do usuário atual. Em modo Firebase currentUser().id === auth.currentUser.uid.
-function meuUid() {
-  const u = currentUser();
-  return u ? u.id : null;
-}
-
-// Está online agora? (presença ativa). Usado pro ponto verde.
-function peerOnline(uid) {
-  return (state.presence || []).some((p) => p.uid === uid && p.status === "ativo");
-}
-
-// Aviso de mensagem nova (toast + bip) — só quando NÃO estou vendo aquela
-// conversa. Chamado pelo listener global (firebase.js) com as msgs novas.
-window.onNovaMensagemChat = function (novas) {
-  if (!Array.isArray(novas) || !novas.length) return;
-  const widget = $("#chat-widget");
-  const vendo = widget && !widget.hidden && state.view.chatPeer;
-  const relevantes = novas.filter((m) => !(vendo && state.view.chatPeer.uid === m.de));
-  if (!relevantes.length) return;
-  const ult = relevantes[relevantes.length - 1];
-  const nome = (ult.deNome || "Alguém").split(" ")[0];
-  toast(relevantes.length === 1 ? `Mensagem de ${nome}` : `${relevantes.length} novas mensagens`, "success");
-  try { tocarBeepNotificacao(); } catch (e) {}
-};
-
-// Atualiza o status no header da conversa aberta: digitando… / online / offline.
-function atualizarStatusThread() {
-  if (!_chatRender) return;
-  const st = $("#chat-thread .chat__thread-status");
-  if (!st) return;
-  const meu = meuUid();
-  const p = (state.presence || []).find((x) => x.uid === _chatRender.peerUid);
-  if (p && p.status === "ativo" && p.digitandoPara === meu) {
-    st.textContent = "digitando…";
-    st.classList.add("is-typing");
-    return;
-  }
-  st.classList.remove("is-typing");
-  st.textContent = peerOnline(_chatRender.peerUid) ? "online" : "offline";
-}
-
-// "Digitando…": escreve na minha presença ao digitar; limpa após 2,5s parado
-// (ou no envio/voltar/fechar). Throttle: 1 escrita por rajada de digitação.
-let _digitTimer = null, _digitOn = false, _digitPeer = null;
-function sinalizarDigitando(peerUid) {
-  if (!window.setDigitando || !peerUid) return;
-  // Se mudou de peer, força nova sinalização pro peer certo (não pula por _digitOn).
-  if (!_digitOn || _digitPeer !== peerUid) { _digitOn = true; _digitPeer = peerUid; window.setDigitando(peerUid); }
-  clearTimeout(_digitTimer);
-  _digitTimer = setTimeout(() => { _digitOn = false; _digitPeer = null; window.setDigitando(null); }, 2500);
-}
-function pararDigitando() {
-  if (_digitTimer) { clearTimeout(_digitTimer); _digitTimer = null; }
-  if (_digitOn && window.setDigitando) { _digitOn = false; _digitPeer = null; window.setDigitando(null); }
-}
-
-// ---------- Chat: widget flutuante (FAB estilo WhatsApp) ----------
-// O chat vive num painel sobreposto (não mais numa página/aba). Os IDs
-// internos #chat-contatos e #chat-thread são os MESMOS que as funções de
-// lista/thread targetam, então a lógica de mensagens é reaproveitada inteira.
-
-function abrirChatWidget() {
-  const w = $("#chat-widget"); if (!w) return;
-  window._chatPrevFocus = document.activeElement;
-  w.hidden = false;
-  $("#chat-fab")?.setAttribute("aria-expanded", "true");
-  document.body.classList.add("chat-widget-aberto");
-  // ESC fecha (ou volta pra lista se há thread aberta). Liga uma vez só.
-  if (!window._chatEscHandler) {
-    window._chatEscHandler = (e) => {
-      if (e.key !== "Escape") return;
-      const ww = $("#chat-widget");
-      if (!ww || ww.hidden || $("#modal-backdrop")) return; // modal trata primeiro
-      e.preventDefault();
-      const voltar = $("#chat-voltar");
-      if (ww.classList.contains("tem-thread") && voltar) voltar.click();
-      else fecharChatWidget();
-    };
-    document.addEventListener("keydown", window._chatEscHandler);
-  }
-  if (!chatDisponivel()) {
-    w.classList.remove("tem-thread");
-    $("#chat-contatos").innerHTML = `<div class="chat-empty-state">${icon("message")}<p>Chat disponível só no modo Firebase.</p></div>`;
-    $("#chat-thread").innerHTML = "";
-    return;
-  }
-  renderChatLista();
-  const peer = state.view.chatPeer;
-  if (peer && peer.uid) {
-    abrirConversa(peer.uid, peer.nome);
-  } else {
-    w.classList.remove("tem-thread");
-    $("#chat-thread").innerHTML = `<div class="chat__sem-peer">${icon("message")}<p>Escolha uma conversa.</p></div>`;
-  }
-}
-
-function fecharChatWidget() {
-  const w = $("#chat-widget"); if (!w) return;
-  w.hidden = true;
-  $("#chat-fab")?.setAttribute("aria-expanded", "false");
-  document.body.classList.remove("chat-widget-aberto");
-  pararDigitando();
-  pararEscutaConversa();
-  _chatRender = null;
-  // Devolve o foco pro FAB (a11y).
-  const fab = $("#chat-fab");
-  if (fab && typeof fab.focus === "function") { try { fab.focus(); } catch (e) {} }
-}
-
-function toggleChatWidget() {
-  const w = $("#chat-widget");
-  if (w && w.hidden) abrirChatWidget(); else fecharChatWidget();
-}
-
-// Renderiza a coluna esquerda: cria a busca UMA vez (preserva foco em
-// re-renders por presença) e repinta só as linhas via pintarChatRows.
-function renderChatLista() {
-  const cont = $("#chat-contatos");
-  if (!cont) return;
-  if (!$("#chat-rows")) {
-    cont.innerHTML = `
-      <div class="chat__busca">
-        ${icon("search")}
-        <input id="chat-busca-input" type="search" placeholder="Buscar pessoa…" value="${escapeHtml(state.view.chatBusca || "")}" />
-      </div>
-      <button id="chat-mark-all" class="chat__markall" hidden>${icon("check")}<span>Marcar todas como lidas</span></button>
-      <div class="chat__rows" id="chat-rows"></div>`;
-    const inp = $("#chat-busca-input");
-    if (inp) inp.addEventListener("input", (e) => { state.view.chatBusca = e.target.value; pintarChatRows(); });
-    const mb = $("#chat-mark-all");
-    if (mb) mb.addEventListener("click", async () => {
-      if (typeof window.marcarTodasLidas !== "function") return;
-      mb.disabled = true;
-      const r = await window.marcarTodasLidas();
-      if (r && r.ok) toast(r.n ? "Tudo marcado como lido." : "Nada pendente.");
-      else toast("Não consegui marcar agora. Tenta de novo.", "danger");
-      mb.disabled = false;
-      // O listener do Firestore atualiza badge + lista ao confirmar.
-    });
-    // Delegação única: um listener no container, em vez de rebind por linha a
-    // cada pintura (perf + preserva foco/scroll).
-    const rowsEl = $("#chat-rows");
-    if (rowsEl) rowsEl.addEventListener("click", (e) => {
-      const btn = e.target.closest(".chat__contato");
-      if (!btn) return;
-      const uid = btn.dataset.uid, nome = btn.dataset.nome;
-      state.view.chatPeer = { uid, nome };
-      pintarChatRows();
-      abrirConversa(uid, nome);
-    });
-  }
-  pintarChatRows();
-}
-
-// Repinta as linhas: "Conversas" (já trocou msg, de state.conversas) e
-// "Pessoas" (todos os outros users). Filtra pela busca.
-function pintarChatRows() {
-  const rows = $("#chat-rows");
-  if (!rows) return;
-  const mb = $("#chat-mark-all");
-  if (mb) mb.hidden = contarNaoLidas() <= 0;
-  const meu = meuUid();
-  const peer = state.view.chatPeer || null;
-  const termo = (state.view.chatBusca || "").trim().toLowerCase();
-  const bate = (nome) => !termo || (nome || "").toLowerCase().includes(termo);
-
-  const conversas = (state.conversas || [])
-    .map((c) => ({ ...c, online: peerOnline(c.uid) }))
-    .filter((c) => bate(c.nome));
-
-  const jaConversa = new Set((state.conversas || []).map((c) => c.uid));
-  const pessoas = (state.users || [])
-    .filter((u) => u.id && u.id !== meu && !jaConversa.has(u.id))
-    .map((u) => ({ uid: u.id, nome: u.nome || "?", online: peerOnline(u.id) }))
-    .filter((p) => bate(p.nome))
-    .sort((a, b) => (a.online !== b.online ? (a.online ? -1 : 1) : (a.nome || "").localeCompare(b.nome || "")));
-
-  if (!conversas.length && !pessoas.length) {
-    rows.innerHTML = `<div class="chat__contatos-vazio">${termo ? "Ninguém encontrado." : "Ninguém pra conversar ainda."}</div>`;
-    return;
-  }
-
-  const userById = new Map((state.users || []).map((u) => [u.id, u]));
-  const avatarHtml = (c) => {
-    const foto = fotoSegura(userById.get(c.uid)?.fotoBase64);
-    const style = foto
-      ? `background-image:url('${foto}');background-size:cover;background-position:center;`
-      : `background:${presenceColor(c.uid)};`;
-    return `<span class="chat__avatar" style="${style}">${foto ? "" : escapeHtml(initials(c.nome || "?"))}${c.online ? `<span class="chat__online-dot"></span>` : ""}</span>`;
-  };
-  const linhaConversa = (c) => {
-    const ativo = peer && peer.uid === c.uid;
-    let prev = c.ultimaMsg ? (c.deMim ? "Você: " : "") + c.ultimaMsg : (c.online ? "online" : "");
-    if (prev.length > 38) prev = prev.slice(0, 38) + "…";
-    return `
-      <button class="chat__contato ${c.online ? "chat__contato--online" : ""} ${ativo ? "is-active" : ""}" data-uid="${escapeHtml(c.uid)}" data-nome="${escapeHtml(c.nome)}">
-        ${avatarHtml(c)}
-        <span class="chat__contato-info">
-          <span class="chat__contato-top">
-            <span class="chat__contato-nome">${escapeHtml(c.nome || "?")}</span>
-            <span class="chat__contato-hora">${c.ultimaEm ? escapeHtml(formatHoraOuDia(c.ultimaEm)) : ""}</span>
-          </span>
-          <span class="chat__contato-preview ${c.naoLidas ? "is-unread" : ""}">${escapeHtml(prev)}</span>
-        </span>
-        ${c.naoLidas > 0 ? `<span class="chat__contato-badge">${c.naoLidas > 9 ? "9+" : c.naoLidas}</span>` : ""}
-      </button>`;
-  };
-  const linhaPessoa = (c) => {
-    const ativo = peer && peer.uid === c.uid;
-    return `
-      <button class="chat__contato ${c.online ? "chat__contato--online" : ""} ${ativo ? "is-active" : ""}" data-uid="${escapeHtml(c.uid)}" data-nome="${escapeHtml(c.nome)}">
-        ${avatarHtml(c)}
-        <span class="chat__contato-info">
-          <span class="chat__contato-nome">${escapeHtml(c.nome || "?")}</span>
-          <span class="chat__contato-preview">${c.online ? "online" : "toque pra conversar"}</span>
-        </span>
-      </button>`;
-  };
-
-  let html = "";
-  if (conversas.length) html += `<div class="chat__sec">Conversas</div>` + conversas.map(linhaConversa).join("");
-  if (pessoas.length) html += `<div class="chat__sec">Pessoas</div>` + pessoas.map(linhaPessoa).join("");
-  rows.innerHTML = html;
-
-}
-
-// Atualiza só os pontos verde/online das linhas já renderizadas (sem repintar
-// a lista) — chamado a cada heartbeat de presença. Preserva foco/scroll/hover.
-function atualizarPontosOnlineChat() {
-  const rows = $("#chat-rows");
-  if (!rows) return;
-  rows.querySelectorAll(".chat__contato[data-uid]").forEach((btn) => {
-    const on = peerOnline(btn.dataset.uid);
-    btn.classList.toggle("chat__contato--online", on);
-    let dot = btn.querySelector(".chat__online-dot");
-    const av = btn.querySelector(".chat__avatar");
-    if (on && !dot && av) { dot = document.createElement("span"); dot.className = "chat__online-dot"; av.appendChild(dot); }
-    else if (!on && dot) dot.remove();
-  });
-}
-
-// Abre/assina a conversa com um peer. Monta o esqueleto UMA vez; os snapshots
-// só anexam mensagens novas (render incremental → fluido, sem flicker).
-function abrirConversa(peerUid, peerNome) {
-  pararEscutaConversa();
-  pararDigitando(); // não vaza "digitando…" pro peer anterior ao trocar de conversa
-  const meu = meuUid();
-  if (!meu || !chatDisponivel()) return;
-  if (peerUid === meu) return; // sem auto-conversa (duplicaria as bolhas)
-
-  // No widget flutuante, a thread cobre a lista de contatos.
-  $("#chat-widget")?.classList.add("tem-thread");
-
-  const thread = $("#chat-thread");
-  if (thread) {
-    thread.innerHTML = chatThreadShell(peerNome, peerUid, `<div class="sk-chat" role="status" aria-label="Carregando mensagens"><div class="sk-bubble sk-bubble--in"></div><div class="sk-bubble sk-bubble--out"></div><div class="sk-bubble sk-bubble--in" style="width:42%"></div><div class="sk-bubble sk-bubble--out" style="width:54%"></div></div>`);
-    wireChatThread(peerUid, peerNome);
-  }
-  // Estado do render incremental desta conversa.
-  _chatRender = { peerUid, ids: new Set(), lastDia: null, lastDe: null, primeiro: true };
-  atualizarStatusThread();
-  // Zera otimisticamente o badge desta conversa (o snapshot confirma depois).
-  const _conv = (state.conversas || []).find((c) => c.uid === peerUid);
-  if (_conv && _conv.naoLidas) { _conv.naoLidas = 0; try { window.atualizarBadgeChat?.(); } catch (e) {} }
-
-  _chatConvUnsub = window.escutarConversa(peerUid, (msgs, err) => {
-    if (err) {
-      const area = $("#chat-msgs");
-      if (area) area.innerHTML = `<div class="chat__msgs-vazio">Não foi possível carregar agora. Feche e abra a conversa de novo.</div>`;
-      return;
-    }
-    if (!_chatRender || _chatRender.peerUid !== peerUid) return; // trocou de conversa
-    pintarMensagens(msgs);
-    // Marca como lidas as recebidas desta conversa (best-effort)
-    window.marcarConversaLida(peerUid).catch((e) => console.warn("[chat] marcarLida:", e?.message || e));
-  });
-}
-
-// HTML do "esqueleto" da thread (header + área de msgs + composer).
-function chatThreadShell(peerNome, peerUid, msgsHtml) {
-  const online = peerOnline(peerUid);
-  const foto = fotoSegura((state.users || []).find((x) => x.id === peerUid)?.fotoBase64);
-  const avStyle = foto
-    ? `background-image:url('${foto}'); background-size:cover; background-position:center;`
-    : `background:${presenceColor(peerUid)};`;
-  return `
-    <div class="chat__thread-head">
-      <button class="chat__voltar" id="chat-voltar" aria-label="Voltar">${icon("arrowLeft")}</button>
-      <span class="chat__avatar chat__avatar--sm" style="${avStyle}">
-        ${foto ? "" : escapeHtml(initials(peerNome || "?"))}
-        ${online ? `<span class="chat__online-dot"></span>` : ""}
-      </span>
-      <span class="chat__thread-head-info">
-        <span class="chat__thread-nome">${escapeHtml(peerNome || "?")}</span>
-        <span class="chat__thread-status" role="status" aria-live="polite">${online ? "online" : "offline"}</span>
-      </span>
-    </div>
-    <div class="chat__msgs" id="chat-msgs" role="log" aria-live="polite" aria-relevant="additions">${msgsHtml}</div>
-    <form class="chat__composer" id="chat-composer">
-      <textarea id="chat-input" rows="1" maxlength="2000" placeholder="Escreva uma mensagem"></textarea>
-      <button type="submit" class="chat__enviar" aria-label="Enviar">${icon("send")}</button>
-    </form>
-    <button type="button" class="chat__descer" id="chat-descer" aria-label="Descer para a última mensagem">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-    </button>`;
-}
-
-// Check de envio (1) e de leitura (2 riscos) — só nas minhas mensagens.
-const CHAT_CHK_SENT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-const CHAT_CHK_READ = `<svg viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 7 16 3.5 12.5"/><polyline points="24 6 14.5 17 12 14.5"/></svg>`;
-
-// Meta do balao: hora + (nas minhas) check de envio / duplo de leitura.
-function chatMetaHtml(m, minha) {
-  const hora = formatHoraCurta(m.criadoEm);
-  const horaSpan = hora ? `<span class="chat__bolha-hora">${hora}</span>` : "";
-  const check = minha ? `<span class="chat__check ${m.lido ? "is-lido" : ""}">${m.lido ? CHAT_CHK_READ : CHAT_CHK_SENT}</span>` : "";
-  return horaSpan + check;
-}
-
-// Reações do chat (conteúdo emoji — exceção combinada à regra "sem emoji").
-const EMOJIS_REACAO = ["👍", "👎", "❤️", "😂", "😮", "😢"];
-
-// Chip de reações na borda do balão. Escapa os valores (vêm do Firestore).
-function chatReacoesHtml(reacoes) {
-  const vals = Object.values(reacoes || {});
-  if (!vals.length) return "";
-  const uniq = [...new Set(vals)].map(escapeHtml).join("");
-  return uniq + (vals.length > 1 ? `<span class="chat__reacoes-cnt">${vals.length}</span>` : "");
-}
-
-// Barra de emojis (igual em todo balão; revelada ao clicar no gatilho).
-const REACAO_LABEL = { "👍": "Curtir", "👎": "Não curtir", "❤️": "Amei", "😂": "Risos", "😮": "Uau", "😢": "Triste" };
-function chatReactBarHtml() {
-  return `<div class="chat__react-bar">${EMOJIS_REACAO.map((e) => `<button type="button" class="chat__react-emoji" data-react-emoji="${e}" aria-label="${REACAO_LABEL[e] || "Reagir"}">${e}</button>`).join("")}</div>`;
-}
-
-// Aplica/alterna a MINHA reação (toggle: a mesma reação remove).
-function aplicarReacao(mid, emoji) {
-  if (!mid || !window.reagirMensagem) return;
-  const meu = meuUid();
-  const m = _chatRender && _chatRender.byId ? _chatRender.byId.get(mid) : null;
-  const atual = (m && m.reacoes && m.reacoes[meu]) || null;
-  const novo = (!emoji || emoji === atual) ? null : emoji;
-  // Atualiza o estado local JÁ (antes do round-trip) pra cliques rápidos
-  // alternarem certo em vez de lerem a reação do snapshot anterior.
-  if (m) {
-    m.reacoes = m.reacoes || {};
-    if (novo) m.reacoes[meu] = novo; else delete m.reacoes[meu];
-    const chipEl = document.querySelector(`#chat-msgs [data-mid="${mid}"] .chat__reacoes`);
-    if (chipEl) chipEl.innerHTML = chatReacoesHtml(m.reacoes);
-  }
-  window.reagirMensagem(mid, novo).catch((e) => console.warn("[reacao]", e?.message || e));
-}
-
-// Render INCREMENTAL: anexa só as mensagens ainda não renderizadas em
-// #chat-msgs (com separador de dia + agrupamento), e nas já renderizadas só
-// atualiza a meta (hora que resolveu / leitura). Não toca header/composer
-// (foco preservado) e usa scroll inteligente.
-function pintarMensagens(msgs) {
-  const cont = $("#chat-msgs");
-  if (!cont || !_chatRender) return;
-  // remove ecos otimistas pendentes — esta emissão traz a versão real do servidor
-  cont.querySelectorAll(".chat__bolha[data-temp]").forEach((e) => e.remove());
-  const meu = meuUid();
-  _chatRender.byId = new Map((msgs || []).map((m) => [m.id, m])); // pro toggle de reação
-
-  if (_chatRender.primeiro) {
-    cont.innerHTML = "";
-    _chatRender.primeiro = false;
-    if (!msgs || !msgs.length) {
-      cont.innerHTML = `<div class="chat__msgs-vazio">Nenhuma mensagem ainda. Diga oi!</div>`;
-      return;
-    }
-  }
-  if (msgs && msgs.length && cont.querySelector(".chat__msgs-vazio")) cont.innerHTML = "";
-
-  const perto = (cont.scrollHeight - cont.scrollTop - cont.clientHeight) < 110;
-  let anexou = false, ultimaMinha = false;
-
-  for (const m of (msgs || [])) {
-    if (!m.id) continue;
-    const minha = m.de === meu;
-
-    // Já renderizada: atualiza meta (hora/leitura) e o chip de reações.
-    if (_chatRender.ids.has(m.id)) {
-      const bolhaEl = cont.querySelector(`[data-mid="${m.id}"]`);
-      if (bolhaEl) {
-        const metaEl = bolhaEl.querySelector(".chat__bolha-meta");
-        if (metaEl) metaEl.innerHTML = chatMetaHtml(m, minha);
-        const chipEl = bolhaEl.querySelector(".chat__reacoes");
-        if (chipEl) chipEl.innerHTML = chatReacoesHtml(m.reacoes);
-      }
-      continue;
-    }
-    _chatRender.ids.add(m.id);
-
-    const dia = diaLocalISO(m.criadoEm);
-    if (dia && dia !== _chatRender.lastDia) {
-      const sep = document.createElement("div");
-      sep.className = "chat__daysep";
-      sep.textContent = labelDiaChat(dia);
-      cont.appendChild(sep);
-      _chatRender.lastDia = dia;
-      _chatRender.lastDe = null; // novo dia quebra o agrupamento
-    }
-
-    const grp = _chatRender.lastDe === m.de;
-    const b = document.createElement("div");
-    b.className = `chat__bolha ${minha ? "chat__bolha--minha" : ""} ${grp ? "chat__bolha--grp" : ""}`;
-    b.dataset.mid = m.id;
-    b.innerHTML =
-      `<span class="chat__bolha-texto">${escapeHtml(m.texto || "")}</span>` +
-      `<span class="chat__bolha-meta">${chatMetaHtml(m, minha)}</span>` +
-      `<button type="button" class="chat__reagir" data-react-trig aria-label="Reagir">${icon("smile")}</button>` +
-      chatReactBarHtml() +
-      `<span class="chat__reacoes" data-react-chip>${chatReacoesHtml(m.reacoes)}</span>`;
-    cont.appendChild(b);
-
-    _chatRender.lastDe = m.de;
-    anexou = true;
-    ultimaMinha = minha;
-  }
-
-  if (anexou && (perto || ultimaMinha)) cont.scrollTop = cont.scrollHeight;
-}
-
-// Auto-cresce o textarea conforme o conteúdo (até um teto via CSS max-height).
-function autoGrowTextarea(el) {
-  if (!el) return;
-  el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 120) + "px";
-}
-
-// Wire dos eventos da thread (voltar, enviar, Enter/Shift+Enter, auto-grow).
-function wireChatThread(peerUid, peerNome) {
-  const voltar = $("#chat-voltar");
-  if (voltar) {
-    voltar.addEventListener("click", () => {
-      pararDigitando();
-      pararEscutaConversa();
-      _chatRender = null;
-      state.view.chatPeer = null;
-      // A thread desliza pra fora (CSS); a lista já está atrás. Só atualiza o highlight.
-      $("#chat-widget")?.classList.remove("tem-thread");
-      pintarChatRows();
-    });
-  }
-
-  const form = $("#chat-composer");
-  const input = $("#chat-input");
-  if (input) {
-    input.addEventListener("input", () => { autoGrowTextarea(input); sinalizarDigitando(peerUid); });
-    // Enter envia; Shift+Enter quebra linha
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        enviarDoComposer(peerUid, peerNome);
-      }
-    });
-    if (window.matchMedia && window.matchMedia("(pointer:fine)").matches) setTimeout(() => input.focus(), 30);
-  }
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      enviarDoComposer(peerUid, peerNome);
-    });
-  }
-
-  // Botão "descer": aparece ao rolar pra cima, leva pro fim da conversa.
-  const msgsEl = $("#chat-msgs");
-  const descerBtn = $("#chat-descer");
-  if (msgsEl && descerBtn) {
-    const pertoFim = () => (msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight) < 120;
-    msgsEl.addEventListener("scroll", () => descerBtn.classList.toggle("is-visible", !pertoFim()));
-    descerBtn.addEventListener("click", () => { msgsEl.scrollTop = msgsEl.scrollHeight; descerBtn.classList.remove("is-visible"); });
-  }
-
-  // Reações (delegado em #chat-msgs — elemento recriado a cada conversa, sem stack).
-  if (msgsEl) {
-    msgsEl.addEventListener("click", (e) => {
-      const trig = e.target.closest("[data-react-trig]");
-      if (trig) {
-        e.stopPropagation();
-        const bolha = trig.closest(".chat__bolha");
-        const abrir = bolha && !bolha.classList.contains("is-reacting");
-        msgsEl.querySelectorAll(".chat__bolha.is-reacting").forEach((b) => b.classList.remove("is-reacting"));
-        if (abrir) bolha.classList.add("is-reacting");
-        return;
-      }
-      const emo = e.target.closest("[data-react-emoji]");
-      if (emo) {
-        e.stopPropagation();
-        const bolha = emo.closest(".chat__bolha");
-        if (bolha) { bolha.classList.remove("is-reacting"); aplicarReacao(bolha.dataset.mid, emo.dataset.reactEmoji); }
-        return;
-      }
-      const chip = e.target.closest("[data-react-chip]");
-      if (chip && chip.textContent.trim()) {
-        const bolha = chip.closest(".chat__bolha");
-        if (bolha) aplicarReacao(bolha.dataset.mid, null);
-      }
-    });
-
-    // Toque-e-segure (long-press) abre a barra de reações no celular.
-    let _lpTimer = null;
-    msgsEl.addEventListener("touchstart", (e) => {
-      const bolha = e.target.closest(".chat__bolha");
-      if (!bolha || e.target.closest("[data-react-trig],.chat__react-bar,[data-react-chip]")) return;
-      _lpTimer = setTimeout(() => {
-        msgsEl.querySelectorAll(".chat__bolha.is-reacting").forEach((b) => b.classList.remove("is-reacting"));
-        bolha.classList.add("is-reacting");
-        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
-      }, 450);
-    }, { passive: true });
-    const cancelLP = () => { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } };
-    ["touchmove", "touchend", "touchcancel"].forEach((ev) => msgsEl.addEventListener(ev, cancelLP, { passive: true }));
-  }
-  // Fecha qualquer barra de reação ao clicar fora (uma vez só, no document).
-  if (!window._chatReactDocBound) {
-    window._chatReactDocBound = true;
-    document.addEventListener("click", (e) => {
-      if (e.target.closest("[data-react-trig]") || e.target.closest(".chat__react-bar")) return;
-      $$("#chat-msgs .chat__bolha.is-reacting").forEach((b) => b.classList.remove("is-reacting"));
-    });
-  }
-}
-
-// Lê o composer, envia a msg e limpa o input. O onSnapshot traz a msg de volta.
-async function enviarDoComposer(peerUid, peerNome) {
-  const input = $("#chat-input");
-  if (!input) return;
-  const texto = input.value.trim();
-  if (!texto) return;
-  if (!chatDisponivel()) { toast("Chat disponível só no modo Firebase.", "danger"); return; }
-  if (navigator.onLine === false) { toast("Sem conexão — sua mensagem não foi enviada.", "danger"); return; }
-
-  // Limpa já (otimista na UX do input); se falhar, restaura
-  input.value = "";
-  autoGrowTextarea(input);
-  input.focus();
-  pararDigitando();
-
-  // Eco otimista: mostra a bolha JÁ (pendente); o snapshot real a substitui
-  // (pintarMensagens remove [data-temp] na próxima emissão).
-  const msgsEl = $("#chat-msgs");
-  if (msgsEl) {
-    const tmp = document.createElement("div");
-    tmp.className = "chat__bolha chat__bolha--minha chat__bolha--pendente";
-    tmp.setAttribute("data-temp", "1");
-    tmp.innerHTML = `<span class="chat__bolha-texto">${escapeHtml(texto)}</span>` +
-      `<span class="chat__bolha-meta"><span class="chat__bolha-hora">enviando…</span></span>`;
-    msgsEl.querySelector(".chat__msgs-vazio")?.remove();
-    msgsEl.appendChild(tmp);
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-  }
-
-  try {
-    await window.enviarMensagem(peerUid, peerNome, texto);
-  } catch (err) {
-    console.error(err);
-    toast(err.message || "Erro ao enviar mensagem.", "danger");
-    input.value = texto;
-    autoGrowTextarea(input);
-    $$("#chat-msgs [data-temp]").forEach((e) => e.remove());
-  }
-}
-
-// Atalho usado pelo dropdown de presença: abre o WIDGET de chat já no peer escolhido.
-function abrirChatCom(uid, nome) {
-  if (uid === meuUid()) return; // sem auto-conversa
-  state.view.chatPeer = { uid, nome };
-  fecharPresenceDropdown();
-  abrirChatWidget();
-}
-
 // ---------- Helpers de copy ----------
 
 function greetingText(u) {
@@ -13848,7 +13204,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.48.3";
+window.CURRENT_VERSION = "1.49.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -14130,11 +13486,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sidebar
   $("#menu-btn").addEventListener("click", openSidebar);
   $("#sidebar-backdrop").addEventListener("click", closeSidebar);
-
-  // Chat flutuante: FAB abre/fecha o painel; X fecha. Elementos estáticos no
-  // index.html (não recriados no re-render), então registra uma única vez.
-  $("#chat-fab")?.addEventListener("click", toggleChatWidget);
-  $("#chat-widget-close")?.addEventListener("click", fecharChatWidget);
 
   // Sidebar retrátil (desktop): recolhe/expande + persiste o estado.
   const appElRail = $("#app");

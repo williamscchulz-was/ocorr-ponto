@@ -128,8 +128,8 @@
         }))) return state;
         const batch = db.batch();
         // Todas as coleções gravadas por documento — senão o reset deixa
-        // órfãos (saldos, PJs, chat, presença, tipos/ações custom).
-        const cols = ["ocorrencias", "funcionarios", "users", "bancoHoras", "pj", "mensagens", "presence", "tipos", "acoes", "obrigacoes"];
+        // órfãos (saldos, PJs, presença, tipos/ações custom).
+        const cols = ["ocorrencias", "funcionarios", "users", "bancoHoras", "pj", "presence", "tipos", "acoes", "obrigacoes"];
         for (const c of cols) {
           const snap = await db.collection(c).get();
           snap.docs.forEach((d) => batch.delete(d.ref));
@@ -2459,167 +2459,6 @@
       }
     };
 
-    // ===== Chat interno =====
-    const MSG_RETENCAO_MS = 3 * 24 * 60 * 60 * 1000; // 3 dias
-
-    function parKeyDe(a, b) { return [a, b].sort().join("__"); }
-    window.parKeyChat = parKeyDe;
-
-    // Envia mensagem de texto. paraUid/paraNome = destinatário.
-    window.enviarMensagem = async function (paraUid, paraNome, texto) {
-      const u = currentUser();
-      if (!u || !auth.currentUser) throw new Error("Não autenticado.");
-      const t = String(texto || "").trim();
-      if (!t) throw new Error("Mensagem vazia.");
-      if (t.length > 2000) throw new Error("Mensagem muito longa (máx 2000).");
-      const meu = auth.currentUser.uid;
-      await db.collection("mensagens").add({
-        parKey: parKeyDe(meu, paraUid),
-        de: meu,
-        deNome: u.nome || "?",
-        para: paraUid,
-        paraNome: paraNome || "?",
-        texto: t,
-        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
-        expiraEm: firebase.firestore.Timestamp.fromMillis(Date.now() + MSG_RETENCAO_MS),
-        lido: false,
-      });
-    };
-
-    // Escuta UMA conversa com o peer. cb(msgs, err).
-    //
-    // IMPORTANTE: regras do Firestore NÃO são filtros — uma query só é aceita
-    // se for *provadamente segura* pelas constraints. A regra de /mensagens é
-    // (de==eu || para==eu), então uma query por parKey NÃO é provável segura
-    // (Firestore não sabe que parKey codifica os participantes) → permission
-    // denied. Por isso usamos DUAS queries alinhadas à regra e juntamos:
-    //   A) enviadas:  de==eu  E para==peer   (segura por de==eu)
-    //   B) recebidas: de==peer E para==eu     (segura por para==eu)
-    // Sem orderBy (ordena no cliente) → sem índice composto.
-    window.escutarConversa = function (peerUid, cb) {
-      if (!auth.currentUser) { cb(null, new Error("não autenticado")); return () => {}; }
-      const meu = auth.currentUser.uid;
-      let enviadas = [], recebidas = [];
-      let prontoA = false, prontoB = false;
-      const mapDoc = (d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) });
-      const emit = () => {
-        if (!prontoA || !prontoB) return; // espera os 2 primeiros snapshots (evita piscar)
-        // Dedupe por id (defesa): hoje A e B são disjuntas, mas se um dia
-        // coincidirem (ex.: self-chat) não duplica a bolha.
-        const porId = new Map();
-        for (const m of [...enviadas, ...recebidas]) porId.set(m.id, m);
-        const todas = [...porId.values()]
-          .sort((a, b) => (a.criadoEm || "9999").localeCompare(b.criadoEm || "9999"));
-        cb(todas, null);
-      };
-      const onErr = (e) => { debug?.("[chat] conversa snapshot:", e.message); cb(null, e); };
-      const unsubA = db.collection("mensagens")
-        .where("de", "==", meu).where("para", "==", peerUid)
-        .onSnapshot((s) => { enviadas = s.docs.map(mapDoc); prontoA = true; emit(); }, onErr);
-      const unsubB = db.collection("mensagens")
-        .where("de", "==", peerUid).where("para", "==", meu)
-        .onSnapshot((s) => { recebidas = s.docs.map(mapDoc); prontoB = true; emit(); }, onErr);
-      return () => { try { unsubA(); } catch {} try { unsubB(); } catch {} };
-    };
-
-    // Escuta TODAS as mensagens recebidas por mim (pra badge de não-lidas + lista
-    // de conversas). Popula state.mensagensRecebidas e atualiza o badge do nav.
-    // Retorna unsubscribe.
-    window.escutarMinhasMensagens = function () {
-      if (!auth.currentUser) return () => {};
-      const meu = auth.currentUser.uid;
-      let recebidas = [], enviadas = [];
-      let prontoR = false, prontoE = false;
-      let chatRecebidasIds = null; // null = 1ª carga (não avisa)
-      const mapDoc = (d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) });
-
-      const rebuild = () => {
-        // Recebidas desc → badge + não-lidas + marcar como lida por peer.
-        state.mensagensRecebidas = [...recebidas]
-          .sort((a, b) => (b.criadoEm || "").localeCompare(a.criadoEm || ""));
-
-        // Resumo por peer (ambas direções) → "Conversas" (quem já troquei msg).
-        const resumo = new Map();
-        const considerar = (m, deMim) => {
-          const peer = deMim ? m.para : m.de;
-          const peerNome = deMim ? (m.paraNome || "?") : (m.deNome || "?");
-          if (!peer || peer === meu) return;
-          let r = resumo.get(peer);
-          if (!r) { r = { uid: peer, nome: peerNome, ultimaMsg: "", ultimaEm: null, deMim: false, naoLidas: 0 }; resumo.set(peer, r); }
-          if ((!r.nome || r.nome === "?") && peerNome) r.nome = peerNome;
-          if (!deMim && !m.lido) r.naoLidas += 1;
-          if (!r.ultimaEm || (m.criadoEm || "") > r.ultimaEm) {
-            r.ultimaEm = m.criadoEm || null; r.ultimaMsg = m.texto || ""; r.deMim = deMim;
-          }
-        };
-        recebidas.forEach((m) => considerar(m, false));
-        enviadas.forEach((m) => considerar(m, true));
-        state.conversas = Array.from(resumo.values())
-          .sort((a, b) => (b.ultimaEm || "").localeCompare(a.ultimaEm || ""));
-
-        try { window.atualizarBadgeChat?.(); } catch {}
-      };
-
-      const onErr = (e) => debug?.("[chat] minhas msgs snapshot:", e.message);
-      const ur = db.collection("mensagens").where("para", "==", meu)
-        .onSnapshot((s) => {
-          const arr = s.docs.map(mapDoc);
-          // Delta: novas recebidas não-lidas → avisa (toast + bip), exceto na 1ª carga.
-          if (chatRecebidasIds !== null) {
-            const novas = arr.filter((m) => m.de !== meu && !m.lido && !chatRecebidasIds.has(m.id));
-            if (novas.length) { try { window.onNovaMensagemChat?.(novas); } catch (e) {} }
-          }
-          chatRecebidasIds = new Set(arr.map((m) => m.id));
-          recebidas = arr; prontoR = true; rebuild();
-        }, onErr);
-      const ue = db.collection("mensagens").where("de", "==", meu)
-        .onSnapshot((s) => { enviadas = s.docs.map(mapDoc); prontoE = true; rebuild(); }, onErr);
-      return () => { try { ur(); } catch {} try { ue(); } catch {} };
-    };
-
-    // Marca como lidas as msgs recebidas de um peer. Usa as msgs já em memória
-    // (state.mensagensRecebidas) → batch update por id, sem query de índice.
-    window.marcarConversaLida = async function (peerUid) {
-      if (!auth.currentUser || !peerUid) return;
-      const meu = auth.currentUser.uid;
-      const alvo = (state.mensagensRecebidas || [])
-        .filter((m) => m.de === peerUid && m.para === meu && !m.lido && m.id);
-      if (!alvo.length) return;
-      const batch = db.batch();
-      alvo.forEach((m) => batch.update(db.collection("mensagens").doc(m.id), { lido: true }));
-      await batch.commit();
-    };
-
-    // Marca TODAS as recebidas não-lidas como lidas (limpa o badge de uma vez,
-    // inclusive qualquer mensagem órfã sem conversa abrível). Batches de 400.
-    window.marcarTodasLidas = async function () {
-      if (!auth.currentUser) return { ok: false, n: 0 };
-      const alvo = (state.mensagensRecebidas || []).filter((m) => !m.lido && m.id);
-      let n = 0;
-      try {
-        for (let i = 0; i < alvo.length; i += 400) {
-          const batch = db.batch();
-          alvo.slice(i, i + 400).forEach((m) => {
-            batch.update(db.collection("mensagens").doc(m.id), { lido: true });
-            n++;
-          });
-          await batch.commit();
-        }
-        return { ok: true, n };
-      } catch (e) {
-        return { ok: false, n, err: e.message || String(e) };
-      }
-    };
-
-    // Reage a uma mensagem (1 reação por pessoa). emoji=null remove a minha.
-    window.reagirMensagem = async function (msgId, emoji) {
-      if (!auth.currentUser || !msgId) return;
-      const campo = "reacoes." + auth.currentUser.uid;
-      const ref = db.collection("mensagens").doc(msgId);
-      if (emoji) await ref.update({ [campo]: String(emoji).slice(0, 16) });
-      else await ref.update({ [campo]: firebase.firestore.FieldValue.delete() });
-    };
-
     // Atualizar a própria foto de perfil. Recebe base64 (data URL) ou null
     // pra remover. Rule do Firestore garante que só o próprio user pode
     // atualizar e que só o campo fotoBase64 pode ser tocado por self-update.
@@ -2774,8 +2613,6 @@
     const PRESENCE_IDLE_MS = 7 * 60 * 1000;   // <7min = ausente, >= = some
     let presenceHeartbeat = null;
     let presenceUnsubscribe = null;
-    // Listener global do chat (mensagens recebidas → badge + lista de conversas)
-    let chatUnsub = null;
     // ocorrenciasUnsub / ocorrenciasIdsConhecidos são declarados no escopo do
     // IIFE (lá no topo) — carregarDadosCompletos, função irmã, também os usa.
 
@@ -2805,17 +2642,6 @@
     window.setarPJEditando = function (pjId) {
       presencePjEditing = pjId || null;
       pingPresenca(); // dispara update imediato
-    };
-
-    // "Digitando…": grava digitandoPara (uid do peer) na minha presença, ou
-    // null pra limpar. merge:true preserva os outros campos. O peer lê isso
-    // via state.presence e mostra "digitando…" no header da conversa.
-    window.setDigitando = function (peerUid) {
-      if (!auth.currentUser) return;
-      db.collection("presence").doc(auth.currentUser.uid).set({
-        digitandoPara: peerUid || null,
-        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true }).catch((e) => debug?.("[digitando]", e?.message || e));
     };
 
     // Subscription do PJ específico que está sendo editado
@@ -2871,7 +2697,6 @@
               turno: data.turno || null,
               page: data.page || "",
               pjEditing: data.pjEditing || null,
-              digitandoPara: data.digitandoPara || null,
               lastSeenMs,
               status,
               age,
@@ -2898,9 +2723,6 @@
     async function limparPresenca() {
       if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
       if (presenceUnsubscribe) { presenceUnsubscribe(); presenceUnsubscribe = null; }
-      // Para o listener global do chat e zera as mensagens recebidas
-      if (chatUnsub) { chatUnsub(); chatUnsub = null; }
-      state.mensagensRecebidas = [];
       state.comunicados = [];
       state.documentos = [];
       state.comunicadosColab = [];
@@ -2912,8 +2734,6 @@
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
       ocorrenciasIdsConhecidos = null;
-      // Para qualquer subscription de conversa aberta (app.js)
-      try { window.pararEscutaConversa?.(); } catch {}
       state.presence = [];
       // Para qualquer subscription de PJ ativa (modal pode estar aberto
       // quando signOut dispara por idle timeout — listener ficaria órfão
@@ -3037,16 +2857,11 @@
           : { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
         renderApp();
 
-        // F3 (Fundação SELF): presença e chat NÃO são ligados para o colaborador — privacidade
-        // + as rules de presence/mensagens não o contemplam (evita permission-denied na F5).
+        // F3 (Fundação SELF): presença NÃO é ligada para o colaborador — privacidade
+        // + a rule de presence não o contempla (evita permission-denied na F5).
         if (!ehColab) {
           // Inicia presença DEPOIS do app renderizar (state.view existe)
           iniciarPresenca().catch((e) => debug?.("[Presence] init falhou:", e));
-
-          // Inicia o listener global do chat (mensagens recebidas → badge)
-          if (chatUnsub) { chatUnsub(); chatUnsub = null; }
-          try { chatUnsub = window.escutarMinhasMensagens(); }
-          catch (e) { debug?.("[chat] init falhou:", e); }
         }
       } catch (err) {
         debug?.("Erro carregando perfil:", err);
@@ -3504,7 +3319,7 @@
     });
 
     // ===== PÓS-RENDER (não bloqueia o login): monitor, PJ e diretório de usuários =====
-    // Alimentam o chip do pipeline, a aba PJ e o chat, nada disso é o 1º segundo da
+    // Alimentam o chip do pipeline, a aba PJ e o diretório, nada disso é o 1º segundo da
     // tela. Carregam em paralelo depois que o app já apareceu e um único re-render
     // aplica. Mesmo espírito do iniciarPresenca/auditoriaGlobal.
     (async () => {
@@ -3522,7 +3337,7 @@
               }));
             }).catch((e) => debug?.("[pj] load:", e?.message || e))
           : null,
-        // Diretório completo (o chat lista/manda mensagem pra qualquer um). Sem
+        // Diretório completo (Auditoria e presença resolvem nome/foto por uid). Sem
         // segredos nos docs (nome/email/papel/turno/foto); read liberado a autenticados.
         db.collection("users").get().then((usersSnap) => {
           state.users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));

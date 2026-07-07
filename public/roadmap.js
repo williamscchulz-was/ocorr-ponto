@@ -992,12 +992,11 @@ window.ROADMAP = {
       status: "concluido",
       concluidoEm: "2026-06-24",
       classificacao: "adapta",
-      descricao: "Já no ar. O portal do colaborador não mostra o chat interno, que é uma ferramenta dos gestores, nem o botão de nova ocorrência. A tela fica limpa, só com o que é seu.",
+      descricao: "Já no ar. O portal do colaborador não mostra as ferramentas internas de gestor nem o botão de nova ocorrência. A tela fica limpa, só com o que é seu.",
       objetivo: "Um portal limpo para o colaborador, só com o que é dele.",
       dependencias: ["Estrutura e menu do portal do colaborador"],
       criteriosAceite: [
-        "No login do colaborador, o chat e o botão de nova ocorrência não aparecem.",
-        "Os gestores continuam com o chat normal.",
+        "No login do colaborador, as ferramentas de gestor e o botão de nova ocorrência não aparecem.",
         "Ao sair, tudo volta ao estado certo."
       ]
     },

@@ -32,7 +32,7 @@
 .login__voltar{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:none;border:0;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px}
 .login__voltar svg{width:16px;height:16px}
 .login__voltar:hover{color:var(--plum)}
-.modo-colab #fab,.modo-colab #chat-fab{display:none !important}
+.modo-colab #fab {display:none !important}
 .modo-colab #presence{display:none}
 .nav__item--sair{margin-top:6px;color:var(--danger)}
 .nav__item--sair svg{stroke:var(--danger)}

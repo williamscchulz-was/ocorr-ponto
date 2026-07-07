@@ -126,8 +126,8 @@ service cloud.firestore {
     // O próprio user pode atualizar APENAS o campo fotoBase64 (foto de perfil)
     // — sem poder mexer em role, turno, ativo.
     match /users/{uid} {
-      // Gestores leem o diretório inteiro (o chat precisa de nome/papel/foto de todos) —
-      // INALTERADO. Colaborador lê SÓ o próprio doc (não tem diretório/chat nesta fase).
+      // Gestores leem o diretório inteiro (presença/Auditoria resolvem nome/papel/foto
+      // por uid) — INALTERADO. Colaborador lê SÓ o próprio doc (sem diretório nesta fase).
       allow read: if isAdmin() || isRH() || isLider() || isSupervisor()
                   || (isColaborador() && request.auth.uid == uid);
       allow create, delete: if isAdmin() || temCap('sistema.usuarios', false);
@@ -222,7 +222,7 @@ service cloud.firestore {
     }
 
     // ----- presence (quem está online agora) -----
-    // So GESTOR escreve (o portal do colaborador nunca liga presenca/chat, gate ehColab no
+    // So GESTOR escreve (o portal do colaborador nunca liga presenca, gate ehColab no
     // firebase.js) e o role gravado tem que ser o REAL do users/{uid} (antes validava so o
     // payload, entao qualquer autenticado se pintava de 'admin' no painel · Fable 2026-07-06).
     match /presence/{uid} {
@@ -233,31 +233,6 @@ service cloud.firestore {
         && request.resource.data.nome is string
         && request.resource.data.nome.size() <= 100;
       allow delete: if isAuthed() && request.auth.uid == uid;
-    }
-
-    // ----- mensagens (chat interno · TTL 3 dias via expiraEm) -----
-    match /mensagens/{id} {
-      allow read: if isAuthed()
-        && (resource.data.de == request.auth.uid || resource.data.para == request.auth.uid);
-      allow create: if isAuthed()
-        && request.resource.data.de == request.auth.uid
-        && request.resource.data.texto is string
-        && request.resource.data.texto.size() > 0
-        && request.resource.data.texto.size() <= 2000
-        && request.resource.data.para is string
-        && request.resource.data.parKey is string
-        && (
-          request.resource.data.parKey == request.auth.uid + '__' + request.resource.data.para
-          || request.resource.data.parKey == request.resource.data.para + '__' + request.auth.uid
-        );
-      allow update: if isAuthed() && (
-        (resource.data.para == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lido']))
-        ||
-        ((resource.data.de == request.auth.uid || resource.data.para == request.auth.uid)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reacoes']))
-      );
-      allow delete: if isAuthed() && resource.data.de == request.auth.uid;
     }
 
     // ----- ocorrencias -----
