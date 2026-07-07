@@ -1507,3 +1507,19 @@ pra conteúdo de doc rh_confere nunca mais congelar quando parser/WK mudarem.
    verificação de pai; pilot A-parsers concluído (achados F1-F8, destaque: CSV
    só-header bypassa a guarda last-known-good do process-empregado; PII-cleanup +
    falha do passo 3 derruba o parser de ocorrências); fan-out B-F disparado.
+
+## 2026-07-07 — Buffer de maturidade do detector 999 volta pra 1 dia (caso Vinicius)
+
+William apontou (caso real: Vinicius 1205, 06/07, "Não Registrou Entrada", visto na
+tela de Movimentação do WK com situação 999 já atribuída) que o buffer de 2 dias do
+detector de marcação ausente estava inconsistente com o resto do pipeline — o loop
+principal (Atrasos/Faltas/Saída) já gera ocorrência de dia fechado com só 1 dia de
+folga. O buffer de 2 dias (achado 2026-07-03) fazia sentido na época porque o loop
+principal TAMBÉM dependia do Espelho pra Previsto/Apurado — isso mudou 2026-07-06 com
+a migração pro Minerador (loop principal não usa mais Espelho). `MADURO_LIMITE` voltou
+pra `hoje - 1 dia`. Rede de segurança inalterada: se o Espelho mudar depois, a
+reverificação contínua resolve sozinha (`auto_resolvida`).
+
+Testado com dado real e já em produção: Vinicius (1205) e Enildo (1206, mesmo padrão
+no mesmo dia — faltou marcar entrada às 13:30, batida real 17:35) geraram corretamente,
+batendo com a tela do WK. Commit `4c56589`.
