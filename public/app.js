@@ -8947,6 +8947,18 @@ function parseDuracaoHumana(str) {
 }
 // minutos -> "H:MM" (mesmo formato que o WK grava em duracaoFmt e que ocaMin lê).
 function minParaDuracaoFmt(min) { return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`; }
+// Batidas apuradas ALINHADAS por posição com marcacoesPrevistas. Nos docs do 999-detector
+// (fonteInferida), faltar uma batida (ex.: não registrou a entrada) deixa o array cru de
+// apuradas com 1 item a menos e o pareamento por índice desloca tudo (a saída-almoço vira
+// "entrada" etc., inventando falta na saída final que bateu certo). O WK entrega
+// apuradasAlinhadas: mesmo tamanho de previstas, com null na posição sem batida (vira ""
+// pra cair no "sem batida" do render). Nos demais docs o pareamento cru já casa. WKRADAR 2026-07-07.
+function ocaBatidasAlinhadas(o) {
+  if (o.fonteInferida && Array.isArray(o.apuradasAlinhadas)) {
+    return o.apuradasAlinhadas.map((x) => (x == null ? "" : String(x).trim()));
+  }
+  return String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
+}
 // Tamanho do desvio em minutos: usa duracaoFmt do doc (fonte WK); sem ele, calcula
 // das marcações (atraso: 1ª batida x 1º previsto; saída: último previsto x última
 // batida). Falta não tem desvio (retorna null).
@@ -8954,7 +8966,7 @@ function ocaDesvioMin(o) {
   const d = ocaMin(String(o.duracaoFmt || "").replace(/^-/, ""));
   if (d != null && d > 0) return d;
   const prevArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
-  const batArr = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
+  const batArr = ocaBatidasAlinhadas(o);
   if (!prevArr.length || !batArr.length) return null;
   const tipo = String(o.tipo || "").toLowerCase();
   let diff = null;
@@ -9000,7 +9012,7 @@ function ocaSeloTom(favorMin) {
 function ocaTrilhaHtml(o) {
   const t = ocaTipo(o.tipo);
   const prevArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
-  const batArr = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
+  const batArr = ocaBatidasAlinhadas(o);
   const n = Math.max(prevArr.length, batArr.length);
   if (!n) return `<p class="muted text-sm" style="margin:14px 0">Jornada não informada.</p>`;
   const labels = ocaMarcLabels(n);
@@ -9069,12 +9081,13 @@ function ocaFatosHtml(o) {
   const t = ocaTipo(o.tipo);
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
   const prevArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
-  const batArr = String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
+  const batArr = ocaBatidasAlinhadas(o);
   // Rede de segurança: o WK gera "falta" provisória do dia corrente pra quem ainda não
   // bateu; se é falta MAS as batidas do dia estão completas, avisa a GP pra conferir o
   // espelho antes de confirmar (evita confirmar falta falsa). Raiz é no pipeline/WK.
   const ehFalta = /falta/i.test(String(o.tipo || ""));
-  const batCompletas = batArr.length > 0 && prevArr.length > 0 && batArr.length >= prevArr.length;
+  const batReais = batArr.filter(Boolean).length;
+  const batCompletas = batReais > 0 && prevArr.length > 0 && batReais >= prevArr.length;
   const saldo = (o.saldoDiario == null || o.saldoDiario === "" || o.saldoDiario === "00:00") ? "" : String(o.saldoDiario);
   return `
     <div class="row" style="margin-bottom:14px; gap:12px;">
@@ -13826,7 +13839,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.48.1";
+window.CURRENT_VERSION = "1.48.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

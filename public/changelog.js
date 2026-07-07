@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.48.1", d: "7 jul 2026", current: true, items: [
+    v: "1.48.2", d: "7 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, quando faltou uma batida (ex.: não registrou a entrada), os horários aparecem na posição certa: a que faltou fica marcada como sem batida e as demais não deslocam mais, o que antes podia mostrar uma falta na saída final que na verdade bateu certo." },
+    ],
+  },
+  {
+    v: "1.48.1", d: "7 jul 2026", items: [
       { type: "fix", title: "No computador, os aniversariantes do mês voltam a mostrar quem faz aniversário hoje, com o coração pra parabenizar, ao lado da lista do mês." },
       { type: "fix", title: "Sair do portal agora pede uma confirmação rápida, pra ninguém sair sem querer." },
     ],
