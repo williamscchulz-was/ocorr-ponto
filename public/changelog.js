@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.48.0", d: "7 jul 2026", current: true, items: [
+    v: "1.48.1", d: "7 jul 2026", current: true, items: [
+      { type: "fix", title: "No computador, os aniversariantes do mês voltam a mostrar quem faz aniversário hoje, com o coração pra parabenizar, ao lado da lista do mês." },
+      { type: "fix", title: "Sair do portal agora pede uma confirmação rápida, pra ninguém sair sem querer." },
+    ],
+  },
+  {
+    v: "1.48.0", d: "7 jul 2026", items: [
       { type: "high", title: "Entrar no app ficou bem mais rápido: o carregamento busca as informações de uma vez em vez de na fila, e a tela abre sem esperar a lista de ocorrências, que preenche sozinha em seguida." },
       { type: "feat", title: "A tela de abertura trocou os blocos cinza pela marca com a linha de pulso batendo enquanto o app carrega." },
       { type: "fix", title: "Botões que gravam ou excluem agora mostram que estão trabalhando (indicador girando e texto), inclusive excluir documento, excluir registro disciplinar e trocar a foto." },

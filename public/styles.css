@@ -126,10 +126,9 @@ a:hover { color: var(--plum-soft); }
    LOGIN SCREEN
    ============================================ */
 
-/* Abertura de boot. Padrao (html.splash-skeleton): ESQUELETO da home em shimmer,
-   cobre so o load e some ao ficar pronto (estilo Apple). Estreia (html.splash-estreia):
-   cena "O fio escreve". NUNCA trava o app (hideSplash + cap no firebase + fallback
-   duro no <head>). Markup e animacao do fio vivem no index.html. */
+/* Abertura de boot. Com sessao a restaurar (html.splash-skeleton): Pulso da marca
+   (ECG batendo), cobre so o load e some ao ficar pronto (estilo Apple). NUNCA trava
+   o app (hideSplash + cap no firebase + fallback duro no <head>). Markup no index.html. */
 .splash {
   position: fixed; inset: 0; z-index: 9999;
   background: linear-gradient(180deg, #eef5ef 0%, #e3efe6 100%);
@@ -137,12 +136,6 @@ a:hover { color: var(--plum-soft); }
 }
 .splash--out { opacity: 0; pointer-events: none; }
 html.splash-off .splash { display: none; }
-
-/* Estreia: cena do fio, fundo escuro, ocupando a tela. */
-html.splash-estreia .splash { display: grid; place-items: center; background: radial-gradient(120% 90% at 50% 40%, #0A1A12 0%, #06120C 72%); }
-.splash__cena { display: none; }
-html.splash-estreia .splash__cena { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-html.splash-estreia .splash-sk { display: none; }
 
 /* Pulso da marca (todo login; direcao A aprovada 2026-07-07): a linha de ECG desenha
    e reinicia em loop, o app "tem batimento". Mais leve que o esqueleto que substituiu
@@ -161,7 +154,7 @@ html.splash-estreia .splash-sk { display: none; }
 .oca-alerta svg { width: 17px; height: 17px; flex: none; margin-top: 1px; }
 @keyframes fpBeat { 0% { stroke-dashoffset: 340; } 55% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -340; } }
 @keyframes fpPop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-@media (prefers-reduced-motion: reduce) { .splash-pl__mark { animation: none; } .splash-pl__ecg path { animation: none; stroke-dashoffset: 0; } .splash__cena { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .splash-pl__mark { animation: none; } .splash-pl__ecg path { animation: none; stroke-dashoffset: 0; } }
 
 /* Login minimalista — card flutuante (variante C aprovada) */
 .login {
@@ -628,7 +621,9 @@ html.splash-estreia .splash-sk { display: none; }
   margin-top: 2px;
 }
 
-/* Logotipo "FioPulse" na fonte da marca (Michroma). Michroma é larga, .login__wordmark, .app__brand-text {
+/* Logotipo "FioPulse" na fonte da marca (Michroma). Michroma é larga, então
+   reduzimos o tamanho pra ocupar largura parecida. O slogan volta pra Poppins. */
+.login__wordmark, .app__brand-text {
   font-family: var(--font-brand);
   letter-spacing: 0.02em;
 }

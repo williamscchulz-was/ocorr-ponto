@@ -10,27 +10,19 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=293" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=293" />
+  <link rel="stylesheet" href="styles.css?v=294" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=294" />
   <!-- Decide ANTES de renderizar, sincrono, o MODO da abertura. Estilo Apple:
-       a abertura padrao e o ESQUELETO da home (cobre so o load, some assim que
-       o app fica pronto, sem tempo fixo). O "fio escreve" roda so na ESTREIA
-       (primeiro acesso do aparelho). __splashT0 + fallback duro de 8s no fim. -->
+       com sessao a restaurar mostra o Pulso da marca (cobre so o load, some assim
+       que o app fica pronto); sem sessao vai direto pro login.
+       __splashT0 + fallback duro de 8s no fim. -->
   <script>
     window.__splashT0 = Date.now();
     try {
       var _root = document.documentElement;
-      var _estreia = !localStorage.getItem("fiopulse:estreia");
       var _manter = localStorage.getItem("fiopulse:manterConectado") === "1";
-      var _reduz = false;
-      try { _reduz = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-      if (_estreia) {
-        // Primeiro acesso NESTE aparelho: "o fio escreve" uma vez, de boas-vindas.
-        localStorage.setItem("fiopulse:estreia", "1");
-        if (_reduz) { _root.classList.add("splash-skeleton"); window.__splashMin = 300; }
-        else { _root.classList.add("splash-estreia"); window.__splashMin = 3600; }
-      } else if (_manter) {
-        // Padrao: esqueleto da home cobre a restauracao e some quando fica pronto.
+      if (_manter) {
+        // Sessao a restaurar: o Pulso da marca cobre o load e some quando fica pronto.
         _root.classList.add("splash-skeleton");
         window.__splashMin = 300;
       } else {
@@ -49,10 +41,9 @@
 </head>
 <body>
 
-  <!-- Abertura de boot. Por padrao (html.splash-skeleton) mostra o ESQUELETO da
-       home (shimmer), que cobre o load e some ao ficar pronto. Na ESTREIA
-       (html.splash-estreia) mostra a cena "O fio escreve" (SVG abaixo, portada de
-       docs/mockups/splash-fio-dir2.html). Em html.splash-off nao aparece. -->
+  <!-- Abertura de boot. Com sessao a restaurar (html.splash-skeleton) mostra o
+       Pulso da marca (ECG batendo), que cobre o load e some ao ficar pronto.
+       Em html.splash-off nao aparece. -->
   <div id="splash" class="splash">
     <div class="splash-sk">
       <!-- Pulso da marca (direcao A aprovada 2026-07-07): a linha de ECG bate em loop
@@ -66,301 +57,9 @@
         <div class="splash-sk__msg" role="status">Carregando...</div>
       </div>
     </div>
-    <svg class="splash__cena" id="splashCena" viewBox="0 0 390 720" preserveAspectRatio="xMidYMid meet" role="img" aria-label="FioPulse" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="splashConeCorpo" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0"    stop-color="#0B7A36"/>
-          <stop offset="0.28" stop-color="#1AA34F"/>
-          <stop offset="0.46" stop-color="#4FD182"/>
-          <stop offset="0.60" stop-color="#1AA34F"/>
-          <stop offset="1"    stop-color="#05532A"/>
-        </linearGradient>
-        <radialGradient id="splashConeTopo" cx="0.42" cy="0.38" r="0.75">
-          <stop offset="0"   stop-color="#5FDC92"/>
-          <stop offset="0.55" stop-color="#1AA34F"/>
-          <stop offset="1"   stop-color="#0B7A36"/>
-        </radialGradient>
-        <radialGradient id="splashNucleo" cx="0.4" cy="0.35" r="0.8">
-          <stop offset="0"   stop-color="#2a2f2c"/>
-          <stop offset="0.6" stop-color="#0d100e"/>
-          <stop offset="1"   stop-color="#000"/>
-        </radialGradient>
-        <linearGradient id="splashFioTinta" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0"   stop-color="#1AA34F"/>
-          <stop offset="0.5" stop-color="#4FD182"/>
-          <stop offset="1"   stop-color="#7CEBA8"/>
-        </linearGradient>
-        <radialGradient id="splashFagulha" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0"   stop-color="#FFF6CC"/>
-          <stop offset="0.35" stop-color="#FFCB00"/>
-          <stop offset="1"   stop-color="rgba(255,203,0,0)"/>
-        </radialGradient>
-        <radialGradient id="splashPisoGlow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0"   stop-color="rgba(26,163,79,0.28)"/>
-          <stop offset="1"   stop-color="rgba(26,163,79,0)"/>
-        </radialGradient>
-        <filter id="splashBrilhoSuave" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="3.2" result="b"/>
-          <feMerge>
-            <feMergeNode in="b"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        <filter id="splashBlurForte" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="7"/>
-        </filter>
-        <pattern id="splashLosango" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
-          <path d="M0,8 L8,0 M8,16 L16,8 M-4,4 L4,-4 M12,20 L20,12" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
-          <path d="M0,8 L8,16 M8,0 L16,8 M-4,12 L4,20 M12,-4 L20,4" stroke="rgba(0,0,0,0.20)" stroke-width="1"/>
-        </pattern>
-      </defs>
 
-      <ellipse id="splashPiso" cx="300" cy="628" rx="86" ry="20" fill="url(#splashPisoGlow)"/>
-
-      <g id="splashCone" transform="translate(300 560)">
-        <ellipse cx="0" cy="70" rx="62" ry="14" fill="rgba(0,0,0,0.35)"/>
-        <path id="splashConeBody"
-          d="M -58,66 C -58,74 58,74 58,66 L 22,-74 C 22,-80 -22,-80 -22,-74 Z"
-          fill="url(#splashConeCorpo)"/>
-        <path d="M -58,66 C -58,74 58,74 58,66 L 22,-74 C 22,-80 -22,-80 -22,-74 Z"
-          fill="url(#splashLosango)" opacity="0.9"/>
-        <path d="M -50,60 C -46,20 -34,-40 -18,-72 C -30,-40 -40,10 -42,60 Z"
-          fill="rgba(255,255,255,0.22)" filter="url(#splashBrilhoSuave)"/>
-        <ellipse cx="0" cy="-74" rx="22" ry="7" fill="url(#splashConeTopo)"/>
-        <ellipse cx="0" cy="-74" rx="22" ry="7" fill="url(#splashLosango)" opacity="0.6"/>
-        <ellipse cx="0" cy="-84" rx="9" ry="3.4" fill="url(#splashNucleo)"/>
-        <rect x="-9" y="-84" width="18" height="12" fill="#0d100e"/>
-        <ellipse cx="0" cy="-72" rx="9" ry="3" fill="#05130c"/>
-        <ellipse cx="0" cy="-74" rx="22" ry="7" fill="none" stroke="rgba(124,235,168,0.5)" stroke-width="1"/>
-      </g>
-
-      <path id="splashFioLivre" fill="none" stroke="url(#splashFioTinta)" stroke-width="2.4"
-            stroke-linecap="round" stroke-linejoin="round"/>
-      <path id="splashWmHalo" fill="none" stroke="#4FD182" stroke-width="7"
-            stroke-linecap="round" stroke-linejoin="round"
-            opacity="0.0" filter="url(#splashBlurForte)"/>
-      <path id="splashWmPath" fill="none" stroke="url(#splashFioTinta)" stroke-width="3.1"
-            stroke-linecap="round" stroke-linejoin="round"/>
-      <circle id="splashPonta" r="4.2" fill="#EAFBF0" filter="url(#splashBrilhoSuave)" opacity="0"/>
-      <circle id="splashSpark" cx="0" cy="0" r="30" fill="url(#splashFagulha)" opacity="0"/>
-      <text id="splashAssinatura" x="195" y="470" text-anchor="middle"
-            font-family="Poppins, sans-serif" font-size="12" font-weight="500"
-            letter-spacing="3" fill="rgba(207,233,216,0.0)">GESTÃO DE PESSOAS</text>
-    </svg>
   </div>
 
-  <!-- Animacao do splash. 100% defensiva: se algo falhar, renderiza o estado
-       formado e sai. NUNCA lanca, nunca prende o boot (quem esconde e o
-       firebase/esconderSplash + os fallbacks; __splashMin so segura o tempo). -->
-  <script>
-  (function () {
-    "use strict";
-    try {
-      var svg = document.getElementById("splashCena");
-      if (!svg) return;
-      var fioLivre   = document.getElementById("splashFioLivre");
-      var wmPath     = document.getElementById("splashWmPath");
-      var wmHalo     = document.getElementById("splashWmHalo");
-      var ponta      = document.getElementById("splashPonta");
-      var spark      = document.getElementById("splashSpark");
-      var cone       = document.getElementById("splashCone");
-      var piso       = document.getElementById("splashPiso");
-      var assinatura = document.getElementById("splashAssinatura");
-      var losango    = document.getElementById("splashLosango");
-      if (!wmPath || !fioLivre || !ponta) return;
-
-      // saida do fio no topo do cone: cone em translate(300,560), nucleo y=-84 => (300,476)
-      var SAIDA = { x: 300, y: 476 };
-
-      // "FioPulse" desenhado como UM traco unico continuo (a caneta so levanta no
-      // pingo do i). Coordenadas na faixa central da tela.
-      var WORDMARK_D = [
-        "M 116,232", "L 78,232", "L 78,300", "L 78,266", "L 110,266",
-        "C 118,278 126,300 130,300",
-        "L 130,258", "L 130,248",
-        "C 127,245 127,241 130,241", "C 133,241 133,245 130,248",
-        "L 130,258",
-        "C 132,300 150,308 168,300",
-        "C 150,300 150,262 168,262",
-        "C 186,262 186,300 168,300",
-        "C 188,306 205,306 208,300",
-        "L 208,232",
-        "C 240,232 240,270 208,270",
-        "L 208,300",
-        "C 226,320 248,318 248,262",
-        "L 248,290", "C 248,304 276,304 276,290", "L 276,262",
-        "C 280,300 292,300 298,300", "L 298,232",
-        "C 300,320 322,320 336,270",
-        "C 337,259 318,258 316,270", "C 314,281 336,282 336,292", "C 336,304 318,305 314,294",
-        "C 320,302 342,304 350,284",
-        "L 372,284", "C 373,269 350,266 350,285", "C 350,301 366,303 374,293"
-      ].join(" ");
-
-      wmPath.setAttribute("d", WORDMARK_D);
-      wmHalo.setAttribute("d", WORDMARK_D);
-
-      var LEN = wmPath.getTotalLength();
-      wmPath.style.strokeDasharray = LEN;
-      wmHalo.style.strokeDasharray = LEN;
-      var pInicio = wmPath.getPointAtLength(0);
-
-      function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
-      function easeOut(t){ return 1-Math.pow(1-t,3); }
-      function easeIn(t){ return t*t*t; }
-      function clamp01(t){ return t<0?0:t>1?1:t; }
-
-      var T = {
-        antecipa: [0,    460],
-        escreve:  [460, 3160],
-        trave:    [3160, 3480],
-        acomoda:  [3480, 3920],
-        respira:  [3920, 4800]
-      };
-      var DUR = 4800; // fim da timeline; a animacao roda uma vez e para em DUR
-
-      function faseProg(agora, faixa){ return clamp01((agora - faixa[0])/(faixa[1]-faixa[0])); }
-
-      function setCone(e, extraY, escala){
-        var swayX = Math.sin(e/1400) * 1.4;
-        var swayY = Math.sin(e/1700 + 0.6) * 1.1;
-        var swayR = Math.sin(e/1600) * 0.4;
-        var tx = (300 + swayX).toFixed(2);
-        var ty = (560 + swayY + (extraY||0)).toFixed(2);
-        var t = "translate(" + tx + " " + ty + ") rotate(" + swayR.toFixed(3) + ")";
-        if(escala && escala !== 1) t += " scale(" + escala.toFixed(4) + ")";
-        cone.setAttribute("transform", t);
-        if(losango) losango.setAttribute("patternTransform", "rotate(" + (e*0.006).toFixed(2) + ")");
-      }
-
-      function desenhaFioLivre(pontaX, pontaY, tensao){
-        var barriga = (1 - tensao) * 46;
-        var mx = (SAIDA.x + pontaX)/2;
-        var my = (SAIDA.y + pontaY)/2 + barriga;
-        var cx1 = SAIDA.x - barriga*0.5, cy1 = SAIDA.y - 8;
-        var d = "M " + SAIDA.x + "," + SAIDA.y +
-                " C " + cx1 + "," + cy1 + " " + mx + "," + my + " " + pontaX + "," + pontaY;
-        fioLivre.setAttribute("d", d);
-      }
-
-      // Desenha UM instante da timeline dado o elapsed "e" (ms). O laco e o hook
-      // de QA chamam esta mesma funcao. Nunca lanca.
-      function draw(e){
-        try {
-          if(e < T.antecipa[1]){
-            var pa = faseProg(e, T.antecipa);
-            setCone(e, 0, 1 + Math.sin(pa*Math.PI)*0.02);
-            piso.setAttribute("opacity", 0.6 + Math.sin(pa*Math.PI)*0.3);
-            var px = SAIDA.x + (pInicio.x - SAIDA.x)*easeOut(pa);
-            var py = SAIDA.y + (pInicio.y - SAIDA.y)*easeOut(pa);
-            desenhaFioLivre(px, py, 0.15);
-            wmPath.style.strokeDashoffset = LEN;
-            wmHalo.style.strokeDashoffset = LEN;
-            ponta.setAttribute("opacity", easeOut(pa));
-            ponta.setAttribute("cx", px);
-            ponta.setAttribute("cy", py);
-            return;
-          }
-          if(e < T.escreve[1]){
-            setCone(e, 0, 1);
-            var pe = faseProg(e, T.escreve);
-            var revelado = easeInOut(pe) * LEN;
-            wmPath.style.strokeDashoffset = LEN - revelado;
-            wmHalo.style.strokeDashoffset = LEN - revelado;
-            wmHalo.setAttribute("opacity", (0.10 + 0.25*pe).toFixed(3));
-            var pt = wmPath.getPointAtLength(Math.min(revelado, LEN));
-            ponta.setAttribute("cx", pt.x);
-            ponta.setAttribute("cy", pt.y);
-            ponta.setAttribute("opacity", 1);
-            desenhaFioLivre(pt.x, pt.y, 0.25 + pe*0.35);
-            piso.setAttribute("opacity", 0.55);
-            return;
-          }
-          wmPath.style.strokeDashoffset = 0;
-          wmHalo.style.strokeDashoffset = 0;
-
-          if(e < T.trave[1]){
-            setCone(e, 0, 1);
-            var pv = faseProg(e, T.trave);
-            var fim = wmPath.getPointAtLength(LEN);
-            ponta.setAttribute("cx", fim.x);
-            ponta.setAttribute("cy", fim.y);
-            ponta.setAttribute("opacity", 1);
-            var g = Math.sin(pv*Math.PI);
-            spark.setAttribute("cx", fim.x);
-            spark.setAttribute("cy", fim.y);
-            spark.setAttribute("opacity", (g*0.95).toFixed(3));
-            spark.setAttribute("r", (18 + g*22).toFixed(1));
-            wmHalo.setAttribute("stroke", pv<0.6 ? "#FFCB00" : "#4FD182");
-            wmHalo.setAttribute("opacity", (0.35 + g*0.4).toFixed(3));
-            desenhaFioLivre(fim.x, fim.y, 0.6 + pv*0.3);
-            return;
-          }
-          spark.setAttribute("opacity", 0);
-          wmHalo.setAttribute("stroke", "#4FD182");
-
-          if(e < T.acomoda[1]){
-            var pc = faseProg(e, T.acomoda);
-            var fim2 = wmPath.getPointAtLength(LEN);
-            desenhaFioLivre(fim2.x, fim2.y, 0.9 + pc*0.1);
-            ponta.setAttribute("opacity", 1 - easeIn(pc));
-            wmHalo.setAttribute("opacity", (0.35 - pc*0.15).toFixed(3));
-            assinatura.setAttribute("fill", "rgba(207,233,216," + (0.55*easeOut(pc)).toFixed(3) + ")");
-            setCone(e, Math.sin(pc*Math.PI) * 2.2, 1);
-            return;
-          }
-          ponta.setAttribute("opacity", 0);
-
-          if(e < T.respira[1]){
-            setCone(e, 0, 1);
-            var pr = faseProg(e, T.respira);
-            wmHalo.setAttribute("opacity", (0.20 + Math.sin(pr*Math.PI*2)*0.06).toFixed(3));
-            assinatura.setAttribute("fill", "rgba(207,233,216,0.55)");
-            return;
-          }
-
-          // estado formado, segurando
-          setCone(e, 0, 1);
-          wmHalo.setAttribute("opacity", 0.20);
-          assinatura.setAttribute("fill", "rgba(207,233,216,0.55)");
-        } catch (err) { /* nunca deixa o boot travar por conta da animacao */ }
-      }
-
-      // Renderiza o estado FINAL formado, estatico (sem animar).
-      function mostrarFormado(){ draw(DUR); }
-
-      var raf = 0, t0 = 0, rodando = false;
-      function frame(agora){
-        if(!rodando) return;
-        var e = agora - t0;
-        if(e >= DUR){ draw(DUR); rodando = false; raf = 0; return; } // uma vez, sem laco
-        draw(e);
-        raf = requestAnimationFrame(frame);
-      }
-      function iniciar(){
-        rodando = true;
-        t0 = (window.performance && performance.now) ? performance.now() : Date.now();
-        if(raf) cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(frame);
-      }
-
-      // Hook de QA: para o laco e renderiza UM instante deterministico.
-      window.__debugSplashEm = function(ms){
-        rodando = false;
-        if(raf){ cancelAnimationFrame(raf); raf = 0; }
-        draw(ms);
-      };
-
-      var root = document.documentElement;
-      var reduz = false;
-      try { reduz = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-      if (root.classList.contains("splash-estreia") && !reduz) {
-        iniciar();
-      } else if (root.classList.contains("splash-estreia")) {
-        mostrarFormado();
-      }
-    } catch (e) { /* qualquer falha: o splash some pelos caminhos normais */ }
-  })();
-  </script>
 
   <!-- ============================================
        TELA DE ACESSO (Fase 0 — Portal do Colaborador)
@@ -607,16 +306,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=293"></script>
-  <script defer src="data.js?v=293"></script>
+  <script defer src="utils.js?v=294"></script>
+  <script defer src="data.js?v=294"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=293"></script>
+  <script defer src="app.js?v=294"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=293"></script>
-  <script defer src="google-drive.js?v=293"></script>
+  <script defer src="firebase.js?v=294"></script>
+  <script defer src="google-drive.js?v=294"></script>
 </body>
 </html>

@@ -1016,7 +1016,9 @@ function renderNavColaborador() {
       ${cpIcon("logout")}<span>Sair</span>
     </button>`;
   $$("#nav .nav__item").forEach((btn) => btn.addEventListener("click", () => {
-    if (btn.dataset.acao === "sair") return (window.logout ? window.logout() : logout());
+    // Sair confirma nos DOIS caminhos (sidebar e tela Conta), decisão William 2026-07-07:
+    // evita logout por clique acidental e vira um comportamento só.
+    if (btn.dataset.acao === "sair") return confirmarSairColab();
     state.view.page = btn.dataset.page; renderApp(); closeSidebar();
   }));
 }
@@ -13824,7 +13826,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.48.0";
+window.CURRENT_VERSION = "1.48.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
