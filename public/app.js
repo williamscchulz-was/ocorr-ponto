@@ -8726,7 +8726,6 @@ function ocaFmtMarc(v) {
   if (Array.isArray(v)) return v.filter(Boolean).join("  ");
   return String(v);
 }
-function ocaIsPend(o) { return o.status !== "conferida"; }
 
 // ===== Fluxo RH→Líder das ocorrências automáticas, integrado na aba Ocorrências =====
 // Estágio do doc (mapeia legado: aguardando_conferencia->rh_confere, conferida->confirmada).
@@ -8770,7 +8769,7 @@ function ensureOcaCarregada() {
   state._ocaCarregando = true;
   window.recarregarOcorrenciasAuto().catch(() => {}).finally(() => {
     state._ocaCarregando = false;
-    if (["dashboard", "ocorrencias-auto"].includes(state.view.page)) renderApp();
+    if (state.view.page === "dashboard") renderApp();
   });
 }
 
@@ -9300,66 +9299,8 @@ function openEditarAutoModal(id) {
   });
 }
 
-function ocaListaFiltrada() {
-  const tab = state.view.ocaTab || "aguardando";
-  const busca = (state.view.ocaBusca || "").trim().toLowerCase();
-  const tipo = state.view.ocaTipo || "";
-  const seg = state.view.ocaSeg || "";
-  let l = (state.ocorrenciasAuto || []).slice();
-  if (tab === "aguardando") l = l.filter(ocaIsPend);
-  else if (tab === "conferidas") l = l.filter((o) => !ocaIsPend(o));
-  if (tipo) l = l.filter((o) => o.tipo === tipo);
-  if (seg) l = l.filter((o) => o.setor === seg || String(o.turno) === seg);
-  if (busca) l = l.filter((o) => String(o.nome || "").toLowerCase().includes(busca));
-  l.sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
-  return l;
-}
 
-function ocaVazioHtml(tab) {
-  const msg = tab === "conferidas" ? "Nada conferido ainda." : tab === "todas" ? "Nenhuma ocorrência importada." : "Tudo conferido. Nada aguardando.";
-  return `<div class="oca-empty">${icon("conferir")}<p>${msg}</p></div>`;
-}
-
-function ocaCardHtml(o) {
-  const t = ocaTipo(o.tipo);
-  const pend = ocaIsPend(o);
-  const prev = ocaFmtMarc(o.marcacoesPrevistas);
-  const bat = ocaFmtMarc(o.marcacoesApuradas);
-  const saldo = (o.saldoDiario == null || o.saldoDiario === "") ? "" : String(o.saldoDiario);
-  const saldoNeg = /^-/.test(saldo);
-  const partes = String(o.data || "").split("/");
-  const dia = partes[0] || "—";
-  const mes = OCA_MESES[parseInt(partes[1], 10) - 1] || "";
-  let acao = "";
-  if (pend) {
-    acao = `<button class="btn btn--primary btn--sm" data-oca-conferir="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar conferência</span></button>`;
-  } else {
-    const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "conferida") || (o.historico || [])[(o.historico || []).length - 1];
-    const quem = (ult && ult.porNome) || "GP";
-    const quando = (ult && ult.emIso) ? comData(ult.emIso) : "";
-    acao = `<span class="badge badge--success"><span class="dot"></span>Conferida</span><div class="oca-confmeta">por ${escapeHtml(quem)}${quando ? `<br>${escapeHtml(quando)}` : ""}</div>`;
-  }
-  return `
-    <article class="occ oca ${pend ? "occ--pendente" : "oca--ok"}">
-      <div class="occ__date"><strong>${escapeHtml(dia)}</strong><span>${mes}</span></div>
-      <div class="occ__main">
-        <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
-        <div class="occ__sub">
-          <span class="badge badge--${t.tone}">${escapeHtml(t.label)}</span>
-          <span class="dot"></span>
-          <span>${escapeHtml(ocaSetorTurno(o))}</span>
-        </div>
-      </div>
-      <div class="oca-mag">
-        <div class="oca-mag__row"><span class="oca-mag__k">Previsto</span><span class="oca-mag__v">${escapeHtml(prev || "—")}</span></div>
-        <div class="oca-mag__row"><span class="oca-mag__k">Batido</span><span class="oca-mag__v ${bat ? "" : "oca-mag__v--miss"}">${escapeHtml(bat || "sem marcação")}</span></div>
-        ${saldo ? `<div class="oca-mag__row"><span class="oca-mag__k">Saldo</span><span class="oca-mag__saldo ${saldoNeg ? "oca-neg" : ""}">${escapeHtml(saldo)}</span></div>` : ""}
-      </div>
-      <div class="oca-actions">${acao}</div>
-    </article>`;
-}
-
-// Delegação do botão conferir (uma vez)
+// Delegação dos botões das ocorrências automáticas (uma vez)
 if (!window._ocaBound) {
   window._ocaBound = true;
   document.addEventListener("click", (e) => {
@@ -9369,22 +9310,12 @@ if (!window._ocaBound) {
     if (d) { e.preventDefault(); e.stopPropagation(); openDispensarAutoModal(d.dataset.ocaDispensar); return; }
     const c = e.target.closest("[data-oca-confirmar]");
     if (c) { e.preventDefault(); e.stopPropagation(); openConferirAutoModal(c.dataset.ocaConfirmar); return; }
-    const b = e.target.closest("[data-oca-conferir]");
-    if (b) { e.preventDefault(); const bid = b.dataset.ocaConferir; withBusy("oca-conferir:" + bid, b, () => ocaConferirUI(bid)); return; }
     // Card automático clicável (fora dos botões): abre o detalhe, igual à manual.
     const card = e.target.closest("[data-oca-card]");
     if (card && !e.target.closest("button, a")) openDetalheAutoModal(card.dataset.ocaId);
   });
 }
 
-function ocaConferirUI(id) {
-  if (window.conferirOcorrenciaAuto) return window.conferirOcorrenciaAuto(id);
-  // Fallback demo local (sem firebase)
-  const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
-  if (o) { o.status = "conferida"; o.historico = [...(o.historico || []), { acao: "conferida", por: "local", porNome: currentUser()?.nome || "GP", emIso: nowIso() }]; }
-  toast("Conferência confirmada.");
-  renderApp();
-}
 
 // ===== Monitor do pipeline (gestor, cap pipeline.monitor) — modal que lê monitor/wkradar =====
 const MON_GRUPOS = { "wk-export": "Exportações do WK Radar", "colecao": "Saídas no app", "auth": "Acesso" };

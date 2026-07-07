@@ -22,7 +22,6 @@
 .acesso__t{flex:1;min-width:0;font-size:16px;font-weight:700;display:flex;flex-direction:column;gap:5px}
 .acesso__sub{font-size:12.5px;font-weight:400;opacity:.92}
 .acesso__half--gestor .acesso__sub{color:var(--text-muted);opacity:1}
-.acesso__selo{align-self:flex-start;font-size:9.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--plum-deep)}
 .acesso__arr{flex:none}
 .acesso__half--colab .acesso__arr{color:rgba(255,255,255,.85)}
 .acesso__half--gestor .acesso__arr{color:var(--border-strong)}
@@ -117,11 +116,6 @@ html.modo-colab.cp-dark #bottom-nav .bn-pill{background:rgba(95,203,133,.17)}
 .modo-colab .cp-bn-ic{width:auto;height:auto;border-radius:0;background:none;display:flex;align-items:center;justify-content:center;color:inherit}
 .modo-colab .bottom-nav__item.active .cp-bn-ic{background:none;color:inherit}
 .modo-colab .bottom-nav__item .icon{width:23px;height:23px}
-
-/* ---- Conta do colaborador ---- */
-.cp-seg{display:flex;background:var(--surface-warm);border:1px solid var(--border);border-radius:11px;padding:3px;margin:10px 14px 13px}
-.cp-seg button{flex:1;border:0;border-radius:8px;padding:8px 0;font:inherit;font-size:11.5px;font-weight:500;background:none;color:var(--text-muted);cursor:pointer}
-.cp-seg button.on{background:var(--plum-soft);color:#fff;font-weight:600}
 .cp-dados{padding:2px 14px 12px;border-top:1px solid var(--border)}
 
 /* Modal (detalhe roadmap / perfil) tematizado no colaborador, pra não destoar no dark */
@@ -290,45 +284,9 @@ html.modo-colab.cp-dark #bottom-nav .bn-pill{background:rgba(95,203,133,.17)}
 @media (prefers-reduced-motion:reduce){.termo-card{animation:none}}
 
 /* ============================================================
-   AVISOS (Comunicados) do colaborador — tokens do portal, dark-aware
-   ============================================================ */
-
-.cp-av{background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);padding:15px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,40,20,.05)}
-
-/* ---- Documentos do colaborador ---- */
-.cp-doc__seal{width:42px;height:42px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--success-bg);color:var(--plum)}
-.cp-doc__seal svg{width:21px;height:21px}
-
-/* ---- Sheet de assinatura (aceite + re-auth) ---- */
-.cp-assinar{display:flex;flex-direction:column;gap:14px}
-.cp-assinar__doc{display:flex;align-items:center;gap:11px;background:var(--surface-warm);border:1px solid var(--border);border-radius:12px;padding:12px}
-.cp-assinar__doc .cp-doc__seal{width:38px;height:38px}
-.cp-assinar__docinfo{flex:1;min-width:0}
-.cp-assinar__docinfo b{display:block;font-size:13.5px;font-weight:600;color:var(--text-body)}
-.cp-assinar__docinfo span{font-size:11.5px;color:var(--text-muted)}
-.cp-assinar__ler{flex:none;font-size:12px;font-weight:600;color:var(--info);text-decoration:none;display:inline-flex;align-items:center;gap:5px;background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
-.cp-assinar__ler svg{width:15px;height:15px}
-.cp-aceite{display:flex;align-items:flex-start;gap:11px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:13px;cursor:pointer;text-align:left;font:inherit;width:100%}
-.cp-aceite__box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border-strong);flex:none;display:flex;align-items:center;justify-content:center;transition:.15s;color:transparent}
-.cp-aceite.is-on .cp-aceite__box{background:var(--plum-soft);border-color:var(--plum-soft);color:#06210f}
-.cp-aceite__box svg{width:14px;height:14px;stroke-width:3}
-.cp-aceite__t{font-size:13px;font-weight:500;color:var(--text-body);line-height:1.4}
-.cp-senha label{font-size:12px;font-weight:600;color:var(--text-body);display:block;margin-bottom:7px}
-.cp-senha input{width:100%;background:var(--bg);border:1px solid var(--border-strong);border-radius:11px;color:var(--text-body);font:inherit;font-size:14px;padding:11px 13px}
-.cp-senha input:focus{outline:none;border-color:var(--plum)}
-.cp-assinar__note{display:flex;gap:8px;font-size:11px;color:var(--text-muted);line-height:1.5}
-.cp-assinar__note svg{width:14px;height:14px;flex:none;margin-top:1px}
-
-/* Imagem no aviso do colaborador */
-
-/* ============================================================
-   MOBILE FRIENDLY (auditoria) — Portal do Colaborador
-   ============================================================ */
-.cp-senha input{font-size:16px}                       /* >=16px evita zoom no foco (iOS) */
+   AVISOS (Comunicados) do colaborador — tokens do portal {background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);padding:15px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,40,20,.05)}                       /* >=16px evita zoom no foco (iOS) */
 @media (max-width:540px){
   .cp-tema{width:40px;height:40px}                    /* alvos de toque */
-  /* empilha status/acoes e botao full-width */
-  .cp-assinar__doc{flex-wrap:wrap}
 }
 
 /* ============================================================
@@ -538,7 +496,6 @@ html.modo-colab.cp-dark{
 .pp-btn--primary:active{filter:brightness(.96)}
 .pp-btn--soft{background:var(--success-bg);color:var(--plum)}
 .pp-btn--block{width:100%}
-.pp-btn--sm{height:36px;font-size:12.5px;border-radius:11px;padding:0 13px}
 .pp-btn[disabled]{opacity:.6;cursor:default}
 
 /* ===== Sheet pp (trocar senha e futuros sheets do portal) =====

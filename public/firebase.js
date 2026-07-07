@@ -1216,28 +1216,6 @@
       }
     };
 
-    // Confirma a conferência de UMA ocorrência. Idempotente: se já conferida, não reescreve.
-    // A rule só deixa mexer em status (-> conferida) + historico (append de 1).
-    window.conferirOcorrenciaAuto = async function (id) {
-      const u = currentUser();
-      const uid = (auth.currentUser && auth.currentUser.uid) || null;
-      const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
-      if (!o) return;
-      if (o.status === "conferida") { toast?.("Essa já estava conferida."); renderApp(); return; }
-      const entrada = { acao: "conferida", por: uid, porNome: u?.nome || "GP", emIso: new Date().toISOString() };
-      const novoHist = [...(Array.isArray(o.historico) ? o.historico : []), entrada];
-      try {
-        await db.collection("ocorrencias-auto").doc(id).update({ status: "conferida", historico: novoHist });
-        o.status = "conferida"; o.historico = novoHist; // otimista local
-        window.registrarAuditoria?.({ tipo: "ocorrencia-auto", acao: "Conferiu ocorrência automática", alvo: `${o.nome || ""} · ${o.data || ""} · ${o.tipo || ""}` });
-        toast?.("Conferência confirmada.");
-        renderApp();
-      } catch (e) {
-        debug?.("[ocorrencias-auto] conferir:", e?.message || e);
-        toast?.("Erro ao confirmar: " + (e?.message || e), "danger");
-        renderApp(); // re-render reabilita o botão
-      }
-    };
 
     // Transições do fluxo RH→Líder (coleção ocorrencias-auto). Cada uma muda só status + faz
     // APPEND de 1 no historico (a rule exige hasOnly(status,historico) e historico +1).
