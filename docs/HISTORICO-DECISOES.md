@@ -976,6 +976,49 @@ William reportou (2 modais, casos Vinicius e Enildo, ambos 06/07): "o que faltou
 
 ---
 
+## 2026-07-07 · 🆕 saldoOriginal: saldo de banco de horas sem o percentual da situação (caso Jenifer/GP)
+
+Jenifer (Coordenadora de Gestão de Pessoas) reclamou pro William: o saldo de banco de horas que ela via no perfil do funcionário estava MULTIPLICADO pelo percentual da situação (ex.: hora extra 75% = ×1,75), quando o valor certo pra saber quanto o colaborador pode FOLGAR é o ORIGINAL (bruto) — folga é compensada hora-por-hora, o percentual só vale se for pago em dinheiro.
+
+**Investigação**: "GP" não é sistema externo — é a Gestão de Pessoas, ou seja, a própria Jenifer usando o FioPulse (confirmado: `app.js` literalmente rotula a seção "Dados sensíveis (admin/GP)"). Rastreada a cadeia até `pipeline-rh/cur.minutos ← upload-to-firestore.mjs:339 ← f.saldoAtualMin (process-bh.mjs)` — nosso próprio pipeline também só carregava o valor multiplicado, mesmo bug do lado de cá.
+
+**Descoberta de dado**: o relatório "Banco de Horas" do WK que exportamos automaticamente não tinha (até então) NENHUMA coluna com o saldo original — só a tela manual de Movimentação (por funcionário, aba Banco de Horas) mostrava "Saldo Original" ao lado do "Saldo". William foi na tela de configuração do modelo do relatório (William mexeu direto no WK) e adicionou 6 campos novos: `Diurnas Originais`, `Noturnas Originais`, `Situação`, `Cód. Situação`, e os 4 percentuais (`% Situação Banco/Folha D./N.`). Isso mudou a ESTRUTURA do CSV: passou a vir 1 linha por SITUAÇÃO (não mais 1 por dia — um dia pode ter 2+ situações, ex. Atraso + Hora Extra no mesmo dia) mais uma linha-resumo no fim de cada funcionário (sem Cód Emp nem Data Saldo, só "Saldo Atual").
+
+**Fix** (`process-bh.mjs`): soma `Diurnas Originais + Noturnas Originais` por lançamento (somando múltiplas situações do mesmo dia), acumula dia a dia em SEGUNDOS (não minutos, pra não arredondar antes da hora) → `saldoOriginalMin`/`Fmt`, aditivo, sem alterar `saldoAtualMin`/`Fmt` existentes. Detecta e ignora a linha-resumo sem gerar warning (é formato esperado), usando-a só de cross-check contra o "Saldo" acumulado.
+
+**Revisão do Fable** (pedido explícito do William, "a lógica precisa ficar perfeita"): confirmou a lógica central correta com um cross-check próprio ainda mais forte (delta diário do "Saldo" WK vs Σ "Total Diário B.H." — bateu 664/664 dias), e achou:
+- **Alto**: `upload-banco-horas-self.mjs` (Portal do Colaborador — TODO funcionário, não só a Jenifer) tinha sido esquecido — mesmo padrão de bug que já aconteceu 2x antes nesta sessão (campo calculado no parser, esquecido no uploader). Corrigido.
+- **Alto**: app ainda não lê o campo em lugar nenhum (confirmado por grep) — pendente do PC.
+- **Médio, descartados por decisão do William**: trava se o WK parar de mandar as colunas novas ("o WK não vai parar"); trava se os percentuais Banco/Folha mudarem de 100/0 ("no fim das contas zera a cada mês e o Pulse não se mete nisso" — o saldo é mensal, sem carry-over, confirmado pelo Fable).
+- **Médio, corrigido**: arredondamento por linha (Diurnas e Noturnas arredondados separado antes de somar) podia divergir 1-3min no fim do mês — trocado por acumular em segundos e arredondar 1x só.
+- **Achado lateral, corrigido na hora + endurecido**: `IdsFuncionarios` no `Config_Banco_de_Horas.txt` apareceu como lista FIXA de 148 ids (não mais vazio/dinâmico). William mandou corrigir imediatamente — revertido pra `""` (vazio) na hora, byte-safe, verificado. Pediu segunda revisão do Fable pra confirmar a causa raiz: **regressão conhecida e já documentada 3x antes** neste histórico (linhas 45, 351, 1378) — toda vez que um humano salva o modelo do relatório pela UI do WK, `IdsFuncionarios` materializa como lista estática (vazio=dinâmico é comportamento confirmado pelo dev do WK Radar, não suposição). Fable também confirmou que os 148 eram o cadastro INTEIRO (97 ativos + 51 demitidos recentes — bate exato), não uma seleção curada de propósito. **Causa raiz do "só o BH pegou essa regressão hoje"**: `export-espelho.mjs`/`export-ocorrencias.mjs`/`export-apuracoes.mjs` já limpavam `IdsFuncionarios` defensivamente toda rodada; `update-config-dates.mjs` (usado pelo BH) só reescrevia datas. Corrigido: mesmo padrão de auto-cura aplicado lá, com warning quando encontra a lista já preenchida (sinaliza edição manual recente na UI do WK). Os 4 exports agora têm a mesma defesa.
+
+**Propagado em 4 lugares** (aditivo): `banco-horas-saldos` (`uploadSaldos`), `bancoHoras` (`uploadBancoHorasApp`, como `minutosOriginal`/`saldoOriginalFormatado`), `pipeline-rh/cur` (`uploadPipelineRH`/`pubFuncionario` — a fonte da tela da Jenifer), `banco-horas-self` (Portal do Colaborador).
+
+**Testado** com casos reais: Jenifer (671, situação única) `saldoOriginalFmt=00:59` bate EXATO com a tela dela; Anderson (612, 2 situações no mesmo dia — Atraso + Hora Extra) soma corretamente (-76+112=36min); Djoniffer (866, mesma coisa + Noturnas negativo) também bateu (-15+29=14min).
+
+**Pendente**: bridge mandado pro PC (`2026-07-07-saldooriginal-gp-e-portal-colaborador.md`) — troca de 2 telas (perfil GP + Portal do Colaborador). `parsed-bh.json`/`parsed-empregado.json` apagados do disco ao terminar (PII).
+
+---
+
+## 2026-07-07 · 🆕 999-detector: ocorrência incerta não fica mais invisível (caso Moises)
+
+William viu um caso (Moises Silva de Carvalho, 612/1215, 06/07) que uma funcionária (Suyanne) teve que criar NA MÃO — o WK já tinha marcado 999 (marcação não identificada) naquele dia, mas nossa ocorrência automática nunca apareceu. Investigado: o algoritmo (`posicao_marcacao_ausente`) achou 2 posições candidatas igualmente válidas (saída OU volta do almoço, só 30min de diferença) e, por design ("não arrisca"), descartava o caso inteiro em silêncio.
+
+William discordou desse design: a incerteza FINA (qual posição exata) não deveria impedir de trazer o fato GROSSO (dia tem problema, o WK já apontou 999) pro sistema — "não pode deixar de apontar pq ficou com dúvida, aí ela corrige na mão, por isso existe o botão editar".
+
+**Investigação mais ampla**: dos 4 casos "ambíguos" da rodada de hoje, só 1 (Moises) era exatamente esse tipo (ambíguo entre as 2 posições do meio/lanche). Os outros 3 eram estruturalmente diferentes: 2 tinham MAIS marcações batidas que o esperado (com valor idêntico duplicado — ex. "13:32" duas vezes seguidas —, sugerindo duplicata no Espelho, não ausência de verdade); 1 tinha só 1 de 4 marcações esperadas (incompleto demais pra qualquer heurística de posição).
+
+**Design acordado com William** (discussão rápida antes de implementar, "vamos estudar antes de mexer"): (1) tag com motivo, não só um booleano solto; (2) rótulo o MAIS ESPECÍFICO que o dado ainda permitir — quando os candidatos são só posições do meio, mantém "Não Registrou Entrada/Saída Lanche" (o rótulo já era genérico o bastante pra cobrir os 2 lados); só quando nem isso dá pra afirmar (duplicata, incompleto, ambíguo envolvendo borda) usa o genérico "Marcação Não Identificada"; (3) badge visual "⚠ Conferir" + observação com o motivo — mockup fica com o PC.
+
+**Fix** (`process-ocorrencias-rh.py`): nova função `diagnostica_marcacao_ausente` (substitui o uso direto de `posicao_marcacao_ausente` no loop) devolve `(posição, motivo, candidatos)` em vez de só `None`. Novos campos `classificacaoIncerta` (bool) + `motivoIncerteza` (string|null). Quando incerto, `apuradasAlinhadas`/`horarioPrevistoRelevante` ficam `null` (não dá pra alinhar sem saber a posição) — `marcacoesPrevistas`/`marcacoesApuradas` cru continuam disponíveis pra GP investigar.
+
+**Testado**: os 4 casos que antes eram descartados agora geram ocorrência — Moises com rótulo específico + incerto; os outros 3 com o genérico + motivo certo cada (duplicata ×2, incompleto ×1). Os 5 casos confiantes de antes continuam idênticos (regressão zero). Propagado em `upload-ocorrencias-auto.mjs` e `resync-ocorrencias-horario-relevante.mjs`.
+
+**Pendente**: bridge mandado pro PC (`2026-07-07-classificacaoincerta-badge-conferir.md`) — mockup do badge "Conferir".
+
+---
+
 ## 2026-07-02 · 🔧 BH resolvido de vez: processo órfão do WK + dispositivo de auto-recuperação
 
 Continuação do achado de mais cedo (export de BH travando). Aumentei o timeout (180s→5min) e coloquei um respiro de 2s entre chamadas consecutivas do WK_EXE, mas o problema persistiu — mesmo código de crash (355941) e um EPERM novo no rename do config.
