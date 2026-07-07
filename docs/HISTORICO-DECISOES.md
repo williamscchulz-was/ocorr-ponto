@@ -1017,6 +1017,8 @@ William discordou desse design: a incerteza FINA (qual posição exata) não dev
 
 **Pendente**: bridge mandado pro PC (`2026-07-07-classificacaoincerta-badge-conferir.md`) — mockup do badge "Conferir".
 
+**2ª rodada, mesmo dia**: William reparou no card real do Moises que `apuradasAlinhadas: null` jogava fora informação que já era certa — a Entrada (05:02) e a Saída Final (13:33) batiam nos DOIS cenários possíveis (só a posição do meio, saída ou volta do almoço, diverge entre eles), mas o campo virava `null` inteiro só por causa dessa 1 posição ambígua. Nova função `apuradas_alinhadas_parcial`: testa cada candidato como se fosse o ausente (mesma fórmula do caso confiante — remover k, o resto casa por índice), mantém só as posições onde TODOS os candidatos concordam. Moises: `["05:02", null, null, "13:33"]` em vez de `null` solto. Resync rodado (só o doc dele mudou, os outros 35 já tinham saído de `rh_confere`). Confirmado que o app do PC já trata `null` por posição (`ocaBatidasAlinhadas`) — renderiza certo sem nenhuma mudança adicional do lado dele; os outros 3 casos incertos (sem candidato válido — duplicata/poucas marcações) continuam `null` por inteiro, como deveria.
+
 ---
 
 ## 2026-07-02 · 🔧 BH resolvido de vez: processo órfão do WK + dispositivo de auto-recuperação
