@@ -954,6 +954,23 @@ William reparou no widget "Status do pipeline" que o export de Banco de Horas es
 
 **Verificado**: rodei de novo, CSV mudou (17089→19812 bytes), parse foi de 0→3 ocorrências finais de 01/07 — batendo EXATAMENTE (nome, situação, horário) com o que William viu na tela do WK.
 
+
+---
+
+## 2026-07-07 · 🐛 999-detector: bug de alinhamento posicional entre previstas/apuradas
+
+William reportou (2 modais, casos Vinicius e Enildo, ambos 06/07): "o que faltou foi registrar a entrada... mas alocou os horários tudo errado". Confirmado: o app pareava `marcacoesPrevistas[i]` com `marcacoesApuradas[i]` por índice cru. Como `apuradas` tem sempre 1 item a menos que `previstas` no caso 999 (marcação ausente), faltar a **entrada** (posição 0) deslocava TODO o resto do pareamento — a saída-almoço real virava "entrada", a entrada-tarde virava "saída-almoço", e por aí em diante, terminando numa "falta" inventada na saída final que na real bateu certinho.
+
+**Causa raiz no parser**: o próprio `horarioPrevistoRelevante` (item 4, caso Eliziane Waier, 2026-07-06) já tinha uma versão latente do mesmo bug — `classifica_marcacao_ausente` calculava a posição ausente internamente só pra devolver um RÓTULO, e o loop chamador RE-ADIVINHAVA a posição a partir do rótulo (hardcoded `pos=1` pro caso "Entrada/Saída Lanche", sem checar se a posição real ambígua batia — só é seguro pra escala de exatamente 4 marcações).
+
+**Fix** (`process-ocorrencias-rh.py`): extraída `posicao_marcacao_ausente(previstas, apuradas)` — mesma lógica de candidatos por janela (`JANELA_MATCH_MIN=120`, `desvio_circular`), mas devolve a POSIÇÃO exata, não só o rótulo. `classifica_marcacao_ausente` agora é uma casca fina em cima dela (comportamento idêntico pra quem já chamava). Novo campo **`apuradasAlinhadas`**: array do MESMO TAMANHO/ordem de `marcacoesPrevistas`, com `null` exatamente na posição que faltou bater — o app deve emparelhar `previstas[i]`/`apuradasAlinhadas[i]` direto, sem inventar deslocamento. Propagado em `upload-ocorrencias-auto.mjs` (batch.set) e `resync-ocorrencias-horario-relevante.mjs` (CAMPOS/fonteDoCampo).
+
+**Testado** com os 5 casos reais gerados na rodada (2 faltando entrada — Vinicius/Enildo/Jhenyffer —, 2 faltando saída — Edmar/Charles): `null` cai exatamente na posição certa nos dois sentidos. Ex. Vinicius: previstas `13:30 17:00 17:30 22:00`, apuradas cru `17:35 18:07 22:00` → `apuradasAlinhadas: [null, "17:35", "18:07", "22:00"]`.
+
+**Backfill em produção**: rodado `resync-ocorrencias-horario-relevante.mjs` real — só os 2 docs esperados (Vinicius/Enildo, ainda `rh_confere`) mudaram, só o campo novo; os outros 33 docs (já fora de `rh_confere`, RH mexeu) corretamente protegidos pelo guard existente. Confirmado lendo direto do Firestore pós-resync.
+
+**Pendente**: avisar o PC (bridge) que `apuradasAlinhadas` existe e é a fonte certa pro card renderizar pareamento previsto/apurado em docs `fonteInferida:true` — hoje ele mostra `marcacoesPrevistas`/`marcacoesApuradas` cru (tamanhos diferentes), que é exatamente o que causou o bug reportado.
+
 **Caso à parte, em acompanhamento**: a ocorrência da Dioneia (f-1244, contratada 29/06) de 01/07 continua ausente do export mesmo já aparecendo na UI do WK — só ela, as outras 3 bateram certinho. Provável atraso de sincronização ligado à contratação muito recente. Criei uma scheduled task (`watch-dioneia-ocorrencia-0701`, roda 15h todo dia) que checa o CSV, avisa só quando resolver (ou depois de 7 dias sem resolver), e se autodesliga quando terminar.
 
 
@@ -1507,3 +1524,19 @@ pra conteúdo de doc rh_confere nunca mais congelar quando parser/WK mudarem.
    verificação de pai; pilot A-parsers concluído (achados F1-F8, destaque: CSV
    só-header bypassa a guarda last-known-good do process-empregado; PII-cleanup +
    falha do passo 3 derruba o parser de ocorrências); fan-out B-F disparado.
+
+## 2026-07-07 — Buffer de maturidade do detector 999 volta pra 1 dia (caso Vinicius)
+
+William apontou (caso real: Vinicius 1205, 06/07, "Não Registrou Entrada", visto na
+tela de Movimentação do WK com situação 999 já atribuída) que o buffer de 2 dias do
+detector de marcação ausente estava inconsistente com o resto do pipeline — o loop
+principal (Atrasos/Faltas/Saída) já gera ocorrência de dia fechado com só 1 dia de
+folga. O buffer de 2 dias (achado 2026-07-03) fazia sentido na época porque o loop
+principal TAMBÉM dependia do Espelho pra Previsto/Apurado — isso mudou 2026-07-06 com
+a migração pro Minerador (loop principal não usa mais Espelho). `MADURO_LIMITE` voltou
+pra `hoje - 1 dia`. Rede de segurança inalterada: se o Espelho mudar depois, a
+reverificação contínua resolve sozinha (`auto_resolvida`).
+
+Testado com dado real e já em produção: Vinicius (1205) e Enildo (1206, mesmo padrão
+no mesmo dia — faltou marcar entrada às 13:30, batida real 17:35) geraram corretamente,
+batendo com a tela do WK. Commit `4c56589`.
