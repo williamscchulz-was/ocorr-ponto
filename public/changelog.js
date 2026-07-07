@@ -14,7 +14,16 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.47.0", d: "6 jul 2026", current: true, items: [
+    v: "1.48.0", d: "7 jul 2026", current: true, items: [
+      { type: "high", title: "Entrar no app ficou bem mais rápido: o carregamento busca as informações de uma vez em vez de na fila, e a tela abre sem esperar a lista de ocorrências, que preenche sozinha em seguida." },
+      { type: "feat", title: "A tela de abertura trocou os blocos cinza pela marca com a linha de pulso batendo enquanto o app carrega." },
+      { type: "fix", title: "Botões que gravam ou excluem agora mostram que estão trabalhando (indicador girando e texto), inclusive excluir documento, excluir registro disciplinar e trocar a foto." },
+      { type: "feat", aud: "gestor", title: "Na conferência, quando a pessoa compensou o desvio no próprio dia, aparece o selo verde Compensou no dia, com quanto trabalhou de quanto era previsto." },
+      { type: "fix", aud: "gestor", title: "No celular, o botão Nova ocorrência não some mais ao chegar na tela depois de ter rolado a página, e retoques de contraste e leitura em todo o app." },
+    ],
+  },
+  {
+    v: "1.47.0", d: "6 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Nos desvios de cada batida, a cor agora indica o sinal, na mesma linguagem do saldo: vermelho quando pesa contra (atraso, saída antecipada, pausa mais longa), verde quando é a favor (chegou antes, saiu depois), cinza dentro da tolerância." },
     ],
   },
@@ -299,7 +308,7 @@ window.CHANGELOG = [
   },
   {
     v: "1.12.0", d: "24 jun 2026", items: [
-      { type: "high", title: "Novo: ao abrir o sistema você escolhe \"Portal do Colaborador\" ou \"Portal do Gestor/Administrador\". O acesso do gestor continua igual — só ganhou um toque a mais." },
+      { type: "high", title: "Novo: ao abrir o sistema você escolhe \"Portal do Colaborador\" ou \"Portal do Gestor/Administrador\". O acesso do gestor continua igual, só ganhou um toque a mais." },
       { type: "feat", title: "Prévia do Portal do Colaborador: início com identidade, banco de horas, comunicados, documentos e o Roadmap do Portal." },
     ],
   },
@@ -311,7 +320,7 @@ window.CHANGELOG = [
   },
   {
     v: "1.10.0", d: "18 jun 2026", aud: "gestor", items: [
-      { type: "high", title: "Novo: Obrigações do GP — checklist das rotinas (fechar folha, banco de horas, eSocial, pagar PJ…) que zera sozinha a cada mês/ano." },
+      { type: "high", title: "Novo: Obrigações do GP: checklist das rotinas (fechar folha, banco de horas, eSocial, pagar PJ…) que zera sozinha a cada mês/ano." },
       { type: "feat", title: "Card no dashboard mostra o que vence no mês, o que está pendente e o que atrasou; marca como feito em um toque." },
     ],
   },
@@ -330,7 +339,7 @@ window.CHANGELOG = [
   {
     v: "1.8.2", d: "13 jun 2026", aud: "gestor", items: [
       { type: "feat", title: "Chat: a mensagem aparece na hora ao enviar (com 'enviando…'), botão pra descer rápido na conversa, e cores de não-lida/leitura na paleta da marca." },
-      { type: "fix", title: "Corrigido o realce ao passar o mouse nas listas — tinha sumido por um token de cor quebrado." },
+      { type: "fix", title: "Corrigido o realce ao passar o mouse nas listas, tinha sumido por um token de cor quebrado." },
     ],
   },
   {
@@ -340,7 +349,7 @@ window.CHANGELOG = [
   },
   {
     v: "1.8.0", d: "13 jun 2026", aud: "gestor", items: [
-      { type: "high", title: "Chat mais rápido: a lista de conversas para de se redesenhar a cada batimento de presença — sem mais perder a rolagem ou o foco." },
+      { type: "high", title: "Chat mais rápido: a lista de conversas para de se redesenhar a cada batimento de presença, sem mais perder a rolagem ou o foco." },
       { type: "fix", title: "Correções no chat: a foto não quebra mais o layout, 'digitando…' não vaza pra conversa errada, enviar sem internet avisa (em vez de fingir que mandou), e os horários acertam à noite." },
       { type: "feat", title: "Chat acessível: ESC fecha, o leitor de tela anuncia mensagens novas e as reações têm nome." },
     ],
@@ -348,7 +357,7 @@ window.CHANGELOG = [
   {
     v: "1.7.0", d: "13 jun 2026", aud: "gestor", items: [
       { type: "high", title: "Auditoria de design: contraste e foco mais legíveis, números alinhados em colunas, e o botão de chat não cobre mais as janelas." },
-      { type: "feat", title: "No dashboard, a contagem 'Conferidas' virou 'Resolvidas' (conferidas + lançadas) — sem mais confusão com a aba." },
+      { type: "feat", title: "No dashboard, a contagem 'Conferidas' virou 'Resolvidas' (conferidas + lançadas), sem mais confusão com a aba." },
       { type: "feat", title: "Hierarquia mais clara: o número que pede ação ganha destaque, a ocorrência pendente recebe uma marca, e Funcionários abre direto na lista (contagem por turno foi pro filtro)." },
       { type: "feat", title: "Micro-interações: avisos com barra de tempo que pausa ao passar o mouse, e transições suaves ao trocar de tela e ao fechar janelas." },
       { type: "high", title: "Rede de segurança: ao marcar como lançada aparece 'Desfazer' por alguns segundos; e o import de Banco de Horas avisa quem perderia o saldo antes de substituir." },

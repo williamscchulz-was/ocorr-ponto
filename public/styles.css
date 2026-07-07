@@ -144,42 +144,24 @@ html.splash-estreia .splash { display: grid; place-items: center; background: ra
 html.splash-estreia .splash__cena { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 html.splash-estreia .splash-sk { display: none; }
 
-/* Esqueleto da home (shimmer): o app "ja parece estar la" enquanto carrega. */
-.splash-sk { position: absolute; inset: 0; }
-.splash-sk__shapes { max-width: 460px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 58px) 20px 20px; }
-.splash-sk__row { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
-.fps-col { display: block; }
-.fps { display: block; border-radius: 9px; background: linear-gradient(90deg, #c3d6c9 25%, #e6efe9 37%, #c3d6c9 63%); background-size: 400% 100%; animation: fpSheen 1.4s linear infinite; }
-.fps--av { width: 52px; height: 52px; border-radius: 50%; flex: none; }
-.fps--l1 { width: 154px; height: 15px; margin-bottom: 9px; }
-.fps--l2 { width: 98px; height: 11px; }
-.splash-sk__circ { display: flex; justify-content: space-between; margin-bottom: 24px; }
-.fps--c { width: 54px; height: 54px; border-radius: 50%; }
-.fps--card { height: 80px; border-radius: 16px; margin-bottom: 14px; }
-.fps--card2 { height: 72px; }
-.splash-sk__msg { text-align: center; margin-top: 24px; font-size: 13.5px; font-weight: 500; color: #4e6357; letter-spacing: .02em; }
-/* Desktop (>=901px): silhueta larga imitando o painel (sidebar + grade), no lugar do cartao estreito. */
-.splash-sk__desk { display: none; }
-@media (min-width: 901px) {
-  .splash-sk__shapes { display: none; }
-  .splash-sk__desk { display: flex; height: 100%; }
-  .splash-sk__side { width: 230px; flex: none; border-right: 1px solid rgba(0,60,30,.06); padding: 24px 18px; display: flex; flex-direction: column; gap: 14px; }
-  .splash-sk__main { flex: 1; min-width: 0; padding: 30px 34px; }
-  .splash-sk__drow { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
-  .splash-sk__kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
-  .splash-sk__cols { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
-  .fps--logo { width: 120px; height: 26px; border-radius: 8px; margin-bottom: 14px; }
-  .fps--nav { width: 100%; height: 16px; border-radius: 8px; }
-  .fps--nav.short { width: 70%; }
-  .fps--kpi { height: 92px; border-radius: 16px; }
-  .fps--dcard { height: 210px; border-radius: 16px; }
-  .splash-sk__msg { position: absolute; margin-top: 0; bottom: 26px; }
-}
+/* Pulso da marca (todo login; direcao A aprovada 2026-07-07): a linha de ECG desenha
+   e reinicia em loop, o app "tem batimento". Mais leve que o esqueleto que substituiu
+   e um layout so serve mobile e desktop (centralizado). */
+.splash-sk { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.splash-pl { display: flex; flex-direction: column; align-items: center; gap: 18px; padding-bottom: 30px; }
+.splash-pl__mark { width: 74px; height: 74px; border-radius: 20px; background: #1AA34F; display: grid; place-items: center; box-shadow: 0 10px 30px rgba(0,136,53,.22); animation: fpPop 1.9s ease-in-out infinite; }
+.splash-pl__mark svg { width: 46px; height: 46px; }
+.splash-pl__ecg { width: min(210px, 60vw); height: 56px; }
+.splash-pl__ecg path { fill: none; stroke: #1AA34F; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 340; stroke-dashoffset: 340; animation: fpBeat 1.9s ease-in-out infinite; }
+.splash-pl__wm { font-family: 'Michroma', 'Poppins', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: .01em; color: #008835; }
+.splash-sk__msg { text-align: center; margin-top: 6px; font-size: 13.5px; font-weight: 500; color: #4e6357; letter-spacing: .02em; }
+
 /* Aviso na conferência: falta com batidas completas (provável falso positivo do WK). */
 .oca-alerta { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; padding: 11px 13px; border-radius: 12px; background: #fdf3e0; border: 1px solid #e6b24d; color: #8a5a12; font-size: 13px; line-height: 1.4; font-weight: 500; }
 .oca-alerta svg { width: 17px; height: 17px; flex: none; margin-top: 1px; }
-@keyframes fpSheen { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
-@media (prefers-reduced-motion: reduce) { .fps { animation: none; } .splash__cena { animation: none; } }
+@keyframes fpBeat { 0% { stroke-dashoffset: 340; } 55% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -340; } }
+@keyframes fpPop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .splash-pl__mark { animation: none; } .splash-pl__ecg path { animation: none; stroke-dashoffset: 0; } .splash__cena { animation: none; } }
 
 /* Login minimalista — card flutuante (variante C aprovada) */
 .login {
@@ -703,11 +685,16 @@ html.splash-estreia .splash-sk { display: none; }
   font-weight: 700;
 }
 .nav__item.active .nav__badge { background: var(--milk); color: var(--plum-deep); }
-.nav__item:not(.active) .nav__badge { background: rgba(255, 243, 230, .15); color: var(--milk); }
+/* #fff sólido (não var(--milk)) + fundo um pouco mais opaco: a versão anterior
+   media 4.34:1 sobre o verde da sidebar, abaixo do mínimo AA de 4.5:1. */
+.nav__item:not(.active) .nav__badge { background: rgba(255, 243, 230, .22); color: #fff; }
 /* Obrigações: cor semântica (vermelho = atrasada · âmbar = pendente no prazo).
    !important pra vencer as duas regras de cor acima na sidebar verde. */
 .nav__badge--atras { background: var(--danger) !important; color: #fff !important; }
-.nav__badge--pend { background: var(--fiobras-yellow) !important; color: var(--plum-deep) !important; }
+/* Cor FIXA (não var(--plum-deep)): no tema escuro do colaborador essa variável vira
+   verde-claro e o texto ficava ilegível sobre o amarelo (contraste 1:1). #20342b é
+   escuro nos dois temas porque o fundo amarelo também não muda de tema. */
+.nav__badge--pend { background: var(--fiobras-yellow) !important; color: #20342b !important; }
 
 /* Acessibilidade: focus-visible em todos os interativos pra teclado/screen-reader */
 *:focus { outline: none; } /* baseline limpo */
@@ -3041,23 +3028,6 @@ html.firebase-mode .login__forgot { display: block; }
 }
 .aud__row:last-child { border-bottom: 0; }
 .aud__row:hover { background: var(--row-hover); }
-.aud__row--static { cursor: default; }
-.aud__row--static:hover { background: transparent; }
-.aud__dot {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  margin-top: 1px;
-}
-.aud__dot .icon { width: 15px; height: 15px; }
-.aud__dot--ok { background: var(--success-bg); color: var(--success); }
-.aud__dot--info { background: var(--info-bg); color: var(--info); }
-.aud__dot--warn { background: var(--warning-bg); color: var(--warning); }
-.aud__dot--dang { background: var(--danger-bg); color: var(--danger); }
-.aud__dot--neu { background: var(--milk-warm); color: var(--text-muted); }
 .aud__rc { flex: 1; min-width: 0; }
 .aud__acao { display: block; font-size: 13.5px; font-weight: 600; color: var(--text-body); }
 .aud__acao b { color: var(--plum-deep); }
@@ -3077,11 +3047,9 @@ html.firebase-mode .login__forgot { display: block; }
   align-items: flex-end;
   gap: 2px;
 }
-.aud__quem { font-size: 11.5px; font-weight: 600; color: var(--text-body); }
 .aud__hora { font-size: 11px; color: var(--text-muted); }
 @media (max-width: 560px) {
   .aud__meta { max-width: 96px; }
-  .aud__quem { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 96px; }
 }
 
 /* Auditoria (/eventos): resumo, badges por tipo, rodapé LGPD, detalhe */
@@ -4326,12 +4294,14 @@ code { font-family: inherit; }
 }
 .version-pill:hover { background: var(--milk-warm); color: var(--plum-deep); }
 .version-pill:active { transform: scale(0.95); }
-/* Variante na barra lateral (desktop) — fundo verde → pill translúcido. */
+/* Variante na barra lateral (desktop) — fundo verde → pill translúcido. Texto em
+   #fff sólido (não rgba translúcido): a versão com opacidade .8 dava 3.23:1 sobre
+   o verde da marca, abaixo do mínimo AA de texto pequeno (4.5:1). */
 .version-pill--side {
   align-self: flex-start;
   margin: 2px 0 8px 4px;
   background: rgba(255, 243, 230, .12);
-  color: rgba(255, 243, 230, .8);
+  color: #fff;
   border-color: rgba(255, 243, 230, .2);
 }
 .version-pill--side:hover { background: rgba(255, 243, 230, .2); color: #fff; }
@@ -4416,52 +4386,11 @@ code { font-family: inherit; }
    COMUNICADOS (Pacote Gestor) — tokens semânticos, sem hex
    ============================================ */
 
-.com-seclabel {
-  display: flex; align-items: center; gap: 7px;
-  margin: 18px 2px 10px;
-  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px;
-  color: var(--text-muted);
-}
-.com-seclabel .icon { width: 14px; height: 14px; }
-
-.com-list { display: flex; flex-direction: column; gap: 11px; }
-
-.com-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 15px 16px;
-  transition: border-color var(--transition);
-}
-.com-card:hover { border-color: var(--border-strong); }
-.com-card--pin {
-  border-color: var(--plum-soft);
-  background: linear-gradient(180deg, var(--success-bg), transparent 60%), var(--surface);
-}
-.com-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.com-card__title { font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text); }
-.com-pinmark { color: var(--plum); flex-shrink: 0; }
-.com-pinmark .icon { width: 17px; height: 17px; }
-
 .com-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0; }
 .com-badges .badge .icon { width: 13px; height: 13px; }
 
-.com-card__body {
-  color: var(--text-body); font-size: 13px; line-height: 1.55; margin-bottom: 11px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  white-space: pre-wrap;
-}
-.com-foot {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 10px;
-}
-.com-meta { font-size: 11.5px; color: var(--text-muted); }
-.com-read { display: flex; align-items: center; gap: 9px; }
-.com-read__pct { font-size: 11.5px; color: var(--text-muted); }
-.com-read__pct b { color: var(--text); font-weight: 600; }
 .com-bar { width: 78px; height: 6px; border-radius: 6px; background: var(--surface-warm); overflow: hidden; display: inline-block; }
 .com-bar i { display: block; height: 100%; background: var(--plum); border-radius: 6px; }
-.com-actions { display: flex; gap: 6px; margin-left: auto; }
 .com-mini {
   width: 32px; height: 32px; border-radius: var(--radius-sm);
   border: 1px solid var(--border); background: transparent; color: var(--text-muted);
@@ -4770,8 +4699,6 @@ code { font-family: inherit; }
 .com-imgrm { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(0,0,0,.55); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .com-imgrm .icon { width: 16px; height: 16px; }
 .com-preview__img img { display: block; max-width: 100%; height: auto; max-height: 320px; margin: 8px auto 0; border-radius: var(--radius-sm); }
-.com-card__img { margin: 4px 0 11px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
-.com-card__img img { display: block; max-width: 100%; height: auto; max-height: 320px; margin: 0 auto; border-radius: var(--radius-sm); }
 
 /* ============================================
    MOBILE FRIENDLY (auditoria mobile) — chrome do gestor
@@ -4798,12 +4725,10 @@ code { font-family: inherit; }
      inteira em vez de ficar orfao com um vao vazio ao lado. */
   .stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .stat__value { font-size: 24px; }
-  .com-actions { margin-left: 0; }
   .com-mini { width: 40px; height: 40px; }       /* alvo de toque */
 }
 @media (max-width: 540px) {
   .page-header h1 { font-size: 18px; }
-  .com-card__title { font-size: 14px; }
 }
 
 /* ===== Controle disciplinar (gestor) ===== */
@@ -4836,18 +4761,13 @@ code { font-family: inherit; }
 .disc-acts{display:flex;gap:6px}
 .com-mini--static{cursor:default;display:inline-flex;align-items:center;justify-content:center}
 .disc-seg .com-seg__chip.is-on{background:var(--plum);color:#fff}
-.disc-row2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .disc-escbox{display:flex;align-items:flex-start;gap:11px;background:var(--warning-bg);border-radius:11px;padding:12px 14px;margin-bottom:6px}
 .disc-escbox .icon{width:20px;height:20px;color:var(--warning);flex:none;margin-top:1px}
 .disc-escbox b{display:block;font-size:12.5px;margin-bottom:1px;color:var(--text-body)}
 .disc-escbox div{font-size:12px;color:var(--text-muted);line-height:1.5}
 #disc-form select,#disc-form textarea,#disc-form input[type=date],#disc-form input[type=url],#disc-form input[type=number]{width:100%;height:44px;border:1px solid var(--border);border-radius:11px;background:var(--surface);padding:0 13px;font:inherit;font-size:14px;color:var(--text-body)}
 #disc-form textarea{height:auto;min-height:74px;padding:10px 13px;resize:vertical;line-height:1.5}
-.disc-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
-.disc-col{display:flex;flex-direction:column;gap:14px}
-.disc-col .field{margin:0}
-@media(max-width:680px){.disc-cols{grid-template-columns:1fr;gap:14px}}
-@media(max-width:640px){.disc-rec{flex-wrap:wrap}.disc-r{align-items:flex-start;text-align:left;width:100%;flex-direction:row;justify-content:space-between}.disc-row2{grid-template-columns:1fr}}
+@media(max-width:640px){.disc-rec{flex-wrap:wrap}.disc-r{align-items:flex-start;text-align:left;width:100%;flex-direction:row;justify-content:space-between}}
 /* modal disciplinar minimalista: 3 campos em linha + upload como botao */
 #disc-form{display:flex;flex-direction:column;gap:20px}
 #disc-form .field{margin:0}
@@ -5131,6 +5051,8 @@ code { font-family: inherit; }
 /* --warning-ink e não --warning: o badge do desvio é O dado da tela e reprovava AA (3.1:1). */
 .oca-desvio { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--warning-bg); color: var(--warning-ink); font-weight: 700; font-size: 14px; margin: 2px 0 10px; }
 .oca-desvio .icon { width: 16px; height: 16px; }
+/* variante verde: "Compensou no dia" (trabalhou >= previsto apesar do desvio) */
+.oca-desvio--ok { background: var(--success-bg); color: var(--success); }
 .oca-obswk { font-size: 12.5px; color: var(--text-muted); margin-top: 6px; }
 /* histórico no modal de conferência da ocorrência automática */
 .occ--rh { cursor: pointer; }

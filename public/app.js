@@ -69,6 +69,25 @@ const isPending = (occ) => !occ.acao || !occ.dataConferencia;
 const isConferida = (occ) => !isPending(occ) && !occ.lancada;
 const isLancada = (occ) => !!occ.lancada;
 
+// ---------- Feedback de botão: rótulo em trabalho ----------
+// Complementa o withBusy (utils.js, já dá spinner + disabled) trocando o texto
+// do botão pra descrever a AÇÃO em andamento ("Confirmando...", "Excluindo...").
+// Vive aqui (não em utils.js) porque falamos de rótulos específicos de cada
+// tela/ação — o withBusy continua genérico e puro. Sempre usar em par: trocar
+// no início, restaurar no finally (o botão pode não fechar o modal em erro).
+function trocarRotuloBtn(btn, rotulo) {
+  const span = btn && btn.querySelector("span");
+  if (!span) return null;
+  const original = span.textContent;
+  span.textContent = rotulo;
+  return original;
+}
+function restaurarRotuloBtn(btn, original) {
+  if (original == null) return;
+  const span = btn && btn.querySelector("span");
+  if (span) span.textContent = original;
+}
+
 // ============================================
 // Micro-interações (sutis). O CSS cuida de hover/press/abas; o JS faz a
 // entrada escalonada, o count-up dos números e a proximidade na sidebar.
@@ -120,9 +139,11 @@ function vibrar(ms) { try { if (navigator.vibrate && !prefereMenosMovimento()) n
 
 // Profundidade ao rolar: a topbar (mobile) ganha sombra e o FAB recolhe ao descer
 // (volta ao subir). Liga uma vez; capture:true pega o scroll de qualquer container.
+// _lastScrollY fica no window (não em closure) pra resetFabScrollState() conseguir
+// resincronizar ao trocar de tela — sem isso o FAB nascia recolhido ao navegar já rolado.
+window._lastScrollY = 0;
 if (!window._scrollFxBound) {
   window._scrollFxBound = true;
-  let _lastY = 0;
   window.addEventListener("scroll", (e) => {
     const t = e.target;
     const y = (t === document || t === document.documentElement || t === document.body || t === window)
@@ -133,11 +154,18 @@ if (!window._scrollFxBound) {
     // FAB "+" e chat-fab recolhem juntos ao descer, voltam ao subir.
     const fabs = document.querySelectorAll(".fab, .chat-fab");
     if (fabs.length) {
-      if (y > _lastY + 6 && y > 60) fabs.forEach((f) => f.classList.add("fab--rec"));
-      else if (y < _lastY - 6) fabs.forEach((f) => f.classList.remove("fab--rec"));
+      if (y > window._lastScrollY + 6 && y > 60) fabs.forEach((f) => f.classList.add("fab--rec"));
+      else if (y < window._lastScrollY - 6) fabs.forEach((f) => f.classList.remove("fab--rec"));
     }
-    _lastY = y;
+    window._lastScrollY = y;
   }, { passive: true, capture: true });
+}
+// Some a tela troca (renderApp/updateFab), o FAB deve nascer visível: a página nova
+// pode já estar "rolada" (o container de scroll é outro), então zera o estado do
+// recolhimento em vez de herdar o da tela anterior.
+function resetFabScrollState() {
+  window._lastScrollY = 0;
+  document.querySelectorAll(".fab, .chat-fab").forEach((f) => f.classList.remove("fab--rec"));
 }
 
 // Proximidade na sidebar: itens crescem de leve conforme o cursor se aproxima
@@ -308,6 +336,12 @@ function closeModal() {
   // Sinaliza fim da edição de PJ (limpa pjEditing no presence + cancela sub)
   if (window.setarPJEditando) window.setarPJEditando(null);
   if (window.pararEscutaPJ) window.pararEscutaPJ();
+  // Invalida a sessão da sheet de assinatura: sem isto, fechar com ESC durante a
+  // busca de geolocalização não limpava _assState, e o callback do getCurrentPosition
+  // (que pode chegar até 20s depois) reabria a sheet sozinho ao comparar contra o
+  // mesmo objeto ainda vivo. O guard de sessão em assPedirGeo já compara por
+  // identidade (_assState !== minhaSessao); só faltava isto aqui pra invalidar.
+  if (typeof _assState !== "undefined") _assState = null;
   // Limpa qualquer toast colab residual
   document.querySelectorAll(".collab-toast").forEach((t) => t.remove());
   const painel = backdrop.querySelector(".modal");
@@ -539,7 +573,7 @@ async function openCropFotoModal(file, onConfirm) {
         </div>
         <div style="width:${VIEW}px; display:flex; align-items:center; gap:10px;">
           <span class="text-xs muted">Zoom</span>
-          <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" style="flex:1;" />
+          <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" style="flex:1;" aria-label="Zoom da foto" />
         </div>
       </div>
     </div>
@@ -627,8 +661,12 @@ async function openCropFotoModal(file, onConfirm) {
         applyZoom(next);
       }, { passive: false, signal: sig });
 
-      // Confirma: extrai o crop em 256×256
-      $("#btn-confirm-crop").addEventListener("click", () => {
+      // Confirma: extrai o crop em 256×256. onConfirm faz o upload de verdade
+      // (atualizarMinhaFoto) — antes o modal fechava ANTES desse trabalho terminar
+      // e o usuário não via nenhum feedback entre o clique e a foto salvar de fato.
+      // Agora: withBusy trava o botão + spinner, e SÓ fecha depois do onConfirm resolver.
+      const btnCrop = $("#btn-confirm-crop");
+      btnCrop.addEventListener("click", () => withBusy("crop-confirmar", btnCrop, async () => {
         const out = document.createElement("canvas");
         out.width = OUTPUT;
         out.height = OUTPUT;
@@ -643,10 +681,10 @@ async function openCropFotoModal(file, onConfirm) {
           img.height * scale * ratio
         );
         const base64 = out.toDataURL("image/jpeg", 0.85);
+        await onConfirm(base64);
         ac.abort();
         closeModal();
-        onConfirm(base64);
-      }, { signal: sig });
+      }), { signal: sig });
     },
   });
 }
@@ -803,6 +841,27 @@ function mostrarTermoAdesao() {
   const chk = ov.querySelector("#termo-chk");
   const btn = ov.querySelector("#termo-aceitar");
   chk.addEventListener("change", () => { btn.disabled = !chk.checked; });
+  // Focus trap: o gate é bloqueante (não tem X nem Esc, só sai aceitando), então sem
+  // isto o Tab escapava pro app por trás do overlay. Mesmo padrão do openModal (FOCAVEIS_SEL).
+  const card = ov.querySelector(".termo-card");
+  card.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const focaveis = Array.from(card.querySelectorAll(FOCAVEIS_SEL))
+      .filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (focaveis.length === 0) { e.preventDefault(); return; }
+    const primeiro = focaveis[0];
+    const ultimo = focaveis[focaveis.length - 1];
+    if (e.shiftKey && document.activeElement === primeiro) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primeiro.focus();
+    }
+  });
+  // Foco inicial no 1º controle focável (a área de leitura, tabindex=0) — o gate
+  // bloqueia o app atrás, então o foco não pode ficar solto no body.
+  setTimeout(() => { const alvo = card.querySelector(FOCAVEIS_SEL) || card; alvo.focus(); }, 50);
   btn.addEventListener("click", () => withBusy("termo-aceitar", btn, async () => {
     const res = await window.registrarTermoAdesao?.();
     if (res && res.ok) {
@@ -1034,8 +1093,7 @@ function bindColabVazioAtz(root) {
   if (!btn) return;
   btn.addEventListener("click", () => {
     if (!window.recarregarVolateis) { renderApp(); return; }
-    btn.disabled = true;
-    window.recarregarVolateis().then(() => renderApp()).catch(() => { btn.disabled = false; });
+    withBusy("colab-vazio-atualizar", btn, () => window.recarregarVolateis().then(() => renderApp()));
   });
 }
 
@@ -2212,11 +2270,12 @@ function colabDiaMarcHtml(d) {
     : (d.marcacoes ? String(d.marcacoes).trim().split(/\s+/).filter(Boolean) : []);
   const off = marcs.length === 0;
   const corpo = off ? cpDiaSemMarcacaoLabel(d.situacoes) : marcs.join(" · ");
-  // Saldo do dia (saldoDiaFmt) — neutro, é a própria conta do banco de horas. Verde a favor,
-  // vermelho a compensar, cinza zerado. Só o número; nada de rótulo de atraso/falta.
+  // saldoDiaFmt é o saldo ACUMULADO até o fim do dia (coluna do Espelho do WK, confirmado
+  // pelo WKRADAR 2026-07-07), NÃO o saldo gerado no dia. Verde a favor, vermelho a
+  // compensar, cinza zerado. Só o número + tooltip honesto; nada de rótulo de atraso/falta.
   const sFmt = String(d.saldoDiaFmt || "").trim();
   const sCls = sFmt.startsWith("-") ? "cp-dia__s--neg" : (/^\+?0+:0{2}$/.test(sFmt) ? "cp-dia__s--zero" : "cp-dia__s--pos");
-  const saldo = sFmt ? `<div class="cp-dia__s ${sCls}">${escapeHtml(sFmt)}</div>` : "";
+  const saldo = sFmt ? `<div class="cp-dia__s ${sCls}" title="Saldo acumulado até o dia">${escapeHtml(sFmt)}</div>` : "";
   return `<div class="cp-dia">
     <div class="cp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div>
     <div class="cp-dia__m${off ? " cp-dia__m--off" : ""}">${escapeHtml(corpo)}</div>
@@ -2278,8 +2337,10 @@ function openColabFotoSheet() {
       const rm = $("#colab-foto-remover");
       if (rm) rm.addEventListener("click", async () => {
         if (!(await confirmar({ titulo: "Remover foto?", msg: "Sua foto de perfil volta para as iniciais.", okLabel: "Remover", perigo: true }))) return;
-        try { await window.atualizarMinhaFoto(null); closeModal(); toast("Foto removida."); renderApp(); }
-        catch (err) { toast("Erro ao remover: " + (err?.message || err), "danger"); }
+        withBusy("colab-foto-remover", rm, async () => {
+          try { await window.atualizarMinhaFoto(null); closeModal(); toast("Foto removida."); renderApp(); }
+          catch (err) { toast("Erro ao remover: " + (err?.message || err), "danger"); }
+        });
       });
     },
   });
@@ -2905,7 +2966,7 @@ function abrirPresenceDropdown(online) {
     // Botão "Mensagem" pra abrir o chat 1:1 (só pra outros, e só em modo Firebase)
     const podeChat = !ehVoce && typeof window.enviarMensagem === "function";
     const btnChat = podeChat
-      ? `<button type="button" class="presence-dropdown__chat" data-chat-uid="${escapeHtml(usr.id)}" data-chat-nome="${escapeHtml(usr.nome || "?")}" title="Enviar mensagem">${icon("message")}</button>`
+      ? `<button type="button" class="presence-dropdown__chat" data-chat-uid="${escapeHtml(usr.id)}" data-chat-nome="${escapeHtml(usr.nome || "?")}" title="Enviar mensagem" aria-label="Enviar mensagem para ${escapeHtml(usr.nome || "usuário")}">${icon("message")}</button>`
       : "";
     return `
       <div class="presence-dropdown__item ${ausente ? "is-idle" : ""}">
@@ -3008,9 +3069,10 @@ function espDiaHtml(d) {
     : (d.marcacoes ? String(d.marcacoes).trim().split(/\s+/).filter(Boolean) : []);
   const off = marcs.length === 0;
   const corpo = off ? cpDiaSemMarcacaoLabel(d.situacoes) : marcs.join(" · ");
+  // saldoDiaFmt = saldo ACUMULADO até o dia (mesma coluna do Espelho; WKRADAR 2026-07-07).
   const sFmt = String(d.saldoDiaFmt || "").trim();
   const sCls = sFmt.startsWith("-") ? "esp-neg" : (/^\+?0+:0{2}$/.test(sFmt) ? "esp-zero" : "esp-pos");
-  const saldo = sFmt ? `<div class="esp-dia__s ${sCls}">${escapeHtml(sFmt)}</div>` : "";
+  const saldo = sFmt ? `<div class="esp-dia__s ${sCls}" title="Saldo acumulado até o dia">${escapeHtml(sFmt)}</div>` : "";
   // O gestor VE o dia imaturo (precisa investigar dado quente), mas com um selo avisando
   // que o WK ainda pode mexer nele. maduro:false = em apuracao; sem o campo = ja fechado.
   const wip = d.maduro === false ? `<span class="esp-dia__wip" title="O WK ainda pode ajustar este dia">em apuração</span>` : "";
@@ -3327,6 +3389,10 @@ function visibleOcorrencias() {
 
 function updateFab() {
   const fab = $("#fab");
+  // Roda a cada renderApp (troca de tela incluída): a tela nova pode já nascer
+  // "rolada" num container diferente, então zera o recolhimento por scroll aqui
+  // — senão o FAB some ao navegar pra uma tela onde o scroll já estava descido.
+  resetFabScrollState();
   // O "+" cria ocorrência: só faz sentido na lista de Ocorrências (dashboard).
   // Fora dela virava um atalho fantasma sobre Comunicados/Documentos/PJ.
   if (can("ocorrencias.criar") && state.view.page === "dashboard") {
@@ -3745,7 +3811,7 @@ function vgTendenciaHtml() {
     <section class="vg-card">
       <h3 class="vg-h">${icon("clipboard")}<span>Ocorrências por mês</span></h3>
       <svg viewBox="0 0 ${W} ${H}" class="vg-chart" role="img" aria-label="Ocorrências por mês, últimos 6 meses">${sv}</svg>
-      <div class="vg-leg"><span><i style="background:#C9595E"></i>Faltas</span><span><i style="background:#D9A441"></i>Atrasos</span><span><i style="background:#5B8FD9"></i>Saídas</span></div>
+      <div class="vg-leg"><span><i style="background:#C9595E"></i>Faltas</span><span><i style="background:#D9A441"></i>Atrasos</span><span><i style="background:#5B8FD9"></i>Outras</span></div>
     </section>`;
 }
 
@@ -4235,7 +4301,7 @@ function openNovaOcorrencia() {
             .filter((f) => f.ativo !== false)
             .sort((a, b) => a.nome.localeCompare(b.nome))
             .map((f) => `
-              <option value="${f.id}">${escapeHtml(f.nome)}${f.turno ? " — " + (TURNOS[f.turno]?.label || "?") : " — sem turno"}</option>
+              <option value="${f.id}">${escapeHtml(f.nome)}${f.turno ? " · " + (TURNOS[f.turno]?.label || "?") : " · sem turno"}</option>
             `).join("")}
         </select>
         ${state.funcionarios.length === 0
@@ -4535,7 +4601,7 @@ function openEditOcorrenciaModal(id) {
           ${state.funcionarios
             .sort((a, b) => a.nome.localeCompare(b.nome))
             .map((f) => `
-              <option value="${f.id}" ${f.id === o.funcionarioId ? "selected" : ""}>${escapeHtml(f.nome)}${f.turno ? " — " + (TURNOS[f.turno]?.label || "?") : " — sem turno"}</option>
+              <option value="${f.id}" ${f.id === o.funcionarioId ? "selected" : ""}>${escapeHtml(f.nome)}${f.turno ? " · " + (TURNOS[f.turno]?.label || "?") : " · sem turno"}</option>
             `).join("")}
         </select>
       </div>
@@ -5261,7 +5327,7 @@ function openProfileModal() {
           <div class="avatar avatar--lg" id="profile-avatar"></div>
           ${podeAlterarFoto ? `
             <button type="button" id="btn-alterar-foto"
-                    title="Alterar foto"
+                    title="Alterar foto" aria-label="Alterar foto"
                     style="position:absolute; bottom:-2px; right:-2px; width:28px; height:28px; border-radius:50%; background:var(--plum); color:#fff; border:2px solid var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">
               ${icon("edit")}
             </button>
@@ -5340,14 +5406,16 @@ function openProfileModal() {
           okLabel: "Remover",
           perigo: true,
         }))) return;
-        try {
-          await window.atualizarMinhaFoto(null);
-          closeModal();
-          openProfileModal();
-          aplicarAvatar($("#user-avatar"), currentUser());
-        } catch (err) {
-          setStatus("Erro: " + (err?.message || err), true);
-        }
+        withBusy("perfil-foto-remover", btnRm, async () => {
+          try {
+            await window.atualizarMinhaFoto(null);
+            closeModal();
+            openProfileModal();
+            aplicarAvatar($("#user-avatar"), currentUser());
+          } catch (err) {
+            setStatus("Erro: " + (err?.message || err), true);
+          }
+        });
       });
     },
   });
@@ -5440,162 +5508,6 @@ async function trocarSenha() {
 
   closeModal();
   toast("Senha alterada com sucesso!");
-}
-
-function openImportFuncModal() {
-  openModal(`
-    <div class="modal__header">
-      <div>
-        <h2>Importar funcionários</h2>
-        <p>Selecione um arquivo <code>.json</code> com a lista. Estrutura esperada: <code>[{ codigo, nome, turno, liderNome, setor, ativo }, ...]</code></p>
-      </div>
-      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
-    </div>
-    <div class="modal__body">
-      <div class="field">
-        <label for="import-file">Arquivo JSON <span style="color:var(--danger)">*</span></label>
-        <input type="file" id="import-file" accept=".json,application/json" />
-        <span class="field__hint">Em desenvolvimento local, se houver <code>mockup/funcionarios.json</code>, ele é carregado automaticamente.</span>
-      </div>
-
-      <div id="import-preview" style="margin-top:8px;"></div>
-
-      <div class="field" style="margin-top:16px;">
-        <label class="row" style="gap:8px; cursor:pointer;">
-          <input type="checkbox" id="import-replace" />
-          <span>Marcar ausentes como inativos (sincronização completa)</span>
-        </label>
-        <span class="field__hint">Desmarcado: só adiciona/atualiza. Marcado: também marca como <strong>inativo</strong> quem está cadastrado mas não veio no JSON (preserva histórico — ocorrências antigas continuam visíveis).</span>
-      </div>
-    </div>
-    <div class="modal__footer">
-      <button class="btn btn--ghost" data-close>Cancelar</button>
-      <button class="btn btn--primary" id="btn-do-import" disabled>${icon("download")}<span>Importar</span></button>
-    </div>
-  `, {
-    onMount: (modal) => {
-      modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-      $("#btn-do-import").addEventListener("click", doImportFuncionarios);
-
-      $("#import-file").addEventListener("change", (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => parseAndPreview(ev.target.result, file.name);
-        reader.onerror = () => {
-          $("#import-preview").innerHTML = `
-            <div class="field__error">
-              ${icon("alert")} Erro ao ler o arquivo: ${reader.error?.message || "desconhecido"}
-            </div>`;
-        };
-        reader.readAsText(file);
-      });
-
-      // Auto-fetch quando rodando local (file existe no servidor estático)
-      fetch("funcionarios.json")
-        .then((r) => r.ok ? r.text() : Promise.reject(new Error("404")))
-        .then((text) => parseAndPreview(text, "funcionarios.json (carregado do servidor local)"))
-        .catch(() => {
-          if (!window._importData) {
-            $("#import-preview").innerHTML = `
-              <div class="text-sm muted" style="padding: 12px; background: var(--surface-warm); border-radius: var(--radius);">
-                ${icon("alert")} Sem arquivo selecionado. Escolha o <code>funcionarios.json</code> do seu computador acima.
-              </div>`;
-          }
-        });
-    },
-  });
-}
-
-function parseAndPreview(text, label) {
-  try {
-    const data = JSON.parse(text);
-    if (!Array.isArray(data)) throw new Error("Esperado array JSON");
-    window._importData = data;
-
-    const turnos = { 1: 0, 2: 0, 3: 0, null: 0 };
-    data.forEach((f) => {
-      const t = f.turno ?? "null";
-      turnos[t] = (turnos[t] || 0) + 1;
-    });
-
-    $("#import-preview").innerHTML = `
-      <div class="detail-grid" style="margin-top:8px;">
-        <div class="detail-cell">
-          <label>Encontrados</label>
-          <strong>${data.length} funcionários</strong>
-        </div>
-        <div class="detail-cell">
-          <label>Origem</label>
-          <strong style="font-size:12px;">${label}</strong>
-        </div>
-      </div>
-      <div class="text-sm muted" style="margin-top:8px; line-height: 1.6;">
-        Por turno: 1º (${turnos[1] || 0}) · 2º (${turnos[2] || 0}) · 3º (${turnos[3] || 0}) · Sem turno (${turnos["null"] || 0})<br/>
-        Primeiros nomes: ${data.slice(0, 5).map((f) => f.nome).join(", ")}${data.length > 5 ? "..." : ""}
-      </div>`;
-    $("#btn-do-import").disabled = false;
-  } catch (e) {
-    $("#import-preview").innerHTML = `
-      <div class="field__error">
-        ${icon("alert")} JSON inválido: ${e.message}
-      </div>`;
-    $("#btn-do-import").disabled = true;
-  }
-}
-
-async function doImportFuncionarios() {
-  const data = window._importData;
-  if (!Array.isArray(data) || data.length === 0) return;
-
-  const markAusentes = $("#import-replace").checked;
-
-  // Conjunto dos códigos/ids que vieram no JSON, pra detectar ausentes
-  const incomingIds = new Set();
-
-  let novos = 0, atualizados = 0;
-  for (const item of data) {
-    const id = "f-" + (item.codigo || slugify(item.nome));
-    incomingIds.add(id);
-    const existing = state.funcionarios.find((x) => x.id === id || x.codigo === item.codigo);
-    const dados = {
-      nome: item.nome,
-      codigo: item.codigo || null,
-      turno: item.turno ?? null,
-      liderNome: item.liderNome || null,
-      setor: item.setor || null,
-      ativo: item.ativo !== false,
-    };
-    if (existing) {
-      incomingIds.add(existing.id);
-      Object.assign(existing, dados);
-      atualizados++;
-    } else {
-      state.funcionarios.push({ id, ...dados });
-      novos++;
-    }
-  }
-
-  let inativados = 0;
-  if (markAusentes) {
-    if (!(await confirmar({
-      titulo: "Marcar inativos?",
-      msg: "Os funcionários que não estão no JSON serão marcados como inativos. Eles continuam no cadastro, mas saem do form de Nova Ocorrência. Ocorrências antigas mantêm a referência.",
-      okLabel: "Marcar inativos",
-      perigo: true,
-    }))) return;
-    for (const f of state.funcionarios) {
-      if (!incomingIds.has(f.id) && f.ativo !== false) {
-        f.ativo = false;
-        inativados++;
-      }
-    }
-  }
-
-  store.save(state);
-  closeModal();
-  toast(`Import: ${novos} novos · ${atualizados} atualizados${markAusentes ? ` · ${inativados} inativados` : ""}.`);
-  renderApp();
 }
 
 // ---------- Banco de Horas (todos) ----------
@@ -6302,7 +6214,7 @@ function openComunicadoModal(id) {
           <button type="button" class="com-seg__chip ${seg.tipo === "setor" ? "is-on" : ""}" data-com-seg="setor">${icon("briefcase")}<span>Por setor</span></button>
         </div>
         <div class="com-seg__detail" id="com-seg-turno" style="${seg.tipo === "turno" ? "" : "display:none"}">
-          <select id="com-turno">
+          <select id="com-turno" aria-label="Turno do comunicado">
             <option value="1" ${turnoVal === 1 ? "selected" : ""}>1º Turno</option>
             <option value="2" ${turnoVal === 2 ? "selected" : ""}>2º Turno</option>
             <option value="3" ${turnoVal === 3 ? "selected" : ""}>3º Turno</option>
@@ -6310,7 +6222,7 @@ function openComunicadoModal(id) {
           </select>
         </div>
         <div class="com-seg__detail" id="com-seg-setor" style="${seg.tipo === "setor" ? "" : "display:none"}">
-          <select id="com-setor">
+          <select id="com-setor" aria-label="Setor do comunicado">
             ${setores.map((s) => `<option value="${escapeHtml(s)}" ${s === setorVal ? "selected" : ""}>Setor · ${escapeHtml(s)}</option>`).join("")}
           </select>
         </div>
@@ -6558,7 +6470,6 @@ function docNivel(d) {
   if (d && DOC_NIVEIS.some((n) => n.k === d.confirmacao)) return d.confirmacao;
   return (d && d.exigeAssinatura) ? "assinatura" : "aceite";
 }
-function docNivelMeta(k) { return DOC_NIVEIS.find((n) => n.k === k) || DOC_NIVEIS[1]; }
 // Rótulo legível do tipo de documento institucional. Tipo conhecido → nome do DOC_TIPOS;
 // desconhecido → capitaliza a 1ª letra (nunca quebra); vazio → "Documento".
 function docTipoLabel(k) {
@@ -6860,7 +6771,11 @@ function excluirDisciplinarUI(id) {
     <div class="modal__footer"><button class="btn btn--ghost" data-close>Cancelar</button><button class="btn btn--danger" id="disc-del-go">${icon("trash")}<span>Excluir</span></button></div>
   `, { onMount: (modal) => {
     modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-    modal.querySelector("#disc-del-go").addEventListener("click", async () => { closeModal(); await window.excluirDisciplinar(id); });
+    const btn = modal.querySelector("#disc-del-go");
+    btn.addEventListener("click", () => withBusy("disc-excluir-" + id, btn, async () => {
+      await window.excluirDisciplinar(id);
+      closeModal();
+    }));
   } });
 }
 
@@ -6996,7 +6911,11 @@ function excluirDocumentoUI(id) {
     </div>
   `, { onMount: (modal) => {
     modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
-    modal.querySelector("#btn-doc-excluir-go").addEventListener("click", async () => { closeModal(); await window.excluirDocumento(id); });
+    const btn = modal.querySelector("#btn-doc-excluir-go");
+    btn.addEventListener("click", () => withBusy("doc-excluir-" + id, btn, async () => {
+      await window.excluirDocumento(id);
+      closeModal();
+    }));
   }});
 }
 
@@ -7077,7 +6996,7 @@ function openDocumentoModal(id) {
           <button type="button" class="com-seg__chip ${seg.tipo === "setor" ? "is-on" : ""}" data-doc-seg="setor">${icon("briefcase")}<span>Por setor</span></button>
         </div>
         <div class="com-seg__detail" id="doc-seg-turno" style="${seg.tipo === "turno" ? "" : "display:none"}">
-          <select id="doc-turno">
+          <select id="doc-turno" aria-label="Turno do documento">
             <option value="1" ${turnoVal === 1 ? "selected" : ""}>1º Turno</option>
             <option value="2" ${turnoVal === 2 ? "selected" : ""}>2º Turno</option>
             <option value="3" ${turnoVal === 3 ? "selected" : ""}>3º Turno</option>
@@ -7085,7 +7004,7 @@ function openDocumentoModal(id) {
           </select>
         </div>
         <div class="com-seg__detail" id="doc-seg-setor" style="${seg.tipo === "setor" ? "" : "display:none"}">
-          <select id="doc-setor">
+          <select id="doc-setor" aria-label="Setor do documento">
             ${setores.map((s) => `<option value="${escapeHtml(s)}" ${s === setorVal ? "selected" : ""}>Setor · ${escapeHtml(s)}</option>`).join("")}
           </select>
         </div>
@@ -7425,11 +7344,11 @@ function abrirTrilhaConfirmacao(d, f, x, assina) {
   `, { onMount: (modal) => {
     modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
     const cb = modal.querySelector("[data-trg-comprovante]");
-    if (cb) cb.addEventListener("click", async () => {
+    if (cb) cb.addEventListener("click", () => withBusy("ver-comprovante-" + x.arquivoPath, cb, async () => {
       const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(x.arquivoPath) : null;
       if (!url) return toast("Não consegui abrir o comprovante agora.", "danger");
       openDocViewer({ titulo: `Comprovante · ${d.titulo}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
-    });
+    }));
   } });
 }
 
@@ -8865,7 +8784,7 @@ function ocaDashCardHtml(o) {
   const mes = OCA_MESES[mesIdx] || "";
   const demit = ocaDemitido(o);
   const setorTurno = ocaSetorTurno(o);
-  const sub = demit ? `${setorTurno} · ${ocaFaltasMes(o)} faltas no mês` : setorTurno;
+  const sub = demit ? `${setorTurno} · ${ocaFaltasMes(o)} ${ocaFaltasMes(o) === 1 ? "falta" : "faltas"} no mês` : setorTurno;
   // Horário da linha: usa o horarioRelevante do WK (a marcação que GEROU a ocorrência,
   // correta por tipo: entrada no atraso, saída na saída antecipada), com fallback pra 1a
   // batida. Antes pegava sempre a 1a batida, e a saída antecipada mostrava a ENTRADA
@@ -8957,23 +8876,30 @@ function openConferirAutoModal(id) {
     </div>`);
   document.querySelector("#modal-root .modal")?.classList.add("modal--oca");
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
-  $("#oca-confirmar-btn")?.addEventListener("click", async (e) => {
+  // Some o erro ao escolher uma ação — antes ficava preso na tela mesmo depois de corrigido.
+  $("#oca-acao")?.addEventListener("change", () => { const erro = $("#oca-acao-erro"); if (erro) erro.hidden = true; });
+  $("#oca-confirmar-btn")?.addEventListener("click", (e) => {
     const sel = $("#oca-acao")?.value || "";
     const erro = $("#oca-acao-erro");
     if (!sel) { if (erro) erro.hidden = false; $("#oca-acao")?.focus(); return; }
-    const btn = e.currentTarget; btn.disabled = true;
-    const extras = {
-      acaoId: sel,
-      acaoLabel: (typeof getAcao === "function" && getAcao(sel)?.label) || sel,
-      observacao: ($("#oca-obs")?.value || "").trim(),
-    };
-    if (window.confirmarOcorrenciaAuto) await window.confirmarOcorrenciaAuto(id, extras);
-    else { // demo local
-      const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
-      if (oo) { oo.status = "confirmada"; oo.acao = extras.acaoId; oo.observacao = extras.observacao; oo.historico = [...(oo.historico || []), { acao: "confirmou", porNome: currentUser()?.nome || "", emIso: nowIso(), destino: extras.acaoLabel }]; }
-      renderApp();
-    }
-    closeModal();
+    const btn = e.currentTarget;
+    withBusy("oca-confirmar-" + id, btn, async () => {
+      const rotuloOriginal = trocarRotuloBtn(btn, "Confirmando...");
+      try {
+        const extras = {
+          acaoId: sel,
+          acaoLabel: (typeof getAcao === "function" && getAcao(sel)?.label) || sel,
+          observacao: ($("#oca-obs")?.value || "").trim(),
+        };
+        if (window.confirmarOcorrenciaAuto) await window.confirmarOcorrenciaAuto(id, extras);
+        else { // demo local
+          const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+          if (oo) { oo.status = "confirmada"; oo.acao = extras.acaoId; oo.observacao = extras.observacao; oo.historico = [...(oo.historico || []), { acao: "confirmou", porNome: currentUser()?.nome || "", emIso: nowIso(), destino: extras.acaoLabel }]; }
+          renderApp();
+        }
+        closeModal();
+      } finally { restaurarRotuloBtn(btn, rotuloOriginal); }
+    });
   });
 }
 
@@ -9118,6 +9044,23 @@ function ocaTrilhaHtml(o) {
   return `<div class="oca-trilha">${cards.join("")}</div>${abaixo}`;
 }
 
+// Selo "Compensou no dia" (caso Nagela 04/07: atrasou 3h55 mas ficou 3h59 a mais no fim,
+// quem confere fazia a conta de cabeça). Campos do WK (2026-07-07): duracaoTrabalhadaDiaMin
+// x duracaoPrevistaDiaMin (minutos de RELÓGIO, diagnóstico, sem ponderação noturna; o
+// oficial segue sendo duracaoFmt) e compensadoNoDia (true/false/null). null = sem selo.
+function ocaCompensadoHtml(o) {
+  const t = o.duracaoTrabalhadaDiaMin, p = o.duracaoPrevistaDiaMin;
+  const temNums = typeof t === "number" && typeof p === "number" && p > 0 && t >= 0;
+  const resumo = temNums ? `trabalhou ${ocaDuracaoHumana(t) || "0 min"} de ${ocaDuracaoHumana(p)} previstas` : "";
+  if (o.compensadoNoDia === true) {
+    return `<div class="oca-desvio oca-desvio--ok" ${resumo ? `title="${escapeHtml(resumo)}"` : ""}>${icon("check")}<span>Compensou no dia${resumo ? ` · ${escapeHtml(resumo)}` : ""}</span></div>`;
+  }
+  if (o.compensadoNoDia === false && temNums) {
+    return `<div class="oca-obswk">No dia: ${escapeHtml(resumo)}.</div>`;
+  }
+  return "";
+}
+
 // Coluna dos FATOS da ocorrência automática (mock premium aprovado 2026-07-02): pessoa,
 // tipo/dia, trilha das batidas (previsto x batido, com a marcação relevante destacada),
 // saldo do dia e observação do WK. Degrada com elegância quando o pipeline não preencheu.
@@ -9147,6 +9090,7 @@ function ocaFatosHtml(o) {
       ${saldo ? `<div class="detail-cell"><label>Saldo do dia</label><strong class="${saldo.startsWith("-") ? "esp-neg" : ""}">${escapeHtml(saldo)}</strong></div>` : ""}
     </div>
     ${ocaTrilhaHtml(o)}
+    ${ocaCompensadoHtml(o)}
     ${(ehFalta && batCompletas) ? `<div class="oca-alerta"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Atenção: há batidas completas neste dia. Confira o espelho antes de confirmar a falta.</span></div>` : ""}
     ${o.observacaoWK ? `<div class="oca-obswk">Observação do WK: ${escapeHtml(o.observacaoWK)}</div>` : ""}`;
 }
@@ -9176,7 +9120,7 @@ function openDetalheAutoModal(id) {
         <div>${ocaFatosHtml(o)}</div>
         <div>
           ${ocaHistHtml(o, est === "rh_confere" ? "GP valida e envia ao líder, ou dispensa" : "")}
-          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">${acoesHtml}</div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:16px">${acoesHtml}</div>
         </div>
       </div>
     </div>`, {
@@ -9187,9 +9131,12 @@ function openDetalheAutoModal(id) {
   document.querySelector("#modal-root .modal")?.classList.add("modal--oca");
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
   $("#oca-det-validar")?.addEventListener("click", (e) => {
-    e.currentTarget.disabled = true;
-    ocaAcaoUI("validar", id);
-    closeModal();
+    const btn = e.currentTarget;
+    withBusy("oca-validar-" + id, btn, async () => {
+      const rotuloOriginal = trocarRotuloBtn(btn, "Confirmando...");
+      try { await ocaAcaoUI("validar", id); closeModal(); }
+      finally { restaurarRotuloBtn(btn, rotuloOriginal); }
+    });
   });
   // Troca DIRETO pro modal do motivo (openModal substitui; nunca closeModal antes).
   $("#oca-det-dispensar")?.addEventListener("click", () => openDispensarAutoModal(id));
@@ -9222,18 +9169,25 @@ function openDispensarAutoModal(id) {
     </div>`);
   document.querySelectorAll("#modal-root [data-close]").forEach((b) => b.addEventListener("click", closeModal));
   $("#oca-disp-motivo")?.focus();
-  $("#oca-disp-btn")?.addEventListener("click", async (e) => {
+  // Some o erro ao digitar — antes ficava preso na tela mesmo depois de corrigido.
+  $("#oca-disp-motivo")?.addEventListener("input", () => { const erro = $("#oca-disp-erro"); if (erro) erro.hidden = true; });
+  $("#oca-disp-btn")?.addEventListener("click", (e) => {
     const motivo = ($("#oca-disp-motivo")?.value || "").trim();
     const erro = $("#oca-disp-erro");
     if (!motivo) { if (erro) erro.hidden = false; $("#oca-disp-motivo")?.focus(); return; }
-    const btn = e.currentTarget; btn.disabled = true;
-    if (window.dispensarOcorrenciaAuto) await window.dispensarOcorrenciaAuto(id, { observacao: motivo });
-    else { // demo local
-      const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
-      if (oo) { oo.status = "dispensada"; oo.observacao = motivo; oo.historico = [...(oo.historico || []), { acao: "dispensou", porNome: currentUser()?.nome || "GP", emIso: nowIso(), obs: motivo }]; }
-      renderApp();
-    }
-    closeModal();
+    const btn = e.currentTarget;
+    withBusy("oca-dispensar-" + id, btn, async () => {
+      const rotuloOriginal = trocarRotuloBtn(btn, "Dispensando...");
+      try {
+        if (window.dispensarOcorrenciaAuto) await window.dispensarOcorrenciaAuto(id, { observacao: motivo });
+        else { // demo local
+          const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+          if (oo) { oo.status = "dispensada"; oo.observacao = motivo; oo.historico = [...(oo.historico || []), { acao: "dispensou", porNome: currentUser()?.nome || "GP", emIso: nowIso(), obs: motivo }]; }
+          renderApp();
+        }
+        closeModal();
+      } finally { restaurarRotuloBtn(btn, rotuloOriginal); }
+    });
   });
 }
 
@@ -9299,7 +9253,13 @@ function openEditarAutoModal(id) {
     if (min == null) { durHint.textContent = "Não entendi. Use 1h 00 ou 45 min."; durHint.style.color = "var(--danger)"; }
     else { durHint.textContent = "= " + (ocaDuracaoHumana(min) || "0 min"); durHint.style.color = ""; }
   });
-  $("#oca-ed-btn")?.addEventListener("click", async (e) => {
+  // Some o erro genérico ao mexer em qualquer um dos 3 campos que podem tê-lo causado
+  // (motivo vazio, duração inválida, ou nada alterado) — antes ficava preso na tela.
+  const escondeErroEd = () => { const erro = $("#oca-ed-erro"); if (erro) erro.hidden = true; };
+  $("#oca-ed-motivo")?.addEventListener("input", escondeErroEd);
+  $("#oca-ed-tipo")?.addEventListener("change", escondeErroEd);
+  durInput?.addEventListener("input", escondeErroEd);
+  $("#oca-ed-btn")?.addEventListener("click", (e) => {
     const erro = $("#oca-ed-erro");
     const setErro = (m) => { if (erro) { erro.textContent = m; erro.hidden = false; } };
     const motivo = ($("#oca-ed-motivo")?.value || "").trim();
@@ -9319,19 +9279,24 @@ function openEditarAutoModal(id) {
     if (tipoMudou) { extras.tipo = novoTipo; partes.push(`Tipo: ${ocaTipo(o.tipo).label} → ${ocaTipo(novoTipo).label}`); }
     if (durMudou) { extras.duracaoFmt = minParaDuracaoFmt(durMinNovo); partes.push(`Duração: ${ocaDuracaoHumana(durMinAtual) || "—"} → ${ocaDuracaoHumana(durMinNovo)}`); }
     extras.alterou = partes.join(" · ");
-    const btn = e.currentTarget; btn.disabled = true;
-    if (window.corrigirOcorrenciaAuto) await window.corrigirOcorrenciaAuto(id, extras);
-    else { // demo local (sem firebase)
-      const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
-      if (oo) {
-        oo.status = "com_lider";
-        if (extras.tipo) oo.tipo = extras.tipo;
-        if (extras.duracaoFmt) oo.duracaoFmt = extras.duracaoFmt;
-        oo.historico = [...(oo.historico || []), { acao: "corrigiu", porNome: currentUser()?.nome || "", emIso: nowIso(), obs: motivo, alterou: extras.alterou }];
-      }
-      renderApp();
-    }
-    closeModal();
+    const btn = e.currentTarget;
+    withBusy("oca-corrigir-" + id, btn, async () => {
+      const rotuloOriginal = trocarRotuloBtn(btn, "Salvando...");
+      try {
+        if (window.corrigirOcorrenciaAuto) await window.corrigirOcorrenciaAuto(id, extras);
+        else { // demo local (sem firebase)
+          const oo = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+          if (oo) {
+            oo.status = "com_lider";
+            if (extras.tipo) oo.tipo = extras.tipo;
+            if (extras.duracaoFmt) oo.duracaoFmt = extras.duracaoFmt;
+            oo.historico = [...(oo.historico || []), { acao: "corrigiu", porNome: currentUser()?.nome || "", emIso: nowIso(), obs: motivo, alterou: extras.alterou }];
+          }
+          renderApp();
+        }
+        closeModal();
+      } finally { restaurarRotuloBtn(btn, rotuloOriginal); }
+    });
   });
 }
 
@@ -9348,100 +9313,6 @@ function ocaListaFiltrada() {
   if (busca) l = l.filter((o) => String(o.nome || "").toLowerCase().includes(busca));
   l.sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
   return l;
-}
-
-function renderOcorrenciasAuto() {
-  $("#topbar-title").textContent = "Conferência";
-  const cab = `
-    <header class="page-header">
-      <div>
-        <h1>Conferência <span class="beta-pill">beta</span></h1>
-        <p>Ocorrências geradas da apuração do ponto (WK). Confira e confirme. O lançamento manual continua na aba Ocorrências.</p>
-      </div>
-    </header>
-    <div class="oca-sandbox">${icon("shield")}<span>Teste / sandbox. Coleção separada, não afeta a produção nem o fluxo manual.</span></div>`;
-
-  // Carga preguiçosa: só admin/RH chega aqui (dispatch + nav já filtram).
-  if (state.ocorrenciasAuto == null) {
-    if (!window.recarregarOcorrenciasAuto) { state.ocorrenciasAuto = []; }
-    else {
-      $("#view").innerHTML = cab + `<div class="oca-skel">${[0, 1, 2, 3].map(() => `<div class="oca-skel__row"></div>`).join("")}</div>`;
-      if (!state._ocaCarregando) {
-        state._ocaCarregando = true;
-        window.recarregarOcorrenciasAuto().catch(() => {}).finally(() => {
-          state._ocaCarregando = false;
-          if (state.view.page === "ocorrencias-auto") renderApp();
-        });
-      }
-      return;
-    }
-  }
-
-  const todas = state.ocorrenciasAuto || [];
-  const pend = todas.filter(ocaIsPend);
-  const conf = todas.filter((o) => !ocaIsPend(o));
-  const tab = state.view.ocaTab || "aguardando";
-  const setores = [...new Set(todas.map((o) => o.setor).filter(Boolean))].sort();
-  const lista = ocaListaFiltrada();
-
-  $("#view").innerHTML = cab + `
-    <div class="stats">
-      <div class="stat stat--accent stat--kpi">
-        <div class="stat__label">Aguardando conferência</div>
-        <div class="stat__value">${pend.length}</div>
-        <div class="stat__hint">de ${todas.length} importadas</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Conferidas</div>
-        <div class="stat__value">${conf.length}</div>
-        <div class="stat__hint">marcadas pela GP</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Total importado</div>
-        <div class="stat__value">${todas.length}</div>
-        <div class="stat__hint">da apuração do ponto</div>
-      </div>
-    </div>
-
-    <div class="tabs" id="oca-tabs">
-      <button class="tab ${tab === "aguardando" ? "active" : ""}" data-oca-tab="aguardando">Aguardando <span class="tab__count">${pend.length}</span></button>
-      <button class="tab ${tab === "conferidas" ? "active" : ""}" data-oca-tab="conferidas">Conferidas <span class="tab__count">${conf.length}</span></button>
-      <button class="tab ${tab === "todas" ? "active" : ""}" data-oca-tab="todas">Todas <span class="tab__count">${todas.length}</span></button>
-      <span class="tabs__ink" aria-hidden="true"></span>
-    </div>
-
-    <div class="toolbar">
-      <div class="toolbar__search">
-        ${icon("search")}
-        <input type="text" id="oca-busca" placeholder="Buscar por funcionário..." value="${escapeHtml(state.view.ocaBusca || "")}" aria-label="Buscar por funcionário" />
-      </div>
-      <select id="oca-tipo" aria-label="Filtrar por tipo">
-        <option value="">Todos os tipos</option>
-        ${Object.keys(OCA_TIPOS).map((k) => `<option value="${escapeHtml(k)}" ${state.view.ocaTipo === k ? "selected" : ""}>${escapeHtml(OCA_TIPOS[k].label)}</option>`).join("")}
-      </select>
-      <select id="oca-seg" aria-label="Filtrar por setor ou turno">
-        <option value="">Todos os setores / turnos</option>
-        <option value="1" ${state.view.ocaSeg === "1" ? "selected" : ""}>1º Turno</option>
-        <option value="2" ${state.view.ocaSeg === "2" ? "selected" : ""}>2º Turno</option>
-        <option value="3" ${state.view.ocaSeg === "3" ? "selected" : ""}>3º Turno</option>
-        <option value="geral" ${state.view.ocaSeg === "geral" ? "selected" : ""}>Geral</option>
-        ${setores.map((s) => `<option value="${escapeHtml(s)}" ${state.view.ocaSeg === s ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}
-      </select>
-    </div>
-
-    <div class="list" id="oca-list">${lista.length ? lista.map(ocaCardHtml).join("") : ocaVazioHtml(tab)}</div>
-  `;
-
-  $$("#oca-tabs .tab").forEach((t) => t.addEventListener("click", () => { state.view.ocaTab = t.dataset.ocaTab; renderApp(); }));
-  if ($("#oca-busca")) $("#oca-busca").addEventListener("input", debounce((e) => { state.view.ocaBusca = e.target.value; renderOcaList(); }, 200));
-  if ($("#oca-tipo")) $("#oca-tipo").addEventListener("change", (e) => { state.view.ocaTipo = e.target.value; renderOcaList(); });
-  if ($("#oca-seg")) $("#oca-seg").addEventListener("change", (e) => { state.view.ocaSeg = e.target.value; renderOcaList(); });
-}
-
-function renderOcaList() {
-  const el = $("#oca-list"); if (!el) return;
-  const lista = ocaListaFiltrada();
-  el.innerHTML = lista.length ? lista.map(ocaCardHtml).join("") : ocaVazioHtml(state.view.ocaTab || "aguardando");
 }
 
 function ocaVazioHtml(tab) {
@@ -10074,7 +9945,7 @@ function renderControlePJ() {
         ${icon("search")}
         <input type="text" id="pj-search" placeholder="Buscar por nome, CNPJ ou tipo..." aria-label="Buscar PJ por nome, CNPJ ou tipo" />
       </div>
-      <select id="pj-status-filter">
+      <select id="pj-status-filter" aria-label="Filtrar por status">
         <option value="">Todos os status</option>
         <option value="ativo">Ativos</option>
         <option value="suspenso">Suspensos</option>
@@ -10254,11 +10125,6 @@ function pjPrecisaReajuste(pj) {
   return !pjJaReajustadoNoAno(pj, j.ano);
 }
 
-function diasParaReajuste() {
-  const ms = proximoReajuste() - new Date();
-  return Math.ceil(ms / (1000 * 60 * 60 * 24));
-}
-
 // ---------- Férias dos PJs ----------
 // Modelo simplificado: sistema acumula automaticamente conforme tempo
 // de contrato. RH só registra baixas (uso ou venda) com data + dias.
@@ -10324,7 +10190,7 @@ function openPJModal(id) {
           <span class="pj-ct-ic">${icon("file")}</span>
           <div class="pj-ct-main"><b>Contrato principal</b><span>PDF no Google Drive</span></div>
           ${ehUrlSegura(pj.contratoUrl) ? `<a href="${escapeHtml(pj.contratoUrl)}" target="_blank" rel="noopener" class="pj-ct-abrir">${icon("file")}<span>Abrir</span></a>` : ""}
-          <button type="button" class="pj-ct-troca" id="btn-troca-contrato" title="Trocar contrato ou colar link">${icon("edit")}</button>
+          <button type="button" class="pj-ct-troca" id="btn-troca-contrato" title="Trocar contrato ou colar link" aria-label="Trocar contrato ou colar link">${icon("edit")}</button>
         </div>
       ` : `
         <button type="button" class="pj-ct-drop" id="btn-ct-drop">
@@ -10506,7 +10372,7 @@ function openPJModal(id) {
             const podeApagar = cu && can("pj.editar", cu);
             return `
             <div class="timeline__item ${i === 0 ? "" : "done"}">
-              <div class="timeline__item-title"><span>${formatMoeda(h.valor)}</span>${podeApagar ? `<button type="button" class="hv-del" data-del-valor="${origIdx}" title="Excluir este lançamento (erro de OCR, etc.)">${icon("trash")}</button>` : ""}</div>
+              <div class="timeline__item-title"><span>${formatMoeda(h.valor)}</span>${podeApagar ? `<button type="button" class="hv-del" data-del-valor="${origIdx}" title="Excluir este lançamento (erro de OCR, etc.)" aria-label="Excluir este lançamento">${icon("trash")}</button>` : ""}</div>
               <div class="timeline__item-meta">${formatDateFull(h.data)} · ${escapeHtml(getUser(h.por)?.nome || h.por || "—")}${h.motivo ? " · " + escapeHtml(h.motivo) : ""}</div>
             </div>`;
           }).join("")}
@@ -11584,7 +11450,7 @@ function bindAditivosPJ(pjId) {
         ${a.contratoUrl && ehUrlSegura(a.contratoUrl)
           ? `<a href="${escapeHtml(a.contratoUrl)}" target="_blank" rel="noopener" class="pj-adv-open" data-stop="1" title="Abrir aditivo">${icon("file")}</a>`
           : ""}
-        <button type="button" class="pj-adv-open pj-adv-del" data-del-aditivo="${escapeHtml(a.id)}" title="Excluir aditivo">${icon("trash")}</button>
+        <button type="button" class="pj-adv-open pj-adv-del" data-del-aditivo="${escapeHtml(a.id)}" title="Excluir aditivo" aria-label="Excluir aditivo">${icon("trash")}</button>
       </div>`;
     }).join("")}</div>`;
 
@@ -11768,7 +11634,7 @@ function renderPJFeriasList(pjId) {
               </div>
               ${f.observacao ? `<div class="text-xs muted" style="margin-top: 4px;">${escapeHtml(f.observacao)}</div>` : ""}
             </div>
-            <button type="button" class="btn btn--ghost btn--sm" data-del-ferias="${f.id}" title="Excluir baixa">${icon("trash")}</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-del-ferias="${f.id}" title="Excluir baixa" aria-label="Excluir baixa">${icon("trash")}</button>
           </div>
         `;
       }).join("")}
@@ -12482,7 +12348,6 @@ const TONES = [
   { id: "success", label: "Positivo" },
 ];
 
-function renderTipos() { renderTiposInto("#view"); }
 function renderTiposInto(selector) {
   const u = currentUser();
   if (!can("sistema.config")) return;
@@ -12914,8 +12779,6 @@ function permissoesMatrizHtml() {
 }
 
 // ---------- Usuários (Admin) ----------
-
-function renderUsuarios() { renderUsuariosInto("#view"); }
 
 // Selo do papel colorido por nível (bate o olho e sabe o nível).
 const USER_BADGE_CLS = { admin: "badge--admin", rh: "badge--gp", supervisor: "badge--aviso", lider: "badge--success", colaborador: "badge--neutral" };
@@ -14030,7 +13893,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.47.0";
+window.CURRENT_VERSION = "1.48.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

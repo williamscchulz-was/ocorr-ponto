@@ -102,7 +102,7 @@
       console.info("[Firebase] ativo, projeto:", cfg.projectId);
     } catch (err) {
       console.error("[Firebase] erro ao iniciar:", err);
-      const msg = "Falha ao iniciar o Firebase — voltando ao modo demo. (F12 pra detalhes)";
+      const msg = "Falha ao iniciar o Firebase, voltando ao modo demo. (F12 pra detalhes)";
       if (window.toast) window.toast(msg, "danger"); else alert(msg);
     }
   }
@@ -988,16 +988,16 @@
     async function recarregarComunicados() {
       try {
         const snap = await db.collection("comunicados").orderBy("publicadoEm", "desc").limit(200).get();
-        const arr = [];
-        for (const d of snap.docs) {
+        // Subcoleções em PARALELO (era N+1 sequencial: 1 roundtrip por doc no boot).
+        const arr = await Promise.all(snap.docs.map(async (d) => {
           const dat = d.data();
           const c = { id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm), editadoEm: tsToIso(dat.editadoEm), leituras: [] };
           try {
             const ls = await d.ref.collection("leituras").get();
             c.leituras = ls.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) }));
           } catch (e) { /* sem leituras visiveis */ }
-          arr.push(c);
-        }
+          return c;
+        }));
         state.comunicados = arr;
       } catch (e) {
         debug?.("[comunicados] load:", e?.message || e);
@@ -1160,14 +1160,16 @@
     async function recarregarDocumentos() {
       try {
         const snap = await db.collection("documentos").orderBy("criadoEm", "desc").limit(200).get();
-        const arr = [];
-        for (const dd of snap.docs) {
+        // Subcoleções em PARALELO (era N+1 sequencial COM 2 awaits em série por doc).
+        const arr = await Promise.all(snap.docs.map(async (dd) => {
           const dat = dd.data();
           const o = { id: dd.id, ...dat, criadoEm: tsToIso(dat.criadoEm), publicadoEm: tsToIso(dat.publicadoEm), versaoEm: tsToIso(dat.versaoEm), assinaturas: [], leituras: [] };
-          try { const asn = await dd.ref.collection("assinaturas").get(); o.assinaturas = asn.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) })); } catch (e) { /* sem acesso */ }
-          try { const lt = await dd.ref.collection("leituras").get(); o.leituras = lt.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) })); } catch (e) { /* sem acesso */ }
-          arr.push(o);
-        }
+          await Promise.all([
+            dd.ref.collection("assinaturas").get().then((asn) => { o.assinaturas = asn.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) })); }).catch(() => { /* sem acesso */ }),
+            dd.ref.collection("leituras").get().then((lt) => { o.leituras = lt.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) })); }).catch(() => { /* sem acesso */ }),
+          ]);
+          return o;
+        }));
         state.documentos = arr;
       } catch (e) { debug?.("[documentos] load:", e?.message || e); state.documentos = state.documentos || []; }
     }
@@ -1808,13 +1810,13 @@
         } else if (u.role === "lider") {
           snap = await db.collection("disciplinares").where("funcionarioTurno", "==", u.turno).get();
         } else { state.disciplinares = state.disciplinares || []; return; }
-        const arr = [];
-        for (const d of snap.docs) {
+        // Ciências em PARALELO (era N+1 sequencial).
+        const arr = await Promise.all(snap.docs.map(async (d) => {
           const dat = d.data();
           const o = { id: d.id, ...dat, criadoEm: tsToIso(dat.criadoEm), ciencias: [] };
           try { const cs = await d.ref.collection("ciencia").get(); o.ciencias = cs.docs.map((x) => ({ ...x.data(), em: tsToIso(x.data().em) })); } catch (e) { /* sem ciencias visiveis */ }
-          arr.push(o);
-        }
+          return o;
+        }));
         arr.sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
         state.disciplinares = arr;
       } catch (e) { debug?.("[disciplinares] load:", e?.message || e); state.disciplinares = state.disciplinares || []; }
@@ -3200,7 +3202,7 @@
     } catch (e) { debug?.("[refetch foco] falhou:", e?.message || e); }
     finally { _refetchEmAndamento = false; }
   }
-  window.addEventListener("focus", () => { if (firebase.auth().currentUser) refetchAoFoco(); });
+  window.addEventListener("focus", () => { if (typeof firebase !== "undefined" && firebase.auth?.().currentUser) refetchAoFoco(); });
 
   async function carregarDadosCompletos(db) {
     const auth = firebase.auth(); // auth NÃO está no closure (irmã de installFirebaseStore) — singleton.
@@ -3314,13 +3316,13 @@
         try {
           const uidC = auth.currentUser && auth.currentUser.uid;
           const dsnap = await db.collection("disciplinares").where("funcionarioId", "==", u.funcionarioId).get();
-          const arr = [];
-          for (const dd of dsnap.docs) {
+          // Ciências em PARALELO (era o único trecho sequencial do Promise.all do colab).
+          const arr = await Promise.all(dsnap.docs.map(async (dd) => {
             const dat = dd.data();
             const o = { id: dd.id, ...dat, criadoEm: tsToIso(dat.criadoEm), minhaCiencia: null };
             try { const c = await dd.ref.collection("ciencia").doc(uidC).get(); if (c.exists) o.minhaCiencia = { ...c.data(), em: tsToIso(c.data().em) }; } catch (e) { /* */ }
-            arr.push(o);
-          }
+            return o;
+          }));
           arr.sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
           state.disciplinaresColab = arr;
         } catch (e) { debug?.("[colab] disciplinares:", e?.message || e); state.disciplinaresColab = []; }
@@ -3379,75 +3381,46 @@
       return;
     }
 
-    // Funcionários (todos podem ler)
-    const funcSnap = await db.collection("funcionarios").get();
-    state.funcionarios = funcSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // ===== FASE A (paralela, leve): catálogos + permissões =====
+    // Eram 5 awaits em FILA e as permissões carregavam POR ÚLTIMO (os gates de can()
+    // abaixo decidiam sempre pelo PERM_DEFAULT no 1º boot). Agora 1 rodada só, e as
+    // permissões chegam ANTES dos gates. funcionarios/tipos/acoes sem catch de
+    // propósito: falha neles aborta o boot como sempre abortou.
+    await Promise.all([
+      db.collection("funcionarios").get().then((snap) => {
+        state.funcionarios = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      }),
+      db.collection("tipos").get().then((snap) => {
+        state.tiposCustom = snap.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }));
+      }),
+      db.collection("acoes").get().then((snap) => {
+        state.acoesCustom = snap.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }));
+      }),
+      db.collection("obrigacoes").get().then((snap) => {
+        state.obrigacoes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      }).catch((e) => { state.obrigacoes = state.obrigacoes || []; debug?.("[obrigacoes] load:", e?.message || e); }),
+      db.collection("config").doc("permissoes").get().then((permSnap) => {
+        state.permissoes = permSnap.exists ? (permSnap.data() || null) : null;
+      }).catch((e) => { debug?.("[permissoes] não carregou (usa default):", e?.message || e); state.permissoes = null; }),
+    ]);
 
-    // Tipos custom (todos podem ler)
-    const tiposSnap = await db.collection("tipos").get();
-    state.tiposCustom = tiposSnap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-      criadoEm: tsToIso(d.data().criadoEm),
-    }));
-
-    // Ações custom (todos podem ler)
-    const acoesSnap = await db.collection("acoes").get();
-    state.acoesCustom = acoesSnap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-      criadoEm: tsToIso(d.data().criadoEm),
-    }));
-
-    // Obrigações do GH (checklist recorrente) — autenticados leem; só GH/admin grava.
-    try {
-      const obSnap = await db.collection("obrigacoes").get();
-      state.obrigacoes = obSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch (e) { state.obrigacoes = state.obrigacoes || []; debug?.("[obrigacoes] load:", e?.message || e); }
-
-    // Comunicados (Pacote Gestor) — só quem tem a cap carrega (gestor com comunicados.gerenciar).
+    // ===== FASE B (paralela, pesada): coleções independentes entre si =====
+    // Era uma corrente de awaits (comunicados -> documentos -> disciplinares -> banco
+    // de horas), um RTT esperando o outro; nenhuma lê o resultado da outra. Banco de
+    // Horas: fontes diferentes por papel (admin/RH lê pipeline-rh/cur; líder lê
+    // /bancoHoras por turno, a regra garante o isolamento).
     state.comunicados = state.comunicados || [];
-    if (typeof can === "function" && can("comunicados.gerenciar")) {
-      await recarregarComunicados();
-    }
-    // Documentos institucionais (Pacote Gestor) — idem, gated por documentos.gerenciar.
     state.documentos = state.documentos || [];
-    if (typeof can === "function" && can("documentos.gerenciar")) {
-      await recarregarDocumentos();
-    }
-
-    // Disciplinar (advertencia/suspensao) — admin/RH veem tudo; lider ve só do turno dele.
     state.disciplinares = state.disciplinares || [];
-    if (u.role === "admin" || u.role === "rh" || u.role === "lider") {
-      try { await recarregarDisciplinares(); } catch (e) { debug?.("[disciplinares] boot:", e?.message || e); }
-    }
-
-    // Banco de Horas — fontes diferentes por papel pra isolamento por turno:
-    //
-    // Admin/RH: lê pipeline-rh/cur (canônico, tem meta agregada). Doc único
-    // com TODOS os funcionários ativos — não dá pra filtrar por turno via rule.
-    //
-    // Líder: lê /bancoHoras filtrando por funcionarioTurno=u.turno. Cada doc
-    // tem o turno denormalizado pelo pipeline, regra do Firestore garante o
-    // isolamento. Sem acesso à meta agregada (não precisa, vê só dos seus).
-    await carregarBancoHorasGestor(u);
-
-    // Monitor do pipeline (chip de status no dashboard) — só admin/RH têm a cap.
-    if ((u.role === "admin" || u.role === "rh") && window.carregarMonitorPipeline) {
-      try { await window.carregarMonitorPipeline(); } catch (e) { debug?.("[monitor] boot:", e?.message || e); }
-    }
-
-    // Controle PJ (admin/RH só)
-    state.pjs = [];
-    if (u.role === "admin" || u.role === "rh") {
-      const pjSnap = await db.collection("pj").get();
-      state.pjs = pjSnap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-        criadoEm: tsToIso(d.data().criadoEm),
-        atualizadoEm: tsToIso(d.data().atualizadoEm),
-      }));
-    }
+    state.pjs = []; // preenchido no pós-render (abaixo)
+    await Promise.all([
+      (typeof can === "function" && can("comunicados.gerenciar")) ? recarregarComunicados() : null,
+      (typeof can === "function" && can("documentos.gerenciar")) ? recarregarDocumentos() : null,
+      (u.role === "admin" || u.role === "rh" || u.role === "lider")
+        ? recarregarDisciplinares().catch((e) => debug?.("[disciplinares] boot:", e?.message || e))
+        : null,
+      carregarBancoHorasGestor(u),
+    ]);
 
     // Log global de auditoria NÃO é lido no boot (perf): carrega sob demanda
     // ao abrir a tela Auditoria (window.carregarAuditoriaGlobal).
@@ -3494,95 +3467,91 @@
     // se o listener nunca emitir (rede/regra) — segue o boot, listener
     // continua vivo e atualiza a UI quando/se emitir.
     state.ocorrenciasProntas = false; // skeleton até o 1º snapshot chegar
-    let primeiroSnapshotResolvido = false;
-    await new Promise((resolve) => {
-      const safety = setTimeout(() => {
-        if (!primeiroSnapshotResolvido) {
-          primeiroSnapshotResolvido = true;
-          state.ocorrenciasProntas = true; // destrava a UI mesmo sem snapshot
-          debug?.("[ocorrencias] timeout de 5s no 1º snapshot — seguindo boot");
-          resolve();
-        }
-      }, 5000);
-
-      ocorrenciasUnsub = q.onSnapshot((snap) => {
-        state.ocorrencias = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            ...data,
-            data: tsToIsoDate(data.data),
-            dataConferencia: tsToIsoDate(data.dataConferencia),
-            lancadoEm: tsToIsoDate(data.lancadoEm),
-            criadoEm: tsToIso(data.criadoEm),
-            atualizadoEm: tsToIso(data.atualizadoEm),
-          };
-        });
-
-        // Detecção de deltas: compara ids deste snapshot com os da última vez.
-        const user = currentUser();
-        if (ocorrenciasIdsConhecidos === null) {
-          // 1ª carga: só popula o Set, NUNCA notifica.
-          ocorrenciasIdsConhecidos = new Set(state.ocorrencias.map((o) => o.id));
-        } else {
-          let qtdNovas = 0;
-          for (const o of state.ocorrencias) {
-            if (!ocorrenciasIdsConhecidos.has(o.id) &&
-                isPendingFb(o) && visivelPara(user, o)) {
-              qtdNovas++;
-            }
-          }
-          // Atualiza o Set com TODOS os ids atuais (inclui os não-pendentes/não
-          // visíveis, pra não re-notificar depois caso virem relevantes via update).
-          ocorrenciasIdsConhecidos = new Set(state.ocorrencias.map((o) => o.id));
-          if (qtdNovas > 0) {
-            try { window.onNovasOcorrencias?.(qtdNovas); } catch (e) { debug?.("[ocorrencias] onNovasOcorrencias falhou:", e); }
-          }
-        }
-
+    // O boot NÃO espera mais o 1º snapshot (era o estágio mais pesado do login, até
+    // 500 docs): a tela abre com o skeleton e o snapshot re-renderiza sozinho via
+    // aoAtualizarOcorrencias. Safety de 5s destrava o skeleton se o listener nunca
+    // emitir (rede/regra), e o listener segue vivo e preenche quando/se emitir.
+    const safetyOcorrencias = setTimeout(() => {
+      if (!state.ocorrenciasProntas) {
         state.ocorrenciasProntas = true;
-        // SEMPRE: avisa a UI pra reagir (re-render seguro + badge no título).
-        try { window.aoAtualizarOcorrencias?.(); } catch (e) { debug?.("[ocorrencias] aoAtualizarOcorrencias falhou:", e); }
+        debug?.("[ocorrencias] timeout de 5s no 1º snapshot, skeleton destravado");
+        try { window.aoAtualizarOcorrencias?.(); } catch (e) { /* */ }
+      }
+    }, 5000);
 
-        // Resolve o boot no 1º snapshot (cancela o timeout de segurança).
-        if (!primeiroSnapshotResolvido) {
-          primeiroSnapshotResolvido = true;
-          clearTimeout(safety);
-          resolve();
-        }
-      }, (err) => {
-        debug?.("[ocorrencias] snapshot erro:", err);
-        state.ocorrenciasProntas = true; // não fica preso no skeleton se der erro
-        // Em erro no 1º snapshot, libera o boot mesmo assim (não trava a tela).
-        if (!primeiroSnapshotResolvido) {
-          primeiroSnapshotResolvido = true;
-          clearTimeout(safety);
-          resolve();
-        }
+    ocorrenciasUnsub = q.onSnapshot((snap) => {
+      state.ocorrencias = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          data: tsToIsoDate(data.data),
+          dataConferencia: tsToIsoDate(data.dataConferencia),
+          lancadoEm: tsToIsoDate(data.lancadoEm),
+          criadoEm: tsToIso(data.criadoEm),
+          atualizadoEm: tsToIso(data.atualizadoEm),
+        };
       });
+
+      // Detecção de deltas: compara ids deste snapshot com os da última vez.
+      const user = currentUser();
+      if (ocorrenciasIdsConhecidos === null) {
+        // 1ª carga: só popula o Set, NUNCA notifica.
+        ocorrenciasIdsConhecidos = new Set(state.ocorrencias.map((o) => o.id));
+      } else {
+        let qtdNovas = 0;
+        for (const o of state.ocorrencias) {
+          if (!ocorrenciasIdsConhecidos.has(o.id) &&
+              isPendingFb(o) && visivelPara(user, o)) {
+            qtdNovas++;
+          }
+        }
+        // Atualiza o Set com TODOS os ids atuais (inclui os não-pendentes/não
+        // visíveis, pra não re-notificar depois caso virem relevantes via update).
+        ocorrenciasIdsConhecidos = new Set(state.ocorrencias.map((o) => o.id));
+        if (qtdNovas > 0) {
+          try { window.onNovasOcorrencias?.(qtdNovas); } catch (e) { debug?.("[ocorrencias] onNovasOcorrencias falhou:", e); }
+        }
+      }
+
+      state.ocorrenciasProntas = true;
+      clearTimeout(safetyOcorrencias);
+      // SEMPRE: avisa a UI pra reagir (re-render seguro + badge no título).
+      try { window.aoAtualizarOcorrencias?.(); } catch (e) { debug?.("[ocorrencias] aoAtualizarOcorrencias falhou:", e); }
+    }, (err) => {
+      debug?.("[ocorrencias] snapshot erro:", err);
+      state.ocorrenciasProntas = true; // não fica preso no skeleton se der erro
+      clearTimeout(safetyOcorrencias);
+      try { window.aoAtualizarOcorrencias?.(); } catch (e) { /* */ }
     });
 
-    // Usuários — todos carregam o diretório completo (pro chat poder
-    // listar/mandar mensagem pra qualquer um, online ou offline).
-    // Sem segredos nos docs (nome/email/papel/turno/foto). Regra do
-    // Firestore: read liberado pra autenticados.
-    try {
-      const usersSnap = await db.collection("users").get();
-      state.users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } catch (e) {
-      debug?.("[users] não foi possível carregar diretório:", e?.message || e);
-      // mantém ao menos o próprio user já populado em wireAuthFlow
-    }
-
-    // Permissões (matriz editável). Doc único /config/permissoes. Ausência →
-    // state.permissoes = null e o app cai no PERM_DEFAULT (= regras de hoje).
-    try {
-      const permSnap = await db.collection("config").doc("permissoes").get();
-      state.permissoes = permSnap.exists ? (permSnap.data() || null) : null;
-    } catch (e) {
-      debug?.("[permissoes] não carregou (usa default):", e?.message || e);
-      state.permissoes = null;
-    }
+    // ===== PÓS-RENDER (não bloqueia o login): monitor, PJ e diretório de usuários =====
+    // Alimentam o chip do pipeline, a aba PJ e o chat, nada disso é o 1º segundo da
+    // tela. Carregam em paralelo depois que o app já apareceu e um único re-render
+    // aplica. Mesmo espírito do iniciarPresenca/auditoriaGlobal.
+    (async () => {
+      await Promise.all([
+        ((u.role === "admin" || u.role === "rh") && window.carregarMonitorPipeline)
+          ? window.carregarMonitorPipeline().catch((e) => debug?.("[monitor] boot:", e?.message || e))
+          : null,
+        (u.role === "admin" || u.role === "rh")
+          ? db.collection("pj").get().then((pjSnap) => {
+              state.pjs = pjSnap.docs.map((d) => ({
+                id: d.id,
+                ...d.data(),
+                criadoEm: tsToIso(d.data().criadoEm),
+                atualizadoEm: tsToIso(d.data().atualizadoEm),
+              }));
+            }).catch((e) => debug?.("[pj] load:", e?.message || e))
+          : null,
+        // Diretório completo (o chat lista/manda mensagem pra qualquer um). Sem
+        // segredos nos docs (nome/email/papel/turno/foto); read liberado a autenticados.
+        db.collection("users").get().then((usersSnap) => {
+          state.users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        }).catch((e) => debug?.("[users] não foi possível carregar diretório:", e?.message || e)),
+      ]);
+      try { renderApp(); } catch (e) { /* re-render best-effort pós-boot */ }
+    })();
   }
 
   // Converte Timestamp/Date/string → ISO curto "YYYY-MM-DD" (consumido por

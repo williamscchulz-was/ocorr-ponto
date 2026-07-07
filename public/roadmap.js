@@ -1,7 +1,7 @@
 window.ROADMAP = {
   fases: [
     { id: "fase0",  nome: "Fase 0",        subtitulo: "Primeira versão para conhecer o portal (ainda sem login)" },
-    { id: "fase1",  nome: "Fase 1 — MVP",  subtitulo: "Entrada, seus dados, comunicados e documentos" },
+    { id: "fase1",  nome: "Fase 1 · MVP",  subtitulo: "Entrada, seus dados, comunicados e documentos" },
     { id: "alfa",   nome: "Alfa",          subtitulo: "Teste com um grupo pequeno, com cuidado extra" },
     { id: "beta",   nome: "Beta",          subtitulo: "Piloto maior, com acompanhamento e privacidade" },
     { id: "live",   nome: "Live",          subtitulo: "Aberto para todos, com suporte e acompanhamento contínuo" },
