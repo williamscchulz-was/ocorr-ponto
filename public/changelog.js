@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.48.2", d: "7 jul 2026", current: true, items: [
+    v: "1.48.3", d: "7 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Na lista de ocorrências, quando a marcação que gerou a ocorrência ficou sem batida (ex.: não registrou a entrada), o horário do card mostra o previsto rotulado (prev. 13:30) em vez de uma batida de outra marcação do dia." },
+    ],
+  },
+  {
+    v: "1.48.2", d: "7 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Na conferência de ocorrências automáticas, quando faltou uma batida (ex.: não registrou a entrada), os horários aparecem na posição certa: a que faltou fica marcada como sem batida e as demais não deslocam mais, o que antes podia mostrar uma falta na saída final que na verdade bateu certo." },
     ],
   },
