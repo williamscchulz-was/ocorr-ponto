@@ -3836,10 +3836,16 @@ function vgTurnover(u) {
     if (ym === ymAtual) desligMes++;
     if (d >= limite12) deslig12++;
   }
+  const admMes = funcs.filter((f) => {
+    if (!noEscopo(f)) return false;
+    const a = tsParaData(f.admissao);
+    if (!a || isNaN(a.getTime())) return false;
+    return `${a.getFullYear()}-${String(a.getMonth() + 1).padStart(2, "0")}` === ymAtual;
+  }).length;
   const mensal = ativos > 0 ? (desligMes / ativos) * 100 : 0;
   const anual = ativos > 0 ? (deslig12 / ativos) * 100 : 0;
   const banda = mensal < 2 ? "ok" : mensal <= 4 ? "warn" : "bad";
-  return { ativos, desligMes, deslig12, mensal, anual, banda, temDado: ativos > 0 };
+  return { ativos, admMes, desligMes, deslig12, mensal, anual, banda, temDado: ativos > 0 };
 }
 
 // Série de 6 meses (mais antigo -> atual) pros sparklines dos KPIs. Só o que dá pra derivar
@@ -3972,7 +3978,7 @@ function renderVisaoGeral() {
         <div class="kpi-a__top"><span>Turnover no mês</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
         <div class="kpi-a__vl">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
         ${tv.temDado ? vgDeltaHtml(dTurn, { unidade: "pt", inverter: true, casas: 1, mes: mesAnt }) : ""}
-        <div class="kpi-a__ht">${tv.temDado ? `${tv.desligMes} desligamento${tv.desligMes === 1 ? "" : "s"}` : "sem quadro"}</div>
+        <div class="kpi-a__ht">${tv.temDado ? `${tv.admMes} contrataç${tv.admMes === 1 ? "ão" : "ões"} · ${tv.desligMes} desligamento${tv.desligMes === 1 ? "" : "s"}` : "sem quadro"}</div>
       </article>
     </div>
 
@@ -13411,7 +13417,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.57.0";
+window.CURRENT_VERSION = "1.57.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

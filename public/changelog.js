@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.57.0", d: "8 jul 2026", current: true, items: [
+    v: "1.57.1", d: "8 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "O indicador de Turnover agora mostra as duas pontas do mês: contratações e desligamentos." },
+    ],
+  },
+  {
+    v: "1.57.0", d: "8 jul 2026", items: [
       { type: "high", aud: "gestor", title: "A Visão geral ficou mais limpa e alinhada. Os indicadores adotaram um padrão único com número grande e comparação com o mês anterior. O \"Precisa de você\" virou um bloco de ação em destaque. Os aniversariantes ganharam o rosto de quem faz aniversário no dia. Demografia e Ranking abrem em acordeão sem desalinhar. Saíram o gráfico mensal (a comparação foi pros indicadores) e a lista de atividade recente." },
     ],
   },
