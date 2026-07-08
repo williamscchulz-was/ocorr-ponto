@@ -1056,6 +1056,20 @@ Depois do caso da Franciele, William pediu revisão de todos os 5 configs do pip
 
 ---
 
+## 2026-07-08 · 🐛 Falta falsa: correção precisa suprimir, não só avisar (2ª rodada Franciele)
+
+William viu que a 1ª correção (gerar a ocorrência com `classificacaoIncerta` + aviso) não bastava: "SE NO ESPELHO DO PONTO MOSTRA QUE ELA BATEU, NAO GERA OCORRENCIA". Pediu ajuda do Fable pra acertar a regra exata antes de mexer de novo.
+
+**Análise do Fable** (verificação adversarial contra os 27 casos reais de 07/07): a regra do William está certa, mas não literalmente "qualquer batida → suprime" — o critério é **"o Espelho DESMENTE a falta"**: mesma contagem de batidas que o previsto E todo desvio dentro de `JANELA_MATCH_MIN` (120min), medido com `desvios_todas_posicoes` (pausa por DURAÇÃO, não por relógio cru — mesma lição do caso Carlos Zoz; desvio posicional puro erraria o caso da Edicleia 991, cuja pausa só deslizou 28min mas dá 121min de diferença posicional bruta). Achado importante: dos 27 casos, **23 tinham o dia inteiro batido** (pior desvio 11min) — suprimidos. **4 bateram só PARTE do dia** (Edmar 753: só durante o intervalo, nada na entrada/saída; Luisana 1145 e Luis Eduardo 1154: sem a entrada; Paulo Cesar 1221: só a tarde) — esses continuam gerados com `classificacaoIncerta`, porque podem ser falta parcial real. Confirmado também: toda linha com Apuradas vazia no CSV real é "Faltas Injustificadas" — os outros tipos nunca vêm vazios (sem apuração fechada o WK não calcula desvio).
+
+**Fix** (`process-ocorrencias-rh.py`): antes de aceitar o fallback do Espelho, calcula `desvios_todas_posicoes` contra o previsto — se `sit == "Faltas Injustificadas"` e todos os desvios ≤ 120min, **suprime inteiramente** (`continue`, nem gera); senão, mesmo comportamento de antes (gera com `classificacaoIncerta`). Contador novo `suprimidoEspelhoDiaCompleto` no JSON de regras, pra auditoria.
+
+**Testado**: `suprimidoEspelhoDiaCompleto=23` bateu exato com a previsão do Fable; os 4 casos-exceção confirmados com `classificacaoIncerta=true` e o motivo certo. Reverificação contínua (`upload-ocorrencias-auto.mjs`) resolveu os 23 automaticamente — o circuit breaker de 50% (que o Fable previu que poderia travar) **não disparou**, a fila tinha volume suficiente. Aplicado em produção: Franciele `auto_resolvida`, Edmar continua `rh_confere` com aviso.
+
+**Achado paralelo, em investigação**: William reparou (print de uma listagem de arquivos) que `ExpAuto_Ocorrencias_Minerador.txt` estava com timestamp de quase 19h atrás — `export-ocorrencias.mjs` vem travando por timeout de forma recorrente (07/03, 07/06, 08/07, mesmo já com timeout de 8min). Mandei isso pro Fable incorporar como contexto adicional; William pediu um estudo mais profundo dedicado a essa instabilidade — ver próxima entrada.
+
+---
+
 ## 2026-07-02 · 🔧 BH resolvido de vez: processo órfão do WK + dispositivo de auto-recuperação
 
 Continuação do achado de mais cedo (export de BH travando). Aumentei o timeout (180s→5min) e coloquei um respiro de 2s entre chamadas consecutivas do WK_EXE, mas o problema persistiu — mesmo código de crash (355941) e um EPERM novo no rename do config.
