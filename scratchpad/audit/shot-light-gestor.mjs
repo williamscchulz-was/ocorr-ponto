@@ -1,0 +1,17 @@
+setTimeout(() => { console.log("HARD-TIMEOUT"); process.exit(9); }, 90000);
+const H = await import("./harness.mjs");
+await H.iniciarServidor();
+const { browser, page } = await H.abrirContexto({ viewport: "desktop" });
+await page.goto(H.BASE_URL, { waitUntil: "domcontentloaded" });
+await H.seedGestor(page);
+const OUT = "C:/projetos/ocorr-ponto/scratchpad/audit/out";
+const limpar = () => page.evaluate(() => document.querySelectorAll('[class*="toast"],[id*="toast"]').forEach((e) => e.remove()));
+await page.waitForTimeout(400);
+await limpar(); await page.waitForTimeout(120);
+await page.screenshot({ path: OUT + "/gestor-light-visaogeral.png", fullPage: true });
+await page.evaluate(() => { const it=[...document.querySelectorAll(".nav__item")].find(n=>/Ocorr[êe]ncias/i.test(n.textContent)); if(it) it.click(); });
+await page.waitForTimeout(700);
+await limpar(); await page.waitForTimeout(120);
+await page.screenshot({ path: OUT + "/gestor-light-ocorrencias.png", fullPage: true });
+await browser.close();
+process.exit(0);

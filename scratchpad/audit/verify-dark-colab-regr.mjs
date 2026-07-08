@@ -1,0 +1,15 @@
+setTimeout(() => { console.log("HARD-TIMEOUT"); process.exit(9); }, 90000);
+const H = await import("./harness.mjs");
+await H.iniciarServidor();
+const { browser, page } = await H.abrirContexto({ viewport: "desktop" });
+await page.goto(H.BASE_URL, { waitUntil: "domcontentloaded" });
+await H.seedColab(page);
+await page.evaluate(() => { try { localStorage.setItem("fiopulse:tema","escuro"); cpAplicarTema(); renderApp(); } catch {} });
+await page.waitForTimeout(600);
+const est = await page.evaluate(() => ({ cpDark: document.documentElement.classList.contains("cp-dark"), modoColab: document.documentElement.classList.contains("modo-colab") }));
+console.log("colab estado:", JSON.stringify(est));
+await page.evaluate(() => document.querySelectorAll('[class*="toast"],[id*="toast"]').forEach((e) => e.remove()));
+await page.waitForTimeout(150);
+await page.screenshot({ path: "C:/projetos/ocorr-ponto/scratchpad/audit/out/dk-colab-regressao.png", fullPage: true });
+console.log("erros:", (await H.coletarErrosReais(page)).length);
+await browser.close(); process.exit(0);

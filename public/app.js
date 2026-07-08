@@ -717,6 +717,7 @@ function logout() {
 // Portões de tela: #acesso (escolha) · #login (gestor) · #app (sistema).
 function mostrarAcesso() {
   document.documentElement.classList.remove("modo-colab");
+  document.documentElement.classList.remove("cp-dark"); // telas de acesso/login sempre claras
   $("#app")?.classList.add("hidden");
   $("#login")?.classList.add("hidden");
   $("#login-colab")?.classList.add("hidden");
@@ -918,7 +919,8 @@ function cpIcon(name) {
 
 // ---- Tema (claro/escuro) do Portal do Colaborador ----
 // Padrão: segue o sistema (prefers-color-scheme). Se o colaborador escolher, lembra em localStorage.
-// Só vale no colaborador: o dark mode no CSS é gated por html.modo-colab.cp-dark.
+// Vale nos dois portais: colaborador (CSS gated por html.modo-colab.cp-dark) e
+// gestor (html.cp-dark:not(.modo-colab), ver styles.css). A pref e compartilhada.
 function cpAplicarTema() {
   let pref = null; try { pref = localStorage.getItem("fiopulse:tema"); } catch {}
   const escuro = pref ? pref === "escuro" : !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -2672,6 +2674,7 @@ function renderApp() {
   if (u.role === "colaborador") return renderPortalColaborador(u);
   // Gestor nunca usa o modo colaborador (limpa classe que possa ter sobrado).
   document.documentElement.classList.remove("modo-colab");
+  cpAplicarTema(); // gestor tambem segue a pref de tema (localStorage / sistema)
 
   // Sidebar user (avatar com foto se houver, senão iniciais)
   aplicarAvatar($("#user-avatar"), u);
@@ -5406,6 +5409,8 @@ function openProfileModal() {
   if (!u) return;
   const isFirebaseMode = typeof window.alterarMinhaSenha === "function";
   const podeAlterarFoto = typeof window.atualizarMinhaFoto === "function";
+  let _tema = "auto"; try { _tema = localStorage.getItem("fiopulse:tema") || "auto"; } catch {}
+  const _temaIdx = { auto: 0, claro: 1, escuro: 2 }[_tema] ?? 0;
 
   openModal(`
     <div class="modal__header">
@@ -5444,6 +5449,14 @@ function openProfileModal() {
 
       <div class="divider"></div>
 
+      <div class="text-xs muted" style="margin: 12px 0 8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Aparência</div>
+      <div class="pp-seg" id="gp-seg-tema" style="margin-bottom:14px;">
+        <span class="pp-seg__pill" style="width:calc((100% - 6px)/3);transform:translateX(${_temaIdx * 100}%)"></span>
+        <button data-tema="auto" class="${_tema === 'auto' ? 'on' : ''}">Automático</button>
+        <button data-tema="claro" class="${_tema === 'claro' ? 'on' : ''}">Claro</button>
+        <button data-tema="escuro" class="${_tema === 'escuro' ? 'on' : ''}">Escuro</button>
+      </div>
+
       <div class="text-xs muted" style="margin: 12px 0 8px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Segurança</div>
       <button class="btn btn--soft btn--block" id="btn-trocar-senha" ${!isFirebaseMode ? "disabled" : ""}>
         ${icon("settings")}<span>Alterar minha senha</span>
@@ -5458,6 +5471,13 @@ function openProfileModal() {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       aplicarAvatar($("#profile-avatar"), u);
+      const _seg = modal.querySelector("#gp-seg-tema");
+      const _pill = _seg?.querySelector(".pp-seg__pill");
+      _seg?.querySelectorAll("button").forEach((b, i) => b.addEventListener("click", () => {
+        cpSetTema(b.dataset.tema);
+        _seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+        if (_pill) _pill.style.transform = `translateX(${i * 100}%)`;
+      }));
       $("#btn-do-logout").addEventListener("click", () => { closeModal(); logout(); });
       const trocar = $("#btn-trocar-senha");
       if (trocar && isFirebaseMode) trocar.addEventListener("click", openTrocarSenhaModal);
@@ -13420,7 +13440,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.55.1";
+window.CURRENT_VERSION = "1.56.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

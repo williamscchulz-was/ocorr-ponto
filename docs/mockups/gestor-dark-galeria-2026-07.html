@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestor · tema escuro (verificado)</title>
+<style>
+  :root { --v: #008835; --tx: #16261a; --mut: #5b6b58; --bd: #dbe4d8; --bg: #eef2ec; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Poppins", system-ui, sans-serif; background: var(--bg); color: var(--tx); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 26px 18px 80px; }
+  h1 { font-size: 19px; margin: 0 0 4px; color: #05421f; }
+  .sub { color: var(--mut); font-size: 13.5px; margin: 0 0 18px; max-width: 780px; line-height: 1.5; }
+  .como { background: #fff; border: 1px solid var(--bd); border-radius: 14px; padding: 14px 16px; margin: 0 0 22px; font-size: 13px; color: #37483a; line-height: 1.55; }
+  .como b { color: #05421f; }
+  .como code { background: #eef2ec; border-radius: 5px; padding: 1px 5px; font-size: 12px; }
+  .selo { display: inline-block; background: #E0EAD8; color: #2F6B3F; font-weight: 700; font-size: 11px; padding: 3px 9px; border-radius: 20px; margin-right: 6px; }
+
+  .barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 14px; }
+  .seg { display: inline-flex; background: #fff; border: 1px solid var(--bd); border-radius: 12px; padding: 3px; gap: 2px; }
+  .seg button { border: none; background: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--mut); padding: 8px 16px; border-radius: 9px; cursor: pointer; }
+  .seg--tema button.on { background: #16261a; color: #fff; }
+  .rot { font-size: 12px; color: var(--mut); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+
+  h2.grp { font-size: 14px; color: #05421f; margin: 30px 0 12px; border-top: 1px solid var(--bd); padding-top: 22px; }
+  .palco { border: 1px solid var(--bd); border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px rgba(20,40,20,.10); background: #0E130E; margin-bottom: 6px; }
+  .palco img { display: block; width: 100%; height: auto; }
+  .leg { color: var(--mut); font-size: 12.5px; margin: 0 2px 22px; }
+  .leg b { color: var(--tx); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Portal do Gestor · tema escuro</h1>
+  <p class="sub"><span class="selo">verificado</span> Todas as telas abaixo são o app REAL no tema escuro, capturadas no harness com <b>0 erros</b>. O tema claro é o app de hoje (sem mudança).</p>
+
+  <div class="como">
+    <b>Como ficou:</b> um bloco de tokens de cor + 4 ajustes de chrome (sidebar verde bem escuro, marca, topbar do mobile). Tudo o mais recolore sozinho. O toggle "Aparência" (Automático · Claro · Escuro) vive na "Minha conta", igual ao do colaborador; a preferência fica no aparelho (<code>localStorage</code>). O <b>colaborador não muda em nada</b> (meu CSS é escopado só pro gestor).
+  </div>
+
+  <div class="barra">
+    <span class="rot">Comparar (Visão geral)</span>
+    <div class="seg seg--tema" id="seg-tema">
+      <button data-tema="light">Claro</button>
+      <button class="on" data-tema="dark">Escuro</button>
+    </div>
+  </div>
+  <div class="palco"><img id="hero" alt="Visão geral" src="/scratchpad/audit/out/gestor-dark-visaogeral.png"></div>
+  <p class="leg"><b>Visão geral</b> · clique em Claro/Escuro pra ver a mesma tela virar.</p>
+
+  <h2 class="grp">Todas as telas no escuro</h2>
+  <div class="palco"><img loading="lazy" alt="Ocorrências" src="/scratchpad/audit/out/gestor-dark-ocorrencias.png"></div>
+  <p class="leg"><b>Ocorrências</b> · abas, filtros, cartões, selo Conferir.</p>
+  <div class="palco"><img loading="lazy" alt="Banco de horas" src="/scratchpad/audit/out/dk-2-bancohoras.png"></div>
+  <p class="leg"><b>Banco de horas</b></p>
+  <div class="palco"><img loading="lazy" alt="Funcionários" src="/scratchpad/audit/out/dk-3-funcionarios.png"></div>
+  <p class="leg"><b>Funcionários</b> · filtros e pills de turno.</p>
+  <div class="palco"><img loading="lazy" alt="Espelho de ponto" src="/scratchpad/audit/out/dk-6-espelho.png"></div>
+  <p class="leg"><b>Espelho de ponto</b></p>
+  <div class="palco"><img loading="lazy" alt="Controle PJ" src="/scratchpad/audit/out/dk-7-pj.png"></div>
+  <p class="leg"><b>Controle PJ</b></p>
+  <div class="palco"><img loading="lazy" alt="Comunicados" src="/scratchpad/audit/out/dk-8-comunicados.png"></div>
+  <p class="leg"><b>Comunicados</b></p>
+  <div class="palco"><img loading="lazy" alt="Documentos" src="/scratchpad/audit/out/dk-9-documentos.png"></div>
+  <p class="leg"><b>Documentos</b></p>
+  <div class="palco"><img loading="lazy" alt="Disciplinar" src="/scratchpad/audit/out/dk-10-disciplinar.png"></div>
+  <p class="leg"><b>Disciplinar</b> · dado sensível, cores de severidade.</p>
+  <div class="palco"><img loading="lazy" alt="Auditoria" src="/scratchpad/audit/out/dk-11-auditoria.png"></div>
+  <p class="leg"><b>Auditoria</b></p>
+  <div class="palco"><img loading="lazy" alt="Obrigações" src="/scratchpad/audit/out/dk-12-obrigacoes.png"></div>
+  <p class="leg"><b>Obrigações</b></p>
+  <div class="palco"><img loading="lazy" alt="Configurações" src="/scratchpad/audit/out/dk-4-config.png"></div>
+  <p class="leg"><b>Configurações</b></p>
+  <div class="palco"><img loading="lazy" alt="Minha conta" src="/scratchpad/audit/out/dk-5-minhaconta.png"></div>
+  <p class="leg"><b>Minha conta</b> · aqui vive o toggle "Aparência".</p>
+
+  <h2 class="grp">Prova de que o colaborador não regrediu</h2>
+  <div class="palco"><img loading="lazy" alt="Colaborador dark" src="/scratchpad/audit/out/dk-colab-regressao.png"></div>
+  <p class="leg"><b>Portal do Colaborador no escuro</b> · idêntico ao que já está no ar (sidebar escura própria dele, hero verde). Meu CSS é escopado com <code>:not(.modo-colab)</code>, não toca aqui.</p>
+</div>
+
+<script>
+  var img = document.getElementById("hero");
+  document.getElementById("seg-tema").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    this.querySelectorAll("button").forEach(function (x){ x.classList.remove("on"); }); b.classList.add("on");
+    img.src = "/scratchpad/audit/out/gestor-" + b.dataset.tema + "-visaogeral.png";
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+setTimeout(() => { console.log("HARD-TIMEOUT"); process.exit(9); }, 120000);
+const H = await import("./harness.mjs");
+await H.iniciarServidor();
+const { browser, page } = await H.abrirContexto({ viewport: "desktop" });
+await page.goto(H.BASE_URL, { waitUntil: "domcontentloaded" });
+await H.seedGestor(page);
+await page.evaluate(() => { try { localStorage.setItem("fiopulse:tema","escuro"); cpAplicarTema(); renderApp(); } catch {} });
+await page.waitForTimeout(500);
+const OUT = "C:/projetos/ocorr-ponto/scratchpad/audit/out";
+const limpar = () => page.evaluate(() => document.querySelectorAll('[class*="toast"],[id*="toast"]').forEach((e) => e.remove()));
+const nav = async (rx, file) => {
+  await page.evaluate((r) => { const it=[...document.querySelectorAll(".nav__item")].find(n=>new RegExp(r,"i").test(n.textContent)); if(it) it.click(); }, rx);
+  await page.waitForTimeout(650); await limpar(); await page.waitForTimeout(130);
+  await page.screenshot({ path: OUT + "/" + file, fullPage: true });
+};
+await nav("Espelho", "dk-6-espelho.png");
+await nav("Controle PJ", "dk-7-pj.png");
+await nav("Comunicados", "dk-8-comunicados.png");
+await nav("Documentos", "dk-9-documentos.png");
+await nav("Disciplinar", "dk-10-disciplinar.png");
+await nav("Auditoria", "dk-11-auditoria.png");
+await nav("Obriga", "dk-12-obrigacoes.png");
+console.log("erros:", (await H.coletarErrosReais(page)).length);
+await browser.close(); process.exit(0);

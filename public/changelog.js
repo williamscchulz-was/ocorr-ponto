@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.55.1", d: "8 jul 2026", current: true, items: [
+    v: "1.56.0", d: "8 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "O Portal do Gestor ganhou tema escuro. Escolha em Minha conta, seção Aparência: Automático (segue o seu sistema), Claro ou Escuro. A preferência fica salva neste aparelho." },
+    ],
+  },
+  {
+    v: "1.55.1", d: "8 jul 2026", items: [
       { type: "med", aud: "gestor", title: "Na fila de conferência, a etiqueta \"Conferir\" ficou mais destacada (selo âmbar com ícone de alerta) e o texto do motivo saiu da linha; ele continua no detalhe da ocorrência." },
     ],
   },

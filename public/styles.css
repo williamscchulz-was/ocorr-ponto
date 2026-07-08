@@ -92,6 +92,31 @@
 
 }
 
+/* ============================================================
+   TEMA ESCURO DO GESTOR (.cp-dark em <html>, portal que NÃO é colaborador).
+   Espelha a paleta dark do colaborador (portal-colaborador.css, sob
+   .modo-colab.cp-dark); mantidos separados pra cada portal poder ajustar o
+   próprio chrome sem afetar o outro. Redefine os tokens semânticos -> o chrome
+   token-driven (cards, KPIs, gráficos, listas, pílulas, botões) recolore só.
+   Overrides pontuais só pro que não usa token: o verde vivo da sidebar/marca.
+   ============================================================ */
+html.cp-dark:not(.modo-colab) {
+  --bg:#0E130E; --milk:#0E130E; --surface:#161D15; --surface-warm:#1E261D; --milk-warm:#1E261D;
+  --border:#232C22; --border-strong:#2A332A; --milk-edge:#2A332A;
+  --text:#EDF3EA; --text-body:#EDF3EA; --text-muted:#8A9884;
+  --plum:#5FCB85; --plum-soft:#5FCB85; --plum-deep:#9FE0B5;
+  --success:#5FCB85; --success-bg:#193220; --warning:#E8B468; --warning-bg:#3A2E18; --warning-ink:#E8B468;
+  --danger:#E68A86; --danger-bg:rgba(150,47,50,.22); --info:#7FC4F0; --info-bg:rgba(0,118,190,.18);
+  --row-hover:#1A221A;
+}
+html.cp-dark:not(.modo-colab) body,
+html.cp-dark:not(.modo-colab) .app { background: var(--bg); }
+/* Sidebar: deixa de ser verde vivo (var(--plum)) e vira verde bem escuro,
+   mantendo a identidade do gestor; o texto creme das nav segue legível. */
+html.cp-dark:not(.modo-colab) .app__sidebar { background: #0F1A13; border-right: 1px solid #1E2A1F; }
+html.cp-dark:not(.modo-colab) .app__brand-mark { background: var(--plum); color: #0E130E; }
+html.cp-dark:not(.modo-colab) .topbar { background: var(--surface); color: var(--text-body); }
+
 * { box-sizing: border-box; }
 
 html, body {
