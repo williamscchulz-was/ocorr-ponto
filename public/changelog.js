@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.52.1", d: "8 jul 2026", current: true, items: [
+    v: "1.52.2", d: "8 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "O pareamento correto das batidas (cada horário na posição certa da jornada) agora vale pra toda ocorrência que traz o alinhamento da apuração, não só as detectadas pelo espelho. Corrige casos de falta parcial que mostravam os horários deslocados." },
+    ],
+  },
+  {
+    v: "1.52.1", d: "8 jul 2026", items: [
       { type: "fix", title: "No card de aniversário, quem parabenizou agora aparece como mini avatares com as iniciais, em vez de bolinhas vazias." },
     ],
   },

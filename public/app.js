@@ -8779,11 +8779,11 @@ function ocaDashCardHtml(o) {
   // vem null e o previsto vai ROTULADO.
   let batida1 = o.horarioRelevante || String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean)[0] || "";
   const prev1 = o.horarioPrevistoRelevante || o.horario || String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean)[0] || "";
-  // Doc alinhado (999-detector): resolve a batida pela POSIÇÃO da marcação relevante.
+  // Doc alinhado (999-detector OU relacao-ocorrencias, WK 2026-07-08): resolve a batida pela POSIÇÃO da marcação relevante.
   // Se essa posição ficou SEM batida (ex.: não registrou a entrada), não existe horário
   // batido a mostrar — batida1 vazia derruba pro "prev. HH:MM", em vez de pescar a 1ª
   // batida crua (que é OUTRA marcação, ex.: a saída pro almoço; casos Vinicius/Enildo 06/07).
-  if (o.fonteInferida && Array.isArray(o.apuradasAlinhadas)) {
+  if (Array.isArray(o.apuradasAlinhadas)) {
     const pArr = String(ocaFmtMarc(o.marcacoesPrevistas)).split(/\s+/).filter(Boolean);
     const ri = o.horarioPrevistoRelevante ? pArr.indexOf(o.horarioPrevistoRelevante) : -1;
     batida1 = ri >= 0 ? String(o.apuradasAlinhadas[ri] || "").trim() : (o.horarioRelevante || "");
@@ -8954,7 +8954,7 @@ function minParaDuracaoFmt(min) { return `${Math.floor(min / 60)}:${String(min %
 // apuradasAlinhadas: mesmo tamanho de previstas, com null na posição sem batida (vira ""
 // pra cair no "sem batida" do render). Nos demais docs o pareamento cru já casa. WKRADAR 2026-07-07.
 function ocaBatidasAlinhadas(o) {
-  if (o.fonteInferida && Array.isArray(o.apuradasAlinhadas)) {
+  if (Array.isArray(o.apuradasAlinhadas)) {
     return o.apuradasAlinhadas.map((x) => (x == null ? "" : String(x).trim()));
   }
   return String(ocaFmtMarc(o.marcacoesApuradas || o.marcacoes)).split(/\s+/).filter(Boolean);
@@ -13303,7 +13303,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.52.1";
+window.CURRENT_VERSION = "1.52.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
