@@ -1783,3 +1783,20 @@ Diagnóstico 100% read-only (doc do Aldo + amostra `ocorrencias-auto` + cross-ch
 território do PC — reportado urgente via bridge
 (`2026-07-08-urgente-supervisor-nao-le-ocorrencias-auto.md`) com o fix proposto
 (espelhar o `|| isSupervisor()` da coleção antiga) em vez de eu mexer na rule.
+
+**Ampliação (mesmo dia, William: "não é só o Aldo né, tem que checar tudo")**:
+1. **Alcance real**: 4 supervisores ativos no total (Jacques, Aldo, Anderson,
+   Joacir) — todos igualmente bloqueados, o bug é da ROLE inteira, não de uma pessoa.
+2. **Auditoria completa do `firestore.rules`** (25 `match` blocks, arquivo inteiro
+   lido e comparado role a role): achado um **2º caso da mesma classe** —
+   `match /disciplinares/{id}` (+ subcoleção `ciencia`) tem `liderDoMesmoTurno(...)`
+   no read mas `isSupervisor()` nunca aparece, nem hardcoded nem via `temCap`. Mesmo
+   padrão do `ocorrencias-auto`: líder presente, supervisor ausente, quando o resto
+   do arquivo trata os dois como papéis paralelos. Não confirmado se é intencional
+   (disciplinar pode ser proposital só-líder, mais sensível) ou o mesmo esquecimento.
+   Revisadas também `comunicados`/`documentos`/`banco-horas`(kebab)/`pipeline-rh` —
+   padrão DIFERENTE ali (líder TAMBÉM ausente, não só supervisor), sugere design
+   intencional (conteúdo só RH autoriza), não bug — mencionado por completude, baixa
+   prioridade. As outras 18 coleções conferem certinho contra `config/permissoes`
+   (onde a exclusão de líder/supervisor é explícita na matriz — PII/dado sensível,
+   não lacuna). Reportado em `2026-07-08b-supervisor-alcance-real-e-2o-caso-disciplinares.md`.
