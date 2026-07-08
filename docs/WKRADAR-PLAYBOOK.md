@@ -64,9 +64,20 @@ Firestore (projeto ocorr-ponto)  →  app FioPulse
 |---|---|---|---|
 | WKRadar Export D_Empregado | 07:40 | `ExportacaoAutomatica.exe Config_Informativos.txt /Silent` | Ready |
 | ~~WKRadar Export BH~~ | ~~07:45~~ | `ExportacaoAutomatica.exe Config_Banco_de_Horas.txt /Silent` | **Disabled** (2026-05-29) |
-| Fiobras Pipeline RH | 08:00 | `node C:\fiobras-pipeline-rh\run-pipeline.mjs` | Ready |
+| Fiobras Pipeline RH | 09:00 / 11:00 / 14:00 (3x/dia) | `node C:\fiobras-pipeline-rh\run-pipeline.mjs` | Ready |
 
-⚠️ Tarefas estão em modo **"Interativo apenas"** — só rodam quando o usuário `wkradar` está logado na máquina.
+⚠️ Tarefas estão em modo **"Interativo apenas"** (`LogonType=Interactive`) — só rodam quando
+o usuário `wkradar` está logado na máquina, e o processo roda DENTRO da sessão gráfica dele
+(console visível). Achado 2026-07-08 (reclamação do William, "coisa aparecendo na tela"):
+confirmado via log que isso já causou pelo menos 1 dia inteiro de rodadas silenciosamente
+puladas (2026-06-05, zero linhas em `pipeline-bh.log`). Fix é migrar `LogonType` pra
+`Password` (igual às 9 tasks do pipeline Comercial, que já rodam assim há meses sem
+problema) — exige a senha do usuário `wkradar`, só ele pode aplicar. Tentativa via GUI
+(Propriedades → "Executar estando o usuário conectado ou não") deu erro genérico do Task
+Scheduler ("um ou mais argumentos não são válidos") — suspeita de senha em branco na conta
+OU do campo "Configurar para" estar em modo de compatibilidade antigo (Windows Vista/Server
+2008, visível na mesma tela). **Adiado a pedido do William (2026-07-08)** — não é bloqueio
+urgente. Detalhe completo em `HISTORICO-DECISOES.md`.
 
 > **📌 Mudança 2026-05-29 (fix do saldo travado):** a pipeline das **08:00** agora reescreve as datas e **re-exporta o BH ela mesma** (passos 0 e 1 do `run-pipeline.mjs`). Por quê: a `DataFinal` não estende sozinha (ver §4), então um export com data velha congela o saldo; a pipeline corrige atualizando `DataFinal=hoje` e re-rodando o `.exe` antes de parsear. Como isso tornou o export das 07:45 **redundante** (e o `.exe` é instância única — exports simultâneos dão "Acesso negado"), a tarefa **WKRadar Export BH (07:45) foi DESABILITADA** — a pipeline das 08:00 é a **dona única** do export de BH. A tarefa **D_Empregado (07:40)** continua sendo a única fonte do CSV de cadastro (a pipeline não re-exporta esse — não tem problema de data).
 >
