@@ -1297,18 +1297,6 @@
     window.lancarOcorrenciaAuto = (id) => _lancamentoOca(id, true);
     window.desfazerLancamentoAuto = (id) => _lancamentoOca(id, false);
 
-    // Últimos eventos da trilha (Visão geral). A rule de /eventos limita a leitura
-    // a admin e cap auditoria.ver; quem não pode nem chama (o cartão não renderiza).
-    window.carregarEventosRecentes = async function (n) {
-      try {
-        const snap = await db.collection("eventos").orderBy("em", "desc").limit(n || 5).get();
-        state.eventosRecentes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      } catch (e) {
-        debug?.("[eventos] recentes:", e?.message || e);
-        state.eventosRecentes = [];
-      }
-    };
-
     // config/aniversariantes (sem PII: nome/dia/mes). Leitura autenticada (rule config/{doc}).
     window.carregarAniversariantes = async function () {
       try {

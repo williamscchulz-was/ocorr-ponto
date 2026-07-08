@@ -1216,31 +1216,6 @@ textarea:focus-visible,
 .stat--kpi { flex: 1.7 1 0; }
 .stat--kpi .stat__value { font-size: 32px; }
 
-/* ============================================
-   KPIs da Visão geral — redesign 2026-07-08 (direção A + sparkline B, aprovado).
-   Cards soltos arredondados com ícone; o de ação com o verde da marca + CTA.
-   ============================================ */
-.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin: 0 0 20px; }
-.kpi { position: relative; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px 16px 15px; box-shadow: 0 1px 2px rgba(10, 60, 30, .04); transition: transform .15s var(--ease), box-shadow .15s ease; }
-.kpi:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(10, 60, 30, .10); }
-.kpi__ic { width: 38px; height: 38px; border-radius: 12px; background: var(--success-bg); color: var(--plum); display: grid; place-items: center; margin-bottom: 12px; }
-.kpi__ic .icon { width: 19px; height: 19px; }
-.kpi__ic--warn { background: var(--warning-bg); color: var(--warning-ink); }
-.kpi__ic--bad { background: #fbe9e7; color: var(--danger); }
-.kpi__lb { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
-.kpi__vl { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin-top: 3px; line-height: 1.05; font-variant-numeric: tabular-nums; }
-.kpi__ht { font-size: 11.5px; color: var(--text-muted); margin-top: 7px; }
-.kpi__cta { margin-top: 11px; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; background: #fff; color: var(--plum); font-size: 12px; font-weight: 700; border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; cursor: pointer; transition: background .15s ease; }
-.kpi__cta:hover { background: var(--surface-warm); }
-.kpi__cta .icon { width: 14px; height: 14px; }
-.kpi__spark { width: 100%; height: 24px; margin-top: auto; padding-top: 12px; display: block; box-sizing: content-box; }
-.kpi--accent { background: linear-gradient(160deg, var(--plum-soft), var(--plum)); border-color: transparent; color: #fff; }
-.kpi--accent .kpi__vl { color: #fff; }
-.kpi--accent .kpi__ic { background: rgba(255, 255, 255, .16); color: #fff; }
-.kpi--accent .kpi__lb, .kpi--accent .kpi__ht { color: rgba(255, 255, 255, .82); }
-.kpi--accent .kpi__cta { background: #fff; color: var(--plum); border-color: transparent; }
-@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
-@media (prefers-reduced-motion: reduce) { .kpi { transition: none; } .kpi:hover { transform: none; } }
 .stat--kpi::before {
   content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
   background: var(--plum);
@@ -2255,22 +2230,12 @@ textarea:focus-visible,
 .vg-pend .icon:last-child { color: var(--text-muted); width: 15px; height: 15px; }
 .vg-ok { display: flex; align-items: center; gap: 9px; color: var(--text-muted); font-size: 13px; padding: 6px 2px; }
 .vg-ok .icon { width: 16px; height: 16px; color: var(--plum); }
-.vg-chart { width: 100%; max-width: 620px; height: auto; display: block; }
-.vg-leg { display: flex; gap: 16px; margin-top: 8px; font-size: 11.5px; color: var(--text-muted); }
-.vg-leg span { display: inline-flex; align-items: center; gap: 6px; }
-.vg-leg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .vg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; margin-bottom: 14px; }
 .vg-grid > * { margin-bottom: 0 !important; }
 @media (max-width: 860px) { .vg-grid { grid-template-columns: 1fr; } }
 .vg-adm { display: flex; align-items: center; gap: 11px; padding: 8px 0; }
 .vg-adm__bd b { display: block; font-size: 13.5px; font-weight: 600; }
 .vg-adm__bd span { font-size: 12px; color: var(--text-muted); }
-.vg-evt { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-.vg-evt:last-of-type { border-bottom: 0; }
-.vg-evt__tipo { flex: none; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--plum); background: var(--milk-warm); border-radius: 7px; padding: 2px 8px; }
-.vg-evt__acao { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vg-evt__h { flex: none; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.vg-vera { margin-top: 10px; }
 
 /* Hub de atalhos do gestor na Home (mobile): mesma anatomia do hub do colaborador. */
 .ghub { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 10px; margin: 2px 0 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
@@ -2604,86 +2569,10 @@ html.firebase-mode .login__forgot { display: block; }
 /* ============================================
    Aniversariantes (Dashboard · minimalista)
    ============================================ */
-.niver-mini {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-  padding: 4px 2px 14px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-.niver-mini__label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-.niver-mini__nomes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px 14px;
-}
-.niver-mini__item {
-  font-size: 12px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.niver-mini__dia {
-  opacity: 0.5;
-  margin-left: 3px;
-  font-variant-numeric: tabular-nums;
-}
-.niver-mini__item.is-today {
-  color: var(--plum);
-  font-weight: 700;
-}
-.niver-mini__item.is-today::before {
-  content: "";
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--plum);
-  margin-right: 5px;
-  vertical-align: middle;
-}
-.niver-mini__item.is-today .niver-mini__dia { opacity: 0.7; }
 
 /* ============================================
    Demografia (Dashboard widget · admin only)
    ============================================ */
-.dashboard-demografia {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 16px;
-  padding: 12px 16px;
-}
-.dashboard-demografia summary {
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.dashboard-demografia summary::-webkit-details-marker {
-  display: none;
-}
-.dashboard-demografia summary::before {
-  content: "▸";
-  font-size: 10px;
-  transition: transform 160ms;
-  display: inline-block;
-}
-.dashboard-demografia[open] summary::before {
-  transform: rotate(90deg);
-}
 .dashboard-demografia__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -3069,6 +2958,69 @@ html.firebase-mode .login__forgot { display: block; }
   font-variant-numeric: tabular-nums;
 }
 @media (max-width: 720px) { .aud__sums { grid-template-columns: repeat(2, 1fr); } }
+
+/* ============================================================
+   VISÃO GERAL redesenho 2026-07 (mock aprovado): régua vertical única +
+   KPIs no padrão limpo da Auditoria com delta mensal + Precisa de você em
+   destaque + aniversariantes com rosto do dia + demografia/ranking em
+   acordeão de largura cheia (expandir nunca desalinha o par).
+   ============================================================ */
+.vg-stack { display: flex; flex-direction: column; gap: 14px; }
+.vg-stack > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+.vg-stack .page-header { margin-bottom: 6px !important; }
+
+/* KPIs padrão Auditoria (.aud__sum) + delta mensal */
+.kpis-a { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.kpi-a { border: 1px solid var(--border); border-radius: var(--radius); background: var(--milk-warm); padding: 14px 16px; display: flex; flex-direction: column; }
+.kpi-a__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.kpi-a__top .icon { width: 15px; height: 15px; opacity: .7; flex: none; }
+.kpi-a__vl { font-size: 30px; font-weight: 800; line-height: 1.12; color: var(--text-body); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.kpi-a__delta { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi-a__delta svg { width: 8px; height: 8px; flex: none; }
+.kpi-a__delta--good { color: var(--success); }
+.kpi-a__delta--bad { color: var(--danger); }
+.kpi-a__delta--flat { color: var(--text-muted); }
+.kpi-a__ht { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+@media (max-width: 900px) { .kpis-a { grid-template-columns: repeat(2, 1fr); } }
+
+/* Precisa de você: bloco de ação em destaque */
+.vg-feat { display: flex; align-items: center; gap: 18px; background: linear-gradient(135deg, rgba(0, 136, 53, .08), rgba(0, 136, 53, .02)); border: 1px solid rgba(0, 136, 53, .22); border-radius: 14px; padding: 16px 20px; }
+.vg-feat__num { font-size: 36px; font-weight: 800; letter-spacing: -.02em; line-height: 1; color: var(--plum); font-variant-numeric: tabular-nums; flex: none; }
+.vg-feat__tx { flex: 1; min-width: 0; }
+.vg-feat__tx b { display: block; font-size: 14.5px; font-weight: 700; color: var(--text-body); }
+.vg-feat__tx span { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.vg-feat__btn { flex: none; min-height: 44px; }
+.vg-feat__btn .icon:last-child { width: 15px; height: 15px; }
+@media (max-width: 640px) { .vg-feat { flex-wrap: wrap; gap: 12px 16px; } .vg-feat__btn { width: 100%; justify-content: center; } }
+
+/* Aniversariantes: destaque do dia + chips com inicial */
+.niver-hoje { display: flex; align-items: center; gap: 13px; background: var(--success-bg); border-radius: 12px; padding: 11px 14px; margin-bottom: 12px; }
+.niver-hoje__av { width: 42px; height: 42px; border-radius: 50%; background: var(--plum); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 15px; flex: none; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--plum); }
+.niver-hoje__bd { flex: 1; min-width: 0; }
+.niver-hoje__bd b { display: block; font-size: 14px; font-weight: 700; }
+.niver-hoje__bd span { display: block; font-size: 12px; color: var(--success); font-weight: 600; }
+.niver-hoje__pill { flex: none; background: var(--plum); color: #fff; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 4px 11px; border-radius: 999px; }
+.niver-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.niver-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12.5px; font-weight: 600; color: var(--text-body); }
+.niver-chip__av { width: 26px; height: 26px; border-radius: 50%; background: var(--success-bg); color: var(--plum); display: grid; place-items: center; font-size: 10.5px; font-weight: 700; flex: none; }
+.niver-chip__d { color: var(--text-muted); font-weight: 600; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+
+/* Demografia e Ranking: mesmo chrome de card, empilhados em largura cheia,
+   acordeão que só empurra pra baixo (nunca desalinha um par) */
+details.vg-exp summary { list-style: none; display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); min-height: 30px; }
+details.vg-exp summary::-webkit-details-marker { display: none; }
+details.vg-exp summary:hover { color: var(--text-body); }
+details.vg-exp summary .icon { width: 15px; height: 15px; flex: none; }
+details.vg-exp summary .chev { margin-left: auto; transition: transform .18s var(--ease); }
+details.vg-exp[open] summary .chev { transform: rotate(90deg); }
+.vg-exp__n { font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; background: var(--surface-warm); color: var(--text-muted); padding: 3px 10px; border-radius: 999px; }
+.vg-exp__body { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+details.vg-exp .dashboard-demografia__grid { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+@media (min-width: 861px) {
+  details.vg-exp .dashboard-ranking { display: grid; grid-auto-flow: column; grid-template-rows: repeat(5, auto); grid-template-columns: 1fr 1fr; column-gap: 36px; }
+  details.vg-exp .dashboard-ranking .rk:nth-child(6) { border-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) { details.vg-exp summary .chev { transition: none; } }
 
 .aud__ro {
   display: inline-flex;

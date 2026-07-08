@@ -1,0 +1,14 @@
+setTimeout(() => { console.log("HARD-TIMEOUT"); process.exit(9); }, 90000);
+const H = await import("./harness.mjs");
+await H.iniciarServidor();
+const { browser, page } = await H.abrirContexto({ viewport: "desktop" });
+await page.goto(H.BASE_URL, { waitUntil: "domcontentloaded" });
+await H.seedGestor(page);
+await page.evaluate(() => { try { localStorage.setItem("fiopulse:tema","escuro"); cpAplicarTema(); renderApp(); } catch {} });
+await page.addStyleTag({ content: "#toast-root{display:none!important}" });
+await page.waitForTimeout(500);
+await page.evaluate(() => document.querySelectorAll("details.vg-exp").forEach(d => d.open = true));
+await page.waitForTimeout(250);
+await page.screenshot({ path: "C:/projetos/ocorr-ponto/scratchpad/audit/out/vg-real-dark.png", fullPage: false });
+console.log("erros:", (await H.coletarErrosReais(page)).length);
+await browser.close(); process.exit(0);

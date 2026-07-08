@@ -3539,19 +3539,27 @@ function renderAniversariantesWidget(u) {
     "janeiro", "fevereiro", "março", "abril", "maio", "junho",
     "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
   ];
+  const inic = (nome) => escapeHtml((nome || "?").trim().charAt(0).toUpperCase());
+  const CAL = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
 
-  const itens = niverMes.map((f) => {
-    const ehHoje = Number(f.aniversarioDia) === dia;
+  const destaque = niverMes.filter((f) => Number(f.aniversarioDia) === dia).map((f) => `
+    <div class="niver-hoje">
+      <div class="niver-hoje__av">${inic(f.nome)}</div>
+      <div class="niver-hoje__bd"><b>${escapeHtml((f.nome || "?").split(" ")[0])}</b><span>faz aniversário hoje</span></div>
+      <span class="niver-hoje__pill">Hoje · ${String(f.aniversarioDia).padStart(2, "0")}</span>
+    </div>`).join("");
+  const chips = niverMes.filter((f) => Number(f.aniversarioDia) !== dia).map((f) => {
     const primeiro = escapeHtml((f.nome || "?").split(" ")[0]);
     const d = String(f.aniversarioDia).padStart(2, "0");
-    return `<span class="niver-mini__item${ehHoje ? " is-today" : ""}" title="${escapeHtml(f.nome)}">${primeiro}<span class="niver-mini__dia">${d}</span></span>`;
+    return `<span class="niver-chip" title="${escapeHtml(f.nome)}"><span class="niver-chip__av">${inic(f.nome)}</span>${primeiro}<span class="niver-chip__d">${d}</span></span>`;
   }).join("");
 
   return `
-    <div class="niver-mini">
-      <span class="niver-mini__label">Aniversariantes de ${MESES_FULL[mes - 1]}</span>
-      <span class="niver-mini__nomes">${itens}</span>
-    </div>`;
+    <section class="vg-card">
+      <h3 class="vg-h">${CAL}<span>Aniversariantes de ${MESES_FULL[mes - 1]}</span></h3>
+      ${destaque}
+      ${chips ? `<div class="niver-chips">${chips}</div>` : ""}
+    </section>`;
 }
 
 // Widget de demografia agregada — admin only, collapsed por default.
@@ -3588,9 +3596,9 @@ function renderRankingTempoCasaWidget(u) {
       </div>`;
   }).join("");
   return `
-    <details class="dashboard-demografia">
-      <summary>Ranking — Tempo de casa <span class="muted text-xs">(Top ${comDias.length})</span></summary>
-      <div class="dashboard-ranking">${linhas}</div>
+    <details class="vg-card vg-exp">
+      <summary><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Ranking · tempo de casa</span><span class="vg-exp__n">Top ${comDias.length}</span><svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></summary>
+      <div class="vg-exp__body"><div class="dashboard-ranking">${linhas}</div></div>
     </details>`;
 }
 
@@ -3642,8 +3650,8 @@ function renderDemografiaWidget(u) {
     .slice(0, 3);
 
   return `
-    <details class="dashboard-demografia">
-      <summary>Demografia da empresa <span class="muted text-xs">(${pool.length} ativos)</span></summary>
+    <details class="vg-card vg-exp">
+      <summary><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Demografia da empresa</span><span class="vg-exp__n">${pool.length} ativos</span><svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></summary>
       <div class="dashboard-demografia__grid">
         <div class="demografia-bloco">
           <div class="demografia-bloco__label">Idade média</div>
@@ -3747,72 +3755,40 @@ function vgPrecisaDeVoce(u) {
   const nRhConfere = podeRh ? ocaDoEstagio("rh_confere").length : 0;
   const nComLider = ocaDoEstagio("com_lider").length;
   const linhas = [];
-  if (nRhConfere) linhas.push({ ir: "rh-confere", ic: "shield", txt: `${nRhConfere} ocorrência${nRhConfere > 1 ? "s" : ""} aguardando a GP` });
   const pendConf = pending.length + nComLider;
-  if (pendConf) linhas.push({ ir: "pendentes", ic: "clipboard", txt: `${pendConf} pendente${pendConf > 1 ? "s" : ""} de conferência` });
+  if (pendConf) linhas.push({ ir: "pendentes", ic: "clipboard", n: pendConf, lb: `ocorrência${pendConf > 1 ? "s" : ""} pendente${pendConf > 1 ? "s" : ""} de conferência`, acao: "Conferir agora" });
+  if (nRhConfere) linhas.push({ ir: "rh-confere", ic: "shield", n: nRhConfere, lb: `ocorrência${nRhConfere > 1 ? "s" : ""} aguardando a GP`, acao: "Ver agora" });
   if (can("func.ver")) {
     const semTurno = (state.funcionarios || []).filter((f) => f.ativo !== false && !f.turno && f.diretor !== true).length;
-    if (semTurno) linhas.push({ page: "funcionarios", ic: "users", txt: `${semTurno} funcionário${semTurno > 1 ? "s" : ""} sem turno definido` });
+    if (semTurno) linhas.push({ page: "funcionarios", ic: "users", n: semTurno, lb: `funcionário${semTurno > 1 ? "s" : ""} sem turno definido`, acao: "Ajustar" });
   }
   if (can("documentos.gerenciar") && Array.isArray(state.recibos) && state.recibos.length) {
     const semAss = state.recibos.filter((r) => !(r.assinaturas || []).length).length;
-    if (semAss) linhas.push({ page: "documentos", tab: "recibos", ic: "file", txt: `${semAss} recibo${semAss > 1 ? "s" : ""} aguardando assinatura` });
+    if (semAss) linhas.push({ page: "documentos", tab: "recibos", ic: "file", n: semAss, lb: `recibo${semAss > 1 ? "s" : ""} aguardando assinatura`, acao: "Ver recibos" });
   }
+  const attrs = (l) => `${l.ir ? `data-vg-ir="${l.ir}"` : ""} ${l.page ? `data-vg-page="${l.page}"` : ""} ${l.tab ? `data-vg-tab="${l.tab}"` : ""}`;
+  const CHEV = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+  if (!linhas.length) {
+    return `
+    <section class="vg-card">
+      <h3 class="vg-h">${icon("alert")}<span>Precisa de você</span></h3>
+      <div class="vg-ok">${icon("check")}<span>Tudo em dia. Nada esperando por você.</span></div>
+    </section>`;
+  }
+  const dest = linhas[0], resto = linhas.slice(1);
+  const sub = resto.length ? "a fila mais urgente primeiro" : "é a única fila esperando por você hoje";
   return `
     <section class="vg-card">
       <h3 class="vg-h">${icon("alert")}<span>Precisa de você</span></h3>
-      ${linhas.length ? linhas.map((l) => `
-        <button class="vg-pend" ${l.ir ? `data-vg-ir="${l.ir}"` : ""} ${l.page ? `data-vg-page="${l.page}"` : ""} ${l.tab ? `data-vg-tab="${l.tab}"` : ""}>
-          ${icon(l.ic)}<span>${escapeHtml(l.txt)}</span>${icon("chevron")}
-        </button>`).join("") : `<div class="vg-ok">${icon("check")}<span>Tudo em dia. Nada esperando por você.</span></div>`}
+      <div class="vg-feat">
+        <div class="vg-feat__num">${dest.n}</div>
+        <div class="vg-feat__tx"><b>${escapeHtml(dest.lb)}</b><span>${sub}</span></div>
+        <button class="btn btn--primary vg-feat__btn" ${attrs(dest)}><span>${escapeHtml(dest.acao)}</span>${CHEV}</button>
+      </div>
+      ${resto.map((l) => `<button class="vg-pend" ${attrs(l)}>${icon(l.ic)}<span>${l.n} ${escapeHtml(l.lb)}</span>${icon("chevron")}</button>`).join("")}
     </section>`;
 }
 
-// Barras empilhadas dos últimos 6 meses (faltas/atrasos/saídas), do RECORTE do
-// usuário (visibleOcorrencias + automáticas que a regra deixou ele carregar).
-function vgTendenciaHtml() {
-  const agora = new Date();
-  const meses = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
-    meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-  }
-  const grupo = (rot) => { const t = String(rot || "").toLowerCase(); return t.includes("falta") ? 0 : t.includes("atraso") ? 1 : 2; };
-  const dados = meses.map(() => [0, 0, 0]);
-  visibleOcorrencias().forEach((o) => {
-    const i = meses.indexOf(String(o.data || "").slice(0, 7));
-    if (i >= 0) dados[i][grupo(getTipo(o.tipo)?.label || o.tipo)]++;
-  });
-  (state.ocorrenciasAuto || []).forEach((o) => {
-    const i = meses.indexOf(String(o.dataIso || "").slice(0, 7));
-    if (i >= 0) dados[i][grupo(o.tipo)]++;
-  });
-  const tot = dados.map((d) => d[0] + d[1] + d[2]);
-  if (!tot.some(Boolean)) return "";
-  const max = Math.max(...tot, 1);
-  const W = 560, H = 150, pad = 8, bw = 44, gap = (W - pad * 2 - bw * 6) / 5;
-  const cores = ["#C9595E", "#D9A441", "#5B8FD9"];
-  let sv = "";
-  dados.forEach((d, i) => {
-    const x = pad + i * (bw + gap);
-    let y = H - 24;
-    d.forEach((v, gi) => {
-      if (!v) return;
-      const h = Math.max(3, (v / max) * (H - 52));
-      y -= h;
-      sv += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" fill="${cores[gi]}" opacity=".85"><title>${v}</title></rect>`;
-    });
-    const mm = parseInt(meses[i].slice(5), 10);
-    sv += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#7A8578">${OCA_MESES[mm - 1] || mm}</text>`;
-    if (tot[i]) sv += `<text x="${x + bw / 2}" y="${y - 5}" text-anchor="middle" font-size="10" font-weight="700" fill="#4A554A">${tot[i]}</text>`;
-  });
-  return `
-    <section class="vg-card">
-      <h3 class="vg-h">${icon("clipboard")}<span>Ocorrências por mês</span></h3>
-      <svg viewBox="0 0 ${W} ${H}" class="vg-chart" role="img" aria-label="Ocorrências por mês, últimos 6 meses">${sv}</svg>
-      <div class="vg-leg"><span><i style="background:#C9595E"></i>Faltas</span><span><i style="background:#D9A441"></i>Atrasos</span><span><i style="background:#5B8FD9"></i>Outras</span></div>
-    </section>`;
-}
 
 // Admissões dos últimos 120 dias, no recorte do papel (some se não houver).
 function vgAdmissoesHtml(u) {
@@ -3838,30 +3814,6 @@ function vgAdmissoesHtml(u) {
     </section>`;
 }
 
-// Últimos eventos da trilha (só quem pode ler /eventos: admin e cap auditoria.ver).
-function vgAtividadeHtml() {
-  if (!can("auditoria.ver")) return "";
-  if (state.eventosRecentes == null) {
-    if (window.carregarEventosRecentes && !state._evtCarregando) {
-      state._evtCarregando = true;
-      window.carregarEventosRecentes(5).finally(() => {
-        state._evtCarregando = false;
-        if (state.view.page === "visao-geral") renderApp();
-      });
-    }
-    return `<section class="vg-card"><h3 class="vg-h">${icon("shield")}<span>Atividade recente</span></h3><div class="vg-ok"><span>Carregando a trilha...</span></div></section>`;
-  }
-  const evs = state.eventosRecentes || [];
-  return `
-    <section class="vg-card">
-      <h3 class="vg-h">${icon("shield")}<span>Atividade recente</span></h3>
-      ${evs.length ? evs.map((e) => {
-        const hora = e.em && e.em.toDate ? e.em.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
-        return `<div class="vg-evt"><span class="vg-evt__tipo">${escapeHtml(e.tipo || "evento")}</span><span class="vg-evt__acao">${escapeHtml(e.acao || "")}</span><span class="vg-evt__h">${escapeHtml(hora)}</span></div>`;
-      }).join("") : `<div class="vg-ok"><span>Sem eventos registrados ainda.</span></div>`}
-      <button class="btn btn--soft btn--sm vg-vera" data-vg-page="auditoria">${icon("shield")}<span>Ver auditoria completa</span></button>
-    </section>`;
-}
 
 // Turnover (rotatividade): desligados / quadro ativo. Mensal (mês corrente) + anualizado
 // (12 meses móveis). Usa admissao/demissao/ativo que já temos, nada novo do pipeline. Escopo
@@ -3919,18 +3871,38 @@ function vgSeries(u, visible) {
     }).length;
     return man + auto;
   });
-  return { ativos, turnover, resolvidas };
+  // Ocorrencias REGISTRADAS por mes (absorve o grafico removido): total por mes,
+  // manual (o.data) + automatica (o.dataIso), chave "YYYY-MM".
+  const registradas = meses.map((mm) => {
+    const alvo = `${mm.y}-${String(mm.m + 1).padStart(2, "0")}`;
+    const man = (visible || []).filter((o) => String(o.data || "").slice(0, 7) === alvo).length;
+    const auto = (state.ocorrenciasAuto || []).filter((o) => String(o.dataIso || "").slice(0, 7) === alvo).length;
+    return man + auto;
+  });
+  return { ativos, turnover, resolvidas, registradas };
 }
 
-// Sparkline em barras (SVG), série normalizada, última barra em destaque. "" se toda zero.
-function vgSpark(serie, cor) {
-  if (!Array.isArray(serie) || !serie.some((n) => n > 0)) return "";
-  const max = Math.max(...serie, 1), w = 100, gap = 3, n = serie.length, bw = (w - gap * (n - 1)) / n, h = 24;
-  const barras = serie.map((v, i) => {
-    const bh = Math.max(2, (v / max) * h), x = i * (bw + gap), y = h - bh;
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.4" fill="${cor}" opacity="${i === n - 1 ? 1 : 0.4}"/>`;
-  }).join("");
-  return `<svg class="kpi__spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${barras}</svg>`;
+
+// Linha de delta mensal do KPI (padrao Auditoria): seta + valor + "vs <mes>".
+// Cor por metrica: good/bad conforme a direcao (inverter=true pro turnover, onde
+// cair e bom); neutro=true = so informativo (cinza). casas = decimais (turnover).
+function vgDeltaHtml(diff, opts) {
+  opts = opts || {};
+  if (diff == null || !isFinite(diff)) return "";
+  const up = `<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 2.2 8.4 7H1.6Z" fill="currentColor"/></svg>`;
+  const down = `<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 7.8 1.6 3h6.8Z" fill="currentColor"/></svg>`;
+  const lim = opts.casas ? 0.05 : 0.5;
+  const zero = Math.abs(diff) < lim;
+  let cls = "kpi-a__delta--flat", caret = "";
+  if (!zero) {
+    caret = diff > 0 ? up : down;
+    if (!opts.neutro) { const bom = opts.inverter ? diff < 0 : diff > 0; cls = bom ? "kpi-a__delta--good" : "kpi-a__delta--bad"; }
+  }
+  const abs = Math.abs(diff);
+  const val = opts.casas ? abs.toLocaleString("pt-BR", { minimumFractionDigits: opts.casas, maximumFractionDigits: opts.casas }) : String(Math.round(abs));
+  const uni = opts.unidade ? " " + opts.unidade : "";
+  const txt = zero ? `estável vs ${opts.mes}` : `${diff > 0 ? "+" : "−"}${val}${uni} vs ${opts.mes}`;
+  return `<div class="kpi-a__delta ${cls}">${caret}<span>${escapeHtml(txt)}</span></div>`;
 }
 
 function renderVisaoGeral() {
@@ -3950,10 +3922,16 @@ function renderVisaoGeral() {
   const nDoneAuto = ocaDoEstagio("confirmada").length;
   const tv = vgTurnover(u);
   const tvFmt = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
-  const tvCor = tv.banda === "bad" ? "var(--danger)" : tv.banda === "warn" ? "var(--warning-ink)" : "var(--text-body)";
   const serie = vgSeries(u, visible);
+  const MESES_VG = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const mesAnt = MESES_VG[(new Date().getMonth() + 11) % 12];
+  const dReg = serie.registradas[5] - serie.registradas[4];
+  const dAtivos = serie.ativos[5] - serie.ativos[4];
+  const dResolv = serie.resolvidas[5] - serie.resolvidas[4];
+  const dTurn = serie.turnover[5] - serie.turnover[4];
 
   $("#view").innerHTML = `
+    <div class="vg-stack">
     <header class="page-header">
       <div>
         <h1>${greetingText(u)}</h1>
@@ -3966,54 +3944,47 @@ function renderVisaoGeral() {
 
     ${gestorAtalhosHtml(u)}
 
-    <div class="kpis">
-      <article class="kpi kpi--accent">
-        <div class="kpi__ic">${icon("clipboard")}</div>
-        <div class="kpi__lb">Ocorrências a conferir</div>
-        <div class="kpi__vl">${aConferir}</div>
-        ${aConferir ? `<button class="kpi__cta" data-vg-ir="pendentes">${icon("check")}<span>Conferir agora</span></button>` : `<div class="kpi__ht">tudo em dia</div>`}
+    <div class="kpis-a">
+      <article class="kpi-a">
+        <div class="kpi-a__top"><span>Ocorrências a conferir</span>${icon("clipboard")}</div>
+        <div class="kpi-a__vl">${aConferir}</div>
+        ${vgDeltaHtml(dReg, { neutro: true, mes: mesAnt })}
+        <div class="kpi-a__ht">${serie.registradas[5]} registrada${serie.registradas[5] === 1 ? "" : "s"} no mês</div>
       </article>
-      <article class="kpi">
-        <div class="kpi__ic">${icon("users")}</div>
-        <div class="kpi__lb">Colaboradores ativos</div>
-        <div class="kpi__vl">${countActiveFuncs(u)}</div>
-        <div class="kpi__ht">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
-        ${vgSpark(serie.ativos, "var(--info)")}
+      <article class="kpi-a">
+        <div class="kpi-a__top"><span>Colaboradores ativos</span>${icon("users")}</div>
+        <div class="kpi-a__vl">${countActiveFuncs(u)}</div>
+        ${vgDeltaHtml(dAtivos, { mes: mesAnt })}
+        <div class="kpi-a__ht">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
       </article>
-      <article class="kpi">
-        <div class="kpi__ic">${icon("clock")}</div>
-        <div class="kpi__lb">Saldo de horas</div>
-        <div class="kpi__vl num">${escapeHtml(dashBhMedia())}</div>
-        <div class="kpi__ht">média · ${currentMonthLabel()}</div>
+      <article class="kpi-a">
+        <div class="kpi-a__top"><span>Saldo de horas</span>${icon("clock")}</div>
+        <div class="kpi-a__vl num">${escapeHtml(dashBhMedia())}</div>
+        <div class="kpi-a__ht">média · ${currentMonthLabel()}</div>
       </article>
-      <article class="kpi">
-        <div class="kpi__ic">${icon("check")}</div>
-        <div class="kpi__lb">Resolvidas no mês</div>
-        <div class="kpi__vl">${done.length + nDoneAuto}</div>
-        <div class="kpi__ht">manuais + automáticas</div>
-        ${vgSpark(serie.resolvidas, "var(--success)")}
+      <article class="kpi-a">
+        <div class="kpi-a__top"><span>Resolvidas no mês</span>${icon("check")}</div>
+        <div class="kpi-a__vl">${done.length + nDoneAuto}</div>
+        ${vgDeltaHtml(dResolv, { mes: mesAnt })}
+        <div class="kpi-a__ht">manuais + automáticas</div>
       </article>
-      <article class="kpi">
-        <div class="kpi__ic${tv.banda === "bad" ? " kpi__ic--bad" : tv.banda === "warn" ? " kpi__ic--warn" : ""}"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
-        <div class="kpi__lb">Turnover no mês</div>
-        <div class="kpi__vl" style="color:${tvCor}">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
-        <div class="kpi__ht">${tv.temDado ? `${tv.desligMes} deslig. · ~${tvFmt(tv.anual)} no ano` : "sem quadro"}</div>
-        ${vgSpark(serie.turnover, tvCor)}
+      <article class="kpi-a">
+        <div class="kpi-a__top"><span>Turnover no mês</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+        <div class="kpi-a__vl">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
+        ${tv.temDado ? vgDeltaHtml(dTurn, { unidade: "pt", inverter: true, casas: 1, mes: mesAnt }) : ""}
+        <div class="kpi-a__ht">${tv.temDado ? `${tv.desligMes} desligamento${tv.desligMes === 1 ? "" : "s"}` : "sem quadro"}</div>
       </article>
     </div>
 
     ${vgPrecisaDeVoce(u)}
-    ${vgTendenciaHtml()}
     <div class="vg-grid">
       ${renderAniversariantesWidget(u)}
       ${vgAdmissoesHtml(u)}
     </div>
-    <div class="vg-grid">
-      ${renderDemografiaWidget(u)}
-      ${renderRankingTempoCasaWidget(u)}
-    </div>
+    ${renderDemografiaWidget(u)}
+    ${renderRankingTempoCasaWidget(u)}
     ${renderObrigacoesWidget(u)}
-    ${vgAtividadeHtml()}
+    </div>
   `;
 
   // Pill de versão (a topbar morreu no mobile): mesmo conteúdo/ação da pill global.
@@ -13440,7 +13411,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.56.0";
+window.CURRENT_VERSION = "1.57.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
