@@ -1887,3 +1887,88 @@ sobrou o caso do Edmar (2 docs do loop principal, Faltas E Atrasos, ambos já
 contraditórias pro mesmo dia é um problema diferente, já documentado acima,
 sem fix de deduplicação ainda porque nenhum dos dois é "menos oficial" que o
 outro). Commit `7e0d089`.
+
+## 2026-07-08 — Revisão arquitetural completa: reconciliação bidirecional (pedido do William)
+
+Depois do fix acima, William perguntou o certo: "precisa saber pq isso
+aconteceu não pode acontecer né... a gente precisa colher uma fonte só, ou
+precisa de uma verificação, isso não pode ficar acontecendo". Levei a
+pergunta pro Fable antes de responder — a resposta precisava ser honesta,
+não um "já resolvi".
+
+**Por que 2 fontes, e por que não virar 1 só**: não são 2 leituras do mesmo
+dado — são 2 CAMADAS internas do WK (classificação final vs. flag bruta de
+anomalia) que sincronizam de forma assíncrona e podem DISCORDAR por horas ou
+pra sempre. Fonte única (só a Relação de Ocorrências oficial) reintroduziria
+o problema original que o detector 999 nasceu pra resolver: casos reais que
+o WK simplesmente não reporta (Charles 1204, Vinicius 1205, Enildo 1206 —
+3 casos em 4 dias onde a fonte oficial não gerou NADA). Fonte única falha em
+SILÊNCIO (RH nunca sabe); duas fontes com reconciliação falham, no pior
+caso, BARULHENTO (card duplicado, visível, recuperável). Barulhento é o modo
+de falha certo — desde que a reconciliação feche o barulho de verdade.
+
+**O fix de hoje mais cedo (`7e0d089`) tinha 2 vazamentos reais**, achados
+pelo Fable rastreando o código linha a linha (não só raciocínio abstrato):
+1. Se o esp_ já foi tocado por humano (`com_lider`/`dispensada`/`confirmada`)
+   quando o principal chega depois, nada impedia a criação do principal —
+   ficavam os 2 vivos pra sempre (a reverificação NUNCA toca doc já tocado
+   por humano, por design correto — só que ninguém tinha ensinado a CRIAÇÃO
+   do principal a checar isso também).
+2. Deriva de rótulo esp_-vs-esp_: o dedupId do 999 inclui o rótulo da
+   situação, que MUDA entre rodadas conforme mais marcações assentam ("Não
+   Registrou Entrada" → "...Entrada/Saída Lanche" → "Marcação Não
+   Identificada") — rótulo novo = dedupId novo = card novo, duplicando se o
+   anterior já foi tocado por humano.
+
+**Fix bidirecional** (`091b1e9`): regra agora é simétrica — "no máximo 1
+card vivo por incidente (código+dataIso) vindo de INFERÊNCIA (esp_); a
+classificação oficial preempta a inferida SÓ enquanto nenhum humano assumiu
+o caso". Nunca vale principal-vs-principal (caso Edmar continua legítimo).
+- esp_ vivo + `rh_confere` (ninguém olhou) + principal chega → cria o
+  principal E resolve o(s) esp_ explicitamente (transação com recheck de
+  status).
+- esp_ vivo + já tocado por humano + principal chega → NÃO cria o principal.
+- esp_ novo com rótulo diferente de um esp_ existente já tocado por humano →
+  NÃO cria o novo (a reverificação resolve o antigo sozinha se ele ainda
+  estiver `rh_confere`).
+
+**Testado com 5 cenários sintéticos** (código de teste `999999`, autorizado
+pelo William depois que o classificador de segurança bloqueou escrever em
+produção sem autorização explícita — e o emulador local do Firestore não
+rodou, falta Java na máquina). Todos os 5 caminhos se comportaram como
+desenhado na 1ª rodada real. Limpeza total dos docs de teste ao final
+(confirmado 0 restantes).
+
+**3º vazamento achado AO VIVO, testando com dado real** (não fazia parte do
+desenho original nem da revisão do Fable): o **rearmar** (mecanismo já
+existente — reabre um doc `auto_resolvida` se o WK voltar a reafirmar o
+dedupId) também não conhecia a regra de incidente único. Rodando o uploader
+de novo contra produção real, o Espelho voltou a mostrar "Marcações Não
+Identificadas" pra Luisana/Luis Eduardo numa rodada em que o loop principal
+não regenerou o dedupId deles (mesma oscilação de dado do WK do resto do
+dia) — sem o principal "reafirmando" na mesma rodada, o rearmar viu o
+dedupId do esp_ resolvido reaparecer no fresco e reabriu, recriando a
+duplicata horas depois do primeiro fix. Fix (`527196b`): o set de
+"incidentes com principal vivo" agora também é atualizado com principais
+criados NA MESMA rodada (não só o snapshot de antes), e o rearmar checa esse
+set antes de reabrir um esp_. Re-testado com o caso real: os 2 tentaram
+reaparecer de novo e foram corretamente bloqueados
+(`rearme pulado (incidente já tem principal)=2`).
+
+**Verificação independente** (o "precisa de uma verificação" do William):
+`check-pipeline-health.mjs` (watchdog horário já existente) ganhou uma
+checagem de invariante — "1 incidente = 1 card vivo" — que roda toda hora,
+sem depender de alguém notar na tela. Só ALERTA (não conserta sozinho;
+misturar detectar com corrigir automaticamente numa checagem de invariante
+seria arriscado demais pra rodar sem supervisão). Se a regra quebrar nesse
+código de novo, ou aparecer um caso novo que a regra atual não cobre, o
+alerta chega antes do William ver na tela. Testado contra produção real após
+todos os fixes: **0 violações**.
+
+Resposta final pro William: sim, era previsível — quando o detector do
+Espelho entrou (03/07) como rede de segurança, ele precisava nascer JUNTO
+com a regra "um incidente = um card vivo", não meses depois. Falha de
+desenho, agora corrigida em 3 camadas (criação, rearmar, e uma verificação
+independente que não depende de ninguém notar). Mas colher de 1 fonte só
+teria trocado um problema visível e recuperável (card duplicado) por um
+invisível e irrecuperável (RH nunca sabe que o WK escondeu um problema real).
