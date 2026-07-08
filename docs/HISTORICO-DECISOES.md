@@ -1039,6 +1039,23 @@ William mandou print da Franciele (1074): card dizia "Falta Injustificada de 8h 
 
 ---
 
+## 2026-07-08 · 🔍 Revisão ampla dos 5 exports do WK (pedido do William "pra termos menos erros")
+
+Depois do caso da Franciele, William pediu revisão de todos os 5 configs do pipeline (BH, D_Empregado, Ocorrências, Espelho, Apurações), não só o de Ocorrências. Antes disso, perguntei sobre o campo `"ValidoImportacao"="Sim"` (existe em Ocorrências/Espelho/Apurações, não documentado em lugar nenhum) — William preferiu não mexer sem confirmar o que faz primeiro (fica pendente, investigar com calma depois).
+
+**Lidos os 5 configs lado a lado**:
+- **BH**: `IdsFuncionarios=""` (correto, com auto-cura desde hoje cedo), `DataFinal` fresco (08/07).
+- **D_Empregado**: `EmpregadosSelecionados=""` (correto no momento), mas **SEM NENHUMA proteção** — `run-pipeline.mjs` rodava o `.exe` direto com o config cru, único dos 5 sem reescrita defensiva. Risco maior que o do BH: alimenta o cadastro-mestre (funcionarios/, banco-horas-saldos, enriquecimento de todos os outros uploads) — se regredir, gente some do sistema inteiro, não só de um relatório.
+- **Ocorrências**: `IdsFuncionarios=""` (correto, já tinha auto-cura), `ValidoImportacao="Sim"` (não mexido).
+- **Espelho**: idem, `IdsSituacoes` lista quase todos os códigos (1-91) — faz sentido pra um relatório abrangente.
+- **Apurações**: `IdsFuncionarios=""` (correto), mas `DataFinal="06/07/2026"` — **desatualizado** (2 dias atrás das outras). Não é bug ativo: esse export está dormente (fase de teste, não agendado no pipeline — ver decisão anterior), então não é mantido a cada rodada. Sem ação por enquanto; só registrado pra não esquecer que a data trava assim que for reativado algum dia.
+
+**Fix aplicado**: criado `export-empregado.mjs` (mesmo padrão dos outros 3 export-*.mjs — reescreve `ArquivoExportacao` + `EmpregadosSelecionados` vazio, escrita atômica byte-safe, roda o `.exe`, espera arquivo fresco). `run-pipeline.mjs` trocado pra chamar esse script em vez de invocar o `.exe` direto. Cuidado tomado: **não mexeu** em `GerarSemAspas` (esse relatório usa `"0"` = COM aspas nos campos, diferente dos outros 4 que usam `"1"` — `process-empregado.mjs` já espera esse formato, não era bug).
+
+**Testado**: rodou de verdade, 148 funcionários (90 trabalhando + 51 rescisão + 5 afastado + 2 férias), sem regressão.
+
+---
+
 ## 2026-07-02 · 🔧 BH resolvido de vez: processo órfão do WK + dispositivo de auto-recuperação
 
 Continuação do achado de mais cedo (export de BH travando). Aumentei o timeout (180s→5min) e coloquei um respiro de 2s entre chamadas consecutivas do WK_EXE, mas o problema persistiu — mesmo código de crash (355941) e um EPERM novo no rename do config.
