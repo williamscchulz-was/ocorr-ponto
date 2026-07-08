@@ -1263,6 +1263,32 @@
     // { tipo?, duracaoFmt?, observacao (motivo, obrigatório na UI), alterou (resumo p/ trilha) }.
     window.corrigirOcorrenciaAuto  = (id, extras) => _transicaoOca(id, "com_lider", "corrigiu", "Correção enviada ao líder.", extras);
 
+    // Lançamento na folha (espelho do fluxo manual, cap ocorrencias.lancar): marca ou
+    // desfaz numa CONFIRMADA sem mexer no status. A regra trava no trio + historico.
+    async function _lancamentoOca(id, marcar) {
+      const u = currentUser();
+      const uid = (auth.currentUser && auth.currentUser.uid) || null;
+      const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
+      if (!o) return;
+      const entrada = { acao: marcar ? "lancou" : "desfezLancamento", por: uid, porNome: u?.nome || "", emIso: new Date().toISOString() };
+      const patch = marcar
+        ? { lancada: true, lancadoEm: new Date().toISOString().slice(0, 10), lancadoPor: uid, historico: [...(Array.isArray(o.historico) ? o.historico : []), entrada] }
+        : { lancada: false, lancadoEm: null, lancadoPor: null, historico: [...(Array.isArray(o.historico) ? o.historico : []), entrada] };
+      try {
+        await db.collection("ocorrencias-auto").doc(id).update(patch);
+        Object.assign(o, patch);
+        window.registrarAuditoria?.({ tipo: "ocorrencia-auto", acao: marcar ? "Ocorrência automática: marcou como lançada" : "Ocorrência automática: desfez lançamento", alvo: `${o.nome || ""} · ${o.data || ""} · ${o.tipo || ""}` });
+        toast?.(marcar ? "Marcada como lançada." : "Lançamento desfeito.");
+        renderApp();
+      } catch (e) {
+        debug?.("[ocorrencias-auto] lancamento:", e?.message || e);
+        toast?.("Erro: " + (e?.message || e), "danger");
+        renderApp();
+      }
+    }
+    window.lancarOcorrenciaAuto = (id) => _lancamentoOca(id, true);
+    window.desfazerLancamentoAuto = (id) => _lancamentoOca(id, false);
+
     // Últimos eventos da trilha (Visão geral). A rule de /eventos limita a leitura
     // a admin e cap auditoria.ver; quem não pode nem chama (o cartão não renderiza).
     window.carregarEventosRecentes = async function (n) {

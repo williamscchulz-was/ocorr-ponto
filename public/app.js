@@ -8804,7 +8804,7 @@ function ocaDashCardHtml(o) {
     const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "confirmou") || (o.historico || [])[(o.historico || []).length - 1];
     const quem = (ult && ult.porNome) || "";
     const destino = (ult && ult.destino) || "";
-    acoes = `<div class="rhacts oca-confdone"><span class="badge badge--success"><span class="dot"></span>Confirmada</span>${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}${destino ? ` · ${escapeHtml(destino)}` : ""}</span>` : ""}</div>`;
+    acoes = `<div class="rhacts oca-confdone"><span class="badge badge--success"><span class="dot"></span>Confirmada</span>${o.lancada === true ? `<span class="badge badge--info"><span class="dot"></span>Lançada</span>` : ""}${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}${destino ? ` · ${escapeHtml(destino)}` : ""}</span>` : ""}</div>`;
   } else if (est === "dispensada") {
     const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "dispensou");
     const quem = (ult && ult.porNome) || "";
@@ -8907,7 +8907,7 @@ function openConferirAutoModal(id) {
 // Timeline do histórico da automática (compartilhada: conferir + detalhe + dispensa).
 // Mostra o destino (ação escolhida pelo líder) e a obs/motivo de cada passo.
 function ocaHistHtml(o, proximaEtapa) {
-  const histRot = { validou: "GP validou e enviou ao líder", dispensou: "Dispensada", confirmou: "Conferência confirmada", corrigiu: "GP corrigiu e enviou ao líder" };
+  const histRot = { validou: "GP validou e enviou ao líder", dispensou: "Dispensada", confirmou: "Conferência confirmada", corrigiu: "GP corrigiu e enviou ao líder", lancou: "Marcada como lançada", desfezLancamento: "Lançamento desfeito" };
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
   return `
     <div class="oca-hist">
@@ -9142,10 +9142,19 @@ function openDetalheAutoModal(id) {
   if (est === "com_lider") return openConferirAutoModal(id); // a tela de agir JÁ É o detalhe
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
   const sub = { rh_confere: "Aguardando conferência da GP", confirmada: "Conferência confirmada", dispensada: "Dispensada pela GP", auto_resolvida: "Resolvida automaticamente pelo WK" }[est] || "";
+  // Confirmada: RH/admin (cap ocorrencias.lancar) marca/desfaz o lançamento na folha,
+  // espelho do fluxo manual (pedido William 2026-07-08).
+  const podeLancar = est === "confirmada" && can("ocorrencias.lancar");
   const acoesHtml = est === "rh_confere"
     ? `<button class="btn btn--ghost" id="oca-det-editar">${icon("edit")}<span>Editar</span></button>
        <button class="btn btn--ghost" id="oca-det-dispensar">${icon("x")}<span>Dispensar</span></button>
        <button class="btn btn--primary" id="oca-det-validar">${icon("check")}<span>Confirmar</span></button>`
+    : podeLancar && !o.lancada
+    ? `<button class="btn btn--ghost" data-close>Fechar</button>
+       <button class="btn btn--primary" id="oca-det-lancar">${icon("check")}<span>Marcar como lançada</span></button>`
+    : podeLancar && o.lancada
+    ? `<button class="btn btn--ghost" id="oca-det-deslancar">Desfazer lançamento</button>
+       <button class="btn btn--ghost" data-close>Fechar</button>`
     : `<button class="btn btn--ghost" data-close>Fechar</button>`;
   openModal(`
     <div class="modal__header">
@@ -9178,6 +9187,27 @@ function openDetalheAutoModal(id) {
   // Troca DIRETO pro modal do motivo (openModal substitui; nunca closeModal antes).
   $("#oca-det-dispensar")?.addEventListener("click", () => openDispensarAutoModal(id));
   $("#oca-det-editar")?.addEventListener("click", () => openEditarAutoModal(id));
+  $("#oca-det-lancar")?.addEventListener("click", (e) => {
+    const btn = e.currentTarget;
+    withBusy("oca-lancar-" + id, btn, async () => {
+      const rotuloOriginal = trocarRotuloBtn(btn, "Lançando...");
+      try { await window.lancarOcorrenciaAuto?.(id); closeModal(); }
+      finally { restaurarRotuloBtn(btn, rotuloOriginal); }
+    });
+  });
+  $("#oca-det-deslancar")?.addEventListener("click", (e) => {
+    const btn = e.currentTarget;
+    withBusy("oca-deslancar-" + id, btn, async () => {
+      if (!(await confirmar({
+        titulo: "Desfazer lançamento?",
+        msg: "A marca de lançada some. A ocorrência continua confirmada.",
+        okLabel: "Desfazer",
+        perigo: true,
+      }))) return;
+      await window.desfazerLancamentoAuto?.(id);
+      closeModal();
+    });
+  });
 }
 
 // Dispensa COM motivo obrigatório (pedido do William 2026-07-02): o porquê fica na
@@ -13273,7 +13303,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.51.2";
+window.CURRENT_VERSION = "1.52.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

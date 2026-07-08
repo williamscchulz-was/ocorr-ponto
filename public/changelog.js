@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.51.2", d: "8 jul 2026", current: true, items: [
+    v: "1.52.0", d: "8 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Ocorrências automáticas confirmadas agora podem ser marcadas como lançadas na folha, igual às manuais: botão Marcar como lançada no detalhe (GP e admin), selo Lançada no card, desfazer com confirmação e registro na trilha." },
+    ],
+  },
+  {
+    v: "1.51.2", d: "8 jul 2026", items: [
       { type: "fix", title: "O Termo de Adesão não aparece mais de novo pra quem já aceitou. Ao abrir o app no celular, uma falha passageira de rede fazia o aceite não ser encontrado e o termo voltava a cada acesso; agora a leitura insiste e, se o termo abrir por engano, ele se fecha sozinho ao confirmar o aceite." },
     ],
   },

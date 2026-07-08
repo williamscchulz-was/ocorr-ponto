@@ -54,6 +54,13 @@ before(async () => {
     await setDoc(doc(db, "ocorrencias-auto/ocaLDedT"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLDedD"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaDone"), baseDoc({ status: "confirmada", turno: 1, historico: h1 }));
+    // lançamento na folha (ramo novo 2026-07-08): confirmadas prontas pra lançar/desfazer
+    for (const id of ["ocaLan1", "ocaLan2", "ocaLan3", "ocaLan5", "ocaLan6", "ocaLan9", "ocaLan10"]) {
+      await setDoc(doc(db, "ocorrencias-auto/" + id), baseDoc({ status: "confirmada", turno: 1, historico: h1 }));
+    }
+    await setDoc(doc(db, "ocorrencias-auto/ocaLan4"), baseDoc({ status: "rh_confere", turno: 1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaLan7"), baseDoc({ status: "confirmada", turno: 1, historico: h1, lancada: true, lancadoEm: "2026-07-08", lancadoPor: "uRh" }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaLan8"), baseDoc({ status: "confirmada", turno: 1, historico: h1, lancada: true, lancadoEm: "2026-07-08", lancadoPor: "uRh" }));
   });
 });
 
@@ -218,3 +225,27 @@ test("RH NÃO transforma historico em MAP (perda de dado da trilha)", async () =
   assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHhMap"), {
     status: "com_lider", historico: { a: 1 },
   })));
+
+
+// ---- lançamento na folha (ramo novo 2026-07-08, espelho do fluxo manual) ----
+const lancPatch = (por) => ({ lancada: true, lancadoEm: "2026-07-08", lancadoPor: por, historico: histN(2) });
+test("RH (cap ocorrencias.lancar default) LANÇA uma confirmada", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan1"), lancPatch("uRh"))));
+test("Admin LANÇA uma confirmada", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "ocorrencias-auto/ocaLan2"), lancPatch("uAdmin"))));
+test("Líder NÃO lança (sem cap)", async () =>
+  assertFails(updateDoc(doc(lider(), "ocorrencias-auto/ocaLan3"), lancPatch("uLider"))));
+test("Colaborador NÃO lança", async () =>
+  assertFails(updateDoc(doc(colab(), "ocorrencias-auto/ocaLan10"), lancPatch("uColab"))));
+test("NÃO lança em rh_confere (estágio errado)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan4"), { ...lancPatch("uRh"), historico: histN(1) })));
+test("NÃO lança tocando o STATUS junto (fora do hasOnly)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan5"), { ...lancPatch("uRh"), status: "dispensada" })));
+test("NÃO lança com lancadoPor de OUTRO usuário", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan9"), lancPatch("uAdmin"))));
+test("NÃO lança sem o trio coerente (lancada true com lancadoEm null)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan6"), { lancada: true, lancadoEm: null, lancadoPor: "uRh", historico: histN(2) })));
+test("RH DESFAZ o lançamento (trio zerado)", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan7"), { lancada: false, lancadoEm: null, lancadoPor: null, historico: histN(2) })));
+test("NÃO desfaz deixando lancadoEm pra trás (trio incoerente)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan8"), { lancada: false, lancadoEm: "2026-07-08", lancadoPor: null, historico: histN(2) })));

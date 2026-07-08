@@ -650,6 +650,22 @@ service cloud.firestore {
             && resource.data.status == 'com_lider'
             && request.resource.data.status == 'confirmada'
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao']) )
+          ||
+          // RH/admin LANCA na folha (ou desfaz) uma ja decidida — espelho do fluxo manual
+          // (mesma cap ocorrencias.lancar; pedido William 2026-07-08). NAO mexe no status
+          // (fora do hasOnly); marcar exige o trio coerente, desfazer zera o trio.
+          ( (isAdmin() || temCap('ocorrencias.lancar', isRH()))
+            && resource.data.status in ['confirmada', 'conferida']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lancada', 'lancadoEm', 'lancadoPor', 'historico'])
+            && (
+              (request.resource.data.lancada == true
+                && request.resource.data.lancadoEm is string
+                && request.resource.data.lancadoPor == request.auth.uid)
+              ||
+              (request.resource.data.lancada == false
+                && request.resource.data.lancadoEm == null
+                && request.resource.data.lancadoPor == null)
+            ) )
         );
 
       // Conteúdo nasce e some só pelo servidor (Admin SDK bypassa rules).
