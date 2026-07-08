@@ -1845,3 +1845,45 @@ Não precisou de correção manual/resync emergencial — a RH já resolveu o ca
 específico antes do fix chegar a produção; o código garante que o PRÓXIMO
 caso do gênero (qualquer situação, não só Atrasos) já nasce sinalizado, sem
 precisar de outro humano pescar por acaso. Commit `62c1c82`.
+
+## 2026-07-08 — Duplicata entre loop principal e detector 999 (Luisana/Luis Eduardo)
+
+William, olhando a fila "GP confere": "por algum motivo duplicou as ocorrências
+dessas duas pessoas". Confirmado no Firestore: Luisana (1145) e Luis Eduardo
+(1154) tinham 2 docs cada pro mesmo dia (07/07) — um do loop principal
+(`..._faltas-injustificadas`, já `com_lider`, RH tinha corrigido o tipo pra
+"Atrasos"/mantido "Faltas") e um do detector 999
+(`esp_..._nao-registrou-entrada`, `rh_confere`, recém-criado).
+
+**Causa**: as 2 fontes (Relação de Ocorrências / loop principal, Espelho de
+Ponto / detector 999) atualizam em velocidades diferentes. A ocorrência
+principal nasceu na rodada das 09h; só na rodada das 14h o Espelho passou a
+marcar "Marcações Não Identificadas" pro mesmo dia, e o detector 999 gerou um
+2º card pro MESMO incidente — sem saber que o loop principal já tinha coberto
+aquele dia horas antes (o fix de mesma-rodada do caso Edmar, mais cedo hoje,
+não alcança esse caso: são rodadas DIFERENTES).
+
+**Fix em 2 camadas**:
+1. `process-ocorrencias-rh.py`: `codsDatasPrincipal` rastreia (código,
+   dataIso) que o loop principal já gerou NESTA rodada — detector 999 pula se
+   já coberto (duplicata dentro da mesma rodada).
+2. `upload-ocorrencias-auto.mjs`: `codsDatasComPrincipalVivo` consulta o
+   Firestore ATUAL por docs principais (sem prefixo `esp_`) ainda vivos
+   (status ≠ `auto_resolvida`) — o uploader não cria o doc `esp_` novo se já
+   existe um principal vivo pro mesmo dia (cobre duplicata ENTRE rodadas, o
+   caso real de hoje). `auto_resolvida` fica FORA do bloqueio: significa que
+   o pipeline já retirou o principal de cena, então um achado novo do 999 é
+   sinal fresco, não duplicata.
+
+Loop principal sempre vence (é a fonte oficial do WK); o 999 é rede de
+segurança só pros dias que ela não pega (caso original Vinicius/Enildo).
+
+Limpeza manual dos 2 docs já duplicados: marcados `auto_resolvida` com
+trilha explicando o motivo (mesmo padrão seguro, nunca hard-delete, usado
+hoje pro caso Acira/Katiana). Varredura na coleção inteira (todos os pares
+código+data com 2+ docs) confirmou: nenhuma outra duplicata ATIVA — só
+sobrou o caso do Edmar (2 docs do loop principal, Faltas E Atrasos, ambos já
+`com_lider`/corrigidos pela RH, nenhum na fila — WK emitindo 2 situações
+contraditórias pro mesmo dia é um problema diferente, já documentado acima,
+sem fix de deduplicação ainda porque nenhum dos dois é "menos oficial" que o
+outro). Commit `7e0d089`.
