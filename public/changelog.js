@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.52.2", d: "8 jul 2026", current: true, items: [
+    v: "1.52.3", d: "8 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Uma ocorrência automática marcada como lançada agora sai da aba Conferidas e passa pra aba Lançadas, com as contagens das abas certas, do mesmo jeito que já acontecia com as manuais." },
+    ],
+  },
+  {
+    v: "1.52.2", d: "8 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "O pareamento correto das batidas (cada horário na posição certa da jornada) agora vale pra toda ocorrência que traz o alinhamento da apuração, não só as detectadas pelo espelho. Corrige casos de falta parcial que mostravam os horários deslocados." },
     ],
   },

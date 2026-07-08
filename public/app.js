@@ -3943,7 +3943,12 @@ function renderDashboard() {
   const podeRh = can("ocorrencias.revisarAuto");
   const nRhConfere = podeRh ? ocaDoEstagio("rh_confere").length : 0;
   const nComLider = ocaDoEstagio("com_lider").length;
-  const nConfAuto = ocaDoEstagio("confirmada").length;
+  // Auto lançada é ortogonal ao status (continua 'confirmada'), igual ao manual
+  // (isConferida exclui lançada, isLancada inclui). Particiona as confirmadas por lançada
+  // pra as abas Conferidas/Lançadas não misturarem (bug William 2026-07-08).
+  const confAuto = ocaDoEstagio("confirmada");
+  const nConfAuto = confAuto.filter((o) => !isLancada(o)).length;
+  const nLancAuto = confAuto.filter(isLancada).length;
   const nDispensadas = podeRh ? ocaDoEstagio("dispensada").length : 0;
 
   // Meses presentes nos dados visíveis (pro filtro de mês). Mais recente primeiro.
@@ -3990,10 +3995,10 @@ function renderDashboard() {
         Conferidas <span class="tab__count">${conferidas.length + nConfAuto}</span>
       </button>
       <button class="tab ${state.view.filterTab === "lancadas" ? "active" : ""}" data-tab="lancadas">
-        Lançadas <span class="tab__count">${lancadas.length}</span>
+        Lançadas <span class="tab__count">${lancadas.length + nLancAuto}</span>
       </button>
       <button class="tab ${state.view.filterTab === "todas" ? "active" : ""}" data-tab="todas">
-        Todas <span class="tab__count">${visible.length + nComLider + nConfAuto + nRhConfere + nDispensadas}</span>
+        Todas <span class="tab__count">${visible.length + nComLider + nConfAuto + nLancAuto + nRhConfere + nDispensadas}</span>
       </button>
       ${podeRh ? `<button class="tab ${state.view.filterTab === "dispensadas" ? "active" : ""}" data-tab="dispensadas">
         Dispensadas <span class="tab__count">${nDispensadas}</span>
@@ -4100,8 +4105,8 @@ function renderOccList() {
   if (tab === "rh-confere") { list = []; autoList = ocaDoEstagio("rh_confere", true); }
   else if (tab === "dispensadas") { list = []; autoList = ocaDoEstagio("dispensada", true); }
   else if (tab === "pendentes") { list = list.filter(isPending); autoList = ocaDoEstagio("com_lider", true); }
-  else if (tab === "conferidas") { list = list.filter(isConferida); autoList = ocaDoEstagio("confirmada", true); }
-  else if (tab === "lancadas") list = list.filter(isLancada);
+  else if (tab === "conferidas") { list = list.filter(isConferida); autoList = ocaDoEstagio("confirmada", true).filter((o) => !isLancada(o)); }
+  else if (tab === "lancadas") { list = list.filter(isLancada); autoList = ocaDoEstagio("confirmada", true).filter(isLancada); }
   else if (tab === "todas") {
     // TODAS é todas mesmo (auditoria): os 4 estágios das automáticas pra quem os vê.
     const podeRhTab = can("ocorrencias.revisarAuto");
@@ -13303,7 +13308,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.52.2";
+window.CURRENT_VERSION = "1.52.3";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
