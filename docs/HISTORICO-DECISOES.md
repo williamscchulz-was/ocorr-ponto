@@ -1695,3 +1695,77 @@ reverificação contínua resolve sozinha (`auto_resolvida`).
 Testado com dado real e já em produção: Vinicius (1205) e Enildo (1206, mesmo padrão
 no mesmo dia — faltou marcar entrada às 13:30, batida real 17:35) geraram corretamente,
 batendo com a tela do WK. Commit `4c56589`.
+
+## 2026-07-08 — Task Scheduler do pipeline RH roda Interactive (janela na tela + dias inteiros pulados)
+
+William: "TUDO QUE RODA DO PIPELINE RH TEM QUE RODAR EM SILENT, NAO PODE FICAR
+APARECENDO NADA NA TELA". Duas causas investigadas:
+
+1. **`windowsHide` ausente em todo spawn/spawnSync/execSync** (11 arquivos .mjs) —
+   corrigido, mas é defensivo/insuficiente sozinho (a maioria usa `stdio:'inherit'`,
+   já compartilha o console do pai em vez de abrir janela própria).
+2. **Causa real**: a task nativa "Fiobras Pipeline RH" (`Get-ScheduledTask`) está
+   configurada `LogonType=Interactive` — roda DENTRO da sessão gráfica do usuário
+   `wkradar`, então o console do `node.exe` (e o que ele abre) aparece na tela. As 9
+   tasks irmãs do pipeline Comercial (mesma máquina, mesmo usuário, meses rodando o
+   mesmo `ExportacaoAutomatica.exe /Silent`) usam `LogonType=Password` (roda em sessão
+   não-interativa, sem desktop pra pintar nada). Só a do RH ficou diferente.
+
+Proposta inicial errada: `Settings.Hidden=$true` (controla só a listagem no console
+MMC do Task Scheduler, não a janela do processo). Achado do Fable (revisão pedida
+antes de aplicar) — fix real é migrar `LogonType` pra `Password`, igual às irmãs.
+
+**Achado bônus (mesma causa, gravidade maior)**: task `Interactive` só dispara se
+tiver sessão logada no horário agendado — RDP desconectado/tela bloqueada ainda
+conta como "logado" (dispara normal), mas logoff/reboot de verdade faz a rodada
+inteira ser pulada, **silenciosamente, sem erro nenhum**. Confirmado no log:
+`pipeline-bh.log` não tem NENHUMA linha em 2026-06-05, com os dias vizinhos (03, 04,
+06) todos com 9 linhas normais. `StartWhenAvailable=False`, então a rodada perdida
+nunca é recuperada depois. Provavelmente explica rodadas "perdidas" do passado nunca
+diagnosticadas.
+
+Correção de fato: os horários reais da task são **09:00/11:00/14:00 BRT** (confirmado
+via `Get-ScheduledTask` StartBoundary), não 08:00/10:00/14:00 como CLAUDE.md e o
+comentário de run-pipeline.mjs diziam — já corrigidos os dois.
+
+**Migração pra Password NÃO aplicada ainda** — exige a senha do usuário `wkradar`
+(GUI do Task Scheduler ou `schtasks /Change /RU wkradar /RP`), e entrar senha em
+qualquer campo é ação vetada pra mim (regra de segurança) — só o William pode fazer
+esse passo. Risco checado pelo Fable: sem dependência de desktop no pipeline RH
+(ocorrências é headless, fotos usam API HTTP não drive montado, o único script que
+precisa de tela — `rh-export-auto.ps1` — não é chamado por task nenhuma). Ponto de
+atenção pra depois da migração: `git push` do heartbeat (write-heartbeat-report.mjs)
+nunca rodou em sessão não-interativa nesta máquina — endurecido com
+`GIT_TERMINAL_PROMPT=0` (falha rápido em vez de pendurar esperando prompt), mas
+**conferir a 1ª rodada pós-migração** mesmo assim (não usar S4U — quebra DPAPI/GCM
+que o git credential manager depende).
+
+**Em aberto**: watchdog horário novo (`pipeline-rh-health-watchdog`, criado hoje via
+scheduled task do Claude Code, mecanismo diferente da Task Scheduler nativa) pode
+ser uma 2ª fonte de janela — coincide no tempo (William reclamou no mesmo dia em que
+o watchdog nasceu, 8x mais disparos/dia que a task nativa). Sem visibilidade de como
+esse mecanismo executa por baixo dos panos — Fable recomendou teste empírico
+(observar o próximo disparo, ou pausar 2-3 ciclos) em vez de especular.
+
+## 2026-07-08 — Supervisor não lê nada em ocorrencias-auto (rule sem isSupervisor())
+
+Aldo (supervisor, `turnosVisiveis:[1,2,3]` confirmado no doc) reportou zero
+ocorrências visíveis. Causa: `docs/firestore.rules` match `/ocorrencias-auto/{id}`
+(linhas 614-673) nunca menciona `isSupervisor()` — nem no `allow read` (só
+admin/RH/líder-mesmo-turno) nem nos 3 ramos do `allow update`. Supervisor cai em
+PERMISSION_DENIED na leitura da coleção inteira; não é filtro de UI errado
+(`podeVerOcorrenciaUI`/`podeConferirUI` em app.js já tratam supervisor certinho,
+conferido). Comparado com a coleção antiga `ocorrencias`, que já tem o padrão certo
+("read amplo pro supervisor, UI filtra por turnosVisiveis/funcionariosVisiveis").
+
+Achado separado (mesma investigação, coleção antiga `ocorrencias`): o ramo de update
+do supervisor ali depende de `resource.data.funcionarioTurno`, campo que o pipeline
+nunca escreve (só grava `turno`) — se essa coleção ainda recebe writes, supervisor-
+por-turno está igualmente quebrado lá (só o `funcionariosVisiveis` explícito
+funciona). Não confirmado se `ocorrencias` (legada) ainda está viva.
+
+Diagnóstico 100% read-only (doc do Aldo + amostra `ocorrencias-auto` + cross-check
+`funcionarios`), nenhuma escrita feita. `ocorrencias-auto` e `firestore.rules` são
+território do PC — reportado urgente via bridge
+(`2026-07-08-urgente-supervisor-nao-le-ocorrencias-auto.md`) com o fix proposto
+(espelhar o `|| isSupervisor()` da coleção antiga) em vez de eu mexer na rule.
