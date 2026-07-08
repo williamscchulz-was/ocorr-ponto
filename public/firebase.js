@@ -1861,6 +1861,26 @@
     // 6 campos exatos + funcionarioId == users/{uid}.funcionarioId (euSouODono) + versao e
     // hashSha256 CRAVADOS na regra. Se o doc JÁ existe (create-only barra o 2º write),
     // tratamos como "já aceitou" e resolvemos ok.
+    // Lê o aceite do termo com N tentativas (cold start offline do PWA). Atualiza
+    // state.termoAdesaoOk e retorna true/false/null (null = todas as tentativas falharam).
+    window.verificarTermoAdesao = async function (tentativas) {
+      const n = Math.max(1, tentativas || 1);
+      const uidT = (auth.currentUser && auth.currentUser.uid) || (currentUser() && currentUser().id);
+      if (!uidT) { state.termoAdesaoOk = null; return null; }
+      for (let i = 0; i < n; i++) {
+        try {
+          const t = await db.collection("termoAdesao").doc(String(uidT)).get();
+          state.termoAdesaoOk = t.exists && t.data().versao === TERMO_VERSAO;
+          return state.termoAdesaoOk;
+        } catch (e) {
+          debug?.("[colab] termo adesão (tentativa " + (i + 1) + "):", e?.message || e);
+          if (i < n - 1) await new Promise((r) => setTimeout(r, 1200));
+        }
+      }
+      state.termoAdesaoOk = null;
+      return null;
+    };
+
     window.registrarTermoAdesao = async function () {
       const user = auth.currentUser;
       if (!user) return { ok: false, msg: "Sessão expirada. Entre de novo." };
@@ -3167,12 +3187,10 @@
       // Termo de adesão à assinatura eletrônica (1º acesso): true = já aceitou a versão
       // atual (não mostra o gate); false = precisa aceitar. null = leitura falhou (rede):
       // o gate mostra mesmo assim e o registrarTermoAdesao trata o "já existe" sem travar.
-      state.termoAdesaoOk = null;
-      try {
-        const uidT = auth.currentUser && auth.currentUser.uid;
-        const t = await db.collection("termoAdesao").doc(uidT).get();
-        state.termoAdesaoOk = t.exists && t.data().versao === TERMO_VERSAO;
-      } catch (e) { debug?.("[colab] termo adesão:", e?.message || e); state.termoAdesaoOk = null; }
+      // RETRY (bug William 2026-07-08): no cold start do PWA (iOS) o Firestore rejeita as
+      // primeiras leituras com "client is offline"; sem retry, o aceite EXISTENTE virava
+      // null e o gate reaparecia toda abertura. 3 tentativas com respiro.
+      state.termoAdesaoOk = await window.verificarTermoAdesao(3);
       })(),
       ]);
       return;

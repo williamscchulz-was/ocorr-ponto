@@ -794,6 +794,13 @@ function _formatarCpf(raw) {
 }
 function mostrarTermoAdesao() {
   if (document.getElementById("termo-overlay")) return; // já montado
+  // Autocorreção (bug William 2026-07-08): se o gate abriu por leitura FALHADA (null),
+  // reconfere em paralelo; aceite existente fecha o gate sozinho (sem pedir de novo).
+  if (state.termoAdesaoOk === null && typeof window.verificarTermoAdesao === "function") {
+    window.verificarTermoAdesao(2).then((ok) => {
+      if (ok === true) document.getElementById("termo-overlay")?.remove();
+    }).catch(() => {});
+  }
   const fColab = (state.funcionarios && state.funcionarios[0]) || null;
   const u = currentUser();
   const nome = escapeHtml((fColab && fColab.nome) || (u && u.nome) || "");
@@ -13266,7 +13273,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.51.1";
+window.CURRENT_VERSION = "1.51.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

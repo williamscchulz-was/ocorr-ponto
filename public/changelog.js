@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.51.1", d: "8 jul 2026", current: true, items: [
+    v: "1.51.2", d: "8 jul 2026", current: true, items: [
+      { type: "fix", title: "O Termo de Adesão não aparece mais de novo pra quem já aceitou. Ao abrir o app no celular, uma falha passageira de rede fazia o aceite não ser encontrado e o termo voltava a cada acesso; agora a leitura insiste e, se o termo abrir por engano, ele se fecha sozinho ao confirmar o aceite." },
+    ],
+  },
+  {
+    v: "1.51.1", d: "8 jul 2026", items: [
       { type: "fix", title: "No espelho de ponto, uma legenda agora explica o valor colorido de cada dia: é o saldo acumulado até aquele dia. Antes a explicação só aparecia parando o mouse em cima, o que não existe no celular." },
     ],
   },
