@@ -1800,3 +1800,48 @@ território do PC — reportado urgente via bridge
    prioridade. As outras 18 coleções conferem certinho contra `config/permissoes`
    (onde a exclusão de líder/supervisor é explícita na matriz — PII/dado sensível,
    não lacuna). Reportado em `2026-07-08b-supervisor-alcance-real-e-2o-caso-disciplinares.md`.
+
+## 2026-07-08 — Caso Edmar: WK emite Faltas E Atrasos contraditórias pro mesmo dia
+
+William, olhando o modal de uma ocorrência real (Edmar 753, 07/07, "Atrasos"):
+"o que aconteceu com edmar é que ele não bateu nem entrada nem saída e ali mostra
+tudo errado". Card mostrava "Entrada 09:02, Atraso de 4h02" com aparência sólida
+(sem selo de incerteza).
+
+**Causa raiz, confirmada no CSV cru do Minerador**: a MESMA linha (mesmas
+Previstas `05:00-09:00-09:30-13:30` e Apuradas `09:02-09:31`) aparece **DUAS
+VEZES** no export, uma com situação "Faltas Injustificadas" (cód. 32) e outra
+com "Atrasos" (cód. 36) — o próprio WK gerou 2 classificações contraditórias
+pro mesmo dia/pessoa, ambas com só 2 de 4 marcações batidas (ele bateu só no
+meio do dia — nem entrada, nem saída final, exatamente o que o William
+diagnosticou de olho). Cada linha vira um doc `ocorrencias-auto` separado
+(dedupId inclui o rótulo de situação, não colidem).
+
+A ocorrência de Falta JÁ tinha proteção (regra de 07/07, achado Franciele):
+`classificacaoIncerta=true` quando apuradas < previstas. A de Atrasos NÃO —
+essa checagem só rodava dentro do `if sit == "Faltas Injustificadas"`. Sem o
+alerta, e sem `apuradasAlinhadas` (`diagnostica_marcacao_ausente` desiste
+quando faltam 2+ marcações — "diff > 1", fora do alcance da lógica de posição
+única/ambígua existente), o app caía no pareamento cru por índice — 1ª
+apurada vira "Entrada", 2ª vira "Saída Almoço" — inventando um atraso de
+4h02 que não existe.
+
+**Fix** (`process-ocorrencias-rh.py`): generalizada a checagem de "dia
+parcial" pra qualquer situação (não só Falta) — sempre que apuradas < previstas
+e a situação não é Falta (que já tem tratamento próprio, incluindo a supressão
+de dia-completo-mas-mal-rotulado), marca `classificacaoIncerta=true` com motivo
+explicando quantas bateram. Mudança aditiva/fail-safe: só aumenta cautela,
+nunca suprime nem afrouxa nada.
+
+**Testado com dado real**: rodada completa (39 ocorrências), blast radius de
++1 caso (só o Edmar) — não é reclassificação em massa. **Validação
+independente notável**: enquanto eu construía o fix, a RH (Suyanne Soares dos
+Santos) corrigiu esse EXATO doc na mão (duração 4h02 → 7h31, observação "Não
+registrou entrada e saída") — confirma que a incerteza que o código passou a
+sinalizar bate 100% com o julgamento humano real, feito de forma
+independente.
+
+Não precisou de correção manual/resync emergencial — a RH já resolveu o caso
+específico antes do fix chegar a produção; o código garante que o PRÓXIMO
+caso do gênero (qualquer situação, não só Atrasos) já nasce sinalizado, sem
+precisar de outro humano pescar por acaso. Commit `62c1c82`.
