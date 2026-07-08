@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.55.0", d: "8 jul 2026", current: true, items: [
+    v: "1.55.1", d: "8 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "Na fila de conferência, a etiqueta \"Conferir\" ficou mais destacada (selo âmbar com ícone de alerta) e o texto do motivo saiu da linha; ele continua no detalhe da ocorrência." },
+    ],
+  },
+  {
+    v: "1.55.0", d: "8 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Os indicadores da Visão geral ganharam um visual novo: cards soltos com ícone, o de conferir em destaque verde, e um mini gráfico dos últimos 6 meses nos que têm histórico (quadro de pessoas, resolvidas e turnover)." },
     ],
   },

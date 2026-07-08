@@ -8935,11 +8935,10 @@ function ocaDashCardHtml(o) {
         <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
         <div class="occ__sub">
           <span class="badge badge--${t.tone}">${escapeHtml(t.label)}</span>
-          ${o.classificacaoIncerta === true ? `<span class="badge badge--warning">Conferir</span>` : ""}
+          ${o.classificacaoIncerta === true ? `<span class="badge badge--conferir"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Conferir</span>` : ""}
           ${demit ? `<span class="badge badge--danger">Em rescisão</span>` : ""}
           <span class="dot"></span>
           <span>${escapeHtml(sub)}</span>
-          ${o.classificacaoIncerta === true && o.motivoIncerteza ? `<span class="dot"></span><span class="occ__incerto">${escapeHtml(o.motivoIncerteza)}</span>` : ""}
         </div>
       </div>
       ${batida1 ? `<div class="occ__time">${escapeHtml(batida1)}</div>` : prev1 ? `<div class="occ__time occ__time--prev">prev. ${escapeHtml(prev1)}</div>` : `<div class="occ__time occ__time--nulo">sem batida</div>`}
@@ -13421,7 +13420,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.55.0";
+window.CURRENT_VERSION = "1.55.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

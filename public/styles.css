@@ -1561,6 +1561,9 @@ textarea:focus-visible,
 .badge--aviso { background: rgba(224, 163, 58, .16); color: #E0A33A; }
 .badge--admin { background: rgba(11, 122, 54, .14); color: #0B7A36; }
 .badge--gp { background: rgba(0, 118, 190, .13); color: #0076BE; }
+/* Selo de acao "Conferir" (classificacao incerta): solido + icone, destaca das pilulas de situacao */
+.badge--conferir { background: #E8A23C; color: #3D2205; font-weight: 700; padding-left: 7px; }
+.badge--conferir .icon { width: 13px; height: 13px; }
 
 /* ===== Conferência de ocorrências automáticas (beta / sandbox) ===== */
 .nav__beta { margin-left: auto; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: var(--brand-amarelo, #FFCB00); color: #3a2c00; padding: 2px 6px; border-radius: 999px; }
