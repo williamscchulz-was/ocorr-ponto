@@ -10,8 +10,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=314" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=314" />
+  <link rel="stylesheet" href="styles.css?v=315" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=315" />
   <!-- Decide ANTES de renderizar, sincrono, o MODO da abertura. Estilo Apple:
        com sessao a restaurar mostra o Pulso da marca (cobre so o load, some assim
        que o app fica pronto); sem sessao vai direto pro login.
@@ -290,16 +290,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=314"></script>
-  <script defer src="data.js?v=314"></script>
+  <script defer src="utils.js?v=315"></script>
+  <script defer src="data.js?v=315"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=314"></script>
+  <script defer src="app.js?v=315"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=314"></script>
-  <script defer src="google-drive.js?v=314"></script>
+  <script defer src="firebase.js?v=315"></script>
+  <script defer src="google-drive.js?v=315"></script>
 </body>
 </html>

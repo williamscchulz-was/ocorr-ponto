@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.58.0", d: "8 jul 2026", current: true, items: [
+    v: "1.58.1", d: "8 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "Ajustes na Visão geral: o turnover passou a usar a fórmula clássica de RH (média de admitidos e demitidos sobre o quadro), o card de Saldo de horas saiu (ele já vive no Banco de horas) e o rótulo redundante das resolvidas foi removido." },
+    ],
+  },
+  {
+    v: "1.58.0", d: "8 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Padrão único de indicadores no app inteiro: os cards limpos da Visão geral e da Auditoria agora valem também em Funcionários, Banco de horas, Disciplinar e Comunicados." },
       { type: "med", aud: "gestor", title: "O Portal do Gestor volta a abrir sempre na Visão geral." },
     ],

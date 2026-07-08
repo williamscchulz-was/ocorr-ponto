@@ -3715,21 +3715,6 @@ function bhFolgaStr(bh) {
   return bh.saldoOriginalFormatado || (typeof formatSaldoHoras === "function" ? formatSaldoHoras(m) : String(m));
 }
 
-// Saldo de horas médio do escopo carregado (KPI do dashboard). "—" se sem dado.
-// Média do saldo de FOLGA quando o WK já sincronizou (fallback por doc no multiplicado).
-function dashBhMedia() {
-  const vals = Object.values(state.bancoHoras || {})
-    .map((b) => {
-      const o = bhFolgaMin(b);
-      if (o != null) return o;
-      return typeof b.minutos === "number" ? b.minutos : (typeof b.saldoMin === "number" ? b.saldoMin : null);
-    })
-    .filter((v) => v != null);
-  if (!vals.length) return "—";
-  const m = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-  return typeof formatSaldoHoras === "function" ? formatSaldoHoras(m) : String(m);
-}
-
 // "2026-06" -> "Junho de 2026" (rótulo do filtro de mês). Capitaliza a inicial.
 function mesAnoLabel(ym) {
   if (!ym) return "";
@@ -3826,26 +3811,16 @@ function vgTurnover(u) {
   const ativos = funcs.filter((f) => f.ativo !== false && noEscopo(f)).length;
   const agora = new Date();
   const ymAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
-  const limite12 = new Date(agora.getFullYear(), agora.getMonth() - 11, 1);
-  let desligMes = 0, deslig12 = 0;
+  const noMes = (dt) => dt && !isNaN(dt.getTime()) && `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}` === ymAtual;
+  let desligMes = 0;
   for (const f of funcs) {
     if (f.ativo !== false || !noEscopo(f)) continue;
-    const d = tsParaData(f.demissao);
-    if (!d || isNaN(d.getTime())) continue;
-    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    if (ym === ymAtual) desligMes++;
-    if (d >= limite12) deslig12++;
+    if (noMes(tsParaData(f.demissao))) desligMes++;
   }
-  const admMes = funcs.filter((f) => {
-    if (!noEscopo(f)) return false;
-    const a = tsParaData(f.admissao);
-    if (!a || isNaN(a.getTime())) return false;
-    return `${a.getFullYear()}-${String(a.getMonth() + 1).padStart(2, "0")}` === ymAtual;
-  }).length;
-  const mensal = ativos > 0 ? (desligMes / ativos) * 100 : 0;
-  const anual = ativos > 0 ? (deslig12 / ativos) * 100 : 0;
-  const banda = mensal < 2 ? "ok" : mensal <= 4 ? "warn" : "bad";
-  return { ativos, admMes, desligMes, deslig12, mensal, anual, banda, temDado: ativos > 0 };
+  const admMes = funcs.filter((f) => noEscopo(f) && noMes(tsParaData(f.admissao))).length;
+  // Turnover pela formula classica de RH: (admitidos + demitidos) / 2, sobre o quadro.
+  const mensal = ativos > 0 ? (((admMes + desligMes) / 2) / ativos) * 100 : 0;
+  return { ativos, admMes, desligMes, mensal, temDado: ativos > 0 };
 }
 
 // Série de 6 meses (mais antigo -> atual) pros sparklines dos KPIs. Só o que dá pra derivar
@@ -3866,7 +3841,8 @@ function vgSeries(u, visible) {
     return funcs.filter((f) => { const a = tsParaData(f.admissao); const dm = tsParaData(f.demissao); return a && a <= f2 && (!dm || dm > f2); }).length;
   });
   const deslig = meses.map((mm) => funcs.filter((f) => { const dm = tsParaData(f.demissao); return dm && chave(dm) === `${mm.y}-${mm.m}`; }).length);
-  const turnover = deslig.map((d, i) => ativos[i] > 0 ? (d / ativos[i]) * 100 : 0);
+  const adm = meses.map((mm) => funcs.filter((f) => { const a = tsParaData(f.admissao); return a && chave(a) === `${mm.y}-${mm.m}`; }).length);
+  const turnover = deslig.map((d, i) => ativos[i] > 0 ? (((adm[i] + d) / 2) / ativos[i]) * 100 : 0);
   const resolvidas = meses.map((mm) => {
     const alvo = `${mm.y}-${mm.m}`;
     const man = (visible || []).filter((o) => !isPending(o) && chave(tsParaData(o.dataConferencia || o.data)) === alvo).length;
@@ -3964,15 +3940,9 @@ function renderVisaoGeral() {
         <div class="kpi-a__ht">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
       </article>
       <article class="kpi-a">
-        <div class="kpi-a__top"><span>Saldo de horas</span>${icon("clock")}</div>
-        <div class="kpi-a__vl num">${escapeHtml(dashBhMedia())}</div>
-        <div class="kpi-a__ht">média · ${currentMonthLabel()}</div>
-      </article>
-      <article class="kpi-a">
         <div class="kpi-a__top"><span>Resolvidas no mês</span>${icon("check")}</div>
         <div class="kpi-a__vl">${done.length + nDoneAuto}</div>
         ${vgDeltaHtml(dResolv, { mes: mesAnt })}
-        <div class="kpi-a__ht">manuais + automáticas</div>
       </article>
       <article class="kpi-a">
         <div class="kpi-a__top"><span>Turnover no mês</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
@@ -13417,7 +13387,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.58.0";
+window.CURRENT_VERSION = "1.58.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

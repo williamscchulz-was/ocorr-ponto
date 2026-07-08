@@ -2947,7 +2947,7 @@ html.firebase-mode .login__forgot { display: block; }
 .vg-stack .page-header { margin-bottom: 6px !important; }
 
 /* KPIs padrão Auditoria (.aud__sum) + delta mensal */
-.kpis-a { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.kpis-a { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .kpi-a { border: 1px solid var(--border); border-radius: var(--radius); background: var(--milk-warm); padding: 14px 16px; display: flex; flex-direction: column; }
 .kpi-a__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; color: var(--text-muted); }
 .kpi-a__top .icon { width: 15px; height: 15px; opacity: .7; flex: none; }
