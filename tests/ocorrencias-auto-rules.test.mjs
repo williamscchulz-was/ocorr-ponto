@@ -35,6 +35,8 @@ before(async () => {
     await setDoc(doc(db, "users/uLider"),  { role: "lider", turno: 1, nome: "Lider T1" });
     await setDoc(doc(db, "users/uLider2"), { role: "lider", turno: 2, nome: "Lider T2" });
     await setDoc(doc(db, "users/uColab"),  { role: "colaborador", funcionarioId: "f-100", nome: "Maria" });
+    // supervisor: vê turno 1 (turnosVisiveis) + o avulso f-1059 (funcionariosVisiveis).
+    await setDoc(doc(db, "users/uSuperv"), { role: "supervisor", nome: "Superv", turnosVisiveis: [1], funcionariosVisiveis: ["f-1059"] });
     await setDoc(doc(db, "ocorrencias-auto/oca1"), baseDoc());
     await setDoc(doc(db, "ocorrencias-auto/oca2"), baseDoc({ historico: [{ acao: "gerada", por: "pipeline", emIso: "2026-06-26T16:00:00Z" }] }));
     // fluxo novo (turno 1). rh_confere com historico vazio (mutacao -> size 1);
@@ -61,6 +63,12 @@ before(async () => {
     await setDoc(doc(db, "ocorrencias-auto/ocaLan4"), baseDoc({ status: "rh_confere", turno: 1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLan7"), baseDoc({ status: "confirmada", turno: 1, historico: h1, lancada: true, lancadoEm: "2026-07-08", lancadoPor: "uRh" }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLan8"), baseDoc({ status: "confirmada", turno: 1, historico: h1, lancada: true, lancadoEm: "2026-07-08", lancadoPor: "uRh" }));
+    // supervisor (2026-07-08): com_lider no escopo por TURNO (turno 1, func fora da lista),
+    // por ID (turno 2 fora, mas func f-1059 na lista), FORA (turno 2 + func fora), e rh_confere.
+    await setDoc(doc(db, "ocorrencias-auto/ocaSupTurno"), baseDoc({ status: "com_lider", turno: 1, funcionarioId: "f-8888", historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaSupId"),    baseDoc({ status: "com_lider", turno: 2, funcionarioId: "f-1059", historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaSupFora"),  baseDoc({ status: "com_lider", turno: 2, funcionarioId: "f-9999", historico: h1 }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaSupRh"),    baseDoc({ status: "rh_confere", turno: 1, funcionarioId: "f-8888" }));
   });
 });
 
@@ -70,6 +78,7 @@ const rh    = () => env.authenticatedContext("uRh").firestore();
 const admin = () => env.authenticatedContext("uAdmin").firestore();
 const lider = () => env.authenticatedContext("uLider").firestore();
 const lider2 = () => env.authenticatedContext("uLider2").firestore();
+const superv = () => env.authenticatedContext("uSuperv").firestore();
 const colab = () => env.authenticatedContext("uColab").firestore();
 
 // ---- leitura ----
@@ -249,3 +258,18 @@ test("RH DESFAZ o lançamento (trio zerado)", async () =>
   assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan7"), { lancada: false, lancadoEm: null, lancadoPor: null, historico: histN(2) })));
 test("NÃO desfaz deixando lancadoEm pra trás (trio incoerente)", async () =>
   assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaLan8"), { lancada: false, lancadoEm: "2026-07-08", lancadoPor: null, historico: histN(2) })));
+
+// ---- supervisor (2026-07-08): read amplo + confirmar no escopo (paridade com a manual) ----
+const confPatchSup = () => ({ status: "confirmada", historico: histN(2) });
+test("SUPERVISOR: le ocorrencia-auto (read amplo, igual a manual)", async () =>
+  assertSucceeds(getDoc(doc(superv(), "ocorrencias-auto/ocaLD"))));
+test("SUPERVISOR: confirma com_lider no escopo por TURNO", async () =>
+  assertSucceeds(updateDoc(doc(superv(), "ocorrencias-auto/ocaSupTurno"), confPatchSup())));
+test("SUPERVISOR: confirma com_lider no escopo por ID (avulso)", async () =>
+  assertSucceeds(updateDoc(doc(superv(), "ocorrencias-auto/ocaSupId"), confPatchSup())));
+test("SUPERVISOR: NAO confirma com_lider FORA do escopo", async () =>
+  assertFails(updateDoc(doc(superv(), "ocorrencias-auto/ocaSupFora"), confPatchSup())));
+test("SUPERVISOR: NAO confirma a partir de rh_confere (estagio errado)", async () =>
+  assertFails(updateDoc(doc(superv(), "ocorrencias-auto/ocaSupRh"), { status: "confirmada", historico: histN(1) })));
+test("SUPERVISOR: NAO reclassifica tipo (so lider/RH corrigem)", async () =>
+  assertFails(updateDoc(doc(superv(), "ocorrencias-auto/ocaSupTurno"), { status: "confirmada", historico: histN(2), tipo: "Outro" })));

@@ -30,6 +30,13 @@
   // delas faz a outra estourar "ocorrenciasUnsub is not defined".
   let ocorrenciasUnsub = null;
   let ocorrenciasAutoUnsub = null; // listener VIVO das automáticas (paridade com as manuais)
+  // Escopo do supervisor nas automáticas: a regra dá read AMPLO (espelha /ocorrencias), o
+  // cliente filtra pra o escopo dele na INGESTAO (avulsos OU turnos). Admin/RH/líder passam
+  // direto (líder já filtrado server-side por turno). Filtrar na entrada corrige tudo rio
+  // abaixo (vgTendencia/ocaFaltasMes consomem o state cru).
+  const noEscopoAuto = (u, o) => u.role !== "supervisor"
+    || (u.funcionariosVisiveis || []).includes(o.funcionarioId)
+    || (u.turnosVisiveis || []).includes(Number(o.turno));
   let ocorrenciasIdsConhecidos = null; // null = ainda não houve 1ª carga
 
   function loadScript(src) {
@@ -1188,7 +1195,7 @@
         // senão o get() da coleção inteira é rejeitado. Admin/RH leem tudo.
         if (u && u.role === "lider" && u.turno != null) q = q.where("turno", "==", u.turno);
         const snap = await q.limit(1000).get();
-        const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((o) => noEscopoAuto(u, o));
         arr.sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
         state.ocorrenciasAuto = arr;
       } catch (e) {
@@ -3374,15 +3381,16 @@
     // Automáticas (ocorrencias-auto) — TEMPO REAL igual às manuais (pedido William 2026-07-08,
     // "auto e manual mesma coisa, o reload segue tbm"). Antes era get pontual (só atualizava ao
     // refocar); agora um snapshot vivo reflete conferência/lançamento/novos docs na hora. Líder
-    // filtra por turno server-side (casa com a rule). SÓ pra quem a rule deixa LER
-    // (admin/RH/líder-do-turno); supervisor não lê ocorrencias-auto (tomaria permission-denied).
-    // Inicia [] pra ensureOcaCarregada não disparar o get lazy em paralelo.
-    if (["admin", "rh", "lider"].includes(u.role)) {
+    // líder filtra por turno server-side (casa com a rule); supervisor lê AMPLO (regra espelha
+    // /ocorrencias) e o cliente filtra pelo escopo dele na ingestao (noEscopoAuto). Inicia []
+    // pra ensureOcaCarregada não disparar o get lazy em paralelo.
+    if (["admin", "rh", "lider", "supervisor"].includes(u.role)) {
       state.ocorrenciasAuto = state.ocorrenciasAuto || [];
       let qAuto = db.collection("ocorrencias-auto");
       if (u.role === "lider" && u.turno != null) qAuto = qAuto.where("turno", "==", u.turno);
       ocorrenciasAutoUnsub = qAuto.limit(1000).onSnapshot((snap) => {
         state.ocorrenciasAuto = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+          .filter((o) => noEscopoAuto(u, o))
           .sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
         try { window.aoAtualizarOcorrencias?.(); } catch (e) { /* */ }
       }, (err) => { debug?.("[ocorrencias-auto] snapshot erro:", err?.message || err); });

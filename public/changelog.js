@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.53.0", d: "8 jul 2026", current: true, items: [
+    v: "1.54.0", d: "8 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "A Visão geral ganhou um indicador de Turnover (rotatividade) no mês, com o anualizado e a contagem de desligamentos, calculado com admissões e demissões." },
+      { type: "fix", aud: "gestor", title: "Os supervisores voltam a enxergar as ocorrências automáticas dos funcionários que supervisionam e podem confirmá-las, igual acontece com as manuais. Antes o papel de supervisor ficava sem ver nenhuma." },
+    ],
+  },
+  {
+    v: "1.53.0", d: "8 jul 2026", items: [
       { type: "fix", title: "No card de aniversário, quando você parabeniza aparece a sua foto de perfil, e os colegas aparecem pelas iniciais." },
       { type: "fix", aud: "gestor", title: "As ocorrências automáticas agora atualizam na hora, sem precisar recarregar a tela: uma conferência, um lançamento ou uma ocorrência nova aparece sozinha, igual já acontecia com as manuais." },
       { type: "fix", aud: "gestor", title: "O total de Resolvidas no mês passou a somar as ocorrências automáticas junto com as manuais, no mesmo número." },

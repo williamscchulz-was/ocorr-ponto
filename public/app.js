@@ -3860,10 +3860,37 @@ function vgAtividadeHtml() {
     </section>`;
 }
 
+// Turnover (rotatividade): desligados / quadro ativo. Mensal (mês corrente) + anualizado
+// (12 meses móveis). Usa admissao/demissao/ativo que já temos, nada novo do pipeline. Escopo
+// por papel (líder/supervisor veem só os seus). Faixas: baixo <2%, moderado 2-4%, alto >4% ao
+// mês (default, ajustável). Direção A (5º KPI) + mês & anualizado aprovados William 2026-07-08.
+function vgTurnover(u) {
+  const noEscopo = (f) => u.role === "lider" ? f.turno === u.turno
+    : u.role === "supervisor" ? podeVerFuncionario(u, f) : true;
+  const funcs = state.funcionarios || [];
+  const ativos = funcs.filter((f) => f.ativo !== false && noEscopo(f)).length;
+  const agora = new Date();
+  const ymAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
+  const limite12 = new Date(agora.getFullYear(), agora.getMonth() - 11, 1);
+  let desligMes = 0, deslig12 = 0;
+  for (const f of funcs) {
+    if (f.ativo !== false || !noEscopo(f)) continue;
+    const d = tsParaData(f.demissao);
+    if (!d || isNaN(d.getTime())) continue;
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (ym === ymAtual) desligMes++;
+    if (d >= limite12) deslig12++;
+  }
+  const mensal = ativos > 0 ? (desligMes / ativos) * 100 : 0;
+  const anual = ativos > 0 ? (deslig12 / ativos) * 100 : 0;
+  const banda = mensal < 2 ? "ok" : mensal <= 4 ? "warn" : "bad";
+  return { ativos, desligMes, deslig12, mensal, anual, banda, temDado: ativos > 0 };
+}
+
 function renderVisaoGeral() {
   const u = currentUser();
   $("#topbar-title").textContent = "Visão geral";
-  if (["admin", "rh", "lider"].includes(u.role)) ensureOcaCarregada();
+  if (["admin", "rh", "lider", "supervisor"].includes(u.role)) ensureOcaCarregada();
 
   const visible = visibleOcorrencias();
   const pending = visible.filter(isPending);
@@ -3875,6 +3902,9 @@ function renderVisaoGeral() {
   // Resolvidas = manual (conferida+lançada) + auto (confirmada, já inclui as lançadas): auto e
   // manual contam no MESMO balde (pedido William 2026-07-08).
   const nDoneAuto = ocaDoEstagio("confirmada").length;
+  const tv = vgTurnover(u);
+  const tvFmt = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+  const tvCor = tv.banda === "bad" ? "var(--danger)" : tv.banda === "warn" ? "var(--warning-ink)" : "var(--text-body)";
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -3909,6 +3939,11 @@ function renderVisaoGeral() {
         <div class="stat__label">Resolvidas no mês</div>
         <div class="stat__value">${done.length + nDoneAuto}</div>
         <div class="stat__hint">manuais + automáticas</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Turnover no mês</div>
+        <div class="stat__value" style="color:${tvCor}">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
+        <div class="stat__hint">${tv.temDado ? `${tv.desligMes} desligamento${tv.desligMes === 1 ? "" : "s"} · ~${tvFmt(tv.anual)} no ano` : "sem quadro"}</div>
       </div>
     </div>
 
@@ -3953,7 +3988,7 @@ function renderDashboard() {
   const done = visible.filter((o) => !isPending(o)); // conferidas + lançadas
 
   // Automáticas (fluxo RH→Líder) integradas nas mesmas abas. Carga lazy (1x).
-  if (["admin", "rh", "lider"].includes(u.role)) ensureOcaCarregada();
+  if (["admin", "rh", "lider", "supervisor"].includes(u.role)) ensureOcaCarregada();
   const podeRh = can("ocorrencias.revisarAuto");
   const nRhConfere = podeRh ? ocaDoEstagio("rh_confere").length : 0;
   const nComLider = ocaDoEstagio("com_lider").length;
@@ -13334,7 +13369,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.53.0";
+window.CURRENT_VERSION = "1.54.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

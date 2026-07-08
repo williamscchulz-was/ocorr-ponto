@@ -615,8 +615,14 @@ service cloud.firestore {
     // (status novo nunca volta pra 'rh_confere'). Legado: 'aguardando_conferencia' (= RH confere) e
     // 'conferida' (terminal antigo) seguem aceitos durante a transicao.
     match /ocorrencias-auto/{id} {
+      // READ amplo pro supervisor (espelha /ocorrencias: podeVerOcorrencia da read amplo ao
+      // supervisor e a UI filtra pelo escopo dele na INGESTAO). Sem PII forte nesta colecao;
+      // os 4 supervisores ja leem todas as manuais via API. Escopo estrito (supervisorVe/
+      // VeTurno) fica no WRITE abaixo. ponytail: se um dia precisar estrito no read, e 1 query
+      // == por turno + in chunked de 30 pros funcionariosVisiveis, com merge no cliente.
       allow read: if isAdmin() || isRH()
-                  || (isLider() && resource.data.turno == userDoc().turno);
+                  || (isLider() && resource.data.turno == userDoc().turno)
+                  || isSupervisor();
 
       // acao/observacao: a DESTINAÇÃO que o líder escolhe ao conferir (mesma liturgia
       // da ocorrência manual — pedido do William 2026-07-02). Continuam gated pelas
@@ -650,6 +656,16 @@ service cloud.firestore {
           ||
           // Lider do TURNO confirma o que esta "com o lider" — sem tocar na classificacao.
           ( isLider() && resource.data.turno == userDoc().turno
+            && resource.data.status == 'com_lider'
+            && request.resource.data.status == 'confirmada'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao']) )
+          ||
+          // Supervisor confirma no ESCOPO (avulsos OU turno) — paridade com o conferir da
+          // ocorrencia manual (William 2026-07-08); mesma transicao e mesmos campos do lider.
+          ( temCap('ocorrencias.conferir', isSupervisor())
+            && isSupervisor()
+            && (('funcionarioId' in resource.data && supervisorVe(resource.data.funcionarioId))
+                || ('turno' in resource.data && supervisorVeTurno(resource.data.turno)))
             && resource.data.status == 'com_lider'
             && request.resource.data.status == 'confirmada'
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao']) )
