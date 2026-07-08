@@ -29,6 +29,7 @@
   // onSnapshot) e wireAuthFlow (cancela no signOut). Declarar dentro de uma
   // delas faz a outra estourar "ocorrenciasUnsub is not defined".
   let ocorrenciasUnsub = null;
+  let ocorrenciasAutoUnsub = null; // listener VIVO das automáticas (paridade com as manuais)
   let ocorrenciasIdsConhecidos = null; // null = ainda não houve 1ª carga
 
   function loadScript(src) {
@@ -1339,7 +1340,9 @@
       if (!uid) throw new Error("sem sessao");
       const ref = db.collection("muralAniversario").doc(postId).collection("reacoes").doc(uid);
       if (ligar) {
-        await ref.set({ uid, tipo: "coracao", em: firebase.firestore.FieldValue.serverTimestamp() });
+        // autorNome = o nome REAL (users/{uid}.nome; a regra valida ==userDoc().nome anti-spoof):
+        // alimenta o mini-avatar de iniciais de quem parabenizou no card do colega.
+        await ref.set({ uid, tipo: "coracao", autorNome: (currentUser()?.nome || "").slice(0, 80), em: firebase.firestore.FieldValue.serverTimestamp() });
         return true;
       }
       await ref.delete();
@@ -2779,6 +2782,7 @@
       // Para o listener vivo das ocorrências e reseta a detecção de deltas
       // (próximo login volta a tratar a 1ª emissão como carga inicial → sem beep)
       if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
+      if (ocorrenciasAutoUnsub) { ocorrenciasAutoUnsub(); ocorrenciasAutoUnsub = null; }
       ocorrenciasIdsConhecidos = null;
       state.presence = [];
       // Para qualquer subscription de PJ ativa (modal pode estar aberto
@@ -3302,6 +3306,7 @@
 
     // Cancela listener anterior (re-login na mesma instância, troca de papel etc).
     if (ocorrenciasUnsub) { ocorrenciasUnsub(); ocorrenciasUnsub = null; }
+    if (ocorrenciasAutoUnsub) { ocorrenciasAutoUnsub(); ocorrenciasAutoUnsub = null; }
 
     // Promise que resolve no PRIMEIRO snapshot, pra carregarDadosCompletos
     // poder await-ar o boot. Timeout de segurança de 5s pra não travar a tela
@@ -3365,6 +3370,23 @@
       clearTimeout(safetyOcorrencias);
       try { window.aoAtualizarOcorrencias?.(); } catch (e) { /* */ }
     });
+
+    // Automáticas (ocorrencias-auto) — TEMPO REAL igual às manuais (pedido William 2026-07-08,
+    // "auto e manual mesma coisa, o reload segue tbm"). Antes era get pontual (só atualizava ao
+    // refocar); agora um snapshot vivo reflete conferência/lançamento/novos docs na hora. Líder
+    // filtra por turno server-side (casa com a rule). SÓ pra quem a rule deixa LER
+    // (admin/RH/líder-do-turno); supervisor não lê ocorrencias-auto (tomaria permission-denied).
+    // Inicia [] pra ensureOcaCarregada não disparar o get lazy em paralelo.
+    if (["admin", "rh", "lider"].includes(u.role)) {
+      state.ocorrenciasAuto = state.ocorrenciasAuto || [];
+      let qAuto = db.collection("ocorrencias-auto");
+      if (u.role === "lider" && u.turno != null) qAuto = qAuto.where("turno", "==", u.turno);
+      ocorrenciasAutoUnsub = qAuto.limit(1000).onSnapshot((snap) => {
+        state.ocorrenciasAuto = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => String(b.dataIso || "").localeCompare(String(a.dataIso || "")));
+        try { window.aoAtualizarOcorrencias?.(); } catch (e) { /* */ }
+      }, (err) => { debug?.("[ocorrencias-auto] snapshot erro:", err?.message || err); });
+    }
 
     // ===== PÓS-RENDER (não bloqueia o login): monitor, PJ e diretório de usuários =====
     // Alimentam o chip do pipeline, a aba PJ e o diretório, nada disso é o 1º segundo da

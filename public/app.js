@@ -1880,7 +1880,18 @@ async function preencherCardsAniversario() {
     const stack = el.querySelector("[data-bday-stack]");
     if (stack) {
       stack.innerHTML = dados.reacoes.slice(0, 4)
-        .map((r) => `<span class="pp-bday__stk" style="background:${_muralCor(r.nome || r.uid || "")}" title="${escapeHtml(r.nome || "")}">${escapeHtml(r.nome ? initials(r.nome) : "")}</span>`).join("");
+        .map((r) => {
+          // A MINHA reação mostra a MINHA foto (o colab tem o próprio funcionário em
+          // state.funcionarios[0]); as dos colegas ficam como iniciais (o colab não tem o
+          // diretório pra puxar foto de terceiro). autorNome vem da reação (v307).
+          const souEu = state.currentUserId && r.uid === state.currentUserId;
+          const fEu = (state.funcionarios && state.funcionarios[0]) || null;
+          const _foto = fEu && fEu.fotoBase64;
+          const fotoEu = (souEu && typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
+          if (fotoEu) return `<span class="pp-bday__stk pp-bday__stk--foto" style="background-image:url('${fotoEu}')" title="Você"></span>`;
+          const nome = souEu ? ((fEu && fEu.nome) || r.nome || "") : (r.nome || "");
+          return `<span class="pp-bday__stk" style="background:${_muralCor(nome || r.uid || "")}" title="${escapeHtml(souEu ? "Você" : nome)}">${escapeHtml(nome ? initials(nome) : "")}</span>`;
+        }).join("");
     }
   }));
 }
@@ -3861,6 +3872,9 @@ function renderVisaoGeral() {
   // o estágio "GP confere" tem linha própria no Precisa de você.
   const nComLider = ocaDoEstagio("com_lider").length;
   const aConferir = pending.length + nComLider;
+  // Resolvidas = manual (conferida+lançada) + auto (confirmada, já inclui as lançadas): auto e
+  // manual contam no MESMO balde (pedido William 2026-07-08).
+  const nDoneAuto = ocaDoEstagio("confirmada").length;
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -3893,8 +3907,8 @@ function renderVisaoGeral() {
       </div>
       <div class="stat">
         <div class="stat__label">Resolvidas no mês</div>
-        <div class="stat__value">${done.length}</div>
-        <div class="stat__hint">conferidas + lançadas</div>
+        <div class="stat__value">${done.length + nDoneAuto}</div>
+        <div class="stat__hint">manuais + automáticas</div>
       </div>
     </div>
 
@@ -13320,7 +13334,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.52.4";
+window.CURRENT_VERSION = "1.53.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

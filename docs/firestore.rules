@@ -576,8 +576,11 @@ service cloud.firestore {
         allow create: if isAuthed()
                     && request.auth.uid == uid
                     && request.resource.data.uid == uid
-                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'em'])
+                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'autorNome', 'em'])
                     && request.resource.data.tipo == 'coracao'
+                    && request.resource.data.autorNome is string
+                    && request.resource.data.autorNome.size() <= 80
+                    && request.resource.data.autorNome == userDoc().nome
                     && request.resource.data.em == request.time;
         allow delete: if isAuthed() && (request.auth.uid == uid || isAdmin() || isRH());
         allow update: if false;

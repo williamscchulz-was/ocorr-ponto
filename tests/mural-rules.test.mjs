@@ -73,7 +73,7 @@ const ctxFor = (uid) => env.authenticatedContext(uid).firestore();
 const anon = () => env.unauthenticatedContext().firestore();
 
 const POST = "muralAniversario/f-1_2026";
-const reacao = (uid, over = {}) => ({ uid, tipo: "coracao", em: serverTimestamp(), ...over });
+const reacao = (uid, over = {}) => ({ uid, tipo: "coracao", autorNome: NOME[uid] ?? "Sem Nome", em: serverTimestamp(), ...over });
 // autorNome default = nome real do autor em /users (pra o caso feliz passar a regra anti-spoof).
 const recado = (uid, over = {}) => ({ autorUid: uid, autorNome: NOME[uid] ?? "Sem Nome", texto: "Parabens!", em: serverTimestamp(), ...over });
 
@@ -99,6 +99,10 @@ test("REACAO: campo extra falha", async () =>
   assertFails(setDoc(doc(ctxFor("uColab2"), `${POST}/reacoes/uColab2`), reacao("uColab2", { extra: 1 }))));
 test("REACAO: em != server time falha", async () =>
   assertFails(setDoc(doc(ctxFor("uColab2"), `${POST}/reacoes/uColab2`), reacao("uColab2", { em: new Date(2020, 0, 1) }))));
+test("REACAO: autorNome != users.nome falha (anti-spoof)", async () =>
+  assertFails(setDoc(doc(ctxFor("uColab2"), `${POST}/reacoes/uColab2`), reacao("uColab2", { autorNome: "Fulano Falso" }))));
+test("REACAO: sem autorNome falha (campo obrigatorio agora)", async () =>
+  assertFails(setDoc(doc(ctxFor("uColab2"), `${POST}/reacoes/uColab2`), { uid: "uColab2", tipo: "coracao", em: serverTimestamp() })));
 test("REACAO: anonimo cria falha", async () =>
   assertFails(setDoc(doc(anon(), `${POST}/reacoes/qualquer`), reacao("qualquer"))));
 

@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.52.4", d: "8 jul 2026", current: true, items: [
+    v: "1.53.0", d: "8 jul 2026", current: true, items: [
+      { type: "fix", title: "No card de aniversário, quando você parabeniza aparece a sua foto de perfil, e os colegas aparecem pelas iniciais." },
+      { type: "fix", aud: "gestor", title: "As ocorrências automáticas agora atualizam na hora, sem precisar recarregar a tela: uma conferência, um lançamento ou uma ocorrência nova aparece sozinha, igual já acontecia com as manuais." },
+      { type: "fix", aud: "gestor", title: "O total de Resolvidas no mês passou a somar as ocorrências automáticas junto com as manuais, no mesmo número." },
+    ],
+  },
+  {
+    v: "1.52.4", d: "8 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Na lista de ocorrências, o card das automáticas já conferidas ficou igual ao das manuais: uma etiqueta só (a ação, ou Lançada com a ação) e a seta pra abrir, com o botão Lançar direto na confirmada. Antes empilhava dois selos e uma linha com quem fez, que agora aparece na trilha ao abrir." },
     ],
   },
