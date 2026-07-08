@@ -1992,3 +1992,32 @@ editar um campo de validação interna do WK sem entender o efeito é
 exatamente o tipo de risco desnecessário que o "não sed no config" já evita
 pra outros campos. Documentado no `WKRADAR-PLAYBOOK.md` §4 pra não virar
 mistério de novo.
+
+## 2026-07-08 — Fechado: os ~14 achados baixo/info da auditoria de 01/07
+
+William pediu pra finalizar. Fui procurar a lista completa dos ~14 pra
+revisar item a item — **e achei uma lacuna real**: a lista NUNCA foi escrita
+neste documento. As entradas de 01/07 (`autorizo ir para os médios`, `4
+achados com ganho real`) só citam a CONTAGEM ("~18 restantes", depois "~14"),
+nunca o detalhe de cada um — o inventário completo só existiu na conversa
+daquele dia, que já passou por várias compactações desde então.
+
+Achei o veredito na minha própria memória de longo prazo (escrita no mesmo
+dia da auditoria, antes de qualquer compactação): **triagem deliberada, não
+esquecimento** — "quase todos teóricos (ex.: timezone perto da meia-noite —
+pipeline nunca roda nesse horário) ou teriam efeito desproporcional ao
+risco". Ou seja, na hora, cada um dos ~14 foi avaliado e conscientemente
+descartado por não valer o esforço — não é trabalho pendente, é decisão já
+tomada que só não tinha virado registro permanente.
+
+**Fechamento**: mantenho o veredito de 01/07 (o raciocínio — teórico demais
+ou desproporcional — não muda com o tempo). Não vou reconstruir a lista
+exata vasculhando o transcript bruto (a essa altura, baixo valor pelo
+esforço — exatamente o critério que descartou os achados em primeiro
+lugar). Se um desses achados voltar a aparecer de um jeito CONCRETO (não
+teórico) — um bug real, não uma possibilidade — trato como achado novo, não
+como "finalmente chegou a vez do achado #7". Lição registrada pro futuro:
+quando uma auditoria gerar uma lista de achados que não vai ser tratada
+inteira na hora, escrever a lista completa aqui (mesmo os descartados, com
+o motivo) — não só a contagem. Contagem sem lista é dívida de documentação
+disfarçada de trabalho pendente.
