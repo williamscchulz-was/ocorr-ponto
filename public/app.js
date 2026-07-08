@@ -3887,6 +3887,49 @@ function vgTurnover(u) {
   return { ativos, desligMes, deslig12, mensal, anual, banda, temDado: ativos > 0 };
 }
 
+// Série de 6 meses (mais antigo -> atual) pros sparklines dos KPIs. Só o que dá pra derivar
+// HONESTO do dado que já temos: quadro ativo por mês (admissão/demissão), resolvidas por mês
+// (dataConferencia da manual + confirmou da auto) e turnover por mês. Saldo/a-conferir não têm
+// história (dependem do WKRADAR), ficam sem gráfico. Escopo por papel.
+function vgSeries(u, visible) {
+  const noEscopo = (f) => u.role === "lider" ? f.turno === u.turno
+    : u.role === "supervisor" ? podeVerFuncionario(u, f) : true;
+  const funcs = (state.funcionarios || []).filter(noEscopo);
+  const base = new Date();
+  const meses = [];
+  for (let k = 5; k >= 0; k--) { const d = new Date(base.getFullYear(), base.getMonth() - k, 1); meses.push({ y: d.getFullYear(), m: d.getMonth() }); }
+  const fimDoMes = (mm) => new Date(mm.y, mm.m + 1, 0, 23, 59, 59);
+  const chave = (dt) => dt ? `${dt.getFullYear()}-${dt.getMonth()}` : "";
+  const ativos = meses.map((mm) => {
+    const f2 = fimDoMes(mm);
+    return funcs.filter((f) => { const a = tsParaData(f.admissao); const dm = tsParaData(f.demissao); return a && a <= f2 && (!dm || dm > f2); }).length;
+  });
+  const deslig = meses.map((mm) => funcs.filter((f) => { const dm = tsParaData(f.demissao); return dm && chave(dm) === `${mm.y}-${mm.m}`; }).length);
+  const turnover = deslig.map((d, i) => ativos[i] > 0 ? (d / ativos[i]) * 100 : 0);
+  const resolvidas = meses.map((mm) => {
+    const alvo = `${mm.y}-${mm.m}`;
+    const man = (visible || []).filter((o) => !isPending(o) && chave(tsParaData(o.dataConferencia || o.data)) === alvo).length;
+    const auto = (state.ocorrenciasAuto || []).filter((o) => {
+      if (ocaEstagio(o) !== "confirmada") return false;
+      const h = [...(o.historico || [])].reverse().find((x) => x.acao === "confirmou");
+      return h && h.emIso && chave(new Date(h.emIso)) === alvo;
+    }).length;
+    return man + auto;
+  });
+  return { ativos, turnover, resolvidas };
+}
+
+// Sparkline em barras (SVG), série normalizada, última barra em destaque. "" se toda zero.
+function vgSpark(serie, cor) {
+  if (!Array.isArray(serie) || !serie.some((n) => n > 0)) return "";
+  const max = Math.max(...serie, 1), w = 100, gap = 3, n = serie.length, bw = (w - gap * (n - 1)) / n, h = 24;
+  const barras = serie.map((v, i) => {
+    const bh = Math.max(2, (v / max) * h), x = i * (bw + gap), y = h - bh;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.4" fill="${cor}" opacity="${i === n - 1 ? 1 : 0.4}"/>`;
+  }).join("");
+  return `<svg class="kpi__spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${barras}</svg>`;
+}
+
 function renderVisaoGeral() {
   const u = currentUser();
   $("#topbar-title").textContent = "Visão geral";
@@ -3905,6 +3948,7 @@ function renderVisaoGeral() {
   const tv = vgTurnover(u);
   const tvFmt = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
   const tvCor = tv.banda === "bad" ? "var(--danger)" : tv.banda === "warn" ? "var(--warning-ink)" : "var(--text-body)";
+  const serie = vgSeries(u, visible);
 
   $("#view").innerHTML = `
     <header class="page-header">
@@ -3919,32 +3963,40 @@ function renderVisaoGeral() {
 
     ${gestorAtalhosHtml(u)}
 
-    <div class="stats stats--kpi">
-      <div class="stat ${aConferir ? "stat--accent" : ""} stat--kpi">
-        <div class="stat__label">Ocorrências a conferir</div>
-        <div class="stat__value">${aConferir}</div>
-        <div class="stat__hint">${aConferir ? `<button class="btn btn--soft btn--sm" data-vg-ir="pendentes">${icon("check")}<span>Conferir agora</span></button>` : "tudo em dia"}</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Colaboradores ativos</div>
-        <div class="stat__value">${countActiveFuncs(u)}</div>
-        <div class="stat__hint">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Saldo de horas (média)</div>
-        <div class="stat__value num">${escapeHtml(dashBhMedia())}</div>
-        <div class="stat__hint">${currentMonthLabel()}</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Resolvidas no mês</div>
-        <div class="stat__value">${done.length + nDoneAuto}</div>
-        <div class="stat__hint">manuais + automáticas</div>
-      </div>
-      <div class="stat">
-        <div class="stat__label">Turnover no mês</div>
-        <div class="stat__value" style="color:${tvCor}">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
-        <div class="stat__hint">${tv.temDado ? `${tv.desligMes} desligamento${tv.desligMes === 1 ? "" : "s"} · ~${tvFmt(tv.anual)} no ano` : "sem quadro"}</div>
-      </div>
+    <div class="kpis">
+      <article class="kpi kpi--accent">
+        <div class="kpi__ic">${icon("clipboard")}</div>
+        <div class="kpi__lb">Ocorrências a conferir</div>
+        <div class="kpi__vl">${aConferir}</div>
+        ${aConferir ? `<button class="kpi__cta" data-vg-ir="pendentes">${icon("check")}<span>Conferir agora</span></button>` : `<div class="kpi__ht">tudo em dia</div>`}
+      </article>
+      <article class="kpi">
+        <div class="kpi__ic">${icon("users")}</div>
+        <div class="kpi__lb">Colaboradores ativos</div>
+        <div class="kpi__vl">${countActiveFuncs(u)}</div>
+        <div class="kpi__ht">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
+        ${vgSpark(serie.ativos, "var(--info)")}
+      </article>
+      <article class="kpi">
+        <div class="kpi__ic">${icon("clock")}</div>
+        <div class="kpi__lb">Saldo de horas</div>
+        <div class="kpi__vl num">${escapeHtml(dashBhMedia())}</div>
+        <div class="kpi__ht">média · ${currentMonthLabel()}</div>
+      </article>
+      <article class="kpi">
+        <div class="kpi__ic">${icon("check")}</div>
+        <div class="kpi__lb">Resolvidas no mês</div>
+        <div class="kpi__vl">${done.length + nDoneAuto}</div>
+        <div class="kpi__ht">manuais + automáticas</div>
+        ${vgSpark(serie.resolvidas, "var(--success)")}
+      </article>
+      <article class="kpi">
+        <div class="kpi__ic${tv.banda === "bad" ? " kpi__ic--bad" : tv.banda === "warn" ? " kpi__ic--warn" : ""}"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+        <div class="kpi__lb">Turnover no mês</div>
+        <div class="kpi__vl" style="color:${tvCor}">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
+        <div class="kpi__ht">${tv.temDado ? `${tv.desligMes} deslig. · ~${tvFmt(tv.anual)} no ano` : "sem quadro"}</div>
+        ${vgSpark(serie.turnover, tvCor)}
+      </article>
     </div>
 
     ${vgPrecisaDeVoce(u)}
@@ -13369,7 +13421,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.54.0";
+window.CURRENT_VERSION = "1.55.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

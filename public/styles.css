@@ -1190,6 +1190,32 @@ textarea:focus-visible,
    maior e uma barra-guia à esquerda — guia o olho pra ela antes das demais. */
 .stat--kpi { flex: 1.7 1 0; }
 .stat--kpi .stat__value { font-size: 32px; }
+
+/* ============================================
+   KPIs da Visão geral — redesign 2026-07-08 (direção A + sparkline B, aprovado).
+   Cards soltos arredondados com ícone; o de ação com o verde da marca + CTA.
+   ============================================ */
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin: 0 0 20px; }
+.kpi { position: relative; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px 16px 15px; box-shadow: 0 1px 2px rgba(10, 60, 30, .04); transition: transform .15s var(--ease), box-shadow .15s ease; }
+.kpi:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(10, 60, 30, .10); }
+.kpi__ic { width: 38px; height: 38px; border-radius: 12px; background: var(--success-bg); color: var(--plum); display: grid; place-items: center; margin-bottom: 12px; }
+.kpi__ic .icon { width: 19px; height: 19px; }
+.kpi__ic--warn { background: var(--warning-bg); color: var(--warning-ink); }
+.kpi__ic--bad { background: #fbe9e7; color: var(--danger); }
+.kpi__lb { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.kpi__vl { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin-top: 3px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.kpi__ht { font-size: 11.5px; color: var(--text-muted); margin-top: 7px; }
+.kpi__cta { margin-top: 11px; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; background: #fff; color: var(--plum); font-size: 12px; font-weight: 700; border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; cursor: pointer; transition: background .15s ease; }
+.kpi__cta:hover { background: var(--surface-warm); }
+.kpi__cta .icon { width: 14px; height: 14px; }
+.kpi__spark { width: 100%; height: 24px; margin-top: auto; padding-top: 12px; display: block; box-sizing: content-box; }
+.kpi--accent { background: linear-gradient(160deg, var(--plum-soft), var(--plum)); border-color: transparent; color: #fff; }
+.kpi--accent .kpi__vl { color: #fff; }
+.kpi--accent .kpi__ic { background: rgba(255, 255, 255, .16); color: #fff; }
+.kpi--accent .kpi__lb, .kpi--accent .kpi__ht { color: rgba(255, 255, 255, .82); }
+.kpi--accent .kpi__cta { background: #fff; color: var(--plum); border-color: transparent; }
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
+@media (prefers-reduced-motion: reduce) { .kpi { transition: none; } .kpi:hover { transform: none; } }
 .stat--kpi::before {
   content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
   background: var(--plum);

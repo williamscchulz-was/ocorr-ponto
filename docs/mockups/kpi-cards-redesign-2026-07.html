@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock · Redesign dos KPIs da Visão Geral</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef5ef; --surface:#fff; --border:#e6ece7; --border2:#dbe6de;
+    --text:#16221b; --muted:#6a7d71; --muted2:#8a998f;
+    --green:#008835; --green2:#0a9a44; --greenSoft:#e7f5ec; --greenTint:#f2f9f4;
+    --plum:#16221b; --danger:#c0392b; --danger-bg:#fbe9e7; --warn:#b8791b; --warn-bg:#fdf3e0;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:Poppins,sans-serif;background:var(--bg);color:var(--text);padding:26px 18px 80px}
+  .wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:34px}
+  h1{font-size:19px} h1 small{display:block;font-size:12.5px;font-weight:400;color:var(--muted);margin-top:5px}
+  h2{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .badge-rec{font-size:9.5px;font-weight:800;letter-spacing:.04em;background:var(--greenSoft);color:var(--green);padding:2px 8px;border-radius:999px;text-transform:uppercase}
+  .nota{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.55;max-width:80ch}
+  svg.ic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px}
+  .trend--up{background:var(--danger-bg);color:var(--danger)} .trend--down{background:var(--greenSoft);color:var(--green)}
+  .trend--warn{background:var(--warn-bg);color:var(--warn)}
+
+  /* ========== ATUAL (referência) ========== */
+  .old{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .old .c{flex:1;padding:16px 18px;border-left:1px solid var(--border)}
+  .old .c:first-child{border-left:0}
+  .old .lb{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+  .old .vl{font-size:30px;font-weight:800;margin-top:4px}
+  .old .ht{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+  /* ========== A · cards soltos com ícone ========== */
+  .gridA{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  @media(max-width:900px){.gridA{grid-template-columns:repeat(2,1fr)}}
+  .kA{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px 16px 15px;box-shadow:0 1px 2px rgba(10,60,30,.04);transition:transform .15s,box-shadow .15s}
+  .kA:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(10,60,30,.10)}
+  .kA__ic{width:38px;height:38px;border-radius:12px;background:var(--greenTint);color:var(--green);display:grid;place-items:center;margin-bottom:12px}
+  .kA__lb{font-size:10.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .kA__vl{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:3px;line-height:1.05}
+  .kA__ht{font-size:11.5px;color:var(--muted);margin-top:7px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .kA--accent{background:linear-gradient(160deg,#0a9a44,#067a34);border-color:transparent;color:#fff}
+  .kA--accent .kA__ic{background:rgba(255,255,255,.16);color:#fff}
+  .kA--accent .kA__lb{color:rgba(255,255,255,.8)} .kA--accent .kA__ht{color:rgba(255,255,255,.82)}
+  .kA__cta{margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--green);font-size:12px;font-weight:700;border:0;border-radius:10px;padding:7px 12px;cursor:pointer}
+
+  /* ========== B · barra de acento + sparkline ========== */
+  .gridB{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:900px){.gridB{grid-template-columns:repeat(2,1fr)}}
+  .kB{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 16px 14px;overflow:hidden}
+  .kB::before{content:"";position:absolute;top:0;left:0;bottom:0;width:4px;background:var(--acc,var(--green))}
+  .kB__lb{font-size:10.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+  .kB__vl{font-size:29px;font-weight:800;letter-spacing:-.02em;margin-top:3px}
+  .kB__ht{font-size:11px;color:var(--muted);margin-top:5px}
+  .kB__spark{display:flex;align-items:flex-end;gap:3px;height:22px;margin-top:10px}
+  .kB__spark i{flex:1;background:var(--acc,var(--green));opacity:.5;border-radius:2px 2px 0 0}
+  .kB__spark i.on{opacity:1}
+
+  /* ========== C · editorial bold ========== */
+  .gridC{display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:6px}
+  @media(max-width:900px){.gridC{grid-template-columns:repeat(2,1fr)}}
+  .kC{padding:18px 18px 16px;border-radius:12px}
+  .kC__lb{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .kC__vl{font-size:36px;font-weight:800;letter-spacing:-.03em;margin-top:6px;line-height:1}
+  .kC__ht{font-size:11.5px;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:6px}
+  .kC--hot{background:var(--greenTint)}
+  .kC--hot .kC__vl{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Redesign dos KPIs da Visão Geral
+    <small>Mesmos números do teu print (Ocorrências 25 · Ativos 97 · Saldo +0h06 · Resolvidas 105) + o Turnover novo. 3 direções pra você escolher.</small>
+  </h1>
+
+  <div>
+    <h2>Hoje (referência)</h2>
+    <div class="old">
+      <div class="c"><div class="lb">Ocorrências a conferir</div><div class="vl" style="color:var(--green)">25</div><div class="ht">conferir agora</div></div>
+      <div class="c"><div class="lb">Colaboradores ativos</div><div class="vl">97</div><div class="ht">no quadro</div></div>
+      <div class="c"><div class="lb">Saldo de horas</div><div class="vl">+0h06</div><div class="ht">julho de 2026</div></div>
+      <div class="c"><div class="lb">Resolvidas no mês</div><div class="vl">105</div><div class="ht">manuais + automáticas</div></div>
+      <div class="c"><div class="lb">Turnover no mês</div><div class="vl" style="color:var(--danger)">3,2%</div><div class="ht">~38% no ano</div></div>
+    </div>
+  </div>
+
+  <div>
+    <h2>Direção A · cards soltos com ícone <span class="badge-rec">recomendada</span></h2>
+    <div class="gridA">
+      <div class="kA kA--accent">
+        <div class="kA__ic"><svg class="ic" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="kA__lb">Ocorrências a conferir</div>
+        <div class="kA__vl">25</div>
+        <button class="kA__cta"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>Conferir agora</button>
+      </div>
+      <div class="kA">
+        <div class="kA__ic"><svg class="ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+        <div class="kA__lb">Colaboradores ativos</div>
+        <div class="kA__vl">97</div>
+        <div class="kA__ht">no quadro</div>
+      </div>
+      <div class="kA">
+        <div class="kA__ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="kA__lb">Saldo de horas</div>
+        <div class="kA__vl">+0h06</div>
+        <div class="kA__ht">média · julho</div>
+      </div>
+      <div class="kA">
+        <div class="kA__ic"><svg class="ic" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <div class="kA__lb">Resolvidas no mês</div>
+        <div class="kA__vl">105</div>
+        <div class="kA__ht">manuais + automáticas</div>
+      </div>
+      <div class="kA">
+        <div class="kA__ic" style="background:var(--danger-bg);color:var(--danger)"><svg class="ic" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+        <div class="kA__lb">Turnover no mês</div>
+        <div class="kA__vl" style="color:var(--danger)">3,2%</div>
+        <div class="kA__ht"><span class="trend trend--up">▲ 0,8 pt</span> ~38% no ano</div>
+      </div>
+    </div>
+    <div class="nota">Cada KPI vira um card solto arredondado com um ícone num quadrado de tinta suave, respiro maior e leve elevação no hover. O card de ação (a conferir) fica com o verde da marca preenchido e o botão branco, virando o CTA principal. O turnover ganha ícone e cor da faixa. É o salto de "planilha" pra "painel".</div>
+  </div>
+
+  <div>
+    <h2>Direção B · barra de acento + mini gráfico</h2>
+    <div class="gridB">
+      <div class="kB" style="--acc:var(--green)"><div class="kB__lb">A conferir</div><div class="kB__vl" style="color:var(--green)">25</div><div class="kB__ht">conferir agora</div><div class="kB__spark"><i style="height:30%"></i><i style="height:50%"></i><i style="height:40%"></i><i style="height:65%"></i><i style="height:55%"></i><i class="on" style="height:80%"></i></div></div>
+      <div class="kB" style="--acc:#0076BE"><div class="kB__lb">Ativos</div><div class="kB__vl">97</div><div class="kB__ht">no quadro</div><div class="kB__spark"><i style="height:70%"></i><i style="height:72%"></i><i style="height:71%"></i><i style="height:73%"></i><i style="height:74%"></i><i class="on" style="height:75%"></i></div></div>
+      <div class="kB" style="--acc:#7a4fbf"><div class="kB__lb">Saldo médio</div><div class="kB__vl">+0h06</div><div class="kB__ht">julho</div><div class="kB__spark"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:45%"></i><i style="height:30%"></i><i class="on" style="height:20%"></i></div></div>
+      <div class="kB" style="--acc:var(--green2)"><div class="kB__lb">Resolvidas</div><div class="kB__vl">105</div><div class="kB__ht">man. + auto.</div><div class="kB__spark"><i style="height:40%"></i><i style="height:50%"></i><i style="height:60%"></i><i style="height:70%"></i><i style="height:85%"></i><i class="on" style="height:100%"></i></div></div>
+      <div class="kB" style="--acc:var(--danger)"><div class="kB__lb">Turnover</div><div class="kB__vl" style="color:var(--danger)">3,2%</div><div class="kB__ht">~38% no ano</div><div class="kB__spark"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:50%"></i><i style="height:45%"></i><i class="on" style="height:70%"></i></div></div>
+    </div>
+    <div class="nota">Mantém a densidade (cabe os 5 sem crescer muito), mas com uma barrinha de cor por métrica e um sparkline de 6 meses embaixo, então cada número ganha tendência. Mais "analítico". Depende do WKRADAR mandar a série histórica de cada métrica pra o gráfico ser real (hoje só o do mês existe).</div>
+  </div>
+
+  <div>
+    <h2>Direção C · editorial (números grandes, pouco cromo)</h2>
+    <div class="gridC">
+      <div class="kC kC--hot"><div class="kC__lb">A conferir</div><div class="kC__vl">25</div><div class="kC__ht"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;stroke:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>conferir agora</div></div>
+      <div class="kC"><div class="kC__lb">Ativos</div><div class="kC__vl">97</div><div class="kC__ht">no quadro</div></div>
+      <div class="kC"><div class="kC__lb">Saldo médio</div><div class="kC__vl">+0h06</div><div class="kC__ht">julho</div></div>
+      <div class="kC"><div class="kC__lb">Resolvidas</div><div class="kC__vl">105</div><div class="kC__ht">man. + auto.</div></div>
+      <div class="kC"><div class="kC__lb">Turnover</div><div class="kC__vl" style="color:var(--danger)">3,2%</div><div class="kC__ht"><span class="trend trend--up" style="padding:1px 6px">▲</span>~38%/ano</div></div>
+    </div>
+    <div class="nota">Mais minimalista ainda: números enormes, rótulos miúdos, um card só destacado com um leve fundo verde. Premium/limpo, sem ícones nem gráfico. O oposto do "carregado".</div>
+  </div>
+
+  <div class="nota" style="border-top:1px dashed var(--border2);padding-top:16px">
+    Todas mantêm a MESMA informação e os mesmos números, só muda a pele. A A é a que mais moderniza sem depender de dado novo. A B fica melhor quando o WKRADAR mandar as séries históricas. Me diz qual e eu aplico no app (mobile inclusive, os cards viram grade 2 colunas).
+  </div>
+</div>
+</body>
+</html>

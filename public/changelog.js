@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.54.0", d: "8 jul 2026", current: true, items: [
+    v: "1.55.0", d: "8 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Os indicadores da Visão geral ganharam um visual novo: cards soltos com ícone, o de conferir em destaque verde, e um mini gráfico dos últimos 6 meses nos que têm histórico (quadro de pessoas, resolvidas e turnover)." },
+    ],
+  },
+  {
+    v: "1.54.0", d: "8 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "A Visão geral ganhou um indicador de Turnover (rotatividade) no mês, com o anualizado e a contagem de desligamentos, calculado com admissões e demissões." },
       { type: "fix", aud: "gestor", title: "Os supervisores voltam a enxergar as ocorrências automáticas dos funcionários que supervisionam e podem confirmá-las, igual acontece com as manuais. Antes o papel de supervisor ficava sem ver nenhuma." },
     ],
