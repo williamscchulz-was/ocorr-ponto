@@ -3355,6 +3355,8 @@ html.firebase-mode .login__forgot { display: block; }
 .esp-ch__bh b { display: block; font-size: 19px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .esp-ch__bh span { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
 .esp-mes { padding: 14px 18px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+/* Legenda do saldo por dia: rótulo visível (tooltip não existe no touch). */
+.esp-legenda { padding: 12px 18px 0; font-size: 11.5px; color: var(--text-muted); }
 .esp-dia { display: flex; align-items: center; gap: 14px; padding: 10px 18px; border-top: 1px solid var(--border); }
 .esp-dia__d { width: 38px; text-align: center; flex: none; }
 .esp-dia__d b { display: block; font-size: 15px; font-weight: 700; line-height: 1; }

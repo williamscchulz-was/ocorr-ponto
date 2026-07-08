@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.51.0", d: "8 jul 2026", current: true, items: [
+    v: "1.51.1", d: "8 jul 2026", current: true, items: [
+      { type: "fix", title: "No espelho de ponto, uma legenda agora explica o valor colorido de cada dia: é o saldo acumulado até aquele dia. Antes a explicação só aparecia parando o mouse em cima, o que não existe no celular." },
+    ],
+  },
+  {
+    v: "1.51.0", d: "8 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Quando uma batida fica em dúvida entre dois horários vizinhos (ex.: saída e volta do almoço), a jornada agora mostra um card único do intervalo com os dois horários esperados e a batida real, em vez de esconder a batida em dois \"sem batida\"." },
     ],
   },

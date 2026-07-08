@@ -2227,7 +2227,9 @@ function colabBhTabHtml(f) {
       const h = i === 0 ? `Espelho de ponto${m ? ` · ${m}` : ""}` : m;
       return `<div class="pp-ovl" style="margin-top:${i === 0 ? 18 : 16}px">${escapeHtml(h)}</div>${g.dias.map(colabDiaMarcHtml).join("")}`;
     }).join("");
-    detalhe = `${blocos}<div class="cp-bhnote">${cpIcon("info")}<span>Os horários que você bateu a cada dia, atualizados diariamente. Dúvida em algum dia, fale com seu líder.</span></div>`;
+    const notaSaldo = (dias || []).some((d) => String(d.saldoDiaFmt || "").trim())
+      ? " O valor colorido à direita de cada dia é o seu saldo acumulado até aquele dia." : "";
+    detalhe = `${blocos}<div class="cp-bhnote">${cpIcon("info")}<span>Os horários que você bateu a cada dia, atualizados diariamente.${notaSaldo} Dúvida em algum dia, fale com seu líder.</span></div>`;
   } else {
     detalhe = `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>O espelho do mês aparece aqui assim que a apuração do ponto sincronizar.</span></div>`;
   }
@@ -3033,6 +3035,13 @@ function renderSidebarPresence(online) {
 const _espState = { sel: null, cache: {}, loading: {}, erro: {} };
 
 // Um dia do espelho no chrome do gestor (mesma lógica NEUTRA do colaborador: só horários).
+// Legenda do saldo por dia (rótulo visível, tooltip não existe no touch): só quando
+// algum dia do espelho tem o valor. O saldo é o ACUMULADO até o dia (coluna do WK).
+function espLegendaSaldo(dias, cls) {
+  return (dias || []).some((d) => String(d.saldoDiaFmt || "").trim())
+    ? `<div class="${cls}">O valor colorido à direita é o saldo acumulado até o dia.</div>` : "";
+}
+
 function espDiaHtml(d) {
   const iso = d.dataIso || "";
   const dia = String(iso).slice(8, 10) || "--";
@@ -3110,7 +3119,7 @@ function espCartaoHtml(f) {
       if (!atual || atual.ym !== ym) { atual = { ym, dataIso: d.dataIso, dias: [] }; grupos.push(atual); }
       atual.dias.push(d);
     }
-    corpo = grupos.map((g) => `<div class="esp-mes">${escapeHtml(cpMesLabel(g.dataIso))}</div>${g.dias.map(espDiaHtml).join("")}`).join("");
+    corpo = espLegendaSaldo(dias, "esp-legenda") + grupos.map((g) => `<div class="esp-mes">${escapeHtml(cpMesLabel(g.dataIso))}</div>${g.dias.map(espDiaHtml).join("")}`).join("");
   } else {
     // Sem dado ainda (padrão honesto): não sincronizou, sem culpar permissão.
     corpo = espStateHtml("pend");
@@ -9661,7 +9670,7 @@ async function openEspelhoPopupBH(funcionarioId) {
       if (!atual || atual.ym !== ym) { atual = { ym, dataIso: d.dataIso, dias: [] }; grupos.push(atual); }
       atual.dias.push(d);
     }
-    corpo = `<div class="bhpop-body">${grupos.map((g, i) => {
+    corpo = `<div class="bhpop-body">${espLegendaSaldo(dias, "esp-legenda")}${grupos.map((g, i) => {
       const m = cpMesLabel(g.dataIso);
       return `<div class="bhpop-lbl">${escapeHtml(i === 0 ? `Espelho de ponto${m ? ` · ${m}` : ""}` : m)}</div>${g.dias.map(espDiaHtml).join("")}`;
     }).join("")}</div>`;
@@ -13257,7 +13266,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.51.0";
+window.CURRENT_VERSION = "1.51.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
