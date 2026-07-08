@@ -1066,6 +1066,39 @@ William viu que a 1ª correção (gerar a ocorrência com `classificacaoIncerta`
 
 **Testado**: `suprimidoEspelhoDiaCompleto=23` bateu exato com a previsão do Fable; os 4 casos-exceção confirmados com `classificacaoIncerta=true` e o motivo certo. Reverificação contínua (`upload-ocorrencias-auto.mjs`) resolveu os 23 automaticamente — o circuit breaker de 50% (que o Fable previu que poderia travar) **não disparou**, a fila tinha volume suficiente. Aplicado em produção: Franciele `auto_resolvida`, Edmar continua `rh_confere` com aviso.
 
+---
+
+## 2026-07-08 · 🔧 Timeout do export-ocorrencias.mjs: causa raiz, retry, observabilidade
+
+William reparou (print de uma pasta de arquivos) que `ExpAuto_Ocorrencias_Minerador.txt` estava com quase 19h de atraso — `export-ocorrencias.mjs` vinha travando por timeout de forma recorrente (07/03 2x, 07/06 2x, 08/07 1x), mesmo com o timeout já em 480s. Pediu investigação funda do Fable, "super solução", tratando-o como conselheiro permanente pra essa classe de problema.
+
+**Investigação do Fable** (evidência, não suposição): a causa raiz **NÃO é a consulta/janela/modelo** — descartado com prova: os timeouts de 07/03 aconteceram ANTES da migração pro Minerador (mesmo sintoma no config antigo); o CSV do Minerador tem 253 linhas/43KB contra 3.868 linhas/349KB do Espelho (15x maior), mesma janela, mesmo relatório-base, e o Espelho nunca travou; rodadas saudáveis levam 1-4s com a janela cheia. É um **travamento transiente e específico do processo do lado do WK**, provavelmente ligado ao módulo Ponto em horário comercial (RH fechando apuração — confirmado pelo próprio caso das 27 faltas do mesmo dia, entre 09:08 e meio-dia). Evidência: 7s depois de matar a árvore travada, os outros 3 exports rodaram limpo em ~5s cada — não era o servidor ocupado, era aquele processo específico preso. Achado bônus: metade dos "5 timeouts" era cascata do nosso próprio `taskkill` sem `/T` (já corrigido em 07-06) — e um comentário no código citava "14h/17h, horário de pico" que na verdade era log em UTC lido como hora local (os horários reais são 11h/14h BRT, rodadas agendadas, não pico real).
+
+**Mitigações avaliadas e descartadas** (com motivo): reduzir a janela de datas (ganho ~zero, reintroduziria o bug antigo do WK de não gerar arquivo com janela de 1 dia); dividir a query em pedaços (multiplicaria invocações de um `.exe` de instância única); mexer em `ValidoImportacao`/`ListarSomenteOcorrencias` (zero evidência de efeito em performance); promover o Espelho a fonte primária (também falhou em 07/03, e carrega o MESMO artefato de apuração-não-fechada na própria coluna Situação — trocaria um problema por outro).
+
+**5 correções aplicadas**:
+1. `run-pipeline.mjs`: retry (2 tentativas de 180s + pausa de 20s) no lugar de 1 tentativa de 480s — pior caso ~380s, recupera sozinho na maioria das vezes em vez de esperar a próxima rodada agendada.
+2. `wk-lock-recovery.mjs`: timeout de 60s no `spawnSync` do PowerShell (2º ponto de espera infinita no caminho, sem limite próprio antes).
+3. `run-pipeline.mjs` (`waitWithTimeout`): loga a árvore de processos (nome/pid/pai) antes do `taskkill` — próxima ocorrência identifica de vez qual processo trava.
+4. `write-monitor.mjs`: Ocorrências e Espelho entram no painel de frescor (só BH/D_Empregado tinham cobertura — por isso ninguém percebeu o CSV parado exceto por acaso).
+5. `write-heartbeat-report.mjs`: idade das 4 exportações + campo `fontesVelhas` (>8h) no frontmatter do report que a cloud routine do PC já vigia — mensagem mandada pro PC pedindo pra ela também alertar nesse campo.
+
+**Testado**: `write-monitor.mjs` rodado de verdade (13 ok / 0 atenção / 0 parado). `export-ocorrencias.mjs` também rodou manualmente com sucesso durante a investigação (não travou dessa vez) — trouxe dado fresco que revelou mais um problema (ver entrada seguinte).
+
+**Deixado pro William decidir** (ação de alto risco, autorização explícita necessária): deslocar os 3 horários do Task Scheduler pra fora do minuto redondo (ex.: 09:07/11:07/14:07) — evidência sugestiva mas não conclusiva de alinhamento ao :00.
+
+---
+
+## 2026-07-08 · 🐛 Falta falsa, 3ª causa: WK mantém rótulo "Falta" mesmo com apuração fechada e completa
+
+Durante a investigação acima, `export-ocorrencias.mjs` rodou com sucesso manualmente e trouxe dado fresco — a apuração do WK tinha fechado pra Franciele (1074) e várias outras pessoas, com as 4 batidas reais aparecendo NATIVAMENTE na própria Relação de Ocorrências. Só que a **situação continuou "Faltas Injustificadas"** mesmo assim — o rótulo e o cálculo de apuradas ficam dessincronizados no WK mesmo depois de fechar, não é só "apuradas vazias enquanto não fecha" (a causa das 2 rodadas anteriores do mesmo dia).
+
+**Fix** (`process-ocorrencias-rh.py`): o check de "dia completo bate" (mesmo critério já validado pelo Fable — `desvios_todas_posicoes` dentro de `JANELA_MATCH_MIN`) agora roda **sempre** que `sit == "Faltas Injustificadas"` e existe alguma apurada — nativa OU via fallback do Espelho — não só dentro do bloco que usa o fallback. Mesma regra, aplicada de forma mais abrangente.
+
+**Bônus**: casos parciais nativos (sem precisar do fallback) que faltam exatamente 1 marcação agora também ganham `apuradasAlinhadas` (reaproveitando `diagnostica_marcacao_ausente`/`apuradas_alinhadas_parcial`, as mesmas funções do 999-detector e do card do Moises) — evita o MESMO bug de pareamento por índice cru, só que numa origem de dado diferente (loop principal, não 999-detector). Confirmado nos casos da Luisana (1145) e Luis Eduardo (1154): `[null, "09:30", "10:03", "13:30"]`, alinhamento correto.
+
+**Testado e aplicado em produção**: 23 suprimidos de novo (mesmos de antes, agora via dado nativo); Franciele resolvida automaticamente; Luisana/Luis Eduardo com alinhamento correto; Edmar/Paulo Cesar (2 marcações faltando, caso mais ambíguo) continuam sem alinhamento forçado, por design — mesma filosofia de "não arriscar" do resto do sistema.
+
 **Achado paralelo, em investigação**: William reparou (print de uma listagem de arquivos) que `ExpAuto_Ocorrencias_Minerador.txt` estava com timestamp de quase 19h atrás — `export-ocorrencias.mjs` vem travando por timeout de forma recorrente (07/03, 07/06, 08/07, mesmo já com timeout de 8min). Mandei isso pro Fable incorporar como contexto adicional; William pediu um estudo mais profundo dedicado a essa instabilidade — ver próxima entrada.
 
 ---
