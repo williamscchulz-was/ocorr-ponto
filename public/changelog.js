@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.52.0", d: "8 jul 2026", current: true, items: [
+    v: "1.52.1", d: "8 jul 2026", current: true, items: [
+      { type: "fix", title: "No card de aniversário, quem parabenizou agora aparece como mini avatares com as iniciais, em vez de bolinhas vazias." },
+    ],
+  },
+  {
+    v: "1.52.0", d: "8 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Ocorrências automáticas confirmadas agora podem ser marcadas como lançadas na folha, igual às manuais: botão Marcar como lançada no detalhe (GP e admin), selo Lançada no card, desfazer com confirmação e registro na trilha." },
     ],
   },

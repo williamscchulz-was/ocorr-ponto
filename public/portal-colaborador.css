@@ -664,5 +664,5 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 /* Pilha de iniciais de quem parabenizou (até 4, sobrepostas). */
 .pp-bday__stack{display:flex;margin-top:6px;min-height:0}
 .pp-bday__stack:empty{display:none}
-.pp-bday__stk{width:20px;height:20px;border-radius:50%;border:2px solid var(--surface);margin-left:-7px}
+.pp-bday__stk{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface);margin-left:-7px;display:grid;place-items:center;color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .pp-bday__stk:first-child{margin-left:0}

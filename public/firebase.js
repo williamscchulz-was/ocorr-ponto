@@ -1323,7 +1323,7 @@
       const base = db.collection("muralAniversario").doc(postId);
       try {
         const reacoesSnap = await base.collection("reacoes").get();
-        const reacoes = reacoesSnap.docs.map((d) => ({ uid: d.data().uid || d.id }));
+        const reacoes = reacoesSnap.docs.map((d) => ({ uid: d.data().uid || d.id, nome: d.data().autorNome || "" }));
         const minhaReacao = !!(uid && reacoes.some((r) => r.uid === uid));
         return { reacoes, minhaReacao, total: reacoes.length };
       } catch (e) {

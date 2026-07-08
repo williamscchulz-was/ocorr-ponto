@@ -1880,7 +1880,7 @@ async function preencherCardsAniversario() {
     const stack = el.querySelector("[data-bday-stack]");
     if (stack) {
       stack.innerHTML = dados.reacoes.slice(0, 4)
-        .map((r, i) => `<span class="pp-bday__stk" style="background:${_muralCor((r.uid || "") + i)}"></span>`).join("");
+        .map((r) => `<span class="pp-bday__stk" style="background:${_muralCor(r.nome || r.uid || "")}" title="${escapeHtml(r.nome || "")}">${escapeHtml(r.nome ? initials(r.nome) : "")}</span>`).join("");
     }
   }));
 }
@@ -13303,7 +13303,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.52.0";
+window.CURRENT_VERSION = "1.52.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
