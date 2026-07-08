@@ -1103,6 +1103,34 @@ Durante a investigação acima, `export-ocorrencias.mjs` rodou com sucesso manua
 
 ---
 
+## 2026-07-08 · 🐛 apuradasAlinhadas gateado só pra fonteInferida — bug de exibição (não de dado)
+
+William achou (print do card da Luisana) o pareamento errado de novo: Entrada mostrando 09:30 (deveria ser "sem batida"), Saída Final sumindo (deveria mostrar 13:30). Investigado: o campo `apuradasAlinhadas` estava CERTO no Firestore (`[null, "09:30", "10:03", "13:30"]`) — o bug era só de exibição. Achado: quando estendi `apuradasAlinhadas` pro loop principal mais cedo hoje (entrada anterior deste histórico), esqueci de avisar o PC que o gate `o.fonteInferida && Array.isArray(o.apuradasAlinhadas)` em `app.js` (2 lugares: linha 8786 e 8957) precisava soltar o `fonteInferida` — esse campo agora é confiável em QUALQUER origem de doc, não só `espelho-marcacoes`. Missão urgente mandada pro PC com as 2 linhas exatas.
+
+---
+
+## 2026-07-08 · 🛡️ Watchdog independente: "isso não pode se repetir" (William)
+
+Depois da correção do timeout, William pediu algo mais forte que retry+observabilidade: "precisa ser uma checagem... isso não pode se repetir". Confirmado com ele (2 perguntas): checador independente que roda sozinho, TENTA CONSERTAR sozinho (reexporta a fonte velha), só notifica se o autoconserto falhar — de hora em hora.
+
+**Implementado**: `check-pipeline-health.mjs` — confere idade dos 4 CSVs do WK (limiar 6h, mais apertado que as 8h do heartbeat), tenta reexportar (reusa os `export-*.mjs` já existentes + `update-config-dates.mjs`+exe direto pro BH, que não tem wrapper próprio), confere de novo, sai com exit 1 só se continuar velho mesmo depois de tentar. Testado rodando de verdade: 4/4 fontes já frescas, nenhum reexport disparado.
+
+**Agendamento**: criada rotina `pipeline-rh-health-watchdog` (hora em hora, minuto 17 pra evitar o minuto redondo) via `mcp__scheduled-tasks`, que roda o script e manda `PushNotification` só se o exit code for != 0. `notifyOnCompletion: false` pra não duplicar aviso (a lógica de "avisar só se falhar" já está no prompt da rotina).
+
+**Achado ao criar**: já existia uma rotina parecida (`check-pipeline-rh-heartbeat`, 1x/dia às 16h) — mas ela só confere se o pipeline "rodou com sucesso hoje" (lê o `status` do report), não se cada fonte específica está fresca. Por isso não pegou o caso de hoje (o pipeline "teve sucesso" mesmo com Ocorrências travada por dentro, best-effort). As duas rotinas são complementares, não redundantes — a nova cobre exatamente essa lacuna.
+
+**Limitação avisada ao William**: essa rotina só dispara enquanto o app Claude Code estiver aberto no servidor (não é um serviço Windows independente) — se fechar, o agendamento só retoma quando reabrir.
+
+---
+
+## 2026-07-08 · 🐛 999 falso-positivo: WK marca "não identificada" mesmo com dia completo (caso Acira)
+
+William achou (print real) a Acira (626) com "Marcação Não Identificada", mas as 4 batidas batiam certinho com o previsto (desvios de 2-7min) — e apontou que isso se repetia várias vezes. Investigado: **17 pessoas** na mesma rodada (07/07) tinham exatamente esse padrão — contagem de marcações batendo (4=4), mas o WK sinalizando 999 mesmo assim. Achado real: **duração do intervalo de almoço sempre ~30min (27-33min) em todos os 17 casos, só o horário ABSOLUTO variando** — escala de almoço flexível (política real), não erro — o WK compara contra o horário FIXO nominal e marca 999 quando o horário real (mas válido) difere, mesma armadilha do caso Carlos Zoz (pausa é por duração, não por relógio).
+
+**Fix** (`process-ocorrencias-rh.py`): `diagnostica_marcacao_ausente` já tinha esse caso como early-return ("quantidade bate, mas o WK sinalizou 999 mesmo assim"), mas só virava `classificacaoIncerta` genérico, nunca suprimia. Agora, quando a contagem bate E todos os desvios (`desvios_todas_posicoes`, mesmo critério de sempre) ficam dentro de `JANELA_MATCH_MIN`, suprime inteiramente — mesma filosofia da correção de falta falsa mais cedo hoje.
+
+**Testado e aplicado em produção**: 17/17 suprimidos, bate exato com a investigação manual. Circuit breaker do uploader disparou (17/26 = 65% da fila de `rh_confere` na janela, acima do limite de 50%) — pedida e obtida autorização explícita do William, resolvido com script one-off (mesma transação segura do resolver automático: só toca se ainda `rh_confere`, `status: auto_resolvida`, mensagem específica no histórico).
+
 ## 2026-07-02 · 🔧 BH resolvido de vez: processo órfão do WK + dispositivo de auto-recuperação
 
 Continuação do achado de mais cedo (export de BH travando). Aumentei o timeout (180s→5min) e coloquei um respiro de 2s entre chamadas consecutivas do WK_EXE, mas o problema persistiu — mesmo código de crash (355941) e um EPERM novo no rename do config.
