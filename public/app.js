@@ -8797,6 +8797,8 @@ function ocaDashCardHtml(o) {
   // crua, ela pode ser QUALQUER marcação. Sem horarioRelevante, cai no previsto rotulado.
   if (o.classificacaoIncerta === true) batida1 = o.horarioRelevante || "";
   let acoes = "";
+  // Chevron igual ao do card manual (sinaliza clicavel; a trilha completa vive no modal).
+  const OCA_CHEV = `<svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
   if (est === "rh_confere") {
     acoes = `<div class="rhacts">
       <button class="btn btn--primary btn--sm" data-oca-validar="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar</span></button>
@@ -8806,16 +8808,24 @@ function ocaDashCardHtml(o) {
     // Abre a TELA de conferência (ação + observação), não confirma direto.
     acoes = `<div class="rhacts"><button class="btn btn--primary btn--sm" data-oca-confirmar="${escapeHtml(o.id)}">${icon("check")}<span>Conferir</span></button></div>`;
   } else if (est === "confirmada") {
+    // Estágios PRONTOS espelham o card MANUAL (pedido William 2026-07-08, "tem que ficar igual"):
+    // pílula ÚNICA + chevron (ou botão Lançar), no lugar dos selos empilhados + "por X". O
+    // destino (ação escolhida pelo líder) vira o rótulo, igual o manual mostra a ação; quem/quando
+    // seguem na trilha do modal.
     const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "confirmou") || (o.historico || [])[(o.historico || []).length - 1];
-    const quem = (ult && ult.porNome) || "";
     const destino = (ult && ult.destino) || "";
-    acoes = `<div class="rhacts oca-confdone"><span class="badge badge--success"><span class="dot"></span>Confirmada</span>${o.lancada === true ? `<span class="badge badge--info"><span class="dot"></span>Lançada</span>` : ""}${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}${destino ? ` · ${escapeHtml(destino)}` : ""}</span>` : ""}</div>`;
+    if (o.lancada === true) {
+      acoes = `<div class="rhacts"><span class="badge badge--info"><span class="dot"></span>Lançada${destino ? ` · ${escapeHtml(destino)}` : ""}</span>${OCA_CHEV}</div>`;
+    } else {
+      const fim = can("ocorrencias.lancar")
+        ? `<button class="btn btn--primary btn--sm" data-oca-lancar="${escapeHtml(o.id)}" title="Marcar como lançada">${icon("check")}<span>Lançar</span></button>`
+        : OCA_CHEV;
+      acoes = `<div class="rhacts"><span class="badge badge--success"><span class="dot"></span>${destino ? escapeHtml(destino) : "Confirmada"}</span>${fim}</div>`;
+    }
   } else if (est === "dispensada") {
-    const ult = [...(o.historico || [])].reverse().find((h) => h.acao === "dispensou");
-    const quem = (ult && ult.porNome) || "";
-    acoes = `<div class="rhacts oca-confdone"><span class="badge badge--neutral"><span class="dot"></span>Dispensada</span>${quem ? `<span class="oca-confby">por ${escapeHtml(quem)}</span>` : ""}</div>`;
+    acoes = `<div class="rhacts"><span class="badge badge--neutral"><span class="dot"></span>Dispensada</span>${OCA_CHEV}</div>`;
   } else if (est === "auto_resolvida") {
-    acoes = `<div class="rhacts oca-confdone"><span class="badge badge--neutral"><span class="dot"></span>Resolvida pelo WK</span></div>`;
+    acoes = `<div class="rhacts"><span class="badge badge--neutral"><span class="dot"></span>Resolvida pelo WK</span>${OCA_CHEV}</div>`;
   }
   return `
     <article class="occ occ--rh${est === "rh_confere" || est === "com_lider" ? " occ--pendente" : ""}${demit ? " occ--resc" : ""}" data-oca-card="1" data-oca-id="${escapeHtml(o.id)}" role="button" tabindex="0" aria-label="Ocorrência de ${escapeHtml(o.nome || "")}, ${escapeHtml(t.label)}, abrir detalhe">
@@ -9381,6 +9391,8 @@ if (!window._ocaBound) {
     if (v) { e.preventDefault(); e.stopPropagation(); const vid = v.dataset.ocaValidar; withBusy("oca-validar:" + vid, v, () => ocaAcaoUI("validar", vid)); return; }
     const d = e.target.closest("[data-oca-dispensar]");
     if (d) { e.preventDefault(); e.stopPropagation(); openDispensarAutoModal(d.dataset.ocaDispensar); return; }
+    const lc = e.target.closest("[data-oca-lancar]");
+    if (lc) { e.preventDefault(); e.stopPropagation(); const lid = lc.dataset.ocaLancar; withBusy("oca-lancar:" + lid, lc, () => window.lancarOcorrenciaAuto?.(lid)); return; }
     const c = e.target.closest("[data-oca-confirmar]");
     if (c) { e.preventDefault(); e.stopPropagation(); openConferirAutoModal(c.dataset.ocaConfirmar); return; }
     // Card automático clicável (fora dos botões): abre o detalhe, igual à manual.
@@ -13308,7 +13320,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.52.3";
+window.CURRENT_VERSION = "1.52.4";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

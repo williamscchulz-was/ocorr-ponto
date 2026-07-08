@@ -4208,16 +4208,13 @@ code { font-family: inherit; }
 .occ--rh .occ__main{flex:1;min-width:0}
 .occ--rh .rhacts{flex:none;display:flex;align-items:center;gap:8px}
 .occ--resc{box-shadow:0 0 0 1.5px var(--danger),0 1px 3px rgba(0,40,20,.06)}
-.oca-confdone{flex-direction:column;align-items:flex-end;gap:2px}
-.oca-confby{font-size:11px;color:var(--text-muted)}
 @media(max-width:720px){.occ--rh{flex-wrap:wrap;gap:12px}
   /* No mobile o card manual usa track de data 54px + gap 12px; o auto acompanha
      pra o nome começar no mesmo x nas linhas irmãs (era 64px+16px, 14px à direita). */
   .occ--rh .occ__date{width:54px}
   .occ--rh .rhacts{width:100%}.occ--rh .rhacts .btn{flex:1}
   /* Card confirmado/dispensado: badge + autoria à esquerda, alinhado ao conteúdo
-     (era o único bloco centralizado/à direita da lista no celular). */
-  .occ--rh .rhacts.oca-confdone{align-items:flex-start}}
+     (era o único bloco centralizado/à direita da lista no celular). */}
 
 /* ===== Recibos e cartão ponto (aba de Documentos · Fase A) ===== */
 .rcb-tabs { display: flex; gap: 2px; margin: -6px 0 18px; border-bottom: 1px solid var(--border); }

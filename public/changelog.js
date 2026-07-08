@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.52.3", d: "8 jul 2026", current: true, items: [
+    v: "1.52.4", d: "8 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Na lista de ocorrências, o card das automáticas já conferidas ficou igual ao das manuais: uma etiqueta só (a ação, ou Lançada com a ação) e a seta pra abrir, com o botão Lançar direto na confirmada. Antes empilhava dois selos e uma linha com quem fez, que agora aparece na trilha ao abrir." },
+    ],
+  },
+  {
+    v: "1.52.3", d: "8 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Uma ocorrência automática marcada como lançada agora sai da aba Conferidas e passa pra aba Lançadas, com as contagens das abas certas, do mesmo jeito que já acontecia com as manuais." },
     ],
   },
