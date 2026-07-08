@@ -1972,3 +1972,23 @@ desenho, agora corrigida em 3 camadas (criação, rearmar, e uma verificação
 independente que não depende de ninguém notar). Mas colher de 1 fonte só
 teria trocado um problema visível e recuperável (card duplicado) por um
 invisível e irrecuperável (RH nunca sabe que o WK escondeu um problema real).
+
+## 2026-07-08 — Fechado: campo `ValidoImportacao` (pendente desde a revisão dos 5 exports)
+
+William pediu pra finalizar o pendente. Investigação: `ValidoImportacao="Sim"`
+existe nos 3 configs "personalizados" (Ocorrências/Minerador, Espelho, Apurações)
+e está AUSENTE nos 2 mais antigos (Banco de Horas, D_Empregado). Sempre o
+ÚLTIMO campo do arquivo, depois de todo campo de filtro/dado — padrão de
+metadado do PRÓPRIO config, não parâmetro de exportação (mesma classe do
+`Hash`, que também não afeta o exportado).
+
+**Conclusão (sem acesso ao código-fonte do WK, então não é 100% certeza)**:
+provavelmente um selo que o designer de relatório do WK grava quando o
+relatório é salvo com sucesso pela UI — explica por que só existe nos 3
+criados via esse fluxo, não nos 2 built-in mais antigos. Nenhum efeito
+observável no conteúdo exportado; os 3 relatórios exportam normal há meses
+com esse campo em "Sim". **Decisão: não mexer** — sem motivo prático, e
+editar um campo de validação interna do WK sem entender o efeito é
+exatamente o tipo de risco desnecessário que o "não sed no config" já evita
+pra outros campos. Documentado no `WKRADAR-PLAYBOOK.md` §4 pra não virar
+mistério de novo.
