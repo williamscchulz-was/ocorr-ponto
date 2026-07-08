@@ -1025,6 +1025,20 @@ William discordou desse design: a incerteza FINA (qual posição exata) não dev
 
 ---
 
+## 2026-07-07/08 · 🚨 "Falta Injustificada" falsa em massa — apuração do WK não fechou (caso Franciele)
+
+William mandou print da Franciele (1074): card dizia "Falta Injustificada de 8h 00" com as 4 posições "sem batida", mas a tela de Movimentação do WK mostrava 4 batidas reais e próximas do horário (11:53/17:37/18:07/20:28 contra previsto 12:00/17:30/18:00/20:30) — "mostra que não teve batidas mas teve".
+
+**Causa raiz**: a linha dela no CSV cru da Relação de Ocorrências (Minerador) veio com as colunas Apuradas/Originais **vazias** mesmo pro dia já fechado (07/07, exportado 08/07 09:08) — a apuração do WK não tinha processado o dia ainda. Levantamento na hora: **27 pessoas** na mesma rodada de hoje tinham exatamente esse padrão (apuradas vazias na Relação), e para TODAS elas o Espelho de Ponto (fonte separada, assenta mais rápido) tinha as 4 batidas completas e coerentes com a escala — confirmando que não era falta real em nenhum dos 27 casos, era só o mesmo problema de timing da apuração.
+
+**Fix** (`process-ocorrencias-rh.py`, loop principal): quando a linha vem sem apuradas, cruza com `espelho` (lookup `(código, data) → batidas`, já carregado em memória pro 999-detector) — se tiver dado lá, usa como fallback e recalcula tudo que depende de apuradas (`desviosMin`, `duracaoTrabalhadaDiaMin`, `compensadoNoDia`, `horarioRelevante`). Marca `classificacaoIncerta`/`motivoIncerteza` (mesmo par de campos do 999-detector, reaproveitado) pra acionar o selo "Conferir" que o PC já tinha construído — não precisou de nenhuma missão nova pro PC, o mecanismo já existia. **Não reclassifica** a situação (continua "Faltas Injustificadas", o rótulo que a Relação mandou) nem corrige `duracaoFmt`/o badge "8h 00" (que ainda vem da duração original do WK) — decisão deliberada de não sobrepor a classificação oficial sozinho; a GP decide depois de conferir.
+
+**Testado e aplicado em produção na hora** (William: "faz a correção agora"): 27/27 casos confirmados com apuradas reais e duração trabalhada de ~8h cada (470-522min, a maioria com `compensadoNoDia` batendo). Resync rodado: 32 docs atualizados (os 27 + 4 que resolveram sozinhos com o dado fresco, incluindo 3 que já estavam `classificacaoIncerta` de uma verificação anterior).
+
+**Pendente/observação**: o badge de duração ("Falta Injustificada de 8h 00") ainda mostra o número original do WK mesmo após o fix — só o conteúdo da trilha (horários) e o aviso "Conferir" refletem a correção. Se isso confundir a GP na prática, é um ajuste futuro (zerar/recalcular a duração exibida quando `classificacaoIncerta` vier desse motivo específico).
+
+---
+
 ## 2026-07-02 · 🔧 BH resolvido de vez: processo órfão do WK + dispositivo de auto-recuperação
 
 Continuação do achado de mais cedo (export de BH travando). Aumentei o timeout (180s→5min) e coloquei um respiro de 2s entre chamadas consecutivas do WK_EXE, mas o problema persistiu — mesmo código de crash (355941) e um EPERM novo no rename do config.
