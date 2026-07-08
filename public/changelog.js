@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.50.0", d: "7 jul 2026", current: true, items: [
+    v: "1.51.0", d: "8 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Quando uma batida fica em dúvida entre dois horários vizinhos (ex.: saída e volta do almoço), a jornada agora mostra um card único do intervalo com os dois horários esperados e a batida real, em vez de esconder a batida em dois \"sem batida\"." },
+    ],
+  },
+  {
+    v: "1.50.0", d: "7 jul 2026", items: [
       { type: "high", title: "O saldo do banco de horas agora mostra o valor pra FOLGA (hora por hora, sem o percentual das horas extras). O valor com adicionais, que vale quando é pago em folha, aparece como informação secundária no perfil do funcionário." },
       { type: "feat", aud: "gestor", title: "Ocorrências em que o sistema não confirmou qual marcação faltou agora chegam na fila com o selo Conferir e o motivo escrito no card, em vez de serem descartadas em silêncio. O detalhe avisa que as posições da jornada podem não corresponder." },
     ],

@@ -9013,8 +9013,30 @@ function ocaTrilhaHtml(o) {
   // desviosMin[] do WK: minutos crus por posição, alinhado com previstas/apuradas (null onde
   // não há desvio próprio; campo inteiro null quando os tamanhos diferem). Sem ele, fallback.
   const dvm = (Array.isArray(o.desviosMin) && o.desviosMin.length === n) ? o.desviosMin : null;
+  // Intervalo ambíguo (WK 2026-07-07, caso Moises): 2 posições ADJACENTES disputam 1
+  // batida real. Funde os 2 cards num só (2 previstos riscados + a batida), senão a
+  // batida real sumia da trilha em 2 "sem batida". Mockup escolhido pelo William.
+  const ia = o.intervaloAmbiguo;
+  const iaOk = !!(ia && Array.isArray(ia.posicoes) && ia.posicoes.length === 2
+    && Number.isInteger(ia.posicoes[0]) && ia.posicoes[1] === ia.posicoes[0] + 1
+    && ia.posicoes[0] >= 0 && ia.posicoes[1] < n
+    && Array.isArray(ia.previstos) && ia.previstos.length === 2 && ia.batida);
   const cards = [];
   for (let i = 0; i < n; i++) {
+    if (iaOk && i === ia.posicoes[0]) {
+      const titulo = (n === 4 && i === 1) ? "Intervalo de almoço" : `${labels[i]} · ${labels[i + 1]}`;
+      cards.push(`<div class="oca-trilha__card oca-trilha__card--fundido">
+        <span class="oca-trilha__label">${escapeHtml(titulo)}</span>
+        <div class="oca-trilha__horarios">
+          <span class="oca-trilha__prev">${escapeHtml(String(ia.previstos[0]))}</span>
+          <span class="oca-trilha__prev">${escapeHtml(String(ia.previstos[1]))}</span>
+          <span class="oca-trilha__bat">${escapeHtml(String(ia.batida))}</span>
+        </div>
+        <span class="oca-trilha__fundido-nota">1 batida pros 2 horários, sem como saber qual foi</span>
+      </div>`);
+      continue;
+    }
+    if (iaOk && i === ia.posicoes[1]) continue; // absorvida pelo card fundido
     const prev = prevArr[i] || "", bat = batArr[i] || "";
     const isOfi = i === ofi;
     let dmin = null;
@@ -13235,7 +13257,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.50.0";
+window.CURRENT_VERSION = "1.51.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -4418,6 +4418,10 @@ code { font-family: inherit; }
 .oca-trilha__label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
 .oca-trilha__horarios { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
 .oca-trilha__prev { font-size: 13px; color: var(--text-muted); text-decoration: line-through; font-variant-numeric: tabular-nums; }
+/* Card fundido do intervalo ambíguo: ocupa o par de colunas das 2 posições que ele
+   substitui; borda âmbar na linguagem do selo Conferir. */
+.oca-trilha__card--fundido { grid-column: span 2; border-color: #e6b24d; background: #fdf3e0; }
+.oca-trilha__fundido-nota { font-size: 11px; color: var(--warning-ink); font-weight: 500; }
 .oca-trilha__bat { font-size: 20px; font-weight: 700; color: var(--plum); font-variant-numeric: tabular-nums; }
 .oca-trilha__miss { font-size: 13px; color: var(--text-muted); font-style: italic; }
 .oca-selo { display: inline-flex; align-items: center; align-self: flex-start; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
