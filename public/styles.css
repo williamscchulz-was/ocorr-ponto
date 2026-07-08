@@ -1138,58 +1138,57 @@ textarea:focus-visible,
    sobrepõem (colapsam em 1 hairline) tanto na horizontal quanto entre
    linhas quebradas. A moldura externa do container + overflow:hidden
    recortam as bordas negativas das células de borda. */
+/* ============================================
+   STATS / KPIs — PADRÃO ÚNICO do app (2026-07-08, pedido William): cards soltos
+   no estilo limpo da Auditoria (.aud__sum), fundo levíssimo + rótulo + número
+   grande. Antes era uma barra segmentada de células grudadas. Um só componente,
+   todas as abas herdam.
+   ============================================ */
 .stats {
   display: flex;
   flex-wrap: wrap;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  margin: 0 0 16px;
-  overflow: hidden;
+  gap: 12px;
+  margin: 0 0 18px;
 }
-
-/* Entrada de view (auditoria 2): cabeçalho e stats sobem suave a cada troca de
-   tela. Recriados no innerHTML, então a animação roda a cada render de view. */
 .page-header, .stats { animation: viewIn 240ms var(--ease) both; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .page-header, .stats { animation: none; } }
 
 .stat {
-  flex: 1 1 0;
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  border-left: 1px solid var(--border);
-  border-top: 1px solid var(--border);
-  margin: -1px 0 0 -1px;       /* colapsa as divisórias entre células/linhas */
-  border-radius: 0;
-  padding: 14px 16px;
+  flex: 1 1 150px;
+  min-width: 140px;
+  background: var(--milk-warm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px 15px;
   position: relative;
   overflow: hidden;
   transition: var(--transition);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
-
-.stat:hover { background: rgba(0,0,0,0.012); }
+.stat:hover { background: var(--surface-warm); }
 
 .stat__label {
-  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0;
 }
+.stat__label .icon { width: 15px; height: 15px; opacity: 0.7; flex: none; }
 
 .stat__value {
-  font-family: var(--font-display);
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-body);
-  letter-spacing: -0.02em;
-  line-height: 1;
+  line-height: 1.12;
+  margin-top: 1px;
 }
 
 /* Números tabulares: largura fixa de dígito — não "treme" no count-up nem
@@ -1197,43 +1196,21 @@ textarea:focus-visible,
 .stat__value, .tab__count, .nav__badge, .badge,
 .occ, .pj-row, .func-row { font-variant-numeric: tabular-nums; }
 
-.stat__hint {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin: 0;
-  opacity: 0.85;
-}
+.stat__hint { font-size: 11px; color: var(--text-muted); margin: 0; }
 
-/* Acento: verde só no número (saldo/destaque), sem moldura preenchida */
-.stat--accent {
-  background: transparent;
-  border-color: var(--border);
-}
 .stat--accent .stat__value { color: var(--plum); }
 
-/* KPI dominante (auditoria 2): a métrica primária ocupa mais espaço, número
-   maior e uma barra-guia à esquerda — guia o olho pra ela antes das demais. */
-.stat--kpi { flex: 1.7 1 0; }
-.stat--kpi .stat__value { font-size: 32px; }
+/* KPI dominante: métrica primária um pouco maior (sem a barra-guia do layout
+   antigo de barra segmentada). */
+.stat--kpi { flex: 1.6 1 200px; }
+.stat--kpi .stat__value { font-size: 30px; }
 
-.stat--kpi::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background: var(--plum);
-}
+.stat--alert .stat__value { color: var(--danger); }
+
 @media (max-width: 700px) {
+  .stat { flex: 1 1 44%; min-width: 44%; }
   .stat--kpi { flex: 1 1 100%; }
-  .stat--kpi .stat__value { font-size: 28px; }
 }
-
-/* Mobile: 2 colunas. flex-basis 50% força o wrap; o colapso de bordas
-   (margin -1px) cuida das divisórias entre as linhas que surgem. */
-@media (max-width: 700px) {
-  .stat {
-    flex: 1 1 50%;
-    min-width: 50%;
-  }
-}
-
 @media (max-width: 380px) {
   .stat { padding: 12px 14px; }
   .stat__value { font-size: 21px; }

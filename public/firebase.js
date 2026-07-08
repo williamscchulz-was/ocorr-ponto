@@ -2897,9 +2897,12 @@
         $("#app").classList.remove("hidden");
         esconderSplash(); // troca splash → app direto (login nunca pisca)
         const ehColab = userInState.role === "colaborador";
+        // Landing SEMPRE na Visão geral pro gestor (marretado, pedido William 2026-07-08):
+        // o boot por sessão restaurada caía em "dashboard" (Ocorrências); o login manual
+        // (app.js) já mandava pra visao-geral, então isto alinha os dois caminhos.
         state.view = ehColab
           ? { page: "colab-home" }
-          : { page: "dashboard", filterTab: "pendentes", filterTurno: null, search: "" };
+          : { page: "visao-geral", filterTab: "pendentes", filterTurno: null, search: "" };
         renderApp();
 
         // F3 (Fundação SELF): presença NÃO é ligada para o colaborador — privacidade

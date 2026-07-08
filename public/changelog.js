@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.57.1", d: "8 jul 2026", current: true, items: [
+    v: "1.58.0", d: "8 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Padrão único de indicadores no app inteiro: os cards limpos da Visão geral e da Auditoria agora valem também em Funcionários, Banco de horas, Disciplinar e Comunicados." },
+      { type: "med", aud: "gestor", title: "O Portal do Gestor volta a abrir sempre na Visão geral." },
+    ],
+  },
+  {
+    v: "1.57.1", d: "8 jul 2026", items: [
       { type: "med", aud: "gestor", title: "O indicador de Turnover agora mostra as duas pontas do mês: contratações e desligamentos." },
     ],
   },
