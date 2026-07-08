@@ -1740,6 +1740,20 @@ nunca rodou em sessão não-interativa nesta máquina — endurecido com
 **conferir a 1ª rodada pós-migração** mesmo assim (não usar S4U — quebra DPAPI/GCM
 que o git credential manager depende).
 
+**Tentativa do William (mesmo dia) via GUI**: marcar "Executar estando o usuário
+conectado ou não" deu erro genérico do Task Scheduler ("Um ou mais dos argumentos
+especificados não são válidos") — mesma família do erro que o `schtasks /Change
+/RU wkradar /RP *` deu por CLI antes ("ERRO: Parâmetro incorreto. (57,8):UserId").
+2 causas prováveis, não confirmadas ainda: (1) conta `wkradar` com senha em branco
+(Windows recusa guardar credencial vazia pra rodar sem sessão) — se for isso, mexer
+nisso muda o login diário da máquina, decisão do William; (2) o campo "Configurar
+para" da task está em "Windows Vista/Server 2008" (bem antigo pra um Server 2025),
+possível incompatibilidade de schema ao resalvar o principal — não testado ainda se
+subir esse valor resolve. **William decidiu deixar pra depois** (2026-07-08) — não
+é bloqueio urgente, só a reclamação original da janela na tela que segue em aberto.
+Quando retomar: testar a troca do "Configurar para" primeiro (não-destrutivo), só
+investigar a senha em branco se isso não resolver.
+
 **Em aberto**: watchdog horário novo (`pipeline-rh-health-watchdog`, criado hoje via
 scheduled task do Claude Code, mecanismo diferente da Task Scheduler nativa) pode
 ser uma 2ª fonte de janela — coincide no tempo (William reclamou no mesmo dia em que
