@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FioPulse · Estudo de movimento</title>
+<!-- Fidelidade: linka o CSS que esta NO AR. O "Antes" desta pagina e literalmente
+     o app de hoje (mesmos tokens, mesma fonte Poppins self-hosted, mesmas regras
+     de .btn/.stat/.vg-feat/.modal). O "Depois" so sobrepoe via #demo.after. -->
+<link rel="stylesheet" href="/public/styles.css">
+<style>
+  /* ============================================================
+     CHROME DA PAGINA DE ESTUDO (prefixo ms- pra nao colidir com o app)
+     ============================================================ */
+  body { background: var(--bg); color: var(--text-body); margin: 0; }
+  .ms-wrap { max-width: 760px; margin: 0 auto; padding: 0 18px 120px; }
+
+  /* Barra fixa: wordmark + o seletor Antes/Depois (material translucido, Apple §12) */
+  .ms-top {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 14px 18px;
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border-bottom: 1px solid var(--border);
+  }
+  .ms-brand { font-family: var(--font-brand); font-size: 15px; color: var(--plum); letter-spacing: .01em; }
+  .ms-brand span { color: var(--text-muted); font-family: var(--font); font-size: 12px; display: block; letter-spacing: 0; margin-top: 1px; }
+  .ms-top__spacer { flex: 1; }
+
+  /* Seletor segmentado Antes | Depois */
+  .ms-seg { display: inline-flex; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 999px; padding: 3px; position: relative; }
+  .ms-seg button { position: relative; z-index: 1; border: 0; background: none; padding: 8px 18px; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 999px; transition: color 220ms var(--ms-ease-out, ease); }
+  .ms-seg button.on { color: var(--text-on-plum); }
+  .ms-seg__thumb { position: absolute; top: 3px; left: 3px; height: calc(100% - 6px); width: calc(50% - 3px); background: var(--plum); border-radius: 999px; box-shadow: 0 4px 12px rgba(0,136,53,.30); transition: transform 320ms cubic-bezier(0.32,0.72,0,1); }
+  .ms-seg.d .ms-seg__thumb { transform: translateX(100%); }
+
+  .ms-intro { margin: 22px 2px 6px; font-size: 14px; color: var(--text-muted); line-height: 1.55; }
+  .ms-intro b { color: var(--text-body); font-weight: 600; }
+
+  .ms-sec { margin-top: 30px; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .ms-sec__h { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; }
+  .ms-sec__h h2 { font-size: 16px; font-weight: 700; color: var(--text-body); margin: 0; letter-spacing: -.01em; }
+  .ms-sec__tag { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--plum); background: var(--success-bg); padding: 3px 8px; border-radius: 999px; }
+  .ms-sec__p { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin: 0 0 16px; }
+  .ms-sec__p code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; background: var(--surface-warm); padding: 1px 5px; border-radius: 5px; color: var(--text-body); }
+  .ms-note { display: flex; gap: 8px; margin-top: 14px; padding: 11px 13px; background: var(--surface-warm); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .ms-note svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--plum); }
+  .ms-note b { color: var(--text-body); font-weight: 600; }
+
+  .ms-stage { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .ms-mini { font-size: 11px; color: var(--text-muted); border: 1px solid var(--border-strong); background: transparent; padding: 7px 13px; border-radius: 999px; font-weight: 600; }
+
+  .icon { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ============================================================
+     TOKENS DE MOVIMENTO DA PROPOSTA (so no "Depois").
+     Uma linguagem nomeada: curvas com intencao, nao a curva generica
+     cubic-bezier(.4,0,.2,1) espalhada solta. (Emil: sistema de movimento)
+     ============================================================ */
+  #demo {
+    --ms-ease-out: cubic-bezier(0.23, 1, 0.32, 1);      /* desacelera natural, nunca ease-in em UI */
+    --ms-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);   /* reversiveis (espelha ida/volta) */
+    --ms-spring: cubic-bezier(0.34, 1.56, 0.64, 1);      /* overshoot leve so p/ gesto com momento */
+    --ms-drawer: cubic-bezier(0.32, 0.72, 0, 1);         /* folhas/sheets */
+  }
+
+  /* ---- 1. BOTOES ------------------------------------------------
+     Antes (styles.css do app): transition generica 180ms + active scale(.96).
+     Depois: press instantaneo e snappy (Apple §1, feedback no pointer-down),
+     escala 0.97, curva ease-out no assentamento, hover com sombra tingida de verde. */
+  #demo.after .btn { transition: transform 140ms var(--ms-ease-out), background 160ms var(--ms-ease-out), box-shadow 220ms var(--ms-ease-out), color 160ms var(--ms-ease-out); }
+  #demo.after .btn:active { transform: scale(.97); transition-duration: 90ms; }
+  @media (hover: hover) and (pointer: fine) {
+    #demo.after .btn--primary:hover { background: var(--plum-soft); box-shadow: 0 8px 22px rgba(0,136,53,.28); transform: translateY(-1px); }
+    #demo.after .btn--ghost:hover,
+    #demo.after .btn--soft:hover { box-shadow: 0 4px 14px rgba(0,40,20,.08); }
+  }
+  #demo.after .btn--primary:active { transform: scale(.97); box-shadow: 0 2px 6px rgba(0,40,20,.16); }
+
+  /* ---- 2. KPIs: entrada escalonada, UMA vez, sem flicker ---------
+     O flicker que voce viu vinha de animar a CADA render a partir de
+     opacity:0. A versao certa: roda so na entrada real da tela, parte de
+     scale .98 (nao opacity 0 puro) e respeita reduzir-movimento. */
+  .ms-kpis { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; }
+  .ms-kpis .stat { flex: 1 1 150px; }
+  #demo.after.ms-play .ms-kpis .stat { animation: msRise 400ms var(--ms-ease-out) both; }
+  #demo.after.ms-play .ms-kpis .stat:nth-child(1) { animation-delay: 0ms; }
+  #demo.after.ms-play .ms-kpis .stat:nth-child(2) { animation-delay: 45ms; }
+  #demo.after.ms-play .ms-kpis .stat:nth-child(3) { animation-delay: 90ms; }
+  #demo.after.ms-play .ms-kpis .stat:nth-child(4) { animation-delay: 135ms; }
+  @keyframes msRise { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+
+  /* ---- 3. "Precisa de voce": o bloco mais importante fica vivo ----
+     Depois: leve elevacao no hover, seta do CTA telegrafa a direcao (Apple §8). */
+  #demo.after .vg-feat { transition: transform 240ms var(--ms-ease-out), box-shadow 240ms var(--ms-ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    #demo.after .vg-feat:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,136,53,.14); }
+    #demo.after .vg-feat:hover .vg-feat__btn .icon:last-child { transform: translateX(3px); }
+  }
+  #demo.after .vg-feat__btn .icon:last-child { transition: transform 240ms var(--ms-ease-out); }
+
+  /* ---- 4. Linhas de lista: sensacao de toque no mobile -----------
+     Antes: so troca de fundo no hover. Depois: estado de press (afunda 0.5%). */
+  .ms-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-bottom: 8px; cursor: pointer; }
+  .ms-row:last-child { margin-bottom: 0; }
+  .ms-row__av { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-warm); border: 1px solid var(--border); display: grid; place-items: center; color: var(--text-muted); flex: none; }
+  .ms-row__tx { flex: 1; min-width: 0; }
+  .ms-row__tx b { display: block; font-size: 14px; color: var(--text-body); font-weight: 600; }
+  .ms-row__tx span { font-size: 12px; color: var(--text-muted); }
+  .ms-row__chev { color: var(--text-muted); flex: none; }
+  .ms-row:hover { background: var(--row-hover); }
+  #demo.after .ms-row { transition: transform 150ms var(--ms-ease-out), background 160ms var(--ms-ease-out), box-shadow 200ms var(--ms-ease-out); }
+  #demo.after .ms-row:active { transform: scale(.992); background: var(--surface-warm); box-shadow: inset 0 0 0 1px var(--border-strong); }
+  #demo.after .ms-row__chev { transition: transform 200ms var(--ms-ease-out); }
+  @media (hover: hover) and (pointer: fine) { #demo.after .ms-row:hover .ms-row__chev { transform: translateX(2px); } }
+
+  /* ---- 5. Toggle anonima/identificada (serve a Pesquisa de clima) --
+     Depois: mola no botao, squash no instante da virada, trilho faz crossfade. */
+  .ms-switch { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
+  .ms-switch__track { width: 52px; height: 30px; border-radius: 999px; background: var(--border-strong); position: relative; transition: background 220ms var(--ms-ease-out, ease); flex: none; }
+  .ms-switch__knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,40,20,.28); transition: left 200ms linear; }
+  .ms-switch.on .ms-switch__track { background: var(--plum); }
+  .ms-switch.on .ms-switch__knob { left: 25px; }
+  .ms-switch__lbl b { font-size: 14px; color: var(--text-body); font-weight: 600; display: block; }
+  .ms-switch__lbl span { font-size: 12px; color: var(--text-muted); }
+  #demo.after .ms-switch__knob { transition: left 300ms var(--ms-spring), transform 140ms var(--ms-ease-out); }
+  #demo.after .ms-switch.sq .ms-switch__knob { transform: scaleX(1.18); }
+
+  /* ---- 6. Popover ancorado (Apple §7: nasce de onde foi disparado) --
+     Antes: fade centrado. Depois: escala a partir do canto do gatilho. */
+  .ms-pop-anchor { position: relative; display: inline-block; }
+  .ms-pop { position: absolute; top: calc(100% + 8px); right: 0; width: 210px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 6px; opacity: 0; visibility: hidden; transform: scale(.96); transition: opacity 160ms ease, transform 160ms ease, visibility 160ms; transform-origin: center center; }
+  .ms-pop.open { opacity: 1; visibility: visible; transform: none; }
+  #demo.after .ms-pop { transform-origin: top right; transform: scale(.9); transition: opacity 180ms var(--ms-ease-out), transform 200ms var(--ms-spring), visibility 200ms; }
+  .ms-pop button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-body); text-align: left; background: none; }
+  .ms-pop button:hover { background: var(--surface-warm); }
+
+  /* ============================================================
+     7. FOLHA ARRASTAVEL (hero): a filosofia Apple tangivel.
+     Sempre "novo padrao". Arraste 1:1, projecao de momento, rubber band.
+     ============================================================ */
+  .ms-sheet-scrim { position: fixed; inset: 0; z-index: 200; background: rgba(20,10,18,0); backdrop-filter: blur(0px); transition: background 300ms var(--ms-ease-out, ease), backdrop-filter 300ms var(--ms-ease-out, ease); pointer-events: none; }
+  .ms-sheet-scrim.show { background: rgba(20,10,18,.42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); pointer-events: auto; }
+  .ms-sheet { position: fixed; left: 50%; bottom: 0; z-index: 201; width: min(520px, 100%); background: var(--surface); border-radius: 24px 24px 0 0; box-shadow: var(--shadow-lg); padding: 10px 22px calc(26px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 100%); touch-action: none; }
+  .ms-sheet__grip { width: 40px; height: 5px; border-radius: 999px; background: var(--border-strong); margin: 6px auto 16px; }
+  .ms-sheet h3 { margin: 0 0 6px; font-size: 18px; color: var(--text-body); letter-spacing: -.01em; }
+  .ms-sheet p { margin: 0 0 18px; font-size: 13.5px; color: var(--text-muted); line-height: 1.55; }
+
+  .ms-foot { text-align: center; margin-top: 46px; font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+
+  /* Reduzir movimento: gentil, nao zero (Apple §14). Troca deslizes por
+     crossfades curtos e derruba overshoot; mantem o que ajuda a entender. */
+  @media (prefers-reduced-motion: reduce) {
+    #demo.after.ms-play .ms-kpis .stat { animation: msFade 200ms ease both; }
+    #demo.after .ms-switch__knob { transition: left 160ms ease; }
+    #demo.after .btn:active, #demo.after .ms-row:active { transform: none; }
+    .ms-seg__thumb { transition: transform 160ms ease; }
+    @keyframes msFade { from { opacity: 0; } to { opacity: 1; } }
+  }
+</style>
+</head>
+<body>
+
+<header class="ms-top">
+  <div class="ms-brand">FioPulse<span>Estudo de movimento · jul/2026</span></div>
+  <div class="ms-top__spacer"></div>
+  <div class="ms-seg" id="seg">
+    <span class="ms-seg__thumb"></span>
+    <button class="on" data-mode="antes">Antes</button>
+    <button data-mode="depois">Depois</button>
+  </div>
+</header>
+
+<main class="ms-wrap">
+  <div id="demo">
+    <p class="ms-intro">
+      O app ja tem boas microinteracoes. A ideia aqui e <b>padronizar numa linguagem de movimento</b>
+      (curvas nomeadas, com intencao) e subir o teto em alguns pontos, sem inventar enfeite.
+      Vira a chave <b>Antes / Depois</b> ali em cima e sinta a diferenca tocando nos elementos.
+      Nada disso tocou o app ainda, e so mockup.
+    </p>
+
+    <!-- 1. BOTOES -->
+    <section class="ms-sec">
+      <div class="ms-sec__h"><h2>Botoes</h2><span class="ms-sec__tag">refinamento</span></div>
+      <p class="ms-sec__p">
+        Aperte e segure. No <b>Depois</b> o feedback e mais instantaneo (o afundar dispara mais rapido),
+        a escala vai a <code>0.97</code> e o retorno desacelera com <code>ease-out</code> em vez da curva
+        generica. O primario ganha sombra tingida de verde no hover.
+      </p>
+      <div class="ms-stage">
+        <button class="btn btn--primary">Registrar ocorrencia</button>
+        <button class="btn btn--ghost">Filtrar</button>
+        <button class="btn btn--soft">Exportar</button>
+        <button class="btn btn--danger-ghost">Dispensar</button>
+      </div>
+    </section>
+
+    <!-- 2. KPIs -->
+    <section class="ms-sec">
+      <div class="ms-sec__h"><h2>Cartoes de KPI</h2><span class="ms-sec__tag">entrada</span></div>
+      <p class="ms-sec__p">
+        No <b>Depois</b> os cartoes entram escalonados (uma vez, na chegada da tela), partindo de
+        <code>scale .98</code> mais opacidade, com <code>stagger 45ms</code>. Clique em Reproduzir pra ver.
+      </p>
+      <div class="ms-stage" style="margin-bottom:14px">
+        <button class="ms-mini" id="replay">Reproduzir entrada</button>
+      </div>
+      <div class="ms-kpis" id="kpis">
+        <div class="stat stat--kpi"><p class="stat__label">Registradas</p><p class="stat__value">142</p><p class="stat__hint">+8 no mes</p></div>
+        <div class="stat"><p class="stat__label">Ativos</p><p class="stat__value">318</p></div>
+        <div class="stat stat--accent"><p class="stat__label">Resolvidas</p><p class="stat__value">96%</p></div>
+        <div class="stat stat--alert"><p class="stat__label">Turnover</p><p class="stat__value">2,4%</p></div>
+      </div>
+      <div class="ms-note">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><b>O caso do flicker.</b> Ele vinha de animar <b>a cada render</b>, a partir de <code>opacity:0</code>.
+        A versao aqui roda so na entrada real, parte de escala (nao de invisivel) e vira crossfade curto se voce
+        pediu reduzir movimento. Da pra ter a entrada elegante sem o piscar.</div>
+      </div>
+    </section>
+
+    <!-- 3. PRECISA DE VOCE -->
+    <section class="ms-sec">
+      <div class="ms-sec__h"><h2>Precisa de voce</h2><span class="ms-sec__tag">acao principal</span></div>
+      <p class="ms-sec__p">
+        O bloco de acao mais importante da Visao geral. No <b>Depois</b> ele levanta de leve no hover e a
+        seta do botao anda pra frente, telegrafando pra onde a acao leva.
+      </p>
+      <div class="vg-feat">
+        <div class="vg-feat__num">7</div>
+        <div class="vg-feat__tx"><b>Ocorrencias esperando voce</b><span>3 automaticas do RH, 4 do espelho de ponto</span></div>
+        <button class="btn btn--primary vg-feat__btn">Conferir <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+    </section>
+
+    <!-- 4. LISTA -->
+    <section class="ms-sec">
+      <div class="ms-sec__h"><h2>Linhas de lista</h2><span class="ms-sec__tag">toque</span></div>
+      <p class="ms-sec__p">No <b>Depois</b> cada linha afunda 0.5% ao ser pressionada e o chevron anda um fio, dando sensacao de tocavel no celular.</p>
+      <div class="ms-row"><span class="ms-row__av"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><span class="ms-row__tx"><b>Franciele Souza</b><span>1o turno · saldo +2h15</span></span><svg class="icon ms-row__chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="ms-row"><span class="ms-row__av"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><span class="ms-row__tx"><b>Luisana Prado</b><span>2o turno · atraso 45min</span></span><svg class="icon ms-row__chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="ms-row"><span class="ms-row__av"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><span class="ms-row__tx"><b>Jenifer Alves</b><span>1o turno · folga aprovada</span></span><svg class="icon ms-row__chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+    </section>
+
+    <!-- 5. TOGGLE -->
+    <section class="ms-sec">
+      <div class="ms-sec__h"><h2>Toggle anonima / identificada</h2><span class="ms-sec__tag">serve a Clima</span></div>
+      <p class="ms-sec__p">
+        O botao que vai reger a Pesquisa de clima. No <b>Depois</b> o knob desliza com mola e da um
+        squash no instante da virada, um toque de fisica que deixa a escolha tatil.
+      </p>
+      <div class="ms-switch" id="sw">
+        <span class="ms-switch__track"><span class="ms-switch__knob"></span></span>
+        <span class="ms-switch__lbl"><b id="sw-lbl">Respostas anonimas</b><span id="sw-sub">ninguem consegue ligar a resposta ao nome</span></span>
+      </div>
+    </section>
+
+    <!-- 6. POPOVER -->
+    <section class="ms-sec">
+      <div class="ms-sec__h"><h2>Menu ancorado</h2><span class="ms-sec__tag">de onde nasce</span></div>
+      <p class="ms-sec__p">No <b>Depois</b> o menu cresce a partir do canto do botao que o abriu, deixando obvia a relacao entre gatilho e conteudo, em vez de aparecer flutuando do centro.</p>
+      <div class="ms-pop-anchor">
+        <button class="btn btn--ghost" id="popbtn">Acoes <svg class="icon" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="ms-pop" id="pop">
+          <button><svg class="icon" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M12 20h9M16 4l4 4L8 20l-4 1 1-4z"/></svg> Editar</button>
+          <button><svg class="icon" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M20 6L9 17l-5-5"/></svg> Confirmar</button>
+          <button><svg class="icon" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M18 6L6 18M6 6l12 12"/></svg> Dispensar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. FOLHA ARRASTAVEL -->
+    <section class="ms-sec">
+      <div class="ms-sec__h"><h2>Folha arrastavel</h2><span class="ms-sec__tag">novo padrao</span></div>
+      <p class="ms-sec__p">
+        A peca que mais mostra a filosofia. Abra e <b>arraste a folha pra baixo</b>: ela cola no dedo (1:1),
+        projeta o momento no soltar (um empurrao fecha, um puxao volta) e resiste com rubber band se voce
+        puxar pra cima. E como as folhas do iOS.
+      </p>
+      <div class="ms-stage">
+        <button class="btn btn--primary" id="opensheet">Abrir folha</button>
+      </div>
+      <div class="ms-note">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><b>Onde o CSS para.</b> Interromper no meio e reverter com a velocidade exata do dedo (o principio numero um da Apple)
+        pede uma lib de mola em JS (tipo Motion). Aqui a fisica esta em JS puro pra voce sentir; o resto do app segue com CSS,
+        que ja cobre 95% dos casos.</div>
+      </div>
+    </section>
+
+    <p class="ms-foot">
+      Base: principios de Emil Kowalski e das talks de design da Apple (Designing Fluid Interfaces).<br>
+      Se curtir a direcao, o proximo passo e cravar os tokens de movimento no <code>styles.css</code> e aplicar tela a tela.
+    </p>
+  </div>
+</main>
+
+<!-- Folha + scrim (fora do #demo pra cobrir a tela toda) -->
+<div class="ms-sheet-scrim" id="scrim"></div>
+<div class="ms-sheet" id="sheet">
+  <div class="ms-sheet__grip"></div>
+  <h3>Ocorrencia · Franciele Souza</h3>
+  <p>Entrada 07:12, saida 17:03. Saldo do dia +2h15. Arraste esta folha pra baixo pra fechar, ou toque fora.</p>
+  <button class="btn btn--primary btn--block" id="sheetok">Confirmar ocorrencia</button>
+</div>
+
+<script>
+(function () {
+  var demo = document.getElementById('demo');
+  var seg = document.getElementById('seg');
+  var thumb = seg.querySelector('.ms-seg__thumb');
+
+  // ---- Antes / Depois ----
+  function setMode(mode) {
+    var depois = mode === 'depois';
+    demo.classList.toggle('after', depois);
+    seg.classList.toggle('d', depois);
+    seg.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.dataset.mode === mode); });
+    if (depois) replay();
+  }
+  seg.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () { setMode(b.dataset.mode); });
+  });
+
+  // ---- KPIs: reproduzir a entrada (remove/reflow/readiciona) ----
+  function replay() {
+    if (!demo.classList.contains('after')) return;
+    demo.classList.remove('ms-play');
+    void demo.offsetWidth; // reflow, reinicia a animacao
+    demo.classList.add('ms-play');
+  }
+  document.getElementById('replay').addEventListener('click', replay);
+
+  // ---- Toggle com squash ----
+  var sw = document.getElementById('sw');
+  var swLbl = document.getElementById('sw-lbl');
+  var swSub = document.getElementById('sw-sub');
+  sw.classList.add('on');
+  sw.addEventListener('click', function () {
+    var on = !sw.classList.contains('on');
+    sw.classList.add('sq');
+    setTimeout(function () { sw.classList.remove('sq'); }, 150);
+    sw.classList.toggle('on', on);
+    swLbl.textContent = on ? 'Respostas anonimas' : 'Respostas identificadas';
+    swSub.textContent = on ? 'ninguem consegue ligar a resposta ao nome' : 'o nome de quem respondeu fica visivel';
+  });
+
+  // ---- Popover ----
+  var pop = document.getElementById('pop');
+  var popbtn = document.getElementById('popbtn');
+  popbtn.addEventListener('click', function (e) { e.stopPropagation(); pop.classList.toggle('open'); });
+  document.addEventListener('click', function () { pop.classList.remove('open'); });
+  pop.addEventListener('click', function (e) { e.stopPropagation(); });
+
+  // ============================================================
+  // FOLHA ARRASTAVEL: 1:1, projecao de momento, rubber band, handoff.
+  // ============================================================
+  var sheet = document.getElementById('sheet');
+  var scrim = document.getElementById('scrim');
+  var H = 0;            // altura da folha
+  var y = 0;            // deslocamento atual (0 = aberta, H = fechada)
+  var dragging = false;
+  var startY = 0, startOffset = 0;
+  var samples = [];     // historico p/ velocidade
+
+  function setY(v, withSpring) {
+    y = v;
+    sheet.style.transition = withSpring ? 'transform 420ms cubic-bezier(0.32,0.72,0,1)' : 'none';
+    sheet.style.transform = 'translate(-50%, ' + v + 'px)';
+  }
+  function openSheet() {
+    H = sheet.offsetHeight;
+    scrim.classList.add('show');
+    setY(H, false);          // parte de fechada (sem transicao)
+    void sheet.offsetWidth;
+    setY(0, true);           // sobe com mola
+  }
+  function closeSheet(fromVel) {
+    scrim.classList.remove('show');
+    sheet.style.transition = 'transform 380ms cubic-bezier(0.32,0.72,0,1)';
+    sheet.style.transform = 'translate(-50%, ' + (H || sheet.offsetHeight) + 'px)';
+  }
+
+  document.getElementById('opensheet').addEventListener('click', openSheet);
+  document.getElementById('sheetok').addEventListener('click', function () { closeSheet(); });
+  scrim.addEventListener('click', function () { closeSheet(); });
+
+  // Rubber band: resiste progressivamente ao passar do topo (Apple §9)
+  function rubber(overshoot, dim, c) {
+    c = c || 0.55;
+    return (overshoot * dim * c) / (dim + c * Math.abs(overshoot));
+  }
+  // Projecao de momento no estilo iOS (Apple §6)
+  function project(vel, decel) {
+    decel = decel || 0.998;
+    return (vel / 1000) * decel / (1 - decel);
+  }
+
+  sheet.addEventListener('pointerdown', function (e) {
+    // nao inicia arraste a partir do botao (deixa o clique passar)
+    if (e.target.closest('.btn')) return;
+    dragging = true;
+    H = sheet.offsetHeight;
+    sheet.setPointerCapture(e.pointerId);
+    startY = e.clientY;
+    startOffset = y;
+    samples = [{ y: e.clientY, t: e.timeStamp }];
+    sheet.style.transition = 'none';
+  });
+  sheet.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var delta = e.clientY - startY;
+    var next = startOffset + delta;
+    if (next < 0) next = rubber(next, H);     // passou do topo: resiste
+    setY(next, false);
+    samples.push({ y: e.clientY, t: e.timeStamp });
+    if (samples.length > 6) samples.shift();
+  });
+  sheet.addEventListener('pointerup', function (e) {
+    if (!dragging) return;
+    dragging = false;
+    // velocidade a partir do historico recente (px/s)
+    var first = samples[0], last = samples[samples.length - 1];
+    var dt = Math.max(1, last.t - first.t);
+    var vel = (last.y - first.y) / dt * 1000;
+    var projected = y + project(vel);          // onde o gesto ia parar
+    if (projected > H * 0.5) closeSheet(vel);   // projecao passou da metade: fecha
+    else setY(0, true);                          // senao volta pro topo com mola
+  });
+})();
+</script>
+</body>
+</html>

@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.59.0", d: "9 jul 2026", current: true, items: [
+    v: "1.59.1", d: "9 jul 2026", current: true, items: [
+      { type: "fix", aud: "colab", title: "Coração de aniversário: dar o coração de novo num post que você já curtiu não dá mais erro. Antes, em rede de celular instável, a segunda tentativa falhava com aviso; agora é tratada como sucesso." },
+      { type: "med", title: "Abertura mais rápida no celular: o app adianta o carregamento das bibliotecas e, quando a rede está lenta, não fica mais preso esperando ela (usa em segundos o que já está salvo)." },
+      { type: "med", title: "Tato mais refinado nos botões e no interruptor, dentro de uma linguagem de movimento única no app." },
+    ],
+  },
+  {
+    v: "1.59.0", d: "9 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Nova aba Avaliações com a Pesquisa de clima. Monte a pesquisa (dimensões, perguntas e tipo de resposta, anônima ou identificada, eNPS e comentário), publique para o público que escolher e acompanhe os resultados agregados por dimensão, o eNPS e os comentários. Numa pesquisa anônima o resultado só aparece com no mínimo 5 respostas e após encerrar." },
       { type: "feat", aud: "colab", title: "Quando o RH abre uma pesquisa de clima do seu segmento, ela aparece no seu início para responder. Numa pesquisa anônima, suas respostas são gravadas sem nome, sem código e sem horário; o RH só vê o resultado em grupo." },
     ],

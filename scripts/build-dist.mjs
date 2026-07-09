@@ -13,6 +13,21 @@ const RAIZ = path.resolve(import.meta.dirname, "..");
 const ORIGEM = path.join(RAIZ, "public");
 const DESTINO = path.join(RAIZ, "dist");
 
+// GUARDA (incidente 2026-07-09: um deploy feito de um git worktree, que não
+// carrega o firebase.config.js gitignored, gerou dist SEM config e derrubou
+// produção em MODO DEMO). Sem apiKey válida o app inteiro cai no fallback demo,
+// então FALHA o build aqui em vez de shippar isso calado.
+const CONFIG = path.join(ORIGEM, "firebase.config.js");
+if (!fs.existsSync(CONFIG)) {
+  console.error("ERRO build-dist: public/firebase.config.js AUSENTE. Sem ele o app deployado cai em MODO DEMO. Crie a partir de public/firebase.config.example.js antes de buildar/deployar (NÃO deployar de um worktree sem esse arquivo).");
+  process.exit(1);
+}
+const cfgTxt = fs.readFileSync(CONFIG, "utf8");
+if (cfgTxt.includes("COLE_AQUI") || !/apiKey\s*:\s*["'][A-Za-z0-9_-]{10,}/.test(cfgTxt)) {
+  console.error("ERRO build-dist: public/firebase.config.js sem apiKey válida (placeholder?). O app cairia em MODO DEMO. Corrija antes de deployar.");
+  process.exit(1);
+}
+
 fs.rmSync(DESTINO, { recursive: true, force: true });
 
 let totalAntes = 0, totalDepois = 0, nJs = 0;

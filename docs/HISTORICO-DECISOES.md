@@ -2202,3 +2202,40 @@ de responder que o RH verá o nome junto (resposta voluntária).
   `dist/` minificado no predeploy, deploy `hosting:weave`. **Próximo:** feature 2, Avaliação de
   desempenho (mesmo rito: backend rules+testes+gate Fable, depois front; mock
   `docs/mockups/desempenho-mock-2026-07.html`).
+
+## 2026-07-09 · Coração aniversário + perf mobile + linguagem de movimento + INCIDENTE modo demo (v320/1.59.1)
+
+**Coração de aniversário (bug corrigido via rules).** Cliente sempre faz `set()` em
+`muralAniversario/{postId}/reacoes/{uid}`; num doc que já existe isso vira UPDATE, e a regra tinha
+`allow update: if false` (negava sempre). Em rede de celular ruim a leitura "já reagi?" retornava
+stale, coração desligado, 2o toque batia em doc existente e falhava. Fix: função local
+`reacaoOk()` e `allow update: if reacaoOk()` (idempotência; anti-spoof `autorNome==userDoc().nome`
+e `em==request.time` intactos). Gate Fable GO. Suíte 344/344. Rules DEPLOYADAS. Cliente: log de
+`err.code` no catch de `onParabenizar`.
+
+**Perf mobile item 1 (aprovado, plano WKRADAR/Fable).** Baseline Lighthouse mobile (prod, antes):
+Performance 81, FCP 1.9s, LCP 4.7s. Mudanças: preconnect gstatic + preload dos 4 URLs do SDK
+10.12.5 no `<head>` (SEM crossorigin, senão baixa em dobro; versão casada com firebase.js) +
+network-first do SW com timeout ~3s caindo pro cache (antes só caía em erro, não em rede lenta).
+Ganho honesto esperado: modesto (1,5 a 3s); corte de bytes real só viria do split gestor/colab
+(item 2, depois). Item 2 endossado pelo William mas fica pra quando o item 1 não bastar.
+
+**Linguagem de movimento (estudo Emil+Apple, mock aprovado).** Achado honesto: o app já
+implementava ~90% (rows press, toggle spring, botão lift, stagger, modal slide). Delta cirúrgico:
+tokens nomeados `--ease-out`/`--ease-spring` no `:root` (dedupa o magic number do toggle) + press
+do botão refinado (.96->.97, ease-out). Drag-to-dismiss das folhas mobile fica como próximo passo
+focado. Mock: `docs/mockups/motion-study-2026-07.html`. Skills Emil em `~/.claude/skills/`.
+
+**INCIDENTE: modo demo em produção.** Uma sessão paralela deployou o front do clima (1.59.0) DE UM
+GIT WORKTREE. Worktree não carrega arquivos gitignored, e `public/firebase.config.js` (tem a
+apiKey) é gitignored, então o `dist/` deployado saiu SEM config, prod serviu `firebase.config.js`
+404, `window.FIREBASE_CONFIG` ficou indefinido e o app caiu no fallback MODO DEMO (atalhos de
+login demo à mostra). **Fix:** rebuild isolado do commit 1.59.0 com o config colado + deploy
+(restaurou 1.59.0 + config, sem perder nada). **Guardrail (não repete):** `scripts/build-dist.mjs`
+agora FALHA o build se `firebase.config.js` faltar ou tiver placeholder, em vez de shippar demo
+calado. Regra operacional: **nunca deployar de um worktree** sem garantir o config.
+
+**Reconciliação.** O 1.59.0 do clima vivia só num worktree (não no main). Mergeado no main (origin
++ front clima), com as mudanças acima aplicadas por cima = release `1.59.1` / `v320`. **Próximo:**
+Avaliação de desempenho v1 = modalidades `gestor` + `auto` (o `360` exige Cloud Functions que o
+projeto não tem; documentado pra depois). Decidido com o William; escopo passa pelo gate Fable do backend.

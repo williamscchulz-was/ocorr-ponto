@@ -21,6 +21,8 @@
   // Marca o body pra esconder atalhos de login demo
   document.documentElement.classList.add("firebase-mode");
 
+  // ATENCAO: esta versao esta duplicada nos <link rel="preload"> do index.html
+  // (perf mobile). Mexeu aqui, mexe la, senao o preload baixa a versao errada.
   const SDK_VERSION = "10.12.5";
   const SDK_BASE = `https://www.gstatic.com/firebasejs/${SDK_VERSION}`;
 

@@ -10,7 +10,7 @@
 //  - activate purga TODO cache com nome != CACHE atual. Bumpar CACHE a
 //    cada deploy que mexa em SW/estratégia (segue o ?v= do index.html).
 
-const CACHE = "fiopulse-v319";
+const CACHE = "fiopulse-v320";
 
 self.addEventListener("install", () => {
   self.skipWaiting(); // ativa imediato, sem esperar abas antigas
@@ -49,13 +49,25 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // HTML/navegação + JS/CSS sem ?v + manifest: network-first (cache = fallback offline)
-  e.respondWith(
-    fetch(e.request)
+  // HTML/navegação + JS/CSS sem ?v + manifest: network-first COM TIMEOUT.
+  // Antes caía pro cache só em ERRO de rede; rede LENTA (wifi de chão de fábrica
+  // congestionado) travava o boot esperando a rede sem timeout. Agora: com cache
+  // quente, corre a rede contra ~3s e serve o cache se ela não responder — o
+  // index do cache funciona (o Hosting serve o conteúdo atual seja qual for o
+  // ?v=, que é só cache-buster do cliente) e se autoatualiza no próximo launch.
+  // 1ª visita (sem cache): espera a rede normalmente. A rede sempre atualiza o
+  // cache em segundo plano quando responde.
+  e.respondWith((async () => {
+    const fromNet = fetch(e.request)
       .then((resp) => {
         if (resp.ok) { const copy = resp.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
         return resp;
-      })
-      .catch(() => caches.match(e.request))
-  );
+      });
+    const cached = await caches.match(e.request);
+    if (!cached) return fromNet.catch(() => caches.match(e.request));
+    return Promise.race([
+      fromNet.catch(() => cached),
+      new Promise((res) => setTimeout(() => res(cached), 3000)),
+    ]);
+  })());
 });

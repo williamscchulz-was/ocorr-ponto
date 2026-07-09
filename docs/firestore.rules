@@ -566,24 +566,33 @@ service cloud.firestore {
     // curto, varios por pessoa). Leitura: qualquer autenticado (a festa e compartilhada).
     // Escrita: so como voce mesmo (autorUid/uid == auth.uid). Recado apaga o proprio autor
     // OU gestor (moderacao/LGPD); o autorUid fica gravado como trilha de quem escreveu.
-    // Append-only (sem update). em == hora do servidor.
+    // Recado append-only; reacao aceita re-set idempotente (mesmo conteudo, anti-spoof
+    // intacto) pra 2a tentativa nao virar erro. em == hora do servidor.
     match /muralAniversario/{postId} {
       allow read: if isAuthed();
       allow write: if false; // doc pai nunca e escrito pelo cliente
 
       match /reacoes/{uid} {
+        // Mesma predicado pro create E pro update: reagir de novo com o MESMO
+        // conteudo e idempotente (nao erro). Sem isso, o cliente que refaz o
+        // set() num doc que ja existe (2a tentativa apos leitura stale em rede
+        // ruim) caia em update -> negado -> toast. A igualdade anti-spoof
+        // (autorNome == userDoc().nome) segue intacta.
+        function reacaoOk() {
+          return isAuthed()
+              && request.auth.uid == uid
+              && request.resource.data.uid == uid
+              && request.resource.data.keys().hasOnly(['uid', 'tipo', 'autorNome', 'em'])
+              && request.resource.data.tipo == 'coracao'
+              && request.resource.data.autorNome is string
+              && request.resource.data.autorNome.size() <= 80
+              && request.resource.data.autorNome == userDoc().nome
+              && request.resource.data.em == request.time;
+        }
         allow read: if isAuthed();
-        allow create: if isAuthed()
-                    && request.auth.uid == uid
-                    && request.resource.data.uid == uid
-                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'autorNome', 'em'])
-                    && request.resource.data.tipo == 'coracao'
-                    && request.resource.data.autorNome is string
-                    && request.resource.data.autorNome.size() <= 80
-                    && request.resource.data.autorNome == userDoc().nome
-                    && request.resource.data.em == request.time;
+        allow create: if reacaoOk();
+        allow update: if reacaoOk();
         allow delete: if isAuthed() && (request.auth.uid == uid || isAdmin() || isRH());
-        allow update: if false;
       }
 
       match /recados/{recadoId} {

@@ -1,8 +1,9 @@
 // Rules do Mural de aniversario (/muralAniversario/{postId}) e subcolecoes:
 //   - doc pai: read se autenticado; write false (nunca escrito pelo cliente).
-//   - reacoes/{uid}: read autenticado; create so como voce mesmo (uid==auth.uid,
-//     data.uid==uid, hasOnly[uid,tipo,em], tipo=='coracao', em==server);
-//     delete dono OU admin OU rh (moderacao); update proibido.
+//   - reacoes/{uid}: read autenticado; create/update so como voce mesmo (uid==auth.uid,
+//     data.uid==uid, hasOnly[uid,tipo,autorNome,em], tipo=='coracao',
+//     autorNome==users.nome anti-spoof, em==server); re-set idempotente (mesmo predicado
+//     do create); delete dono OU admin OU rh (moderacao).
 //   - recados/{recadoId}: read autenticado; create autorUid==auth.uid,
 //     hasOnly[autorUid,autorNome,texto,em], autorNome<=80 E autorNome==users.nome do
 //     autor (anti-spoof), texto 1..500, em==server; delete dono OU admin OU rh
@@ -112,8 +113,13 @@ test("REACAO: autenticado le", async () =>
 test("REACAO: anonimo NAO le", async () =>
   assertFails(getDoc(doc(anon(), `${POST}/reacoes/uColab`))));
 
-// ---- update proibido ----
-test("REACAO: update proibido", async () =>
+// ---- update idempotente (re-reagir com o MESMO conteudo valido nao e erro) ----
+// Rege o bug do coracao: 2a tentativa num doc que ja existe caia em update -> negado.
+test("REACAO: re-reagir com conteudo valido SUCEDE (idempotente, doc ja existe)", async () =>
+  assertSucceeds(setDoc(doc(ctxFor("uColab"), `${POST}/reacoes/uColab`), reacao("uColab"))));
+test("REACAO: update com autorNome spoof falha (anti-spoof mantido)", async () =>
+  assertFails(setDoc(doc(ctxFor("uColab"), `${POST}/reacoes/uColab`), reacao("uColab", { autorNome: "Nome Falso" }))));
+test("REACAO: update parcial que nao refaz em==server falha", async () =>
   assertFails(updateDoc(doc(ctxFor("uColab"), `${POST}/reacoes/uColab`), { tipo: "coracao" })));
 
 // ---- delete ----
