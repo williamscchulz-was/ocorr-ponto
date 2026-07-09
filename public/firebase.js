@@ -1322,21 +1322,39 @@
     const _FV = firebase.firestore.FieldValue;
     const _clima = () => db.collection("pesquisasClima");
 
+    // Normaliza a janela num objeto de config (muta e devolve): 'inicio' e cosmetico
+    // (string ISO curta pro cabecalho); 'fim' e GATE FUNCIONAL do recibo (a rule so deixa
+    // o recibo nascer se request.time < p.fim), entao TEM que virar Timestamp fim-do-dia —
+    // uma string deixaria a comparacao da rule em erro e NEGARIA toda resposta.
+    function _climaJanela(o) {
+      if (!o) return o;
+      if (typeof o.inicio === "string") o.inicio = o.inicio.slice(0, 10);
+      if (typeof o.fim === "string") {
+        const d = new Date(o.fim.slice(0, 10) + "T23:59:59");
+        if (isNaN(d)) delete o.fim; else o.fim = firebase.firestore.Timestamp.fromDate(d);
+      }
+      return o;
+    }
+
     window.criarPesquisaClima = async function (cfg) {
       const uid = auth.currentUser && auth.currentUser.uid;
-      const ref = await _clima().add({
+      const data = {
         titulo: String(cfg.titulo || "").slice(0, 120), anonima: !!cfg.anonima, status: "rascunho",
         dimensoes: Array.isArray(cfg.dimensoes) ? cfg.dimensoes.slice(0, 12) : [],
         incluiEnps: cfg.incluiEnps !== false, incluiAberta: cfg.incluiAberta !== false,
         publico: cfg.publico && cfg.publico.tipo ? cfg.publico : { tipo: "todos", valores: [] },
         elegiveis: Number(cfg.elegiveis) || 0,
         criadoPor: uid, criadoEm: _FV.serverTimestamp(),
-      });
+      };
+      if (cfg.inicio) data.inicio = String(cfg.inicio);
+      if (cfg.fim) data.fim = String(cfg.fim);
+      _climaJanela(data);
+      const ref = await _clima().add(data);
       return ref.id;
     };
     // Rascunho: a regra aceita editar tudo menos criadoPor/criadoEm; passe o patch de config.
     window.editarPesquisaClima = async function (pid, patch) {
-      await _clima().doc(pid).update(patch);
+      await _clima().doc(pid).update(_climaJanela({ ...patch }));
     };
     // Abrir: rascunho -> aberta criando o contador no MESMO batch (a regra exige).
     window.abrirPesquisaClima = async function (pid) {
@@ -1350,7 +1368,9 @@
       const uid = auth.currentUser && auth.currentUser.uid;
       await _clima().doc(pid).update({ status: "encerrada", encerradaEm: _FV.serverTimestamp(), encerradaPor: uid });
     };
-    window.estenderPesquisaClima = async function (pid, fim) { await _clima().doc(pid).update({ fim }); };
+    // Ainda sem UI (o v1 só encerra manual); mantida pelo ramo 2 da regra (aberta -> estender
+    // fim). Passa por _climaJanela pra NUNCA gravar fim string (quebraria request.time < p.fim).
+    window.estenderPesquisaClima = async function (pid, fim) { await _clima().doc(pid).update(_climaJanela({ fim })); };
     window.excluirPesquisaClimaRascunho = async function (pid) { await _clima().doc(pid).delete(); };
 
     // Colaborador responde: batch recibo + resposta (anonima=auto-id sem identidade; senao uid)
@@ -3315,6 +3335,12 @@
           }));
         } catch (e) { debug?.("[colab] recibos:", e?.message || e); state.meusRecibos = []; }
       }
+      })(),
+      (async () => {
+      // Pesquisas de clima ABERTAS do segmento do colaborador (+ jaRespondi via recibo).
+      // Depende de state.funcionarios[0] (turno/setor), ja carregado acima. Falha isolada
+      // nao derruba o boot: cai em lista vazia.
+      try { await window.carregarPesquisasClimaColab(); } catch (e) { debug?.("[colab] clima:", e?.message || e); state.pesquisasClimaColab = []; }
       })(),
       (async () => {
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
