@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.59.2", d: "9 jul 2026", current: true, items: [
+    v: "1.60.0", d: "9 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Dar as boas-vindas: no card Chegaram há pouco da Visão geral, cada recém-contratado ganhou um botão de mão levantada pra receber as boas-vindas dos colegas, no mesmo espírito do coração de aniversário." },
+    ],
+  },
+  {
+    v: "1.59.2", d: "9 jul 2026", items: [
       { type: "med", aud: "gestor", title: "Visão geral mais alinhada: Aniversariantes e Chegaram há pouco agora ficam da mesma altura lado a lado, e Demografia e Ranking de tempo de casa viraram cards abertos em par, sem precisar expandir." },
     ],
   },

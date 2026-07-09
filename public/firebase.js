@@ -1459,16 +1459,18 @@
       }
     };
 
-    // Toggle da reação coração. ligar=true -> set reacoes/{uid}; ligar=false -> delete.
+    // Toggle de reação do mural. ligar=true -> set reacoes/{uid}; ligar=false -> delete.
     // Retorna o novo estado (bool). Id da doc = uid (rule exige request.auth.uid == uid).
-    window.toggleReacaoAniversario = async function (postId, ligar) {
+    // tipo: 'coracao' (post de aniversário) ou 'bemvindo' (post bv- de boas-vindas);
+    // a regra exige o tipo casado com o prefixo do postId.
+    window.toggleReacaoAniversario = async function (postId, ligar, tipo = "coracao") {
       const uid = auth.currentUser && auth.currentUser.uid;
       if (!uid) throw new Error("sem sessao");
       const ref = db.collection("muralAniversario").doc(postId).collection("reacoes").doc(uid);
       if (ligar) {
         // autorNome = o nome REAL (users/{uid}.nome; a regra valida ==userDoc().nome anti-spoof):
         // alimenta o mini-avatar de iniciais de quem parabenizou no card do colega.
-        await ref.set({ uid, tipo: "coracao", autorNome: (currentUser()?.nome || "").slice(0, 80), em: firebase.firestore.FieldValue.serverTimestamp() });
+        await ref.set({ uid, tipo, autorNome: (currentUser()?.nome || "").slice(0, 80), em: firebase.firestore.FieldValue.serverTimestamp() });
         return true;
       }
       await ref.delete();

@@ -122,6 +122,19 @@ test("REACAO: update com autorNome spoof falha (anti-spoof mantido)", async () =
 test("REACAO: update parcial que nao refaz em==server falha", async () =>
   assertFails(updateDoc(doc(ctxFor("uColab"), `${POST}/reacoes/uColab`), { tipo: "coracao" })));
 
+// ---- boas-vindas (post bv-*, tipo 'bemvindo'; 2026-07-09) ----
+const POST_BV = "muralAniversario/bv-marcos-almeida-2026";
+test("BEMVINDO: dono cria 'bemvindo' valido em post bv-", async () =>
+  assertSucceeds(setDoc(doc(ctxFor("uColab2"), `${POST_BV}/reacoes/uColab2`), reacao("uColab2", { tipo: "bemvindo" }))));
+test("BEMVINDO: 'coracao' em post bv- falha (tipo casado com o prefixo)", async () =>
+  assertFails(setDoc(doc(ctxFor("uColab"), `${POST_BV}/reacoes/uColab`), reacao("uColab"))));
+test("BEMVINDO: 'bemvindo' em post de aniversario falha", async () =>
+  assertFails(setDoc(doc(ctxFor("uColab"), `${POST}/reacoes/uColab`), reacao("uColab", { tipo: "bemvindo" }))));
+test("BEMVINDO: anti-spoof mantido (autorNome != users.nome falha)", async () =>
+  assertFails(setDoc(doc(ctxFor("uColab"), `${POST_BV}/reacoes/uColab`), reacao("uColab", { tipo: "bemvindo", autorNome: "Nome Falso" }))));
+test("BEMVINDO: re-set idempotente SUCEDE (mesmo conteudo, doc ja existe)", async () =>
+  assertSucceeds(setDoc(doc(ctxFor("uColab2"), `${POST_BV}/reacoes/uColab2`), reacao("uColab2", { tipo: "bemvindo" }))));
+
 // ---- delete ----
 test("REACAO: dono deleta a propria", async () =>
   assertSucceeds(deleteDoc(doc(ctxFor("uColab"), `${POST}/reacoes/uColab`))));

@@ -2226,6 +2226,14 @@ textarea:focus-visible,
 .vg-card__body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 @media (max-width: 860px) { .vg-grid { grid-template-columns: 1fr; } }
 .vg-adm { display: flex; align-items: center; gap: 11px; padding: 8px 0; }
+/* Boas-vindas (mão levantada): botão redondo à direita da linha, mesmo tato do
+   coração de aniversário. .on = reagiu (preenchido verde). */
+.vg-adm__hand { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-warm); color: var(--text-muted); display: grid; place-items: center; cursor: pointer; transition: background 160ms var(--ease-out), color 160ms var(--ease-out), transform 120ms var(--ease-out), border-color 160ms var(--ease-out); }
+.vg-adm__hand .icon { width: 18px; height: 18px; }
+.vg-adm__hand:active { transform: scale(.92); }
+.vg-adm__hand.on { background: var(--success-bg); border-color: var(--plum); color: var(--plum); }
+@media (hover: hover) and (pointer: fine) { .vg-adm__hand:hover { color: var(--plum); border-color: var(--plum-soft); } }
+.vg-adm__bv { display: block; font-size: 11.5px; color: var(--plum); font-weight: 600; margin-top: 1px; min-height: 15px; }
 .vg-adm__bd b { display: block; font-size: 13.5px; font-weight: 600; }
 .vg-adm__bd span { font-size: 12px; color: var(--text-muted); }
 

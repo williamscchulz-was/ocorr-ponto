@@ -560,10 +560,13 @@ service cloud.firestore {
     // controle unilateral da empresa. Bump de versao = novo hash aqui + readesao.
 
     // ===== Mural de aniversario (celebracao social entre colegas) =====
-    // postId = "{funcionarioId}_{ano}". NAO exige doc pai (subcolecoes valem sem ele);
-    // por isso o proprio /muralAniversario/{postId} nunca e escrito pelo cliente.
-    // Conteudo entre colegas: reacao (coracao, uma por pessoa, toggle) e recado (texto
-    // curto, varios por pessoa). Leitura: qualquer autenticado (a festa e compartilhada).
+    // postId "aniv-{slug}-{ano}" (aniversario) OU "bv-{slug}-{anoAdmissao}" (boas-vindas
+    // a recem-contratados, 2026-07-09; mesmo sistema de reacao, so muda o tipo). NAO exige
+    // doc pai (subcolecoes valem sem ele); por isso o proprio /muralAniversario/{postId}
+    // nunca e escrito pelo cliente.
+    // Conteudo entre colegas: reacao (coracao no aniversario, bemvindo no bv-; uma por
+    // pessoa, toggle) e recado (texto curto, varios por pessoa). Leitura: qualquer
+    // autenticado (a festa e compartilhada).
     // Escrita: so como voce mesmo (autorUid/uid == auth.uid). Recado apaga o proprio autor
     // OU gestor (moderacao/LGPD); o autorUid fica gravado como trilha de quem escreveu.
     // Recado append-only; reacao aceita re-set idempotente (mesmo conteudo, anti-spoof
@@ -578,12 +581,20 @@ service cloud.firestore {
         // set() num doc que ja existe (2a tentativa apos leitura stale em rede
         // ruim) caia em update -> negado -> toast. A igualdade anti-spoof
         // (autorNome == userDoc().nome) segue intacta.
+        // Tipo casado com o prefixo do post (disjuncao explicita, padrao da casa):
+        // post bv- so aceita 'bemvindo', post de aniversario so aceita 'coracao'.
+        // Guard de auto-toque (nao reagir ao proprio post) fica no CLIENTE: o postId
+        // chaveia por slug do nome e a regra nao slugifica; o risco residual e so
+        // cosmetico (contador do proprio card), sem PII nem perda de dado.
+        // ponytail: guard server-side exigiria funcionarioId no postId ou doc pai
+        // escrito pelo servidor.
         function reacaoOk() {
           return isAuthed()
               && request.auth.uid == uid
               && request.resource.data.uid == uid
               && request.resource.data.keys().hasOnly(['uid', 'tipo', 'autorNome', 'em'])
-              && request.resource.data.tipo == 'coracao'
+              && ((postId.matches('bv-.*') && request.resource.data.tipo == 'bemvindo')
+               || (!postId.matches('bv-.*') && request.resource.data.tipo == 'coracao'))
               && request.resource.data.autorNome is string
               && request.resource.data.autorNome.size() <= 80
               && request.resource.data.autorNome == userDoc().nome

@@ -1829,6 +1829,14 @@ function muralPostId(nome) {
   return `aniv-${slugify(String(nome || ""))}-${ano}`;
 }
 
+// postId de boas-vindas = "bv-<slug>-<ano da ADMISSÃO>" (não o corrente: a janela de
+// 120 dias cruza o réveillon e o postId não pode mudar no meio, senão as reações somem).
+function bvPostId(nome, admissao) {
+  const d = tsParaData(admissao);
+  const ano = d ? d.getFullYear() : new Date().getFullYear();
+  return `bv-${slugify(String(nome || ""))}-${ano}`;
+}
+
 // Cor determinística por nome para os avatares de iniciais (paleta sóbria da marca).
 function _muralCor(nome) {
   const cores = ["#008835", "#0076BE", "#1AA34F", "#7a4fbf", "#c48a1a", "#0B7A36"];
@@ -4604,16 +4612,91 @@ function vgAdmissoesHtml(u) {
     .sort((a, b) => admDe(b) - admDe(a))
     .slice(0, 3);
   if (!rec.length) return "";
+  // Botão de boas-vindas (mão levantada, não coração: emoção diferente de "parabéns").
+  // Mesmo mecanismo de reação do aniversário, tipo 'bemvindo' em post bv-. Guard de
+  // auto-toque no cliente: a própria pessoa não vê o botão no próprio card.
+  const meuNome = _normNome(u.nome);
   return `
     <section class="vg-card">
       <h3 class="vg-h">${icon("users")}<span>Chegaram há pouco</span></h3>
       <div class="vg-card__body">
         ${rec.map((f) => {
           const dias = Math.max(1, Math.round((hoje - admDe(f)) / 864e5));
-          return `<div class="vg-adm">${avatarFuncHtml(f, "avatar")}<div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(f.setor || "")} · chegou há ${dias} dia${dias > 1 ? "s" : ""}</span></div></div>`;
+          const souEu = meuNome && _normNome(f.nome) === meuNome;
+          return `<div class="vg-adm" data-bv-post="${escapeHtml(bvPostId(f.nome, f.admissao))}">
+            ${avatarFuncHtml(f, "avatar")}
+            <div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(f.setor || "")} · chegou há ${dias} dia${dias > 1 ? "s" : ""}</span><span class="vg-adm__bv" data-bv-count></span></div>
+            ${souEu ? "" : `<button type="button" class="vg-adm__hand" data-bv-hand aria-pressed="false" title="Dar as boas-vindas">${_bvHand(false)}</button>`}
+          </div>`;
         }).join("")}
       </div>
     </section>`;
+}
+
+const _bvHand = (on) => `<svg class="icon" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>`;
+
+// Copy da contagem de boas-vindas (mesma família da _parabTexto, sem "!").
+function _bvTexto(total, mine) {
+  if (!total) return "Dar as boas-vindas";
+  if (mine) {
+    const outros = total - 1;
+    return outros > 0 ? `Você e mais ${outros} deram as boas-vindas` : "Você deu as boas-vindas";
+  }
+  return total === 1 ? "1 colega deu as boas-vindas" : `${total} colegas deram as boas-vindas`;
+}
+
+// Preenche contagem + estado da mão nos cards [data-bv-post] (mesma leitura do mural).
+async function preencherCardsBoasVindas() {
+  if (typeof window.carregarReacoesAniversario !== "function") return;
+  const cards = Array.from(document.querySelectorAll("[data-bv-post]"));
+  await Promise.all(cards.map(async (el) => {
+    const post = el.getAttribute("data-bv-post");
+    if (!post) return;
+    let dados;
+    try { dados = await window.carregarReacoesAniversario(post); }
+    catch { return; }
+    if (!document.contains(el)) return;
+    const cnt = el.querySelector("[data-bv-count]");
+    if (cnt) cnt.textContent = _bvTexto(dados.total, dados.minhaReacao);
+    const hand = el.querySelector("[data-bv-hand]");
+    if (hand) {
+      hand.classList.toggle("on", !!dados.minhaReacao);
+      hand.setAttribute("aria-pressed", dados.minhaReacao ? "true" : "false");
+      hand.innerHTML = _bvHand(!!dados.minhaReacao);
+      hand.dataset.bvTotal = String(dados.total || 0);
+    }
+  }));
+}
+
+// Toque na mão de boas-vindas: otimista, espelha onParabenizar (reverte + toast no erro).
+async function onBoasVindas(hand) {
+  if (!hand || hand.dataset.busy === "1") return;
+  const card = hand.closest("[data-bv-post]");
+  const post = card && card.getAttribute("data-bv-post");
+  if (!post) return;
+  const cnt = card.querySelector("[data-bv-count]");
+  const wasOn = hand.classList.contains("on");
+  const ligar = !wasOn;
+  const totalAntes = Number(hand.dataset.bvTotal || "0") || 0;
+  const totalDepois = Math.max(0, totalAntes + (ligar ? 1 : -1));
+  const aplica = (on, total) => {
+    hand.classList.toggle("on", on);
+    hand.setAttribute("aria-pressed", on ? "true" : "false");
+    hand.innerHTML = _bvHand(on);
+    hand.dataset.bvTotal = String(total);
+    if (cnt) cnt.textContent = _bvTexto(total, on);
+  };
+  aplica(ligar, totalDepois);
+  hand.dataset.busy = "1";
+  try {
+    await window.toggleReacaoAniversario(post, ligar, "bemvindo");
+  } catch (err) {
+    debug?.("[boas-vindas] falhou:", err?.code, err?.message);
+    aplica(wasOn, totalAntes);
+    toast("Não consegui registrar. Tente de novo.", "danger");
+  } finally {
+    hand.dataset.busy = "0";
+  }
 }
 
 
@@ -4786,6 +4869,9 @@ function renderVisaoGeral() {
   const vph = $("#view .version-pill--hub");
   if (vph) { vph.textContent = "v" + window.CURRENT_VERSION; vph.addEventListener("click", openChangelog); }
   // Atalhos do hub (mobile) e linhas/botões de pendência: navegação real.
+  // Boas-vindas nos recém-chegados: estado real assíncrono + toque otimista.
+  $$("#view [data-bv-hand]").forEach((b) => b.addEventListener("click", () => onBoasVindas(b)));
+  preencherCardsBoasVindas();
   $$("#view [data-ghub]").forEach((b) => b.addEventListener("click", () => {
     if (b.dataset.ghubTab) state.view.docTab = b.dataset.ghubTab;
     state.view.page = b.dataset.ghub;
@@ -14215,7 +14301,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.59.2";
+window.CURRENT_VERSION = "1.60.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
