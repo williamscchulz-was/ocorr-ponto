@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.58.3", d: "9 jul 2026", current: true, items: [
+    v: "1.58.4", d: "9 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "Corrigido o resto do pisca: ao trocar de aba, o cabeçalho e os indicadores começavam invisíveis e faziam um fade a cada troca. Removida essa animação de entrada; agora as telas aparecem na hora, sem piscar." },
+    ],
+  },
+  {
+    v: "1.58.3", d: "9 jul 2026", items: [
       { type: "med", aud: "gestor", title: "Corrigido o flicker em que textos (a saudação, os indicadores) sumiam e voltavam por um instante sem recarregar. Os re-renders da tela agora são agrupados num só por quadro, então a rajada de atualizações do boot não repinta a tela várias vezes." },
     ],
   },
