@@ -4370,8 +4370,10 @@ function renderAniversariantesWidget(u) {
   return `
     <section class="vg-card">
       <h3 class="vg-h">${CAL}<span>Aniversariantes de ${MESES_FULL[mes - 1]}</span></h3>
-      ${destaque}
-      ${chips ? `<div class="niver-chips">${chips}</div>` : ""}
+      <div class="vg-card__body">
+        ${destaque}
+        ${chips ? `<div class="niver-chips">${chips}</div>` : ""}
+      </div>
     </section>`;
 }
 
@@ -4409,10 +4411,10 @@ function renderRankingTempoCasaWidget(u) {
       </div>`;
   }).join("");
   return `
-    <details class="vg-card vg-exp">
-      <summary><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Ranking · tempo de casa</span><span class="vg-exp__n">Top ${comDias.length}</span><svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></summary>
-      <div class="vg-exp__body"><div class="dashboard-ranking">${linhas}</div></div>
-    </details>`;
+    <section class="vg-card">
+      <h3 class="vg-h"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Ranking · tempo de casa</span><span class="vg-exp__n">Top ${comDias.length}</span></h3>
+      <div class="vg-card__body"><div class="dashboard-ranking">${linhas}</div></div>
+    </section>`;
 }
 
 function renderDemografiaWidget(u) {
@@ -4463,9 +4465,9 @@ function renderDemografiaWidget(u) {
     .slice(0, 3);
 
   return `
-    <details class="vg-card vg-exp">
-      <summary><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Demografia da empresa</span><span class="vg-exp__n">${pool.length} ativos</span><svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></summary>
-      <div class="dashboard-demografia__grid">
+    <section class="vg-card">
+      <h3 class="vg-h"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Demografia da empresa</span><span class="vg-exp__n">${pool.length} ativos</span></h3>
+      <div class="vg-card__body"><div class="dashboard-demografia__grid">
         <div class="demografia-bloco">
           <div class="demografia-bloco__label">Idade média</div>
           <div class="demografia-bloco__big">${idadeMedia ?? "—"}${idadeMedia ? " <small style='font-size:13px; font-weight:500;'>anos</small>" : ""}</div>
@@ -4511,8 +4513,8 @@ function renderDemografiaWidget(u) {
             `).join("")}
           </div>
         ` : ""}
-      </div>
-    </details>`;
+      </div></div>
+    </section>`;
 }
 
 // Saldo pra FOLGA (original, hora por hora; caso Jenifer 2026-07-07): o valor
@@ -4605,10 +4607,12 @@ function vgAdmissoesHtml(u) {
   return `
     <section class="vg-card">
       <h3 class="vg-h">${icon("users")}<span>Chegaram há pouco</span></h3>
-      ${rec.map((f) => {
-        const dias = Math.max(1, Math.round((hoje - admDe(f)) / 864e5));
-        return `<div class="vg-adm">${avatarFuncHtml(f, "avatar")}<div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(f.setor || "")} · chegou há ${dias} dia${dias > 1 ? "s" : ""}</span></div></div>`;
-      }).join("")}
+      <div class="vg-card__body">
+        ${rec.map((f) => {
+          const dias = Math.max(1, Math.round((hoje - admDe(f)) / 864e5));
+          return `<div class="vg-adm">${avatarFuncHtml(f, "avatar")}<div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(f.setor || "")} · chegou há ${dias} dia${dias > 1 ? "s" : ""}</span></div></div>`;
+        }).join("")}
+      </div>
     </section>`;
 }
 
@@ -4770,8 +4774,10 @@ function renderVisaoGeral() {
       ${renderAniversariantesWidget(u)}
       ${vgAdmissoesHtml(u)}
     </div>
-    ${renderDemografiaWidget(u)}
-    ${renderRankingTempoCasaWidget(u)}
+    <div class="vg-grid">
+      ${renderDemografiaWidget(u)}
+      ${renderRankingTempoCasaWidget(u)}
+    </div>
     ${renderObrigacoesWidget(u)}
     </div>
   `;
@@ -14209,7 +14215,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.59.1";
+window.CURRENT_VERSION = "1.59.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

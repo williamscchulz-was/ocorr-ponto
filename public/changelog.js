@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.59.1", d: "9 jul 2026", current: true, items: [
+    v: "1.59.2", d: "9 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "Visão geral mais alinhada: Aniversariantes e Chegaram há pouco agora ficam da mesma altura lado a lado, e Demografia e Ranking de tempo de casa viraram cards abertos em par, sem precisar expandir." },
+    ],
+  },
+  {
+    v: "1.59.1", d: "9 jul 2026", items: [
       { type: "fix", aud: "colab", title: "Coração de aniversário: dar o coração de novo num post que você já curtiu não dá mais erro. Antes, em rede de celular instável, a segunda tentativa falhava com aviso; agora é tratada como sucesso." },
       { type: "med", title: "Abertura mais rápida no celular: o app adianta o carregamento das bibliotecas e, quando a rede está lenta, não fica mais preso esperando ela (usa em segundos o que já está salvo)." },
       { type: "med", title: "Tato mais refinado nos botões e no interruptor, dentro de uma linguagem de movimento única no app." },

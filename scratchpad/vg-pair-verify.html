@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link rel="stylesheet" href="/public/styles.css?v=verify">
+<style>
+  body { background: var(--bg); padding: 24px; }
+  .col { max-width: 760px; margin: 0 auto; }
+  /* avatar placeholder (o app usa avatarFuncHtml; aqui so o formato importa) */
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-warm); border: 1px solid var(--border); display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--text-muted); flex: none; }
+  .lbl { max-width: 760px; margin: 0 auto 8px; font: 600 12px system-ui; color: #888; text-transform: uppercase; letter-spacing: .05em; }
+</style></head>
+<body>
+<div class="lbl">Caso 2 · Aniversariantes (curto) x Chegaram ha pouco (alto) — devem ficar da MESMA altura, conteudo do curto centralizado</div>
+<div class="col">
+  <div class="vg-grid">
+    <section class="vg-card">
+      <h3 class="vg-h"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Aniversariantes de julho</span></h3>
+      <div class="vg-card__body">
+        <div class="niver-hoje">
+          <div class="niver-hoje__av">D</div>
+          <div class="niver-hoje__bd"><b>Daiane</b><span>faz aniversário hoje</span></div>
+          <span class="niver-hoje__pill">Hoje · 09</span>
+        </div>
+        <div class="niver-chips">
+          <span class="niver-chip"><span class="niver-chip__av">F</span>Franciele<span class="niver-chip__d">14</span></span>
+          <span class="niver-chip"><span class="niver-chip__av">L</span>Luisana<span class="niver-chip__d">22</span></span>
+          <span class="niver-chip"><span class="niver-chip__av">J</span>Jenifer<span class="niver-chip__d">28</span></span>
+        </div>
+      </div>
+    </section>
+    <section class="vg-card">
+      <h3 class="vg-h"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Chegaram há pouco</span></h3>
+      <div class="vg-card__body">
+        <div class="vg-adm"><span class="avatar">MA</span><div class="vg-adm__bd"><b>Marcos Almeida</b><span>Produção · chegou há 12 dias</span></div></div>
+        <div class="vg-adm"><span class="avatar">RS</span><div class="vg-adm__bd"><b>Rita Souza</b><span>Qualidade · chegou há 30 dias</span></div></div>
+        <div class="vg-adm"><span class="avatar">YT</span><div class="vg-adm__bd"><b>Yuri Teixeira</b><span>Logística · chegou há 47 dias</span></div></div>
+      </div>
+    </section>
+  </div>
+</div>
+</body></html>

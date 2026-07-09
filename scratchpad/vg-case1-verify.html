@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link rel="stylesheet" href="/public/styles.css?v=verify2">
+<style>
+  body { background: var(--bg); padding: 24px; }
+  .col { max-width: 900px; margin: 0 auto; }
+  .lbl { max-width: 900px; margin: 0 auto 8px; font: 600 12px system-ui; color: #888; text-transform: uppercase; letter-spacing: .05em; }
+</style></head>
+<body>
+<div class="lbl">Caso 1 · Demografia (curto) x Ranking (alto) lado a lado — mesma altura, demografia centralizada, sem acordeao</div>
+<div class="col">
+  <div class="vg-grid">
+    <section class="vg-card">
+      <h3 class="vg-h"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Demografia da empresa</span><span class="vg-exp__n">318 ativos</span></h3>
+      <div class="vg-card__body"><div class="dashboard-demografia__grid">
+        <div class="demografia-bloco"><div class="demografia-bloco__label">Idade média</div><div class="demografia-bloco__big">34 <small style="font-size:13px;font-weight:500;">anos</small></div><div class="text-xs muted">301 de 318 com data</div></div>
+        <div class="demografia-bloco"><div class="demografia-bloco__label">Sexo</div><div class="demografia-bloco__big" style="font-size:14px;"><span style="color:#d946ef;">Fem 41%</span> · <span style="color:#0076BE;">Masc 59%</span></div><div class="demografia-bloco__bar"><span style="width:41%;background:#d946ef;"></span><span style="width:59%;background:#0076BE;"></span></div><div class="text-xs muted" style="margin-top:4px;">130 F · 188 M</div></div>
+        <div class="demografia-bloco"><div class="demografia-bloco__label">Tempo médio de casa</div><div class="demografia-bloco__big" style="font-size:16px;">3 anos 2 meses</div><div class="text-xs muted">290 com admissão</div></div>
+        <div class="demografia-bloco"><div class="demografia-bloco__label">Escolaridade (top)</div><div class="text-xs" style="display:flex;justify-content:space-between;"><span>Ensino médio</span><strong>142</strong></div><div class="text-xs" style="display:flex;justify-content:space-between;"><span>Fundamental</span><strong>88</strong></div></div>
+      </div></div>
+    </section>
+    <section class="vg-card">
+      <h3 class="vg-h"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Ranking · tempo de casa</span><span class="vg-exp__n">Top 10</span></h3>
+      <div class="vg-card__body"><div class="dashboard-ranking">
+        ${""}
+      </div></div>
+    </section>
+  </div>
+</div>
+<script>
+  const nomes = [["Landa Pereira","Produção · 1º turno","14 anos"],["Marco Vidal","Manutenção · 2º turno","12 anos"],["Cida Rocha","Qualidade","11 anos"],["Ivo Santos","Logística · 3º turno","9 anos"],["Bea Lima","Produção · 1º turno","8 anos"],["Rui Alves","Expedição","7 anos"],["Nina Costa","RH","6 anos"],["Tom Dias","Produção · 2º turno","5 anos"],["Val Souza","Manutenção","4 anos"],["Edu Nunes","Produção · 1º turno","3 anos"]];
+  document.querySelector(".dashboard-ranking").innerHTML = nomes.map((n,i)=>`<div class="rk rk--${i+1}"><div class="rk__pos">${i+1}</div><div class="rk__main"><div class="rk__nome">${n[0]}</div><div class="rk__meta">${n[1]}</div></div><div class="rk__val">${n[2]}</div></div>`).join("");
+</script>
+</body></html>
