@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.58.2", d: "9 jul 2026", current: true, items: [
+    v: "1.58.3", d: "9 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "Corrigido o flicker em que textos (a saudação, os indicadores) sumiam e voltavam por um instante sem recarregar. Os re-renders da tela agora são agrupados num só por quadro, então a rajada de atualizações do boot não repinta a tela várias vezes." },
+    ],
+  },
+  {
+    v: "1.58.2", d: "9 jul 2026", items: [
       { type: "med", aud: "gestor", title: "Ocorrência automática que a GP já revisou e ajustou não mostra mais o aviso \"Conferir\" pro líder. O alerta de incerteza do sistema some depois que um humano examinou; o motivo original fica registrado no histórico." },
     ],
   },

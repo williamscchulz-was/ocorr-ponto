@@ -2663,7 +2663,23 @@ function renderPortalRoadmap() {
 }
 // ---------- App Shell ----------
 
+// renderApp COALESCIDO (WKRADAR 2026-07-09, "texto some e volta sem reload"): o app
+// nao tem diff/virtual DOM, entao cada render reconstroi #view inteiro ($("#view").
+// innerHTML=...), destruindo/recriando o <h1> e os KPIs mesmo sem mudar. Havia ~85
+// gatilhos sem coordenacao (chamadas diretas + 6 onSnapshot + refetch-ao-foco) que
+// disparavam em rajada, sobretudo no boot/login, cada um repintando a tela -> flicker.
+// Fix: agrupa varias chamadas do MESMO frame num unico render (requestAnimationFrame),
+// entao a rajada vira 1 repaint. Seguro: nenhum chamador le o DOM de forma sincrona
+// logo apos renderApp() (verificado). Quem precisa do render agora usa _renderAppNow().
+let _renderRaf = 0;
 function renderApp() {
+  if (_renderRaf) return;
+  // Reset do flag ANTES de _renderAppNow (intencional, revisao Fable): se o corpo
+  // lancar, o flag ja voltou a 0 e os renders futuros continuam; NAO reordenar.
+  _renderRaf = requestAnimationFrame(() => { _renderRaf = 0; _renderAppNow(); });
+}
+
+function _renderAppNow() {
   const u = currentUser();
   if (!u) { mostrarAcesso(); return; }
 
@@ -13387,7 +13403,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.58.2";
+window.CURRENT_VERSION = "1.58.3";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

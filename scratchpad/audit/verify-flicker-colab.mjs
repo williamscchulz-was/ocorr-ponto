@@ -1,0 +1,20 @@
+setTimeout(() => { console.log("HARD-TIMEOUT"); process.exit(9); }, 90000);
+const H = await import("./harness.mjs");
+await H.iniciarServidor();
+const { browser, page } = await H.abrirContexto({ viewport: "desktop" });
+await page.goto(H.BASE_URL, { waitUntil: "domcontentloaded" });
+await H.seedColab(page);
+await page.waitForTimeout(600);
+const r = await page.evaluate(async () => {
+  const view = document.querySelector("#view");
+  let rebuilds = 0, last = document.querySelector("#view h1");
+  const obs = new MutationObserver(() => { const h1=document.querySelector("#view h1"); if (h1 && h1 !== last) { rebuilds++; last = h1; } });
+  obs.observe(view, { childList: true, subtree: true });
+  for (let i = 0; i < 5; i++) renderApp();
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  await new Promise((r) => setTimeout(r, 60));
+  obs.disconnect();
+  return { rebuilds, h1: document.querySelector("#view h1")?.textContent?.slice(0,40), temHome: !!document.querySelector(".cp-hero, .cp-card, .app__main, #view") };
+});
+console.log("COLAB:", JSON.stringify(r), "erros:", (await H.coletarErrosReais(page)).length);
+await browser.close(); process.exit(0);
