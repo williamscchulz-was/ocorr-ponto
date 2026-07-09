@@ -2021,3 +2021,42 @@ quando uma auditoria gerar uma lista de achados que não vai ser tratada
 inteira na hora, escrever a lista completa aqui (mesmo os descartados, com
 o motivo) — não só a contagem. Contagem sem lista é dívida de documentação
 disfarçada de trabalho pendente.
+
+## 2026-07-09 — Investigado: texto "some e volta" sem reload (renderApp sem diff)
+
+William: texto (saudação "Boa tarde, Administrador" e outros) some brevemente e
+volta sozinho, sem reload, "em vários lugares". Investigação com workflow de
+pesquisa + confirmação AO VIVO (não só leitura de código): rodei o app
+localmente (`python -m http.server` servindo `public/`, sem
+`firebase.config.js` → cai em Modo Demo automaticamente, comportamento
+esperado — ver nota abaixo), logei como Administrador (login demo de 1 clique),
+instrumentei com `MutationObserver` e chamei `window.renderApp()` diretamente.
+
+**Provado**: `<h1>` da saudação é DESTRUÍDO E RECRIADO a cada `renderApp()`,
+mesmo com texto idêntico antes/depois (`sameH1Node: false`). Causa: `app.js`
+não tem diff/virtual DOM — cada `renderApp()` (linha 2666) reconstrói a tela
+inteira via `innerHTML =`, e existem ~79 pontos de chamada + 6 listeners
+`onSnapshot` que disparam isso, nenhum coordenado/debounced entre si. No
+boot/login (quando o header aparece pela 1ª vez), é comum vários desses
+dispararem em sequência rápida, cada um reconstruindo tudo de novo — daí o
+"pisca". Não é CSS/animação.
+
+Outros lugares com risco confirmado (mesmo padrão exato: saudação por
+horário recalculada a cada render): `colabGreetHtml()` (Portal do
+Colaborador, app.js:2079). Risco menor mas presente: `currentMonthLabel()`
+(mesmo render que a saudação do gestor).
+
+Reportado ao PC com 3 opções de fix (debounce/coalescer renderApp — sugestão
+principal; evitar rebuild total quando só 1 dado muda; fix pontual só pro
+greeting) — decisão de arquitetura de renderização, território deles,
+recomendei revisão com o Fable antes de mexer (código que roda em toda tela
+do app). Mensagem: `2026-07-09-flicker-texto-sem-diff-renderapp.md`.
+
+**Nota separada, mesma investigação**: William também viu a tela "Escolha um
+usuário rápido pra testar" (login sem senha) e estranhou. Confirmado com ele:
+foi testando local/preview, não o site real. Não é bug — `firebase.js`
+(linhas 12-22) aplica a classe que ESCONDE esse atalho de login ANTES de
+qualquer tentativa de carregar o Firebase de verdade, então mesmo uma falha
+de rede ao carregar o SDK (comum em conexão de celular fraca) não reexpõe
+essa tela em produção — só falta TOTAL do `firebase.config.js` (arquivo
+gitignored, deploy-específico) ativa o modo demo. Sem ação necessária.
