@@ -2114,3 +2114,47 @@ só-gestor pra um `app-gestor.js` lazy, mesmo padrão do `roadmap.js`) fica
 pra depois, só se o ganho dos itens rápidos não for suficiente — é esforço
 maior, redução de bytes de verdade, não só de round-trips. Mensagem:
 `2026-07-09c-plano-performance-mobile.md`.
+
+---
+
+## 2026-07-09 · Pesquisa de clima (backend) · anonimato configurável por pesquisa
+
+**O que:** feature nova (front + backend), 1ª de duas (a outra é Avaliação de desempenho).
+Gestor (RH/admin) cria pesquisas periódicas; colaborador responde; gestor vê resultados.
+Cada pesquisa nasce ANÔNIMA ou IDENTIFICADA (decisão por pesquisa, William). Dimensões e
+perguntas montadas pelo RH (construtor). Coleções `/pesquisasClima/{id}` (config),
+`/meta/contador` (só o total), `/recibos/{uid}` (quem entregou, sem conteúdo),
+`/respostas/{rid}` (anônima: auto-id sem identidade e sem tempo; identificada: rid=uid).
+
+**Desenho + gate: conselheiro-fable** (caso LGPD/PII + arquitetura). Regras aditivas,
+suíte do emulador **342/342** (43 casos novos). Deploy pela autorização permanente.
+
+**Anonimato ESTRUTURAL (não filtro de UI):** a resposta anônima é um doc órfão, sem uid e
+SEM campo de tempo. Restrição dura do projeto: NÃO há Cloud Functions, então a agregação é
+client-side sobre as cruas. Como o Firestore expõe `createTime` via REST, o gestor NUNCA lê
+recibos e só lê as respostas cruas **depois de encerrada E com contador.n >= 5** (k=5 cravado
+na regra). Status one-way (aberta nunca reabre) é segurança, não cosmético. Campos do gate
+(anonima/dimensoes/publico/titulo) congelam após abrir; `anonima is bool` revalidado no
+rascunho (ressalva Fable: garbage no gate deve negar, não classificar, disjunção explícita no
+create da resposta). Dedup + elegibilidade moram no create do recibo (batch obrigatório
+recibo+resposta+contador; a resposta prova elegibilidade só pelo recibo do mesmo batch, sem
+carregar uid). Cliente: incremento do contador TEM que ser `FieldValue.increment(1)` (corrida).
+
+**Residuais assumidos (documentados, sem fix barato sem servidor):**
+1. `createTime` das respostas (via REST) × logins de `/eventos`: admin sofisticado pode, após
+   encerrar, cruzar horários e reidentificar. Por isso NENHUM `logEvento` no fluxo de resposta.
+   Upgrade: scrub noturno de metadado pelo WK, ou Cloud Function.
+2. Conluio ativo / contas fake inflam `n` e estreitam o conjunto real. Inerente sem servidor.
+3. Ballot stuffing por batch: cliente forjado grava N respostas num batch com 1 recibo (regra
+   não enxerga irmãos de batch; amarrar 1:1 exigiria gravar o rid no recibo = o link que
+   proíbe o anonimato). Não fura anonimato, fura integridade. Mitigação na tela de resultados:
+   comparar `respostas.length` vs `contador.n` e sinalizar divergência.
+4. Admin pode deletar pesquisa anônima e recriar o mesmo pid como identificada; respostas
+   órfãs herdam o pai novo. Admin-only (mesma classe do console/Admin SDK que já bypassa rules).
+5. Pesquisa anônima com < 5 respostas NUNCA destrava o resultado (comportamento correto, não
+   bug; a UI avisa na criação se elegíveis < 5). Recorte por setor/turno em anônima não existe
+   (a resposta não carrega demografia): quem quer recorte cria pesquisa direcionada (publico).
+
+**Transparência (UI, LGPD):** anônima avisa "sem nome, sem código, sem horário; RH só vê em
+grupo (mín. 5) e só após encerrar; não se identifique no comentário". Identificada avisa antes
+de responder que o RH verá o nome junto (resposta voluntária).

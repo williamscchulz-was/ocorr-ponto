@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pesquisa de Clima · Mock FioPulse</title>
+<link rel="stylesheet" href="/public/styles.css">
+<link rel="stylesheet" href="/public/portal-colaborador.css">
+<style>
+  /* ===== Chrome do mock (fora do app, só pro seletor de telas) ===== */
+  body { background: var(--bg); }
+  .mockbar {
+    position: sticky; top: 0; z-index: 200;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    box-shadow: 0 1px 10px rgba(0,0,0,.04);
+  }
+  .mockbar__title {
+    font-family: var(--font-brand); font-size: 14px; letter-spacing: .02em;
+    color: var(--plum-deep); margin-right: 4px;
+  }
+  .mockbar__title small { display:block; font-family: var(--font); font-weight:400; font-size:10.5px; color: var(--text-muted); letter-spacing:0; }
+  .mock-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mock-chip {
+    border: 1px solid var(--border-strong); background: var(--surface);
+    color: var(--text-muted); border-radius: 999px;
+    padding: 8px 14px; font: inherit; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    min-height: 40px; transition: var(--transition);
+  }
+  .mock-chip:hover { background: var(--milk-warm); }
+  .mock-chip.on { background: var(--plum); color: #fff; border-color: var(--plum); box-shadow: 0 3px 10px -3px rgba(0,136,53,.5); }
+  .mock-chip__portal {
+    font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+    padding: 2px 6px; border-radius: 5px; background: var(--milk-warm); color: var(--plum-deep);
+  }
+  .mock-chip.on .mock-chip__portal { background: rgba(255,255,255,.22); color: #fff; }
+  .mock-chip__portal--colab { background: var(--info-bg); color: var(--info); }
+  .mock-chip.on .mock-chip__portal--colab { background: rgba(255,255,255,.22); color: #fff; }
+
+  .screen { display: none; }
+  .screen.on { display: block; }
+
+  /* Rótulo de portal por tela (fica dentro do quadro) */
+  .portal-tag {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--plum-deep); background: var(--milk-warm);
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px;
+    margin-bottom: 16px;
+  }
+  .portal-tag--colab { color: var(--info); background: var(--info-bg); border-color: transparent; }
+  .portal-tag .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--plum); }
+  .portal-tag--colab .dot { background: var(--info); }
+
+  /* ===== Moldura do gestor (sidebar simulada) ===== */
+  .gframe { display: grid; grid-template-columns: 240px 1fr; min-height: 760px; background: var(--bg); }
+  .gframe__side { background: var(--plum); color: #fff; padding: 22px 14px; display: flex; flex-direction: column; gap: 22px; }
+  .gframe__brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 15px; border-bottom: 1px solid rgba(255,243,230,.12); }
+  .gframe__brand .mk { width: 34px; height: 34px; border-radius: 9px; background: var(--milk); color: var(--plum); display: grid; place-items: center; font-weight: 800; font-family: var(--font-brand); font-size: 13px; }
+  .gframe__brand .tx { font-family: var(--font-brand); font-size: 14px; letter-spacing: .02em; }
+  .gframe__brand .tx small { display: block; font-family: var(--font); font-weight: 400; font-size: 10px; color: rgba(255,243,230,.5); margin-top: 2px; }
+  .gnav { display: flex; flex-direction: column; gap: 3px; }
+  .gnav a { display: flex; align-items: center; gap: 11px; padding: 10px 13px; border-radius: 11px; color: rgba(255,243,230,.78); font-size: 13.5px; font-weight: 500; text-decoration: none; }
+  .gnav a .icon { width: 18px; height: 18px; flex: none; }
+  .gnav a:hover { background: rgba(255,243,230,.09); color: #fff; }
+  .gnav a.active { background: var(--milk); color: var(--plum-deep); font-weight: 600; }
+  .gframe__main { padding: 30px 34px 60px; overflow-x: hidden; }
+
+  /* ===== Moldura do colaborador (shell mobile) ===== */
+  .cframe { max-width: 440px; margin: 26px auto; background: var(--surface); border-radius: 26px; box-shadow: 0 24px 60px -22px rgba(0,0,0,.28); border: 1px solid var(--border); overflow: hidden; }
+  .cframe__top { padding: 20px 20px 4px; display: flex; align-items: center; justify-content: space-between; }
+  .cframe__top .who { font-size: 13px; font-weight: 600; color: var(--text-body); }
+  .cframe__top .who small { display: block; font-weight: 400; color: var(--text-muted); font-size: 11px; }
+  .cframe__top .av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(150deg,#1AA34F,#0B7A36); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+  .cframe__body { padding: 8px 20px 26px; }
+
+  /* ===== Componentes da feature ===== */
+  /* Card de pesquisa (lista gestor) */
+  .surv-list { display: flex; flex-direction: column; gap: 12px; }
+  .surv-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; transition: var(--transition); cursor: pointer; }
+  .surv-card:hover { border-color: var(--border-strong); box-shadow: 0 4px 16px -8px rgba(0,0,0,.12); }
+  .surv-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .surv-card__title { font-size: 15px; font-weight: 700; color: var(--text-body); margin: 0 0 3px; }
+  .surv-card__meta { font-size: 12px; color: var(--text-muted); }
+  .surv-card__badges { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .surv-card__foot { display: flex; align-items: center; gap: 18px; margin-top: 4px; flex-wrap: wrap; }
+  .surv-metric { display: flex; flex-direction: column; gap: 2px; }
+  .surv-metric b { font-size: 17px; font-weight: 800; color: var(--text-body); font-variant-numeric: tabular-nums; }
+  .surv-metric span { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+  .surv-resp { flex: 1; min-width: 160px; }
+  .surv-resp__bar { height: 8px; border-radius: 999px; background: var(--milk-edge); overflow: hidden; margin-top: 7px; }
+  .surv-resp__fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#1AA34F,#008835); }
+
+  /* Selo anonima / identificada */
+  .seal { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
+  .seal .icon { width: 13px; height: 13px; }
+  .seal--anon { background: var(--info-bg); color: var(--info); }
+  .seal--ident { background: rgba(224,163,58,.16); color: #B77A18; }
+
+  /* Toggle grande anonima/identificada (nova pesquisa) */
+  .anon-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+  .anon-opt { border: 1.5px solid var(--border-strong); border-radius: 14px; padding: 15px 16px; cursor: pointer; background: var(--surface); transition: var(--transition); position: relative; }
+  .anon-opt:hover { border-color: var(--plum-soft); }
+  .anon-opt.sel { border-color: var(--plum); background: var(--milk-warm); box-shadow: 0 0 0 3px rgba(0,136,53,.1); }
+  .anon-opt__h { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 700; color: var(--text-body); margin-bottom: 6px; }
+  .anon-opt__h .icon { width: 18px; height: 18px; color: var(--plum); }
+  .anon-opt.sel .anon-opt__h .icon { color: var(--plum); }
+  .anon-opt p { font-size: 11.5px; color: var(--text-muted); margin: 0; line-height: 1.45; }
+  .anon-opt__mark { position: absolute; top: 13px; right: 13px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border-strong); display: grid; place-items: center; }
+  .anon-opt.sel .anon-opt__mark { border-color: var(--plum); background: var(--plum); }
+  .anon-opt.sel .anon-opt__mark::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+
+  /* Chips de dimensao (multi-selecao) */
+  .dim-chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 8px; }
+  .dim-chip { border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text-body); border-radius: 999px; padding: 9px 15px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; min-height: 42px; transition: var(--transition); }
+  .dim-chip:hover { border-color: var(--plum-soft); }
+  .dim-chip.on { background: var(--plum); color: #fff; border-color: var(--plum); }
+  .dim-chip .ck { width: 16px; height: 16px; border-radius: 5px; border: 2px solid var(--border-strong); display: grid; place-items: center; flex: none; }
+  .dim-chip.on .ck { border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.2); }
+  .dim-chip.on .ck::after { content: ""; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-1px); }
+
+  /* eNPS big */
+  .enps { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .enps__score { text-align: center; flex: none; }
+  .enps__num { font-size: 54px; font-weight: 800; line-height: 1; color: var(--plum); font-variant-numeric: tabular-nums; }
+  .enps__num.warn { color: #B77A18; }
+  .enps__num.bad { color: var(--danger); }
+  .enps__cap { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-top: 5px; }
+  .enps__delta { font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .enps__delta.up { color: var(--success); }
+  .enps__delta.down { color: var(--danger); }
+  .enps__split { flex: 1; min-width: 240px; }
+  .enps__bar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; }
+  .enps__seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
+  .enps__seg.p { background: #2F8F4E; }
+  .enps__seg.n { background: #E0A33A; }
+  .enps__seg.d { background: #C0504A; }
+  .enps__legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .enps__legend span { font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .enps__legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  /* Dimensao com barra */
+  .dim-row { display: flex; align-items: center; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .dim-row:last-child { border-bottom: 0; }
+  .dim-row__name { flex: none; width: 168px; font-size: 13.5px; font-weight: 600; color: var(--text-body); display: flex; align-items: center; gap: 8px; }
+  .dim-row__name .icon { width: 16px; height: 16px; color: var(--text-muted); }
+  .dim-row__track { flex: 1; height: 12px; border-radius: 999px; background: var(--milk-edge); overflow: hidden; }
+  .dim-row__fill { height: 100%; border-radius: 999px; }
+  .dim-row__val { flex: none; width: 76px; text-align: right; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .dim-row__val small { display: block; font-size: 10.5px; font-weight: 700; }
+  .fill-good { background: linear-gradient(90deg,#3FA463,#2F8F4E); }
+  .fill-warn { background: linear-gradient(90deg,#EABB63,#E0A33A); }
+  .fill-bad  { background: linear-gradient(90deg,#D0736D,#C0504A); }
+  .val-good { color: #2F8F4E; }
+  .val-warn { color: #B77A18; }
+  .val-bad  { color: var(--danger); }
+  .delta-up { color: var(--success); }
+  .delta-dn { color: var(--danger); }
+
+  /* Comentarios abertos */
+  .cmt { background: var(--milk-warm); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .cmt p { margin: 0 0 6px; font-size: 13px; color: var(--text-body); line-height: 1.5; }
+  .cmt span { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .cmt span .icon { width: 12px; height: 12px; }
+
+  /* Estado "abrir por pessoa" (identificada) */
+  .by-person { display: flex; align-items: center; gap: 12px; background: rgba(224,163,58,.1); border: 1px dashed #D9AE5E; border-radius: 12px; padding: 13px 15px; }
+  .by-person .icon { width: 20px; height: 20px; color: #B77A18; flex: none; }
+  .by-person__tx { flex: 1; font-size: 12.5px; color: var(--text-body); }
+  .by-person__tx b { color: #8A5B12; }
+
+  /* ===== Responder (colaborador) ===== */
+  .resp-intro { text-align: center; padding: 8px 4px 14px; }
+  .resp-intro__badge { display: inline-flex; align-items: center; gap: 7px; padding: 8px 15px; border-radius: 999px; font-size: 12.5px; font-weight: 700; margin-bottom: 14px; }
+  .resp-intro__badge.anon { background: var(--info-bg); color: var(--info); }
+  .resp-intro__badge.ident { background: rgba(224,163,58,.16); color: #B77A18; }
+  .resp-intro__badge .icon { width: 15px; height: 15px; }
+  .resp-intro h2 { font-family: var(--font-display); font-size: 20px; margin: 0 0 6px; color: var(--text-body); }
+  .resp-intro p { font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+
+  .prog { position: sticky; top: 0; background: var(--surface); padding: 12px 0 10px; z-index: 5; }
+  .prog__bar { height: 7px; border-radius: 999px; background: var(--milk-edge); overflow: hidden; }
+  .prog__fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#1AA34F,#008835); transition: width .3s; }
+  .prog__tx { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-weight: 600; display: flex; justify-content: space-between; }
+
+  .dim-group { margin: 20px 0 4px; }
+  .dim-group__h { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--plum-deep); margin-bottom: 4px; }
+  .dim-group__h .icon { width: 16px; height: 16px; }
+
+  .q { padding: 15px 0; border-bottom: 1px solid var(--border); }
+  .q:last-of-type { border-bottom: 0; }
+  .q__txt { font-size: 14px; color: var(--text-body); margin: 0 0 12px; line-height: 1.45; }
+  /* Escala 1-5 concordancia (reusa a estetica do .pp-seg mas em 5 alvos) */
+  .scale5 { display: flex; gap: 7px; }
+  .scale5 button { flex: 1; min-height: 46px; border: 1.5px solid var(--border-strong); background: var(--surface); border-radius: 11px; font: inherit; font-size: 18px; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+  .scale5 button:hover { border-color: var(--plum-soft); }
+  .scale5 button.sel { color: #fff; border-color: var(--plum); background: linear-gradient(150deg,#1AA34F,#0B7A36); box-shadow: 0 3px 10px -4px rgba(0,136,53,.6); }
+  .scale5__lbl { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10.5px; color: var(--text-muted); }
+
+  /* eNPS 0-10 no colaborador */
+  .enps10 { display: grid; grid-template-columns: repeat(11, 1fr); gap: 5px; }
+  .enps10 button { min-height: 42px; border: 1.5px solid var(--border-strong); background: var(--surface); border-radius: 9px; font: inherit; font-size: 14px; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+  .enps10 button:hover { border-color: var(--plum-soft); }
+  .enps10 button.sel { color: #fff; border-color: var(--plum); background: var(--plum); }
+  .enps10__lbl { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10.5px; color: var(--text-muted); }
+
+  .helpnote { font-size: 11.5px; color: var(--text-muted); display: flex; gap: 7px; align-items: flex-start; margin-top: 10px; line-height: 1.45; }
+  .helpnote .icon { width: 14px; height: 14px; flex: none; margin-top: 1px; color: var(--info); }
+
+  /* ===== Abas de nivel de feature (menu unico "Avaliacoes") ===== */
+  .feat-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 24px; overflow-x: auto; }
+  .feat-tab { appearance: none; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted); padding: 12px 16px; min-height: 46px; cursor: pointer; border-bottom: 2.5px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; white-space: nowrap; transition: var(--transition); }
+  .feat-tab:hover { color: var(--text-body); }
+  .feat-tab.on { color: var(--plum-deep); border-bottom-color: var(--plum); }
+  .feat-tab .icon { width: 16px; height: 16px; flex: none; }
+
+  /* ===== Construtor de perguntas (RH monta o questionario) ===== */
+  .qb { display: flex; flex-direction: column; gap: 14px; }
+  .qb-dim { border: 1px solid var(--border); border-radius: 14px; background: var(--milk-warm); overflow: hidden; }
+  .qb-dim__head { display: flex; align-items: center; gap: 8px; padding: 11px 12px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .qb-drag { color: var(--text-muted); cursor: grab; display: grid; place-items: center; width: 20px; flex: none; }
+  .qb-drag .icon { width: 15px; height: 15px; }
+  .qb-dim__name { flex: 1; min-width: 0; }
+  .qb-dim__name input { width: 100%; font-family: inherit; font-size: 14.5px; font-weight: 700; color: var(--text-body); border: 1.5px solid transparent; background: transparent; border-radius: 8px; padding: 7px 9px; transition: var(--transition); }
+  .qb-dim__name input::placeholder { color: var(--text-muted); font-weight: 600; }
+  .qb-dim__name input:hover { border-color: var(--border); background: var(--milk-warm); }
+  .qb-dim__name input:focus { border-color: var(--plum); background: var(--surface); outline: none; box-shadow: 0 0 0 3px rgba(0,136,53,.1); }
+  .qb-icon-btn { width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); display: grid; place-items: center; cursor: pointer; flex: none; transition: var(--transition); }
+  .qb-icon-btn:hover { border-color: var(--danger); color: var(--danger); background: rgba(192,80,74,.08); }
+  .qb-icon-btn .icon { width: 16px; height: 16px; }
+  .qb-qs { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .qb-q { display: flex; align-items: center; gap: 8px; }
+  .qb-q__txt { flex: 1; min-width: 0; }
+  .qb-q__txt input { width: 100%; font-family: inherit; font-size: 13px; color: var(--text-body); border: 1.5px solid var(--border); background: var(--surface); border-radius: 9px; padding: 10px 11px; min-height: 42px; transition: var(--transition); }
+  .qb-q__txt input::placeholder { color: var(--text-muted); }
+  .qb-q__txt input:focus { border-color: var(--plum); outline: none; box-shadow: 0 0 0 3px rgba(0,136,53,.1); }
+  .qb-sel { flex: none; width: 168px; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-body); border: 1.5px solid var(--border); background: var(--surface); border-radius: 9px; padding: 10px 30px 10px 11px; min-height: 42px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23807a70' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; transition: var(--transition); }
+  .qb-sel:focus { border-color: var(--plum); outline: none; box-shadow: 0 0 0 3px rgba(0,136,53,.1); }
+  .qb-addq { align-self: flex-start; margin-top: 2px; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--plum-deep); background: none; border: 0; padding: 6px 4px; min-height: 40px; cursor: pointer; border-radius: 8px; }
+  .qb-addq .icon { width: 15px; height: 15px; }
+  .qb-addq:hover { color: var(--plum); }
+  .qb-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .qb-adddim { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--plum-deep); background: var(--surface); border: 1.5px dashed var(--plum-soft); border-radius: 12px; padding: 12px 18px; min-height: 46px; cursor: pointer; transition: var(--transition); }
+  .qb-adddim:hover { background: var(--milk-warm); border-color: var(--plum); }
+  .qb-adddim .icon { width: 17px; height: 17px; }
+
+  @media (max-width: 760px) {
+    .gframe { grid-template-columns: 1fr; }
+    .gframe__side { display: none; }
+    .gframe__main { padding: 22px 16px 50px; }
+    .anon-toggle { grid-template-columns: 1fr; }
+    .dim-row__name { width: 120px; font-size: 12px; }
+    .dim-row__val { width: 60px; }
+    .enps10 { grid-template-columns: repeat(6, 1fr); }
+    .qb-q { flex-wrap: wrap; }
+    .qb-q__txt { flex-basis: 100%; }
+    .qb-sel { width: 100%; flex: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= SELETOR DE TELAS ================= -->
+<div class="mockbar">
+  <div class="mockbar__title">Pesquisa de Clima<small>mock · aprovacao visual</small></div>
+  <div class="mock-chips">
+    <button class="mock-chip on" data-s="lista"><span class="mock-chip__portal">Gestor</span> Lista de pesquisas</button>
+    <button class="mock-chip" data-s="nova"><span class="mock-chip__portal">Gestor</span> Nova pesquisa</button>
+    <button class="mock-chip" data-s="result"><span class="mock-chip__portal">Gestor</span> Resultados</button>
+    <button class="mock-chip" data-s="resp"><span class="mock-chip__portal mock-chip__portal--colab">Colab</span> Responder</button>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TELA 1 · GESTOR · LISTA DE PESQUISAS                              -->
+<!-- ================================================================ -->
+<section class="screen on" id="s-lista">
+  <div class="gframe">
+    <aside class="gframe__side">
+      <div class="gframe__brand"><span class="mk">F</span><span class="tx">FioPulse<small>Portal do gestor</small></span></div>
+      <nav class="gnav">
+        <a>Visao geral</a>
+        <a>Ocorrencias</a>
+        <a>Banco de horas</a>
+        <a>Funcionarios</a>
+        <a>Comunicados</a>
+        <a class="active"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.48 3.5l2.34 4.74 5.23.76-3.78 3.69.89 5.2-4.68-2.46-4.68 2.46.89-5.2L4.95 9l5.23-.76z"/></svg> Avaliacoes</a>
+        <a>Documentos</a>
+        <a>Auditoria</a>
+      </nav>
+    </aside>
+    <main class="gframe__main">
+      <span class="portal-tag"><span class="dot"></span> Portal do gestor</span>
+
+      <div class="feat-tabs">
+        <button class="feat-tab on">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-4 4"/></svg>
+          Pesquisa de clima
+        </button>
+        <button class="feat-tab">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Avaliacao de desempenho
+        </button>
+      </div>
+
+      <div class="page-header">
+        <div>
+          <h1>Pesquisa de clima</h1>
+          <p>Meca o engajamento do time e acompanhe a evolucao ao longo do tempo.</p>
+        </div>
+        <button class="btn btn--primary">Nova pesquisa</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat stat--kpi stat--accent">
+          <p class="stat__label">eNPS atual</p>
+          <p class="stat__value">+42</p>
+          <p class="stat__hint">+9 vs pesquisa anterior</p>
+        </div>
+        <div class="stat">
+          <p class="stat__label">Pesquisas ativas</p>
+          <p class="stat__value">1</p>
+          <p class="stat__hint">encerra em 6 dias</p>
+        </div>
+        <div class="stat">
+          <p class="stat__label">Taxa media de resposta</p>
+          <p class="stat__value">74%</p>
+          <p class="stat__hint">ultimas 4 pesquisas</p>
+        </div>
+        <div class="stat">
+          <p class="stat__label">Colaboradores</p>
+          <p class="stat__value">128</p>
+          <p class="stat__hint">elegiveis a responder</p>
+        </div>
+      </div>
+
+      <div class="surv-list">
+
+        <div class="surv-card">
+          <div class="surv-card__head">
+            <div>
+              <p class="surv-card__title">Clima trimestral · 3o trimestre 2026</p>
+              <p class="surv-card__meta">01 jul a 15 jul 2026 · publico: todos os setores</p>
+            </div>
+            <div class="surv-card__badges">
+              <span class="badge badge--success"><span class="dot"></span> Aberta</span>
+              <span class="seal seal--anon">Anonima</span>
+            </div>
+          </div>
+          <div class="surv-card__foot">
+            <div class="surv-metric"><b>62%</b><span>Respostas</span></div>
+            <div class="surv-metric"><b>79</b><span>de 128</span></div>
+            <div class="surv-resp">
+              <div class="surv-resp__bar"><div class="surv-resp__fill" style="width:62%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="surv-card">
+          <div class="surv-card__head">
+            <div>
+              <p class="surv-card__title">Pulso rapido · Seguranca no chao de fabrica</p>
+              <p class="surv-card__meta">20 jun a 27 jun 2026 · publico: setor Producao</p>
+            </div>
+            <div class="surv-card__badges">
+              <span class="badge badge--neutral">Encerrada</span>
+              <span class="seal seal--ident">Identificada</span>
+            </div>
+          </div>
+          <div class="surv-card__foot">
+            <div class="surv-metric"><b>88%</b><span>Respostas</span></div>
+            <div class="surv-metric"><b>52</b><span>de 59</span></div>
+            <div class="surv-resp">
+              <div class="surv-resp__bar"><div class="surv-resp__fill" style="width:88%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="surv-card">
+          <div class="surv-card__head">
+            <div>
+              <p class="surv-card__title">Clima trimestral · 2o trimestre 2026</p>
+              <p class="surv-card__meta">01 abr a 15 abr 2026 · publico: todos os setores</p>
+            </div>
+            <div class="surv-card__badges">
+              <span class="badge badge--neutral">Encerrada</span>
+              <span class="seal seal--anon">Anonima</span>
+            </div>
+          </div>
+          <div class="surv-card__foot">
+            <div class="surv-metric"><b>71%</b><span>Respostas</span></div>
+            <div class="surv-metric"><b>88</b><span>de 124</span></div>
+            <div class="surv-resp">
+              <div class="surv-resp__bar"><div class="surv-resp__fill" style="width:71%"></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- TELA 2 · GESTOR · NOVA PESQUISA (CONFIGURAR)                      -->
+<!-- ================================================================ -->
+<section class="screen" id="s-nova">
+  <div class="gframe">
+    <aside class="gframe__side">
+      <div class="gframe__brand"><span class="mk">F</span><span class="tx">FioPulse<small>Portal do gestor</small></span></div>
+      <nav class="gnav">
+        <a>Visao geral</a>
+        <a>Ocorrencias</a>
+        <a>Banco de horas</a>
+        <a>Funcionarios</a>
+        <a>Comunicados</a>
+        <a class="active"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.48 3.5l2.34 4.74 5.23.76-3.78 3.69.89 5.2-4.68-2.46-4.68 2.46.89-5.2L4.95 9l5.23-.76z"/></svg> Avaliacoes</a>
+        <a>Documentos</a>
+        <a>Auditoria</a>
+      </nav>
+    </aside>
+    <main class="gframe__main">
+      <span class="portal-tag"><span class="dot"></span> Portal do gestor</span>
+
+      <div class="feat-tabs">
+        <button class="feat-tab on">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-4 4"/></svg>
+          Pesquisa de clima
+        </button>
+        <button class="feat-tab">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Avaliacao de desempenho
+        </button>
+      </div>
+
+      <div class="page-header">
+        <div>
+          <h1>Nova pesquisa</h1>
+          <p>Configure o periodo, a privacidade e o que sera perguntado.</p>
+        </div>
+      </div>
+
+      <div style="max-width:720px;">
+
+        <div class="vg-card">
+          <p class="vg-h">Identificacao</p>
+          <div class="field">
+            <label>Nome da pesquisa</label>
+            <input type="text" value="Clima trimestral · 4o trimestre 2026">
+          </div>
+          <div class="field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="field">
+              <label>Inicio</label>
+              <input type="date" value="2026-10-01">
+            </div>
+            <div class="field">
+              <label>Encerramento</label>
+              <input type="date" value="2026-10-15">
+            </div>
+          </div>
+        </div>
+
+        <!-- TOGGLE ANONIMA / IDENTIFICADA em destaque -->
+        <div class="vg-card">
+          <p class="vg-h">Privacidade das respostas</p>
+          <div class="anon-toggle">
+            <div class="anon-opt sel" data-anon="anon">
+              <span class="anon-opt__mark"></span>
+              <div class="anon-opt__h">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Anonima
+              </div>
+              <p>Ninguem, nem o RH, ve quem respondeu o que. Os resultados aparecem so agregados. Aumenta a franqueza.</p>
+            </div>
+            <div class="anon-opt" data-anon="ident">
+              <span class="anon-opt__mark"></span>
+              <div class="anon-opt__h">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Identificada
+              </div>
+              <p>As respostas ficam ligadas a cada pessoa. Da pra abrir resultado individual e dar retorno. O colaborador e avisado.</p>
+            </div>
+          </div>
+          <p class="helpnote" style="margin-top:12px;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            Isso e definido na criacao e nao muda depois que a pesquisa abre. A tela de resultados se ajusta a escolha.
+          </p>
+        </div>
+
+        <!-- CONSTRUTOR DE PERGUNTAS -->
+        <div class="vg-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <p class="vg-h" style="margin:0;">Perguntas da pesquisa</p>
+            <button class="btn btn--soft btn--sm" id="qb-model" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M12 3v18M3 12h18"/></svg>
+              Usar modelo padrao
+            </button>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-muted);margin:6px 0 16px;">Monte as dimensoes e escreva cada pergunta. Cada pergunta tem seu tipo de resposta. Arraste pela alca pra reordenar.</p>
+
+          <div class="qb" id="qb"></div>
+
+          <div class="qb-actions">
+            <button class="qb-adddim" id="qb-adddim" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar dimensao
+            </button>
+          </div>
+        </div>
+
+        <!-- eNPS + abertas -->
+        <div class="vg-card">
+          <p class="vg-h">Perguntas fixas</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div style="flex:1;">
+              <p style="font-size:13.5px;font-weight:600;color:var(--text-body);margin:0 0 2px;">Pergunta eNPS</p>
+              <p style="font-size:12px;color:var(--text-muted);margin:0;">Voce recomendaria a Fiobras como lugar pra trabalhar? (0 a 10)</p>
+            </div>
+            <button class="pp-switch" aria-checked="true" role="switch" aria-label="Incluir eNPS"></button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;">
+            <div style="flex:1;">
+              <p style="font-size:13.5px;font-weight:600;color:var(--text-body);margin:0 0 2px;">Pergunta aberta</p>
+              <p style="font-size:12px;color:var(--text-muted);margin:0;">"O que faria a Fiobras um lugar melhor pra trabalhar?" Resposta livre e opcional.</p>
+            </div>
+            <button class="pp-switch" aria-checked="true" role="switch" aria-label="Incluir pergunta aberta"></button>
+          </div>
+        </div>
+
+        <!-- PUBLICO -->
+        <div class="vg-card">
+          <p class="vg-h">Publico</p>
+          <div class="pp-seg" style="max-width:420px;">
+            <span class="pp-seg__pill" style="width:calc(33.33% - 2px);transform:translateX(0);"></span>
+            <button class="on">Todos</button>
+            <button>Por turno</button>
+            <button>Por setor</button>
+          </div>
+          <p class="helpnote">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            128 colaboradores serao convidados. O convite aparece no portal e some ao responder ou ao encerrar.
+          </p>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
+          <button class="btn btn--ghost">Salvar rascunho</button>
+          <button class="btn btn--primary">Publicar pesquisa</button>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- TELA 3 · GESTOR · RESULTADOS                                      -->
+<!-- ================================================================ -->
+<section class="screen" id="s-result">
+  <div class="gframe">
+    <aside class="gframe__side">
+      <div class="gframe__brand"><span class="mk">F</span><span class="tx">FioPulse<small>Portal do gestor</small></span></div>
+      <nav class="gnav">
+        <a>Visao geral</a>
+        <a>Ocorrencias</a>
+        <a>Banco de horas</a>
+        <a>Funcionarios</a>
+        <a>Comunicados</a>
+        <a class="active"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.48 3.5l2.34 4.74 5.23.76-3.78 3.69.89 5.2-4.68-2.46-4.68 2.46.89-5.2L4.95 9l5.23-.76z"/></svg> Avaliacoes</a>
+        <a>Documentos</a>
+        <a>Auditoria</a>
+      </nav>
+    </aside>
+    <main class="gframe__main">
+      <span class="portal-tag"><span class="dot"></span> Portal do gestor</span>
+
+      <div class="feat-tabs">
+        <button class="feat-tab on">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-4 4"/></svg>
+          Pesquisa de clima
+        </button>
+        <button class="feat-tab">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Avaliacao de desempenho
+        </button>
+      </div>
+
+      <div class="page-header">
+        <div>
+          <h1>Clima trimestral · 3o trimestre 2026</h1>
+          <p>01 jul a 15 jul 2026 · <span class="seal seal--anon" style="vertical-align:middle;">Anonima</span></p>
+        </div>
+        <button class="btn btn--soft btn--sm">Exportar</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <p class="stat__label">Taxa de resposta</p>
+          <p class="stat__value">62%</p>
+          <p class="stat__hint">79 de 128</p>
+        </div>
+        <div class="stat stat--accent">
+          <p class="stat__label">Clima geral</p>
+          <p class="stat__value">78<span style="font-size:15px;color:var(--text-muted);font-weight:600;">/100</span></p>
+          <p class="stat__hint">media das dimensoes</p>
+        </div>
+        <div class="stat">
+          <p class="stat__label">Comentarios abertos</p>
+          <p class="stat__value">41</p>
+          <p class="stat__hint">de 79 respostas</p>
+        </div>
+      </div>
+
+      <!-- eNPS grande -->
+      <div class="vg-card">
+        <p class="vg-h">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+          eNPS · voce recomendaria a Fiobras
+        </p>
+        <div class="enps">
+          <div class="enps__score">
+            <div class="enps__num">+42</div>
+            <div class="enps__cap">eNPS</div>
+            <div class="enps__delta up">+9 vs 2o tri</div>
+          </div>
+          <div class="enps__split">
+            <div class="enps__bar">
+              <div class="enps__seg p" style="width:58%">58%</div>
+              <div class="enps__seg n" style="width:26%">26%</div>
+              <div class="enps__seg d" style="width:16%">16%</div>
+            </div>
+            <div class="enps__legend">
+              <span><i style="background:#2F8F4E"></i> Promotores (9 a 10) · 46</span>
+              <span><i style="background:#E0A33A"></i> Neutros (7 a 8) · 20</span>
+              <span><i style="background:#C0504A"></i> Detratores (0 a 6) · 13</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dimensoes -->
+      <div class="vg-card">
+        <p class="vg-h">Dimensoes · nota media (0 a 100)</p>
+        <div class="dim-row">
+          <div class="dim-row__name">Ambiente e seguranca</div>
+          <div class="dim-row__track"><div class="dim-row__fill fill-good" style="width:86%"></div></div>
+          <div class="dim-row__val val-good">86<small class="delta-up">+4</small></div>
+        </div>
+        <div class="dim-row">
+          <div class="dim-row__name">Comunicacao</div>
+          <div class="dim-row__track"><div class="dim-row__fill fill-good" style="width:81%"></div></div>
+          <div class="dim-row__val val-good">81<small class="delta-up">+7</small></div>
+        </div>
+        <div class="dim-row">
+          <div class="dim-row__name">Lideranca</div>
+          <div class="dim-row__track"><div class="dim-row__fill fill-good" style="width:79%"></div></div>
+          <div class="dim-row__val val-good">79<small class="delta-up">+11</small></div>
+        </div>
+        <div class="dim-row">
+          <div class="dim-row__name">Carga de trabalho</div>
+          <div class="dim-row__track"><div class="dim-row__fill fill-warn" style="width:64%"></div></div>
+          <div class="dim-row__val val-warn">64<small class="delta-up">+2</small></div>
+        </div>
+        <div class="dim-row">
+          <div class="dim-row__name">Reconhecimento</div>
+          <div class="dim-row__track"><div class="dim-row__fill fill-bad" style="width:52%"></div></div>
+          <div class="dim-row__val val-bad">52<small class="delta-dn">-3</small></div>
+        </div>
+      </div>
+
+      <div class="vg-grid">
+        <!-- Comentarios anonimos -->
+        <div class="vg-card" style="margin:0;">
+          <p class="vg-h">Comentarios abertos · anonimos</p>
+          <div class="cmt">
+            <p>"O reconhecimento podia vir mais rapido depois de uma entrega grande, as vezes passa batido."</p>
+            <span>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Resposta anonima · setor oculto
+            </span>
+          </div>
+          <div class="cmt">
+            <p>"Gostei muito das melhorias de seguranca na linha de repasse neste trimestre."</p>
+            <span>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Resposta anonima · setor oculto
+            </span>
+          </div>
+          <button class="btn btn--ghost btn--sm btn--block">Ver os 41 comentarios</button>
+        </div>
+
+        <!-- Abrir por pessoa (so quando identificada) -->
+        <div class="vg-card" style="margin:0;">
+          <p class="vg-h">Resultado individual</p>
+          <div class="by-person">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <div class="by-person__tx">
+              Esta pesquisa e <b>anonima</b>, entao o resultado por pessoa fica indisponivel de proposito. Numa pesquisa <b>identificada</b>, aqui apareceria a lista de colaboradores com a nota de cada um e o botao de abrir a resposta.
+            </div>
+          </div>
+          <div style="opacity:.45;pointer-events:none;margin-top:12px;filter:grayscale(.3);">
+            <div class="dim-row" style="border:0;padding:8px 0;">
+              <div class="dim-row__name" style="width:auto;flex:1;">
+                <span style="width:26px;height:26px;border-radius:50%;background:var(--milk-edge);display:inline-grid;place-items:center;font-size:11px;font-weight:700;color:var(--text-muted);">JS</span>
+                Joao Silva · Producao
+              </div>
+              <div class="dim-row__val val-good">82</div>
+            </div>
+            <div class="dim-row" style="border:0;padding:8px 0;">
+              <div class="dim-row__name" style="width:auto;flex:1;">
+                <span style="width:26px;height:26px;border-radius:50%;background:var(--milk-edge);display:inline-grid;place-items:center;font-size:11px;font-weight:700;color:var(--text-muted);">MA</span>
+                Maria Alves · Repasse
+              </div>
+              <div class="dim-row__val val-warn">61</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</section>
+
+<!-- ================================================================ -->
+<!-- TELA 4 · COLABORADOR · RESPONDER                                  -->
+<!-- ================================================================ -->
+<section class="screen" id="s-resp">
+  <div style="padding:20px 16px;">
+    <span class="portal-tag portal-tag--colab" style="display:flex;width:fit-content;margin:0 auto 14px;"><span class="dot"></span> Portal do colaborador</span>
+
+    <div class="cframe">
+      <div class="cframe__top">
+        <div class="who">Camila Ferreira<small>Producao · 1o turno</small></div>
+        <div class="av">CF</div>
+      </div>
+
+      <div class="prog">
+        <div class="prog__bar"><div class="prog__fill" style="width:40%"></div></div>
+        <div class="prog__tx"><span>Pesquisa de clima · 3o tri</span><span>4 de 10 respondidas</span></div>
+      </div>
+
+      <div class="cframe__body">
+
+        <!-- INTRO com aviso de anonimato -->
+        <div class="resp-intro">
+          <div class="resp-intro__badge anon">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Suas respostas sao anonimas
+          </div>
+          <h2>Como esta o clima pra voce?</h2>
+          <p>Leva uns 3 minutos. Ninguem, nem o RH, consegue ligar suas respostas ao seu nome. Seja franco, e isso que ajuda a melhorar.</p>
+        </div>
+
+        <!-- DIMENSAO: Lideranca -->
+        <div class="dim-group">
+          <div class="dim-group__h">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Lideranca
+          </div>
+        </div>
+
+        <div class="q">
+          <p class="q__txt">Meu lider me da retorno claro sobre o meu trabalho.</p>
+          <div class="scale5">
+            <button>1</button>
+            <button>2</button>
+            <button>3</button>
+            <button class="sel">4</button>
+            <button>5</button>
+          </div>
+          <div class="scale5__lbl"><span>Discordo totalmente</span><span>Concordo totalmente</span></div>
+        </div>
+
+        <div class="q">
+          <p class="q__txt">Sinto que posso falar com meu lider quando tenho um problema.</p>
+          <div class="scale5">
+            <button>1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>4</button>
+            <button class="sel">5</button>
+          </div>
+          <div class="scale5__lbl"><span>Discordo totalmente</span><span>Concordo totalmente</span></div>
+        </div>
+
+        <!-- DIMENSAO: Ambiente e seguranca -->
+        <div class="dim-group">
+          <div class="dim-group__h">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Ambiente e seguranca
+          </div>
+        </div>
+
+        <div class="q">
+          <p class="q__txt">Tenho os equipamentos de seguranca que preciso pro meu trabalho.</p>
+          <div class="scale5">
+            <button>1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>4</button>
+            <button class="sel">5</button>
+          </div>
+          <div class="scale5__lbl"><span>Discordo totalmente</span><span>Concordo totalmente</span></div>
+        </div>
+
+        <!-- eNPS 0-10 -->
+        <div class="dim-group">
+          <div class="dim-group__h">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+            Recomendacao
+          </div>
+        </div>
+
+        <div class="q">
+          <p class="q__txt">De 0 a 10, voce recomendaria a Fiobras como lugar pra trabalhar?</p>
+          <div class="enps10">
+            <button>0</button><button>1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>7</button><button class="sel">8</button><button>9</button><button>10</button>
+          </div>
+          <div class="enps10__lbl"><span>De jeito nenhum</span><span>Com certeza</span></div>
+        </div>
+
+        <!-- Campo aberto -->
+        <div class="q">
+          <p class="q__txt">O que faria a Fiobras um lugar melhor pra trabalhar? <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></p>
+          <div class="field" style="margin:0;">
+            <textarea rows="3" placeholder="Escreva a vontade. Este campo tambem e anonimo."></textarea>
+          </div>
+          <p class="helpnote">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Nao inclua seu nome no texto. O RH le o comentario sem saber quem escreveu.
+          </p>
+        </div>
+
+        <button class="btn btn--primary btn--block btn--lg" style="margin-top:14px;">Enviar respostas</button>
+        <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;">Voce ainda pode voltar e mudar ate encerrar em 15 jul.</p>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll('.mock-chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      document.querySelectorAll('.mock-chip').forEach(function(c){ c.classList.remove('on'); });
+      chip.classList.add('on');
+      document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('on'); });
+      document.getElementById('s-' + chip.dataset.s).classList.add('on');
+      window.scrollTo(0,0);
+    });
+  });
+
+  // Selecao viva nos demos (chips de dimensao, escalas, toggle anonima)
+  document.querySelectorAll('.dim-chip').forEach(function(b){
+    b.addEventListener('click', function(){ b.classList.toggle('on'); });
+  });
+  document.querySelectorAll('.scale5').forEach(function(g){
+    g.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){ g.querySelectorAll('button').forEach(function(x){x.classList.remove('sel');}); b.classList.add('sel'); });
+    });
+  });
+  document.querySelectorAll('.enps10').forEach(function(g){
+    g.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){ g.querySelectorAll('button').forEach(function(x){x.classList.remove('sel');}); b.classList.add('sel'); });
+    });
+  });
+  document.querySelectorAll('.anon-toggle').forEach(function(g){
+    g.querySelectorAll('.anon-opt').forEach(function(o){
+      o.addEventListener('click', function(){ g.querySelectorAll('.anon-opt').forEach(function(x){x.classList.remove('sel');}); o.classList.add('sel'); });
+    });
+  });
+  document.querySelectorAll('.pp-switch').forEach(function(sw){
+    sw.addEventListener('click', function(){ sw.setAttribute('aria-checked', sw.getAttribute('aria-checked')==='true' ? 'false':'true'); });
+  });
+
+  // ===== Construtor de perguntas (Nova pesquisa) =====
+  (function(){
+    var qbHost = document.getElementById('qb');
+    if (!qbHost) return;
+
+    var TIPOS = [
+      { v: 'conc', label: 'Concordancia 1 a 5' },
+      { v: 'nota', label: 'Nota 0 a 10' },
+      { v: 'sn',   label: 'Sim / Nao' }
+    ];
+
+    function modeloPadrao(){
+      return [
+        { nome: 'Lideranca', perguntas: [
+          { texto: 'Meu lider me da retorno claro sobre o meu trabalho.', tipo: 'conc' },
+          { texto: 'Sinto que posso falar com meu lider quando tenho um problema.', tipo: 'conc' },
+          { texto: 'Confio nas decisoes da minha lideranca.', tipo: 'conc' }
+        ]},
+        { nome: 'Ambiente e seguranca', perguntas: [
+          { texto: 'Tenho os equipamentos de seguranca que preciso pro meu trabalho.', tipo: 'conc' },
+          { texto: 'Me sinto seguro no meu ambiente de trabalho.', tipo: 'conc' }
+        ]},
+        { nome: 'Reconhecimento', perguntas: [
+          { texto: 'Sou reconhecido quando faco um bom trabalho.', tipo: 'conc' },
+          { texto: 'Meu esforco e valorizado pela empresa.', tipo: 'conc' }
+        ]},
+        { nome: 'Comunicacao', perguntas: [
+          { texto: 'As informacoes importantes chegam ate mim com clareza.', tipo: 'conc' },
+          { texto: 'Entendo como o meu trabalho contribui pros objetivos da Fiobras.', tipo: 'conc' }
+        ]}
+      ];
+    }
+
+    var dados = modeloPadrao();
+
+    var svgDrag = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>';
+    var svgTrash = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6"/></svg>';
+    var svgPlus = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+
+    // Le o estado atual dos inputs de volta pro modelo antes de mutar/re-renderizar
+    function sincronizar(){
+      qbHost.querySelectorAll('.qb-dim').forEach(function(dimEl, di){
+        if (!dados[di]) return;
+        var nomeInput = dimEl.querySelector('.qb-dim__name input');
+        if (nomeInput) dados[di].nome = nomeInput.value;
+        dimEl.querySelectorAll('.qb-q').forEach(function(qEl, qi){
+          if (!dados[di].perguntas[qi]) return;
+          var txt = qEl.querySelector('.qb-q__txt input');
+          var sel = qEl.querySelector('.qb-sel');
+          if (txt) dados[di].perguntas[qi].texto = txt.value;
+          if (sel) dados[di].perguntas[qi].tipo = sel.value;
+        });
+      });
+    }
+
+    function selHtml(tipo){
+      var opts = TIPOS.map(function(t){
+        return '<option value="' + t.v + '"' + (t.v === tipo ? ' selected' : '') + '>' + t.label + '</option>';
+      }).join('');
+      return '<select class="qb-sel" aria-label="Tipo de resposta">' + opts + '</select>';
+    }
+
+    function perguntaEl(pergunta){
+      var el = document.createElement('div');
+      el.className = 'qb-q';
+      el.innerHTML =
+        '<span class="qb-drag" title="Arrastar">' + svgDrag + '</span>' +
+        '<div class="qb-q__txt"><input type="text" placeholder="Escreva a afirmacao (ex.: Meu lider me da retorno com frequencia)"></div>' +
+        selHtml(pergunta.tipo) +
+        '<button class="qb-icon-btn qb-del-q" type="button" title="Remover pergunta">' + svgTrash + '</button>';
+      el.querySelector('.qb-q__txt input').value = pergunta.texto;
+      return el;
+    }
+
+    function dimensaoEl(dim){
+      var el = document.createElement('div');
+      el.className = 'qb-dim';
+      el.innerHTML =
+        '<div class="qb-dim__head">' +
+          '<span class="qb-drag" title="Arrastar">' + svgDrag + '</span>' +
+          '<div class="qb-dim__name"><input type="text" placeholder="Nome da dimensao"></div>' +
+          '<button class="qb-icon-btn qb-del-dim" type="button" title="Remover dimensao">' + svgTrash + '</button>' +
+        '</div>' +
+        '<div class="qb-qs"></div>' +
+        '<div style="padding:0 12px 12px;"><button class="qb-addq" type="button">' + svgPlus + ' Adicionar pergunta</button></div>';
+      el.querySelector('.qb-dim__name input').value = dim.nome;
+      var qs = el.querySelector('.qb-qs');
+      dim.perguntas.forEach(function(p){ qs.appendChild(perguntaEl(p)); });
+      return el;
+    }
+
+    function render(){
+      qbHost.innerHTML = '';
+      dados.forEach(function(dim){ qbHost.appendChild(dimensaoEl(dim)); });
+    }
+
+    // Delegacao de eventos no host
+    qbHost.addEventListener('click', function(e){
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      sincronizar();
+      var dimEl = btn.closest('.qb-dim');
+      var di = Array.prototype.indexOf.call(qbHost.children, dimEl);
+      if (btn.classList.contains('qb-del-q')){
+        var qEl = btn.closest('.qb-q');
+        var qi = Array.prototype.indexOf.call(qEl.parentNode.children, qEl);
+        dados[di].perguntas.splice(qi, 1);
+        render();
+      } else if (btn.classList.contains('qb-del-dim')){
+        dados.splice(di, 1);
+        render();
+      } else if (btn.classList.contains('qb-addq')){
+        dados[di].perguntas.push({ texto: '', tipo: 'conc' });
+        render();
+        var novoDim = qbHost.children[di];
+        var inputs = novoDim.querySelectorAll('.qb-q__txt input');
+        if (inputs.length) inputs[inputs.length - 1].focus();
+      }
+    });
+
+    document.getElementById('qb-adddim').addEventListener('click', function(){
+      sincronizar();
+      dados.push({ nome: '', perguntas: [{ texto: '', tipo: 'conc' }] });
+      render();
+      var ultimo = qbHost.lastElementChild;
+      if (ultimo) ultimo.querySelector('.qb-dim__name input').focus();
+    });
+
+    document.getElementById('qb-model').addEventListener('click', function(){
+      dados = modeloPadrao();
+      render();
+    });
+
+    render();
+  })();
+</script>
+</body>
+</html>

@@ -766,5 +766,143 @@ service cloud.firestore {
       let dataOk = !changed.hasAny(['dataConferencia']) || resource.data.dataConferencia == null;
       return mudancasPermitidas && acaoOk && dataOk;
     }
+
+    // ============================================================
+    // PESQUISA DE CLIMA (2026-07-09) -- anonimato CONFIGURAVEL por pesquisa.
+    // Desenho + gate: conselheiro-fable. Anonimato ESTRUTURAL, nao filtro de UI: a
+    // resposta anonima e doc ORFAO (sem uid e SEM campo de tempo; ate o createTime
+    // via REST e risco, por isso o gestor NUNCA le recibos e so le as cruas
+    // depois de ENCERRADA + k>=5). Sem Cloud Functions -> agregacao client-side
+    // sobre as cruas depois de encerrada. Cap nova pesquisas.gerenciar e GLOBAL
+    // (temCap sem escopo): NUNCA conceder 'turno'/'atrib' pra ela. Residuais
+    // (createTime x /eventos, conluio ativo, k de grupo pequeno) em
+    // docs/HISTORICO-DECISOES.md. ponytail: scrub de metadado (WK noturno) ou
+    // Cloud Function se um dia precisar fechar o residual.
+    // ============================================================
+    match /pesquisasClima/{pid} {
+      function gpClima() { return isAdmin() || temCap('pesquisas.gerenciar', isRH()); }
+      function pai() { return get(/databases/$(database)/documents/pesquisasClima/$(pid)).data; }
+      function meuReciboNasceuAgora() {
+        return !exists(/databases/$(database)/documents/pesquisasClima/$(pid)/recibos/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/pesquisasClima/$(pid)/recibos/$(request.auth.uid));
+      }
+
+      // Config: gestor le tudo; colaborador le SO as abertas que casam o publico (a
+      // query do cliente filtra igual, senao a regra de list nega).
+      allow read: if gpClima()
+                  || (isAuthed() && resource.data.status == 'aberta' && casaSegmento(resource.data.publico));
+      allow create: if gpClima()
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.status == 'rascunho'
+        && request.resource.data.titulo is string
+        && request.resource.data.titulo.size() >= 1 && request.resource.data.titulo.size() <= 120
+        && request.resource.data.anonima is bool
+        && request.resource.data.incluiEnps is bool
+        && request.resource.data.incluiAberta is bool
+        && request.resource.data.dimensoes is list && request.resource.data.dimensoes.size() <= 12
+        && request.resource.data.publico.tipo in ['todos', 'turno', 'setor']
+        && request.resource.data.publico.valores is list;
+      // 3 ramos: (1) editar rascunho ou ABRIR (cria contador no mesmo batch);
+      // (2) aberta, so estender a janela (fim); (3) aberta -> encerrada (one-way).
+      // O hasOnly por ramo congela anonima/dimensoes/publico/titulo apos aberta;
+      // encerrada nao tem ramo (imutavel). One-way do status e seguranca: sem ele o
+      // gestor encerra, le e reabre pra ver as respostas chegando uma a uma.
+      allow update: if gpClima() && (
+        ( resource.data.status == 'rascunho'
+          && request.resource.data.criadoPor == resource.data.criadoPor
+          && request.resource.data.criadoEm == resource.data.criadoEm
+          && request.resource.data.anonima is bool
+          && request.resource.data.status in ['rascunho', 'aberta']
+          && ( request.resource.data.status == 'rascunho'
+               || ( existsAfter(/databases/$(database)/documents/pesquisasClima/$(pid)/meta/contador)
+                    && request.resource.data.abertaEm == request.time
+                    && request.resource.data.abertaPor == request.auth.uid ) ) )
+        ||
+        ( resource.data.status == 'aberta'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fim']) )
+        ||
+        ( resource.data.status == 'aberta'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'encerradaEm', 'encerradaPor'])
+          && request.resource.data.status == 'encerrada'
+          && request.resource.data.encerradaEm == request.time
+          && request.resource.data.encerradaPor == request.auth.uid )
+      );
+      allow delete: if isAdmin() || (gpClima() && resource.data.status == 'rascunho');
+
+      // Contador (so o total; NAO e agregado). Gestor le o progresso; o respondente
+      // incrementa +1 UMA vez, no batch em que o SEU recibo nasce. Gestor sem update
+      // (senao inflava n e destravava o k). increment(1) do SDK avalia o valor final.
+      match /meta/contador {
+        allow read: if gpClima();
+        allow create: if gpClima()
+          && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == 0;
+        allow update: if isAuthed()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['n'])
+          && request.resource.data.n == resource.data.n + 1
+          && meuReciboNasceuAgora();
+        allow delete: if false;
+      }
+
+      // Recibo: SO marca que aquele uid entregou (dedup + "voce ja respondeu" +
+      // veiculo da elegibilidade). Zero conteudo. SELF-ONLY: o gestor NUNCA le (o
+      // createTime do recibo entregaria o horario -> correlacao com a resposta).
+      match /recibos/{uid} {
+        function podeCriarRecibo() {
+          let p = pai();
+          return isAuthed() && request.auth.uid == uid
+            && request.resource.data.keys().hasOnly(['em'])
+            && request.resource.data.em == request.time
+            && p.status == 'aberta'
+            && ( !('fim' in p) || request.time < p.fim )
+            && casaSegmento(p.publico);
+        }
+        allow read: if isAuthed() && request.auth.uid == uid;
+        allow create: if podeCriarRecibo();
+        allow update, delete: if false;
+      }
+
+      // Respostas. Anonima: rid = auto-id, payload SEM identidade e SEM tempo; a
+      // elegibilidade e provada pelo recibo que nasce no MESMO batch (nao precisa de
+      // uid no doc). Gestor le anonima SO encerrada + n>=5 (k CRAVADO na regra).
+      // Imutavel (responder e ato unico, mesma liturgia de assinaturas).
+      match /respostas/{rid} {
+        function conteudoOk() {
+          return request.resource.data.notas is map
+            && request.resource.data.notas.size() >= 1 && request.resource.data.notas.size() <= 40
+            && ( !('enps' in request.resource.data)
+                 || (request.resource.data.enps is int
+                     && request.resource.data.enps >= 0 && request.resource.data.enps <= 10) )
+            && ( !('comentario' in request.resource.data)
+                 || (request.resource.data.comentario is string
+                     && request.resource.data.comentario.size() <= 1000) );
+        }
+        function podeCriar() {
+          let p = pai();
+          // Disjuncao EXPLICITA (nao ternario): lixo em 'anonima' (string/null/num) tem que
+          // NEGAR, nao cair num default. anonima e o campo do gate de LGPD (ressalva Fable).
+          return isAuthed() && p.status == 'aberta' && meuReciboNasceuAgora() && conteudoOk()
+            && ( ( p.anonima == true
+                   && rid != request.auth.uid
+                   && request.resource.data.keys().hasOnly(['notas', 'enps', 'comentario']) )
+                 || ( p.anonima == false
+                      && rid == request.auth.uid
+                      && request.resource.data.uid == request.auth.uid
+                      && request.resource.data.respondidoEm == request.time
+                      && request.resource.data.keys().hasOnly(['uid', 'notas', 'enps', 'comentario', 'respondidoEm']) ) );
+        }
+        function podeLer() {
+          let p = pai();
+          return ( gpClima()
+                   && ( p.anonima == false
+                        || ( p.status == 'encerrada'
+                             && get(/databases/$(database)/documents/pesquisasClima/$(pid)/meta/contador).data.n >= 5 ) ) )
+                 || ( p.anonima == false && isAuthed() && request.auth.uid == rid );
+        }
+        allow read: if podeLer();
+        allow create: if podeCriar();
+        allow update, delete: if false;
+      }
+    }
   }
 }

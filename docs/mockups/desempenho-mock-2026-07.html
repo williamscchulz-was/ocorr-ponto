@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avaliação de desempenho · mock FioPulse</title>
+<link rel="stylesheet" href="/public/styles.css">
+<link rel="stylesheet" href="/public/portal-colaborador.css">
+<style>
+/* ==== Somente do mock: seletor de telas + alguns componentes que o app
+   ainda nao tem (radar, barras de comparacao, escala 1-5, cartoes de ciclo/
+   modalidade). Tudo prefixado mk- pra nao colidir com o CSS real. ==== */
+body{background:var(--bg);color:var(--text-body);font-family:var(--font);margin:0}
+.mk-bar-top{position:sticky;top:0;z-index:200;background:var(--surface);border-bottom:1px solid var(--border);padding:9px 16px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;box-shadow:var(--shadow-sm)}
+.mk-bar-top strong{font-family:var(--font-brand);font-size:13px;letter-spacing:.02em;margin-right:6px;color:var(--plum-deep)}
+.mk-chip{border:1px solid var(--border);background:var(--surface);color:var(--text-muted);border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;gap:7px;align-items:center;min-height:34px}
+.mk-chip:hover{background:var(--milk-warm)}
+.mk-chip.on{border-color:var(--plum);background:var(--milk-warm);color:var(--text-body)}
+.mk-tag{font-size:8.5px;font-weight:800;letter-spacing:.06em;padding:2px 5px;border-radius:5px}
+.mk-tag--g{background:var(--success-bg);color:var(--success)}
+.mk-tag--c{background:var(--info-bg);color:var(--info)}
+.screen{display:none}
+.screen.on{display:block}
+.mk-wrap{max-width:1120px;margin:0 auto;padding:24px 26px 60px}
+
+/* moldura colaborador (telefone enxuto) */
+.mk-phone{max-width:470px;margin:22px auto 60px;background:var(--surface);border:1px solid var(--border);border-radius:26px;overflow:hidden;box-shadow:var(--shadow-lg)}
+.mk-phone__top{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.mk-phone__brand{font-family:var(--font-brand);font-size:14px;color:var(--plum-deep);letter-spacing:.02em}
+.mk-phone__body{padding:18px 18px 22px;background:var(--bg)}
+.mk-phone__nav{display:flex;border-top:1px solid var(--border);background:var(--surface)}
+.mk-phone__nav a{flex:1;text-align:center;padding:9px 0 11px;font-size:10px;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+.mk-phone__nav a.on{color:var(--plum)}
+.mk-phone__nav svg{width:21px;height:21px}
+
+/* ciclos */
+.mk-cyc{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:12px}
+.mk-cyc__top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:12px}
+.mk-cyc h3{margin:0 0 3px;font-size:15.5px;color:var(--text-body)}
+.mk-cyc__meta{font-size:12px;color:var(--text-muted)}
+.mk-cyc__prog{display:flex;align-items:center;gap:12px}
+.mk-cyc__prog small{font-size:11.5px;color:var(--text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.mk-prog{flex:1;height:8px;border-radius:999px;background:var(--surface-warm);overflow:hidden}
+.mk-prog>i{display:block;height:100%;background:linear-gradient(90deg,#1AA34F,#008835);border-radius:999px}
+.mk-prog>i.done{background:var(--border-strong)}
+
+/* cabecalho de secao/pagina com acao a direita ja existe em .page-header */
+.mk-hd-actions{display:flex;gap:10px;align-items:center}
+
+/* cartao branco padrao pra formularios */
+.mk-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px 24px;margin-bottom:16px}
+.mk-card__h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:0 0 14px;display:flex;align-items:center;gap:8px}
+
+/* seletor de modalidade */
+.mk-mods{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mk-mod{border:1.5px solid var(--border);border-radius:15px;padding:16px 15px;cursor:pointer;background:var(--surface);transition:.16s;text-align:left;font:inherit;display:flex;flex-direction:column;gap:7px}
+.mk-mod:hover{border-color:var(--border-strong)}
+.mk-mod.on{border-color:var(--plum);background:var(--milk-warm);box-shadow:0 0 0 3px rgba(0,136,53,.11)}
+.mk-mod__t{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mk-mod h4{margin:0;font-size:14px;color:var(--text-body)}
+.mk-mod p{margin:0;font-size:12px;color:var(--text-muted);line-height:1.45}
+.mk-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-strong);flex:none;display:grid;place-items:center}
+.mk-mod.on .mk-radio{border-color:var(--plum)}
+.mk-mod.on .mk-radio::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--plum)}
+
+/* construtor de competencias editavel (RH monta a ficha) */
+.mk-comp-edit{display:flex;flex-direction:column;gap:11px}
+.mk-comp-block{display:flex;gap:11px;background:var(--milk-warm);border:1px solid var(--border);border-radius:14px;padding:13px 14px 14px 11px}
+.mk-comp-block .mk-grip{color:var(--text-muted);flex:none;margin-top:9px;cursor:grab}
+.mk-comp-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.mk-comp-line1{display:flex;align-items:center;gap:10px}
+input.mk-cname{flex:1;min-width:0;border:1px solid transparent;background:var(--surface);border-radius:9px;font:inherit;font-size:14.5px;font-weight:600;color:var(--text-body);padding:11px 12px}
+input.mk-cname:focus{outline:none;border-color:var(--plum)}
+input.mk-cdesc{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:9px;font:inherit;font-size:12.5px;color:var(--text-muted);padding:10px 12px}
+input.mk-cdesc:focus{outline:none;border-color:var(--plum);color:var(--text-body)}
+.mk-peso{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);flex:none}
+.mk-peso input{width:56px;min-height:44px;border:1px solid var(--border);border-radius:8px;padding:8px 8px;font:inherit;font-size:13px;text-align:right;background:var(--surface);color:var(--text-body)}
+.mk-peso input:focus{outline:none;border-color:var(--plum)}
+.mk-x{width:44px;height:44px;border-radius:9px;border:0;background:transparent;color:var(--text-muted);cursor:pointer;display:grid;place-items:center;flex:none;font-size:15px}
+.mk-x:hover{background:var(--danger-bg);color:var(--danger)}
+.mk-scale-ends{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--text-muted)}
+.mk-scale-ends .mk-pt{width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;font-size:11.5px;font-weight:700;color:var(--text-muted);flex:none}
+.mk-scale-ends input{border:0;border-bottom:1px dashed var(--border-strong);background:transparent;font:inherit;font-size:11.5px;color:var(--text-body);padding:4px 2px;width:140px}
+.mk-scale-ends input:focus{outline:none;border-bottom-color:var(--plum)}
+.mk-scale-ends input.mk-end-r{text-align:right}
+.mk-scale-ends .mk-dots{flex:1;text-align:center;letter-spacing:3px;color:var(--border-strong);font-weight:700}
+.mk-builder-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:13px}
+@media(max-width:640px){.mk-scale-ends{flex-wrap:wrap}.mk-scale-ends input{width:44%}.mk-scale-ends .mk-dots{order:5;flex-basis:100%}}
+
+/* barra de abas de feature (Pesquisa de clima | Avaliacao de desempenho) */
+.mk-area-hd{margin-bottom:22px}
+.mk-area-title{font-family:var(--font-display);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:0 0 12px}
+.mk-ftabs{display:inline-flex;gap:4px;background:var(--surface-warm);border:1px solid var(--border);border-radius:13px;padding:4px}
+.mk-ftab{border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:600;color:var(--text-muted);padding:9px 18px;min-height:44px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.mk-ftab:hover{color:var(--text-body)}
+.mk-ftab.on{background:var(--surface);color:var(--plum);box-shadow:var(--shadow-sm);font-weight:700}
+.mk-ftab svg{width:17px;height:17px;flex:none}
+@media(max-width:640px){.mk-ftabs{display:flex;width:100%}.mk-ftab{flex:1;justify-content:center;padding:9px 10px}}
+
+/* avaliar: bloco por competencia + escala 1-5 */
+.mk-eval{display:flex;flex-direction:column;gap:8px}
+.mk-eval__item{border:1px solid var(--border);border-radius:14px;padding:15px 16px;background:var(--surface)}
+.mk-eval__top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.mk-eval__lbl b{font-size:14px;color:var(--text-body);display:block}
+.mk-eval__lbl span{font-size:11.5px;color:var(--text-muted)}
+.mk-scale{display:inline-flex;gap:6px;flex-wrap:wrap}
+.mk-scale button{width:44px;height:44px;border-radius:11px;border:1.5px solid var(--border);background:var(--surface);font:inherit;font-weight:700;font-size:15px;color:var(--text-muted);cursor:pointer;transition:.13s}
+.mk-scale button:hover{border-color:var(--plum-soft)}
+.mk-scale button.on{background:var(--plum);border-color:var(--plum);color:#fff;box-shadow:0 5px 13px -4px rgba(0,136,53,.6)}
+.mk-scale-legend{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-muted);margin-top:7px;max-width:290px}
+.mk-eval__cmt{margin-top:11px}
+.mk-eval__cmt textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 11px;font:inherit;font-size:13px;background:var(--milk-warm);color:var(--text-body);resize:vertical;min-height:44px}
+.mk-eval__cmt textarea:focus{outline:none;border-color:var(--plum);background:var(--surface)}
+
+/* aviso "quem mais avalia" */
+.mk-note{background:var(--info-bg);color:var(--info);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.5;display:flex;gap:10px;align-items:flex-start}
+.mk-note svg{width:17px;height:17px;flex:none;margin-top:1px}
+.mk-note--warm{background:var(--warning-bg);color:var(--warning-ink)}
+.mk-note--soft{background:var(--milk-warm);color:var(--text-muted)}
+
+/* avatar circulo */
+.mk-av{width:46px;height:46px;border-radius:50%;background:var(--plum);color:#fff;display:grid;place-items:center;font-weight:700;font-size:16px;flex:none}
+.mk-av--lg{width:58px;height:58px;font-size:20px}
+.mk-person{display:flex;align-items:center;gap:13px}
+.mk-person b{display:block;font-size:16px;color:var(--text-body)}
+.mk-person span{font-size:12.5px;color:var(--text-muted)}
+
+/* nota calculada / geral */
+.mk-score{display:flex;align-items:baseline;gap:12px}
+.mk-score b{font-size:46px;line-height:1;font-weight:800;color:var(--plum);font-variant-numeric:tabular-nums}
+.mk-score small{font-size:14px;color:var(--text-muted)}
+.mk-delta{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+.mk-delta--up{background:var(--success-bg);color:var(--success)}
+
+/* barras de comparacao gestor x auto x pares */
+.mk-cmp{display:flex;flex-direction:column;gap:18px}
+.mk-cmp__row{border-bottom:1px solid var(--border);padding-bottom:16px}
+.mk-cmp__row:last-child{border-bottom:0;padding-bottom:0}
+.mk-cmp__head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.mk-cmp__head b{font-size:13.5px;color:var(--text-body)}
+.mk-bars{display:flex;flex-direction:column;gap:7px}
+.mk-bar{display:flex;align-items:center;gap:10px;font-size:12px}
+.mk-bar__key{width:82px;font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:7px;flex:none}
+.mk-dot{width:9px;height:9px;border-radius:2px;flex:none}
+.mk-bar__track{flex:1;height:10px;border-radius:999px;background:var(--surface-warm);overflow:hidden}
+.mk-bar__fill{height:100%;border-radius:999px;transition:width .5s var(--ease)}
+.mk-bar__num{width:24px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-body)}
+.mk-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);margin-bottom:4px}
+.mk-legend span{display:inline-flex;align-items:center;gap:6px}
+
+/* radar */
+.mk-radar-wrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap;justify-content:center}
+.mk-radar svg{width:250px;height:238px}
+
+/* plano de desenvolvimento */
+.mk-plan{display:flex;flex-direction:column;gap:10px}
+.mk-plan__item{display:flex;gap:12px;background:var(--milk-warm);border:1px solid var(--border);border-radius:13px;padding:13px 15px}
+.mk-plan__n{width:26px;height:26px;border-radius:50%;background:var(--plum);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;flex:none}
+.mk-plan__item b{font-size:13.5px;color:var(--text-body);display:block;margin-bottom:2px}
+.mk-plan__item p{margin:0;font-size:12px;color:var(--text-muted);line-height:1.45}
+
+.mk-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mk-feedback{background:var(--milk-warm);border:1px solid var(--border);border-radius:13px;padding:14px 16px;font-size:13.5px;line-height:1.6;color:var(--text-body)}
+.mk-feedback q{color:var(--text-body)}
+.mk-quiet{font-size:11.5px;color:var(--text-muted)}
+.mk-sub{font-size:12.5px;color:var(--text-muted);margin:-8px 0 18px}
+.mk-row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+@media(max-width:760px){.mk-mods{grid-template-columns:1fr}.mk-grid2{grid-template-columns:1fr}.mk-wrap{padding:18px 15px 50px}}
+
+/* icones de linha minimos pra sidebar/nav (mock) */
+.mk-ico{width:19px;height:19px;flex:none}
+</style>
+</head>
+<body>
+
+<!-- ===================== SELETOR DE TELAS ===================== -->
+<div class="mk-bar-top">
+  <strong>FioPulse</strong>
+  <button class="mk-chip on" data-scr="g1"><span class="mk-tag mk-tag--g">GESTOR</span> Lista de ciclos</button>
+  <button class="mk-chip" data-scr="g2"><span class="mk-tag mk-tag--g">GESTOR</span> Novo ciclo</button>
+  <button class="mk-chip" data-scr="g3"><span class="mk-tag mk-tag--g">GESTOR</span> Avaliar liderado</button>
+  <button class="mk-chip" data-scr="g4"><span class="mk-tag mk-tag--g">GESTOR</span> Resultado consolidado</button>
+  <button class="mk-chip" data-scr="c1"><span class="mk-tag mk-tag--c">COLABORADOR</span> Minha autoavaliação</button>
+  <button class="mk-chip" data-scr="c2"><span class="mk-tag mk-tag--c">COLABORADOR</span> Meu resultado</button>
+</div>
+
+<!-- =================================================================
+     SHELL GESTOR (sidebar verde + conteudo)
+     ================================================================= -->
+<div class="app" id="shell-gestor">
+  <aside class="app__sidebar">
+    <div class="app__brand" style="display:flex;align-items:center;gap:11px;padding-bottom:4px">
+      <div class="app__brand-logo" style="width:36px;height:36px;border-radius:10px;background:var(--milk);color:var(--plum);display:grid;place-items:center;font-weight:800">F</div>
+      <div class="app__brand-text">FioPulse<small>Fiobras · RH</small></div>
+    </div>
+    <nav class="nav">
+      <a class="nav__item"><svg class="mk-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Visão geral</span></a>
+      <a class="nav__item"><svg class="mk-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg><span>Ocorrências</span><span class="nav__badge">7</span></a>
+      <a class="nav__item"><svg class="mk-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg><span>Espelho de ponto</span></a>
+      <a class="nav__item"><svg class="mk-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg><span>Banco de horas</span></a>
+      <a class="nav__item"><svg class="mk-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2-5 5-5s5 2 5 5"/><path d="M17 8h4M17 12h4"/></svg><span>Funcionários</span></a>
+      <a class="nav__item active"><svg class="mk-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 15.9 6.8 18.1l1-5.8L3.5 8.2l5.9-.9z"/></svg><span>Avaliações</span></a>
+      <a class="nav__item"><svg class="mk-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H8l-4 4z"/></svg><span>Comunicados</span></a>
+      <a class="nav__item"><svg class="mk-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span>Documentos</span></a>
+    </nav>
+  </aside>
+
+  <main class="app__main">
+    <div class="mk-wrap">
+
+      <!-- ==== abas de feature: as duas ferramentas vivem no menu unico "Avaliacoes" ==== -->
+      <div class="mk-area-hd">
+        <p class="mk-area-title">Avaliações</p>
+        <div class="mk-ftabs" role="tablist" aria-label="Ferramentas de avaliação">
+          <button class="mk-ftab" role="tab" aria-selected="false" title="Vive no outro arquivo do mock">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg>
+            Pesquisa de clima
+          </button>
+          <button class="mk-ftab on" role="tab" aria-selected="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 15.9 6.8 18.1l1-5.8L3.5 8.2l5.9-.9z"/></svg>
+            Avaliação de desempenho
+          </button>
+        </div>
+      </div>
+
+      <!-- ============ G1 · LISTA DE CICLOS ============ -->
+      <section class="screen on" data-screen="g1">
+        <div class="page-header">
+          <div>
+            <h1>Ciclos de avaliação</h1>
+            <p>Avaliação por competências · gestão de equipes Fiobras</p>
+          </div>
+          <div class="mk-hd-actions">
+            <button class="btn btn--primary">Novo ciclo</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat stat--accent">
+            <p class="stat__label">Ciclos ativos</p>
+            <p class="stat__value">2</p>
+            <p class="stat__hint">1 em 360 · 1 só gestor</p>
+          </div>
+          <div class="stat stat--alert">
+            <p class="stat__label">Avaliações pendentes</p>
+            <p class="stat__value">14</p>
+            <p class="stat__hint">de 50 no total</p>
+          </div>
+          <div class="stat stat--kpi">
+            <p class="stat__label">Nota média geral</p>
+            <p class="stat__value">4,1</p>
+            <p class="stat__hint">escala de 1 a 5 · ciclo corrente</p>
+          </div>
+        </div>
+
+        <p class="mk-quiet" style="margin:22px 0 10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Em andamento</p>
+
+        <div class="mk-cyc">
+          <div class="mk-cyc__top">
+            <div>
+              <h3>Avaliação 2º semestre 2026</h3>
+              <p class="mk-cyc__meta">Período: 01/jul a 20/dez 2026 · 42 participantes · Produção, Repasse e Administração</p>
+            </div>
+            <span class="badge badge--success">360 graus</span>
+          </div>
+          <div class="mk-cyc__prog">
+            <div class="mk-prog"><i style="width:43%"></i></div>
+            <small>18 / 42 concluídas</small>
+          </div>
+          <div class="mk-row-actions">
+            <button class="btn btn--soft btn--sm">Ver progresso</button>
+            <button class="btn btn--ghost btn--sm">Configurar</button>
+          </div>
+        </div>
+
+        <div class="mk-cyc">
+          <div class="mk-cyc__top">
+            <div>
+              <h3>Ciclo de experiência · novos colaboradores</h3>
+              <p class="mk-cyc__meta">Período: 01/jun a 31/ago 2026 · 8 participantes em contrato de experiência</p>
+            </div>
+            <span class="badge badge--neutral">Só o gestor</span>
+          </div>
+          <div class="mk-cyc__prog">
+            <div class="mk-prog"><i style="width:62%"></i></div>
+            <small>5 / 8 concluídas</small>
+          </div>
+          <div class="mk-row-actions">
+            <button class="btn btn--soft btn--sm">Ver progresso</button>
+            <button class="btn btn--ghost btn--sm">Configurar</button>
+          </div>
+        </div>
+
+        <p class="mk-quiet" style="margin:26px 0 10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Encerrados</p>
+
+        <div class="mk-cyc" style="opacity:.82">
+          <div class="mk-cyc__top">
+            <div>
+              <h3>Avaliação 1º semestre 2026</h3>
+              <p class="mk-cyc__meta">Período: 02/jan a 28/jun 2026 · 40 participantes · nota média 3,9</p>
+            </div>
+            <span class="badge badge--info">Gestor + autoavaliação</span>
+          </div>
+          <div class="mk-cyc__prog">
+            <div class="mk-prog"><i class="done" style="width:100%"></i></div>
+            <small>40 / 40 concluídas</small>
+          </div>
+          <div class="mk-row-actions">
+            <button class="btn btn--soft btn--sm">Ver resultados</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ G2 · NOVO CICLO ============ -->
+      <section class="screen" data-screen="g2">
+        <div class="page-header">
+          <div>
+            <h1>Novo ciclo de avaliação</h1>
+            <p>Configure o período, a modalidade e as competências avaliadas</p>
+          </div>
+        </div>
+
+        <div class="mk-card">
+          <p class="mk-card__h">Identificação</p>
+          <div class="mk-grid2">
+            <div class="field"><label>Nome do ciclo</label><input type="text" value="Avaliação 2º semestre 2026"></div>
+            <div class="field"><label>Escala</label>
+              <select><option>1 a 5 (Insuficiente → Excede)</option><option>1 a 10</option></select>
+            </div>
+            <div class="field"><label>Início do período</label><input type="date" value="2026-07-01"></div>
+            <div class="field"><label>Fim do período</label><input type="date" value="2026-12-20"></div>
+          </div>
+        </div>
+
+        <div class="mk-card">
+          <p class="mk-card__h">Modalidade da avaliação</p>
+          <p class="mk-sub">Quem participa da avaliação neste ciclo. Cada ciclo escolhe a sua.</p>
+          <div class="mk-mods" id="mk-mods">
+            <button class="mk-mod" data-mod="gestor">
+              <div class="mk-mod__t"><h4>Só o gestor</h4><span class="mk-radio"></span></div>
+              <p>O líder avalia cada liderado. Rápido e direto, sem etapa do colaborador.</p>
+            </button>
+            <button class="mk-mod" data-mod="auto">
+              <div class="mk-mod__t"><h4>Gestor + autoavaliação</h4><span class="mk-radio"></span></div>
+              <p>O colaborador também se avalia. A tela de resultado compara as duas notas.</p>
+            </button>
+            <button class="mk-mod on" data-mod="360">
+              <div class="mk-mod__t"><h4>360 graus</h4><span class="mk-radio"></span></div>
+              <p>Gestor, autoavaliação e pares do mesmo setor. Visão mais completa.</p>
+            </button>
+          </div>
+          <div class="mk-note mk-note--soft" style="margin-top:14px" id="mk-mod-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5M12 8h.01"/></svg>
+            <span><b>360 graus:</b> cada colaborador recebe 1 avaliação do gestor, faz a própria autoavaliação e é avaliado por 2 pares sorteados no mesmo setor. As respostas dos pares entram anônimas na média.</span>
+          </div>
+        </div>
+
+        <div class="mk-card">
+          <p class="mk-card__h">Ficha de avaliação · competências</p>
+          <p class="mk-sub">Monte as competências que o gestor vai pontuar. Cada uma tem uma descrição curta do que significa, a escala de 1 a 5 com rótulos das pontas editáveis e um peso opcional. Comece do zero ou parta do modelo padrão.</p>
+          <div class="mk-comp-edit" id="mk-comp-edit"></div>
+          <div class="mk-builder-actions">
+            <button class="btn btn--soft btn--sm" id="mk-add-comp" type="button">+ Adicionar competência</button>
+            <button class="btn btn--ghost btn--sm" id="mk-modelo" type="button">Usar modelo padrão</button>
+          </div>
+        </div>
+
+        <div class="mk-card">
+          <p class="mk-card__h">Quem participa</p>
+          <div class="mk-grid2">
+            <div class="field"><label>Selecionar por</label>
+              <select><option>Turno</option><option>Setor</option><option>Lista manual</option></select>
+            </div>
+            <div class="field"><label>Turnos incluídos</label>
+              <select><option>1º e 2º turno</option><option>Todos os turnos</option><option>1º turno</option></select>
+            </div>
+          </div>
+          <div class="mk-note mk-note--soft">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2-5 5-5s5 2 5 5"/></svg>
+            <span>42 colaboradores serão incluídos. Colaboradores em contrato de experiência entram automaticamente no ciclo próprio.</span>
+          </div>
+        </div>
+
+        <div class="mk-row-actions">
+          <button class="btn btn--primary">Criar e abrir ciclo</button>
+          <button class="btn btn--ghost">Salvar rascunho</button>
+        </div>
+      </section>
+
+      <!-- ============ G3 · AVALIAR LIDERADO ============ -->
+      <section class="screen" data-screen="g3">
+        <div class="page-header">
+          <div>
+            <h1>Avaliar liderado</h1>
+            <p>Avaliação 2º semestre 2026 · modalidade 360 graus</p>
+          </div>
+        </div>
+
+        <div class="mk-card" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div class="mk-person">
+            <div class="mk-av mk-av--lg">AP</div>
+            <div><b>Ana Paula Ribeiro</b><span>Repasse · 1º turno · admitida em mar/2024</span></div>
+          </div>
+          <div class="mk-score"><small>Nota parcial</small><b id="g3-nota">4,3</b><small>/ 5</small></div>
+        </div>
+
+        <div class="mk-note" style="margin-bottom:16px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          <span>Nesta modalidade 360, além da sua avaliação, <b>Ana Paula fará a autoavaliação</b> e <b>2 pares do Repasse</b> avaliam anonimamente. A nota consolidada só aparece quando as três etapas fecharem.</span>
+        </div>
+
+        <div class="mk-eval" id="g3-eval">
+          <div class="mk-eval__item" data-comp>
+            <div class="mk-eval__top">
+              <div class="mk-eval__lbl"><b>Produtividade</b><span>Volume e ritmo de entrega no repasse</span></div>
+              <div>
+                <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button class="on">4</button><button>5</button></div>
+                <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+              </div>
+            </div>
+            <div class="mk-eval__cmt"><textarea placeholder="Comentário sobre esta competência (opcional)">Mantém o ritmo mesmo nos picos de fim de mês.</textarea></div>
+          </div>
+
+          <div class="mk-eval__item" data-comp>
+            <div class="mk-eval__top">
+              <div class="mk-eval__lbl"><b>Qualidade do trabalho</b><span>Precisão e retrabalho</span></div>
+              <div>
+                <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button>4</button><button class="on">5</button></div>
+                <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+              </div>
+            </div>
+            <div class="mk-eval__cmt"><textarea placeholder="Comentário sobre esta competência (opcional)"></textarea></div>
+          </div>
+
+          <div class="mk-eval__item" data-comp>
+            <div class="mk-eval__top">
+              <div class="mk-eval__lbl"><b>Trabalho em equipe</b><span>Colaboração e disponibilidade</span></div>
+              <div>
+                <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button class="on">4</button><button>5</button></div>
+                <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+              </div>
+            </div>
+            <div class="mk-eval__cmt"><textarea placeholder="Comentário sobre esta competência (opcional)"></textarea></div>
+          </div>
+
+          <div class="mk-eval__item" data-comp>
+            <div class="mk-eval__top">
+              <div class="mk-eval__lbl"><b>Pontualidade e assiduidade</b><span>Cumprimento de escala</span></div>
+              <div>
+                <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button>4</button><button class="on">5</button></div>
+                <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+              </div>
+            </div>
+            <div class="mk-eval__cmt"><textarea placeholder="Comentário sobre esta competência (opcional)"></textarea></div>
+          </div>
+
+          <div class="mk-eval__item" data-comp>
+            <div class="mk-eval__top">
+              <div class="mk-eval__lbl"><b>Iniciativa</b><span>Propõe melhorias e antecipa problemas</span></div>
+              <div>
+                <div class="mk-scale" data-scale><button>1</button><button>2</button><button class="on">3</button><button>4</button><button>5</button></div>
+                <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+              </div>
+            </div>
+            <div class="mk-eval__cmt"><textarea placeholder="Comentário sobre esta competência (opcional)">Ponto de crescimento: trazer sugestões sem esperar ser pedido.</textarea></div>
+          </div>
+
+          <div class="mk-eval__item" data-comp>
+            <div class="mk-eval__top">
+              <div class="mk-eval__lbl"><b>Segurança</b><span>Uso de EPI e cuidado no posto</span></div>
+              <div>
+                <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button>4</button><button class="on">5</button></div>
+                <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+              </div>
+            </div>
+            <div class="mk-eval__cmt"><textarea placeholder="Comentário sobre esta competência (opcional)"></textarea></div>
+          </div>
+        </div>
+
+        <div class="mk-card" style="margin-top:16px">
+          <p class="mk-card__h">Feedback geral</p>
+          <div class="field"><textarea placeholder="Mensagem de crescimento para o colaborador" style="min-height:90px">Semestre sólido, Ana. Qualidade e segurança são referência no Repasse. O convite agora é assumir mais protagonismo: trazer as ideias que você já tem para a mesa.</textarea></div>
+        </div>
+
+        <div class="mk-row-actions">
+          <button class="btn btn--primary">Concluir avaliação</button>
+          <button class="btn btn--soft">Salvar rascunho</button>
+        </div>
+      </section>
+
+      <!-- ============ G4 · RESULTADO CONSOLIDADO ============ -->
+      <section class="screen" data-screen="g4">
+        <div class="page-header">
+          <div>
+            <h1>Resultado consolidado</h1>
+            <p>Ana Paula Ribeiro · Avaliação 2º semestre 2026 · 360 graus</p>
+          </div>
+          <div class="mk-hd-actions">
+            <button class="btn btn--primary btn--sm">Plano de desenvolvimento</button>
+          </div>
+        </div>
+
+        <div class="mk-card" style="display:flex;align-items:center;gap:26px;flex-wrap:wrap;justify-content:space-between">
+          <div class="mk-person">
+            <div class="mk-av mk-av--lg">AP</div>
+            <div><b>Ana Paula Ribeiro</b><span>Repasse · 1º turno</span></div>
+          </div>
+          <div class="mk-score">
+            <small>Nota geral</small>
+            <b>4,3</b>
+            <small>/ 5</small>
+            <span class="mk-delta mk-delta--up">▲ 0,4 vs 1º sem</span>
+          </div>
+          <div style="display:flex;gap:22px;flex-wrap:wrap">
+            <div><div class="mk-quiet">Gestor</div><b style="font-size:20px;color:#008835">4,3</b></div>
+            <div><div class="mk-quiet">Autoavaliação</div><b style="font-size:20px;color:#0076BE">4,7</b></div>
+            <div><div class="mk-quiet">Pares</div><b style="font-size:20px;color:#B27429">4,5</b></div>
+          </div>
+        </div>
+
+        <div class="mk-card">
+          <p class="mk-card__h">Percepção por competência</p>
+          <div class="mk-legend">
+            <span><span class="mk-dot" style="background:#008835"></span> Gestor</span>
+            <span><span class="mk-dot" style="background:#0076BE"></span> Autoavaliação</span>
+            <span><span class="mk-dot" style="background:#B27429"></span> Pares (média)</span>
+          </div>
+          <div class="mk-radar-wrap">
+            <div class="mk-radar"><svg id="radar-g4" viewBox="0 0 250 238"></svg></div>
+          </div>
+        </div>
+
+        <div class="mk-card">
+          <p class="mk-card__h">Comparação lado a lado · onde as visões divergem</p>
+          <div class="mk-cmp" id="cmp-g4"></div>
+        </div>
+
+        <div class="mk-grid2">
+          <div class="mk-card" style="margin-bottom:0">
+            <p class="mk-card__h">Feedback do gestor</p>
+            <div class="mk-feedback"><q>Semestre sólido. Qualidade e segurança são referência no Repasse. O convite é assumir mais protagonismo nas ideias.</q></div>
+          </div>
+          <div class="mk-card" style="margin-bottom:0">
+            <p class="mk-card__h">Gaps de percepção</p>
+            <div class="mk-note mk-note--warm" style="margin-bottom:10px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              <span><b>Iniciativa:</b> autoavaliação 4, gestor 3. Vale conversar: alinhar o que significa tomar a frente no dia a dia.</span>
+            </div>
+            <div class="mk-note mk-note--soft">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
+              <span><b>Segurança e qualidade:</b> gestor, pares e autoavaliação convergem em 5. Ponto forte consolidado.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- =================================================================
+     SHELL COLABORADOR (telefone)
+     ================================================================= -->
+<div class="mk-phone" id="shell-colab" style="display:none">
+  <div class="mk-phone__top">
+    <div class="mk-phone__brand">FioPulse</div>
+    <div class="mk-av" style="width:34px;height:34px;font-size:13px;background:var(--fiobras-blue)">AP</div>
+  </div>
+  <div class="mk-phone__body">
+
+    <!-- ============ C1 · MINHA AUTOAVALIAÇÃO ============ -->
+    <section class="screen" data-screen="c1">
+      <div style="margin-bottom:16px">
+        <h1 style="font-family:var(--font-display);font-size:20px;margin:0 0 4px;color:var(--text-body)">Minha autoavaliação</h1>
+        <p class="mk-sub" style="margin:0">Avaliação 2º semestre 2026 · até 15/dez. Como você avalia o seu semestre? Seja honesta, isso abre a conversa com o gestor.</p>
+      </div>
+
+      <div class="mk-note" style="margin-bottom:16px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5M12 8h.01"/></svg>
+        <span>Sua autoavaliação fica lado a lado com a do gestor no resultado. Ninguém vê antes de você concluir.</span>
+      </div>
+
+      <div class="mk-eval">
+        <div class="mk-eval__item" data-comp>
+          <div class="mk-eval__lbl" style="margin-bottom:11px"><b>Produtividade</b><span>Meu volume e ritmo de entrega</span></div>
+          <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button>4</button><button class="on">5</button></div>
+          <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+          <div class="mk-eval__cmt"><textarea placeholder="Quero comentar (opcional)"></textarea></div>
+        </div>
+        <div class="mk-eval__item" data-comp>
+          <div class="mk-eval__lbl" style="margin-bottom:11px"><b>Qualidade do trabalho</b><span>Precisão, pouco retrabalho</span></div>
+          <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button>4</button><button class="on">5</button></div>
+          <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+          <div class="mk-eval__cmt"><textarea placeholder="Quero comentar (opcional)"></textarea></div>
+        </div>
+        <div class="mk-eval__item" data-comp>
+          <div class="mk-eval__lbl" style="margin-bottom:11px"><b>Trabalho em equipe</b><span>Ajudo e conto com o time</span></div>
+          <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button>4</button><button class="on">5</button></div>
+          <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+          <div class="mk-eval__cmt"><textarea placeholder="Quero comentar (opcional)"></textarea></div>
+        </div>
+        <div class="mk-eval__item" data-comp>
+          <div class="mk-eval__lbl" style="margin-bottom:11px"><b>Pontualidade e assiduidade</b><span>Cumpro minha escala</span></div>
+          <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button class="on">4</button><button>5</button></div>
+          <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+          <div class="mk-eval__cmt"><textarea placeholder="Quero comentar (opcional)"></textarea></div>
+        </div>
+        <div class="mk-eval__item" data-comp>
+          <div class="mk-eval__lbl" style="margin-bottom:11px"><b>Iniciativa</b><span>Proponho melhorias</span></div>
+          <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button class="on">4</button><button>5</button></div>
+          <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+          <div class="mk-eval__cmt"><textarea placeholder="Quero comentar (opcional)">Tenho ideias pro repasse, quero espaço pra trazer.</textarea></div>
+        </div>
+        <div class="mk-eval__item" data-comp>
+          <div class="mk-eval__lbl" style="margin-bottom:11px"><b>Segurança</b><span>Uso EPI e cuido do posto</span></div>
+          <div class="mk-scale" data-scale><button>1</button><button>2</button><button>3</button><button>4</button><button class="on">5</button></div>
+          <div class="mk-scale-legend"><span>Insuficiente</span><span>Excede</span></div>
+          <div class="mk-eval__cmt"><textarea placeholder="Quero comentar (opcional)"></textarea></div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 2px 14px">
+        <span class="mk-quiet">Minha nota parcial</span>
+        <div class="mk-score"><b id="c1-nota" style="font-size:34px;color:var(--fiobras-blue)">4,7</b><small>/ 5</small></div>
+      </div>
+      <button class="btn btn--primary btn--block">Enviar autoavaliação</button>
+      <button class="btn btn--ghost btn--block" style="margin-top:9px">Salvar e continuar depois</button>
+    </section>
+
+    <!-- ============ C2 · MEU RESULTADO ============ -->
+    <section class="screen" data-screen="c2">
+      <div style="margin-bottom:16px">
+        <h1 style="font-family:var(--font-display);font-size:20px;margin:0 0 4px;color:var(--text-body)">Meu resultado</h1>
+        <p class="mk-sub" style="margin:0">Avaliação 2º semestre 2026 · fechado em 20/dez. Este resultado é sobre crescimento, não sobre punição.</p>
+      </div>
+
+      <div class="mk-card" style="text-align:center;padding:20px">
+        <div class="mk-quiet" style="text-transform:uppercase;letter-spacing:.05em;font-weight:700">Nota geral</div>
+        <div class="mk-score" style="justify-content:center;margin:6px 0"><b>4,3</b><small>/ 5</small></div>
+        <span class="mk-delta mk-delta--up">▲ 0,4 em relação ao 1º semestre</span>
+      </div>
+
+      <div class="mk-card">
+        <p class="mk-card__h">Minha visão x a do gestor</p>
+        <div class="mk-legend">
+          <span><span class="mk-dot" style="background:#0076BE"></span> Eu</span>
+          <span><span class="mk-dot" style="background:#008835"></span> Gestor</span>
+          <span><span class="mk-dot" style="background:#B27429"></span> Colegas</span>
+        </div>
+        <div class="mk-cmp" id="cmp-c2"></div>
+      </div>
+
+      <div class="mk-card">
+        <p class="mk-card__h">Feedback que recebi</p>
+        <div class="mk-feedback"><q>Semestre sólido, Ana. Qualidade e segurança são referência no Repasse. O convite agora é assumir mais protagonismo: trazer as ideias que você já tem para a mesa.</q></div>
+      </div>
+
+      <div class="mk-card" style="margin-bottom:0">
+        <p class="mk-card__h">Meu plano de desenvolvimento</p>
+        <div class="mk-plan">
+          <div class="mk-plan__item"><div class="mk-plan__n">1</div><div><b>Levar 1 melhoria do repasse por mês</b><p>Trazer para a reunião de equipe uma ideia de melhoria que você já tenha notado. Foco na competência Iniciativa.</p></div></div>
+          <div class="mk-plan__item"><div class="mk-plan__n">2</div><div><b>Rodízio de referência</b><p>Apoiar um colega novo do Repasse por 1 mês, compartilhando o seu padrão de qualidade.</p></div></div>
+          <div class="mk-plan__item"><div class="mk-plan__n">3</div><div><b>Conversa de meio de ciclo</b><p>Revisão rápida com o gestor em mar/2026 para acompanhar a evolução em Iniciativa.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+  <nav class="mk-phone__nav">
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Início</a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Meu ponto</a>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 15.9 6.8 18.1l1-5.8L3.5 8.2l5.9-.9z"/></svg>Avaliação</a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Conta</a>
+  </nav>
+</div>
+
+<script>
+// ---- seletor de telas ----
+var chips = document.querySelectorAll('.mk-chip');
+var shellG = document.getElementById('shell-gestor');
+var shellC = document.getElementById('shell-colab');
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('on', s.dataset.screen===id); });
+  var colab = id.charAt(0)==='c';
+  shellG.style.display = colab ? 'none' : 'grid';
+  shellC.style.display = colab ? 'block' : 'none';
+  window.scrollTo(0,0);
+}
+chips.forEach(function(ch){
+  ch.addEventListener('click', function(){
+    chips.forEach(function(c){ c.classList.remove('on'); });
+    ch.classList.add('on');
+    showScreen(ch.dataset.scr);
+  });
+});
+
+// ---- seletor de modalidade (novo ciclo) ----
+var mods = document.querySelectorAll('#mk-mods .mk-mod');
+var modHint = {
+  gestor:'<b>Só o gestor:</b> o líder avalia cada liderado e a nota final é a dele. Sem etapa do colaborador nem de pares. É a modalidade mais rápida.',
+  auto:'<b>Gestor + autoavaliação:</b> o colaborador se avalia nas mesmas competências. No resultado, as duas notas ficam lado a lado e os gaps de percepção aparecem destacados.',
+  '360':'<b>360 graus:</b> cada colaborador recebe 1 avaliação do gestor, faz a própria autoavaliação e é avaliado por 2 pares sorteados no mesmo setor. As respostas dos pares entram anônimas na média.'
+};
+mods.forEach(function(m){
+  m.addEventListener('click', function(){
+    mods.forEach(function(x){ x.classList.remove('on'); });
+    m.classList.add('on');
+    var hint = document.getElementById('mk-mod-hint');
+    hint.querySelector('span').innerHTML = modHint[m.dataset.mod];
+  });
+});
+
+// ---- construtor de competencias (RH monta a ficha de avaliacao) ----
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+var GRIP='<svg class="mk-grip" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+function compBlock(c){
+  return '<div class="mk-comp-block" data-comp-block>'+GRIP+
+    '<div class="mk-comp-main">'+
+      '<div class="mk-comp-line1">'+
+        '<input class="mk-cname" value="'+esc(c.nome)+'" placeholder="Nome da competência">'+
+        '<span class="mk-peso">Peso <input type="number" min="0" max="100" step="5" value="'+c.peso+'" aria-label="Peso em porcentagem"> %</span>'+
+        '<button class="mk-x" type="button" title="Remover competência" aria-label="Remover competência" data-rm>✕</button>'+
+      '</div>'+
+      '<input class="mk-cdesc" value="'+esc(c.desc)+'" placeholder="O que significa esta competência (ex.: colabora, compartilha e ajuda o time)">'+
+      '<div class="mk-scale-ends">'+
+        '<span class="mk-pt">1</span>'+
+        '<input value="'+esc(c.low)+'" aria-label="Rótulo da nota 1">'+
+        '<span class="mk-dots">2 · 3 · 4</span>'+
+        '<input class="mk-end-r" value="'+esc(c.high)+'" aria-label="Rótulo da nota 5">'+
+        '<span class="mk-pt">5</span>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+var MODELO=[
+  {nome:'Produtividade',desc:'Volume e ritmo de entrega no período',peso:20,low:'Abaixo do esperado',high:'Excede'},
+  {nome:'Qualidade do trabalho',desc:'Precisão e baixo retrabalho',peso:20,low:'Abaixo do esperado',high:'Excede'},
+  {nome:'Trabalho em equipe',desc:'Colabora, compartilha e ajuda o time',peso:15,low:'Abaixo do esperado',high:'Excede'},
+  {nome:'Pontualidade e assiduidade',desc:'Cumpre a escala e os prazos combinados',peso:15,low:'Abaixo do esperado',high:'Excede'},
+  {nome:'Iniciativa',desc:'Propõe melhorias e antecipa problemas',peso:15,low:'Abaixo do esperado',high:'Excede'},
+  {nome:'Segurança',desc:'Uso de EPI e cuidado no posto de trabalho',peso:15,low:'Abaixo do esperado',high:'Excede'}
+];
+var compList=document.getElementById('mk-comp-edit');
+function renderComps(arr){ compList.innerHTML=arr.map(compBlock).join(''); }
+renderComps(MODELO); // ja abre com o modelo padrao ja editavel
+document.getElementById('mk-add-comp').addEventListener('click', function(){
+  compList.insertAdjacentHTML('beforeend', compBlock({nome:'',desc:'',peso:10,low:'Abaixo do esperado',high:'Excede'}));
+  var last=compList.lastElementChild; if(last){ last.querySelector('.mk-cname').focus(); }
+});
+document.getElementById('mk-modelo').addEventListener('click', function(){ renderComps(MODELO); });
+compList.addEventListener('click', function(e){
+  var b=e.target.closest('[data-rm]'); if(b){ b.closest('[data-comp-block]').remove(); }
+});
+
+// ---- escala 1-5 interativa + recalcular nota ----
+function recalc(container, out){
+  var scales = container.querySelectorAll('[data-scale]');
+  var sum=0, n=0;
+  scales.forEach(function(sc){
+    var on = sc.querySelector('button.on');
+    if(on){ sum += parseInt(on.textContent,10); n++; }
+  });
+  if(out && n){ out.textContent = (sum/n).toFixed(1).replace('.',','); }
+}
+document.querySelectorAll('[data-scale]').forEach(function(sc){
+  sc.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      sc.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      recalc(document.getElementById('g3-eval'), document.getElementById('g3-nota'));
+      var c1 = document.querySelector('[data-screen="c1"] .mk-eval');
+      recalc(c1, document.getElementById('c1-nota'));
+    });
+  });
+});
+
+// ---- radar (gestor x auto x pares) ----
+var LABELS = ['Produt.','Qualidade','Equipe','Pontual.','Iniciativa','Segurança'];
+function radarPt(cx,cy,R,i,n,val,max){
+  var ang=(-90 + i*(360/n))*Math.PI/180, rr=val/max*R;
+  return [cx+rr*Math.cos(ang), cy+rr*Math.sin(ang)];
+}
+function drawRadar(el, series){
+  var n=6, cx=125, cy=118, R=80, max=5, s='';
+  for(var ring=1; ring<=5; ring++){
+    var pr=[]; for(var i=0;i<n;i++){ pr.push(radarPt(cx,cy,R,i,n,ring,max).join(',')); }
+    s+='<polygon points="'+pr.join(' ')+'" fill="none" stroke="var(--border)" stroke-width="1"/>';
+  }
+  for(var i=0;i<n;i++){
+    var p=radarPt(cx,cy,R,i,n,max,max);
+    s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0]+'" y2="'+p[1]+'" stroke="var(--border)" stroke-width="1"/>';
+    var lp=radarPt(cx,cy,R+17,i,n,max,max);
+    s+='<text x="'+lp[0]+'" y="'+lp[1]+'" font-size="9.5" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="middle">'+LABELS[i]+'</text>';
+  }
+  series.forEach(function(se){
+    var pr=[]; for(var i=0;i<n;i++){ pr.push(radarPt(cx,cy,R,i,n,se.vals[i],max).join(',')); }
+    s+='<polygon points="'+pr.join(' ')+'" fill="'+se.color+'" fill-opacity="0.13" stroke="'+se.color+'" stroke-width="2"/>';
+  });
+  el.innerHTML=s;
+}
+var GESTOR={name:'Gestor',color:'#008835',vals:[4,5,4,5,3,5]};
+var AUTO={name:'Autoavaliação',color:'#0076BE',vals:[5,5,5,4,4,5]};
+var PARES={name:'Pares',color:'#B27429',vals:[4,4,5,5,4,5]};
+drawRadar(document.getElementById('radar-g4'), [GESTOR,AUTO,PARES]);
+
+// ---- barras de comparacao ----
+var COMPS = ['Produtividade','Qualidade do trabalho','Trabalho em equipe','Pontualidade e assiduidade','Iniciativa','Segurança'];
+function barRow(label, rows){
+  var gap = Math.abs(rows[0].v - rows[1].v);
+  var gapHtml = gap>=1 ? '<span class="badge badge--warning">Diferença '+gap.toLocaleString('pt-BR')+'</span>' : '<span class="badge badge--success">Alinhado</span>';
+  var bars = rows.map(function(r){
+    return '<div class="mk-bar"><span class="mk-bar__key"><span class="mk-dot" style="background:'+r.c+'"></span>'+r.k+'</span>'+
+      '<span class="mk-bar__track"><span class="mk-bar__fill" style="width:'+(r.v/5*100)+'%;background:'+r.c+'"></span></span>'+
+      '<span class="mk-bar__num">'+r.v.toLocaleString('pt-BR',{minimumFractionDigits:0})+'</span></div>';
+  }).join('');
+  return '<div class="mk-cmp__row"><div class="mk-cmp__head"><b>'+label+'</b>'+gapHtml+'</div><div class="mk-bars">'+bars+'</div></div>';
+}
+function buildCmp(el, keys){
+  var html='';
+  for(var i=0;i<COMPS.length;i++){
+    var rows = keys.map(function(kd){ return {k:kd.k, c:kd.c, v:kd.src.vals[i]}; });
+    html += barRow(COMPS[i], rows);
+  }
+  el.innerHTML = html;
+}
+buildCmp(document.getElementById('cmp-g4'), [
+  {k:'Gestor', c:'#008835', src:GESTOR},
+  {k:'Auto', c:'#0076BE', src:AUTO},
+  {k:'Pares', c:'#B27429', src:PARES}
+]);
+buildCmp(document.getElementById('cmp-c2'), [
+  {k:'Eu', c:'#0076BE', src:AUTO},
+  {k:'Gestor', c:'#008835', src:GESTOR},
+  {k:'Colegas', c:'#B27429', src:PARES}
+]);
+</script>
+</body>
+</html>
