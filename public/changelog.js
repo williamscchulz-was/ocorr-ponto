@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.58.1", d: "8 jul 2026", current: true, items: [
+    v: "1.58.2", d: "9 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "Ocorrência automática que a GP já revisou e ajustou não mostra mais o aviso \"Conferir\" pro líder. O alerta de incerteza do sistema some depois que um humano examinou; o motivo original fica registrado no histórico." },
+    ],
+  },
+  {
+    v: "1.58.1", d: "8 jul 2026", items: [
       { type: "med", aud: "gestor", title: "Ajustes na Visão geral: o turnover passou a usar a fórmula clássica de RH (média de admitidos e demitidos sobre o quadro), o card de Saldo de horas saiu (ele já vive no Banco de horas) e o rótulo redundante das resolvidas foi removido." },
     ],
   },

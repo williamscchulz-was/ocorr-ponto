@@ -1250,6 +1250,12 @@
       // fora de rh_confere (novoStatus != rh_confere), pra não expor a edição ao reprocessamento do WK.
       if (extras?.tipo != null) patch.tipo = extras.tipo;
       if (extras?.duracaoFmt != null) patch.duracaoFmt = extras.duracaoFmt;
+      // A revisao humana da RH resolve a incerteza do sistema (999-detector): ao SAIR de
+      // rh_confere, zera classificacaoIncerta pra o lider nao ver "Conferir" numa ocorrencia
+      // ja examinada e ajustada. Mantem motivoIncerteza/historico como registro do que o
+      // sistema pensou. So dispara saindo de rh_confere (ramo RH/admin da regra), nunca no
+      // confirmar do lider/supervisor (com_lider -> confirmada, ramo sem esse campo).
+      if (["rh_confere", "aguardando_conferencia"].includes(o.status) && o.classificacaoIncerta === true) patch.classificacaoIncerta = false;
       try {
         await db.collection("ocorrencias-auto").doc(id).update(patch);
         Object.assign(o, patch); // otimista local

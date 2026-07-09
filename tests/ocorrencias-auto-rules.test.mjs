@@ -49,6 +49,11 @@ before(async () => {
     }
     // Este PRECISA ter duracaoFmt pra o teste de delete ser uma mudança real (baseDoc não tem).
     await setDoc(doc(db, "ocorrencias-auto/ocaRHedDelD"), baseDoc({ status: "rh_confere", turno: 1, duracaoFmt: "1:00" }));
+    // classificacaoIncerta (2026-07-08): a revisao da RH zera a flag; o lider nunca a toca.
+    await setDoc(doc(db, "ocorrencias-auto/ocaIncCorr"), baseDoc({ status: "rh_confere", turno: 1, classificacaoIncerta: true }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaIncVal"),  baseDoc({ status: "rh_confere", turno: 1, classificacaoIncerta: true }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaIncTrue"), baseDoc({ status: "rh_confere", turno: 1, classificacaoIncerta: false }));
+    await setDoc(doc(db, "ocorrencias-auto/ocaIncLid"),  baseDoc({ status: "com_lider", turno: 1, classificacaoIncerta: true, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLD"),  baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLD2"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
     await setDoc(doc(db, "ocorrencias-auto/ocaLD3"), baseDoc({ status: "com_lider", turno: 1, historico: h1 }));
@@ -187,6 +192,25 @@ test("RH corrige só a duração junto da transição", async () =>
 test("RH corrige o tipo e dispensa (também sai de rh_confere)", async () =>
   assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaRHedDisp"), {
     status: "dispensada", historico: histN(1), tipo: "Atrasos", observacao: "Reclassificado antes de dispensar.",
+  })));
+
+// ===== classificacaoIncerta (999-detector): a revisao da RH zera a flag (some o "Conferir"
+// numa ocorrencia ja examinada); so pode ZERAR (nunca re-flaga) e o lider nunca a toca. =====
+test("RH corrige e ZERA classificacaoIncerta (rh_confere -> com_lider)", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaIncCorr"), {
+    status: "com_lider", historico: histN(1), tipo: "Atrasos", duracaoFmt: "0:45", classificacaoIncerta: false,
+  })));
+test("RH valida e ZERA classificacaoIncerta sem corrigir tipo", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias-auto/ocaIncVal"), {
+    status: "com_lider", historico: histN(1), classificacaoIncerta: false,
+  })));
+test("RH NÃO pode RE-FLAGAR classificacaoIncerta (só pode zerar para false)", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias-auto/ocaIncTrue"), {
+    status: "com_lider", historico: histN(1), classificacaoIncerta: true,
+  })));
+test("Líder NÃO toca classificacaoIncerta ao confirmar", async () =>
+  assertFails(updateDoc(doc(lider(), "ocorrencias-auto/ocaIncLid"), {
+    status: "confirmada", historico: histN(2), classificacaoIncerta: false,
   })));
 
 // ---- bloqueios da correção ----

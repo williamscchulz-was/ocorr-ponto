@@ -641,7 +641,7 @@ service cloud.firestore {
           ( (isAdmin() || temCap('ocorrencias.revisarAuto', isRH()))
             && resource.data.status in ['rh_confere', 'aguardando_conferencia', 'com_lider']
             && request.resource.data.status in ['com_lider', 'dispensada', 'confirmada', 'conferida']
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao', 'tipo', 'duracaoFmt'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'historico', 'acao', 'observacao', 'tipo', 'duracaoFmt', 'classificacaoIncerta'])
             // Se a correcao TOCOU o campo, ele tem que continuar string plausivel: barra o
             // delete (o WK nao repoe fora de rh_confere -> seria perda de dado irreversivel)
             // e valor nao-string. Quem nao toca o campo passa igual (aditivo, inclui legado).
@@ -652,7 +652,12 @@ service cloud.firestore {
             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['duracaoFmt'])
                 || (request.resource.data.duracaoFmt is string
                     && request.resource.data.duracaoFmt.size() >= 1
-                    && request.resource.data.duracaoFmt.size() <= 20)) )
+                    && request.resource.data.duracaoFmt.size() <= 20))
+            // A revisao da RH SO PODE ZERAR a incerteza (nunca re-flaga): se tocar o campo,
+            // tem que ser == false. "incerto" e afirmacao sobre o estado atual (precisa de
+            // humano?); depois que a RH revisou, e nao. motivoIncerteza/historico ficam.
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['classificacaoIncerta'])
+                || request.resource.data.classificacaoIncerta == false) )
           ||
           // Lider do TURNO confirma o que esta "com o lider" — sem tocar na classificacao.
           ( isLider() && resource.data.turno == userDoc().turno
