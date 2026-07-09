@@ -2086,3 +2086,31 @@ da PRÓPRIA reação com as mesmas constraints do create (idempotente — reagir
 de novo com o mesmo conteúdo vira sucesso inofensivo, não erro), mantendo a
 proteção anti-spoof (`autorNome==userDoc().nome`) intacta. Mensagem:
 `2026-07-09b-bug-coracao-aniversario-set-vira-update.md`.
+
+## 2026-07-09 — Plano de performance mobile (lentidão de carregamento)
+
+William (voz): app demora demais no celular, risco de "pessoal de produção
+achar que tá estragado". Pediu ajuda ao Fable. Investigação em 2 rodadas
+(pesquisa + revisão do Fable com medição AO VIVO — curl real no gstatic.com,
+não estimativa).
+
+**Descartado**: busca de dados do colaborador — já otimizada (confirmei no
+código: busca só o próprio registro, `firebase.js:3068-3230`, não a empresa
+inteira; comentário no código confirma otimização anterior de série→paralelo).
+
+**Causa real, 2 problemas medidos**:
+1. SDK do Firebase (gstatic.com, ~164KB gzip) só começa a baixar DEPOIS que
+   `app.js` (713KB raw) termina de baixar E executar — sequencial, não
+   paralelo. Cauda de ~4-6s em rede fraca.
+2. `sw.js` é network-first pro `index.html` SEM timeout — mesmo com cache
+   quente, todo launch espera a rede responder (só cai pro cache em erro,
+   não em lentidão).
+
+**Plano priorizado, mandado ao PC**: baseline com Lighthouse antes de
+qualquer mudança → preconnect+preload do SDK (baixo risco, ganho ~1,5-3s,
+cuidado com o atributo `crossorigin` que dobra o download se usado errado)
+→ timeout de 3s no SW → re-medir → registrar. Item maior (extrair código
+só-gestor pra um `app-gestor.js` lazy, mesmo padrão do `roadmap.js`) fica
+pra depois, só se o ganho dos itens rápidos não for suficiente — é esforço
+maior, redução de bytes de verdade, não só de round-trips. Mensagem:
+`2026-07-09c-plano-performance-mobile.md`.
