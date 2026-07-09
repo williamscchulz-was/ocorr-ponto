@@ -2060,3 +2060,29 @@ qualquer tentativa de carregar o Firebase de verdade, então mesmo uma falha
 de rede ao carregar o SDK (comum em conexão de celular fraca) não reexpõe
 essa tela em produção — só falta TOTAL do `firebase.config.js` (arquivo
 gitignored, deploy-específico) ativa o modo demo. Sem ação necessária.
+
+## 2026-07-09 — Bug confirmado: coração de aniversário nega quando já reagiu
+
+William (celular): toast "Não consegui registrar" ao dar coração no
+aniversário da Daiane, coração "zoado" (pisca). Pedi ajuda ao Fable (ele
+revisou minha hipótese inicial — nome desatualizado no cache — e achou furo
+nela: `sync-colaborador-users.mjs` só escreve `nome` na criação do user,
+nunca atualiza depois; e `state.users` é recarregado fresco a cada
+`onAuthStateChanged`). Ele propôs causa mais forte: `ref.set()` num doc de
+reação que já existe é tratado como UPDATE pelas rules, e
+`allow update: if false` (firestore.rules:586) nega sempre, sem exceção.
+
+**Confirmei com dado real** no Firestore: a reação do William
+(`muralAniversario/aniv-daiane-priscila-do-amaral-2026/reacoes/{uid dele}`)
+**já existia** desde 08/07 14:43. O toque que falhou foi uma 2ª tentativa
+num doc já gravado. A UI mostrou "desligado" porque
+`carregarReacoesAniversario` engole erro de leitura (retorna `minhaReacao:
+false` no catch) — em rede de celular ruim (mesmo tema da lentidão mobile,
+investigação separada), a checagem "já reagi?" pode falhar/dar stale mesmo
+com o dado certo já gravado no servidor.
+
+Fix recomendado pelo Fable, reportado ao PC: rule passa a permitir `update`
+da PRÓPRIA reação com as mesmas constraints do create (idempotente — reagir
+de novo com o mesmo conteúdo vira sucesso inofensivo, não erro), mantendo a
+proteção anti-spoof (`autorNome==userDoc().nome`) intacta. Mensagem:
+`2026-07-09b-bug-coracao-aniversario-set-vira-update.md`.
