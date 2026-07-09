@@ -1314,6 +1314,109 @@
       }
     };
 
+    // ===== PESQUISA DE CLIMA (cliente) — regras /pesquisasClima NO AR (gate Fable).
+    // Anonimato ESTRUTURAL: a resposta anonima e doc ORFAO (sem uid, sem tempo). Batch
+    // OBRIGATORIO recibo+resposta+contador (a resposta prova elegibilidade so pelo recibo
+    // do mesmo batch). Contador com FieldValue.increment(1) (corrida). ZERO logEvento no
+    // fluxo de resposta (senao deanonimiza via /eventos, ressalva Fable). =====
+    const _FV = firebase.firestore.FieldValue;
+    const _clima = () => db.collection("pesquisasClima");
+
+    window.criarPesquisaClima = async function (cfg) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      const ref = await _clima().add({
+        titulo: String(cfg.titulo || "").slice(0, 120), anonima: !!cfg.anonima, status: "rascunho",
+        dimensoes: Array.isArray(cfg.dimensoes) ? cfg.dimensoes.slice(0, 12) : [],
+        incluiEnps: cfg.incluiEnps !== false, incluiAberta: cfg.incluiAberta !== false,
+        publico: cfg.publico && cfg.publico.tipo ? cfg.publico : { tipo: "todos", valores: [] },
+        elegiveis: Number(cfg.elegiveis) || 0,
+        criadoPor: uid, criadoEm: _FV.serverTimestamp(),
+      });
+      return ref.id;
+    };
+    // Rascunho: a regra aceita editar tudo menos criadoPor/criadoEm; passe o patch de config.
+    window.editarPesquisaClima = async function (pid, patch) {
+      await _clima().doc(pid).update(patch);
+    };
+    // Abrir: rascunho -> aberta criando o contador no MESMO batch (a regra exige).
+    window.abrirPesquisaClima = async function (pid) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      const b = db.batch();
+      b.update(_clima().doc(pid), { status: "aberta", abertaEm: _FV.serverTimestamp(), abertaPor: uid });
+      b.set(_clima().doc(pid).collection("meta").doc("contador"), { n: 0 });
+      await b.commit();
+    };
+    window.encerrarPesquisaClima = async function (pid) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      await _clima().doc(pid).update({ status: "encerrada", encerradaEm: _FV.serverTimestamp(), encerradaPor: uid });
+    };
+    window.estenderPesquisaClima = async function (pid, fim) { await _clima().doc(pid).update({ fim }); };
+    window.excluirPesquisaClimaRascunho = async function (pid) { await _clima().doc(pid).delete(); };
+
+    // Colaborador responde: batch recibo + resposta (anonima=auto-id sem identidade; senao uid)
+    // + contador increment(1). payload: { notas: {perguntaId:1..5}, enps?, comentario? }.
+    window.responderPesquisaClima = async function (pid, anonima, payload) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      const p = _clima().doc(pid);
+      const b = db.batch();
+      b.set(p.collection("recibos").doc(uid), { em: _FV.serverTimestamp() });
+      const notas = payload.notas || {};
+      if (anonima) {
+        const r = { notas };
+        if (payload.enps != null) r.enps = payload.enps;
+        if (payload.comentario) r.comentario = String(payload.comentario).slice(0, 1000);
+        b.set(p.collection("respostas").doc(), r); // auto-id, SEM uid e SEM tempo
+      } else {
+        const r = { uid, notas, respondidoEm: _FV.serverTimestamp() };
+        if (payload.enps != null) r.enps = payload.enps;
+        if (payload.comentario) r.comentario = String(payload.comentario).slice(0, 1000);
+        b.set(p.collection("respostas").doc(uid), r);
+      }
+      b.update(p.collection("meta").doc("contador"), { n: _FV.increment(1) });
+      await b.commit();
+      // Proposital: NENHUM registrarAuditoria/logEvento aqui (anonimato).
+    };
+
+    // Gestor: todas as pesquisas (config).
+    window.carregarPesquisasClimaGestor = async function () {
+      try {
+        const snap = await _clima().orderBy("criadoEm", "desc").get();
+        state.pesquisasClima = snap.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm) }));
+      } catch (e) { debug?.("[clima] gestor:", e?.message || e); state.pesquisasClima = []; }
+      return state.pesquisasClima;
+    };
+    window.carregarProgressoClima = async function (pid) {
+      try { const c = await _clima().doc(pid).collection("meta").doc("contador").get(); return c.exists ? (c.data().n || 0) : 0; }
+      catch { return 0; }
+    };
+    // Colaborador: pesquisas ABERTAS do segmento (3 queries + dedupe) + se ja respondeu (recibo).
+    window.carregarPesquisasClimaColab = async function () {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      const f = (state.funcionarios || [])[0] || null;
+      const meuTurno = f ? f.turno : null, meuSetor = f ? f.setor : null;
+      const col = _clima();
+      const qs = [col.where("status", "==", "aberta").where("publico.tipo", "==", "todos")];
+      if (meuTurno != null) qs.push(col.where("status", "==", "aberta").where("publico.tipo", "==", "turno").where("publico.valores", "array-contains", meuTurno));
+      if (meuSetor) qs.push(col.where("status", "==", "aberta").where("publico.tipo", "==", "setor").where("publico.valores", "array-contains", meuSetor));
+      const snaps = await Promise.all(qs.map((q) => q.get().catch((e) => { debug?.("[clima] colab q:", e?.message || e); return null; })));
+      const seen = {}, arr = [];
+      for (const sn of snaps) { if (!sn) continue; for (const d of sn.docs) { if (seen[d.id]) continue; seen[d.id] = 1; arr.push({ id: d.id, ...d.data() }); } }
+      await Promise.all(arr.map(async (p) => { try { const r = await col.doc(p.id).collection("recibos").doc(uid).get(); p.jaRespondi = r.exists; } catch { p.jaRespondi = false; } }));
+      state.pesquisasClimaColab = arr;
+      return arr;
+    };
+    // Gestor: resultados. Identificada le ao vivo; anonima so encerrada + n>=5 (a regra nega
+    // antes -> permission-denied vira "selado"). Agregacao defensiva fica na UI.
+    window.carregarResultadosClima = async function (pid) {
+      const contador = await window.carregarProgressoClima(pid);
+      try {
+        const snap = await _clima().doc(pid).collection("respostas").get();
+        return { selado: false, contador, respostas: snap.docs.map((d) => ({ id: d.id, ...d.data() })) };
+      } catch (e) {
+        return { selado: true, contador, respostas: [], motivo: (e && (e.code || e.message)) || "denied" };
+      }
+    };
+
     // ===== Aniversario (reacao coracao "Parabenizar" no card da home) =====
     // Coleção muralAniversario/{postId}: doc pai NUNCA é escrito pelo cliente (rule write:false);
     // só a subcoleção reacoes/{uid} vale. Tudo LAZY (só ao renderizar a home), fora do
