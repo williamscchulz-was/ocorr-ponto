@@ -1033,7 +1033,7 @@ function renderBottomNavColaborador() {
   ];
   // Telas filhas do hub (acessadas por atalho da Home) não têm item próprio na barra:
   // acendem "Início" pra a barra nunca ficar sem item ativo.
-  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap"];
+  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap", "colab-pesquisa"];
   const pageAtiva = filhasDoHub.includes(state.view.page) ? "colab-home" : state.view.page;
   const idxAtivo = Math.max(0, items.findIndex((it) => it.id === pageAtiva));
   // A barra é rebuilt a cada render; pra pill DESLIZAR (não teleportar), nasce na
@@ -1059,9 +1059,10 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Novidades", "colab-conta": "Conta" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conta") return renderColabConta();
+  if (page === "colab-pesquisa") return renderColabPesquisa();
   if (page === "colab-roadmap") return renderPortalRoadmap();
   if (page === "colab-folha") return renderColabFolha();
   if (page === "colab-ponto") return renderColabPonto();
@@ -2020,13 +2021,21 @@ function precisaAtencaoHtml() {
     t: (d.tipo === "suspensao" ? "Suspensão" : "Advertência") + " aguarda sua ciência",
     s: d.motivo || "Registro disciplinar", bd: "Ciência",
   }));
+  // Pesquisas de clima abertas do meu segmento que eu ainda não respondi.
+  (state.pesquisasClimaColab || []).filter((p) => !p.jaRespondi).forEach((p) => itens.push({
+    clima: p.id, tone: "info", ic: "smile",
+    t: "Pesquisa de clima", s: p.titulo || "Responder pesquisa", bd: "Responder",
+  }));
   if (!itens.length) return "";
   const n = itens.length;
-  const rows = itens.map((it) => `<button class="pp-pend" data-nav="${it.page}">
+  const rows = itens.map((it) => {
+    const attr = it.clima ? `data-clima-resp="${it.clima}"` : `data-nav="${it.page}"`;
+    return `<button class="pp-pend" ${attr}>
       <span class="pp-ico pp-ico--${it.tone === "amber" ? "amber" : "info"}">${cpIcon(it.ic)}</span>
       <span class="pp-pend__bd"><span class="pp-pend__t">${escapeHtml(it.t)}</span><span class="pp-pend__s">${escapeHtml(it.s)}</span></span>
       <span class="pp-rw__chev">${cpIcon("chevron")}</span>
-    </button>`).join("");
+    </button>`;
+  }).join("");
   return `<div class="pp-ovl">Precisa da sua atenção<span class="pp-ct">${n} ${n > 1 ? "itens" : "item"}</span></div>${rows}`;
 }
 
@@ -2185,9 +2194,146 @@ function renderColaboradorHome() {
     </div>
   `;
   bindColabNav(view);
+  bindClimaConvite(view);
   // Preenche as contagens/coração dos cards de aniversário (0 a 2 no DOM). Assíncrono e
   // barato; se a home re-renderizar, re-preencher é ok. Não bloqueia o render.
   preencherCardsAniversario();
+}
+
+// Liga os convites de pesquisa de clima (linhas "Precisa da sua atenção" + outros pontos)
+// pra abrir o formulário de resposta.
+function bindClimaConvite(scope) {
+  scope.querySelectorAll("[data-clima-resp]").forEach((el) => el.addEventListener("click", () => {
+    state.view.pesquisaId = el.dataset.climaResp;
+    state.view.page = "colab-pesquisa";
+    renderApp();
+  }));
+}
+
+// ===== Colaborador · responder pesquisa de clima =====
+// Anonimato ESTRUTURAL (a resposta anônima é doc órfão, sem uid/tempo). O fluxo
+// NÃO registra evento algum (senão desanonimiza via /eventos, ressalva Fable).
+let _climaResp = null; // { pid, notas: {perguntaId: valor}, enps: int|null }
+
+function renderColabPesquisa() {
+  const pid = state.view.pesquisaId;
+  const s = (state.pesquisasClimaColab || []).find((x) => x.id === pid);
+  // Some se não existe, se já respondi, ou se encerrou entre o convite e o clique.
+  if (!s || s.jaRespondi || s.status !== "aberta") { state.view.page = "colab-home"; return renderApp(); }
+  if (!_climaResp || _climaResp.pid !== pid) _climaResp = { pid, notas: {}, enps: null };
+
+  const anonima = !!s.anonima;
+  const dims = Array.isArray(s.dimensoes) ? s.dimensoes : [];
+  const totalScale = dims.reduce((n, d) => n + (Array.isArray(d.perguntas) ? d.perguntas.length : 0), 0) + (s.incluiEnps ? 1 : 0);
+
+  const intro = anonima
+    ? `<div class="resp-intro">
+        <div class="resp-intro__badge anon">${cpIcon("lock")} Suas respostas são anônimas</div>
+        <h2>Como está o clima pra você?</h2>
+        <p>Gravado sem nome, sem código e sem horário. O RH só vê em grupo, com no mínimo 5 respostas e só depois de encerrar. Seja franco, é isso que ajuda a melhorar.</p>
+      </div>`
+    : `<div class="resp-intro">
+        <div class="resp-intro__badge ident">${cpIcon("users")} Pesquisa identificada</div>
+        <h2>Como está o clima pra você?</h2>
+        <p>Atenção: nesta pesquisa o RH vê o seu nome junto das suas respostas. Responda com isso em mente. A resposta é enviada uma vez só e não pode ser alterada depois.</p>
+      </div>`;
+
+  const grupos = dims.map((d) => {
+    const qs = (Array.isArray(d.perguntas) ? d.perguntas : []).map(climaRespQHtml).join("");
+    if (!qs) return "";
+    return `<div class="dim-group"><div class="dim-group__h">${cpIcon("smile")} ${escapeHtml(d.nome || "")}</div></div>${qs}`;
+  }).join("");
+
+  const enpsBloco = s.incluiEnps
+    ? `<div class="dim-group"><div class="dim-group__h">${cpIcon("smile")} Recomendação</div></div>
+       <div class="q"><p class="q__txt">De 0 a 10, você recomendaria a Fiobras como lugar pra trabalhar?</p>
+         <div class="enps10" data-cq="__enps" data-cq-tipo="enps">${Array.from({ length: 11 }, (_, i) => `<button type="button" data-val="${i}">${i}</button>`).join("")}</div>
+         <div class="enps10__lbl"><span>De jeito nenhum</span><span>Com certeza</span></div>
+       </div>`
+    : "";
+
+  const comentario = s.incluiAberta
+    ? `<div class="q"><p class="q__txt">O que faria a Fiobras um lugar melhor pra trabalhar? <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></p>
+        <div class="field" style="margin:0;"><textarea id="clima-com" rows="3" maxlength="1000" placeholder="Escreva à vontade.${anonima ? " Este campo também é anônimo." : ""}"></textarea></div>
+        <p class="helpnote">${cpIcon(anonima ? "lock" : "message")} ${anonima ? "Não inclua seu nome no texto. O RH lê o comentário sem saber quem escreveu." : "O RH vê este comentário junto do seu nome."}</p>
+      </div>`
+    : "";
+
+  $("#view").innerHTML = `<div class="pp-fade">
+      <button type="button" class="btn btn--ghost btn--sm" data-clima-sair style="margin-bottom:6px;">${cpIcon("chevron")}<span style="margin-left:2px;">Voltar</span></button>
+      <div class="prog"><div class="prog__bar"><div class="prog__fill" id="clima-prog-fill" style="width:0%"></div></div>
+        <div class="prog__tx"><span>${escapeHtml(s.titulo || "Pesquisa de clima")}</span><span id="clima-prog-tx">0 de ${totalScale} respondidas</span></div>
+      </div>
+      ${intro}${grupos}${enpsBloco}${comentario}
+      <button class="btn btn--primary btn--block btn--lg" id="clima-enviar" style="margin-top:14px;" disabled>${cpIcon("check")}<span style="margin-left:4px;">Enviar respostas</span></button>
+      <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;">${anonima ? "Ninguém consegue ligar suas respostas ao seu nome. O envio é único e não pode ser alterado depois." : "A resposta é enviada uma vez só e não pode ser alterada depois."}</p>
+    </div>`;
+  bindColabPesquisa(s, totalScale);
+}
+
+function climaRespQHtml(p) {
+  const tipo = ["conc", "nota", "sn"].includes(p.tipo) ? p.tipo : "conc";
+  let control;
+  if (tipo === "nota") {
+    control = `<div class="enps10" data-cq="${escapeHtml(p.id)}" data-cq-tipo="nota">${Array.from({ length: 11 }, (_, i) => `<button type="button" data-val="${i}">${i}</button>`).join("")}</div><div class="enps10__lbl"><span>0</span><span>10</span></div>`;
+  } else if (tipo === "sn") {
+    control = `<div class="snbtns" data-cq="${escapeHtml(p.id)}" data-cq-tipo="sn"><button type="button" data-val="1">Sim</button><button type="button" data-val="0">Não</button></div>`;
+  } else {
+    control = `<div class="scale5" data-cq="${escapeHtml(p.id)}" data-cq-tipo="conc">${[1, 2, 3, 4, 5].map((v) => `<button type="button" data-val="${v}">${v}</button>`).join("")}</div><div class="scale5__lbl"><span>Discordo totalmente</span><span>Concordo totalmente</span></div>`;
+  }
+  return `<div class="q"><p class="q__txt">${escapeHtml(p.texto || "")}</p>${control}</div>`;
+}
+
+function _climaRespProgresso(total) {
+  const respondidas = Object.keys(_climaResp.notas).length + (_climaResp.enps != null ? 1 : 0);
+  const pct = total > 0 ? Math.round((respondidas / total) * 100) : 0;
+  const fill = $("#clima-prog-fill");
+  const tx = $("#clima-prog-tx");
+  if (fill) fill.style.width = pct + "%";
+  if (tx) tx.textContent = `${respondidas} de ${total} respondidas`;
+  const btn = $("#clima-enviar");
+  if (btn) btn.disabled = respondidas < total;
+}
+
+function bindColabPesquisa(s, total) {
+  const view = $("#view");
+  view.querySelector("[data-clima-sair]")?.addEventListener("click", () => { _climaResp = null; state.view.page = "colab-home"; renderApp(); });
+  // Grupos de botões (escala 1..5, nota/eNPS 0..10, sim/não). data-cq = id da pergunta
+  // ou "__enps"; data-cq-tipo controla onde a resposta é gravada.
+  view.querySelectorAll("[data-cq]").forEach((grupo) => {
+    grupo.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-val]");
+      if (!btn) return;
+      const val = Number(btn.dataset.val);
+      grupo.querySelectorAll("button").forEach((b) => b.classList.toggle("sel", b === btn));
+      if (grupo.dataset.cqTipo === "enps") _climaResp.enps = val;
+      else _climaResp.notas[grupo.dataset.cq] = val;
+      _climaRespProgresso(total);
+    });
+  });
+  view.querySelector("#clima-enviar")?.addEventListener("click", (e) => _climaEnviarResposta(s, e.currentTarget));
+  _climaRespProgresso(total);
+}
+
+async function _climaEnviarResposta(s, btn) {
+  if (Object.keys(_climaResp.notas).length < 1) return toast("Responda ao menos uma pergunta.", "danger");
+  const payload = { notas: { ..._climaResp.notas } };
+  if (s.incluiEnps && _climaResp.enps != null) payload.enps = _climaResp.enps;
+  const com = ($("#clima-com")?.value || "").trim();
+  if (s.incluiAberta && com) payload.comentario = com;
+  // Todo o pós-sucesso vive DENTRO do withBusy: ele engole a exceção (toast de erro, sem
+  // rethrow), então nada fora dele pode assumir que gravou. Numa falha (ex.: a pesquisa
+  // encerra entre abrir e enviar -> a regra nega o recibo) o form fica de pé pra retry e
+  // NÃO some com um "enviado" falso e o preenchimento perdido (classe do bug v269).
+  await withBusy("clima-enviar", btn, async () => {
+    // Proposital: SEM logEvento aqui (anonimato estrutural).
+    await window.responderPesquisaClima(s.id, !!s.anonima, payload);
+    s.jaRespondi = true; // some da home sem esperar reload
+    _climaResp = null;
+    state.view.page = "colab-home";
+    renderApp();
+    toast("Resposta enviada. Obrigado!");
+  });
 }
 
 // Conta do colaborador: dados do cadastro (SELF, sem PII) + aparência + trocar senha + sair.
@@ -3302,6 +3448,7 @@ function renderNav() {
     items.push(ob);
   }
   if (can("comunicados.gerenciar")) items.push({ id: "comunicados", label: "Comunicados", icon: "megafone" });
+  if (can("pesquisas.gerenciar")) items.push({ id: "avaliacoes", label: "Avaliações", icon: "star" });
   if (can("documentos.gerenciar")) items.push({ id: "documentos", label: "Documentos", icon: "file" });
   if (["admin", "rh", "lider"].includes(currentUser()?.role)) items.push({ id: "disciplinar", label: "Disciplinar", icon: "alert" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
@@ -3450,6 +3597,10 @@ function renderView() {
     if (!can("comunicados.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderComunicados();
   }
+  if (page === "avaliacoes") {
+    if (!can("pesquisas.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
+    return renderAvaliacoes();
+  }
   if (page === "documentos") {
     if (!can("documentos.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderDocumentos();
@@ -3477,6 +3628,651 @@ function renderView() {
     state.view.page = "config";
     return renderConfig();
   }
+}
+
+// ============================================================
+// AVALIAÇÕES — Pesquisa de clima (gestor). Menu único com abas
+// clima | desempenho (desempenho é a feature 2, stub por ora).
+// Camada de dados em firebase.js (window.*PesquisaClima*). Anonimato
+// ESTRUTURAL: agregação DEFENSIVA no cliente (ignora chave fora das
+// perguntas e valor fora da faixa do tipo); "selado" = permission-denied
+// esperado (não é erro); ZERO logEvento no fluxo de resposta.
+// ============================================================
+const _CLIMA_TIPOS = [
+  { v: "conc", label: "Concordância 1 a 5" },
+  { v: "nota", label: "Nota 0 a 10" },
+  { v: "sn", label: "Sim / Não" },
+];
+let _climaEdit = null; // rascunho em edição no construtor (config viva)
+
+function _climaQid() {
+  const r = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID().slice(0, 8) : Math.random().toString(36).slice(2, 10);
+  return "q" + r;
+}
+function _climaModelo() {
+  return [
+    { nome: "Liderança", perguntas: [
+      { id: _climaQid(), texto: "Meu líder me dá retorno claro sobre o meu trabalho.", tipo: "conc" },
+      { id: _climaQid(), texto: "Sinto que posso falar com meu líder quando tenho um problema.", tipo: "conc" },
+      { id: _climaQid(), texto: "Confio nas decisões da minha liderança.", tipo: "conc" },
+    ]},
+    { nome: "Ambiente e segurança", perguntas: [
+      { id: _climaQid(), texto: "Tenho os equipamentos de segurança que preciso pro meu trabalho.", tipo: "conc" },
+      { id: _climaQid(), texto: "Me sinto seguro no meu ambiente de trabalho.", tipo: "conc" },
+    ]},
+    { nome: "Reconhecimento", perguntas: [
+      { id: _climaQid(), texto: "Sou reconhecido quando faço um bom trabalho.", tipo: "conc" },
+      { id: _climaQid(), texto: "Meu esforço é valorizado pela empresa.", tipo: "conc" },
+    ]},
+    { nome: "Comunicação", perguntas: [
+      { id: _climaQid(), texto: "As informações importantes chegam até mim com clareza.", tipo: "conc" },
+      { id: _climaQid(), texto: "Entendo como o meu trabalho contribui pros objetivos da Fiobras.", tipo: "conc" },
+    ]},
+  ];
+}
+// Timestamp (ou {seconds}) do 'fim' -> string ISO curta pro <input type=date>.
+function _climaFimIso(fim) {
+  if (!fim) return "";
+  try {
+    if (typeof fim === "string") return fim.slice(0, 10);
+    let d = null;
+    if (typeof fim.toDate === "function") d = fim.toDate();
+    else if (typeof fim.seconds === "number") d = new Date(fim.seconds * 1000);
+    // Componentes LOCAIS: o fim é gravado 23:59:59 local; toISOString jogaria pra UTC e
+    // exibiria/reeditaria D+1, empurrando a data a cada ciclo salvar-reabrir do rascunho.
+    if (d) { const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
+  } catch (e) {}
+  return "";
+}
+function _climaDataCurta(v) {
+  const iso = _climaFimIso(v);
+  if (!iso) return "";
+  try { return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", ""); }
+  catch (e) { return ""; }
+}
+function _climaEditNovo() {
+  const hoje = new Date();
+  const em15 = new Date(hoje.getTime() + 14 * 864e5);
+  return {
+    id: null, status: "rascunho", titulo: "", anonima: true,
+    inicio: hoje.toISOString().slice(0, 10), fim: em15.toISOString().slice(0, 10),
+    dimensoes: _climaModelo(), incluiEnps: true, incluiAberta: true,
+    publico: { tipo: "todos", valores: [] },
+  };
+}
+function _climaEditFrom(s) {
+  return {
+    id: s.id, status: s.status, titulo: s.titulo || "", anonima: !!s.anonima,
+    inicio: typeof s.inicio === "string" ? s.inicio.slice(0, 10) : "", fim: _climaFimIso(s.fim),
+    dimensoes: (Array.isArray(s.dimensoes) ? s.dimensoes : []).map((d) => ({
+      nome: d.nome || "",
+      perguntas: (Array.isArray(d.perguntas) ? d.perguntas : []).map((p) => ({ id: p.id || _climaQid(), texto: p.texto || "", tipo: p.tipo || "conc" })),
+    })),
+    incluiEnps: s.incluiEnps !== false, incluiAberta: s.incluiAberta !== false,
+    publico: (s.publico && s.publico.tipo) ? { tipo: s.publico.tipo, valores: (s.publico.valores || []).slice() } : { tipo: "todos", valores: [] },
+  };
+}
+
+// Lista + progresso (contador) por pesquisa. O progresso é 0 no rascunho (contador
+// só nasce ao abrir). Poucas pesquisas -> N gets é barato.
+async function _carregarClimaLista() {
+  const surveys = await window.carregarPesquisasClimaGestor();
+  const prog = {};
+  await Promise.all((surveys || []).map(async (s) => { prog[s.id] = await window.carregarProgressoClima(s.id); }));
+  state.climaProgresso = prog;
+}
+
+function climaStatusBadge(status) {
+  if (status === "aberta") return `<span class="badge badge--success"><span class="dot"></span> Aberta</span>`;
+  if (status === "encerrada") return `<span class="badge badge--neutral">Encerrada</span>`;
+  return `<span class="badge badge--neutral">Rascunho</span>`;
+}
+function climaSealHtml(anonima) {
+  return anonima
+    ? `<span class="seal seal--anon">${icon("lock")}Anônima</span>`
+    : `<span class="seal seal--ident">${icon("users")}Identificada</span>`;
+}
+function climaPublicoLabel(pub) {
+  if (!pub || pub.tipo === "todos") return "público: todos os setores";
+  if (pub.tipo === "turno") { const v = (pub.valores || [])[0]; return "público: " + ((TURNOS[v] && TURNOS[v].label) || ("turno " + v)); }
+  if (pub.tipo === "setor") return "público: setor " + escapeHtml((pub.valores || [])[0] || "");
+  return "";
+}
+
+function renderAvaliacoes() {
+  if (!can("pesquisas.gerenciar")) { state.view.page = "dashboard"; return renderApp(); }
+  $("#topbar-title").textContent = "Avaliações";
+  const tab = state.view.avalTab === "desempenho" ? "desempenho" : "clima";
+  const tabsHtml = `
+    <div class="feat-tabs" id="aval-tabs">
+      <button class="feat-tab ${tab === "clima" ? "on" : ""}" data-aval-tab="clima">${icon("smile")}<span>Pesquisa de clima</span></button>
+      <button class="feat-tab ${tab === "desempenho" ? "on" : ""}" data-aval-tab="desempenho">${icon("conferir")}<span>Avaliação de desempenho</span></button>
+    </div>`;
+  if (tab === "desempenho") {
+    $("#view").innerHTML = tabsHtml + `
+      <header class="page-header"><div><h1>Avaliação de desempenho</h1><p>Ciclos por competências, com autoavaliação e 360.</p></div></header>
+      <div class="empty"><div class="empty__icon">${icon("conferir")}</div><h3>Em breve</h3><p>A avaliação de desempenho é a próxima entrega das Avaliações. A pesquisa de clima já está no ar nesta aba.</p></div>`;
+    bindAvalTabs();
+    return;
+  }
+  const screen = state.view.climaScreen || "lista";
+  if (screen === "nova") return renderClimaNova(tabsHtml);
+  if (screen === "resultados" && state.view.climaId) return renderClimaResultados(tabsHtml);
+  return renderClimaLista(tabsHtml);
+}
+
+function bindAvalTabs() {
+  $$("#aval-tabs .feat-tab").forEach((b) => b.addEventListener("click", () => {
+    state.view.avalTab = b.dataset.avalTab;
+    if (b.dataset.avalTab === "clima") state.view.climaScreen = "lista";
+    renderApp();
+  }));
+}
+
+// ---------- Clima · lista ----------
+function renderClimaLista(tabsHtml) {
+  const temLista = state.pesquisasClima != null;
+  if (!temLista || estale("clima")) {
+    marcarCarga("clima");
+    _carregarClimaLista().then(() => { if (state.view.page === "avaliacoes" && (state.view.climaScreen || "lista") === "lista") renderApp(); }).catch(() => {});
+    if (!temLista) {
+      $("#view").innerHTML = tabsHtml + `<div class="empty empty--mini"><p>Carregando pesquisas…</p></div>`;
+      bindAvalTabs();
+      return;
+    }
+  }
+  const header = `<header class="page-header">
+      <div><h1>Pesquisa de clima</h1><p>Meça o engajamento do time e acompanhe a evolução ao longo do tempo.</p></div>
+      <button class="btn btn--primary" data-clima-nova>${icon("plus")}<span>Nova pesquisa</span></button>
+    </header>`;
+  const lista = (state.pesquisasClima || []).slice();
+  if (!lista.length) {
+    $("#view").innerHTML = tabsHtml + header + `
+      <div class="empty"><div class="empty__icon">${icon("smile")}</div><h3>Nenhuma pesquisa ainda</h3>
+        <p>Crie a primeira pesquisa de clima. Você escolhe se é anônima, o que perguntar e quem responde.</p>
+        <button class="btn btn--primary" data-clima-nova>${icon("plus")}<span>Nova pesquisa</span></button></div>`;
+    bindClimaLista();
+    return;
+  }
+  const ativas = lista.filter((s) => s.status === "aberta").length;
+  const encerradas = lista.filter((s) => s.status === "encerrada").length;
+  const comEleg = lista.filter((s) => s.status !== "rascunho" && Number(s.elegiveis) > 0);
+  const taxaMedia = comEleg.length
+    ? Math.round(comEleg.reduce((acc, s) => acc + Math.min(100, ((state.climaProgresso?.[s.id] || 0) / s.elegiveis) * 100), 0) / comEleg.length)
+    : null;
+  const nColab = (state.funcionarios || []).filter((f) => f.ativo !== false && f.diretor !== true).length;
+  const stats = `<div class="stats">
+      <div class="stat stat--kpi ${ativas ? "stat--accent" : ""}"><p class="stat__label">Pesquisas ativas</p><p class="stat__value">${ativas}</p><p class="stat__hint">${encerradas} encerrada${encerradas === 1 ? "" : "s"}</p></div>
+      <div class="stat stat--kpi"><p class="stat__label">Taxa média de resposta</p><p class="stat__value">${taxaMedia == null ? "—" : taxaMedia + "%"}</p><p class="stat__hint">pesquisas publicadas</p></div>
+      <div class="stat stat--kpi"><p class="stat__label">Colaboradores</p><p class="stat__value">${nColab}</p><p class="stat__hint">elegíveis a responder</p></div>
+    </div>`;
+  const ordem = { aberta: 0, rascunho: 1, encerrada: 2 };
+  lista.sort((a, b) => (ordem[a.status] - ordem[b.status]) || String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
+  $("#view").innerHTML = tabsHtml + header + stats + `<div class="surv-list">${lista.map(climaSurvCardHtml).join("")}</div>`;
+  bindClimaLista();
+}
+function climaSurvCardHtml(s) {
+  const prog = (state.climaProgresso && state.climaProgresso[s.id]) || 0;
+  const eleg = Number(s.elegiveis) || 0;
+  const pct = eleg > 0 ? Math.min(100, Math.round((prog / eleg) * 100)) : 0;
+  const janela = [_climaDataCurta(s.inicio), _climaDataCurta(s.fim)].filter(Boolean).join(" a ");
+  const meta = [janela, climaPublicoLabel(s.publico)].filter(Boolean).join(" · ");
+  const foot = s.status === "rascunho"
+    ? `<div class="surv-card__meta">Ainda não publicada. Clique para continuar editando.</div>`
+    : `<div class="surv-metric"><b>${pct}%</b><span>Respostas</span></div>
+       <div class="surv-metric"><b>${prog}</b><span>de ${eleg}</span></div>
+       <div class="surv-resp"><div class="surv-resp__bar"><div class="surv-resp__fill" style="width:${pct}%"></div></div></div>`;
+  return `<button type="button" class="surv-card" data-clima-card="${s.id}">
+      <div class="surv-card__head">
+        <div><p class="surv-card__title">${escapeHtml(s.titulo || "(sem título)")}</p><p class="surv-card__meta">${meta}</p></div>
+        <div class="surv-card__badges">${climaStatusBadge(s.status)}${climaSealHtml(s.anonima)}</div>
+      </div>
+      <div class="surv-card__foot">${foot}</div>
+    </button>`;
+}
+function bindClimaLista() {
+  bindAvalTabs();
+  $$("[data-clima-nova]").forEach((b) => b.addEventListener("click", () => {
+    _climaEdit = _climaEditNovo(); state.view.climaScreen = "nova"; state.view.climaId = null; renderApp();
+  }));
+  $$("[data-clima-card]").forEach((b) => b.addEventListener("click", () => {
+    const s = (state.pesquisasClima || []).find((x) => x.id === b.dataset.climaCard);
+    if (!s) return;
+    if (s.status === "rascunho") { _climaEdit = _climaEditFrom(s); state.view.climaScreen = "nova"; state.view.climaId = s.id; }
+    else { state.view.climaScreen = "resultados"; state.view.climaId = s.id; }
+    renderApp();
+  }));
+}
+
+// ---------- Clima · construtor (nova / editar rascunho) ----------
+function renderClimaNova(tabsHtml) {
+  if (!_climaEdit) _climaEdit = _climaEditNovo();
+  const c = _climaEdit;
+  const editando = !!c.id;
+  const turnos = [1, 2, 3, "geral"];
+  const setores = getSetores();
+  const pub = c.publico || { tipo: "todos", valores: [] };
+  const eleg = comAlcance(pub);
+  const back = `<button type="button" class="btn btn--ghost btn--sm" data-clima-voltar>${icon("arrowLeft")}<span>Voltar</span></button>`;
+  const head = `<header class="page-header">
+      <div><h1>${editando ? "Editar rascunho" : "Nova pesquisa"}</h1><p>Configure o período, a privacidade e o que será perguntado.</p></div>
+      ${back}
+    </header>`;
+  const identCard = `<div class="vg-card">
+      <p class="vg-h">Identificação</p>
+      <div class="field"><label for="clima-titulo">Nome da pesquisa</label><input type="text" id="clima-titulo" maxlength="120" value="${escapeHtml(c.titulo || "")}" placeholder="Ex.: Clima trimestral · 4º trimestre 2026"></div>
+      <div class="field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label for="clima-inicio">Início</label><input type="date" id="clima-inicio" value="${escapeHtml(c.inicio || "")}"></div>
+        <div class="field"><label for="clima-fim">Encerramento</label><input type="date" id="clima-fim" value="${escapeHtml(c.fim || "")}"></div>
+      </div>
+    </div>`;
+  const anonCard = `<div class="vg-card">
+      <p class="vg-h">Privacidade das respostas</p>
+      <div class="anon-toggle" id="clima-anon">
+        <button type="button" class="anon-opt ${c.anonima ? "sel" : ""}" data-anon="anon">
+          <span class="anon-opt__mark"></span>
+          <div class="anon-opt__h">${icon("lock")} Anônima</div>
+          <p>Ninguém, nem o RH, vê quem respondeu o quê. Os resultados aparecem só agregados, com no mínimo 5 respostas e após encerrar. Aumenta a franqueza.</p>
+        </button>
+        <button type="button" class="anon-opt ${c.anonima ? "" : "sel"}" data-anon="ident">
+          <span class="anon-opt__mark"></span>
+          <div class="anon-opt__h">${icon("users")} Identificada</div>
+          <p>As respostas ficam ligadas a cada pessoa e o RH vê o nome. O colaborador é avisado antes de responder.</p>
+        </button>
+      </div>
+      <p class="helpnote">${icon("info")} A privacidade é definida agora e não muda depois que a pesquisa abre.</p>
+    </div>`;
+  const perguntasCard = `<div class="vg-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <p class="vg-h" style="margin:0;">Perguntas da pesquisa</p>
+        <button class="btn btn--soft btn--sm" id="clima-modelo" type="button">${icon("star")}<span>Usar modelo padrão</span></button>
+      </div>
+      <p style="font-size:12.5px;color:var(--text-muted);margin:6px 0 16px;">Monte as dimensões e escreva cada pergunta. Cada pergunta tem seu tipo de resposta.</p>
+      <div class="qb" id="clima-qb"></div>
+      <div class="qb-actions"><button class="qb-adddim" id="clima-adddim" type="button">${icon("plus")} Adicionar dimensão</button></div>
+    </div>`;
+  const fixasCard = `<div class="vg-card">
+      <p class="vg-h">Perguntas fixas</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="flex:1;"><p style="font-size:13.5px;font-weight:600;color:var(--text-body);margin:0 0 2px;">Pergunta eNPS</p><p style="font-size:12px;color:var(--text-muted);margin:0;">Você recomendaria a Fiobras como lugar pra trabalhar? (0 a 10)</p></div>
+        <button class="pp-switch" id="clima-enps" type="button" role="switch" aria-checked="${c.incluiEnps ? "true" : "false"}" aria-label="Incluir eNPS"></button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;">
+        <div style="flex:1;"><p style="font-size:13.5px;font-weight:600;color:var(--text-body);margin:0 0 2px;">Pergunta aberta</p><p style="font-size:12px;color:var(--text-muted);margin:0;">"O que faria a Fiobras um lugar melhor pra trabalhar?" Resposta livre e opcional.</p></div>
+        <button class="pp-switch" id="clima-aberta" type="button" role="switch" aria-checked="${c.incluiAberta ? "true" : "false"}" aria-label="Incluir pergunta aberta"></button>
+      </div>
+    </div>`;
+  const seg = pub.tipo;
+  const publicoCard = `<div class="vg-card">
+      <p class="vg-h">Público</p>
+      <div class="com-seg" id="clima-seg" role="group" aria-label="Público da pesquisa">
+        <button type="button" class="com-seg__chip ${seg === "todos" ? "is-on" : ""}" data-clima-pub="todos">${icon("users")}<span>Todos</span></button>
+        <button type="button" class="com-seg__chip ${seg === "turno" ? "is-on" : ""}" data-clima-pub="turno">${icon("clock")}<span>Por turno</span></button>
+        <button type="button" class="com-seg__chip ${seg === "setor" ? "is-on" : ""}" data-clima-pub="setor">${icon("briefcase")}<span>Por setor</span></button>
+      </div>
+      <div class="com-seg__detail" id="clima-pub-turno" style="${seg === "turno" ? "" : "display:none"}">
+        <select id="clima-turno" aria-label="Turno do público">${turnos.map((t) => `<option value="${t}" ${String(pub.valores[0]) === String(t) ? "selected" : ""}>${TURNOS[t].label}</option>`).join("")}</select>
+      </div>
+      <div class="com-seg__detail" id="clima-pub-setor" style="${seg === "setor" ? "" : "display:none"}">
+        <select id="clima-setor" aria-label="Setor do público">${setores.map((s) => `<option value="${escapeHtml(s)}" ${pub.valores[0] === s ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}</select>
+      </div>
+      <p class="helpnote"><span id="clima-eleg-ic">${icon("info")}</span> <span id="clima-eleg-tx">${eleg} colaborador${eleg === 1 ? "" : "es"} ${eleg === 1 ? "será convidado" : "serão convidados"}. O convite aparece no portal e some ao responder ou ao encerrar.</span></p>
+    </div>`;
+  const excluir = editando ? `<button class="btn btn--ghost" data-clima-excluir>${icon("trash")}<span>Excluir rascunho</span></button>` : "";
+  const actions = `<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap;">
+      ${excluir}<div style="flex:1"></div>
+      <button class="btn btn--ghost" data-clima-salvar>${icon("check")}<span>Salvar rascunho</span></button>
+      <button class="btn btn--primary" data-clima-publicar>${icon("send")}<span>Publicar pesquisa</span></button>
+    </div>`;
+  $("#view").innerHTML = tabsHtml + head + `<div style="max-width:720px;">${identCard}${anonCard}${perguntasCard}${fixasCard}${publicoCard}${actions}</div>`;
+  _climaQbRender();
+  bindClimaNova();
+}
+function climaQbDimHtml(dim) {
+  return `<div class="qb-dim">
+      <div class="qb-dim__head">
+        <div class="qb-dim__name"><input type="text" value="${escapeHtml(dim.nome || "")}" placeholder="Nome da dimensão" aria-label="Nome da dimensão"></div>
+        <button class="qb-icon-btn qb-del-dim" type="button" title="Remover dimensão" aria-label="Remover dimensão">${icon("trash")}</button>
+      </div>
+      <div class="qb-qs">${(dim.perguntas || []).map(climaQbQHtml).join("")}</div>
+      <div style="padding:0 12px 12px;"><button class="qb-addq" type="button">${icon("plus")} Adicionar pergunta</button></div>
+    </div>`;
+}
+function climaQbQHtml(p) {
+  const opts = _CLIMA_TIPOS.map((t) => `<option value="${t.v}"${(p.tipo || "conc") === t.v ? " selected" : ""}>${t.label}</option>`).join("");
+  return `<div class="qb-q" data-qid="${escapeHtml(p.id || "")}">
+      <div class="qb-q__txt"><input type="text" value="${escapeHtml(p.texto || "")}" placeholder="Escreva a afirmação (ex.: Meu líder me dá retorno com frequência)" aria-label="Texto da pergunta"></div>
+      <select class="qb-sel" aria-label="Tipo de resposta">${opts}</select>
+      <button class="qb-icon-btn qb-del-q" type="button" title="Remover pergunta" aria-label="Remover pergunta">${icon("trash")}</button>
+    </div>`;
+}
+function _climaQbRender() {
+  const host = $("#clima-qb");
+  if (!host) return;
+  host.innerHTML = (_climaEdit.dimensoes || []).map(climaQbDimHtml).join("");
+}
+// Lê o DOM do construtor de volta pro _climaEdit ANTES de qualquer mutação/salvar.
+function _climaQbSync() {
+  const host = $("#clima-qb");
+  if (!host || !_climaEdit) return;
+  const dims = [];
+  host.querySelectorAll(".qb-dim").forEach((dimEl) => {
+    const nome = dimEl.querySelector(".qb-dim__name input")?.value || "";
+    const perguntas = [];
+    dimEl.querySelectorAll(".qb-q").forEach((qEl) => {
+      perguntas.push({ id: qEl.dataset.qid || _climaQid(), texto: qEl.querySelector(".qb-q__txt input")?.value || "", tipo: qEl.querySelector(".qb-sel")?.value || "conc" });
+    });
+    dims.push({ nome, perguntas });
+  });
+  _climaEdit.dimensoes = dims;
+}
+function bindClimaNova() {
+  bindAvalTabs();
+  $$("[data-clima-voltar]").forEach((b) => b.addEventListener("click", () => { state.view.climaScreen = "lista"; state.view.climaId = null; _climaEdit = null; renderApp(); }));
+  // Construtor (delegação no host)
+  const host = $("#clima-qb");
+  if (host) host.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    _climaQbSync();
+    const dimEl = btn.closest(".qb-dim");
+    if (!dimEl) return;
+    const di = Array.prototype.indexOf.call(host.children, dimEl);
+    if (btn.classList.contains("qb-del-q")) {
+      const qEl = btn.closest(".qb-q");
+      const qi = Array.prototype.indexOf.call(qEl.parentNode.children, qEl);
+      _climaEdit.dimensoes[di].perguntas.splice(qi, 1);
+      _climaQbRender();
+    } else if (btn.classList.contains("qb-del-dim")) {
+      _climaEdit.dimensoes.splice(di, 1);
+      _climaQbRender();
+    } else if (btn.classList.contains("qb-addq")) {
+      _climaEdit.dimensoes[di].perguntas.push({ id: _climaQid(), texto: "", tipo: "conc" });
+      _climaQbRender();
+      const nd = host.children[di];
+      const ins = nd && nd.querySelectorAll(".qb-q__txt input");
+      if (ins && ins.length) ins[ins.length - 1].focus();
+    }
+  });
+  $("#clima-adddim")?.addEventListener("click", () => {
+    _climaQbSync();
+    _climaEdit.dimensoes.push({ nome: "", perguntas: [{ id: _climaQid(), texto: "", tipo: "conc" }] });
+    _climaQbRender();
+    $("#clima-qb")?.lastElementChild?.querySelector(".qb-dim__name input")?.focus();
+  });
+  $("#clima-modelo")?.addEventListener("click", () => { _climaQbSync(); _climaEdit.dimensoes = _climaModelo(); _climaQbRender(); toast("Modelo padrão aplicado."); });
+  // Privacidade
+  $$("#clima-anon .anon-opt").forEach((o) => o.addEventListener("click", () => {
+    _climaEdit.anonima = o.dataset.anon === "anon";
+    $$("#clima-anon .anon-opt").forEach((x) => x.classList.toggle("sel", (x.dataset.anon === "anon") === _climaEdit.anonima));
+  }));
+  // Switches eNPS / aberta
+  $$("#clima-enps, #clima-aberta").forEach((sw) => sw.addEventListener("click", () => {
+    sw.setAttribute("aria-checked", sw.getAttribute("aria-checked") === "true" ? "false" : "true");
+  }));
+  // Público
+  $$("#clima-seg .com-seg__chip").forEach((chip) => chip.addEventListener("click", () => {
+    const tipo = chip.dataset.climaPub;
+    _climaEdit.publico = { tipo, valores: [] };
+    if (tipo === "turno") { const v = $("#clima-turno")?.value; _climaEdit.publico.valores = [v === "geral" ? "geral" : Number(v)]; }
+    else if (tipo === "setor") { const v = $("#clima-setor")?.value; _climaEdit.publico.valores = v ? [v] : []; }
+    $$("#clima-seg .com-seg__chip").forEach((c2) => c2.classList.toggle("is-on", c2.dataset.climaPub === tipo));
+    $("#clima-pub-turno").style.display = tipo === "turno" ? "" : "none";
+    $("#clima-pub-setor").style.display = tipo === "setor" ? "" : "none";
+    _climaAtualizaEleg();
+  }));
+  $("#clima-turno")?.addEventListener("change", (e) => { _climaEdit.publico = { tipo: "turno", valores: [e.target.value === "geral" ? "geral" : Number(e.target.value)] }; _climaAtualizaEleg(); });
+  $("#clima-setor")?.addEventListener("change", (e) => { _climaEdit.publico = { tipo: "setor", valores: e.target.value ? [e.target.value] : [] }; _climaAtualizaEleg(); });
+  // Ações
+  $$("[data-clima-salvar]").forEach((b) => b.addEventListener("click", () => _climaSalvar(false, b)));
+  $$("[data-clima-publicar]").forEach((b) => b.addEventListener("click", () => _climaSalvar(true, b)));
+  $$("[data-clima-excluir]").forEach((b) => b.addEventListener("click", () => _climaExcluir(b)));
+}
+function _climaAtualizaEleg() {
+  const tx = $("#clima-eleg-tx");
+  if (!tx) return;
+  const eleg = comAlcance(_climaEdit.publico);
+  tx.textContent = `${eleg} colaborador${eleg === 1 ? "" : "es"} ${eleg === 1 ? "será convidado" : "serão convidados"}. O convite aparece no portal e some ao responder ou ao encerrar.`;
+}
+function _climaLerForm() {
+  _climaQbSync();
+  _climaEdit.titulo = ($("#clima-titulo")?.value || "").trim();
+  _climaEdit.inicio = $("#clima-inicio")?.value || "";
+  _climaEdit.fim = $("#clima-fim")?.value || "";
+  _climaEdit.incluiEnps = $("#clima-enps")?.getAttribute("aria-checked") === "true";
+  _climaEdit.incluiAberta = $("#clima-aberta")?.getAttribute("aria-checked") === "true";
+  return _climaEdit;
+}
+async function _climaSalvar(publicar, btn) {
+  const c = _climaLerForm();
+  const dims = (c.dimensoes || []).map((d) => ({
+    nome: (d.nome || "").trim().slice(0, 80),
+    perguntas: (d.perguntas || []).filter((p) => (p.texto || "").trim()).map((p) => ({ id: p.id || _climaQid(), texto: p.texto.trim().slice(0, 240), tipo: ["conc", "nota", "sn"].includes(p.tipo) ? p.tipo : "conc" })),
+  })).filter((d) => d.nome && d.perguntas.length);
+  if (!c.titulo) return campoInvalido("#clima-titulo", "Dê um nome pra pesquisa.");
+  if (!dims.length) return toast("Adicione ao menos uma dimensão com uma pergunta preenchida.", "danger");
+  if (dims.length > 12) return toast("Máximo de 12 dimensões.", "danger");
+  const totalP = dims.reduce((s, d) => s + d.perguntas.length, 0);
+  if (totalP > 40) return toast("Máximo de 40 perguntas de dimensão no total. Reduza algumas.", "danger");
+  if (c.inicio && c.fim && c.fim < c.inicio) return campoInvalido("#clima-fim", "O encerramento não pode ser antes do início.");
+  if (c.publico.tipo === "turno" && !c.publico.valores.length) return toast("Escolha o turno do público.", "danger");
+  if (c.publico.tipo === "setor" && !c.publico.valores[0]) return toast("Escolha o setor do público.", "danger");
+  const eleg = comAlcance(c.publico);
+  if (publicar && eleg < 1) return toast("O público selecionado não tem colaboradores elegíveis.", "danger");
+  if (publicar) {
+    const ok = await confirmar({
+      titulo: "Publicar pesquisa?",
+      msg: `${eleg} colaborador${eleg === 1 ? "" : "es"} vão poder responder. Depois de publicar, o questionário e a privacidade (${c.anonima ? "anônima" : "identificada"}) não mudam mais.`,
+      okLabel: "Publicar",
+    });
+    if (!ok) return;
+  }
+  const base = {
+    titulo: c.titulo, anonima: !!c.anonima, dimensoes: dims,
+    incluiEnps: !!c.incluiEnps, incluiAberta: !!c.incluiAberta,
+    publico: c.publico, elegiveis: eleg,
+  };
+  // inicio/fim só quando preenchidos: um fim=null quebraria o gate do recibo na regra.
+  if (c.inicio) base.inicio = c.inicio;
+  if (c.fim) base.fim = c.fim;
+  // Pós-sucesso DENTRO do withBusy (ele engole a exceção): numa falha o rascunho fica de pé
+  // pra retry, sem toast de sucesso falso nem tela trocada por cima de um write que não foi.
+  await withBusy("clima-salvar", btn, async () => {
+    let id = c.id;
+    if (id) await window.editarPesquisaClima(id, base);
+    else id = await window.criarPesquisaClima(base);
+    if (publicar) await window.abrirPesquisaClima(id);
+    _climaEdit = null;
+    state.view.climaScreen = "lista"; state.view.climaId = null;
+    state.pesquisasClima = null; marcarCarga("clima");
+    await _carregarClimaLista();
+    renderApp();
+    toast(publicar ? "Pesquisa publicada." : "Rascunho salvo.");
+  });
+}
+async function _climaExcluir(btn) {
+  if (!_climaEdit || !_climaEdit.id) return;
+  const ok = await confirmar({ titulo: "Excluir rascunho?", msg: "O rascunho é apagado de vez. Isso não afeta pesquisas já publicadas.", okLabel: "Excluir", perigo: true });
+  if (!ok) return;
+  const id = _climaEdit.id;
+  await withBusy("clima-excluir", btn, async () => {
+    await window.excluirPesquisaClimaRascunho(id);
+    _climaEdit = null; state.view.climaScreen = "lista"; state.view.climaId = null;
+    state.pesquisasClima = null; marcarCarga("clima");
+    await _carregarClimaLista();
+    renderApp();
+    toast("Rascunho excluído.");
+  });
+}
+
+// ---------- Clima · resultados ----------
+// Normaliza uma nota bruta ao intervalo 0..100 pela FAIXA do tipo (defensivo:
+// valor fora da faixa -> null -> ignorado na média).
+function _climaNormaliza(tipo, v) {
+  if (!Number.isFinite(v)) return null;
+  if (tipo === "nota") return (v >= 0 && v <= 10) ? (v / 10) * 100 : null;
+  if (tipo === "sn") return (v === 0 || v === 1) ? v * 100 : null;
+  return (v >= 1 && v <= 5) ? ((v - 1) / 4) * 100 : null; // conc (default)
+}
+function _climaAgrega(survey, respostas) {
+  const perg = {}; // id -> { tipo, di }
+  (survey.dimensoes || []).forEach((d, di) => (d.perguntas || []).forEach((p) => { if (p && p.id) perg[p.id] = { tipo: p.tipo || "conc", di }; }));
+  const acc = (survey.dimensoes || []).map(() => ({ soma: 0, n: 0 }));
+  let prom = 0, neu = 0, det = 0, enpsN = 0;
+  const comentarios = [];
+  for (const r of (respostas || [])) {
+    const notas = (r && r.notas && typeof r.notas === "object") ? r.notas : {};
+    for (const k in notas) {
+      const meta = perg[k];
+      if (!meta) continue; // chave fora das perguntas -> ignora
+      const s = _climaNormaliza(meta.tipo, Number(notas[k]));
+      if (s == null) continue; // valor fora da faixa -> ignora
+      acc[meta.di].soma += s; acc[meta.di].n += 1;
+    }
+    if (survey.incluiEnps && Number.isInteger(r.enps) && r.enps >= 0 && r.enps <= 10) {
+      enpsN++;
+      if (r.enps >= 9) prom++; else if (r.enps >= 7) neu++; else det++;
+    }
+    if (r.comentario && String(r.comentario).trim()) comentarios.push(String(r.comentario));
+  }
+  const dims = (survey.dimensoes || []).map((d, di) => ({ nome: d.nome || "", media: acc[di].n ? Math.round(acc[di].soma / acc[di].n) : null }));
+  const comNota = dims.filter((d) => d.media != null);
+  const climaGeral = comNota.length ? Math.round(comNota.reduce((s, d) => s + d.media, 0) / comNota.length) : null;
+  const enps = enpsN ? Math.round((prom / enpsN - det / enpsN) * 100) : null;
+  return { dims, climaGeral, enps: { score: enps, prom, neu, det, n: enpsN }, comentarios };
+}
+function climaResHeaderHtml(s) {
+  const janela = [_climaDataCurta(s.inicio), _climaDataCurta(s.fim)].filter(Boolean).join(" a ");
+  const acao = s.status === "aberta" ? `<button class="btn btn--soft btn--sm" data-clima-encerrar="${s.id}">${icon("lock")}<span>Encerrar</span></button>` : "";
+  return `<header class="page-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
+          <button type="button" class="btn btn--ghost btn--sm" data-clima-voltar>${icon("arrowLeft")}<span>Voltar</span></button>
+          ${climaStatusBadge(s.status)}${climaSealHtml(s.anonima)}
+        </div>
+        <h1>${escapeHtml(s.titulo || "Pesquisa de clima")}</h1>
+        <p>${janela || "período não definido"}</p>
+      </div>
+      ${acao}
+    </header>`;
+}
+function renderClimaResultados(tabsHtml) {
+  const id = state.view.climaId;
+  const s = (state.pesquisasClima || []).find((x) => x.id === id);
+  if (!s) { state.view.climaScreen = "lista"; return renderApp(); }
+  const cacheKey = "clima-res-" + id;
+  const cached = state.climaResultados && state.climaResultados[id];
+  if (!cached || estale(cacheKey)) {
+    marcarCarga(cacheKey);
+    window.carregarResultadosClima(id).then((res) => {
+      state.climaResultados = state.climaResultados || {};
+      state.climaResultados[id] = res;
+      if (state.view.page === "avaliacoes" && state.view.climaScreen === "resultados" && state.view.climaId === id) renderApp();
+    }).catch(() => {});
+    if (!cached) {
+      $("#view").innerHTML = tabsHtml + climaResHeaderHtml(s) + `<div class="empty empty--mini"><p>Carregando resultados…</p></div>`;
+      bindClimaResultados();
+      return;
+    }
+  }
+  const res = cached;
+  const eleg = Number(s.elegiveis) || 0;
+  const n = res.contador || 0;
+  const taxa = eleg > 0 ? Math.min(100, Math.round((n / eleg) * 100)) : 0;
+  let corpo;
+  if (res.selado) {
+    const motivo = s.status !== "encerrada"
+      ? "Os resultados de uma pesquisa anônima só aparecem depois de encerrada, pra ninguém acompanhar resposta a resposta chegando."
+      : `Pra proteger o anonimato, o resultado fica selado enquanto houver menos de 5 respostas. Recebidas até aqui: ${n}.`;
+    corpo = `
+      <div class="stats">
+        <div class="stat stat--kpi"><p class="stat__label">Taxa de resposta</p><p class="stat__value">${taxa}%</p><p class="stat__hint">${n} de ${eleg}</p></div>
+      </div>
+      <div class="by-person">${icon("lock")}<div class="by-person__tx"><b>Resultado selado.</b> ${motivo}</div></div>`;
+  } else {
+    const agg = _climaAgrega(s, res.respostas || []);
+    const divergencia = (res.respostas || []).length !== n;
+    const warn = divergencia
+      ? `<div class="by-person" style="background:var(--danger-bg);border-color:var(--danger);">${icon("alert")}<div class="by-person__tx"><b>Conferir:</b> ${(res.respostas || []).length} resposta(s) armazenada(s) mas o contador marca ${n}. Divergência pode indicar duplicidade ou perda de dado. Reveja antes de decidir.</div></div>`
+      : "";
+    const stats = `<div class="stats">
+        <div class="stat stat--kpi"><p class="stat__label">Taxa de resposta</p><p class="stat__value">${taxa}%</p><p class="stat__hint">${n} de ${eleg}</p></div>
+        <div class="stat stat--kpi stat--accent"><p class="stat__label">Clima geral</p><p class="stat__value">${agg.climaGeral == null ? "—" : agg.climaGeral}<span style="font-size:15px;color:var(--text-muted);font-weight:600;">${agg.climaGeral == null ? "" : "/100"}</span></p><p class="stat__hint">média das dimensões</p></div>
+        <div class="stat stat--kpi"><p class="stat__label">Comentários abertos</p><p class="stat__value">${agg.comentarios.length}</p><p class="stat__hint">de ${n} respostas</p></div>
+      </div>`;
+    corpo = warn + stats + climaEnpsHtml(s, agg.enps) + climaDimsHtml(agg.dims) + climaComentariosHtml(s, agg.comentarios) + climaIndividualHtml(s);
+  }
+  $("#view").innerHTML = tabsHtml + climaResHeaderHtml(s) + corpo;
+  bindClimaResultados();
+}
+function climaEnpsHtml(s, e) {
+  if (!s.incluiEnps) return "";
+  if (!e.n) return `<div class="vg-card"><p class="vg-h">eNPS · você recomendaria a Fiobras</p><p class="helpnote">${icon("info")} Sem respostas de eNPS ainda.</p></div>`;
+  const cls = e.score >= 30 ? "" : e.score >= 0 ? "warn" : "bad";
+  const pctP = Math.round((e.prom / e.n) * 100);
+  const pctN = Math.round((e.neu / e.n) * 100);
+  const pctD = Math.max(0, 100 - pctP - pctN);
+  return `<div class="vg-card">
+      <p class="vg-h">eNPS · você recomendaria a Fiobras</p>
+      <div class="enps">
+        <div class="enps__score"><div class="enps__num ${cls}">${e.score > 0 ? "+" : ""}${e.score}</div><div class="enps__cap">eNPS</div></div>
+        <div class="enps__split">
+          <div class="enps__bar">
+            ${pctP ? `<div class="enps__seg p" style="width:${pctP}%">${pctP}%</div>` : ""}
+            ${pctN ? `<div class="enps__seg n" style="width:${pctN}%">${pctN}%</div>` : ""}
+            ${pctD ? `<div class="enps__seg d" style="width:${pctD}%">${pctD}%</div>` : ""}
+          </div>
+          <div class="enps__legend">
+            <span><i style="background:#2F8F4E"></i> Promotores (9 a 10) · ${e.prom}</span>
+            <span><i style="background:#E0A33A"></i> Neutros (7 a 8) · ${e.neu}</span>
+            <span><i style="background:#C0504A"></i> Detratores (0 a 6) · ${e.det}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+function climaDimsHtml(dims) {
+  if (!dims.length) return "";
+  const rows = dims.map((d) => {
+    if (d.media == null) return `<div class="dim-row"><div class="dim-row__name">${escapeHtml(d.nome)}</div><div class="dim-row__track"></div><div class="dim-row__val" style="color:var(--text-muted)">—</div></div>`;
+    const cls = d.media >= 75 ? "good" : d.media >= 60 ? "warn" : "bad";
+    return `<div class="dim-row"><div class="dim-row__name">${escapeHtml(d.nome)}</div><div class="dim-row__track"><div class="dim-row__fill fill-${cls}" style="width:${d.media}%"></div></div><div class="dim-row__val val-${cls}">${d.media}</div></div>`;
+  }).join("");
+  return `<div class="vg-card"><p class="vg-h">Dimensões · nota média (0 a 100)</p>${rows}</div>`;
+}
+function climaComentariosHtml(s, comentarios) {
+  const inner = comentarios.length
+    ? comentarios.slice(0, 60).map((c) => `<div class="cmt"><p>${escapeHtml(c)}</p><span>${icon(s.anonima ? "lock" : "message")} ${s.anonima ? "Resposta anônima · setor oculto" : "Resposta identificada"}</span></div>`).join("")
+    : `<p class="helpnote">${icon("info")} Nenhum comentário aberto nesta pesquisa.</p>`;
+  const mais = comentarios.length > 60 ? `<p class="helpnote">${icon("info")} Mostrando os primeiros 60 de ${comentarios.length} comentários.</p>` : "";
+  return `<div class="vg-card"><p class="vg-h">Comentários abertos${s.anonima ? " · anônimos" : ""}</p>${inner}${mais}</div>`;
+}
+function climaIndividualHtml(s) {
+  if (!s.anonima) return "";
+  return `<div class="vg-card"><p class="vg-h">Resultado individual</p>
+      <div class="by-person">${icon("lock")}<div class="by-person__tx">Esta pesquisa é <b>anônima</b>, então o resultado por pessoa fica indisponível de propósito. Ninguém, nem o RH, consegue ligar uma resposta a um nome.</div></div>
+    </div>`;
+}
+function bindClimaResultados() {
+  bindAvalTabs();
+  $$("[data-clima-voltar]").forEach((b) => b.addEventListener("click", () => { state.view.climaScreen = "lista"; state.view.climaId = null; renderApp(); }));
+  $$("[data-clima-encerrar]").forEach((b) => b.addEventListener("click", () => _climaEncerrar(b.dataset.climaEncerrar, b)));
+}
+async function _climaEncerrar(id, btn) {
+  const ok = await confirmar({
+    titulo: "Encerrar pesquisa?",
+    msg: "Depois de encerrar, a pesquisa não reabre e ninguém mais responde. Numa pesquisa anônima, os resultados só aparecem com 5 respostas ou mais.",
+    okLabel: "Encerrar", perigo: true,
+  });
+  if (!ok) return;
+  await withBusy("clima-encerrar", btn, async () => {
+    await window.encerrarPesquisaClima(id);
+    if (state.climaResultados) delete state.climaResultados[id];
+    state.pesquisasClima = null; marcarCarga("clima");
+    await _carregarClimaLista();
+    renderApp();
+    toast("Pesquisa encerrada.");
+  });
 }
 
 // Decide se o user pode VER um funcionário (escopo de visibilidade por papel).
@@ -12691,6 +13487,11 @@ const PERM_CAPS = [
     { k: "documentos.gerenciar", n: "Publicar e gerenciar documentos institucionais" },
     { k: "recibos.gerenciar", n: "Importar recibos de pagamento e cartão ponto" },
   ]},
+  // Avaliações (Pesquisa de clima + Avaliação de desempenho). Cap GLOBAL, sem 'scoped':
+  // a rule /pesquisasClima usa temCap sem escopo — NUNCA conceder 'turno'/'atrib' pra ela.
+  { area: "Avaliações", caps: [
+    { k: "pesquisas.gerenciar", n: "Criar e gerenciar pesquisas de clima" },
+  ]},
   { area: "Sistema", caps: [
     { k: "sistema.config", n: "Configurações (tipos, ações)" },
     { k: "sistema.usuarios", n: "Gerenciar usuários e permissões" },
@@ -12715,6 +13516,7 @@ const PERM_DEFAULT = {
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
     "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
     "comunicados.gerenciar": true, "documentos.gerenciar": true, "recibos.gerenciar": true,
+    "pesquisas.gerenciar": true,
     "auditoria.ver": true, "sistema.config": true, "sistema.usuarios": false,
   },
   lider: {
@@ -12725,6 +13527,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
+    "pesquisas.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   supervisor: {
@@ -12735,6 +13538,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
+    "pesquisas.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   // Colaborador (Portal). Tudo de gestor explicitamente false (impede override acidental);
@@ -12748,6 +13552,7 @@ const PERM_DEFAULT = {
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,
     "auditoria.ver": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
+    "pesquisas.gerenciar": false,
     "sistema.config": false, "sistema.usuarios": false,
     "self.ver": true, "self.assinar": true, "etica.enviar": true,
   },
@@ -13403,7 +14208,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.58.4";
+window.CURRENT_VERSION = "1.59.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

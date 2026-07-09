@@ -2158,3 +2158,47 @@ carregar uid). Cliente: incremento do contador TEM que ser `FieldValue.increment
 **Transparência (UI, LGPD):** anônima avisa "sem nome, sem código, sem horário; RH só vê em
 grupo (mín. 5) e só após encerrar; não se identifique no comentário". Identificada avisa antes
 de responder que o RH verá o nome junto (resposta voluntária).
+
+## 2026-07-09 · Pesquisa de clima: FRONT no ar (v1.59.0, v319)
+
+- **Feature 1 de 2 (Avaliações) completa: UI portada do mock aprovado** `docs/mockups/clima-mock-2026-07.html`
+  pra dentro do app (`public/app.js` + CSS). Backend já estava no ar; esta entrega é só a UI.
+- **Gestor · menu único "Avaliações"** (cap nova `pesquisas.gerenciar`, GLOBAL sem `scoped`, só
+  rh=true no PERM_DEFAULT; nav com ícone `star`). Abas clima | desempenho (desempenho é stub "em
+  breve", é a feature 2). Três telas de clima:
+  - **Lista:** cards com status (rascunho/aberta/encerrada) + selo anônima/identificada +
+    progresso (contador/elegíveis). KPIs honestos (ativas, taxa média de resposta, colaboradores);
+    o eNPS-atual do mock foi cortado (exigiria ler resultado de pesquisa encerrada; vive na tela
+    de resultados).
+  - **Construtor:** dimensões/perguntas editáveis + tipo de resposta por pergunta (conc 1-5 /
+    nota 0-10 / sim-não), "usar modelo padrão", toggle anônima/identificada (editável só em
+    rascunho, e o construtor só opera rascunho), switches eNPS/aberta, público (reusa `.com-seg`
+    + `comAlcance` dos comunicados). Salvar rascunho / publicar (com confirmação "não muda mais")
+    / excluir rascunho. SEM alça de arrastar (reordenação era decorativa no mock; YAGNI).
+  - **Resultados:** agregação DEFENSIVA no cliente (`_climaAgrega`/`_climaNormaliza`: ignora
+    chave fora das perguntas e valor fora da faixa do tipo, normaliza a 0-100), eNPS
+    (promotores/neutros/detratores), média por dimensão, comentários. Anônima trata `{selado:true}`
+    como estado normal (menos de 5 ou ainda aberta), NÃO erro. **Ballot check:** compara
+    `respostas.length` vs `contador.n` e mostra faixa vermelha "Conferir" na divergência.
+- **Colaborador · responder** (`renderColabPesquisa`, rota `colab-pesquisa`): convite entra em
+  "Precisa da sua atenção" na home; form com escala 1-5 / nota 0-10 / sim-não por pergunta + eNPS
+  0-10 + comentário; barra de progresso; enviar só habilita com tudo respondido. Esconde pesquisa
+  já respondida (`jaRespondi` via recibo). **ZERO logEvento no fluxo** (abrir e responder), a
+  chamada é `responderPesquisaClima(pid, s.anonima, payload)` com a flag vinda da config real.
+- **`fim` como Timestamp (não string):** `_climaJanela` em `firebase.js` converte o `fim` do form
+  (ISO) pra Timestamp fim-do-dia; `inicio` é cosmético (string). Motivo: a regra do recibo faz
+  `request.time < p.fim`; um `fim` string erraria a comparação e NEGARIA toda resposta. Patch de
+  editar rascunho só manda `fim` quando preenchido (nunca `fim:null`).
+- **Wiring de dados:** `carregarPesquisasClimaColab()` entrou no boot paralelo do colaborador
+  (`carregarDadosCompletos`). `criarPesquisaClima` passou a aceitar `inicio`/`fim`.
+- **Verificação:** harness Playwright próprio (`scratchpad/clima-verify.mjs`, modo demo com firebase
+  bloqueado + camada de dados stubada) dirigiu gestor (lista/construtor/publicar/resultados
+  identificada e selada) e colaborador (home/responder/enviar). eNPS +25 e clima 57/100 conferidos
+  na mão; agregação defensiva descartou valor fora de faixa e chave fantasma; ballot check disparou;
+  dark do gestor ok (token-driven); 0 erros (só o 404 esperado de `firebase.config.js`, ausente em
+  demo). Gate LGPD do Fable sobre o front (invariante zero-logEvento, flag anônima, landmine do
+  `fim`, textos de transparência, agregação defensiva, cap global) antes do deploy.
+- **Release:** `1.59.0` / `v319` (CURRENT_VERSION + changelog + `?v=` no index + CACHE do sw),
+  `dist/` minificado no predeploy, deploy `hosting:weave`. **Próximo:** feature 2, Avaliação de
+  desempenho (mesmo rito: backend rules+testes+gate Fable, depois front; mock
+  `docs/mockups/desempenho-mock-2026-07.html`).

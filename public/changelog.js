@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.58.4", d: "9 jul 2026", current: true, items: [
+    v: "1.59.0", d: "9 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Nova aba Avaliações com a Pesquisa de clima. Monte a pesquisa (dimensões, perguntas e tipo de resposta, anônima ou identificada, eNPS e comentário), publique para o público que escolher e acompanhe os resultados agregados por dimensão, o eNPS e os comentários. Numa pesquisa anônima o resultado só aparece com no mínimo 5 respostas e após encerrar." },
+      { type: "feat", aud: "colab", title: "Quando o RH abre uma pesquisa de clima do seu segmento, ela aparece no seu início para responder. Numa pesquisa anônima, suas respostas são gravadas sem nome, sem código e sem horário; o RH só vê o resultado em grupo." },
+    ],
+  },
+  {
+    v: "1.58.4", d: "9 jul 2026", items: [
       { type: "med", aud: "gestor", title: "Corrigido o resto do pisca: ao trocar de aba, o cabeçalho e os indicadores começavam invisíveis e faziam um fade a cada troca. Removida essa animação de entrada; agora as telas aparecem na hora, sem piscar." },
     ],
   },
