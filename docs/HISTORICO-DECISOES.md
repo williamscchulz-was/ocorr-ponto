@@ -2363,3 +2363,58 @@ PEGADINHA de harness nova: o pop-up de Novidades abre 1x por sessão e cobre pri
 só pro print). Release v323/1.61.0 deployado. **As DUAS features das Avaliações (clima +
 desempenho) estão completas e no ar.** Pendências futuras: 360 quando houver Cloud Functions;
 retenção de ciclos encerrados (política do William).
+
+## 2026-07-10 — Geral/líder no Banco de Horas: pipeline gera card em vez de descartar (backend NO AR)
+
+Resposta ao achado do dia anterior (11 pessoas + Ivan): William, falando com o RH, trouxe o
+requisito completo — mesmo que o roteamento pro Banco de Horas continue igual, RH **precisa
+visualizar** esses casos no app; a dinâmica é diferente (ela "dispensaria"/"conferiria", mas
+precisa saber que aconteceu pra ir corrigir a marcação bruta no WK Radar). 3 mockups iterados
+com o William (Artifact, mesmo link atualizado em cada rodada:
+https://claude.ai/code/artifact/84aeb9cc-c1de-4cd6-bbd0-ac8bb982951f) até convergir no desenho
+final — William puxou pro vocabulário que já existe ("conferido pelo GP", "tem que ir pra
+lançadas") em vez do que eu tinha inventado ("Ciente").
+
+**Desenho final (achado ao vivo no código, não inventado):** a lista de Ações do modal do líder
+(`data.js`) já tem `"Banco de Horas"` e `"Cartão Ponto com Problema"` cadastradas — a peça já
+existia. Só faltava 1 opção nova. Fluxo: GP clica "Conferir" no card (rh_confere) → abre o MESMO
+modal de Ação que o líder já usa hoje (fatos + dropdown Ação + Observação), pré-selecionado com a
+opção nova `"Banco de Horas Geral"` → confirma → cai em Confirmadas → GP clica "Lançar" →
+Lançadas. Achado técnico no caminho: hoje só admin/líder/supervisor podem abrir esse modal (RH só
+cria e manda pro líder — `podeConferirUI`); Turno Geral não tem líder de turno. Solução: pra
+cards `rotaBH`, o clique da GP abre o modal DIRETO, pulando a espera pelo líder (mesmo modal, sem
+intermediário).
+
+**Backend (meu lado, implementado e no ar):** `process-ocorrencias-rh.py`, os 2 pontos que
+faziam `removidoGeral += 1; continue` / `puloNaoIdentGeral += 1; continue` (loop principal linha
+~496, detector 999 linha ~719) não descartam mais — geram a ocorrência normal (mesmo card
+`rh_confere` que qualquer outra), com 2 campos aditivos: `rotaBH: true` e
+`acaoSugerida: "banco-horas-geral"`. Propagado no `upload-ocorrencias-auto.mjs` (batch.set).
+`resync-ocorrencias-horario-relevante.mjs` NÃO precisa desses campos na whitelist de resync —
+são calculados 1x na criação e não mudam por rodada (diferente de horarioRelevante etc., que
+dependem da apuração fechar).
+
+**Testado com dados reais antes de subir:** Ivan Carlos Machado (1184, Atrasos 09/07) —
+`rotaBH: true, acaoSugerida: "banco-horas-geral"`, confirmado no Firestore após o upload.
+Reconciliação (invariante "1 incidente = 1 card vivo") testada via `check-pipeline-health.mjs`
+pós-upload: ok, zero interação problemática com a lógica de dedup construída nos dias
+anteriores (os casos rotaBH nunca colidem com nada pré-existente — Geral/líder em situação
+!= Falta nunca gerava doc nenhum antes, é território 100% novo pro dedup).
+
+**Efeito colateral relevante pro William saber:** ao subir pra produção, **37 casos** (não só os
+2 que motivaram a mudança) apareceram de uma vez na fila "GP confere" — são TODOS os eventos
+Geral/líder desde o go-live (01/07) que estavam sendo descartados em silêncio até agora, não só
+os 2 casos recentes. É esperado (backfill de uma regra que existia desde sempre), mas é um salto
+visível na fila que vale avisar a RH antes que ela abra a tela.
+
+**Achado à parte (investigado, não resolvido hoje):** dos 11 códigos do incidente de 08/07
+original, só 2 (Anderson 612, Djoniffer 866) ainda tinham rastro reconstituível automaticamente
+nesta rodada — os outros 9 não têm mais linha nem no WK nativo nem no flag 999 do Espelho (dado
+mudou nos 2 dias entre o achado manual e a implementação). Não investigado a fundo (WK
+provavelmente reclassificou/fechou a apuração desses dias de outro jeito) — mencionar ao William
+se perguntar por que nem todos os 11 aparecem.
+
+**Pendente (PC):** parte de design/frontend — 1 linha nova em `data.js` (Ação "Banco de Horas
+Geral"), tratamento do card `rotaBH` em `app.js` (badge, botão "Conferir" abrindo o modal de Ação
+direto pulando `com_lider`, pré-seleção de `acaoSugerida`), e a regra de permissão pra GP abrir
+esse modal especificamente nesses cards. Spec completo mandado pro PC via bridge.
