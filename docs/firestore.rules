@@ -924,5 +924,141 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // ============================================================
+    // AVALIACAO DE DESEMPENHO (feature 2 das Avaliacoes, 2026-07-09).
+    // v1 = modalidades 'gestor' (so o gestor avalia) e 'auto' (gestor +
+    // autoavaliacao lado a lado); o '360' de pares anonimos FICA FORA ate
+    // existir Cloud Functions (sorteio/agregacao server-side; decisao do
+    // William). RH/admin cria os ciclos (cap desempenho.gerenciar, GLOBAL:
+    // NUNCA conceder 'turno'/'atrib'); o gestor avalia SO alvos do proprio
+    // escopo (lider por turno, supervisor por lista/turnos, validado NA REGRA
+    // via users/{alvoUid} denormalizado, mesmos campos do casaSegmento); o
+    // colaborador faz a autoavaliacao e le o que e sobre si SO concluido.
+    // Sem PII denormalizada no doc (identidade via funcionarios no runtime).
+    // Gaps gestor x auto calculados no cliente; por isso NAO ha colecao
+    // 'resultados' no v1 (ela e do 360 server-side).
+    // ============================================================
+    match /avaliacaoCiclos/{cicloId} {
+      function gpDesemp() { return isAdmin() || temCap('desempenho.gerenciar', isRH()); }
+      function ciclo() { return get(/databases/$(database)/documents/avaliacaoCiclos/$(cicloId)).data; }
+      function alvoDoc(alvoUid) { return get(/databases/$(database)/documents/users/$(alvoUid)).data; }
+      // Escopo do gestor sobre o alvo. Campo ausente no users do alvo = erro = nega (fail-safe).
+      function gestorNoEscopo(alvoUid) {
+        let a = alvoDoc(alvoUid);
+        return gpDesemp()
+          || liderDoMesmoTurno(a.turno)
+          || supervisorVe(a.funcionarioId)
+          || supervisorVeTurno(a.turno);
+      }
+      // O alvo participa do ciclo? (casaTurno/casaSetor ja recebem o doc por argumento)
+      function alvoNoPublico(alvoUid) {
+        let c = ciclo();
+        let a = alvoDoc(alvoUid);
+        return c.publico.tipo == 'todos'
+          || (c.publico.tipo == 'turno' && casaTurno(c.publico, a))
+          || (c.publico.tipo == 'setor' && casaSetor(c.publico, a));
+      }
+      function cicloShapeOk() {
+        return request.resource.data.nome is string
+          && request.resource.data.nome.size() >= 1 && request.resource.data.nome.size() <= 120
+          && request.resource.data.modalidade in ['gestor', 'auto']
+          && request.resource.data.competencias is list
+          && request.resource.data.competencias.size() >= 1 && request.resource.data.competencias.size() <= 12
+          && request.resource.data.escalaMax is int
+          && request.resource.data.escalaMax >= 3 && request.resource.data.escalaMax <= 10
+          && request.resource.data.periodoInicio is timestamp
+          && request.resource.data.periodoFim is timestamp
+          && request.resource.data.publico.tipo in ['todos', 'turno', 'setor']
+          && request.resource.data.publico.valores is list;
+      }
+
+      // Config: papel de gestao le (precisa pra avaliar); colaborador le SO ciclo
+      // ativo em que participa (espelho do clima).
+      allow read: if gpDesemp() || isLider() || isSupervisor()
+                  || (isAuthed() && resource.data.status == 'ativo' && casaSegmento(resource.data.publico));
+      allow create: if gpDesemp()
+        && request.resource.data.status == 'rascunho'
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.criadoEm == request.time
+        && cicloShapeOk();
+      // 3 ramos (espelho do clima): editar rascunho ou ATIVAR; ativo so estende o
+      // periodoFim; ativo -> encerrado one-way. Congela modalidade/competencias/
+      // escalaMax/publico depois de ativo; encerrado e imutavel.
+      allow update: if gpDesemp() && (
+        ( resource.data.status == 'rascunho'
+          && request.resource.data.criadoPor == resource.data.criadoPor
+          && request.resource.data.criadoEm == resource.data.criadoEm
+          && cicloShapeOk()
+          && request.resource.data.status in ['rascunho', 'ativo']
+          && ( request.resource.data.status == 'rascunho'
+               || ( request.resource.data.ativadoEm == request.time
+                    && request.resource.data.ativadoPor == request.auth.uid ) ) )
+        ||
+        ( resource.data.status == 'ativo'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['periodoFim'])
+          && request.resource.data.periodoFim is timestamp )
+        ||
+        ( resource.data.status == 'ativo'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'encerradoEm', 'encerradoPor'])
+          && request.resource.data.status == 'encerrado'
+          && request.resource.data.encerradoEm == request.time
+          && request.resource.data.encerradoPor == request.auth.uid )
+      );
+      allow delete: if isAdmin() || (gpDesemp() && resource.data.status == 'rascunho');
+
+      // Avaliacoes: id DETERMINISTICO "{papel}_{avaliadorUid}_{alvoUid}" (re-salvar
+      // nao duplica; mata o doc-fantasma do cache otimista). papel 'auto' so na
+      // modalidade 'auto' e so o proprio (participando do publico); papel 'gestor'
+      // so gestor com o alvo no escopo E no publico do ciclo. Escrita so com ciclo
+      // ATIVO; 'concluida' e imutavel (correcao administrativa = delete do gp, com
+      // trilha em /eventos pela UI).
+      match /avaliacoes/{avId} {
+        function d() { return request.resource.data; }
+        function avShapeOk() {
+          return d().keys().hasOnly(['alvoUid', 'avaliadorUid', 'papel', 'notas', 'comentarios', 'feedbackGeral', 'status', 'atualizadoEm'])
+            && d().alvoUid is string && d().avaliadorUid is string
+            && d().papel in ['gestor', 'auto']
+            && avId == d().papel + '_' + d().avaliadorUid + '_' + d().alvoUid
+            && d().avaliadorUid == request.auth.uid
+            && d().notas is map && d().notas.size() >= 1 && d().notas.size() <= 12
+            && ( !('comentarios' in d()) || d().comentarios is map )
+            && ( !('feedbackGeral' in d()) || (d().feedbackGeral is string && d().feedbackGeral.size() <= 2000) )
+            && d().status in ['rascunho', 'concluida']
+            && d().atualizadoEm == request.time;
+        }
+        function podeEscrever() {
+          let c = ciclo();
+          // request.time < periodoFim: sem isto o ramo "estender periodoFim" seria
+          // decorativo e o ciclo ativo aceitaria avaliacao pra sempre (gate Fable).
+          return isAuthed() && c.status == 'ativo' && request.time < c.periodoFim && avShapeOk()
+            && (resource == null || resource.data.status == 'rascunho')
+            && ( ( d().papel == 'auto'
+                   && c.modalidade == 'auto'
+                   && d().alvoUid == request.auth.uid
+                   && casaSegmento(c.publico) )
+                 ||
+                 ( d().papel == 'gestor'
+                   && d().alvoUid != request.auth.uid
+                   && gestorNoEscopo(d().alvoUid)
+                   && alvoNoPublico(d().alvoUid) ) );
+        }
+        // Le: o avaliador a propria (qualquer status); gp tudo; o ALVO a que e sobre
+        // si SO concluida E com o ciclo ENCERRADO (decisao William 2026-07-09: o
+        // resultado chega pra todo mundo junto, no fechamento; um concluir acidental
+        // do gestor nao expoe nada); o gestor do escopo le as concluidas do escopo
+        // durante o ciclo (comparativo gestor x auto). Rascunho alheio ninguem le.
+        allow read: if isAuthed() && (
+          resource.data.avaliadorUid == request.auth.uid
+          || gpDesemp()
+          || (resource.data.alvoUid == request.auth.uid && resource.data.status == 'concluida'
+              && ciclo().status == 'encerrado')
+          || (resource.data.status == 'concluida' && gestorNoEscopo(resource.data.alvoUid))
+        );
+        allow create: if podeEscrever();
+        allow update: if podeEscrever();
+        allow delete: if gpDesemp();
+      }
+    }
   }
 }

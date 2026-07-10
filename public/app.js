@@ -13584,6 +13584,7 @@ const PERM_CAPS = [
   // a rule /pesquisasClima usa temCap sem escopo — NUNCA conceder 'turno'/'atrib' pra ela.
   { area: "Avaliações", caps: [
     { k: "pesquisas.gerenciar", n: "Criar e gerenciar pesquisas de clima" },
+    { k: "desempenho.gerenciar", n: "Criar e gerenciar ciclos de avaliação de desempenho" },
   ]},
   { area: "Sistema", caps: [
     { k: "sistema.config", n: "Configurações (tipos, ações)" },
@@ -13609,7 +13610,7 @@ const PERM_DEFAULT = {
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
     "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
     "comunicados.gerenciar": true, "documentos.gerenciar": true, "recibos.gerenciar": true,
-    "pesquisas.gerenciar": true,
+    "pesquisas.gerenciar": true, "desempenho.gerenciar": true,
     "auditoria.ver": true, "sistema.config": true, "sistema.usuarios": false,
   },
   lider: {
@@ -13620,7 +13621,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
-    "pesquisas.gerenciar": false,
+    "pesquisas.gerenciar": false, "desempenho.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   supervisor: {
@@ -13631,7 +13632,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
-    "pesquisas.gerenciar": false,
+    "pesquisas.gerenciar": false, "desempenho.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   // Colaborador (Portal). Tudo de gestor explicitamente false (impede override acidental);
@@ -13645,7 +13646,7 @@ const PERM_DEFAULT = {
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false,
     "auditoria.ver": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
-    "pesquisas.gerenciar": false,
+    "pesquisas.gerenciar": false, "desempenho.gerenciar": false,
     "sistema.config": false, "sistema.usuarios": false,
     "self.ver": true, "self.assinar": true, "etica.enviar": true,
   },

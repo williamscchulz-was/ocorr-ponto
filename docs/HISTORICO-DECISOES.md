@@ -2239,3 +2239,59 @@ calado. Regra operacional: **nunca deployar de um worktree** sem garantir o conf
 + front clima), com as mudanças acima aplicadas por cima = release `1.59.1` / `v320`. **Próximo:**
 Avaliação de desempenho v1 = modalidades `gestor` + `auto` (o `360` exige Cloud Functions que o
 projeto não tem; documentado pra depois). Decidido com o William; escopo passa pelo gate Fable do backend.
+
+## 2026-07-09 · Cards pareados na Visão geral (v321/1.59.2) + Boas-vindas a recém-chegados (v322/1.60.0)
+
+**Cards pareados (missão WKRADAR e, aprovada).** Padrão: `.vg-grid` com `align-items: stretch` e
+os cards do par em coluna flex com wrapper `.vg-card__body` (`flex:1; justify-content:center`), o
+mais curto estica até a altura do maior e centraliza o conteúdo, sem cortar nem inventar dado.
+Caso 2 (Aniversariantes × Chegaram há pouco): só o wrap. Caso 1 (Demografia × Ranking): William
+decidiu que ficam SEMPRE ABERTOS; os `<details>` viraram cards abertos lado a lado e todo o
+CSS/markup do acordeão saiu no mesmo passe. Verificado via Playwright (alturas idênticas nos 2
+pares; mobile <860px empilha).
+
+**Boas-vindas (ideia WKRADAR f, aprovada).** Reusa o sistema de reação do mural (zero coleção
+nova): posts `bv-{slug}-{ano da ADMISSÃO}` (não o corrente: a janela de 120 dias cruza o réveillon
+e o postId não pode mudar, senão as reações somem), `tipo: 'bemvindo'`. Regra: tipo casado com o
+prefixo do post via disjunção explícita; anti-spoof/idempotência intactos; gate Fable formal GO
+(sem vetor novo, matches() é full-match RE2, superfície igual à pré-existente); suíte 349/349
+(+5); rules deployadas. Guard de auto-toque no CLIENTE (paridade com o coração; residual
+cosmético, `ponytail:` taggeado na regra). UI: mão levantada no card Chegaram há pouco (Visão
+geral), otimista com revert+toast, copy sem exclamação. Ressalvas conhecidas: homônimos admitidos
+no mesmo ano dividem contador (paridade com o aniversário, sem ação). Smoke Playwright em modo
+demo (config bloqueado + recém-chegados injetados no state): zero erros, revert provado.
+PEGADINHA de harness nova: no localhost com `firebase.config.js` presente o app NÃO entra em demo,
+o harness tem que abortar a rota do config; e `const state` de script clássico não é
+`window.state` (usar o identificador nu no evaluate).
+
+## 2026-07-09 · Avaliação de desempenho: BACKEND (rules) NO AR
+
+**Escopo v1 (decisões William):** modalidades `gestor` e `auto` SOMENTE; o `360` de pares anônimos
+exige Cloud Functions (sorteio + agregação server-side) que o projeto não tem, fica documentado
+como próxima etapa. RH/admin cria os ciclos (cap nova `desempenho.gerenciar`, GLOBAL, fallback
+isRH, NUNCA turno/atrib); gestor avalia SÓ alvos do próprio escopo; colaborador faz a auto.
+**Resultado pro colaborador SÓ no encerramento do ciclo** (decisão William: chega pra todo mundo
+junto; concluir acidental do gestor não expõe nada). Sem coleção `resultados` no v1 (gaps
+gestor×auto calculados no cliente, é o que dispensa CF).
+
+**Modelo:** `avaliacaoCiclos/{id}` (nome, modalidade, escalaMax 3..10, competencias[] 1..12 com
+peso, publico reusa casaSegmento, status rascunho→ativo→encerrado one-way, periodoInicio/Fim
+TIMESTAMP) + `avaliacoes/{papel_avaliadorUid_alvoUid}` (id determinístico anti-fantasma; notas
+map; comentarios/feedbackGeral opcionais; status rascunho|concluida; concluida IMUTÁVEL; delete
+só gp = correção administrativa). Escopo do gestor validado NA REGRA via get(users/{alvoUid})
+denormalizado (liderDoMesmoTurno/supervisorVe/supervisorVeTurno) + alvoNoPublico (casaTurno/
+casaSetor com o doc do alvo). Escrita só com ciclo ativo E `request.time < periodoFim` (achado
+do gate: sem isso o "estender periodoFim" era decorativo e o ciclo aceitava avaliação pra sempre).
+
+**Gate Fable formal: GO com ressalvas.** Aplicadas: (1) periodoFim gateia escrita + 2 testes;
+(2) resultado do alvo só com ciclo encerrado (pergunta de produto respondida pelo William) + 2
+testes. Residuais DOCUMENTADOS sem ação: valores de notas/comentarios não validados na regra
+(rules não iteram map; precedente clima; teto 1MB); delete do gp não força trilha (o /eventos é
+client-side; postura igual à correção administrativa da RH); NUNCA criar uid custom com
+underscore (colidiria o id determinístico `papel_avaliador_alvo`); retenção de ciclos encerrados
+pendente de política (decisão de negócio); frescor do users.turno/setor denormalizado é o mesmo
+residual dos comunicados. Suíte **401/401** (52 casos novos em
+tests/avaliacao-desempenho-rules.test.mjs), rules DEPLOYADAS. PERM_CAPS/PERM_DEFAULT com a cap
+nova (rh true; lider/supervisor/colaborador false). **Próximo:** camada de dados (firebase.js) e
+front (portar docs/mockups/desempenho-mock-2026-07.html; a query do colab filtra status=='ativo'
++ público na QUERY, senão a regra de list nega, padrão do clima).
