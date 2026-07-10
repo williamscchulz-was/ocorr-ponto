@@ -2443,3 +2443,15 @@ se perguntar por que nem todos os 11 aparecem.
 Geral"), tratamento do card `rotaBH` em `app.js` (badge, botão "Conferir" abrindo o modal de Ação
 direto pulando `com_lider`, pré-seleção de `acaoSugerida`), e a regra de permissão pra GP abrir
 esse modal especificamente nesses cards. Spec completo mandado pro PC via bridge.
+
+**FEITO (PC, 2026-07-10, v325/1.63.0, commit bcec8f3).** Ação `banco-horas-geral` no data.js;
+card `rh_confere` com `rotaBH` ganhou selo info "Resolvido no Banco de Horas" + botão único
+Conferir (sem Dispensar); o Conferir da GP abre o `openConferirAutoModal` DIRETO de `rh_confere`
+com a Ação pré-selecionada pela `acaoSugerida` (trocável) e hint explicando o roteamento.
+**Achado que simplificou tudo: ZERO mudança de regra e zero no firebase.js** — o ramo RH/admin
+da regra já aceitava `rh_confere -> confirmada` com ação, o `_transicaoOca` não depende do
+estágio de origem (e ainda zera `classificacaoIncerta` ao sair de rh_confere de graça), e o
+`podeConferirUI` citado no spec é das manuais (o fluxo auto usa delegado próprio). Resto do
+fluxo intocado (Lançar -> Lançadas com "Lançada · Banco de Horas Geral"). Smoke Playwright demo
+8/8 (incluindo card normal de controle sem regressão), 0 erros. Os 37 cards históricos ganharam
+o tratamento visual no deploy.
