@@ -2298,6 +2298,42 @@ front (portar docs/mockups/desempenho-mock-2026-07.html; a query do colab filtra
 
 ## 2026-07-09 · Avaliação de desempenho: FRONT NO AR (v323/1.61.0). Feature 2 COMPLETA
 
+## 2026-07-10 — Investigado: cartão de ponto quebrado em 08/07 de manhã, "app não alegou"
+
+RH reportou (William, verbal): no dia 08/07 de manhã o cartão ponto físico deu problema, várias
+pessoas não bateram a entrada, WK mostrou a marcação faltando, mas o app não gerou nada. Antes
+disso, mesmo dia de conversa: caso Ivan Carlos Machado (f-1184, Atrasos 09/07 21min, lançada
+manual pela Suyanne) — confirmado que Geral/líder só gera ocorrência automática pra "Faltas
+Injustificadas" (regra pré-existente, `vaiPraBh` no loop principal); atraso dele foi roteado pro
+BH em silêncio, por design. William reagiu "faz sentido" mas não respondeu se quer mudar a regra.
+
+**Verificação do caso de 08/07 (mesma disciplina: dado real antes de concluir).** Grep no Espelho
+de Ponto (`ExpAuto_Espelho_Ponto.txt`) por `;08/07/2026;` + situação "Marcações Não
+Identificadas": **11 funcionários** (183, 476, 544, 612, 663, 671, 859, 866, 1139, 1184, 1232),
+todos com só 3 das 4 batidas do dia (falta a entrada ~07:2x/07:3x, sobra almoço+saída) — bate
+exatamente com o relato do RH (cartão físico fora do ar de manhã). Grep na Relação de Ocorrências
+oficial (`ExpAuto_Ocorrencias_Minerador.txt`, é o arquivo que o loop principal lê) pelos mesmos 11
+códigos em 08/07: **zero linhas** — o WK não classificou nem gerou situação nenhuma pra esse dia
+pra ninguém desse grupo (nem ambígua, nem nada).
+
+**Causa raiz (confirmada, não é bug novo).** Cruzei os 11 códigos contra o cadastro
+(`ExpAuto_D_Empregado.txt`, coluna Turno) + `OCORRENCIAS_LIDERES` (`config.mjs:70`): **10 são
+"Turno Geral"**, o 11º (866, Djoniffer Krieck Goncalves) está na lista de líderes. O detector 999
+(`process-ocorrencias-rh.py`, existe justamente pra cobrir dias que o WK "esquece" de reportar —
+lê o Espelho de Ponto direto) tentou processar os 11, mas aplica a MESMA regra do loop principal
+(linha 719: `if turno=='geral' or cod in LIDERES: puloNaoIdentGeral += 1; continue` — nenhum
+rótulo do detector 999 é "Faltas Injustificadas", então esse grupo NUNCA gera ocorrência
+automática ali, só vai pro BH). **Ou seja: é o EXATO MESMO mecanismo do caso Ivan, só que hoje
+bateu em 11 pessoas ao mesmo tempo** (efeito colateral de o turno geral concentrar bastante gente,
+mais a falha do relógio ter afetado todo mundo que bate ponto de manhã). Não sumiu pro RH — o
+saldo de Banco de Horas de cada um reflete a manhã faltante (é como o dado aparece), só não vira
+card de conferência automático no app.
+
+**Decisão pendente (William, ainda não respondida — junta os 2 casos, mesma causa raiz):** mudar
+`vaiPraBh` pra Geral/líder também gerarem ocorrência automática fora de Faltas Injustificadas
+(atraso, não-registrou-entrada, etc.), não só ir pro BH em silêncio? Resolveria Ivan (09/07) e
+esses 11 (08/07) de uma vez. Sem mudança de código até ele decidir.
+
 **Refinos de modelo achados na integração (rules reescritas + redeploy, suíte 412/412):**
 (1) **Alvo por `alvoFid` (funcionarioId), não uid de users**: o gestor opera 100% por
 `state.funcionarios` e não conhece uids; os helpers (`supervisorVe`, `meuFuncionarioId`) já são
