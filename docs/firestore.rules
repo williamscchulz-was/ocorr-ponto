@@ -942,19 +942,22 @@ service cloud.firestore {
     match /avaliacaoCiclos/{cicloId} {
       function gpDesemp() { return isAdmin() || temCap('desempenho.gerenciar', isRH()); }
       function ciclo() { return get(/databases/$(database)/documents/avaliacaoCiclos/$(cicloId)).data; }
-      function alvoDoc(alvoUid) { return get(/databases/$(database)/documents/users/$(alvoUid)).data; }
-      // Escopo do gestor sobre o alvo. Campo ausente no users do alvo = erro = nega (fail-safe).
-      function gestorNoEscopo(alvoUid) {
-        let a = alvoDoc(alvoUid);
+      // O ALVO e chaveado por funcionarioId (nao uid de users): o gestor opera por
+      // state.funcionarios e nao conhece uids; os helpers do projeto (supervisorVe,
+      // meuFuncionarioId, euSouODono) ja sao por fid. funcionarios/{fid} tem turno/setor.
+      function alvoFunc(fid) { return get(/databases/$(database)/documents/funcionarios/$(fid)).data; }
+      // Escopo do gestor sobre o alvo. Campo ausente no doc do alvo = erro = nega (fail-safe).
+      function gestorNoEscopo(fid) {
+        let a = alvoFunc(fid);
         return gpDesemp()
           || liderDoMesmoTurno(a.turno)
-          || supervisorVe(a.funcionarioId)
+          || supervisorVe(fid)
           || supervisorVeTurno(a.turno);
       }
       // O alvo participa do ciclo? (casaTurno/casaSetor ja recebem o doc por argumento)
-      function alvoNoPublico(alvoUid) {
+      function alvoNoPublico(fid) {
         let c = ciclo();
-        let a = alvoDoc(alvoUid);
+        let a = alvoFunc(fid);
         return c.publico.tipo == 'todos'
           || (c.publico.tipo == 'turno' && casaTurno(c.publico, a))
           || (c.publico.tipo == 'setor' && casaSetor(c.publico, a));
@@ -973,10 +976,11 @@ service cloud.firestore {
           && request.resource.data.publico.valores is list;
       }
 
-      // Config: papel de gestao le (precisa pra avaliar); colaborador le SO ciclo
-      // ativo em que participa (espelho do clima).
+      // Config: papel de gestao le (precisa pra avaliar); colaborador le ciclo ATIVO
+      // (pra se autoavaliar) OU ENCERRADO (pra rotular o proprio resultado, que so
+      // aparece no fechamento) em que participa. Rascunho o colaborador nunca le.
       allow read: if gpDesemp() || isLider() || isSupervisor()
-                  || (isAuthed() && resource.data.status == 'ativo' && casaSegmento(resource.data.publico));
+                  || (isAuthed() && resource.data.status in ['ativo', 'encerrado'] && casaSegmento(resource.data.publico));
       allow create: if gpDesemp()
         && request.resource.data.status == 'rascunho'
         && request.resource.data.criadoPor == request.auth.uid
@@ -1007,8 +1011,10 @@ service cloud.firestore {
       );
       allow delete: if isAdmin() || (gpDesemp() && resource.data.status == 'rascunho');
 
-      // Avaliacoes: id DETERMINISTICO "{papel}_{avaliadorUid}_{alvoUid}" (re-salvar
-      // nao duplica; mata o doc-fantasma do cache otimista). papel 'auto' so na
+      // Avaliacoes: id DETERMINISTICO "{papel}_{alvoFid}" -- UMA avaliacao de gestor
+      // (a oficial do ciclo) e UMA auto por alvo; re-salvar nao duplica e todo mundo
+      // acha o doc por getDoc direto, sem query. avaliadorUid registra o ULTIMO autor
+      // (outro gestor do escopo pode assumir o rascunho). papel 'auto' so na
       // modalidade 'auto' e so o proprio (participando do publico); papel 'gestor'
       // so gestor com o alvo no escopo E no publico do ciclo. Escrita so com ciclo
       // ATIVO; 'concluida' e imutavel (correcao administrativa = delete do gp, com
@@ -1016,10 +1022,10 @@ service cloud.firestore {
       match /avaliacoes/{avId} {
         function d() { return request.resource.data; }
         function avShapeOk() {
-          return d().keys().hasOnly(['alvoUid', 'avaliadorUid', 'papel', 'notas', 'comentarios', 'feedbackGeral', 'status', 'atualizadoEm'])
-            && d().alvoUid is string && d().avaliadorUid is string
+          return d().keys().hasOnly(['alvoFid', 'avaliadorUid', 'papel', 'notas', 'comentarios', 'feedbackGeral', 'status', 'atualizadoEm'])
+            && d().alvoFid is string && d().avaliadorUid is string
             && d().papel in ['gestor', 'auto']
-            && avId == d().papel + '_' + d().avaliadorUid + '_' + d().alvoUid
+            && avId == d().papel + '_' + d().alvoFid
             && d().avaliadorUid == request.auth.uid
             && d().notas is map && d().notas.size() >= 1 && d().notas.size() <= 12
             && ( !('comentarios' in d()) || d().comentarios is map )
@@ -1035,25 +1041,26 @@ service cloud.firestore {
             && (resource == null || resource.data.status == 'rascunho')
             && ( ( d().papel == 'auto'
                    && c.modalidade == 'auto'
-                   && d().alvoUid == request.auth.uid
+                   && d().alvoFid == meuFuncionarioId()
                    && casaSegmento(c.publico) )
                  ||
                  ( d().papel == 'gestor'
-                   && d().alvoUid != request.auth.uid
-                   && gestorNoEscopo(d().alvoUid)
-                   && alvoNoPublico(d().alvoUid) ) );
+                   && d().alvoFid != meuFuncionarioId()
+                   && gestorNoEscopo(d().alvoFid)
+                   && alvoNoPublico(d().alvoFid) ) );
         }
-        // Le: o avaliador a propria (qualquer status); gp tudo; o ALVO a que e sobre
-        // si SO concluida E com o ciclo ENCERRADO (decisao William 2026-07-09: o
-        // resultado chega pra todo mundo junto, no fechamento; um concluir acidental
-        // do gestor nao expoe nada); o gestor do escopo le as concluidas do escopo
-        // durante o ciclo (comparativo gestor x auto). Rascunho alheio ninguem le.
+        // Le: o avaliador/autor a propria (qualquer status); gp tudo; o ALVO a que e
+        // sobre si SO concluida E com o ciclo ENCERRADO (decisao William 2026-07-09:
+        // o resultado chega pra todo mundo junto, no fechamento; um concluir
+        // acidental do gestor nao expoe nada); o gestor do escopo le as concluidas
+        // do escopo durante o ciclo (comparativo gestor x auto). Rascunho alheio
+        // ninguem le.
         allow read: if isAuthed() && (
           resource.data.avaliadorUid == request.auth.uid
           || gpDesemp()
-          || (resource.data.alvoUid == request.auth.uid && resource.data.status == 'concluida'
+          || (resource.data.alvoFid == meuFuncionarioId() && resource.data.status == 'concluida'
               && ciclo().status == 'encerrado')
-          || (resource.data.status == 'concluida' && gestorNoEscopo(resource.data.alvoUid))
+          || (resource.data.status == 'concluida' && gestorNoEscopo(resource.data.alvoFid))
         );
         allow create: if podeEscrever();
         allow update: if podeEscrever();

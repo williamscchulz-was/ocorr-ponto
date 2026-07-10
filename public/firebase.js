@@ -1439,6 +1439,158 @@
       }
     };
 
+    // ===== AVALIACAO DE DESEMPENHO (cliente). v1 gestor+auto; regras deployadas
+    // (tests/avaliacao-desempenho-rules.test.mjs). Id da avaliacao e DETERMINISTICO
+    // "{papel}_{avaliadorUid}_{alvoUid}" (re-salvar nao duplica). O colaborador so
+    // ve o proprio resultado com o ciclo ENCERRADO (decisao William). =====
+    const _dsmp = () => db.collection("avaliacaoCiclos");
+
+    // periodoInicio/periodoFim TEM que virar Timestamp (a regra compara
+    // request.time < periodoFim; string deixaria a comparacao em erro e NEGARIA
+    // toda avaliacao). Inicio = 00:00 local, fim = fim-do-dia local.
+    function _dsmpJanela(o) {
+      if (!o) return o;
+      if (typeof o.periodoInicio === "string") {
+        const d = new Date(o.periodoInicio.slice(0, 10) + "T00:00:00");
+        if (isNaN(d)) delete o.periodoInicio; else o.periodoInicio = firebase.firestore.Timestamp.fromDate(d);
+      }
+      if (typeof o.periodoFim === "string") {
+        const d = new Date(o.periodoFim.slice(0, 10) + "T23:59:59");
+        if (isNaN(d)) delete o.periodoFim; else o.periodoFim = firebase.firestore.Timestamp.fromDate(d);
+      }
+      return o;
+    }
+
+    window.criarCicloDesempenho = async function (cfg) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      const data = _dsmpJanela({
+        nome: String(cfg.nome || "").slice(0, 120),
+        modalidade: cfg.modalidade === "auto" ? "auto" : "gestor",
+        escalaMax: Math.min(10, Math.max(3, Math.round(Number(cfg.escalaMax) || 5))),
+        competencias: Array.isArray(cfg.competencias) ? cfg.competencias.slice(0, 12) : [],
+        publico: cfg.publico && cfg.publico.tipo ? cfg.publico : { tipo: "todos", valores: [] },
+        periodoInicio: cfg.periodoInicio, periodoFim: cfg.periodoFim,
+        status: "rascunho", criadoPor: uid, criadoEm: _FV.serverTimestamp(),
+      });
+      const ref = await _dsmp().add(data);
+      return ref.id;
+    };
+    window.editarCicloDesempenho = async function (cid, patch) {
+      await _dsmp().doc(cid).update(_dsmpJanela({ ...patch }));
+    };
+    window.ativarCicloDesempenho = async function (cid) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      await _dsmp().doc(cid).update({ status: "ativo", ativadoEm: _FV.serverTimestamp(), ativadoPor: uid });
+    };
+    window.estenderCicloDesempenho = async function (cid, fim) {
+      await _dsmp().doc(cid).update(_dsmpJanela({ periodoFim: fim }));
+    };
+    window.encerrarCicloDesempenho = async function (cid) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      await _dsmp().doc(cid).update({ status: "encerrado", encerradoEm: _FV.serverTimestamp(), encerradoPor: uid });
+    };
+    window.excluirCicloDesempenhoRascunho = async function (cid) { await _dsmp().doc(cid).delete(); };
+
+    // Salva (rascunho) ou conclui uma avaliacao. O alvo e o FUNCIONARIO (alvoFid); id
+    // deterministico "{papel}_{alvoFid}" = UMA oficial de gestor + UMA auto por alvo
+    // (getDoc direto, sem query). payload: { notas: {compId: 1..escalaMax},
+    // comentarios?: {compId: string}, feedbackGeral?: string }. atualizadoEm SEMPRE
+    // serverTimestamp (a regra exige == request.time). Concluida e imutavel na regra.
+    window.salvarAvaliacaoDesempenho = async function (cicloId, papel, alvoFid, payload, concluir) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!uid) throw new Error("sem sessao");
+      const id = `${papel}_${alvoFid}`;
+      const data = {
+        alvoFid, avaliadorUid: uid, papel,
+        notas: (payload && payload.notas) || {},
+        status: concluir ? "concluida" : "rascunho",
+        atualizadoEm: _FV.serverTimestamp(),
+      };
+      if (payload && payload.comentarios && Object.keys(payload.comentarios).length) data.comentarios = payload.comentarios;
+      if (payload && payload.feedbackGeral) data.feedbackGeral = String(payload.feedbackGeral).slice(0, 2000);
+      await _dsmp().doc(cicloId).collection("avaliacoes").doc(id).set(data);
+      return id;
+    };
+
+    // Gestor/GP: todos os ciclos.
+    window.carregarCiclosDesempenhoGestor = async function () {
+      try {
+        const snap = await _dsmp().orderBy("criadoEm", "desc").get();
+        state.ciclosDesempenho = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      } catch (e) { debug?.("[desemp] gestor:", e?.message || e); state.ciclosDesempenho = []; }
+      return state.ciclosDesempenho;
+    };
+    // Colaborador: ciclos ATIVOS (autoavaliar) + ENCERRADOS (resultado) do segmento.
+    // 2 status x 3 segmentos = ate 6 queries (in + array-contains nao combinam com
+    // seguranca; explicito e barato). Dedupe por id.
+    window.carregarCiclosDesempenhoColab = async function () {
+      const f = (state.funcionarios || [])[0] || null;
+      const meuTurno = f ? f.turno : null, meuSetor = f ? f.setor : null;
+      const col = _dsmp();
+      const qs = [];
+      for (const st of ["ativo", "encerrado"]) {
+        qs.push(col.where("status", "==", st).where("publico.tipo", "==", "todos"));
+        if (meuTurno != null) qs.push(col.where("status", "==", st).where("publico.tipo", "==", "turno").where("publico.valores", "array-contains", meuTurno));
+        if (meuSetor) qs.push(col.where("status", "==", st).where("publico.tipo", "==", "setor").where("publico.valores", "array-contains", meuSetor));
+      }
+      const snaps = await Promise.all(qs.map((q) => q.get().catch((e) => { debug?.("[desemp] colab q:", e?.message || e); return null; })));
+      const seen = {}, arr = [];
+      for (const sn of snaps) { if (!sn) continue; for (const d of sn.docs) { if (seen[d.id]) continue; seen[d.id] = 1; arr.push({ id: d.id, ...d.data() }); } }
+      // Enriquece: nos ativos de modalidade 'auto', a MINHA auto (convite some quando
+      // concluida); nos encerrados recentes (60 dias), o resultado do gestor (a regra
+      // so libera concluida + encerrado; negado/inexistente = sem convite).
+      const meuFid = f ? f.id : null;
+      if (meuFid) {
+        const agora = Date.now();
+        await Promise.all(arr.map(async (c) => {
+          try {
+            if (c.status === "ativo" && c.modalidade === "auto") {
+              const d = await col.doc(c.id).collection("avaliacoes").doc(`auto_${meuFid}`).get();
+              c.minhaAuto = d.exists ? { id: d.id, ...d.data() } : null;
+            } else if (c.status === "encerrado") {
+              const em = c.encerradoEm && typeof c.encerradoEm.toDate === "function" ? c.encerradoEm.toDate().getTime() : agora;
+              if (agora - em <= 60 * 864e5) {
+                const d = await col.doc(c.id).collection("avaliacoes").doc(`gestor_${meuFid}`).get();
+                c.meuResultado = d.exists ? { id: d.id, ...d.data() } : null;
+                if (c.meuResultado) {
+                  const a = await col.doc(c.id).collection("avaliacoes").doc(`auto_${meuFid}`).get().catch(() => null);
+                  c.minhaAuto = a && a.exists ? { id: a.id, ...a.data() } : null;
+                }
+              }
+            }
+          } catch (e) { debug?.("[desemp] colab enrich:", e?.code || e?.message); }
+        }));
+      }
+      state.ciclosDesempenhoColab = arr;
+      return arr;
+    };
+    // Colaborador: a propria auto (autor le sempre) + o resultado do gestor sobre si
+    // (a regra so libera concluida com ciclo ENCERRADO -> permission-denied vira null,
+    // que a UI mostra como "disponivel no fechamento do ciclo").
+    window.carregarMinhaAvaliacaoDesempenho = async function (cicloId, meuFid) {
+      const col = _dsmp().doc(cicloId).collection("avaliacoes");
+      let auto = null, doGestor = null;
+      try { const d = await col.doc(`auto_${meuFid}`).get(); if (d.exists) auto = { id: d.id, ...d.data() }; } catch {}
+      try { const d = await col.doc(`gestor_${meuFid}`).get(); if (d.exists) doGestor = { id: d.id, ...d.data() }; }
+      catch (e) { debug?.("[desemp] resultado selado:", e?.code || e?.message); }
+      return { auto, doGestor };
+    };
+    // Gestor: a avaliacao OFICIAL de um alvo (pra ver/continuar o rascunho) e a auto
+    // CONCLUIDA do alvo (comparativo; rascunho alheio/fora do escopo nega -> null).
+    window.carregarAvaliacaoDoAlvo = async function (cicloId, alvoFid, papel) {
+      try {
+        const d = await _dsmp().doc(cicloId).collection("avaliacoes").doc(`${papel}_${alvoFid}`).get();
+        return d.exists ? { id: d.id, ...d.data() } : null;
+      } catch { return null; }
+    };
+    // GP: todas as avaliacoes do ciclo (acompanhamento/resultados).
+    window.carregarAvaliacoesCicloGP = async function (cicloId) {
+      try {
+        const snap = await _dsmp().doc(cicloId).collection("avaliacoes").get();
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      } catch (e) { debug?.("[desemp] gp:", e?.message || e); return []; }
+    };
+
     // ===== Aniversario (reacao coracao "Parabenizar" no card da home) =====
     // Coleção muralAniversario/{postId}: doc pai NUNCA é escrito pelo cliente (rule write:false);
     // só a subcoleção reacoes/{uid} vale. Tudo LAZY (só ao renderizar a home), fora do
@@ -3345,6 +3497,9 @@
       // Depende de state.funcionarios[0] (turno/setor), ja carregado acima. Falha isolada
       // nao derruba o boot: cai em lista vazia.
       try { await window.carregarPesquisasClimaColab(); } catch (e) { debug?.("[colab] clima:", e?.message || e); state.pesquisasClimaColab = []; }
+      // Ciclos de avaliacao de desempenho do segmento (ativos = autoavaliar,
+      // encerrados = resultado). Mesma tolerancia a falha do clima.
+      try { await window.carregarCiclosDesempenhoColab(); } catch (e) { debug?.("[colab] desempenho:", e?.message || e); state.ciclosDesempenhoColab = []; }
       })(),
       (async () => {
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.

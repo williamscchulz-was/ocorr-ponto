@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.60.0", d: "9 jul 2026", current: true, items: [
+    v: "1.61.0", d: "9 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Avaliação de desempenho completa na aba Avaliações. A GP monta o ciclo (competências com peso, quem avalia e quem participa) e cada líder avalia as pessoas do próprio time, com nota por competência e feedback. Dá pra salvar rascunho e concluir quando estiver pronto." },
+      { type: "feat", aud: "colab", title: "Quando um ciclo de avaliação incluir autoavaliação, o convite aparece no seu início: você se avalia nas mesmas competências que o seu gestor. Quando o ciclo encerra, você vê o resultado completo, lado a lado com a sua autoavaliação e com o feedback do gestor." },
+    ],
+  },
+  {
+    v: "1.60.0", d: "9 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Dar as boas-vindas: no card Chegaram há pouco da Visão geral, cada recém-contratado ganhou um botão de mão levantada pra receber as boas-vindas dos colegas, no mesmo espírito do coração de aniversário." },
     ],
   },

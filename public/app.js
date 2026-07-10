@@ -1033,7 +1033,7 @@ function renderBottomNavColaborador() {
   ];
   // Telas filhas do hub (acessadas por atalho da Home) não têm item próprio na barra:
   // acendem "Início" pra a barra nunca ficar sem item ativo.
-  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap", "colab-pesquisa"];
+  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap", "colab-pesquisa", "colab-desempenho", "colab-desempenho-res"];
   const pageAtiva = filhasDoHub.includes(state.view.page) ? "colab-home" : state.view.page;
   const idxAtivo = Math.max(0, items.findIndex((it) => it.id === pageAtiva));
   // A barra é rebuilt a cada render; pra pill DESLIZAR (não teleportar), nasce na
@@ -1059,10 +1059,12 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conta") return renderColabConta();
   if (page === "colab-pesquisa") return renderColabPesquisa();
+  if (page === "colab-desempenho") return renderColabDesempenho();
+  if (page === "colab-desempenho-res") return renderColabDesempenhoRes();
   if (page === "colab-roadmap") return renderPortalRoadmap();
   if (page === "colab-folha") return renderColabFolha();
   if (page === "colab-ponto") return renderColabPonto();
@@ -2012,6 +2014,112 @@ function comunicadoFixadoHtml() {
 
 // "Precisa da sua atencao": agrega doc a assinar/ler + aviso que pede ciencia. So renderiza
 // se houver pendencia. Cada linha navega pra tela certa.
+// ===== Colaborador · Avaliação de desempenho =====
+// Autoavaliação (ciclo ativo, modalidade auto) e resultado (SÓ ciclo encerrado; a
+// regra nega antes disso). Reusa os chips dsmp-* do gestor (CSS global).
+let _dsmpAuto = null; // { cid, notas, feedbackGeral }
+
+function renderColabDesempenho() {
+  const cid = state.view.dsmpColabId;
+  const c = (state.ciclosDesempenhoColab || []).find((x) => x.id === cid);
+  const meuFid = (state.funcionarios || [])[0]?.id;
+  if (!c || !meuFid || c.status !== "ativo" || c.modalidade !== "auto" || (c.minhaAuto && c.minhaAuto.status === "concluida")) {
+    state.view.page = "colab-home"; return renderApp();
+  }
+  if (!_dsmpAuto || _dsmpAuto.cid !== cid) {
+    _dsmpAuto = { cid, notas: { ...((c.minhaAuto && c.minhaAuto.notas) || {}) }, feedbackGeral: (c.minhaAuto && c.minhaAuto.feedbackGeral) || "" };
+  }
+  const max = Number(c.escalaMax) || 5;
+  const comps = (c.competencias || []).map((k) => `
+    <div class="dsmp-lin">
+      <div class="dsmp-lin__h"><b>${escapeHtml(k.nome)}</b></div>
+      ${dsmpChipsHtml(k.id, max, _dsmpAuto.notas[k.id], false)}
+    </div>`).join("");
+  $("#view").innerHTML = `<div class="pp-fade">
+      <button type="button" class="btn btn--ghost btn--sm" data-dsmp-sair style="margin-bottom:6px;">${cpIcon("chevron")}<span style="margin-left:2px;">Voltar</span></button>
+      <div class="resp-intro">
+        <div class="resp-intro__badge ident">${cpIcon("star")} Autoavaliação</div>
+        <h2>Como você avalia o seu período?</h2>
+        <p>Dê uma nota de 1 a ${max} em cada competência, do seu ponto de vista. Seu gestor faz a mesma avaliação e, quando o ciclo encerrar, você vê os dois lados juntos.</p>
+      </div>
+      <div class="vg-card"><p class="vg-h">${escapeHtml(c.nome || "Competências")}</p>${comps}</div>
+      <div class="vg-card"><p class="vg-h">Comentário <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">(opcional)</span></p>
+        <div class="field" style="margin:0;"><textarea id="dsmp-auto-fb" rows="3" maxlength="2000" placeholder="Contexto do período, conquistas, dificuldades.">${escapeHtml(_dsmpAuto.feedbackGeral || "")}</textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn--ghost" id="dsmp-auto-salvar" style="flex:1;">${cpIcon("check")}<span style="margin-left:4px;">Salvar rascunho</span></button>
+        <button class="btn btn--primary" id="dsmp-auto-concluir" style="flex:1.4;">${cpIcon("check")}<span style="margin-left:4px;">Concluir</span></button>
+      </div>
+      <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;">Depois de concluir não dá pra editar. Seu gestor vê a sua autoavaliação concluída.</p>
+    </div>`;
+  $("#view [data-dsmp-sair]")?.addEventListener("click", () => { _dsmpAuto = null; state.view.page = "colab-home"; renderApp(); });
+  $$("#view .dsmp-chip").forEach((ch) => ch.addEventListener("click", () => {
+    _dsmpAuto.notas[ch.dataset.comp] = Number(ch.dataset.v);
+    $$(`#view .dsmp-chip[data-comp="${ch.dataset.comp}"]`).forEach((x) => { x.classList.toggle("on", x === ch); x.setAttribute("aria-pressed", x === ch ? "true" : "false"); });
+  }));
+  const lerFb = () => { _dsmpAuto.feedbackGeral = $("#dsmp-auto-fb")?.value || ""; };
+  const payload = () => { const p = { notas: _dsmpAuto.notas }; if (_dsmpAuto.feedbackGeral.trim()) p.feedbackGeral = _dsmpAuto.feedbackGeral.trim(); return p; };
+  $("#dsmp-auto-salvar")?.addEventListener("click", (e) => {
+    lerFb();
+    if (!Object.keys(_dsmpAuto.notas).length) { toast("Dê pelo menos uma nota antes de salvar.", "danger"); return; }
+    withBusy("dsmp-auto-salvar", e.currentTarget, async () => {
+      await window.salvarAvaliacaoDesempenho(cid, "auto", meuFid, payload(), false);
+      c.minhaAuto = { status: "rascunho", notas: { ..._dsmpAuto.notas }, feedbackGeral: _dsmpAuto.feedbackGeral };
+      toast("Rascunho salvo. Você pode continuar depois.");
+    });
+  });
+  $("#dsmp-auto-concluir")?.addEventListener("click", async (e) => {
+    lerFb();
+    const faltam = (c.competencias || []).filter((k) => !Number.isInteger(Number(_dsmpAuto.notas[k.id])));
+    if (faltam.length) { toast(`Dê nota em todas as competências (falta${faltam.length === 1 ? "" : "m"} ${faltam.length}).`, "danger"); return; }
+    withBusy("dsmp-auto-concluir", e.currentTarget, async () => {
+      // Pós-sucesso DENTRO do withBusy (ele engole exceção): numa falha o form fica
+      // de pé pra retry, sem falso "enviado" (classe do bug v269).
+      await window.salvarAvaliacaoDesempenho(cid, "auto", meuFid, payload(), true);
+      c.minhaAuto = { status: "concluida", notas: { ..._dsmpAuto.notas } };
+      _dsmpAuto = null;
+      state.view.page = "colab-home";
+      renderApp();
+      toast("Autoavaliação concluída.");
+    });
+  });
+}
+
+function renderColabDesempenhoRes() {
+  const cid = state.view.dsmpColabId;
+  const c = (state.ciclosDesempenhoColab || []).find((x) => x.id === cid);
+  const g = c && c.meuResultado;
+  if (!c || !g || c.status !== "encerrado") { state.view.page = "colab-home"; return renderApp(); }
+  const max = Number(c.escalaMax) || 5;
+  const nota = dsmpNota(c, g.notas);
+  const auto = c.minhaAuto && c.minhaAuto.status === "concluida" ? c.minhaAuto : null;
+  // Trilha de ciência: abrir o resultado registra em /eventos (append-only).
+  window.logEvento?.({ tipo: "ciencias", acao: "Abriu o resultado da avaliação de desempenho", alvo: c.nome || cid });
+  const linhas = (c.competencias || []).map((k) => {
+    const vg = Number(g.notas && g.notas[k.id]);
+    const va = auto ? Number(auto.notas && auto.notas[k.id]) : null;
+    const okG = Number.isInteger(vg) && vg >= 1 && vg <= max;
+    const okA = Number.isInteger(va) && va >= 1 && va <= max;
+    const gap = okG && okA ? vg - va : null;
+    return `<div class="dsmp-lin">
+        <div class="dsmp-lin__h"><b>${escapeHtml(k.nome)}</b><span class="dsmp-peso">${okG ? vg : "—"} de ${max}</span></div>
+        <div class="dsmp-bar"><span style="width:${okG ? (vg / max) * 100 : 0}%"></span></div>
+        ${okA ? `<p class="dsmp-auto-tx">Sua autoavaliação: <b>${va}</b>${gap === 0 ? " · mesma percepção" : gap != null ? ` · ${gap > 0 ? "seu gestor avaliou acima" : "seu gestor avaliou abaixo"}` : ""}</p>` : ""}
+      </div>`;
+  }).join("");
+  $("#view").innerHTML = `<div class="pp-fade">
+      <button type="button" class="btn btn--ghost btn--sm" data-dsmp-sair style="margin-bottom:6px;">${cpIcon("chevron")}<span style="margin-left:2px;">Voltar</span></button>
+      <div class="resp-intro">
+        <div class="resp-intro__badge ident">${cpIcon("star")} ${escapeHtml(c.nome || "Avaliação de desempenho")}</div>
+        <h2>Sua avaliação${nota != null ? `: <span style="color:var(--plum);">${String(nota).replace(".", ",")}</span> de ${max}` : ""}</h2>
+        <p>Avaliação feita pelo seu gestor no ciclo encerrado${auto ? ", lado a lado com a sua autoavaliação" : ""}. Converse com sua liderança sobre os próximos passos.</p>
+      </div>
+      <div class="vg-card"><p class="vg-h">Competências</p>${linhas}</div>
+      ${g.feedbackGeral ? `<div class="vg-card"><p class="vg-h">Feedback do gestor</p><p style="font-size:13.5px;line-height:1.6;">${escapeHtml(g.feedbackGeral)}</p></div>` : ""}
+    </div>`;
+  $("#view [data-dsmp-sair]")?.addEventListener("click", () => { state.view.page = "colab-home"; renderApp(); });
+}
+
 function precisaAtencaoHtml() {
   const docs = (state.documentosColab || []).filter((d) => typeof colabDocPendente === "function" && colabDocPendente(d));
   const itens = [];
@@ -2035,10 +2143,19 @@ function precisaAtencaoHtml() {
     clima: p.id, tone: "info", ic: "smile",
     t: "Pesquisa de clima", s: p.titulo || "Responder pesquisa", bd: "Responder",
   }));
+  // Avaliação de desempenho: autoavaliação pendente (ciclo ativo, modalidade auto)
+  // e resultado disponível (ciclo encerrado recente com avaliação concluída).
+  (state.ciclosDesempenhoColab || []).forEach((c) => {
+    if (c.status === "ativo" && c.modalidade === "auto" && !(c.minhaAuto && c.minhaAuto.status === "concluida")) {
+      itens.push({ dsmp: c.id, tone: "info", ic: "star", t: "Autoavaliação de desempenho", s: c.nome || "Fazer a autoavaliação", bd: "Responder" });
+    } else if (c.status === "encerrado" && c.meuResultado) {
+      itens.push({ dsmpRes: c.id, tone: "info", ic: "star", t: "Sua avaliação de desempenho saiu", s: c.nome || "Ver o resultado", bd: "Ver" });
+    }
+  });
   if (!itens.length) return "";
   const n = itens.length;
   const rows = itens.map((it) => {
-    const attr = it.clima ? `data-clima-resp="${it.clima}"` : `data-nav="${it.page}"`;
+    const attr = it.clima ? `data-clima-resp="${it.clima}"` : it.dsmp ? `data-dsmp-resp="${it.dsmp}"` : it.dsmpRes ? `data-dsmp-res="${it.dsmpRes}"` : `data-nav="${it.page}"`;
     return `<button class="pp-pend" ${attr}>
       <span class="pp-ico pp-ico--${it.tone === "amber" ? "amber" : "info"}">${cpIcon(it.ic)}</span>
       <span class="pp-pend__bd"><span class="pp-pend__t">${escapeHtml(it.t)}</span><span class="pp-pend__s">${escapeHtml(it.s)}</span></span>
@@ -2215,6 +2332,16 @@ function bindClimaConvite(scope) {
   scope.querySelectorAll("[data-clima-resp]").forEach((el) => el.addEventListener("click", () => {
     state.view.pesquisaId = el.dataset.climaResp;
     state.view.page = "colab-pesquisa";
+    renderApp();
+  }));
+  scope.querySelectorAll("[data-dsmp-resp]").forEach((el) => el.addEventListener("click", () => {
+    state.view.dsmpColabId = el.dataset.dsmpResp;
+    state.view.page = "colab-desempenho";
+    renderApp();
+  }));
+  scope.querySelectorAll("[data-dsmp-res]").forEach((el) => el.addEventListener("click", () => {
+    state.view.dsmpColabId = el.dataset.dsmpRes;
+    state.view.page = "colab-desempenho-res";
     renderApp();
   }));
 }
@@ -3457,7 +3584,9 @@ function renderNav() {
     items.push(ob);
   }
   if (can("comunicados.gerenciar")) items.push({ id: "comunicados", label: "Comunicados", icon: "megafone" });
-  if (can("pesquisas.gerenciar")) items.push({ id: "avaliacoes", label: "Avaliações", icon: "star" });
+  // Avaliações: quem gerencia (clima ou desempenho) OU quem avalia (líder/supervisor
+  // entram só pra preencher as avaliações do próprio escopo).
+  if (can("pesquisas.gerenciar") || can("desempenho.gerenciar") || u.role === "lider" || u.role === "supervisor") items.push({ id: "avaliacoes", label: "Avaliações", icon: "star" });
   if (can("documentos.gerenciar")) items.push({ id: "documentos", label: "Documentos", icon: "file" });
   if (["admin", "rh", "lider"].includes(currentUser()?.role)) items.push({ id: "disciplinar", label: "Disciplinar", icon: "alert" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
@@ -3749,20 +3878,26 @@ function climaPublicoLabel(pub) {
 }
 
 function renderAvaliacoes() {
-  if (!can("pesquisas.gerenciar")) { state.view.page = "dashboard"; return renderApp(); }
+  const u = currentUser();
+  // Clima: so quem gerencia pesquisas. Desempenho: quem gerencia ciclos OU avalia
+  // (lider/supervisor entram so pra avaliar os do proprio escopo).
+  const podeClima = can("pesquisas.gerenciar");
+  const podeDesemp = can("desempenho.gerenciar") || u.role === "lider" || u.role === "supervisor";
+  if (!podeClima && !podeDesemp) { state.view.page = "dashboard"; return renderApp(); }
   $("#topbar-title").textContent = "Avaliações";
-  const tab = state.view.avalTab === "desempenho" ? "desempenho" : "clima";
+  let tab = state.view.avalTab === "desempenho" ? "desempenho" : "clima";
+  if (tab === "clima" && !podeClima) tab = "desempenho";
+  if (tab === "desempenho" && !podeDesemp) tab = "clima";
   const tabsHtml = `
     <div class="feat-tabs" id="aval-tabs">
-      <button class="feat-tab ${tab === "clima" ? "on" : ""}" data-aval-tab="clima">${icon("smile")}<span>Pesquisa de clima</span></button>
-      <button class="feat-tab ${tab === "desempenho" ? "on" : ""}" data-aval-tab="desempenho">${icon("conferir")}<span>Avaliação de desempenho</span></button>
+      ${podeClima ? `<button class="feat-tab ${tab === "clima" ? "on" : ""}" data-aval-tab="clima">${icon("smile")}<span>Pesquisa de clima</span></button>` : ""}
+      ${podeDesemp ? `<button class="feat-tab ${tab === "desempenho" ? "on" : ""}" data-aval-tab="desempenho">${icon("conferir")}<span>Avaliação de desempenho</span></button>` : ""}
     </div>`;
   if (tab === "desempenho") {
-    $("#view").innerHTML = tabsHtml + `
-      <header class="page-header"><div><h1>Avaliação de desempenho</h1><p>Ciclos por competências, com autoavaliação e 360.</p></div></header>
-      <div class="empty"><div class="empty__icon">${icon("conferir")}</div><h3>Em breve</h3><p>A avaliação de desempenho é a próxima entrega das Avaliações. A pesquisa de clima já está no ar nesta aba.</p></div>`;
-    bindAvalTabs();
-    return;
+    const dscreen = state.view.dsmpScreen || "lista";
+    if (dscreen === "novo" && can("desempenho.gerenciar")) return renderDsmpNovo(tabsHtml);
+    if (dscreen === "ciclo" && state.view.dsmpId) return renderDsmpCiclo(tabsHtml);
+    return renderDsmpLista(tabsHtml);
   }
   const screen = state.view.climaScreen || "lista";
   if (screen === "nova") return renderClimaNova(tabsHtml);
@@ -4282,6 +4417,552 @@ async function _climaEncerrar(id, btn) {
     renderApp();
     toast("Pesquisa encerrada.");
   });
+}
+
+// ============================================================
+// AVALIACAO DE DESEMPENHO (gestor) — v1 gestor+auto (360 depois, exige CF).
+// GP cria/gera os ciclos (cap desempenho.gerenciar); lider/supervisor so avaliam
+// os alvos do proprio escopo (a regra tambem valida server-side). Avaliacao
+// oficial UNICA por alvo (id gestor_{fid}); concluida e imutavel; o colaborador
+// so ve o resultado com o ciclo ENCERRADO. Gaps gestor x auto no cliente,
+// DEFENSIVO (so competencias do ciclo, valores 1..escalaMax).
+// ============================================================
+let _dsmpEdit = null;   // rascunho de ciclo em edicao no construtor
+let _dsmpAv = null;     // avaliacao em edicao { cid, fid, papel, notas, feedbackGeral }
+
+function _dsmpCompId() {
+  const r = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID().slice(0, 8) : Math.random().toString(36).slice(2, 10);
+  return "c" + r;
+}
+function _dsmpModelo() {
+  return [
+    { id: _dsmpCompId(), nome: "Qualidade do trabalho", peso: 2 },
+    { id: _dsmpCompId(), nome: "Produtividade", peso: 2 },
+    { id: _dsmpCompId(), nome: "Trabalho em equipe", peso: 1 },
+    { id: _dsmpCompId(), nome: "Pontualidade e assiduidade", peso: 1 },
+    { id: _dsmpCompId(), nome: "Segurança no trabalho", peso: 2 },
+  ];
+}
+function _dsmpEditNovo() {
+  const hoje = new Date();
+  const fim = new Date(hoje.getTime() + 60 * 864e5);
+  const iso = (d) => { const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+  return { id: null, status: "rascunho", nome: "", modalidade: "auto", escalaMax: 5, competencias: _dsmpModelo(), publico: { tipo: "todos", valores: [] }, periodoInicio: iso(hoje), periodoFim: iso(fim) };
+}
+function _dsmpEditFrom(c) {
+  return {
+    id: c.id, status: c.status, nome: c.nome || "", modalidade: c.modalidade === "gestor" ? "gestor" : "auto",
+    escalaMax: Number(c.escalaMax) || 5,
+    competencias: (Array.isArray(c.competencias) ? c.competencias : []).map((k) => ({ id: k.id || _dsmpCompId(), nome: k.nome || "", peso: [1, 2, 3].includes(Number(k.peso)) ? Number(k.peso) : 1 })),
+    publico: (c.publico && c.publico.tipo) ? { tipo: c.publico.tipo, valores: (c.publico.valores || []).slice() } : { tipo: "todos", valores: [] },
+    periodoInicio: _climaFimIso(c.periodoInicio), periodoFim: _climaFimIso(c.periodoFim),
+  };
+}
+function dsmpStatusBadge(status) {
+  if (status === "ativo") return `<span class="badge badge--success"><span class="dot"></span> Ativo</span>`;
+  if (status === "encerrado") return `<span class="badge badge--neutral">Encerrado</span>`;
+  return `<span class="badge badge--neutral">Rascunho</span>`;
+}
+const dsmpModLabel = (m) => m === "gestor" ? "Só o gestor avalia" : "Gestor + autoavaliação";
+// Nota final DEFENSIVA: media ponderada só das competencias do ciclo, com valores
+// inteiros dentro de 1..escalaMax; chave estranha ou valor fora da faixa e ignorado.
+function dsmpNota(ciclo, notas) {
+  if (!notas) return null;
+  const max = Number(ciclo.escalaMax) || 5;
+  let soma = 0, pesos = 0;
+  for (const comp of (ciclo.competencias || [])) {
+    const v = Number(notas[comp.id]);
+    if (!Number.isInteger(v) || v < 1 || v > max) continue;
+    const p = [1, 2, 3].includes(Number(comp.peso)) ? Number(comp.peso) : 1;
+    soma += v * p; pesos += p;
+  }
+  return pesos ? Math.round((soma / pesos) * 10) / 10 : null;
+}
+function _dsmpCasaPublico(c, f) {
+  const pub = c.publico || { tipo: "todos" };
+  if (pub.tipo === "todos") return true;
+  if (pub.tipo === "turno") return (pub.valores || []).some((v) => String(v) === String(f.turno));
+  if (pub.tipo === "setor") return (pub.valores || []).includes(f.setor);
+  return false;
+}
+// Alvos que ESTE gestor avalia no ciclo: escopo do papel + publico do ciclo.
+function _dsmpAlvosDoEscopo(u, c) {
+  return (state.funcionarios || [])
+    .filter((f) => f.ativo !== false && f.diretor !== true && f.aprendiz !== true)
+    .filter((f) => podeVerFuncionario(u, f))
+    .filter((f) => _dsmpCasaPublico(c, f))
+    .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")));
+}
+async function _carregarDsmpLista() { await window.carregarCiclosDesempenhoGestor(); }
+// Avaliacoes do ciclo em cache por render: GP puxa a colecao; lider/supervisor
+// puxa por alvo (getDoc direto do id deterministico, a regra libera as do escopo).
+async function _carregarDsmpAvs(c, alvos) {
+  const mapa = {};
+  if (can("desempenho.gerenciar")) {
+    const todas = await window.carregarAvaliacoesCicloGP(c.id);
+    for (const a of todas) {
+      mapa[a.alvoFid] = mapa[a.alvoFid] || {};
+      mapa[a.alvoFid][a.papel] = a;
+    }
+  } else {
+    await Promise.all(alvos.map(async (f) => {
+      const [g, au] = await Promise.all([
+        window.carregarAvaliacaoDoAlvo(c.id, f.id, "gestor"),
+        c.modalidade === "auto" ? window.carregarAvaliacaoDoAlvo(c.id, f.id, "auto") : null,
+      ]);
+      mapa[f.id] = { gestor: g || undefined, auto: au || undefined };
+    }));
+  }
+  state._dsmpAvs = state._dsmpAvs || {};
+  state._dsmpAvs[c.id] = mapa;
+  return mapa;
+}
+
+// ---------- Desempenho · lista de ciclos ----------
+function renderDsmpLista(tabsHtml) {
+  const temLista = state.ciclosDesempenho != null;
+  if (!temLista || estale("dsmp")) {
+    marcarCarga("dsmp");
+    _carregarDsmpLista().then(() => { if (state.view.page === "avaliacoes" && (state.view.dsmpScreen || "lista") === "lista") renderApp(); }).catch(() => {});
+    if (!temLista) {
+      $("#view").innerHTML = tabsHtml + `<div class="empty empty--mini"><p>Carregando ciclos…</p></div>`;
+      bindAvalTabs();
+      return;
+    }
+  }
+  const podeGerir = can("desempenho.gerenciar");
+  const header = `<header class="page-header">
+      <div><h1>Avaliação de desempenho</h1><p>Ciclos por competências: o gestor avalia o time e, se o ciclo permitir, cada um faz a autoavaliação.</p></div>
+      ${podeGerir ? `<button class="btn btn--primary" data-dsmp-novo>${icon("plus")}<span>Novo ciclo</span></button>` : ""}
+    </header>`;
+  const u = currentUser();
+  // Lider/supervisor: so ciclos com pelo menos 1 alvo no escopo (rascunho fica fora).
+  const lista = (state.ciclosDesempenho || []).filter((c) => podeGerir || (c.status !== "rascunho" && _dsmpAlvosDoEscopo(u, c).length));
+  if (!lista.length) {
+    $("#view").innerHTML = tabsHtml + header + `
+      <div class="empty"><div class="empty__icon">${icon("conferir")}</div><h3>Nenhum ciclo ainda</h3>
+        <p>${podeGerir ? "Crie o primeiro ciclo: escolha as competências, o peso de cada uma e quem participa." : "Quando a GP abrir um ciclo com o seu time, ele aparece aqui pra você avaliar."}</p>
+        ${podeGerir ? `<button class="btn btn--primary" data-dsmp-novo>${icon("plus")}<span>Novo ciclo</span></button>` : ""}</div>`;
+    bindDsmpLista();
+    return;
+  }
+  const ativos = lista.filter((c) => c.status === "ativo").length;
+  const encerrados = lista.filter((c) => c.status === "encerrado").length;
+  const stats = `<div class="stats">
+      <div class="stat stat--kpi ${ativos ? "stat--accent" : ""}"><p class="stat__label">Ciclos ativos</p><p class="stat__value">${ativos}</p><p class="stat__hint">${encerrados} encerrado${encerrados === 1 ? "" : "s"}</p></div>
+      <div class="stat stat--kpi"><p class="stat__label">Competências por ciclo</p><p class="stat__value">${lista[0] && Array.isArray(lista[0].competencias) ? lista[0].competencias.length : "—"}</p><p class="stat__hint">do ciclo mais recente</p></div>
+    </div>`;
+  const ordem = { ativo: 0, rascunho: 1, encerrado: 2 };
+  lista.sort((a, b) => (ordem[a.status] - ordem[b.status]) || 0);
+  $("#view").innerHTML = tabsHtml + header + stats + `<div class="surv-list">${lista.map(dsmpCicloCardHtml).join("")}</div>`;
+  bindDsmpLista();
+}
+function dsmpCicloCardHtml(c) {
+  const janela = [_climaDataCurta(c.periodoInicio), _climaDataCurta(c.periodoFim)].filter(Boolean).join(" a ");
+  const meta = [janela, climaPublicoLabel(c.publico)].filter(Boolean).join(" · ");
+  return `<button type="button" class="surv-card" data-dsmp-card="${c.id}">
+      <div class="surv-card__head">
+        <div><p class="surv-card__title">${escapeHtml(c.nome || "(sem nome)")}</p><p class="surv-card__meta">${meta}</p></div>
+        <div class="surv-card__badges">${dsmpStatusBadge(c.status)}<span class="seal seal--ident">${icon(c.modalidade === "gestor" ? "user" : "users")}${dsmpModLabel(c.modalidade)}</span></div>
+      </div>
+      <div class="surv-card__foot"><div class="surv-card__meta">${(c.competencias || []).length} competência${(c.competencias || []).length === 1 ? "" : "s"} · escala 1 a ${Number(c.escalaMax) || 5}${c.status === "rascunho" ? " · clique para continuar editando" : ""}</div></div>
+    </button>`;
+}
+function bindDsmpLista() {
+  bindAvalTabs();
+  $$("[data-dsmp-novo]").forEach((b) => b.addEventListener("click", () => {
+    _dsmpEdit = _dsmpEditNovo(); state.view.dsmpScreen = "novo"; state.view.dsmpId = null; renderApp();
+  }));
+  $$("[data-dsmp-card]").forEach((b) => b.addEventListener("click", () => {
+    const c = (state.ciclosDesempenho || []).find((x) => x.id === b.dataset.dsmpCard);
+    if (!c) return;
+    if (c.status === "rascunho" && can("desempenho.gerenciar")) { _dsmpEdit = _dsmpEditFrom(c); state.view.dsmpScreen = "novo"; state.view.dsmpId = c.id; }
+    else { state.view.dsmpScreen = "ciclo"; state.view.dsmpId = c.id; state.view.dsmpAlvo = null; }
+    renderApp();
+  }));
+}
+
+// ---------- Desempenho · construtor de ciclo ----------
+function renderDsmpNovo(tabsHtml) {
+  if (!_dsmpEdit) _dsmpEdit = _dsmpEditNovo();
+  const c = _dsmpEdit;
+  const editando = !!c.id;
+  const turnos = [1, 2, 3, "geral"];
+  const setores = getSetores();
+  const pub = c.publico || { tipo: "todos", valores: [] };
+  const eleg = comAlcance(pub);
+  const head = `<header class="page-header">
+      <div><h1>${editando ? "Editar rascunho" : "Novo ciclo"}</h1><p>Defina o período, quem avalia, as competências e quem participa.</p></div>
+      <button type="button" class="btn btn--ghost btn--sm" data-dsmp-voltar>${icon("arrowLeft")}<span>Voltar</span></button>
+    </header>`;
+  const identCard = `<div class="vg-card">
+      <p class="vg-h">Identificação</p>
+      <div class="field"><label for="dsmp-nome">Nome do ciclo</label><input type="text" id="dsmp-nome" maxlength="120" value="${escapeHtml(c.nome || "")}" placeholder="Ex.: Avaliação semestral · 2º semestre 2026"></div>
+      <div class="field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field"><label for="dsmp-inicio">Início</label><input type="date" id="dsmp-inicio" value="${escapeHtml(c.periodoInicio || "")}"></div>
+        <div class="field"><label for="dsmp-fim">Fim do período</label><input type="date" id="dsmp-fim" value="${escapeHtml(c.periodoFim || "")}"></div>
+      </div>
+    </div>`;
+  const modCard = `<div class="vg-card">
+      <p class="vg-h">Quem avalia</p>
+      <div class="anon-toggle" id="dsmp-mod">
+        <button type="button" class="anon-opt ${c.modalidade === "gestor" ? "sel" : ""}" data-mod="gestor">
+          <span class="anon-opt__mark"></span>
+          <div class="anon-opt__h">${icon("user")} Só o gestor</div>
+          <p>Cada líder avalia as pessoas do próprio time. O colaborador vê o resultado quando o ciclo encerra.</p>
+        </button>
+        <button type="button" class="anon-opt ${c.modalidade === "auto" ? "sel" : ""}" data-mod="auto">
+          <span class="anon-opt__mark"></span>
+          <div class="anon-opt__h">${icon("users")} Gestor + autoavaliação</div>
+          <p>Além da avaliação do gestor, cada pessoa se autoavalia nas mesmas competências. As diferenças de percepção aparecem lado a lado.</p>
+        </button>
+      </div>
+      <p class="helpnote">${icon("info")} A modalidade é definida agora e não muda depois que o ciclo ativa.</p>
+    </div>`;
+  const compsCard = `<div class="vg-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <p class="vg-h" style="margin:0;">Competências</p>
+        <button class="btn btn--soft btn--sm" id="dsmp-modelo" type="button">${icon("star")}<span>Usar modelo padrão</span></button>
+      </div>
+      <p style="font-size:12.5px;color:var(--text-muted);margin:6px 0 12px;">Cada competência tem um peso na nota final (1 = normal, 2 = importante, 3 = crítica). Notas de 1 a ${c.escalaMax}.</p>
+      <div class="dsmp-comps" id="dsmp-comps"></div>
+      <div class="qb-actions"><button class="qb-adddim" id="dsmp-addcomp" type="button">${icon("plus")} Adicionar competência</button></div>
+    </div>`;
+  const seg = pub.tipo;
+  const publicoCard = `<div class="vg-card">
+      <p class="vg-h">Quem participa</p>
+      <div class="com-seg" id="dsmp-seg" role="group" aria-label="Participantes do ciclo">
+        <button type="button" class="com-seg__chip ${seg === "todos" ? "is-on" : ""}" data-dsmp-pub="todos">${icon("users")}<span>Todos</span></button>
+        <button type="button" class="com-seg__chip ${seg === "turno" ? "is-on" : ""}" data-dsmp-pub="turno">${icon("clock")}<span>Por turno</span></button>
+        <button type="button" class="com-seg__chip ${seg === "setor" ? "is-on" : ""}" data-dsmp-pub="setor">${icon("briefcase")}<span>Por setor</span></button>
+      </div>
+      <div class="com-seg__detail" id="dsmp-pub-turno" style="${seg === "turno" ? "" : "display:none"}">
+        <select id="dsmp-turno" aria-label="Turno dos participantes">${turnos.map((t) => `<option value="${t}" ${String(pub.valores[0]) === String(t) ? "selected" : ""}>${TURNOS[t].label}</option>`).join("")}</select>
+      </div>
+      <div class="com-seg__detail" id="dsmp-pub-setor" style="${seg === "setor" ? "" : "display:none"}">
+        <select id="dsmp-setor" aria-label="Setor dos participantes">${setores.map((s) => `<option value="${escapeHtml(s)}" ${pub.valores[0] === s ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}</select>
+      </div>
+      <p class="helpnote">${icon("info")} <span id="dsmp-eleg-tx">${eleg} colaborador${eleg === 1 ? "" : "es"} ${eleg === 1 ? "será avaliado" : "serão avaliados"} neste ciclo.</span></p>
+    </div>`;
+  const excluir = editando ? `<button class="btn btn--ghost" data-dsmp-excluir>${icon("trash")}<span>Excluir rascunho</span></button>` : "";
+  const actions = `<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap;">
+      ${excluir}<div style="flex:1"></div>
+      <button class="btn btn--ghost" data-dsmp-salvar>${icon("check")}<span>Salvar rascunho</span></button>
+      <button class="btn btn--primary" data-dsmp-ativar>${icon("send")}<span>Ativar ciclo</span></button>
+    </div>`;
+  $("#view").innerHTML = tabsHtml + head + `<div style="max-width:720px;">${identCard}${modCard}${compsCard}${publicoCard}${actions}</div>`;
+  _dsmpCompsRender();
+  bindDsmpNovo();
+}
+function _dsmpCompsRender() {
+  const host = $("#dsmp-comps");
+  if (!host) return;
+  host.innerHTML = (_dsmpEdit.competencias || []).map((k) => `
+    <div class="dsmp-comp" data-cid="${escapeHtml(k.id)}">
+      <input type="text" value="${escapeHtml(k.nome || "")}" placeholder="Nome da competência (ex.: Qualidade do trabalho)" aria-label="Nome da competência">
+      <select class="qb-sel" aria-label="Peso na nota final">
+        ${[1, 2, 3].map((p) => `<option value="${p}"${Number(k.peso) === p ? " selected" : ""}>Peso ${p}</option>`).join("")}
+      </select>
+      <button class="qb-icon-btn dsmp-del-comp" type="button" title="Remover competência" aria-label="Remover competência">${icon("trash")}</button>
+    </div>`).join("");
+}
+function _dsmpCompsSync() {
+  const host = $("#dsmp-comps");
+  if (!host || !_dsmpEdit) return;
+  const comps = [];
+  host.querySelectorAll(".dsmp-comp").forEach((el) => {
+    comps.push({ id: el.dataset.cid || _dsmpCompId(), nome: el.querySelector("input")?.value || "", peso: Number(el.querySelector("select")?.value) || 1 });
+  });
+  _dsmpEdit.competencias = comps;
+}
+function _dsmpLerForm() {
+  _dsmpCompsSync();
+  _dsmpEdit.nome = $("#dsmp-nome")?.value || "";
+  _dsmpEdit.periodoInicio = $("#dsmp-inicio")?.value || "";
+  _dsmpEdit.periodoFim = $("#dsmp-fim")?.value || "";
+  if (_dsmpEdit.publico.tipo === "turno") { const v = $("#dsmp-turno")?.value; _dsmpEdit.publico.valores = [v === "geral" ? "geral" : Number(v)]; }
+  else if (_dsmpEdit.publico.tipo === "setor") { const v = $("#dsmp-setor")?.value; _dsmpEdit.publico.valores = v ? [v] : []; }
+  else _dsmpEdit.publico.valores = [];
+}
+function _dsmpValida() {
+  const c = _dsmpEdit;
+  if (!c.nome.trim()) return "Dê um nome ao ciclo.";
+  if (!c.periodoInicio || !c.periodoFim) return "Preencha o início e o fim do período.";
+  if (c.periodoFim < c.periodoInicio) return "O fim do período não pode ser antes do início.";
+  const comps = (c.competencias || []).filter((k) => k.nome.trim());
+  if (!comps.length) return "Adicione pelo menos uma competência.";
+  if (comps.length > 12) return "No máximo 12 competências.";
+  return null;
+}
+function _dsmpCfgPayload() {
+  const c = _dsmpEdit;
+  return {
+    nome: c.nome.trim(), modalidade: c.modalidade, escalaMax: c.escalaMax,
+    competencias: c.competencias.filter((k) => k.nome.trim()).map((k) => ({ id: k.id, nome: k.nome.trim().slice(0, 80), peso: k.peso })),
+    publico: c.publico, periodoInicio: c.periodoInicio, periodoFim: c.periodoFim,
+  };
+}
+function bindDsmpNovo() {
+  bindAvalTabs();
+  $$("[data-dsmp-voltar]").forEach((b) => b.addEventListener("click", () => { state.view.dsmpScreen = "lista"; state.view.dsmpId = null; _dsmpEdit = null; renderApp(); }));
+  const host = $("#dsmp-comps");
+  if (host) host.addEventListener("click", (e) => {
+    const btn = e.target.closest("button.dsmp-del-comp");
+    if (!btn) return;
+    _dsmpCompsSync();
+    const el = btn.closest(".dsmp-comp");
+    const i = Array.prototype.indexOf.call(host.children, el);
+    _dsmpEdit.competencias.splice(i, 1);
+    _dsmpCompsRender();
+  });
+  $("#dsmp-addcomp")?.addEventListener("click", () => {
+    _dsmpCompsSync();
+    _dsmpEdit.competencias.push({ id: _dsmpCompId(), nome: "", peso: 1 });
+    _dsmpCompsRender();
+    $("#dsmp-comps")?.lastElementChild?.querySelector("input")?.focus();
+  });
+  $("#dsmp-modelo")?.addEventListener("click", () => { _dsmpEdit.competencias = _dsmpModelo(); _dsmpCompsRender(); toast("Modelo padrão aplicado."); });
+  $$("#dsmp-mod .anon-opt").forEach((o) => o.addEventListener("click", () => {
+    _dsmpEdit.modalidade = o.dataset.mod;
+    $$("#dsmp-mod .anon-opt").forEach((x) => x.classList.toggle("sel", x.dataset.mod === _dsmpEdit.modalidade));
+  }));
+  $$("#dsmp-seg .com-seg__chip").forEach((chip) => chip.addEventListener("click", () => {
+    _dsmpLerForm();
+    _dsmpEdit.publico = { tipo: chip.dataset.dsmpPub, valores: [] };
+    renderApp();
+  }));
+  $$("#dsmp-turno, #dsmp-setor").forEach((sel) => sel.addEventListener("change", () => {
+    _dsmpLerForm();
+    const eleg = comAlcance(_dsmpEdit.publico);
+    const tx = $("#dsmp-eleg-tx");
+    if (tx) tx.textContent = `${eleg} colaborador${eleg === 1 ? "" : "es"} ${eleg === 1 ? "será avaliado" : "serão avaliados"} neste ciclo.`;
+  }));
+  $$("[data-dsmp-salvar]").forEach((b) => b.addEventListener("click", () => {
+    _dsmpLerForm();
+    const erro = _dsmpValida();
+    if (erro) { toast(erro, "danger"); return; }
+    withBusy("dsmp-salvar", b, async () => {
+      if (_dsmpEdit.id) await window.editarCicloDesempenho(_dsmpEdit.id, _dsmpCfgPayload());
+      else _dsmpEdit.id = await window.criarCicloDesempenho(_dsmpCfgPayload());
+      state.ciclosDesempenho = null; marcarCarga("dsmp");
+      state.view.dsmpScreen = "lista"; _dsmpEdit = null;
+      renderApp();
+      toast("Rascunho salvo.");
+    });
+  }));
+  $$("[data-dsmp-ativar]").forEach((b) => b.addEventListener("click", async () => {
+    _dsmpLerForm();
+    const erro = _dsmpValida();
+    if (erro) { toast(erro, "danger"); return; }
+    const eleg = comAlcance(_dsmpEdit.publico);
+    const ok = await confirmar({
+      titulo: "Ativar o ciclo?",
+      msg: `As competências, a modalidade e o público não mudam depois de ativar. ${eleg} colaborador${eleg === 1 ? "" : "es"} participa${eleg === 1 ? "" : "m"} e os gestores já podem avaliar.`,
+      okLabel: "Ativar",
+    });
+    if (!ok) return;
+    withBusy("dsmp-ativar", b, async () => {
+      if (_dsmpEdit.id) await window.editarCicloDesempenho(_dsmpEdit.id, _dsmpCfgPayload());
+      else _dsmpEdit.id = await window.criarCicloDesempenho(_dsmpCfgPayload());
+      await window.ativarCicloDesempenho(_dsmpEdit.id);
+      window.logEvento?.({ tipo: "dados", acao: "Ativou ciclo de avaliação", alvo: _dsmpEdit.nome });
+      state.ciclosDesempenho = null; marcarCarga("dsmp");
+      state.view.dsmpScreen = "lista"; _dsmpEdit = null;
+      renderApp();
+      toast("Ciclo ativado.");
+    });
+  }));
+  $$("[data-dsmp-excluir]").forEach((b) => b.addEventListener("click", async () => {
+    const ok = await confirmar({ titulo: "Excluir o rascunho?", msg: "O rascunho some pra todo mundo. Isso não afeta ciclos ativos ou encerrados.", okLabel: "Excluir", perigo: true });
+    if (!ok) return;
+    withBusy("dsmp-excluir", b, async () => {
+      await window.excluirCicloDesempenhoRascunho(_dsmpEdit.id);
+      state.ciclosDesempenho = null; marcarCarga("dsmp");
+      state.view.dsmpScreen = "lista"; _dsmpEdit = null;
+      renderApp();
+      toast("Rascunho excluído.");
+    });
+  }));
+}
+
+// ---------- Desempenho · detalhe do ciclo (avaliar + acompanhar) ----------
+function renderDsmpCiclo(tabsHtml) {
+  const c = (state.ciclosDesempenho || []).find((x) => x.id === state.view.dsmpId);
+  if (!c) { state.view.dsmpScreen = "lista"; return renderApp(); }
+  const u = currentUser();
+  const alvos = _dsmpAlvosDoEscopo(u, c);
+  const avs = (state._dsmpAvs && state._dsmpAvs[c.id]) || null;
+  if (!avs) {
+    _carregarDsmpAvs(c, alvos).then(() => { if (state.view.dsmpId === c.id) renderApp(); }).catch(() => {});
+    $("#view").innerHTML = tabsHtml + `<div class="empty empty--mini"><p>Carregando avaliações…</p></div>`;
+    bindAvalTabs();
+    return;
+  }
+  // Form de um alvo selecionado toma a tela (volta pra lista de alvos no Voltar).
+  if (state.view.dsmpAlvo) return renderDsmpAvaliar(tabsHtml, c, avs);
+
+  const janela = [_climaDataCurta(c.periodoInicio), _climaDataCurta(c.periodoFim)].filter(Boolean).join(" a ");
+  const podeGerir = can("desempenho.gerenciar");
+  const acoes = (podeGerir && c.status === "ativo")
+    ? `<div style="display:flex;gap:8px;flex-wrap:wrap;">
+         <button class="btn btn--soft btn--sm" data-dsmp-estender>${icon("clock")}<span>Estender prazo</span></button>
+         <button class="btn btn--soft btn--sm" data-dsmp-encerrar>${icon("lock")}<span>Encerrar ciclo</span></button>
+       </div>` : "";
+  const head = `<header class="page-header">
+      <div><h1>${escapeHtml(c.nome || "Ciclo")}</h1><p>${janela} · ${dsmpModLabel(c.modalidade)} · ${climaPublicoLabel(c.publico)}</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">${dsmpStatusBadge(c.status)}<button type="button" class="btn btn--ghost btn--sm" data-dsmp-voltar>${icon("arrowLeft")}<span>Voltar</span></button></div>
+    </header>`;
+  const feitas = alvos.filter((f) => avs[f.id] && avs[f.id].gestor && avs[f.id].gestor.status === "concluida").length;
+  const stats = `<div class="stats">
+      <div class="stat stat--kpi ${feitas === alvos.length && alvos.length ? "stat--accent" : ""}"><p class="stat__label">Avaliações concluídas</p><p class="stat__value">${feitas} de ${alvos.length}</p><p class="stat__hint">no seu escopo</p></div>
+      ${c.modalidade === "auto" ? `<div class="stat stat--kpi"><p class="stat__label">Autoavaliações</p><p class="stat__value">${alvos.filter((f) => avs[f.id] && avs[f.id].auto && avs[f.id].auto.status === "concluida").length} de ${alvos.length}</p><p class="stat__hint">entregues pelo time</p></div>` : ""}
+    </div>`;
+  const linhas = alvos.map((f) => {
+    const a = avs[f.id] || {};
+    const g = a.gestor, au = a.auto;
+    const nota = g && g.status === "concluida" ? dsmpNota(c, g.notas) : null;
+    const stG = g ? (g.status === "concluida" ? `<span class="badge badge--success">Concluída${nota != null ? " · " + String(nota).replace(".", ",") : ""}</span>` : `<span class="badge badge--neutral">Rascunho</span>`) : `<span class="badge badge--neutral">Pendente</span>`;
+    const stA = c.modalidade === "auto" ? (au && au.status === "concluida" ? `<span class="seal seal--ident">${icon("check")}Auto entregue</span>` : `<span class="seal">Auto pendente</span>`) : "";
+    return `<div class="vg-adm" data-dsmp-alvo="${escapeHtml(f.id)}" role="button" tabindex="0" style="cursor:pointer;">
+        ${avatarFuncHtml(f, "avatar")}
+        <div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml([f.setor, TURNOS[f.turno]?.label].filter(Boolean).join(" · "))}</span></div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">${stA}${stG}</div>
+      </div>`;
+  }).join("");
+  $("#view").innerHTML = tabsHtml + head + stats + acoes + `
+    <div class="vg-card" style="margin-top:14px;">
+      <p class="vg-h">${c.status === "ativo" ? "Seu time neste ciclo" : "Resultado do seu time"}</p>
+      ${linhas || `<p style="font-size:13px;color:var(--text-muted);">Nenhum colaborador do seu escopo participa deste ciclo.</p>`}
+    </div>`;
+  bindAvalTabs();
+  $$("[data-dsmp-voltar]").forEach((b) => b.addEventListener("click", () => { state.view.dsmpScreen = "lista"; state.view.dsmpId = null; renderApp(); }));
+  $$("[data-dsmp-alvo]").forEach((el) => el.addEventListener("click", () => {
+    state.view.dsmpAlvo = el.dataset.dsmpAlvo;
+    const a = (state._dsmpAvs[c.id] || {})[state.view.dsmpAlvo] || {};
+    const g = a.gestor;
+    _dsmpAv = { cid: c.id, fid: state.view.dsmpAlvo, papel: "gestor", notas: { ...(g && g.notas) || {} }, feedbackGeral: (g && g.feedbackGeral) || "" };
+    renderApp();
+  }));
+  $$("[data-dsmp-encerrar]").forEach((b) => b.addEventListener("click", async () => {
+    const ok = await confirmar({
+      titulo: "Encerrar o ciclo?",
+      msg: "Depois de encerrar, ninguém mais avalia e cada colaborador passa a ver o próprio resultado concluído. O ciclo não reabre.",
+      okLabel: "Encerrar", perigo: true,
+    });
+    if (!ok) return;
+    withBusy("dsmp-encerrar", b, async () => {
+      await window.encerrarCicloDesempenho(c.id);
+      window.logEvento?.({ tipo: "dados", acao: "Encerrou ciclo de avaliação", alvo: c.nome });
+      state.ciclosDesempenho = null; marcarCarga("dsmp");
+      if (state._dsmpAvs) delete state._dsmpAvs[c.id];
+      state.view.dsmpScreen = "lista"; state.view.dsmpId = null;
+      renderApp();
+      toast("Ciclo encerrado.");
+    });
+  }));
+  $$("[data-dsmp-estender]").forEach((b) => b.addEventListener("click", async () => {
+    const atual = _climaFimIso(c.periodoFim);
+    const nova = prompt("Nova data de fim do período (AAAA-MM-DD):", atual);
+    if (!nova || nova === atual) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(nova)) { toast("Data inválida. Use o formato AAAA-MM-DD.", "danger"); return; }
+    withBusy("dsmp-estender", b, async () => {
+      await window.estenderCicloDesempenho(c.id, nova);
+      state.ciclosDesempenho = null; marcarCarga("dsmp");
+      renderApp();
+      toast("Prazo estendido.");
+    });
+  }));
+}
+// Chips de nota 1..escalaMax (compartilhados entre o form do gestor e a auto do colab).
+function dsmpChipsHtml(compId, escalaMax, valor, readonly) {
+  const chips = [];
+  for (let v = 1; v <= escalaMax; v++) {
+    chips.push(`<button type="button" class="dsmp-chip ${Number(valor) === v ? "on" : ""}" data-comp="${escapeHtml(compId)}" data-v="${v}" ${readonly ? "disabled" : ""} aria-pressed="${Number(valor) === v}">${v}</button>`);
+  }
+  return `<div class="dsmp-esc" role="group">${chips.join("")}</div>`;
+}
+function renderDsmpAvaliar(tabsHtml, c, avs) {
+  const f = getFuncionario(state.view.dsmpAlvo);
+  if (!f) { state.view.dsmpAlvo = null; return renderApp(); }
+  const a = avs[f.id] || {};
+  const g = a.gestor, au = a.auto;
+  const concluida = !!(g && g.status === "concluida");
+  const readonly = concluida || c.status !== "ativo";
+  const max = Number(c.escalaMax) || 5;
+  if (!_dsmpAv || _dsmpAv.fid !== f.id || _dsmpAv.cid !== c.id) {
+    _dsmpAv = { cid: c.id, fid: f.id, papel: "gestor", notas: { ...(g && g.notas) || {} }, feedbackGeral: (g && g.feedbackGeral) || "" };
+  }
+  const head = `<header class="page-header">
+      <div><h1>${escapeHtml(f.nome)}</h1><p>${escapeHtml(c.nome || "")} · escala 1 a ${max}${concluida ? " · concluída" : ""}</p></div>
+      <button type="button" class="btn btn--ghost btn--sm" data-dsmp-volta-ciclo>${icon("arrowLeft")}<span>Voltar</span></button>
+    </header>`;
+  const autoConcluida = !!(au && au.status === "concluida");
+  const comps = (c.competencias || []).map((k) => {
+    const meu = readonly ? (g && g.notas ? g.notas[k.id] : null) : _dsmpAv.notas[k.id];
+    const notaAuto = autoConcluida ? Number(au.notas && au.notas[k.id]) : null;
+    const gap = (readonly && Number.isInteger(notaAuto) && Number.isInteger(Number(meu))) ? Number(meu) - notaAuto : null;
+    return `<div class="dsmp-lin">
+        <div class="dsmp-lin__h"><b>${escapeHtml(k.nome)}</b><span class="dsmp-peso">peso ${Number(k.peso) || 1}</span></div>
+        ${dsmpChipsHtml(k.id, max, meu, readonly)}
+        ${autoConcluida && readonly ? `<p class="dsmp-auto-tx">Autoavaliação: <b>${Number.isInteger(notaAuto) ? notaAuto : "—"}</b>${gap != null && gap !== 0 ? ` · ${gap > 0 ? "você avaliou acima" : "você avaliou abaixo"} (${gap > 0 ? "+" : ""}${gap})` : gap === 0 ? " · mesma percepção" : ""}</p>` : ""}
+      </div>`;
+  }).join("");
+  const feedback = readonly
+    ? ((g && g.feedbackGeral) ? `<div class="vg-card"><p class="vg-h">Feedback geral</p><p style="font-size:13.5px;line-height:1.55;">${escapeHtml(g.feedbackGeral)}</p></div>` : "")
+    : `<div class="vg-card"><p class="vg-h">Feedback geral</p>
+        <div class="field"><textarea id="dsmp-feedback" rows="4" maxlength="2000" placeholder="O que foi bem, o que precisa evoluir e o combinado pro próximo período.">${escapeHtml(_dsmpAv.feedbackGeral || "")}</textarea></div>
+      </div>`;
+  const notaAtual = dsmpNota(c, readonly ? (g && g.notas) : _dsmpAv.notas);
+  const acoes = readonly ? "" : `<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:12.5px;color:var(--text-muted);">Nota parcial: <b>${notaAtual != null ? String(notaAtual).replace(".", ",") : "—"}</b></span>
+      <div style="flex:1"></div>
+      <button class="btn btn--ghost" data-dsmp-av-salvar>${icon("check")}<span>Salvar rascunho</span></button>
+      <button class="btn btn--primary" data-dsmp-av-concluir>${icon("send")}<span>Concluir avaliação</span></button>
+    </div>`;
+  $("#view").innerHTML = tabsHtml + head + `<div style="max-width:720px;">
+      <div class="vg-card"><p class="vg-h">Competências</p>${comps}</div>
+      ${feedback}${acoes}
+    </div>`;
+  bindAvalTabs();
+  $$("[data-dsmp-volta-ciclo]").forEach((b) => b.addEventListener("click", () => { state.view.dsmpAlvo = null; _dsmpAv = null; renderApp(); }));
+  if (!readonly) {
+    $$(".dsmp-chip").forEach((ch) => ch.addEventListener("click", () => {
+      _dsmpAv.notas[ch.dataset.comp] = Number(ch.dataset.v);
+      $$(`.dsmp-chip[data-comp="${ch.dataset.comp}"]`).forEach((x) => { x.classList.toggle("on", x === ch); x.setAttribute("aria-pressed", x === ch ? "true" : "false"); });
+    }));
+    const lerFeedback = () => { _dsmpAv.feedbackGeral = $("#dsmp-feedback")?.value || ""; };
+    const payload = () => ({ notas: _dsmpAv.notas, feedbackGeral: _dsmpAv.feedbackGeral });
+    $$("[data-dsmp-av-salvar]").forEach((b) => b.addEventListener("click", () => {
+      lerFeedback();
+      if (!Object.keys(_dsmpAv.notas).length) { toast("Dê pelo menos uma nota antes de salvar.", "danger"); return; }
+      withBusy("dsmp-av-salvar", b, async () => {
+        await window.salvarAvaliacaoDesempenho(c.id, "gestor", f.id, payload(), false);
+        if (state._dsmpAvs) delete state._dsmpAvs[c.id];
+        state.view.dsmpAlvo = null; _dsmpAv = null;
+        renderApp();
+        toast("Rascunho salvo.");
+      });
+    }));
+    $$("[data-dsmp-av-concluir]").forEach((b) => b.addEventListener("click", async () => {
+      lerFeedback();
+      const faltam = (c.competencias || []).filter((k) => !Number.isInteger(Number(_dsmpAv.notas[k.id])));
+      if (faltam.length) { toast(`Dê nota em todas as competências (falta${faltam.length === 1 ? "" : "m"} ${faltam.length}).`, "danger"); return; }
+      const ok = await confirmar({
+        titulo: "Concluir a avaliação?",
+        msg: `Depois de concluir não dá mais pra editar. ${escapeHtml(f.nome)} verá o resultado quando o ciclo encerrar.`,
+        okLabel: "Concluir",
+      });
+      if (!ok) return;
+      withBusy("dsmp-av-concluir", b, async () => {
+        await window.salvarAvaliacaoDesempenho(c.id, "gestor", f.id, payload(), true);
+        window.logEvento?.({ tipo: "dados", acao: "Concluiu avaliação de desempenho", alvo: f.nome });
+        if (state._dsmpAvs) delete state._dsmpAvs[c.id];
+        state.view.dsmpAlvo = null; _dsmpAv = null;
+        renderApp();
+        toast("Avaliação concluída.");
+      });
+    }));
+  }
 }
 
 // Decide se o user pode VER um funcionário (escopo de visibilidade por papel).
@@ -14302,7 +14983,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.60.0";
+window.CURRENT_VERSION = "1.61.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

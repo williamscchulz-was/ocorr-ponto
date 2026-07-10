@@ -4582,3 +4582,23 @@ code { font-family: inherit; }
   .qb-q__txt { flex-basis: 100%; }
   .qb-sel { width: 100%; flex: 1; }
 }
+
+/* ===== Avaliação de desempenho (gestor + auto do colab; token-driven, dark herda) ===== */
+.dsmp-comps { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.dsmp-comp { display: flex; gap: 8px; align-items: center; }
+.dsmp-comp input { flex: 1; min-width: 0; padding: 11px 13px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); font: inherit; font-size: 13.5px; }
+.dsmp-comp .qb-sel { flex: none; width: 108px; }
+.dsmp-lin { padding: 12px 0; border-top: 1px solid var(--border); }
+.dsmp-lin:first-of-type { border-top: 0; }
+.dsmp-lin__h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.dsmp-lin__h b { font-size: 13.5px; font-weight: 600; color: var(--text-body); }
+.dsmp-peso { font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.dsmp-esc { display: flex; gap: 6px; flex-wrap: wrap; }
+.dsmp-chip { width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); font: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: background 160ms var(--ease-out), color 160ms var(--ease-out), border-color 160ms var(--ease-out), transform 120ms var(--ease-out); }
+.dsmp-chip:active { transform: scale(.94); }
+.dsmp-chip.on { background: var(--plum); border-color: var(--plum); color: var(--text-on-plum); }
+.dsmp-chip:disabled { cursor: default; opacity: .85; }
+@media (hover: hover) and (pointer: fine) { .dsmp-chip:not(.on):not(:disabled):hover { border-color: var(--plum-soft); color: var(--plum); } }
+.dsmp-auto-tx { font-size: 12px; color: var(--text-muted); margin: 7px 0 0; }
+.dsmp-bar { height: 8px; border-radius: 4px; background: var(--surface-warm); border: 1px solid var(--border); overflow: hidden; }
+.dsmp-bar span { display: block; height: 100%; background: var(--plum); border-radius: 4px; }
