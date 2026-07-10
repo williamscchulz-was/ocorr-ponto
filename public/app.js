@@ -10471,7 +10471,12 @@ function ocaDashCardHtml(o) {
   // Chevron igual ao do card manual (sinaliza clicavel; a trilha completa vive no modal).
   const OCA_CHEV = `<svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
   if (est === "rh_confere") {
-    acoes = `<div class="rhacts">
+    // rotaBH (Geral/líder): o saldo JÁ foi resolvido no Banco de Horas pelo pipeline;
+    // a GP só confere (mesmo modal de Ação do líder, pré-selecionado) e depois lança.
+    // Sem "Dispensar": não faz sentido dispensar o que já aconteceu e já foi resolvido.
+    acoes = o.rotaBH === true
+      ? `<div class="rhacts"><button class="btn btn--primary btn--sm" data-oca-confirmar="${escapeHtml(o.id)}">${icon("check")}<span>Conferir</span></button></div>`
+      : `<div class="rhacts">
       <button class="btn btn--primary btn--sm" data-oca-validar="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar</span></button>
       <button class="btn btn--ghost btn--sm" data-oca-dispensar="${escapeHtml(o.id)}">${icon("x")}<span>Dispensar</span></button>
     </div>`;
@@ -10505,6 +10510,7 @@ function ocaDashCardHtml(o) {
         <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
         <div class="occ__sub">
           <span class="badge badge--${t.tone}">${escapeHtml(t.label)}</span>
+          ${o.rotaBH === true ? `<span class="badge badge--info">Resolvido no Banco de Horas</span>` : ""}
           ${o.classificacaoIncerta === true ? `<span class="badge badge--conferir"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Conferir</span>` : ""}
           ${demit ? `<span class="badge badge--danger">Em rescisão</span>` : ""}
           <span class="dot"></span>
@@ -10528,11 +10534,17 @@ function ocaAcaoUI(acao, id) {
 // Ação (destinação) obrigatória e só então confirma. Acabou o 1 clique cego.
 function openConferirAutoModal(id) {
   const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
-  if (!o || ocaEstagio(o) !== "com_lider") return;
+  // rotaBH (Geral/líder, resolvido no BH pelo pipeline): a GP confere DIRETO de
+  // rh_confere, sem o hop com_lider (Turno Geral não tem líder de turno; a regra
+  // já aceita rh_confere -> confirmada pelo ramo RH/admin).
+  const rotaBH = !!o && o.rotaBH === true && ocaEstagio(o) === "rh_confere";
+  if (!o || (ocaEstagio(o) !== "com_lider" && !rotaBH)) return;
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
+  const etapaLbl = rotaBH ? "Resolvido no Banco de Horas · conferência da GP" : "Aguardando conferência do líder";
+  const preSel = rotaBH ? (o.acaoSugerida || "banco-horas-geral") : "";
   openModal(`
     <div class="modal__header">
-      <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>Aguardando conferência do líder</p></div>
+      <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>${etapaLbl}</p></div>
       <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
@@ -10543,16 +10555,16 @@ function openConferirAutoModal(id) {
             <label for="oca-acao">Ação <span style="color:var(--danger)">*</span></label>
             <select id="oca-acao" required aria-required="true">
               <option value="">Escolha como tratar a ocorrência...</option>
-              ${getAllAcoes().map((a) => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.label)}</option>`).join("")}
+              ${getAllAcoes().map((a) => `<option value="${escapeHtml(a.id)}"${a.id === preSel ? " selected" : ""}>${escapeHtml(a.label)}</option>`).join("")}
             </select>
-            <span class="field__hint">A data da conferência será marcada automaticamente.</span>
+            <span class="field__hint">${rotaBH ? "O saldo já foi resolvido no Banco de Horas pela regra do Turno Geral; a ação vem sugerida e você pode trocar." : "A data da conferência será marcada automaticamente."}</span>
             <div class="ass-erro" id="oca-acao-erro" hidden>Escolha a ação antes de confirmar.</div>
           </div>
           <div class="field">
             <label for="oca-obs">Observação</label>
             <textarea id="oca-obs" rows="3" placeholder="Adicione contexto, justificativas ou notas..."></textarea>
           </div>
-          ${ocaHistHtml(o, "Aguardando conferência do líder")}
+          ${ocaHistHtml(o, etapaLbl)}
         </div>
       </div>
     </div>
@@ -15000,7 +15012,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.62.0";
+window.CURRENT_VERSION = "1.63.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

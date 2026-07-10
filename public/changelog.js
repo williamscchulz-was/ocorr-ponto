@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.62.0", d: "9 jul 2026", current: true, items: [
+    v: "1.63.0", d: "10 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Os casos do Turno Geral e de líderes que o sistema resolve sozinho no Banco de Horas agora aparecem na aba GP confere, com o selo Resolvido no Banco de Horas. A GP clica Conferir, a ação já vem sugerida (Banco de Horas Geral), confirma e lança, sem passar pelo líder. Antes esses casos eram descartados em silêncio." },
+    ],
+  },
+  {
+    v: "1.62.0", d: "9 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Excluir uma ocorrência não apaga mais o registro: ele vai pra nova aba Excluídas, com data da exclusão, e pode ser restaurado. O conteúdo fica guardado pra auditoria em vez de sumir do histórico." },
     ],
   },
