@@ -2364,6 +2364,31 @@ só pro print). Release v323/1.61.0 deployado. **As DUAS features das Avaliaçõ
 desempenho) estão completas e no ar.** Pendências futuras: 360 quando houver Cloud Functions;
 retenção de ciclos encerrados (política do William).
 
+## 2026-07-09 · Aba Excluídas: exclusão de ocorrência vira SOFT DELETE (v324/1.62.0)
+
+**Pedido do William ("pra fins de auditoria").** Antes, excluir era DELETE FÍSICO: o doc sumia do
+Firestore e só restava um label em /eventos. Agora excluir MARCA `{excluida, excluidaEm,
+excluidaPor}`; o conteúdo inteiro fica na aba nova "Excluídas" (visível só pra quem tem
+`ocorrencias.excluir`), com selo no card, modal em modo leitura com banner e botão **Restaurar**
+(limpa as flags via FieldValue.delete). Trilha em /eventos nos dois sentidos.
+
+**Regra (gate Fable GO condicional, suíte 418/418, deployada):** ramo ADITIVO no update com
+`hasOnly(['excluida','excluidaEm','excluidaPor'])` e os MESMOS principals do delete físico
+(estritamente menos poder). O delete físico segue permitido na regra mas SAI do fluxo do app
+(fica pra console). **Blocker achado pelo gate e corrigido:** o portal do colaborador não
+filtrava excluídas, então uma ocorrência excluída pelo gestor (ex.: lançada na pessoa errada)
+seguia aparecendo em "Meu ponto"; agora a ingestão do colab filtra `excluida !== true`. No
+gestor, a ingestão separa `state.ocorrenciasExcluidas` de `state.ocorrencias` (KPIs, abas e
+contagens seguem corretos sem mudança rio abaixo; "Todas" NÃO conta excluídas).
+
+**LGPD (parecer do gate):** soft delete é MAIS correto que o físico pra registro de ponto
+(retenção legal, prescrição trabalhista, Portaria 671/2021; o direito de eliminação do art. 18
+não alcança dado retido por obrigação legal). Residuais documentados: flags sem validação de
+conteúdo (quem escreve já podia deletar o doc inteiro; dano máximo cosmético), cap
+`ocorrencias.excluir` escopada exigiria filtro no ramo (mesma nota da auditoria 2026-07-06),
+política de expurgo pós-prescrição fica como decisão futura. Smoke Playwright demo verificado
+(aba/contagem/selo/modal/restaurar, 0 erros).
+
 ## 2026-07-10 — Geral/líder no Banco de Horas: pipeline gera card em vez de descartar (backend NO AR)
 
 Resposta ao achado do dia anterior (11 pessoas + Ivan): William, falando com o RH, trouxe o
