@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  a { color: #16794a; text-decoration: none; }
+  a:hover { color: #0f5433; }
+</style>
+</helmet>
+<div style="min-height:100vh;background:#f4f6f5;font-family:'Manrope',system-ui,sans-serif;padding:40px;color:#1a2420;-webkit-font-smoothing:antialiased;">
+  <div style="max-width:1440px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:stretch;">
+
+    <!-- LEFT: DEMOGRAFIA -->
+    <div style="background:#ffffff;border:1px solid #e7ece9;border-radius:22px;padding:32px;box-shadow:0 1px 2px rgba(20,50,35,0.04),0 12px 34px -18px rgba(20,50,35,0.14);display:flex;flex-direction:column;justify-content:space-between;gap:22px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <div style="width:34px;height:34px;border-radius:10px;background:#e8f4ee;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16794a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <div style="font-size:13px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#31413a;">Demografia da Empresa</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#16794a;background:#e8f4ee;padding:6px 13px;border-radius:999px;">90 ativos</div>
+      </div>
+
+      <!-- Hero metrics row -->
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;">
+        <div style="background:#f7faf8;border:1px solid #eaf0ec;border-radius:16px;padding:20px 22px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8a9791;margin-bottom:10px;">Idade média</div>
+          <div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:42px;font-weight:800;line-height:1;color:#16794a;">38</span><span style="font-size:16px;font-weight:600;color:#5c6b64;">anos</span></div>
+          <div style="font-size:12px;color:#94a19b;margin-top:10px;">90 de 90 com data de nascimento</div>
+        </div>
+        <div style="background:#f7faf8;border:1px solid #eaf0ec;border-radius:16px;padding:20px 22px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8a9791;margin-bottom:10px;">Tempo médio de casa</div>
+          <div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:42px;font-weight:800;line-height:1;color:#16794a;">6</span><span style="font-size:16px;font-weight:600;color:#5c6b64;">anos</span></div>
+          <div style="font-size:12px;color:#94a19b;margin-top:10px;">e 8 meses · 90 com admissão</div>
+        </div>
+      </div>
+
+      <!-- Sexo -->
+      <div style="background:#f7faf8;border:1px solid #eaf0ec;border-radius:16px;padding:20px 22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8a9791;">Distribuição por sexo</div>
+          <div style="font-size:12px;font-weight:600;color:#94a19b;">41 F · 48 M</div>
+        </div>
+        <div style="display:flex;height:14px;border-radius:999px;overflow:hidden;background:#eef2f0;">
+          <div style="width:46%;background:#c0398f;"></div>
+          <div style="width:54%;background:#1f74c4;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:13px;font-weight:700;">
+          <div style="display:flex;align-items:center;gap:7px;color:#c0398f;"><span style="width:9px;height:9px;border-radius:50%;background:#c0398f;display:inline-block;"></span>Feminino 46%</div>
+          <div style="display:flex;align-items:center;gap:7px;color:#1f74c4;">Masculino 54%<span style="width:9px;height:9px;border-radius:50%;background:#1f74c4;display:inline-block;"></span></div>
+        </div>
+      </div>
+
+      <!-- Escolaridade + Naturalidade -->
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8a9791;margin-bottom:16px;">Escolaridade (top)</div>
+          <sc-for list="{{ escolaridade }}" as="row" hint-placeholder-count="4">
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:#3a4842;margin-bottom:6px;">
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">{{ row.label }}</span>
+                <span style="font-weight:800;color:#16794a;">{{ row.value }}</span>
+              </div>
+              <div style="height:7px;border-radius:999px;background:#eef2f0;overflow:hidden;">
+                <div style="height:100%;border-radius:999px;background:#3fae74;width:{{ row.pct }};"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8a9791;margin-bottom:16px;">Naturalidade (top)</div>
+          <sc-for list="{{ naturalidade }}" as="row" hint-placeholder-count="3">
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:#3a4842;margin-bottom:6px;">
+                <span>{{ row.label }}</span>
+                <span style="font-weight:800;color:#16794a;">{{ row.value }}</span>
+              </div>
+              <div style="height:7px;border-radius:999px;background:#eef2f0;overflow:hidden;">
+                <div style="height:100%;border-radius:999px;background:#7cc79c;width:{{ row.pct }};"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: RANKING -->
+    <div style="background:#ffffff;border:1px solid #e7ece9;border-radius:22px;padding:32px;box-shadow:0 1px 2px rgba(20,50,35,0.04),0 12px 34px -18px rgba(20,50,35,0.14);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <div style="width:34px;height:34px;border-radius:10px;background:#e8f4ee;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16794a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <div style="font-size:13px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#31413a;">Ranking · Tempo de casa</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#5c6b64;background:#f0f3f1;padding:6px 13px;border-radius:999px;">Top 10</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:3px;">
+      <sc-for list="{{ ranking }}" as="p" hint-placeholder-count="10">
+        <div style="display:flex;align-items:center;gap:14px;padding:9px 12px;border-radius:12px;background:{{ p.bg }};">
+          <div style="flex-shrink:0;width:27px;height:27px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:{{ p.rankColor }};background:{{ p.rankBg }};">{{ p.rank }}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:#1a2420;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.name }}</div>
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:0.03em;color:#94a19b;text-transform:uppercase;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.dept }}</div>
+          </div>
+          <div style="flex-shrink:0;font-size:14px;font-weight:800;color:#16794a;white-space:nowrap;">{{ p.tenure }}</div>
+        </div>
+      </sc-for>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const escolaridade = [
+      { label: "Ensino médio completo", value: 29 },
+      { label: "Ensino médio incompleto", value: 17 },
+      { label: "Ensino fundamental", value: 15 },
+      { label: "Sexto ao nono ano", value: 10 },
+    ];
+    const naturalidade = [
+      { label: "Indaial", value: 12 },
+      { label: "Blumenau", value: 4 },
+      { label: "Curitibanos", value: 4 },
+    ];
+    const eMax = Math.max(...escolaridade.map(r => r.value));
+    const nMax = Math.max(...naturalidade.map(r => r.value));
+
+    const rankingRaw = [
+      { rank: 1, name: "Pedro Branger", dept: "Manutenção Beneficiamento · Geral", tenure: "25 anos, 9 meses" },
+      { rank: 2, name: "Jairo Siquela", dept: "Comercial · Geral", tenure: "25 anos, 1 mês" },
+      { rank: 3, name: "Carlos Zoz", dept: "Repasse · 3º Turno", tenure: "22 anos, 2 meses" },
+      { rank: 4, name: "Jacques Reinicke", dept: "Comercial · Geral", tenure: "19 anos, 11 meses" },
+      { rank: 5, name: "Marli Koch Bornhofen", dept: "Repasse · 3º Turno", tenure: "19 anos, 2 meses" },
+      { rank: 6, name: "Maria Cancelier", dept: "Administração · Geral", tenure: "18 anos, 3 meses" },
+      { rank: 7, name: "Lucivane da Silva Geisler", dept: "Administração · Geral", tenure: "18 anos, 2 meses" },
+      { rank: 8, name: "Katiana Rocha da Silva Alves", dept: "Repasse · 1º Turno", tenure: "17 anos, 11 meses" },
+      { rank: 9, name: "Mario Lunge", dept: "Diretos Beneficiamento · 2º Turno", tenure: "16 anos, 12 meses" },
+      { rank: 10, name: "Anderson Dubuchak", dept: "Laboratório · Geral", tenure: "16 anos, 6 meses" },
+    ];
+
+    const ranking = rankingRaw.map(p => {
+      const top3 = p.rank <= 3;
+      return {
+        ...p,
+        bg: top3 ? "#f4faf6" : "transparent",
+        rankBg: top3 ? "#16794a" : "#f0f3f1",
+        rankColor: top3 ? "#ffffff" : "#5c6b64",
+      };
+    });
+
+    return {
+      escolaridade: escolaridade.map(r => ({ ...r, pct: Math.round((r.value / eMax) * 100) + "%" })),
+      naturalidade: naturalidade.map(r => ({ ...r, pct: Math.round((r.value / nMax) * 100) + "%" })),
+      ranking,
+    };
+  }
+}
+</script>
+</body>
+</html>
