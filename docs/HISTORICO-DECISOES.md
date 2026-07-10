@@ -2512,3 +2512,50 @@ mesmo passe (.demografia-bloco*, .dashboard-ranking/.rk). Verificado via Playwri
 injetados (heroes, sexbar, barras, chips, larguras iguais, 0 erros). Missão-irmã do dia: rotaBH
 REFINADO pelo WKRADAR (só falta de marcação real gera card; 35 dos 37 históricos apagados com
 autorização do William) — zero mudança no front.
+
+## 2026-07-10 — Duplicata rotaBH: WK reclassificou dia já lançado (caso Adelir 785)
+
+William viu ao vivo: card do Adelir Padilha (785, líder) "Saída Antecipada · Resolvido no Banco
+de Horas" pendente em "GP confere", **e** um segundo card do MESMO dia (03/07) já "Lançada ·
+Banco de Horas" com tipo "Faltas Injustificadas". Reclamou (com razão): "isso não poderia
+acontecer, duplicou aqui".
+
+**Causa raiz:** o dedupId da coleção é `{codigo}_{dataIso}_{slug(situacao)}`. Numa rodada anterior
+(06/07), o WK classificou 03/07 do Adelir como "Faltas Injustificadas" — virou card normal,
+passou pelo fluxo completo (GP validou → líder Aldo conferiu → confirmada → Suyanne lançou).
+Entre essa rodada e hoje, o WK **reclassificou o mesmo dia** pra "Saída Antecipada" (situação
+raiz não mudou — mesma marcação incompleta 04:55/07:53, sem volta de almoço nem saída — só o
+rótulo que o WK atribui mudou). Rótulo novo = dedupId novo = o pipeline tratou como incidente
+nunca visto, e como agora Saída Antecipada + líder + marcação ausente = `rotaBH`, gerou um card
+novo pro dia que já estava 100% resolvido sob o rótulo antigo.
+
+**Fix (`upload-ocorrencias-auto.mjs`):** novo mapa `principaisPorIncidente` (docs não-`esp_`,
+não-`auto_resolvida`, por `codigo_dataIso`). Guard: ao criar um doc `rotaBH === true`, se já
+existe outro doc principal pro MESMO incidente com dedupId diferente e status != `rh_confere`
+(ou seja, um humano já tocou), pula a criação. Só se aplica a `rotaBH` — o caso "Edmar 753" (WK
+emite 2 situações legítimas e independentes pro mesmo dia, ambas ainda não vistas) continua
+intocado, porque nunca passa por esse `if`.
+
+**Revisão do Fable (achado real, corrigido antes de fechar):** a 1ª versão do guard não excluía
+`auto_resolvida` do mapa — diferente de `espVivosPorIncidente`/`codsDatasComPrincipalVivo`
+(que já excluem, linhas mais acima do mesmo arquivo). Sem essa exclusão, um incidente que o
+PRÓPRIO PIPELINE auto-resolveu (WK reprocessou e a ocorrência sumiu, sem nenhum humano ter visto)
+suprimiria pra sempre um rotaBH legítimo chegando depois pro mesmo dia — exatamente o descarte
+silencioso que o rotaBH nasceu pra eliminar. Corrigido: `principaisPorIncidente` agora exclui
+`auto_resolvida` igual aos outros mapas.
+
+**3 decisões deliberadas (registradas pra não virar dúvida depois):**
+1. Doc irmão `dispensada` também suprime o rotaBH novo (mesmo precedente do guard de deriva de
+   rótulo dos `esp_`, já existente) — quem dispensou aquele (código, data) já viu o dia; o custo
+   de eventualmente perder um lembrete de correção no WK é baixo (o saldo BH já está certo,
+   rotaBH é só informativo).
+2. Um rotaBH tardio chegando pro MESMO incidente de um caso "Edmar" (2 situações legítimas) onde
+   a outra já foi tocada por humano TAMBÉM é suprimido — comportamento correto (o humano já viu o
+   dia), mas é uma escolha, não coincidência.
+3. `auto_resolvida` NÃO suprime (fix desta revisão) — reprocessamento do próprio pipeline não
+   conta como "já tratado por humano".
+
+**Limpeza:** o card duplicado (`785_2026-07-03_saida-antecipada`, intocado, pristine) apagado com
+autorização explícita do William. Rerodado o pipeline: `puladoRotaBHIncidenteJaResolvido=1`
+confirmou a trava — o card não voltou. `check-pipeline-health.mjs` ok depois. Zero mudança pro PC
+(o guard é 100% do lado do meu pipeline, antes do doc chegar no Firestore).
