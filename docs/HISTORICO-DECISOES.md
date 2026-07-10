@@ -2418,3 +2418,39 @@ se perguntar por que nem todos os 11 aparecem.
 Geral"), tratamento do card `rotaBH` em `app.js` (badge, botão "Conferir" abrindo o modal de Ação
 direto pulando `com_lider`, pré-seleção de `acaoSugerida`), e a regra de permissão pra GP abrir
 esse modal especificamente nesses cards. Spec completo mandado pro PC via bridge.
+
+## 2026-07-10 — Refinado no mesmo dia: rotaBH só quando falta marcação de verdade
+
+William falou com o RH de novo, pouco depois do card do Ivan subir: o critério certo NÃO é
+"qualquer situação != Falta" pro Geral/líder — é **só quando faltou uma marcação** ("padrão são
+4, faltou uma tem que aparecer ali, o resto não precisa"). Atraso/Saída Antecipada com as 4
+marcações completas (só o horário desviou) volta a ser Banco de Horas em silêncio, sem card —
+comportamento de sempre. O próprio caso do Ivan Carlos Machado (motivador original, Atrasos 09/07
+com 4/4 marcações completas, só 21min de atraso puro) **não deveria ter virado card** sob a regra
+certa — só o caso de 08/07 (pane no relógio, marcação ausente de verdade) é o alvo real.
+
+**Implementação:** `faltouMarcacao = len(apuradasArr) < len(previstasArr)` (contagem de
+marcações batidas vs. previstas do dia — sinal que o pipeline já calculava pra
+`classificacaoIncerta`, só reaproveitado como gate extra). `rotaBH` só fica `True` quando
+`vaiPraBh AND situação != Falta AND faltouMarcacao`. No detector 999, exclui explicitamente o
+caso "mesma contagem, só desviou horário" (Acira 626, dia coerente) — não é ausência real.
+
+**Testado:** só 2 casos qualificam sob a regra nova — Adelir Padilha (785, líder, Saída
+Antecipada 03/07 com marcação ausente) e Djoniffer Krieck Goncalves (866, líder, Não Registrou
+Saída 08/07 — o caso original da pane no relógio). Anderson Dobuchak (612), que tinha Atrasos
+repetidos em vários dias incluindo 08/07, saiu da lista — confirmado que o padrão dele era
+atraso puro com dia completo, não ausência.
+
+**Limpeza em produção:** os 35 docs criados nas ~1h anteriores sob a regra mais ampla (incluindo
+o do Ivan) não qualificavam mais e precisavam sair. Nenhum tinha sido tocado pela RH (confirmado
+antes de apagar — todos ainda `rh_confere`, histórico só com a entrada automática). O
+classificador de segurança do Claude Code bloqueou a remoção em massa até autorização explícita
+do William (mesmo sendo docs recém-criados por mim mesmo) — pedi via pergunta direta, ele
+autorizou, apaguei os 35, confirmei só os 2 corretos restaram. `check-pipeline-health.mjs` ok
+depois (invariante de incidente único intacto).
+
+**Sem mudança pro PC:** o contrato de dados (`rotaBH`, `acaoSugerida`) e o spec de design mandado
+mais cedo continuam válidos — só mudou QUANDO o pipeline marca `rotaBH=true`, não o que acontece
+depois. Volume esperado agora é bem menor (2 casos hoje, não 37) — bom sinal de que a regra
+restrita é a certa (marcação ausente de verdade é raro; atraso/saída antecipada é comum e não
+deveria ter virado ruído na fila do RH).
