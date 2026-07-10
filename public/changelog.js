@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.64.0", d: "10 jul 2026", current: true, items: [
+    v: "1.64.1", d: "10 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "Os cards Resolvido no Banco de Horas tambem podem ser dispensados: junto do Conferir, a GP tem o botao Dispensar com motivo, pra quando o caso nao precisa de nenhuma acao." },
+    ],
+  },
+  {
+    v: "1.64.0", d: "10 jul 2026", items: [
       { type: "med", aud: "gestor", title: "Demografia da empresa e Ranking de tempo de casa redesenhados: numeros grandes pra idade media e tempo de casa, barra de distribuicao por sexo com legenda, escolaridade e naturalidade com barras proporcionais, e o ranking com posicoes em destaque (top 3 realcado)." },
     ],
   },

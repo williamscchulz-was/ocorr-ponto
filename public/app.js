@@ -10478,10 +10478,14 @@ function ocaDashCardHtml(o) {
   const OCA_CHEV = `<svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
   if (est === "rh_confere") {
     // rotaBH (Geral/líder): o saldo JÁ foi resolvido no Banco de Horas pelo pipeline;
-    // a GP só confere (mesmo modal de Ação do líder, pré-selecionado) e depois lança.
-    // Sem "Dispensar": não faz sentido dispensar o que já aconteceu e já foi resolvido.
+    // a GP confere (mesmo modal de Ação do líder, pré-selecionado) e depois lança, OU
+    // dispensa (William 2026-07-10: mesmo escape hatch de todo card rh_confere, pra
+    // quando não precisa de nenhuma ação).
     acoes = o.rotaBH === true
-      ? `<div class="rhacts"><button class="btn btn--primary btn--sm" data-oca-confirmar="${escapeHtml(o.id)}">${icon("check")}<span>Conferir</span></button></div>`
+      ? `<div class="rhacts">
+      <button class="btn btn--primary btn--sm" data-oca-confirmar="${escapeHtml(o.id)}">${icon("check")}<span>Conferir</span></button>
+      <button class="btn btn--ghost btn--sm" data-oca-dispensar="${escapeHtml(o.id)}">${icon("x")}<span>Dispensar</span></button>
+    </div>`
       : `<div class="rhacts">
       <button class="btn btn--primary btn--sm" data-oca-validar="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar</span></button>
       <button class="btn btn--ghost btn--sm" data-oca-dispensar="${escapeHtml(o.id)}">${icon("x")}<span>Dispensar</span></button>
@@ -10928,7 +10932,7 @@ function openDispensarAutoModal(id) {
     <div class="modal__body">
       <div class="field">
         <label for="oca-disp-motivo">Motivo da dispensa <span style="color:var(--danger)">*</span></label>
-        <textarea id="oca-disp-motivo" rows="3" placeholder="Explique por que esta ocorrência não segue pro líder..."></textarea>
+        <textarea id="oca-disp-motivo" rows="3" placeholder="${o.rotaBH === true ? "Explique por que este caso não precisa de nenhuma ação..." : "Explique por que esta ocorrência não segue pro líder..."}"></textarea>
         <span class="field__hint">O motivo fica registrado na trilha e aparece ao clicar na ocorrência dispensada.</span>
         <div class="ass-erro" id="oca-disp-erro" hidden>Escreva o motivo antes de dispensar.</div>
       </div>
@@ -15018,7 +15022,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.64.0";
+window.CURRENT_VERSION = "1.64.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

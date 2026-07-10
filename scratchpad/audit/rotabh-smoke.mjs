@@ -42,7 +42,7 @@ let r = await p.evaluate(() => {
   };
 });
 ok("badge Resolvido no Banco de Horas", r.badge);
-ok("so 1 botao (Conferir), sem Dispensar", r.umBotao === 1 && r.semDispensar && r.btnConferir);
+ok("2 botoes (Conferir + Dispensar)", r.umBotao === 2 && !r.semDispensar && r.btnConferir);
 ok("card normal intacto (2 botoes, sem badge)", r.normalDoisBotoes === 2 && r.normalSemBadge);
 
 console.log("== modal direto da GP ==");
@@ -65,6 +65,15 @@ await p.waitForTimeout(600);
 r = await p.evaluate(() => window.__conf);
 ok("confirmou com acaoId banco-horas-geral + obs", !!r && r.id === "bh1" && r.extras.acaoId === "banco-horas-geral" && r.extras.acaoLabel === "Banco de Horas Geral" && r.extras.observacao === "Corrigido no WK.");
 
+console.log("== dispensar rotaBH ==");
+await p.evaluate(() => { closeModal?.(); document.querySelector('[data-oca-id="bh1"] [data-oca-dispensar]').click(); });
+await p.waitForTimeout(400);
+r = await p.evaluate(() => ({
+  abriu: !!document.getElementById("oca-disp-motivo"),
+  ph: document.getElementById("oca-disp-motivo")?.placeholder || "",
+}));
+ok("modal de dispensa abre no rotaBH", r.abriu);
+ok("placeholder contextual (sem falar de lider)", r.ph.includes("nenhuma") && !r.ph.includes("líder"));
 console.log("erros:", erros.length ? erros.slice(0, 3) : "nenhum");
 console.log(FALHAS.length ? "RESULTADO: " + FALHAS.length + " falha(s)" : "RESULTADO: TUDO OK");
 await b.close();
