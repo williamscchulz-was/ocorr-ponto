@@ -2217,7 +2217,9 @@ textarea:focus-visible,
 .vg-pend .icon:last-child { color: var(--text-muted); width: 15px; height: 15px; }
 .vg-ok { display: flex; align-items: center; gap: 9px; color: var(--text-muted); font-size: 13px; padding: 6px 2px; }
 .vg-ok .icon { width: 16px; height: 16px; color: var(--plum); }
-.vg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; margin-bottom: 14px; }
+/* minmax(0,1fr) e nao 1fr puro: texto longo (ex.: nome no ranking) expandiria a
+   coluna e deixaria os cards do par com larguras diferentes (handoff 2026-07-10). */
+.vg-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: stretch; margin-bottom: 14px; }
 .vg-grid > * { margin-bottom: 0 !important; }
 /* Par de cards lado a lado: o mais curto estica ate a altura do maior e
    centraliza o proprio conteudo no espaco extra (em vez de flutuar no topo),
@@ -2573,70 +2575,46 @@ html.firebase-mode .login__forgot { display: block; }
 /* ============================================
    Demografia (Dashboard widget · admin only)
    ============================================ */
-.dashboard-demografia__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-}
-.demografia-bloco {
-  padding: 8px;
-}
-.demografia-bloco__label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-}
-.demografia-bloco__big {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--plum);
-}
-.demografia-bloco__bar {
-  display: flex;
-  height: 8px;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 4px;
-  background: rgba(0, 0, 0, 0.05);
-}
-.demografia-bloco__bar > span {
-  display: block;
-  height: 100%;
-}
+/* ===== Demografia da empresa (redesign 2026-07-10, handoff aprovado; estrutura
+   do design com os tokens do app). Números hero, barra de sexo, escolaridade e
+   naturalidade com barra proporcional ao maior valor. ===== */
+.dg-body { display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+.dg-heroes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.dg-box { background: var(--surface-warm); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; }
+.dg-box__lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 6px; }
+.dg-box__hero { font-size: 38px; font-weight: 800; line-height: 1.05; color: var(--plum); font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 6px; }
+.dg-box__hero small { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+.dg-box__cap { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+.dg-box__hdr { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.dg-box__hdr .dg-box__lbl, .dg-box__hdr .dg-box__cap { margin: 0 0 8px; }
+.dg-sexbar { display: flex; height: 13px; border-radius: 999px; overflow: hidden; background: var(--milk-edge); }
+.dg-sexbar span { display: block; height: 100%; }
+.dg-sexbar__f { background: #d946ef; }
+.dg-sexbar__m { background: var(--fiobras-blue); }
+.dg-sexleg { display: flex; gap: 16px; margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-body); }
+.dg-sexleg span { display: inline-flex; align-items: center; gap: 6px; }
+.dg-sexleg i { width: 9px; height: 9px; border-radius: 50%; }
+.dg-listas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.dg-it { margin-top: 7px; }
+.dg-it__l { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
+.dg-it__l span { font-size: 12.5px; font-weight: 500; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dg-it__l b { font-size: 12.5px; font-weight: 800; color: var(--plum); font-variant-numeric: tabular-nums; }
+.dg-barra { height: 7px; border-radius: 999px; background: var(--milk-edge); overflow: hidden; }
+.dg-barra span { display: block; height: 100%; border-radius: 999px; }
+.dg-barra__esc { background: var(--plum); }
+.dg-barra__nat { background: var(--plum-soft); }
 
-/* Ranking de tempo de casa (Top 10) — lista enxuta no card recolhível (par
-   da Demografia). Posição + nome + (setor · turno) + tempo de casa. */
-.dashboard-ranking { display: flex; flex-direction: column; }
-.dashboard-ranking .rk {
-  display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 12px;
-  padding: 9px 2px; border-top: 1px solid var(--border);
-}
-.dashboard-ranking .rk:first-child { border-top: 0; }
-.dashboard-ranking .rk:first-child { border-top: 0; }
-.dashboard-ranking .rk__pos {
-  text-align: center; font-size: 12.5px; font-weight: 700; color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-.dashboard-ranking .rk--1 .rk__pos,
-.dashboard-ranking .rk--2 .rk__pos,
-.dashboard-ranking .rk--3 .rk__pos { color: var(--plum); }
-.dashboard-ranking .rk__main { min-width: 0; }
-.dashboard-ranking .rk__nome {
-  font-size: 13.5px; font-weight: 500; color: var(--text-body);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.dashboard-ranking .rk__meta {
-  font-size: 11px; color: var(--text-muted); margin-top: 1px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.dashboard-ranking .rk__val {
-  font-size: 13px; font-weight: 600; color: var(--plum);
-  white-space: nowrap; font-variant-numeric: tabular-nums;
-}
+/* Ranking · tempo de casa (redesign 2026-07-10): chip de posição quadrado,
+   top 3 com fundo leve, tempo em destaque. */
+.rk2-lista { display: flex; flex-direction: column; gap: 3px; }
+.rk2 { display: flex; align-items: center; gap: 13px; padding: 8px 11px; border-radius: 12px; }
+.rk2--top { background: var(--success-bg); }
+.rk2__pos { flex: none; width: 27px; height: 27px; border-radius: 8px; display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--surface-warm); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.rk2--top .rk2__pos { background: var(--plum); color: var(--text-on-plum); }
+.rk2__main { flex: 1; min-width: 0; }
+.rk2__main b { display: block; font-size: 13.5px; font-weight: 700; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rk2__main span { display: block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rk2__val { flex: none; font-size: 13.5px; font-weight: 800; color: var(--plum); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* ============================================
    Perfil enriquecido (modal de funcionário)

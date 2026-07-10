@@ -5087,22 +5087,24 @@ function renderRankingTempoCasaWidget(u) {
     .sort((a, b) => Number(b.diasNaEmpresa) - Number(a.diasNaEmpresa))
     .slice(0, 10);
   if (comDias.length === 0) return "";
+  // Redesign 2026-07-10 (handoff aprovado pelo William, tokens do app): chip de
+  // posição quadrado, top 3 com fundo leve, tempo em destaque à direita.
   const linhas = comDias.map((f, i) => {
     const meta = [f.setor, TURNOS[f.turno]?.label].filter(Boolean).join(" · ");
     return `
-      <div class="rk rk--${i + 1}">
-        <div class="rk__pos">${i + 1}</div>
-        <div class="rk__main">
-          <div class="rk__nome">${escapeHtml(f.nome || "?")}</div>
-          ${meta ? `<div class="rk__meta">${escapeHtml(meta)}</div>` : ""}
+      <div class="rk2${i < 3 ? " rk2--top" : ""}">
+        <span class="rk2__pos">${i + 1}</span>
+        <div class="rk2__main">
+          <b>${escapeHtml(f.nome || "?")}</b>
+          ${meta ? `<span>${escapeHtml(meta)}</span>` : ""}
         </div>
-        <div class="rk__val">${escapeHtml(tempoDeCasa(Number(f.diasNaEmpresa)))}</div>
+        <span class="rk2__val">${escapeHtml(tempoDeCasa(Number(f.diasNaEmpresa)))}</span>
       </div>`;
   }).join("");
   return `
     <section class="vg-card">
       <h3 class="vg-h"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Ranking · tempo de casa</span><span class="vg-exp__n">Top ${comDias.length}</span></h3>
-      <div class="vg-card__body"><div class="dashboard-ranking">${linhas}</div></div>
+      <div class="vg-card__body"><div class="rk2-lista">${linhas}</div></div>
     </section>`;
 }
 
@@ -5153,56 +5155,60 @@ function renderDemografiaWidget(u) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
 
+  // Redesign 2026-07-10 (handoff aprovado pelo William; estrutura do design com os
+  // TOKENS do app, como o README do próprio handoff manda): números hero, barra de
+  // sexo com legenda, e escolaridade/naturalidade com barra proporcional ao MAIOR
+  // valor da lista (o maior = 100%). space-between distribui a folga de altura do
+  // par com o Ranking em espaços uniformes.
+  const anosMedia = diasMedia != null ? Math.floor(diasMedia / 365.25) : null;
+  const mesesResto = diasMedia != null ? Math.floor((diasMedia % 365.25) / 30.44) : null;
+  const heroTempo = anosMedia == null ? "—" : (anosMedia > 0 ? anosMedia : mesesResto);
+  const unidTempo = anosMedia == null ? "" : (anosMedia > 0 ? (anosMedia === 1 ? "ano" : "anos") : (mesesResto === 1 ? "mês" : "meses"));
+  const capTempo = anosMedia > 0 && mesesResto > 0
+    ? `e ${mesesResto} ${mesesResto === 1 ? "mês" : "meses"} · ${comDias.length} com admissão`
+    : `${comDias.length} com admissão registrada`;
+  const barras = (top, corClasse) => {
+    const max = Math.max(...top.map(([, n]) => n), 1);
+    return top.map(([g, n]) => `
+      <div class="dg-it">
+        <div class="dg-it__l"><span>${escapeHtml(g)}</span><b>${n}</b></div>
+        <div class="dg-barra"><span class="${corClasse}" style="width:${Math.round((n / max) * 100)}%"></span></div>
+      </div>`).join("");
+  };
   return `
     <section class="vg-card">
       <h3 class="vg-h"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Demografia da empresa</span><span class="vg-exp__n">${pool.length} ativos</span></h3>
-      <div class="vg-card__body"><div class="dashboard-demografia__grid">
-        <div class="demografia-bloco">
-          <div class="demografia-bloco__label">Idade média</div>
-          <div class="demografia-bloco__big">${idadeMedia ?? "—"}${idadeMedia ? " <small style='font-size:13px; font-weight:500;'>anos</small>" : ""}</div>
-          <div class="text-xs muted">${comIdade.length} de ${pool.length} com data de nascimento</div>
-        </div>
-        <div class="demografia-bloco">
-          <div class="demografia-bloco__label">Sexo</div>
-          ${sexTotal > 0 ? `
-            <div class="demografia-bloco__big" style="font-size:14px;">
-              <span style="color:#d946ef;">Fem ${pctF}%</span>
-              &nbsp;·&nbsp;
-              <span style="color:#0076BE;">Masc ${pctM}%</span>
-            </div>
-            <div class="demografia-bloco__bar">
-              <span style="width:${pctF}%; background:#d946ef;"></span>
-              <span style="width:${pctM}%; background:#0076BE;"></span>
-            </div>
-            <div class="text-xs muted" style="margin-top:4px;">${sexF} F · ${sexM} M</div>
-          ` : `<div class="demografia-bloco__big" style="font-size:14px;">—</div>`}
-        </div>
-        <div class="demografia-bloco">
-          <div class="demografia-bloco__label">Tempo médio de casa</div>
-          <div class="demografia-bloco__big" style="font-size:16px;">${tempoDeCasa(diasMedia)}</div>
-          <div class="text-xs muted">${comDias.length} com admissão registrada</div>
-        </div>
-        <div class="demografia-bloco">
-          <div class="demografia-bloco__label">Escolaridade (top)</div>
-          ${escolaridadeTop.length > 0 ? escolaridadeTop.map(([g, n]) => `
-            <div class="text-xs" style="display:flex; justify-content:space-between; gap:8px; padding:2px 0;">
-              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g)}</span>
-              <strong>${n}</strong>
-            </div>
-          `).join("") : `<div class="demografia-bloco__big" style="font-size:14px;">—</div>`}
-        </div>
-        ${naturalidadeTop.length > 0 ? `
-          <div class="demografia-bloco">
-            <div class="demografia-bloco__label">Naturalidade (top)</div>
-            ${naturalidadeTop.map(([n, c]) => `
-              <div class="text-xs" style="display:flex; justify-content:space-between; gap:8px; padding:2px 0;">
-                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(n)}</span>
-                <strong>${c}</strong>
-              </div>
-            `).join("")}
+      <div class="vg-card__body dg-body">
+        <div class="dg-heroes">
+          <div class="dg-box">
+            <div class="dg-box__lbl">Idade média</div>
+            <div class="dg-box__hero">${idadeMedia ?? "—"}${idadeMedia ? `<small>anos</small>` : ""}</div>
+            <div class="dg-box__cap">${comIdade.length} de ${pool.length} com data de nascimento</div>
           </div>
-        ` : ""}
-      </div></div>
+          <div class="dg-box">
+            <div class="dg-box__lbl">Tempo médio de casa</div>
+            <div class="dg-box__hero">${heroTempo}${unidTempo ? `<small>${unidTempo}</small>` : ""}</div>
+            <div class="dg-box__cap">${capTempo}</div>
+          </div>
+        </div>
+        ${sexTotal > 0 ? `
+        <div class="dg-box">
+          <div class="dg-box__hdr"><span class="dg-box__lbl">Distribuição por sexo</span><span class="dg-box__cap">${sexF} F · ${sexM} M</span></div>
+          <div class="dg-sexbar"><span class="dg-sexbar__f" style="width:${pctF}%"></span><span class="dg-sexbar__m" style="width:${pctM}%"></span></div>
+          <div class="dg-sexleg"><span><i class="dg-sexbar__f"></i>Feminino ${pctF}%</span><span><i class="dg-sexbar__m"></i>Masculino ${pctM}%</span></div>
+        </div>` : ""}
+        <div class="dg-listas">
+          <div>
+            <div class="dg-box__lbl">Escolaridade (top)</div>
+            ${escolaridadeTop.length ? barras(escolaridadeTop, "dg-barra__esc") : `<div class="dg-box__cap">sem dado</div>`}
+          </div>
+          ${naturalidadeTop.length ? `
+          <div>
+            <div class="dg-box__lbl">Naturalidade (top)</div>
+            ${barras(naturalidadeTop, "dg-barra__nat")}
+          </div>` : ""}
+        </div>
+      </div>
     </section>`;
 }
 
@@ -15012,7 +15018,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.63.0";
+window.CURRENT_VERSION = "1.64.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

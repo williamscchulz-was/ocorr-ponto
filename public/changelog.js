@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.63.0", d: "10 jul 2026", current: true, items: [
+    v: "1.64.0", d: "10 jul 2026", current: true, items: [
+      { type: "med", aud: "gestor", title: "Demografia da empresa e Ranking de tempo de casa redesenhados: numeros grandes pra idade media e tempo de casa, barra de distribuicao por sexo com legenda, escolaridade e naturalidade com barras proporcionais, e o ranking com posicoes em destaque (top 3 realcado)." },
+    ],
+  },
+  {
+    v: "1.63.0", d: "10 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Os casos do Turno Geral e de líderes que o sistema resolve sozinho no Banco de Horas agora aparecem na aba GP confere, com o selo Resolvido no Banco de Horas. A GP clica Conferir, a ação já vem sugerida (Banco de Horas Geral), confirma e lança, sem passar pelo líder. Antes esses casos eram descartados em silêncio." },
     ],
   },

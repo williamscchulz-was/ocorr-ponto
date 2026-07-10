@@ -2496,3 +2496,19 @@ antes do refinamento). A limpeza de Firestore (35 apagados, ver acima) aconteceu
 final em produção agora são só os 2 casos corretos (Adelir 785, Djoniffer 866), e o front do PC
 já sabe renderizar `rotaBH` independente de QUANTOS docs existem (não há acoplamento com o
 número 37 em lugar nenhum do código deles) — sem retrabalho necessário dos dois lados.
+
+## 2026-07-10 · Redesign Demografia × Ranking (handoff aprovado) NO AR (v326/1.64.0)
+
+Handoff de design ("Claude Design", pacote em `docs/mockups/design-claro-demografia-ranking-2026-07-10/`)
+verificado pelo WKRADAR e mandado pelo William. Aplicada a ESTRUTURA com os TOKENS do app (o
+README do próprio handoff manda usar os tokens do codebase, não o hex literal/Manrope): números
+hero pra idade média e tempo médio de casa (boxes com label/caption), barra de distribuição por
+sexo com legenda (cores atuais; masculino já é o azul da marca), escolaridade e naturalidade com
+BARRAS proporcionais ao maior valor, ranking com chip de posição quadrado (top 3 destacado em
+--plum + fundo --success-bg), e `minmax(0,1fr)` no `.vg-grid` e grids internos (com `1fr` puro,
+texto longo do ranking desigualava as colunas — alerta procedente do handoff). Card da Demografia
+usa space-between pra distribuir a folga de altura do par. CSS antigo dos 2 cards removido no
+mesmo passe (.demografia-bloco*, .dashboard-ranking/.rk). Verificado via Playwright com dados
+injetados (heroes, sexbar, barras, chips, larguras iguais, 0 erros). Missão-irmã do dia: rotaBH
+REFINADO pelo WKRADAR (só falta de marcação real gera card; 35 dos 37 históricos apagados com
+autorização do William) — zero mudança no front.
