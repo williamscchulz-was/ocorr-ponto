@@ -2295,3 +2295,35 @@ tests/avaliacao-desempenho-rules.test.mjs), rules DEPLOYADAS. PERM_CAPS/PERM_DEF
 nova (rh true; lider/supervisor/colaborador false). **Próximo:** camada de dados (firebase.js) e
 front (portar docs/mockups/desempenho-mock-2026-07.html; a query do colab filtra status=='ativo'
 + público na QUERY, senão a regra de list nega, padrão do clima).
+
+## 2026-07-09 · Avaliação de desempenho: FRONT NO AR (v323/1.61.0). Feature 2 COMPLETA
+
+**Refinos de modelo achados na integração (rules reescritas + redeploy, suíte 412/412):**
+(1) **Alvo por `alvoFid` (funcionarioId), não uid de users**: o gestor opera 100% por
+`state.funcionarios` e não conhece uids; os helpers (`supervisorVe`, `meuFuncionarioId`) já são
+por fid; o escopo resolve via `get(funcionarios/{fid})`. (2) **Id determinístico `{papel}_{alvoFid}`**
+(era `{papel}_{avaliador}_{alvo}`): UMA avaliação oficial de gestor + UMA auto por alvo, todo
+mundo acha por getDoc direto SEM query; outro gestor do escopo pode assumir o rascunho
+(avaliadorUid = último autor). (3) **Colaborador lê ciclo ENCERRADO do público** (além do ativo):
+sem isso não rotula o próprio resultado. (4) **List queries provadas no emulador** (8 casos): a
+regra tem que ser provável pela query, lição do colab-query-repro do clima.
+
+**Front:** aba desempenho de renderAvaliacoes (stub morto no mesmo passe). Gate do menu ampliado:
+Avaliações abre pra quem gerencia (clima OU desempenho) OU avalia (líder/supervisor). GESTOR:
+lista de ciclos (surv-card), construtor (nome/período/modalidade estilo anon-toggle/competências
+com peso 1..3/público reusa com-seg), detalhe com o time do escopo (status oficial+auto por
+pessoa), form de avaliar (chips 1..escalaMax, feedback, rascunho/concluir com confirmação de
+imutabilidade), encerrar/estender (GP). COLAB: convite de autoavaliação no "Precisa da sua
+atenção" (ciclo ativo modalidade auto), form auto, e o RESULTADO no ciclo encerrado (nota
+ponderada, barras por competência, comparativo com a auto, feedback do gestor; abrir registra
+ciência em /eventos; convite de resultado por 60 dias pós-encerramento). Nota/gaps SEMPRE
+defensivos (dsmpNota ignora compId fora do ciclo e valor fora de 1..escalaMax).
+
+**Verificação:** build limpo + harness Playwright (scratchpad/audit/dsmp-verify.mjs, demo com
+config abortado e camada de dados stubada, user colab injetado): 23/23 asserts nos fluxos gestor
+(lista/detalhe/avaliar/construtor) e colab (convite/auto/concluir/resultado), 0 erros de página.
+PEGADINHA de harness nova: o pop-up de Novidades abre 1x por sessão e cobre prints (suprimir com
+`_changelogChecado = true`); o overlay #acesso pode reaparecer no fluxo demo (artefato, esconder
+só pro print). Release v323/1.61.0 deployado. **As DUAS features das Avaliações (clima +
+desempenho) estão completas e no ar.** Pendências futuras: 360 quando houver Cloud Functions;
+retenção de ciclos encerrados (política do William).
