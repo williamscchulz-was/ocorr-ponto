@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.61.0", d: "9 jul 2026", current: true, items: [
+    v: "1.62.0", d: "9 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Excluir uma ocorrência não apaga mais o registro: ele vai pra nova aba Excluídas, com data da exclusão, e pode ser restaurado. O conteúdo fica guardado pra auditoria em vez de sumir do histórico." },
+    ],
+  },
+  {
+    v: "1.61.0", d: "9 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Avaliação de desempenho completa na aba Avaliações. A GP monta o ciclo (competências com peso, quem avalia e quem participa) e cada líder avalia as pessoas do próprio time, com nota por competência e feedback. Dá pra salvar rascunho e concluir quando estiver pronto." },
       { type: "feat", aud: "colab", title: "Quando um ciclo de avaliação incluir autoavaliação, o convite aparece no seu início: você se avalia nas mesmas competências que o seu gestor. Quando o ciclo encerra, você vê o resultado completo, lado a lado com a sua autoavaliação e com o feedback do gestor." },
     ],

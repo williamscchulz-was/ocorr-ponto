@@ -5640,6 +5640,9 @@ function renderDashboard() {
       ${podeRh ? `<button class="tab ${state.view.filterTab === "dispensadas" ? "active" : ""}" data-tab="dispensadas">
         Dispensadas <span class="tab__count">${nDispensadas}</span>
       </button>` : ""}
+      ${can("ocorrencias.excluir") ? `<button class="tab ${state.view.filterTab === "excluidas" ? "active" : ""}" data-tab="excluidas">
+        Excluídas <span class="tab__count">${(state.ocorrenciasExcluidas || []).length}</span>
+      </button>` : ""}
       <span class="tabs__ink" aria-hidden="true"></span>
     </div>
 
@@ -5741,6 +5744,8 @@ function renderOccList() {
 
   if (tab === "rh-confere") { list = []; autoList = ocaDoEstagio("rh_confere", true); }
   else if (tab === "dispensadas") { list = []; autoList = ocaDoEstagio("dispensada", true); }
+  // Excluídas (soft delete, auditoria): array próprio, fora das listas normais.
+  else if (tab === "excluidas") { list = can("ocorrencias.excluir") ? (state.ocorrenciasExcluidas || []).slice() : []; autoList = []; }
   else if (tab === "pendentes") { list = list.filter(isPending); autoList = ocaDoEstagio("com_lider", true); }
   else if (tab === "conferidas") { list = list.filter(isConferida); autoList = ocaDoEstagio("confirmada", true).filter((o) => !isLancada(o)); }
   else if (tab === "lancadas") { list = list.filter(isLancada); autoList = ocaDoEstagio("confirmada", true).filter(isLancada); }
@@ -5805,6 +5810,7 @@ function renderOccList() {
           ? "Nenhum registro com a busca/filtro atual."
           : (tab === "rh-confere" ? "Nada para a GP conferir agora."
             : tab === "dispensadas" ? "Nenhuma ocorrência dispensada."
+            : tab === "excluidas" ? "Nenhuma ocorrência excluída. Quando alguém excluir uma, ela fica guardada aqui pra auditoria."
             : tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando a GP lançar algo, aparece aqui."
             : "Nenhum registro encontrado.")}</p>
         ${temFiltroAtivo ? `<button class="btn btn--ghost" id="btn-limpar-occ">${icon("x")}<span>Limpar filtros</span></button>` : ""}
@@ -5878,7 +5884,9 @@ function renderOccCard(o) {
       </div>
       ${o.horario ? `<div class="occ__time">${escapeHtml(o.horario)}</div>` : `<div class="occ__time occ__time--nulo">sem batida</div>`}
       <div class="occ__status">
-        ${pending
+        ${o.excluida
+          ? `<span class="badge badge--neutral">${icon("trash")}Excluída${o.excluidaEm ? " · " + formatDate(String(o.excluidaEm).slice(0, 10)) : ""}</span>`
+          : pending
           ? `<span class="badge badge--warning"><span class="dot"></span>Pendente</span>`
           : isLancada(o)
             ? `<span class="badge badge--info"><span class="dot"></span>Lançada · ${getAcao(o.acao)?.label || "—"}</span>`
@@ -6009,7 +6017,9 @@ function saveNovaOcorrencia() {
 // ---------- Detail / Conferência ----------
 
 function openOcorrenciaDetail(id) {
-  const o = state.ocorrencias.find((x) => x.id === id);
+  // Excluídas (soft delete) abrem o mesmo detalhe, em modo leitura + Restaurar.
+  const o = state.ocorrencias.find((x) => x.id === id)
+    || (state.ocorrenciasExcluidas || []).find((x) => x.id === id);
   if (!o) return;
 
   const u = currentUser();
@@ -6106,7 +6116,12 @@ function openOcorrenciaDetail(id) {
       </div>
     </div>
 
+    ${o.excluida ? `<div class="modal-colab-banner">${icon("trash")}<span>Ocorrência <strong>excluída</strong>${o.excluidaEm ? " em " + formatDate(String(o.excluidaEm).slice(0, 10)) : ""}. Guardada aqui pra auditoria; restaurar devolve pras listas normais.</span></div>` : ""}
     <div class="modal__footer">
+      ${o.excluida ? `
+        <button class="btn btn--ghost" data-close>Fechar</button>
+        ${can("ocorrencias.excluir") ? `<button class="btn btn--primary" id="btn-restaurar-occ">${icon("clock")}<span>Restaurar</span></button>` : ""}
+      ` : `
       ${can("ocorrencias.excluir") ? `<button class="btn btn--danger" id="btn-del-occ" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Fechar</button>
       ${can("ocorrencias.editarTudo") ? `<button class="btn btn--soft" id="btn-edit-occ">${icon("edit")}<span>Editar tudo</span></button>` : ""}
@@ -6115,10 +6130,12 @@ function openOcorrenciaDetail(id) {
       ${pending && u.role === "rh" ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
       ${!pending && !isLancada(o) && can("ocorrencias.lancar") ? `<button class="btn btn--primary" id="btn-lancar">${icon("check")}<span>Marcar como lançada</span></button>` : ""}
       ${isLancada(o) && can("ocorrencias.lancar") ? `<button class="btn btn--soft" id="btn-desfazer-lancar">${icon("clock")}<span>Desfazer lançamento</span></button>` : ""}
+      `}
     </div>
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      if ($("#btn-restaurar-occ")) $("#btn-restaurar-occ").addEventListener("click", () => restaurarOcorrencia(o.id));
       if ($("#btn-confer")) $("#btn-confer").addEventListener("click", () => confirmConferencia(o.id));
       if ($("#btn-update-obs")) $("#btn-update-obs").addEventListener("click", () => updateObservacao(o.id));
       if ($("#btn-del-occ")) $("#btn-del-occ").addEventListener("click", () => deleteOcorrencia(o.id));
@@ -14983,7 +15000,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.61.0";
+window.CURRENT_VERSION = "1.62.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

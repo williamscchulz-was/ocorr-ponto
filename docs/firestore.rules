@@ -266,7 +266,13 @@ service cloud.firestore {
             && isSupervisor()
             && (supervisorVe(resource.data.funcionarioId)
                 || ('funcionarioTurno' in resource.data && supervisorVeTurno(resource.data.funcionarioTurno)))
-            && podeConferirOuAtualizarObs());
+            && podeConferirOuAtualizarObs())
+        // Soft delete pra auditoria (2026-07-09): quem tem a cap de excluir MARCA a
+        // flag (excluida/Em/Por) ou a LIMPA (restaurar). Estritamente menos poder que
+        // o delete fisico abaixo, que segue permitido mas SAI do fluxo normal do app
+        // (a exclusao da UI vira soft; o conteudo fica pra aba Excluidas).
+        || ((isAdmin() || temCap('ocorrencias.excluir', isRH()))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['excluida', 'excluidaEm', 'excluidaPor']));
 
       allow delete: if isAdmin() || temCap('ocorrencias.excluir', isRH());
     }
