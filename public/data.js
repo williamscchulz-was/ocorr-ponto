@@ -26,6 +26,9 @@ const TIPOS_OCORRENCIA = [
 // (persistidas em /acoes no Firestore).
 const ACOES = [
   { id: "banco-horas", label: "Banco de Horas", padrao: true },
+  // Roteamento AUTOMATICO da regra Geral/lider (cards rotaBH do pipeline); a de cima
+  // segue sendo a escolha manual da GP pros casos normais.
+  { id: "banco-horas-geral", label: "Banco de Horas Geral", padrao: true },
   { id: "descontar", label: "Descontar", padrao: true },
   { id: "atestado", label: "Atestado Médico", padrao: true },
   { id: "esquecimento", label: "Esquecimento", padrao: true },

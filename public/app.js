@@ -5640,6 +5640,9 @@ function renderDashboard() {
       ${podeRh ? `<button class="tab ${state.view.filterTab === "dispensadas" ? "active" : ""}" data-tab="dispensadas">
         Dispensadas <span class="tab__count">${nDispensadas}</span>
       </button>` : ""}
+      ${can("ocorrencias.excluir") ? `<button class="tab ${state.view.filterTab === "excluidas" ? "active" : ""}" data-tab="excluidas">
+        Excluídas <span class="tab__count">${(state.ocorrenciasExcluidas || []).length}</span>
+      </button>` : ""}
       <span class="tabs__ink" aria-hidden="true"></span>
     </div>
 
@@ -5741,6 +5744,8 @@ function renderOccList() {
 
   if (tab === "rh-confere") { list = []; autoList = ocaDoEstagio("rh_confere", true); }
   else if (tab === "dispensadas") { list = []; autoList = ocaDoEstagio("dispensada", true); }
+  // Excluídas (soft delete, auditoria): array próprio, fora das listas normais.
+  else if (tab === "excluidas") { list = can("ocorrencias.excluir") ? (state.ocorrenciasExcluidas || []).slice() : []; autoList = []; }
   else if (tab === "pendentes") { list = list.filter(isPending); autoList = ocaDoEstagio("com_lider", true); }
   else if (tab === "conferidas") { list = list.filter(isConferida); autoList = ocaDoEstagio("confirmada", true).filter((o) => !isLancada(o)); }
   else if (tab === "lancadas") { list = list.filter(isLancada); autoList = ocaDoEstagio("confirmada", true).filter(isLancada); }
@@ -5805,6 +5810,7 @@ function renderOccList() {
           ? "Nenhum registro com a busca/filtro atual."
           : (tab === "rh-confere" ? "Nada para a GP conferir agora."
             : tab === "dispensadas" ? "Nenhuma ocorrência dispensada."
+            : tab === "excluidas" ? "Nenhuma ocorrência excluída. Quando alguém excluir uma, ela fica guardada aqui pra auditoria."
             : tab === "pendentes" ? "Nenhuma ocorrência pendente. Quando a GP lançar algo, aparece aqui."
             : "Nenhum registro encontrado.")}</p>
         ${temFiltroAtivo ? `<button class="btn btn--ghost" id="btn-limpar-occ">${icon("x")}<span>Limpar filtros</span></button>` : ""}
@@ -5878,7 +5884,9 @@ function renderOccCard(o) {
       </div>
       ${o.horario ? `<div class="occ__time">${escapeHtml(o.horario)}</div>` : `<div class="occ__time occ__time--nulo">sem batida</div>`}
       <div class="occ__status">
-        ${pending
+        ${o.excluida
+          ? `<span class="badge badge--neutral">${icon("trash")}Excluída${o.excluidaEm ? " · " + formatDate(String(o.excluidaEm).slice(0, 10)) : ""}</span>`
+          : pending
           ? `<span class="badge badge--warning"><span class="dot"></span>Pendente</span>`
           : isLancada(o)
             ? `<span class="badge badge--info"><span class="dot"></span>Lançada · ${getAcao(o.acao)?.label || "—"}</span>`
@@ -6009,7 +6017,9 @@ function saveNovaOcorrencia() {
 // ---------- Detail / Conferência ----------
 
 function openOcorrenciaDetail(id) {
-  const o = state.ocorrencias.find((x) => x.id === id);
+  // Excluídas (soft delete) abrem o mesmo detalhe, em modo leitura + Restaurar.
+  const o = state.ocorrencias.find((x) => x.id === id)
+    || (state.ocorrenciasExcluidas || []).find((x) => x.id === id);
   if (!o) return;
 
   const u = currentUser();
@@ -6106,7 +6116,12 @@ function openOcorrenciaDetail(id) {
       </div>
     </div>
 
+    ${o.excluida ? `<div class="modal-colab-banner">${icon("trash")}<span>Ocorrência <strong>excluída</strong>${o.excluidaEm ? " em " + formatDate(String(o.excluidaEm).slice(0, 10)) : ""}. Guardada aqui pra auditoria; restaurar devolve pras listas normais.</span></div>` : ""}
     <div class="modal__footer">
+      ${o.excluida ? `
+        <button class="btn btn--ghost" data-close>Fechar</button>
+        ${can("ocorrencias.excluir") ? `<button class="btn btn--primary" id="btn-restaurar-occ">${icon("clock")}<span>Restaurar</span></button>` : ""}
+      ` : `
       ${can("ocorrencias.excluir") ? `<button class="btn btn--danger" id="btn-del-occ" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
       <button class="btn btn--ghost" data-close>Fechar</button>
       ${can("ocorrencias.editarTudo") ? `<button class="btn btn--soft" id="btn-edit-occ">${icon("edit")}<span>Editar tudo</span></button>` : ""}
@@ -6115,10 +6130,12 @@ function openOcorrenciaDetail(id) {
       ${pending && u.role === "rh" ? `<button class="btn btn--soft" id="btn-update-obs">${icon("check")}<span>Salvar observação</span></button>` : ""}
       ${!pending && !isLancada(o) && can("ocorrencias.lancar") ? `<button class="btn btn--primary" id="btn-lancar">${icon("check")}<span>Marcar como lançada</span></button>` : ""}
       ${isLancada(o) && can("ocorrencias.lancar") ? `<button class="btn btn--soft" id="btn-desfazer-lancar">${icon("clock")}<span>Desfazer lançamento</span></button>` : ""}
+      `}
     </div>
   `, {
     onMount: (modal) => {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+      if ($("#btn-restaurar-occ")) $("#btn-restaurar-occ").addEventListener("click", () => restaurarOcorrencia(o.id));
       if ($("#btn-confer")) $("#btn-confer").addEventListener("click", () => confirmConferencia(o.id));
       if ($("#btn-update-obs")) $("#btn-update-obs").addEventListener("click", () => updateObservacao(o.id));
       if ($("#btn-del-occ")) $("#btn-del-occ").addEventListener("click", () => deleteOcorrencia(o.id));
@@ -10454,7 +10471,12 @@ function ocaDashCardHtml(o) {
   // Chevron igual ao do card manual (sinaliza clicavel; a trilha completa vive no modal).
   const OCA_CHEV = `<svg class="icon occ__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
   if (est === "rh_confere") {
-    acoes = `<div class="rhacts">
+    // rotaBH (Geral/líder): o saldo JÁ foi resolvido no Banco de Horas pelo pipeline;
+    // a GP só confere (mesmo modal de Ação do líder, pré-selecionado) e depois lança.
+    // Sem "Dispensar": não faz sentido dispensar o que já aconteceu e já foi resolvido.
+    acoes = o.rotaBH === true
+      ? `<div class="rhacts"><button class="btn btn--primary btn--sm" data-oca-confirmar="${escapeHtml(o.id)}">${icon("check")}<span>Conferir</span></button></div>`
+      : `<div class="rhacts">
       <button class="btn btn--primary btn--sm" data-oca-validar="${escapeHtml(o.id)}">${icon("check")}<span>Confirmar</span></button>
       <button class="btn btn--ghost btn--sm" data-oca-dispensar="${escapeHtml(o.id)}">${icon("x")}<span>Dispensar</span></button>
     </div>`;
@@ -10488,6 +10510,7 @@ function ocaDashCardHtml(o) {
         <div class="occ__name">${escapeHtml(o.nome || "—")}</div>
         <div class="occ__sub">
           <span class="badge badge--${t.tone}">${escapeHtml(t.label)}</span>
+          ${o.rotaBH === true ? `<span class="badge badge--info">Resolvido no Banco de Horas</span>` : ""}
           ${o.classificacaoIncerta === true ? `<span class="badge badge--conferir"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Conferir</span>` : ""}
           ${demit ? `<span class="badge badge--danger">Em rescisão</span>` : ""}
           <span class="dot"></span>
@@ -10511,11 +10534,17 @@ function ocaAcaoUI(acao, id) {
 // Ação (destinação) obrigatória e só então confirma. Acabou o 1 clique cego.
 function openConferirAutoModal(id) {
   const o = (state.ocorrenciasAuto || []).find((x) => x.id === id);
-  if (!o || ocaEstagio(o) !== "com_lider") return;
+  // rotaBH (Geral/líder, resolvido no BH pelo pipeline): a GP confere DIRETO de
+  // rh_confere, sem o hop com_lider (Turno Geral não tem líder de turno; a regra
+  // já aceita rh_confere -> confirmada pelo ramo RH/admin).
+  const rotaBH = !!o && o.rotaBH === true && ocaEstagio(o) === "rh_confere";
+  if (!o || (ocaEstagio(o) !== "com_lider" && !rotaBH)) return;
   const dataLbl = o.data || String(o.dataIso || "").split("-").reverse().join("/");
+  const etapaLbl = rotaBH ? "Resolvido no Banco de Horas · conferência da GP" : "Aguardando conferência do líder";
+  const preSel = rotaBH ? (o.acaoSugerida || "banco-horas-geral") : "";
   openModal(`
     <div class="modal__header">
-      <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>Aguardando conferência do líder</p></div>
+      <div><h2>Ocorrência · ${escapeHtml(dataLbl)}</h2><p>${etapaLbl}</p></div>
       <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
     </div>
     <div class="modal__body">
@@ -10526,16 +10555,16 @@ function openConferirAutoModal(id) {
             <label for="oca-acao">Ação <span style="color:var(--danger)">*</span></label>
             <select id="oca-acao" required aria-required="true">
               <option value="">Escolha como tratar a ocorrência...</option>
-              ${getAllAcoes().map((a) => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.label)}</option>`).join("")}
+              ${getAllAcoes().map((a) => `<option value="${escapeHtml(a.id)}"${a.id === preSel ? " selected" : ""}>${escapeHtml(a.label)}</option>`).join("")}
             </select>
-            <span class="field__hint">A data da conferência será marcada automaticamente.</span>
+            <span class="field__hint">${rotaBH ? "O saldo já foi resolvido no Banco de Horas pela regra do Turno Geral; a ação vem sugerida e você pode trocar." : "A data da conferência será marcada automaticamente."}</span>
             <div class="ass-erro" id="oca-acao-erro" hidden>Escolha a ação antes de confirmar.</div>
           </div>
           <div class="field">
             <label for="oca-obs">Observação</label>
             <textarea id="oca-obs" rows="3" placeholder="Adicione contexto, justificativas ou notas..."></textarea>
           </div>
-          ${ocaHistHtml(o, "Aguardando conferência do líder")}
+          ${ocaHistHtml(o, etapaLbl)}
         </div>
       </div>
     </div>
@@ -14983,7 +15012,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.61.0";
+window.CURRENT_VERSION = "1.63.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

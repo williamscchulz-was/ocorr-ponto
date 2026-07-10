@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { test, before, after } from "node:test";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, deleteField } from "firebase/firestore";
 
 let env;
 
@@ -322,3 +322,28 @@ test("colaborador NÃO escreve presença (nem com role forjado)", async () =>
   assertFails(setDoc(doc(colab(), "presence/uColab"), { uid: "uColab", nome: "Maria", role: "admin", lastSeen: serverTimestamp() })));
 test("ninguém escreve presença de OUTRO uid", async () =>
   assertFails(setDoc(doc(rh(), "presence/uOutro"), { uid: "uOutro", nome: "GH", role: "rh", lastSeen: serverTimestamp() })));
+
+// ---- ocorrencias: soft delete pra auditoria (aba Excluidas, 2026-07-09) ----
+// Quem tem a cap de excluir marca/limpa a flag {excluida, excluidaEm, excluidaPor};
+// qualquer outro campo junto NEGA (o ramo e hasOnly nessas 3 chaves).
+test("SOFT DELETE: RH marca ocorrencia como excluida", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias/o100"),
+    { excluida: true, excluidaEm: serverTimestamp(), excluidaPor: "uRh" })));
+test("SOFT DELETE: RH restaura (limpa a flag)", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "ocorrencias/o100"),
+    { excluida: false, excluidaEm: null, excluidaPor: null })));
+test("SOFT DELETE: RH NAO muda outro campo junto no mesmo ramo", async () =>
+  assertFails(updateDoc(doc(rh(), "ocorrencias/o100"),
+    { excluida: true, excluidaEm: serverTimestamp(), excluidaPor: "uRh", tipo: "atraso" })));
+test("SOFT DELETE: lider (sem cap de excluir) NAO marca", async () =>
+  assertFails(updateDoc(doc(liderT1(), "ocorrencias/o100"),
+    { excluida: true, excluidaEm: serverTimestamp(), excluidaPor: "uLiderT1" })));
+test("SOFT DELETE: colaborador NAO marca", async () =>
+  assertFails(updateDoc(doc(colab(), "ocorrencias/o100"),
+    { excluida: true, excluidaEm: serverTimestamp(), excluidaPor: "uColab" })));
+test("SOFT DELETE: restaurar via deleteField (fiel ao cliente)", async () => {
+  await assertSucceeds(updateDoc(doc(rh(), "ocorrencias/o200"),
+    { excluida: true, excluidaEm: serverTimestamp(), excluidaPor: "uRh" }));
+  await assertSucceeds(updateDoc(doc(rh(), "ocorrencias/o200"),
+    { excluida: deleteField(), excluidaEm: deleteField(), excluidaPor: deleteField() }));
+});

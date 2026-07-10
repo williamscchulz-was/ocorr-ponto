@@ -328,7 +328,9 @@
       }
     };
 
-    // Override deleteOcorrencia → admin exclui do Firestore
+    // Excluir = SOFT DELETE pra auditoria (2026-07-09): marca a flag em vez de
+    // apagar o doc. O conteúdo inteiro fica preservado na aba Excluídas, com quem
+    // e quando, e dá pra restaurar. (Delete físico segue possível só via console.)
     window.deleteOcorrencia = async function (id) {
       const o = state.ocorrencias.find((x) => x.id === id);
       if (!o) return;
@@ -337,21 +339,41 @@
       const label = `${f?.nome || "?"} · ${tipo?.label || "?"} · ${formatDate(o.data)}`;
       if (!(await confirmar({
         titulo: "Excluir ocorrência?",
-        msg: `${label}. Isso some do histórico, sem desfazer.`,
+        msg: `${label}. Ela sai das listas e vai pra aba Excluídas, com seu nome e a data. Dá pra restaurar depois.`,
         okLabel: "Excluir",
         perigo: true,
       }))) return;
 
       try {
-        await db.collection("ocorrencias").doc(id).delete();
+        const uid = auth.currentUser && auth.currentUser.uid;
+        await db.collection("ocorrencias").doc(id).update({
+          excluida: true, excluidaEm: firebase.firestore.FieldValue.serverTimestamp(), excluidaPor: uid,
+        });
         window.registrarAuditoria?.({ tipo: "occ", acao: "Excluiu ocorrência", alvo: label });
-        state.ocorrencias = state.ocorrencias.filter((x) => x.id !== id);
         closeModal();
-        toast("Ocorrência excluída.");
-        renderApp();
+        toast("Ocorrência excluída. Ela fica na aba Excluídas.");
+        // O onSnapshot reclassifica e re-renderiza sozinho.
       } catch (err) {
         debug?.(err);
         toast("Erro ao excluir: " + err.message, "danger");
+      }
+    };
+    // Restaurar uma excluída: limpa a flag, o doc volta pras listas normais.
+    window.restaurarOcorrencia = async function (id) {
+      const o = (state.ocorrenciasExcluidas || []).find((x) => x.id === id);
+      if (!o) return;
+      try {
+        const FV = firebase.firestore.FieldValue;
+        await db.collection("ocorrencias").doc(id).update({
+          excluida: FV.delete(), excluidaEm: FV.delete(), excluidaPor: FV.delete(),
+        });
+        const f = getFuncionario(o.funcionarioId);
+        window.registrarAuditoria?.({ tipo: "occ", acao: "Restaurou ocorrência excluída", alvo: f?.nome || id });
+        closeModal();
+        toast("Ocorrência restaurada.");
+      } catch (err) {
+        debug?.(err);
+        toast("Erro ao restaurar: " + err.message, "danger");
       }
     };
 
@@ -3465,7 +3487,9 @@
       if (u.funcionarioId) {
         try {
           const osnap = await db.collection("ocorrencias").where("funcionarioId", "==", u.funcionarioId).get();
-          state.ocorrenciasColab = osnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          // Excluídas (soft delete) FORA da vista do colaborador (gate Fable: sem o
+          // filtro, uma ocorrência que o gestor excluiu seguiria em "Meu ponto").
+          state.ocorrenciasColab = osnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((o) => o.excluida !== true);
         } catch (e) { debug?.("[colab] ocorrencias:", e?.message || e); state.ocorrenciasColab = []; }
       }
       })(),
@@ -3618,7 +3642,7 @@
     }, 5000);
 
     ocorrenciasUnsub = q.onSnapshot((snap) => {
-      state.ocorrencias = snap.docs.map((d) => {
+      const todas = snap.docs.map((d) => {
         const data = d.data();
         return {
           id: d.id,
@@ -3628,8 +3652,14 @@
           lancadoEm: tsToIsoDate(data.lancadoEm),
           criadoEm: tsToIso(data.criadoEm),
           atualizadoEm: tsToIso(data.atualizadoEm),
+          excluidaEm: tsToIso(data.excluidaEm),
         };
       });
+      // Soft delete filtrado NA INGESTÃO: excluídas saem de state.ocorrencias e
+      // tudo rio abaixo (abas, KPIs, contagens) segue certo sem mexer em nada;
+      // a aba Excluídas (auditoria) lê o array próprio.
+      state.ocorrenciasExcluidas = todas.filter((o) => o.excluida === true);
+      state.ocorrencias = todas.filter((o) => o.excluida !== true);
 
       // Detecção de deltas: compara ids deste snapshot com os da última vez.
       const user = currentUser();
