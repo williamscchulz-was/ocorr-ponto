@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Portal de Vagas (mock)</title>
+<link rel="stylesheet" href="/public/styles.css">
+<style>
+  body { background: var(--bg); margin: 0; }
+  .mk-top { position: sticky; top: 0; z-index: 50; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 13px 18px; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
+  .mk-brand { font-family: var(--font-brand); font-size: 14px; color: var(--plum); margin-right: 8px; }
+  .mk-chip { border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); font: 600 12.5px var(--font); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+  .mk-chip.on { background: var(--plum); border-color: var(--plum); color: #fff; }
+  .mk-wrap { max-width: 900px; margin: 0 auto; padding: 26px 18px 90px; }
+  .mk-note { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0 0 18px; }
+  .tela { display: none; }
+  .tela.on { display: block; }
+
+  /* ===== PAGINA PUBLICA (CSS proprio, standalone; vira o vagas.html real) ===== */
+  .pub { max-width: 720px; margin: 0 auto; background: #f2f4ef; border: 1px solid var(--border); border-radius: 22px; overflow: hidden; font-family: var(--font); }
+  .pub__hero { background: linear-gradient(140deg, #008835, #0b6e33 55%, #005f96); color: #fff; padding: 34px 26px 30px; }
+  .pub__logo { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .pub__logo-mark { width: 38px; height: 38px; border-radius: 10px; background: #fff; color: #008835; display: grid; place-items: center; font-weight: 800; font-size: 19px; }
+  .pub__logo b { font-size: 16px; letter-spacing: .02em; }
+  .pub__hero h1 { margin: 0 0 8px; font-size: 27px; line-height: 1.2; font-weight: 800; }
+  .pub__hero p { margin: 0; font-size: 14px; opacity: .92; line-height: 1.55; max-width: 480px; }
+  .pub__badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,203,0,.18); border: 1px solid rgba(255,203,0,.45); color: #FFCB00; font-size: 11.5px; font-weight: 700; padding: 4px 12px; border-radius: 999px; margin-top: 14px; }
+  .pub__lista { padding: 22px 20px 26px; display: flex; flex-direction: column; gap: 14px; }
+  .pub__sec { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: #5c6a57; margin: 0 4px; }
+  .vaga { background: #fff; border: 1px solid #dfe5d9; border-radius: 16px; padding: 18px 18px 16px; box-shadow: 0 3px 12px rgba(20,40,20,.05); }
+  .vaga__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .vaga h2 { margin: 0; font-size: 16.5px; font-weight: 700; color: #23301f; }
+  .vaga__tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 9px 0 10px; }
+  .vaga__tag { font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
+  .vaga__tag--turno { background: #e8f1f8; color: #0076BE; }
+  .vaga__desc { margin: 0 0 6px; font-size: 13px; color: #45523f; line-height: 1.55; }
+  .vaga__req { margin: 0 0 14px; font-size: 12px; color: #6b7563; line-height: 1.5; }
+  .vaga__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .vaga__data { font-size: 11px; color: #8a927f; }
+  .vaga__cta { display: inline-flex; align-items: center; gap: 8px; background: #008835; color: #fff; border: 0; font: 700 13.5px var(--font); padding: 11px 18px; border-radius: 999px; cursor: pointer; text-decoration: none; }
+  .vaga__cta svg { width: 17px; height: 17px; fill: currentColor; }
+  .vaga__cta:hover { background: #0b6e33; }
+  .pub__vazio { text-align: center; padding: 30px 20px; color: #6b7563; font-size: 13.5px; }
+  .pub__foot { text-align: center; padding: 0 20px 24px; font-size: 11px; color: #8a927f; line-height: 1.6; }
+
+  /* ===== GESTOR (tokens do app) ===== */
+  .g-wrap { max-width: 860px; }
+  .g-vaga { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .g-vaga:first-of-type { border-top: 0; }
+  .g-vaga__bd { flex: 1; min-width: 220px; }
+  .g-vaga__bd b { display: block; font-size: 14px; color: var(--text-body); }
+  .g-vaga__bd span { font-size: 11.5px; color: var(--text-muted); }
+  .g-status { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 4px 11px; border-radius: 999px; }
+  .g-status--pub { background: var(--success-bg); color: var(--success); }
+  .g-status--rasc { background: var(--surface-warm); color: var(--text-muted); border: 1px dashed var(--border-strong); }
+  .g-status--enc { background: var(--milk-edge, #e8e4da); color: var(--text-muted); }
+  .g-zap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  .g-zap input { padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: 9px; font: 500 13.5px var(--font); width: 220px; background: var(--surface); color: var(--text-body); }
+</style>
+</head>
+<body>
+<div class="mk-top">
+  <span class="mk-brand">FioPulse · Portal de Vagas (v1 público)</span>
+  <button class="mk-chip on" data-t="pub">Página pública</button>
+  <button class="mk-chip" data-t="gestor">Gestor · Vagas</button>
+</div>
+<main class="mk-wrap">
+
+  <section class="tela on" id="t-pub">
+    <p class="mk-note">Página ABERTA (sem login), servida no mesmo endereço do app (gh.fiobras.com.br/vagas.html). Só mostra vagas publicadas; candidatar abre o WhatsApp da GP com a mensagem pronta. Nenhum dado do candidato entra no sistema.</p>
+    <div class="pub">
+      <div class="pub__hero">
+        <div class="pub__logo"><span class="pub__logo-mark">F</span><b>Fiobras</b></div>
+        <h1>Trabalhe com a gente</h1>
+        <p>A Fiobras está crescendo e procura gente boa pra crescer junto. Veja as vagas abertas e chame a nossa equipe de Gestão de Pessoas direto no WhatsApp.</p>
+        <span class="pub__badge">3 vagas abertas</span>
+      </div>
+      <div class="pub__lista">
+        <span class="pub__sec">Vagas abertas</span>
+        <div class="vaga">
+          <div class="vaga__top"><h2>Operador de Máquina I</h2></div>
+          <div class="vaga__tags"><span class="vaga__tag">Produção</span><span class="vaga__tag vaga__tag--turno">1º turno</span><span class="vaga__tag">CLT</span><span class="vaga__tag">Guaramirim, SC</span></div>
+          <p class="vaga__desc">Operação de máquinas da linha de produção de fios, com treinamento completo na função.</p>
+          <p class="vaga__req">Requisitos: ensino fundamental completo, disponibilidade para o 1º turno. Experiência em indústria conta pontos, mas não é obrigatória.</p>
+          <div class="vaga__foot">
+            <span class="vaga__data">Publicada em 12/07/2026</span>
+            <a class="vaga__cta" href="#"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm5.7 14.2c-.2.7-1.4 1.3-1.9 1.4-.5.1-1.1.2-3.6-.8-3-1.2-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3.1s.8-2.2 1-2.5c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5l1 2.3c.1.2.1.4 0 .6l-.4.6-.5.6c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1.1-1.3c.2-.3.5-.2.8-.1l2.1 1c.3.2.5.3.6.4.1.2.1.7-.1 1.5z"/></svg>Quero me candidatar</a>
+          </div>
+        </div>
+        <div class="vaga">
+          <div class="vaga__top"><h2>Técnico de Manutenção Eletromecânica</h2></div>
+          <div class="vaga__tags"><span class="vaga__tag">Manutenção</span><span class="vaga__tag vaga__tag--turno">2º turno</span><span class="vaga__tag">CLT</span><span class="vaga__tag">Guaramirim, SC</span></div>
+          <p class="vaga__desc">Manutenção preventiva e corretiva do parque fabril, com equipe consolidada e plano de treinamento.</p>
+          <p class="vaga__req">Requisitos: curso técnico em eletromecânica ou áreas afins, NR-10. Experiência com manutenção industrial de 2 anos ou mais.</p>
+          <div class="vaga__foot">
+            <span class="vaga__data">Publicada em 10/07/2026</span>
+            <a class="vaga__cta" href="#"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm5.7 14.2c-.2.7-1.4 1.3-1.9 1.4-.5.1-1.1.2-3.6-.8-3-1.2-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3.1s.8-2.2 1-2.5c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5l1 2.3c.1.2.1.4 0 .6l-.4.6-.5.6c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1.1-1.3c.2-.3.5-.2.8-.1l2.1 1c.3.2.5.3.6.4.1.2.1.7-.1 1.5z"/></svg>Quero me candidatar</a>
+          </div>
+        </div>
+        <div class="vaga">
+          <div class="vaga__top"><h2>Analista Comercial</h2></div>
+          <div class="vaga__tags"><span class="vaga__tag">Comercial</span><span class="vaga__tag vaga__tag--turno">Comercial</span><span class="vaga__tag">CLT</span><span class="vaga__tag">Guaramirim, SC</span></div>
+          <p class="vaga__desc">Atendimento à carteira de clientes, orçamentos e acompanhamento de pedidos junto à produção.</p>
+          <p class="vaga__req">Requisitos: ensino médio completo, boa escrita e organização. Excel intermediário.</p>
+          <div class="vaga__foot">
+            <span class="vaga__data">Publicada em 08/07/2026</span>
+            <a class="vaga__cta" href="#"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm5.7 14.2c-.2.7-1.4 1.3-1.9 1.4-.5.1-1.1.2-3.6-.8-3-1.2-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3.1s.8-2.2 1-2.5c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5l1 2.3c.1.2.1.4 0 .6l-.4.6-.5.6c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1.1-1.3c.2-.3.5-.2.8-.1l2.1 1c.3.2.5.3.6.4.1.2.1.7-.1 1.5z"/></svg>Quero me candidatar</a>
+          </div>
+        </div>
+        <p class="pub__foot">Fiobras · Guaramirim, SC. Ao tocar em "Quero me candidatar" você abre uma conversa de WhatsApp com a nossa equipe de Gestão de Pessoas; nenhum dado seu é coletado por esta página.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tela" id="t-gestor">
+    <p class="mk-note">Tela do gestor (cap vagas.gerenciar): criar, publicar e encerrar vagas, e o número de WhatsApp que recebe os candidatos. Publicada aparece na página aberta na hora; encerrada some na hora.</p>
+    <div class="gami-card g-wrap">
+      <div class="gami-card__h"><h3>Vagas</h3><button class="btn btn--primary btn--sm">Nova vaga</button></div>
+      <p class="gami-hint">A página pública mostra só as publicadas: gh.fiobras.com.br/vagas.html (link pra divulgar em redes e grupos).</p>
+      <div class="g-vaga">
+        <div class="g-vaga__bd"><b>Operador de Máquina I</b><span>Produção · 1º turno · CLT · publicada em 12/07</span></div>
+        <span class="g-status g-status--pub">Publicada</span>
+        <button class="btn btn--ghost btn--sm">Editar</button>
+        <button class="btn btn--ghost btn--sm">Encerrar</button>
+      </div>
+      <div class="g-vaga">
+        <div class="g-vaga__bd"><b>Técnico de Manutenção Eletromecânica</b><span>Manutenção · 2º turno · CLT · publicada em 10/07</span></div>
+        <span class="g-status g-status--pub">Publicada</span>
+        <button class="btn btn--ghost btn--sm">Editar</button>
+        <button class="btn btn--ghost btn--sm">Encerrar</button>
+      </div>
+      <div class="g-vaga">
+        <div class="g-vaga__bd"><b>Auxiliar de Expedição</b><span>Expedição · 3º turno · CLT · rascunho</span></div>
+        <span class="g-status g-status--rasc">Rascunho</span>
+        <button class="btn btn--ghost btn--sm">Editar</button>
+        <button class="btn btn--primary btn--sm">Publicar</button>
+      </div>
+      <div class="g-vaga">
+        <div class="g-vaga__bd"><b>Costureira Industrial</b><span>Produção · 1º turno · CLT · encerrada em 02/07</span></div>
+        <span class="g-status g-status--enc">Encerrada</span>
+      </div>
+    </div>
+    <div class="gami-card g-wrap" style="margin-top:16px;">
+      <div class="gami-card__h"><h3>Candidaturas via WhatsApp</h3></div>
+      <p class="gami-hint">Quem toca em "Quero me candidatar" na página aberta cai direto nesta conversa, já citando a vaga. Nenhum dado de candidato fica no sistema.</p>
+      <div class="g-zap"><label style="font:600 13px var(--font);color:var(--text-body);">Número da GP</label><input type="text" value="+55 47 99999-0000"><button class="btn btn--primary btn--sm">Salvar</button></div>
+    </div>
+  </section>
+
+</main>
+<script>
+  document.querySelectorAll(".mk-chip").forEach((c) => c.addEventListener("click", () => {
+    document.querySelectorAll(".mk-chip").forEach((x) => x.classList.toggle("on", x === c));
+    document.querySelectorAll(".tela").forEach((t) => t.classList.toggle("on", t.id === "t-" + c.dataset.t));
+    window.scrollTo({ top: 0 });
+  }));
+</script>
+</body>
+</html>
