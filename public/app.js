@@ -1873,6 +1873,30 @@ function _parabTexto(total, mine, ehEu) {
   return total === 1 ? "1 parabéns" : `${total} parabéns`;
 }
 
+// Última leitura das reações por post (gravada por carregarReacoesAniversario e mantida
+// pelos toggles otimistas): os templates nascem preenchidos e o fetch vira confirmação.
+// Sem isto, TODO re-render voltava ao placeholder por ~1s até a leitura responder, o
+// "like some e volta" da auditoria do WKRADAR (2026-07-14).
+const _reacoesCached = (post) => (state._reacoesCache || {})[post] || null;
+
+// Pilha de mini-avatares de quem reagiu (compartilhada entre o template, que nasce do
+// cache, e o preenchedor assíncrono).
+function _bdayStackHtml(reacoes) {
+  return (reacoes || []).slice(0, 4)
+    .map((r) => {
+      // A MINHA reação mostra a MINHA foto (o colab tem o próprio funcionário em
+      // state.funcionarios[0]); as dos colegas ficam como iniciais (o colab não tem o
+      // diretório pra puxar foto de terceiro). autorNome vem da reação (v307).
+      const souEu = state.currentUserId && r.uid === state.currentUserId;
+      const fEu = (state.funcionarios && state.funcionarios[0]) || null;
+      const _foto = fEu && fEu.fotoBase64;
+      const fotoEu = (souEu && typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
+      if (fotoEu) return `<span class="pp-bday__stk pp-bday__stk--foto" style="background-image:url('${fotoEu}')" title="Você"></span>`;
+      const nome = souEu ? ((fEu && fEu.nome) || r.nome || "") : (r.nome || "");
+      return `<span class="pp-bday__stk" style="background:${_muralCor(nome || r.uid || "")}" title="${escapeHtml(souEu ? "Você" : nome)}">${escapeHtml(nome ? initials(nome) : "")}</span>`;
+    }).join("");
+}
+
 // Preenche os cards de aniversário da home de forma assíncrona: para cada [data-bday-post]
 // no DOM, lê as reações e escreve a contagem, o estado do coração e uma pilha de iniciais.
 // Barato (0 a 2 cards); a home re-renderiza, então re-preencher é ok. Guarda contra nó
@@ -1899,21 +1923,7 @@ async function preencherCardsAniversario() {
       heart.dataset.bdayMine = dados.minhaReacao ? "1" : "0";
     }
     const stack = el.querySelector("[data-bday-stack]");
-    if (stack) {
-      stack.innerHTML = dados.reacoes.slice(0, 4)
-        .map((r) => {
-          // A MINHA reação mostra a MINHA foto (o colab tem o próprio funcionário em
-          // state.funcionarios[0]); as dos colegas ficam como iniciais (o colab não tem o
-          // diretório pra puxar foto de terceiro). autorNome vem da reação (v307).
-          const souEu = state.currentUserId && r.uid === state.currentUserId;
-          const fEu = (state.funcionarios && state.funcionarios[0]) || null;
-          const _foto = fEu && fEu.fotoBase64;
-          const fotoEu = (souEu && typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
-          if (fotoEu) return `<span class="pp-bday__stk pp-bday__stk--foto" style="background-image:url('${fotoEu}')" title="Você"></span>`;
-          const nome = souEu ? ((fEu && fEu.nome) || r.nome || "") : (r.nome || "");
-          return `<span class="pp-bday__stk" style="background:${_muralCor(nome || r.uid || "")}" title="${escapeHtml(souEu ? "Você" : nome)}">${escapeHtml(nome ? initials(nome) : "")}</span>`;
-        }).join("");
-    }
+    if (stack) stack.innerHTML = _bdayStackHtml(dados.reacoes);
   }));
 }
 
@@ -1936,6 +1946,9 @@ async function onParabenizar(heart) {
     heart.dataset.bdayTotal = String(total);
     heart.dataset.bdayMine = mine ? "1" : "0";
     if (cnt) cnt.textContent = _parabTexto(total, mine, false);
+    // Cache acompanha o otimista: um re-render no meio do toggle nasce no estado novo.
+    const cc = state._reacoesCache || (state._reacoesCache = {});
+    cc[post] = { ...(cc[post] || { reacoes: [] }), total, minhaReacao: mine };
   };
   aplica(ligar, totalDepois, ligar);
   heart.dataset.busy = "1";
@@ -1991,14 +2004,16 @@ function aniversarianteHojeHtml(meuNome) {
     const nome = (p.nome || "?").trim();
     const primeiro = nome.split(/\s+/)[0] || "?";
     const post = muralPostId(nome);
+    const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
+    const mine = !!(c && c.minhaReacao);
     return `<div class="pp-bday" data-bday-post="${escapeHtml(post)}">
       <div class="pp-bday__ic">${cpIcon("cake")}</div>
       <div class="pp-bday__bd">
         <div class="pp-bday__t">Hoje é aniversário de ${escapeHtml(primeiro)}</div>
-        <div class="pp-bday__s" data-bday-count>...</div>
-        <div class="pp-bday__stack" data-bday-stack></div>
+        <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine, false)) : "..."}</div>
+        <div class="pp-bday__stack" data-bday-stack>${c ? _bdayStackHtml(c.reacoes) : ""}</div>
       </div>
-      <button class="pp-bday__heart" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="0" data-bday-mine="0" aria-pressed="false" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(false)}</button>
+      <button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>
     </div>`;
   }).join("");
 }
@@ -2022,13 +2037,15 @@ function colabBoasVindasHtml(meuNome) {
     const adm = tsParaData(p.admissao);
     const dias = adm ? Math.max(1, Math.round((hoje - adm.getTime()) / 864e5)) : null;
     const post = bvPostId(nome, p.admissao);
+    const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
+    const mine = !!(c && c.minhaReacao);
     return `<div class="pp-bday" data-bv-post="${escapeHtml(post)}">
       <div class="pp-bday__ic">${cpIcon("users")}</div>
       <div class="pp-bday__bd">
         <div class="pp-bday__t">${escapeHtml(primeiro)} entrou pra equipe${p.setor ? ` (${escapeHtml(p.setor)})` : ""}${dias ? `, há ${dias} dia${dias > 1 ? "s" : ""}` : ""}</div>
-        <div class="pp-bday__s" data-bv-count>...</div>
+        <div class="pp-bday__s" data-bv-count>${c ? escapeHtml(_bvTexto(c.total, mine)) : "..."}</div>
       </div>
-      ${souEu ? "" : `<button class="pp-bday__heart" type="button" data-bv-hand aria-pressed="false" aria-label="Dar as boas-vindas a ${escapeHtml(primeiro)}">${_bvHand(false)}</button>`}
+      ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bv-hand data-bv-total="${c ? c.total : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Dar as boas-vindas a ${escapeHtml(primeiro)}">${_bvHand(mine)}</button>`}
     </div>`;
   }).join("");
 }
@@ -2263,9 +2280,10 @@ function colabGreetHtml(f, nome) {
     // Sem coração (não se parabeniza a si mesmo). A linha de contagem (data-bday-count) é
     // preenchida por preencherCardsAniversario com a copy "N colegas já te parabenizaram".
     const post = muralPostId(nome);
+    const c = _reacoesCached(post); // nasce com a contagem da última leitura (anti-flicker)
     return `<div class="pp-greet pp-greet--bday" data-bday-post="${escapeHtml(post)}" data-bday-me>
       <div class="pp-greet__av"${avSt}>${av}<span class="spark">${cpIcon("cake")}</span></div>
-      <div class="pp-greet__tx"><h1>Feliz aniversário, <b>${escapeHtml(primeiro)}</b></h1><p data-bday-count>Toda a Fiobras te deseja um dia incrível</p></div>
+      <div class="pp-greet__tx"><h1>Feliz aniversário, <b>${escapeHtml(primeiro)}</b></h1><p data-bday-count>${c ? escapeHtml(_parabTexto(c.total, c.minhaReacao, true)) : "Toda a Fiobras te deseja um dia incrível"}</p></div>
     </div>`;
   }
   const saud = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
@@ -3355,7 +3373,16 @@ function atualizarTituloDocumento() {
 // Re-render seguro do dashboard quando as ocorrências mudam em tempo real.
 // Guardas: só re-renderiza se a tela de ocorrências está ativa, não há modal
 // aberto, e preserva foco/valor da busca se o usuário está digitando.
+// Coalescida por frame (auditoria WKRADAR 2026-07-14): os onSnapshot de ocorrências
+// (manuais + auto) disparam em rajada quando o pipeline escreve; N snapshots no mesmo
+// frame viram 1 render, mesma liturgia do renderApp/_renderRaf.
+let _ocaRafPendente = false;
 window.aoAtualizarOcorrencias = function () {
+  if (_ocaRafPendente) return;
+  _ocaRafPendente = true;
+  requestAnimationFrame(() => { _ocaRafPendente = false; _aoAtualizarOcorrenciasNow(); });
+};
+function _aoAtualizarOcorrenciasNow() {
   atualizarTituloDocumento();
   const u = currentUser();
   if (!u) return;
@@ -5993,10 +6020,13 @@ function vgAdmissoesHtml(u) {
         ${rec.map((f) => {
           const dias = Math.max(1, Math.round((hoje - admDe(f)) / 864e5));
           const souEu = meuNome && _normNome(f.nome) === meuNome;
-          return `<div class="vg-adm" data-bv-post="${escapeHtml(bvPostId(f.nome, f.admissao))}">
+          const post = bvPostId(f.nome, f.admissao);
+          const c = _reacoesCached(post); // nasce preenchido (anti-flicker)
+          const mine = !!(c && c.minhaReacao);
+          return `<div class="vg-adm" data-bv-post="${escapeHtml(post)}">
             ${avatarFuncHtml(f, "avatar")}
-            <div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(f.setor || "")} · chegou há ${dias} dia${dias > 1 ? "s" : ""}</span><span class="vg-adm__bv" data-bv-count></span></div>
-            ${souEu ? "" : `<button type="button" class="vg-adm__hand" data-bv-hand aria-pressed="false" title="Dar as boas-vindas">${_bvHand(false)}</button>`}
+            <div class="vg-adm__bd"><b>${escapeHtml(f.nome)}</b><span>${escapeHtml(f.setor || "")} · chegou há ${dias} dia${dias > 1 ? "s" : ""}</span><span class="vg-adm__bv" data-bv-count>${c ? escapeHtml(_bvTexto(c.total, mine)) : ""}</span></div>
+            ${souEu ? "" : `<button type="button" class="vg-adm__hand${mine ? " on" : ""}" data-bv-hand data-bv-total="${c ? c.total : 0}" aria-pressed="${mine ? "true" : "false"}" title="Dar as boas-vindas">${_bvHand(mine)}</button>`}
           </div>`;
         }).join("")}
       </div>
@@ -6057,6 +6087,9 @@ async function onBoasVindas(hand) {
     hand.innerHTML = _bvHand(on);
     hand.dataset.bvTotal = String(total);
     if (cnt) cnt.textContent = _bvTexto(total, on);
+    // Cache acompanha o otimista: um re-render no meio do toggle nasce no estado novo.
+    const cc = state._reacoesCache || (state._reacoesCache = {});
+    cc[post] = { ...(cc[post] || { reacoes: [] }), total, minhaReacao: on };
   };
   aplica(ligar, totalDepois);
   hand.dataset.busy = "1";
@@ -15716,7 +15749,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.69.0";
+window.CURRENT_VERSION = "1.69.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

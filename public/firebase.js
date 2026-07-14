@@ -1635,7 +1635,12 @@
         const reacoesSnap = await base.collection("reacoes").get();
         const reacoes = reacoesSnap.docs.map((d) => ({ uid: d.data().uid || d.id, nome: d.data().autorNome || "" }));
         const minhaReacao = !!(uid && reacoes.some((r) => r.uid === uid));
-        return { reacoes, minhaReacao, total: reacoes.length };
+        const out = { reacoes, minhaReacao, total: reacoes.length };
+        // Cache anti-flicker (auditoria WKRADAR 2026-07-14): o template nasce preenchido
+        // no próximo render em vez de voltar ao placeholder. Erro NÃO cacheia (mantém o
+        // último valor bom).
+        (state._reacoesCache || (state._reacoesCache = {}))[postId] = out;
+        return out;
       } catch (e) {
         debug?.("[aniv reacoes] carregar:", e?.message || e);
         return { reacoes: [], minhaReacao: false, total: 0, err: e.message };
@@ -3655,7 +3660,11 @@
       // recarregarVolateis já releu recibos (quando a aba foi aberta) — carimba o TTL pra
       // o lazy-load da tela não disparar um 2º fetch redundante logo em seguida.
       if (typeof marcarCarga === "function" && state.recibos != null) marcarCarga("recibos");
-      if (typeof renderApp === "function") renderApp();
+      // Anti-flicker (auditoria WKRADAR 2026-07-14): telas que não consomem NENHUM dado
+      // volátil recarregado aqui não re-renderizam no foco; o state atualizou em silêncio
+      // e a tela certa nasce na próxima navegação.
+      const SEM_VOLATEIS = ["auditoria", "gamificacao", "vagas", "avaliacoes", "colab-conquistas"];
+      if (typeof renderApp === "function" && !SEM_VOLATEIS.includes(state.view && state.view.page)) renderApp();
     } catch (e) { debug?.("[refetch foco] falhou:", e?.message || e); }
     finally { _refetchEmAndamento = false; }
   }

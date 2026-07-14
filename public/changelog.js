@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.69.0", d: "14 jul 2026", aud: "gestor", current: true, items: [
+    v: "1.69.1", d: "14 jul 2026", current: true, items: [
+      { type: "fix", title: "Fim do pisca-pisca: a curtida de boas-vindas, o coracao de aniversario e as contagens nao somem mais por um instante quando o app volta do segundo plano ou atualiza sozinho." },
+    ],
+  },
+  {
+    v: "1.69.0", d: "14 jul 2026", aud: "gestor", items: [
       { type: "high", title: "Vagas: o candidato agora preenche um formulario no proprio site (nome, telefone, email e mensagem), sem WhatsApp. As candidaturas aparecem na tela Vagas, com contagem por vaga e exclusao (LGPD)." },
       { type: "feat", title: "Vagas: turno virou seletor (1º, 2º, 3º ou Geral), o campo tipo saiu, e vaga encerrada pode ser excluida (as candidaturas dela precisam ser excluidas antes)." },
     ],
