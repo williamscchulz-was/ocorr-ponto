@@ -1381,6 +1381,47 @@ service cloud.firestore {
     }
 
     // ============================================================
+    // CANAL DE DENUNCIA (2026-07-15, William: "apenas admin ve").
+    // Desenho de sigilo: (1) ANONIMATO ESTRUTURAL, o hasOnly nem permite campo
+    // de uid/nome/aparelho, entao nem erro de cliente consegue vazar a autoria
+    // de uma denuncia anonima; (2) identificar-se e ESCOLHA do denunciante,
+    // por denuncia, via campo contato (texto livre que ELE digita); (3)
+    // leitura, triagem e exclusao SO ADMIN, de proposito FORA da matriz de
+    // permissoes (cap configuravel poderia ser delegada por engano, e denuncia
+    // pode ser sobre a propria GP); (4) create exige login (gente do quadro),
+    // mas o doc criado nao guarda quem foi; ID aleatorio.
+    // Residual aceito: correlacao temporal (quem estava logado no minuto X) so
+    // e visivel a quem opera o proprio projeto Firebase, que ja e o admin
+    // destinatario. Protocolo pro denunciante acompanhar = roadmap (exigiria
+    // leitura por codigo, outra superficie de acesso).
+    // ============================================================
+    match /denuncias/{id} {
+      function den() { return request.resource.data; }
+      // Categorias alinhadas a Lei 14.457/2022 (canal obrigatorio p/ empresas
+      // com CIPA: assedio sexual e outras violencias) + LGPD/compliance.
+      // HASH DE AUTENTICIDADE (pedido William 2026-07-15): o cliente manda o
+      // sha256 do relato e a REGRA recalcula e confere; com texto e hash
+      // imutaveis pos-create, qualquer adulteracao posterior e detectavel.
+      allow create: if request.auth != null
+        && den().keys().hasOnly(['categoria', 'texto', 'hash', 'contato', 'em', 'status'])
+        && den().categoria in ['assedio-sexual', 'assedio-moral', 'discriminacao', 'violencia', 'seguranca', 'fraude', 'outro']
+        && den().texto is string && den().texto.size() >= 10 && den().texto.size() <= 5000
+        && den().hash is string
+        && den().hash.lower() == hashing.sha256(den().texto).toHexString().lower()
+        && (!('contato' in den().keys()) || (den().contato is string && den().contato.size() <= 200))
+        && den().em == request.time
+        && den().status == 'nova';
+      allow read: if isAdmin();
+      // Triagem: so status e a anotacao interna mudam; o RELATO original e o
+      // hash sao imutaveis (integridade da apuracao). Excluir = LGPD, so admin.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'nota'])
+        && request.resource.data.status in ['nova', 'em_analise', 'concluida']
+        && (!('nota' in request.resource.data.keys()) || (request.resource.data.nota is string && request.resource.data.nota.size() <= 2000));
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================
     // CANDIDATURAS (2026-07-14, William: formulario NO SITE, sem WhatsApp).
     // PRIMEIRA ESCRITA ANONIMA do projeto, entao a porta e um funil:
     // create-only, shape fechado (hasOnly), caps de tamanho em tudo, vaga
