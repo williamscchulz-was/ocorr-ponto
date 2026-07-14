@@ -2590,3 +2590,68 @@ anual por doc (/gamificacao/{ano}); ranking público top 10 (nome+total+aro); ex
 feature nasce DORMENTE (a GP configura e ativa a temporada na tela nova). Catch-up credita o
 retroativo do ano ao abrir Conquistas. Badges de companheirismo exibidas como "em breve".
 Harness 31/31 (colab home/pontos/badges/equipar/dormente + gestor config/entregas/ranking/hub).
+
+## 2026-07-14 — Espelho do Portal do Colaborador mostrava saldo diário multiplicado
+
+William viu ao vivo, print de celular: tela "Espelho" do Portal do Colaborador, SALDO ATUAL
+certo (-00:06) mas a lista de saldo por dia embaixo estava errada. "A gente fez um grande
+trabalho de considerar o saldo correto e não aquele multiplicado, acontece que no espelho tá
+puxando aquele multiplicado".
+
+**Causa raiz:** o fix original do saldo (commit `9a45da7`, caso Jenifer/GP, "SALDO ATUAL")
+corrigiu o número principal usando as colunas "Diurnas/Noturnas Originais" do export de Banco de
+Horas (`ExpAuto_Banco_de_Horas.txt`, via `process-bh.mjs`) — mas o Espelho de Ponto é um export
+DIFERENTE (`ExpAuto_Espelho_Ponto.txt`), lido por um script diferente
+(`process-espelho-ponto.mjs`), que nunca recebeu o mesmo tratamento — a coluna "Saldo Diário"
+desse relatório vem NATIVAMENTE multiplicada pelo WK, sem coluna "original" equivalente
+disponível nesse export específico. Confirmado com dado real: Jenifer (671) tinha
+`saldoDiaFmt`=07:32 pro dia 09/07 no Espelho, contra 04:02 de verdade (via BH) — quase o dobro,
+porque é saldo CUMULATIVO e um lançamento multiplicado contamina todos os dias seguintes.
+
+**Fix (aditivo, mesmo padrão do "SALDO ATUAL" — `saldoDiaFmt` não muda de sentido):**
+`process-espelho-ponto.mjs` agora cruza cada dia do Espelho com o lançamento mais recente (≤
+aquela data) de `parsed-bh.json`, forward-fill (saldo cumulativo — dia sem lançamento novo usa o
+valor do último lançamento anterior). 2 campos NOVOS por dia: `saldoDiaOriginalMin`/
+`saldoDiaOriginalFmt`.
+
+**Limitação conhecida (não resolvida hoje, decisão consciente):** o export de Banco de Horas é
+reconfigurado toda rodada pra cobrir só o MÊS CORRENTE (`update-config-dates.mjs`); o Espelho
+cobre 2 meses (mês anterior + vigente). Medido ao vivo: **69% dos dias do Espelho (2562/3717)**
+são do mês anterior, sem nenhum lançamento de BH pra cruzar — ficam `null` nos 2 campos novos,
+`saldoDiaFmt` continua mostrando o valor bruto do WK sem confirmação possível.
+
+**Revisão do Fable — 2 ajustes aplicados antes de fechar:**
+1. Dentro da janela do mês vigente (onde o BH TEM cobertura), ausência de lançamento anterior não
+   é "desconhecido" — é "sem movimento ainda" (mesma convenção já usada em `process-bh.mjs`,
+   saldoOriginal=0 legítimo quando não há lançamento no período). Corrigido: retorna
+   `{0, "00:00"}` em vez de `null` nesse caso específico — só fica `null` de verdade quando é mês
+   anterior (fora da janela) ou o código nem existe no BH (ex.: menor aprendiz).
+2. `catch` silencioso na leitura de `parsed-bh.json` virou `console.warn` explícito — evita que
+   uma rodada ad-hoc deste script sozinho (sem o `process-bh.mjs` ter rodado antes na mesma
+   sessão) nulle os 2 campos e sobrescreva dado bom no Firestore sem nenhum aviso.
+
+**Teste de base (pedido do Fable, não tautológico):** comparado `saldoDiaFmt` (Espelho, bruto) vs
+`saldoFmt` do lançamento BH (também multiplicado, mesma fonte de comparação) pra 671/1115 — bateu
+10/13 dias exatos, 3 divergências de ±1min (ruído de arredondamento entre os 2 exports rodando em
+momentos ligeiramente diferentes, não um problema de base). Confirma que as 2 fontes têm a MESMA
+base cumulativa — o multiplicador é a única diferença real.
+
+**Rejeitado conscientemente (não é a solução):** estimar o dia de junho dividindo pelo percentual
+(o mix de situações do dia é desconhecido, seria chute); esconder junho inteiro (reverteria
+decisão de produto do William de 2026-07-01); alargar a janela do export de BH pro mês anterior
+(pareceria simples, mas o `saldoOriginalMin` do "SALDO ATUAL" acumula DESDE `DataInicial` — alargar
+a janela mudaria o SENTIDO do saldo atual também, não é mexida isolada). Se cobertura de mês
+anterior virar prioridade, o desenho limpo é arquivar a série original por-dia no fechamento de
+cada mês (só código+dataIso+saldo, sem PII) — design separado, fora do escopo de hoje.
+
+**Testado e no ar:** rodado o pipeline completo, confirmado no Firestore
+(`banco-horas-self/671`: saldoDiaFmt=07:32/saldoDiaOriginalFmt=04:02 nos dias de julho, null em
+junho). `check-pipeline-health.mjs` ok.
+
+**Pendente (PC):** 2 telas consomem essa mesma coleção — "Meu ponto" do colaborador E o Espelho
+de Ponto do gestor. Contrato: preferir `saldoDiaOriginalFmt`/`saldoDiaOriginalMin` quando
+`!= null` (⚠ NÃO checar truthiness — `0` é um valor válido e legítimo), fallback pro
+`saldoDiaFmt` bruto quando `null`. Ideal: 1 helper único no nível do mapeamento de dado (mesmo
+padrão de `bhFolgaMin`/`bhFolgaStr` que já existe pro saldo total), aplicado nas 2 telas — não
+correção tela-a-tela. Aviso: pode haver uma "queda" visível na virada do mês (30/06 mostra bruto,
+01/07 mostra original) — decisão de UI de como sinalizar isso fica com vocês/William.
