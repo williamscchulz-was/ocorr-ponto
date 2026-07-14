@@ -36,8 +36,14 @@ before(async () => {
     await setDoc(doc(db, "vagas/vRascPublicar"), vaga());
     await setDoc(doc(db, "vagas/vRascDel"), vaga());
     await setDoc(doc(db, "vagas/vEnc"), vaga({ status: "encerrada", publicadaEm: new Date(), encerradaEm: new Date() }));
+    await setDoc(doc(db, "vagas/vEncDel"), vaga({ status: "encerrada", publicadaEm: new Date(), encerradaEm: new Date() }));
     await setDoc(doc(db, "vagas/vPubEncerrar"), vaga({ status: "publicada", publicadaEm: new Date() }));
     await setDoc(doc(db, "config/vagas"), { whatsapp: "+5547999990000" });
+    await setDoc(doc(db, "vagas/vCand"), vaga({ status: "publicada", publicadaEm: new Date(), titulo: "Tecelão" }));
+    await setDoc(doc(db, "candidaturas/vCand__gp@mail.com"), {
+      vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Pessoa Seed", telefone: "47911112222",
+      email: "gp@mail.com", mensagem: "", em: new Date(), status: "nova",
+    });
   });
 });
 after(async () => { await env.cleanup(); });
@@ -96,3 +102,62 @@ test("RH atualiza o WhatsApp de candidaturas", async () =>
   assertSucceeds(setDoc(doc(rh(), "config/vagas"), { whatsapp: "+5547988887777" })));
 test("config/vagas com campo extra NEGA (shape-lock do doc publico)", async () =>
   assertFails(setDoc(doc(rh(), "config/vagas"), { whatsapp: "+55479", dump: "lixo" })));
+test("RH exclui vaga ENCERRADA (novo, William 2026-07-14)", async () =>
+  assertSucceeds(deleteDoc(doc(rh(), "vagas/vEncDel"))));
+
+// ---------- Candidaturas (PRIMEIRA escrita anonima do projeto: funil estreito) ----------
+const cand = (o = {}) => ({
+  vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Ana Souza", telefone: "47999998888",
+  email: "ana@mail.com", mensagem: "Tenho experiência com máquinas.", em: TS(), status: "nova", ...o,
+});
+const cid = (email, vagaId = "vCand") => `candidaturas/${vagaId}__${email.toLowerCase()}`;
+
+test("ANONIMO se candidata a vaga publicada (shape completo, id deterministico)", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("ana@mail.com")), cand())));
+test("email com maiusculas: id usa lower e o campo mantem o original", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("Bia@Mail.com")), cand({ email: "Bia@Mail.com" }))));
+test("candidatura REPETIDA nega (mesmo email+vaga vira update, update e false)", async () => {
+  await assertSucceeds(setDoc(doc(anon(), cid("dup@mail.com")), cand({ email: "dup@mail.com" })));
+  await assertFails(setDoc(doc(anon(), cid("dup@mail.com")), cand({ email: "dup@mail.com" })));
+});
+test("campo EXTRA nega (hasOnly)", async () =>
+  assertFails(setDoc(doc(anon(), cid("x1@mail.com")), cand({ email: "x1@mail.com", curriculoUrl: "http://mal" }))));
+test("vagaTitulo DIVERGENTE da vaga real nega (titulo enganoso)", async () =>
+  assertFails(setDoc(doc(anon(), cid("x10@mail.com")), cand({ email: "x10@mail.com", vagaTitulo: "Gerente Geral, salario 50 mil" }))));
+test("vagaTitulo igual ao da vaga passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("x11@mail.com")), cand({ email: "x11@mail.com", vagaTitulo: "Tecelão" }))));
+test("vaga em RASCUNHO nao aceita candidatura", async () =>
+  assertFails(setDoc(doc(anon(), "candidaturas/vRasc__x2@mail.com"), cand({ vagaId: "vRasc", email: "x2@mail.com" }))));
+test("vaga ENCERRADA nao aceita candidatura", async () =>
+  assertFails(setDoc(doc(anon(), "candidaturas/vEnc__x3@mail.com"), cand({ vagaId: "vEnc", email: "x3@mail.com" }))));
+test("vaga INEXISTENTE nao aceita candidatura", async () =>
+  assertFails(setDoc(doc(anon(), "candidaturas/nada__x4@mail.com"), cand({ vagaId: "nada", email: "x4@mail.com" }))));
+test("email invalido nega", async () =>
+  assertFails(setDoc(doc(anon(), "candidaturas/vCand__sem-arroba"), cand({ email: "sem-arroba" }))));
+test("nome curto nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("x5@mail.com")), cand({ email: "x5@mail.com", nome: "ab" }))));
+test("mensagem acima de 1000 nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("x6@mail.com")), cand({ email: "x6@mail.com", mensagem: "m".repeat(1001) }))));
+test("em de cliente (nao server-time) nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("x7@mail.com")), cand({ email: "x7@mail.com", em: new Date() }))));
+test("status diferente de nova nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("x8@mail.com")), cand({ email: "x8@mail.com", status: "vista" }))));
+test("doc ID fora do padrao vagaId__email nega", async () =>
+  assertFails(setDoc(doc(anon(), "candidaturas/qualquer-id"), cand({ email: "x9@mail.com" }))));
+test("ANONIMO NAO le nem lista candidaturas (PII de candidato)", async () => {
+  await assertFails(getDoc(doc(anon(), "candidaturas/vCand__gp@mail.com")));
+  await assertFails(getDocs(collection(anon(), "candidaturas")));
+});
+test("ANONIMO NAO atualiza nem deleta candidatura", async () => {
+  await assertFails(updateDoc(doc(anon(), "candidaturas/vCand__gp@mail.com"), { status: "vista" }));
+  await assertFails(deleteDoc(doc(anon(), "candidaturas/vCand__gp@mail.com")));
+});
+test("COLABORADOR NAO le candidaturas (so GP)", async () =>
+  assertFails(getDoc(doc(colab(), "candidaturas/vCand__gp@mail.com"))));
+test("RH le, lista e exclui candidatura (LGPD)", async () => {
+  await assertSucceeds(getDoc(doc(rh(), "candidaturas/vCand__gp@mail.com")));
+  await assertSucceeds(getDocs(collection(rh(), "candidaturas")));
+  await assertSucceeds(deleteDoc(doc(rh(), "candidaturas/vCand__gp@mail.com")));
+});
+test("RH NAO atualiza candidatura (update fechado no v1)", async () =>
+  assertFails(updateDoc(doc(rh(), "candidaturas/vCand__ana@mail.com"), { status: "vista" })));

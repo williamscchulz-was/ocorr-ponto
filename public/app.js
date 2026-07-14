@@ -4150,43 +4150,73 @@ function bindGamiEntregas() {
 // mostra as publicadas; aqui a GP cria, publica, corrige e encerra, e define
 // o WhatsApp que recebe as candidaturas. Form inline (sem modal).
 // ============================================================
+const VAGA_TURNOS = ["1º turno", "2º turno", "3º turno", "Geral"];
+
 function renderVagas() {
   const view = $("#view");
   if (state.vagas === undefined) {
     state.vagas = null; // trava reentrada
     view.innerHTML = `<header class="page-header"><div><h1>Vagas</h1></div></header><div class="empty"><p>Carregando…</p></div>`;
     (async () => {
-      await window.carregarVagasGestor?.();
+      await Promise.all([window.carregarVagasGestor?.(), window.carregarCandidaturasGestor?.()]);
       if (state.view.page === "vagas") renderApp();
     })();
     return;
   }
   const vagas = state.vagas || [];
+  const candidaturas = state.candidaturas || [];
   const edit = state.view.vagaEdit; // null | "nova" | id
   const v = edit && edit !== "nova" ? vagas.find((x) => x.id === edit) : null;
+  const candAberta = state.view.vagaCandAberta; // id da vaga com a lista de candidaturas aberta, ou null
   const fmt = (iso) => (iso ? String(iso).slice(0, 10).split("-").reverse().slice(0, 2).join("/") : "");
   const statusHtml = (s) => s === "publicada" ? `<span class="g-status g-status--pub">Publicada</span>`
     : s === "encerrada" ? `<span class="g-status g-status--enc">Encerrada</span>`
     : `<span class="g-status g-status--rasc">Rascunho</span>`;
-  const linhas = vagas.map((x) => `
+  const candidaturasDaVaga = (id) => candidaturas.filter((c) => c.vagaId === id);
+  const candidaturaHtml = (c) => `
+    <div class="g-cand">
+      <div class="g-cand__bd">
+        <b>${escapeHtml(c.nome || "")}</b>
+        <span>${[c.telefone, c.email].filter(Boolean).map(escapeHtml).join(" · ")}</span>
+        ${c.mensagem ? `<p>${escapeHtml(c.mensagem)}</p>` : ""}
+        <span class="g-cand__data">${c.em ? `${fmt(c.em)} às ${horaAud(c.em)}` : ""}</span>
+      </div>
+      <button class="btn btn--ghost btn--sm" data-cand-excluir="${escapeHtml(c.id)}">Excluir</button>
+    </div>`;
+  const painelHtml = (id) => {
+    const lista = candidaturasDaVaga(id);
+    return `<div class="g-cand-wrap">${lista.length ? lista.map(candidaturaHtml).join("") : `<p class="g-cand-empty">Nenhuma candidatura ainda para esta vaga.</p>`}</div>`;
+  };
+  const linhas = vagas.map((x) => {
+    const n = candidaturasDaVaga(x.id).length;
+    return `
     <div class="g-vaga">
-      <div class="g-vaga__bd"><b>${escapeHtml(x.titulo || "")}</b>
-        <span>${[x.setor, x.turno, x.tipo].filter(Boolean).map(escapeHtml).join(" · ")}${x.status === "publicada" && x.publicadaEm ? ` · publicada em ${fmt(x.publicadaEm)}` : ""}</span></div>
+      <div class="g-vaga__bd" data-cand-toggle="${escapeHtml(x.id)}"><b>${escapeHtml(x.titulo || "")}</b>
+        <span>${[x.setor, x.turno].filter(Boolean).map(escapeHtml).join(" · ")}${x.status === "publicada" && x.publicadaEm ? ` · publicada em ${fmt(x.publicadaEm)}` : ""}</span></div>
+      ${n ? `<button class="g-cand-badge" data-cand-toggle="${escapeHtml(x.id)}">${n} candidatura${n > 1 ? "s" : ""}</button>` : ""}
       ${statusHtml(x.status)}
       ${x.status !== "encerrada" ? `<button class="btn btn--ghost btn--sm" data-vaga-editar="${escapeHtml(x.id)}">Editar</button>` : ""}
-      ${x.status === "rascunho" ? `<button class="btn btn--primary btn--sm" data-vaga-publicar="${escapeHtml(x.id)}">Publicar</button>
-        <button class="btn btn--ghost btn--sm" data-vaga-excluir="${escapeHtml(x.id)}">Excluir</button>` : ""}
+      ${x.status === "rascunho" ? `<button class="btn btn--primary btn--sm" data-vaga-publicar="${escapeHtml(x.id)}">Publicar</button>` : ""}
+      ${x.status !== "publicada" ? `<button class="btn btn--ghost btn--sm" data-vaga-excluir="${escapeHtml(x.id)}">Excluir</button>` : ""}
       ${x.status === "publicada" ? `<button class="btn btn--ghost btn--sm" data-vaga-encerrar="${escapeHtml(x.id)}">Encerrar</button>` : ""}
-    </div>`).join("");
+    </div>
+    ${candAberta === x.id ? painelHtml(x.id) : ""}`;
+  }).join("");
   const campo = (id2, rot, val, ph) => `<div class="field"><label for="${id2}">${rot}</label><input id="${id2}" type="text" value="${escapeHtml(val || "")}" placeholder="${escapeHtml(ph || "")}"></div>`;
+  const turnoAtual = v?.turno || "";
+  const turnoLista = turnoAtual && !VAGA_TURNOS.includes(turnoAtual) ? [...VAGA_TURNOS, turnoAtual] : VAGA_TURNOS;
+  const campoTurno = `<div class="field"><label for="vg-turno">Turno</label>
+    <select id="vg-turno">
+      <option value="">Selecione</option>
+      ${turnoLista.map((t) => `<option value="${escapeHtml(t)}"${t === turnoAtual ? " selected" : ""}>${escapeHtml(t)}</option>`).join("")}
+    </select></div>`;
   const formHtml = edit ? `
     <div class="gami-card" style="margin-top:16px;">
       <div class="gami-card__h"><h3>${edit === "nova" ? "Nova vaga" : "Editar vaga"}</h3></div>
       <div class="form2">
         ${campo("vg-titulo", "Título", v?.titulo, "Operador de Máquina I")}
         ${campo("vg-setor", "Setor", v?.setor, "Produção")}
-        ${campo("vg-turno", "Turno", v?.turno, "1º turno")}
-        ${campo("vg-tipo", "Tipo", v?.tipo, "CLT")}
+        ${campoTurno}
         ${campo("vg-cidade", "Cidade", v?.cidade ?? "Guaramirim, SC", "Guaramirim, SC")}
       </div>
       <div class="field"><label for="vg-desc">Descrição</label><textarea id="vg-desc" rows="3" maxlength="3000">${escapeHtml(v?.descricao || "")}</textarea></div>
@@ -4206,8 +4236,8 @@ function renderVagas() {
     </div>
     ${formHtml}
     <div class="gami-card" style="margin-top:16px;">
-      <div class="gami-card__h"><h3>Candidaturas via WhatsApp</h3></div>
-      <p class="gami-hint">Quem toca em "Quero me candidatar" no site cai nesta conversa, já citando a vaga. Nenhum dado de candidato fica no sistema.</p>
+      <div class="gami-card__h"><h3>WhatsApp da GP</h3></div>
+      <p class="gami-hint">Vai aparecer como botão no site de vagas em breve.</p>
       <div class="g-zap"><label style="font:600 13px var(--font);color:var(--text-body);">Número da GP</label>
         <input type="text" id="vg-zap" value="${escapeHtml((state.vagasConfig && state.vagasConfig.whatsapp) || "")}" placeholder="+55 47 99999-0000">
         <button class="btn btn--primary btn--sm" id="vg-zap-salvar">Salvar</button>
@@ -4216,7 +4246,7 @@ function renderVagas() {
   $("#vg-nova")?.addEventListener("click", () => { state.view.vagaEdit = "nova"; renderApp(); });
   $("#vg-cancelar")?.addEventListener("click", () => { state.view.vagaEdit = null; renderApp(); });
   $("#vg-salvar")?.addEventListener("click", () => withBusy("vg-salvar", $("#vg-salvar"), async () => {
-    const dados = { titulo: $("#vg-titulo").value.trim(), setor: $("#vg-setor").value.trim(), turno: $("#vg-turno").value.trim(), tipo: $("#vg-tipo").value.trim(), cidade: $("#vg-cidade").value.trim(), descricao: $("#vg-desc").value.trim(), requisitos: $("#vg-req").value.trim() };
+    const dados = { titulo: $("#vg-titulo").value.trim(), setor: $("#vg-setor").value.trim(), turno: $("#vg-turno").value.trim(), cidade: $("#vg-cidade").value.trim(), descricao: $("#vg-desc").value.trim(), requisitos: $("#vg-req").value.trim() };
     if (!dados.titulo) { $("#vg-erro").textContent = "A vaga precisa de um título."; return; }
     try {
       await window.salvarVaga(edit === "nova" ? null : edit, dados);
@@ -4242,9 +4272,27 @@ function renderVagas() {
     });
   }));
   $$("#view [data-vaga-excluir]").forEach((b) => b.addEventListener("click", async () => {
-    if (!(await confirmar({ titulo: "Excluir rascunho", msg: "O rascunho some de vez. Confirma?", okLabel: "Excluir", perigo: true }))) return;
+    // Gate Fable A1: vaga excluída some da tela mas as candidaturas dela (PII de gente
+    // de fora) ficariam no banco sem UI de exclusão. Ordem obrigatória: candidaturas antes.
+    if ((state.candidaturas || []).some((c) => c.vagaId === b.dataset.vagaExcluir)) {
+      toast("Exclua as candidaturas desta vaga antes de excluí-la.", "danger");
+      return;
+    }
+    if (!(await confirmar({ titulo: "Excluir vaga", msg: "Excluir esta vaga de vez?", okLabel: "Excluir", perigo: true }))) return;
     withBusy("vg-del", b, async () => {
-      try { await window.excluirVagaRascunho(b.dataset.vagaExcluir); await window.carregarVagasGestor?.(); toast("Rascunho excluído."); renderApp(); }
+      try { await window.excluirVaga(b.dataset.vagaExcluir); await window.carregarVagasGestor?.(); toast("Vaga excluída."); renderApp(); }
+      catch (e) { toast("Não excluiu: " + (e?.message || e), "danger"); }
+    });
+  }));
+  $$("#view [data-cand-toggle]").forEach((el) => el.addEventListener("click", () => {
+    const id = el.dataset.candToggle;
+    state.view.vagaCandAberta = state.view.vagaCandAberta === id ? null : id;
+    renderApp();
+  }));
+  $$("#view [data-cand-excluir]").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await confirmar({ titulo: "Excluir candidatura", msg: "Os dados desta pessoa somem de vez (LGPD). Confirma?", okLabel: "Excluir", perigo: true }))) return;
+    withBusy("vg-cand-del", b, async () => {
+      try { await window.excluirCandidatura(b.dataset.candExcluir); await window.carregarCandidaturasGestor?.(); toast("Candidatura excluída."); renderApp(); }
       catch (e) { toast("Não excluiu: " + (e?.message || e), "danger"); }
     });
   }));
@@ -15668,7 +15716,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.68.1";
+window.CURRENT_VERSION = "1.69.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

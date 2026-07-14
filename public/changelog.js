@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.68.1", d: "14 jul 2026", current: true, items: [
+    v: "1.69.0", d: "14 jul 2026", aud: "gestor", current: true, items: [
+      { type: "high", title: "Vagas: o candidato agora preenche um formulario no proprio site (nome, telefone, email e mensagem), sem WhatsApp. As candidaturas aparecem na tela Vagas, com contagem por vaga e exclusao (LGPD)." },
+      { type: "feat", title: "Vagas: turno virou seletor (1º, 2º, 3º ou Geral), o campo tipo saiu, e vaga encerrada pode ser excluida (as candidaturas dela precisam ser excluidas antes)." },
+    ],
+  },
+  {
+    v: "1.68.1", d: "14 jul 2026", items: [
       { type: "fix", title: "O saldo por dia do espelho agora mostra o valor original pra folga (sem o multiplicador da situacao), igual ao saldo atual. Vale no Meu ponto e no espelho do gestor." },
       { type: "fix", title: "Conquistas: barra de carregamento na primeira abertura, e a maozinha de boas-vindas foi redesenhada." },
       { type: "fix", aud: "gestor", title: "Menu lateral: com muitos itens ele agora rola por dentro, sem empurrar o seu avatar pra fora. E a tela Vagas ganhou icone proprio." },

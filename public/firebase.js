@@ -1910,7 +1910,6 @@
         setor: String(dados.setor || "").slice(0, 60),
         turno: String(dados.turno || "").slice(0, 40),
         cidade: String(dados.cidade || "").slice(0, 60),
-        tipo: String(dados.tipo || "").slice(0, 30),
         descricao: String(dados.descricao || "").slice(0, 3000),
         requisitos: String(dados.requisitos || "").slice(0, 3000),
       };
@@ -1926,10 +1925,22 @@
       await db.collection("vagas").doc(id).update({ status: "encerrada", encerradaEm: _FV.serverTimestamp() });
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Encerrou vaga do site", alvo: id });
     };
-    window.excluirVagaRascunho = async function (id) { await db.collection("vagas").doc(id).delete(); };
+    window.excluirVaga = async function (id) { await db.collection("vagas").doc(id).delete(); };
     window.salvarConfigVagas = async function (whatsapp) {
       await db.collection("config").doc("vagas").set({ whatsapp: String(whatsapp || "").slice(0, 30) });
       state.vagasConfig = { whatsapp };
+    };
+    // Candidaturas: gravadas pelo site publico (fora da empresa, fronteira de
+    // confianca maxima); todo campo passa por escapeHtml no render do gestor.
+    window.carregarCandidaturasGestor = async function () {
+      try {
+        const cs = await db.collection("candidaturas").orderBy("em", "desc").get();
+        state.candidaturas = cs.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
+      } catch (e) { debug?.("[vagas] candidaturas:", e?.code || e?.message); state.candidaturas = state.candidaturas || []; }
+    };
+    window.excluirCandidatura = async function (id) {
+      await db.collection("candidaturas").doc(id).delete();
+      window.registrarAuditoria?.({ tipo: "vagas", acao: "Excluiu candidatura", alvo: id });
     };
 
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {

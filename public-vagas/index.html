@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trabalhe com a gente · Fiobras</title>
-<meta name="description" content="Vagas abertas na Fiobras, Guaramirim SC. Veja as oportunidades e fale direto com a nossa equipe de Gestão de Pessoas pelo WhatsApp.">
+<meta name="description" content="Vagas abertas na Fiobras, Guaramirim SC. Veja as oportunidades e candidate-se direto aqui pelo site.">
 <meta property="og:title" content="Trabalhe com a gente · Fiobras">
-<meta property="og:description" content="Vagas abertas na Fiobras, Guaramirim SC. Candidate-se pelo WhatsApp.">
+<meta property="og:description" content="Vagas abertas na Fiobras, Guaramirim SC. Candidate-se direto pelo site.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23008835'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Arial' font-weight='800' font-size='18' fill='%23fff'%3EF%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,8 +30,10 @@
   .hero h1 { margin: 0 0 14px; font-size: clamp(38px, 8vw, 68px); line-height: 1.04; font-weight: 900; letter-spacing: -.02em; max-width: 640px; }
   /* isolation cria stacking context: sem ela o ::before de z-index -1 cai atras
      do fundo do hero e o texto verde-escuro some no verde-escuro */
-  .hero h1 .marca { position: relative; display: inline-block; color: #04331a; padding: 0 6px; isolation: isolate; }
+  .hero h1 .marca { position: relative; display: inline-grid; color: #04331a; padding: 0 6px; isolation: isolate; }
   .hero h1 .marca::before { content: ""; position: absolute; inset: 8% -2% 4%; background: #FFCB00; border-radius: 8px; transform: rotate(-1.2deg); z-index: -1; }
+  .hero h1 .marca .verbo { grid-area: 1 / 1; white-space: nowrap; opacity: 0; transition: opacity .6s ease; }
+  .hero h1 .marca .verbo.ativo { opacity: 1; }
   .hero p.sub { margin: 0; font-size: clamp(14.5px, 2vw, 17px); opacity: .88; line-height: 1.65; max-width: 460px; }
   .hero__acao { display: flex; align-items: center; gap: 14px; margin-top: 26px; flex-wrap: wrap; }
   .hero__cta { display: inline-flex; align-items: center; gap: 8px; background: #FFCB00; color: #332902; font-weight: 800; font-size: 15px; padding: 14px 24px; border-radius: 999px; text-decoration: none; box-shadow: 0 8px 24px rgba(255,203,0,.28); transition: transform .15s ease; }
@@ -57,7 +59,6 @@
   .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 12px; }
   .tag { font-size: 10.5px; font-weight: 700; padding: 3.5px 11px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
   .tag--turno { background: #e8f1f8; color: #0076BE; }
-  .tag--tipo { background: #fdf4d4; color: #8a6d00; }
   .desc { margin: 0 0 8px; font-size: 13.5px; color: #45523f; line-height: 1.6; white-space: pre-line; }
   .req { margin: 0 0 16px; font-size: 12.5px; color: #6b7563; line-height: 1.55; white-space: pre-line; }
   .vfoot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -76,12 +77,36 @@
 
   .foot { text-align: center; padding: 8px 22px 34px; font-size: 11.5px; color: #8a927f; line-height: 1.7; max-width: 640px; margin: 0 auto; }
 
+  /* ===== CANDIDATURA (modal) ===== */
+  dialog.candidatura { border: none; border-radius: 20px; padding: 0; width: min(460px, 92vw); max-height: 88vh; overflow: hidden; box-shadow: 0 24px 60px rgba(4,51,26,.35); }
+  dialog.candidatura::backdrop { background: rgba(4,26,15,.55); }
+  .cand__head { background: #04331a; color: #fff; padding: 22px 46px 18px 24px; position: relative; }
+  .cand__head h3 { margin: 0; font-size: 17px; font-weight: 800; }
+  .cand__head p { margin: 4px 0 0; font-size: 12.5px; opacity: .8; }
+  .cand__fechar { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(255,255,255,.15); color: #fff; font-size: 17px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+  .cand__fechar:hover { background: rgba(255,255,255,.28); }
+  .cand__body { padding: 20px 24px 24px; overflow-y: auto; max-height: calc(88vh - 84px); }
+  .cand__campo { margin-bottom: 14px; }
+  .cand__campo label { display: block; font-size: 12.5px; font-weight: 700; color: #384a32; margin-bottom: 5px; }
+  .cand__campo input, .cand__campo textarea { width: 100%; border: 1px solid #d8ded0; border-radius: 12px; padding: 11px 13px; font: 500 14px "Poppins", sans-serif; color: #1d2a19; background: #f9faf6; }
+  .cand__campo input:focus, .cand__campo textarea:focus { outline: 2px solid #008835; outline-offset: 1px; border-color: #008835; }
+  .cand__campo textarea { resize: vertical; min-height: 74px; }
+  .cand__erro { font-size: 11.5px; color: #b3261e; margin-top: 4px; min-height: 14px; }
+  .cand__erroGeral { font-size: 12.5px; color: #b3261e; background: #fbeceb; border-radius: 10px; padding: 9px 12px; margin: 0 0 14px; }
+  .cand__erroGeral:empty { display: none; }
+  .cand__consent { font-size: 11px; color: #6b7563; line-height: 1.5; margin: 4px 0 16px; }
+  .cand__enviar { width: 100%; justify-content: center; }
+  .cand__enviar:disabled { opacity: .65; cursor: default; transform: none; }
+  .cand__msg { font-size: 13.5px; color: #0b6e33; background: #eaf4ec; border-radius: 14px; padding: 20px; text-align: center; line-height: 1.6; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; margin: 0; }
+
   @media (max-width: 760px) {
     .passos { grid-template-columns: 1fr; margin-top: -76px; }
     .porque__card { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
     .vaga, .cta, .hero__cta { transition: none; }
+    .hero h1 .marca .verbo { transition: none; }
   }
 </style>
 </head>
@@ -100,8 +125,8 @@
       <div class="logo"><span class="logo-mark">F</span><b>Fiobras</b></div>
       <a href="#vagas">Ver as vagas</a>
     </div>
-    <h1>Venha tecer o seu futuro <span class="marca">com a gente</span></h1>
-    <p class="sub">A Fiobras cresce todo ano, e cresce puxada por gente boa. Escolha a sua vaga e chame a nossa equipe de Gestão de Pessoas direto no WhatsApp, sem formulário e sem cadastro.</p>
+    <h1>Venha <span class="marca"><span class="verbo ativo">tecer</span><span class="verbo">tingir</span></span> o seu futuro com a gente</h1>
+    <p class="sub">A Fiobras cresce todo ano, e cresce puxada por gente boa. Escolha a sua vaga e candidate-se aqui mesmo, rápido e direto para a nossa equipe de Gestão de Pessoas.</p>
     <div class="hero__acao">
       <a class="hero__cta" href="#vagas">Ver vagas abertas</a>
       <span class="hero__n" id="contagem" hidden></span>
@@ -111,8 +136,8 @@
 
 <div class="passos" aria-label="Como funciona">
   <div class="passo"><b><span class="n">1</span>Escolha a vaga</b><p>Tudo que está aberto está aqui nesta página, sempre atualizado.</p></div>
-  <div class="passo"><b><span class="n">2</span>Chame no WhatsApp</b><p>Um toque em "Quero me candidatar" abre a conversa já citando a vaga.</p></div>
-  <div class="passo"><b><span class="n">3</span>Fale com gente de verdade</b><p>Quem responde é a nossa equipe de Gestão de Pessoas, sem robô.</p></div>
+  <div class="passo"><b><span class="n">2</span>Preencha o formulário</b><p>Um toque em "Candidatar-se" abre um formulário rápido, aqui mesmo na página.</p></div>
+  <div class="passo"><b><span class="n">3</span>Fale com gente de verdade</b><p>Quem analisa é a nossa equipe de Gestão de Pessoas, sem robô.</p></div>
 </div>
 
 <main class="secao" id="vagas">
@@ -131,7 +156,45 @@
   </div>
 </section>
 
-<footer class="foot">Fiobras · Guaramirim, SC. Ao tocar em "Quero me candidatar" você abre uma conversa de WhatsApp com a nossa equipe de Gestão de Pessoas; nenhum dado seu é coletado por esta página.</footer>
+<footer class="foot">Fiobras · Rua Dr. Blumenau, 2725 · Encano, Indaial SC</footer>
+
+<dialog class="candidatura" id="dlgCandidatura">
+  <div class="cand__head">
+    <button type="button" class="cand__fechar" id="candFechar" aria-label="Fechar">&times;</button>
+    <h3>Candidatar-se</h3>
+    <p id="candVagaNome"></p>
+  </div>
+  <div class="cand__body" id="candBody">
+    <form id="candForm" novalidate>
+      <div class="cand__erroGeral" id="erroGeral"></div>
+      <div class="cand__campo">
+        <label for="candNome">Nome completo</label>
+        <input type="text" id="candNome" name="nome" maxlength="80" autocomplete="name">
+        <div class="cand__erro" id="erroNome"></div>
+      </div>
+      <div class="cand__campo">
+        <label for="candTelefone">WhatsApp ou telefone</label>
+        <input type="tel" id="candTelefone" name="telefone" maxlength="20" autocomplete="tel">
+        <div class="cand__erro" id="erroTelefone"></div>
+      </div>
+      <div class="cand__campo">
+        <label for="candEmail">E-mail</label>
+        <input type="email" id="candEmail" name="email" maxlength="120" autocomplete="email">
+        <div class="cand__erro" id="erroEmail"></div>
+      </div>
+      <div class="cand__campo">
+        <label for="candMensagem">Conte um pouco sobre você (opcional)</label>
+        <textarea id="candMensagem" name="mensagem" maxlength="1000"></textarea>
+      </div>
+      <div class="cand__campo hp">
+        <label for="candSite">Não preencha</label>
+        <input type="text" id="candSite" name="site" tabindex="-1" autocomplete="off">
+      </div>
+      <p class="cand__consent">Ao enviar, você autoriza a Fiobras a usar estes dados apenas neste processo seletivo.</p>
+      <button type="submit" class="cta cand__enviar" id="candEnviar">Enviar candidatura</button>
+    </form>
+  </div>
+</dialog>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -146,72 +209,169 @@
   };
   var lista = document.getElementById("lista");
   var contagem = document.getElementById("contagem");
+  var db = null;
+
   if (!window.FIREBASE_CONFIG) {
     lista.innerHTML = '<p class="vazio">Página em manutenção. Tente de novo mais tarde.</p>';
-    return;
+  } else {
+    firebase.initializeApp(window.FIREBASE_CONFIG);
+    db = firebase.firestore();
+    var SEND_SVG = '<svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>';
+
+    // Cache leve: corta leituras repetidas de quem navega/volta; TTL 5 min.
+    var CACHE_KEY = "vagas-cache-v3";
+    var cacheado = null;
+    try {
+      var raw = sessionStorage.getItem(CACHE_KEY);
+      if (raw) { var c = JSON.parse(raw); if (Date.now() - c.t < 5 * 60e3) cacheado = c; }
+    } catch (e) { /* sem sessionStorage */ }
+
+    var carregar = cacheado
+      ? Promise.resolve(cacheado)
+      : db.collection("vagas").where("status", "==", "publicada").get().then(function (snap) {
+          var dados = {
+            t: Date.now(),
+            vagas: snap.docs.map(function (d) {
+              var v = d.data();
+              return { id: d.id, titulo: v.titulo, setor: v.setor, turno: v.turno,
+                cidade: v.cidade, descricao: v.descricao, requisitos: v.requisitos,
+                pub: v.publicadaEm && v.publicadaEm.toMillis ? v.publicadaEm.toMillis() : 0 };
+            }),
+          };
+          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(dados)); } catch (e) { /* cheio */ }
+          return dados;
+        });
+
+    carregar.then(function (dados) {
+      var vagas = dados.vagas.slice().sort(function (a, b) { return (b.pub || 0) - (a.pub || 0); });
+      if (!vagas.length) {
+        lista.innerHTML = '<p class="vazio">Não temos vagas abertas neste momento. Volte em breve, elas aparecem primeiro aqui.</p>';
+        return;
+      }
+      contagem.hidden = false;
+      contagem.textContent = vagas.length + (vagas.length === 1 ? " vaga aberta agora" : " vagas abertas agora");
+      lista.innerHTML = vagas.map(function (v) {
+        var quando = v.pub ? "Publicada em " + new Date(v.pub).toLocaleDateString("pt-BR") : "";
+        var cta = '<button type="button" class="cta cta--form" data-vaga-id="' + esc(v.id) + '" data-vaga-titulo="' + esc(v.titulo) + '">' + SEND_SVG + "Candidatar-se</button>";
+        var tags = [
+          v.setor ? '<span class="tag">' + esc(v.setor) + "</span>" : "",
+          v.turno ? '<span class="tag tag--turno">' + esc(v.turno) + "</span>" : "",
+          v.cidade ? '<span class="tag">' + esc(v.cidade) + "</span>" : "",
+        ].join("");
+        return '<article class="vaga"><h3>' + esc(v.titulo) + "</h3>" +
+          (tags ? '<div class="tags">' + tags + "</div>" : "") +
+          (v.descricao ? '<p class="desc">' + esc(v.descricao) + "</p>" : "") +
+          (v.requisitos ? '<p class="req">Requisitos: ' + esc(v.requisitos) + "</p>" : "") +
+          '<div class="vfoot"><span class="data">' + esc(quando) + "</span>" + cta + "</div></article>";
+      }).join("");
+    }).catch(function (e) {
+      lista.innerHTML = '<p class="vazio">Não conseguimos carregar as vagas agora. Tente de novo em instantes.</p>';
+    });
   }
-  firebase.initializeApp(window.FIREBASE_CONFIG);
-  var db = firebase.firestore();
-  var ZAP_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm5.7 14.2c-.2.7-1.4 1.3-1.9 1.4-.5.1-1.1.2-3.6-.8-3-1.2-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3.1s.8-2.2 1-2.5c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5l1 2.3c.1.2.1.4 0 .6l-.4.6-.5.6c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1.1-1.3c.2-.3.5-.2.8-.1l2.1 1c.3.2.5.3.6.4.1.2.1.7-.1 1.5z"/></svg>';
 
-  // Cache leve: corta leituras repetidas de quem navega/volta; TTL 5 min.
-  var CACHE_KEY = "vagas-cache-v1";
-  var cacheado = null;
-  try {
-    var raw = sessionStorage.getItem(CACHE_KEY);
-    if (raw) { var c = JSON.parse(raw); if (Date.now() - c.t < 5 * 60e3) cacheado = c; }
-  } catch (e) { /* sem sessionStorage */ }
+  // ===== Candidatura (modal) : funciona independente do carregamento das vagas =====
+  var dlg = document.getElementById("dlgCandidatura");
+  var candBody = document.getElementById("candBody");
+  var candVagaNome = document.getElementById("candVagaNome");
+  var CAND_FORM_HTML = candBody.innerHTML;
+  var vagaAtualId = "";
+  var vagaAtualTitulo = "";
 
-  var carregar = cacheado
-    ? Promise.resolve(cacheado)
-    : Promise.all([
-        db.collection("vagas").where("status", "==", "publicada").get(),
-        db.collection("config").doc("vagas").get().catch(function () { return null; }),
-      ]).then(function (res) {
-        var dados = {
-          t: Date.now(),
-          zap: res[1] && res[1].exists ? String(res[1].data().whatsapp || "") : "",
-          vagas: res[0].docs.map(function (d) {
-            var v = d.data();
-            return { id: d.id, titulo: v.titulo, setor: v.setor, turno: v.turno, tipo: v.tipo,
-              cidade: v.cidade, descricao: v.descricao, requisitos: v.requisitos,
-              pub: v.publicadaEm && v.publicadaEm.toMillis ? v.publicadaEm.toMillis() : 0 };
-          }),
-        };
-        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(dados)); } catch (e) { /* cheio */ }
-        return dados;
-      });
+  lista.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".cta--form");
+    if (!btn) return;
+    vagaAtualId = btn.getAttribute("data-vaga-id") || "";
+    vagaAtualTitulo = btn.getAttribute("data-vaga-titulo") || "";
+    candBody.innerHTML = CAND_FORM_HTML;
+    candVagaNome.textContent = vagaAtualTitulo;
+    dlg.showModal();
+  });
 
-  carregar.then(function (dados) {
-    var zap = String(dados.zap || "").replace(/\D/g, "");
-    var vagas = dados.vagas.slice().sort(function (a, b) { return (b.pub || 0) - (a.pub || 0); });
-    if (!vagas.length) {
-      lista.innerHTML = '<p class="vazio">Não temos vagas abertas neste momento. Volte em breve, elas aparecem primeiro aqui.</p>';
+  document.getElementById("candFechar").addEventListener("click", function () {
+    dlg.close();
+  });
+
+  function validarCandidatura(nome, telefone, email) {
+    var erros = {};
+    if (nome.length < 3) erros.nome = "Digite seu nome completo.";
+    if (telefone.length < 8) erros.telefone = "Informe um telefone válido.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) erros.email = "Informe um e-mail válido.";
+    return erros;
+  }
+
+  function mostrarErrosCandidatura(erros) {
+    var nomeEl = document.getElementById("erroNome");
+    var telEl = document.getElementById("erroTelefone");
+    var emailEl = document.getElementById("erroEmail");
+    if (nomeEl) nomeEl.textContent = erros.nome || "";
+    if (telEl) telEl.textContent = erros.telefone || "";
+    if (emailEl) emailEl.textContent = erros.email || "";
+  }
+
+  candBody.addEventListener("submit", function (ev) {
+    if (ev.target.id !== "candForm") return;
+    ev.preventDefault();
+    var form = ev.target;
+    var honeypot = form.site.value;
+    if (honeypot) {
+      candBody.innerHTML = '<p class="cand__msg">Candidatura enviada. A equipe de Gestão de Pessoas vai analisar e entra em contato.</p>';
       return;
     }
-    contagem.hidden = false;
-    contagem.textContent = vagas.length + (vagas.length === 1 ? " vaga aberta agora" : " vagas abertas agora");
-    lista.innerHTML = vagas.map(function (v) {
-      var quando = v.pub ? "Publicada em " + new Date(v.pub).toLocaleDateString("pt-BR") : "";
-      var msg = encodeURIComponent("Olá! Vi a página de vagas da Fiobras e tenho interesse na vaga de " + (v.titulo || "") + ".");
-      var cta = zap
-        ? '<a class="cta" href="https://wa.me/' + zap + "?text=" + msg + '" target="_blank" rel="noopener">' + ZAP_SVG + "Quero me candidatar</a>"
-        : "";
-      var tags = [
-        v.setor ? '<span class="tag">' + esc(v.setor) + "</span>" : "",
-        v.turno ? '<span class="tag tag--turno">' + esc(v.turno) + "</span>" : "",
-        v.tipo ? '<span class="tag tag--tipo">' + esc(v.tipo) + "</span>" : "",
-        v.cidade ? '<span class="tag">' + esc(v.cidade) + "</span>" : "",
-      ].join("");
-      return '<article class="vaga"><h3>' + esc(v.titulo) + "</h3>" +
-        (tags ? '<div class="tags">' + tags + "</div>" : "") +
-        (v.descricao ? '<p class="desc">' + esc(v.descricao) + "</p>" : "") +
-        (v.requisitos ? '<p class="req">Requisitos: ' + esc(v.requisitos) + "</p>" : "") +
-        '<div class="vfoot"><span class="data">' + esc(quando) + "</span>" + cta + "</div></article>";
-    }).join("");
-  }).catch(function (e) {
-    lista.innerHTML = '<p class="vazio">Não conseguimos carregar as vagas agora. Tente de novo em instantes.</p>';
+    var nome = form.nome.value.trim();
+    var telefone = form.telefone.value.trim();
+    var email = form.email.value.trim();
+    var mensagem = form.mensagem.value.trim();
+    mostrarErrosCandidatura({});
+    document.getElementById("erroGeral").textContent = "";
+
+    var erros = validarCandidatura(nome, telefone, email);
+    if (Object.keys(erros).length) {
+      mostrarErrosCandidatura(erros);
+      return;
+    }
+
+    if (!db) {
+      document.getElementById("erroGeral").textContent = "Não conseguimos enviar agora. Tente de novo em instantes.";
+      return;
+    }
+
+    var btn = document.getElementById("candEnviar");
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+
+    var docId = vagaAtualId + "__" + email.toLowerCase();
+    db.collection("candidaturas").doc(docId).set({
+      vagaId: vagaAtualId,
+      vagaTitulo: vagaAtualTitulo.slice(0, 120),
+      nome: nome.slice(0, 80),
+      telefone: telefone.slice(0, 20),
+      email: email.slice(0, 120),
+      mensagem: mensagem.slice(0, 1000),
+      em: firebase.firestore.FieldValue.serverTimestamp(),
+      status: "nova",
+    }).then(function () {
+      candBody.innerHTML = '<p class="cand__msg">Candidatura enviada. A equipe de Gestão de Pessoas vai analisar e entra em contato.</p>';
+    }).catch(function (e) {
+      btn.disabled = false;
+      btn.textContent = "Enviar candidatura";
+      var erroGeral = document.getElementById("erroGeral");
+      erroGeral.textContent = e && e.code === "permission-denied"
+        ? "Já recebemos uma candidatura sua pra esta vaga."
+        : "Não conseguimos enviar agora. Tente de novo em instantes.";
+    });
   });
+
+  // ===== Headline: verbo alternando (tecer / tingir) =====
+  var reduzMovimento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var verbos = document.querySelectorAll(".hero h1 .verbo");
+  if (verbos.length > 1 && !reduzMovimento) {
+    var verboAtual = 0;
+    setInterval(function () {
+      verbos[verboAtual].classList.remove("ativo");
+      verboAtual = (verboAtual + 1) % verbos.length;
+      verbos[verboAtual].classList.add("ativo");
+    }, 3500);
+  }
 })();
 </script>
 </body>

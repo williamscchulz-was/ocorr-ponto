@@ -64,3 +64,30 @@ portal) ficam no ROADMAP** como fase 2.
    novidade no projeto: revisar a fronteira com atenção) + deploy.
 3. Página pública (public/vagas.html) + tela do gestor + harness.
 4. Release (bump + deploy hosting com ok).
+
+## v2 (2026-07-14, mesma noite): FORMULÁRIO no site (decisão William, WhatsApp sai)
+- Candidatura agora é formulário na própria página: coleção /candidaturas, PRIMEIRA
+  ESCRITA ANÔNIMA do projeto. Funil: create-only, hasOnly 8 campos com caps, email
+  regex, em == request.time, status 'nova', vaga alvo obrigatoriamente 'publicada'
+  (get), vagaTitulo == titulo real da vaga (mesmo get, cacheado), doc ID determinístico
+  vagaId__email.lower() (1 por email por vaga; repetição vira update, negado).
+  Read/list/delete SÓ GP (cap vagas.gerenciar); update fechado no v1. Suíte 538/538.
+- Gate Fable GO condicionado, condição CUMPRIDA no mesmo release (A1): excluir vaga
+  BLOQUEIA na UI enquanto houver candidaturas dela (senão a PII ficava órfã invisível).
+- Excluir vaga ampliado: gpVagas + status rascunho OU encerrada (publicada continua
+  exigindo encerrar antes; one-way preservado).
+- Campo tipo (CLT) fora da UI (form do gestor, listagem e chip do site); segue opcional
+  no shape, dado antigo intacto. Turno virou select (1º/2º/3º turno, Geral).
+- WhatsApp: candidatura por WhatsApp REMOVIDA; config/vagas.whatsapp mantido pro
+  ROADMAP: botão flutuante de WhatsApp direto pra GP no site (William pediu, "com ctz").
+- Residuais ACEITOS (gate, severidade baixa, documentados): (a) oracle de existência
+  (dá pra saber se um email se candidatou tentando criar e recebendo negado, a própria
+  página confirma na mensagem de duplicada); (b) squatting: dá pra ocupar o slot de um
+  email de terceiro, GP resolve excluindo a falsa (dedup por email nunca foi fronteira
+  de segurança sem verificação de email); (c) spam variando email: honeypot com
+  fake-success + 1 doc/email/vaga + docs ~1,4KB; alarme = budget alert (pendente
+  William); upgrade path = App Check/Functions; (d) edição de título de publicada
+  dentro do TTL de 5min do cache nega candidatura até o cache virar (auto-resolve).
+- OBRIGAÇÃO LGPD criada pelo consentimento ("apenas neste processo seletivo"):
+  (a) GP expurga candidaturas quando o processo encerra (a UI já força excluir
+  candidaturas antes da vaga); (b) canal do titular pra exclusão = contato com a GP.

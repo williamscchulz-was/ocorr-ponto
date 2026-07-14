@@ -1,0 +1,109 @@
+<meta charset="utf-8">
+<title>Mock · Conferência de ocorrência · desvio inteligente</title>
+<link rel="stylesheet" href="/public/styles.css?v=286">
+<link rel="stylesheet" href="/public/portal-colaborador.css?v=286">
+<style>
+  body { min-height: 100vh; background: var(--bg, #F6F4EF); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px 80px; }
+  .mock-wrap { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 22px; }
+  .mock-tag { align-self: center; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); padding: 6px 14px; border-radius: 999px; }
+  .modal-backdrop { position: static; background: rgba(31,11,28,.55); border-radius: 20px; padding: 36px 16px; display: flex; align-items: flex-start; justify-content: center; }
+  .modal.modal--oca-novo { max-width: 1000px; }
+
+  /* Trilha de batidas do dia: cada marcacao com previsto riscado -> batido, e um selo de desvio por gravidade. */
+  .oca-trilha { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0 4px; }
+  @media (max-width: 860px) { .oca-trilha { grid-template-columns: 1fr 1fr; } }
+  .oca-trilha__card { position: relative; border: 1px solid var(--border); border-radius: 14px; padding: 15px 14px 13px; background: var(--surface-warm); display: flex; flex-direction: column; gap: 9px; }
+  .oca-trilha__card--oficial { border: 1.5px solid var(--plum); box-shadow: 0 0 0 3px rgba(0,136,53,.10); }
+  .oca-trilha__oficial-tag { position: absolute; top: -11px; left: 12px; background: var(--plum); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; }
+  .oca-trilha__label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+  .oca-trilha__horarios { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+  .oca-trilha__prev { font-size: 13px; color: var(--text-muted); text-decoration: line-through; font-variant-numeric: tabular-nums; }
+  .oca-trilha__bat { font-size: 20px; font-weight: 700; color: var(--plum); font-variant-numeric: tabular-nums; }
+  .oca-selo { display: inline-flex; align-items: center; align-self: flex-start; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .oca-selo--pequeno { background: var(--row-hover); color: var(--text-muted); border: 1px solid var(--border); }
+  .oca-selo--medio { background: var(--warning-bg); color: var(--warning-ink); }
+  .oca-selo--grande { background: #F6DEDE; color: var(--danger); }
+</style>
+
+<div class="mock-wrap">
+  <span class="mock-tag">Mock · desvio inteligente</span>
+
+  <div class="modal-backdrop">
+    <div class="modal modal--oca modal--oca-novo">
+      <div class="modal__header">
+        <div><h2>Ocorrência · 03/07</h2><p>Aguardando conferência do líder</p></div>
+        <button class="modal__close" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal__body">
+
+        <div class="row" style="margin-bottom:14px; gap:12px;">
+          <div class="avatar avatar--lg">CZ</div>
+          <div>
+            <div style="font-weight:600; color:var(--plum); font-size:16px;">Carlos Zoz</div>
+            <div class="muted text-sm">Produção · 3º turno</div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-cell"><label>Tipo</label><strong>Atrasos</strong></div>
+          <div class="detail-cell"><label>Dia</label><strong>03/07</strong></div>
+        </div>
+
+        <span class="oca-jr__k">Batidas do dia</span>
+        <div class="oca-trilha">
+
+          <div class="oca-trilha__card oca-trilha__card--oficial">
+            <span class="oca-trilha__oficial-tag">Gerou a ocorrência</span>
+            <span class="oca-trilha__label">Entrada</span>
+            <div class="oca-trilha__horarios">
+              <span class="oca-trilha__prev">22:30</span>
+              <span class="oca-trilha__bat">22:33</span>
+            </div>
+            <span class="oca-selo oca-selo--pequeno">atraso 3 min</span>
+          </div>
+
+          <div class="oca-trilha__card">
+            <span class="oca-trilha__label">Saída almoço</span>
+            <div class="oca-trilha__horarios">
+              <span class="oca-trilha__prev">02:00</span>
+              <span class="oca-trilha__bat">02:00</span>
+            </div>
+          </div>
+
+          <div class="oca-trilha__card">
+            <span class="oca-trilha__label">Volta almoço</span>
+            <div class="oca-trilha__horarios">
+              <span class="oca-trilha__prev">02:30</span>
+              <span class="oca-trilha__bat">02:41</span>
+            </div>
+            <span class="oca-selo oca-selo--grande">pausa 41 min · +11</span>
+          </div>
+
+          <div class="oca-trilha__card">
+            <span class="oca-trilha__label">Saída final</span>
+            <div class="oca-trilha__horarios">
+              <span class="oca-trilha__prev">06:30</span>
+              <span class="oca-trilha__bat">06:30</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="oca-hist" style="margin-top:16px;">
+          <div class="oca-hist__ln"><b>Detectada pela apuração do ponto</b><span>automático · 03/07</span></div>
+          <div class="oca-hist__ln oca-hist__ln--next"><b>Aguardando conferência do líder</b><span>próxima etapa</span></div>
+        </div>
+
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost">Dispensar</button>
+        <button class="btn btn--primary">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Confirmar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

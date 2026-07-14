@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · primeiro acesso do colaborador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+<link rel="stylesheet" href="/public/styles.css?v=285" />
+<link rel="stylesheet" href="/public/portal-colaborador.css?v=285" />
+<style>
+  :root{
+    --verde:#008835; --verde-claro:#1AA34F; --amarelo:#FFCB00; --azul:#0076BE;
+    --mint1:#eef5ef; --mint2:#e3efe6;
+    --surface:#fff; --text:#13251a; --muted:#5d7365; --border:#e0e9e1;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Poppins",system-ui,sans-serif; background:#0a0f0a; color:#dfe9e0;
+    padding:28px 18px 80px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:520px; margin:0 auto; }
+  .kick{ display:inline-block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:#4FD182; border:1px solid rgba(79,209,130,.4); border-radius:999px; padding:5px 14px; background:rgba(79,209,130,.08); margin-bottom:12px; }
+  h1{ font-size:21px; font-weight:800; color:#fff; margin:0 0 8px; text-align:center; }
+  p.sub{ font-size:13px; line-height:1.65; color:#9fb3a4; margin:0 0 26px; text-align:center; }
+
+  /* ===== quadro do celular ===== */
+  .phone{ width:370px; max-width:100%; margin:0 auto; border-radius:42px; background:#000; padding:11px; box-shadow:0 26px 60px rgba(0,0,0,.55); }
+  .screen{ position:relative; height:740px; border-radius:31px; overflow:hidden; background:linear-gradient(180deg,var(--mint1),var(--mint2)); }
+  .notch{ position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:22px; background:#000; border-radius:0 0 14px 14px; z-index:50; }
+
+  /* ===== trilho de telas (slide) ===== */
+  .track{ position:absolute; inset:0; display:flex; width:400%; height:100%; transition:transform .45s cubic-bezier(.4,0,.2,1); }
+  .track.step-0{ transform:translateX(0%); }
+  .track.step-1{ transform:translateX(-25%); }
+  .track.step-2{ transform:translateX(-50%); }
+  .track.step-3{ transform:translateX(-75%); }
+  .pane{ width:25%; height:100%; flex:none; overflow-y:auto; opacity:.35; transition:opacity .45s ease; padding:0; }
+  .pane.on{ opacity:1; }
+
+  /* ===== tela 1: acesso ===== */
+  .p-acesso{ padding:56px 26px 26px; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .p-acesso__logo{ width:76px; height:76px; border-radius:20px; box-shadow:0 10px 26px rgba(0,80,30,.2); margin-bottom:14px; }
+  .p-acesso__marca{ font-weight:800; font-size:20px; color:var(--verde); margin-bottom:2px; letter-spacing:-.01em; }
+  .p-acesso__titulo{ font-weight:700; font-size:14px; color:var(--text); margin-bottom:26px; }
+  .campo{ width:100%; margin-bottom:16px; }
+  .campo label{ display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px; }
+  .campo input{
+    width:100%; height:46px; border:1px solid var(--border); border-radius:12px; background:var(--surface);
+    padding:0 14px; font:inherit; font-size:14.5px; color:var(--text); outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .campo input:focus{ border-color:var(--verde-claro); box-shadow:0 0 0 3px rgba(26,163,79,.14); }
+  .dica{
+    font-size:11.5px; color:var(--muted); line-height:1.55; text-align:center; margin:6px 0 22px;
+    background:rgba(0,136,53,.06); border:1px solid rgba(0,136,53,.14); border-radius:10px; padding:10px 12px;
+  }
+  .dica b{ color:var(--text); font-weight:600; }
+  .btn-fp{
+    width:100%; height:48px; border:0; border-radius:12px; background:var(--verde); color:#fff;
+    font:inherit; font-size:15px; font-weight:700; cursor:pointer; letter-spacing:.01em;
+    transition:transform .12s, box-shadow .12s, opacity .15s; box-shadow:0 6px 16px rgba(0,136,53,.28);
+  }
+  .btn-fp:hover{ transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,136,53,.34); }
+  .btn-fp:active{ transform:scale(.97); }
+  .btn-fp:disabled{ opacity:.4; cursor:not-allowed; box-shadow:none; transform:none; }
+  .btn-fp--ghost{ background:transparent; color:var(--verde); box-shadow:none; border:1px solid var(--border); }
+
+  /* ===== tela 2: criar senha ===== */
+  .p-senha{ padding:44px 26px 26px; height:100%; }
+  .p-senha__hi{ font-size:17px; font-weight:800; color:var(--text); line-height:1.35; margin-bottom:6px; }
+  .p-senha__sub{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-bottom:26px; }
+  .conferem{
+    display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--verde);
+    height:0; opacity:0; overflow:hidden; transition:opacity .25s ease, height .25s ease, margin .25s ease;
+  }
+  .conferem.on{ opacity:1; height:18px; margin:-6px 0 16px; }
+  .conferem svg{ width:14px; height:14px; flex:none; }
+  .aviso-uso{ font-size:11.5px; color:var(--muted); line-height:1.6; text-align:center; margin:22px 0 4px; }
+
+  /* ===== tela 3: termo ===== */
+  .p-termo{ padding:32px 20px 20px; height:100%; display:flex; flex-direction:column; }
+  .p-termo__t{ font-size:16.5px; font-weight:800; color:var(--text); line-height:1.3; margin-bottom:4px; text-align:center; }
+  .p-termo__s{ font-size:12px; color:var(--muted); text-align:center; margin-bottom:14px; }
+  .termo-box{
+    max-height:46vh; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:14px 15px; font-size:11.8px; line-height:1.65; color:var(--text); margin-bottom:14px;
+    box-shadow:inset 0 1px 3px rgba(0,30,15,.04);
+  }
+  .termo-box p{ margin:0 0 11px; }
+  .termo-box p:last-child{ margin-bottom:0; }
+  .campo-preenchido{
+    position:relative; background:rgba(0,136,53,.1); color:var(--text); font-weight:600; padding:1px 5px;
+    border-radius:5px; cursor:help; white-space:nowrap;
+  }
+  .campo-preenchido::after{
+    content:attr(data-dica); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%) translateY(4px);
+    background:#13251a; color:#fff; font-weight:500; font-size:10px; white-space:nowrap; padding:5px 9px; border-radius:7px;
+    opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; z-index:10;
+  }
+  .campo-preenchido::before{
+    content:""; position:absolute; bottom:calc(100% + 2px); left:50%; transform:translateX(-50%) translateY(4px);
+    border:4px solid transparent; border-top-color:#13251a; opacity:0; transition:opacity .15s, transform .15s; z-index:10;
+  }
+  .campo-preenchido:hover::after, .campo-preenchido:hover::before{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .aceite{ display:flex; align-items:flex-start; gap:9px; font-size:12.5px; color:var(--text); line-height:1.5; margin-bottom:14px; cursor:pointer; }
+  .aceite input{ margin-top:2px; width:17px; height:17px; accent-color:var(--verde); flex:none; cursor:pointer; }
+
+  /* ===== tela 4: pronto ===== */
+  .p-pronto{ padding:0; height:100%; position:relative; }
+  .p-pronto__ok{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:26px; transition:opacity .4s ease; text-align:center;
+  }
+  .p-pronto__ok.out{ opacity:0; pointer-events:none; }
+  .check-circle{ width:88px; height:88px; border-radius:50%; background:var(--verde); display:grid; place-items:center; margin-bottom:22px; box-shadow:0 12px 30px rgba(0,136,53,.3); }
+  .check-circle svg{ width:44px; height:44px; }
+  .check-circle path{ stroke:#fff; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:40; stroke-dashoffset:40; animation:checkDraw .5s ease .3s forwards; }
+  @keyframes checkDraw{ to{ stroke-dashoffset:0; } }
+  .check-circle{ transform:scale(.7); opacity:0; animation:popIn .4s cubic-bezier(.34,1.56,.64,1) forwards; }
+  @keyframes popIn{ to{ transform:scale(1); opacity:1; } }
+  .p-pronto__h{ font-size:19px; font-weight:800; color:var(--text); margin-bottom:8px; }
+  .p-pronto__p{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-bottom:28px; max-width:270px; }
+
+  /* mini home (chegada) */
+  .mini-home{ position:absolute; inset:0; padding:52px 20px 20px; opacity:0; transition:opacity .5s ease; }
+  .mini-home.on{ opacity:1; }
+  .mh-greet{ display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+  .mh-av{ width:50px; height:50px; border-radius:50%; background:var(--verde); display:grid; place-items:center; color:#fff; font-weight:800; font-size:16px; flex:none; }
+  .mh-h{ font-size:19px; font-weight:800; color:var(--text); line-height:1.1; }
+  .mh-s{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .mh-atalhos{ display:flex; justify-content:space-between; margin-bottom:24px; }
+  .mh-at{ display:flex; flex-direction:column; align-items:center; gap:7px; }
+  .mh-ic{ width:52px; height:52px; border-radius:50%; border:1px solid var(--border); background:var(--surface); display:grid; place-items:center; color:var(--verde); }
+  .mh-ic svg{ width:22px; height:22px; }
+  .mh-lb{ font-size:10.5px; color:var(--muted); font-weight:500; }
+  .mh-card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px 16px; box-shadow:0 8px 20px rgba(15,55,30,.06); display:flex; align-items:center; gap:12px; }
+  .mh-cav{ width:42px; height:42px; border-radius:12px; background:rgba(0,136,53,.1); display:grid; place-items:center; color:var(--verde); flex:none; }
+  .mh-ct{ font-size:14px; font-weight:800; color:var(--text); }
+  .mh-cs{ font-size:11.5px; color:var(--muted); }
+
+  /* rodapé fora do quadro */
+  .controls{ display:flex; justify-content:center; margin-top:20px; }
+  .replay{ font-family:inherit; font-size:12.5px; font-weight:600; color:#0a0f0a; background:#4FD182; border:0; border-radius:999px; padding:8px 16px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .replay svg{ width:14px; height:14px; }
+  .dots{ display:flex; justify-content:center; gap:7px; margin-top:16px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:#33463a; transition:background .2s, transform .2s; }
+  .dot.on{ background:#4FD182; transform:scale(1.3); }
+
+  .note{ max-width:520px; margin:26px auto 0; padding:16px 18px; border:1px solid rgba(255,255,255,.08); border-radius:14px; background:rgba(255,255,255,.03); font-size:12.5px; line-height:1.7; color:#a9bcae; }
+  .note b{ color:#e4efe6; }
+
+  ::-webkit-scrollbar{ width:6px; }
+  ::-webkit-scrollbar-thumb{ background:rgba(0,40,20,.18); border-radius:99px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div style="text-align:center"><span class="kick">Primeiro acesso · fluxo completo</span></div>
+    <h1>Do CPF ao app, em 4 telas</h1>
+    <p class="sub">Fluxo real: login com CPF e data de nascimento, criação da senha nova, ciência no termo de adesão com os dados já preenchidos, e entrada no app. O termo só aparece nesse primeiro acesso.</p>
+
+    <div class="phone">
+      <div class="screen" id="screen">
+        <div class="notch"></div>
+        <div class="track step-0" id="track">
+
+          <!-- TELA 1 · ACESSO -->
+          <div class="pane on" id="pane0">
+            <div class="p-acesso">
+              <img class="p-acesso__logo" src="/public/icon-192.png" alt="FioPulse" />
+              <div class="p-acesso__marca">FioPulse</div>
+              <div class="p-acesso__titulo">Portal do Colaborador</div>
+
+              <div class="campo">
+                <label for="in-cpf">CPF</label>
+                <input type="text" id="in-cpf" value="072.714.279-88" readonly />
+              </div>
+              <div class="campo">
+                <label for="in-senha1">Senha</label>
+                <input type="password" id="in-senha1" placeholder="sua senha" />
+              </div>
+
+              <div class="dica">Primeiro acesso? Sua senha é a <b>data de nascimento</b>, só números. Ex.: 14071990</div>
+
+              <button class="btn-fp" id="btn-entrar">Entrar</button>
+            </div>
+          </div>
+
+          <!-- TELA 2 · CRIAR SENHA -->
+          <div class="pane" id="pane1">
+            <div class="p-senha">
+              <div class="p-senha__hi">Bem-vindo, Patrick!<br>Crie a sua senha de acesso.</div>
+              <div class="p-senha__sub">Essa senha substitui a data de nascimento e é só sua daqui pra frente.</div>
+
+              <div class="campo">
+                <label for="in-nova">Nova senha</label>
+                <input type="password" id="in-nova" placeholder="crie uma senha" />
+              </div>
+              <div class="campo" style="margin-bottom:0">
+                <label for="in-conf">Confirmar senha</label>
+                <input type="password" id="in-conf" placeholder="repita a senha" />
+              </div>
+              <div class="conferem" id="conferem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                As senhas conferem
+              </div>
+
+              <p class="aviso-uso">Você vai usar essa senha pra entrar e pra assinar documentos.</p>
+
+              <button class="btn-fp" id="btn-salvar-senha">Salvar e continuar</button>
+            </div>
+          </div>
+
+          <!-- TELA 3 · TERMO DE ADESAO -->
+          <div class="pane" id="pane2">
+            <div class="p-termo">
+              <div class="p-termo__t">Termo de adesão à assinatura eletrônica</div>
+              <div class="p-termo__s">Leia e dê o seu aceite pra começar a usar o app.</div>
+
+              <div class="termo-box">
+                <p>Pelo presente termo, eu, <span class="campo-preenchido" data-dica="preenchido com os seus dados">PATRICK SILVA DOS SANTOS</span>, portador(a) do CPF nº <span class="campo-preenchido" data-dica="preenchido com os seus dados">072.714.279-88</span>, funcionário(a) da FIOBRAS (razão social e CNPJ completos), declaro estar ciente e de acordo com as disposições a seguir.</p>
+                <p><b>1. Do objeto.</b> A Fiobras disponibiliza o aplicativo interno FioPulse para a assinatura eletrônica de documentos relacionados à relação de emprego, incluindo, entre outros, recibos de pagamento, comunicados internos, advertências e demais documentos institucionais. Por meio deste termo, consinto em assinar tais documentos eletronicamente quando disponibilizados no FioPulse, dispensada, para esses fins, a assinatura em papel.</p>
+                <p><b>2. Da natureza e validade da assinatura.</b> A assinatura realizada no FioPulse constitui assinatura eletrônica avançada, na forma da Lei nº 14.063/2020 e do art. 10, §2º, da Medida Provisória nº 2.200-2/2001, produzida mediante autenticação por credenciais pessoais (CPF e senha reconfirmada no ato), associada a carimbo de data e hora do servidor, geolocalização do dispositivo utilizado no momento da assinatura e hash SHA-256 do arquivo original, elementos que compõem trilha de auditoria imutável e são anexados, em página própria de autenticação, ao próprio documento assinado. A senha cadastrada é de meu conhecimento exclusivo, armazenada de forma criptografada, não tendo a Fiobras, após o primeiro acesso, qualquer meio técnico de visualizá-la, recuperá-la ou de assinar documentos em meu nome. Reconheço, em razão disso, que a autoria de cada assinatura eletrônica realizada com minhas credenciais é exclusivamente minha, não sendo cabível alegação posterior de que a própria empresa a teria produzido ou alterado. Reconheço, ainda, que essa assinatura tem validade jurídica entre as partes e produz, para os fins internos da relação de emprego, os mesmos efeitos da assinatura de próprio punho, nos termos do art. 411, II, do Código de Processo Civil.</p>
+                <p><b>3. Do consentimento para tratamento de dados pessoais (LGPD).</b> Em conformidade com a Lei nº 13.709/2018, consinto expressamente com a coleta e o tratamento, no momento de cada assinatura eletrônica, dos seguintes dados: credenciais de autenticação (CPF e confirmação de senha), geolocalização do dispositivo utilizado e metadados técnicos do ato (data, hora e hash do arquivo), com a finalidade específica de comprovação de autoria, integridade e validade jurídica dos documentos assinados. Esses dados serão tratados unicamente para essa finalidade, pelo tempo necessário à guarda dos documentos a que se referem.</p>
+                <p><b>4. Do acesso aos documentos assinados.</b> Fica assegurado o direito de solicitar, a qualquer tempo, cópia de qualquer documento assinado eletronicamente por meio do FioPulse, mediante solicitação ao setor de Recursos Humanos ou diretamente pelo aplicativo.</p>
+                <p>Declaro ter lido e compreendido o presente termo, firmando-o livremente.</p>
+                <p><span class="campo-preenchido" data-dica="preenchido com os seus dados">Jaraguá do Sul, SC</span>, <span class="campo-preenchido" data-dica="preenchido com os seus dados">6 de julho de 2026</span>.</p>
+                <p>Nome completo: <span class="campo-preenchido" data-dica="preenchido com os seus dados">PATRICK SILVA DOS SANTOS</span>. CPF: <span class="campo-preenchido" data-dica="preenchido com os seus dados">072.714.279-88</span>. Assinatura: ciência eletrônica registrada no ato.</p>
+              </div>
+
+              <label class="aceite" for="chk-aceite">
+                <input type="checkbox" id="chk-aceite" />
+                <span>Li e concordo com o termo acima</span>
+              </label>
+
+              <button class="btn-fp" id="btn-aceitar" disabled>Aceitar e continuar</button>
+            </div>
+          </div>
+
+          <!-- TELA 4 · PRONTO -->
+          <div class="pane" id="pane3">
+            <div class="p-pronto">
+              <div class="p-pronto__ok" id="pronto-ok">
+                <div class="check-circle">
+                  <svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6"/></svg>
+                </div>
+                <div class="p-pronto__h">Tudo certo! Seu aceite ficou registrado.</div>
+                <p class="p-pronto__p">O termo fica guardado, não aparece de novo. Bom trabalho!</p>
+                <button class="btn-fp" id="btn-entrar-app" style="max-width:220px">Entrar no app</button>
+              </div>
+
+              <div class="mini-home" id="mini-home">
+                <div class="mh-greet">
+                  <div class="mh-av">P</div>
+                  <div><div class="mh-h">Boa tarde, Patrick</div><div class="mh-s">Segunda, 6 de julho</div></div>
+                </div>
+                <div class="mh-atalhos">
+                  <div class="mh-at"><div class="mh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="mh-lb">Meu ponto</div></div>
+                  <div class="mh-at"><div class="mh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M8 7V5h8v2"/></svg></div><div class="mh-lb">Pagamento</div></div>
+                  <div class="mh-at"><div class="mh-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/></svg></div><div class="mh-lb">Documentos</div></div>
+                </div>
+                <div class="mh-card">
+                  <div class="mh-cav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg></div>
+                  <div><div class="mh-ct">Bem-vindo ao FioPulse</div><div class="mh-cs">Seu acesso está completo</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="dots">
+      <div class="dot on" data-d="0"></div>
+      <div class="dot" data-d="1"></div>
+      <div class="dot" data-d="2"></div>
+      <div class="dot" data-d="3"></div>
+    </div>
+
+    <div class="controls">
+      <button class="replay" id="btn-reiniciar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Reiniciar o fluxo
+      </button>
+    </div>
+
+    <div class="note">
+      <p><b>Como funciona.</b> A pessoa loga com CPF e a data de nascimento como senha, é obrigada a trocar a senha, dá ciência no termo de adesão à assinatura eletrônica com os dados dela auto preenchidos, e só então entra no app.</p>
+      <p style="margin:10px 0 0">O termo aparece <b>só nesse primeiro acesso</b>, nunca mais depois disso.</p>
+    </div>
+  </div>
+
+  <script>
+    var track = document.getElementById("track");
+    var panes = [document.getElementById("pane0"), document.getElementById("pane1"), document.getElementById("pane2"), document.getElementById("pane3")];
+    var dots = document.querySelectorAll(".dot");
+    var step = 0;
+
+    function goTo(n){
+      step = n;
+      track.classList.remove("step-0","step-1","step-2","step-3");
+      track.classList.add("step-" + n);
+      panes.forEach(function(p, i){ p.classList.toggle("on", i === n); });
+      dots.forEach(function(d, i){ d.classList.toggle("on", i === n); });
+    }
+
+    document.getElementById("btn-entrar").addEventListener("click", function(){ goTo(1); });
+    document.getElementById("btn-salvar-senha").addEventListener("click", function(){ goTo(2); });
+    document.getElementById("btn-aceitar").addEventListener("click", function(){ goTo(3); });
+
+    // tela 2: indicador fake de "as senhas conferem"
+    var nova = document.getElementById("in-nova");
+    var conf = document.getElementById("in-conf");
+    var conferem = document.getElementById("conferem");
+    function checaConferem(){
+      var ok = conf.value.length > 0 && nova.value.length > 0;
+      conferem.classList.toggle("on", ok);
+    }
+    nova.addEventListener("input", checaConferem);
+    conf.addEventListener("input", checaConferem);
+
+    // tela 3: checkbox libera o botao
+    var chk = document.getElementById("chk-aceite");
+    var btnAceitar = document.getElementById("btn-aceitar");
+    chk.addEventListener("change", function(){ btnAceitar.disabled = !chk.checked; });
+
+    // tela 4: fade pra mini-home
+    document.getElementById("btn-entrar-app").addEventListener("click", function(){
+      document.getElementById("pronto-ok").classList.add("out");
+      document.getElementById("mini-home").classList.add("on");
+    });
+
+    function reiniciar(){
+      goTo(0);
+      document.getElementById("in-senha1").value = "";
+      nova.value = ""; conf.value = "";
+      conferem.classList.remove("on");
+      chk.checked = false; btnAceitar.disabled = true;
+      document.getElementById("pronto-ok").classList.remove("out");
+      document.getElementById("mini-home").classList.remove("on");
+    }
+    document.getElementById("btn-reiniciar").addEventListener("click", reiniciar);
+
+    // navegacao direta pelos pontinhos (facilita revisar + tirar screenshot)
+    dots.forEach(function(d){
+      d.style.cursor = "pointer";
+      d.addEventListener("click", function(){ goTo(parseInt(d.dataset.d, 10)); });
+    });
+
+    // suporte a hash (#1..#3) e query (?step=N) pra screenshot automatizado
+    (function(){
+      var m = location.hash.match(/^#(\d)$/);
+      var q = new URLSearchParams(location.search).get("step");
+      var n = m ? parseInt(m[1],10) : (q ? parseInt(q,10) : 0);
+      if (n >= 0 && n <= 3) goTo(n);
+      if (n >= 2) { chk.checked = true; btnAceitar.disabled = false; }
+      if (n === 1) { nova.value = "••••••••"; conf.value = "••••••••"; }
+    })();
+  </script>
+</body>
+</html>

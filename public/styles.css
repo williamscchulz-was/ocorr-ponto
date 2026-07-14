@@ -4749,3 +4749,13 @@ button.gm-card { cursor: pointer; }
 .g-zap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .g-zap input { padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: 9px; font: 500 13.5px var(--font); width: 220px; background: var(--surface); color: var(--text-body); }
 .g-wrap { max-width: 860px; }
+.g-vaga__bd[data-cand-toggle] { cursor: pointer; }
+.g-cand-badge { font: 700 11px var(--font); color: var(--plum); background: var(--surface-warm); border: 1px solid var(--border-strong); padding: 4px 11px; border-radius: 999px; cursor: pointer; }
+.g-cand-wrap { padding: 4px 0 16px; border-top: 1px dashed var(--border); display: flex; flex-direction: column; gap: 8px; }
+.g-cand { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--surface-warm); border-radius: 10px; }
+.g-cand__bd { flex: 1; min-width: 0; }
+.g-cand__bd b { display: block; font-size: 13.5px; color: var(--text-body); }
+.g-cand__bd span { font-size: 11.5px; color: var(--text-muted); }
+.g-cand__bd p { margin: 6px 0 0; font-size: 12.5px; color: var(--text-body); line-height: 1.5; white-space: pre-wrap; }
+.g-cand__data { display: block; margin-top: 6px; font-size: 10.5px; }
+.g-cand-empty { margin: 0; padding: 10px 0 4px; font-size: 12.5px; color: var(--text-muted); }

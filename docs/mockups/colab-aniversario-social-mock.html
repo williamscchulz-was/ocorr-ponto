@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · Aniversário social (reações + recados)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+<style>
+  :root{
+    --verde:#008835; --verde-claro:#1AA34F; --verde-escuro:#0B7A36;
+    --amarelo:#FFCB00; --azul:#0076BE;
+    --mint:#eaf3ec; --mint-2:#dfeee3;
+    --surface:#ffffff; --surface-warm:#f4f8f4;
+    --text:#13251a; --muted:#5d7365; --border:#e0e9e1; --border-strong:#cdd9ce;
+    --radius:18px; --radius-sm:12px;
+    --shadow:0 10px 30px rgba(15,55,30,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ font-family:"Poppins",system-ui,sans-serif; background:#0e130e; color:#dfe9e0; padding:26px 18px 80px; -webkit-font-smoothing:antialiased; }
+
+  .mk-head{ max-width:900px; margin:0 auto 6px; }
+  .mk-kicker{ display:inline-block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--verde-claro); border:1px solid rgba(26,163,79,.4); border-radius:999px; padding:5px 14px; background:rgba(26,163,79,.09); margin-bottom:12px; }
+  .mk-head h1{ font-size:22px; font-weight:800; color:#fff; margin:0 0 8px; letter-spacing:-.01em; }
+  .mk-head p{ font-size:14px; line-height:1.6; color:#9fb3a4; margin:0; max-width:680px; }
+
+  .mk-cols{ max-width:900px; margin:26px auto 0; display:grid; grid-template-columns:1fr 1fr; gap:26px; align-items:start; }
+  @media (max-width:840px){ .mk-cols{ grid-template-columns:1fr; } }
+  .mk-col__tag{ display:flex; align-items:center; gap:9px; font-size:12.5px; font-weight:800; color:#cfe3d5; margin:0 0 14px; }
+  .mk-col__tag .n{ width:22px; height:22px; border-radius:50%; background:var(--verde); color:#fff; display:grid; place-items:center; font-size:12px; font-weight:800; flex:none; }
+  .mk-col__tag small{ font-weight:500; color:#8ba394; }
+
+  /* ===== aparelho ===== */
+  .phone{ width:380px; max-width:100%; margin:0 auto; border-radius:42px; background:#000; padding:11px; box-shadow:0 26px 64px rgba(0,0,0,.55); }
+  .screen{ border-radius:32px; overflow:hidden; background:linear-gradient(180deg,#eef5ef 0%, #e6f1e8 100%); height:760px; position:relative; display:flex; flex-direction:column; color:var(--text); }
+
+  /* topo */
+  .top{ display:flex; align-items:center; gap:12px; padding:16px 16px 10px; }
+  .top .back{ width:34px; height:34px; border-radius:50%; border:1px solid var(--border); background:var(--surface); display:grid; place-items:center; color:var(--text); }
+  .top .back svg{ width:17px; height:17px; }
+  .top h2{ font-size:17px; font-weight:800; margin:0; }
+
+  .scroll{ flex:1; overflow:auto; padding:6px 14px 14px; }
+
+  /* ===== post de aniversario ===== */
+  .post{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .hero{ position:relative; padding:22px 18px 18px; text-align:center; background:
+      radial-gradient(120% 90% at 50% -10%, rgba(255,203,0,.16), transparent 60%),
+      linear-gradient(160deg, #0B7A36 0%, #1AA34F 62%, #12903f 100%); color:#fff; overflow:hidden; }
+  .hero .conf{ position:absolute; inset:0; pointer-events:none; opacity:.55; }
+  .hero .av{ width:88px; height:88px; border-radius:50%; margin:0 auto 12px; border:3px solid rgba(255,255,255,.9); background:#0B7A36; display:grid; place-items:center; font-size:30px; font-weight:800; color:#fff; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.28); }
+  .hero .av img{ width:100%; height:100%; object-fit:cover; }
+  .hero h3{ font-size:19px; font-weight:800; margin:0 0 3px; }
+  .hero .sub{ font-size:13px; font-weight:500; opacity:.92; margin:0; }
+  .hero .cake{ display:inline-flex; align-items:center; gap:7px; margin-top:12px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); padding:6px 13px; border-radius:999px; font-size:12px; font-weight:700; }
+  .hero .cake svg{ width:15px; height:15px; }
+
+  /* barra de reacoes */
+  .react{ padding:14px 16px 8px; border-bottom:1px solid var(--border); }
+  .react__row{ display:flex; gap:8px; }
+  .rbtn{ flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:9px 4px; border:1px solid var(--border); border-radius:14px; background:var(--surface-warm); color:var(--muted); font-family:inherit; font-size:11px; font-weight:700; cursor:pointer; transition:.16s; }
+  .rbtn svg{ width:21px; height:21px; }
+  .rbtn b{ font-size:13px; color:var(--text); font-weight:800; }
+  .rbtn.on{ border-color:var(--verde); background:rgba(0,136,53,.09); color:var(--verde-escuro); }
+  .rbtn.on b{ color:var(--verde-escuro); }
+  .rbtn:active{ transform:scale(.96); }
+  .rsummary{ display:flex; align-items:center; gap:9px; padding:11px 2px 2px; }
+  .stack{ display:flex; }
+  .stack .a{ width:26px; height:26px; border-radius:50%; border:2px solid var(--surface); margin-left:-8px; display:grid; place-items:center; font-size:10px; font-weight:800; color:#fff; }
+  .stack .a:first-child{ margin-left:0; }
+  .rsummary span{ font-size:12.5px; color:var(--muted); }
+  .rsummary b{ color:var(--text); }
+
+  /* comentarios */
+  .cmts{ padding:12px 16px 4px; }
+  .cmts__h{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:2px 0 12px; }
+  .cmt{ display:flex; gap:10px; margin-bottom:14px; }
+  .cmt .a{ width:34px; height:34px; border-radius:50%; flex:none; display:grid; place-items:center; font-size:12px; font-weight:800; color:#fff; }
+  .cmt__b{ flex:1; min-width:0; }
+  .cmt__bubble{ background:var(--surface-warm); border:1px solid var(--border); border-radius:4px 14px 14px 14px; padding:8px 12px; }
+  .cmt__bubble .nome{ font-size:12.5px; font-weight:800; color:var(--text); }
+  .cmt__bubble .txt{ font-size:13.5px; color:#26382c; line-height:1.45; margin-top:1px; }
+  .cmt__meta{ display:flex; align-items:center; gap:12px; padding:4px 4px 0; font-size:11px; color:var(--muted); }
+  .cmt__meta button{ background:none; border:0; color:var(--muted); font-family:inherit; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0; }
+  .cmt__meta button svg{ width:12px; height:12px; }
+  .cmt__meta button.liked{ color:#d1476b; }
+
+  /* composer */
+  .composer{ flex:none; display:flex; align-items:center; gap:9px; padding:11px 14px calc(12px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); background:var(--surface); }
+  .composer .a{ width:32px; height:32px; border-radius:50%; flex:none; display:grid; place-items:center; font-size:11px; font-weight:800; color:#fff; background:var(--azul); }
+  .composer .inp{ flex:1; height:42px; border:1px solid var(--border-strong); border-radius:999px; background:var(--surface-warm); padding:0 16px; display:flex; align-items:center; font-size:13px; color:var(--muted); }
+  .composer .send{ width:42px; height:42px; border-radius:50%; border:0; background:var(--verde); color:#fff; display:grid; place-items:center; flex:none; cursor:pointer; }
+  .composer .send svg{ width:18px; height:18px; }
+
+  /* variante A: um toque só */
+  .parab{ margin:0 0 2px; display:flex; gap:10px; align-items:center; }
+  .parab__btn{ flex:1; height:48px; border:0; border-radius:14px; background:var(--verde); color:#fff; font-family:inherit; font-size:15px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; gap:9px; cursor:pointer; box-shadow:0 8px 20px rgba(0,136,53,.28); transition:.16s; }
+  .parab__btn.on{ background:var(--surface-warm); color:var(--verde-escuro); box-shadow:none; border:1px solid var(--verde); }
+  .parab__btn svg{ width:19px; height:19px; }
+  .parab__btn:active{ transform:scale(.98); }
+
+  .mk-note{ max-width:900px; margin:28px auto 0; padding:20px 22px; border:1px solid rgba(255,255,255,.08); border-radius:16px; background:rgba(255,255,255,.03); font-size:13px; line-height:1.7; color:#a9bcae; }
+  .mk-note b{ color:#e4efe6; }
+  .mk-note h4{ margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#8ba394; }
+  .mk-note ul{ margin:6px 0 0; padding-left:18px; }
+  .mk-note li{ margin-bottom:6px; }
+</style>
+</head>
+<body>
+
+  <div class="mk-head">
+    <span class="mk-kicker">Ideia · Aniversário social</span>
+    <h1>Reagir e comentar no aniversário de cada pessoa</h1>
+    <p>Hoje o card de aniversário só sugere "desejar um feliz aniversário" e não faz nada ao tocar. A ideia é o aniversário virar uma postagem, como no Instagram, onde os colegas deixam uma reação e um recado. Duas direções abaixo. Reações são ícones da marca, sem emoji, seguindo a casa.</p>
+  </div>
+
+  <div class="mk-cols">
+
+    <!-- ============ DIREÇÃO A: recado + um toque ============ -->
+    <div class="mk-col">
+      <div class="mk-col__tag"><span class="n">A</span> Recado &nbsp;<small>· um toque pra parabenizar + mural</small></div>
+      <div class="phone">
+        <div class="screen">
+          <div class="top">
+            <button class="back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <h2>Aniversário</h2>
+          </div>
+          <div class="scroll">
+            <div class="post">
+              <div class="hero">
+                <div class="av">PA</div>
+                <h3>Patrick Almeida</h3>
+                <p class="sub">faz aniversário hoje</p>
+                <div class="cake"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1 2.5 1 4 1 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v2M12 8v2M17 8v2M7 4h.01M12 3h.01M17 4h.01"/></svg> Produção · 3 anos de casa</div>
+              </div>
+              <div class="react">
+                <div class="parab">
+                  <button class="parab__btn on"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg> Você parabenizou</button>
+                </div>
+                <div class="rsummary">
+                  <div class="stack">
+                    <div class="a" style="background:#0076BE">MJ</div>
+                    <div class="a" style="background:#c48a1a">RS</div>
+                    <div class="a" style="background:#1AA34F">LC</div>
+                    <div class="a" style="background:#7a4fbf">AD</div>
+                  </div>
+                  <span><b>Você e mais 23</b> parabenizaram</span>
+                </div>
+              </div>
+              <div class="cmts">
+                <div class="cmts__h">Recados · 6</div>
+
+                <div class="cmt">
+                  <div class="a" style="background:#0076BE">MJ</div>
+                  <div class="cmt__b">
+                    <div class="cmt__bubble"><div class="nome">Marina Jorge</div><div class="txt">Feliz aniversário, Patrick! Que seu dia seja incrível. Muitas felicidades.</div></div>
+                    <div class="cmt__meta"><span>há 2h</span><button class="liked"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg> 4</button></div>
+                  </div>
+                </div>
+
+                <div class="cmt">
+                  <div class="a" style="background:#c48a1a">RS</div>
+                  <div class="cmt__b">
+                    <div class="cmt__bubble"><div class="nome">Rafael Souza</div><div class="txt">Parabéns, meu amigo! Saúde e sucesso sempre.</div></div>
+                    <div class="cmt__meta"><span>há 1h</span><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg> Curtir</button></div>
+                  </div>
+                </div>
+
+                <div class="cmt">
+                  <div class="a" style="background:#1AA34F">LC</div>
+                  <div class="cmt__b">
+                    <div class="cmt__bubble"><div class="nome">Lucivane Costa</div><div class="txt">Parabéns, Patrick! Um abraço da equipe toda.</div></div>
+                    <div class="cmt__meta"><span>há 34 min</span><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg> Curtir</button></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <div class="a">WS</div>
+            <div class="inp">Deixe um recado para o Patrick...</div>
+            <button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DIREÇÃO B: reações variadas ============ -->
+    <div class="mk-col">
+      <div class="mk-col__tag"><span class="n">B</span> Reações &nbsp;<small>· tipos de reação + mural</small></div>
+      <div class="phone">
+        <div class="screen">
+          <div class="top">
+            <button class="back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <h2>Aniversário</h2>
+          </div>
+          <div class="scroll">
+            <div class="post">
+              <div class="hero">
+                <div class="av">PA</div>
+                <h3>Patrick Almeida</h3>
+                <p class="sub">faz aniversário hoje</p>
+                <div class="cake"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1 2.5 1 4 1 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v2M12 8v2M17 8v2M7 4h.01M12 3h.01M17 4h.01"/></svg> Produção · 3 anos de casa</div>
+              </div>
+              <div class="react">
+                <div class="react__row">
+                  <button class="rbtn on"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg><b>18</b>Amei</button>
+                  <button class="rbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1 2.5 1 4 1 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v2M12 8v2M17 8v2"/></svg><b>12</b>Bolo</button>
+                  <button class="rbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3L2 22l10.7-3.79"/><path d="M4 3h.01M22 8h.01M15 2h.01M22 20h.01"/><path d="M22 2l-3 3M18 12l-2 2M12 6l-1.5 1.5"/></svg><b>9</b>Festa</button>
+                  <button class="rbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 11V5.5a1.5 1.5 0 0 0-3 0V11"/><path d="M11 11V4.5a1.5 1.5 0 0 0-3 0V11"/><path d="M8 11V6.5a1.5 1.5 0 0 0-3 0v6.5a7 7 0 0 0 7 7h1a7 7 0 0 0 7-7v-3a1.5 1.5 0 0 0-3 0"/></svg><b>7</b>Aplausos</button>
+                </div>
+                <div class="rsummary">
+                  <div class="stack">
+                    <div class="a" style="background:#0076BE">MJ</div>
+                    <div class="a" style="background:#c48a1a">RS</div>
+                    <div class="a" style="background:#1AA34F">LC</div>
+                    <div class="a" style="background:#7a4fbf">AD</div>
+                  </div>
+                  <span><b>46 pessoas</b> comemoraram</span>
+                </div>
+              </div>
+              <div class="cmts">
+                <div class="cmts__h">Recados · 6</div>
+
+                <div class="cmt">
+                  <div class="a" style="background:#0076BE">MJ</div>
+                  <div class="cmt__b">
+                    <div class="cmt__bubble"><div class="nome">Marina Jorge</div><div class="txt">Feliz aniversário, Patrick! Que seu dia seja incrível.</div></div>
+                    <div class="cmt__meta"><span>há 2h</span><button class="liked"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg> 4</button></div>
+                  </div>
+                </div>
+
+                <div class="cmt">
+                  <div class="a" style="background:#c48a1a">RS</div>
+                  <div class="cmt__b">
+                    <div class="cmt__bubble"><div class="nome">Rafael Souza</div><div class="txt">Parabéns, meu amigo! Saúde e sucesso sempre.</div></div>
+                    <div class="cmt__meta"><span>há 1h</span><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg> Curtir</button></div>
+                  </div>
+                </div>
+
+                <div class="cmt">
+                  <div class="a" style="background:#1AA34F">LC</div>
+                  <div class="cmt__b">
+                    <div class="cmt__bubble"><div class="nome">Lucivane Costa</div><div class="txt">Parabéns, Patrick! Um abraço da equipe toda.</div></div>
+                    <div class="cmt__meta"><span>há 34 min</span><button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg> Curtir</button></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <div class="a">WS</div>
+            <div class="inp">Deixe um recado para o Patrick...</div>
+            <button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="mk-note">
+    <h4>A ideia em resumo</h4>
+    <p>O card "Hoje é aniversário de Patrick" na home passa a abrir esta tela. Vira uma postagem: <b>uma reação</b> (um toque, na direção A) ou <b>tipos de reação</b> (Amei, Bolo, Festa, Aplausos, na direção B) e um <b>mural de recados</b> com os comentários dos colegas. Tudo com ícones da marca, <b>sem emoji</b> e sem hífen, como a casa pede.</p>
+    <h4 style="margin-top:16px">O que eu recomendo</h4>
+    <p>Começar pela <b>direção A</b>: um toque pra parabenizar e o mural de recados. É mais simples, celebra sem virar rede social, e é o que a maioria vai usar. Os tipos de reação (B) dá pra acrescentar depois se você quiser mais expressividade.</p>
+    <h4 style="margin-top:16px">Backend (quando você aprovar o visual)</h4>
+    <ul>
+      <li>Coleções novas <b>reacoes</b> e <b>recados</b> por aniversariante (append por dono, sem editar dos outros), regras testadas no emulador antes do deploy.</li>
+      <li>Notificar o aniversariante que recebeu recados, e talvez o gestor ver o engajamento.</li>
+      <li><b>LGPD e moderação</b>: recado é conteúdo entre colegas, então quero um jeito de esconder/remover um recado impróprio e registrar quem escreveu (trilha), sem exposição indevida.</li>
+    </ul>
+    <p style="margin-top:14px; color:#8ba394;">Isto é só mock, nada foi ligado no app. Me diga qual direção (A, B, ou um meio termo) e eu refino antes de qualquer código.</p>
+  </div>
+
+</body>
+</html>

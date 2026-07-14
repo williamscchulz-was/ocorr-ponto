@@ -1375,7 +1375,44 @@ service cloud.firestore {
           && v().status == 'encerrada'
           && v().encerradaEm == request.time )
       );
-      allow delete: if isAdmin() || (gpVagas() && resource.data.status == 'rascunho');
+      // Excluir: rascunho ou encerrada (William 2026-07-14). Publicada NUNCA direto:
+      // encerra antes (one-way preservado, a trilha publicadaEm/encerradaEm fica honesta).
+      allow delete: if isAdmin() || (gpVagas() && resource.data.status in ['rascunho', 'encerrada']);
+    }
+
+    // ============================================================
+    // CANDIDATURAS (2026-07-14, William: formulario NO SITE, sem WhatsApp).
+    // PRIMEIRA ESCRITA ANONIMA do projeto, entao a porta e um funil:
+    // create-only, shape fechado (hasOnly), caps de tamanho em tudo, vaga
+    // alvo obrigatoriamente 'publicada' (get) e doc ID DETERMINISTICO
+    // vagaId__email (anti-spam estrutural: 1 candidatura por email por
+    // vaga; repeticao vira update, que NEGA). PII de candidato EXTERNO
+    // (nome/telefone/email): leitura e exclusao SO da GP (LGPD, o site
+    // mostra consentimento no form). Residual aceito e documentado no
+    // PLANO-VAGAS.md: sem captcha/App Check um bot pode variar emails;
+    // mitiga o funil acima, a GP exclui e o upgrade path e App Check.
+    // ============================================================
+    match /candidaturas/{cid} {
+      function gpCand() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
+      function c() { return request.resource.data; }
+      allow read: if gpCand();
+      allow create: if c().keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status'])
+        && c().vagaId is string && c().vagaId.size() >= 1 && c().vagaId.size() <= 60
+        && get(/databases/$(database)/documents/vagas/$(c().vagaId)).data.status == 'publicada'
+        // Igualdade com a vaga real (gate): mata titulo enganoso; mesmo doc do get
+        // acima, o acesso repetido e cacheado, zero read extra.
+        && c().vagaTitulo is string && c().vagaTitulo.size() <= 120
+        && c().vagaTitulo == get(/databases/$(database)/documents/vagas/$(c().vagaId)).data.titulo
+        && c().nome is string && c().nome.size() >= 3 && c().nome.size() <= 80
+        && c().telefone is string && c().telefone.size() >= 8 && c().telefone.size() <= 20
+        && c().email is string && c().email.size() >= 5 && c().email.size() <= 120
+        && c().email.matches('[^@\\s]+@[^@\\s]+\\.[^@\\s]+')
+        && c().mensagem is string && c().mensagem.size() <= 1000
+        && c().em == request.time
+        && c().status == 'nova'
+        && cid == c().vagaId + '__' + c().email.lower();
+      allow update: if false;
+      allow delete: if gpCand();
     }
 
     // WhatsApp de candidaturas: publico por proposito (a pagina aberta precisa).

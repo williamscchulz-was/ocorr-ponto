@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FioPulse · abertura estilo Apple</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" />
+<style>
+  :root{
+    --verde:#008835; --verde-claro:#1AA34F; --amarelo:#FFCB00; --azul:#0076BE;
+    --mint1:#eef5ef; --mint2:#e3efe6;
+    --surface:#fff; --text:#13251a; --muted:#5d7365; --border:#e0e9e1;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ font-family:"Poppins",system-ui,sans-serif; background:#0a0f0a; color:#dfe9e0; padding:28px 18px 80px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:900px; margin:0 auto; }
+  .kick{ display:inline-block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:#4FD182; border:1px solid rgba(79,209,130,.4); border-radius:999px; padding:5px 14px; background:rgba(79,209,130,.08); margin-bottom:12px; }
+  h1{ font-size:22px; font-weight:800; color:#fff; margin:0 0 8px; }
+  p.sub{ font-size:14px; line-height:1.6; color:#9fb3a4; margin:0; max-width:660px; }
+
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:26px; margin:30px auto 0; }
+  @media (max-width:800px){ .cols{ grid-template-columns:1fr; } }
+  .col__t{ display:flex; align-items:center; gap:9px; font-size:13px; font-weight:800; color:#cfe3d5; margin:0 0 14px; }
+  .col__t .n{ width:22px; height:22px; border-radius:50%; background:var(--verde); color:#fff; display:grid; place-items:center; font-size:12px; font-weight:800; }
+  .col__t small{ font-weight:500; color:#8ba394; }
+
+  .phone{ width:330px; max-width:100%; margin:0 auto; border-radius:40px; background:#000; padding:10px; box-shadow:0 26px 60px rgba(0,0,0,.55); }
+  .screen{ position:relative; height:660px; border-radius:30px; overflow:hidden; background:linear-gradient(180deg,var(--mint1),var(--mint2)); }
+
+  /* camada de abertura + camada do app, cross-fade */
+  .layer{ position:absolute; inset:0; }
+  .launch{ display:grid; place-items:center; transition:opacity .5s ease; z-index:2; background:linear-gradient(180deg,var(--mint1),var(--mint2)); }
+  .app{ opacity:0; transition:opacity .55s ease; z-index:1; padding:22px 16px; }
+  .screen.on .launch{ opacity:0; pointer-events:none; }
+  .screen.on .app{ opacity:1; z-index:3; }
+
+  /* --- abertura A: icone sereno --- */
+  .lico{ width:96px; height:96px; border-radius:23px; box-shadow:0 12px 30px rgba(0,80,30,.22); opacity:0; transform:scale(.92); animation:icoIn 1.5s ease forwards; }
+  .screen.replay .lico{ animation:none; opacity:0; transform:scale(.92); }
+  @keyframes icoIn{ 0%{opacity:0;transform:scale(.92)} 30%{opacity:1;transform:scale(1)} 82%{opacity:1;transform:scale(1)} 100%{opacity:1;transform:scale(1.02)} }
+  .lwordmark{ margin-top:16px; font-weight:800; letter-spacing:.02em; color:var(--verde); font-size:19px; opacity:0; animation:wmIn 1.5s ease forwards; }
+  @keyframes wmIn{ 0%,25%{opacity:0} 50%{opacity:.0} 60%{opacity:1} 100%{opacity:1} }
+  .lcol{ display:flex; flex-direction:column; align-items:center; }
+
+  /* --- abertura B: esqueleto --- */
+  .sk{ padding:22px 16px; }
+  .sk__row{ display:flex; align-items:center; gap:12px; margin-bottom:22px; }
+  .sh{ background:linear-gradient(90deg,#dbe8de 25%,#eaf3ec 37%,#dbe8de 63%); background-size:400% 100%; animation:shimmer 1.4s linear infinite; border-radius:8px; }
+  .sk__av{ width:52px; height:52px; border-radius:50%; flex:none; }
+  .sk__l1{ width:150px; height:15px; margin-bottom:8px; }
+  .sk__l2{ width:96px; height:11px; }
+  .sk__circles{ display:flex; justify-content:space-between; margin-bottom:22px; }
+  .sk__c{ width:52px; height:52px; border-radius:50%; }
+  .sk__card{ height:78px; border-radius:16px; margin-bottom:14px; }
+  @keyframes shimmer{ 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+
+  /* --- mock da home (alvo do cross-fade, os dois usam) --- */
+  .home__greet{ display:flex; align-items:center; gap:12px; margin-bottom:22px; }
+  .home__av{ width:52px; height:52px; border-radius:50%; background:#0B7A36; display:grid; place-items:center; color:#fff; font-weight:800; font-size:16px; flex:none; }
+  .home__h{ font-size:20px; font-weight:800; color:var(--text); line-height:1.1; }
+  .home__s{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .home__atalhos{ display:flex; justify-content:space-between; margin-bottom:22px; }
+  .home__at{ display:flex; flex-direction:column; align-items:center; gap:7px; }
+  .home__ic{ width:52px; height:52px; border-radius:50%; border:1px solid var(--border); background:var(--surface); display:grid; place-items:center; color:var(--verde); }
+  .home__ic svg{ width:22px; height:22px; }
+  .home__lb{ font-size:10.5px; color:var(--muted); font-weight:500; }
+  .home__card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px 16px; box-shadow:0 8px 20px rgba(15,55,30,.06); display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .home__cav{ width:42px; height:42px; border-radius:12px; background:rgba(0,136,53,.1); display:grid; place-items:center; color:var(--verde); flex:none; }
+  .home__ct{ font-size:14.5px; font-weight:800; color:var(--text); }
+  .home__cs{ font-size:12px; color:var(--muted); }
+
+  .controls{ display:flex; justify-content:center; margin-top:16px; }
+  .replay{ font-family:inherit; font-size:12.5px; font-weight:600; color:#0a0f0a; background:#4FD182; border:0; border-radius:999px; padding:8px 16px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .replay svg{ width:14px; height:14px; }
+
+  .note{ max-width:660px; margin:30px auto 0; padding:18px 20px; border:1px solid rgba(255,255,255,.08); border-radius:14px; background:rgba(255,255,255,.03); font-size:13px; line-height:1.7; color:#a9bcae; }
+  .note b{ color:#e4efe6; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="kick">Abertura · estilo Apple</span>
+    <h1>Abrir o app sem pedágio</h1>
+    <p class="sub">A abertura para de ser um momento de animação e vira uma ponte quase invisível pro conteúdo, no espírito da Apple: estática, na cor da marca, some assim que carrega. Duas direções tocando em loop abaixo. O "fio escreve" sai daqui e vira momento de estreia.</p>
+
+    <div class="cols">
+
+      <!-- A: icone sereno -->
+      <div class="col">
+        <div class="col__t"><span class="n">A</span> Ícone sereno &nbsp;<small>· o jeito mais Apple</small></div>
+        <div class="phone">
+          <div class="screen" id="scA">
+            <div class="layer launch">
+              <div class="lcol">
+                <img class="lico" src="/public/icon-192.png" alt="FioPulse" />
+                <div class="lwordmark">FioPulse</div>
+              </div>
+            </div>
+            <div class="layer app" id="homeA"></div>
+          </div>
+        </div>
+        <div class="controls"><button class="replay" data-r="scA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Ver de novo</button></div>
+      </div>
+
+      <!-- B: esqueleto -->
+      <div class="col">
+        <div class="col__t"><span class="n">B</span> Esqueleto &nbsp;<small>· o ideal da HIG</small></div>
+        <div class="phone">
+          <div class="screen" id="scB">
+            <div class="layer launch">
+              <div class="sk">
+                <div class="sk__row"><div class="sh sk__av"></div><div><div class="sh sk__l1"></div><div class="sh sk__l2"></div></div></div>
+                <div class="sk__circles"><div class="sh sk__c"></div><div class="sh sk__c"></div><div class="sh sk__c"></div><div class="sh sk__c"></div><div class="sh sk__c"></div></div>
+                <div class="sh sk__card"></div>
+                <div class="sh sk__card" style="height:70px"></div>
+              </div>
+            </div>
+            <div class="layer app" id="homeB"></div>
+          </div>
+        </div>
+        <div class="controls"><button class="replay" data-r="scB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Ver de novo</button></div>
+      </div>
+
+    </div>
+
+    <div class="note">
+      <p><b>Como funciona.</b> A abertura aparece só enquanto o app carrega de verdade (agora que o login ficou rápido, isso é uma fração de segundo) e dissolve no conteúdo. Sem segurar tempo fixo, e um toque pula na hora. A direção B nem tem logo: já mostra o esqueleto da home, então a sensação é de que o app abriu instantâneo.</p>
+      <p style="margin:10px 0 0"><b>O "fio escreve" continua vivo</b>, só muda de lugar: estreia (primeiro acesso), tela de sobre, ou o vídeo. Vira raridade que encanta, não pedágio diário.</p>
+    </div>
+  </div>
+
+  <script>
+    var homeHTML = `
+      <div class="home__greet">
+        <div class="home__av">W</div>
+        <div><div class="home__h">Boa tarde, William</div><div class="home__s">Domingo, 5 de julho · Geral</div></div>
+      </div>
+      <div class="home__atalhos">
+        <div class="home__at"><div class="home__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="home__lb">Meu ponto</div></div>
+        <div class="home__at"><div class="home__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M8 7V5h8v2"/></svg></div><div class="home__lb">Pagamento</div></div>
+        <div class="home__at"><div class="home__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></div><div class="home__lb">Avisos</div></div>
+        <div class="home__at"><div class="home__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/></svg></div><div class="home__lb">Documentos</div></div>
+        <div class="home__at"><div class="home__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg></div><div class="home__lb">Novidades</div></div>
+      </div>
+      <div class="home__card"><div class="home__cav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg></div><div><div class="home__ct">Novidades</div><div class="home__cs">Veja a evolução do portal</div></div></div>
+      <div class="home__card"><div class="home__cav" style="background:rgba(255,203,0,.16);color:#c48a1a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1"/><path d="M2 21h20M7 8v2M12 8v2M17 8v2"/></svg></div><div><div class="home__ct">Hoje é aniversário de Patrick</div><div class="home__cs">Toque para parabenizar</div></div></div>`;
+    document.getElementById("homeA").innerHTML = homeHTML;
+    document.getElementById("homeB").innerHTML = homeHTML;
+
+    function cycle(id, launchHold){
+      var sc = document.getElementById(id);
+      function run(){
+        sc.classList.remove("on");
+        sc.classList.add("replay"); void sc.offsetWidth; sc.classList.remove("replay");
+        setTimeout(function(){ sc.classList.add("on"); }, launchHold);
+        setTimeout(run, launchHold + 2600);
+      }
+      run();
+      return run;
+    }
+    var runA = cycle("scA", 1550);
+    var runB = cycle("scB", 950);
+    document.querySelectorAll(".replay").forEach(function(b){
+      b.addEventListener("click", function(){
+        var sc = document.getElementById(b.dataset.r);
+        sc.classList.remove("on"); sc.classList.add("replay"); void sc.offsetWidth; sc.classList.remove("replay");
+        setTimeout(function(){ sc.classList.add("on"); }, b.dataset.r === "scA" ? 1550 : 950);
+      });
+    });
+  </script>
+</body>
+</html>

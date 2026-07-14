@@ -1,0 +1,110 @@
+<meta charset="utf-8">
+<title>Splash · redesign do esqueleto · 3 direções</title>
+<style>
+  :root{ --plum:#008835; --mark:#1AA34F; --ink:#20342b; --muted:#5b7367; --bg1:#eef5ef; --bg2:#e3efe6; --sk:#c3d6c9; --sk2:#e6efe9; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:'Poppins',-apple-system,Segoe UI,Roboto,sans-serif; background:#f6f4ef; color:var(--ink); padding:28px 16px 60px; }
+  h1{ font-size:19px; margin:0 0 4px; color:var(--plum); }
+  .sub{ color:var(--muted); font-size:13px; margin:0 0 22px; }
+  .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; max-width:1200px; margin:0 auto; }
+  @media(max-width:900px){ .grid{ grid-template-columns:1fr; } }
+  .col{ background:#fff; border:1px solid #e7e2d6; border-radius:16px; padding:16px; }
+  .col h2{ font-size:14px; margin:0 0 2px; color:var(--plum); }
+  .col .rec{ display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#fff; background:var(--mark); padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle; }
+  .col p{ font-size:12px; color:var(--muted); margin:6px 0 12px; line-height:1.45; min-height:52px; }
+  .phone{ width:100%; aspect-ratio:390/720; border-radius:22px; overflow:hidden; border:1px solid #dfe6e0; position:relative; }
+  /* ===== fundo comum (o mesmo do splash real) ===== */
+  .sp{ position:absolute; inset:0; background:linear-gradient(180deg,var(--bg1),var(--bg2)); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+  .msg{ position:absolute; bottom:26px; left:0; right:0; text-align:center; font-size:12.5px; color:#4e6357; letter-spacing:.02em; }
+
+  /* marca (quadrado + linha de pulso branca) */
+  .mark{ width:74px; height:74px; border-radius:20px; background:var(--mark); display:grid; place-items:center; box-shadow:0 10px 30px rgba(0,136,53,.22); }
+  .mark svg{ width:46px; height:46px; }
+  .wm{ font-family:'Michroma','Poppins',sans-serif; font-size:22px; letter-spacing:.01em; color:var(--plum); font-weight:600; }
+
+  /* ---------- A) PULSO ---------- */
+  /* a linha de ECG desenha e some, em loop = "batendo" */
+  .ecg{ width:210px; height:56px; }
+  .ecg path{ fill:none; stroke:var(--mark); stroke-width:3; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:340; stroke-dashoffset:340; animation:beat 1.9s ease-in-out infinite; }
+  @keyframes beat{ 0%{ stroke-dashoffset:340; } 55%{ stroke-dashoffset:0; } 100%{ stroke-dashoffset:-340; } }
+  .a .mark{ animation:pop 1.9s ease-in-out infinite; }
+  @keyframes pop{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.05); } }
+
+  /* ---------- B) ESQUELETO VIVO ---------- */
+  .skwrap{ position:absolute; inset:0; padding:20px 16px; display:flex; flex-direction:column; gap:14px; }
+  .sk{ background:var(--sk); border-radius:12px; position:relative; overflow:hidden; }
+  .sk::after{ content:""; position:absolute; inset:0; background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.55) 50%,transparent 80%); transform:translateX(-100%); animation:sheen 1.5s linear infinite; }
+  @keyframes sheen{ to{ transform:translateX(100%); } }
+  .sk--head{ height:16px; width:44%; }
+  .skrow{ display:flex; gap:10px; align-items:center; }
+  .sk--av{ width:38px; height:38px; border-radius:50%; flex:0 0 auto; }
+  .sk--l1{ height:11px; width:60%; } .sk--l2{ height:9px; width:38%; margin-top:6px; }
+  .skkpis{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .sk--kpi{ height:52px; }
+  .sk--card{ flex:1; min-height:64px; }
+  .bmark{ position:absolute; top:16px; right:16px; width:30px; height:30px; border-radius:9px; background:var(--mark); display:grid; place-items:center; animation:pop 1.6s ease-in-out infinite; }
+  .bmark svg{ width:19px; height:19px; }
+
+  /* ---------- C) SERENO ---------- */
+  .c .mark{ animation:breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe{ 0%,100%{ transform:scale(1); box-shadow:0 10px 30px rgba(0,136,53,.18); } 50%{ transform:scale(1.06); box-shadow:0 16px 42px rgba(0,136,53,.30); } }
+  .bar{ width:150px; height:5px; border-radius:999px; background:#cfe0d5; overflow:hidden; }
+  .bar i{ display:block; height:100%; width:40%; border-radius:999px; background:var(--mark); animation:slide 1.3s ease-in-out infinite; }
+  @keyframes slide{ 0%{ margin-left:-42%; } 100%{ margin-left:102%; } }
+
+  .note{ max-width:1200px; margin:22px auto 0; font-size:12.5px; color:var(--muted); line-height:1.5; border-top:1px solid #e7e2d6; padding-top:14px; }
+  .note b{ color:var(--ink); }
+</style>
+
+<h1>Splash · redesign do esqueleto</h1>
+<p class="sub">O que aparece a cada login (o esqueleto de blocos cinza que ficou ruim). A marca do FioPulse É um pulso, então a ideia central: fazer o pulso bater em vez de blocos parados. Três direções, mesma moldura leve (CSS puro, zero rede).</p>
+
+<div class="grid">
+
+  <!-- A -->
+  <div class="col a">
+    <h2>A · Pulso<span class="rec">recomendada</span></h2>
+    <p>A linha de ECG da marca desenha e reinicia em loop, o app "tem batimento". Some com os blocos cinza. É o que mais grita "vivo, carregando" e é 100% a identidade da marca.</p>
+    <div class="phone"><div class="sp">
+      <div class="mark"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <svg class="ecg" viewBox="0 0 210 56"><path d="M2 28h44l10 22 18-44 12 34 8 -12 10 22h84"/></svg>
+      <div class="wm">FioPulse</div>
+      <div class="msg">Carregando...</div>
+    </div></div>
+  </div>
+
+  <!-- B -->
+  <div class="col b">
+    <h2>B · Esqueleto vivo</h2>
+    <p>Mantém a silhueta (a tela "já se forma"), mas com a marca pulsando no topo, o vazio preenchido e o brilho puxado pro verde. Refina o atual em vez de trocar. Menor risco.</p>
+    <div class="phone"><div class="sp">
+      <div class="bmark"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="skwrap">
+        <div class="skrow"><div class="sk sk--av"></div><div><div class="sk sk--l1"></div><div class="sk sk--l2"></div></div></div>
+        <div class="skkpis"><div class="sk sk--kpi"></div><div class="sk sk--kpi"></div><div class="sk sk--kpi"></div><div class="sk sk--kpi"></div></div>
+        <div class="skrow" style="flex:1"><div class="sk sk--card"></div></div>
+        <div class="skrow" style="flex:1"><div class="sk sk--card"></div></div>
+      </div>
+      <div class="msg">Carregando...</div>
+    </div></div>
+  </div>
+
+  <!-- C -->
+  <div class="col c">
+    <h2>C · Sereno</h2>
+    <p>Só a marca respirando + uma barrinha de progresso deslizando. Calmo e minimalista (a "opção ícone" que tinha perdido pro esqueleto). O mais leve de todos.</p>
+    <div class="phone"><div class="sp">
+      <div class="mark"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="wm">FioPulse</div>
+      <div class="bar"><i></i></div>
+      <div class="msg" style="bottom:auto;position:static;margin-top:2px">Carregando...</div>
+    </div></div>
+  </div>
+
+</div>
+
+<p class="note">
+  <b>Contexto:</b> a estreia do aparelho continua com o "o fio escreve" (intocado). Isto é só o esqueleto de todo login seguinte. Todas as três respeitam as travas atuais (fallback de 8s, piso de tempo, reduced-motion desliga a animação, aria-status no "Carregando"). Peso: A e C são mais leves que o esqueleto de hoje; B é equivalente.<br>
+  <b>Minha recomendação:</b> A (Pulso), porque comunica "vivo/carregando" mais forte que qualquer bloco e amarra na identidade. Se preferir manter a sensação de "a tela já vai aparecer", B. Me diz qual e eu implemento (mobile + desktop) com verificação.
+</p>

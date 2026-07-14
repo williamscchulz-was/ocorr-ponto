@@ -1,0 +1,158 @@
+<meta charset="utf-8">
+<title>Mock · Editar ocorrência automática antes de confirmar</title>
+<link rel="stylesheet" href="/public/styles.css?v=286">
+<link rel="stylesheet" href="/public/portal-colaborador.css?v=286">
+<style>
+  body { min-height: 100vh; background: var(--bg, #F6F4EF); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px 80px; }
+  .mock-wrap { width: 100%; max-width: 1040px; display: flex; flex-direction: column; gap: 22px; }
+  .mock-tag { align-self: center; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); padding: 6px 14px; border-radius: 999px; }
+  .modal-backdrop { position: static; background: rgba(31,11,28,.55); border-radius: 20px; padding: 36px 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .modal-backdrop__legenda { color: #fff; font-size: 13px; font-weight: 600; opacity: .85; }
+  .modal.modal--oca { max-width: 1000px; }
+
+  .oca-nota-leitura { margin-top: 10px; font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+
+  .mock-rodape-nota { max-width: 720px; margin: 4px auto 0; text-align: center; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+</style>
+
+<div class="mock-wrap">
+  <span class="mock-tag">Mock · editar ocorrência automática antes de confirmar</span>
+
+  <!-- ESTADO 1: conferência normal, com o botão Editar novo -->
+  <div class="modal-backdrop">
+    <span class="modal-backdrop__legenda">Estado 1 · Conferência, com o botão Editar novo</span>
+    <div class="modal modal--oca">
+      <div class="modal__header">
+        <div><h2>Ocorrência · 04/07</h2><p>Aguardando conferência do líder</p></div>
+        <button class="modal__close" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal__body">
+
+        <div class="row" style="margin-bottom:14px; gap:12px;">
+          <div class="avatar avatar--lg">FL</div>
+          <div>
+            <div style="font-weight:600; color:var(--plum); font-size:16px;">Franciele Lemes Rosa</div>
+            <div class="muted text-sm">Laboratório · 2º Turno</div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-cell"><label>Tipo</label><strong>Saída antecipada</strong></div>
+          <div class="detail-cell"><label>Dia</label><strong>04/07</strong></div>
+        </div>
+
+        <div class="oca-jornada">
+          <div><span class="oca-jr__k">Jornada prevista</span><div>
+            <span class="oca-bat">12:00</span><span class="oca-bat">17:30</span><span class="oca-bat">18:00</span><span class="oca-bat">20:30</span>
+          </div></div>
+          <div><span class="oca-jr__k">Batidas do dia</span><div>
+            <span class="oca-bat">08:32</span><span class="oca-bat">12:00</span>
+          </div></div>
+        </div>
+
+        <div class="oca-desvio">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Saída antecipada de 1h 00</span>
+        </div>
+
+        <div class="oca-hist" style="margin-top:16px;">
+          <div class="oca-hist__ln"><b>Detectada pela apuração do ponto</b><span>automático · 04/07</span></div>
+          <div class="oca-hist__ln oca-hist__ln--next"><b>Aguardando conferência do líder</b><span>próxima etapa</span></div>
+        </div>
+
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span>Editar</span>
+        </button>
+        <button class="btn btn--ghost">Dispensar</button>
+        <button class="btn btn--primary">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Confirmar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p class="mock-rodape-nota" style="max-width:1000px;">Ao clicar em Editar, o modal troca o corpo pelo formulário de correção abaixo, sem fechar nem perder o contexto da ocorrência.</p>
+
+  <!-- ESTADO 2: edição, fatos à esquerda (leitura) + formulário à direita -->
+  <div class="modal-backdrop">
+    <span class="modal-backdrop__legenda">Estado 2 · Editando a ocorrência</span>
+    <div class="modal modal--oca">
+      <div class="modal__header">
+        <div><h2>Ocorrência · 04/07</h2><p>Editando antes de confirmar</p></div>
+        <button class="modal__close" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal__body">
+        <div class="oca-duo">
+          <div>
+            <div class="row" style="margin-bottom:14px; gap:12px;">
+              <div class="avatar avatar--lg">FL</div>
+              <div>
+                <div style="font-weight:600; color:var(--plum); font-size:16px;">Franciele Lemes Rosa</div>
+                <div class="muted text-sm">Laboratório · 2º Turno</div>
+              </div>
+            </div>
+
+            <div class="detail-grid">
+              <div class="detail-cell"><label>Tipo</label><strong>Saída antecipada</strong></div>
+              <div class="detail-cell"><label>Dia</label><strong>04/07</strong></div>
+            </div>
+
+            <div class="oca-jornada">
+              <div><span class="oca-jr__k">Jornada prevista</span><div>
+                <span class="oca-bat">12:00</span><span class="oca-bat">17:30</span><span class="oca-bat">18:00</span><span class="oca-bat">20:30</span>
+              </div></div>
+              <div><span class="oca-jr__k">Batidas do dia</span><div>
+                <span class="oca-bat">08:32</span><span class="oca-bat">12:00</span>
+              </div></div>
+            </div>
+
+            <p class="oca-nota-leitura">As batidas vêm do relógio de ponto e não são editáveis aqui.</p>
+          </div>
+
+          <div>
+            <div class="field">
+              <label for="oca-ed-tipo">Tipo</label>
+              <select id="oca-ed-tipo">
+                <option>Falta Injustificada</option>
+                <option>Atrasos</option>
+                <option selected>Saída Antecipada</option>
+                <option>Saída Antecipada do Intervalo</option>
+                <option>Entrada Antecipada</option>
+                <option>Hora Extra</option>
+              </select>
+              <span class="field__hint">Reclassifica a ocorrência antes de enviar ao líder.</span>
+            </div>
+
+            <div class="field">
+              <label for="oca-ed-duracao">Duração</label>
+              <input type="text" id="oca-ed-duracao" value="1h 00">
+              <span class="field__hint">Formato Xh MM ou MM min.</span>
+            </div>
+
+            <div class="field">
+              <label for="oca-ed-motivo">Motivo da correção <span style="color:var(--danger)">*</span></label>
+              <textarea id="oca-ed-motivo" rows="4" placeholder="Explique o porquê da correção. Fica registrado na trilha."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost">Cancelar</button>
+        <button class="btn btn--primary">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Confirmar com correção</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <p class="mock-rodape-nota">A edição vai junto com o confirmar, numa ação só, pra o WKRADAR não reverter a correção. Fica registrado na trilha quem editou o quê.</p>
+</div>
