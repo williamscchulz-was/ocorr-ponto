@@ -2441,7 +2441,11 @@ function renderColabConquistas() {
   // ainda nao reivindicados, incluindo o claim adiado da pesquisa). Re-render ao fim.
   if (state.gamiExtrato === undefined) {
     state.gamiExtrato = null; // trava reentrada
-    view.innerHTML = `<div class="pp-fade"><div class="cp-stub"><div class="cp-stub__ic">${cpIcon("spinner")}</div><p>Carregando suas conquistas…</p></div></div>`;
+    view.innerHTML = `<div class="pp-fade"><div class="gm-load" role="status">
+        <div class="gm-load__ic">${cpIcon("medalha")}</div>
+        <p>Buscando seus pontos e conquistas…</p>
+        <div class="gm-load__bar"><i></i></div>
+      </div></div>`;
     (async () => {
       await window.carregarGamificacaoColab?.();
       if (await window.gamiCatchUp?.()) await window.carregarGamificacaoColab?.();
@@ -2857,7 +2861,7 @@ function colabBhTabHtml(f) {
       const h = i === 0 ? `Espelho de ponto${m ? ` · ${m}` : ""}` : m;
       return `<div class="pp-ovl" style="margin-top:${i === 0 ? 18 : 16}px">${escapeHtml(h)}</div>${g.dias.map(colabDiaMarcHtml).join("")}`;
     }).join("");
-    const notaSaldo = (dias || []).some((d) => String(d.saldoDiaFmt || "").trim())
+    const notaSaldo = (dias || []).some((d) => saldoDiaStr(d))
       ? " O valor colorido à direita de cada dia é o seu saldo acumulado até aquele dia." : "";
     detalhe = `${blocos}<div class="cp-bhnote">${cpIcon("info")}<span>Os horários que você bateu a cada dia, atualizados diariamente.${notaSaldo} Dúvida em algum dia, fale com seu líder.</span></div>`;
   } else {
@@ -2895,10 +2899,10 @@ function colabDiaMarcHtml(d) {
     : (d.marcacoes ? String(d.marcacoes).trim().split(/\s+/).filter(Boolean) : []);
   const off = marcs.length === 0;
   const corpo = off ? cpDiaSemMarcacaoLabel(d.situacoes) : marcs.join(" · ");
-  // saldoDiaFmt é o saldo ACUMULADO até o fim do dia (coluna do Espelho do WK, confirmado
-  // pelo WKRADAR 2026-07-07), NÃO o saldo gerado no dia. Verde a favor, vermelho a
-  // compensar, cinza zerado. Só o número + tooltip honesto; nada de rótulo de atraso/falta.
-  const sFmt = String(d.saldoDiaFmt || "").trim();
+  // Saldo ACUMULADO até o fim do dia (coluna do Espelho do WK), NÃO o saldo gerado no
+  // dia. saldoDiaStr prefere o valor original (sem multiplicador). Verde a favor,
+  // vermelho a compensar, cinza zerado. Só o número + tooltip; nada de atraso/falta.
+  const sFmt = saldoDiaStr(d);
   const sCls = sFmt.startsWith("-") ? "cp-dia__s--neg" : (/^\+?0+:0{2}$/.test(sFmt) ? "cp-dia__s--zero" : "cp-dia__s--pos");
   const saldo = sFmt ? `<div class="cp-dia__s ${sCls}" title="Saldo acumulado até o dia">${escapeHtml(sFmt)}</div>` : "";
   return `<div class="cp-dia">
@@ -3685,7 +3689,7 @@ const _espState = { sel: null, cache: {}, loading: {}, erro: {} };
 // Legenda do saldo por dia (rótulo visível, tooltip não existe no touch): só quando
 // algum dia do espelho tem o valor. O saldo é o ACUMULADO até o dia (coluna do WK).
 function espLegendaSaldo(dias, cls) {
-  return (dias || []).some((d) => String(d.saldoDiaFmt || "").trim())
+  return (dias || []).some((d) => saldoDiaStr(d))
     ? `<div class="${cls}">O valor colorido à direita é o saldo acumulado até o dia.</div>` : "";
 }
 
@@ -3697,8 +3701,8 @@ function espDiaHtml(d) {
     : (d.marcacoes ? String(d.marcacoes).trim().split(/\s+/).filter(Boolean) : []);
   const off = marcs.length === 0;
   const corpo = off ? cpDiaSemMarcacaoLabel(d.situacoes) : marcs.join(" · ");
-  // saldoDiaFmt = saldo ACUMULADO até o dia (mesma coluna do Espelho; WKRADAR 2026-07-07).
-  const sFmt = String(d.saldoDiaFmt || "").trim();
+  // Saldo ACUMULADO até o dia (mesma coluna do Espelho); saldoDiaStr prefere o original.
+  const sFmt = saldoDiaStr(d);
   const sCls = sFmt.startsWith("-") ? "esp-neg" : (/^\+?0+:0{2}$/.test(sFmt) ? "esp-zero" : "esp-pos");
   const saldo = sFmt ? `<div class="esp-dia__s ${sCls}" title="Saldo acumulado até o dia">${escapeHtml(sFmt)}</div>` : "";
   // O gestor VE o dia imaturo (precisa investigar dado quente), mas com um selo avisando
@@ -3938,7 +3942,7 @@ function renderNav() {
   // entram só pra preencher as avaliações do próprio escopo).
   if (can("pesquisas.gerenciar") || can("desempenho.gerenciar") || u.role === "lider" || u.role === "supervisor") items.push({ id: "avaliacoes", label: "Avaliações", icon: "star" });
   if (can("gamificacao.gerenciar")) items.push({ id: "gamificacao", label: "Gamificação", icon: "trofeu" });
-  if (can("vagas.gerenciar")) items.push({ id: "vagas", label: "Vagas", icon: "megafone" });
+  if (can("vagas.gerenciar")) items.push({ id: "vagas", label: "Vagas", icon: "briefcase" });
   if (can("documentos.gerenciar")) items.push({ id: "documentos", label: "Documentos", icon: "file" });
   if (["admin", "rh", "lider"].includes(currentUser()?.role)) items.push({ id: "disciplinar", label: "Disciplinar", icon: "alert" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
@@ -5847,6 +5851,14 @@ function bhFolgaStr(bh) {
   if (m == null) return null;
   return bh.saldoOriginalFormatado || (typeof formatSaldoHoras === "function" ? formatSaldoHoras(m) : String(m));
 }
+// Mesma regra no nível do DIA (dias[] de banco-horas-self; WKRADAR 2026-07-14):
+// saldoDiaOriginalFmt = acumulado sem o multiplicador da situação. != null de
+// propósito, NUNCA truthiness: original zerado é valor legítimo. null = dia do mês
+// anterior (export do WK só cobre o mês corrente), único caso do fallback bruto.
+function saldoDiaStr(d) {
+  if (d && d.saldoDiaOriginalFmt != null) return String(d.saldoDiaOriginalFmt).trim();
+  return String((d && d.saldoDiaFmt) || "").trim();
+}
 
 // "2026-06" -> "Junho de 2026" (rótulo do filtro de mês). Capitaliza a inicial.
 function mesAnoLabel(ym) {
@@ -5943,7 +5955,9 @@ function vgAdmissoesHtml(u) {
     </section>`;
 }
 
-const _bvHand = (on) => `<svg class="icon" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>`;
+// Mesma silhueta da medalha Recepcionista (GAMI_HAND): contorno ÚNICO, sem traços
+// internos ("parece um risco dentro", William 2026-07-14). off = contorno, on = cheia.
+const _bvHand = (on) => `<svg class="icon" viewBox="24 21 32 29" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M32.6 45.6 c-2.6-2.4-5.2-6-6-8.2 -.6-1.7.9-3.2 2.6-2.7 1 .3 2.1 1.1 3.3 2.4 l.9 1 V27.4 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V25.6 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V26.8 a2.15 2.15 0 0 1 4.3 0 V34 h1.2 V29.6 a2.05 2.05 0 0 1 4.1 0 V38.6 c0 5.4-3.7 9.6-9.1 9.6 h-3.2 c-2.4 0-4.5-.9-6.1-2.6 z"/></svg>`;
 
 // Copy da contagem de boas-vindas (mesma família da _parabTexto, sem "!").
 function _bvTexto(total, mine) {
@@ -15654,7 +15668,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.68.0";
+window.CURRENT_VERSION = "1.68.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

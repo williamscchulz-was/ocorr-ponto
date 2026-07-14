@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.68.0", d: "14 jul 2026", current: true, items: [
+    v: "1.68.1", d: "14 jul 2026", current: true, items: [
+      { type: "fix", title: "O saldo por dia do espelho agora mostra o valor original pra folga (sem o multiplicador da situacao), igual ao saldo atual. Vale no Meu ponto e no espelho do gestor." },
+      { type: "fix", title: "Conquistas: barra de carregamento na primeira abertura, e a maozinha de boas-vindas foi redesenhada." },
+      { type: "fix", aud: "gestor", title: "Menu lateral: com muitos itens ele agora rola por dentro, sem empurrar o seu avatar pra fora. E a tela Vagas ganhou icone proprio." },
+    ],
+  },
+  {
+    v: "1.68.0", d: "14 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Portal de Vagas no ar: a GP publica vagas na tela nova Vagas e elas aparecem na hora no site aberto vagas.fiobras.com.br, com candidatura direto no WhatsApp da GP. Nenhum dado de candidato entra no sistema." },
     ],
   },
