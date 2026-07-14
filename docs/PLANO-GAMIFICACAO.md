@@ -143,14 +143,23 @@ rotativos (rei) nunca são gravados, sempre calculados. GP vê as conquistas de 
 validação de desbloqueio no cliente; a regra valida só o shape — forjar decoração não dá acesso
 a nada, é cosmético, mesmo residual aceito do guard de auto-toque do mural).
 
-## Telas
+## Telas e navegação (proposta mostrada in-app 2026-07-14, prints no harness gm-inapp2)
 
-**Colaborador:** card na home (total + barra até o próximo marco + "faltam X pts") ·
-tela "Meus pontos" (extrato por ação, marcos conquistados/pendentes, prêmios, top 10) ·
-tela "Conquistas" (badges com data + escolher a decoração do avatar entre as desbloqueadas).
-**Gestor (cap):** tela "Gamificação" — config (tabela de valores + prêmios por marco +
-ativar temporada), fila de entrega (quem cruzou marco sem prêmio entregue, botão
-"Marcar como entregue" com trilha), ranking completo.
+**Colaborador — 1 item de menu novo, home só com o card:**
+- Menu "Conquistas" (ícone medalha, sidebar desktop entre Documentos e Novidades):
+  tela única com abas **Pontos** (hero da temporada, marcos, top 10, extrato) e
+  **Badges** (hero do perfil, decoração do avatar, medalhas por categoria).
+- Home: card compacto "Seus pontos" (total + barra + faltam X + selos dos marcos),
+  clique abre Conquistas·Pontos. Nada mais entra na home.
+- Hub mobile (pp-atl): atalho "Conquistas". Barra de baixo NÃO muda (3 itens é lei);
+  a rota entra em filhasDoHub (acende Início).
+
+**Gestor — 1 item com cap:**
+- Menu "Gamificação" (ícone troféu, vizinho de Avaliações), só com
+  `gamificacao.gerenciar` (GP/admin): tela com abas **Configuração** (tabela de
+  valores + prêmios por marco + ativar temporada) e **Entregas e ranking** (fila de
+  quem cruzou marco sem prêmio entregue com "Marcar como entregue" + ranking completo).
+- Hub mobile do gestor (ghub): ganha o atalho quando a cap permite.
 
 ## Fases
 
