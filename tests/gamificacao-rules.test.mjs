@@ -1,0 +1,271 @@
+// Rules da GAMIFICACAO (pontos por acao no Portal do Colaborador, 2026-07-14).
+//   - gamificacao/{ano}: config da temporada (tabela {acao:pts} + marcos + ativa).
+//     Read authed (alimenta o card do colab, SEM premios); write cap gamificacao.gerenciar.
+//   - gamificacao/{ano}/privado/premios: os premios sao SURPRESA -> so a cap le/escreve.
+//   - gamificacao/{ano}/pontos/{uid}: placar { total, nome, ultimoEvento }. Read amplo
+//     (ranking publico). O total SO avanca junto de um evento nascendo no MESMO batch,
+//     com valor exato (liturgia do contador do clima). nome anti-spoof (== users.nome).
+//   - .../pontos/{uid}/eventos/{acao_refId}: create-only pelo dono, id deterministico
+//     (dedup estrutural), pontos == tabela da config, PROVA exists/existsAfter da acao
+//     real (assinatura/leitura/reacao/recibo/auto/termo). Temporada ativa + ano corrente.
+//   - gamificacao/{ano}/entregas/{uid_marco}: GP registra entrega do premio (imutavel);
+//     o dono le as proprias (assim o premio de marco cruzado e revelado).
+//
+//   firebase emulators:exec --only firestore "node --test tests/gamificacao-rules.test.mjs"
+
+import { readFileSync } from "node:fs";
+import { test, before, after } from "node:test";
+import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+
+let env;
+const TS = serverTimestamp;
+const ANO = String(new Date().getFullYear());
+const ANO_PASSADO = String(new Date().getFullYear() - 1);
+// coracao/boas-vindas seguem NA TABELA de teste de proposito: provam que mesmo
+// configuradas, o provaOk nao tem ramo pra elas (mural sem doc pai = mina; gate Fable).
+const TABELA = {
+  "cartao-ponto": 1, folha: 1, comunicado: 1, "documento-leitura": 1,
+  coracao: 1, "boas-vindas": 1,
+  "documento-assinatura": 5, pesquisa: 5, autoavaliacao: 5, termo: 5,
+};
+const MARCOS = [25, 50, 100, 150, 200];
+
+before(async () => {
+  env = await initializeTestEnvironment({
+    projectId: "fiopulse-gamificacao-rules",
+    firestore: { rules: readFileSync("docs/firestore.rules", "utf8") },
+  });
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "users/uAdmin"),  { role: "admin", nome: "Will" });
+    await setDoc(doc(db, "users/uRh"),     { role: "rh", nome: "Suyanne" });
+    await setDoc(doc(db, "users/uColab"),  { role: "colaborador", nome: "Maria", funcionarioId: "f-1", turno: 1, setor: "Producao" });
+    await setDoc(doc(db, "users/uColab2"), { role: "colaborador", nome: "Ana", funcionarioId: "f-2", turno: 2, setor: "Repasse" });
+    await setDoc(doc(db, "funcionarios/f-1"), { nome: "Maria", turno: 1, setor: "Producao" });
+    await setDoc(doc(db, "funcionarios/f-2"), { nome: "Ana", turno: 2, setor: "Repasse" });
+
+    // Temporadas: a corrente (ativa) e a do ano passado (tambem ativa, pra provar
+    // que o gate do ANO nega mesmo com config ativa).
+    await setDoc(doc(db, `gamificacao/${ANO}`),         { tabela: TABELA, marcos: MARCOS, ativa: true });
+    await setDoc(doc(db, `gamificacao/${ANO_PASSADO}`), { tabela: TABELA, marcos: MARCOS, ativa: true });
+    await setDoc(doc(db, `gamificacao/${ANO}/privado/premios`), { m25: "Caneca da firma", m50: "Brinde" });
+
+    // PROVAS reais do uColab (f-1), uma por acao pontuavel.
+    await setDoc(doc(db, "recibos/r-cp"), { tipo: "cartao-ponto", funcionarioId: "f-1", competencia: "2026-06", criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "recibos/r-cp/assinaturas/uColab"), { uid: "uColab", funcionarioId: "f-1", em: new Date() });
+    await setDoc(doc(db, "recibos/r-fl"), { tipo: "recibo", funcionarioId: "f-1", competencia: "2026-06", criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "recibos/r-fl/assinaturas/uColab"), { uid: "uColab", funcionarioId: "f-1", em: new Date() });
+    await setDoc(doc(db, "comunicados/com1"), { autorUid: "uRh", ativo: true, segmento: { tipo: "todos", valores: [] }, publicadoEm: new Date() });
+    await setDoc(doc(db, "comunicados/com1/leituras/uColab"), { uid: "uColab", em: new Date() });
+    await setDoc(doc(db, "comunicados/com2"), { autorUid: "uRh", ativo: true, segmento: { tipo: "todos", valores: [] }, publicadoEm: new Date() });
+    await setDoc(doc(db, "comunicados/com2/leituras/uColab2"), { uid: "uColab2", em: new Date() });
+    await setDoc(doc(db, "documentos/doc1"), { escopo: "institucional", status: "publicado", segmento: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "documentos/doc1/aceites/uColab"), { uid: "uColab", em: new Date() });
+    await setDoc(doc(db, "documentos/doc2"), { escopo: "institucional", status: "publicado", segmento: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date(), versao: 1 });
+    await setDoc(doc(db, "documentos/doc2/assinaturas/uColab"), { uid: "uColab", versaoAssinada: 1, em: new Date() });
+    await setDoc(doc(db, "muralAniversario/aniv-joao-2026/reacoes/uColab"), { uid: "uColab", tipo: "coracao", autorNome: "Maria", em: new Date() });
+    await setDoc(doc(db, "muralAniversario/bv-ana-2026/reacoes/uColab"), { uid: "uColab", tipo: "bemvindo", autorNome: "Maria", em: new Date() });
+    await setDoc(doc(db, "pesquisasClima/p1"), { titulo: "Clima", anonima: true, status: "aberta", publico: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "pesquisasClima/p1/recibos/uColab"), { em: new Date() });
+    await setDoc(doc(db, "pesquisasClima/p2"), { titulo: "Clima 2", anonima: true, status: "aberta", publico: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
+    // Prova VELHA (ano passado): leitura real, mas o year-gate tem que negar o credito.
+    await setDoc(doc(db, "comunicados/com3"), { autorUid: "uRh", ativo: true, segmento: { tipo: "todos", valores: [] }, publicadoEm: new Date() });
+    await setDoc(doc(db, "comunicados/com3/leituras/uColab2"), { uid: "uColab2", em: new Date(`${ANO_PASSADO}-06-15T12:00:00Z`) });
+    await setDoc(doc(db, "avaliacaoCiclos/cx1"), { nome: "Ciclo", modalidade: "auto", status: "ativo", publico: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "avaliacaoCiclos/cx1/avaliacoes/auto_f-1"), { alvoFid: "f-1", avaliadorUid: "uColab", papel: "auto", notas: { c1: 4 }, status: "concluida", atualizadoEm: new Date() });
+    await setDoc(doc(db, "avaliacaoCiclos/cx2"), { nome: "Ciclo 2", modalidade: "auto", status: "ativo", publico: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "avaliacaoCiclos/cx2/avaliacoes/auto_f-1"), { alvoFid: "f-1", avaliadorUid: "uColab", papel: "auto", notas: { c1: 4 }, status: "rascunho", atualizadoEm: new Date() });
+    await setDoc(doc(db, "termoAdesao/uColab"), { uid: "uColab", funcionarioId: "f-1", versao: "2026-07-v1", em: new Date() });
+
+    // Placar/entrega seed pros reads.
+    await setDoc(doc(db, `gamificacao/${ANO}/pontos/uSeed`), { total: 7, nome: "Seed", ultimoEvento: "comunicado_x" });
+    await setDoc(doc(db, `gamificacao/${ANO}/pontos/uSeed/eventos/comunicado_x`), { acao: "comunicado", refId: "x", pontos: 1, em: new Date() });
+    await setDoc(doc(db, `gamificacao/${ANO}/entregas/uSeed_25`), { uid: "uSeed", marco: 25, premio: "Caneca da firma", em: new Date(), porUid: "uRh" });
+  });
+});
+after(async () => { await env.cleanup(); });
+
+const admin  = () => env.authenticatedContext("uAdmin").firestore();
+const rh     = () => env.authenticatedContext("uRh").firestore();
+const colab  = () => env.authenticatedContext("uColab").firestore();
+const colab2 = () => env.authenticatedContext("uColab2").firestore();
+const anon   = () => env.unauthenticatedContext().firestore();
+
+// batch canonico: evento {acao}_{refId} + placar (create se placarDe === null; senao total acumulado)
+function ganhaPonto(db, uid, acao, refId, pontos, { placarDe = null, nome = "Maria", rotulo, ano = ANO, total } = {}) {
+  const b = writeBatch(db);
+  const eid = `${acao}_${refId}`;
+  b.set(doc(db, `gamificacao/${ano}/pontos/${uid}/eventos/${eid}`), { acao, refId, pontos, em: TS(), ...(rotulo ? { rotulo } : {}) });
+  b.set(doc(db, `gamificacao/${ano}/pontos/${uid}`), { nome, ultimoEvento: eid, total: total != null ? total : (placarDe === null ? pontos : placarDe + pontos) });
+  return b.commit();
+}
+
+// ---------- Config da temporada ----------
+test("colab LE a config (card da home)", async () => assertSucceeds(getDoc(doc(colab(), `gamificacao/${ANO}`))));
+test("anonimo NAO le a config", async () => assertFails(getDoc(doc(anon(), `gamificacao/${ANO}`))));
+test("RH atualiza a config (cap fallback)", async () =>
+  assertSucceeds(setDoc(doc(rh(), `gamificacao/${ANO}`), { tabela: TABELA, marcos: MARCOS, ativa: true, atualizadoEm: TS(), atualizadoPor: "uRh" })));
+test("colab NAO escreve a config", async () =>
+  assertFails(setDoc(doc(colab(), `gamificacao/${ANO}`), { tabela: TABELA, marcos: MARCOS, ativa: true, atualizadoEm: TS(), atualizadoPor: "uColab" })));
+test("config com campo fora do shape NEGA", async () =>
+  assertFails(setDoc(doc(rh(), `gamificacao/${ANO}`), { tabela: TABELA, marcos: MARCOS, ativa: true, atualizadoEm: TS(), atualizadoPor: "uRh", extra: 1 })));
+
+// ---------- Premios (SURPRESA) ----------
+test("colab NAO le os premios (surpresa preservada)", async () =>
+  assertFails(getDoc(doc(colab(), `gamificacao/${ANO}/privado/premios`))));
+test("RH le e escreve os premios", async () => {
+  await assertSucceeds(getDoc(doc(rh(), `gamificacao/${ANO}/privado/premios`)));
+  await assertSucceeds(setDoc(doc(rh(), `gamificacao/${ANO}/privado/premios`), { m25: "Caneca", m50: "Brinde", m100: "Vale-compras" }));
+});
+
+// ---------- Eventos: cada acao com a prova real (uColab, placar acumulando) ----------
+test("cartao-ponto: assinatura do recibo prova (+1, placar nasce)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "cartao-ponto", "r-cp", 1)));
+test("folha: assinatura do recibo tipo recibo prova (+1)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "folha", "r-fl", 1, { placarDe: 1 })));
+test("comunicado: leitura prova (+1)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "comunicado", "com1", 1, { placarDe: 2, rotulo: "Ciência do comunicado" })));
+test("documento-leitura: aceite prova (+1)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "documento-leitura", "doc1", 1, { placarDe: 3 })));
+test("documento-assinatura: assinatura prova (+5)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "documento-assinatura", "doc2", 5, { placarDe: 4 })));
+test("pesquisa: recibo PRE-existente do clima prova (+5, sem tocar na resposta)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "pesquisa", "p1", 5, { placarDe: 9 })));
+test("autoavaliacao concluida prova (+5)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "autoavaliacao", "cx1", 5, { placarDe: 14 })));
+test("termo: adesao prova (+5, refId = uid)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "termo", "uColab", 5, { placarDe: 19 })));
+
+// ---------- Bloqueadores do gate Fable 2026-07-14 ----------
+test("coracao NEGA mesmo com reacao real (mural sem doc pai = fora do v1)", async () =>
+  assertFails(ganhaPonto(colab(), "uColab", "coracao", "aniv-joao-2026", 1, { placarDe: 24 })));
+test("boas-vindas NEGA mesmo com reacao real (fora do v1)", async () =>
+  assertFails(ganhaPonto(colab(), "uColab", "boas-vindas", "bv-ana-2026", 1, { placarDe: 24 })));
+test("MINA DO MURAL: reacao em post inventado + evento no mesmo batch NEGA", async () => {
+  const db = colab2();
+  const b = writeBatch(db);
+  b.set(doc(db, "muralAniversario/aniv-fake-001/reacoes/uColab2"), { uid: "uColab2", tipo: "coracao", autorNome: "Ana", em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2/eventos/coracao_aniv-fake-001`), { acao: "coracao", refId: "aniv-fake-001", pontos: 1, em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2`), { nome: "Ana", ultimoEvento: "coracao_aniv-fake-001", total: 1 });
+  await assertFails(b.commit());
+});
+test("ANONIMATO: evento pesquisa no MESMO batch do recibo NEGA (join de timestamp)", async () => {
+  const db = colab2();
+  const b = writeBatch(db);
+  b.set(doc(db, "pesquisasClima/p2/recibos/uColab2"), { em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2/eventos/pesquisa_p2`), { acao: "pesquisa", refId: "p2", pontos: 5, em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2`), { nome: "Ana", ultimoEvento: "pesquisa_p2", total: 5 });
+  await assertFails(b.commit());
+});
+test("REPLAY CROSS-ANO: prova com em do ano passado NEGA (year-gate)", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com3", 1, { nome: "Ana" })));
+
+// ---------- Eventos: negacoes ----------
+test("SEM prova NEGA (uColab2 nao leu com1)", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com1", 1, { nome: "Ana" })));
+test("pontos fora da tabela NEGAM (prova valida, valor errado)", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 5, { nome: "Ana" })));
+test("acao desconhecida NEGA", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "hackeou", "com2", 1, { nome: "Ana" })));
+test("id nao deterministico NEGA", async () => {
+  const db = colab2();
+  const b = writeBatch(db);
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2/eventos/aleatorio-123`), { acao: "comunicado", refId: "com2", pontos: 1, em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2`), { nome: "Ana", ultimoEvento: "aleatorio-123", total: 1 });
+  await assertFails(b.commit());
+});
+test("em != hora do servidor NEGA", async () => {
+  const db = colab2();
+  const b = writeBatch(db);
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2/eventos/comunicado_com2`), { acao: "comunicado", refId: "com2", pontos: 1, em: new Date("2020-01-01") });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2`), { nome: "Ana", ultimoEvento: "comunicado_com2", total: 1 });
+  await assertFails(b.commit());
+});
+test("rotulo gigante NEGA", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 1, { nome: "Ana", rotulo: "x".repeat(141) })));
+test("evento na arvore de OUTRO uid NEGA", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab", "comunicado", "com1", 1)));
+test("repetir a mesma acao NEGA (dedup estrutural: vira update)", async () =>
+  assertFails(ganhaPonto(colab(), "uColab", "comunicado", "com1", 1, { placarDe: 24 })));
+test("cartao-ponto apontando recibo de folha NEGA (tipo do pai)", async () =>
+  assertFails(ganhaPonto(colab(), "uColab", "cartao-ponto", "r-fl", 1, { placarDe: 24 })));
+test("autoavaliacao em RASCUNHO nao prova NEGA", async () =>
+  assertFails(ganhaPonto(colab(), "uColab", "autoavaliacao", "cx2", 5, { placarDe: 24 })));
+test("temporada do ANO PASSADO nega evento (mesmo ativa)", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 1, { nome: "Ana", ano: ANO_PASSADO })));
+test("termo com refId de outro uid NEGA", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "termo", "uColab", 5, { nome: "Ana" })));
+
+// ---------- Placar: acoplamento batch ----------
+test("total MAIOR que o evento NEGA (inflar placar)", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 1, { nome: "Ana", total: 20 })));
+test("update de total SEM evento no batch NEGA", async () =>
+  assertFails(updateDoc(doc(colab(), `gamificacao/${ANO}/pontos/uColab`), { total: 999 })));
+test("nome spoof NEGA (!= users.nome)", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 1, { nome: "Golpista" })));
+test("placar com campo extra NEGA", async () => {
+  const db = colab2();
+  const b = writeBatch(db);
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2/eventos/comunicado_com2`), { acao: "comunicado", refId: "com2", pontos: 1, em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2`), { nome: "Ana", ultimoEvento: "comunicado_com2", total: 1, admin: true });
+  await assertFails(b.commit());
+});
+test("placar de outro uid NEGA mesmo com evento proprio no batch", async () => {
+  const db = colab2();
+  const b = writeBatch(db);
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab2/eventos/comunicado_com2`), { acao: "comunicado", refId: "com2", pontos: 1, em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab`), { nome: "Maria", ultimoEvento: "comunicado_com2", total: 27 });
+  await assertFails(b.commit());
+});
+test("colab NAO deleta o proprio placar; admin sim", async () => {
+  await assertFails(deleteDoc(doc(colab(), `gamificacao/${ANO}/pontos/uSeed`)));
+  await assertSucceeds(deleteDoc(doc(admin(), `gamificacao/${ANO}/pontos/uSeed`)));
+});
+
+// ---------- Leituras: ranking + extrato ----------
+test("ranking: colab le o placar dos outros (getDoc)", async () =>
+  assertSucceeds(getDoc(doc(colab2(), `gamificacao/${ANO}/pontos/uColab`))));
+test("ranking: query top 10 (orderBy total desc limit 10) e provavel", async () =>
+  assertSucceeds(getDocs(query(collection(colab2(), `gamificacao/${ANO}/pontos`), orderBy("total", "desc"), limit(10)))));
+test("extrato: dono le os proprios eventos", async () =>
+  assertSucceeds(getDoc(doc(colab(), `gamificacao/${ANO}/pontos/uColab/eventos/comunicado_com1`))));
+test("extrato: list dos proprios eventos e provavel (getDocs)", async () =>
+  assertSucceeds(getDocs(collection(colab(), `gamificacao/${ANO}/pontos/uColab/eventos`))));
+test("extrato: OUTRO colab NAO le", async () =>
+  assertFails(getDoc(doc(colab2(), `gamificacao/${ANO}/pontos/uColab/eventos/comunicado_com1`))));
+test("extrato: RH (cap) le", async () =>
+  assertSucceeds(getDoc(doc(rh(), `gamificacao/${ANO}/pontos/uColab/eventos/comunicado_com1`))));
+test("evento e imutavel (nem RH edita, ninguem deleta)", async () => {
+  await assertFails(updateDoc(doc(rh(), `gamificacao/${ANO}/pontos/uColab/eventos/comunicado_com1`), { pontos: 50 }));
+  await assertFails(deleteDoc(doc(colab(), `gamificacao/${ANO}/pontos/uColab/eventos/comunicado_com1`)));
+});
+
+// ---------- Entregas ----------
+test("RH registra entrega (id uid_marco, shape fechado)", async () =>
+  assertSucceeds(setDoc(doc(rh(), `gamificacao/${ANO}/entregas/uColab_25`), { uid: "uColab", marco: 25, premio: "Caneca da firma", em: TS(), porUid: "uRh" })));
+test("colab NAO registra entrega", async () =>
+  assertFails(setDoc(doc(colab(), `gamificacao/${ANO}/entregas/uColab_50`), { uid: "uColab", marco: 50, premio: "Brinde", em: TS(), porUid: "uColab" })));
+test("entrega com id trocado NEGA", async () =>
+  assertFails(setDoc(doc(rh(), `gamificacao/${ANO}/entregas/uColab_99`), { uid: "uColab", marco: 50, premio: "Brinde", em: TS(), porUid: "uRh" })));
+test("entrega com campo extra NEGA", async () =>
+  assertFails(setDoc(doc(rh(), `gamificacao/${ANO}/entregas/uColab2_25`), { uid: "uColab2", marco: 25, premio: "Caneca", em: TS(), porUid: "uRh", cpf: "x" })));
+test("dono le a propria entrega (premio revelado)", async () =>
+  assertSucceeds(getDoc(doc(colab(), `gamificacao/${ANO}/entregas/uColab_25`))));
+test("OUTRO colab NAO le entrega alheia", async () =>
+  assertFails(getDoc(doc(colab2(), `gamificacao/${ANO}/entregas/uColab_25`))));
+test("query 'minhas entregas' (where uid ==) e provavel", async () =>
+  assertSucceeds(getDocs(query(collection(colab(), `gamificacao/${ANO}/entregas`), where("uid", "==", "uColab")))));
+test("entrega e imutavel; delete so admin", async () => {
+  await assertFails(updateDoc(doc(rh(), `gamificacao/${ANO}/entregas/uColab_25`), { premio: "Outro" }));
+  await assertFails(deleteDoc(doc(rh(), `gamificacao/${ANO}/entregas/uColab_25`)));
+  await assertSucceeds(deleteDoc(doc(admin(), `gamificacao/${ANO}/entregas/uSeed_25`)));
+});
+
+// ---------- Temporada inativa (mutacao no FIM: flip ativa=false) ----------
+test("temporada INATIVA nega evento mesmo com prova valida", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), `gamificacao/${ANO}`), { ativa: false });
+  });
+  await assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 1, { nome: "Ana" }));
+});

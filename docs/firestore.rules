@@ -1073,5 +1073,161 @@ service cloud.firestore {
         allow delete: if gpDesemp();
       }
     }
+
+    // ============================================================
+    // GAMIFICACAO (2026-07-14) -- pontos por acao no Portal do Colaborador.
+    // Temporada = doc por ANO (/gamificacao/2026); a virada e criar o do ano
+    // seguinte (sem migracao). Anti-fraude SEM Cloud Functions, mesma liturgia
+    // do contador do clima (ja auditada): o ponto e auto-declarado pelo dono,
+    // mas a regra exige (a) id DETERMINISTICO {acao}_{refId} = dedup estrutural,
+    // (b) pontos == tabela da config da temporada, (c) a PROVA da acao real
+    // (exists/existsAfter do doc de assinatura/leitura/reacao correspondente,
+    // que por sua vez so o dono consegue criar) e (d) o total do placar so
+    // avanca junto de um evento nascendo no MESMO batch, com o valor exato.
+    // PREMIOS SAO SURPRESA (decisao William): ficam FORA da config publica, em
+    // /privado/premios (so cap); a entrega revela o premio ao dono.
+    // Cap nova gamificacao.gerenciar e GLOBAL (NUNCA conceder 'turno'/'atrib').
+    // Residuais documentados no PLANO-GAMIFICACAO.md: virada de ano avaliada em
+    // UTC (BRT 21h-00h de 31/12 cai no ano novo) e eventos retroativos validos
+    // (prova pre-existente conta: quem ja agiu no ano ganha ao ligar a feature).
+    // ============================================================
+    match /gamificacao/{ano} {
+      function gpGami() { return isAdmin() || temCap('gamificacao.gerenciar', isRH()); }
+      function cfg() { return get(/databases/$(database)/documents/gamificacao/$(ano)).data; }
+      function cfgShapeOk() {
+        return request.resource.data.keys().hasOnly(['tabela', 'marcos', 'ativa', 'atualizadoEm', 'atualizadoPor'])
+          && request.resource.data.tabela is map
+          && request.resource.data.tabela.size() <= 20
+          && request.resource.data.marcos is list
+          && request.resource.data.marcos.size() <= 10
+          && request.resource.data.ativa is bool
+          && request.resource.data.atualizadoEm == request.time
+          && request.resource.data.atualizadoPor == request.auth.uid;
+      }
+
+      // Config da temporada: tabela {acao: pts} + marcos [25,50,...] + ativa.
+      // Read: qualquer autenticado (alimenta card/tela do colab; SEM premios aqui).
+      allow read: if isAuthed();
+      allow create, update: if gpGami() && cfgShapeOk();
+      allow delete: if isAdmin();
+
+      // Premios dos marcos (SURPRESA): so quem gerencia le/escreve.
+      match /privado/{doc} {
+        allow read, write: if gpGami();
+      }
+
+      // Placar por pessoa: { total, nome, ultimoEvento }. Leitura AMPLA autenticada
+      // (ranking publico top 10 via orderBy total desc limit 10 -- e provada por esta
+      // read; so total+nome expostos, mesmo residual de nome aceito no mural).
+      // nome == users/{uid}.nome (anti-spoof, revalidado a cada escrita).
+      // O total SO avanca acompanhado do evento apontado por ultimoEvento nascendo
+      // no MESMO batch e com o valor EXATO (padrao contador clima). Sem caminho de
+      // escrita fora disso: nem o proprio dono infla o placar.
+      match /pontos/{uid} {
+        function eventoNasceuAgora(eid) {
+          return !exists(/databases/$(database)/documents/gamificacao/$(ano)/pontos/$(uid)/eventos/$(eid))
+              && existsAfter(/databases/$(database)/documents/gamificacao/$(ano)/pontos/$(uid)/eventos/$(eid));
+        }
+        function pontosDoEvento(eid) {
+          return getAfter(/databases/$(database)/documents/gamificacao/$(ano)/pontos/$(uid)/eventos/$(eid)).data.pontos;
+        }
+        function placarShapeOk() {
+          return request.resource.data.keys().hasOnly(['total', 'nome', 'ultimoEvento'])
+            && request.resource.data.total is int
+            && request.resource.data.nome == userDoc().nome
+            && request.resource.data.ultimoEvento is string;
+        }
+        allow read: if isAuthed();
+        allow create: if isAuthed() && request.auth.uid == uid
+          && placarShapeOk()
+          && eventoNasceuAgora(request.resource.data.ultimoEvento)
+          && request.resource.data.total == pontosDoEvento(request.resource.data.ultimoEvento);
+        allow update: if isAuthed() && request.auth.uid == uid
+          && placarShapeOk()
+          && eventoNasceuAgora(request.resource.data.ultimoEvento)
+          && request.resource.data.total == resource.data.total + pontosDoEvento(request.resource.data.ultimoEvento);
+        allow delete: if isAdmin();
+
+        // Evento de ponto: id {acao}_{refId} (dedup estrutural: repetir a acao no
+        // mesmo alvo colide no mesmo id e vira update -> negado). pontos vem da
+        // tabela da config; a PROVA amarra o evento a acao REAL. existsAfter e
+        // proposital: cobre prova criada no MESMO batch E prova pre-existente
+        // (retroativo valido). 'rotulo' e cosmetico do extrato (self + GP; auto-
+        // relato, mesmo status do /eventos de auditoria). Append-only.
+        match /eventos/{eid} {
+          function d() { return request.resource.data; }
+          // Toda prova carrega server-time ('em'/'atualizadoEm' == request.time nas regras
+          // de origem): o year-gate abaixo tranca o retroativo DENTRO do ano da prova
+          // (gate Fable 2026-07-14, bloqueador 3: sem ele, a virada de temporada
+          // recreditava a vida inteira). Residual aceito: acao de ~31/12 avaliada em UTC
+          // pode cair no ano seguinte e perder o ponto, 1 dia por ano.
+          // 'pesquisa' e exists+get PRE-batch de proposito (bloqueador 2): o evento nunca
+          // nasce no MESMO commit da resposta anonima, senao o par de timestamps iguais
+          // (em do evento x createTime da resposta) desanonimizaria por join exato. O
+          // cliente reivindica o ponto DEPOIS (proxima abertura do app).
+          // ponytail: coracao/boas-vindas ficaram FORA do v1 (bloqueador 1: o mural nao
+          // tem doc pai, reacao em postId inventado seria mina de pontos infinita);
+          // quando o pipeline (WKRADAR, Admin SDK) escrever /muralAniversario/{postId},
+          // restaurar com existsAfter(reacao) && exists(pai) + year-gate.
+          function provaOk(acao, refId) {
+            return (acao == 'cartao-ponto'
+                     && getAfter(/databases/$(database)/documents/recibos/$(refId)/assinaturas/$(uid)).data.em.year() == request.time.year()
+                     && get(/databases/$(database)/documents/recibos/$(refId)).data.tipo == 'cartao-ponto')
+              || (acao == 'folha'
+                     && getAfter(/databases/$(database)/documents/recibos/$(refId)/assinaturas/$(uid)).data.em.year() == request.time.year()
+                     && get(/databases/$(database)/documents/recibos/$(refId)).data.tipo != 'cartao-ponto')
+              || (acao == 'comunicado'
+                     && getAfter(/databases/$(database)/documents/comunicados/$(refId)/leituras/$(uid)).data.em.year() == request.time.year())
+              || (acao == 'documento-leitura'
+                     && getAfter(/databases/$(database)/documents/documentos/$(refId)/aceites/$(uid)).data.em.year() == request.time.year())
+              || (acao == 'documento-assinatura'
+                     && getAfter(/databases/$(database)/documents/documentos/$(refId)/assinaturas/$(uid)).data.em.year() == request.time.year())
+              || (acao == 'pesquisa'
+                     && exists(/databases/$(database)/documents/pesquisasClima/$(refId)/recibos/$(uid))
+                     && get(/databases/$(database)/documents/pesquisasClima/$(refId)/recibos/$(uid)).data.em.year() == request.time.year())
+              || (acao == 'autoavaliacao'
+                     && getAfter(/databases/$(database)/documents/avaliacaoCiclos/$(refId)/avaliacoes/$('auto_' + meuFuncionarioId())).data.status == 'concluida'
+                     && getAfter(/databases/$(database)/documents/avaliacaoCiclos/$(refId)/avaliacoes/$('auto_' + meuFuncionarioId())).data.atualizadoEm.year() == request.time.year())
+              || (acao == 'termo'
+                     && refId == uid
+                     && getAfter(/databases/$(database)/documents/termoAdesao/$(uid)).data.em.year() == request.time.year());
+          }
+          allow read: if gpGami() || (isAuthed() && request.auth.uid == uid);
+          allow create: if isAuthed() && request.auth.uid == uid
+            && d().keys().hasOnly(['acao', 'refId', 'pontos', 'rotulo', 'em'])
+            && d().acao is string && d().acao.size() <= 40
+            && d().refId is string && d().refId.size() >= 1 && d().refId.size() <= 200
+            && eid == d().acao + '_' + d().refId
+            && d().em == request.time
+            && (!('rotulo' in d()) || (d().rotulo is string && d().rotulo.size() <= 140))
+            && cfg().ativa == true
+            && string(request.time.year()) == ano
+            && d().acao in cfg().tabela
+            && d().pontos is int && d().pontos > 0
+            && d().pontos == cfg().tabela[d().acao]
+            && provaOk(d().acao, d().refId);
+          allow update, delete: if false;
+        }
+      }
+
+      // Entrega de premio de marco: registro da GP (trilha de quem entregou o que
+      // e quando), IMUTAVEL, id {uid}_{marco} (uma entrega por marco por pessoa).
+      // O dono le as proprias (query where uid == auth.uid -- provada pela regra):
+      // e assim que o premio de um marco cruzado e REVELADO pro colaborador.
+      match /entregas/{eid} {
+        function e() { return request.resource.data; }
+        allow read: if gpGami() || (isAuthed() && resource.data.uid == request.auth.uid);
+        allow create: if gpGami()
+          && e().keys().hasOnly(['uid', 'marco', 'premio', 'em', 'porUid'])
+          && e().uid is string
+          && e().marco is int && e().marco > 0
+          && eid == e().uid + '_' + string(e().marco)
+          && e().premio is string && e().premio.size() >= 1 && e().premio.size() <= 200
+          && e().em == request.time
+          && e().porUid == request.auth.uid;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
   }
 }

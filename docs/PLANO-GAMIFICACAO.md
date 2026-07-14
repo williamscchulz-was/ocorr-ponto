@@ -32,8 +32,6 @@ valem 5. Teto realista de um colaborador engajado: ~130 pts/ano.
 | Assinar folha de pagamento (recibo) | 1 | 1x por recibo |
 | Ciência / visualização de comunicado | 1 | 1x por comunicado |
 | Confirmar leitura de documento (aceite) | 1 | 1x por documento |
-| Parabenizar colega de aniversário | 1 | 1x por post (retirar/redar não repontua) |
-| Dar boas-vindas a recém-chegado | 1 | 1x por pessoa |
 | Assinar documento (assinatura eletrônica) | 5 | 1x por doc/versão |
 | Responder pesquisa de clima | 5 | 1x por pesquisa |
 | Concluir autoavaliação de desempenho | 5 | 1x por ciclo |
@@ -43,6 +41,11 @@ valem 5. Teto realista de um colaborador engajado: ~130 pts/ano.
 - "Abrir o app / login diário" — vira vigilância de presença (LGPD) e é farmável.
 - Assiduidade/ponto ("mês sem ocorrência") — pune indiretamente atestado/licença e
   pode gerar discussão trabalhista; SÓ com aval jurídico explícito, como fase futura.
+- **Coração e boas-vindas (gate Fable 2026-07-14, bloqueador 1)**: o mural não tem doc
+  pai (posts são implícitos), então reação em postId INVENTADO via console seria mina
+  de pontos infinita. ponytail: quando o pipeline (WKRADAR, Admin SDK) escrever
+  /muralAniversario/{postId} como doc pai, a prova vira existsAfter(reacao) &&
+  exists(pai) e as duas ações voltam pra tabela.
 
 ## Marcos e premiações (recalibrados 2026-07-10)
 
@@ -60,8 +63,11 @@ contador da pesquisa de clima (batch + existsAfter + valor cravado), já auditad
 
 ```
 /gamificacao/{ano}                    config da temporada: { tabela: {acao: pts},
-                                      marcos: [{pts, premio}], ativa }
+                                      marcos: [25, 50, ...] (SO INTS: premio aqui
+                                      vazaria a surpresa na config publica; a tela
+                                      da GP valida), ativa }
                                       write: cap gamificacao.gerenciar · read: authed
+/gamificacao/{ano}/privado/premios    os premios por marco (SURPRESA): read/write SO cap
 /gamificacao/{ano}/pontos/{uid}       { total, nome }  nome == userDoc().nome
                                       (anti-spoof, mesmo padrão do mural; necessário
                                       pro ranking, o colab não lê /funcionarios)
@@ -89,13 +95,28 @@ contador da pesquisa de clima (batch + existsAfter + valor cravado), já auditad
 ## Ganchos (onde o ponto nasce, no MESMO batch da ação)
 
 Cada função existente do cliente ganha o par no batch: ciência de comunicado,
-confirmação/assinatura de documento, assinatura de recibo, responder clima (o recibo
-da pesquisa é a prova; o EVENTO de ponto NÃO revela conteúdo nem quebra o anonimato,
-só "participou", que o recibo já registra), concluir auto de desempenho, coração,
-boas-vindas, termo de adesão. Falha do ponto NUNCA pode derrubar a ação principal
-(ponto é acessório: batch separado com retry? NÃO — mesmo batch pra prova; se a regra
-do ponto negar por config ausente, o cliente refaz a ação SEM o ponto). Detalhe fino
-na fase de backend, caso a caso, com gate Fable.
+confirmação/assinatura de documento, assinatura de recibo, concluir auto de
+desempenho, termo de adesão. Falha do ponto NUNCA pode derrubar a ação principal
+(o cliente tenta o batch COM o ponto; se negar, refaz a ação SEM o ponto).
+
+**EXCEÇÃO estrutural, pesquisa de clima (gate Fable 2026-07-14, bloqueador 2): o ponto
+NUNCA nasce no mesmo batch da resposta.** A regra exige recibo PRÉ-existente (exists,
+não existsAfter): se nascessem juntos, o `em` do evento (GP-readable) e o createTime
+da resposta anônima seriam o MESMO commit time e a resposta seria desanonimizada por
+join exato. O cliente reivindica o ponto DEPOIS (na próxima abertura do app, junto do
+catch-up). Obrigação de transparência no fluxo de resposta: "responder vale 5 pontos;
+sua participação (nunca o conteúdo) aparece no seu extrato e no ranking". Revelar
+PARTICIPAÇÃO é decisão informada do William; o conteúdo segue estruturalmente anônimo.
+
+**Year-gate (bloqueador 3):** toda prova carrega server-time e a regra exige
+prova.em.year() == ano corrente: retroativo vale DENTRO do ano da prova (ligar a
+feature credita o que já foi feito NO ANO), e a virada de temporada NÃO recredita a
+vida pregressa. Residual aceito: ação de ~31/12 avaliada em UTC pode cair no ano
+seguinte e perder o ponto (1 dia por ano).
+
+**Correção administrativa de placar:** delete de placar é só admin e os eventos não
+renascem (ids determinísticos falham no !exists) — logo, zerar um placar é
+IRREVERSÍVEL pelo app; reconstrução só via Admin SDK (comportamento intencional).
 
 ## Recompensas digitais (William, 2026-07-10): avatar decorations + badges
 
