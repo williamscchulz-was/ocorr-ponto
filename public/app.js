@@ -3920,7 +3920,7 @@ function renderGamificacao() {
   const tab = state.view.gamiGTab === "entregas" ? "entregas" : "config";
   view.innerHTML = `
     <header class="page-header"><div><h1>Gamificação</h1>
-      <p class="page-sub">Temporada ${new Date().getFullYear()} · pontos por ação, prêmios surpresa e entregas.</p></div></header>
+      <p>Temporada ${new Date().getFullYear()} · pontos por ação, prêmios surpresa e entregas.</p></div></header>
     <div class="tabs" role="tablist" style="margin-bottom:16px;">
       <button class="tab ${tab === "config" ? "active" : ""}" data-gami-gtab="config">Configuração</button>
       <button class="tab ${tab === "entregas" ? "active" : ""}" data-gami-gtab="entregas">Entregas e ranking</button>
@@ -3941,15 +3941,15 @@ function gamiGestorConfigHtml() {
     <tr><td style="width:90px;"><input type="number" min="1" data-gami-marco="${i}" value="${m}"></td>
         <td><input type="text" maxlength="200" data-gami-premio="${i}" value="${escapeHtml(premios["m" + m] || "")}" placeholder="prêmio deste marco (só a GP vê)"></td></tr>`).join("");
   return `
-    <div class="card" style="max-width:860px;">
-      <div class="card__header"><h3>Pontos por ação</h3>
+    <div class="gami-card">
+      <div class="gami-card__h"><h3>Pontos por ação</h3>
         <label class="gami-ativa"><input type="checkbox" id="gami-ativa" ${cfg && cfg.ativa ? "checked" : ""}> Temporada ativa</label></div>
-      <p class="hint">O colaborador vê a tabela e os marcos, NUNCA os prêmios: eles são surpresa, revelados só quando o marco é cruzado e a entrega registrada.</p>
-      <table class="table"><thead><tr><th>Ação do colaborador</th><th>Pontos</th></tr></thead><tbody>${linhas}</tbody></table>
-      <h3 style="margin:18px 0 8px;">Marcos e premiações (surpresa)</h3>
-      <table class="table"><thead><tr><th>Marco</th><th>Prêmio</th></tr></thead><tbody>${linhasMarcos}</tbody></table>
-      <div style="margin-top:16px;"><button class="btn btn--primary" id="gami-salvar">Salvar configuração</button>
-      <span class="hint" id="gami-cfg-erro" style="color:var(--danger);margin-left:10px;"></span></div>
+      <p class="gami-hint">O colaborador vê a tabela e os marcos, nunca os prêmios: eles são surpresa, revelados só quando o marco é cruzado e a entrega registrada. Os campos de prêmio podem ficar em branco, você decide na hora da entrega.</p>
+      <table class="gami-tbl"><thead><tr><th>Ação do colaborador</th><th style="width:90px;">Pontos</th></tr></thead><tbody>${linhas}</tbody></table>
+      <h3 class="gami-sub">Marcos e premiações (surpresa)</h3>
+      <table class="gami-tbl"><thead><tr><th style="width:90px;">Marco</th><th>Prêmio</th></tr></thead><tbody>${linhasMarcos}</tbody></table>
+      <div class="gami-acao"><button class="btn btn--primary" id="gami-salvar">Salvar configuração</button>
+      <span class="gami-erro" id="gami-cfg-erro"></span></div>
     </div>`;
 }
 
@@ -4002,13 +4002,13 @@ function gamiGestorEntregasHtml() {
       <td style="width:130px;">${marcos.filter((m) => (Number(p.total) || 0) >= m).join(", ") || "—"}</td>
       <td style="width:80px;"><b style="color:var(--plum);">${Number(p.total) || 0}</b></td></tr>`).join("");
   return `
-    <div class="card" style="max-width:860px;">
-      <div class="card__header"><h3>Entregas pendentes</h3><span class="hint">${fila.length ? `${fila.length} prêmio${fila.length > 1 ? "s" : ""} aguardando entrega` : "nada pendente"}</span></div>
-      ${filaHtml || `<p class="hint">Quando alguém cruzar um marco, a entrega aparece aqui.</p>`}
+    <div class="gami-card">
+      <div class="gami-card__h"><h3>Entregas pendentes</h3><span class="gami-tag">${fila.length ? `${fila.length} prêmio${fila.length > 1 ? "s" : ""} aguardando entrega` : "nada pendente"}</span></div>
+      ${filaHtml || `<p class="gami-hint" style="margin:0;">Quando alguém cruzar um marco, a entrega aparece aqui.</p>`}
     </div>
-    <div class="card" style="max-width:860px;margin-top:16px;">
-      <div class="card__header"><h3>Ranking completo</h3><span class="hint">o colaborador vê só o top 10</span></div>
-      ${ranking.length ? `<table class="table"><thead><tr><th>Pos.</th><th>Colaborador</th><th>Marcos</th><th>Pontos</th></tr></thead><tbody>${rkHtml}</tbody></table>` : `<p class="hint">Sem pontos na temporada ainda.</p>`}
+    <div class="gami-card">
+      <div class="gami-card__h"><h3>Ranking completo</h3><span class="gami-tag">o colaborador vê só o top 10</span></div>
+      ${ranking.length ? `<table class="gami-tbl"><thead><tr><th style="width:50px;">Pos.</th><th>Colaborador</th><th style="width:130px;">Marcos</th><th style="width:80px;">Pontos</th></tr></thead><tbody>${rkHtml}</tbody></table>` : `<p class="gami-hint" style="margin:0;">Sem pontos na temporada ainda.</p>`}
     </div>`;
 }
 
@@ -15423,7 +15423,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.65.0";
+window.CURRENT_VERSION = "1.65.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

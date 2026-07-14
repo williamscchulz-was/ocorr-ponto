@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.65.0", d: "14 jul 2026", current: true, items: [
+    v: "1.65.1", d: "14 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Tela Gamificacao no visual padrao do painel: cards, tabelas e campos alinhados (a primeira versao subiu sem estilo)." },
+    ],
+  },
+  {
+    v: "1.65.0", d: "14 jul 2026", items: [
       { type: "high", title: "Chegaram as Conquistas: o que voce faz no portal agora vale pontos. Assinar cartao ponto e folha, dar ciencia em comunicados e documentos, responder pesquisas e concluir a autoavaliacao somam na temporada do ano, com marcos que dao premios SURPRESA. Veja seus pontos, o top 10 e suas medalhas no novo item Conquistas." },
       { type: "feat", title: "A aba Conta da barra de navegacao agora mostra a sua foto (ou iniciais) com o aro equipado, do jeito que voce conhece do WhatsApp." },
       { type: "feat", title: "Decoracao do avatar: cruzou marcos, ganhou aros (bronze, prata, ouro e o aro FioPulse). Escolha o seu na aba Badges. O numero 1 do ranking usa a coroa de Rei dos pontos enquanto reinar." },

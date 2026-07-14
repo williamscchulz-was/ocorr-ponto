@@ -4684,3 +4684,21 @@ button.gm-card { cursor: pointer; }
 .bottom-nav__item .gav--bn.gav--veterano { box-shadow: 0 0 0 1.5px var(--surface), 0 0 0 2.5px var(--plum-deep, #005a23), 0 0 0 4.5px var(--success-bg); }
 .bottom-nav__item .gav--bn.gav--fio::before { inset: -4px; }
 .bottom-nav__item .gav--bn.gav--fio::after { box-shadow: 0 0 0 1.5px var(--surface); }
+
+/* Gestor Gamificacao: cards e tabelas (visual do mock aprovado g-frame/g-tbl) */
+.gami-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px; box-shadow: var(--shadow-sm); max-width: 860px; }
+.gami-card + .gami-card { margin-top: 16px; }
+.gami-card__h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.gami-card__h h3 { margin: 0; font-size: 16.5px; font-weight: 700; color: var(--text-body); }
+.gami-tag { font-size: 12px; color: var(--text-muted); }
+.gami-hint { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0 0 14px; max-width: 640px; }
+.gami-sub { margin: 20px 0 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.gami-tbl { width: 100%; border-collapse: collapse; }
+.gami-tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.gami-tbl td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13.5px; color: var(--text-body); }
+.gami-tbl tr:last-child td { border-bottom: 0; }
+.gami-tbl input[type=number] { width: 72px; padding: 7px 9px; border: 1px solid var(--border-strong); border-radius: 8px; font: 600 13px var(--font); text-align: center; background: var(--surface); color: var(--text-body); }
+.gami-tbl input[type=text] { width: 100%; padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: 8px; font: 500 13px var(--font); background: var(--surface); color: var(--text-body); }
+.gami-tbl input:focus-visible { outline: 2px solid var(--plum); outline-offset: 1px; }
+.gami-acao { margin-top: 18px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.gami-erro { font-size: 12.5px; color: var(--danger); }
