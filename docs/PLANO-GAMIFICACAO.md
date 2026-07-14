@@ -127,6 +127,13 @@ progressão em níveis. Só 2 badges tocam o ranking (o tempero competitivo).**
 | Participação | Voz da firma (todas as pesquisas do ano) · Tudo em dia (todas as assinaturas no prazo) | extrato × publicados no ano |
 | Ranking | Rei dos pontos (nº 1 atual, rotativo) · Campeão da temporada (1º no fechamento, permanente) | ranking |
 
+**Arte dos badges (William 2026-07-14, "algo que faça a pessoa querer"):** medalhas SVG
+inline desenhadas no próprio app (zero asset externo): medalhão com anel duplo, brilho e
+fita verde da marca; material progride com o nível (bronze, prata, ouro, e gradiente da
+marca no topo da família); coroa e troféu são peças próprias; bloqueado = grayscale com a
+silhueta visível (alimenta o desejo sem revelar conquista). Referência visual aprovada no
+mock (tela Conquistas).
+
 Derivação no CLIENTE a partir do extrato de eventos + dados existentes (zero doc novo);
 os contadores de coração/boas-vindas derivam DOS PRÓPRIOS eventos de ponto (cada like é um
 evento), então o badge conta a temporada corrente. Tempo de casa é lifetime. Badges
