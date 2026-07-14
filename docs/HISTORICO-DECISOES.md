@@ -2559,3 +2559,34 @@ silencioso que o rotaBH nasceu pra eliminar. Corrigido: `principaisPorIncidente`
 autorização explícita do William. Rerodado o pipeline: `puladoRotaBHIncidenteJaResolvido=1`
 confirmou a trava — o card não voltou. `check-pipeline-health.mjs` ok depois. Zero mudança pro PC
 (o guard é 100% do lado do meu pipeline, antes do doc chegar no Firestore).
+
+
+## 2026-07-14 · Gamificação COMPLETA no ar (v328, 1.65.0) — pontos, marcos surpresa, medalhas, decoração
+
+**O projeto inteiro em 1 dia, nas 5 fases planejadas.** Mock aprovado em rodadas (fluxo, telas,
+medalhas colecionáveis, navegação in-app com barra de 4 itens no colab e item Gamificação no
+gestor), backend com gate Fable, camada de dados, front nos dois portais e release.
+
+**Anti-fraude sem Cloud Functions (liturgia do contador do clima):** evento de ponto com id
+determinístico `{acao}_{refId}` (dedup estrutural), pontos == tabela da config, PROVA real da
+ação (getAfter/exists do doc de assinatura/leitura/recibo/auto/termo) e o placar que SÓ avança
+junto do evento nascendo no mesmo batch com valor exato.
+
+**Gate Fable (3 rodadas formais, 3 bloqueadores reais corrigidos):**
+1. Coração/boas-vindas FORA do v1: o mural não tem doc pai, reação em postId inventado seria
+   mina de pontos infinita. ponytail: voltam quando o pipeline escrever o pai.
+2. Pesquisa de clima: o ponto NUNCA nasce no batch da resposta (o par de commit-times
+   desanonimizaria por join exato). Recibo PRÉ-existente + claim adiado (catch-up) + texto de
+   transparência devido no fluxo de resposta.
+3. Year-gate em toda prova (em server-time): retroativo vale só DENTRO do ano; a virada de
+   temporada não recredita a vida pregressa. Residual: ~31/12 avaliado em UTC, 1 dia/ano.
+Extras do gate: prova do aceite corrigida pra leituras/{uid} confirmado==true (aceites/ nunca
+nasceu do front); users.decoracao lista fechada; decoracao DENORMALIZADA no placar com igualdade
+anti-spoof (aro visível no ranking SEM alargar a read de /users, que exporia PII); desequipar é
+'' (deleteField nega por design). Suíte: 480/480.
+
+**Produto:** prêmios são SURPRESA (doc /privado só da GP; a entrega revela ao dono); temporada
+anual por doc (/gamificacao/{ano}); ranking público top 10 (nome+total+aro); extrato self+GP;
+feature nasce DORMENTE (a GP configura e ativa a temporada na tela nova). Catch-up credita o
+retroativo do ano ao abrir Conquistas. Badges de companheirismo exibidas como "em breve".
+Harness 31/31 (colab home/pontos/badges/equipar/dormente + gestor config/entregas/ranking/hub).

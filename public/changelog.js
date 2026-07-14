@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.64.1", d: "10 jul 2026", current: true, items: [
+    v: "1.65.0", d: "14 jul 2026", current: true, items: [
+      { type: "high", title: "Chegaram as Conquistas: o que voce faz no portal agora vale pontos. Assinar cartao ponto e folha, dar ciencia em comunicados e documentos, responder pesquisas e concluir a autoavaliacao somam na temporada do ano, com marcos que dao premios SURPRESA. Veja seus pontos, o top 10 e suas medalhas no novo item Conquistas." },
+      { type: "feat", title: "Decoracao do avatar: cruzou marcos, ganhou aros (bronze, prata, ouro e o aro FioPulse). Escolha o seu na aba Badges. O numero 1 do ranking usa a coroa de Rei dos pontos enquanto reinar." },
+      { type: "feat", aud: "gestor", title: "Nova tela Gamificacao (GP): configura os pontos por acao, os marcos e os premios de cada um (o colaborador nao ve a lista, e surpresa), ativa a temporada e registra as entregas na fila de premiacao." },
+    ],
+  },
+  {
+    v: "1.64.1", d: "10 jul 2026", items: [
       { type: "med", aud: "gestor", title: "Os cards Resolvido no Banco de Horas tambem podem ser dispensados: junto do Conferir, a GP tem o botao Dispensar com motivo, pra quando o caso nao precisa de nenhuma acao." },
     ],
   },
