@@ -4225,7 +4225,15 @@ function renderVagas() {
     </div>`;
   const painelHtml = (id) => {
     const lista = candidaturasDaVaga(id);
-    return `<div class="g-cand-wrap">${lista.length ? lista.map(candidaturaHtml).join("") : `<p class="g-cand-empty">Nenhuma candidatura ainda para esta vaga.</p>`}</div>`;
+    const vg = vagas.find((v) => v.id === id);
+    // LGPD: o consentimento do form diz "apenas neste processo seletivo", então
+    // processo encerrado cria o dever de expurgo. A UI cobra e resolve num toque.
+    const lgpd = vg && vg.status === "encerrada" && lista.length ? `
+      <div class="g-cand-lgpd">
+        <span>Processo encerrado: exclua os dados de quem não seguiu no processo (LGPD).</span>
+        <button class="btn btn--ghost btn--sm" data-cand-excluir-todas="${escapeHtml(id)}">Excluir todas (${lista.length})</button>
+      </div>` : "";
+    return `<div class="g-cand-wrap">${lgpd}${lista.length ? lista.map(candidaturaHtml).join("") : `<p class="g-cand-empty">Nenhuma candidatura ainda para esta vaga.</p>`}</div>`;
   };
   const linhas = vagas.map((x) => {
     const n = candidaturasDaVaga(x.id).length;
@@ -4334,6 +4342,19 @@ function renderVagas() {
     withBusy("vg-cand-del", b, async () => {
       try { await window.excluirCandidatura(b.dataset.candExcluir); await window.carregarCandidaturasGestor?.(); toast("Candidatura excluída."); renderApp(); }
       catch (e) { toast("Não excluiu: " + (e?.message || e), "danger"); }
+    });
+  }));
+  $$("#view [data-cand-excluir-todas]").forEach((b) => b.addEventListener("click", async () => {
+    const lista = candidaturasDaVaga(b.dataset.candExcluirTodas);
+    if (!lista.length) return;
+    if (!(await confirmar({ titulo: "Excluir todas as candidaturas", msg: `Excluir de vez os dados de ${lista.length} candidato${lista.length > 1 ? "s" : ""} desta vaga? Não tem volta.`, okLabel: "Excluir todas", perigo: true }))) return;
+    withBusy("vg-cand-del-all", b, async () => {
+      try {
+        for (const c of lista) await window.excluirCandidatura(c.id);
+        await window.carregarCandidaturasGestor?.();
+        toast("Candidaturas excluídas.");
+        renderApp();
+      } catch (e) { toast("Não excluiu tudo: " + (e?.message || e), "danger"); }
     });
   }));
   $("#vg-zap-salvar")?.addEventListener("click", () => withBusy("vg-zap", $("#vg-zap-salvar"), async () => {
@@ -6008,7 +6029,8 @@ function vgPrecisaDeVoce(u) {
 }
 
 
-// Admissões dos últimos 120 dias, no recorte do papel (some se não houver).
+// Admissões dos últimos 15 dias, no recorte do papel (some se não houver).
+// 15 = mesma janela do card do colaborador (William unificou, 2026-07-15).
 function vgAdmissoesHtml(u) {
   if (!can("func.ver")) return "";
   const hoje = new Date();
@@ -6018,7 +6040,7 @@ function vgAdmissoesHtml(u) {
   const rec = (state.funcionarios || [])
     .filter((f) => f.ativo !== false && admDe(f))
     .filter((f) => (u.role === "lider" ? f.turno === u.turno : u.role === "supervisor" ? podeVerFuncionario(u, f) : true))
-    .filter((f) => (hoje - admDe(f)) / 864e5 <= 120)
+    .filter((f) => (hoje - admDe(f)) / 864e5 <= 15)
     .sort((a, b) => admDe(b) - admDe(a))
     .slice(0, 3);
   if (!rec.length) return "";
@@ -15766,7 +15788,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.69.2";
+window.CURRENT_VERSION = "1.70.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

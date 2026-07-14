@@ -4757,4 +4757,5 @@ button.gm-card { cursor: pointer; }
 .g-cand__bd span { font-size: 11.5px; color: var(--text-muted); }
 .g-cand__bd p { margin: 6px 0 0; font-size: 12.5px; color: var(--text-body); line-height: 1.5; white-space: pre-wrap; }
 .g-cand__data { display: block; margin-top: 6px; font-size: 10.5px; }
+.g-cand-lgpd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: #fff7e0; border: 1px solid #e8c34d66; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 12.5px; color: #6b5300; }
 .g-cand-empty { margin: 0; padding: 10px 0 4px; font-size: 12.5px; color: var(--text-muted); }
