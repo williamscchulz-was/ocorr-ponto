@@ -21,31 +21,37 @@ não presença vazia.
    pesquisas/desempenho). GP define valores das ações, prêmios dos marcos e registra
    as entregas.
 
-## Catálogo de ações pontuáveis (v1, valores default editáveis pela GP)
+## Catálogo de ações pontuáveis (CALIBRADO com William 2026-07-10; GP edita)
+
+Filosofia: ROTINA vale 1 (fácil de explicar: 1 ação = 1 ponto), ações RARAS e valiosas
+valem 5. Teto realista de um colaborador engajado: ~130 pts/ano.
 
 | Ação | Pontos | Dedup (anti-farm) |
 |---|---|---|
-| Confirmar ciência de comunicado | 5 | 1x por comunicado |
-| Confirmar leitura de documento (aceite) | 5 | 1x por documento |
-| Assinar documento (assinatura eletrônica) | 10 | 1x por doc/versão |
-| Assinar recibo de pagamento / cartão ponto | 10 | 1x por recibo |
-| Responder pesquisa de clima | 20 | 1x por pesquisa |
-| Concluir autoavaliação de desempenho | 20 | 1x por ciclo |
-| Parabenizar colega (coração) | 2 | 1x por post (retirar/redar não repontua) |
-| Dar boas-vindas a recém-chegado | 2 | 1x por pessoa |
-| Aceitar o Termo de Adesão | 10 | 1x na vida |
+| Assinar cartão ponto do mês | 1 | 1x por cartão |
+| Assinar folha de pagamento (recibo) | 1 | 1x por recibo |
+| Ciência / visualização de comunicado | 1 | 1x por comunicado |
+| Confirmar leitura de documento (aceite) | 1 | 1x por documento |
+| Parabenizar colega de aniversário | 1 | 1x por post (retirar/redar não repontua) |
+| Dar boas-vindas a recém-chegado | 1 | 1x por pessoa |
+| Assinar documento (assinatura eletrônica) | 5 | 1x por doc/versão |
+| Responder pesquisa de clima | 5 | 1x por pesquisa |
+| Concluir autoavaliação de desempenho | 5 | 1x por ciclo |
+| Primeira entrada + Termo de Adesão | 5 | 1x na vida |
 
 **Fora do v1, de propósito:**
 - "Abrir o app / login diário" — vira vigilância de presença (LGPD) e é farmável.
 - Assiduidade/ponto ("mês sem ocorrência") — pune indiretamente atestado/licença e
   pode gerar discussão trabalhista; SÓ com aval jurídico explícito, como fase futura.
 
-## Marcos e premiações
+## Marcos e premiações (recalibrados 2026-07-10)
 
-50 → prêmio A · 100 → prêmio B · 200 → prêmio C · 500 → prêmio D · 1000 → prêmio E.
-A LISTA DOS PRÊMIOS é do William/GP (pendência aberta). Alerta registrado: validar com
-a contabilidade a natureza dos prêmios (premiação de campanha pontual vs habitualidade
-remuneratória) ANTES do go-live.
+**25 → 50 → 100 → 150 → 200**, cada um com prêmio, e os prêmios são **SURPRESA**
+(decisão William): a GP cadastra o prêmio de cada marco, mas o colaborador só descobre
+ao cruzar. Na UI do colab os marcos aparecem como "Surpresa" até a conquista. O 200 é
+o pé do ano, só pra quem faz tudo. A lista dos prêmios é do William/GP (pendência
+aberta, oculta do colaborador). Alerta registrado: validar com a contabilidade a
+natureza dos prêmios ANTES do go-live.
 
 ## Arquitetura (anti-fraude sem Cloud Functions, padrão da casa)
 
@@ -100,10 +106,10 @@ diasNaEmpresa) — a única escrita nova é a preferência de decoração equipa
 **Avatar decorations (aro/moldura no avatar, escolhida pelo colaborador entre as desbloqueadas):**
 | Decoração | Como desbloqueia |
 |---|---|
-| Aro bronze | cruzou 50 pts na temporada |
-| Aro prata | cruzou 200 pts |
-| Aro ouro | cruzou 500 pts |
-| Aro FioPulse (gradiente da marca) | cruzou 1000 pts |
+| Aro bronze | cruzou 25 pts na temporada |
+| Aro prata | cruzou 50 pts |
+| Aro ouro | cruzou 100 pts |
+| Aro FioPulse (gradiente da marca) | cruzou 200 pts |
 | Coroa · Rei dos pontos | é o nº 1 do ranking AGORA (posse rotativa, só um por vez) |
 | Aro veterano | 5+ anos de casa |
 Aparece em TODO avatar (home do colab, mural de aniversário, boas-vindas e nos avatares do
