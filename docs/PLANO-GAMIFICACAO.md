@@ -49,6 +49,17 @@ valem 5. Teto realista de um colaborador engajado: ~130 pts/ano.
   /muralAniversario/{postId} como doc pai, a prova vira existsAfter(reacao) &&
   exists(pai) e as duas ações voltam pra tabela.
 
+## Ação nova: foto de perfil própria (William 2026-07-14; gate Fable delta 3)
+
+Adicionar a própria foto vale ponto, **1x por temporada** (dedup pela árvore anual de
+eventos, sem year-gate: prova de estado). DECISÃO do William (o gate levou o número):
+as 73 fotos OFICIAIS importadas vivem no MESMO campo (users.fotoBase64) e não são
+distinguíveis da foto própria no dado — então o ponto é **SÓ PELO ATO** de trocar ou
+adicionar pelo app (gancho no atualizarMinhaFoto); o catch-up NUNCA reivindica foto
+(senão viraria brinde em massa pra ~73/80 no primeiro acesso). Residual aceito e
+documentado: claim manual via console por quem já tem foto, teto de 1 ponto/temporada.
+Regra endurecida com matches('data:image/.*') (a definição de "tem foto" da UI).
+
 ## Marcos e premiações (recalibrados 2026-07-10)
 
 **25 → 50 → 100 → 150 → 200**, cada um com prêmio, e os prêmios são **SURPRESA**

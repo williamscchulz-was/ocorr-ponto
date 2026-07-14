@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.65.2", d: "14 jul 2026", current: true, items: [
+    v: "1.66.0", d: "14 jul 2026", current: true, items: [
+      { type: "feat", title: "Adicionar a sua propria foto de perfil agora vale ponto na temporada (uma vez por ano). E a sua foto aparece com o aro no seu perfil de Conquistas e no ranking." },
+      { type: "fix", title: "Pontos retroativos mais confiaveis: a tela Conquistas re-verifica seus creditos a cada abertura (e nao so na primeira), inclusive quando a GP muda os valores no meio do caminho." },
+    ],
+  },
+  {
+    v: "1.65.2", d: "14 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Autoavaliacao de desempenho saiu das acoes pontuaveis da Gamificacao (decisao GP): avaliacao nao e corrida por pontos." },
     ],
   },

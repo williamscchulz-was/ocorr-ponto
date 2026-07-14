@@ -1215,7 +1215,19 @@ service cloud.firestore {
                      && getAfter(/databases/$(database)/documents/avaliacaoCiclos/$(refId)/avaliacoes/$('auto_' + meuFuncionarioId())).data.atualizadoEm.year() == request.time.year())
               || (acao == 'termo'
                      && refId == uid
-                     && getAfter(/databases/$(database)/documents/termoAdesao/$(uid)).data.em.year() == request.time.year());
+                     && getAfter(/databases/$(database)/documents/termoAdesao/$(uid)).data.em.year() == request.time.year())
+              // Foto de perfil propria (William 2026-07-14): prova = users/{uid}.fotoBase64
+              // com dataURL de imagem (a definicao de "tem foto" da propria UI; barra lixo).
+              // SEM year-gate de proposito: prova de ESTADO, e o produto quer "1x por
+              // temporada" -- o id foto_{uid} na arvore DO ANO da o dedup anual.
+              // DECISAO do William (gate Fable delta 3): o ponto e SO PELO ATO de trocar/
+              // adicionar a foto pelo app -- o CLIENTE nunca reivindica no catch-up (as 73
+              // fotos OFICIAIS importadas vivem neste mesmo campo e nao podem virar brinde
+              // em massa). Residual aceito: claim manual via console por quem ja tem foto,
+              // teto estrutural de 1 ponto por temporada.
+              || (acao == 'foto'
+                     && refId == uid
+                     && getAfter(/databases/$(database)/documents/users/$(uid)).data.fotoBase64.matches('data:image/.*'));
           }
           allow read: if gpGami() || (isAuthed() && request.auth.uid == uid);
           allow create: if isAuthed() && request.auth.uid == uid

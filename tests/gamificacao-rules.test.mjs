@@ -27,7 +27,7 @@ const ANO_PASSADO = String(new Date().getFullYear() - 1);
 const TABELA = {
   "cartao-ponto": 1, folha: 1, comunicado: 1, "documento-leitura": 1,
   coracao: 1, "boas-vindas": 1,
-  "documento-assinatura": 5, pesquisa: 5, autoavaliacao: 5, termo: 5,
+  "documento-assinatura": 5, pesquisa: 5, autoavaliacao: 5, termo: 5, foto: 5,
 };
 const MARCOS = [25, 50, 100, 150, 200];
 
@@ -40,7 +40,7 @@ before(async () => {
     const db = ctx.firestore();
     await setDoc(doc(db, "users/uAdmin"),  { role: "admin", nome: "Will" });
     await setDoc(doc(db, "users/uRh"),     { role: "rh", nome: "Suyanne" });
-    await setDoc(doc(db, "users/uColab"),  { role: "colaborador", nome: "Maria", funcionarioId: "f-1", turno: 1, setor: "Producao" });
+    await setDoc(doc(db, "users/uColab"),  { role: "colaborador", nome: "Maria", funcionarioId: "f-1", turno: 1, setor: "Producao", fotoBase64: "data:image/png;base64,AAA" });
     await setDoc(doc(db, "users/uColab2"), { role: "colaborador", nome: "Ana", funcionarioId: "f-2", turno: 2, setor: "Repasse" });
     await setDoc(doc(db, "funcionarios/f-1"), { nome: "Maria", turno: 1, setor: "Producao" });
     await setDoc(doc(db, "funcionarios/f-2"), { nome: "Ana", turno: 2, setor: "Repasse" });
@@ -140,12 +140,24 @@ test("autoavaliacao concluida prova (+5)", async () =>
   assertSucceeds(ganhaPonto(colab(), "uColab", "autoavaliacao", "cx1", 5, { placarDe: 14 })));
 test("termo: adesao prova (+5, refId = uid)", async () =>
   assertSucceeds(ganhaPonto(colab(), "uColab", "termo", "uColab", 5, { placarDe: 19 })));
+test("foto de perfil propria prova (+5, 1x por temporada via arvore do ano)", async () =>
+  assertSucceeds(ganhaPonto(colab(), "uColab", "foto", "uColab", 5, { placarDe: 24 })));
+test("foto: SEM fotoBase64 no users NEGA", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "foto", "uColab2", 5, { nome: "Ana" })));
+test("foto com refId de outro uid NEGA", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "foto", "uColab", 5, { nome: "Ana" })));
+test("foto com lixo (nao dataURL de imagem) NEGA", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), "users/uColab2"), { fotoBase64: "hackeada" });
+  });
+  await assertFails(ganhaPonto(colab2(), "uColab2", "foto", "uColab2", 5, { nome: "Ana" }));
+});
 
 // ---------- Bloqueadores do gate Fable 2026-07-14 ----------
 test("coracao NEGA mesmo com reacao real (mural sem doc pai = fora do v1)", async () =>
-  assertFails(ganhaPonto(colab(), "uColab", "coracao", "aniv-joao-2026", 1, { placarDe: 24 })));
+  assertFails(ganhaPonto(colab(), "uColab", "coracao", "aniv-joao-2026", 1, { placarDe: 29 })));
 test("boas-vindas NEGA mesmo com reacao real (fora do v1)", async () =>
-  assertFails(ganhaPonto(colab(), "uColab", "boas-vindas", "bv-ana-2026", 1, { placarDe: 24 })));
+  assertFails(ganhaPonto(colab(), "uColab", "boas-vindas", "bv-ana-2026", 1, { placarDe: 29 })));
 test("MINA DO MURAL: reacao em post inventado + evento no mesmo batch NEGA", async () => {
   const db = colab2();
   const b = writeBatch(db);
@@ -191,11 +203,11 @@ test("rotulo gigante NEGA", async () =>
 test("evento na arvore de OUTRO uid NEGA", async () =>
   assertFails(ganhaPonto(colab2(), "uColab", "comunicado", "com1", 1)));
 test("repetir a mesma acao NEGA (dedup estrutural: vira update)", async () =>
-  assertFails(ganhaPonto(colab(), "uColab", "comunicado", "com1", 1, { placarDe: 24 })));
+  assertFails(ganhaPonto(colab(), "uColab", "comunicado", "com1", 1, { placarDe: 29 })));
 test("cartao-ponto apontando recibo de folha NEGA (tipo do pai)", async () =>
-  assertFails(ganhaPonto(colab(), "uColab", "cartao-ponto", "r-fl", 1, { placarDe: 24 })));
+  assertFails(ganhaPonto(colab(), "uColab", "cartao-ponto", "r-fl", 1, { placarDe: 29 })));
 test("autoavaliacao em RASCUNHO nao prova NEGA", async () =>
-  assertFails(ganhaPonto(colab(), "uColab", "autoavaliacao", "cx2", 5, { placarDe: 24 })));
+  assertFails(ganhaPonto(colab(), "uColab", "autoavaliacao", "cx2", 5, { placarDe: 29 })));
 test("temporada do ANO PASSADO nega evento (mesmo ativa)", async () =>
   assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 1, { nome: "Ana", ano: ANO_PASSADO })));
 test("termo com refId de outro uid NEGA", async () =>

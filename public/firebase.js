@@ -1724,10 +1724,12 @@
     };
 
     // Tela Conquistas: extrato + entregas (premios revelados) + ranking top 10.
+    // Config REVALIDADA (force): a GP pode ter editado valores/ativado a temporada
+    // depois do boot; claim com tabela velha nega na regra (visto em prod 2026-07-14).
     window.carregarGamificacaoColab = async function () {
       const user = auth.currentUser;
       if (!user) return null;
-      const cfg = await window.carregarGamiConfig();
+      const cfg = await window.carregarGamiConfig(true);
       if (!cfg) { state.gamiMeu = null; return null; }
       const meuRef = _gami().collection("pontos").doc(user.uid);
       try {
@@ -1774,6 +1776,9 @@
       try { pesqLocal = JSON.parse(localStorage.getItem("gamiPesqPend") || "[]"); } catch { /* lixo local */ }
       for (const pid of pesqLocal) pend.push(["pesquisa", pid, "Pesquisa de clima"]);
       if (state.termoAdesaoOk === true) pend.push(["termo", user.uid, "Termo de Adesão à assinatura eletrônica"]);
+      // Foto NUNCA entra no catch-up (decisao William, gate delta 3): o ponto e pelo ATO
+      // de trocar/adicionar (gancho no atualizarMinhaFoto). As fotos oficiais importadas
+      // vivem no mesmo campo e virariam brinde em massa aqui.
       let creditou = false;
       for (const [acao, refId, rotulo] of pend) {
         if ((state.gamiExtrato || []).some((e) => e.id === `${acao}_${refId}`)) continue;
@@ -3018,6 +3023,8 @@
       // Reflete no state local ("" cai nas iniciais no aplicarAvatar)
       const me = (state.users || []).find((x) => x.id === uid);
       if (me) me.fotoBase64 = value;
+      // Gamificacao: foto propria vale ponto (1x por temporada; dedup e da regra).
+      if (value) window.gamiClaim?.("foto", uid, "Adicionou a própria foto de perfil");
     };
 
     // Alterar a própria senha (usuário logado)

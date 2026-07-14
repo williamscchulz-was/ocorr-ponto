@@ -2339,8 +2339,13 @@ function gamiTrofeuSvg() {
 
 // Avatar com aro da gamificacao. dec: '' | bronze | prata | ouro | fio | veterano;
 // coroa = posse rotativa do nº 1 (nunca gravada, sempre calculada por quem chama).
-function gamiGavHtml(iniciais, dec, { lg = false, coroa = false } = {}) {
-  return `<span class="gav${lg ? " gav--lg" : ""}${dec ? ` gav--${escapeHtml(dec)}` : ""}">${coroa ? '<i class="gav__coroa"><svg viewBox="0 0 24 16"><path d="M2 14h20l-1.5-9-5 4L12 2 8.5 9l-5-4z"/></svg></i>' : ""}<span class="gav__ini">${escapeHtml(iniciais)}</span></span>`;
+// foto: dataURL exibida no miolo (SO a propria: a foto dos colegas nao e exposta
+// no ranking sem decisao explicita de LGPD do William).
+function gamiGavHtml(iniciais, dec, { lg = false, coroa = false, foto = "" } = {}) {
+  const miolo = foto
+    ? `<span class="gav__ini" role="img" aria-label="Sua foto" style="position:absolute;inset:0;border-radius:50%;background-image:url(${foto});background-size:cover;background-position:center;"></span>`
+    : `<span class="gav__ini">${escapeHtml(iniciais)}</span>`;
+  return `<span class="gav${lg ? " gav--lg" : ""}${dec ? ` gav--${escapeHtml(dec)}` : ""}">${coroa ? '<i class="gav__coroa"><svg viewBox="0 0 24 16"><path d="M2 14h20l-1.5-9-5 4L12 2 8.5 9l-5-4z"/></svg></i>' : ""}${miolo}</span>`;
 }
 const gamiIniciais = (nome) => String(nome || "").trim().split(/\s+/).slice(0, 2).map((p) => p[0] || "").join("").toUpperCase();
 const gamiAbrevia = (nome) => { const p = String(nome || "").trim().split(/\s+/); return p[0] + (p[1] ? " " + p[1][0] + "." : ""); };
@@ -2417,6 +2422,20 @@ function renderColabConquistas() {
       </div>
       ${tab === "pts" ? gamiTabPontosHtml(cfg) : gamiTabBadgesHtml(cfg)}
     </div>`;
+  // Re-sincroniza em TODA abertura (nao so na 1a da sessao): a GP pode ter mudado a
+  // config, e acoes feitas noutro aparelho/aba entram aqui. Silencioso; re-render
+  // so se algo creditou. Guard contra sobreposicao.
+  if (!state._gamiSync) {
+    state._gamiSync = true;
+    (async () => {
+      try {
+        if (await window.gamiCatchUp?.()) {
+          await window.carregarGamificacaoColab?.();
+          if (state.view.page === "colab-conquistas") renderApp();
+        }
+      } finally { state._gamiSync = false; }
+    })();
+  }
   $$("#view [data-gami-tab]").forEach((b) => b.addEventListener("click", () => { state.view.gamiTab = b.dataset.gamiTab; renderApp(); }));
   if (tab === "bdg") {
     $$("#view [data-gami-deco]").forEach((b) => b.addEventListener("click", () => {
@@ -2447,11 +2466,12 @@ function gamiTabPontosHtml(cfg) {
   const meuUid = gamiMeuUid();
   const top = state.gamiTop || [];
   const podio = [top[1], top[0], top[2]];
+  const minhaFoto = (currentUser() || {}).fotoBase64 || "";
   const podioHtml = podio.map((p, i) => {
     if (!p) return "";
     const rei = i === 1;
     const eu = p.uid === meuUid;
-    return `<div class="gm-pod__c${rei ? " p1" : ""}">${gamiGavHtml(gamiIniciais(p.nome), p.decoracao || "", { coroa: rei })}
+    return `<div class="gm-pod__c${rei ? " p1" : ""}">${gamiGavHtml(gamiIniciais(p.nome), p.decoracao || "", { coroa: rei, foto: eu ? minhaFoto : "" })}
         <b>${escapeHtml((eu ? "Você" : gamiAbrevia(p.nome)) + (rei ? " · Rei dos pontos" : ""))}</b><span>${Number(p.total) || 0} pts</span></div>`;
   }).join("");
   const linhas = top.slice(3).map((p) => `<div class="gm-toprow${p.uid === meuUid ? " me" : ""}"><span class="pos">${p.pos}</span><span class="nm">${escapeHtml(p.uid === meuUid ? `Você (${String(p.nome || "").split(" ")[0]})` : p.nome)}</span><span class="pt">${Number(p.total) || 0}</span></div>`).join("");
@@ -2517,7 +2537,7 @@ function gamiTabBadgesHtml(cfg) {
   ];
   const nBadges = [anos >= 1, anos >= 3, anos >= 5, anos >= 10, vozOk, tudoOk, souRei].filter(Boolean).length;
   return `
-    <div class="gmc-perfil">${gamiGavHtml(ini, equip, { lg: true, coroa: souRei })}<div><b>${escapeHtml(nome)}</b>
+    <div class="gmc-perfil">${gamiGavHtml(ini, equip, { lg: true, coroa: souRei, foto: (u && u.fotoBase64) || "" })}<div><b>${escapeHtml(nome)}</b>
       <div class="gmc-perfil__sub">${equip ? `Aro ${equip === "fio" ? "FioPulse" : equip} equipado · ` : ""}${nBadges} badge${nBadges === 1 ? "" : "s"} conquistado${nBadges === 1 ? "" : "s"}</div></div></div>
     <div class="gm-h2">Decoração do avatar</div>
     <div class="gmc-decos">${decosHtml}</div>
@@ -3902,6 +3922,7 @@ const GAMI_ACOES = [
   ["documento-assinatura", "Assinar documento institucional (assinatura eletrônica)", 5],
   ["pesquisa", "Responder pesquisa de clima", 5],
   ["termo", "Primeira entrada + Termo de Adesão", 5],
+  ["foto", "Adicionar a própria foto de perfil (1x por temporada)", 5],
 ];
 const GAMI_MARCOS_DEFAULT = [25, 50, 100, 150, 200];
 
@@ -15425,7 +15446,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.65.2";
+window.CURRENT_VERSION = "1.66.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
