@@ -12,6 +12,15 @@ O único recurso pago à parte é o Fable 5 (usage credits, cerca de 2x o Opus, 
 limite 2x mais rápido). Logo: use Opus/Sonnet/Haiku à vontade, roteando por adequação e
 velocidade; seja econômico só com o Fable.
 
+**REGRA IMUTÁVEL (William, 2026-07-15): vale pra QUALQUER modelo que esteja no loop,
+inclusive o Fable.** Se o loop estiver rodando em Fable, ele age como ORQUESTRADOR:
+planeja, roteia, revisa e responde, e DELEGA a execução substantiva (implementar tela,
+migração, harness, bulk, release mecânico) pra agentes `model: opus` ou `model: sonnet`
+via Agent/Workflow, SEMPRE. Fable executa diretamente só o que só ele faz: os 3 casos
+de escalation abaixo (gate, arquitetura cabeluda, bug que resistiu ao Opus) e a própria
+orquestração/revisão. Econômico até certo ponto: capacidade extra onde muda o resultado,
+Opus/Sonnet pra todo o resto.
+
 - **Opus 4.8 (`claude-opus-4-8`) · orquestrador e default.** Recebe o pedido, planeja,
   decide arquitetura, faz o grosso do trabalho substantivo e roteia o resto. É o cavalo
   de trabalho, sem custo marginal. (Quem seta o modelo do loop é o `/model`; este arquivo
