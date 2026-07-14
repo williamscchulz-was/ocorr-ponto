@@ -40,7 +40,17 @@ valem 5. Teto realista de um colaborador engajado: ~130 pts/ano.
 - Autoavaliação de desempenho (William 2026-07-14, "esse tira fora"): avaliar a si mesmo
   por pontos distorce o propósito da avaliação. O ramo da prova segue nas rules,
   dormente (sem a chave na tabela, nenhum evento passa); voltar = recolocar na tabela.
-- "Abrir o app / login diário" — vira vigilância de presença (LGPD) e é farmável.
+- "Abrir o app / login diário" AVULSO — vigilância sem guardas. REVISTO 2026-07-14: o
+  William pediu STREAK explícito ("a cada 5 dias entrando todo dia, ganha pontos"), que
+  entrou COM guardas: doc presenca/{uid} onde a regra só aceita marcar HOJE (retroativo
+  inforjável), +1 só no dia seguinte exato, pulo obriga reset; claim streak_{diaUTC} a
+  cada múltiplo de 5 (máx 1/dia, dedup). LGPD: presença legível só pelo dono + GP (nada
+  público), vira linha do extrato como qualquer ponto, é benefício e nunca insumo
+  disciplinar, mecânica anunciada no changelog.
+  Residuais do gate delta 4, aceitos: (a) head start único de ~1 dia via console
+  (ultimoDia aceita qualquer instante das últimas 24h, não só meia-noite; a cadência
+  sustentada trava em 1/24h igual à honesta); (b) refId do claim deriva do ultimoDia
+  da presença (1 estado = 1 id; corrige o double-claim da virada UTC).
 - Assiduidade/ponto ("mês sem ocorrência") — pune indiretamente atestado/licença e
   pode gerar discussão trabalhista; SÓ com aval jurídico explícito, como fase futura.
 - **Coração e boas-vindas (gate Fable 2026-07-14, bloqueador 1)**: o mural não tem doc
@@ -103,7 +113,13 @@ contador da pesquisa de clima (batch + existsAfter + valor cravado), já auditad
 - Extrato (eventos): self-only + GP.
 - Fila de entrega da GP: derivada (totais × marcos − entregas registradas).
 - Temporada = path por ano; a virada é criar /gamificacao/2027 (sem migração).
-- PII: nenhum CPF/foto denormalizados; só nome (mesmo residual aceito no mural).
+- PII: sem CPF. Foto e decoração DENORMALIZADAS no placar com anti-spoof por igualdade
+  (== users do dono): autorização de uso de imagem de TODOS confirmada pelo William em
+  2026-07-14; o ranking mostra foto + aro de todo mundo.
+  CUSTO na mesa (gate delta 4): placar com foto integral pesa 30-100KB; ranking top10
+  ~0,5-1MB por abertura; aba da GP ~5MB. Mitigado: o claim usa update PARCIAL (foto só
+  trafega quando muda). UPGRADE recomendado pendente de decisão do William: thumbnail
+  (users.fotoThumb ~64px ~3-6KB, gerado no upload) cortaria ~95% da leitura.
 
 ## Ganchos (onde o ponto nasce, no MESMO batch da ação)
 

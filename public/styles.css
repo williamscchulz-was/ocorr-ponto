@@ -614,7 +614,17 @@ html.splash-off .splash { display: none; }
   .app--rail .sidebar-presence .sp-header { display: none; }
   .app--rail .sidebar-presence { display: flex; justify-content: center; padding: 10px 0 0; }
   .app--rail .sp-avs { padding: 0; }
+
+  /* Grupos do menu + tooltip no rail (mock aprovado 2026-07-14) */
+  .app--rail .nav__sec { font-size: 0; padding: 7px 6px; }
+  .app--rail .nav__sec::after { content: ""; display: block; height: 1px; background: rgba(255,243,230,.14); border-radius: 1px; }
+  .app--rail .nav__item::before { content: attr(aria-label); position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%) translateX(-4px); background: #14241a; color: #f2efe7; font: 600 12.5px var(--font); padding: 7px 12px; border-radius: 9px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .12s ease, transform .14s ease; z-index: 80; }
+  .app--rail .nav__item:hover::before { opacity: 1; transform: translateY(-50%) translateX(0); }
 }
+
+/* Grupos do menu + tooltip no rail (mock aprovado 2026-07-14) */
+.nav__sec { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: rgba(255,243,230,.42); padding: 14px 12px 5px; user-select: none; }
+.nav > .nav__sec:first-child { padding-top: 0; }
 
 .app__brand {
   display: flex;
@@ -1261,7 +1271,10 @@ textarea:focus-visible,
   box-shadow: 0 0 0 3px rgba(0, 136, 53, 0.10);
 }
 
-.toolbar__search .icon {
+/* Combinador ">" (não descendente): pega só a lupa, filha direta de .toolbar__search.
+   Com descendente ela também batia no X dentro de .u-clear (2 níveis abaixo) e
+   forçava position:absolute nele, desalinhando o ícone da bolinha (achado 2026-07-14). */
+.toolbar__search > .icon {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -1277,12 +1290,12 @@ textarea:focus-visible,
   transform: translateY(-50%);
   width: 24px; height: 24px;
   border: 0; border-radius: 50%;
-  display: none; align-items: center; justify-content: center;
+  display: none; place-items: center;
   background: var(--surface-warm); color: var(--text-muted);
   cursor: pointer; padding: 0;
   transition: var(--transition);
 }
-.u-clear.show { display: flex; }
+.u-clear.show { display: grid; }
 .u-clear:hover { background: var(--border-strong); color: var(--text-body); }
 .u-clear svg { width: 13px; height: 13px; }
 

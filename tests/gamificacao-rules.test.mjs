@@ -27,7 +27,7 @@ const ANO_PASSADO = String(new Date().getFullYear() - 1);
 const TABELA = {
   "cartao-ponto": 1, folha: 1, comunicado: 1, "documento-leitura": 1,
   coracao: 1, "boas-vindas": 1,
-  "documento-assinatura": 5, pesquisa: 5, autoavaliacao: 5, termo: 5, foto: 5,
+  "documento-assinatura": 5, pesquisa: 5, autoavaliacao: 5, termo: 5, foto: 5, streak: 1,
 };
 const MARCOS = [25, 50, 100, 150, 200];
 
@@ -277,6 +277,50 @@ test("entrega e imutavel; delete so admin", async () => {
   await assertFails(deleteDoc(doc(rh(), `gamificacao/${ANO}/entregas/uColab_25`)));
   await assertSucceeds(deleteDoc(doc(admin(), `gamificacao/${ANO}/entregas/uSeed_25`)));
 });
+
+// ---------- Streak de presenca (5 dias seguidos = pontos) ----------
+const hoje0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+// chave canonica derivada do ULTIMODIA gravado (meia-noite local), igual ao cliente e
+// a regra (derivar de "agora" abriria double-claim na virada UTC, gate delta 4)
+const diaUTC = () => { const h = hoje0(); return `${h.getUTCFullYear()}-${h.getUTCMonth() + 1}-${h.getUTCDate()}`; };
+test("presenca: 1o dia cria com dias=1 e ultimoDia HOJE", async () =>
+  assertSucceeds(setDoc(doc(colab(), `gamificacao/${ANO}/presenca/uColab`), { dias: 1, ultimoDia: hoje0() })));
+test("presenca: criar com dias != 1 NEGA", async () =>
+  assertFails(setDoc(doc(colab2(), `gamificacao/${ANO}/presenca/uColab2`), { dias: 5, ultimoDia: hoje0() })));
+test("presenca: marcar dia FUTURO nega (nao e hoje)", async () => {
+  const amanha = new Date(hoje0().getTime() + 24 * 3600e3);
+  await assertFails(setDoc(doc(colab2(), `gamificacao/${ANO}/presenca/uColab2`), { dias: 1, ultimoDia: amanha }));
+});
+test("presenca: dia seguinte soma +1 (seed de ontem)", async () => {
+  const ontem = new Date(hoje0().getTime() - 24 * 3600e3);
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `gamificacao/${ANO}/presenca/uColab2`), { dias: 4, ultimoDia: ontem });
+  });
+  await assertSucceeds(updateDoc(doc(colab2(), `gamificacao/${ANO}/presenca/uColab2`), { dias: 5, ultimoDia: hoje0() }));
+});
+test("presenca: pular dias e MANTER a soma nega (tem que resetar pra 1)", async () => {
+  const tresAtras = new Date(hoje0().getTime() - 3 * 24 * 3600e3);
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `gamificacao/${ANO}/presenca/uSeed2`), { dias: 7, ultimoDia: tresAtras });
+  });
+  const dbx = env.authenticatedContext("uSeed2").firestore();
+  await assertFails(updateDoc(doc(dbx, `gamificacao/${ANO}/presenca/uSeed2`), { dias: 8, ultimoDia: hoje0() }));
+  await assertSucceeds(updateDoc(doc(dbx, `gamificacao/${ANO}/presenca/uSeed2`), { dias: 1, ultimoDia: hoje0() }));
+});
+test("presenca de OUTRO uid NEGA", async () =>
+  assertFails(setDoc(doc(colab(), `gamificacao/${ANO}/presenca/uColab2`), { dias: 1, ultimoDia: hoje0() })));
+test("streak: claim no multiplo de 5 PASSA (uColab2 esta com dias=5 hoje)", async () =>
+  assertSucceeds(ganhaPonto(colab2(), "uColab2", "streak", diaUTC(), 1, { nome: "Ana" })));
+test("streak: refId que nao e o dia canonico NEGA", async () =>
+  assertFails(ganhaPonto(colab2(), "uColab2", "streak", "2026-1-1", 1, { nome: "Ana", total: 2 })));
+test("streak: dias fora do multiplo de 5 NEGA (uColab esta com dias=1)", async () =>
+  assertFails(ganhaPonto(colab(), "uColab", "streak", diaUTC(), 1, { placarDe: 29 })));
+
+// ---------- Foto denormalizada no placar (ranking com foto; autorizacao dada) ----------
+test("placar re-sincroniza foto SEM evento (igualdade com users.fotoBase64)", async () =>
+  assertSucceeds(updateDoc(doc(colab(), `gamificacao/${ANO}/pontos/uColab`), { foto: "data:image/png;base64,AAA" })));
+test("foto spoof no placar NEGA (!= users.fotoBase64)", async () =>
+  assertFails(updateDoc(doc(colab(), `gamificacao/${ANO}/pontos/uColab`), { foto: "data:image/png;base64,OUTRA" })));
 
 // ---------- Decoracao denormalizada no placar (aro visivel no ranking) ----------
 test("placar re-sincroniza decoracao SEM evento (apos equipar)", async () => {

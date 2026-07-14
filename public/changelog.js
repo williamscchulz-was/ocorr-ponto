@@ -14,7 +14,15 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.66.0", d: "14 jul 2026", current: true, items: [
+    v: "1.67.0", d: "14 jul 2026", current: true, items: [
+      { type: "high", title: "Sequencia de dias: entrar no app todo dia agora vale ponto a cada 5 dias seguidos. Transparencia: o registro da sua presenca e visivel so pra voce e pra GP, e nunca e usado pra outra coisa." },
+      { type: "feat", title: "O ranking agora mostra a foto de todo mundo no podio (uso de imagem autorizado por todos). E as medalhas de tempo de casa vao ate 30 anos, com as suas conquistas separadas das que estao em andamento." },
+      { type: "feat", title: "Medalhas de coracao e de boas-vindas redesenhadas, com mais capricho." },
+      { type: "med", aud: "gestor", title: "Menu lateral organizado em grupos (Ponto, Equipe, Comunicacao, Sistema) e, no modo recolhido, o nome do item aparece ao passar o mouse. O X da busca tambem foi alinhado." },
+    ],
+  },
+  {
+    v: "1.66.0", d: "14 jul 2026", items: [
       { type: "feat", title: "Adicionar a sua propria foto de perfil agora vale ponto na temporada (uma vez por ano). E a sua foto aparece com o aro no seu perfil de Conquistas e no ranking." },
       { type: "fix", title: "Pontos retroativos mais confiaveis: a tela Conquistas re-verifica seus creditos a cada abertura (e nao so na primeira), inclusive quando a GP muda os valores no meio do caminho." },
     ],
