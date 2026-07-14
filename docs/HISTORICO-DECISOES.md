@@ -2740,3 +2740,37 @@ detalhe. Perguntei ao William o que exatamente ele quis dizer antes de investiga
 
 Ambos os fixes (1 e 2) são só do lado do pipeline — zero mudança necessária no PC além do que já
 subiu hoje.
+
+## 2026-07-14 — Auditoria completa do flicker: >150 pontos, confirmado arquitetural
+
+William pediu explicitamente ("manda ele auditar tudo, não pode acontecer em lugar algum")
+depois do flicker do `renderApp()` (causa raiz achada 09/07) reaparecer na curtida do card
+"Chegaram há pouco". Rodei workflow com 4 buscas em paralelo (todos os call sites de
+`renderApp()`, todos os `onSnapshot`, todos os padrões de preenchimento assíncrono, todos os
+valores calculados no cliente) + síntese, em vez de investigar só o sintoma pontual.
+
+**Escala real (14/07):** ~131 chamadas diretas a `renderApp()` (cresceu 65% desde os ~79 de
+09/07 — features novas pós-fix nascem vulneráveis por padrão), 4 `onSnapshot` (não 6, correção
+de um comentário informal antigo), 2 funções de preenchimento assíncrono cobrindo 4 pontos de
+injeção (2 novos), ~14 famílias de valor calculado no cliente recriadas a cada render. Mais de
+150 pontos de código distintos, concentrados nas 2 telas mais visitadas (Home colaborador +
+Visão Geral gestor).
+
+**Achado crítico:** o fix de 09/07 (coalescer `renderApp()` via `requestAnimationFrame`,
+commit e3cbe95) está em produção e funciona — mas só resolve rajadas de boot. Não ajuda em
+NENHUM gatilho isolado, incluindo o mais provável causador do sintoma de hoje:
+`refetchAoFoco()` (firebase.js:3635-3651, disparado por `visibilitychange`/`focus` — minimizar
+e voltar o app) termina sempre com `renderApp()` isolado, sem checar se a página atual precisa
+do dado. Também descoberto: 2 dos 4 `onSnapshot` (ocorrências/ocorrencias-auto) **bypassam
+totalmente** o fix de 09/07, chamando `renderDashboard()` direto e síncrono.
+
+**Recomendação enviada ao PC:** 2 frentes em paralelo — mitigação imediata (cache nos pontos de
+preenchimento assíncrono, estender o coalescer pros onSnapshot de ocorrências, refetchAoFoco
+checar necessidade antes de renderizar) + correção estrutural (diffing seletivo/granular no
+mecanismo central de render, único fix que remove a POSSIBILIDADE do bug em vez de perseguir
+instâncias catalogadas — é o que de fato cumpre "não pode acontecer em lugar algum", porque
+protege automaticamente qualquer tela nova).
+
+Missão completa mandada via bridge (`2026-07-14d-auditoria-completa-flicker-renderapp.md`).
+Nada implementado por mim — é código de vocês (app.js/firebase.js), e mexer no mecanismo central
+de render pede o mesmo gate do Fable que o fix de 09/07 teve.
