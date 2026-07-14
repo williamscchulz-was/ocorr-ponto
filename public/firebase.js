@@ -1152,6 +1152,7 @@
           userAgent: String(navigator.userAgent || "").slice(0, 200),
         });
         window.logEvento?.({ tipo: "ciencias", acao: opts.confirmar ? "Confirmou ciência de comunicado" : "Visualizou comunicado", alvo: ((state.comunicadosColab || []).find((x) => x.id === comunicadoId)?.titulo || comunicadoId) });
+        window.gamiClaim?.("comunicado", comunicadoId, "Comunicado: " + ((state.comunicadosColab || []).find((x) => x.id === comunicadoId)?.titulo || "")); // pos-acao, nunca bloqueia
         return { ok: true };
       } catch (e) {
         return { ok: false, err: e.message };
@@ -1419,6 +1420,14 @@
       b.update(p.collection("meta").doc("contador"), { n: _FV.increment(1) });
       await b.commit();
       // Proposital: NENHUM registrarAuditoria/logEvento aqui (anonimato).
+      // Gamificacao: o ponto NUNCA nasce neste batch (a regra exige recibo PRE-existente;
+      // no mesmo commit, o par de timestamps desanonimizaria a resposta -- gate Fable).
+      // Fica a pendencia LOCAL: o catch-up reivindica na proxima abertura, mesmo que a
+      // pesquisa ja tenha encerrado (a lista do colab so ve abertas).
+      try {
+        const pend = JSON.parse(localStorage.getItem("gamiPesqPend") || "[]");
+        if (!pend.includes(pid)) { pend.push(pid); localStorage.setItem("gamiPesqPend", JSON.stringify(pend)); }
+      } catch { /* sem espaco/lixo local: o catch-up das abertas cobre */ }
     };
 
     // Gestor: todas as pesquisas (config).
@@ -1531,6 +1540,10 @@
       if (payload && payload.comentarios && Object.keys(payload.comentarios).length) data.comentarios = payload.comentarios;
       if (payload && payload.feedbackGeral) data.feedbackGeral = String(payload.feedbackGeral).slice(0, 2000);
       await _dsmp().doc(cicloId).collection("avaliacoes").doc(id).set(data);
+      if (papel === "auto" && concluir) {
+        const nomeCiclo = ((state.ciclosDesempenhoColab || []).find((c) => c.id === cicloId) || {}).nome || "";
+        window.gamiClaim?.("autoavaliacao", cicloId, "Autoavaliação: " + nomeCiclo);
+      }
       return id;
     };
 
@@ -1651,6 +1664,167 @@
       return false;
     };
 
+    // ===== GAMIFICACAO (cliente). Rules deployadas (tests/gamificacao-rules.test.mjs,
+    // gate Fable 2026-07-14). O claim do ponto NUNCA participa da acao principal:
+    // roda DEPOIS, em batch proprio (a regra aceita prova pre-existente), e toda
+    // falha e silenciosa -- o debito legitimo fica pro catch-up. Dedup e da REGRA
+    // (id deterministico); o cliente so evita writes fadados a negar. =====
+    const _gamiAno = () => String(new Date().getFullYear());
+    const _gami = () => db.collection("gamificacao").doc(_gamiAno());
+
+    // Config da temporada (cache de sessao). null = sem temporada -> feature dormente.
+    window.carregarGamiConfig = async function (force) {
+      if (state.gamiConfig !== undefined && !force) return state.gamiConfig;
+      try {
+        const s = await _gami().get();
+        state.gamiConfig = s.exists ? { ano: _gamiAno(), ...s.data() } : null;
+      } catch (e) { debug?.("[gami] config:", e?.code || e?.message); state.gamiConfig = null; }
+      return state.gamiConfig;
+    };
+
+    // Credita 1 acao: evento {acao}_{refId} + placar no MESMO batch (total exato,
+    // exigido pela regra). Retorna true se creditou; false por qualquer motivo
+    // (sem sessao, temporada inativa, acao fora da tabela, dedup, prova negada).
+    window.gamiClaim = async function (acao, refId, rotulo) {
+      try {
+        const user = auth.currentUser;
+        const u = currentUser();
+        if (!user || !u || u.role !== "colaborador" || !refId) return false;
+        const cfg = await window.carregarGamiConfig();
+        if (!cfg || cfg.ativa !== true) return false;
+        const pontos = Number(cfg.tabela && cfg.tabela[acao]);
+        if (!Number.isInteger(pontos) || pontos <= 0) return false;
+        const eid = `${acao}_${refId}`;
+        if ((state.gamiExtrato || []).some((e) => e.id === eid)) return false; // ja creditado (economia; o dedup real e da regra)
+        const meuRef = _gami().collection("pontos").doc(user.uid);
+        const atual = await meuRef.get();
+        const total = (atual.exists ? Number(atual.data().total) || 0 : 0) + pontos;
+        const b = db.batch();
+        const ev = { acao, refId, pontos, em: _FV.serverTimestamp() };
+        if (rotulo) ev.rotulo = String(rotulo).slice(0, 140);
+        b.set(meuRef.collection("eventos").doc(eid), ev);
+        b.set(meuRef, { total, nome: String(u.nome || "").slice(0, 120), ultimoEvento: eid });
+        await b.commit();
+        state.gamiMeu = { total, nome: u.nome, ultimoEvento: eid };
+        if (state.gamiExtrato) state.gamiExtrato.unshift({ id: eid, ...ev, em: new Date().toISOString() });
+        return true;
+      } catch (e) { debug?.("[gami] claim", acao, refId, ":", e?.code || e?.message); return false; }
+    };
+
+    // Home do colab (boot): config + meu placar (2 leituras; o resto e da tela).
+    window.carregarGamiHome = async function () {
+      const user = auth.currentUser;
+      if (!user) return;
+      const cfg = await window.carregarGamiConfig();
+      if (!cfg) return;
+      try {
+        const s = await _gami().collection("pontos").doc(user.uid).get();
+        state.gamiMeu = s.exists ? s.data() : { total: 0 };
+      } catch (e) { debug?.("[gami] placar:", e?.code || e?.message); }
+    };
+
+    // Tela Conquistas: extrato + entregas (premios revelados) + ranking top 10.
+    window.carregarGamificacaoColab = async function () {
+      const user = auth.currentUser;
+      if (!user) return null;
+      const cfg = await window.carregarGamiConfig();
+      if (!cfg) { state.gamiMeu = null; return null; }
+      const meuRef = _gami().collection("pontos").doc(user.uid);
+      try {
+        const [meu, extr, entr, top] = await Promise.all([
+          meuRef.get(),
+          meuRef.collection("eventos").get(),
+          _gami().collection("entregas").where("uid", "==", user.uid).get(),
+          _gami().collection("pontos").orderBy("total", "desc").limit(10).get(),
+        ]);
+        state.gamiMeu = meu.exists ? meu.data() : { total: 0 };
+        state.gamiExtrato = extr.docs
+          .map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }))
+          .sort((a, b) => String(b.em || "").localeCompare(String(a.em || "")));
+        state.gamiEntregas = entr.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
+        state.gamiTop = top.docs.map((d, i) => ({ uid: d.id, pos: i + 1, ...d.data() }));
+      } catch (e) { debug?.("[gami] colab:", e?.code || e?.message); }
+      return state.gamiMeu;
+    };
+
+    // Catch-up: credita acoes do ANO ja feitas e ainda sem evento (retroativo do
+    // lancamento da feature, claim ADIADO da pesquisa, acao feita noutro aparelho).
+    // Roda com o extrato carregado (tela Conquistas). Sequencial de proposito: cada
+    // claim le o total corrente. So provas com 'em' do servidor entram (decisao do
+    // gate: minhaLeitura/minhaAssinatura do state vem do boot, que le o servidor).
+    window.gamiCatchUp = async function () {
+      const user = auth.currentUser;
+      if (!user || !state.gamiConfig || state.gamiConfig.ativa !== true) return false;
+      const anoOk = (iso) => iso && String(iso).slice(0, 4) === _gamiAno();
+      const pend = [];
+      for (const c of state.comunicadosColab || [])
+        if (c.minhaLeitura && anoOk(c.minhaLeitura.em)) pend.push(["comunicado", c.id, "Comunicado: " + (c.titulo || "")]);
+      for (const d of state.documentosColab || []) {
+        if (d.minhaLeitura && d.minhaLeitura.confirmado === true && anoOk(d.minhaLeitura.em)) pend.push(["documento-leitura", d.id, "Leitura confirmada: " + (d.titulo || "documento")]);
+        if (d.minhaAssinatura && anoOk(d.minhaAssinatura.em)) pend.push(["documento-assinatura", d.id, "Assinou: " + (d.titulo || "documento")]);
+      }
+      for (const r of state.meusRecibos || [])
+        if (r.minhaAssinatura && anoOk(r.minhaAssinatura.em))
+          pend.push([r.tipo === "cartao-ponto" ? "cartao-ponto" : "folha", r.id, (r.tipo === "cartao-ponto" ? "Cartão ponto " : "Folha de pagamento ") + (r.competencia || "")]);
+      for (const p of state.pesquisasClimaColab || [])
+        if (p.jaRespondi) pend.push(["pesquisa", p.id, "Pesquisa de clima: " + (p.titulo || "")]);
+      // pendencias locais de pesquisa (a lista do colab so ve as ABERTAS; o pid fica
+      // guardado na hora da resposta pra reivindicar mesmo depois de encerrada)
+      let pesqLocal = [];
+      try { pesqLocal = JSON.parse(localStorage.getItem("gamiPesqPend") || "[]"); } catch { /* lixo local */ }
+      for (const pid of pesqLocal) pend.push(["pesquisa", pid, "Pesquisa de clima"]);
+      for (const c of state.ciclosDesempenhoColab || [])
+        if (c.minhaAuto && c.minhaAuto.status === "concluida") pend.push(["autoavaliacao", c.id, "Autoavaliação: " + (c.nome || "")]);
+      if (state.termoAdesaoOk === true) pend.push(["termo", user.uid, "Termo de Adesão à assinatura eletrônica"]);
+      let creditou = false;
+      for (const [acao, refId, rotulo] of pend) {
+        if ((state.gamiExtrato || []).some((e) => e.id === `${acao}_${refId}`)) continue;
+        if (await window.gamiClaim(acao, refId, rotulo)) creditou = true;
+      }
+      // limpa do local o que ja consta no extrato (creditado agora ou antes)
+      if (pesqLocal.length) {
+        const resta = pesqLocal.filter((pid) => !(state.gamiExtrato || []).some((e) => e.id === `pesquisa_${pid}`));
+        try { localStorage.setItem("gamiPesqPend", JSON.stringify(resta)); } catch { /* sem espaco */ }
+      }
+      return creditou;
+    };
+
+    // ----- Gestor (cap gamificacao.gerenciar) -----
+    window.salvarGamiConfig = async function (tabela, marcos, ativa) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      await _gami().set({
+        tabela, marcos, ativa: !!ativa,
+        atualizadoEm: _FV.serverTimestamp(), atualizadoPor: uid,
+      });
+      state.gamiConfig = { ano: _gamiAno(), tabela, marcos, ativa: !!ativa };
+    };
+    window.carregarGamiPremios = async function () {
+      try { const s = await _gami().collection("privado").doc("premios").get(); return s.exists ? s.data() : {}; }
+      catch (e) { debug?.("[gami] premios:", e?.code || e?.message); return null; }
+    };
+    window.salvarGamiPremios = async function (premios) {
+      await _gami().collection("privado").doc("premios").set(premios);
+    };
+    // Ranking completo + entregas (fila de premiacao da GP).
+    window.carregarGamiGestor = async function () {
+      try {
+        const [pts, entr] = await Promise.all([
+          _gami().collection("pontos").orderBy("total", "desc").get(),
+          _gami().collection("entregas").get(),
+        ]);
+        state.gamiRanking = pts.docs.map((d, i) => ({ uid: d.id, pos: i + 1, ...d.data() }));
+        state.gamiEntregasTodas = entr.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
+      } catch (e) { debug?.("[gami] gestor:", e?.code || e?.message); state.gamiRanking = []; state.gamiEntregasTodas = []; }
+    };
+    window.registrarGamiEntrega = async function (uidAlvo, marco, premio) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      await _gami().collection("entregas").doc(`${uidAlvo}_${marco}`).set({
+        uid: uidAlvo, marco: Number(marco), premio: String(premio || "").slice(0, 200),
+        em: _FV.serverTimestamp(), porUid: uid,
+      });
+      window.registrarAuditoria?.({ tipo: "gamificacao", acao: `Entregou prêmio do marco ${marco}`, alvo: uidAlvo });
+    };
+
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
       const u = currentUser();
       const seg = dados.segmento || { tipo: "todos", valores: [] };
@@ -1763,6 +1937,9 @@
         if (snap.exists) return { ok: true };
         await ref.set({ uid, funcionarioId: (u && u.funcionarioId) || null, confirmado: !!opts.confirmar, em: firebase.firestore.FieldValue.serverTimestamp(), userAgent: String(navigator.userAgent || "").slice(0, 200) });
         window.logEvento?.({ tipo: "ciencias", acao: opts.confirmar ? "Confirmou leitura de documento" : "Visualizou documento", alvo: ((state.documentosColab || []).find((x) => x.id === docId)?.titulo || docId) });
+        // Ponto so no aceite RECEM-GRAVADO por este caminho (confirmado true no servidor);
+        // o early-return acima nunca reivindica, o catch-up cobre com o valor do boot.
+        if (opts.confirmar) window.gamiClaim?.("documento-leitura", docId, "Leitura confirmada: " + ((state.documentosColab || []).find((x) => x.id === docId)?.titulo || "documento"));
         return { ok: true };
       } catch (e) { return { ok: false, err: e.message }; }
     };
@@ -2036,6 +2213,7 @@
       r.minhaAssinatura = { uid: user.uid, em: new Date().toISOString(), arquivoPath, geo };
       window.logEvento?.({ tipo: "recibos", acao: "Assinou", alvo: `${r.tipo} · ${r.competencia}` });
       window.registrarAuditoria?.({ tipo: "recibos", acao: "Assinou recibo (carimbado no arquivo)", alvo: `${r.funcionarioNome || r.funcionarioId} · ${r.tipo} · ${r.competencia}` });
+      window.gamiClaim?.(r.tipo === "cartao-ponto" ? "cartao-ponto" : "folha", reciboId, (r.tipo === "cartao-ponto" ? "Cartão ponto " : "Folha de pagamento ") + (r.competencia || ""));
       return { ok: true, arquivoPath };
     };
 
@@ -2098,6 +2276,7 @@
       d.minhaAssinatura = { uid: user.uid, versaoAssinada: versaoDoDocumento, em: new Date().toISOString(), arquivoPath, geo, hashSha256: hashOriginal || "", aceiteTexto };
       window.logEvento?.({ tipo: "ciencias", acao: "Assinou documento", alvo: (d.titulo || docId) + " v" + versaoDoDocumento });
       window.registrarAuditoria?.({ tipo: "documento", acao: "Assinou documento (carimbado)", alvo: (d.titulo || docId) + " v" + versaoDoDocumento });
+      window.gamiClaim?.("documento-assinatura", docId, "Assinou: " + (d.titulo || "documento"));
       return { ok: true, arquivoPath };
     };
 
@@ -2230,6 +2409,7 @@
         });
         state.termoAdesaoOk = true;
         window.logEvento?.({ tipo: "acessos", acao: "Aderiu à assinatura eletrônica", alvo: `termo ${TERMO_VERSAO}` });
+        window.gamiClaim?.("termo", user.uid, "Termo de Adesão à assinatura eletrônica");
         return { ok: true };
       } catch (e) {
         // create-only: doc já existe (aceitou num acesso anterior) → já ok, não quebra.
@@ -3524,6 +3704,8 @@
       // Ciclos de avaliacao de desempenho do segmento (ativos = autoavaliar,
       // encerrados = resultado). Mesma tolerancia a falha do clima.
       try { await window.carregarCiclosDesempenhoColab(); } catch (e) { debug?.("[colab] desempenho:", e?.message || e); state.ciclosDesempenhoColab = []; }
+      // Gamificacao: config + meu placar (alimenta o card da home; a tela carrega o resto).
+      try { await window.carregarGamiHome(); } catch (e) { debug?.("[colab] gami:", e?.message || e); }
       })(),
       (async () => {
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.

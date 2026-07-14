@@ -61,7 +61,9 @@ before(async () => {
     await setDoc(doc(db, "comunicados/com2"), { autorUid: "uRh", ativo: true, segmento: { tipo: "todos", valores: [] }, publicadoEm: new Date() });
     await setDoc(doc(db, "comunicados/com2/leituras/uColab2"), { uid: "uColab2", em: new Date() });
     await setDoc(doc(db, "documentos/doc1"), { escopo: "institucional", status: "publicado", segmento: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
-    await setDoc(doc(db, "documentos/doc1/aceites/uColab"), { uid: "uColab", em: new Date() });
+    await setDoc(doc(db, "documentos/doc1/leituras/uColab"), { uid: "uColab", confirmado: true, em: new Date() });
+    await setDoc(doc(db, "documentos/doc3"), { escopo: "institucional", status: "publicado", segmento: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
+    await setDoc(doc(db, "documentos/doc3/leituras/uColab"), { uid: "uColab", confirmado: false, em: new Date() });
     await setDoc(doc(db, "documentos/doc2"), { escopo: "institucional", status: "publicado", segmento: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date(), versao: 1 });
     await setDoc(doc(db, "documentos/doc2/assinaturas/uColab"), { uid: "uColab", versaoAssinada: 1, em: new Date() });
     await setDoc(doc(db, "muralAniversario/aniv-joao-2026/reacoes/uColab"), { uid: "uColab", tipo: "coracao", autorNome: "Maria", em: new Date() });
@@ -126,8 +128,10 @@ test("folha: assinatura do recibo tipo recibo prova (+1)", async () =>
   assertSucceeds(ganhaPonto(colab(), "uColab", "folha", "r-fl", 1, { placarDe: 1 })));
 test("comunicado: leitura prova (+1)", async () =>
   assertSucceeds(ganhaPonto(colab(), "uColab", "comunicado", "com1", 1, { placarDe: 2, rotulo: "Ciência do comunicado" })));
-test("documento-leitura: aceite prova (+1)", async () =>
+test("documento-leitura: leitura CONFIRMADA prova (+1)", async () =>
   assertSucceeds(ganhaPonto(colab(), "uColab", "documento-leitura", "doc1", 1, { placarDe: 3 })));
+test("documento-leitura NAO confirmada (so visualizou) NEGA", async () =>
+  assertFails(ganhaPonto(colab(), "uColab", "documento-leitura", "doc3", 1, { placarDe: 3 })));
 test("documento-assinatura: assinatura prova (+5)", async () =>
   assertSucceeds(ganhaPonto(colab(), "uColab", "documento-assinatura", "doc2", 5, { placarDe: 4 })));
 test("pesquisa: recibo PRE-existente do clima prova (+5, sem tocar na resposta)", async () =>

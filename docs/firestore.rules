@@ -1178,8 +1178,17 @@ service cloud.firestore {
                      && get(/databases/$(database)/documents/recibos/$(refId)).data.tipo != 'cartao-ponto')
               || (acao == 'comunicado'
                      && getAfter(/databases/$(database)/documents/comunicados/$(refId)/leituras/$(uid)).data.em.year() == request.time.year())
+              // O aceite REAL do app vive em leituras/{uid} com confirmado == true (a
+              // subcolecao aceites/ da regra existe mas o front nunca a usou); provar
+              // por aceites/ seria provar um doc que nunca nasce. Mesma classe do
+              // comunicado ja aprovada no gate: em e server-time gravado pelo cliente,
+              // forjar em leitura nova nao rende alem do ponto legitimo (create-only).
+              // ponytail: se o front da task 72 migrar o aceite pra aceites/{uid}, este
+              // ramo ganha o OR do aceites (aditivo; o id deterministico do evento
+              // impede double-claim pelas duas provas). NAO "consertar" de volta antes.
               || (acao == 'documento-leitura'
-                     && getAfter(/databases/$(database)/documents/documentos/$(refId)/aceites/$(uid)).data.em.year() == request.time.year())
+                     && getAfter(/databases/$(database)/documents/documentos/$(refId)/leituras/$(uid)).data.confirmado == true
+                     && getAfter(/databases/$(database)/documents/documentos/$(refId)/leituras/$(uid)).data.em.year() == request.time.year())
               || (acao == 'documento-assinatura'
                      && getAfter(/databases/$(database)/documents/documentos/$(refId)/assinaturas/$(uid)).data.em.year() == request.time.year())
               || (acao == 'pesquisa'
