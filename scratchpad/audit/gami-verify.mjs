@@ -109,10 +109,12 @@ async function abrir(viewport, quem) {
     medalhas: document.querySelectorAll("#view .gqb").length,
     medalhsLock: document.querySelectorAll("#view .gqb.lock").length,
     svgs: document.querySelectorAll("#view .gqb__art svg").length,
+    secoes: Array.from(document.querySelectorAll("#view .gm-h2")).map((h) => h.textContent.trim()),
   }));
   ok("hero de perfil", r.perfil);
   ok("6 cards de decoracao", r.decos === 6);
-  ok("medalhas renderizadas (11 com svg)", r.medalhas === 11 && r.svgs === 11);
+  ok("medalhas renderizadas (15 com svg)", r.medalhas === 15 && r.svgs === 15);
+  ok("secoes Conquistadas + Em andamento", r.secoes.some((s) => s.startsWith("Conquistadas")) && r.secoes.includes("Em andamento"));
   // equipa o aro ouro (desbloqueado com 112 pts)
   await p.evaluate(() => document.querySelector('[data-gami-deco="ouro"]').click());
   await p.waitForTimeout(600);
@@ -171,7 +173,7 @@ async function abrir(viewport, quem) {
     ativa: document.querySelector("#gami-ativa")?.checked,
   }));
   ok("item Gamificação na sidebar", r.navItem);
-  ok("7 acoes editaveis (autoavaliacao fora, William 2026-07-14)", r.acoes === 7);
+  ok("9 acoes editaveis (foto e streak entraram, autoavaliacao fora)", r.acoes === 9);
   ok("5 marcos + 5 premios", r.marcos === 5 && r.premios === 5);
   ok("premio do 25 pre-carregado", r.premioValor === "Caneca da firma");
   ok("toggle temporada ativa marcado", r.ativa === true);

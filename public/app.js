@@ -1826,6 +1826,8 @@ if (!window._colabDocBound) {
     if (lr) { e.preventDefault(); const lid = lr.dataset.colabLerdoc; withBusy("lerdoc:" + lid, lr, () => colabLerDocUI(lid)); return; }
     const bh = e.target.closest("[data-bday-heart]");
     if (bh) { e.preventDefault(); onParabenizar(bh); return; }
+    const bv = e.target.closest("[data-bv-hand]");
+    if (bv) { e.preventDefault(); onBoasVindas(bv); return; }
   });
 }
 
@@ -1997,6 +1999,36 @@ function aniversarianteHojeHtml(meuNome) {
         <div class="pp-bday__stack" data-bday-stack></div>
       </div>
       <button class="pp-bday__heart" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="0" data-bday-mine="0" aria-pressed="false" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(false)}</button>
+    </div>`;
+  }).join("");
+}
+
+// Boas-vindas aos recem-chegados na home do COLABORADOR (paridade com o card do
+// gestor). Fonte: config/aniversariantes.recemChegados [{nome, admissao, setor}],
+// populado pelo pipeline (missao no bridge 2026-07-14); sem o campo, o card nao
+// existe (dormente). Reusa a anatomia .pp-bday e a liturgia bv- do mural
+// (preencherCardsBoasVindas/onBoasVindas ja operam por [data-bv-post] no DOM).
+function colabBoasVindasHtml(meuNome) {
+  const rec = (state.aniversariantes && Array.isArray(state.aniversariantes.recemChegados))
+    ? state.aniversariantes.recemChegados : [];
+  if (!rec.length) return "";
+  const eu = _normNome(meuNome);
+  const hoje = Date.now();
+  return rec.map((p) => {
+    const nome = String(p.nome || "").trim();
+    if (!nome) return "";
+    const souEu = eu && _normNome(nome) === eu;
+    const primeiro = nome.split(/\s+/)[0];
+    const adm = tsParaData(p.admissao);
+    const dias = adm ? Math.max(1, Math.round((hoje - adm.getTime()) / 864e5)) : null;
+    const post = bvPostId(nome, p.admissao);
+    return `<div class="pp-bday" data-bv-post="${escapeHtml(post)}">
+      <div class="pp-bday__ic">${cpIcon("users")}</div>
+      <div class="pp-bday__bd">
+        <div class="pp-bday__t">${escapeHtml(primeiro)} entrou pra equipe${p.setor ? ` (${escapeHtml(p.setor)})` : ""}${dias ? `, há ${dias} dia${dias > 1 ? "s" : ""}` : ""}</div>
+        <div class="pp-bday__s" data-bv-count>...</div>
+      </div>
+      ${souEu ? "" : `<button class="pp-bday__heart" type="button" data-bv-hand aria-pressed="false" aria-label="Dar as boas-vindas a ${escapeHtml(primeiro)}">${_bvHand(false)}</button>`}
     </div>`;
   }).join("");
 }
@@ -2313,7 +2345,8 @@ function gamiMedalSvg(mat, inner) {
   const g = "gmg" + (++_gamiSvgSeq);
   return `<svg viewBox="0 0 80 94" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
-    <linearGradient id="${g}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a9642"/><stop offset="1" stop-color="#046a2c"/></linearGradient></defs>
+    <linearGradient id="${g}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a9642"/><stop offset="1" stop-color="#046a2c"/></linearGradient>
+    <linearGradient id="${g}w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9edf2"/></linearGradient></defs>
     <path d="M28 50 L28 90 L40 80 L52 90 L52 50 Z" fill="url(#${g}f)"/>
     <path d="M28 50 L28 90 L40 80 L52 90 L52 50 Z" fill="#000" opacity=".08"/>
     <circle cx="40" cy="38" r="30" fill="url(#${g})"/>
@@ -2321,11 +2354,13 @@ function gamiMedalSvg(mat, inner) {
     <circle cx="40" cy="38" r="22.5" fill="url(#${g})" stroke="${hl}" stroke-width="1.7"/>
     <path d="M22 22 A25 25 0 0 1 50 14.5" stroke="#fff" stroke-width="3.4" fill="none" opacity=".38" stroke-linecap="round"/>
     <circle cx="40" cy="9.5" r="1.6" fill="${hl}"/><circle cx="14" cy="27" r="1.3" fill="${hl}" opacity=".8"/><circle cx="66.5" cy="30" r="1.3" fill="${hl}" opacity=".8"/>
-    ${inner}</svg>`;
+    ${inner.replaceAll("__W__", g + "w")}</svg>`;
 }
 const gamiInnerNum = (n, rot) => `<text x="40" y="42" text-anchor="middle" font-size="${String(n).length > 1 ? 19 : 22}" font-weight="800" font-family="Poppins, sans-serif" fill="#fff">${n}</text><text x="40" y="52.5" text-anchor="middle" font-size="7.2" font-weight="700" letter-spacing="1" font-family="Poppins, sans-serif" fill="#fff" opacity=".85">${rot}</text>`;
-const GAMI_HEART = '<path d="M40 50.5s-11.5-6.7-15.1-14.3c-2.3-4.8.3-10 5.3-10 3 0 5 1.8 6 3.4 1-1.6 3-3.4 6-3.4 5 0 7.6 5.2 5.3 10C51.5 43.8 40 50.5 40 50.5z" fill="#fff"/>';
-const GAMI_HAND = '<g fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(28.5,26) scale(0.96)"><path d="M10.5 9V4.5a1.9 1.9 0 0 0-3.8 0V9M6.7 8.5V3a1.9 1.9 0 0 0-3.8 0v6"/><path d="M14.3 9.2V6a1.9 1.9 0 0 1 3.8 0v6.3c0 4.6-3.3 7.7-7.6 7.7h-1.4c-2.5 0-4-.8-5.4-2.1L.6 14.8a1.85 1.85 0 0 1 2.6-2.6l1.5 1.4"/><path d="M10.5 9V4.7"/></g>';
+// Coracao e mao REDESENHADOS (William 2026-07-14, "com muito carinho"): silhueta
+// solida com gradiente branco (volume) + brilho no lobulo, legiveis em 62px.
+const GAMI_HEART = '<path d="M40 49 C35.6 45.9 28.8 41 26.9 34.6 C25.4 29.5 28.4 25 33 25 C36 25 38.3 26.8 40 29.7 C41.7 26.8 44 25 47 25 C51.6 25 54.6 29.5 53.1 34.6 C51.2 41 44.4 45.9 40 49 Z" fill="url(#__W__)"/><path d="M40 49 C35.6 45.9 28.8 41 26.9 34.6 C25.4 29.5 28.4 25 33 25 C36 25 38.3 26.8 40 29.7 C41.7 26.8 44 25 47 25 C51.6 25 54.6 29.5 53.1 34.6 C51.2 41 44.4 45.9 40 49 Z" fill="none" stroke="#00000022" stroke-width=".8"/><ellipse cx="33.4" cy="30.6" rx="2.7" ry="3.5" fill="#fff" transform="rotate(-24 33.4 30.6)"/>';
+const GAMI_HAND = '<path d="M32.6 45.6 c-2.6-2.4-5.2-6-6-8.2 -.6-1.7.9-3.2 2.6-2.7 1 .3 2.1 1.1 3.3 2.4 l.9 1 V27.4 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V25.6 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V26.8 a2.15 2.15 0 0 1 4.3 0 V34 h1.2 V29.6 a2.05 2.05 0 0 1 4.1 0 V38.6 c0 5.4-3.7 9.6-9.1 9.6 h-3.2 c-2.4 0-4.5-.9-6.1-2.6 z" fill="url(#__W__)"/><path d="M32.6 45.6 c-2.6-2.4-5.2-6-6-8.2 -.6-1.7.9-3.2 2.6-2.7 1 .3 2.1 1.1 3.3 2.4 l.9 1 V27.4 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V25.6 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V26.8 a2.15 2.15 0 0 1 4.3 0 V34 h1.2 V29.6 a2.05 2.05 0 0 1 4.1 0 V38.6 c0 5.4-3.7 9.6-9.1 9.6 h-3.2 c-2.4 0-4.5-.9-6.1-2.6 z" fill="none" stroke="#00000022" stroke-width=".8"/>';
 const GAMI_CHAT = '<path d="M53 36.2a11.7 11.7 0 0 1-1.25 5.3 11.85 11.85 0 0 1-10.6 6.55 11.7 11.7 0 0 1-5.3-1.25L28 49.5l2.65-7.95a11.7 11.7 0 0 1-1.25-5.3 11.85 11.85 0 0 1 6.55-10.6 11.7 11.7 0 0 1 5.3-1.25h.7A11.82 11.82 0 0 1 53 35.55z" fill="#fff"/><circle cx="36" cy="36.5" r="1.6" fill="#1a63a8"/><circle cx="41.5" cy="36.5" r="1.6" fill="#1a63a8"/><circle cx="47" cy="36.5" r="1.6" fill="#1a63a8"/>';
 const GAMI_CHECK = '<path d="M29 38.5 L37 46.5 L52 29" fill="none" stroke="#fff" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>';
 function gamiCoroaSvg() {
@@ -2471,7 +2506,8 @@ function gamiTabPontosHtml(cfg) {
     if (!p) return "";
     const rei = i === 1;
     const eu = p.uid === meuUid;
-    return `<div class="gm-pod__c${rei ? " p1" : ""}">${gamiGavHtml(gamiIniciais(p.nome), p.decoracao || "", { coroa: rei, foto: eu ? minhaFoto : "" })}
+    // foto de TODOS no podio (denormalizada no placar; autorizacao de imagem 2026-07-14)
+    return `<div class="gm-pod__c${rei ? " p1" : ""}">${gamiGavHtml(gamiIniciais(p.nome), p.decoracao || "", { coroa: rei, foto: p.foto || (eu ? minhaFoto : "") })}
         <b>${escapeHtml((eu ? "Você" : gamiAbrevia(p.nome)) + (rei ? " · Rei dos pontos" : ""))}</b><span>${Number(p.total) || 0} pts</span></div>`;
   }).join("");
   const linhas = top.slice(3).map((p) => `<div class="gm-toprow${p.uid === meuUid ? " me" : ""}"><span class="pos">${p.pos}</span><span class="nm">${escapeHtml(p.uid === meuUid ? `Você (${String(p.nome || "").split(" ")[0]})` : p.nome)}</span><span class="pt">${Number(p.total) || 0}</span></div>`).join("");
@@ -2489,7 +2525,8 @@ function gamiTabPontosHtml(cfg) {
     <div class="gm-h2">Top 10 da Fiobras</div>
     ${top.length ? `<div class="gm-pod">${podioHtml}</div>${linhas ? `<div class="gm-top">${linhas}</div>` : ""}${naLista ? "" : `<p class="gmc-nota">Você tem ${total} pts. Continue participando pra entrar no top 10.</p>`}` : `<p class="gmc-nota">O ranking aparece quando os primeiros pontos da temporada nascerem.</p>`}
     <div class="gm-h2">Como você pontuou</div>
-    ${extrato || `<p class="gmc-nota">Suas ações no portal (assinaturas, ciências, pesquisas) viram pontos aqui.</p>`}`;
+    ${extrato || `<p class="gmc-nota">Suas ações no portal (assinaturas, ciências, pesquisas) viram pontos aqui.</p>`}
+    ${Number(cfg.tabela && cfg.tabela.streak) > 0 ? `<p class="gmc-nota">Transparência: sua sequência de dias entrando no app conta pontos a cada 5 dias seguidos. O registro de presença é visível só pra você e pra GP, e nunca é usado pra outra coisa.</p>` : ""}`;
 }
 
 function gamiTabBadgesHtml(cfg) {
@@ -2514,8 +2551,20 @@ function gamiTabBadgesHtml(cfg) {
     + `<div class="gmc-deco${souRei ? "" : " lock"}">${gamiGavHtml(ini, equip || "ouro", { coroa: true })}<b>Rei dos pontos</b><span>${souRei ? "sua enquanto for o nº 1" : "seja o nº 1 do ranking"}</span></div>`
     + (equip ? `<button class="gmc-deco gmc-deco--off" data-gami-deco=""><span class="gav"><span class="gav__ini">${escapeHtml(ini)}</span></span><b>Sem aro</b><span>voltar ao padrão</span></button>` : "");
   const anoAdm = f && tsParaData(f.admissao) ? tsParaData(f.admissao).getFullYear() : null;
-  const casa = [[1, "1 ano de Fiobras", "bronze", gamiInnerNum(1, "ANO")], [3, "3 anos de Fiobras", "prata", gamiInnerNum(3, "ANOS")], [5, "5 anos de Fiobras", "ouro", gamiInnerNum(5, "ANOS")], [10, "10 anos de Fiobras", "marca", gamiInnerNum(10, "ANOS")]]
-    .map(([n, rot, mat, inner]) => badgeHtml(gamiMedalSvg(mat, inner), rot, anos != null && anos >= n ? String((anoAdm || 0) + n) : `a casa comemora com você${anoAdm ? " em " + (anoAdm + n) : ""}`, !(anos != null && anos >= n)));
+  const casaNiveis = [
+    [1, "1 ano de Fiobras", "bronze", gamiInnerNum(1, "ANO")],
+    [3, "3 anos de Fiobras", "prata", gamiInnerNum(3, "ANOS")],
+    [5, "5 anos de Fiobras", "ouro", gamiInnerNum(5, "ANOS")],
+    [10, "10 anos de Fiobras", "marca", gamiInnerNum(10, "ANOS")],
+    [15, "15 anos de Fiobras", "marca", gamiInnerNum(15, "ANOS")],
+    [20, "20 anos de Fiobras", "marca", gamiInnerNum(20, "ANOS")],
+    [25, "25 anos de Fiobras", "marca", gamiInnerNum(25, "ANOS")],
+    [30, "30 anos de Fiobras", "marca", gamiInnerNum(30, "ANOS")],
+  ];
+  const casa = casaNiveis.map(([n, rot, mat, inner]) => {
+    const ok = anos != null && anos >= n;
+    return { ok, html: badgeHtml(gamiMedalSvg(mat, inner), rot, ok ? String((anoAdm || 0) + n) : `a casa comemora com você${anoAdm ? " em " + (anoAdm + n) : ""}`, !ok) };
+  });
   const pesquisasRespondidas = (state.gamiExtrato || []).filter((e) => e.acao === "pesquisa").length;
   const semPendencia = (state.pesquisasClimaColab || []).every((p) => p.jaRespondi);
   const vozOk = pesquisasRespondidas >= 1 && semPendencia;
@@ -2523,8 +2572,8 @@ function gamiTabBadgesHtml(cfg) {
   const docsPend = (state.documentosColab || []).filter(colabDocPendente).length;
   const tudoOk = recibos.length > 0 && recibos.every((r) => r.minhaAssinatura) && docsPend === 0;
   const partic = [
-    badgeHtml(gamiMedalSvg("azul", GAMI_CHAT), "Voz da firma", vozOk ? "todas as pesquisas do ano" : "responda todas as pesquisas do ano", !vozOk),
-    badgeHtml(gamiMedalSvg("verde", GAMI_CHECK), "Tudo em dia", tudoOk ? "todas as assinaturas em dia" : "assine tudo o que está pendente", !tudoOk),
+    { ok: vozOk, html: badgeHtml(gamiMedalSvg("azul", GAMI_CHAT), "Voz da firma", vozOk ? "todas as pesquisas do ano" : "responda todas as pesquisas do ano", !vozOk) },
+    { ok: tudoOk, html: badgeHtml(gamiMedalSvg("verde", GAMI_CHECK), "Tudo em dia", tudoOk ? "todas as assinaturas em dia" : "assine tudo o que está pendente", !tudoOk) },
   ];
   const compa = [
     badgeHtml(gamiMedalSvg("bronze", GAMI_HEART), "Coração aberto", "em breve, junto do mural", true),
@@ -2532,19 +2581,21 @@ function gamiTabBadgesHtml(cfg) {
     badgeHtml(gamiMedalSvg("prata", GAMI_HAND), "Recepcionista", "em breve", true),
   ];
   const rank = [
-    badgeHtml(gamiCoroaSvg(), "Rei dos pontos", souRei ? "é seu, nº 1 do ranking" : "seja o nº 1 do ranking (rotativo)", !souRei),
-    badgeHtml(gamiTrofeuSvg(), "Campeão da temporada", "termine o ano em 1º lugar", true),
+    { ok: souRei, html: badgeHtml(gamiCoroaSvg(), "Rei dos pontos", souRei ? "é seu, nº 1 do ranking" : "seja o nº 1 do ranking (rotativo)", !souRei) },
+    { ok: false, html: badgeHtml(gamiTrofeuSvg(), "Campeão da temporada", "termine o ano em 1º lugar", true) },
   ];
-  const nBadges = [anos >= 1, anos >= 3, anos >= 5, anos >= 10, vozOk, tudoOk, souRei].filter(Boolean).length;
+  const conquistadas = [...casa.filter((x) => x.ok), ...partic.filter((x) => x.ok), ...rank.filter((x) => x.ok)].map((x) => x.html);
+  const andamento = [...casa.filter((x) => !x.ok).map((x) => x.html), ...compa, ...partic.filter((x) => !x.ok).map((x) => x.html), ...rank.filter((x) => !x.ok).map((x) => x.html)];
+  const nBadges = conquistadas.length;
   return `
     <div class="gmc-perfil">${gamiGavHtml(ini, equip, { lg: true, coroa: souRei, foto: (u && u.fotoBase64) || "" })}<div><b>${escapeHtml(nome)}</b>
       <div class="gmc-perfil__sub">${equip ? `Aro ${equip === "fio" ? "FioPulse" : equip} equipado · ` : ""}${nBadges} badge${nBadges === 1 ? "" : "s"} conquistado${nBadges === 1 ? "" : "s"}</div></div></div>
     <div class="gm-h2">Decoração do avatar</div>
     <div class="gmc-decos">${decosHtml}</div>
-    <div class="gm-h2">Badges · Tempo de casa</div><div class="gqb-grid">${casa.join("")}</div>
-    <div class="gm-h2">Badges · Companheirismo</div><div class="gqb-grid">${compa.join("")}</div>
-    <div class="gm-h2">Badges · Participação</div><div class="gqb-grid">${partic.join("")}</div>
-    <div class="gm-h2">Badges · Ranking</div><div class="gqb-grid">${rank.join("")}</div>`;
+    <div class="gm-h2">Conquistadas (${nBadges})</div>
+    ${conquistadas.length ? `<div class="gqb-grid">${conquistadas.join("")}</div>` : `<p class="gmc-nota">Suas primeiras medalhas estão a caminho: participe do portal que elas chegam.</p>`}
+    <div class="gm-h2">Em andamento</div>
+    <div class="gqb-grid">${andamento.join("")}</div>`;
 
   function badgeHtml(art, nomeB, sub, lock) {
     return `<div class="gqb${lock ? " lock" : ""}"><div class="gqb__art">${art}</div><b>${escapeHtml(nomeB)}</b><span>${escapeHtml(sub)}</span></div>`;
@@ -2580,6 +2631,7 @@ function renderColaboradorHome() {
         <div class="pp-home__col">
           ${comunicadoFixadoHtml()}
           <div class="pp-bday-m">${aniversarianteHojeHtml(nome)}</div>
+          <div class="pp-bday-m">${colabBoasVindasHtml(nome)}</div>
           <div class="pp-aniv-d">${aniversariantesDoMesHtml(nome)}</div>
         </div>
       </div>
@@ -2590,6 +2642,8 @@ function renderColaboradorHome() {
   // Preenche as contagens/coração dos cards de aniversário (0 a 2 no DOM). Assíncrono e
   // barato; se a home re-renderizar, re-preencher é ok. Não bloqueia o render.
   preencherCardsAniversario();
+  // Idem pros cards de boas-vindas aos recem-chegados (o clique ja e delegado).
+  preencherCardsBoasVindas();
 }
 
 // Liga os convites de pesquisa de clima (linhas "Precisa da sua atenção" + outros pontos)
@@ -2628,16 +2682,24 @@ function renderColabPesquisa() {
   const dims = Array.isArray(s.dimensoes) ? s.dimensoes : [];
   const totalScale = dims.reduce((n, d) => n + (Array.isArray(d.perguntas) ? d.perguntas.length : 0), 0) + (s.incluiEnps ? 1 : 0);
 
+  // Transparencia da gamificacao (obrigacao do gate Fable): responder vale pontos e a
+  // PARTICIPACAO (nunca o conteudo) aparece no extrato; o credito chega depois, de
+  // proposito (nascer junto da resposta quebraria o anonimato por horario).
+  const notaPontos = (state.gamiConfig && state.gamiConfig.ativa === true && Number(state.gamiConfig.tabela && state.gamiConfig.tabela.pesquisa) > 0)
+    ? `<p class="helpnote">${cpIcon("medalha")} Responder vale ${state.gamiConfig.tabela.pesquisa} pontos na temporada. Só a sua participação (nunca as respostas) aparece no seu extrato de pontos, e o crédito chega na próxima vez que você abrir o app.</p>`
+    : "";
   const intro = anonima
     ? `<div class="resp-intro">
         <div class="resp-intro__badge anon">${cpIcon("lock")} Suas respostas são anônimas</div>
         <h2>Como está o clima pra você?</h2>
         <p>Gravado sem nome, sem código e sem horário. O RH só vê em grupo, com no mínimo 5 respostas e só depois de encerrar. Seja franco, é isso que ajuda a melhorar.</p>
+        ${notaPontos}
       </div>`
     : `<div class="resp-intro">
         <div class="resp-intro__badge ident">${cpIcon("users")} Pesquisa identificada</div>
         <h2>Como está o clima pra você?</h2>
         <p>Atenção: nesta pesquisa o RH vê o seu nome junto das suas respostas. Responda com isso em mente. A resposta é enviada uma vez só e não pode ser alterada depois.</p>
+        ${notaPontos}
       </div>`;
 
   const grupos = dims.map((d) => {
@@ -3822,6 +3884,28 @@ function renderEspelhoPontoGestor() {
   espSelecionar(sel);
 }
 
+// Grupos do menu do gestor (mock aprovado 2026-07-14): rótulo + ids na ordem de
+// exibição. Item de items[] que não aparece em nenhum grupo cai no fim sem label
+// (futuro-prova); grupo sem nenhum item presente não renderiza (nem a divisória).
+const NAV_GRUPOS = [
+  [null, ["visao-geral"]],
+  ["Ponto", ["dashboard", "banco-horas", "espelho-ponto"]],
+  ["Equipe", ["funcionarios", "avaliacoes", "gamificacao", "disciplinar"]],
+  ["Comunicação", ["comunicados", "documentos"]],
+  ["Sistema", ["pj", "obrigacoes", "auditoria", "config"]],
+];
+
+function navItemBtnHtml(it) {
+  return `
+    <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${escapeHtml(it.label)}" title="${escapeHtml(it.label)}">
+      ${icon(it.icon)}
+      <span>${it.label}</span>
+      ${it.beta ? `<span class="nav__beta">beta</span>` : ""}
+      ${it.badge ? `<span class="nav__badge ${it.badgeClass || ""}">${it.badge}</span>` : ""}
+    </button>
+  `;
+}
+
 function renderNav() {
   const u = currentUser();
   // Badge = a MESMA conta da aba Pendentes (manuais + automáticas com o líder);
@@ -3859,14 +3943,16 @@ function renderNav() {
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
-  $("#nav").innerHTML = items.map((it) => `
-    <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${escapeHtml(it.label)}" title="${escapeHtml(it.label)}">
-      ${icon(it.icon)}
-      <span>${it.label}</span>
-      ${it.beta ? `<span class="nav__beta">beta</span>` : ""}
-      ${it.badge ? `<span class="nav__badge ${it.badgeClass || ""}">${it.badge}</span>` : ""}
-    </button>
-  `).join("");
+  const agrupados = new Set();
+  const gruposHtml = NAV_GRUPOS.map(([label, ids]) => {
+    const grupoItems = ids.map((id) => items.find((it) => it.id === id)).filter(Boolean);
+    if (!grupoItems.length) return "";
+    grupoItems.forEach((it) => agrupados.add(it.id));
+    const sec = label ? `<div class="nav__sec">${escapeHtml(label)}</div>` : "";
+    return sec + grupoItems.map(navItemBtnHtml).join("");
+  }).join("");
+  const soltos = items.filter((it) => !agrupados.has(it.id)).map(navItemBtnHtml).join("");
+  $("#nav").innerHTML = gruposHtml + soltos;
 
   $$("#nav .nav__item").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -3923,6 +4009,7 @@ const GAMI_ACOES = [
   ["pesquisa", "Responder pesquisa de clima", 5],
   ["termo", "Primeira entrada + Termo de Adesão", 5],
   ["foto", "Adicionar a própria foto de perfil (1x por temporada)", 5],
+  ["streak", "Sequência de 5 dias seguidos entrando no app", 1],
 ];
 const GAMI_MARCOS_DEFAULT = [25, 50, 100, 150, 200];
 
@@ -15446,7 +15533,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.66.0";
+window.CURRENT_VERSION = "1.67.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

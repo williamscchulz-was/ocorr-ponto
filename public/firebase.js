@@ -1699,13 +1699,25 @@
         const ev = { acao, refId, pontos, em: _FV.serverTimestamp() };
         if (rotulo) ev.rotulo = String(rotulo).slice(0, 140);
         b.set(meuRef.collection("eventos").doc(eid), ev);
-        const placar = { total, nome: String(u.nome || "").slice(0, 120), ultimoEvento: eid };
-        // decoracao denormalizada acompanha o placar (o set substitui o doc; sem isto o
-        // aro sumiria do ranking a cada ponto). Igualdade com users.decoracao e da regra.
-        if (u.decoracao != null) placar.decoracao = u.decoracao;
-        b.set(meuRef, placar);
+        const nome = String(u.nome || "").slice(0, 120);
+        if (atual.exists) {
+          // UPDATE parcial (gate delta 4): a foto so trafega quando MUDOU -- senao cada
+          // claim de 1 ponto re-subiria a imagem inteira no 3G. A igualdade anti-spoof
+          // avalia o doc final, entao a foto persistida continua valendo sem trafegar.
+          const upd = { total, nome, ultimoEvento: eid };
+          const persistida = atual.data().foto;
+          if (u.fotoBase64 && persistida !== u.fotoBase64) upd.foto = u.fotoBase64;
+          else if (!u.fotoBase64 && persistida !== undefined) upd.foto = _FV.delete();
+          if (u.decoracao != null && (atual.data().decoracao || "") !== (u.decoracao || "")) upd.decoracao = u.decoracao;
+          b.update(meuRef, upd);
+        } else {
+          const placar = { total, nome, ultimoEvento: eid };
+          if (u.decoracao != null) placar.decoracao = u.decoracao;
+          if (u.fotoBase64) placar.foto = u.fotoBase64;
+          b.set(meuRef, placar);
+        }
         await b.commit();
-        state.gamiMeu = { ...placar };
+        state.gamiMeu = { ...(state.gamiMeu || {}), total, nome, ultimoEvento: eid };
         if (state.gamiExtrato) state.gamiExtrato.unshift({ id: eid, ...ev, em: new Date().toISOString() });
         return true;
       } catch (e) { debug?.("[gami] claim", acao, refId, ":", e?.code || e?.message); return false; }
@@ -1802,9 +1814,45 @@
       const val = String(dec || "");
       await db.collection("users").doc(user.uid).update({ decoracao: val });
       u.decoracao = val;
-      try { await _gami().collection("pontos").doc(user.uid).update({ decoracao: val, nome: u.nome }); }
+      const sync = { decoracao: val, nome: u.nome };
+      if (u.fotoBase64 != null) sync.foto = u.fotoBase64;
+      try { await _gami().collection("pontos").doc(user.uid).update(sync); }
       catch (e) { debug?.("[gami] sync placar:", e?.code || e?.message); } // sem placar ainda: o 1o claim leva
       if (state.gamiMeu) state.gamiMeu.decoracao = val;
+    };
+
+    // Streak de presenca (William 2026-07-14): marca o DIA no doc proprio (a regra so
+    // aceita HOJE e so soma +1 no dia seguinte exato) e, a cada multiplo de 5 dias
+    // seguidos, reivindica o ponto. Silencioso; roda no boot do colaborador.
+    window.gamiPingStreak = async function () {
+      try {
+        const user = auth.currentUser;
+        const u = currentUser();
+        if (!user || !u || u.role !== "colaborador") return;
+        const cfg = await window.carregarGamiConfig();
+        if (!cfg || cfg.ativa !== true) return;
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        const ref = _gami().collection("presenca").doc(user.uid);
+        const s = await ref.get();
+        let dias = 1;
+        if (s.exists) {
+          const ult = s.data().ultimoDia && s.data().ultimoDia.toDate ? s.data().ultimoDia.toDate() : null;
+          const jaHoje = ult && ult.getTime() === hoje.getTime();
+          if (jaHoje) dias = Number(s.data().dias) || 1;
+          else {
+            if (ult && hoje.getTime() - ult.getTime() === 24 * 3600e3) dias = (Number(s.data().dias) || 0) + 1;
+            await ref.update({ dias, ultimoDia: firebase.firestore.Timestamp.fromDate(hoje) });
+          }
+        } else {
+          await ref.set({ dias: 1, ultimoDia: firebase.firestore.Timestamp.fromDate(hoje) });
+        }
+        if (dias > 0 && dias % 5 === 0) {
+          // chave derivada do MESMO ultimoDia gravado (a regra exige; derivar de "agora"
+          // permitiria double-claim na virada de meia-noite UTC, gate delta 4)
+          const diaKey = `${hoje.getUTCFullYear()}-${hoje.getUTCMonth() + 1}-${hoje.getUTCDate()}`;
+          await window.gamiClaim("streak", diaKey, `Sequência de ${dias} dias no app`);
+        }
+      } catch (e) { debug?.("[gami] streak:", e?.code || e?.message); }
     };
 
     // ----- Gestor (cap gamificacao.gerenciar) -----
@@ -3023,8 +3071,13 @@
       // Reflete no state local ("" cai nas iniciais no aplicarAvatar)
       const me = (state.users || []).find((x) => x.id === uid);
       if (me) me.fotoBase64 = value;
-      // Gamificacao: foto propria vale ponto (1x por temporada; dedup e da regra).
+      // Gamificacao: foto propria vale ponto (1x por temporada; dedup e da regra) e a
+      // foto denormalizada do placar acompanha (ranking); remocao tira do placar.
       if (value) window.gamiClaim?.("foto", uid, "Adicionou a própria foto de perfil");
+      try {
+        const sync = value ? { foto: value, nome: u?.nome } : { foto: _FV.delete(), nome: u?.nome };
+        await _gami().collection("pontos").doc(uid).update(sync);
+      } catch (e) { debug?.("[gami] sync foto placar:", e?.code || e?.message); }
     };
 
     // Alterar a própria senha (usuário logado)
@@ -3724,8 +3777,10 @@
       // Ciclos de avaliacao de desempenho do segmento (ativos = autoavaliar,
       // encerrados = resultado). Mesma tolerancia a falha do clima.
       try { await window.carregarCiclosDesempenhoColab(); } catch (e) { debug?.("[colab] desempenho:", e?.message || e); state.ciclosDesempenhoColab = []; }
-      // Gamificacao: config + meu placar (alimenta o card da home; a tela carrega o resto).
+      // Gamificacao: config + meu placar (alimenta o card da home; a tela carrega o resto)
+      // + marca a presenca do dia (streak).
       try { await window.carregarGamiHome(); } catch (e) { debug?.("[colab] gami:", e?.message || e); }
+      try { await window.gamiPingStreak(); } catch (e) { debug?.("[colab] streak:", e?.message || e); }
       })(),
       (async () => {
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.

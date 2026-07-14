@@ -1098,6 +1098,12 @@ service cloud.firestore {
     match /gamificacao/{ano} {
       function gpGami() { return isAdmin() || temCap('gamificacao.gerenciar', isRH()); }
       function cfg() { return get(/databases/$(database)/documents/gamificacao/$(ano)).data; }
+      // O timestamp e "hoje"? ts = meia-noite LOCAL gravada pelo cliente; request.time
+      // (UTC) tem que cair nas 24h daquele dia. Relogio do dispositivo errado = janela
+      // nao casa = nega (fail-safe, so perde o dia).
+      function diaEhHoje(ts) {
+        return ts <= request.time && request.time < ts + duration.value(24, 'h');
+      }
       function cfgShapeOk() {
         return request.resource.data.keys().hasOnly(['tabela', 'marcos', 'ativa', 'atualizadoEm', 'atualizadoPor'])
           && request.resource.data.tabela is map
@@ -1120,6 +1126,35 @@ service cloud.firestore {
         allow read, write: if gpGami();
       }
 
+      // Presenca (streak de dias no app; DECISAO William 2026-07-14, supera a exclusao
+      // de "login diario" do plano original -- registrada com LGPD no PLANO-GAMIFICACAO).
+      // { dias, ultimoDia }: ultimoDia e a meia-noite LOCAL do dia marcado e SO pode ser
+      // HOJE (diaEhHoje) -- presenca retroativa e IMPOSSIVEL de forjar. dias so avanca
+      // +1 quando ultimoDia e exatamente o dia seguinte (24h cravadas; DST abolido no
+      // Brasil); qualquer pulo reseta pra 1. Leitura: dono + GP (nada publico).
+      match /presenca/{uid} {
+        function p() { return request.resource.data; }
+        function presencaShapeOk() {
+          return p().keys().hasOnly(['dias', 'ultimoDia'])
+            && p().dias is int
+            && p().ultimoDia is timestamp
+            && diaEhHoje(p().ultimoDia);
+        }
+        allow read: if gpGami() || (isAuthed() && request.auth.uid == uid);
+        allow create: if isAuthed() && request.auth.uid == uid
+          && presencaShapeOk() && p().dias == 1;
+        allow update: if isAuthed() && request.auth.uid == uid
+          && presencaShapeOk()
+          && (
+            ( p().ultimoDia == resource.data.ultimoDia + duration.value(24, 'h')
+              && p().dias == resource.data.dias + 1 )
+            ||
+            ( p().ultimoDia > resource.data.ultimoDia + duration.value(24, 'h')
+              && p().dias == 1 )
+          );
+        allow delete: if isAdmin();
+      }
+
       // Placar por pessoa: { total, nome, ultimoEvento }. Leitura AMPLA autenticada
       // (ranking publico top 10 via orderBy total desc limit 10 -- e provada por esta
       // read; so total+nome expostos, mesmo residual de nome aceito no mural).
@@ -1139,11 +1174,16 @@ service cloud.firestore {
         // liturgia do nome): e assim que o aro equipado aparece pros colegas no
         // ranking, sem alargar a read de /users (que exporia foto/turno/setor/role
         // de todo mundo -- caminho vetado no gate).
+        // 'foto' tambem denormalizada (William 2026-07-14: todos os funcionarios
+        // autorizaram uso de imagem): mesma igualdade anti-spoof da decoracao/nome.
         function placarShapeOk() {
-          return request.resource.data.keys().hasOnly(['total', 'nome', 'ultimoEvento', 'decoracao'])
+          return request.resource.data.keys().hasOnly(['total', 'nome', 'ultimoEvento', 'decoracao', 'foto'])
             && request.resource.data.total is int
             && request.resource.data.nome == userDoc().nome
             && (!('decoracao' in request.resource.data) || request.resource.data.decoracao == userDoc().decoracao)
+            && (!('foto' in request.resource.data)
+                || (request.resource.data.foto == userDoc().fotoBase64
+                    && request.resource.data.foto.matches('data:image/.*')))
             && request.resource.data.ultimoEvento is string;
         }
         allow read: if isAuthed();
@@ -1156,11 +1196,14 @@ service cloud.firestore {
             && eventoNasceuAgora(request.resource.data.ultimoEvento)
             && request.resource.data.total == resource.data.total + pontosDoEvento(request.resource.data.ultimoEvento) )
           ||
-          // Re-sincroniza SO o cosmetico (equipou aro / renomeou), sem evento: total e
-          // ultimoEvento ficam intocados (fora do hasOnly do diff), zero caminho de inflar.
-          ( request.resource.data.diff(resource.data).affectedKeys().hasOnly(['decoracao', 'nome'])
+          // Re-sincroniza SO o cosmetico (equipou aro / renomeou / trocou foto), sem
+          // evento: total e ultimoEvento fora do hasOnly do diff, zero caminho de inflar.
+          ( request.resource.data.diff(resource.data).affectedKeys().hasOnly(['decoracao', 'nome', 'foto'])
             && request.resource.data.nome == userDoc().nome
-            && (!('decoracao' in request.resource.data) || request.resource.data.decoracao == userDoc().decoracao) )
+            && (!('decoracao' in request.resource.data) || request.resource.data.decoracao == userDoc().decoracao)
+            && (!('foto' in request.resource.data)
+                || (request.resource.data.foto == userDoc().fotoBase64
+                    && request.resource.data.foto.matches('data:image/.*'))) )
         );
         allow delete: if isAdmin();
 
@@ -1227,7 +1270,20 @@ service cloud.firestore {
               // teto estrutural de 1 ponto por temporada.
               || (acao == 'foto'
                      && refId == uid
-                     && getAfter(/databases/$(database)/documents/users/$(uid)).data.fotoBase64.matches('data:image/.*'));
+                     && getAfter(/databases/$(database)/documents/users/$(uid)).data.fotoBase64.matches('data:image/.*'))
+              // Streak: prova = doc de presenca com ultimoDia HOJE e dias em multiplo de 5.
+              // O refId deriva do ULTIMODIA DA PRESENCA (nao de request.time): um estado
+              // elegivel gera exatamente UM id possivel. Derivar do request.time abriria
+              // double-claim na virada de meia-noite UTC dentro da mesma janela de 24h
+              // (gate Fable delta 4). ultimoDia e monotonico pelos ramos do update, entao
+              // cada dia canonico aparece no maximo 1x por uid.
+              || (acao == 'streak'
+                     && refId == string(getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.ultimoDia.year())
+                          + '-' + string(getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.ultimoDia.month())
+                          + '-' + string(getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.ultimoDia.day())
+                     && getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.dias > 0
+                     && getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.dias % 5 == 0
+                     && diaEhHoje(getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.ultimoDia));
           }
           allow read: if gpGami() || (isAuthed() && request.auth.uid == uid);
           allow create: if isAuthed() && request.auth.uid == uid
