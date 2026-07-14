@@ -115,19 +115,22 @@ diasNaEmpresa) — a única escrita nova é a preferência de decoração equipa
 Aparece em TODO avatar (home do colab, mural de aniversário, boas-vindas e nos avatares do
 gestor via avatarFuncHtml, que é o helper central — 1 ponto de implementação).
 
-**Badges (colecionáveis, com data de conquista, na tela Conquistas):**
-| Badge | Critério (derivado) |
-|---|---|
-| 1 ano / 5 anos / 10 anos de Fiobras | diasNaEmpresa (automático, nada a fazer) |
-| Rei dos pontos | nº 1 do ranking atual (rotativo) |
-| Campeão da temporada YYYY | nº 1 no fechamento do ano (permanente) |
-| Primeira pontuação | 1º evento de ponto da temporada |
-| Voz da firma | respondeu todas as pesquisas de clima do ano |
-| Coração de ouro | parabenizou 20+ colegas |
-| Comitê de boas-vindas | deu boas-vindas a 10+ recém-chegados |
-| Tudo em dia | assinou todos os documentos/recibos do ano no prazo |
-Derivação no CLIENTE a partir do extrato de eventos + dados existentes; badges rotativos (rei)
-nunca são gravados, sempre calculados. A GP pode ver as conquistas de qualquer um no perfil.
+**Badges (colecionáveis, na tela Conquistas). Refinado com William 2026-07-10: badges NÃO
+são sobre pontos — o eixo é HISTÓRIA (tempo de casa) e COMPANHEIRISMO (likes), com
+progressão em níveis. Só 2 badges tocam o ranking (o tempero competitivo).**
+
+| Categoria | Badges (níveis) | Critério (derivado de) |
+|---|---|---|
+| Tempo de casa | 1 ano · 3 anos · 5 anos · 10 anos de Fiobras | diasNaEmpresa (automático, lifetime) |
+| Coração (aniversários) | Coração aberto (5) · Coração de ouro (20) · Coração gigante (50) | nº de corações dados na temporada (extrato de eventos) |
+| Boas-vindas | Recepcionista (3) · Comitê de boas-vindas (10) · Porta aberta (25) | nº de boas-vindas dadas na temporada (extrato) |
+| Participação | Voz da firma (todas as pesquisas do ano) · Tudo em dia (todas as assinaturas no prazo) | extrato × publicados no ano |
+| Ranking | Rei dos pontos (nº 1 atual, rotativo) · Campeão da temporada (1º no fechamento, permanente) | ranking |
+
+Derivação no CLIENTE a partir do extrato de eventos + dados existentes (zero doc novo);
+os contadores de coração/boas-vindas derivam DOS PRÓPRIOS eventos de ponto (cada like é um
+evento), então o badge conta a temporada corrente. Tempo de casa é lifetime. Badges
+rotativos (rei) nunca são gravados, sempre calculados. GP vê as conquistas de qualquer um.
 
 **Escrita nova (única):** `users/{uid}.decoracao` (string da decoração equipada, self-write com
 validação de desbloqueio no cliente; a regra valida só o shape — forjar decoração não dá acesso
