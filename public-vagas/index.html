@@ -11,48 +11,126 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23008835'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Arial' font-weight='800' font-size='18' fill='%23fff'%3EF%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; background: #f2f4ef; font-family: "Poppins", system-ui, sans-serif; color: #23301f; }
-  .hero { background: linear-gradient(140deg, #008835, #0b6e33 55%, #005f96); color: #fff; padding: 40px 22px 34px; }
-  .hero__in, .lista, .foot { max-width: 720px; margin: 0 auto; }
-  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
-  .logo-mark { width: 40px; height: 40px; border-radius: 11px; background: #fff; color: #008835; display: grid; place-items: center; font-weight: 800; font-size: 20px; }
-  .logo b { font-size: 17px; letter-spacing: .02em; }
-  .hero h1 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 34px); line-height: 1.15; font-weight: 800; }
-  .hero p { margin: 0; font-size: 14.5px; opacity: .92; line-height: 1.6; max-width: 520px; }
-  .hero .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,203,0,.18); border: 1px solid rgba(255,203,0,.45); color: #FFCB00; font-size: 12px; font-weight: 700; padding: 5px 13px; border-radius: 999px; margin-top: 16px; }
-  .lista { padding: 24px 22px 10px; display: flex; flex-direction: column; gap: 14px; }
-  .sec { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: #5c6a57; margin: 0 4px; }
-  .vaga { background: #fff; border: 1px solid #dfe5d9; border-radius: 16px; padding: 18px 18px 16px; box-shadow: 0 3px 12px rgba(20,40,20,.05); }
-  .vaga h2 { margin: 0; font-size: 17px; font-weight: 700; }
-  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 9px 0 10px; }
-  .tag { font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: #f4f6f1; font-family: "Poppins", system-ui, sans-serif; color: #1d2a19; }
+
+  /* ===== HERO: os fios da Fiobras ===== */
+  .hero { position: relative; background: #04331a; color: #fff; overflow: hidden; }
+  .hero__fios { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hero__in { position: relative; max-width: 1060px; margin: 0 auto; padding: 46px 26px 120px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: clamp(38px, 7vw, 72px); }
+  .logo { display: flex; align-items: center; gap: 11px; }
+  .logo-mark { width: 42px; height: 42px; border-radius: 12px; background: #fff; color: #008835; display: grid; place-items: center; font-weight: 900; font-size: 21px; }
+  .logo b { font-size: 18px; letter-spacing: .02em; }
+  .topbar a { color: #fff; text-decoration: none; font-size: 13.5px; font-weight: 600; opacity: .85; padding: 9px 16px; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; }
+  .topbar a:hover { opacity: 1; background: rgba(255,255,255,.08); }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(38px, 8vw, 68px); line-height: 1.04; font-weight: 900; letter-spacing: -.02em; max-width: 640px; }
+  /* isolation cria stacking context: sem ela o ::before de z-index -1 cai atras
+     do fundo do hero e o texto verde-escuro some no verde-escuro */
+  .hero h1 .marca { position: relative; display: inline-block; color: #04331a; padding: 0 6px; isolation: isolate; }
+  .hero h1 .marca::before { content: ""; position: absolute; inset: 8% -2% 4%; background: #FFCB00; border-radius: 8px; transform: rotate(-1.2deg); z-index: -1; }
+  .hero p.sub { margin: 0; font-size: clamp(14.5px, 2vw, 17px); opacity: .88; line-height: 1.65; max-width: 460px; }
+  .hero__acao { display: flex; align-items: center; gap: 14px; margin-top: 26px; flex-wrap: wrap; }
+  .hero__cta { display: inline-flex; align-items: center; gap: 8px; background: #FFCB00; color: #332902; font-weight: 800; font-size: 15px; padding: 14px 24px; border-radius: 999px; text-decoration: none; box-shadow: 0 8px 24px rgba(255,203,0,.28); transition: transform .15s ease; }
+  .hero__cta:hover { transform: translateY(-2px); }
+  .hero__n { font-size: 13px; opacity: .8; }
+
+  /* ===== COMO FUNCIONA ===== */
+  .passos { max-width: 1060px; margin: -64px auto 0; padding: 0 26px; position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .passo { background: #fff; border: 1px solid #e0e6d9; border-radius: 18px; padding: 18px 18px 16px; box-shadow: 0 10px 30px rgba(10,40,20,.08); }
+  .passo b { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+  .passo .n { width: 26px; height: 26px; border-radius: 50%; background: #eaf4ec; color: #0b6e33; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; flex: none; }
+  .passo p { margin: 8px 0 0; font-size: 12.5px; color: #5a6852; line-height: 1.55; }
+
+  /* ===== VAGAS EM GRID ===== */
+  .secao { max-width: 1060px; margin: 0 auto; padding: 44px 26px 10px; }
+  .secao > h2 { margin: 0 0 4px; font-size: clamp(22px, 3.4vw, 30px); font-weight: 800; letter-spacing: -.01em; }
+  .secao > p.sub { margin: 0 0 22px; font-size: 14px; color: #5a6852; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .vaga { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid #e0e6d9; border-radius: 18px; padding: 20px 20px 18px; box-shadow: 0 3px 14px rgba(10,40,20,.05); transition: transform .16s ease, box-shadow .16s ease; overflow: hidden; }
+  .vaga::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #008835, #FFCB00, #0076BE); }
+  .vaga:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgba(10,40,20,.12); }
+  .vaga h3 { margin: 4px 0 0; font-size: 17.5px; font-weight: 700; line-height: 1.3; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 12px; }
+  .tag { font-size: 10.5px; font-weight: 700; padding: 3.5px 11px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
   .tag--turno { background: #e8f1f8; color: #0076BE; }
-  .desc { margin: 0 0 6px; font-size: 13.5px; color: #45523f; line-height: 1.55; white-space: pre-line; }
-  .req { margin: 0 0 14px; font-size: 12.5px; color: #6b7563; line-height: 1.5; white-space: pre-line; }
-  .vfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .tag--tipo { background: #fdf4d4; color: #8a6d00; }
+  .desc { margin: 0 0 8px; font-size: 13.5px; color: #45523f; line-height: 1.6; white-space: pre-line; }
+  .req { margin: 0 0 16px; font-size: 12.5px; color: #6b7563; line-height: 1.55; white-space: pre-line; }
+  .vfoot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .data { font-size: 11px; color: #8a927f; }
-  .cta { display: inline-flex; align-items: center; gap: 8px; background: #008835; color: #fff; border: 0; font: 700 14px "Poppins", sans-serif; padding: 12px 19px; border-radius: 999px; cursor: pointer; text-decoration: none; }
-  .cta:hover { background: #0b6e33; }
+  .cta { display: inline-flex; align-items: center; gap: 8px; background: #008835; color: #fff; border: 0; font: 700 13.5px "Poppins", sans-serif; padding: 12px 18px; border-radius: 999px; cursor: pointer; text-decoration: none; transition: background .15s ease, transform .15s ease; }
+  .cta:hover { background: #0b6e33; transform: translateY(-1px); }
   .cta svg { width: 17px; height: 17px; fill: currentColor; }
-  .vazio, .carregando { text-align: center; padding: 44px 20px; color: #6b7563; font-size: 14px; }
-  .foot { text-align: center; padding: 14px 22px 30px; font-size: 11.5px; color: #8a927f; line-height: 1.6; }
+  .vazio, .carregando { grid-column: 1 / -1; text-align: center; padding: 54px 20px; color: #6b7563; font-size: 14.5px; background: #fff; border: 1px dashed #cfd8c6; border-radius: 18px; }
+
+  /* ===== POR QUE A FIOBRAS ===== */
+  .porque { max-width: 1060px; margin: 26px auto 0; padding: 0 26px 40px; }
+  .porque__card { background: #04331a; color: #fff; border-radius: 22px; padding: 30px 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; position: relative; overflow: hidden; }
+  .porque__card::after { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(255,203,0,.18), transparent 65%); }
+  .porque__it b { display: block; font-size: 14.5px; margin-bottom: 5px; color: #ffd83d; }
+  .porque__it p { margin: 0; font-size: 12.5px; opacity: .85; line-height: 1.6; }
+
+  .foot { text-align: center; padding: 8px 22px 34px; font-size: 11.5px; color: #8a927f; line-height: 1.7; max-width: 640px; margin: 0 auto; }
+
+  @media (max-width: 760px) {
+    .passos { grid-template-columns: 1fr; margin-top: -76px; }
+    .porque__card { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vaga, .cta, .hero__cta { transition: none; }
+  }
 </style>
 </head>
 <body>
 <header class="hero">
+  <svg class="hero__fios" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <path d="M-40 480 C 240 380, 420 560, 700 440 S 1120 340, 1260 420" stroke="#0a5c30" stroke-width="60" fill="none" stroke-linecap="round"/>
+    <path d="M-40 520 C 260 430, 460 590, 740 480 S 1140 390, 1260 470" stroke="#0e7a3f" stroke-width="34" fill="none" stroke-linecap="round" opacity=".9"/>
+    <path d="M-40 545 C 280 470, 500 620, 780 515 S 1160 430, 1260 505" stroke="#FFCB00" stroke-width="13" fill="none" stroke-linecap="round" opacity=".95"/>
+    <path d="M-40 570 C 300 505, 540 645, 820 550 S 1180 470, 1260 540" stroke="#0076BE" stroke-width="9" fill="none" stroke-linecap="round" opacity=".85"/>
+    <circle cx="1050" cy="120" r="130" fill="#0a5c30" opacity=".5"/>
+    <circle cx="1120" cy="80" r="60" fill="#FFCB00" opacity=".14"/>
+  </svg>
   <div class="hero__in">
-    <div class="logo"><span class="logo-mark">F</span><b>Fiobras</b></div>
-    <h1>Trabalhe com a gente</h1>
-    <p>A Fiobras está crescendo e procura gente boa pra crescer junto. Veja as vagas abertas e chame a nossa equipe de Gestão de Pessoas direto no WhatsApp.</p>
-    <span class="badge" id="contagem" hidden></span>
+    <div class="topbar">
+      <div class="logo"><span class="logo-mark">F</span><b>Fiobras</b></div>
+      <a href="#vagas">Ver as vagas</a>
+    </div>
+    <h1>Venha tecer o seu futuro <span class="marca">com a gente</span></h1>
+    <p class="sub">A Fiobras cresce todo ano, e cresce puxada por gente boa. Escolha a sua vaga e chame a nossa equipe de Gestão de Pessoas direto no WhatsApp, sem formulário e sem cadastro.</p>
+    <div class="hero__acao">
+      <a class="hero__cta" href="#vagas">Ver vagas abertas</a>
+      <span class="hero__n" id="contagem" hidden></span>
+    </div>
   </div>
 </header>
-<main class="lista" id="lista">
-  <p class="carregando">Carregando as vagas…</p>
+
+<div class="passos" aria-label="Como funciona">
+  <div class="passo"><b><span class="n">1</span>Escolha a vaga</b><p>Tudo que está aberto está aqui nesta página, sempre atualizado.</p></div>
+  <div class="passo"><b><span class="n">2</span>Chame no WhatsApp</b><p>Um toque em "Quero me candidatar" abre a conversa já citando a vaga.</p></div>
+  <div class="passo"><b><span class="n">3</span>Fale com gente de verdade</b><p>Quem responde é a nossa equipe de Gestão de Pessoas, sem robô.</p></div>
+</div>
+
+<main class="secao" id="vagas">
+  <h2>Vagas abertas</h2>
+  <p class="sub">Guaramirim, SC</p>
+  <div class="grid" id="lista">
+    <p class="carregando">Carregando as vagas…</p>
+  </div>
 </main>
+
+<section class="porque">
+  <div class="porque__card">
+    <div class="porque__it"><b>Portal do colaborador no celular</b><p>Ponto, banco de horas, folha e comunicados na palma da mão, com transparência total.</p></div>
+    <div class="porque__it"><b>Time que reconhece</b><p>Aniversários celebrados, conquistas premiadas e um ranking de pontos que vira prêmio de verdade.</p></div>
+    <div class="porque__it"><b>Crescimento de verdade</b><p>Treinamento na função e gente da casa crescendo junto com a empresa há décadas.</p></div>
+  </div>
+</section>
+
 <footer class="foot">Fiobras · Guaramirim, SC. Ao tocar em "Quero me candidatar" você abre uma conversa de WhatsApp com a nossa equipe de Gestão de Pessoas; nenhum dado seu é coletado por esta página.</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -76,7 +154,7 @@
   var db = firebase.firestore();
   var ZAP_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm5.7 14.2c-.2.7-1.4 1.3-1.9 1.4-.5.1-1.1.2-3.6-.8-3-1.2-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3.1s.8-2.2 1-2.5c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5l1 2.3c.1.2.1.4 0 .6l-.4.6-.5.6c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1.1-1.3c.2-.3.5-.2.8-.1l2.1 1c.3.2.5.3.6.4.1.2.1.7-.1 1.5z"/></svg>';
 
-  // Cache leve (gate): corta leituras repetidas de quem navega/volta; TTL 5 min.
+  // Cache leve: corta leituras repetidas de quem navega/volta; TTL 5 min.
   var CACHE_KEY = "vagas-cache-v1";
   var cacheado = null;
   try {
@@ -105,16 +183,15 @@
       });
 
   carregar.then(function (dados) {
-    var cfg = { whatsapp: dados.zap };
-    var zap = String(cfg.whatsapp || "").replace(/\D/g, "");
+    var zap = String(dados.zap || "").replace(/\D/g, "");
     var vagas = dados.vagas.slice().sort(function (a, b) { return (b.pub || 0) - (a.pub || 0); });
     if (!vagas.length) {
       lista.innerHTML = '<p class="vazio">Não temos vagas abertas neste momento. Volte em breve, elas aparecem primeiro aqui.</p>';
       return;
     }
     contagem.hidden = false;
-    contagem.textContent = vagas.length + (vagas.length === 1 ? " vaga aberta" : " vagas abertas");
-    lista.innerHTML = '<span class="sec">Vagas abertas</span>' + vagas.map(function (v) {
+    contagem.textContent = vagas.length + (vagas.length === 1 ? " vaga aberta agora" : " vagas abertas agora");
+    lista.innerHTML = vagas.map(function (v) {
       var quando = v.pub ? "Publicada em " + new Date(v.pub).toLocaleDateString("pt-BR") : "";
       var msg = encodeURIComponent("Olá! Vi a página de vagas da Fiobras e tenho interesse na vaga de " + (v.titulo || "") + ".");
       var cta = zap
@@ -123,10 +200,10 @@
       var tags = [
         v.setor ? '<span class="tag">' + esc(v.setor) + "</span>" : "",
         v.turno ? '<span class="tag tag--turno">' + esc(v.turno) + "</span>" : "",
-        v.tipo ? '<span class="tag">' + esc(v.tipo) + "</span>" : "",
+        v.tipo ? '<span class="tag tag--tipo">' + esc(v.tipo) + "</span>" : "",
         v.cidade ? '<span class="tag">' + esc(v.cidade) + "</span>" : "",
       ].join("");
-      return '<article class="vaga"><h2>' + esc(v.titulo) + "</h2>" +
+      return '<article class="vaga"><h3>' + esc(v.titulo) + "</h3>" +
         (tags ? '<div class="tags">' + tags + "</div>" : "") +
         (v.descricao ? '<p class="desc">' + esc(v.descricao) + "</p>" : "") +
         (v.requisitos ? '<p class="req">Requisitos: ' + esc(v.requisitos) + "</p>" : "") +
