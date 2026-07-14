@@ -131,11 +131,15 @@ service cloud.firestore {
       allow read: if isAdmin() || isRH() || isLider() || isSupervisor()
                   || (isColaborador() && request.auth.uid == uid);
       allow create, delete: if isAdmin() || temCap('sistema.usuarios', false);
-      // Self-update: além de fotoBase64, o colaborador zera precisaTrocarSenha (troca no 1º acesso).
+      // Self-update: além de fotoBase64, o colaborador zera precisaTrocarSenha (troca no 1º acesso)
+      // e equipa a decoração do avatar da gamificação (cosmético, lista fechada; o desbloqueio
+      // real é validado na UI — forjar decoração não dá acesso a nada, residual aceito no gate).
       // Continua impedindo mexer em role/turno/ativo/funcionarioId.
       allow update: if isAdmin() || temCap('sistema.usuarios', false) || (
         request.auth.uid == uid &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoBase64', 'precisaTrocarSenha'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoBase64', 'precisaTrocarSenha', 'decoracao']) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['decoracao'])
+          || request.resource.data.decoracao in ['', 'bronze', 'prata', 'ouro', 'fio', 'veterano'])
       );
     }
 
@@ -1131,10 +1135,15 @@ service cloud.firestore {
         function pontosDoEvento(eid) {
           return getAfter(/databases/$(database)/documents/gamificacao/$(ano)/pontos/$(uid)/eventos/$(eid)).data.pontos;
         }
+        // 'decoracao' DENORMALIZADA no placar com anti-spoof por igualdade (mesma
+        // liturgia do nome): e assim que o aro equipado aparece pros colegas no
+        // ranking, sem alargar a read de /users (que exporia foto/turno/setor/role
+        // de todo mundo -- caminho vetado no gate).
         function placarShapeOk() {
-          return request.resource.data.keys().hasOnly(['total', 'nome', 'ultimoEvento'])
+          return request.resource.data.keys().hasOnly(['total', 'nome', 'ultimoEvento', 'decoracao'])
             && request.resource.data.total is int
             && request.resource.data.nome == userDoc().nome
+            && (!('decoracao' in request.resource.data) || request.resource.data.decoracao == userDoc().decoracao)
             && request.resource.data.ultimoEvento is string;
         }
         allow read: if isAuthed();
@@ -1142,10 +1151,17 @@ service cloud.firestore {
           && placarShapeOk()
           && eventoNasceuAgora(request.resource.data.ultimoEvento)
           && request.resource.data.total == pontosDoEvento(request.resource.data.ultimoEvento);
-        allow update: if isAuthed() && request.auth.uid == uid
-          && placarShapeOk()
-          && eventoNasceuAgora(request.resource.data.ultimoEvento)
-          && request.resource.data.total == resource.data.total + pontosDoEvento(request.resource.data.ultimoEvento);
+        allow update: if isAuthed() && request.auth.uid == uid && (
+          ( placarShapeOk()
+            && eventoNasceuAgora(request.resource.data.ultimoEvento)
+            && request.resource.data.total == resource.data.total + pontosDoEvento(request.resource.data.ultimoEvento) )
+          ||
+          // Re-sincroniza SO o cosmetico (equipou aro / renomeou), sem evento: total e
+          // ultimoEvento ficam intocados (fora do hasOnly do diff), zero caminho de inflar.
+          ( request.resource.data.diff(resource.data).affectedKeys().hasOnly(['decoracao', 'nome'])
+            && request.resource.data.nome == userDoc().nome
+            && (!('decoracao' in request.resource.data) || request.resource.data.decoracao == userDoc().decoracao) )
+        );
         allow delete: if isAdmin();
 
         // Evento de ponto: id {acao}_{refId} (dedup estrutural: repetir a acao no

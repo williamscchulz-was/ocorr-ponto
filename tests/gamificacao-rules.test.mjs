@@ -266,6 +266,28 @@ test("entrega e imutavel; delete so admin", async () => {
   await assertSucceeds(deleteDoc(doc(admin(), `gamificacao/${ANO}/entregas/uSeed_25`)));
 });
 
+// ---------- Decoracao denormalizada no placar (aro visivel no ranking) ----------
+test("placar re-sincroniza decoracao SEM evento (apos equipar)", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), "users/uColab"), { decoracao: "ouro" });
+  });
+  await assertSucceeds(updateDoc(doc(colab(), `gamificacao/${ANO}/pontos/uColab`), { decoracao: "ouro" }));
+});
+test("decoracao spoof no placar NEGA (!= users.decoracao)", async () =>
+  assertFails(updateDoc(doc(colab(), `gamificacao/${ANO}/pontos/uColab`), { decoracao: "fio" })));
+test("re-sincronizacao cosmetica NAO toca o total", async () =>
+  assertFails(updateDoc(doc(colab(), `gamificacao/${ANO}/pontos/uColab`), { decoracao: "ouro", total: 999 })));
+
+// ---------- Decoracao do avatar (users self-update, cosmetico) ----------
+test("colab equipa decoracao valida no proprio user", async () =>
+  assertSucceeds(updateDoc(doc(colab(), "users/uColab"), { decoracao: "ouro" })));
+test("decoracao fora da lista NEGA", async () =>
+  assertFails(updateDoc(doc(colab(), "users/uColab"), { decoracao: "hacker" })));
+test("decoracao junto de role NEGA (hasOnly)", async () =>
+  assertFails(updateDoc(doc(colab(), "users/uColab"), { decoracao: "ouro", role: "admin" })));
+test("colab NAO equipa decoracao de OUTRO user", async () =>
+  assertFails(updateDoc(doc(colab2(), "users/uColab"), { decoracao: "bronze" })));
+
 // ---------- Temporada inativa (mutacao no FIM: flip ativa=false) ----------
 test("temporada INATIVA nega evento mesmo com prova valida", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {

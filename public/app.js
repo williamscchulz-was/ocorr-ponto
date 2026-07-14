@@ -913,6 +913,8 @@ function cpIcon(name) {
     briefcase: '<rect x="2.5" y="7" width="19" height="13.5" rx="2.2"/><path d="M8 7V5.2A2.2 2.2 0 0 1 10.2 3h3.6A2.2 2.2 0 0 1 16 5.2V7"/><path d="M2.5 12.5h19"/>',
     camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
     refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+    medalha: '<circle cx="12" cy="9" r="5.5"/><path d="M8.8 13.5 7 21l5-2.6L17 21l-1.8-7.5"/>',
+    star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -995,6 +997,7 @@ const COLAB_NAV = [
   { id: "colab-folha", label: "Folha de pagamento", icon: "briefcase" },
   { id: "colab-comunicados", label: "Avisos", icon: "megafone" },
   { id: "colab-documentos", label: "Documentos", icon: "file" },
+  { id: "colab-conquistas", label: "Conquistas", icon: "medalha" },
   { id: "colab-roadmap", label: "Novidades", icon: "roadmap" },
   { id: "colab-conta", label: "Conta", icon: "user" },
 ];
@@ -1022,13 +1025,15 @@ function renderNavColaborador() {
   }));
 }
 
-// Barra de baixo ENXUTA (3 itens · hub estilo Nubank aprovado 2026-07-02): Meu ponto,
-// Folha e Documentos moram nos atalhos da Home e no menu lateral (drawer).
+// Barra de baixo do colab: 4 itens (Conquistas entrou por decisão William 2026-07-14;
+// o .bn-pill acompanha com largura 1/4). Meu ponto, Folha e Documentos seguem nos
+// atalhos da Home e no menu lateral (drawer).
 function renderBottomNavColaborador() {
   const nAvisos = colabAvisosNaoLidos();
   const items = [
     { id: "colab-home", label: "Início", icon: "home", badge: 0 },
     { id: "colab-comunicados", label: "Avisos", icon: "megafone", badge: nAvisos },
+    { id: "colab-conquistas", label: "Conquistas", icon: "medalha", badge: 0 },
     { id: "colab-conta", label: "Conta", icon: "user", badge: 0 },
   ];
   // Telas filhas do hub (acessadas por atalho da Home) não têm item próprio na barra:
@@ -1059,8 +1064,9 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
+  if (page === "colab-conquistas") return renderColabConquistas();
   if (page === "colab-conta") return renderColabConta();
   if (page === "colab-pesquisa") return renderColabPesquisa();
   if (page === "colab-desempenho") return renderColabDesempenho();
@@ -2273,6 +2279,7 @@ function colabAtalhosHtml() {
     // "Pagamento" (não "Folha de pagamento") pra o rótulo do atalho caber em 1 linha, igual aos outros.
     { id: "colab-folha", label: "Pagamento", icon: "briefcase", badge: rcbNaoVistos("recibo") },
     { id: "colab-comunicados", label: "Avisos", icon: "megafone", badge: colabAvisosNaoLidos() },
+    { id: "colab-conquistas", label: "Conquistas", icon: "medalha", badge: 0 },
     { id: "colab-documentos", label: "Documentos", icon: "file", badge: (state.documentosColab || []).filter(colabDocPendente).length },
     { id: "colab-roadmap", label: "Novidades", icon: "roadmap", badge: 0 },
     { id: "colab-conta", label: "Conta", icon: "user", badge: 0 },
@@ -2284,6 +2291,229 @@ function colabAtalhosHtml() {
         <span class="pp-atl__l">${it.label}</span>
       </button>`).join("")}
   </div>`;
+}
+
+// ===== GAMIFICACAO: card da home + tela Conquistas (Pontos | Badges) =====
+// Mock aprovado (docs/mockups/gamificacao-mock-2026-07.html); rules e camada de
+// dados no ar. Pontos/decoracoes derivam de state.gamiMeu/gamiConfig; badges de
+// companheirismo ficam em "em breve" (coracao/boas-vindas sairam do v1 no gate:
+// o mural nao tem doc pai; voltam quando o pipeline escrever o pai).
+
+const GAMI_MATS = {
+  bronze: ["#cf8b52", "#8f5527", "#f0bd8a"],
+  prata: ["#cdd6dc", "#87939d", "#f2f6f8"],
+  ouro: ["#f5cd55", "#c08c0a", "#ffeaa6"],
+  marca: ["#0aa348", "#005f96", "#7fe0a8"],
+  azul: ["#4da3e0", "#1a63a8", "#a8d4f2"],
+  verde: ["#38b163", "#0b6e33", "#9fe0b5"],
+};
+let _gamiSvgSeq = 0;
+function gamiMedalSvg(mat, inner) {
+  const [c1, c2, hl] = GAMI_MATS[mat] || GAMI_MATS.bronze;
+  const g = "gmg" + (++_gamiSvgSeq);
+  return `<svg viewBox="0 0 80 94" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+    <linearGradient id="${g}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a9642"/><stop offset="1" stop-color="#046a2c"/></linearGradient></defs>
+    <path d="M28 50 L28 90 L40 80 L52 90 L52 50 Z" fill="url(#${g}f)"/>
+    <path d="M28 50 L28 90 L40 80 L52 90 L52 50 Z" fill="#000" opacity=".08"/>
+    <circle cx="40" cy="38" r="30" fill="url(#${g})"/>
+    <circle cx="40" cy="38" r="29.2" fill="none" stroke="${c2}" stroke-width="1.4" opacity=".7"/>
+    <circle cx="40" cy="38" r="22.5" fill="url(#${g})" stroke="${hl}" stroke-width="1.7"/>
+    <path d="M22 22 A25 25 0 0 1 50 14.5" stroke="#fff" stroke-width="3.4" fill="none" opacity=".38" stroke-linecap="round"/>
+    <circle cx="40" cy="9.5" r="1.6" fill="${hl}"/><circle cx="14" cy="27" r="1.3" fill="${hl}" opacity=".8"/><circle cx="66.5" cy="30" r="1.3" fill="${hl}" opacity=".8"/>
+    ${inner}</svg>`;
+}
+const gamiInnerNum = (n, rot) => `<text x="40" y="42" text-anchor="middle" font-size="${String(n).length > 1 ? 19 : 22}" font-weight="800" font-family="Poppins, sans-serif" fill="#fff">${n}</text><text x="40" y="52.5" text-anchor="middle" font-size="7.2" font-weight="700" letter-spacing="1" font-family="Poppins, sans-serif" fill="#fff" opacity=".85">${rot}</text>`;
+const GAMI_HEART = '<path d="M40 50.5s-11.5-6.7-15.1-14.3c-2.3-4.8.3-10 5.3-10 3 0 5 1.8 6 3.4 1-1.6 3-3.4 6-3.4 5 0 7.6 5.2 5.3 10C51.5 43.8 40 50.5 40 50.5z" fill="#fff"/>';
+const GAMI_HAND = '<g fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(28.5,26) scale(0.96)"><path d="M10.5 9V4.5a1.9 1.9 0 0 0-3.8 0V9M6.7 8.5V3a1.9 1.9 0 0 0-3.8 0v6"/><path d="M14.3 9.2V6a1.9 1.9 0 0 1 3.8 0v6.3c0 4.6-3.3 7.7-7.6 7.7h-1.4c-2.5 0-4-.8-5.4-2.1L.6 14.8a1.85 1.85 0 0 1 2.6-2.6l1.5 1.4"/><path d="M10.5 9V4.7"/></g>';
+const GAMI_CHAT = '<path d="M53 36.2a11.7 11.7 0 0 1-1.25 5.3 11.85 11.85 0 0 1-10.6 6.55 11.7 11.7 0 0 1-5.3-1.25L28 49.5l2.65-7.95a11.7 11.7 0 0 1-1.25-5.3 11.85 11.85 0 0 1 6.55-10.6 11.7 11.7 0 0 1 5.3-1.25h.7A11.82 11.82 0 0 1 53 35.55z" fill="#fff"/><circle cx="36" cy="36.5" r="1.6" fill="#1a63a8"/><circle cx="41.5" cy="36.5" r="1.6" fill="#1a63a8"/><circle cx="47" cy="36.5" r="1.6" fill="#1a63a8"/>';
+const GAMI_CHECK = '<path d="M29 38.5 L37 46.5 L52 29" fill="none" stroke="#fff" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>';
+function gamiCoroaSvg() {
+  const g = "gmg" + (++_gamiSvgSeq);
+  return `<svg viewBox="0 0 80 94" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7d264"/><stop offset="1" stop-color="#bd8a08"/></linearGradient></defs><ellipse cx="40" cy="76" rx="22" ry="5" fill="#0b6e33" opacity=".25"/><path d="M14 58 L11 26 L25 40 L40 16 L55 40 L69 26 L66 58 Z" fill="url(#${g})"/><path d="M14 58 L11 26 L25 40 L40 16 L55 40 L69 26 L66 58 Z" fill="none" stroke="#96700a" stroke-width="1.6"/><rect x="13" y="58" width="54" height="9" rx="3.5" fill="url(#${g})" stroke="#96700a" stroke-width="1.4"/><circle cx="40" cy="12.5" r="3.4" fill="#ffeaa6" stroke="#bd8a08"/><circle cx="10.5" cy="23" r="2.6" fill="#ffeaa6" stroke="#bd8a08"/><circle cx="69.5" cy="23" r="2.6" fill="#ffeaa6" stroke="#bd8a08"/><circle cx="27" cy="55" r="2.6" fill="#c0398f"/><circle cx="40" cy="55" r="3" fill="#1f74c4"/><circle cx="53" cy="55" r="2.6" fill="#0aa348"/><path d="M20 30 A32 24 0 0 1 39 20" stroke="#fff" stroke-width="3" fill="none" opacity=".4" stroke-linecap="round"/><circle cx="40" cy="62.5" r="2.2" fill="#ffeaa6"/></svg>`;
+}
+function gamiTrofeuSvg() {
+  const g = "gmg" + (++_gamiSvgSeq);
+  return `<svg viewBox="0 0 80 94" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7d264"/><stop offset="1" stop-color="#bd8a08"/></linearGradient></defs><ellipse cx="40" cy="86" rx="20" ry="4" fill="#0b6e33" opacity=".25"/><path d="M24 14 H56 V34 A16 16 0 0 1 24 34 Z" fill="url(#${g})" stroke="#96700a" stroke-width="1.5"/><path d="M24 18 H14 a2.5 2.5 0 0 0-2.5 2.5 c0 7 5 12.5 12.5 13.5" fill="none" stroke="url(#${g})" stroke-width="4.6" stroke-linecap="round"/><path d="M56 18 H66 a2.5 2.5 0 0 1 2.5 2.5 c0 7-5 12.5-12.5 13.5" fill="none" stroke="url(#${g})" stroke-width="4.6" stroke-linecap="round"/><path d="M36 48 c0 6-2 8-5 10.5 h18 c-3-2.5-5-4.5-5-10.5 Z" fill="url(#${g})"/><rect x="27" y="58" width="26" height="8" rx="2.5" fill="url(#${g})" stroke="#96700a" stroke-width="1.4"/><rect x="23" y="66" width="34" height="9" rx="3" fill="#0b6e33"/><rect x="23" y="66" width="34" height="9" rx="3" fill="url(#${g})" opacity=".85"/><path d="M40 20 L42 25 L47 25.5 L43.4 28.8 L44.6 34 L40 31.2 L35.4 34 L36.6 28.8 L33 25.5 L38 25 Z" fill="#fff" opacity=".92"/><path d="M28 18 A20 16 0 0 1 42 15.5" stroke="#fff" stroke-width="2.6" fill="none" opacity=".4" stroke-linecap="round"/></svg>`;
+}
+
+// Avatar com aro da gamificacao. dec: '' | bronze | prata | ouro | fio | veterano;
+// coroa = posse rotativa do nº 1 (nunca gravada, sempre calculada por quem chama).
+function gamiGavHtml(iniciais, dec, { lg = false, coroa = false } = {}) {
+  return `<span class="gav${lg ? " gav--lg" : ""}${dec ? ` gav--${escapeHtml(dec)}` : ""}">${coroa ? '<i class="gav__coroa"><svg viewBox="0 0 24 16"><path d="M2 14h20l-1.5-9-5 4L12 2 8.5 9l-5-4z"/></svg></i>' : ""}<span class="gav__ini">${escapeHtml(iniciais)}</span></span>`;
+}
+const gamiIniciais = (nome) => String(nome || "").trim().split(/\s+/).slice(0, 2).map((p) => p[0] || "").join("").toUpperCase();
+const gamiAbrevia = (nome) => { const p = String(nome || "").trim().split(/\s+/); return p[0] + (p[1] ? " " + p[1][0] + "." : ""); };
+const gamiData = (iso) => { const s = String(iso || "").slice(0, 10).split("-"); return s.length === 3 ? `${s[2]}/${s[1]}` : ""; };
+function gamiAnosDeCasa() {
+  const f = (state.funcionarios || [])[0];
+  const adm = f && tsParaData(f.admissao);
+  if (!adm || isNaN(adm)) return null;
+  return Math.floor((Date.now() - adm.getTime()) / (365.25 * 24 * 3600e3));
+}
+// uid de quem esta logado: auth do Firebase em producao; em demo (sem firebase.js
+// de verdade) cai no id do state. 'typeof' porque auth nem e declarado em demo.
+const gamiMeuUid = () => (typeof auth !== "undefined" && auth && auth.currentUser) ? auth.currentUser.uid : state.currentUserId;
+const gamiSouTop1 = () => !!(state.gamiTop && state.gamiTop[0] && state.gamiTop[0].uid === gamiMeuUid());
+
+// Card compacto da home (so com temporada ativa; clique abre Conquistas·Pontos).
+function gamiCardHomeHtml() {
+  const cfg = state.gamiConfig;
+  if (!cfg || cfg.ativa !== true) return "";
+  const total = (state.gamiMeu && Number(state.gamiMeu.total)) || 0;
+  const marcos = (cfg.marcos || []).slice().sort((a, b) => a - b);
+  const prox = marcos.find((m) => m > total);
+  const prev = marcos.filter((m) => m <= total).pop() || 0;
+  const pct = prox ? Math.round(((total - prev) / (prox - prev)) * 100) : 100;
+  return `<button class="gm-card" data-nav="colab-conquistas" aria-label="Seus pontos: ${total}. Abrir Conquistas.">
+      <div class="gm-card__top"><span class="gm-card__lbl">Seus pontos</span><span class="gm-card__season">Temporada ${escapeHtml(cfg.ano)}</span></div>
+      <div class="gm-card__pts">${total} <small>pts</small></div>
+      <div class="gm-bar"><span style="width:${pct}%"></span></div>
+      <div class="gm-card__meta"><span>${prox ? `Próximo marco: ${prox} · surpresa` : "Todos os marcos do ano conquistados"}</span><span>${prox ? `faltam ${prox - total} pts` : ""}</span></div>
+      <div class="gm-selos">${marcos.map((m) => `<span class="gm-selo${total >= m ? " ok" : ""}">${m}</span>`).join("")}</div>
+    </button>`;
+}
+
+function renderColabConquistas() {
+  const view = $("#view");
+  const cfg = state.gamiConfig;
+  if (!cfg || cfg.ativa !== true) {
+    view.innerHTML = `<div class="pp-fade"><div class="cp-stub"><div class="cp-stub__ic">${cpIcon("medalha")}</div>
+      <p>A temporada de pontos ainda não começou. A GP ativa por aqui em breve.</p><span class="cp-stub__tag">Conquistas</span></div></div>`;
+    return;
+  }
+  // 1a entrada na tela: carrega extrato/ranking/entregas + catch-up (creditos do ano
+  // ainda nao reivindicados, incluindo o claim adiado da pesquisa). Re-render ao fim.
+  if (state.gamiExtrato === undefined) {
+    state.gamiExtrato = null; // trava reentrada
+    view.innerHTML = `<div class="pp-fade"><div class="cp-stub"><div class="cp-stub__ic">${cpIcon("spinner")}</div><p>Carregando suas conquistas…</p></div></div>`;
+    (async () => {
+      await window.carregarGamificacaoColab?.();
+      if (await window.gamiCatchUp?.()) await window.carregarGamificacaoColab?.();
+      if (state.view.page === "colab-conquistas") renderApp();
+    })();
+    return;
+  }
+  const tab = state.view.gamiTab === "bdg" ? "bdg" : "pts";
+  view.innerHTML = `<div class="pp-fade">
+      <div class="gm-tabs" role="tablist">
+        <button role="tab" aria-selected="${tab === "pts"}" class="${tab === "pts" ? "on" : ""}" data-gami-tab="pts">Pontos</button>
+        <button role="tab" aria-selected="${tab === "bdg"}" class="${tab === "bdg" ? "on" : ""}" data-gami-tab="bdg">Badges</button>
+      </div>
+      ${tab === "pts" ? gamiTabPontosHtml(cfg) : gamiTabBadgesHtml(cfg)}
+    </div>`;
+  $$("#view [data-gami-tab]").forEach((b) => b.addEventListener("click", () => { state.view.gamiTab = b.dataset.gamiTab; renderApp(); }));
+  if (tab === "bdg") {
+    $$("#view [data-gami-deco]").forEach((b) => b.addEventListener("click", () => {
+      const dec = b.dataset.gamiDeco;
+      if (b.classList.contains("lock") || b.classList.contains("sel")) return;
+      withBusy("gami-deco", b, async () => {
+        try { await window.equiparDecoracao(dec); toast(dec ? "Decoração equipada." : "Decoração removida."); renderApp(); }
+        catch (e) { toast("Não consegui equipar: " + (e?.message || e), "danger"); }
+      });
+    }));
+  }
+}
+
+function gamiTabPontosHtml(cfg) {
+  const total = (state.gamiMeu && Number(state.gamiMeu.total)) || 0;
+  const marcos = (cfg.marcos || []).slice().sort((a, b) => a - b);
+  const prox = marcos.find((m) => m > total);
+  const prev = marcos.filter((m) => m <= total).pop() || 0;
+  const pct = prox ? Math.round(((total - prev) / (prox - prev)) * 100) : 100;
+  const entregaPorMarco = {};
+  for (const e of state.gamiEntregas || []) entregaPorMarco[e.marco] = e;
+  const marcosHtml = marcos.map((m) => {
+    const ok = total >= m;
+    const ent = entregaPorMarco[m];
+    const sub = ok ? (ent ? escapeHtml(ent.premio) : "surpresa a caminho") : "surpresa";
+    return `<div class="gm-tmarco${ok ? " ok" : m === prox ? " next" : ""}"><b>${m}</b><i>${sub}</i>${ok ? '<span class="chk">conquistado</span>' : ""}</div>`;
+  }).join("");
+  const meuUid = gamiMeuUid();
+  const top = state.gamiTop || [];
+  const podio = [top[1], top[0], top[2]];
+  const podioHtml = podio.map((p, i) => {
+    if (!p) return "";
+    const rei = i === 1;
+    const eu = p.uid === meuUid;
+    return `<div class="gm-pod__c${rei ? " p1" : ""}">${gamiGavHtml(gamiIniciais(p.nome), p.decoracao || "", { coroa: rei })}
+        <b>${escapeHtml((eu ? "Você" : gamiAbrevia(p.nome)) + (rei ? " · Rei dos pontos" : ""))}</b><span>${Number(p.total) || 0} pts</span></div>`;
+  }).join("");
+  const linhas = top.slice(3).map((p) => `<div class="gm-toprow${p.uid === meuUid ? " me" : ""}"><span class="pos">${p.pos}</span><span class="nm">${escapeHtml(p.uid === meuUid ? `Você (${String(p.nome || "").split(" ")[0]})` : p.nome)}</span><span class="pt">${Number(p.total) || 0}</span></div>`).join("");
+  const naLista = top.some((p) => p.uid === meuUid);
+  const extrato = (state.gamiExtrato || []).slice(0, 40).map((e) => `<div class="gm-ext"><span class="mais">+${Number(e.pontos) || 0}</span><span class="oq">${escapeHtml(e.rotulo || e.acao)}<br><span class="qd">${gamiData(e.em)}</span></span></div>`).join("");
+  return `
+    <div class="gm-card">
+      <div class="gm-card__top"><span class="gm-card__lbl">Temporada ${escapeHtml(cfg.ano)}</span><span class="gm-card__season">zera em 01/01</span></div>
+      <div class="gm-card__pts">${total} <small>pts</small></div>
+      <div class="gm-bar"><span style="width:${pct}%"></span></div>
+      <div class="gm-card__meta"><span>${prox ? `Próximo marco: ${prox} · prêmio surpresa` : "Todos os marcos conquistados"}</span><span>${prox ? `faltam ${prox - total}` : ""}</span></div>
+    </div>
+    <div class="gm-h2">Marcos da temporada</div>
+    <div class="gm-trilha">${marcosHtml}</div>
+    <div class="gm-h2">Top 10 da Fiobras</div>
+    ${top.length ? `<div class="gm-pod">${podioHtml}</div>${linhas ? `<div class="gm-top">${linhas}</div>` : ""}${naLista ? "" : `<p class="gmc-nota">Você tem ${total} pts. Continue participando pra entrar no top 10.</p>`}` : `<p class="gmc-nota">O ranking aparece quando os primeiros pontos da temporada nascerem.</p>`}
+    <div class="gm-h2">Como você pontuou</div>
+    ${extrato || `<p class="gmc-nota">Suas ações no portal (assinaturas, ciências, pesquisas) viram pontos aqui.</p>`}`;
+}
+
+function gamiTabBadgesHtml(cfg) {
+  const u = currentUser();
+  const f = (state.funcionarios || [])[0];
+  const nome = (f && f.nome) || (u && u.nome) || "";
+  const ini = gamiIniciais(nome);
+  const total = (state.gamiMeu && Number(state.gamiMeu.total)) || 0;
+  const anos = gamiAnosDeCasa();
+  const marcos = (cfg.marcos || []).slice().sort((a, b) => a - b);
+  const equip = (u && u.decoracao) || "";
+  const souRei = gamiSouTop1();
+  const tFio = marcos[marcos.length - 1] || 200;
+  const decos = [
+    { id: "bronze", n: "Aro bronze", ok: total >= (marcos[0] || 25), sub: `${marcos[0] || 25} pts na temporada` },
+    { id: "prata", n: "Aro prata", ok: total >= (marcos[1] || 50), sub: `${marcos[1] || 50} pts` },
+    { id: "ouro", n: "Aro ouro", ok: total >= (marcos[2] || 100), sub: `${marcos[2] || 100} pts` },
+    { id: "fio", n: "Aro FioPulse", ok: total >= tFio, sub: `${tFio} pts` },
+    { id: "veterano", n: "Veterano", ok: anos != null && anos >= 5, sub: "5 anos de casa" },
+  ];
+  const decosHtml = decos.map((d) => `<button class="gmc-deco${equip === d.id ? " sel" : ""}${d.ok ? "" : " lock"}" data-gami-deco="${d.id}" ${d.ok ? "" : "disabled"}>${gamiGavHtml(ini, d.id)}<b>${d.n}</b><span>${escapeHtml(d.sub)}${equip === d.id ? " · equipado" : d.ok ? "" : " · bloqueado"}</span></button>`).join("")
+    + `<div class="gmc-deco${souRei ? "" : " lock"}">${gamiGavHtml(ini, equip || "ouro", { coroa: true })}<b>Rei dos pontos</b><span>${souRei ? "sua enquanto for o nº 1" : "seja o nº 1 do ranking"}</span></div>`
+    + (equip ? `<button class="gmc-deco gmc-deco--off" data-gami-deco=""><span class="gav"><span class="gav__ini">${escapeHtml(ini)}</span></span><b>Sem aro</b><span>voltar ao padrão</span></button>` : "");
+  const anoAdm = f && tsParaData(f.admissao) ? tsParaData(f.admissao).getFullYear() : null;
+  const casa = [[1, "1 ano de Fiobras", "bronze", gamiInnerNum(1, "ANO")], [3, "3 anos de Fiobras", "prata", gamiInnerNum(3, "ANOS")], [5, "5 anos de Fiobras", "ouro", gamiInnerNum(5, "ANOS")], [10, "10 anos de Fiobras", "marca", gamiInnerNum(10, "ANOS")]]
+    .map(([n, rot, mat, inner]) => badgeHtml(gamiMedalSvg(mat, inner), rot, anos != null && anos >= n ? String((anoAdm || 0) + n) : `a casa comemora com você${anoAdm ? " em " + (anoAdm + n) : ""}`, !(anos != null && anos >= n)));
+  const pesquisasRespondidas = (state.gamiExtrato || []).filter((e) => e.acao === "pesquisa").length;
+  const semPendencia = (state.pesquisasClimaColab || []).every((p) => p.jaRespondi);
+  const vozOk = pesquisasRespondidas >= 1 && semPendencia;
+  const recibos = state.meusRecibos || [];
+  const docsPend = (state.documentosColab || []).filter(colabDocPendente).length;
+  const tudoOk = recibos.length > 0 && recibos.every((r) => r.minhaAssinatura) && docsPend === 0;
+  const partic = [
+    badgeHtml(gamiMedalSvg("azul", GAMI_CHAT), "Voz da firma", vozOk ? "todas as pesquisas do ano" : "responda todas as pesquisas do ano", !vozOk),
+    badgeHtml(gamiMedalSvg("verde", GAMI_CHECK), "Tudo em dia", tudoOk ? "todas as assinaturas em dia" : "assine tudo o que está pendente", !tudoOk),
+  ];
+  const compa = [
+    badgeHtml(gamiMedalSvg("bronze", GAMI_HEART), "Coração aberto", "em breve, junto do mural", true),
+    badgeHtml(gamiMedalSvg("ouro", GAMI_HEART), "Coração de ouro", "em breve", true),
+    badgeHtml(gamiMedalSvg("prata", GAMI_HAND), "Recepcionista", "em breve", true),
+  ];
+  const rank = [
+    badgeHtml(gamiCoroaSvg(), "Rei dos pontos", souRei ? "é seu, nº 1 do ranking" : "seja o nº 1 do ranking (rotativo)", !souRei),
+    badgeHtml(gamiTrofeuSvg(), "Campeão da temporada", "termine o ano em 1º lugar", true),
+  ];
+  const nBadges = [anos >= 1, anos >= 3, anos >= 5, anos >= 10, vozOk, tudoOk, souRei].filter(Boolean).length;
+  return `
+    <div class="gmc-perfil">${gamiGavHtml(ini, equip, { lg: true, coroa: souRei })}<div><b>${escapeHtml(nome)}</b>
+      <div class="gmc-perfil__sub">${equip ? `Aro ${equip === "fio" ? "FioPulse" : equip} equipado · ` : ""}${nBadges} badge${nBadges === 1 ? "" : "s"} conquistado${nBadges === 1 ? "" : "s"}</div></div></div>
+    <div class="gm-h2">Decoração do avatar</div>
+    <div class="gmc-decos">${decosHtml}</div>
+    <div class="gm-h2">Badges · Tempo de casa</div><div class="gqb-grid">${casa.join("")}</div>
+    <div class="gm-h2">Badges · Companheirismo</div><div class="gqb-grid">${compa.join("")}</div>
+    <div class="gm-h2">Badges · Participação</div><div class="gqb-grid">${partic.join("")}</div>
+    <div class="gm-h2">Badges · Ranking</div><div class="gqb-grid">${rank.join("")}</div>`;
+
+  function badgeHtml(art, nomeB, sub, lock) {
+    return `<div class="gqb${lock ? " lock" : ""}"><div class="gqb__art">${art}</div><b>${escapeHtml(nomeB)}</b><span>${escapeHtml(sub)}</span></div>`;
+  }
 }
 
 function renderColaboradorHome() {
@@ -2308,6 +2538,7 @@ function renderColaboradorHome() {
       <div class="pp-home__grid">
         <div class="pp-home__col">
           ${bhHeroHtml(f)}
+          ${gamiCardHomeHtml()}
           ${precisaAtencaoHtml()}
           ${noviCard}
         </div>
@@ -3587,6 +3818,7 @@ function renderNav() {
   // Avaliações: quem gerencia (clima ou desempenho) OU quem avalia (líder/supervisor
   // entram só pra preencher as avaliações do próprio escopo).
   if (can("pesquisas.gerenciar") || can("desempenho.gerenciar") || u.role === "lider" || u.role === "supervisor") items.push({ id: "avaliacoes", label: "Avaliações", icon: "star" });
+  if (can("gamificacao.gerenciar")) items.push({ id: "gamificacao", label: "Gamificação", icon: "trofeu" });
   if (can("documentos.gerenciar")) items.push({ id: "documentos", label: "Documentos", icon: "file" });
   if (["admin", "rh", "lider"].includes(currentUser()?.role)) items.push({ id: "disciplinar", label: "Disciplinar", icon: "alert" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
@@ -3638,6 +3870,151 @@ function renderBottomNav() {
 // Hub de atalhos do GESTOR no celular (mock aprovado 2026-07-02): mesma anatomia do
 // hub do colaborador, tema claro. Só aparece no mobile (CSS esconde >900px).
 // Auditoria entra quando a tela da coleção /eventos existir.
+// ============================================================
+// GAMIFICACAO (gestor, cap gamificacao.gerenciar). Abas: Configuracao
+// (tabela de pontos + marcos + premios SURPRESA + ativar temporada) e
+// Entregas e ranking (fila de premiacao derivada + ranking completo).
+// Camada de dados em firebase.js; premios vivem em /privado (so cap).
+// ============================================================
+const GAMI_ACOES = [
+  ["cartao-ponto", "Assinar cartão ponto do mês", 1],
+  ["folha", "Assinar folha de pagamento", 1],
+  ["comunicado", "Ciência / visualização de comunicado", 1],
+  ["documento-leitura", "Confirmar leitura de documento", 1],
+  ["documento-assinatura", "Assinar documento (assinatura eletrônica)", 5],
+  ["pesquisa", "Responder pesquisa de clima", 5],
+  ["autoavaliacao", "Concluir autoavaliação de desempenho", 5],
+  ["termo", "Primeira entrada + Termo de Adesão", 5],
+];
+const GAMI_MARCOS_DEFAULT = [25, 50, 100, 150, 200];
+
+function renderGamificacao() {
+  const view = $("#view");
+  if (state._gamiGestor === undefined) {
+    state._gamiGestor = null; // trava reentrada
+    view.innerHTML = `<header class="page-header"><div><h1>Gamificação</h1></div></header><div class="empty"><p>Carregando…</p></div>`;
+    (async () => {
+      await window.carregarGamiConfig?.(true);
+      state._gamiPremios = await window.carregarGamiPremios?.();
+      await window.carregarGamiGestor?.();
+      state._gamiGestor = true;
+      if (state.view.page === "gamificacao") renderApp();
+    })();
+    return;
+  }
+  const tab = state.view.gamiGTab === "entregas" ? "entregas" : "config";
+  view.innerHTML = `
+    <header class="page-header"><div><h1>Gamificação</h1>
+      <p class="page-sub">Temporada ${new Date().getFullYear()} · pontos por ação, prêmios surpresa e entregas.</p></div></header>
+    <div class="tabs" role="tablist" style="margin-bottom:16px;">
+      <button class="tab ${tab === "config" ? "active" : ""}" data-gami-gtab="config">Configuração</button>
+      <button class="tab ${tab === "entregas" ? "active" : ""}" data-gami-gtab="entregas">Entregas e ranking</button>
+    </div>
+    ${tab === "config" ? gamiGestorConfigHtml() : gamiGestorEntregasHtml()}`;
+  $$("#view [data-gami-gtab]").forEach((b) => b.addEventListener("click", () => { state.view.gamiGTab = b.dataset.gamiGtab; renderApp(); }));
+  if (tab === "config") bindGamiConfig();
+  else bindGamiEntregas();
+}
+
+function gamiGestorConfigHtml() {
+  const cfg = state.gamiConfig;
+  const premios = state._gamiPremios || {};
+  const marcos = (cfg && cfg.marcos && cfg.marcos.length ? cfg.marcos : GAMI_MARCOS_DEFAULT).slice().sort((a, b) => a - b);
+  const linhas = GAMI_ACOES.map(([k, n, def]) => `
+    <tr><td>${escapeHtml(n)}</td><td style="width:110px;"><input type="number" min="0" max="100" data-gami-acao="${k}" value="${cfg && cfg.tabela && Number.isInteger(cfg.tabela[k]) ? cfg.tabela[k] : def}"></td></tr>`).join("");
+  const linhasMarcos = marcos.map((m, i) => `
+    <tr><td style="width:90px;"><input type="number" min="1" data-gami-marco="${i}" value="${m}"></td>
+        <td><input type="text" maxlength="200" data-gami-premio="${i}" value="${escapeHtml(premios["m" + m] || "")}" placeholder="prêmio deste marco (só a GP vê)"></td></tr>`).join("");
+  return `
+    <div class="card" style="max-width:860px;">
+      <div class="card__header"><h3>Pontos por ação</h3>
+        <label class="gami-ativa"><input type="checkbox" id="gami-ativa" ${cfg && cfg.ativa ? "checked" : ""}> Temporada ativa</label></div>
+      <p class="hint">O colaborador vê a tabela e os marcos, NUNCA os prêmios: eles são surpresa, revelados só quando o marco é cruzado e a entrega registrada.</p>
+      <table class="table"><thead><tr><th>Ação do colaborador</th><th>Pontos</th></tr></thead><tbody>${linhas}</tbody></table>
+      <h3 style="margin:18px 0 8px;">Marcos e premiações (surpresa)</h3>
+      <table class="table"><thead><tr><th>Marco</th><th>Prêmio</th></tr></thead><tbody>${linhasMarcos}</tbody></table>
+      <div style="margin-top:16px;"><button class="btn btn--primary" id="gami-salvar">Salvar configuração</button>
+      <span class="hint" id="gami-cfg-erro" style="color:var(--danger);margin-left:10px;"></span></div>
+    </div>`;
+}
+
+function bindGamiConfig() {
+  const btn = $("#gami-salvar");
+  if (!btn) return;
+  btn.addEventListener("click", () => withBusy("gami-salvar", btn, async () => {
+    const erro = $("#gami-cfg-erro");
+    erro.textContent = "";
+    const tabela = {};
+    let invalido = false;
+    $$("#view [data-gami-acao]").forEach((i) => {
+      const v = parseInt(i.value, 10);
+      if (!Number.isInteger(v) || v < 0) invalido = true;
+      tabela[i.dataset.gamiAcao] = v;
+    });
+    const marcos = $$("#view [data-gami-marco]").map((i) => parseInt(i.value, 10));
+    if (invalido || marcos.some((m) => !Number.isInteger(m) || m <= 0)) { erro.textContent = "Valores precisam ser números inteiros positivos."; return; }
+    const premios = {};
+    $$("#view [data-gami-premio]").forEach((i, idx) => { const p = i.value.trim(); if (p) premios["m" + marcos[idx]] = p.slice(0, 200); });
+    try {
+      await window.salvarGamiConfig(tabela, marcos, $("#gami-ativa").checked);
+      await window.salvarGamiPremios(premios);
+      state._gamiPremios = premios;
+      window.registrarAuditoria?.({ tipo: "gamificacao", acao: "Salvou a configuração da temporada", alvo: String(new Date().getFullYear()) });
+      toast("Configuração salva.");
+      renderApp();
+    } catch (e) { erro.textContent = "Não salvou: " + (e?.message || e); }
+  }));
+}
+
+function gamiGestorEntregasHtml() {
+  const ranking = state.gamiRanking || [];
+  const cfg = state.gamiConfig;
+  const marcos = (cfg && cfg.marcos ? cfg.marcos : []).slice().sort((a, b) => a - b);
+  const premios = state._gamiPremios || {};
+  const entregues = new Set((state.gamiEntregasTodas || []).map((e) => `${e.uid}_${e.marco}`));
+  // Fila derivada: cruzou o marco e a entrega ainda nao foi registrada.
+  const fila = [];
+  for (const p of ranking) for (const m of marcos) if ((Number(p.total) || 0) >= m && !entregues.has(`${p.uid}_${m}`))
+    fila.push({ uid: p.uid, nome: p.nome, marco: m, premio: premios["m" + m] || "" });
+  const filaHtml = fila.map((f) => `
+    <div class="gami-fila"><span class="gami-fila__av">${escapeHtml(gamiIniciais(f.nome))}</span>
+      <div class="gami-fila__bd"><b>${escapeHtml(f.nome || f.uid)}</b><span>cruzou o marco ${f.marco}</span></div>
+      <span class="gami-fila__pill">${f.marco}${f.premio ? " · " + escapeHtml(f.premio) : ""}</span>
+      <button class="btn btn--primary btn--sm" data-gami-entregar="${escapeHtml(f.uid)}" data-marco="${f.marco}" data-premio="${escapeHtml(f.premio)}">Marcar como entregue</button>
+    </div>`).join("");
+  const rkHtml = ranking.map((p) => `
+    <tr><td style="width:50px;"><b>${p.pos}</b></td><td>${escapeHtml(p.nome || p.uid)}</td>
+      <td style="width:130px;">${marcos.filter((m) => (Number(p.total) || 0) >= m).join(", ") || "—"}</td>
+      <td style="width:80px;"><b style="color:var(--plum);">${Number(p.total) || 0}</b></td></tr>`).join("");
+  return `
+    <div class="card" style="max-width:860px;">
+      <div class="card__header"><h3>Entregas pendentes</h3><span class="hint">${fila.length ? `${fila.length} prêmio${fila.length > 1 ? "s" : ""} aguardando entrega` : "nada pendente"}</span></div>
+      ${filaHtml || `<p class="hint">Quando alguém cruzar um marco, a entrega aparece aqui.</p>`}
+    </div>
+    <div class="card" style="max-width:860px;margin-top:16px;">
+      <div class="card__header"><h3>Ranking completo</h3><span class="hint">o colaborador vê só o top 10</span></div>
+      ${ranking.length ? `<table class="table"><thead><tr><th>Pos.</th><th>Colaborador</th><th>Marcos</th><th>Pontos</th></tr></thead><tbody>${rkHtml}</tbody></table>` : `<p class="hint">Sem pontos na temporada ainda.</p>`}
+    </div>`;
+}
+
+function bindGamiEntregas() {
+  $$("#view [data-gami-entregar]").forEach((b) => b.addEventListener("click", async () => {
+    const uid = b.dataset.gamiEntregar, marco = parseInt(b.dataset.marco, 10);
+    let premio = b.dataset.premio;
+    if (!premio) { toast("Cadastre o prêmio deste marco na Configuração antes de entregar.", "danger"); return; }
+    const ok = await confirmar({ titulo: "Registrar entrega", msg: `Confirma a entrega do prêmio do marco ${marco} (${premio})? O registro é imutável e revela o prêmio ao colaborador.`, okLabel: "Registrar" });
+    if (!ok) return;
+    withBusy("gami-entrega", b, async () => {
+      try {
+        await window.registrarGamiEntrega(uid, marco, premio);
+        await window.carregarGamiGestor?.();
+        toast("Entrega registrada.");
+        renderApp();
+      } catch (e) { toast("Não registrou: " + (e?.message || e), "danger"); }
+    });
+  }));
+}
+
 function gestorAtalhosHtml(u) {
   const pend = pendingForUser(u).length + ocaDoEstagio("rh_confere").length + ocaDoEstagio("com_lider").length;
   const rcbPend = (state.recibos || []).filter((r) => !(r.assinaturas || []).length).length;
@@ -3648,6 +4025,7 @@ function gestorAtalhosHtml(u) {
     can("bancoHoras.ver") ? { page: "espelho-ponto", label: "Espelho de ponto", icon: "conferir" } : null,
     can("documentos.gerenciar") ? { page: "documentos", tab: "recibos", label: "Recibos e cartão", icon: "clipboard", badge: rcbPend, tone: "amber" } : null,
     can("comunicados.gerenciar") ? { page: "comunicados", label: "Avisos", icon: "megafone" } : null,
+    can("gamificacao.gerenciar") ? { page: "gamificacao", label: "Gamificação", icon: "trofeu" } : null,
     can("documentos.gerenciar") ? { page: "documentos", tab: "inst", label: "Documentos", icon: "file" } : null,
     can("pj.ver") ? { page: "pj", label: "Controle PJ", icon: "briefcase" } : null,
     can("sistema.config") ? { page: "config", label: "Ajustes", icon: "settings" } : null,
@@ -3738,6 +4116,10 @@ function renderView() {
   if (page === "avaliacoes") {
     if (!can("pesquisas.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderAvaliacoes();
+  }
+  if (page === "gamificacao") {
+    if (!can("gamificacao.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
+    return renderGamificacao();
   }
   if (page === "documentos") {
     if (!can("documentos.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
@@ -14306,6 +14688,10 @@ const PERM_CAPS = [
     { k: "pesquisas.gerenciar", n: "Criar e gerenciar pesquisas de clima" },
     { k: "desempenho.gerenciar", n: "Criar e gerenciar ciclos de avaliação de desempenho" },
   ]},
+  // Gamificação: cap GLOBAL (mesma regra das Avaliações: NUNCA 'turno'/'atrib').
+  { area: "Gamificação", caps: [
+    { k: "gamificacao.gerenciar", n: "Configurar temporada, prêmios e entregas" },
+  ]},
   { area: "Sistema", caps: [
     { k: "sistema.config", n: "Configurações (tipos, ações)" },
     { k: "sistema.usuarios", n: "Gerenciar usuários e permissões" },
@@ -14330,7 +14716,7 @@ const PERM_DEFAULT = {
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
     "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
     "comunicados.gerenciar": true, "documentos.gerenciar": true, "recibos.gerenciar": true,
-    "pesquisas.gerenciar": true, "desempenho.gerenciar": true,
+    "pesquisas.gerenciar": true, "desempenho.gerenciar": true, "gamificacao.gerenciar": true,
     "auditoria.ver": true, "sistema.config": true, "sistema.usuarios": false,
   },
   lider: {
@@ -14341,7 +14727,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
-    "pesquisas.gerenciar": false, "desempenho.gerenciar": false,
+    "pesquisas.gerenciar": false, "desempenho.gerenciar": false, "gamificacao.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   supervisor: {
@@ -14352,7 +14738,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
-    "pesquisas.gerenciar": false, "desempenho.gerenciar": false,
+    "pesquisas.gerenciar": false, "desempenho.gerenciar": false, "gamificacao.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   // Colaborador (Portal). Tudo de gestor explicitamente false (impede override acidental);

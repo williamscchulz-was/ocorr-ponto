@@ -4580,3 +4580,98 @@ code { font-family: inherit; }
 .dsmp-auto-tx { font-size: 12px; color: var(--text-muted); margin: 7px 0 0; }
 .dsmp-bar { height: 8px; border-radius: 4px; background: var(--surface-warm); border: 1px solid var(--border); overflow: hidden; }
 .dsmp-bar span { display: block; height: 100%; background: var(--plum); border-radius: 4px; }
+
+/* ============================================
+   GAMIFICACAO (mock aprovado 2026-07-14)
+   ============================================ */
+
+/* Card de pontos (home do colab, botao; e hero da tela Conquistas, div) */
+.gm-card { display: block; width: 100%; text-align: left; border: 0; font: inherit; background: linear-gradient(135deg, #008835, #0b6e33); border-radius: 18px; padding: 16px 18px; color: #fff; }
+button.gm-card { cursor: pointer; }
+.gm-card__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.gm-card__lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+.gm-card__season { font-size: 10.5px; font-weight: 700; background: rgba(255,255,255,.16); padding: 3px 10px; border-radius: 999px; }
+.gm-card__pts { font-size: 40px; font-weight: 800; line-height: 1.1; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+.gm-card__pts small { font-size: 14px; font-weight: 600; opacity: .85; }
+.gm-bar { height: 9px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; margin: 10px 0 6px; }
+.gm-bar span { display: block; height: 100%; background: var(--fiobras-yellow, #FFCB00); border-radius: 999px; }
+.gm-card__meta { display: flex; justify-content: space-between; font-size: 11.5px; opacity: .9; }
+.gm-selos { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.gm-selo { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.16); }
+.gm-selo.ok { background: var(--fiobras-yellow, #FFCB00); color: #4a3c00; }
+
+/* Tela Conquistas: abas + secoes */
+.gm-tabs { display: flex; gap: 4px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 999px; padding: 4px; width: max-content; margin: 2px 0 16px; }
+.gm-tabs button { border: 0; background: transparent; font: 600 12.5px var(--font); color: var(--text-muted); padding: 7px 16px; border-radius: 999px; cursor: pointer; }
+.gm-tabs button.on { background: var(--plum); color: #fff; }
+.gm-h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 18px 4px 8px; }
+.gmc-nota { font-size: 12.5px; color: var(--text-muted); margin: 4px; }
+.gm-trilha { display: flex; gap: 6px; }
+.gm-tmarco { flex: 1; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 9px 4px; background: var(--surface-warm); }
+.gm-tmarco.ok { background: var(--success-bg); border-color: rgba(0,136,53,.35); }
+.gm-tmarco.next { border-color: var(--plum); border-width: 1.5px; }
+.gm-tmarco b { display: block; font-size: 15px; font-weight: 800; color: var(--plum); }
+.gm-tmarco i { display: block; font-style: normal; font-size: 9.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.25; }
+.gm-tmarco .chk { font-size: 10px; font-weight: 800; color: var(--success); }
+.gm-pod { display: flex; gap: 8px; align-items: flex-end; }
+.gm-pod__c { flex: 1; min-width: 0; text-align: center; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 12px; padding: 10px 6px; }
+.gm-pod__c.p1 { padding-top: 18px; background: var(--success-bg); border-color: rgba(0,136,53,.3); }
+.gm-pod__c .gav { margin: 0 auto 6px; }
+.gm-pod__c b { display: block; font-size: 12px; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-pod__c > span:not(.gav) { font-size: 11px; font-weight: 700; color: var(--plum); }
+.gm-top { margin-top: 8px; }
+.gm-toprow { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; font-size: 12.5px; }
+.gm-toprow.me { background: var(--info-bg); font-weight: 700; }
+.gm-toprow .pos { width: 20px; font-weight: 800; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.gm-toprow .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-body); }
+.gm-toprow .pt { font-weight: 800; color: var(--plum); font-variant-numeric: tabular-nums; }
+.gm-ext { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-top: 1px solid var(--border); font-size: 12.5px; }
+.gm-ext:first-of-type { border-top: 0; }
+.gm-ext .mais { font-weight: 800; color: var(--plum); width: 34px; font-variant-numeric: tabular-nums; }
+.gm-ext .oq { flex: 1; color: var(--text-body); }
+.gm-ext .qd { font-size: 11px; color: var(--text-muted); }
+
+/* Avatar com aro (decoracao equipada); coroa = posse rotativa do nº 1 */
+.gav { position: relative; width: 44px; height: 44px; border-radius: 50%; background: var(--plum); color: #fff; display: grid; place-items: center; font-size: 14px; font-weight: 700; flex: none; }
+.gav--lg { width: 76px; height: 76px; font-size: 24px; }
+.gav--bronze { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px #b0713c; }
+.gav--prata { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px #97a3ab; }
+.gav--ouro { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px #d4a017; }
+.gav--veterano { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--plum-deep, #005a23), 0 0 0 7px var(--success-bg); }
+/* aro gradiente da marca: ::before = anel conic externo; ::after repinta o miolo
+   (pseudo-elemento com z-index cobre o background do pai) */
+.gav--fio::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; background: conic-gradient(#008835, #FFCB00, #0076BE, #008835); z-index: 0; }
+.gav--fio::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--plum); box-shadow: 0 0 0 2.5px var(--surface); z-index: 1; }
+.gav__ini { position: relative; z-index: 2; }
+.gav__coroa { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); z-index: 3; width: 22px; height: 16px; color: #d4a017; }
+.gav__coroa svg { width: 100%; height: 100%; fill: currentColor; }
+
+/* Perfil + seletor de decoracao (aba Badges) */
+.gmc-perfil { display: flex; align-items: center; gap: 16px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 16px; padding: 18px 16px; }
+.gmc-perfil b { font-size: 15px; color: var(--text-body); }
+.gmc-perfil__sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.gmc-decos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.gmc-deco { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px 11px; border: 1.5px solid var(--border); border-radius: 14px; background: var(--surface-warm); cursor: pointer; font: inherit; text-align: center; }
+.gmc-deco.sel { border-color: var(--plum); background: var(--success-bg); cursor: default; }
+.gmc-deco.lock { opacity: .45; cursor: default; }
+.gmc-deco > b { font-size: 11px; font-weight: 700; color: var(--text-body); }
+.gmc-deco > span:not(.gav) { font-size: 9.5px; color: var(--text-muted); line-height: 1.3; }
+
+/* Medalhas (badges colecionaveis) */
+.gqb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.gqb { text-align: center; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 14px; padding: 12px 6px 10px; }
+.gqb__art svg { width: 62px; height: 73px; filter: drop-shadow(0 3px 4px rgba(0,40,20,.18)); }
+.gqb b { display: block; font-size: 10.5px; font-weight: 700; color: var(--text-body); line-height: 1.25; margin-top: 3px; }
+.gqb span { display: block; font-size: 9px; color: var(--text-muted); line-height: 1.3; margin-top: 2px; }
+.gqb.lock .gqb__art svg { filter: grayscale(1) opacity(.42); }
+.gqb.lock b { color: var(--text-muted); }
+
+/* Gestor: fila de entregas */
+.gami-ativa { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--text-body); cursor: pointer; }
+.gami-fila { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.gami-fila:first-of-type { border-top: 0; }
+.gami-fila__av { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-warm); border: 1px solid var(--border); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--text-muted); flex: none; }
+.gami-fila__bd { flex: 1; min-width: 160px; }
+.gami-fila__bd b { display: block; font-size: 13.5px; color: var(--text-body); }
+.gami-fila__bd span { font-size: 11.5px; color: var(--text-muted); }
+.gami-fila__pill { font-size: 11.5px; font-weight: 700; color: var(--plum); background: var(--success-bg); padding: 4px 11px; border-radius: 999px; }

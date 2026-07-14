@@ -111,7 +111,7 @@ html.modo-colab.cp-dark #bottom-nav{
 /* Pill deslizante (igual .pp-seg__pill da Conta): um só elemento absoluto que
    desliza por transform. Largura = 1/3 do interior (3 itens de flex igual, menos
    os 7px de padding de cada lado). Posição vem do --bn-i setado no JS. */
-.modo-colab #bottom-nav .bn-pill{position:absolute;top:7px;bottom:7px;left:7px;width:calc((100% - 14px)/3);border-radius:19px;background:rgba(0,136,53,.10);transform:translateX(calc(var(--bn-i,0)*100%));transition:transform .28s var(--ease);z-index:0;pointer-events:none}
+.modo-colab #bottom-nav .bn-pill{position:absolute;top:7px;bottom:7px;left:7px;width:calc((100% - 14px)/4);border-radius:19px;background:rgba(0,136,53,.10);transform:translateX(calc(var(--bn-i,0)*100%));transition:transform .28s var(--ease);z-index:0;pointer-events:none}
 html.modo-colab.cp-dark #bottom-nav .bn-pill{background:rgba(95,203,133,.17)}
 .modo-colab .cp-bn-ic{width:auto;height:auto;border-radius:0;background:none;display:flex;align-items:center;justify-content:center;color:inherit}
 .modo-colab .bottom-nav__item.active .cp-bn-ic{background:none;color:inherit}

@@ -1703,9 +1703,13 @@
         const ev = { acao, refId, pontos, em: _FV.serverTimestamp() };
         if (rotulo) ev.rotulo = String(rotulo).slice(0, 140);
         b.set(meuRef.collection("eventos").doc(eid), ev);
-        b.set(meuRef, { total, nome: String(u.nome || "").slice(0, 120), ultimoEvento: eid });
+        const placar = { total, nome: String(u.nome || "").slice(0, 120), ultimoEvento: eid };
+        // decoracao denormalizada acompanha o placar (o set substitui o doc; sem isto o
+        // aro sumiria do ranking a cada ponto). Igualdade com users.decoracao e da regra.
+        if (u.decoracao != null) placar.decoracao = u.decoracao;
+        b.set(meuRef, placar);
         await b.commit();
-        state.gamiMeu = { total, nome: u.nome, ultimoEvento: eid };
+        state.gamiMeu = { ...placar };
         if (state.gamiExtrato) state.gamiExtrato.unshift({ id: eid, ...ev, em: new Date().toISOString() });
         return true;
       } catch (e) { debug?.("[gami] claim", acao, refId, ":", e?.code || e?.message); return false; }
@@ -1787,6 +1791,21 @@
         try { localStorage.setItem("gamiPesqPend", JSON.stringify(resta)); } catch { /* sem espaco */ }
       }
       return creditou;
+    };
+
+    // Equipar aro do avatar: grava em users/{uid} (lista fechada da regra; desequipar
+    // e SEMPRE string vazia, nunca deleteField -- o delete do campo NEGA por design) e
+    // re-sincroniza o placar (ramo cosmetico da regra) pro aro aparecer no ranking.
+    window.equiparDecoracao = async function (dec) {
+      const user = auth.currentUser;
+      const u = currentUser();
+      if (!user || !u) throw new Error("sem sessao");
+      const val = String(dec || "");
+      await db.collection("users").doc(user.uid).update({ decoracao: val });
+      u.decoracao = val;
+      try { await _gami().collection("pontos").doc(user.uid).update({ decoracao: val, nome: u.nome }); }
+      catch (e) { debug?.("[gami] sync placar:", e?.code || e?.message); } // sem placar ainda: o 1o claim leva
+      if (state.gamiMeu) state.gamiMeu.decoracao = val;
     };
 
     // ----- Gestor (cap gamificacao.gerenciar) -----
