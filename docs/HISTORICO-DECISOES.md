@@ -2700,3 +2700,43 @@ Quando agosto começar e "mês anterior" virar julho (que já tem cobertura norm
 `process-espelho-ponto.mjs`), esse backfill pontual deixa de ser necessário — julho já
 está coberto pelo fluxo normal. Se um mês futuro tiver a mesma lacuna, repetir esse mesmo
 processo isolado (nunca a config ao vivo).
+
+## 2026-07-14 — Gamificação: 2 achados do William testando ao vivo (foto no ranking + boas-vindas dormente)
+
+William testou a gamificação recém-lançada (v328/1.65.0, PC) e mandou 2 prints com problemas.
+
+**1. Foto ausente no ranking "Top 10 da Fiobras" (só "Você" mostrava foto real).** Causa:
+`gamificacao/{ano}/pontos/{uid}.foto` é uma cópia denormalizada de `users/{uid}.fotoBase64`,
+escrita SÓ pelo cliente do próprio dono (`gamiClaim`/`equiparDecoracao` em `firebase.js`, regra
+anti-spoof exige `request.auth.uid == uid`) — nunca em backfill. Quem não pontuou/trocou
+decoração DEPOIS que `sync-fotos-drive.mjs` já tinha sincronizado a foto dela fica pra sempre sem
+`foto` no placar, mesmo tendo foto cadastrada. Fix: `sync-gamificacao-foto.mjs` novo (Admin SDK,
+ignora a rule de propósito — mesmo padrão de todo backfill administrativo deste pipeline),
+denormaliza `fotoBase64` → `foto` pros placares já existentes. Testado: 2 docs de placar (únicos
+que existiam), ambos atualizados. Plugado no `run-pipeline.mjs` como passo 7d (depois do
+`sync-fotos-drive.mjs`, pra já pegar a foto mais fresca do Drive na mesma rodada) — roda toda
+rodada, não é um backfill único (placares novos vão surgindo conforme mais gente pontua).
+
+**2. "Chegaram há pouco" não aparecia pra dar boas-vindas no Portal do Colaborador.** Não era bug
+de UI — o PC já tinha subido o front hoje (`colabBoasVindasHtml`, paridade com o card do gestor)
+e mandado missão pelo bridge (`claude-bridge/inbox-wkradar/2026-07-14-recem-chegados-no-doc-
+aniversariantes.md`) pedindo pro pipeline popular `config/aniversariantes.recemChegados` — só que
+eu ainda não tinha lido a missão quando o William testou. Implementado em
+`upload-aniversariantes.mjs`: campo novo `recemChegados: [{nome, admissao (ISO), setor}]`, SEM
+CPF/código/foto (pedido explícito do PC). **Janela: 15 dias**, não 30 como o PC pediu na missão —
+o William, ao vivo, pediu explicitamente "últimos 15 dias" depois de ver o card do gestor (que na
+real usa **120 dias** + top 3, não 30 — o PC tinha essa janela errada na missão). 3 números
+diferentes circulando pro mesmo conceito (120 do gestor / 30 do pedido do PC / 15 do William
+agora) — usei o mais recente e mais explícito (William, ao vivo), documentando a divergência em
+vez de uniformizar sozinho (o gestor continua em 120, decisão de produto de quem mexer lá, não
+minha). Testado e no ar: 3 pessoas em `recemChegados` (Edite, Manuel Alejandro, Yusmary),
+confirmado no Firestore no formato exato que o PC espera.
+
+**3. "Essa arte tá meio bizarra" (mensagem cortada, print mostra um blob roxo sobre o card).**
+Investigado (ícone da mãozinha de boas-vindas, paleta de cores do app) sem achar causa clara no
+código — roxo não é cor usada em nenhum lugar do app hoje (nem na gamificação, que é toda verde).
+Provável artefato de toast/animação transiente, não consegui reproduzir/confirmar sem mais
+detalhe. Perguntei ao William o que exatamente ele quis dizer antes de investigar mais fundo.
+
+Ambos os fixes (1 e 2) são só do lado do pipeline — zero mudança necessária no PC além do que já
+subiu hoje.
