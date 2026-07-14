@@ -34,10 +34,12 @@ valem 5. Teto realista de um colaborador engajado: ~130 pts/ano.
 | Confirmar leitura de documento (aceite) | 1 | 1x por documento |
 | Assinar documento (assinatura eletrônica) | 5 | 1x por doc/versão |
 | Responder pesquisa de clima | 5 | 1x por pesquisa |
-| Concluir autoavaliação de desempenho | 5 | 1x por ciclo |
 | Primeira entrada + Termo de Adesão | 5 | 1x na vida |
 
 **Fora do v1, de propósito:**
+- Autoavaliação de desempenho (William 2026-07-14, "esse tira fora"): avaliar a si mesmo
+  por pontos distorce o propósito da avaliação. O ramo da prova segue nas rules,
+  dormente (sem a chave na tabela, nenhum evento passa); voltar = recolocar na tabela.
 - "Abrir o app / login diário" — vira vigilância de presença (LGPD) e é farmável.
 - Assiduidade/ponto ("mês sem ocorrência") — pune indiretamente atestado/licença e
   pode gerar discussão trabalhista; SÓ com aval jurídico explícito, como fase futura.

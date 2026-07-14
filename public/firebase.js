@@ -1540,10 +1540,6 @@
       if (payload && payload.comentarios && Object.keys(payload.comentarios).length) data.comentarios = payload.comentarios;
       if (payload && payload.feedbackGeral) data.feedbackGeral = String(payload.feedbackGeral).slice(0, 2000);
       await _dsmp().doc(cicloId).collection("avaliacoes").doc(id).set(data);
-      if (papel === "auto" && concluir) {
-        const nomeCiclo = ((state.ciclosDesempenhoColab || []).find((c) => c.id === cicloId) || {}).nome || "";
-        window.gamiClaim?.("autoavaliacao", cicloId, "Autoavaliação: " + nomeCiclo);
-      }
       return id;
     };
 
@@ -1777,8 +1773,6 @@
       let pesqLocal = [];
       try { pesqLocal = JSON.parse(localStorage.getItem("gamiPesqPend") || "[]"); } catch { /* lixo local */ }
       for (const pid of pesqLocal) pend.push(["pesquisa", pid, "Pesquisa de clima"]);
-      for (const c of state.ciclosDesempenhoColab || [])
-        if (c.minhaAuto && c.minhaAuto.status === "concluida") pend.push(["autoavaliacao", c.id, "Autoavaliação: " + (c.nome || "")]);
       if (state.termoAdesaoOk === true) pend.push(["termo", user.uid, "Termo de Adesão à assinatura eletrônica"]);
       let creditou = false;
       for (const [acao, refId, rotulo] of pend) {

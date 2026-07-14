@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.65.1", d: "14 jul 2026", current: true, items: [
+    v: "1.65.2", d: "14 jul 2026", current: true, items: [
+      { type: "fix", aud: "gestor", title: "Autoavaliacao de desempenho saiu das acoes pontuaveis da Gamificacao (decisao GP): avaliacao nao e corrida por pontos." },
+    ],
+  },
+  {
+    v: "1.65.1", d: "14 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "Tela Gamificacao no visual padrao do painel: cards, tabelas e campos alinhados (a primeira versao subiu sem estilo)." },
     ],
   },

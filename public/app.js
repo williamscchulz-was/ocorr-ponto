@@ -3891,14 +3891,16 @@ function renderBottomNav() {
 // Entregas e ranking (fila de premiacao derivada + ranking completo).
 // Camada de dados em firebase.js; premios vivem em /privado (so cap).
 // ============================================================
+// Autoavaliacao de desempenho SAIU da tabela (William 2026-07-14, "esse tira fora"):
+// avaliar a si mesmo por pontos distorce o proposito da avaliacao. O ramo da prova
+// segue nas rules (dormente: sem a chave na tabela, nenhum evento passa).
 const GAMI_ACOES = [
   ["cartao-ponto", "Assinar cartão ponto do mês", 1],
   ["folha", "Assinar folha de pagamento", 1],
   ["comunicado", "Ciência / visualização de comunicado", 1],
   ["documento-leitura", "Confirmar leitura de documento", 1],
-  ["documento-assinatura", "Assinar documento (assinatura eletrônica)", 5],
+  ["documento-assinatura", "Assinar documento institucional (assinatura eletrônica)", 5],
   ["pesquisa", "Responder pesquisa de clima", 5],
-  ["autoavaliacao", "Concluir autoavaliação de desempenho", 5],
   ["termo", "Primeira entrada + Termo de Adesão", 5],
 ];
 const GAMI_MARCOS_DEFAULT = [25, 50, 100, 150, 200];
@@ -15423,7 +15425,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.65.1";
+window.CURRENT_VERSION = "1.65.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
