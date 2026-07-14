@@ -193,9 +193,18 @@ a nada, é cosmético, mesmo residual aceito do guard de auto-toque do mural).
 4. **Front** colab + gestor (portando o mock aprovado) + harness Playwright.
 5. **Release** + smoke ao vivo + WKRADAR ciente (zero mudança de pipeline no v1).
 
+## Prêmios: decisão NA HORA, sem lista prévia (William, 2026-07-14)
+
+"É premiação surpresa por ora, não vamos nos prender": a GP NÃO precisa cadastrar a
+lista de prêmios pra ativar a temporada. Os campos de prêmio da Configuração podem
+ficar vazios; o colaborador só vê "surpresa" nos marcos. Quando alguém cruzar um
+marco, a GP decide o prêmio daquele caso, digita na Configuração e registra a
+entrega (a regra exige o texto do prêmio SÓ no registro da entrega, que é o que o
+revela ao colaborador). Zero travas antecipadas.
+
 ## Pendências do William
 
-- [ ] Lista dos prêmios de cada marco (50/100/200/500/1000).
+- [x] Lista de prêmios: SEM lista prévia, decide na hora da entrega (2026-07-14).
 - [ ] Validar natureza jurídica dos prêmios com a contabilidade.
 - [ ] Aprovar os valores default do catálogo (tabela acima).
 - [ ] Aprovar o mock (fase 1).
