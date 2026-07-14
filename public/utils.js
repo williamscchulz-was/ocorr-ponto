@@ -70,6 +70,23 @@ const TERMO_HASH = "931a476238918cb6e771e30238b307403606b224b1b32745ce21f6197e16
 const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+// Canal ÚNICO de escrita de região (arquitetura anti-flicker 2026-07-15, desenho
+// validado pelo gate Fable): html idêntico ao último escrito vira NO-OP DE VERDADE
+// (nó, foco, seleção, digitação e IME preservados; zero re-parse). Retorna true se
+// escreveu, false se pulou; o call site DEVE dar early-return no false ANTES de
+// re-atar listeners (senão duplica handler). window.__fpForceWrite força a escrita
+// (usado pelo flicker-guard, modo m1, pra seguir testando a disciplina de cache).
+// ponytail: se uma tela um dia precisar de update in-place SOB digitação contínua,
+// a resposta é delegação de evento local naquela tela (padrão _xxxBound), não morph.
+const _setHtmlUltimo = new WeakMap();
+function setHtml(el, html) {
+  if (!el) return false;
+  if (!window.__fpForceWrite && _setHtmlUltimo.get(el) === html) return false;
+  _setHtmlUltimo.set(el, html);
+  el.innerHTML = html;
+  return true;
+}
+
 // Valida que uma URL é http(s):// — usar antes de salvar/renderizar pra rejeitar
 // javascript:/data:text que viraria XSS via href. EXCEÇÃO: data:image/ e
 // data:application/pdf são seguras num <img>/<iframe> de PDF (não executam

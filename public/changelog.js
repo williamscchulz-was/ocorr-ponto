@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.70.0", d: "15 jul 2026", aud: "gestor", current: true, items: [
+    v: "1.70.1", d: "15 jul 2026", current: true, items: [
+      { type: "note", title: "Motor de tela reconstruido por dentro: o app so redesenha o que realmente mudou. Mais leve no celular, e o que voce esta digitando nunca se perde quando algo atualiza sozinho." },
+    ],
+  },
+  {
+    v: "1.70.0", d: "15 jul 2026", aud: "gestor", items: [
       { type: "feat", title: "Vagas: o site ganha um botao flutuante de WhatsApp direto pra GP assim que o numero for cadastrado na tela Vagas. E vaga encerrada com candidaturas agora tem a limpeza LGPD num toque (excluir todas)." },
       { type: "fix", title: "Visao geral: o card Chegaram ha pouco agora considera os ultimos 15 dias, a mesma janela do portal do colaborador." },
     ],

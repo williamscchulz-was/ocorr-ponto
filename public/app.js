@@ -1016,7 +1016,7 @@ function renderNavColaborador() {
   // Tema NÃO entra aqui: o toggle vive na topbar (cp-tema-btn) e na Conta (Aparência).
   // Badge de avisos não lidos: mesma contagem da ilha mobile, que faltava no desktop.
   const nAvisos = colabAvisosNaoLidos();
-  $("#nav").innerHTML = COLAB_NAV.map((it) => {
+  const html = COLAB_NAV.map((it) => {
     const badge = it.id === "colab-comunicados" ? nAvisos : 0;
     return `
     <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
@@ -1027,6 +1027,7 @@ function renderNavColaborador() {
     <button class="nav__item nav__item--sair" data-acao="sair">
       ${cpIcon("logout")}<span>Sair</span>
     </button>`;
+  if (!setHtml($("#nav"), html)) return;
   $$("#nav .nav__item").forEach((btn) => btn.addEventListener("click", () => {
     // Sair confirma nos DOIS caminhos (sidebar e tela Conta), decisão William 2026-07-07:
     // evita logout por clique acidental e vira um comportamento só.
@@ -1054,16 +1055,18 @@ function renderBottomNavColaborador() {
   // A barra é rebuilt a cada render; pra pill DESLIZAR (não teleportar), nasce na
   // posição anterior e migra pro índice novo no próximo frame.
   const idxAnterior = window.__bnIdx != null ? window.__bnIdx : idxAtivo;
-  $("#bottom-nav").innerHTML = `<span class="bn-pill" style="--bn-i:${idxAnterior}"></span>` + items.map((it) => `
+  const html = `<span class="bn-pill" style="--bn-i:${idxAnterior}"></span>` + items.map((it) => `
     <button class="bottom-nav__item ${pageAtiva === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}${it.badge ? ` (${it.badge} não lidos)` : ""}">
       <span class="cp-bn-ic">${it.id === "colab-conta" ? bnAvatarHtml() : cpIcon(it.icon)}${it.badge ? `<span class="cp-bn-dot">${it.badge > 9 ? "9+" : it.badge}</span>` : ""}</span><span class="cp-bn-lab">${it.label}</span>
     </button>`).join("");
-  const pill = $("#bottom-nav .bn-pill");
-  if (pill && idxAnterior !== idxAtivo) requestAnimationFrame(() => pill.style.setProperty("--bn-i", idxAtivo));
+  if (setHtml($("#bottom-nav"), html)) {
+    const pill = $("#bottom-nav .bn-pill");
+    if (pill && idxAnterior !== idxAtivo) requestAnimationFrame(() => pill.style.setProperty("--bn-i", idxAtivo));
+    $$("#bottom-nav .bottom-nav__item").forEach((btn) => btn.addEventListener("click", () => {
+      state.view.page = btn.dataset.page; renderApp();
+    }));
+  }
   window.__bnIdx = idxAtivo;
-  $$("#bottom-nav .bottom-nav__item").forEach((btn) => btn.addEventListener("click", () => {
-    state.view.page = btn.dataset.page; renderApp();
-  }));
 }
 
 function bindColabNav(scope) {
@@ -1090,13 +1093,13 @@ function renderViewColaborador() {
 }
 
 function renderColabStub(titulo, msg, ic) {
-  $("#view").innerHTML = `
+  setHtml($("#view"), `
     <header class="page-header"><div><h1>${escapeHtml(titulo)}</h1></div></header>
     <div class="cp-stub">
       <div class="cp-stub__ic">${cpIcon(ic)}</div>
       <p>${escapeHtml(msg)}</p>
       <span class="cp-stub__tag">Próximas fases do Portal</span>
-    </div>`;
+    </div>`);
 }
 
 // Estado vazio de Avisos/Documentos: centrado no espaço livre, superfície sólida (sem
@@ -1144,10 +1147,12 @@ function renderColabComunicados() {
   const discSec = colabDiscSecaoHtml();
 
   if (todos.length === 0) {
-    $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>
+    // Canal setHtml: html idêntico = no-op; attach SÓ quando escreveu (senão duplica).
+    if (setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>
       ${discSec}
-      ${colabVazioHtml("megafone", "Nenhum aviso pra você por enquanto. Quando a GP publicar algo do seu setor ou turno, aparece aqui.")}</div>`;
-    bindColabVazioAtz($("#view"));
+      ${colabVazioHtml("megafone", "Nenhum aviso pra você por enquanto. Quando a GP publicar algo do seu setor ou turno, aparece aqui.")}</div>`)) {
+      bindColabVazioAtz($("#view"));
+    }
     return;
   }
   const filtro = (state.view.avFiltro === "naovistos" || state.view.avFiltro === "naolidos") ? "naovistos" : "todos";
@@ -1159,7 +1164,7 @@ function renderColabComunicados() {
   const corpo = lista.length === 0
     ? `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Tudo em dia. Você já viu todos os avisos.</p></div>`
     : lista.map(colabAvisoHtml).join("");
-  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>${discSec}${chips}${corpo}</div>`;
+  if (!setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>${discSec}${chips}${corpo}</div>`)) return;
   $$("#cp-av-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.avFiltro = b.dataset.avFiltro; renderApp(); }));
 }
 
@@ -1660,15 +1665,15 @@ function renderColabFolha() {
   cpRefreshAoAbrir();
   const lista = (state.meusRecibos || []).filter((r) => r.tipo === "recibo");
   if (lista.length === 0) {
-    $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("briefcase")}</div><p>Nenhum recibo por enquanto. Quando a GP importar a folha do mês, o seu recibo aparece aqui.</p></div></div>`;
+    setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
+      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("briefcase")}</div><p>Nenhum recibo por enquanto. Quando a GP importar a folha do mês, o seu recibo aparece aqui.</p></div></div>`);
     return;
   }
-  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
+  setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
     <div class="pp-ovl">Meus recibos</div>
     <div class="pp-grp">${lista.map(colabReciboRowHtml).join("")}</div>
     <div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>Só você vê os seus recibos. Assine com sua senha e localização; o arquivo carimbado fica guardado e não muda mais.</span></div>
-  </div>`;
+  </div>`);
 }
 
 function renderColabDocumentos() {
@@ -1677,15 +1682,16 @@ function renderColabDocumentos() {
   const pend = lista.filter(colabDocPendente);
   const emdia = lista.filter((d) => !colabDocPendente(d));
   if (lista.length === 0) {
-    $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>
-      ${colabVazioHtml("file", "Nenhum documento pra você por enquanto. Quando a GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.")}</div>`;
-    bindColabVazioAtz($("#view"));
+    if (setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>
+      ${colabVazioHtml("file", "Nenhum documento pra você por enquanto. Quando a GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.")}</div>`)) {
+      bindColabVazioAtz($("#view"));
+    }
     return;
   }
-  $("#view").innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>`
+  setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>`
     + (pend.length ? `<div class="pp-ovl">Precisa de você<span class="pp-ct">${pend.length}</span></div>${pend.map(colabDocCardHtml).join("")}` : "")
     + (emdia.length ? `<div class="pp-ovl">Publicados</div><div class="pp-grp">${emdia.map(colabDocRowHtml).join("")}</div>` : "")
-    + `</div>`;
+    + `</div>`);
 }
 
 // Documento PENDENTE: card-herói com borda âmbar + botão grande (assinar/ler).
@@ -2100,7 +2106,7 @@ function renderColabDesempenho() {
       <div class="dsmp-lin__h"><b>${escapeHtml(k.nome)}</b></div>
       ${dsmpChipsHtml(k.id, max, _dsmpAuto.notas[k.id], false)}
     </div>`).join("");
-  $("#view").innerHTML = `<div class="pp-fade">
+  if (!setHtml($("#view"), `<div class="pp-fade">
       <button type="button" class="btn btn--ghost btn--sm" data-dsmp-sair style="margin-bottom:6px;">${cpIcon("chevron")}<span style="margin-left:2px;">Voltar</span></button>
       <div class="resp-intro">
         <div class="resp-intro__badge ident">${cpIcon("star")} Autoavaliação</div>
@@ -2116,7 +2122,7 @@ function renderColabDesempenho() {
         <button class="btn btn--primary" id="dsmp-auto-concluir" style="flex:1.4;">${cpIcon("check")}<span style="margin-left:4px;">Concluir</span></button>
       </div>
       <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;">Depois de concluir não dá pra editar. Seu gestor vê a sua autoavaliação concluída.</p>
-    </div>`;
+    </div>`)) return;
   $("#view [data-dsmp-sair]")?.addEventListener("click", () => { _dsmpAuto = null; state.view.page = "colab-home"; renderApp(); });
   $$("#view .dsmp-chip").forEach((ch) => ch.addEventListener("click", () => {
     _dsmpAuto.notas[ch.dataset.comp] = Number(ch.dataset.v);
@@ -2172,7 +2178,7 @@ function renderColabDesempenhoRes() {
         ${okA ? `<p class="dsmp-auto-tx">Sua autoavaliação: <b>${va}</b>${gap === 0 ? " · mesma percepção" : gap != null ? ` · ${gap > 0 ? "seu gestor avaliou acima" : "seu gestor avaliou abaixo"}` : ""}</p>` : ""}
       </div>`;
   }).join("");
-  $("#view").innerHTML = `<div class="pp-fade">
+  if (!setHtml($("#view"), `<div class="pp-fade">
       <button type="button" class="btn btn--ghost btn--sm" data-dsmp-sair style="margin-bottom:6px;">${cpIcon("chevron")}<span style="margin-left:2px;">Voltar</span></button>
       <div class="resp-intro">
         <div class="resp-intro__badge ident">${cpIcon("star")} ${escapeHtml(c.nome || "Avaliação de desempenho")}</div>
@@ -2181,7 +2187,7 @@ function renderColabDesempenhoRes() {
       </div>
       <div class="vg-card"><p class="vg-h">Competências</p>${linhas}</div>
       ${g.feedbackGeral ? `<div class="vg-card"><p class="vg-h">Feedback do gestor</p><p style="font-size:13.5px;line-height:1.6;">${escapeHtml(g.feedbackGeral)}</p></div>` : ""}
-    </div>`;
+    </div>`)) return;
   $("#view [data-dsmp-sair]")?.addEventListener("click", () => { state.view.page = "colab-home"; renderApp(); });
 }
 
@@ -2461,19 +2467,19 @@ function renderColabConquistas() {
   const view = $("#view");
   const cfg = state.gamiConfig;
   if (!cfg || cfg.ativa !== true) {
-    view.innerHTML = `<div class="pp-fade"><div class="cp-stub"><div class="cp-stub__ic">${cpIcon("medalha")}</div>
-      <p>A temporada de pontos ainda não começou. A GP ativa por aqui em breve.</p><span class="cp-stub__tag">Conquistas</span></div></div>`;
+    setHtml(view, `<div class="pp-fade"><div class="cp-stub"><div class="cp-stub__ic">${cpIcon("medalha")}</div>
+      <p>A temporada de pontos ainda não começou. A GP ativa por aqui em breve.</p><span class="cp-stub__tag">Conquistas</span></div></div>`);
     return;
   }
   // 1a entrada na tela: carrega extrato/ranking/entregas + catch-up (creditos do ano
   // ainda nao reivindicados, incluindo o claim adiado da pesquisa). Re-render ao fim.
   if (state.gamiExtrato === undefined) {
     state.gamiExtrato = null; // trava reentrada
-    view.innerHTML = `<div class="pp-fade"><div class="gm-load" role="status">
+    setHtml(view, `<div class="pp-fade"><div class="gm-load" role="status">
         <div class="gm-load__ic">${cpIcon("medalha")}</div>
         <p>Buscando seus pontos e conquistas…</p>
         <div class="gm-load__bar"><i></i></div>
-      </div></div>`;
+      </div></div>`);
     (async () => {
       await window.carregarGamificacaoColab?.();
       if (await window.gamiCatchUp?.()) await window.carregarGamificacaoColab?.();
@@ -2482,13 +2488,13 @@ function renderColabConquistas() {
     return;
   }
   const tab = state.view.gamiTab === "bdg" ? "bdg" : "pts";
-  view.innerHTML = `<div class="pp-fade">
+  const escreveu = setHtml(view, `<div class="pp-fade">
       <div class="gm-tabs" role="tablist">
         <button role="tab" aria-selected="${tab === "pts"}" class="${tab === "pts" ? "on" : ""}" data-gami-tab="pts">Pontos</button>
         <button role="tab" aria-selected="${tab === "bdg"}" class="${tab === "bdg" ? "on" : ""}" data-gami-tab="bdg">Badges</button>
       </div>
       ${tab === "pts" ? gamiTabPontosHtml(cfg) : gamiTabBadgesHtml(cfg)}
-    </div>`;
+    </div>`);
   // Re-sincroniza em TODA abertura (nao so na 1a da sessao): a GP pode ter mudado a
   // config, e acoes feitas noutro aparelho/aba entram aqui. Silencioso; re-render
   // so se algo creditou. Guard contra sobreposicao.
@@ -2503,6 +2509,7 @@ function renderColabConquistas() {
       } finally { state._gamiSync = false; }
     })();
   }
+  if (!escreveu) return;
   $$("#view [data-gami-tab]").forEach((b) => b.addEventListener("click", () => { state.view.gamiTab = b.dataset.gamiTab; renderApp(); }));
   if (tab === "bdg") {
     $$("#view [data-gami-deco]").forEach((b) => b.addEventListener("click", () => {
@@ -2649,7 +2656,7 @@ function renderColaboradorHome() {
   // Home "vazia": sem pendência e sem comunicado fixado. Aí o card Novidades aparece também
   // no mobile (pp-home--vazia), pra não sobrar ~55% de tela em branco entre herói e ilha.
   const homeVazia = !precisaAtencaoHtml() && !comunicadoFixadoHtml();
-  view.innerHTML = `
+  const escreveu = setHtml(view, `
     <div class="pp-fade pp-home${homeVazia ? " pp-home--vazia" : ""}">
       ${colabGreetHtml(f, nome)}
       ${colabAtalhosHtml()}
@@ -2668,9 +2675,11 @@ function renderColaboradorHome() {
         </div>
       </div>
     </div>
-  `;
-  bindColabNav(view);
-  bindClimaConvite(view);
+  `);
+  if (escreveu) {
+    bindColabNav(view);
+    bindClimaConvite(view);
+  }
   // Preenche as contagens/coração dos cards de aniversário (0 a 2 no DOM). Assíncrono e
   // barato; se a home re-renderizar, re-preencher é ok. Não bloqueia o render.
   preencherCardsAniversario();
@@ -2755,7 +2764,7 @@ function renderColabPesquisa() {
       </div>`
     : "";
 
-  $("#view").innerHTML = `<div class="pp-fade">
+  if (!setHtml($("#view"), `<div class="pp-fade">
       <button type="button" class="btn btn--ghost btn--sm" data-clima-sair style="margin-bottom:6px;">${cpIcon("chevron")}<span style="margin-left:2px;">Voltar</span></button>
       <div class="prog"><div class="prog__bar"><div class="prog__fill" id="clima-prog-fill" style="width:0%"></div></div>
         <div class="prog__tx"><span>${escapeHtml(s.titulo || "Pesquisa de clima")}</span><span id="clima-prog-tx">0 de ${totalScale} respondidas</span></div>
@@ -2763,7 +2772,7 @@ function renderColabPesquisa() {
       ${intro}${grupos}${enpsBloco}${comentario}
       <button class="btn btn--primary btn--block btn--lg" id="clima-enviar" style="margin-top:14px;" disabled>${cpIcon("check")}<span style="margin-left:4px;">Enviar respostas</span></button>
       <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;">${anonima ? "Ninguém consegue ligar suas respostas ao seu nome. O envio é único e não pode ser alterado depois." : "A resposta é enviada uma vez só e não pode ser alterada depois."}</p>
-    </div>`;
+    </div>`)) return;
   bindColabPesquisa(s, totalScale);
 }
 
@@ -2853,7 +2862,7 @@ function renderColabPonto() {
   } else {
     corpo = colabBhTabHtml(f);
   }
-  view.innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Meu ponto</h1></div>${chips}${corpo}</div>`;
+  if (!setHtml(view, `<div class="pp-fade"><div class="pp-hi"><h1>Meu ponto</h1></div>${chips}${corpo}</div>`)) return;
   $$("#cp-ponto-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.pontoTab = b.dataset.pontoTab; renderApp(); }));
   bindColabNav(view);
 }
@@ -3040,7 +3049,7 @@ function renderColabConta() {
     ["Admissão", ts(f.admissao)],
     ["Tempo de casa", f.diasNaEmpresa ? tempoDeCasa(f.diasNaEmpresa) : null],
   ] : []).filter(([, v]) => v != null && v !== "");
-  view.innerHTML = `
+  if (!setHtml(view, `
     <div class="pp-fade">
       <div class="pp-prof">
         <div class="pp-avwrap">
@@ -3108,7 +3117,7 @@ function renderColabConta() {
 
       <div class="pp-foot">FioPulse · Portal do Colaborador${typeof CURRENT_VERSION !== "undefined" ? " · " + escapeHtml(CURRENT_VERSION) : ""}</div>
     </div>
-  `;
+  `)) return;
   view.querySelector('[data-acao="dados-toggle"]')?.addEventListener("click", () => $("#cp-dados")?.classList.toggle("hidden"));
   // Nome do cadastro (f.nome) tem prioridade nas iniciais, igual à saudação da Home,
   // pra a mesma pessoa não mostrar "AF" na Conta e "AD" na Home.
@@ -3170,11 +3179,11 @@ function renderPortalRoadmap() {
   if (!R || !R.itens) {
     // Dados ainda não baixados: carrega sob demanda e re-renderiza ao chegar.
     if (!R && _roadmapEstado !== "falhou") {
-      view.innerHTML = `<div class="cp-stub"><p>Carregando novidades...</p></div>`;
+      setHtml(view, `<div class="cp-stub"><p>Carregando novidades...</p></div>`);
       carregarRoadmap(() => { if (state.view.page === "colab-roadmap") renderPortalRoadmap(); });
       return;
     }
-    view.innerHTML = `<div class="cp-stub"><p>Novidades indisponíveis.</p></div>`;
+    setHtml(view, `<div class="cp-stub"><p>Novidades indisponíveis.</p></div>`);
     return;
   }
   const focoIdx = cpRoadmapFocoIdx();
@@ -3235,7 +3244,7 @@ function renderPortalRoadmap() {
       + `</div></div>`;
   };
   const stat = (n, col, dotStyle, label) => `<div class="fp-stat"><div class="n" style="color:${col}">${n}</div><div class="l"><span class="fp-dot" style="${dotStyle}"></span>${label}</div></div>`;
-  view.innerHTML = `<div class="pp-fade"><div class="pp-hi"><h1>Novidades</h1></div><div class="fp-root">
+  if (!setHtml(view, `<div class="pp-fade"><div class="pp-hi"><h1>Novidades</h1></div><div class="fp-root">
     <div class="fp-summary">
       ${stat(G.concluido, "var(--success)", "background:var(--success)", "Concluídas")}
       ${stat(G.em_andamento, "var(--warning)", "background:var(--warning)", "Em andamento")}
@@ -3256,14 +3265,14 @@ function renderPortalRoadmap() {
       </div>
     </div>
     <div class="fp-canvas"><div class="fp-stage">
-      <svg class="fp-rail" id="fp-rail" preserveAspectRatio="none" aria-hidden="true"${state._fpRail ? ` viewBox="${state._fpRail.vb}"` : ""}>${state._fpRail ? state._fpRail.inner : ""}</svg>
+      <svg class="fp-rail" id="fp-rail" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div class="fp-flow" id="fp-flow">
         <div class="fp-rootnode"><div class="fp-orb">${cpIcon("users")}</div><div class="fp-rootlabel"><b>Portal do Colaborador</b><span>raiz da jornada</span></div></div>
         ${fases.map(stationHtml).join("")}
       </div>
     </div></div>
     <div class="fp-hint">${cpIcon("info")}Toque numa fase para abrir os itens; toque num item para ver prioridade e complexidade</div>
-  </div></div>`;
+  </div></div>`)) return;
   // ---- interações + trilho ----
   const flow = view.querySelector("#fp-flow");
   const railSvg = view.querySelector("#fp-rail");
@@ -3275,20 +3284,21 @@ function renderPortalRoadmap() {
     railSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     const fr = flow.getBoundingClientRect();
     const orbEl = flow.querySelector(".fp-orb"); if (!orbEl) return;
+    // Arredonda a 2 casas: getBoundingClientRect tem ruído de subpixel entre
+    // medições (mesmo sem mudança visual real), o que fazia o traçado renascer
+    // byte-diferente a cada desenho e derrubava o cache do canal setHtml.
+    const r2 = (n) => Math.round(n * 100) / 100;
     const o = orbEl.getBoundingClientRect();
-    const nodes = [{ x: o.left - fr.left + o.width / 2, y: o.top - fr.top + o.height / 2 }];
-    flow.querySelectorAll(".fp-ring").forEach((r) => { const b = r.getBoundingClientRect(); nodes.push({ x: b.left - fr.left + b.width / 2, y: b.top - fr.top + b.height / 2 }); });
+    const nodes = [{ x: r2(o.left - fr.left + o.width / 2), y: r2(o.top - fr.top + o.height / 2) }];
+    flow.querySelectorAll(".fp-ring").forEach((r) => { const b = r.getBoundingClientRect(); nodes.push({ x: r2(b.left - fr.left + b.width / 2), y: r2(b.top - fr.top + b.height / 2) }); });
     if (nodes.length < 2) return;
-    const seg = (a, b) => { const my = (a.y + b.y) / 2; return `M${a.x} ${a.y} C ${a.x} ${my} ${b.x} ${my} ${b.x} ${b.y} `; };
+    const seg = (a, b) => { const my = r2((a.y + b.y) / 2); return `M${a.x} ${a.y} C ${a.x} ${my} ${b.x} ${my} ${b.x} ${b.y} `; };
     let full = "", done = "";
     for (let i = 0; i < nodes.length - 1; i++) { const s = seg(nodes[i], nodes[i + 1]); full += s; if (i <= focoIdx) done += s; }
     const cs = getComputedStyle(rootEl);
     const rail = cs.getPropertyValue("--rail").trim() || "#283027";
     const railon = cs.getPropertyValue("--railon").trim() || "#1AA34F";
     railSvg.innerHTML = `<path d="${full}" fill="none" stroke="${rail}" stroke-width="3.4" stroke-linecap="round"/><path d="${done}" fill="none" stroke="${railon}" stroke-width="3.4" stroke-linecap="round"/>`;
-    // Anti-flicker: o próximo render nasce com o fio já desenhado (drawRail corrige
-    // se as medidas mudarem).
-    state._fpRail = { vb: `0 0 ${W} ${H}`, inner: railSvg.innerHTML };
   };
   const togglePhase = (ph) => { if (ph) { ph.classList.toggle("open"); requestAnimationFrame(drawRail); } };
   flow.querySelectorAll(".fp-phead").forEach((h) => {
@@ -3302,6 +3312,10 @@ function renderPortalRoadmap() {
   if (window.__fpRailResize) window.removeEventListener("resize", window.__fpRailResize);
   window.__fpRailResize = () => requestAnimationFrame(drawRail);
   window.addEventListener("resize", window.__fpRailResize);
+  // Síncrono primeiro (nasce desenhado no mesmo paint do write, sem frame de
+  // placeholder); os agendados depois são rede de segurança pra layout que
+  // ainda está assentando (fonte/ícone carregando, transição em andamento).
+  drawRail();
   requestAnimationFrame(drawRail);
   setTimeout(drawRail, 120);
   setTimeout(drawRail, 440);
@@ -3841,19 +3855,19 @@ function espAbrirSheetMobile() {
 
 function espSelecionar(f, viaToque) {
   const det = $("#esp-detalhe");
-  if (!f) { if (det) det.innerHTML = espEmptyHtml(); return; }
+  if (!f) { if (det) setHtml(det, espEmptyHtml()); return; }
   const cod = f.codigo != null ? String(f.codigo) : "";
   // A folha mobile só abre em seleção INTENCIONAL (toque na lista ou atalho do
   // perfil/popup BH via _espState.querSheet); a pré-seleção padrão do render
   // não pode cobrir a lista sozinha (re-verificação 2026-07-03).
   const querSheet = viaToque || _espState.querSheet;
   _espState.querSheet = false;
-  if (det) { det.innerHTML = espCartaoHtml(f); if (querSheet) espAbrirSheetMobile(); }
+  if (det) { setHtml(det, espCartaoHtml(f)); if (querSheet) espAbrirSheetMobile(); }
   if (!cod || _espState.cache[cod] || _espState.erro[cod]) return;
-  if (!window.carregarEspelhoFuncionario) { _espState.cache[cod] = { dias: [] }; if ($("#esp-detalhe")) $("#esp-detalhe").innerHTML = espCartaoHtml(f); return; }
+  if (!window.carregarEspelhoFuncionario) { _espState.cache[cod] = { dias: [] }; if ($("#esp-detalhe")) setHtml($("#esp-detalhe"), espCartaoHtml(f)); return; }
   if (_espState.loading[cod]) return;
   _espState.loading[cod] = true;
-  if (det) det.innerHTML = espCartaoHtml(f);
+  if (det) setHtml(det, espCartaoHtml(f));
   window.carregarEspelhoFuncionario(cod).then((doc) => {
     _espState.cache[cod] = doc || { dias: [] };
   }).catch((e) => {
@@ -3865,7 +3879,7 @@ function espSelecionar(f, viaToque) {
     else _espState.cache[cod] = { dias: [] };
   }).finally(() => {
     _espState.loading[cod] = false;
-    if (_espState.sel === f.id && $("#esp-detalhe")) $("#esp-detalhe").innerHTML = espCartaoHtml(f);
+    if (_espState.sel === f.id && $("#esp-detalhe")) setHtml($("#esp-detalhe"), espCartaoHtml(f));
   });
 }
 
@@ -3876,8 +3890,8 @@ function renderEspelhoPontoGestor() {
   const escopoTxt = u.role === "lider" ? (u.turno === "geral" ? "Horário geral" : `${u.turno}º Turno`)
     : u.role === "supervisor" ? "Seus atribuídos" : "Todos";
   if (!time.length) {
-    $("#view").innerHTML = `<header class="page-header"><div><h1>Espelho de ponto</h1></div></header>
-      <div class="empty"><div class="empty__cel"><div class="empty__cel-circ">${icon("users")}</div></div><p>Nenhum liderado no seu escopo por enquanto.</p></div>`;
+    setHtml($("#view"), `<header class="page-header"><div><h1>Espelho de ponto</h1></div></header>
+      <div class="empty"><div class="empty__cel"><div class="empty__cel-circ">${icon("users")}</div></div><p>Nenhum liderado no seu escopo por enquanto.</p></div>`);
     return;
   }
   // Sem auto-seleção: o desktop abre no empty state acolhedor (#20). Só mantém a
@@ -3899,7 +3913,7 @@ function renderEspelhoPontoGestor() {
       ${bhSaldo(f)}
     </button>`).join("");
 
-  $("#view").innerHTML = `
+  const escreveu = setHtml($("#view"), `
     <header class="page-header"><div><h1>Espelho de ponto</h1><p>Cartão-ponto dos seus liderados. Mês atual e mês anterior, direto da apuração.</p></div></header>
     <div class="esp-layout">
       <div class="esp-team">
@@ -3908,23 +3922,25 @@ function renderEspelhoPontoGestor() {
         <div class="esp-rows" id="esp-rows">${rows}</div>
       </div>
       <div id="esp-detalhe">${espCartaoHtml(sel)}</div>
-    </div>`;
+    </div>`);
 
-  const busca = $("#esp-busca");
-  if (busca) busca.addEventListener("input", () => {
-    const t = busca.value.trim().toLowerCase();
-    $$("#esp-rows .esp-trow").forEach((r) => {
-      const nome = r.querySelector(".esp-trow__n")?.textContent || "";
-      const sub = r.querySelector(".esp-trow__s")?.textContent || "";
-      r.style.display = (!t || (nome + " " + sub).toLowerCase().includes(t)) ? "" : "none";
+  if (escreveu) {
+    const busca = $("#esp-busca");
+    if (busca) busca.addEventListener("input", () => {
+      const t = busca.value.trim().toLowerCase();
+      $$("#esp-rows .esp-trow").forEach((r) => {
+        const nome = r.querySelector(".esp-trow__n")?.textContent || "";
+        const sub = r.querySelector(".esp-trow__s")?.textContent || "";
+        r.style.display = (!t || (nome + " " + sub).toLowerCase().includes(t)) ? "" : "none";
+      });
     });
-  });
-  bindBuscaClear("esp-busca");
-  $$("#esp-rows .esp-trow").forEach((btn) => btn.addEventListener("click", () => {
-    _espState.sel = btn.dataset.espSel;
-    $$("#esp-rows .esp-trow").forEach((b) => b.classList.toggle("on", b === btn));
-    espSelecionar(time.find((x) => x.id === _espState.sel), true);
-  }));
+    bindBuscaClear("esp-busca");
+    $$("#esp-rows .esp-trow").forEach((btn) => btn.addEventListener("click", () => {
+      _espState.sel = btn.dataset.espSel;
+      $$("#esp-rows .esp-trow").forEach((b) => b.classList.toggle("on", b === btn));
+      espSelecionar(time.find((x) => x.id === _espState.sel), true);
+    }));
+  }
   espSelecionar(sel);
 }
 
@@ -3997,7 +4013,7 @@ function renderNav() {
     return sec + grupoItems.map(navItemBtnHtml).join("");
   }).join("");
   const soltos = items.filter((it) => !agrupados.has(it.id)).map(navItemBtnHtml).join("");
-  $("#nav").innerHTML = gruposHtml + soltos;
+  if (!setHtml($("#nav"), gruposHtml + soltos)) return;
 
   $$("#nav .nav__item").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -4019,11 +4035,12 @@ function renderBottomNav() {
     can("comunicados.gerenciar") ? { id: "comunicados", label: "Avisos", icon: "megafone" } : null,
     { id: "__menu", label: "Conta", icon: "user" },
   ].filter(Boolean);
-  $("#bottom-nav").innerHTML = items.map((it) => `
+  const html = items.map((it) => `
     <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}">
       ${it.id === "__menu" ? bnAvatarHtml() : icon(it.icon)}
       <span>${it.label}</span>
     </button>`).join("");
+  if (!setHtml($("#bottom-nav"), html)) return;
   $$("#bottom-nav .bottom-nav__item").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (btn.dataset.page === "__menu") return openSidebar();
@@ -4062,7 +4079,7 @@ function renderGamificacao() {
   const view = $("#view");
   if (state._gamiGestor === undefined) {
     state._gamiGestor = null; // trava reentrada
-    view.innerHTML = `<header class="page-header"><div><h1>Gamificação</h1></div></header><div class="empty"><p>Carregando…</p></div>`;
+    setHtml(view, `<header class="page-header"><div><h1>Gamificação</h1></div></header><div class="empty"><p>Carregando…</p></div>`);
     (async () => {
       await window.carregarGamiConfig?.(true);
       state._gamiPremios = await window.carregarGamiPremios?.();
@@ -4073,14 +4090,14 @@ function renderGamificacao() {
     return;
   }
   const tab = state.view.gamiGTab === "entregas" ? "entregas" : "config";
-  view.innerHTML = `
+  if (!setHtml(view, `
     <header class="page-header"><div><h1>Gamificação</h1>
       <p>Temporada ${new Date().getFullYear()} · pontos por ação, prêmios surpresa e entregas.</p></div></header>
     <div class="tabs" role="tablist" style="margin-bottom:16px;">
       <button class="tab ${tab === "config" ? "active" : ""}" data-gami-gtab="config">Configuração</button>
       <button class="tab ${tab === "entregas" ? "active" : ""}" data-gami-gtab="entregas">Entregas e ranking</button>
     </div>
-    ${tab === "config" ? gamiGestorConfigHtml() : gamiGestorEntregasHtml()}`;
+    ${tab === "config" ? gamiGestorConfigHtml() : gamiGestorEntregasHtml()}`)) return;
   $$("#view [data-gami-gtab]").forEach((b) => b.addEventListener("click", () => { state.view.gamiGTab = b.dataset.gamiGtab; renderApp(); }));
   if (tab === "config") bindGamiConfig();
   else bindGamiEntregas();
@@ -4196,7 +4213,7 @@ function renderVagas() {
   const view = $("#view");
   if (state.vagas === undefined) {
     state.vagas = null; // trava reentrada
-    view.innerHTML = `<header class="page-header"><div><h1>Vagas</h1></div></header><div class="empty"><p>Carregando…</p></div>`;
+    setHtml(view, `<header class="page-header"><div><h1>Vagas</h1></div></header><div class="empty"><p>Carregando…</p></div>`);
     (async () => {
       await Promise.all([window.carregarVagasGestor?.(), window.carregarCandidaturasGestor?.()]);
       if (state.view.page === "vagas") renderApp();
@@ -4275,7 +4292,7 @@ function renderVagas() {
         <span class="gami-erro" id="vg-erro"></span>
       </div>
     </div>` : "";
-  view.innerHTML = `
+  if (!setHtml(view, `
     <header class="page-header"><div><h1>Vagas</h1>
       <p>O site vagas.fiobras.com.br mostra as publicadas na hora. Link pra divulgar em redes e grupos.</p></div></header>
     <div class="gami-card g-wrap">
@@ -4290,7 +4307,7 @@ function renderVagas() {
         <input type="text" id="vg-zap" value="${escapeHtml((state.vagasConfig && state.vagasConfig.whatsapp) || "")}" placeholder="+55 47 99999-0000">
         <button class="btn btn--primary btn--sm" id="vg-zap-salvar">Salvar</button>
         <span class="gami-erro" id="vg-zap-erro"></span></div>
-    </div>`;
+    </div>`)) return;
   $("#vg-nova")?.addEventListener("click", () => { state.view.vagaEdit = "nova"; renderApp(); });
   $("#vg-cancelar")?.addEventListener("click", () => { state.view.vagaEdit = null; renderApp(); });
   $("#vg-salvar")?.addEventListener("click", () => withBusy("vg-salvar", $("#vg-salvar"), async () => {
@@ -4444,7 +4461,7 @@ function renderView() {
   if (_SKEL_PAGES[page] && !_skelVisto.has(page) && !prefereMenosMovimento()) {
     _skelVisto.add(page);
     $("#topbar-title").textContent = _SKEL_PAGES[page];
-    view.innerHTML = skeletonViewHtml();
+    setHtml(view, skeletonViewHtml());
     setTimeout(() => { if (state.view.page === page) renderView(); }, 190);
     return;
   }
@@ -4656,8 +4673,7 @@ function renderClimaLista(tabsHtml) {
     marcarCarga("clima");
     _carregarClimaLista().then(() => { if (state.view.page === "avaliacoes" && (state.view.climaScreen || "lista") === "lista") renderApp(); }).catch(() => {});
     if (!temLista) {
-      $("#view").innerHTML = tabsHtml + `<div class="empty empty--mini"><p>Carregando pesquisas…</p></div>`;
-      bindAvalTabs();
+      if (setHtml($("#view"), tabsHtml + `<div class="empty empty--mini"><p>Carregando pesquisas…</p></div>`)) bindAvalTabs();
       return;
     }
   }
@@ -4667,11 +4683,10 @@ function renderClimaLista(tabsHtml) {
     </header>`;
   const lista = (state.pesquisasClima || []).slice();
   if (!lista.length) {
-    $("#view").innerHTML = tabsHtml + header + `
+    if (setHtml($("#view"), tabsHtml + header + `
       <div class="empty"><div class="empty__icon">${icon("smile")}</div><h3>Nenhuma pesquisa ainda</h3>
         <p>Crie a primeira pesquisa de clima. Você escolhe se é anônima, o que perguntar e quem responde.</p>
-        <button class="btn btn--primary" data-clima-nova>${icon("plus")}<span>Nova pesquisa</span></button></div>`;
-    bindClimaLista();
+        <button class="btn btn--primary" data-clima-nova>${icon("plus")}<span>Nova pesquisa</span></button></div>`)) bindClimaLista();
     return;
   }
   const ativas = lista.filter((s) => s.status === "aberta").length;
@@ -4688,8 +4703,7 @@ function renderClimaLista(tabsHtml) {
     </div>`;
   const ordem = { aberta: 0, rascunho: 1, encerrada: 2 };
   lista.sort((a, b) => (ordem[a.status] - ordem[b.status]) || String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
-  $("#view").innerHTML = tabsHtml + header + stats + `<div class="surv-list">${lista.map(climaSurvCardHtml).join("")}</div>`;
-  bindClimaLista();
+  if (setHtml($("#view"), tabsHtml + header + stats + `<div class="surv-list">${lista.map(climaSurvCardHtml).join("")}</div>`)) bindClimaLista();
 }
 function climaSurvCardHtml(s) {
   const prog = (state.climaProgresso && state.climaProgresso[s.id]) || 0;
@@ -4804,9 +4818,9 @@ function renderClimaNova(tabsHtml) {
       <button class="btn btn--ghost" data-clima-salvar>${icon("check")}<span>Salvar rascunho</span></button>
       <button class="btn btn--primary" data-clima-publicar>${icon("send")}<span>Publicar pesquisa</span></button>
     </div>`;
-  $("#view").innerHTML = tabsHtml + head + `<div style="max-width:720px;">${identCard}${anonCard}${perguntasCard}${fixasCard}${publicoCard}${actions}</div>`;
+  const escreveu = setHtml($("#view"), tabsHtml + head + `<div style="max-width:720px;">${identCard}${anonCard}${perguntasCard}${fixasCard}${publicoCard}${actions}</div>`);
   _climaQbRender();
-  bindClimaNova();
+  if (escreveu) bindClimaNova();
 }
 function climaQbDimHtml(dim) {
   return `<div class="qb-dim">
@@ -4829,7 +4843,7 @@ function climaQbQHtml(p) {
 function _climaQbRender() {
   const host = $("#clima-qb");
   if (!host) return;
-  host.innerHTML = (_climaEdit.dimensoes || []).map(climaQbDimHtml).join("");
+  setHtml(host, (_climaEdit.dimensoes || []).map(climaQbDimHtml).join(""));
 }
 // Lê o DOM do construtor de volta pro _climaEdit ANTES de qualquer mutação/salvar.
 function _climaQbSync() {
@@ -5050,8 +5064,7 @@ function renderClimaResultados(tabsHtml) {
       if (state.view.page === "avaliacoes" && state.view.climaScreen === "resultados" && state.view.climaId === id) renderApp();
     }).catch(() => {});
     if (!cached) {
-      $("#view").innerHTML = tabsHtml + climaResHeaderHtml(s) + `<div class="empty empty--mini"><p>Carregando resultados…</p></div>`;
-      bindClimaResultados();
+      if (setHtml($("#view"), tabsHtml + climaResHeaderHtml(s) + `<div class="empty empty--mini"><p>Carregando resultados…</p></div>`)) bindClimaResultados();
       return;
     }
   }
@@ -5082,8 +5095,7 @@ function renderClimaResultados(tabsHtml) {
       </div>`;
     corpo = warn + stats + climaEnpsHtml(s, agg.enps) + climaDimsHtml(agg.dims) + climaComentariosHtml(s, agg.comentarios) + climaIndividualHtml(s);
   }
-  $("#view").innerHTML = tabsHtml + climaResHeaderHtml(s) + corpo;
-  bindClimaResultados();
+  if (setHtml($("#view"), tabsHtml + climaResHeaderHtml(s) + corpo)) bindClimaResultados();
 }
 function climaEnpsHtml(s, e) {
   if (!s.incluiEnps) return "";
@@ -5261,8 +5273,7 @@ function renderDsmpLista(tabsHtml) {
     marcarCarga("dsmp");
     _carregarDsmpLista().then(() => { if (state.view.page === "avaliacoes" && (state.view.dsmpScreen || "lista") === "lista") renderApp(); }).catch(() => {});
     if (!temLista) {
-      $("#view").innerHTML = tabsHtml + `<div class="empty empty--mini"><p>Carregando ciclos…</p></div>`;
-      bindAvalTabs();
+      if (setHtml($("#view"), tabsHtml + `<div class="empty empty--mini"><p>Carregando ciclos…</p></div>`)) bindAvalTabs();
       return;
     }
   }
@@ -5275,11 +5286,10 @@ function renderDsmpLista(tabsHtml) {
   // Lider/supervisor: so ciclos com pelo menos 1 alvo no escopo (rascunho fica fora).
   const lista = (state.ciclosDesempenho || []).filter((c) => podeGerir || (c.status !== "rascunho" && _dsmpAlvosDoEscopo(u, c).length));
   if (!lista.length) {
-    $("#view").innerHTML = tabsHtml + header + `
+    if (setHtml($("#view"), tabsHtml + header + `
       <div class="empty"><div class="empty__icon">${icon("conferir")}</div><h3>Nenhum ciclo ainda</h3>
         <p>${podeGerir ? "Crie o primeiro ciclo: escolha as competências, o peso de cada uma e quem participa." : "Quando a GP abrir um ciclo com o seu time, ele aparece aqui pra você avaliar."}</p>
-        ${podeGerir ? `<button class="btn btn--primary" data-dsmp-novo>${icon("plus")}<span>Novo ciclo</span></button>` : ""}</div>`;
-    bindDsmpLista();
+        ${podeGerir ? `<button class="btn btn--primary" data-dsmp-novo>${icon("plus")}<span>Novo ciclo</span></button>` : ""}</div>`)) bindDsmpLista();
     return;
   }
   const ativos = lista.filter((c) => c.status === "ativo").length;
@@ -5290,8 +5300,7 @@ function renderDsmpLista(tabsHtml) {
     </div>`;
   const ordem = { ativo: 0, rascunho: 1, encerrado: 2 };
   lista.sort((a, b) => (ordem[a.status] - ordem[b.status]) || 0);
-  $("#view").innerHTML = tabsHtml + header + stats + `<div class="surv-list">${lista.map(dsmpCicloCardHtml).join("")}</div>`;
-  bindDsmpLista();
+  if (setHtml($("#view"), tabsHtml + header + stats + `<div class="surv-list">${lista.map(dsmpCicloCardHtml).join("")}</div>`)) bindDsmpLista();
 }
 function dsmpCicloCardHtml(c) {
   const janela = [_climaDataCurta(c.periodoInicio), _climaDataCurta(c.periodoFim)].filter(Boolean).join(" a ");
@@ -5386,21 +5395,21 @@ function renderDsmpNovo(tabsHtml) {
       <button class="btn btn--ghost" data-dsmp-salvar>${icon("check")}<span>Salvar rascunho</span></button>
       <button class="btn btn--primary" data-dsmp-ativar>${icon("send")}<span>Ativar ciclo</span></button>
     </div>`;
-  $("#view").innerHTML = tabsHtml + head + `<div style="max-width:720px;">${identCard}${modCard}${compsCard}${publicoCard}${actions}</div>`;
+  const escreveu = setHtml($("#view"), tabsHtml + head + `<div style="max-width:720px;">${identCard}${modCard}${compsCard}${publicoCard}${actions}</div>`);
   _dsmpCompsRender();
-  bindDsmpNovo();
+  if (escreveu) bindDsmpNovo();
 }
 function _dsmpCompsRender() {
   const host = $("#dsmp-comps");
   if (!host) return;
-  host.innerHTML = (_dsmpEdit.competencias || []).map((k) => `
+  setHtml(host, (_dsmpEdit.competencias || []).map((k) => `
     <div class="dsmp-comp" data-cid="${escapeHtml(k.id)}">
       <input type="text" value="${escapeHtml(k.nome || "")}" placeholder="Nome da competência (ex.: Qualidade do trabalho)" aria-label="Nome da competência">
       <select class="qb-sel" aria-label="Peso na nota final">
         ${[1, 2, 3].map((p) => `<option value="${p}"${Number(k.peso) === p ? " selected" : ""}>Peso ${p}</option>`).join("")}
       </select>
       <button class="qb-icon-btn dsmp-del-comp" type="button" title="Remover competência" aria-label="Remover competência">${icon("trash")}</button>
-    </div>`).join("");
+    </div>`).join(""));
 }
 function _dsmpCompsSync() {
   const host = $("#dsmp-comps");
@@ -5530,8 +5539,7 @@ function renderDsmpCiclo(tabsHtml) {
   const avs = (state._dsmpAvs && state._dsmpAvs[c.id]) || null;
   if (!avs) {
     _carregarDsmpAvs(c, alvos).then(() => { if (state.view.dsmpId === c.id) renderApp(); }).catch(() => {});
-    $("#view").innerHTML = tabsHtml + `<div class="empty empty--mini"><p>Carregando avaliações…</p></div>`;
-    bindAvalTabs();
+    if (setHtml($("#view"), tabsHtml + `<div class="empty empty--mini"><p>Carregando avaliações…</p></div>`)) bindAvalTabs();
     return;
   }
   // Form de um alvo selecionado toma a tela (volta pra lista de alvos no Voltar).
@@ -5565,11 +5573,11 @@ function renderDsmpCiclo(tabsHtml) {
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">${stA}${stG}</div>
       </div>`;
   }).join("");
-  $("#view").innerHTML = tabsHtml + head + stats + acoes + `
+  if (!setHtml($("#view"), tabsHtml + head + stats + acoes + `
     <div class="vg-card" style="margin-top:14px;">
       <p class="vg-h">${c.status === "ativo" ? "Seu time neste ciclo" : "Resultado do seu time"}</p>
       ${linhas || `<p style="font-size:13px;color:var(--text-muted);">Nenhum colaborador do seu escopo participa deste ciclo.</p>`}
-    </div>`;
+    </div>`)) return;
   bindAvalTabs();
   $$("[data-dsmp-voltar]").forEach((b) => b.addEventListener("click", () => { state.view.dsmpScreen = "lista"; state.view.dsmpId = null; renderApp(); }));
   $$("[data-dsmp-alvo]").forEach((el) => el.addEventListener("click", () => {
@@ -5655,10 +5663,10 @@ function renderDsmpAvaliar(tabsHtml, c, avs) {
       <button class="btn btn--ghost" data-dsmp-av-salvar>${icon("check")}<span>Salvar rascunho</span></button>
       <button class="btn btn--primary" data-dsmp-av-concluir>${icon("send")}<span>Concluir avaliação</span></button>
     </div>`;
-  $("#view").innerHTML = tabsHtml + head + `<div style="max-width:720px;">
+  if (!setHtml($("#view"), tabsHtml + head + `<div style="max-width:720px;">
       <div class="vg-card"><p class="vg-h">Competências</p>${comps}</div>
       ${feedback}${acoes}
-    </div>`;
+    </div>`)) return;
   bindAvalTabs();
   $$("[data-dsmp-volta-ciclo]").forEach((b) => b.addEventListener("click", () => { state.view.dsmpAlvo = null; _dsmpAv = null; renderApp(); }));
   if (!readonly) {
@@ -6252,7 +6260,7 @@ function renderVisaoGeral() {
   const dResolv = serie.resolvidas[5] - serie.resolvidas[4];
   const dTurn = serie.turnover[5] - serie.turnover[4];
 
-  $("#view").innerHTML = `
+  const escreveu = setHtml($("#view"), `
     <div class="vg-stack">
     <header class="page-header">
       <div>
@@ -6303,25 +6311,28 @@ function renderVisaoGeral() {
     </div>
     ${renderObrigacoesWidget(u)}
     </div>
-  `;
+  `);
 
-  // Pill de versão (a topbar morreu no mobile): mesmo conteúdo/ação da pill global.
-  const vph = $("#view .version-pill--hub");
-  if (vph) { vph.textContent = "v" + window.CURRENT_VERSION; vph.addEventListener("click", openChangelog); }
-  // Atalhos do hub (mobile) e linhas/botões de pendência: navegação real.
-  // Boas-vindas nos recém-chegados: estado real assíncrono + toque otimista.
-  $$("#view [data-bv-hand]").forEach((b) => b.addEventListener("click", () => onBoasVindas(b)));
+  if (escreveu) {
+    // Pill de versão (a topbar morreu no mobile): mesmo conteúdo/ação da pill global.
+    const vph = $("#view .version-pill--hub");
+    if (vph) { vph.textContent = "v" + window.CURRENT_VERSION; vph.addEventListener("click", openChangelog); }
+    // Atalhos do hub (mobile) e linhas/botões de pendência: navegação real.
+    $$("#view [data-bv-hand]").forEach((b) => b.addEventListener("click", () => onBoasVindas(b)));
+    $$("#view [data-ghub]").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.ghubTab) state.view.docTab = b.dataset.ghubTab;
+      state.view.page = b.dataset.ghub;
+      renderApp();
+    }));
+    $$("#view [data-vg-ir], #view [data-vg-page]").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.vgIr) { state.view.page = "dashboard"; state.view.filterTab = b.dataset.vgIr; }
+      else { if (b.dataset.vgTab) state.view.docTab = b.dataset.vgTab; state.view.page = b.dataset.vgPage; }
+      renderApp();
+    }));
+  }
+  // Boas-vindas nos recém-chegados: estado real assíncrono + toque otimista; idempotente
+  // (re-preencher num skip não faz mal), então roda sempre.
   preencherCardsBoasVindas();
-  $$("#view [data-ghub]").forEach((b) => b.addEventListener("click", () => {
-    if (b.dataset.ghubTab) state.view.docTab = b.dataset.ghubTab;
-    state.view.page = b.dataset.ghub;
-    renderApp();
-  }));
-  $$("#view [data-vg-ir], #view [data-vg-page]").forEach((b) => b.addEventListener("click", () => {
-    if (b.dataset.vgIr) { state.view.page = "dashboard"; state.view.filterTab = b.dataset.vgIr; }
-    else { if (b.dataset.vgTab) state.view.docTab = b.dataset.vgTab; state.view.page = b.dataset.vgPage; }
-    renderApp();
-  }));
 }
 
 function renderDashboard() {
@@ -6364,7 +6375,10 @@ function renderDashboard() {
       ? "Registre e acompanhe ocorrências de todos os turnos."
       : "Registre, confira e destine as ocorrências do ponto.";
 
-  $("#view").innerHTML = `
+  // Shell pelo canal setHtml: idêntico = no-op (preserva busca digitada, foco, ink).
+  // Os attaches do shell só rodam quando ELE foi reescrito; renderOccList roda SEMPRE
+  // (a lista é dado vivo e tem o próprio canal em #occ-list).
+  const escreveuShell = setHtml($("#view"), `
     <header class="page-header">
       <div>
         <h1>Ocorrências</h1>
@@ -6402,7 +6416,7 @@ function renderDashboard() {
       ${can("ocorrencias.excluir") ? `<button class="tab ${state.view.filterTab === "excluidas" ? "active" : ""}" data-tab="excluidas">
         Excluídas <span class="tab__count">${(state.ocorrenciasExcluidas || []).length}</span>
       </button>` : ""}
-      <span class="tabs__ink" aria-hidden="true"${state._inkPos ? ` style="left: ${state._inkPos.left}px; width: ${state._inkPos.width}px;"` : ""}></span>
+      <span class="tabs__ink" aria-hidden="true"></span>
     </div>
 
     <div class="toolbar">
@@ -6426,8 +6440,9 @@ function renderDashboard() {
     </div>
 
     <div id="occ-list"></div>
-  `;
+  `);
 
+  if (escreveuShell) {
   // Wire up
   if ($("#btn-nova")) $("#btn-nova").addEventListener("click", openNovaOcorrencia);
   if ($("#btn-monitor")) $("#btn-monitor").addEventListener("click", openMonitorPipeline);
@@ -6439,13 +6454,14 @@ function renderDashboard() {
     const at = $("#tabs .tab.active");
     if (_ink && at) {
       _ink.style.left = at.offsetLeft + "px"; _ink.style.width = at.offsetWidth + "px";
-      // Anti-flicker: o próximo render nasce com a barrinha já posicionada.
-      state._inkPos = { left: at.offsetLeft, width: at.offsetWidth };
     }
     // Mobile: as abas rolam numa linha só; a ativa se traz pra vista.
     if (at && window.innerWidth <= 900) at.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   };
-  requestAnimationFrame(moverInk);
+  // Síncrono (não rAF): offsetLeft força layout na hora, então o fio nasce
+  // posicionado no MESMO paint do write (sem frame de flicker) — e o rebuild
+  // forçado do guard (m1) reproduz a tela estabilizada byte a byte.
+  moverInk();
   $$("#tabs .tab").forEach((t) => {
     t.addEventListener("click", () => {
       if (t.classList.contains("active")) return;
@@ -6478,6 +6494,7 @@ function renderDashboard() {
       renderOccList();
     });
   }
+  } // fim do bloco escreveuShell (attaches só quando o shell foi reescrito)
 
   renderOccList();
 }
@@ -6555,7 +6572,7 @@ function renderOccList() {
 
   // Carga ainda não chegou (rede lenta / timeout de boot) → skeleton.
   if (state.ocorrenciasProntas === false) {
-    root.innerHTML = skeletonOccHtml(6);
+    setHtml(root, skeletonOccHtml(6));
     return;
   }
 
@@ -6563,7 +6580,7 @@ function renderOccList() {
     // Se o vazio é por causa de busca/filtro de turno/mês ativo, oferece limpar.
     const temFiltroAtivo = !!search || !!turno || !!mes;
     const podeCriar = !temFiltroAtivo && tab === "pendentes" && can("ocorrencias.criar");
-    root.innerHTML = `
+    const escreveuVazio = setHtml(root, `
       <div class="empty">
         ${temFiltroAtivo
           ? `<div class="empty__icon">${icon("inbox")}</div>`
@@ -6579,7 +6596,8 @@ function renderOccList() {
         ${temFiltroAtivo ? `<button class="btn btn--ghost" id="btn-limpar-occ">${icon("x")}<span>Limpar filtros</span></button>` : ""}
         ${podeCriar ? `<button class="btn btn--primary" id="btn-empty-nova">${icon("plus")}<span>Nova ocorrência</span></button>` : ""}
       </div>
-    `;
+    `);
+    if (!escreveuVazio) return;
     const limpar = $("#btn-limpar-occ");
     if (limpar) limpar.addEventListener("click", () => {
       state.view.search = "";
@@ -6601,7 +6619,7 @@ function renderOccList() {
     ...autoList.map((o) => ({ d: String(o.dataIso || ""), html: ocaDashCardHtml(o) })),
     ...list.map((o) => ({ d: String(o.data || ""), html: renderOccCard(o) })),
   ].sort((a, b) => b.d.localeCompare(a.d));
-  root.innerHTML = `<div class="list">${fluxo.map((x) => x.html).join("")}</div>`;
+  if (!setHtml(root, `<div class="list">${fluxo.map((x) => x.html).join("")}</div>`)) return;
   // Cards manuais abrem detalhe aqui; os automáticos (data-oca-card) abrem o
   // detalhe próprio pelo handler delegado global (openDetalheAutoModal).
   $$("#occ-list .occ:not([data-oca-card])").forEach((el) => {
@@ -7173,7 +7191,7 @@ function renderFuncionarios() {
   const totalAtivos = ativos.length;
   const totalInativos = escopo.length - totalAtivos;
 
-  $("#view").innerHTML = `
+  const escreveu = setHtml($("#view"), `
     <header class="page-header">
       <div>
         <h1>Funcionários</h1>
@@ -7223,14 +7241,16 @@ function renderFuncionarios() {
     </div>
 
     <div id="func-list"></div>
-  `;
+  `);
 
-  $("#func-search").addEventListener("input", debounce(() => renderFuncList(), 150));
-  bindBuscaClear("func-search");
-  $("#func-status-filter").addEventListener("change", () => renderFuncList());
-  $("#func-turno-filter").addEventListener("change", () => renderFuncList());
+  if (escreveu) {
+    $("#func-search").addEventListener("input", debounce(() => renderFuncList(), 150));
+    bindBuscaClear("func-search");
+    $("#func-status-filter").addEventListener("change", () => renderFuncList());
+    $("#func-turno-filter").addEventListener("change", () => renderFuncList());
+  }
   renderFuncList(true);
-  animarNumeros("#view");
+  if (escreveu) animarNumeros("#view");
 }
 
 // Reescreve as options do #func-turno-filter com contagens do universo passado
@@ -7306,7 +7326,7 @@ function renderFuncList(animar) {
   if (list.length === 0) {
     const semFiltro = !search && !filter && statusFilter === "ativo";
     const apenasInativos = statusFilter === "inativo" && state.funcionarios.some((f) => f.ativo === false);
-    root.innerHTML = `
+    if (setHtml(root, `
       <div class="empty">
         <div class="empty__icon">${icon("users")}</div>
         <h3>${semFiltro ? "Aguardando primeira sincronização" : "Nenhum resultado"}</h3>
@@ -7314,18 +7334,19 @@ function renderFuncList(animar) {
           ? "Os funcionários virão automaticamente do pipeline de GP na próxima execução."
           : (apenasInativos ? "" : "Tente ajustar a busca ou os filtros (turno/status).")}</p>
         ${semFiltro ? "" : `<button class="btn btn--ghost" id="btn-limpar-func">${icon("x")}<span>Limpar filtros</span></button>`}
-      </div>`;
-    const limpar = $("#btn-limpar-func");
-    if (limpar) limpar.addEventListener("click", () => {
-      if ($("#func-search")) $("#func-search").value = "";
-      if ($("#func-turno-filter")) $("#func-turno-filter").value = "";
-      if ($("#func-status-filter")) $("#func-status-filter").value = "ativo";
-      renderFuncList();
-    });
+      </div>`)) {
+      const limpar = $("#btn-limpar-func");
+      if (limpar) limpar.addEventListener("click", () => {
+        if ($("#func-search")) $("#func-search").value = "";
+        if ($("#func-turno-filter")) $("#func-turno-filter").value = "";
+        if ($("#func-status-filter")) $("#func-status-filter").value = "ativo";
+        renderFuncList();
+      });
+    }
     return;
   }
 
-  root.innerHTML = `<div class="func-list">${list.map((f) => {
+  const escreveuLista = setHtml(root, `<div class="func-list">${list.map((f) => {
     const inativo = f.ativo === false;
     const demissaoStr = inativo && f.demissao ? tsToDateStr(f.demissao) : null;
     const semTurno = !f.turno;
@@ -7361,13 +7382,14 @@ function renderFuncList(animar) {
         ${tag}
         <svg class="icon func-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </article>`;
-  }).join("")}</div>`;
+  }).join("")}</div>`);
 
-  $$("#func-list .func-row").forEach((el) => {
-    el.addEventListener("click", () => openFuncionarioModal(el.dataset.func));
-  });
-
-  if (animar) animarEntrada(document.querySelector("#func-list .func-list"));
+  if (escreveuLista) {
+    $$("#func-list .func-row").forEach((el) => {
+      el.addEventListener("click", () => openFuncionarioModal(el.dataset.func));
+    });
+    if (animar) animarEntrada(document.querySelector("#func-list .func-list"));
+  }
 }
 
 // Setores: derivados dinamicamente dos funcionarios atuais (CSV do ERP WK Radar
@@ -8065,13 +8087,13 @@ function renderObrigacoes() {
     </header>`;
 
   if (todas.length === 0) {
-    $("#view").innerHTML = cab + `
+    setHtml($("#view"), cab + `
       <div class="empty">
         <div class="empty__icon">${icon("calendar")}</div>
         <h3>Nenhuma obrigação cadastrada</h3>
         <p>Cadastre as rotinas que se repetem (fechar folha, banco de horas, eSocial, pagar PJ...) e acompanhe aqui.</p>
         <button class="btn btn--primary" data-obrig-nova>${icon("plus")}<span>Nova obrigação</span></button>
-      </div>`;
+      </div>`);
     return;
   }
 
@@ -8085,7 +8107,7 @@ function renderObrigacoes() {
     .sort((a, b) => ((a - mesAtual + 12) % 12) - ((b - mesAtual + 12) % 12));
   const abertas = doMes.filter((o) => obrigacaoStatus(o).status !== "ok").length;
 
-  $("#view").innerHTML = cab + `
+  if (!setHtml($("#view"), cab + `
     <div class="mes mes--atual">
       <div class="mes__cab">
         <span class="mes__nome">${MESES_NOME[mesAtual - 1]}</span>
@@ -8106,7 +8128,7 @@ function renderObrigacoes() {
             <div class="mes__lista">${outras.filter((o) => obrigMesDe(o) === m).map((o) => obrigLinhaFutura(o)).join("")}</div>
           </div>`).join("")}
       </div>` : ""}
-  `;
+  `)) return;
 
   const vm = $("#ob-vermais");
   if (vm) {
@@ -8316,27 +8338,27 @@ function renderComunicados() {
     </header>`;
 
   if (lista.length === 0) {
-    $("#view").innerHTML = cab + `
+    setHtml($("#view"), cab + `
       <div class="empty">
         <div class="empty__icon">${icon("megafone")}</div>
         <h3>Nenhum comunicado publicado</h3>
         <p>Crie o primeiro aviso para a equipe. Você escolhe quem recebe (todos, por turno ou por setor) e acompanha quem leu.</p>
         <button class="btn btn--primary" data-com-nova>${icon("plus")}<span>Novo comunicado</span></button>
-      </div>`;
+      </div>`);
     return;
   }
 
   const stat = (label, value, icn) => `
     <div class="stat"><div class="stat__label">${icon(icn)} ${label}</div><div class="stat__value">${value}</div></div>`;
 
-  $("#view").innerHTML = cab + `
+  setHtml($("#view"), cab + `
     <div class="stats">
       ${stat("Publicados", comAtivos().length, "megafone")}
       ${stat("Fixados", fixados.length, "pin")}
       ${stat("Visualizações", totalVistos, "eye")}
     </div>
     <div class="com-grid">${[...fixados, ...recentes].map(comCardHtml).join("")}</div>
-  `;
+  `);
 }
 
 function comCardHtml(c) {
@@ -8984,13 +9006,13 @@ function renderDisciplinar() {
     </header>`;
 
   if (lista.length === 0) {
-    $("#view").innerHTML = cab + `
+    setHtml($("#view"), cab + `
       <div class="empty">
         <div class="empty__icon">${icon("alert")}</div>
         <h3>Nenhuma ocorrência registrada</h3>
         <p>${podeRegistrar ? "Registre advertências e suspensões aqui. O funcionário vê a própria no portal e dá ciência." : "Quando houver ocorrências do seu turno, aparecem aqui."}</p>
         ${podeRegistrar ? `<button class="btn btn--primary" data-disc-novo>${icon("plus")}<span>Registrar ocorrência</span></button>` : ""}
-      </div>`;
+      </div>`);
     bindDiscActions();
     return;
   }
@@ -8999,7 +9021,7 @@ function renderDisciplinar() {
   const filtros = [["todos", "Todas"], ["advertencia", "Advertências"], ["suspensao", "Suspensões"]];
   const filtroAtual = state.view.discFiltro || "todos";
 
-  $("#view").innerHTML = cab + `
+  const escreveu = setHtml($("#view"), cab + `
     <div class="stats">
       ${stat("Advertências no mês", advMes, "verbais + escritas")}
       ${stat("Suspensões no mês", suspMes.length, diasSusp + " dia" + (diasSusp === 1 ? "" : "s") + " no total", "stat--alert")}
@@ -9014,14 +9036,15 @@ function renderDisciplinar() {
     </div>
     <div class="disc-list">
       ${discVisiveis().length ? discVisiveis().map(discRecHtml).join("") : `<div class="empty empty--mini"><p>Nenhuma ocorrência neste filtro.</p></div>`}
-    </div>`;
+    </div>`);
 
-  const s = $("#disc-search");
-  if (s) s.addEventListener("input", debounce(() => {
-    state.view.discBusca = s.value;
-    const root = $(".disc-list");
-    if (root) root.innerHTML = discVisiveis().length ? discVisiveis().map(discRecHtml).join("") : `<div class="empty empty--mini"><p>Nenhuma ocorrência neste filtro.</p></div>`;
-  }, 200));
+  if (escreveu) {
+    const s = $("#disc-search");
+    if (s) s.addEventListener("input", debounce(() => {
+      state.view.discBusca = s.value;
+      setHtml($(".disc-list"), discVisiveis().length ? discVisiveis().map(discRecHtml).join("") : `<div class="empty empty--mini"><p>Nenhuma ocorrência neste filtro.</p></div>`);
+    }, 200));
+  }
   bindDiscActions();
 }
 
@@ -9248,13 +9271,13 @@ function renderDocumentos() {
   const m = docMetrics();
 
   if (docAtivos().length === 0) {
-    $("#view").innerHTML = cabDocs + `
+    setHtml($("#view"), cabDocs + `
       <div class="empty">
         <div class="empty__icon">${icon("file")}</div>
         <h3>Nenhum documento publicado</h3>
         <p>Publique o primeiro documento institucional. Você acompanha leitura e assinatura por aqui.</p>
         <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Criar primeiro documento</span></button>
-      </div>`;
+      </div>`);
     return;
   }
 
@@ -9262,7 +9285,7 @@ function renderDocumentos() {
     <div class="stat"><div class="stat__label">${icon(icn)} ${label}</div><div class="stat__value">${value}</div></div>`;
   const filtros = [["todos", "Todos"], ["rascunho", "Rascunhos"], ...DOC_TIPOS.map((t) => [t.k, t.n])];
 
-  $("#view").innerHTML = cabDocs + `
+  setHtml($("#view"), cabDocs + `
     <div class="doc-actbar">
       <button class="btn btn--primary" data-doc-novo>${icon("plus")}<span>Novo documento</span></button>
     </div>
@@ -9276,7 +9299,7 @@ function renderDocumentos() {
     </div>
     <div class="com-grid">
       ${lista.length ? lista.map(docCardHtml).join("") : `<div class="empty empty--mini"><p>Nenhum documento neste filtro.</p></div>`}
-    </div>`;
+    </div>`);
 }
 
 function docCardHtml(d) {
@@ -10404,7 +10427,7 @@ function renderRecibosGestor(cabDocs) {
       marcarCarga("recibos"); // marca ANTES de disparar pra não re-disparar a cada render no meio do voo
       window.recarregarRecibosGestor().then(() => renderApp());
       if (!temRecibos) { // 1ª vez: sem nada pra pintar, mostra o carregando e espera
-        $("#view").innerHTML = cab + `<div class="empty empty--mini"><p>Carregando lotes…</p></div>`;
+        setHtml($("#view"), cab + `<div class="empty empty--mini"><p>Carregando lotes…</p></div>`);
         return;
       }
       // Já havia conteúdo (só estava velho): segue pintando o atual; o refresh repinta ao voltar.
@@ -10413,13 +10436,13 @@ function renderRecibosGestor(cabDocs) {
 
   const lotes = rcbLotes();
   if (!lotes.length) {
-    $("#view").innerHTML = cab + `
+    setHtml($("#view"), cab + `
       <div class="empty">
         <div class="empty__icon">${icon("file")}</div>
         <h3>Nenhum lote importado</h3>
         <p>Importe o PDF de recibos ou do cartão ponto da competência. O sistema separa por funcionário.</p>
         <button class="btn btn--primary" data-rcb-importar>${icon("plus")}<span>Importar o primeiro lote</span></button>
-      </div>`;
+      </div>`);
     return;
   }
 
@@ -10459,14 +10482,14 @@ function renderRecibosGestor(cabDocs) {
           </div>`).join("")}
       </div>`;
 
-  $("#view").innerHTML = cab + `
+  setHtml($("#view"), cab + `
     <div class="doc-actbar">
       <p>Importe o PDF da folha. O sistema separa por funcionário e cada um vê só o dele.</p>
       <button class="btn btn--primary" data-rcb-importar>${icon("plus")}<span>Importar</span></button>
     </div>
     <div class="rcb-cols">
       ${colunas.map(colunaHtml).join("")}
-    </div>`;
+    </div>`);
 }
 
 // Detalhe do lote: painel de adesão ("X de N assinaram") + status por pessoa com hora.
@@ -11983,7 +12006,7 @@ function renderBancoHoras() {
     ? "Saldo de horas dos funcionários sob sua supervisão."
     : "Saldo de horas de todos os funcionários ativos.";
 
-  $("#view").innerHTML = `
+  const escreveu = setHtml($("#view"), `
     <header class="page-header">
       <div>
         <h1>Banco de horas</h1>
@@ -12027,23 +12050,25 @@ function renderBancoHoras() {
     </div>
 
     <div id="bh-list"></div>
-  `;
+  `);
 
-  if ($("#btn-import-bh")) {
-    $("#btn-import-bh").addEventListener("click", openImportBancoHorasModal);
+  if (escreveu) {
+    if ($("#btn-import-bh")) {
+      $("#btn-import-bh").addEventListener("click", openImportBancoHorasModal);
+    }
+    if ($("#bh-diag-retry")) {
+      $("#bh-diag-retry").addEventListener("click", async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true; btn.textContent = "Carregando...";
+        try { await window.recarregarVolateis?.(); } catch (_) {}
+        if (typeof renderApp === "function") renderApp();
+      });
+    }
+    $("#bh-search").addEventListener("input", debounce(() => renderBHList(visibles), 150));
+    bindBuscaClear("bh-search");
   }
-  if ($("#bh-diag-retry")) {
-    $("#bh-diag-retry").addEventListener("click", async (e) => {
-      const btn = e.currentTarget;
-      btn.disabled = true; btn.textContent = "Carregando...";
-      try { await window.recarregarVolateis?.(); } catch (_) {}
-      if (typeof renderApp === "function") renderApp();
-    });
-  }
-  $("#bh-search").addEventListener("input", debounce(() => renderBHList(visibles), 150));
-  bindBuscaClear("bh-search");
   renderBHList(visibles, true);
-  animarNumeros("#view");
+  if (escreveu) animarNumeros("#view");
 }
 
 function renderBHList(funcionarios, animar) {
@@ -12061,12 +12086,12 @@ function renderBHList(funcionarios, animar) {
   const root = $("#bh-list");
 
   if (list.length === 0) {
-    root.innerHTML = `
+    setHtml(root, `
       <div class="empty">
         <div class="empty__icon">${icon("clock")}</div>
         <h3>Nenhum funcionário</h3>
         <p>Ajuste a busca ou cadastre funcionários primeiro.</p>
-      </div>`;
+      </div>`);
     return;
   }
 
@@ -12075,7 +12100,7 @@ function renderBHList(funcionarios, animar) {
   // cuja /bancoHoras o pipeline denormalizou.
   const dash = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 
-  root.innerHTML = `<div class="list">${list.map((f) => {
+  const escreveuLista = setHtml(root, `<div class="list">${list.map((f) => {
     const saldo = bh[f.id];
     const _sMin = saldo ? (bhFolgaMin(saldo) != null ? bhFolgaMin(saldo) : saldo.minutos) : null;
     const saldoStr = saldo ? (bhFolgaStr(saldo) || formatSaldoHoras(saldo.minutos)) : "—";
@@ -12103,13 +12128,15 @@ function renderBHList(funcionarios, animar) {
         <span class="bh-saldo bh-saldo--${tone}" title="Atualizado ${ultima}">${saldoStr}</span>
       </article>
     `;
-  }).join("")}</div>`;
+  }).join("")}</div>`);
 
-  // Espelho no clique (mock aprovado): a linha abre o popup do mês, sem sair da tela.
-  root.querySelectorAll("[data-bh-espelho]").forEach((el) =>
-    el.addEventListener("click", () => openEspelhoPopupBH(el.dataset.bhEspelho)));
+  if (escreveuLista) {
+    // Espelho no clique (mock aprovado): a linha abre o popup do mês, sem sair da tela.
+    root.querySelectorAll("[data-bh-espelho]").forEach((el) =>
+      el.addEventListener("click", () => openEspelhoPopupBH(el.dataset.bhEspelho)));
 
-  if (animar) animarEntrada(document.querySelector("#bh-list .list"));
+    if (animar) animarEntrada(document.querySelector("#bh-list .list"));
+  }
 }
 
 // Popup do espelho direto da lista do Banco de Horas: saldo no topo, marcações do mês
@@ -12396,7 +12423,7 @@ function renderControlePJ() {
 
   const pjs = state.pjs || [];
 
-  $("#view").innerHTML = `
+  const escreveu = setHtml($("#view"), `
     <header class="page-header">
       <div>
         <h1>Controle PJ</h1>
@@ -12419,11 +12446,13 @@ function renderControlePJ() {
     </div>
 
     <div id="pj-list"></div>
-  `;
+  `);
 
-  $("#btn-novo-pj").addEventListener("click", () => openPJModal(null));
-  $("#pj-search").addEventListener("input", debounce(() => renderPJList(), 150));
-  $("#pj-status-filter").addEventListener("change", () => renderPJList());
+  if (escreveu) {
+    $("#btn-novo-pj").addEventListener("click", () => openPJModal(null));
+    $("#pj-search").addEventListener("input", debounce(() => renderPJList(), 150));
+    $("#pj-status-filter").addEventListener("change", () => renderPJList());
+  }
   renderPJList(true);
 }
 
@@ -12448,7 +12477,7 @@ function renderPJList(animar) {
   const root = $("#pj-list");
   if (list.length === 0) {
     const semFiltro = !search && !filter;
-    root.innerHTML = `
+    if (setHtml(root, `
       <div class="empty">
         <div class="empty__icon">${icon("briefcase")}</div>
         <h3>${semFiltro ? "Nenhum PJ cadastrado" : "Sem resultados"}</h3>
@@ -12458,19 +12487,20 @@ function renderPJList(animar) {
         ${semFiltro
           ? `<button class="btn btn--primary" id="btn-novo-pj-2">${icon("plus")}<span>Cadastrar o primeiro PJ</span></button>`
           : `<button class="btn btn--ghost" id="btn-limpar-pj">${icon("x")}<span>Limpar filtros</span></button>`}
-      </div>`;
-    const b = $("#btn-novo-pj-2");
-    if (b) b.addEventListener("click", () => openPJModal(null));
-    const limpar = $("#btn-limpar-pj");
-    if (limpar) limpar.addEventListener("click", () => {
-      if ($("#pj-search")) $("#pj-search").value = "";
-      if ($("#pj-status-filter")) $("#pj-status-filter").value = "";
-      renderPJList();
-    });
+      </div>`)) {
+      const b = $("#btn-novo-pj-2");
+      if (b) b.addEventListener("click", () => openPJModal(null));
+      const limpar = $("#btn-limpar-pj");
+      if (limpar) limpar.addEventListener("click", () => {
+        if ($("#pj-search")) $("#pj-search").value = "";
+        if ($("#pj-status-filter")) $("#pj-status-filter").value = "";
+        renderPJList();
+      });
+    }
     return;
   }
 
-  root.innerHTML = `<div class="pj-list">${list.map((p) => {
+  const escreveuLista = setHtml(root, `<div class="pj-list">${list.map((p) => {
     const periodObj = PERIODICIDADES_PJ.find((x) => x.id === p.periodicidade);
     const valor = p.valorAtual
       ? formatMoeda(p.valorAtual) + (periodObj?.sufixo || "")
@@ -12510,23 +12540,25 @@ function renderPJList(animar) {
         <svg class="icon pj-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </article>
     `;
-  }).join("")}</div>`;
+  }).join("")}</div>`);
 
-  $$("#pj-list .pj-row").forEach((el) => {
-    el.addEventListener("click", (e) => {
-      // Não abre o modal se clicou no link do contrato ou botão "Reajustar"
-      if (e.target.closest("[data-stop]")) return;
-      openPJModal(el.dataset.pj);
+  if (escreveuLista) {
+    $$("#pj-list .pj-row").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        // Não abre o modal se clicou no link do contrato ou botão "Reajustar"
+        if (e.target.closest("[data-stop]")) return;
+        openPJModal(el.dataset.pj);
+      });
     });
-  });
-  $$("[data-reajustar]").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      openReajusteModal(btn.dataset.reajustar);
+    $$("[data-reajustar]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openReajusteModal(btn.dataset.reajustar);
+      });
     });
-  });
 
-  if (animar) animarEntrada(document.querySelector("#pj-list .pj-list"));
+    if (animar) animarEntrada(document.querySelector("#pj-list .pj-list"));
+  }
 }
 
 // ---------- Reajuste anual ----------
@@ -14364,7 +14396,7 @@ function renderAuditoria() {
   if (!state.view.audCat) state.view.audCat = "todos";
   if (state.view.audBusca == null) state.view.audBusca = "";
 
-  $("#view").innerHTML = `
+  const escreveu = setHtml($("#view"), `
     <header class="page-header">
       <div>
         <h1>Auditoria</h1>
@@ -14389,7 +14421,7 @@ function renderAuditoria() {
         Acesso restrito à administração. Os registros não podem ser editados nem apagados.
       </div>
     </div>
-  `;
+  `);
 
   pintarFeedAuditoria(true);
 
@@ -14403,20 +14435,22 @@ function renderAuditoria() {
     ]).then(() => { if (state.view.page === "auditoria") pintarFeedAuditoria(); });
   }
 
-  const busca = $("#aud-busca");
-  if (busca) {
-    busca.addEventListener("input", (e) => {
-      state.view.audBusca = e.target.value;
-      pintarFeedAuditoria();
+  if (escreveu) {
+    const busca = $("#aud-busca");
+    if (busca) {
+      busca.addEventListener("input", (e) => {
+        state.view.audBusca = e.target.value;
+        pintarFeedAuditoria();
+      });
+    }
+    $$("#aud-seg button").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.view.audCat = b.dataset.cat;
+        $$("#aud-seg button").forEach((x) => x.classList.toggle("on", x.dataset.cat === state.view.audCat));
+        pintarFeedAuditoria();
+      });
     });
   }
-  $$("#aud-seg button").forEach((b) => {
-    b.addEventListener("click", () => {
-      state.view.audCat = b.dataset.cat;
-      $$("#aud-seg button").forEach((x) => x.classList.toggle("on", x.dataset.cat === state.view.audCat));
-      pintarFeedAuditoria();
-    });
-  });
 }
 
 // Repinta cards + feed (preserva foco da busca).
@@ -14432,7 +14466,7 @@ function pintarFeedAuditoria(animar) {
   const sums = $("#aud-sums");
   if (sums) {
     const r = resumoAuditoria(todos);
-    sums.innerHTML = [
+    setHtml(sums, [
       ["Eventos hoje", "pulso", r.evHoje],
       ["Logins hoje", "login", r.loginHoje],
       ["Assinaturas em 7 dias", "feather", r.assin7],
@@ -14441,7 +14475,7 @@ function pintarFeedAuditoria(animar) {
       <div class="aud__sum">
         <div class="aud__sum-top"><span>${lbl}</span>${icon(ic)}</div>
         <b>${n}</b>
-      </div>`).join("");
+      </div>`).join(""));
   }
 
   const itens = todos.filter((it) => {
@@ -14452,15 +14486,14 @@ function pintarFeedAuditoria(animar) {
 
   if (!itens.length) {
     const filtrando = !!termo || cat !== "todos";
-    feed.innerHTML = `
+    if (setHtml(feed, `
       <div class="empty">
         <div class="empty__icon">${icon("search")}</div>
         <h3>${filtrando ? "Nenhum evento com esses filtros" : "Sem atividade registrada"}</h3>
         <p>${filtrando
           ? "Ajuste a busca ou o tipo para ver outros eventos."
           : "Cada login, leitura, assinatura, conferência e alteração aparece aqui, com quem fez e quando."}</p>
-      </div>`;
-    if (animar) animarEntrada(feed);
+      </div>`) && animar) animarEntrada(feed);
     return;
   }
 
@@ -14483,7 +14516,7 @@ function pintarFeedAuditoria(animar) {
         : formatDate(dia);
 
   let idx = 0;
-  feed.innerHTML = grupos.map((g) => `
+  const escreveuFeed = setHtml(feed, grupos.map((g) => `
     <div class="aud__dia">
       <div class="aud__dia-h">${labelDia(g.dia)} · ${g.itens.length} ${g.itens.length === 1 ? "evento" : "eventos"}</div>
       <div class="aud__feed">
@@ -14506,16 +14539,18 @@ function pintarFeedAuditoria(animar) {
         }).join("")}
       </div>
     </div>
-  `).join("");
+  `).join(""));
 
-  $$("#aud-feed .aud__row").forEach((row) => {
-    row.addEventListener("click", () => {
-      const it = (state._audItens || [])[+row.dataset.i];
-      if (it) openAuditoriaDetalhe(it);
+  if (escreveuFeed) {
+    $$("#aud-feed .aud__row").forEach((row) => {
+      row.addEventListener("click", () => {
+        const it = (state._audItens || [])[+row.dataset.i];
+        if (it) openAuditoriaDetalhe(it);
+      });
     });
-  });
 
-  if (animar) animarEntrada(feed);
+    if (animar) animarEntrada(feed);
+  }
 }
 
 function horaAud(em) {
@@ -14584,7 +14619,7 @@ function renderConfig() {
   ];
   if (can("sistema.usuarios")) tabs.push({ id: "usuarios", label: "Permissões", icon: "shield" });
 
-  $("#view").innerHTML = `
+  const escreveu = setHtml($("#view"), `
     <header class="page-header">
       <div>
         <h1>Configurações</h1>
@@ -14601,14 +14636,16 @@ function renderConfig() {
     </div>
 
     <div id="config-content"></div>
-  `;
+  `);
 
-  $$("#config-tabs .tab").forEach((b) => {
-    b.addEventListener("click", () => {
-      state.view.configTab = b.dataset.tab;
-      renderConfig();
+  if (escreveu) {
+    $$("#config-tabs .tab").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.view.configTab = b.dataset.tab;
+        renderConfig();
+      });
     });
-  });
+  }
 
   // Render do conteúdo da tab
   if (state.view.configTab === "usuarios" && can("sistema.usuarios")) {
@@ -14643,7 +14680,7 @@ function renderAcoesInto(selector) {
     </article>
   `;
 
-  $(selector).innerHTML = `
+  if (!setHtml($(selector), `
     <div class="cfg-actbar">
       <p>Como o líder pode encaminhar uma ocorrência. Use pra refletir as práticas internas da empresa.</p>
       <button class="btn btn--primary" id="btn-nova-acao">${icon("plus")}<span>Nova ação</span></button>
@@ -14652,7 +14689,7 @@ function renderAcoesInto(selector) {
       ${padrao.map((a) => acaoRow(a, false)).join("")}
       ${custom.map((a) => acaoRow(a, true)).join("")}
     </div>
-  `;
+  `)) return;
 
   $("#btn-nova-acao").addEventListener("click", openNovaAcaoModal);
   const btn2 = $("#btn-nova-acao-2");
@@ -14838,7 +14875,7 @@ function renderTiposInto(selector) {
     </article>
   `;
 
-  $(selector).innerHTML = `
+  if (!setHtml($(selector), `
     <div class="cfg-actbar">
       <p>Motivos disponíveis no formulário de nova ocorrência.</p>
       <button class="btn btn--primary" id="btn-novo-tipo">${icon("plus")}<span>Novo tipo</span></button>
@@ -14847,7 +14884,7 @@ function renderTiposInto(selector) {
       ${padrao.map((t) => tipoRow(t, false)).join("")}
       ${custom.map((t) => tipoRow(t, true)).join("")}
     </div>
-  `;
+  `)) return;
 
   $("#btn-novo-tipo").addEventListener("click", openNovoTipoModal);
   const btn2 = $("#btn-novo-tipo-2");
@@ -15325,7 +15362,7 @@ function renderUsuariosInto(selector) {
       </button>
       <div class="cfg-list cfg-colab-list" id="cfg-colab-list" hidden>${colabs.map((u) => cfgUserRowHtml(u, isFirebaseMode)).join("")}</div>`) : "";
 
-  $(selector).innerHTML = `
+  if (!setHtml($(selector), `
     ${permissoesMatrizHtml()}
     <div class="cfg-actbar"><p>Quem acessa, com qual papel e qual escopo.${isFirebaseMode ? " Clique numa linha pra editar." : ""}</p></div>
     <div class="cfg-toolbar">
@@ -15339,7 +15376,7 @@ function renderUsuariosInto(selector) {
         <span class="text-xs muted" style="display:block; margin-top:6px;">Útil apenas em modo demo. No Firebase, dados ficam no Firestore.</span>
       </div>
     ` : ""}
-  `;
+  `)) return;
 
   // Matriz de permissões: clicar numa célula liga/desliga (admin). Persiste o
   // mapa completo; o default cobre o que faltar. Admin é sempre total (locked).
@@ -15788,7 +15825,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.70.0";
+window.CURRENT_VERSION = "1.70.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -1,24 +1,35 @@
 // ============================================================
-// GUARDA ANTI-FLICKER (metodologia 2026-07-14, pedido do William:
-// "não pode acontecer em lugar algum, as pessoas precisam ver muito cuidado").
+// GUARDA ANTI-FLICKER (metodologia 2026-07-14; estendido 2026-07-15 com a
+// arquitetura setHtml validada pelo gate Fable).
 //
-// Contrato que ele impõe: TODA tela, uma vez carregada, re-renderiza IDÊNTICA
-// quando o state não mudou. É exatamente o que mata o "some e volta":
-// placeholder que renasce em re-render = diferença entre snapshot A (tela
-// estabilizada) e snapshot B (re-render imediato) = FALHA nomeando a tela.
+// DOIS CONTRATOS por tela, ambos exigidos no modo estrito:
+//  m1 (disciplina de cache): com window.__fpForceWrite = true, um rebuild
+//     FORÇADO nasce byte a byte idêntico à tela estabilizada. Garante que os
+//     templates nascem preenchidos (nada de placeholder que renasce).
+//  m2 (no-op de verdade): sem force, um re-render sem mudança de state NÃO
+//     TOCA o DOM: mesma referência de nó e foco preservado (canal setHtml).
+//  Estático: nenhuma escrita crua em #view fora do canal setHtml.
 //
-// Dinâmico de propósito: as telas vêm de NAV_GRUPOS (gestor) e COLAB_NAV
-// (colaborador) EM RUNTIME, então tela nova entra no pente fino sozinha.
-// Roda no ritual de release: node scratchpad/audit/flicker-guard.mjs
-// (servidor local na 8081 servindo a raiz do repo).
+// Uso: node scratchpad/audit/flicker-guard.mjs            (m2/estático = aviso)
+//      node scratchpad/audit/flicker-guard.mjs --strict   (m2/estático reprovam)
+// Servidor local na 8081 servindo a raiz do repo. Telas enumeradas EM RUNTIME
+// (NAV_GRUPOS + COLAB_NAV): tela nova entra no pente fino sozinha.
 // ============================================================
 import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
+
+const ESTRITO = process.argv.includes("--strict");
 
 // IDs gerados por render (gradientes SVG com sequência global) mudam sem efeito
 // visual: normaliza antes de comparar pra não acusar falso flicker.
 const normaliza = (html) => String(html || "")
   .replace(/gmg\d+/g, "gmgN")
   .replace(/gm[a-z]+\d+w?/g, "gmsN");
+
+// ---- contrato estático: escrita crua em #view fora do canal ----
+const src = readFileSync("public/app.js", "utf8");
+const crus = src.split("\n").map((l, i) => [i + 1, l])
+  .filter(([, l]) => /(\$\("#view"\)|\bview)\.innerHTML\s*=/.test(l) && !/setHtml\(/.test(l));
 
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: "block" });
@@ -29,31 +40,47 @@ const jsErros = [];
 p.on("pageerror", (e) => jsErros.push(String(e).slice(0, 200)));
 await p.goto("http://localhost:8081/public/index.html", { waitUntil: "networkidle" });
 
-const falhas = [];
+const falhasM1 = [], falhasM2 = [];
 async function varre(portal, paginas) {
   for (const pg of paginas) {
     const r = await p.evaluate(async (pagina) => {
+      window.__fpForceWrite = false;
       state.view.page = pagina;
       try { _renderAppNow(); } catch (e) { return { erro: String(e).slice(0, 200) }; }
       // estabiliza: preenchedores assíncronos, cargas lazy, contagem animada (700ms)
-      // e a limpeza do stagger (850ms)
       await new Promise((res) => setTimeout(res, 1000));
       const view = document.querySelector("#view") || document.body;
-      const a = view.innerHTML;
+
+      // ---- m2: re-render SEM force = no-op de verdade (nó e foco intactos) ----
+      const no0 = view.firstElementChild;
+      const input = view.querySelector("input:not([type=hidden]), textarea");
+      if (input) try { input.focus(); } catch (e) { /* */ }
+      const focado = document.activeElement;
       try { _renderAppNow(); } catch (e) { return { erro: String(e).slice(0, 200) }; }
+      const m2 = { mesmoNo: view.firstElementChild === no0, focoOk: !input || document.activeElement === focado };
+
+      // ---- m1: rebuild FORÇADO nasce idêntico ao estabilizado ----
+      const a = view.innerHTML;
+      window.__fpForceWrite = true;
+      try { _renderAppNow(); } catch (e) { window.__fpForceWrite = false; return { erro: String(e).slice(0, 200) }; }
+      window.__fpForceWrite = false;
       const bHtml = view.innerHTML; // IMEDIATO: sem esperar async, é aqui que o flicker mora
-      return { a, b: bHtml };
+      return { a, b: bHtml, m2 };
     }, pg);
-    if (r.erro) { falhas.push(`${portal}/${pg}: ERRO DE RENDER ${r.erro}`); console.log(`  ${portal}/${pg}: ERRO`); continue; }
+    if (r.erro) { falhasM1.push(`${portal}/${pg}: ERRO DE RENDER ${r.erro}`); console.log(`  ${portal}/${pg}: ERRO`); continue; }
     const A = normaliza(r.a), B = normaliza(r.b);
+    let status = [];
     if (A !== B) {
       let i = 0;
       while (i < Math.min(A.length, B.length) && A[i] === B[i]) i++;
-      falhas.push(`${portal}/${pg}: FLICKER no offset ${i}\n    estabilizado: ...${A.slice(Math.max(0, i - 40), i + 80)}...\n    re-render:    ...${B.slice(Math.max(0, i - 40), i + 80)}...`);
-      console.log(`  ${portal}/${pg}: FLICKER`);
-    } else {
-      console.log(`  ${portal}/${pg}: ok`);
+      falhasM1.push(`${portal}/${pg}: FLICKER m1 no offset ${i}\n    estabilizado: ...${A.slice(Math.max(0, i - 40), i + 80)}...\n    re-render:    ...${B.slice(Math.max(0, i - 40), i + 80)}...`);
+      status.push("m1 FLICKER");
     }
+    if (!r.m2.mesmoNo || !r.m2.focoOk) {
+      falhasM2.push(`${portal}/${pg}: m2 ${!r.m2.mesmoNo ? "recriou o DOM" : ""}${!r.m2.focoOk ? " perdeu o foco" : ""}`.trim());
+      status.push("m2 no-op falhou");
+    }
+    console.log(`  ${portal}/${pg}: ${status.length ? status.join(" + ") : "ok"}`);
   }
 }
 
@@ -92,8 +119,19 @@ await varre("colab", paginasColab);
 
 await b.close();
 if (jsErros.length) console.log("\npageErrors:", jsErros);
-if (falhas.length) {
-  console.log(`\n${falhas.length} TELA(S) COM FLICKER:\n` + falhas.map((f) => "- " + f).join("\n"));
-  process.exit(1);
+
+let reprova = false;
+if (falhasM1.length) {
+  reprova = true;
+  console.log(`\n${falhasM1.length} TELA(S) REPROVADAS no m1 (cache):\n` + falhasM1.map((f) => "- " + f).join("\n"));
 }
-console.log(`\nTodas as ${paginasGestor.length + paginasColab.length} telas re-renderizam identicas. Guarda anti-flicker: PASSOU.`);
+if (falhasM2.length) {
+  console.log(`\n${falhasM2.length} tela(s) sem no-op m2${ESTRITO ? " (REPROVA, modo estrito)" : " (aviso; reprova com --strict)"}:\n` + falhasM2.map((f) => "- " + f).join("\n"));
+  if (ESTRITO) reprova = true;
+}
+if (crus.length) {
+  console.log(`\n${crus.length} escrita(s) CRUA(S) em #view fora do canal setHtml${ESTRITO ? " (REPROVA)" : " (aviso; reprova com --strict)"}:\n` + crus.slice(0, 8).map(([n, l]) => `- app.js:${n} ${l.trim().slice(0, 90)}`).join("\n") + (crus.length > 8 ? `\n  ... e mais ${crus.length - 8}` : ""));
+  if (ESTRITO) reprova = true;
+}
+if (reprova) process.exit(1);
+console.log(`\nGuarda anti-flicker: PASSOU (${paginasGestor.length + paginasColab.length} telas${ESTRITO ? ", modo estrito" : ""}).`);
