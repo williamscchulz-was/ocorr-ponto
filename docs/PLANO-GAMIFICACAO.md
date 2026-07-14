@@ -151,8 +151,10 @@ a nada, é cosmético, mesmo residual aceito do guard de auto-toque do mural).
   **Badges** (hero do perfil, decoração do avatar, medalhas por categoria).
 - Home: card compacto "Seus pontos" (total + barra + faltam X + selos dos marcos),
   clique abre Conquistas·Pontos. Nada mais entra na home.
-- Hub mobile (pp-atl): atalho "Conquistas". Barra de baixo NÃO muda (3 itens é lei);
-  a rota entra em filhasDoHub (acende Início).
+- Barra de baixo do mobile GANHA o item (decisão William 2026-07-14): Início, Avisos,
+  Conquistas, Conta. O .bn-pill passa de 1/3 pra 1/4 de largura; a rota NÃO entra em
+  filhasDoHub (tem item próprio, acende ele). O hub (pp-atl) mantém o atalho, mesmo
+  padrão de Avisos/Conta que também vivem nos dois lugares.
 
 **Gestor — 1 item com cap:**
 - Menu "Gamificação" (ícone troféu, vizinho de Avaliações), só com
