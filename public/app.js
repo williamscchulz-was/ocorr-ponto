@@ -1046,7 +1046,7 @@ function renderBottomNavColaborador() {
   const idxAnterior = window.__bnIdx != null ? window.__bnIdx : idxAtivo;
   $("#bottom-nav").innerHTML = `<span class="bn-pill" style="--bn-i:${idxAnterior}"></span>` + items.map((it) => `
     <button class="bottom-nav__item ${pageAtiva === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}${it.badge ? ` (${it.badge} não lidos)` : ""}">
-      <span class="cp-bn-ic">${cpIcon(it.icon)}${it.badge ? `<span class="cp-bn-dot">${it.badge > 9 ? "9+" : it.badge}</span>` : ""}</span><span class="cp-bn-lab">${it.label}</span>
+      <span class="cp-bn-ic">${it.id === "colab-conta" ? bnAvatarHtml() : cpIcon(it.icon)}${it.badge ? `<span class="cp-bn-dot">${it.badge > 9 ? "9+" : it.badge}</span>` : ""}</span><span class="cp-bn-lab">${it.label}</span>
     </button>`).join("");
   const pill = $("#bottom-nav .bn-pill");
   if (pill && idxAnterior !== idxAtivo) requestAnimationFrame(() => pill.style.setProperty("--bn-i", idxAtivo));
@@ -2355,6 +2355,21 @@ function gamiAnosDeCasa() {
 // de verdade) cai no id do state. 'typeof' porque auth nem e declarado em demo.
 const gamiMeuUid = () => (typeof auth !== "undefined" && auth && auth.currentUser) ? auth.currentUser.uid : state.currentUserId;
 const gamiSouTop1 = () => !!(state.gamiTop && state.gamiTop[0] && state.gamiTop[0].uid === gamiMeuUid());
+
+// Avatar do proprio usuario pro item Conta da barra de baixo (padrao WhatsApp:
+// a aba da conta E a tua foto) com o aro da decoracao equipada, quando houver.
+function bnAvatarHtml() {
+  const u = currentUser();
+  if (!u) return cpIcon("user");
+  const f = (state.funcionarios || [])[0];
+  const nome = (u.role === "colaborador" && f && f.nome) || u.nome || "";
+  const dec = u.decoracao || "";
+  const foto = u.fotoBase64;
+  const miolo = foto
+    ? `<span class="gav__ini" role="img" aria-label="Foto de ${escapeHtml(nome)}" style="position:absolute;inset:0;border-radius:50%;background-image:url(${foto});background-size:cover;background-position:center;"></span>`
+    : `<span class="gav__ini">${escapeHtml(gamiIniciais(nome))}</span>`;
+  return `<span class="gav gav--bn${dec ? ` gav--${escapeHtml(dec)}` : ""}">${miolo}</span>`;
+}
 
 // Card compacto da home (so com temporada ativa; clique abre Conquistas·Pontos).
 function gamiCardHomeHtml() {
@@ -3855,7 +3870,7 @@ function renderBottomNav() {
   ].filter(Boolean);
   $("#bottom-nav").innerHTML = items.map((it) => `
     <button class="bottom-nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${it.label}">
-      ${icon(it.icon)}
+      ${it.id === "__menu" ? bnAvatarHtml() : icon(it.icon)}
       <span>${it.label}</span>
     </button>`).join("");
   $$("#bottom-nav .bottom-nav__item").forEach((btn) => {
