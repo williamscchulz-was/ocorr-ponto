@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.67.0", d: "14 jul 2026", current: true, items: [
+    v: "1.68.0", d: "14 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Portal de Vagas no ar: a GP publica vagas na tela nova Vagas e elas aparecem na hora no site aberto vagas.fiobras.com.br, com candidatura direto no WhatsApp da GP. Nenhum dado de candidato entra no sistema." },
+    ],
+  },
+  {
+    v: "1.67.0", d: "14 jul 2026", items: [
       { type: "high", title: "Sequencia de dias: entrar no app todo dia agora vale ponto a cada 5 dias seguidos. Transparencia: o registro da sua presenca e visivel so pra voce e pra GP, e nunca e usado pra outra coisa." },
       { type: "feat", title: "O ranking agora mostra a foto de todo mundo no podio (uso de imagem autorizado por todos). E as medalhas de tempo de casa vao ate 30 anos, com as suas conquistas separadas das que estao em andamento." },
       { type: "feat", title: "Medalhas de coracao e de boas-vindas redesenhadas, com mais capricho." },

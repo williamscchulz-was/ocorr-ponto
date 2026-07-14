@@ -1322,5 +1322,73 @@ service cloud.firestore {
         allow delete: if isAdmin();
       }
     }
+
+    // ============================================================
+    // VAGAS (2026-07-14, decisao William: v1 SO PUBLICO). A pagina
+    // vagas.fiobras.com.br le SEM LOGIN: e a PRIMEIRA leitura publica do
+    // projeto, entao a fronteira e estreita DE PROPOSITO: anonimo le
+    // EXCLUSIVAMENTE vaga com status 'publicada' (query where status ==
+    // 'publicada' e provada; rascunho/encerrada negam) e o doc config/vagas
+    // (so o WhatsApp de candidaturas, publico por PROPOSITO). Nenhuma
+    // escrita anonima em lugar nenhum. Conteudo de vaga nao tem PII.
+    // Vagas internas (colaborador se candidata) = fase 2 no roadmap.
+    // ============================================================
+    match /vagas/{id} {
+      function gpVagas() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
+      function v() { return request.resource.data; }
+      function vagaShapeOk() {
+        return v().keys().hasOnly(['titulo', 'setor', 'turno', 'cidade', 'tipo', 'descricao', 'requisitos', 'status', 'criadoPor', 'criadoEm', 'publicadaEm', 'encerradaEm'])
+          && v().titulo is string && v().titulo.size() >= 1 && v().titulo.size() <= 120
+          && v().descricao is string && v().descricao.size() <= 3000
+          && (!('requisitos' in v()) || (v().requisitos is string && v().requisitos.size() <= 3000))
+          && (!('setor' in v()) || (v().setor is string && v().setor.size() <= 60))
+          && (!('turno' in v()) || (v().turno is string && v().turno.size() <= 40))
+          && (!('cidade' in v()) || (v().cidade is string && v().cidade.size() <= 60))
+          && (!('tipo' in v()) || (v().tipo is string && v().tipo.size() <= 30));
+      }
+      allow read: if resource.data.status == 'publicada' || gpVagas();
+      allow create: if gpVagas()
+        && vagaShapeOk()
+        && v().status == 'rascunho'
+        && v().criadoPor == request.auth.uid
+        && v().criadoEm == request.time;
+      // 3 ramos: editar rascunho ou PUBLICAR; publicada aceita correcao de conteudo
+      // (sem tocar status/publicadaEm); publicada -> encerrada one-way (nunca reabre:
+      // quem quer republicar cria vaga nova, a trilha de datas fica honesta).
+      allow update: if gpVagas() && (
+        ( resource.data.status == 'rascunho'
+          && vagaShapeOk()
+          && v().criadoPor == resource.data.criadoPor
+          && v().criadoEm == resource.data.criadoEm
+          && v().status in ['rascunho', 'publicada']
+          && ( v().status == 'rascunho' || v().publicadaEm == request.time ) )
+        ||
+        ( resource.data.status == 'publicada'
+          && vagaShapeOk()
+          && v().status == 'publicada'
+          && v().criadoPor == resource.data.criadoPor
+          && v().criadoEm == resource.data.criadoEm
+          && v().publicadaEm == resource.data.publicadaEm )
+        ||
+        ( resource.data.status == 'publicada'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'encerradaEm'])
+          && v().status == 'encerrada'
+          && v().encerradaEm == request.time )
+      );
+      allow delete: if isAdmin() || (gpVagas() && resource.data.status == 'rascunho');
+    }
+
+    // WhatsApp de candidaturas: publico por proposito (a pagina aberta precisa).
+    // Coexiste com o match generico /config/{doc} (matches sobrepostos = OR).
+    // Shape-lock (gate): doc PUBLICO pra internet; erro operacional da GP (colar
+    // texto errado) nao pode publicar conteudo arbitrario. Residual aceito: o match
+    // generico /config/{doc} deixa ADMIN escrever sem shape (papel confiavel).
+    match /config/vagas {
+      allow read: if true;
+      allow write: if (isAdmin() || temCap('vagas.gerenciar', isRH()))
+        && request.resource.data.keys().hasOnly(['whatsapp'])
+        && request.resource.data.whatsapp is string
+        && request.resource.data.whatsapp.size() <= 30;
+    }
   }
 }
