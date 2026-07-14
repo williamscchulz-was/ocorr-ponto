@@ -91,10 +91,47 @@ boas-vindas, termo de adesão. Falha do ponto NUNCA pode derrubar a ação princ
 do ponto negar por config ausente, o cliente refaz a ação SEM o ponto). Detalhe fino
 na fase de backend, caso a caso, com gate Fable.
 
+## Recompensas digitais (William, 2026-07-10): avatar decorations + badges
+
+Além dos prêmios físicos dos marcos, recompensas DIGITAIS de entrega automática e custo zero.
+Ponto forte arquitetural: quase tudo é DERIVADO de dados que já existem (pontos, ranking,
+diasNaEmpresa) — a única escrita nova é a preferência de decoração equipada.
+
+**Avatar decorations (aro/moldura no avatar, escolhida pelo colaborador entre as desbloqueadas):**
+| Decoração | Como desbloqueia |
+|---|---|
+| Aro bronze | cruzou 50 pts na temporada |
+| Aro prata | cruzou 200 pts |
+| Aro ouro | cruzou 500 pts |
+| Aro FioPulse (gradiente da marca) | cruzou 1000 pts |
+| Coroa · Rei dos pontos | é o nº 1 do ranking AGORA (posse rotativa, só um por vez) |
+| Aro veterano | 5+ anos de casa |
+Aparece em TODO avatar (home do colab, mural de aniversário, boas-vindas e nos avatares do
+gestor via avatarFuncHtml, que é o helper central — 1 ponto de implementação).
+
+**Badges (colecionáveis, com data de conquista, na tela Conquistas):**
+| Badge | Critério (derivado) |
+|---|---|
+| 1 ano / 5 anos / 10 anos de Fiobras | diasNaEmpresa (automático, nada a fazer) |
+| Rei dos pontos | nº 1 do ranking atual (rotativo) |
+| Campeão da temporada YYYY | nº 1 no fechamento do ano (permanente) |
+| Primeira pontuação | 1º evento de ponto da temporada |
+| Voz da firma | respondeu todas as pesquisas de clima do ano |
+| Coração de ouro | parabenizou 20+ colegas |
+| Comitê de boas-vindas | deu boas-vindas a 10+ recém-chegados |
+| Tudo em dia | assinou todos os documentos/recibos do ano no prazo |
+Derivação no CLIENTE a partir do extrato de eventos + dados existentes; badges rotativos (rei)
+nunca são gravados, sempre calculados. A GP pode ver as conquistas de qualquer um no perfil.
+
+**Escrita nova (única):** `users/{uid}.decoracao` (string da decoração equipada, self-write com
+validação de desbloqueio no cliente; a regra valida só o shape — forjar decoração não dá acesso
+a nada, é cosmético, mesmo residual aceito do guard de auto-toque do mural).
+
 ## Telas
 
 **Colaborador:** card na home (total + barra até o próximo marco + "faltam X pts") ·
-tela "Meus pontos" (extrato por ação, marcos conquistados/pendentes, prêmios, top 10).
+tela "Meus pontos" (extrato por ação, marcos conquistados/pendentes, prêmios, top 10) ·
+tela "Conquistas" (badges com data + escolher a decoração do avatar entre as desbloqueadas).
 **Gestor (cap):** tela "Gamificação" — config (tabela de valores + prêmios por marco +
 ativar temporada), fila de entrega (quem cruzou marco sem prêmio entregue, botão
 "Marcar como entregue" com trilha), ranking completo.

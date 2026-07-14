@@ -80,6 +80,36 @@
   .gm-ext .oq { flex: 1; color: var(--text-body); }
   .gm-ext .qd { font-size: 11px; color: var(--text-muted); }
 
+  /* ===== DECORACOES DE AVATAR + BADGES ===== */
+  .gav { position: relative; width: 44px; height: 44px; border-radius: 50%; background: var(--plum); color: #fff; display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+  .gav--lg { width: 76px; height: 76px; font-size: 24px; }
+  .gav--bronze { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px #b0713c; }
+  .gav--prata { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px #97a3ab; }
+  .gav--ouro { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px #d4a017; }
+  .gav--vet { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--plum-deep), 0 0 0 7px var(--success-bg); }
+  /* aro gradiente: ::before = anel conic externo; ::after = miolo na cor do avatar
+     (pseudo-elemento com z-index cobre o background do pai, entao o miolo repinta) */
+  .gav--fio::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; background: conic-gradient(#008835, #FFCB00, #0076BE, #008835); z-index: 0; }
+  .gav--fio::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--plum); box-shadow: 0 0 0 2.5px var(--surface); z-index: 1; }
+  .gav__ini { position: relative; z-index: 2; }
+  .gav__coroa { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); z-index: 3; width: 22px; height: 16px; color: #d4a017; }
+  .gav__coroa svg { width: 100%; height: 100%; fill: currentColor; }
+  .gq-sec { margin-top: 18px; }
+  .gq-decos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .gq-deco { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px 11px; border: 1.5px solid var(--border); border-radius: 14px; background: var(--surface-warm); cursor: pointer; }
+  .gq-deco.sel { border-color: var(--plum); background: var(--success-bg); }
+  .gq-deco.lock { opacity: .45; cursor: default; }
+  .gq-deco b { font-size: 11px; font-weight: 700; color: var(--text-body); text-align: center; }
+  .gq-deco span { font-size: 9.5px; color: var(--text-muted); text-align: center; line-height: 1.3; }
+  .gq-badges { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .gq-badge { display: flex; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface-warm); }
+  .gq-badge.lock { opacity: .5; }
+  .gq-badge__ic { width: 36px; height: 36px; border-radius: 10px; background: var(--success-bg); color: var(--plum); display: grid; place-items: center; flex: none; }
+  .gq-badge.lock .gq-badge__ic { background: var(--milk-edge); color: var(--text-muted); }
+  .gq-badge__ic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .gq-badge b { display: block; font-size: 12px; color: var(--text-body); }
+  .gq-badge span { display: block; font-size: 10px; color: var(--text-muted); line-height: 1.3; }
+
   /* ===== GESTOR ===== */
   .g-frame { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px; box-shadow: var(--shadow-sm); }
   .g-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -106,6 +136,7 @@
   <button class="mk-chip on" data-t="fluxo">Fluxograma</button>
   <button class="mk-chip" data-t="chome">Colab · Home</button>
   <button class="mk-chip" data-t="cpts">Colab · Meus pontos</button>
+  <button class="mk-chip" data-t="cqst">Colab · Conquistas</button>
   <button class="mk-chip" data-t="gcfg">Gestor · Configuração</button>
   <button class="mk-chip" data-t="gfila">Gestor · Entregas e ranking</button>
 </header>
@@ -220,7 +251,7 @@
       <div class="gm-h2">Top 10 da Fiobras</div>
       <div class="gm-pod">
         <div class="gm-pod__c"><div class="gm-pod__av">JS</div><b>João S.</b><span>212 pts</span></div>
-        <div class="gm-pod__c p1"><div class="gm-pod__av">AC</div><b>Ana C.</b><span>248 pts</span></div>
+        <div class="gm-pod__c p1"><span class="gav gav--ouro" style="margin:0 auto 7px;width:38px;height:38px;font-size:12px;"><i class="gav__coroa"><svg viewBox="0 0 24 16"><path d="M2 14h20l-1.5-9-5 4L12 2 8.5 9l-5-4z"/></svg></i><span class="gav__ini">AC</span></span><b>Ana C. · Rei dos pontos</b><span>248 pts</span></div>
         <div class="gm-pod__c"><div class="gm-pod__av">PB</div><b>Pedro B.</b><span>197 pts</span></div>
       </div>
       <div class="gm-top">
@@ -236,6 +267,44 @@
         <div class="gm-ext"><span class="mais">+10</span><span class="oq">Assinou o recibo de junho<br><span class="qd">05 jul</span></span></div>
         <div class="gm-ext"><span class="mais">+5</span><span class="oq">Ciência do comunicado Férias coletivas<br><span class="qd">03 jul</span></span></div>
         <div class="gm-ext"><span class="mais">+2</span><span class="oq">Parabenizou a Daiane<br><span class="qd">02 jul</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COLAB CONQUISTAS ============ -->
+  <section class="tela" id="t-cqst">
+    <p class="mk-note">Recompensas digitais de entrega automática: o colaborador escolhe a decoração do avatar entre as desbloqueadas, e os badges contam a história dele na firma. A decoração aparece em todo lugar onde o avatar aparece (home, mural de aniversário, boas-vindas e no gestor).</p>
+    <div class="cp-frame">
+      <div class="cp-hi">Conquistas</div>
+
+      <div style="display:flex;align-items:center;gap:16px;background:var(--surface-warm);border:1px solid var(--border);border-radius:16px;padding:18px 16px;">
+        <span class="gav gav--lg gav--prata"><span class="gav__ini">MO</span></span>
+        <div>
+          <b style="font-size:15px;color:var(--text-body);">Maria Oliveira</b>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">Aro prata equipado · 4 badges conquistados</div>
+        </div>
+      </div>
+
+      <div class="gm-h2 gq-sec">Decoração do avatar</div>
+      <div class="gq-decos">
+        <div class="gq-deco"><span class="gav gav--bronze"><span class="gav__ini">MO</span></span><b>Aro bronze</b><span>50 pts na temporada</span></div>
+        <div class="gq-deco sel"><span class="gav gav--prata"><span class="gav__ini">MO</span></span><b>Aro prata</b><span>100 pts · equipado</span></div>
+        <div class="gq-deco lock"><span class="gav gav--ouro"><span class="gav__ini">MO</span></span><b>Aro ouro</b><span>200 pts · faltam 65</span></div>
+        <div class="gq-deco lock"><span class="gav gav--fio"><span class="gav__ini">MO</span></span><b>Aro FioPulse</b><span>500 pts · bloqueado</span></div>
+        <div class="gq-deco lock"><span class="gav gav--ouro"><i class="gav__coroa"><svg viewBox="0 0 24 16"><path d="M2 14h20l-1.5-9-5 4L12 2 8.5 9l-5-4z"/></svg></i><span class="gav__ini">MO</span></span><b>Rei dos pontos</b><span>seja o nº 1 do ranking</span></div>
+        <div class="gq-deco"><span class="gav gav--vet"><span class="gav__ini">MO</span></span><b>Veterano</b><span>5 anos de casa</span></div>
+      </div>
+
+      <div class="gm-h2 gq-sec">Badges</div>
+      <div class="gq-badges">
+        <div class="gq-badge"><span class="gq-badge__ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><div><b>5 anos de Fiobras</b><span>conquistado em mar 2026</span></div></div>
+        <div class="gq-badge"><span class="gq-badge__ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg></span><div><b>Coração de ouro</b><span>parabenizou 20 colegas · jun 2026</span></div></div>
+        <div class="gq-badge"><span class="gq-badge__ic"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4-6.2-4.6-6.2 4.6 2.4-7.4L2 9.4h7.6z"/></svg></span><div><b>Primeira pontuação</b><span>jan 2026</span></div></div>
+        <div class="gq-badge"><span class="gq-badge__ic"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span><div><b>Voz da firma</b><span>todas as pesquisas do ano · jul 2026</span></div></div>
+        <div class="gq-badge lock"><span class="gq-badge__ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Tudo em dia</b><span>assine todos os documentos do ano no prazo</span></div></div>
+        <div class="gq-badge lock"><span class="gq-badge__ic"><svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg></span><div><b>Comitê de boas-vindas</b><span>dê boas-vindas a 10 recém-chegados</span></div></div>
+        <div class="gq-badge lock"><span class="gq-badge__ic"><svg viewBox="0 0 24 16" style="fill:none;stroke:currentColor;stroke-width:2;"><path d="M2 14h20l-1.5-9-5 4L12 2 8.5 9l-5-4z"/></svg></span><div><b>Rei dos pontos</b><span>seja o nº 1 do ranking (rotativo)</span></div></div>
+        <div class="gq-badge lock"><span class="gq-badge__ic"><svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21 1.18.54 2.03 2.03 2.03 3.79M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span><div><b>Campeão da temporada</b><span>termine o ano em 1º lugar</span></div></div>
       </div>
     </div>
   </section>
