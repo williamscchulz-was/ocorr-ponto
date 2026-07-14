@@ -2655,3 +2655,48 @@ de Ponto do gestor. Contrato: preferir `saldoDiaOriginalFmt`/`saldoDiaOriginalMi
 padrão de `bhFolgaMin`/`bhFolgaStr` que já existe pro saldo total), aplicado nas 2 telas — não
 correção tela-a-tela. Aviso: pode haver uma "queda" visível na virada do mês (30/06 mostra bruto,
 01/07 mostra original) — decisão de UI de como sinalizar isso fica com vocês/William.
+
+## 2026-07-14 — Backfill de junho: saldoDiaOriginal preenchido pra todo mundo (isolado do WK ao vivo)
+
+William pediu explicitamente pra resolver a limitação registrada acima: "faz tudo por fora,
+checa os valores corrigi e pronto, depois segue vida".
+
+**Tentativa 1 (bloqueada, corretamente):** editar `DataInicial` da config AO VIVO do BH pra
+1º/06 temporariamente, exportar, reverter. O classificador de segurança do Claude Code bloqueou
+até a LEITURA da config, pelo motivo certo — é a mesma config que o pipeline agendado 3x/dia usa
+pra calcular o "SALDO ATUAL" cumulativo de todo mundo; qualquer falha no meio da reversão
+deixaria produção calculando o saldo de todo mundo desde 01/06 em vez de 01/07, silenciosamente.
+
+**Abordagem usada (autorizada pelo William, "faz tudo por fora"):** ZERO mudança na config ao
+vivo. Criada uma config NOVA (cópia, `Config_Banco_de_Horas_Junho_Oneoff.txt`, mesmo diretório
+`D:\WKRadar\BI\Config\`) com `DataInicial=01/06/2026`/`DataFinal=30/06/2026` E
+`ArquivoExportacao` apontando pra um CSV DIFERENTE (`ExpAuto_Banco_de_Horas_Junho_Oneoff.txt`) —
+o `ExportacaoAutomatica.exe` roda apontado pra essa config isolada, nunca toca no arquivo nem na
+config que o pipeline real usa. Confirmado depois: `Config_Banco_de_Horas.txt` (a de verdade)
+continuava com `DataInicial=01/07/2026` intacta.
+
+**Pipeline de 3 scripts one-off (`_scratch/`, ficam no repo pra referência futura, dados
+temporários já apagados):**
+1. `inline-export-junho-bh.mjs` — cria a config isolada + roda o `.exe`.
+2. `inline-parse-junho-bh.mjs` — mesma lógica de `process-bh.mjs` (parseCsv duplicado, não
+   reescrito), apontado pro CSV isolado; saída só com `funcId`+`lancamentos` (sem nome/CPF/PIS —
+   nunca precisou de PII pra esse backfill).
+3. `inline-backfill-saldodia-junho.mjs` — pega o saldo original de junho por lançamento
+   (forward-fill, mesma convenção de `process-espelho-ponto.mjs`: dia dentro de junho sem
+   lançamento anterior = 0 confirmado) e faz `update()` direto nos docs
+   `banco-horas-self/{codigo}.dias[]`, só nas entradas de junho que ainda estavam `null`.
+
+**Resultado:** 86 docs atualizados, 2488 dias de junho preenchidos, **0 dias sem cobertura**
+(a limitação dos ~69% "sem confirmação" descrita na entrada anterior está fechada pro mês de
+junho — a partir de agora, TODOS os dias visíveis no Espelho, junho e julho, têm
+`saldoDiaOriginalMin/Fmt` confirmado). Confirmado no Firestore (Jenifer 671: junho inteiro
+preenchido, valores plausíveis).
+
+**Limpeza:** config isolada, CSV isolado (tinha CPF/PIS) e o JSON intermediário apagados depois
+de extrair o necessário. `check-pipeline-health.mjs` ok depois de tudo.
+
+**Nota pro futuro:** essa cobertura de junho é um retrato ESTÁTICO — não se regenera sozinha.
+Quando agosto começar e "mês anterior" virar julho (que já tem cobertura normal via
+`process-espelho-ponto.mjs`), esse backfill pontual deixa de ser necessário — julho já
+está coberto pelo fluxo normal. Se um mês futuro tiver a mesma lacuna, repetir esse mesmo
+processo isolado (nunca a config ao vivo).
