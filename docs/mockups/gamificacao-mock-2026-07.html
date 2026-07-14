@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Gamificação (mock)</title>
+<link rel="stylesheet" href="/public/styles.css">
+<style>
+  body { background: var(--bg); margin: 0; }
+  .mk-top { position: sticky; top: 0; z-index: 50; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 13px 18px; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
+  .mk-brand { font-family: var(--font-brand); font-size: 14px; color: var(--plum); margin-right: 8px; }
+  .mk-chip { border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); font: 600 12.5px var(--font); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+  .mk-chip.on { background: var(--plum); border-color: var(--plum); color: #fff; }
+  .mk-wrap { max-width: 860px; margin: 0 auto; padding: 26px 18px 90px; }
+  .mk-note { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0 0 18px; }
+  .tela { display: none; }
+  .tela.on { display: block; }
+
+  /* ===== FLUXOGRAMA ===== */
+  .fx-col { display: flex; flex-direction: column; gap: 0; align-items: center; }
+  .fx-no { width: 100%; max-width: 560px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow-sm); }
+  .fx-no--plum { border-color: rgba(0,136,53,.35); background: linear-gradient(135deg, rgba(0,136,53,.06), rgba(0,136,53,.01)); }
+  .fx-no h4 { margin: 0 0 4px; font-size: 14px; color: var(--text-body); display: flex; align-items: center; gap: 8px; }
+  .fx-no h4 .n { width: 22px; height: 22px; border-radius: 50%; background: var(--plum); color: #fff; display: grid; place-items: center; font-size: 11.5px; font-weight: 800; flex: none; }
+  .fx-no p { margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
+  .fx-seta { width: 2px; height: 26px; background: var(--border-strong); position: relative; }
+  .fx-seta::after { content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--border-strong); }
+  .fx-acoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+  .fx-acao { display: flex; align-items: center; justify-content: space-between; gap: 6px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 9px; padding: 7px 10px; font-size: 11.5px; color: var(--text-body); }
+  .fx-acao b { color: var(--plum); font-size: 12px; white-space: nowrap; }
+  .fx-marcos { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .fx-marco { flex: 1; min-width: 74px; text-align: center; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 10px; padding: 8px 6px; }
+  .fx-marco b { display: block; font-size: 16px; font-weight: 800; color: var(--plum); }
+  .fx-marco span { font-size: 10.5px; color: var(--text-muted); }
+  .fx-ramo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 560px; }
+  .fx-guarda { display: flex; gap: 8px; align-items: flex-start; background: var(--info-bg); border-radius: 10px; padding: 10px 12px; margin-top: 10px; font-size: 12px; color: var(--info); line-height: 1.45; }
+
+  /* ===== COLAB (visual do portal) ===== */
+  .cp-frame { max-width: 420px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 26px; padding: 18px 16px 22px; box-shadow: var(--shadow); }
+  .cp-hi { font-size: 17px; font-weight: 700; color: var(--text-body); margin: 2px 4px 12px; }
+  .gm-card { background: linear-gradient(135deg, #008835, #0b6e33); border-radius: 18px; padding: 16px 18px; color: #fff; }
+  .gm-card__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .gm-card__lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+  .gm-card__season { font-size: 10.5px; font-weight: 700; background: rgba(255,255,255,.16); padding: 3px 10px; border-radius: 999px; }
+  .gm-card__pts { font-size: 40px; font-weight: 800; line-height: 1.1; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  .gm-card__pts small { font-size: 14px; font-weight: 600; opacity: .85; }
+  .gm-bar { height: 9px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; margin: 10px 0 6px; }
+  .gm-bar span { display: block; height: 100%; background: var(--fiobras-yellow); border-radius: 999px; }
+  .gm-card__meta { display: flex; justify-content: space-between; font-size: 11.5px; opacity: .9; }
+  .gm-selos { display: flex; gap: 6px; margin-top: 10px; }
+  .gm-selo { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.16); }
+  .gm-selo.ok { background: var(--fiobras-yellow); color: #4a3c00; }
+  .cp-outros { margin-top: 12px; opacity: .45; pointer-events: none; }
+  .cp-outros .ph { background: var(--surface-warm); border: 1px solid var(--border); border-radius: 14px; height: 62px; margin-bottom: 8px; display: flex; align-items: center; padding: 0 14px; font-size: 12.5px; color: var(--text-muted); }
+
+  /* Meus pontos */
+  .gm-h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 18px 4px 8px; }
+  .gm-trilha { display: flex; gap: 6px; }
+  .gm-tmarco { flex: 1; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 9px 4px; background: var(--surface-warm); }
+  .gm-tmarco.ok { background: var(--success-bg); border-color: rgba(0,136,53,.35); }
+  .gm-tmarco.next { border-color: var(--plum); border-width: 1.5px; }
+  .gm-tmarco b { display: block; font-size: 15px; font-weight: 800; color: var(--plum); }
+  .gm-tmarco i { display: block; font-style: normal; font-size: 9.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.25; }
+  .gm-tmarco .chk { font-size: 10px; font-weight: 800; color: var(--success); }
+  .gm-pod { display: flex; gap: 8px; align-items: flex-end; }
+  .gm-pod__c { flex: 1; text-align: center; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 12px; padding: 10px 6px; }
+  .gm-pod__c.p1 { padding-top: 16px; background: var(--success-bg); border-color: rgba(0,136,53,.3); }
+  .gm-pod__av { width: 34px; height: 34px; border-radius: 50%; background: var(--plum); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; margin: 0 auto 5px; }
+  .gm-pod__c b { display: block; font-size: 12px; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gm-pod__c span { font-size: 11px; font-weight: 700; color: var(--plum); }
+  .gm-top { margin-top: 8px; }
+  .gm-toprow { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; font-size: 12.5px; }
+  .gm-toprow.me { background: var(--info-bg); font-weight: 700; }
+  .gm-toprow .pos { width: 20px; font-weight: 800; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .gm-toprow .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-body); }
+  .gm-toprow .pt { font-weight: 800; color: var(--plum); font-variant-numeric: tabular-nums; }
+  .gm-ext { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-top: 1px solid var(--border); font-size: 12.5px; }
+  .gm-ext:first-of-type { border-top: 0; }
+  .gm-ext .mais { font-weight: 800; color: var(--plum); width: 34px; font-variant-numeric: tabular-nums; }
+  .gm-ext .oq { flex: 1; color: var(--text-body); }
+  .gm-ext .qd { font-size: 11px; color: var(--text-muted); }
+
+  /* ===== GESTOR ===== */
+  .g-frame { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px; box-shadow: var(--shadow-sm); }
+  .g-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .g-h h2 { margin: 0; font-size: 18px; color: var(--text-body); }
+  .g-h p { margin: 2px 0 0; font-size: 12.5px; color: var(--text-muted); }
+  .g-tbl { width: 100%; border-collapse: collapse; }
+  .g-tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .g-tbl td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-body); }
+  .g-tbl input[type=number] { width: 64px; padding: 7px 9px; border: 1px solid var(--border-strong); border-radius: 8px; font: 600 13px var(--font); text-align: center; background: var(--surface); }
+  .g-tbl input[type=text] { width: 100%; padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: 8px; font: 500 13px var(--font); background: var(--surface); }
+  .g-fila { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border-top: 1px solid var(--border); }
+  .g-fila:first-of-type { border-top: 0; }
+  .g-fila .av { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-warm); border: 1px solid var(--border); display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: var(--text-muted); flex: none; }
+  .g-fila .bd { flex: 1; min-width: 0; }
+  .g-fila .bd b { display: block; font-size: 13.5px; color: var(--text-body); }
+  .g-fila .bd span { font-size: 11.5px; color: var(--text-muted); }
+  .g-marco-pill { font-size: 11px; font-weight: 800; color: var(--plum); background: var(--success-bg); padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+  @media (max-width: 640px) { .fx-acoes { grid-template-columns: 1fr 1fr; } .fx-ramo { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="mk-top">
+  <span class="mk-brand">FioPulse · Gamificação</span>
+  <button class="mk-chip on" data-t="fluxo">Fluxograma</button>
+  <button class="mk-chip" data-t="chome">Colab · Home</button>
+  <button class="mk-chip" data-t="cpts">Colab · Meus pontos</button>
+  <button class="mk-chip" data-t="gcfg">Gestor · Configuração</button>
+  <button class="mk-chip" data-t="gfila">Gestor · Entregas e ranking</button>
+</header>
+<main class="mk-wrap">
+
+  <!-- ============ FLUXOGRAMA ============ -->
+  <section class="tela on" id="t-fluxo">
+    <p class="mk-note">Como o sistema funciona de ponta a ponta. Valores de pontos são os defaults propostos, a GP edita tudo na tela de configuração.</p>
+    <div class="fx-col">
+      <div class="fx-no">
+        <h4><span class="n">1</span>O colaborador age no portal</h4>
+        <p>Só ações de valor pontuam. Abrir o app não vale ponto (e assiduidade do ponto fica fora até aval jurídico).</p>
+        <div class="fx-acoes">
+          <div class="fx-acao"><span>Ciência de comunicado</span><b>+5</b></div>
+          <div class="fx-acao"><span>Leitura de documento</span><b>+5</b></div>
+          <div class="fx-acao"><span>Assinar documento</span><b>+10</b></div>
+          <div class="fx-acao"><span>Assinar recibo</span><b>+10</b></div>
+          <div class="fx-acao"><span>Pesquisa de clima</span><b>+20</b></div>
+          <div class="fx-acao"><span>Autoavaliação</span><b>+20</b></div>
+          <div class="fx-acao"><span>Parabenizar colega</span><b>+2</b></div>
+          <div class="fx-acao"><span>Dar boas-vindas</span><b>+2</b></div>
+          <div class="fx-acao"><span>Termo de adesão</span><b>+10</b></div>
+        </div>
+      </div>
+      <div class="fx-seta"></div>
+      <div class="fx-no">
+        <h4><span class="n">2</span>O ponto nasce grudado na ação</h4>
+        <p>O ponto é gravado no MESMO lote da ação que o justifica, com identificador único por ação (fazer duas vezes não duplica) e valor travado na tabela da GP.</p>
+        <div class="fx-guarda">Ninguém consegue se dar pontos por fora: a regra do banco exige a prova da ação junto. Mesma blindagem já usada na pesquisa de clima.</div>
+      </div>
+      <div class="fx-seta"></div>
+      <div class="fx-no fx-no--plum">
+        <h4><span class="n">3</span>Saldo da temporada 2026</h4>
+        <p>Os pontos somam no total do ano. Na virada (01/01) a temporada zera e começa outra, com nova rodada de prêmios.</p>
+      </div>
+      <div class="fx-seta"></div>
+      <div class="fx-ramo">
+        <div class="fx-no">
+          <h4><span class="n">4</span>Cruzou um marco</h4>
+          <p>Cada marco dá o prêmio dele UMA vez por temporada, e os pontos continuam correndo pro próximo.</p>
+          <div class="fx-marcos">
+            <div class="fx-marco"><b>50</b><span>prêmio A</span></div>
+            <div class="fx-marco"><b>100</b><span>prêmio B</span></div>
+            <div class="fx-marco"><b>200</b><span>prêmio C</span></div>
+            <div class="fx-marco"><b>500</b><span>prêmio D</span></div>
+            <div class="fx-marco"><b>1000</b><span>prêmio E</span></div>
+          </div>
+        </div>
+        <div class="fx-no">
+          <h4><span class="n">R</span>Ranking top 10</h4>
+          <p>Visível a todos os colaboradores: nome e total dos 10 primeiros. O extrato detalhado cada um vê só o próprio.</p>
+        </div>
+      </div>
+      <div class="fx-seta"></div>
+      <div class="fx-no">
+        <h4><span class="n">5</span>GP entrega o prêmio</h4>
+        <p>Quem cruzou marco entra na fila de entregas do gestor. A GP entrega e marca como entregue, com registro de quem e quando (trilha de auditoria).</p>
+      </div>
+      <div class="fx-seta"></div>
+      <div class="fx-no fx-no--plum">
+        <h4><span class="n">6</span>O colaborador celebra</h4>
+        <p>A conquista aparece no portal: selo do marco, prêmio recebido e a barra já correndo pro próximo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COLAB HOME ============ -->
+  <section class="tela" id="t-chome">
+    <p class="mk-note">O card entra na home do Portal do Colaborador, junto dos que já existem (mostrados apagados só pra dar contexto de posição).</p>
+    <div class="cp-frame">
+      <div class="cp-hi">Boa tarde, Maria</div>
+      <div class="gm-card">
+        <div class="gm-card__top"><span class="gm-card__lbl">Seus pontos</span><span class="gm-card__season">Temporada 2026</span></div>
+        <div class="gm-card__pts">135 <small>pts</small></div>
+        <div class="gm-bar"><span style="width:35%"></span></div>
+        <div class="gm-card__meta"><span>Próximo marco: 200</span><span>faltam 65 pts</span></div>
+        <div class="gm-selos">
+          <span class="gm-selo ok">50 conquistado</span>
+          <span class="gm-selo ok">100 conquistado</span>
+          <span class="gm-selo">200</span>
+        </div>
+      </div>
+      <div class="cp-outros">
+        <div class="ph">Saldo do banco de horas (card existente)</div>
+        <div class="ph">Precisa da sua atenção (card existente)</div>
+        <div class="ph">Aniversariantes do mês (card existente)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COLAB MEUS PONTOS ============ -->
+  <section class="tela" id="t-cpts">
+    <p class="mk-note">Tela cheia ao tocar no card: marcos, ranking top 10 e o extrato do que pontuou.</p>
+    <div class="cp-frame">
+      <div class="cp-hi">Meus pontos</div>
+      <div class="gm-card">
+        <div class="gm-card__top"><span class="gm-card__lbl">Temporada 2026</span><span class="gm-card__season">zera em 01/01</span></div>
+        <div class="gm-card__pts">135 <small>pts</small></div>
+        <div class="gm-bar"><span style="width:35%"></span></div>
+        <div class="gm-card__meta"><span>Próximo marco: 200 · vale-compras</span><span>faltam 65</span></div>
+      </div>
+
+      <div class="gm-h2">Marcos da temporada</div>
+      <div class="gm-trilha">
+        <div class="gm-tmarco ok"><b>50</b><i>caneca da firma</i><span class="chk">conquistado</span></div>
+        <div class="gm-tmarco ok"><b>100</b><i>brinde surpresa</i><span class="chk">conquistado</span></div>
+        <div class="gm-tmarco next"><b>200</b><i>vale-compras</i></div>
+        <div class="gm-tmarco"><b>500</b><i>meio dia de folga</i></div>
+        <div class="gm-tmarco"><b>1000</b><i>prêmio do ano</i></div>
+      </div>
+
+      <div class="gm-h2">Top 10 da Fiobras</div>
+      <div class="gm-pod">
+        <div class="gm-pod__c"><div class="gm-pod__av">JS</div><b>João S.</b><span>212 pts</span></div>
+        <div class="gm-pod__c p1"><div class="gm-pod__av">AC</div><b>Ana C.</b><span>248 pts</span></div>
+        <div class="gm-pod__c"><div class="gm-pod__av">PB</div><b>Pedro B.</b><span>197 pts</span></div>
+      </div>
+      <div class="gm-top">
+        <div class="gm-toprow"><span class="pos">4</span><span class="nm">Carla Souza</span><span class="pt">180</span></div>
+        <div class="gm-toprow"><span class="pos">5</span><span class="nm">Rafael Lima</span><span class="pt">164</span></div>
+        <div class="gm-toprow me"><span class="pos">6</span><span class="nm">Você (Maria)</span><span class="pt">135</span></div>
+        <div class="gm-toprow"><span class="pos">7</span><span class="nm">Bruno Alves</span><span class="pt">120</span></div>
+      </div>
+
+      <div class="gm-h2">Como você pontuou</div>
+      <div>
+        <div class="gm-ext"><span class="mais">+20</span><span class="oq">Respondeu a Pesquisa de clima<br><span class="qd">08 jul</span></span></div>
+        <div class="gm-ext"><span class="mais">+10</span><span class="oq">Assinou o recibo de junho<br><span class="qd">05 jul</span></span></div>
+        <div class="gm-ext"><span class="mais">+5</span><span class="oq">Ciência do comunicado Férias coletivas<br><span class="qd">03 jul</span></span></div>
+        <div class="gm-ext"><span class="mais">+2</span><span class="oq">Parabenizou a Daiane<br><span class="qd">02 jul</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GESTOR CONFIG ============ -->
+  <section class="tela" id="t-gcfg">
+    <p class="mk-note">Tela do gestor (cap gamificacao.gerenciar): valores de cada ação e o prêmio de cada marco. Nada muda pros pontos já ganhos, só pros próximos.</p>
+    <div class="g-frame">
+      <div class="g-h">
+        <div><h2>Gamificação · Temporada 2026</h2><p>Pontos por ação e premiações dos marcos.</p></div>
+        <button class="btn btn--primary">Salvar configuração</button>
+      </div>
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:8px 0;">Pontos por ação</h3>
+      <table class="g-tbl">
+        <tr><th>Ação do colaborador</th><th style="width:90px;">Pontos</th></tr>
+        <tr><td>Confirmar ciência de comunicado</td><td><input type="number" value="5"></td></tr>
+        <tr><td>Confirmar leitura de documento</td><td><input type="number" value="5"></td></tr>
+        <tr><td>Assinar documento</td><td><input type="number" value="10"></td></tr>
+        <tr><td>Assinar recibo (pagamento ou cartão ponto)</td><td><input type="number" value="10"></td></tr>
+        <tr><td>Responder pesquisa de clima</td><td><input type="number" value="20"></td></tr>
+        <tr><td>Concluir autoavaliação de desempenho</td><td><input type="number" value="20"></td></tr>
+        <tr><td>Parabenizar colega de aniversário</td><td><input type="number" value="2"></td></tr>
+        <tr><td>Dar boas-vindas a recém-contratado</td><td><input type="number" value="2"></td></tr>
+        <tr><td>Aceitar o Termo de Adesão</td><td><input type="number" value="10"></td></tr>
+      </table>
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:18px 0 8px;">Premiações dos marcos</h3>
+      <table class="g-tbl">
+        <tr><th style="width:80px;">Marco</th><th>Prêmio</th></tr>
+        <tr><td><b>50</b></td><td><input type="text" value="Caneca da firma"></td></tr>
+        <tr><td><b>100</b></td><td><input type="text" value="Brinde surpresa"></td></tr>
+        <tr><td><b>200</b></td><td><input type="text" value="Vale-compras"></td></tr>
+        <tr><td><b>500</b></td><td><input type="text" value="Meio dia de folga combinada"></td></tr>
+        <tr><td><b>1000</b></td><td><input type="text" value="Prêmio do ano"></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ GESTOR FILA + RANKING ============ -->
+  <section class="tela" id="t-gfila">
+    <p class="mk-note">Fila de entregas: quem cruzou marco e ainda não recebeu. Marcar como entregue registra quem entregou e quando (trilha de auditoria).</p>
+    <div class="g-frame">
+      <div class="g-h"><div><h2>Entregas pendentes</h2><p>3 prêmios aguardando entrega.</p></div></div>
+      <div class="g-fila"><span class="av">AC</span><div class="bd"><b>Ana Carolina Ferreira</b><span>cruzou o marco em 07 jul</span></div><span class="g-marco-pill">200 · Vale-compras</span><button class="btn btn--primary btn--sm">Marcar como entregue</button></div>
+      <div class="g-fila"><span class="av">JS</span><div class="bd"><b>João Silva Santos</b><span>cruzou o marco em 06 jul</span></div><span class="g-marco-pill">100 · Brinde surpresa</span><button class="btn btn--primary btn--sm">Marcar como entregue</button></div>
+      <div class="g-fila"><span class="av">MO</span><div class="bd"><b>Maria Oliveira</b><span>cruzou o marco em 02 jul</span></div><span class="g-marco-pill">100 · Brinde surpresa</span><button class="btn btn--primary btn--sm">Marcar como entregue</button></div>
+    </div>
+    <div style="height:16px"></div>
+    <div class="g-frame">
+      <div class="g-h"><div><h2>Ranking completo</h2><p>Todos os colaboradores da temporada. O colaborador vê só o top 10.</p></div></div>
+      <table class="g-tbl">
+        <tr><th style="width:44px;">Pos.</th><th>Colaborador</th><th style="width:110px;">Marcos</th><th style="width:70px;">Pontos</th></tr>
+        <tr><td><b>1</b></td><td>Ana Carolina Ferreira</td><td>50, 100, 200</td><td><b style="color:var(--plum)">248</b></td></tr>
+        <tr><td><b>2</b></td><td>João Silva Santos</td><td>50, 100, 200</td><td><b style="color:var(--plum)">212</b></td></tr>
+        <tr><td><b>3</b></td><td>Pedro Barbosa</td><td>50, 100</td><td><b style="color:var(--plum)">197</b></td></tr>
+        <tr><td>4</td><td>Carla Souza</td><td>50, 100</td><td><b style="color:var(--plum)">180</b></td></tr>
+        <tr><td>5</td><td>Rafael Lima</td><td>50, 100</td><td><b style="color:var(--plum)">164</b></td></tr>
+        <tr><td>6</td><td>Maria Oliveira</td><td>50, 100</td><td><b style="color:var(--plum)">135</b></td></tr>
+      </table>
+    </div>
+  </section>
+</main>
+<script>
+  document.querySelectorAll(".mk-chip").forEach((c) => c.addEventListener("click", () => {
+    document.querySelectorAll(".mk-chip").forEach((x) => x.classList.toggle("on", x === c));
+    document.querySelectorAll(".tela").forEach((t) => t.classList.toggle("on", t.id === "t-" + c.dataset.t));
+    window.scrollTo({ top: 0 });
+  }));
+</script>
+</body>
+</html>
