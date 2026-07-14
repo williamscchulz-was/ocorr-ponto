@@ -3890,7 +3890,7 @@ function renderEspelhoPontoGestor() {
 const NAV_GRUPOS = [
   [null, ["visao-geral"]],
   ["Ponto", ["dashboard", "banco-horas", "espelho-ponto"]],
-  ["Equipe", ["funcionarios", "avaliacoes", "gamificacao", "disciplinar"]],
+  ["Equipe", ["funcionarios", "avaliacoes", "gamificacao", "vagas", "disciplinar"]],
   ["Comunicação", ["comunicados", "documentos"]],
   ["Sistema", ["pj", "obrigacoes", "auditoria", "config"]],
 ];
@@ -3938,6 +3938,7 @@ function renderNav() {
   // entram só pra preencher as avaliações do próprio escopo).
   if (can("pesquisas.gerenciar") || can("desempenho.gerenciar") || u.role === "lider" || u.role === "supervisor") items.push({ id: "avaliacoes", label: "Avaliações", icon: "star" });
   if (can("gamificacao.gerenciar")) items.push({ id: "gamificacao", label: "Gamificação", icon: "trofeu" });
+  if (can("vagas.gerenciar")) items.push({ id: "vagas", label: "Vagas", icon: "megafone" });
   if (can("documentos.gerenciar")) items.push({ id: "documentos", label: "Documentos", icon: "file" });
   if (["admin", "rh", "lider"].includes(currentUser()?.role)) items.push({ id: "disciplinar", label: "Disciplinar", icon: "alert" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
@@ -4140,6 +4141,117 @@ function bindGamiEntregas() {
   }));
 }
 
+// ============================================================
+// VAGAS (gestor, cap vagas.gerenciar). O site publico vagas.fiobras.com.br
+// mostra as publicadas; aqui a GP cria, publica, corrige e encerra, e define
+// o WhatsApp que recebe as candidaturas. Form inline (sem modal).
+// ============================================================
+function renderVagas() {
+  const view = $("#view");
+  if (state.vagas === undefined) {
+    state.vagas = null; // trava reentrada
+    view.innerHTML = `<header class="page-header"><div><h1>Vagas</h1></div></header><div class="empty"><p>Carregando…</p></div>`;
+    (async () => {
+      await window.carregarVagasGestor?.();
+      if (state.view.page === "vagas") renderApp();
+    })();
+    return;
+  }
+  const vagas = state.vagas || [];
+  const edit = state.view.vagaEdit; // null | "nova" | id
+  const v = edit && edit !== "nova" ? vagas.find((x) => x.id === edit) : null;
+  const fmt = (iso) => (iso ? String(iso).slice(0, 10).split("-").reverse().slice(0, 2).join("/") : "");
+  const statusHtml = (s) => s === "publicada" ? `<span class="g-status g-status--pub">Publicada</span>`
+    : s === "encerrada" ? `<span class="g-status g-status--enc">Encerrada</span>`
+    : `<span class="g-status g-status--rasc">Rascunho</span>`;
+  const linhas = vagas.map((x) => `
+    <div class="g-vaga">
+      <div class="g-vaga__bd"><b>${escapeHtml(x.titulo || "")}</b>
+        <span>${[x.setor, x.turno, x.tipo].filter(Boolean).map(escapeHtml).join(" · ")}${x.status === "publicada" && x.publicadaEm ? ` · publicada em ${fmt(x.publicadaEm)}` : ""}</span></div>
+      ${statusHtml(x.status)}
+      ${x.status !== "encerrada" ? `<button class="btn btn--ghost btn--sm" data-vaga-editar="${escapeHtml(x.id)}">Editar</button>` : ""}
+      ${x.status === "rascunho" ? `<button class="btn btn--primary btn--sm" data-vaga-publicar="${escapeHtml(x.id)}">Publicar</button>
+        <button class="btn btn--ghost btn--sm" data-vaga-excluir="${escapeHtml(x.id)}">Excluir</button>` : ""}
+      ${x.status === "publicada" ? `<button class="btn btn--ghost btn--sm" data-vaga-encerrar="${escapeHtml(x.id)}">Encerrar</button>` : ""}
+    </div>`).join("");
+  const campo = (id2, rot, val, ph) => `<div class="field"><label for="${id2}">${rot}</label><input id="${id2}" type="text" value="${escapeHtml(val || "")}" placeholder="${escapeHtml(ph || "")}"></div>`;
+  const formHtml = edit ? `
+    <div class="gami-card" style="margin-top:16px;">
+      <div class="gami-card__h"><h3>${edit === "nova" ? "Nova vaga" : "Editar vaga"}</h3></div>
+      <div class="form2">
+        ${campo("vg-titulo", "Título", v?.titulo, "Operador de Máquina I")}
+        ${campo("vg-setor", "Setor", v?.setor, "Produção")}
+        ${campo("vg-turno", "Turno", v?.turno, "1º turno")}
+        ${campo("vg-tipo", "Tipo", v?.tipo, "CLT")}
+        ${campo("vg-cidade", "Cidade", v?.cidade ?? "Guaramirim, SC", "Guaramirim, SC")}
+      </div>
+      <div class="field"><label for="vg-desc">Descrição</label><textarea id="vg-desc" rows="3" maxlength="3000">${escapeHtml(v?.descricao || "")}</textarea></div>
+      <div class="field"><label for="vg-req">Requisitos</label><textarea id="vg-req" rows="2" maxlength="3000">${escapeHtml(v?.requisitos || "")}</textarea></div>
+      <div class="gami-acao">
+        <button class="btn btn--primary" id="vg-salvar">${edit === "nova" ? "Criar rascunho" : "Salvar"}</button>
+        <button class="btn btn--ghost" id="vg-cancelar">Cancelar</button>
+        <span class="gami-erro" id="vg-erro"></span>
+      </div>
+    </div>` : "";
+  view.innerHTML = `
+    <header class="page-header"><div><h1>Vagas</h1>
+      <p>O site vagas.fiobras.com.br mostra as publicadas na hora. Link pra divulgar em redes e grupos.</p></div></header>
+    <div class="gami-card g-wrap">
+      <div class="gami-card__h"><h3>Vagas</h3>${edit ? "" : `<button class="btn btn--primary btn--sm" id="vg-nova">Nova vaga</button>`}</div>
+      ${linhas || `<p class="gami-hint" style="margin:0;">Nenhuma vaga ainda. Crie a primeira que ela aparece no site assim que publicar.</p>`}
+    </div>
+    ${formHtml}
+    <div class="gami-card" style="margin-top:16px;">
+      <div class="gami-card__h"><h3>Candidaturas via WhatsApp</h3></div>
+      <p class="gami-hint">Quem toca em "Quero me candidatar" no site cai nesta conversa, já citando a vaga. Nenhum dado de candidato fica no sistema.</p>
+      <div class="g-zap"><label style="font:600 13px var(--font);color:var(--text-body);">Número da GP</label>
+        <input type="text" id="vg-zap" value="${escapeHtml((state.vagasConfig && state.vagasConfig.whatsapp) || "")}" placeholder="+55 47 99999-0000">
+        <button class="btn btn--primary btn--sm" id="vg-zap-salvar">Salvar</button>
+        <span class="gami-erro" id="vg-zap-erro"></span></div>
+    </div>`;
+  $("#vg-nova")?.addEventListener("click", () => { state.view.vagaEdit = "nova"; renderApp(); });
+  $("#vg-cancelar")?.addEventListener("click", () => { state.view.vagaEdit = null; renderApp(); });
+  $("#vg-salvar")?.addEventListener("click", () => withBusy("vg-salvar", $("#vg-salvar"), async () => {
+    const dados = { titulo: $("#vg-titulo").value.trim(), setor: $("#vg-setor").value.trim(), turno: $("#vg-turno").value.trim(), tipo: $("#vg-tipo").value.trim(), cidade: $("#vg-cidade").value.trim(), descricao: $("#vg-desc").value.trim(), requisitos: $("#vg-req").value.trim() };
+    if (!dados.titulo) { $("#vg-erro").textContent = "A vaga precisa de um título."; return; }
+    try {
+      await window.salvarVaga(edit === "nova" ? null : edit, dados);
+      state.view.vagaEdit = null;
+      await window.carregarVagasGestor?.();
+      toast(edit === "nova" ? "Rascunho criado." : "Vaga atualizada.");
+      renderApp();
+    } catch (e) { $("#vg-erro").textContent = "Não salvou: " + (e?.message || e); }
+  }));
+  $$("#view [data-vaga-editar]").forEach((b) => b.addEventListener("click", () => { state.view.vagaEdit = b.dataset.vagaEditar; renderApp(); }));
+  $$("#view [data-vaga-publicar]").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await confirmar({ titulo: "Publicar vaga", msg: "A vaga entra AGORA no site público vagas.fiobras.com.br. Confirma?", okLabel: "Publicar" }))) return;
+    withBusy("vg-pub", b, async () => {
+      try { await window.publicarVaga(b.dataset.vagaPublicar); await window.carregarVagasGestor?.(); toast("Vaga publicada no site."); renderApp(); }
+      catch (e) { toast("Não publicou: " + (e?.message || e), "danger"); }
+    });
+  }));
+  $$("#view [data-vaga-encerrar]").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await confirmar({ titulo: "Encerrar vaga", msg: "A vaga sai do site na hora e não pode ser reaberta (pra reabrir, crie uma nova). Confirma?", okLabel: "Encerrar", perigo: true }))) return;
+    withBusy("vg-enc", b, async () => {
+      try { await window.encerrarVaga(b.dataset.vagaEncerrar); await window.carregarVagasGestor?.(); toast("Vaga encerrada."); renderApp(); }
+      catch (e) { toast("Não encerrou: " + (e?.message || e), "danger"); }
+    });
+  }));
+  $$("#view [data-vaga-excluir]").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await confirmar({ titulo: "Excluir rascunho", msg: "O rascunho some de vez. Confirma?", okLabel: "Excluir", perigo: true }))) return;
+    withBusy("vg-del", b, async () => {
+      try { await window.excluirVagaRascunho(b.dataset.vagaExcluir); await window.carregarVagasGestor?.(); toast("Rascunho excluído."); renderApp(); }
+      catch (e) { toast("Não excluiu: " + (e?.message || e), "danger"); }
+    });
+  }));
+  $("#vg-zap-salvar")?.addEventListener("click", () => withBusy("vg-zap", $("#vg-zap-salvar"), async () => {
+    const num = $("#vg-zap").value.trim();
+    if (num.replace(/\D/g, "").length < 10) { $("#vg-zap-erro").textContent = "Número incompleto (use DDD)."; return; }
+    try { await window.salvarConfigVagas(num); toast("WhatsApp salvo."); $("#vg-zap-erro").textContent = ""; }
+    catch (e) { $("#vg-zap-erro").textContent = "Não salvou: " + (e?.message || e); }
+  }));
+}
+
 function gestorAtalhosHtml(u) {
   const pend = pendingForUser(u).length + ocaDoEstagio("rh_confere").length + ocaDoEstagio("com_lider").length;
   const rcbPend = (state.recibos || []).filter((r) => !(r.assinaturas || []).length).length;
@@ -4245,6 +4357,10 @@ function renderView() {
   if (page === "gamificacao") {
     if (!can("gamificacao.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
     return renderGamificacao();
+  }
+  if (page === "vagas") {
+    if (!can("vagas.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
+    return renderVagas();
   }
   if (page === "documentos") {
     if (!can("documentos.gerenciar")) { state.view.page = "dashboard"; return renderDashboard(); }
@@ -14817,6 +14933,10 @@ const PERM_CAPS = [
   { area: "Gamificação", caps: [
     { k: "gamificacao.gerenciar", n: "Configurar temporada, prêmios e entregas" },
   ]},
+  // Vagas: cap GLOBAL (a página pública lê sem login; a gestão é só GP/admin).
+  { area: "Vagas", caps: [
+    { k: "vagas.gerenciar", n: "Publicar e gerenciar as vagas do site público" },
+  ]},
   { area: "Sistema", caps: [
     { k: "sistema.config", n: "Configurações (tipos, ações)" },
     { k: "sistema.usuarios", n: "Gerenciar usuários e permissões" },
@@ -14841,7 +14961,7 @@ const PERM_DEFAULT = {
     "pj.ver": true, "pj.editar": true, "pj.reajuste": true, "pj.excluir": true,
     "func.ver": true, "func.editar": true, "func.dadosSensiveis": true, "obrigacoes.gerenciar": true,
     "comunicados.gerenciar": true, "documentos.gerenciar": true, "recibos.gerenciar": true,
-    "pesquisas.gerenciar": true, "desempenho.gerenciar": true, "gamificacao.gerenciar": true,
+    "pesquisas.gerenciar": true, "desempenho.gerenciar": true, "gamificacao.gerenciar": true, "vagas.gerenciar": true,
     "auditoria.ver": true, "sistema.config": true, "sistema.usuarios": false,
   },
   lider: {
@@ -14852,7 +14972,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": false, "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
-    "pesquisas.gerenciar": false, "desempenho.gerenciar": false, "gamificacao.gerenciar": false,
+    "pesquisas.gerenciar": false, "desempenho.gerenciar": false, "gamificacao.gerenciar": false, "vagas.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   supervisor: {
@@ -14863,7 +14983,7 @@ const PERM_DEFAULT = {
     "pj.ver": false, "pj.editar": false, "pj.reajuste": false, "pj.excluir": false,
     "func.ver": "atrib", "func.editar": false, "func.dadosSensiveis": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
-    "pesquisas.gerenciar": false, "desempenho.gerenciar": false, "gamificacao.gerenciar": false,
+    "pesquisas.gerenciar": false, "desempenho.gerenciar": false, "gamificacao.gerenciar": false, "vagas.gerenciar": false,
     "auditoria.ver": false, "sistema.config": false, "sistema.usuarios": false,
   },
   // Colaborador (Portal). Tudo de gestor explicitamente false (impede override acidental);
@@ -14878,6 +14998,7 @@ const PERM_DEFAULT = {
     "auditoria.ver": false, "obrigacoes.gerenciar": false,
     "comunicados.gerenciar": false, "documentos.gerenciar": false, "recibos.gerenciar": false,
     "pesquisas.gerenciar": false, "desempenho.gerenciar": false,
+    "gamificacao.gerenciar": false, "vagas.gerenciar": false,
     "sistema.config": false, "sistema.usuarios": false,
     "self.ver": true, "self.assinar": true, "etica.enviar": true,
   },
@@ -15533,7 +15654,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.67.0";
+window.CURRENT_VERSION = "1.68.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

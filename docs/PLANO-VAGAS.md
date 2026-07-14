@@ -40,6 +40,18 @@ portal) ficam no ROADMAP** como fase 2.
 - Candidato conversa direto com a GP no WhatsApp; nenhum dado de candidato entra no
   Firestore no v1.
 
+## Gate Fable (2026-07-14): GO com ressalvas aplicadas
+
+- Shape-lock no config/vagas (só {whatsapp} string <= 30); residual aceito: admin pelo
+  match genérico escreve sem shape (papel confiável).
+- Página pública 100% escapada (esc() em todo campo; zero innerHTML interpolado cru).
+- App Check = YAGNI no v1 (enforcement é por PROJETO: ligar exigiria instrumentar o PWA
+  inteiro); upgrade path registrado se abuso de leitura aparecer. Mitigação real do v1:
+  cache sessionStorage com TTL na página + budget alert no GCP (PENDENTE William, 5 min:
+  console.cloud.google.com > Billing > Budgets & alerts) + conferir no console do
+  Firebase Auth que o signup público por email/senha está DESABILITADO (PENDENTE William).
+- vagaShapeOk não tipa publicadaEm/encerradaEm em rascunho (writer confiável, cosmético).
+
 ## Roadmap (fase 2, decisão já tomada de POSTERGAR)
 - Vagas internas: colaborador vê vagas no portal e se candidata com um toque
   (candidaturas/{uid} create-only self); GP vê fila por vaga. Possível gancho de

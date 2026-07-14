@@ -1891,6 +1891,47 @@
       window.registrarAuditoria?.({ tipo: "gamificacao", acao: `Entregou prêmio do marco ${marco}`, alvo: uidAlvo });
     };
 
+    // ===== VAGAS (gestor; a pagina publica vagas.fiobras.com.br le direto). =====
+    // Rules: cap vagas.gerenciar; anonimo le SO publicada + config/vagas (WhatsApp).
+    window.carregarVagasGestor = async function () {
+      try {
+        const [vs, cf] = await Promise.all([
+          db.collection("vagas").orderBy("criadoEm", "desc").get(),
+          db.collection("config").doc("vagas").get().catch(() => null),
+        ]);
+        state.vagas = vs.docs.map((d) => ({ id: d.id, ...d.data(), criadoEm: tsToIso(d.data().criadoEm), publicadaEm: tsToIso(d.data().publicadaEm) }));
+        state.vagasConfig = cf && cf.exists ? cf.data() : {};
+      } catch (e) { debug?.("[vagas] gestor:", e?.code || e?.message); state.vagas = state.vagas || []; state.vagasConfig = state.vagasConfig || {}; }
+    };
+    window.salvarVaga = async function (id, dados) {
+      const uid = auth.currentUser && auth.currentUser.uid;
+      const campos = {
+        titulo: String(dados.titulo || "").slice(0, 120),
+        setor: String(dados.setor || "").slice(0, 60),
+        turno: String(dados.turno || "").slice(0, 40),
+        cidade: String(dados.cidade || "").slice(0, 60),
+        tipo: String(dados.tipo || "").slice(0, 30),
+        descricao: String(dados.descricao || "").slice(0, 3000),
+        requisitos: String(dados.requisitos || "").slice(0, 3000),
+      };
+      if (id) { await db.collection("vagas").doc(id).update(campos); return id; }
+      const ref = await db.collection("vagas").add({ ...campos, status: "rascunho", criadoPor: uid, criadoEm: _FV.serverTimestamp() });
+      return ref.id;
+    };
+    window.publicarVaga = async function (id) {
+      await db.collection("vagas").doc(id).update({ status: "publicada", publicadaEm: _FV.serverTimestamp() });
+      window.registrarAuditoria?.({ tipo: "vagas", acao: "Publicou vaga no site", alvo: id });
+    };
+    window.encerrarVaga = async function (id) {
+      await db.collection("vagas").doc(id).update({ status: "encerrada", encerradaEm: _FV.serverTimestamp() });
+      window.registrarAuditoria?.({ tipo: "vagas", acao: "Encerrou vaga do site", alvo: id });
+    };
+    window.excluirVagaRascunho = async function (id) { await db.collection("vagas").doc(id).delete(); };
+    window.salvarConfigVagas = async function (whatsapp) {
+      await db.collection("config").doc("vagas").set({ whatsapp: String(whatsapp || "").slice(0, 30) });
+      state.vagasConfig = { whatsapp };
+    };
+
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
       const u = currentUser();
       const seg = dados.segmento || { tipo: "todos", valores: [] };

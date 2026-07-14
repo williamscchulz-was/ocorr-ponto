@@ -10,6 +10,9 @@
         ],
         "old": [
           "ocorr-ponto"
+        ],
+        "vagas": [
+          "vagas-fiobras"
         ]
       }
     }

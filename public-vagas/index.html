@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trabalhe com a gente · Fiobras</title>
+<meta name="description" content="Vagas abertas na Fiobras, Guaramirim SC. Veja as oportunidades e fale direto com a nossa equipe de Gestão de Pessoas pelo WhatsApp.">
+<meta property="og:title" content="Trabalhe com a gente · Fiobras">
+<meta property="og:description" content="Vagas abertas na Fiobras, Guaramirim SC. Candidate-se pelo WhatsApp.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23008835'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Arial' font-weight='800' font-size='18' fill='%23fff'%3EF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f2f4ef; font-family: "Poppins", system-ui, sans-serif; color: #23301f; }
+  .hero { background: linear-gradient(140deg, #008835, #0b6e33 55%, #005f96); color: #fff; padding: 40px 22px 34px; }
+  .hero__in, .lista, .foot { max-width: 720px; margin: 0 auto; }
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+  .logo-mark { width: 40px; height: 40px; border-radius: 11px; background: #fff; color: #008835; display: grid; place-items: center; font-weight: 800; font-size: 20px; }
+  .logo b { font-size: 17px; letter-spacing: .02em; }
+  .hero h1 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 34px); line-height: 1.15; font-weight: 800; }
+  .hero p { margin: 0; font-size: 14.5px; opacity: .92; line-height: 1.6; max-width: 520px; }
+  .hero .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,203,0,.18); border: 1px solid rgba(255,203,0,.45); color: #FFCB00; font-size: 12px; font-weight: 700; padding: 5px 13px; border-radius: 999px; margin-top: 16px; }
+  .lista { padding: 24px 22px 10px; display: flex; flex-direction: column; gap: 14px; }
+  .sec { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: #5c6a57; margin: 0 4px; }
+  .vaga { background: #fff; border: 1px solid #dfe5d9; border-radius: 16px; padding: 18px 18px 16px; box-shadow: 0 3px 12px rgba(20,40,20,.05); }
+  .vaga h2 { margin: 0; font-size: 17px; font-weight: 700; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 9px 0 10px; }
+  .tag { font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
+  .tag--turno { background: #e8f1f8; color: #0076BE; }
+  .desc { margin: 0 0 6px; font-size: 13.5px; color: #45523f; line-height: 1.55; white-space: pre-line; }
+  .req { margin: 0 0 14px; font-size: 12.5px; color: #6b7563; line-height: 1.5; white-space: pre-line; }
+  .vfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .data { font-size: 11px; color: #8a927f; }
+  .cta { display: inline-flex; align-items: center; gap: 8px; background: #008835; color: #fff; border: 0; font: 700 14px "Poppins", sans-serif; padding: 12px 19px; border-radius: 999px; cursor: pointer; text-decoration: none; }
+  .cta:hover { background: #0b6e33; }
+  .cta svg { width: 17px; height: 17px; fill: currentColor; }
+  .vazio, .carregando { text-align: center; padding: 44px 20px; color: #6b7563; font-size: 14px; }
+  .foot { text-align: center; padding: 14px 22px 30px; font-size: 11.5px; color: #8a927f; line-height: 1.6; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero__in">
+    <div class="logo"><span class="logo-mark">F</span><b>Fiobras</b></div>
+    <h1>Trabalhe com a gente</h1>
+    <p>A Fiobras está crescendo e procura gente boa pra crescer junto. Veja as vagas abertas e chame a nossa equipe de Gestão de Pessoas direto no WhatsApp.</p>
+    <span class="badge" id="contagem" hidden></span>
+  </div>
+</header>
+<main class="lista" id="lista">
+  <p class="carregando">Carregando as vagas…</p>
+</main>
+<footer class="foot">Fiobras · Guaramirim, SC. Ao tocar em "Quero me candidatar" você abre uma conversa de WhatsApp com a nossa equipe de Gestão de Pessoas; nenhum dado seu é coletado por esta página.</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="firebase.config.js"></script>
+<script>
+(function () {
+  "use strict";
+  var esc = function (s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+  var lista = document.getElementById("lista");
+  var contagem = document.getElementById("contagem");
+  if (!window.FIREBASE_CONFIG) {
+    lista.innerHTML = '<p class="vazio">Página em manutenção. Tente de novo mais tarde.</p>';
+    return;
+  }
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  var db = firebase.firestore();
+  var ZAP_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm5.7 14.2c-.2.7-1.4 1.3-1.9 1.4-.5.1-1.1.2-3.6-.8-3-1.2-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3.1s.8-2.2 1-2.5c.3-.3.6-.4.8-.4h.6c.2 0 .4-.1.7.5l1 2.3c.1.2.1.4 0 .6l-.4.6-.5.6c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1.1-1.3c.2-.3.5-.2.8-.1l2.1 1c.3.2.5.3.6.4.1.2.1.7-.1 1.5z"/></svg>';
+
+  // Cache leve (gate): corta leituras repetidas de quem navega/volta; TTL 5 min.
+  var CACHE_KEY = "vagas-cache-v1";
+  var cacheado = null;
+  try {
+    var raw = sessionStorage.getItem(CACHE_KEY);
+    if (raw) { var c = JSON.parse(raw); if (Date.now() - c.t < 5 * 60e3) cacheado = c; }
+  } catch (e) { /* sem sessionStorage */ }
+
+  var carregar = cacheado
+    ? Promise.resolve(cacheado)
+    : Promise.all([
+        db.collection("vagas").where("status", "==", "publicada").get(),
+        db.collection("config").doc("vagas").get().catch(function () { return null; }),
+      ]).then(function (res) {
+        var dados = {
+          t: Date.now(),
+          zap: res[1] && res[1].exists ? String(res[1].data().whatsapp || "") : "",
+          vagas: res[0].docs.map(function (d) {
+            var v = d.data();
+            return { id: d.id, titulo: v.titulo, setor: v.setor, turno: v.turno, tipo: v.tipo,
+              cidade: v.cidade, descricao: v.descricao, requisitos: v.requisitos,
+              pub: v.publicadaEm && v.publicadaEm.toMillis ? v.publicadaEm.toMillis() : 0 };
+          }),
+        };
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(dados)); } catch (e) { /* cheio */ }
+        return dados;
+      });
+
+  carregar.then(function (dados) {
+    var cfg = { whatsapp: dados.zap };
+    var zap = String(cfg.whatsapp || "").replace(/\D/g, "");
+    var vagas = dados.vagas.slice().sort(function (a, b) { return (b.pub || 0) - (a.pub || 0); });
+    if (!vagas.length) {
+      lista.innerHTML = '<p class="vazio">Não temos vagas abertas neste momento. Volte em breve, elas aparecem primeiro aqui.</p>';
+      return;
+    }
+    contagem.hidden = false;
+    contagem.textContent = vagas.length + (vagas.length === 1 ? " vaga aberta" : " vagas abertas");
+    lista.innerHTML = '<span class="sec">Vagas abertas</span>' + vagas.map(function (v) {
+      var quando = v.pub ? "Publicada em " + new Date(v.pub).toLocaleDateString("pt-BR") : "";
+      var msg = encodeURIComponent("Olá! Vi a página de vagas da Fiobras e tenho interesse na vaga de " + (v.titulo || "") + ".");
+      var cta = zap
+        ? '<a class="cta" href="https://wa.me/' + zap + "?text=" + msg + '" target="_blank" rel="noopener">' + ZAP_SVG + "Quero me candidatar</a>"
+        : "";
+      var tags = [
+        v.setor ? '<span class="tag">' + esc(v.setor) + "</span>" : "",
+        v.turno ? '<span class="tag tag--turno">' + esc(v.turno) + "</span>" : "",
+        v.tipo ? '<span class="tag">' + esc(v.tipo) + "</span>" : "",
+        v.cidade ? '<span class="tag">' + esc(v.cidade) + "</span>" : "",
+      ].join("");
+      return '<article class="vaga"><h2>' + esc(v.titulo) + "</h2>" +
+        (tags ? '<div class="tags">' + tags + "</div>" : "") +
+        (v.descricao ? '<p class="desc">' + esc(v.descricao) + "</p>" : "") +
+        (v.requisitos ? '<p class="req">Requisitos: ' + esc(v.requisitos) + "</p>" : "") +
+        '<div class="vfoot"><span class="data">' + esc(quando) + "</span>" + cta + "</div></article>";
+    }).join("");
+  }).catch(function (e) {
+    lista.innerHTML = '<p class="vazio">Não conseguimos carregar as vagas agora. Tente de novo em instantes.</p>';
+  });
+})();
+</script>
+</body>
+</html>
