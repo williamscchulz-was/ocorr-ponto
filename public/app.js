@@ -87,14 +87,24 @@ function prefereMenosMovimento() {
   return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
 
-// Entrada escalonada: delay incremental nos filhos diretos + marca o container.
-// Usar só no 1º paint de uma tela (não em re-render de busca/filtro).
+// Entrada escalonada nos filhos diretos, UMA vez por navegação (re-render da mesma
+// tela não re-cascateia). Web Animations API de propósito (metodologia anti-flicker
+// 2026-07-14): element.animate não toca classe nem style, então o DOM da tela
+// estabilizada é IDÊNTICO ao de um re-render, o contrato do flicker-guard.
+// fill backwards segura opacity 0 durante o delay, sem FOUC.
+let _entradaFeitaEm = null;
 function animarEntrada(container) {
   if (!container || prefereMenosMovimento()) return;
+  const pg = (state.view && state.view.page) || "";
+  if (_entradaFeitaEm === pg) return;
+  _entradaFeitaEm = pg;
   [...container.children].forEach((k, i) => {
-    k.style.animationDelay = Math.min(i * 42, 380) + "ms";
+    if (typeof k.animate !== "function") return;
+    k.animate(
+      [{ opacity: 0, transform: "translateY(7px)" }, { opacity: 1, transform: "none" }],
+      { duration: 340, delay: Math.min(i * 42, 380), easing: "cubic-bezier(.2, .8, .2, 1)", fill: "backwards" }
+    );
   });
-  container.classList.add("stagger-in");
 }
 
 // Conta os .stat__value: na 1ª vez sobe de 0; depois ROLA do valor anterior pro
@@ -3246,7 +3256,7 @@ function renderPortalRoadmap() {
       </div>
     </div>
     <div class="fp-canvas"><div class="fp-stage">
-      <svg class="fp-rail" id="fp-rail" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <svg class="fp-rail" id="fp-rail" preserveAspectRatio="none" aria-hidden="true"${state._fpRail ? ` viewBox="${state._fpRail.vb}"` : ""}>${state._fpRail ? state._fpRail.inner : ""}</svg>
       <div class="fp-flow" id="fp-flow">
         <div class="fp-rootnode"><div class="fp-orb">${cpIcon("users")}</div><div class="fp-rootlabel"><b>Portal do Colaborador</b><span>raiz da jornada</span></div></div>
         ${fases.map(stationHtml).join("")}
@@ -3276,6 +3286,9 @@ function renderPortalRoadmap() {
     const rail = cs.getPropertyValue("--rail").trim() || "#283027";
     const railon = cs.getPropertyValue("--railon").trim() || "#1AA34F";
     railSvg.innerHTML = `<path d="${full}" fill="none" stroke="${rail}" stroke-width="3.4" stroke-linecap="round"/><path d="${done}" fill="none" stroke="${railon}" stroke-width="3.4" stroke-linecap="round"/>`;
+    // Anti-flicker: o próximo render nasce com o fio já desenhado (drawRail corrige
+    // se as medidas mudarem).
+    state._fpRail = { vb: `0 0 ${W} ${H}`, inner: railSvg.innerHTML };
   };
   const togglePhase = (ph) => { if (ph) { ph.classList.toggle("open"); requestAnimationFrame(drawRail); } };
   flow.querySelectorAll(".fp-phead").forEach((h) => {
@@ -6367,7 +6380,7 @@ function renderDashboard() {
       ${can("ocorrencias.excluir") ? `<button class="tab ${state.view.filterTab === "excluidas" ? "active" : ""}" data-tab="excluidas">
         Excluídas <span class="tab__count">${(state.ocorrenciasExcluidas || []).length}</span>
       </button>` : ""}
-      <span class="tabs__ink" aria-hidden="true"></span>
+      <span class="tabs__ink" aria-hidden="true"${state._inkPos ? ` style="left: ${state._inkPos.left}px; width: ${state._inkPos.width}px;"` : ""}></span>
     </div>
 
     <div class="toolbar">
@@ -6402,7 +6415,11 @@ function renderDashboard() {
   const _ink = $("#tabs .tabs__ink");
   const moverInk = () => {
     const at = $("#tabs .tab.active");
-    if (_ink && at) { _ink.style.left = at.offsetLeft + "px"; _ink.style.width = at.offsetWidth + "px"; }
+    if (_ink && at) {
+      _ink.style.left = at.offsetLeft + "px"; _ink.style.width = at.offsetWidth + "px";
+      // Anti-flicker: o próximo render nasce com a barrinha já posicionada.
+      state._inkPos = { left: at.offsetLeft, width: at.offsetWidth };
+    }
     // Mobile: as abas rolam numa linha só; a ativa se traz pra vista.
     if (at && window.innerWidth <= 900) at.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   };
@@ -15749,7 +15766,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.69.1";
+window.CURRENT_VERSION = "1.69.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

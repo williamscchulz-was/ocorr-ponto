@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.69.1", d: "14 jul 2026", current: true, items: [
+    v: "1.69.2", d: "14 jul 2026", current: true, items: [
+      { type: "fix", title: "Acabamento fino nas transicoes: a barrinha das abas, a entrada em cascata das listas e o fio da tela Novidades nao piscam mais quando a tela atualiza sozinha. Toda tela do app agora passa por uma verificacao automatica de estabilidade antes de cada versao." },
+    ],
+  },
+  {
+    v: "1.69.1", d: "14 jul 2026", items: [
       { type: "fix", title: "Fim do pisca-pisca: a curtida de boas-vindas, o coracao de aniversario e as contagens nao somem mais por um instante quando o app volta do segundo plano ou atualiza sozinho." },
     ],
   },

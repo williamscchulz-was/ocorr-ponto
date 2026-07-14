@@ -3556,9 +3556,8 @@ body.modal-aberto .fab { display: none; }
 .pj-row:hover .pj-chev,
 .func-row:hover .func-chev { transform: translateX(3px); color: var(--plum-soft); }
 
-/* Entrada escalonada — JS adiciona .stagger-in no container + delay por filho */
-@keyframes mi-fadeUp { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
-.stagger-in > * { opacity: 0; animation: mi-fadeUp .34s var(--ease) both; }
+/* Entrada escalonada: virou Web Animations API em animarEntrada (app.js), que nao
+   suja classe/style — contrato do flicker-guard (metodologia 2026-07-14). */
 
 /* 2 · Botões com tato — primário sobe no hover; todos "afundam" no clique */
 .btn:active { transform: scale(.97); }

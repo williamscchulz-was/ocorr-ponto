@@ -77,6 +77,25 @@ Enforcement em dois pontos:
 Atalho deliberado no código leva comentário `ponytail:` nomeando o caminho de upgrade.
 Ex.: `// ponytail: o browser ja tem, <input type=date>` antes de um date picker custom.
 
+## Metodologia premium (2026-07-14, William: "as pessoas precisam ver muito cuidado")
+
+Cada tela transparece capricho, e capricho se PROVA, não se promete:
+
+1. **Toda tela nasce preenchida.** Dado assíncrono tem cache no state (padrões:
+   `_espState.cache`, `state._reacoesCache`, `state._inkPos`, `state._fpRail`) e o
+   template renasce do cache; placeholder/skeleton SÓ na primeira carga da sessão.
+   Um re-render sem mudança de state produz DOM IDÊNTICO, sempre.
+2. **Animação de entrada não suja o DOM.** Efeito one-shot usa Web Animations API
+   (`element.animate`, ver `animarEntrada`), nunca classe/style inline que um
+   re-render ressuscita; anima 1x por navegação, re-render não re-cascateia.
+3. **Gatilho automático não estoura render.** onSnapshot/foco passam por agendador
+   coalescido (`renderApp`, `aoAtualizarOcorrencias`); tela que não usa o dado
+   recarregado não re-renderiza (`refetchAoFoco`, lista `SEM_VOLATEIS`).
+4. **Guarda executável no ritual de release:** `node scratchpad/audit/flicker-guard.mjs`
+   (servidor local 8081) varre TODAS as telas dos 2 portais (dinâmico via
+   NAV_GRUPOS/COLAB_NAV, tela nova entra sozinha) e falha se algum re-render não
+   nascer idêntico ao estabilizado. Vermelho = não sobe.
+
 ## Convenções do projeto (todo agente respeita)
 
 - Texto visível em português, SEM emoji e SEM hífen/travessão como separador de frase
