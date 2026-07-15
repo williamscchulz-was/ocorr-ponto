@@ -2888,3 +2888,32 @@ Ou seja: **o cache de escrita habilitado em 29/05 ajudou mas não eliminou o pro
 
 ### Lição
 "PC trava" (percebido pelo usuário) e "erro de importação" são dois sintomas que PARECEM relacionados mas **têm causas diferentes** neste caso. Vale sempre ler o conteúdo real do erro antes de assumir causa raiz por correlação temporal solta.
+
+---
+
+## 2026-07-15 · 🔔 Alerta ao vivo pra reset de RAID + snapshot de diagnóstico
+
+William confirmou que o travamento diminuiu bastante desde a automação de limpeza de backup (29/06→hoje), mas ainda acontece de vez em quando ("do nada vai a 100%, trava tudo, volta sozinho"). Pediu alerta em tempo real, "até pra descobrir como arrumar".
+
+### Teoria de por que a limpeza do E: ajudou
+Os 3 discos físicos (2 SSDs do RAID + HD do E:) estão atrás do **mesmo controlador Intel VMD/RST** (confirmado na investigação original: mesmo Port 0/Bus 2, Targets 4/5/6). Com E: a 92% e crescendo sem parar, o controlador compartilhado tinha mais trabalho geral. Reduzir e estabilizar o uso do E: (~66%) aliviou a pressão mesmo sem tocar nas SSDs do RAID diretamente. Não elimina o problema (SSD ainda é o gargalo de fundo), mas explica a melhora observada.
+
+### O que foi implementado em `C:\fiobras-pipeline-rh\_diag\disk-watch.ps1`
+- **Removido evento 153 do filtro** (era ruído — status de VBS no boot, sem relação com disco; erro de escopo da investigação original).
+- **Alerta ao vivo**: ao detectar evento novo 129 (reset RAID) ou 51 (timeout de paginação), dispara popup `msg.exe` na tela + grava `_diag\_ULTIMO-RESET-RAID.txt`.
+- **Debounce de 5 min**: evita spam de popup numa rajada de vários eventos seguidos (ex.: os 4 resets em 3 min do dia 15/07) — alerta 1x, loga os demais silenciosamente.
+- **Snapshot de diagnóstico** (`Get-DiagSnapshot`) capturado no momento do alerta, pra ajudar a achar a causa:
+  - Top 8 processos por I/O no instante
+  - Todos os processos WK/MTEF/sqlservr/Export-Import ativos + hora que cada um iniciou
+  - Tarefas agendadas que rodaram nos últimos 5 minutos (não só WK — qualquer tarefa, pra pegar gatilho inesperado tipo Windows Update/Defender)
+
+### Validação
+- Sintaxe validada com o parser do PowerShell (sem travessão dentro de string — mesma lição das 2 vezes anteriores).
+- `Get-DiagSnapshot` testado isoladamente: retornou dado real e útil (ex.: capturou `CNSRel`/`ESSMOV` com I/O alto no momento, `Exportação Saldo Estoque 404` como tarefa recente).
+- Popup de teste disparado e **confirmado visualmente pelo William**.
+- 1ª tentativa de restart do logger (PID 8448) morreu sozinha em ~34s sem erro logado — provável kill externo isolado, não bug no script novo. 2ª tentativa (PID 3960) ficou estável, monitorada por ~16 min contínuos sem gap no log.
+
+### Próxima vez que travar
+Vai aparecer popup na hora + o arquivo `_ULTIMO-RESET-RAID.txt` vai ter o snapshot completo do que estava rodando. Isso deve permitir, no próximo evento real, cruzar exatamente qual tarefa/processo estava ativo no momento do reset — informação que não tínhamos até agora (só sabíamos horários, não o contexto).
+
+⚠️ Pendência antiga que segue valendo: registrar o logger como tarefa de boot/SYSTEM (precisa admin) pra sobreviver a reinícios — segue documentada em `_diag\README.md`.
