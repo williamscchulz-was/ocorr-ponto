@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.81.0", d: "16 jul 2026", current: true, items: [
+    v: "1.81.1", d: "16 jul 2026", current: true, items: [
+      { type: "fix", title: "A bolinha de pendencia do Meu ponto e do Pagamento contava documentos que voce ja tinha assinado (dependia do aparelho lembrar que voce viu). Assinado nunca mais aparece como pendente, em nenhum aparelho." },
+    ],
+  },
+  {
+    v: "1.81.0", d: "16 jul 2026", items: [
       { type: "feat", title: "Sua sequencia de dias no app agora aparece no card de pontos da home: cinco pontinhos que vao enchendo a cada dia seguido. Completou os cinco, ficam dourados e o premio cai na conta." },
     ],
   },

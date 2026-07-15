@@ -2651,7 +2651,10 @@ function rcbMarcarVisto(id) {
 }
 function rcbNaoVistos(tipo) {
   const v = rcbVistosLocal();
-  return (state.meusRecibos || []).filter((r) => r.tipo === tipo && !v.includes(r.id) && !_rcbVistosMem.has(r.id)).length;
+  // Assinado NUNCA é pendência (bug Jenifer 2026-07-16: docs assinados antes da
+  // mecânica de vistos, ou em outro aparelho, ficavam na bolinha pra sempre; a
+  // assinatura é o "visto" mais forte que existe e vive no banco, não no aparelho).
+  return (state.meusRecibos || []).filter((r) => r.tipo === tipo && !r.minhaAssinatura && !v.includes(r.id) && !_rcbVistosMem.has(r.id)).length;
 }
 function colabAvisosNaoLidos() {
   return (state.comunicadosColab || []).filter((c) => !c.minhaLeitura).length;
@@ -17008,7 +17011,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.81.0";
+window.CURRENT_VERSION = "1.81.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
