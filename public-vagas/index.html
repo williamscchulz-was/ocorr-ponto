@@ -245,7 +245,9 @@
                 pub: v.publicadaEm && v.publicadaEm.toMillis ? v.publicadaEm.toMillis() : 0 };
             }),
           };
-          try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(dados)); } catch (e) { /* cheio */ }
+          // Lista VAZIA nao entra no cache: a GP publica e quer ver na hora
+          // (o susto do cache de 5min segurando o vazio, 2026-07-15).
+          if (dados.vagas.length) { try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(dados)); } catch (e) { /* cheio */ } }
           return dados;
         });
 
