@@ -354,7 +354,7 @@
     padding:6px 11px; font-size:9px; color:#26302a;
   }
   .cm-row svg{ flex:0 0 auto; opacity:.7; }
-  .cm-row--hl{ background:#FFF3D6; }
+  .cm-row--hl{ background:#FFF3D6; border:1.8px solid var(--ambar); border-radius:7px; margin:1px 6px; padding-left:6px; padding-right:7px; }
   .cm-row--hl span{ font-weight:700; color:#7a5200; }
   .cm-row--hl svg{ opacity:1; color:#a06a00; }
 
@@ -394,20 +394,20 @@
   }
   .sl-row:last-child{ border-bottom:0; }
   .sl-row svg{ flex:0 0 auto; color:#1c1c1e; }
-  .sl-row--hl{ background:#FFF3D6; }
+  .sl-row--hl{ background:#FFF3D6; border:1.8px solid var(--ambar); border-radius:8px; }
   .sl-row--hl span{ font-weight:700; color:#7a5200; }
   .sl-row--hl svg{ color:#a06a00; }
 
   /* ---- Tela "Adicionar a Tela de Inicio" (iOS) ---- */
   .a2{
-    position:absolute; top:5px; left:5px; right:5px; z-index:7;
+    position:absolute; top:26px; left:5px; right:5px; z-index:10;
     background:#F2F2F5; border-radius:14px; overflow:hidden; font-family:var(--sys-ios);
     box-shadow:0 6px 22px rgba(0,0,0,.22);
   }
   .a2__nav{ display:flex; align-items:center; justify-content:space-between; padding:10px 13px; background:#fff; border-bottom:1px solid #e2e2e6; }
   .a2__cancel{ font-size:10px; color:#3f6ad6; }
   .a2__ttl{ font-size:10.5px; font-weight:700; color:#1c1c1e; }
-  .a2__add{ font-size:10px; font-weight:700; color:#3f6ad6; position:relative; }
+  .a2__add{ font-size:10px; font-weight:700; color:#3f6ad6; display:inline-block; padding:3px 7px; border-radius:7px; background:#FFF3D6; }
   .a2__body{ display:flex; align-items:center; gap:11px; background:#fff; margin:10px; border-radius:11px; padding:11px; }
   .a2__body .app-icon{ width:40px; height:40px; flex:0 0 auto; border-radius:9px; }
   .a2__nm{ font-size:11px; font-weight:600; color:#1c1c1e; }
@@ -418,9 +418,10 @@
     position:absolute; z-index:8; border:2.4px solid var(--ambar); border-radius:50%;
     box-shadow:0 0 0 3px rgba(238,148,18,.22); pointer-events:none;
   }
-  .spot--ret{ border-radius:9px; }
-  .seta{ position:absolute; z-index:8; color:var(--ambar); }
+  .seta{ position:absolute; z-index:11; color:var(--ambar); }
   .seta svg{ display:block; filter:drop-shadow(0 1px 1px rgba(0,0,0,.15)); }
+  /* aro ambar preso ao proprio elemento alvo (respeita o border-radius e a quebra de linha) */
+  .alvo{ box-shadow:0 0 0 2.4px var(--ambar), 0 0 0 5.5px rgba(238,148,18,.20); }
 </style>
 
 <!-- ================================================================
@@ -707,7 +708,6 @@
             <div class="cm-row">Compartilhar</div>
             <div class="cm-row">Configurações</div>
           </div>
-          <div class="spot spot--ret" style="top:112px; right:11px; width:104px; height:24px;"></div>
         </div>
       </div>
       <figcaption class="step__cap">
@@ -755,9 +755,8 @@
             </div>
             <div class="sheet__btns">
               <button class="btn-txt">Cancelar</button>
-              <button class="btn-fill">Instalar</button>
+              <button class="btn-fill alvo">Instalar</button>
             </div>
-            <div class="spot spot--ret" style="bottom:14px; right:15px; width:66px; height:26px;"></div>
           </div>
         </div>
       </div>
@@ -974,7 +973,6 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20l-7-8a4.5 4.5 0 0 1 7-5.5A4.5 4.5 0 0 1 19 12z"/></svg></div>
             </div>
           </div>
-          <div class="spot spot--ret" style="left:11px; right:11px; width:auto; bottom:47px; height:26px;"></div>
         </div>
       </div>
       <figcaption class="step__cap">
@@ -1004,7 +1002,7 @@
             <div class="a2__nav">
               <span class="a2__cancel">Cancelar</span>
               <span class="a2__ttl">Tela de Início</span>
-              <span class="a2__add">Adicionar</span>
+              <span class="a2__add alvo">Adicionar</span>
             </div>
             <div class="a2__body">
               <span class="app-icon"></span>
@@ -1014,8 +1012,7 @@
               </div>
             </div>
           </div>
-          <div class="spot spot--ret" style="top:9px; right:12px; width:64px; height:24px;"></div>
-          <div class="seta" style="top:36px; right:26px;">
+          <div class="seta" style="top:69px; right:24px;">
             <svg width="15" height="22" viewBox="0 0 17 26" fill="none" aria-hidden="true"><path d="M8.5 25V7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M2.5 12 8.5 5.5 14.5 12" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
         </div>
