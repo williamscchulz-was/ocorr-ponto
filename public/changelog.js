@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.82.0", d: "16 jul 2026", current: true, items: [
+    v: "1.83.0", d: "16 jul 2026", current: true, items: [
+      { type: "feat", title: "A tela de atualizacao agora tem o tempo dela: a barra enche com calma, chega nos 100% e respira antes de abrir o app novo. Nada de piscar e sumir." },
+      { type: "feat", aud: "gestor", title: "Ficha do candidato: experiencia em andamento aparece como atual (ex.: fev 2012 · atual), casando com o Ainda trabalho aqui do formulario do site." },
+    ],
+  },
+  {
+    v: "1.82.0", d: "16 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Expurgo automatico LGPD: candidaturas de vagas encerradas ha mais de 6 meses (cadastro e curriculo) sao apagadas sozinhas, com registro na auditoria. A vaga fica no historico; o dado pessoal do candidato sai." },
     ],
   },

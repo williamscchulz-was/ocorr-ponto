@@ -204,9 +204,11 @@ html.splash-off .splash { display: none; }
 .up-screen__t { margin-top: 6px; font-family: var(--font-display, 'Poppins'), sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -.01em; color: var(--text-body); }
 .up-screen__s { font-size: 13.5px; color: var(--text-muted); margin-top: -4px; }
 .up-screen__bar { width: min(220px, 62vw); height: 7px; border-radius: 999px; background: var(--border-strong); overflow: hidden; margin-top: 12px; }
-.up-screen__bar i { display: block; height: 100%; width: 8%; border-radius: 999px; background: linear-gradient(90deg, var(--plum-soft), var(--plum)); transition: width .6s cubic-bezier(.3,.7,.3,1); }
+/* Largura pintada por rAF no app.js (palco mínimo ~2s + ease-out até 90% + fecho em
+   100%); sem transition de propósito — transition sob rAF só atrasa o frame. */
+.up-screen__bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--plum-soft), var(--plum)); }
 .up-screen__m { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
-@media (prefers-reduced-motion: reduce) { .up-screen__mark { animation: none; } .up-screen__bar i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .up-screen__mark { animation: none; } }
 
 /* Login minimalista — card flutuante (variante C aprovada) */
 .login {

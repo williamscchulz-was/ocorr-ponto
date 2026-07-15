@@ -5295,7 +5295,8 @@ function openFichaModal(c) {
   let expHtml;
   if (Array.isArray(c.experiencias) && c.experiencias.length) {
     expHtml = c.experiencias.map((e, i) => {
-      const per = [mesAnoBR(e.admissao), mesAnoBR(e.demissao)].filter(Boolean).join(" — ");
+      // demissao vazia ('') = emprego atual; retrocompat: data real segue mostrando o intervalo.
+      const per = e.demissao ? [mesAnoBR(e.admissao), mesAnoBR(e.demissao)].filter(Boolean).join(" a ") : `${mesAnoBR(e.admissao)} · atual`;
       const sal = (typeof e.salario === "number") ? formatMoeda(e.salario) : "";
       const meta = [per, sal ? `Último salário ${sal}` : "", e.motivoSaida].filter(Boolean).map((s) => `<span>${escapeHtml(s)}</span>`).join("");
       return `<div class="ficha-exp"><b>${escapeHtml(e.empresa || "")}</b><span class="ficha-exp__n">Experiência ${i + 1}</span>${meta ? `<div class="ficha-exp__meta">${meta}</div>` : ""}</div>`;
@@ -17015,7 +17016,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.82.0";
+window.CURRENT_VERSION = "1.83.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -17331,6 +17332,15 @@ document.addEventListener("DOMContentLoaded", () => {
 // novo em progresso). Some com o reload. Funções globais (o probe as exercita).
 // ============================================================
 let _upScreenEl = null;
+let _upT0 = 0;    // quando a tela entrou no palco (âncora do tempo mínimo)
+let _upFloor = 0; // piso de progresso vindo dos estados reais do SW
+let _upRaf = 0;
+let _upDone = false;
+// Tempo MÍNIMO de palco (William 2026-07-15, "aparece muito rápido"): mesmo que o
+// worker assuma em milissegundos, a tela fica ~2s antes do reload — mesmo princípio
+// do __splashMin do splash. E a barra pausa ~250ms cheia (a pessoa VÊ os 100%).
+const UP_MIN_MS = 2000;
+const UP_HOLD_MS = 250;
 function mostrarTelaAtualizacao() {
   if (_upScreenEl) return _upScreenEl;
   const el = document.createElement("div");
@@ -17349,18 +17359,41 @@ function mostrarTelaAtualizacao() {
       <div class="up-screen__m">isso leva só um instante</div>
     </div>`;
   document.body.appendChild(el);
-  requestAnimationFrame(() => { el.classList.add("show"); progressoAtualizacao("installing"); });
+  requestAnimationFrame(() => el.classList.add("show"));
   _upScreenEl = el;
+  _upT0 = Date.now();
+  _upAnimarBarra();
   return el;
 }
-// Mapeia o estado do worker novo (installing → installed → activating → activated)
-// em preenchimento suave da barra (a transição de largura no CSS faz o "enche").
+function _upSetLargura(pct) {
+  const barra = _upScreenEl && _upScreenEl.querySelector(".up-screen__bar i");
+  if (barra) barra.style.width = pct + "%";
+}
+// Barra por rAF (nunca CSS transition, que um re-render ressuscita): enche com
+// ease-out até ~90% ao longo do palco mínimo. Os estados reais do SW são um PISO
+// (worker mais lento que o mínimo → a barra acompanha os estados; o mínimo não é
+// teto). prefereMenosMovimento: mantém o tempo mínimo, mas sem o flourish do
+// easing — a barra anda em passos discretos (quartos do palco).
+function _upAnimarBarra() {
+  if (_upRaf || _upDone) return;
+  const passo = () => {
+    _upRaf = 0;
+    if (!_upScreenEl || _upDone) return;
+    const frac = Math.min(1, (Date.now() - _upT0) / UP_MIN_MS);
+    let base = 90 * (1 - Math.pow(1 - frac, 3)); // ease-out cúbico
+    if (prefereMenosMovimento()) base = Math.floor(frac * 4) / 4 * 90;
+    _upSetLargura(Math.round(Math.min(90, Math.max(_upFloor, base)) * 10) / 10);
+    _upRaf = requestAnimationFrame(passo);
+  };
+  _upRaf = requestAnimationFrame(passo);
+}
+// Estados do worker novo (installing → installed → activating) só ELEVAM o piso;
+// quem pinta a barra é o loop rAF (suave, monotônica, nunca salta pra trás). Os
+// 100% são exclusivos do fecho em swRecarregarUmaVez (pausa e recarrega).
 function progressoAtualizacao(estado) {
-  if (!_upScreenEl) return;
-  const barra = _upScreenEl.querySelector(".up-screen__bar i");
-  if (!barra) return;
-  const pct = { installing: 35, installed: 72, activating: 90, activated: 100 }[estado];
-  if (pct != null) barra.style.width = pct + "%";
+  const pct = { installing: 35, installed: 72, activating: 90, activated: 90 }[estado];
+  if (pct != null) _upFloor = Math.max(_upFloor, pct);
+  _upAnimarBarra(); // garante o loop vivo (no-op se já roda ou já fechou)
 }
 function enviarSkipWaiting(worker) {
   try { worker && worker.postMessage && worker.postMessage("SKIP_WAITING"); } catch (e) {}
@@ -17382,8 +17415,16 @@ function swRecarregarUmaVez() {
   try { if (sessionStorage.getItem("fiopulse:swReloaded") === "1") return; } catch (e) {}
   _swRecarregou = true;
   try { sessionStorage.setItem("fiopulse:swReloaded", "1"); } catch (e) {}
-  progressoAtualizacao("activated");
-  window.__swReload();
+  // Palco mínimo: worker rápido (controllerchange quase junto da tela) espera o
+  // resto dos ~2s; worker lento (decorrido já passou do mínimo) fecha na hora.
+  // Fecho: barra salta pra 100%, pausa ~250ms (barra completa VISTA) e recarrega.
+  const decorrido = _upT0 ? Date.now() - _upT0 : UP_MIN_MS;
+  setTimeout(() => {
+    _upDone = true;
+    if (_upRaf) { cancelAnimationFrame(_upRaf); _upRaf = 0; }
+    _upSetLargura(100);
+    setTimeout(() => window.__swReload(), UP_HOLD_MS);
+  }, Math.max(0, UP_MIN_MS - decorrido));
 }
 
 // PWA: registra o service worker + atualização CONTROLADA.
