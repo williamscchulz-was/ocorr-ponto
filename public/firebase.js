@@ -2794,6 +2794,56 @@
       }
     };
 
+    // Termo do canal de denúncias (2º gate do 1º acesso, DEPOIS da adesão). ESPELHO do
+    // termoAdesao acima: self-write create-only em /termoCanalDenuncia/{uid}, imutável, mesmos
+    // 6 campos + funcionarioId == users/{uid}.funcionarioId + versao/hash CRAVADOS na regra.
+    window.verificarTermoCanalDenuncia = async function (tentativas) {
+      const n = Math.max(1, tentativas || 1);
+      const uidT = (auth.currentUser && auth.currentUser.uid) || (currentUser() && currentUser().id);
+      if (!uidT) { state.termoCanalOk = null; return null; }
+      for (let i = 0; i < n; i++) {
+        try {
+          const t = await db.collection("termoCanalDenuncia").doc(String(uidT)).get();
+          state.termoCanalOk = t.exists && t.data().versao === TERMO_CANAL_VERSAO;
+          return state.termoCanalOk;
+        } catch (e) {
+          debug?.("[colab] termo canal (tentativa " + (i + 1) + "):", e?.message || e);
+          if (i < n - 1) await new Promise((r) => setTimeout(r, 1200));
+        }
+      }
+      state.termoCanalOk = null;
+      return null;
+    };
+
+    window.registrarTermoCanalDenuncia = async function () {
+      const user = auth.currentUser;
+      if (!user) return { ok: false, msg: "Sessão expirada. Entre de novo." };
+      const u = currentUser();
+      if (!u || u.role !== "colaborador" || !u.funcionarioId)
+        return { ok: false, msg: "Termo indisponível para este acesso." };
+      const ref = db.collection("termoCanalDenuncia").doc(user.uid);
+      try {
+        await ref.set({
+          uid: user.uid,
+          funcionarioId: u.funcionarioId,
+          versao: TERMO_CANAL_VERSAO,
+          hashSha256: TERMO_CANAL_HASH,
+          em: firebase.firestore.FieldValue.serverTimestamp(),
+          userAgent: String(navigator.userAgent || "").slice(0, 200),
+        });
+        state.termoCanalOk = true;
+        window.logEvento?.({ tipo: "acessos", acao: "Aceitou o termo do canal de denúncias", alvo: `termo ${TERMO_CANAL_VERSAO}` });
+        return { ok: true };
+      } catch (e) {
+        // create-only: doc já existe (aceitou num acesso anterior) → já ok, não quebra.
+        try {
+          const snap = await ref.get();
+          if (snap.exists) { state.termoCanalOk = true; return { ok: true, jaExistia: true }; }
+        } catch (e2) { /* leitura de confirmação falhou; cai no erro genérico abaixo */ }
+        return { ok: false, msg: "Não consegui registrar o aceite: " + (e?.message || e) };
+      }
+    };
+
     // Import Banco de Horas: substituição completa em /bancoHoras
     window.doImportBancoHorasFirebase = async function (entries) {
       const u = currentUser();
@@ -4181,6 +4231,9 @@
       // primeiras leituras com "client is offline"; sem retry, o aceite EXISTENTE virava
       // null e o gate reaparecia toda abertura. 3 tentativas com respiro.
       state.termoAdesaoOk = await window.verificarTermoAdesao(3);
+      // Termo do canal de denúncias (2º gate, mesma mecânica). Lido em paralelo; a ORDEM de
+      // exibição (adesão primeiro, canal depois) é decidida no render (renderPortalColaborador).
+      state.termoCanalOk = await window.verificarTermoCanalDenuncia(3);
       })(),
       ]);
       return;

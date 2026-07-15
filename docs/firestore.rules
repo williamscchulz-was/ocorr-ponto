@@ -614,6 +614,28 @@ service cloud.firestore {
     // congelado (docs/termo-adesao-2026-07-v1.txt, LF) ancoram QUAL texto foi aceito, fora do
     // controle unilateral da empresa. Bump de versao = novo hash aqui + readesao.
 
+    // ===== Termo do canal de denuncias (peca final da trilogia · ciencia no 1o acesso) =====
+    // ESPELHO EXATO do termoAdesao acima: um registro por pessoa (id = uid), IMUTAVEL, dado no
+    // primeiro acesso DEPOIS da adesao (o app so mostra o gate se este doc NAO existir). Vive no
+    // 1o acesso de proposito: se o aceite morasse na porta do canal de denuncia, a data da
+    // assinatura entregaria quem usou o canal (Lei 14.457/2022); no 1o acesso todo mundo aceita
+    // no mesmo momento e nada correlaciona a assinatura ao uso. Ler: o proprio dono E o gestor.
+    match /termoCanalDenuncia/{uid} {
+      allow read: if isAuthed() && (request.auth.uid == uid || isAdmin() || temCap('documentos.gerenciar', isRH()));
+      allow create: if isAuthed()
+                  && request.auth.uid == uid
+                  && request.resource.data.uid == uid
+                  && request.resource.data.keys().hasOnly(['uid', 'funcionarioId', 'versao', 'hashSha256', 'em', 'userAgent'])
+                  && euSouODono(request.resource.data.funcionarioId)
+                  && request.resource.data.versao == '2026-07-v1'
+                  && request.resource.data.hashSha256 == 'f7bf0960ff6e24f20800b414ed3d354e0e0291417996842a552984b87dbc830a'
+                  && request.resource.data.userAgent is string
+                  && request.resource.data.em == request.time;
+      allow update, delete: if false;
+    }
+    // versao + hashSha256 CRAVADOS (docs/termo-canal-denuncia-2026-07-v1.txt, LF), mesma ancora
+    // do adesao. Bump de versao = novo hash aqui + reaceite.
+
     // ===== Mural de aniversario (celebracao social entre colegas) =====
     // postId "aniv-{slug}-{ano}" (aniversario) OU "bv-{slug}-{anoAdmissao}" (boas-vindas
     // a recem-contratados, 2026-07-09; mesmo sistema de reacao, so muda o tipo). NAO exige

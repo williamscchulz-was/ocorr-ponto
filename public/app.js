@@ -1120,12 +1120,101 @@ function mostrarTermoAdesao() {
     const res = await window.registrarTermoAdesao?.();
     if (res && res.ok) {
       state.termoAdesaoOk = true;
+      state._termoAdesaoAceitoAgora = true; // canal de denúncias espera o próximo acesso (não empilha)
       ov.remove();
       renderApp(); // re-render já com o app liberado
       // Cerimônia "Termo aceito": o gate é delicado, então NÃO bloqueia (o app já foi
       // liberado atrás) — fecha sozinha em ~2.5s ou no toque. A cerimônia dá o toque na
       // mão (substitui o vibrar(20) antigo).
       mostrarCerimonia({ titulo: "Termo aceito", subtitulo: "Sua adesão à assinatura eletrônica ficou registrada. Agora é só usar o app." });
+    } else {
+      toast((res && res.msg) || "Não consegui registrar o aceite. Tente de novo.", "danger");
+    }
+  }));
+}
+
+// Termo do canal de denúncias (peça final da trilogia). 2º gate do 1º acesso, DEPOIS da
+// adesão (a ordem é decidida em renderPortalColaborador). Liturgia IDÊNTICA ao gate de
+// adesão: overlay bloqueante (sem X, sem Esc), texto rolável, nome/CPF auto-preenchidos,
+// botão trava até marcar. Texto VERBATIM do mock docs/mockups/termo-denuncia-2026-07.html.
+// O aceite mora no 1º acesso de propósito: se morasse na porta do canal, a data entregaria
+// quem usou o canal (Lei 14.457/2022). Registro imutável em /termoCanalDenuncia/{uid}.
+function mostrarTermoCanalDenuncia() {
+  if (document.getElementById("termo-canal-overlay")) return; // já montado
+  if (state.termoCanalOk === null && typeof window.verificarTermoCanalDenuncia === "function") {
+    window.verificarTermoCanalDenuncia(2).then((ok) => {
+      if (ok === true) document.getElementById("termo-canal-overlay")?.remove();
+    }).catch(() => {});
+  }
+  const fColab = (state.funcionarios && state.funcionarios[0]) || null;
+  const u = currentUser();
+  const nome = escapeHtml((fColab && fColab.nome) || (u && u.nome) || "");
+  let cpfRaw = ""; try { cpfRaw = localStorage.getItem("fiopulse:ultimoCpf") || ""; } catch {}
+  const cpf = escapeHtml(_formatarCpf(cpfRaw));
+  const local = "Indaial, SC"; // sede, local fixo (registro é imutável; aceites antigos permanecem)
+  const dataExt = escapeHtml(new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }));
+  const c = (v, dica) => `<span class="termo-campo" title="${escapeHtml(dica || "preenchido com os seus dados")}">${v}</span>`;
+
+  const ov = document.createElement("div");
+  ov.id = "termo-canal-overlay";
+  ov.className = "termo-ov";
+  ov.innerHTML = `
+    <div class="termo-card" role="dialog" aria-modal="true" aria-labelledby="termo-canal-titulo">
+      <h2 class="termo-card__t" id="termo-canal-titulo">Termo do canal de denúncias</h2>
+      <div class="termo-card__s">Leia e dê o seu aceite pra continuar.</div>
+      <div class="termo-box" tabindex="0">
+        <p>Seja bem-vindo(a) ao Canal de Denúncias da Fiobras. Este é um canal exclusivo para a comunicação segura e anônima de condutas antiéticas ou que violem os princípios éticos, os padrões de conduta, a legislação vigente ou a proteção de dados. Eu, ${c(nome)}, portador(a) do CPF nº ${c(cpf)}, declaro ter lido e compreendido as disposições a seguir.</p>
+        <p><b>1. Do propósito.</b> As denúncias registradas são recebidas e avaliadas diretamente pela direção da Fiobras, com sigilo absoluto. A Fiobras tem o compromisso de entender e tratar adequadamente cada situação que viole suas diretrizes e valores.</p>
+        <p><b>2. Do anonimato.</b> A identificação é sempre opcional. Por padrão, a denúncia é anônima por construção: o aplicativo não registra quem a enviou. Caso você opte por se identificar, esses dados ficam visíveis apenas para a direção e servem somente para eventual retorno sobre o caso.</p>
+        <p><b>3. Da responsabilidade.</b> A veracidade das informações é de responsabilidade de quem relata. Todas as informações são verificadas durante a apuração, e as ações decorrentes são tomadas a critério da Fiobras, respeitando os princípios éticos, morais e legais.</p>
+        <p><b>4. Do acompanhamento e da integridade.</b> Ao enviar, você recebe um código de acompanhamento. Com ele, pode consultar o andamento da apuração a qualquer momento, sem se identificar. O mesmo código também comprova o conteúdo exato do seu relato.</p>
+        <p><b>5. Da guarda dos registros (LGPD).</b> Em conformidade com a Lei nº 13.709/2018, as denúncias concluídas são mantidas por 5 anos como registro de compliance e, depois desse prazo, eliminadas automaticamente.</p>
+        <p>Para assuntos não contemplados por este canal, você também pode falar diretamente com a Gestão de Pessoas pelo email jenifer@fiobras.com.br.</p>
+        <p>Declaro ter lido e compreendido este termo, firmando a minha ciência livremente.</p>
+        <p>${c(local)}, ${c(dataExt)}.</p>
+        <p>Nome completo: ${c(nome)}. CPF: ${c(cpf)}. Ciência eletrônica registrada no ato.</p>
+      </div>
+      <label class="termo-aceite" for="termo-canal-chk">
+        <input type="checkbox" id="termo-canal-chk" />
+        <span>Li e concordo com o termo acima</span>
+      </label>
+      <button class="btn btn--primary btn--block btn--lg" id="termo-canal-aceitar" disabled>Aceitar e continuar</button>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const chk = ov.querySelector("#termo-canal-chk");
+  const btn = ov.querySelector("#termo-canal-aceitar");
+  chk.addEventListener("change", () => { btn.disabled = !chk.checked; });
+  // Focus trap: mesmo padrão do gate de adesão (bloqueante, sem X nem Esc).
+  const card = ov.querySelector(".termo-card");
+  card.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const focaveis = Array.from(card.querySelectorAll(FOCAVEIS_SEL))
+      .filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (focaveis.length === 0) { e.preventDefault(); return; }
+    const primeiro = focaveis[0];
+    const ultimo = focaveis[focaveis.length - 1];
+    if (e.shiftKey && document.activeElement === primeiro) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primeiro.focus();
+    }
+  });
+  setTimeout(() => { const alvo = card.querySelector(FOCAVEIS_SEL) || card; alvo.focus(); }, 50);
+  btn.addEventListener("click", () => withBusy("termo-canal-aceitar", btn, async () => {
+    const res = await window.registrarTermoCanalDenuncia?.();
+    if (res && res.ok) {
+      state.termoCanalOk = true;
+      ov.remove();
+      renderApp();
+      // Cerimônia curta (mesma primitiva do anel), com a nota de registro imutável + versão.
+      mostrarCerimonia({
+        titulo: "Termo aceito",
+        subtitulo: "Seu aceite ao termo do canal de denúncias ficou registrado.",
+        detalheHtml: `<span class="cer__premio">${cpIcon("lock")}<span>Registro imutável · versão ${TERMO_CANAL_VERSAO}</span></span>`,
+      });
     } else {
       toast((res && res.msg) || "Não consegui registrar o aceite. Tente de novo.", "danger");
     }
@@ -1243,13 +1332,18 @@ function renderPortalColaborador(u) {
   renderNavColaborador();
   renderBottomNavColaborador();
   renderViewColaborador();
-  // 1º acesso, na ordem: (1) troca obrigatória de senha, depois (2) termo de adesão.
+  // 1º acesso, na ordem: (1) troca obrigatória de senha, (2) termo de adesão, (3) termo do
+  // canal de denúncias. UM gate por acesso: com a adesão pendente, o canal nem aparece; quem
+  // aceita a adesão AGORA só vê o canal no PRÓXIMO acesso (onboarding leve, mock aprovado).
   if (u.precisaTrocarSenha) { mostrarTrocaSenha(); return; }
   // Termo de adesão (1º acesso): SÓ com sessão real (o boot do colaborador seta
   // termoAdesaoOk true/false/null; em modo demo/prévia fica undefined → nunca mostra).
   // false = precisa aceitar; null = leitura de rede falhou, mostra mesmo assim (o
   // registrarTermoAdesao trata o "já existe" e não trava pra sempre).
-  if (state.termoAdesaoOk === false || state.termoAdesaoOk === null) mostrarTermoAdesao();
+  if (state.termoAdesaoOk === false || state.termoAdesaoOk === null) { mostrarTermoAdesao(); return; }
+  // Termo do canal de denúncias: só DEPOIS da adesão resolvida. Se a adesão foi aceita neste
+  // mesmo acesso (_termoAdesaoAceitoAgora), o canal espera o próximo (não empilha 2 gates).
+  if (!state._termoAdesaoAceitoAgora && (state.termoCanalOk === false || state.termoCanalOk === null)) mostrarTermoCanalDenuncia();
 }
 
 const COLAB_NAV = [
@@ -5256,6 +5350,7 @@ function renderVagas() {
       ${x.status !== "encerrada" ? `<button class="btn btn--ghost btn--sm" data-vaga-editar="${escapeHtml(x.id)}">Editar</button>` : ""}
       ${x.status === "rascunho" ? `<button class="btn btn--primary btn--sm" data-vaga-publicar="${escapeHtml(x.id)}">Publicar</button>` : ""}
       ${x.status !== "publicada" ? `<button class="btn btn--ghost btn--sm" data-vaga-excluir="${escapeHtml(x.id)}">Excluir</button>` : ""}
+      ${x.status === "publicada" ? `<button class="btn btn--ghost btn--sm" data-vaga-link="${escapeHtml(x.id)}"><span data-cop-lbl>Copiar link</span></button>` : ""}
       ${x.status === "publicada" ? `<button class="btn btn--ghost btn--sm" data-vaga-encerrar="${escapeHtml(x.id)}">Encerrar</button>` : ""}
     </div>
     ${candAberta === x.id ? painelHtml(x.id) : ""}`;
@@ -5407,6 +5502,11 @@ function renderVagas() {
       try { await window.excluirVaga(b.dataset.vagaExcluir); await window.carregarVagasGestor?.(); toast("Vaga excluída."); renderApp(); }
       catch (e) { toast("Não excluiu: " + (e?.message || e), "danger"); }
     });
+  }));
+  $$("#view [data-vaga-link]").forEach((b) => b.addEventListener("click", () => {
+    // Link de divulgação da vaga PUBLICADA (mesmo deep-link #vaga=<id> do site público).
+    // Reusa denCopiar (clipboard + rótulo inline "Copiado" + toast); rascunho/encerrada não têm a ação.
+    denCopiar("https://vagas.fiobras.com.br/#vaga=" + encodeURIComponent(b.dataset.vagaLink), b, "Link copiado.");
   }));
   $$("#view [data-cand-toggle]").forEach((el) => el.addEventListener("click", () => {
     const id = el.dataset.candToggle;
@@ -17243,7 +17343,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.85.0";
+window.CURRENT_VERSION = "1.86.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

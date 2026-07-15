@@ -63,6 +63,12 @@ const TERMO_VERSAO = "2026-07-v1";
 // regra Firestore: o aceite so vale se hashSha256 == este valor. Ancora QUAL texto foi aceito.
 const TERMO_HASH = "931a476238918cb6e771e30238b307403606b224b1b32745ce21f6197e16c805";
 
+// Termo do canal de denuncias (2o gate do 1o acesso, depois da adesao). Mesma mecanica:
+// versao + hash do texto canonico congelado (docs/termo-canal-denuncia-2026-07-v1.txt, LF)
+// CRAVADOS na regra Firestore (/termoCanalDenuncia/{uid}). Bumpar aqui forca o gate a voltar.
+const TERMO_CANAL_VERSAO = "2026-07-v1";
+const TERMO_CANAL_HASH = "f7bf0960ff6e24f20800b414ed3d354e0e0291417996842a552984b87dbc830a";
+
 // ---------- Segurança / validação ----------
 // Escapa HTML pra evitar XSS quando interpolando dados de usuário em
 // innerHTML. Aplicar em: nomes, observações, CNPJs, razão social,
