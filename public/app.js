@@ -15220,7 +15220,7 @@ function bindAditivosPJ(pjId) {
         a.dataVigencia && a.dataVigencia !== a.data ? `vigência ${formatDateFull(a.dataVigencia)}` : "",
         a.criadoPor ? (getUser(a.criadoPor)?.nome || "") : "",
       ].filter(Boolean).join(" · ");
-      const tip = (a.descricao || "—") + (meta ? " — " + meta : "");
+      const tip = (a.descricao || "—") + (meta ? " · " + meta : "");
       return `
       <div class="pj-adv-row">
         <span class="pj-adv-date">${a.data ? formatDate(a.data) : "—"}</span>
@@ -15760,6 +15760,34 @@ function renderDenuncias() {
   });
 }
 
+// SELO DE 24 HORAS: mesma régua da regra (concluidaEm + 24h). Denúncia legada sem
+// carimbo não sela (concValida=false) e segue editável até ganhar conclusão carimbada.
+const DEN_MS24 = 24 * 3600 * 1000;
+function denConcluidaData(d) {
+  const c = d && d.concluidaEm ? new Date(d.concluidaEm) : null;
+  return c && !isNaN(c.getTime()) ? c : null;
+}
+function denEstaSelada(d) {
+  const c = denConcluidaData(d);
+  return denStatusDe(d) === "concluida" && c != null && Date.now() >= c.getTime() + DEN_MS24;
+}
+// "quinta-feira, 17 de julho, 14h30" (prazo vivo da janela).
+function denFmtPrazo(x) {
+  const wd = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(x);
+  const dm = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" }).format(x);
+  const hm = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(x).replace(":", "h");
+  return `${wd}, ${dm}, ${hm}`;
+}
+// "15 de julho de 2026, 14h30" (carimbo do selo).
+function denFmtSeloData(x) {
+  const dmy = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long", year: "numeric" }).format(x);
+  const hm = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(x).replace(":", "h");
+  return `${dmy}, ${hm}`;
+}
+
+// Dossiê de apuração (mock docs/mockups/apuracao-dossie-2026-07.html): 2 colunas no
+// desktop largo (relato | apuração), folha rolável no celular. data-den-estado dirige
+// os 3 avisos do selo de 24h (concluir/janela/selado), como no mock.
 function denAbrirDetalhe(id) {
   const d = (state.denuncias || []).find((x) => x.id === id);
   if (!d) return;
@@ -15767,6 +15795,9 @@ function denAbrirDetalhe(id) {
   const anon = !d.contato;
   const rot = DEN_CAT_ROT[d.categoria] || "Outro";
   const cls = DEN_CAT_ROT[d.categoria] ? d.categoria : "outro";
+  const conc = denConcluidaData(d);
+  const seladoInicial = denEstaSelada(d);
+  const jaConcluidaInicial = st === "concluida" && conc != null;
   const contatoHtml = anon
     ? `<div class="den-contact-none">${DEN_ESC}<span>Enviada de forma anônima. Não há dados de contato, por escolha de quem enviou.</span></div>`
     : `<div class="den-contact">
@@ -15777,69 +15808,103 @@ function denAbrirDetalhe(id) {
   const dfIni = ["procedente", "improcedente", "sem-elementos"].includes(d.desfecho) ? d.desfecho : null;
   const dfBtn = (v, lab) => `<button class="den-dfopt ${dfIni === v ? "sel" : ""}" data-den-df="${v}" data-d="${v}">${lab}</button>`;
   const permIni = d.guardaPermanente === true;
+  // Mesma lógica de estadoUI() no 1º render: selado > janela (concluída com carimbo dentro
+  // da janela) > concluir (concluída sem carimbo/legada, relógio ainda não começou) > aberta.
+  const estadoIni = seladoInicial ? "selado" : (st === "concluida" ? (jaConcluidaInicial ? "janela" : "concluir") : "aberta");
+  const seloData = conc ? denFmtSeloData(new Date(conc.getTime() + DEN_MS24)) : "";
   openModal(`
-    <div class="den-mdl">
+    <div class="den-mdl" data-den-estado="${estadoIni}">
       <div class="den-mdl__hd">
-        <div class="den-mdl__chips"><span class="den-cchip den-cat--${cls}">${escapeHtml(rot)}</span>${denSeloHtml(anon)}${permIni ? `<span class="den-perm-tag">${DEN_LOCK}Permanente</span>` : ""}</div>
-        <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
-      </div>
-      <div class="den-mdl__when">Recebida em ${escapeHtml(denDataHora(d.em))}</div>
-      <div class="den-mdl__bd">
-        <div class="den-integ">
-          <span class="den-integ__ck">${DEN_ESC_CHECK}</span>
-          <div class="den-integ__tx"><b>Relato íntegro</b><span class="den-integ__hash">${escapeHtml(d.hash || "")}</span></div>
+        <div class="den-mdl__ttl">
+          <span class="den-mdl__kicker">Canal de denúncia</span>
+          <h2>Apuração da denúncia</h2>
         </div>
-        <div class="den-ptext">${escapeHtml(d.texto || "")}</div>
-        <div class="den-mblock">
-          <label>Contato</label>
+        <div class="den-mdl__hdright">
+          <span class="den-mdl__hdtag">${DEN_LOCK}Somente a direção</span>
+          <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+        </div>
+      </div>
+      <div class="den-mdl__body">
+        <section class="den-mdl__col den-mdl__col--relato">
+          <div class="den-mdl__eyebrow">O relato</div>
+          <div class="den-mdl__chips"><span class="den-cchip den-cat--${cls}">${escapeHtml(rot)}</span>${denSeloHtml(anon)}${permIni ? `<span class="den-perm-tag">${DEN_LOCK}Permanente</span>` : ""}</div>
+          <div class="den-mdl__when">Recebida em ${escapeHtml(denDataHora(d.em))}</div>
+          <div class="den-integ">
+            <span class="den-integ__ck">${DEN_ESC_CHECK}</span>
+            <div class="den-integ__tx"><b>Relato íntegro</b><span class="den-integ__hash">${escapeHtml(d.hash || "")}</span></div>
+          </div>
+          <div class="den-relato"><div class="den-ptext">${escapeHtml(d.texto || "")}</div></div>
           ${contatoHtml}
-        </div>
-        <div class="den-mblock">
-          <label>Status da apuração</label>
-          <div class="den-stopts" id="den-stopts">
-            ${stBtn("nova", "Nova")}${stBtn("em_analise", "Em análise")}${stBtn("concluida", "Concluída")}
-          </div>
-          <div class="den-desfecho ${st === "concluida" && !dfIni ? "pendente" : ""}" id="den-desfecho" ${st === "concluida" ? "" : "hidden"}>
-            <div class="dh">Desfecho <span class="req">obrigatório</span></div>
-            <div class="den-dfopts" id="den-dfopts">
-              ${dfBtn("procedente", "Procedente")}${dfBtn("improcedente", "Improcedente")}${dfBtn("sem-elementos", "Sem elementos suficientes")}
+        </section>
+        <section class="den-mdl__col den-mdl__col--apuracao">
+          <div class="den-mdl__eyebrow">A apuração</div>
+          <div class="den-selado">${DEN_LOCK}<span><b>Registro selado</b> em ${escapeHtml(seloData)}</span></div>
+          <div class="den-mblock">
+            <label>Status da apuração</label>
+            <div class="den-stopts" id="den-stopts">
+              ${stBtn("nova", "Nova")}${stBtn("em_analise", "Em análise")}${stBtn("concluida", "Concluída")}
             </div>
-            <div class="den-interno">${DEN_LOCK}<span>O desfecho fica no registro interno. O denunciante nunca vê.</span></div>
-            <div class="den-req-hint">${icon("alert")}<span>Escolha o desfecho para concluir a apuração.</span></div>
+            <div class="den-desfecho ${st === "concluida" && !dfIni ? "pendente" : ""}" id="den-desfecho" ${st === "concluida" ? "" : "hidden"}>
+              <div class="dh">Desfecho <span class="req">obrigatório</span></div>
+              <div class="den-dfopts" id="den-dfopts">
+                ${dfBtn("procedente", "Procedente")}${dfBtn("improcedente", "Improcedente")}${dfBtn("sem-elementos", "Sem elementos suficientes")}
+              </div>
+              <div class="den-interno">${DEN_LOCK}<span>O desfecho fica no registro interno. O denunciante nunca vê.</span></div>
+              <div class="den-req-hint">${icon("alert")}<span>Escolha o desfecho para concluir a apuração.</span></div>
+              <div class="den-aviso-24">${icon("clock")}<span><b>Ao concluir, você ainda pode ajustar esta apuração por 24 horas.</b> Depois disso, o registro é selado e não pode mais ser editado por ninguém.</span></div>
+            </div>
           </div>
-        </div>
-        <div class="den-mblock">
-          <label>Guarda permanente</label>
-          <button type="button" class="den-perm ${permIni ? "on" : ""}" id="den-perm" role="switch" aria-checked="${permIni}">
-            <span class="den-perm__sw"></span>
-            <span class="den-perm__tx"><b>Nunca expurgar este registro</b><span>Caso grave: este registro nunca é expurgado, nem após os 5 anos.</span></span>
-          </button>
-        </div>
-        <div class="den-mblock">
-          <label>Anotações da apuração</label>
-          <textarea id="den-nota" maxlength="2000" placeholder="Registro interno da direção. O denunciante nunca vê isto.">${escapeHtml(d.nota || "")}</textarea>
-          <div class="den-interno">${DEN_LOCK}<span>Visível apenas para a direção.</span></div>
-        </div>
-      </div>
-      <div class="den-mdl__foot">
-        <button class="btn btn--primary" id="den-salvar">Salvar apuração</button>
-        <div id="den-ret-slot">${denRetencaoHtml(d, st, permIni)}</div>
+          <div class="den-mblock">
+            <label>Guarda permanente</label>
+            <button type="button" class="den-perm ${permIni ? "on" : ""}" id="den-perm" role="switch" aria-checked="${permIni}">
+              <span class="den-perm__sw"></span>
+              <span class="den-perm__tx"><b>Nunca expurgar este registro</b><span>Caso grave: este registro nunca é expurgado, nem após os 5 anos.</span></span>
+            </button>
+          </div>
+          <div class="den-mblock den-mblock--notas">
+            <label>Anotações da apuração</label>
+            <textarea id="den-nota" maxlength="2000" placeholder="Registro interno da direção. O denunciante nunca vê isto.">${escapeHtml(d.nota || "")}</textarea>
+            <div class="den-interno">${DEN_LOCK}<span>Visível apenas para a direção.</span></div>
+          </div>
+          <div class="den-mdl__foot">
+            <button class="btn btn--primary" id="den-salvar">Salvar apuração</button>
+            <div id="den-ret-slot">${denRetencaoHtml(d, st, permIni, estadoIni)}</div>
+          </div>
+        </section>
       </div>
     </div>
-  `, { className: "modal--den" });
+  `, { className: "modal--den modal--wide" });
 
-  let stSel = st, dfSel = dfIni, permSel = permIni;
   const root = $("#modal-root");
+  const mdl = root.querySelector(".den-mdl");
+  // Selado: registro imutável (mesma régua da regra). Trava tudo, esconde Salvar e
+  // não arma os handlers de mutação — só fechar. Legada sem carimbo NÃO sela.
+  if (seladoInicial) {
+    root.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+    root.querySelector("#den-nota")?.setAttribute("readonly", "readonly");
+    return;
+  }
+
+  let stSel = st, dfSel = dfIni, permSel = permIni, reabriu = false;
   const desf = root.querySelector("#den-desfecho");
   const slot = root.querySelector("#den-ret-slot");
-  const atualizarRet = () => { slot.innerHTML = denRetencaoHtml(d, stSel, permSel); };
+  const estadoUI = () => {
+    if (stSel === "concluida") return (jaConcluidaInicial && !reabriu) ? "janela" : "concluir";
+    return "aberta";
+  };
+  const sincronizar = () => {
+    const e = estadoUI();
+    mdl.setAttribute("data-den-estado", e);
+    slot.innerHTML = denRetencaoHtml(d, stSel, permSel, e);
+  };
   root.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
   root.querySelectorAll("[data-den-st]").forEach((o) => o.addEventListener("click", () => {
     stSel = o.dataset.denSt;
+    if (stSel !== st) reabriu = true; // saiu do status inicial: re-conclusão vira "concluir" (aviso âmbar)
     root.querySelectorAll("[data-den-st]").forEach((x) => x.classList.toggle("sel", x === o));
     desf.hidden = stSel !== "concluida";
     if (stSel !== "concluida") desf.classList.remove("pendente");
-    atualizarRet();
+    sincronizar();
   }));
   root.querySelectorAll("[data-den-df]").forEach((o) => o.addEventListener("click", () => {
     dfSel = o.dataset.denDf;
@@ -15852,7 +15917,7 @@ function denAbrirDetalhe(id) {
     permSel = !permSel;
     permBtn.classList.toggle("on", permSel);
     permBtn.setAttribute("aria-checked", String(permSel));
-    atualizarRet();
+    sincronizar();
     // Selo vivo no header (WYSIWYG): reflete o toggle sem esperar salvar.
     const tag = chips.querySelector(".den-perm-tag");
     if (permSel && !tag) chips.insertAdjacentHTML("beforeend", `<span class="den-perm-tag">${DEN_LOCK}Permanente</span>`);
@@ -15871,20 +15936,21 @@ function denAbrirDetalhe(id) {
   });
 }
 
-// Rodapé de retenção do modal: guarda permanente > concluída-com-datas > mensagem geral.
-// Piso de 5 anos (Lei 14.457/2022). A data prevista de expurgo = conclusão + 5 anos.
-function denRetencaoHtml(d, stSel, permSel) {
+// Rodapé de retenção do modal (piso 5 anos, Lei 14.457/2022). Prioridade:
+// guarda permanente > janela viva (selo 24h) > selado (expurgo +5a) > mensagem geral.
+function denRetencaoHtml(d, stSel, permSel, estado) {
   if (permSel) {
     return `<div class="den-retencao den-retencao--perm">${DEN_ESC}<span><b>Guarda permanente:</b> este registro não expira, nem após os 5 anos.</span></div>`;
   }
   const fmtDia = (x) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(x);
-  const conc = d && d.concluidaEm ? new Date(d.concluidaEm) : null;
-  if (stSel === "concluida" && conc && !isNaN(conc.getTime())) {
+  const conc = denConcluidaData(d);
+  if (estado === "janela" && conc) {
+    const fim = new Date(conc.getTime() + DEN_MS24);
+    return `<div class="den-retencao den-retencao--janela">${icon("clock")}<span><b>Ajustes possíveis até ${escapeHtml(denFmtPrazo(fim))}.</b> Depois, o registro sela.<span class="den-retencao__sub">Mantida por 5 anos (Lei 14.457/2022) e depois expurgada automaticamente.</span></span></div>`;
+  }
+  if (estado === "selado" && conc) {
     const exp = new Date(conc); exp.setFullYear(exp.getFullYear() + 5);
-    if (Date.now() >= exp.getTime()) {
-      return `<div class="den-retencao den-retencao--expurgo">${icon("trash")}<span>Concluída em ${fmtDia(conc)}. Passados os <b>5 anos</b> de retenção, será expurgada automaticamente.</span></div>`;
-    }
-    return `<div class="den-retencao">${icon("clock")}<span>Concluída em ${fmtDia(conc)}. Mantida por <b>5 anos</b> (registro de compliance, Lei 14.457/2022) e depois expurgada automaticamente. Expurgo previsto para ${fmtDia(exp)}.</span></div>`;
+    return `<div class="den-retencao den-retencao--expurgo">${icon("trash")}<span>Concluída em ${fmtDia(conc)}. Mantida por <b>5 anos</b> (Lei 14.457/2022) e depois expurgada automaticamente. Expurgo previsto para <b>${fmtDia(exp)}</b>.</span></div>`;
   }
   return `<div class="den-retencao">${icon("clock")}<span>Denúncias concluídas são mantidas por <b>5 anos</b> (registro de compliance, Lei 14.457/2022) e depois expurgadas automaticamente.</span></div>`;
 }
@@ -17343,7 +17409,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.86.0";
+window.CURRENT_VERSION = "1.87.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -17659,10 +17725,11 @@ document.addEventListener("DOMContentLoaded", () => {
 // novo em progresso). Some com o reload. Funções globais (o probe as exercita).
 // ============================================================
 let _upScreenEl = null;
-let _upT0 = 0;    // quando a tela entrou no palco (âncora do tempo mínimo)
-let _upFloor = 0; // piso de progresso vindo dos estados reais do SW
-let _upRaf = 0;
+let _upT0 = 0;      // quando a tela entrou no palco (âncora do tempo mínimo)
+let _upFloor = 0;   // ALVO semântico vindo dos estados reais do SW (sobe por estado, nunca recua)
+let _upAnim = null; // animação WAAPI corrente da barra (transform: scaleX, COMPOSITADO)
 let _upDone = false;
+let _upFallback = 0; // timer de segurança: solta o boot se o SW não assumir
 // Tempo MÍNIMO de palco (William 2026-07-15, "aparece muito rápido"): mesmo que o
 // worker assuma em milissegundos, a tela fica ~2s antes do reload — mesmo princípio
 // do __splashMin do splash. E a barra pausa ~250ms cheia (a pessoa VÊ os 100%).
@@ -17689,38 +17756,46 @@ function mostrarTelaAtualizacao() {
   requestAnimationFrame(() => el.classList.add("show"));
   _upScreenEl = el;
   _upT0 = Date.now();
-  _upAnimarBarra();
+  // A barra NASCE em 0 e enche progressivamente até 90% ao longo do palco mínimo (~2s);
+  // os estados reais do SW (floor) só REALVEJAM esse alvo, nunca o ponto de partida. Os
+  // 100% são exclusivos do fecho. Movimento COMPOSITADO (transform: scaleX) pra não
+  // engasgar com o boot rodando na main thread (bug William v353: "começa quase cheia").
+  _upAnimarBarra(0.9, UP_MIN_MS);
   return el;
 }
-function _upSetLargura(pct) {
-  const barra = _upScreenEl && _upScreenEl.querySelector(".up-screen__bar i");
-  if (barra) barra.style.width = pct + "%";
+// Fração exibida AGORA (scaleX da matrix computada): o retarget parte da posição real.
+function _upFrac() {
+  const i = _upScreenEl && _upScreenEl.querySelector(".up-screen__bar i");
+  if (!i) return 0;
+  const t = getComputedStyle(i).transform;
+  if (!t || t === "none") return 0;
+  const m = t.match(/matrix\(([^)]+)\)/);
+  return m ? Math.max(0, Math.min(1, parseFloat(m[1].split(",")[0]) || 0)) : 0;
 }
-// Barra por rAF (nunca CSS transition, que um re-render ressuscita): enche com
-// ease-out até ~90% ao longo do palco mínimo. Os estados reais do SW são um PISO
-// (worker mais lento que o mínimo → a barra acompanha os estados; o mínimo não é
-// teto). prefereMenosMovimento: mantém o tempo mínimo, mas sem o flourish do
-// easing — a barra anda em passos discretos (quartos do palco).
-function _upAnimarBarra() {
-  if (_upRaf || _upDone) return;
-  const passo = () => {
-    _upRaf = 0;
-    if (!_upScreenEl || _upDone) return;
-    const frac = Math.min(1, (Date.now() - _upT0) / UP_MIN_MS);
-    let base = 90 * (1 - Math.pow(1 - frac, 3)); // ease-out cúbico
-    if (prefereMenosMovimento()) base = Math.floor(frac * 4) / 4 * 90;
-    _upSetLargura(Math.round(Math.min(90, Math.max(_upFloor, base)) * 10) / 10);
-    _upRaf = requestAnimationFrame(passo);
-  };
-  _upRaf = requestAnimationFrame(passo);
+// Anima a barra (transform: scaleX, compositado) da posição atual até `alvo`. Monotônica:
+// nunca recua. prefereMenosMovimento: passos discretos (steps), ainda nascendo do 0.
+function _upAnimarBarra(alvo, dur) {
+  const i = _upScreenEl && _upScreenEl.querySelector(".up-screen__bar i");
+  if (!i || _upDone) return;
+  alvo = Math.max(0, Math.min(1, alvo));
+  const de = _upFrac();
+  if (alvo <= de + 0.001) return; // já está lá (ou à frente): não recua nem re-anima à toa
+  if (_upAnim) { try { _upAnim.cancel(); } catch (e) {} _upAnim = null; }
+  i.style.transform = `scaleX(${de})`; // trava a posição atual (evita flash pro 0 no retarget)
+  _upAnim = i.animate(
+    [{ transform: `scaleX(${de})` }, { transform: `scaleX(${alvo})` }],
+    { duration: Math.max(1, dur), easing: prefereMenosMovimento() ? "steps(4)" : "cubic-bezier(.2,.8,.2,1)", fill: "forwards" }
+  );
 }
-// Estados do worker novo (installing → installed → activating) só ELEVAM o piso;
-// quem pinta a barra é o loop rAF (suave, monotônica, nunca salta pra trás). Os
-// 100% são exclusivos do fecho em swRecarregarUmaVez (pausa e recarrega).
+// Estados do worker novo (installing→installed→activating) ELEVAM o alvo semântico
+// (_upFloor, nunca recua) e a barra ACELERA até esse piso pelo resto do palco mínimo.
+// Os 100% são exclusivos do fecho em swRecarregarUmaVez.
 function progressoAtualizacao(estado) {
   const pct = { installing: 35, installed: 72, activating: 90, activated: 90 }[estado];
-  if (pct != null) _upFloor = Math.max(_upFloor, pct);
-  _upAnimarBarra(); // garante o loop vivo (no-op se já roda ou já fechou)
+  if (pct == null) return;
+  _upFloor = Math.max(_upFloor, pct);
+  const resta = _upT0 ? UP_MIN_MS - (Date.now() - _upT0) : UP_MIN_MS;
+  _upAnimarBarra(_upFloor / 100, Math.max(400, resta));
 }
 function enviarSkipWaiting(worker) {
   try { worker && worker.postMessage && worker.postMessage("SKIP_WAITING"); } catch (e) {}
@@ -17728,9 +17803,26 @@ function enviarSkipWaiting(worker) {
 // Aplica a atualização achada no boot: mostra a tela, reflete o estado atual e manda
 // o SW ativar. O controllerchange (abaixo) recarrega 1x quando ele assume.
 function aplicarAtualizacaoBoot(worker) {
+  // CORTA o boot pesado por baixo (bug William v353): vamos recarregar em ~2s, então
+  // nada de restaurar sessão / carregar dados / renderizar o app por baixo da tela
+  // (jank + trabalho jogado fora). O reload refaz o boot limpo; firebase.js checa esta
+  // flag no onAuthStateChanged.
+  window.__atualizandoApp = true;
   mostrarTelaAtualizacao();
   progressoAtualizacao(worker && worker.state ? worker.state : "installed");
   enviarSkipWaiting(worker);
+  // Rede de segurança: se o SW não assumir (controllerchange não vem) em ~8s, SOLTA o
+  // boot normal em vez de prender na tela de atualização. Marca o guard de reload ANTES
+  // (sessionStorage) pra o boot pós-reload NÃO re-exibir a tela (sem loop) e recarrega uma vez.
+  if (!_upFallback) {
+    const ms = window.__upFallbackMs || 8000;
+    _upFallback = setTimeout(() => {
+      if (_upDone) return; // já fechou pelo caminho normal
+      try { sessionStorage.setItem("fiopulse:swReloaded", "1"); } catch (e) {}
+      window.__atualizandoApp = false;
+      window.__swReload();
+    }, ms);
+  }
 }
 // Reload ÚNICO com guarda anti-loop (sessionStorage): nunca recarrega duas vezes
 // seguidas. window.__swReload é uma indireção pro reload (o probe a substitui por
@@ -17744,15 +17836,35 @@ function swRecarregarUmaVez() {
   try { sessionStorage.setItem("fiopulse:swReloaded", "1"); } catch (e) {}
   // Palco mínimo: worker rápido (controllerchange quase junto da tela) espera o
   // resto dos ~2s; worker lento (decorrido já passou do mínimo) fecha na hora.
-  // Fecho: barra salta pra 100%, pausa ~250ms (barra completa VISTA) e recarrega.
+  // Fecho: barra salta pra 100% (compositado), pausa ~250ms (barra completa VISTA) e recarrega.
   const decorrido = _upT0 ? Date.now() - _upT0 : UP_MIN_MS;
   setTimeout(() => {
     _upDone = true;
-    if (_upRaf) { cancelAnimationFrame(_upRaf); _upRaf = 0; }
-    _upSetLargura(100);
+    if (_upFallback) { clearTimeout(_upFallback); _upFallback = 0; }
+    _upAnimarBarraFinal();
     setTimeout(() => window.__swReload(), UP_HOLD_MS);
   }, Math.max(0, UP_MIN_MS - decorrido));
 }
+// Fecho aos 100%: ignora a guarda monotônica de _upAnimarBarra (força o alvo 1).
+function _upAnimarBarraFinal() {
+  const i = _upScreenEl && _upScreenEl.querySelector(".up-screen__bar i");
+  if (!i) return;
+  const de = _upFrac();
+  if (_upAnim) { try { _upAnim.cancel(); } catch (e) {} _upAnim = null; }
+  i.style.transform = "scaleX(1)";
+  i.animate([{ transform: `scaleX(${de})` }, { transform: "scaleX(1)" }],
+    { duration: prefereMenosMovimento() ? 1 : 200, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
+}
+// Sonda pro probe (harness): estado interno da barra de atualização.
+window.__upDbg = () => ({ frac: _upFrac(), floor: _upFloor, done: _upDone, ativo: !!window.__atualizandoApp });
+// Reset SÓ pro harness (isola cenários da tela de atualização entre asserts). No-op em produção.
+window.__upReset = () => {
+  if (_upFallback) { clearTimeout(_upFallback); _upFallback = 0; }
+  if (_upScreenEl) { _upScreenEl.remove(); _upScreenEl = null; }
+  _upAnim = null; _upDone = false; _upFloor = 0; _upT0 = 0; _swRecarregou = false;
+  window.__atualizandoApp = false;
+  try { sessionStorage.removeItem("fiopulse:swReloaded"); } catch (e) {}
+};
 
 // PWA: registra o service worker + atualização CONTROLADA.
 // O SW novo ESPERA (sw.js não faz skipWaiting sozinho). No BOOT, se há um SW novo

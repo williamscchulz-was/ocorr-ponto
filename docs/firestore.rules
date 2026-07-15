@@ -1538,7 +1538,15 @@ service cloud.firestore {
             || ('desfecho' in request.resource.data.keys() && 'concluidaEm' in request.resource.data.keys()))
         // concluidaEm, quando escrito, e o instante do servidor (nunca data arbitraria do cliente).
         && (!('concluidaEm' in request.resource.data.diff(resource.data).affectedKeys())
-            || request.resource.data.concluidaEm == request.time);
+            || request.resource.data.concluidaEm == request.time)
+        // SELO DE 24 HORAS (William 2026-07-15): dentro da janela de 24h da conclusao o
+        // admin ainda ajusta (nota/desfecho/guarda) ou ate REABRE pra em_analise e
+        // re-conclui (a transicao re-carimba concluidaEm). Passadas as 24h o registro
+        // SELA: NENHUM update passa, nem do admin (fato novo = caso novo). Denuncia
+        // LEGADA concluida SEM concluidaEm: o default request.time faz a trava NAO pegar,
+        // segue editavel ate ganhar uma conclusao carimbada.
+        && !( resource.data.status == 'concluida'
+              && resource.data.get('concluidaEm', request.time) < request.time - duration.value(24, 'h') );
       // Excluir = GOVERNANCA + LGPD (William 2026-07-16, "nao deveria poder deletar,
       // apenas tratar"): nem o admin apaga antes da hora. So sai denuncia CONCLUIDA,
       // depois do PISO de retencao de 5 anos (1825 dias) contados da conclusao, e

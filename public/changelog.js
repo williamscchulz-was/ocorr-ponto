@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.86.0", d: "16 jul 2026", current: true, items: [
+    v: "1.87.0", d: "16 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Apuracao de denuncia virou dossie de tela cheia no desktop: relato de um lado, apuracao do outro, nada de rolagem. E ganhou o selo de 24 horas: concluiu, tem um dia pra ajustes, depois o registro sela pra sempre, com avisos claros em cada momento." },
+      { type: "fix", title: "A barra da tela de atualizacao agora nasce vazia e enche suave ate o fim, sem travadas. O app tambem para de trabalhar escondido embaixo dela, entao a troca de versao ficou mais rapida." },
+    ],
+  },
+  {
+    v: "1.86.0", d: "16 jul 2026", items: [
       { type: "note", title: "No seu proximo acesso, o app apresenta o Termo do Canal de Denuncias: uma leitura rapida, um aceite unico, e fica registrado de forma imutavel. E a ciencia formal de como o canal funciona e protege voce." },
       { type: "feat", aud: "gestor", title: "Vagas: botao Copiar link na vaga publicada. Copia o link direto daquela vaga pra divulgar nos grupos, quem toca cai na pagina dela com o Candidatar-se na mao." },
     ],

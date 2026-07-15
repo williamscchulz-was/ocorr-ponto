@@ -66,6 +66,21 @@ before(async () => {
     await setDoc(doc(db, "denuncias/dSeedDelAntigaPerm"), { categoria: "violencia", ...seedTexto("Relato concluido ha seis anos MAS com guarda permanente."), em: new Date(), status: "concluida", desfecho: "procedente", concluidaEm: seisAnos, guardaPermanente: true });
     // ----- protocolo de acompanhamento (codigoAcompanhamento imutavel na /denuncias) -----
     await setDoc(doc(db, "denuncias/dSeedCodImut"), { categoria: "assedio-moral", ...seedTexto("Relato semeado com codigo de acompanhamento, imutavel."), em: new Date(), status: "nova", codigoAcompanhamento: "AC-7f3a9b2e5c1d8046" });
+    // ----- SELO DE 24 HORAS (William 2026-07-15): dentro da janela edita/reabre; passadas 24h sela -----
+    const tresHoras = new Date(Date.now() - 3 * 3600 * 1000);
+    const vinteCincoHoras = new Date(Date.now() - 25 * 3600 * 1000);
+    // concluidas ha 3h (DENTRO da janela -> ajuste/reabertura ainda passam)
+    for (const id of ["dSeal3hNota", "dSeal3hPerm", "dSeal3hReabrir"]) {
+      await setDoc(doc(db, "denuncias/" + id), { categoria: "assedio-moral", ...seedTexto("Relato concluido ha 3h, dentro da janela de ajuste."), em: new Date(), status: "concluida", desfecho: "improcedente", concluidaEm: tresHoras });
+    }
+    // concluidas ha 25h (FORA da janela -> selado: nenhum update passa, nem admin)
+    for (const id of ["dSeal25hNota", "dSeal25hDesf", "dSeal25hPerm", "dSeal25hReabrir"]) {
+      await setDoc(doc(db, "denuncias/" + id), { categoria: "assedio-moral", ...seedTexto("Relato concluido ha 25h, ja selado (fato novo = caso novo)."), em: new Date(), status: "concluida", desfecho: "procedente", concluidaEm: vinteCincoHoras });
+    }
+    // LEGADA: concluida SEM concluidaEm (anterior ao carimbo) -> a trava NAO pega, segue editavel
+    for (const id of ["dSealLegadaReabrir", "dSealLegadaCarimbar"]) {
+      await setDoc(doc(db, "denuncias/" + id), { categoria: "assedio-moral", ...seedTexto("Relato legado concluido sem carimbo de conclusao."), em: new Date(), status: "concluida", desfecho: "improcedente" });
+    }
   });
 });
 after(async () => { await env.cleanup(); });
@@ -210,11 +225,35 @@ test("ADMIN exclui concluida com mais de 5 anos (piso de retencao cumprido)", as
   assertSucceeds(deleteDoc(doc(admin(), "denuncias/dSeedDelAntiga"))));
 test("ADMIN NAO exclui concluida antiga marcada como guarda permanente (nunca expira)", async () =>
   assertFails(deleteDoc(doc(admin(), "denuncias/dSeedDelAntigaPerm"))));
-test("Desligar guardaPermanente e ENTAO excluir a concluida antiga PASSA", async () => {
-  await assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeedDelAntigaPerm"), { guardaPermanente: false }));
-  await assertSucceeds(deleteDoc(doc(admin(), "denuncias/dSeedDelAntigaPerm")));
-});
+// Selo de 24h fecha a antiga escotilha "desligar guardaPermanente e excluir": passada
+// a janela, guardaPermanente tambem CONGELA (cada campo NEGA), entao um registro
+// permanente + selado nao volta atras nem e excluido pela regra (para sempre = para
+// sempre). Purga real de um permanente selado so via console (fora das regras).
+test("Concluida antiga permanente + SELADA: desligar guardaPermanente NEGA (selado)", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeedDelAntigaPerm"), { guardaPermanente: false })));
+test("Concluida antiga permanente + SELADA: excluir segue NEGADO (segue permanente)", async () =>
+  assertFails(deleteDoc(doc(admin(), "denuncias/dSeedDelAntigaPerm"))));
 test("RH e COLABORADOR nao excluem denuncia", async () => {
   await assertFails(deleteDoc(doc(rh(), "denuncias/dSeedDelNegado")));
   await assertFails(deleteDoc(doc(colab(), "denuncias/dSeedDelNegado")));
 });
+
+// ---------- SELO DE 24 HORAS (dentro da janela ajusta/reabre; fora sela) ----------
+test("DENTRO da janela (concluida ha 3h): ADMIN ajusta nota PASSA", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeal3hNota"), { nota: "Ajuste dentro da janela de 24h." })));
+test("DENTRO da janela (concluida ha 3h): ADMIN liga guarda permanente PASSA", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeal3hPerm"), { guardaPermanente: true })));
+test("DENTRO da janela (concluida ha 3h): ADMIN reabre para em_analise PASSA", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeal3hReabrir"), { status: "em_analise" })));
+test("FORA da janela (concluida ha 25h): editar nota NEGA (selado)", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeal25hNota"), { nota: "Tentativa tardia de anotacao." })));
+test("FORA da janela (concluida ha 25h): trocar desfecho NEGA (selado)", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeal25hDesf"), { desfecho: "sem-elementos" })));
+test("FORA da janela (concluida ha 25h): ligar guarda permanente NEGA (selado)", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeal25hPerm"), { guardaPermanente: true })));
+test("FORA da janela (concluida ha 25h): reabrir para em_analise NEGA (selado)", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeal25hReabrir"), { status: "em_analise" })));
+test("LEGADA sem carimbo: reabrir para em_analise PASSA (a trava nao pega)", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "denuncias/dSealLegadaReabrir"), { status: "em_analise" })));
+test("LEGADA sem carimbo: re-concluir com carimbo do servidor PASSA (ganha conclusao carimbada)", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "denuncias/dSealLegadaCarimbar"), { status: "concluida", desfecho: "procedente", concluidaEm: TS() })));

@@ -3828,6 +3828,12 @@
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
         return;
       }
+      // Boot com ATUALIZAÇÃO na frente (app.js: reg.waiting no boot): o app vai recarregar
+      // em ~2s. Não gasta rede/CPU restaurando sessão, carregando dados e renderizando por
+      // baixo da tela de atualização (era o jank do bug William v353). O reload refaz o boot
+      // limpo; se o SW falhar, o timeout de segurança em app.js solta o boot (a flag some no
+      // reload). Caminho SEM atualização fica intacto (flag nunca setada).
+      if (window.__atualizandoApp) return;
       // Inicia timer assim que loga
       resetIdleTimer();
 
@@ -4047,6 +4053,7 @@
   window.addEventListener("focus", () => { if (typeof firebase !== "undefined" && firebase.auth?.().currentUser) refetchAoFoco(); });
 
   async function carregarDadosCompletos(db) {
+    if (window.__atualizandoApp) return; // boot com atualização na frente: recarrega em ~2s (ver app.js)
     const auth = firebase.auth(); // auth NÃO está no closure (irmã de installFirebaseStore) — singleton.
                                   // Sem isto: o ramo colaborador lança "auth is not defined" ao montar
                                   // a leitura (uid), cai no catch e zera comunicados/documentos do colab.

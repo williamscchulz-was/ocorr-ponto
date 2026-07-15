@@ -42,10 +42,11 @@ await p.evaluate(() => {
   document.querySelector("#acesso")?.remove();
   const iso = (d) => d.toISOString();
   const umAnoAtras = new Date(); umAnoAtras.setFullYear(umAnoAtras.getFullYear() - 1);
+  const tresHoras = new Date(Date.now() - 3 * 3600 * 1000); // DENTRO da janela de 24h (ainda editavel)
   state.denuncias = [
     { id: "d-nova", categoria: "assedio-moral", texto: "Relato de teste ainda nova, aguardando triagem.", hash: "a".repeat(40), em: iso(new Date()), status: "nova" },
     { id: "d-analise", categoria: "seguranca", texto: "Relato em analise pela direcao.", hash: "b".repeat(40), em: iso(new Date()), status: "em_analise" },
-    { id: "d-concl", categoria: "outro", texto: "Relato ja concluido ha um ano.", hash: "c".repeat(40), em: iso(umAnoAtras), status: "concluida", desfecho: "improcedente", concluidaEm: iso(umAnoAtras) },
+    { id: "d-concl", categoria: "outro", texto: "Relato ja concluido ha 3h (janela viva).", hash: "c".repeat(40), em: iso(umAnoAtras), status: "concluida", desfecho: "improcedente", concluidaEm: iso(tresHoras) },
   ];
   state.denunciasNovas = 1;
   state._denCarregado = true;   // evita lazy-load (inexistente no demo)
@@ -120,7 +121,7 @@ await p.locator('#view .den-card[data-den-card="d-concl"]').click();
 await p.waitForTimeout(200);
 const footTxt = (await p.locator("#modal-root #den-ret-slot").textContent()).replace(/\s+/g, " ").trim();
 check("rodapé mostra retenção de 5 anos", /5\s*anos/.test(footTxt));
-check("rodapé mostra 'Expurgo previsto para'", /Expurgo previsto para/.test(footTxt));
+check("janela viva: rodapé mostra 'Ajustes possíveis até'", /Ajustes poss[ií]veis at[ée]/.test(footTxt));
 check("desfecho pré-selecionado (improcedente)", await p.locator('#modal-root [data-den-df="improcedente"].sel').count() === 1);
 await p.locator("#modal-root .modal").screenshot({ path: `${OUT}/denuncias-v2-modal-concluida-claro.png` });
 

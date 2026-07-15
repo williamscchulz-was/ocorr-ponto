@@ -113,6 +113,10 @@ html.cp-dark:not(.modo-colab) {
   --border:#232C22; --border-strong:#2A332A; --milk-edge:#2A332A;
   --text:#EDF3EA; --text-body:#EDF3EA; --text-muted:#8A9884;
   --plum:#5FCB85; --plum-soft:#5FCB85; --plum-deep:#9FE0B5;
+  /* --plum vira verde-claro no dark: texto SOBRE ele precisa ser escuro (o branco
+     dava ~2:1). Escuro sobre #5FCB85 = ~9:1. So a sidebar (fundo escuro proprio,
+     nao --plum) mantem texto claro, no override abaixo. */
+  --text-on-plum:#0E130E;
   --success:#5FCB85; --success-bg:#193220; --warning:#E8B468; --warning-bg:#3A2E18; --warning-ink:#E8B468;
   --danger:#E68A86; --danger-bg:rgba(150,47,50,.22); --info:#7FC4F0; --info-bg:rgba(0,118,190,.18);
   --row-hover:#1A221A;
@@ -121,7 +125,7 @@ html.cp-dark:not(.modo-colab) body,
 html.cp-dark:not(.modo-colab) .app { background: var(--bg); }
 /* Sidebar: deixa de ser verde vivo (var(--plum)) e vira verde bem escuro,
    mantendo a identidade do gestor; o texto creme das nav segue legível. */
-html.cp-dark:not(.modo-colab) .app__sidebar { background: #0F1A13; border-right: 1px solid #1E2A1F; }
+html.cp-dark:not(.modo-colab) .app__sidebar { background: #0F1A13; border-right: 1px solid #1E2A1F; color: var(--text); }
 html.cp-dark:not(.modo-colab) .app__brand-mark { background: var(--plum); color: #0E130E; }
 html.cp-dark:not(.modo-colab) .topbar { background: var(--surface); color: var(--text-body); }
 
@@ -204,9 +208,10 @@ html.splash-off .splash { display: none; }
 .up-screen__t { margin-top: 6px; font-family: var(--font-display, 'Poppins'), sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -.01em; color: var(--text-body); }
 .up-screen__s { font-size: 13.5px; color: var(--text-muted); margin-top: -4px; }
 .up-screen__bar { width: min(220px, 62vw); height: 7px; border-radius: 999px; background: var(--border-strong); overflow: hidden; margin-top: 12px; }
-/* Largura pintada por rAF no app.js (palco mínimo ~2s + ease-out até 90% + fecho em
-   100%); sem transition de propósito — transition sob rAF só atrasa o frame. */
-.up-screen__bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--plum-soft), var(--plum)); }
+/* Preenchimento por transform: scaleX (COMPOSITADO), pintado por WAAPI no app.js (nasce
+   em 0, enche até 90% no palco ~2s, fecho em 100%). transform-origin left: o track não
+   muda visualmente; imune ao jank do boot na main thread (bug William v353). */
+.up-screen__bar i { display: block; height: 100%; width: 100%; transform: scaleX(0); transform-origin: left center; border-radius: 999px; background: linear-gradient(90deg, var(--plum-soft), var(--plum)); }
 .up-screen__m { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .up-screen__mark { animation: none; } }
 
@@ -5004,13 +5009,28 @@ html.cp-dark:not(.modo-colab) .den-cat--seguranca      { --dc: #d7ab5c; --dcb: r
 html.cp-dark:not(.modo-colab) .den-cat--fraude         { --dc: #5fc79c; --dcb: rgba(10,122,83,.24); }
 html.cp-dark:not(.modo-colab) .den-cat--outro          { --dc: #a7afba; --dcb: rgba(92,100,112,.26); }
 
-/* Detalhe (modal) */
-.modal--den { max-width: 560px; }
+/* ============================================================
+   Detalhe (modal) — DOSSIÊ de apuração (mock apuracao-dossie-2026-07.html).
+   Base = folha rolável (celular/janela pequena). O layout 2 colunas tela cheia
+   entra só no desktop largo (media query >=1280x800 lá embaixo).
+   ============================================================ */
+/* .modal.modal--den vence o .modal.modal--wide (mesma specificity, vem depois): abaixo
+   do breakpoint do dossiê a folha segue 560px (a "atual"), não os 760 do modal--wide. */
+.modal.modal--den { max-width: 560px; }
 .den-mdl { display: flex; flex-direction: column; }
-.den-mdl__hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 20px 22px 0; }
-.den-mdl__chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.den-mdl__when { font-size: 11.5px; color: var(--text-muted); padding: 10px 22px 0; }
-.den-mdl__bd { padding: 16px 22px 4px; }
+.den-mdl__hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 0; }
+.den-mdl__ttl { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.den-mdl__kicker { font: 700 10.5px var(--font); letter-spacing: .14em; text-transform: uppercase; color: var(--plum); }
+.den-mdl__ttl h2 { margin: 0; font: 600 18px var(--font); color: var(--text-body); letter-spacing: -.01em; }
+.den-mdl__hdright { display: flex; align-items: center; gap: 10px; flex: none; }
+.den-mdl__hdtag { display: inline-flex; align-items: center; gap: 6px; font: 600 11px var(--font); color: var(--text-muted); padding: 6px 11px; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
+.den-mdl__hdtag svg { width: 13px; height: 13px; color: var(--plum); flex: none; }
+.den-mdl__eyebrow { font: 700 10.5px var(--font); letter-spacing: .14em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; }
+.den-mdl__body { padding: 16px 22px 4px; }
+.den-mdl__col { min-width: 0; }
+.den-mdl__chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.den-mdl__when { font-size: 11.5px; color: var(--text-muted); margin-bottom: 16px; }
+.den-relato { margin-bottom: 16px; }
 .den-integ { display: flex; align-items: center; gap: 10px; background: rgba(0,136,53,.05); border: 1px solid rgba(0,136,53,.16); border-radius: 12px; padding: 11px 13px; margin-bottom: 16px; }
 .den-integ__ck { width: 30px; height: 30px; border-radius: 9px; background: rgba(0,136,53,.1); color: var(--plum); display: flex; align-items: center; justify-content: center; flex: none; }
 .den-integ__ck svg { width: 17px; height: 17px; }
@@ -5078,7 +5098,64 @@ html.cp-dark:not(.modo-colab) .den-cat--outro          { --dc: #a7afba; --dcb: r
 .den-retencao--expurgo b { color: var(--warning-ink); }
 .den-retencao--perm { background: rgba(200,161,101,.10); border-color: rgba(200,161,101,.35); color: var(--text-body); }
 .den-retencao--perm svg { color: var(--accent); }
+/* Janela viva: prazo do selo de 24h (mesma régua da regra). */
+.den-retencao--janela { background: rgba(0,136,53,.06); border-color: rgba(0,136,53,.2); color: var(--text-body); }
+html.cp-dark:not(.modo-colab) .den-retencao--janela { background: rgba(95,203,133,.08); border-color: rgba(95,203,133,.22); }
+.den-retencao--janela svg { color: var(--plum); }
+.den-retencao__sub { display: block; margin-top: 5px; color: var(--text-muted); font-size: 11px; }
 
 /* Selo discreto de guarda permanente no card da lista e nos chips do modal. */
 .den-perm-tag { display: inline-flex; align-items: center; gap: 4px; font: 700 10px var(--font); letter-spacing: .02em; padding: 3px 8px; border-radius: 999px; color: var(--warning-ink); background: rgba(200,161,101,.16); }
 .den-perm-tag svg { width: 11px; height: 11px; flex: none; }
+
+/* ---------- SELO DE 24 HORAS: avisos dos 3 momentos (concluir / janela / selado) ---------- */
+/* Aviso âmbar sóbrio, só no ato de concluir (data-den-estado="concluir"). */
+.den-aviso-24 { display: none; align-items: flex-start; gap: 9px; margin-top: 12px; padding: 11px 13px; border-radius: 11px; background: var(--warning-bg); border: 1px solid rgba(200,161,101,.4); border-left: 3px solid var(--accent); font: 400 11.5px/1.5 var(--font); color: var(--warning-ink); }
+.den-aviso-24 svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--accent); }
+.den-aviso-24 b { font-weight: 700; }
+.den-mdl[data-den-estado="concluir"] .den-aviso-24 { display: flex; }
+
+/* Selo "Registro selado" — visível só no estado selado. */
+.den-selado { display: none; align-items: center; gap: 9px; font: 600 12px var(--font); color: var(--text-muted); background: var(--surface-warm); border: 1px solid var(--border-strong); border-radius: 12px; padding: 11px 14px; margin-bottom: 16px; }
+.den-selado svg { width: 16px; height: 16px; color: var(--text-muted); flex: none; }
+.den-selado b { color: var(--text-body); font-weight: 600; }
+.den-mdl[data-den-estado="selado"] .den-selado { display: flex; }
+
+/* Selado: controles travados elegantes, desfecho/anotações como leitura, Salvar oculto. */
+.den-mdl[data-den-estado="selado"] .den-mdl__foot .btn { display: none; }
+.den-mdl[data-den-estado="selado"] .den-stopt,
+.den-mdl[data-den-estado="selado"] .den-dfopt,
+.den-mdl[data-den-estado="selado"] .den-perm { pointer-events: none; opacity: .62; cursor: default; }
+.den-mdl[data-den-estado="selado"] .den-stopt:not(.sel),
+.den-mdl[data-den-estado="selado"] .den-dfopt:not(.sel) { opacity: .42; }
+.den-mdl[data-den-estado="selado"] .den-mblock textarea { pointer-events: none; background: var(--surface-warm); color: var(--text-body); opacity: .9; }
+.den-mdl[data-den-estado="selado"] .den-desfecho { border-style: solid; opacity: .92; }
+.den-mdl[data-den-estado="selado"] .den-desfecho .req,
+.den-mdl[data-den-estado="selado"] .den-req-hint { display: none; }
+
+/* ============================================================
+   DOSSIÊ desktop: 2 colunas tela cheia, sem scroll interno. Só quando há espaço
+   (>=1280x800). Abaixo disso segue a folha rolável base acima.
+   ============================================================ */
+@media (min-width: 1280px) and (min-height: 800px) {
+  .modal--den.modal--wide { max-width: 1180px; width: 100%; height: 88vh; max-height: 88vh; overflow: hidden; }
+  .modal--den .den-mdl { height: 100%; }
+  .den-mdl__hd { align-items: center; padding: 18px 26px; border-bottom: 1px solid var(--border); flex: none; }
+  .den-mdl__ttl h2 { font-size: 19px; }
+  .den-mdl__body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr); padding: 0; }
+  .den-mdl__col { min-height: 0; overflow: hidden; display: flex; flex-direction: column; padding: 24px 26px; }
+  .den-mdl__col--relato { background: var(--surface-warm); border-right: 1px solid var(--border); }
+  .den-mdl__col--apuracao { background: var(--surface); }
+  /* caixas do relato POPam contra a coluna tingida (mock: caixa clara na coluna quente) */
+  .den-mdl__col--relato .den-ptext, .den-mdl__col--relato .den-contact-none { background: var(--surface); }
+  .den-mdl__eyebrow { flex: none; }
+  .den-mdl__chips, .den-mdl__when, .den-integ, .den-selado { flex: none; }
+  .den-mdl__col--relato .den-contact, .den-mdl__col--relato .den-contact-none { flex: none; }
+  /* relato absorve a folga; texto rola DENTRO da caixa se muito longo (a COLUNA não rola) */
+  .den-relato { flex: 1; min-height: 0; margin-bottom: 16px; }
+  .den-relato .den-ptext { height: 100%; overflow-y: auto; }
+  /* anotações absorve a folga da coluna direita (garante colunas sem rolagem) */
+  .den-mblock--notas { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .den-mblock--notas textarea { flex: 1; min-height: 0; resize: none; }
+  .den-mdl__foot { flex: none; margin-top: 0; border-top: 0; padding: 16px 0 0; }
+}
