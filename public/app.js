@@ -3314,7 +3314,7 @@ function denRenderAcolhe(view) {
         <b>Transparência (LGPD)</b>
         <span>Coletamos apenas: o relato, um contato (se você optar por se identificar) e a data do envio.</span>
         <span>Quem lê: apenas o administrador da direção.</span>
-        <span>Retenção: até a conclusão da apuração.</span>
+        <span>Retenção: 5 anos após a conclusão da apuração (registro de compliance), com eliminação automática depois disso.</span>
       </div>
       <button class="btn btn--primary btn--block btn--lg den-cta" type="button" data-den-comecar>Começar</button>
     </div>
@@ -4045,6 +4045,10 @@ function _renderAppNow() {
   $("#user-name").textContent = u.nome;
   $("#user-role").textContent = roleLabel(u);
 
+  // Abrir a tela de Denúncias zera a PERCEPÇÃO de novo (o lacre dourado do menu some);
+  // o status 'nova' em si só muda pela triagem. Marca antes do renderNav do mesmo frame.
+  if (state.view.page === "denuncias") state._denVisto = true;
+
   renderNav();
   renderBottomNav();
   renderPresence();
@@ -4648,7 +4652,7 @@ const NAV_GRUPOS = [
 
 function navItemBtnHtml(it) {
   return `
-    <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${escapeHtml(it.label)}" title="${escapeHtml(it.label)}">
+    <button class="nav__item ${state.view.page === it.id ? "active" : ""}${it.lacre ? " nav__item--lacre" : ""}" data-page="${it.id}" aria-label="${escapeHtml(it.label)}" title="${escapeHtml(it.label)}">
       ${icon(it.icon)}
       <span>${it.label}</span>
       ${it.beta ? `<span class="nav__beta">beta</span>` : ""}
@@ -4694,7 +4698,9 @@ function renderNav() {
   if (["admin", "rh", "lider"].includes(currentUser()?.role)) items.push({ id: "disciplinar", label: "Disciplinar", icon: "alert" });
   // Denúncias: caixa da direção, VISÍVEL SÓ para o perfil admin (fora da matriz can()
   // de propósito — a denúncia pode ser sobre a própria GP; ver rules bloco CANAL DE DENUNCIA).
-  if (currentUser()?.role === "admin") items.push({ id: "denuncias", label: "Denúncias", icon: "shield" });
+  // Lacre dourado: filete sóbrio na borda esquerda quando há denúncia 'nova' e o admin
+  // ainda não abriu a caixa nesta sessão (state._denVisto). Sem número, sem movimento.
+  if (currentUser()?.role === "admin") items.push({ id: "denuncias", label: "Denúncias", icon: "shield", lacre: (state.denunciasNovas || 0) > 0 && !state._denVisto });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
@@ -15431,7 +15437,7 @@ function denCardHtml(d) {
   return `<div class="den-card ${st === "nova" ? "nova" : ""}" data-den-card="${escapeHtml(d.id)}" role="button" tabindex="0" aria-label="Abrir denúncia">
     <span class="den-card__ic den-cat--${cls}">${DEN_ESC}</span>
     <div class="den-card__mid">
-      <div class="den-card__top"><span class="den-cchip den-cat--${cls}">${escapeHtml(rot)}</span>${denSeloHtml(anon)}</div>
+      <div class="den-card__top"><span class="den-cchip den-cat--${cls}">${escapeHtml(rot)}</span>${denSeloHtml(anon)}${d.guardaPermanente ? `<span class="den-perm-tag">${DEN_LOCK}Permanente</span>` : ""}</div>
       <div class="den-card__ex">${escapeHtml(trecho)}</div>
       <div class="den-card__when">${escapeHtml(denDataHora(d.em))}</div>
     </div>
@@ -15503,10 +15509,13 @@ function denAbrirDetalhe(id) {
         <div class="den-contact__tx"><b>${escapeHtml(d.contato)}</b><span>${DEN_LOCK}Informado pelo denunciante, não verificado</span></div>
       </div>`;
   const stBtn = (v, lab) => `<button class="den-stopt ${st === v ? "sel" : ""}" data-den-st="${v}" data-v="${v}">${lab}</button>`;
+  const dfIni = ["procedente", "improcedente", "sem-elementos"].includes(d.desfecho) ? d.desfecho : null;
+  const dfBtn = (v, lab) => `<button class="den-dfopt ${dfIni === v ? "sel" : ""}" data-den-df="${v}" data-d="${v}">${lab}</button>`;
+  const permIni = d.guardaPermanente === true;
   openModal(`
     <div class="den-mdl">
       <div class="den-mdl__hd">
-        <div class="den-mdl__chips"><span class="den-cchip den-cat--${cls}">${escapeHtml(rot)}</span>${denSeloHtml(anon)}</div>
+        <div class="den-mdl__chips"><span class="den-cchip den-cat--${cls}">${escapeHtml(rot)}</span>${denSeloHtml(anon)}${permIni ? `<span class="den-perm-tag">${DEN_LOCK}Permanente</span>` : ""}</div>
         <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
       </div>
       <div class="den-mdl__when">Recebida em ${escapeHtml(denDataHora(d.em))}</div>
@@ -15525,6 +15534,21 @@ function denAbrirDetalhe(id) {
           <div class="den-stopts" id="den-stopts">
             ${stBtn("nova", "Nova")}${stBtn("em_analise", "Em análise")}${stBtn("concluida", "Concluída")}
           </div>
+          <div class="den-desfecho ${st === "concluida" && !dfIni ? "pendente" : ""}" id="den-desfecho" ${st === "concluida" ? "" : "hidden"}>
+            <div class="dh">Desfecho <span class="req">obrigatório</span></div>
+            <div class="den-dfopts" id="den-dfopts">
+              ${dfBtn("procedente", "Procedente")}${dfBtn("improcedente", "Improcedente")}${dfBtn("sem-elementos", "Sem elementos suficientes")}
+            </div>
+            <div class="den-interno">${DEN_LOCK}<span>O desfecho fica no registro interno. O denunciante nunca vê.</span></div>
+            <div class="den-req-hint">${icon("alert")}<span>Escolha o desfecho para concluir a apuração.</span></div>
+          </div>
+        </div>
+        <div class="den-mblock">
+          <label>Guarda permanente</label>
+          <button type="button" class="den-perm ${permIni ? "on" : ""}" id="den-perm" role="switch" aria-checked="${permIni}">
+            <span class="den-perm__sw"></span>
+            <span class="den-perm__tx"><b>Nunca expurgar este registro</b><span>Caso grave: este registro nunca é expurgado, nem após os 5 anos.</span></span>
+          </button>
         </div>
         <div class="den-mblock">
           <label>Anotações da apuração</label>
@@ -15534,51 +15558,89 @@ function denAbrirDetalhe(id) {
       </div>
       <div class="den-mdl__foot">
         <button class="btn btn--primary" id="den-salvar">Salvar apuração</button>
-        <button class="btn btn--danger-ghost" id="den-excluir">Excluir de vez</button>
-        <div class="den-lgpd">${icon("alert")}<span>Exclusão definitiva e sem volta. Só use após a apuração encerrada, conforme a política de retenção da LGPD.</span></div>
+        <div id="den-ret-slot">${denRetencaoHtml(d, st, permIni)}</div>
       </div>
     </div>
   `, { className: "modal--den" });
 
-  let stSel = st;
+  let stSel = st, dfSel = dfIni, permSel = permIni;
   const root = $("#modal-root");
+  const desf = root.querySelector("#den-desfecho");
+  const slot = root.querySelector("#den-ret-slot");
+  const atualizarRet = () => { slot.innerHTML = denRetencaoHtml(d, stSel, permSel); };
   root.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
   root.querySelectorAll("[data-den-st]").forEach((o) => o.addEventListener("click", () => {
     stSel = o.dataset.denSt;
     root.querySelectorAll("[data-den-st]").forEach((x) => x.classList.toggle("sel", x === o));
+    desf.hidden = stSel !== "concluida";
+    if (stSel !== "concluida") desf.classList.remove("pendente");
+    atualizarRet();
   }));
-  root.querySelector("#den-salvar").addEventListener("click", (e) => {
-    const nota = root.querySelector("#den-nota").value;
-    denSalvarTriagem(id, stSel, nota, e.currentTarget);
+  root.querySelectorAll("[data-den-df]").forEach((o) => o.addEventListener("click", () => {
+    dfSel = o.dataset.denDf;
+    root.querySelectorAll("[data-den-df]").forEach((x) => x.classList.toggle("sel", x === o));
+    desf.classList.remove("pendente"); // escolheu: some o erro inline
+  }));
+  const permBtn = root.querySelector("#den-perm");
+  const chips = root.querySelector(".den-mdl__chips");
+  permBtn.addEventListener("click", () => {
+    permSel = !permSel;
+    permBtn.classList.toggle("on", permSel);
+    permBtn.setAttribute("aria-checked", String(permSel));
+    atualizarRet();
+    // Selo vivo no header (WYSIWYG): reflete o toggle sem esperar salvar.
+    const tag = chips.querySelector(".den-perm-tag");
+    if (permSel && !tag) chips.insertAdjacentHTML("beforeend", `<span class="den-perm-tag">${DEN_LOCK}Permanente</span>`);
+    else if (!permSel && tag) tag.remove();
   });
-  root.querySelector("#den-excluir").addEventListener("click", (e) => denExcluir(id, e.currentTarget));
+  root.querySelector("#den-salvar").addEventListener("click", (e) => {
+    // Concluir EXIGE desfecho: erro inline FIXO (não some sozinho), nunca toast passageiro.
+    if (stSel === "concluida" && !dfSel) {
+      desf.hidden = false;
+      desf.classList.add("pendente");
+      desf.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      return;
+    }
+    const nota = root.querySelector("#den-nota").value;
+    denSalvarTriagem(id, stSel, nota, dfSel, permSel, e.currentTarget);
+  });
 }
 
-async function denSalvarTriagem(id, status, nota, btn) {
+// Rodapé de retenção do modal: guarda permanente > concluída-com-datas > mensagem geral.
+// Piso de 5 anos (Lei 14.457/2022). A data prevista de expurgo = conclusão + 5 anos.
+function denRetencaoHtml(d, stSel, permSel) {
+  if (permSel) {
+    return `<div class="den-retencao den-retencao--perm">${DEN_ESC}<span><b>Guarda permanente:</b> este registro não expira, nem após os 5 anos.</span></div>`;
+  }
+  const fmtDia = (x) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(x);
+  const conc = d && d.concluidaEm ? new Date(d.concluidaEm) : null;
+  if (stSel === "concluida" && conc && !isNaN(conc.getTime())) {
+    const exp = new Date(conc); exp.setFullYear(exp.getFullYear() + 5);
+    if (Date.now() >= exp.getTime()) {
+      return `<div class="den-retencao den-retencao--expurgo">${icon("trash")}<span>Concluída em ${fmtDia(conc)}. Passados os <b>5 anos</b> de retenção, será expurgada automaticamente.</span></div>`;
+    }
+    return `<div class="den-retencao">${icon("clock")}<span>Concluída em ${fmtDia(conc)}. Mantida por <b>5 anos</b> (registro de compliance, Lei 14.457/2022) e depois expurgada automaticamente. Expurgo previsto para ${fmtDia(exp)}.</span></div>`;
+  }
+  return `<div class="den-retencao">${icon("clock")}<span>Denúncias concluídas são mantidas por <b>5 anos</b> (registro de compliance, Lei 14.457/2022) e depois expurgadas automaticamente.</span></div>`;
+}
+
+async function denSalvarTriagem(id, status, nota, desfecho, guardaPermanente, btn) {
   await withBusy("den-triar:" + id, btn, async () => {
-    if (typeof window.triarDenuncia === "function") await window.triarDenuncia(id, status, nota);
+    if (typeof window.triarDenuncia === "function") await window.triarDenuncia(id, status, nota, desfecho, guardaPermanente);
     const d = (state.denuncias || []).find((x) => x.id === id);
-    if (d) { d.status = status; d.nota = String(nota || "").slice(0, 2000); }
+    if (d) {
+      d.status = status;
+      d.nota = String(nota || "").slice(0, 2000);
+      d.guardaPermanente = !!guardaPermanente;
+      if (status === "concluida") {
+        d.desfecho = desfecho;
+        if (!d.concluidaEm) d.concluidaEm = new Date().toISOString(); // reflete o carimbo local na sessão
+      }
+    }
+    state.denunciasNovas = (state.denuncias || []).filter((x) => x.status === "nova").length;
     closeModal();
     renderApp();
     toast("Apuração salva.");
-  });
-}
-
-async function denExcluir(id, btn) {
-  const ok = await confirmar({
-    titulo: "Excluir de vez",
-    msg: "Exclusão definitiva e sem volta. Só use após a apuração encerrada, conforme a política de retenção da LGPD.",
-    okLabel: "Excluir de vez",
-    perigo: true,
-  });
-  if (!ok) return;
-  await withBusy("den-excluir:" + id, btn, async () => {
-    if (typeof window.excluirDenuncia === "function") await window.excluirDenuncia(id);
-    state.denuncias = (state.denuncias || []).filter((x) => x.id !== id);
-    closeModal();
-    renderApp();
-    toast("Denúncia excluída.");
   });
 }
 
@@ -17016,7 +17078,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.83.0";
+window.CURRENT_VERSION = "1.84.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

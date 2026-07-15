@@ -2067,17 +2067,72 @@
     window.carregarDenunciasAdmin = async function () {
       try {
         const ds = await db.collection("denuncias").orderBy("em", "desc").get();
-        state.denuncias = ds.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
+        state.denuncias = ds.docs.map((d) => {
+          const x = d.data();
+          return { id: d.id, ...x, em: tsToIso(x.em), concluidaEm: tsToIso(x.concluidaEm) };
+        });
+        state.denunciasNovas = state.denuncias.filter((x) => x.status === "nova").length;
+        window.expurgarDenunciasVencidas?.(); // fire-and-forget (concluídas > 5 anos, exceto permanentes)
       } catch (e) { debug?.("[denuncia] admin:", e?.code || e?.message); state.denuncias = state.denuncias || []; }
     };
-    window.triarDenuncia = async function (id, status, nota) {
+    window.triarDenuncia = async function (id, status, nota, desfecho, guardaPermanente) {
       if (!["nova", "em_analise", "concluida"].includes(status)) return;
-      await db.collection("denuncias").doc(id).update({ status, nota: String(nota || "").slice(0, 2000) });
+      const patch = { status, nota: String(nota || "").slice(0, 2000) };
+      if (typeof guardaPermanente === "boolean") patch.guardaPermanente = guardaPermanente;
+      if (status === "concluida") {
+        patch.desfecho = desfecho;
+        const d = (state.denuncias || []).find((x) => x.id === id);
+        // Carimba concluidaEm SÓ na transição pra concluída; se já estava concluída e o
+        // admin só ajustou nota/desfecho/guarda, preserva o relógio de retenção original.
+        if (!d || d.status !== "concluida" || !d.concluidaEm) patch.concluidaEm = _FV.serverTimestamp();
+      }
+      await db.collection("denuncias").doc(id).update(patch);
       window.registrarAuditoria?.({ tipo: "denuncia", acao: `Triagem: ${status}`, alvo: id });
     };
     window.excluirDenuncia = async function (id) {
       await db.collection("denuncias").doc(id).delete();
       window.registrarAuditoria?.({ tipo: "denuncia", acao: "Excluiu denuncia (LGPD)", alvo: id });
+    };
+    // Expurgo automático LGPD (William 2026-07-16), espelha expurgarCandidaturasVencidas:
+    // na sessão do ADMIN, ao carregar denúncias, apaga em silêncio as CONCLUÍDAS há mais de
+    // 5 anos (piso de retenção da Lei 14.457/2022). Guarda permanente NUNCA entra. A própria
+    // rule confere o piso; aqui o cliente só antecipa os candidatos. Fire-and-forget: erro
+    // individual pula, nunca bloqueia render; 1 registro-resumo SEM PII (só a contagem).
+    const EXPURGO_DEN_ANOS = 5;
+    let _expurgoDenEmCurso = false;
+    window.expurgarDenunciasVencidas = async function () {
+      if (currentUser()?.role !== "admin") return; // canal fora da matriz de cap: só admin
+      if (_expurgoDenEmCurso) return;
+      _expurgoDenEmCurso = true;
+      try {
+        const lista = state.denuncias || [];
+        if (!lista.length) return;
+        const corte = new Date();
+        corte.setFullYear(corte.getFullYear() - EXPURGO_DEN_ANOS); // 5 anos atrás (fronteira real)
+        const corteMs = corte.getTime();
+        const concMs = (d) => {
+          const c = d && d.concluidaEm;
+          if (!c) return null;
+          const dt = (typeof c.toDate === "function") ? c.toDate() : new Date(c);
+          return isNaN(dt.getTime()) ? null : dt.getTime();
+        };
+        let ok = 0;
+        for (const d of lista.slice()) {
+          if (d.status !== "concluida") continue;   // só denúncia encerrada
+          if (d.guardaPermanente === true) continue; // caso gravíssimo: nunca expira
+          const ms = concMs(d);
+          if (ms == null || ms >= corteMs) continue; // sem carimbo ou dentro do piso: fica
+          try {
+            await window.excluirDenuncia(d.id);      // canônico (delete + auditoria); a rule reconfere o piso
+            ok++;
+            const i = lista.indexOf(d);
+            if (i >= 0) lista.splice(i, 1);           // mantém o state honesto na sessão
+          } catch (e) { debug?.("[denuncia] expurgo auto (pula 1):", e?.code || e?.message); }
+        }
+        // 1 entrada-resumo, ZERO PII (só a contagem, sem id/relato/categoria).
+        if (ok) window.registrarAuditoria?.({ tipo: "denuncia", acao: `Expurgo automático: ${ok} denúncia(s), 5 anos após conclusão` });
+        state.denunciasNovas = lista.filter((x) => x.status === "nova").length;
+      } finally { _expurgoDenEmCurso = false; }
     };
 
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
@@ -4245,6 +4300,14 @@
       await Promise.all([
         ((u.role === "admin" || u.role === "rh") && window.carregarMonitorPipeline)
           ? window.carregarMonitorPipeline().catch((e) => debug?.("[monitor] boot:", e?.message || e))
+          : null,
+        // Contador leve pro LACRE dourado do menu (só admin, canal fora da matriz de cap):
+        // conta as 'nova' com um limite pequeno; o valor exato é recomputado quando a tela
+        // de Denúncias carrega a lista inteira (carregarDenunciasAdmin). Boolean-relevante.
+        (u.role === "admin")
+          ? db.collection("denuncias").where("status", "==", "nova").limit(50).get().then((snap) => {
+              state.denunciasNovas = snap.size;
+            }).catch((e) => debug?.("[denuncia] contador nova:", e?.message || e))
           : null,
         (u.role === "admin" || u.role === "rh")
           ? db.collection("pj").get().then((pjSnap) => {

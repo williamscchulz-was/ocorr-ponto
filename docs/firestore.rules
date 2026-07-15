@@ -1492,13 +1492,31 @@ service cloud.firestore {
         && den().em == request.time
         && den().status == 'nova';
       allow read: if isAdmin();
-      // Triagem: so status e a anotacao interna mudam; o RELATO original e o
-      // hash sao imutaveis (integridade da apuracao). Excluir = LGPD, so admin.
+      // Triagem v2 (governanca, William 2026-07-16): alem de status e nota, o admin
+      // registra o DESFECHO e o carimbo concluidaEm ao ENCERRAR, e pode ligar/desligar
+      // guardaPermanente (caso gravissimo que nunca e expurgado). O RELATO original, o
+      // hash, a categoria e o em seguem IMUTAVEIS (integridade da apuracao).
       allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'nota'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'nota', 'desfecho', 'concluidaEm', 'guardaPermanente'])
         && request.resource.data.status in ['nova', 'em_analise', 'concluida']
-        && (!('nota' in request.resource.data.keys()) || (request.resource.data.nota is string && request.resource.data.nota.size() <= 2000));
-      allow delete: if isAdmin();
+        && (!('nota' in request.resource.data.keys()) || (request.resource.data.nota is string && request.resource.data.nota.size() <= 2000))
+        && (!('desfecho' in request.resource.data.keys()) || request.resource.data.desfecho in ['procedente', 'improcedente', 'sem-elementos'])
+        && (!('guardaPermanente' in request.resource.data.keys()) || request.resource.data.guardaPermanente is bool)
+        // Concluir EXIGE desfecho e carimbo de conclusao: nao ha encerramento sem registro.
+        && (request.resource.data.status != 'concluida'
+            || ('desfecho' in request.resource.data.keys() && 'concluidaEm' in request.resource.data.keys()))
+        // concluidaEm, quando escrito, e o instante do servidor (nunca data arbitraria do cliente).
+        && (!('concluidaEm' in request.resource.data.diff(resource.data).affectedKeys())
+            || request.resource.data.concluidaEm == request.time);
+      // Excluir = GOVERNANCA + LGPD (William 2026-07-16, "nao deveria poder deletar,
+      // apenas tratar"): nem o admin apaga antes da hora. So sai denuncia CONCLUIDA,
+      // depois do PISO de retencao de 5 anos (1825 dias) contados da conclusao, e
+      // NUNCA se marcada como guarda permanente (caso gravissimo, fica para sempre).
+      allow delete: if isAdmin()
+        && resource.data.status == 'concluida'
+        && resource.data.get('guardaPermanente', false) != true
+        && resource.data.get('concluidaEm', request.time) is timestamp
+        && resource.data.get('concluidaEm', request.time) < request.time - duration.value(1825, 'd');
     }
 
     // ============================================================

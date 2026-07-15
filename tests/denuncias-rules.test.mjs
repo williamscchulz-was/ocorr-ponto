@@ -51,8 +51,19 @@ before(async () => {
     await setDoc(doc(db, "denuncias/dSeedImutavel"), { categoria: "fraude", ...seedTexto("Relato original que jamais pode ser reescrito pela triagem."), em: new Date(), status: "nova" });
     await setDoc(doc(db, "denuncias/dSeedStatusInvalido"), { categoria: "outro", ...seedTexto("Relato semeado para testar status fora da lista fechada."), em: new Date(), status: "nova" });
     await setDoc(doc(db, "denuncias/dSeedNegaEdicao"), { categoria: "assedio-sexual", ...seedTexto("Relato semeado para negar edicao de RH e colaborador."), em: new Date(), status: "nova" });
-    await setDoc(doc(db, "denuncias/dSeedDel"), { categoria: "violencia", ...seedTexto("Relato semeado para exclusao definitiva (LGPD)."), em: new Date(), status: "nova" });
     await setDoc(doc(db, "denuncias/dSeedDelNegado"), { categoria: "violencia", ...seedTexto("Relato semeado para negar exclusao de RH e colaborador."), em: new Date(), status: "nova" });
+    // ----- v2 governanca (desfecho obrigatorio, retencao 5 anos, guarda permanente) -----
+    await setDoc(doc(db, "denuncias/dSeedConcluir"), { categoria: "seguranca", ...seedTexto("Relato semeado para concluir com desfecho valido."), em: new Date(), status: "em_analise" });
+    await setDoc(doc(db, "denuncias/dSeedConcluirSemDesf"), { categoria: "seguranca", ...seedTexto("Relato semeado para negar conclusao sem desfecho."), em: new Date(), status: "em_analise" });
+    await setDoc(doc(db, "denuncias/dSeedDesfEnum"), { categoria: "outro", ...seedTexto("Relato semeado para negar desfecho fora do enum."), em: new Date(), status: "em_analise" });
+    await setDoc(doc(db, "denuncias/dSeedDesfImut"), { categoria: "fraude", ...seedTexto("Relato semeado para negar troca de relato junto do desfecho."), em: new Date(), status: "em_analise" });
+    await setDoc(doc(db, "denuncias/dSeedPerm"), { categoria: "assedio-moral", ...seedTexto("Relato semeado para ligar a guarda permanente."), em: new Date(), status: "em_analise" });
+    await setDoc(doc(db, "denuncias/dSeedDelNova"), { categoria: "violencia", ...seedTexto("Relato semeado nova, exclusao deve negar (governanca)."), em: new Date(), status: "nova" });
+    await setDoc(doc(db, "denuncias/dSeedDelAnalise"), { categoria: "violencia", ...seedTexto("Relato semeado em analise, exclusao deve negar."), em: new Date(), status: "em_analise" });
+    await setDoc(doc(db, "denuncias/dSeedDelRecente"), { categoria: "violencia", ...seedTexto("Relato semeado concluido agora, exclusao deve negar (5 anos)."), em: new Date(), status: "concluida", desfecho: "improcedente", concluidaEm: new Date() });
+    const seisAnos = new Date(); seisAnos.setFullYear(seisAnos.getFullYear() - 6);
+    await setDoc(doc(db, "denuncias/dSeedDelAntiga"), { categoria: "violencia", ...seedTexto("Relato semeado concluido ha seis anos, exclusao deve passar."), em: new Date(), status: "concluida", desfecho: "procedente", concluidaEm: seisAnos });
+    await setDoc(doc(db, "denuncias/dSeedDelAntigaPerm"), { categoria: "violencia", ...seedTexto("Relato concluido ha seis anos MAS com guarda permanente."), em: new Date(), status: "concluida", desfecho: "procedente", concluidaEm: seisAnos, guardaPermanente: true });
   });
 });
 after(async () => { await env.cleanup(); });
@@ -77,6 +88,11 @@ test("Campos de autoria (uid/nome/aparelho) negam, hasOnly fecha o shape", async
   await assertFails(setDoc(doc(colab(), "denuncias/dAutoria1"), den({ uid: "u1" })));
   await assertFails(setDoc(doc(colab(), "denuncias/dAutoria2"), den({ nome: "Maria" })));
   await assertFails(setDoc(doc(colab(), "denuncias/dAutoria3"), den({ aparelho: "iPhone 13" })));
+});
+test("Campos de governanca (desfecho/concluidaEm/guardaPermanente) no create negam (so na triagem do admin)", async () => {
+  await assertFails(setDoc(doc(colab(), "denuncias/dGov1"), den({ desfecho: "procedente" })));
+  await assertFails(setDoc(doc(colab(), "denuncias/dGov2"), den({ guardaPermanente: true })));
+  await assertFails(setDoc(doc(colab(), "denuncias/dGov3"), den({ concluidaEm: TS() })));
 });
 test("Categoria fora da lista nega (taxonomia antiga nao migra sozinha)", async () =>
   assertFails(setDoc(doc(colab(), "denuncias/dCat1"), den({ categoria: "conduta" }))));
@@ -134,10 +150,27 @@ test("ANONIMO nao le denuncia", async () =>
   assertFails(getDoc(doc(anon(), "denuncias/dSeedRead"))));
 
 // ---------- Update (triagem: so status/nota, texto/hash/categoria imutaveis) ----------
-test("ADMIN muda status para em_analise e depois para concluida", async () => {
+test("ADMIN muda status para em_analise e depois para concluida (com desfecho + carimbo)", async () => {
   await assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeedStatus"), { status: "em_analise" }));
-  await assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeedStatus2"), { status: "concluida" }));
+  await assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeedStatus2"), { status: "concluida", desfecho: "improcedente", concluidaEm: TS() }));
 });
+// ----- v2: desfecho obrigatorio ao concluir + enum fechado + carimbo do servidor -----
+test("Concluir SEM desfecho nega (governanca: nao ha encerramento sem registro)", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeedConcluirSemDesf"), { status: "concluida", concluidaEm: TS() })));
+test("Desfecho fora do enum nega", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeedDesfEnum"), { status: "concluida", desfecho: "arquivado", concluidaEm: TS() })));
+test("Concluir com desfecho valido + concluidaEm == request.time PASSA", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeedConcluir"), { status: "concluida", desfecho: "procedente", concluidaEm: TS() })));
+test("concluidaEm com data arbitraria do cliente (nao server-time) nega", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeedConcluir"), { status: "concluida", desfecho: "procedente", concluidaEm: new Date() })));
+test("Mudar o RELATO/HASH junto do desfecho nega (imutaveis, hasOnly fecha)", async () => {
+  await assertFails(updateDoc(doc(admin(), "denuncias/dSeedDesfImut"), { status: "concluida", desfecho: "procedente", concluidaEm: TS(), texto: "Relato reescrito na conclusao." }));
+  await assertFails(updateDoc(doc(admin(), "denuncias/dSeedDesfImut"), { status: "concluida", desfecho: "procedente", concluidaEm: TS(), hash: "c".repeat(64) }));
+});
+test("ADMIN liga guardaPermanente (caso gravissimo)", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeedPerm"), { guardaPermanente: true })));
+test("guardaPermanente nao-boolean nega", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeedPerm"), { guardaPermanente: "sim" })));
 test("ADMIN escreve nota interna (<= 2000)", async () =>
   assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeedNota"), { nota: "Verificado com a lideranca, aguardando retorno." })));
 test("Status fora da lista fechada nega", async () =>
@@ -154,9 +187,21 @@ test("RH e COLABORADOR nao atualizam denuncia", async () => {
 test("Nota acima de 2000 nega", async () =>
   assertFails(updateDoc(doc(admin(), "denuncias/dSeedNotaGigante"), { nota: "x".repeat(2001) })));
 
-// ---------- Delete (LGPD, exclusao definitiva SO admin) ----------
-test("ADMIN exclui denuncia (LGPD)", async () =>
-  assertSucceeds(deleteDoc(doc(admin(), "denuncias/dSeedDel"))));
+// ---------- Delete (GOVERNANCA + LGPD: so concluida, apos 5 anos, nunca se permanente) ----------
+test("ADMIN NAO exclui denuncia nova nem em analise (so trata, nao apaga)", async () => {
+  await assertFails(deleteDoc(doc(admin(), "denuncias/dSeedDelNova")));
+  await assertFails(deleteDoc(doc(admin(), "denuncias/dSeedDelAnalise")));
+});
+test("ADMIN NAO exclui concluida recente (dentro do piso de 5 anos)", async () =>
+  assertFails(deleteDoc(doc(admin(), "denuncias/dSeedDelRecente"))));
+test("ADMIN exclui concluida com mais de 5 anos (piso de retencao cumprido)", async () =>
+  assertSucceeds(deleteDoc(doc(admin(), "denuncias/dSeedDelAntiga"))));
+test("ADMIN NAO exclui concluida antiga marcada como guarda permanente (nunca expira)", async () =>
+  assertFails(deleteDoc(doc(admin(), "denuncias/dSeedDelAntigaPerm"))));
+test("Desligar guardaPermanente e ENTAO excluir a concluida antiga PASSA", async () => {
+  await assertSucceeds(updateDoc(doc(admin(), "denuncias/dSeedDelAntigaPerm"), { guardaPermanente: false }));
+  await assertSucceeds(deleteDoc(doc(admin(), "denuncias/dSeedDelAntigaPerm")));
+});
 test("RH e COLABORADOR nao excluem denuncia", async () => {
   await assertFails(deleteDoc(doc(rh(), "denuncias/dSeedDelNegado")));
   await assertFails(deleteDoc(doc(colab(), "denuncias/dSeedDelNegado")));

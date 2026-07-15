@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.83.0", d: "16 jul 2026", current: true, items: [
+    v: "1.84.0", d: "16 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Canal de denuncia com governanca de gente grande: concluir agora exige um desfecho registrado (procedente, improcedente ou sem elementos), denuncia nao pode mais ser excluida (retencao de 5 anos com expurgo automatico, e guarda permanente pra casos graves) e um lacre dourado no menu avisa quando ha denuncia nova." },
+      { type: "note", title: "Transparencia do canal de denuncia: os registros concluidos sao mantidos por 5 anos como compliance e eliminados automaticamente depois." },
+    ],
+  },
+  {
+    v: "1.83.0", d: "16 jul 2026", items: [
       { type: "feat", title: "A tela de atualizacao agora tem o tempo dela: a barra enche com calma, chega nos 100% e respira antes de abrir o app novo. Nada de piscar e sumir." },
       { type: "feat", aud: "gestor", title: "Ficha do candidato: experiencia em andamento aparece como atual (ex.: fev 2012 · atual), casando com o Ainda trabalho aqui do formulario do site." },
     ],

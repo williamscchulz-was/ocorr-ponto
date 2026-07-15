@@ -766,6 +766,19 @@ html.splash-off .splash { display: none; }
    escuro nos dois temas porque o fundo amarelo também não muda de tema. */
 .nav__badge--pend { background: var(--fiobras-yellow) !important; color: #20342b !important; }
 
+/* Lacre dourado (Denúncias · caixa da direção): filete sóbrio na borda esquerda quando
+   há denúncia nova ainda não aberta. Sem número, sem movimento; some ao abrir a tela. */
+.nav__item--lacre { position: relative; }
+.nav__item--lacre::before {
+  content: "";
+  position: absolute;
+  left: 4px; top: 9px; bottom: 9px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #C8A165 0%, #E4CFA6 55%, #C8A165 100%);
+  box-shadow: 0 0 6px -1px rgba(200, 161, 101, .7);
+}
+
 /* Acessibilidade: focus-visible em todos os interativos pra teclado/screen-reader */
 *:focus { outline: none; } /* baseline limpo */
 button:focus-visible,
@@ -5025,7 +5038,47 @@ html.cp-dark:not(.modo-colab) .den-cat--outro          { --dc: #a7afba; --dcb: r
 .den-mblock textarea:focus { border-color: var(--plum); }
 .den-interno { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-muted); margin-top: 7px; }
 .den-interno svg { width: 12px; height: 12px; flex: none; }
-.den-mdl__foot { padding: 16px 22px 20px; border-top: 1px solid var(--border); margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.den-mdl__foot { padding: 16px 22px 20px; border-top: 1px solid var(--border); margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .den-mdl__foot .btn { flex: 1 1 auto; }
-.den-lgpd { display: flex; gap: 8px; align-items: flex-start; font-size: 10.5px; color: var(--text-muted); line-height: 1.5; flex-basis: 100%; margin-top: 2px; }
-.den-lgpd svg { width: 13px; height: 13px; color: var(--danger); flex: none; margin-top: 1px; }
+.den-mdl__foot #den-ret-slot { flex-basis: 100%; }
+
+/* Desfecho obrigatório ao concluir (governança v2). Erro inline FIXO via .pendente. */
+.den-desfecho { margin-top: 16px; border: 1px dashed var(--border-strong); border-radius: 13px; padding: 14px 14px 13px; background: var(--surface-warm); }
+.den-desfecho[hidden] { display: none; }
+.den-desfecho .dh { font: 700 11px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); display: flex; align-items: center; gap: 7px; margin-bottom: 11px; }
+.den-desfecho .dh .req { font: 700 9.5px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--warning-ink); background: var(--warning-bg); padding: 2px 7px; border-radius: 999px; }
+.den-dfopts { display: flex; gap: 8px; flex-wrap: wrap; }
+.den-dfopt { flex: 1 1 30%; min-width: 128px; border: 1.5px solid var(--border); background: var(--surface); border-radius: 11px; padding: 10px 9px; font: 700 12px var(--font); color: var(--text-muted); cursor: pointer; text-align: center; transition: all .16s; }
+.den-dfopt:hover { border-color: var(--border-strong); }
+.den-dfopt.sel[data-d="procedente"] { border-color: var(--warning); background: var(--warning-bg); color: var(--warning-ink); }
+.den-dfopt.sel[data-d="improcedente"] { border-color: var(--plum); background: rgba(0,136,53,.08); color: var(--plum-deep); }
+.den-dfopt.sel[data-d="sem-elementos"] { border-color: var(--border-strong); background: var(--surface-warm); color: var(--text-body); }
+.den-req-hint { display: none; align-items: center; gap: 6px; font-size: 11px; color: var(--warning-ink); margin-top: 10px; }
+.den-req-hint svg { width: 13px; height: 13px; flex: none; }
+.den-desfecho.pendente .den-req-hint { display: flex; }
+
+/* Toggle Guarda permanente (caso gravíssimo: registro nunca expira). */
+.den-perm { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 1.5px solid var(--border); background: var(--surface); border-radius: 13px; padding: 12px 14px; cursor: pointer; transition: all .16s; }
+.den-perm:hover { border-color: var(--border-strong); }
+.den-perm.on { border-color: var(--accent); background: rgba(200,161,101,.08); }
+.den-perm__sw { flex: none; width: 38px; height: 22px; border-radius: 999px; background: var(--border-strong); position: relative; transition: background .16s; }
+.den-perm__sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .18s var(--ease); }
+.den-perm.on .den-perm__sw { background: var(--accent); }
+.den-perm.on .den-perm__sw::after { transform: translateX(16px); }
+.den-perm__tx { min-width: 0; }
+.den-perm__tx b { display: block; font-size: 13px; font-weight: 600; color: var(--text-body); }
+.den-perm__tx span { display: block; font-size: 11.5px; color: var(--text-muted); line-height: 1.45; margin-top: 2px; }
+
+/* Rodapé de retenção (substitui o antigo "Excluir de vez": não se apaga, apenas se trata). */
+.den-retencao { display: flex; gap: 9px; align-items: flex-start; font-size: 11.5px; color: var(--text-muted); line-height: 1.55; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 11px; padding: 11px 13px; }
+.den-retencao svg { width: 15px; height: 15px; color: var(--text-muted); flex: none; margin-top: 1px; }
+.den-retencao b { color: var(--text-body); font-weight: 600; }
+.den-retencao--expurgo { background: var(--warning-bg); border-color: #EBD3AC; color: var(--warning-ink); }
+.den-retencao--expurgo svg { color: var(--warning-ink); }
+.den-retencao--expurgo b { color: var(--warning-ink); }
+.den-retencao--perm { background: rgba(200,161,101,.10); border-color: rgba(200,161,101,.35); color: var(--text-body); }
+.den-retencao--perm svg { color: var(--accent); }
+
+/* Selo discreto de guarda permanente no card da lista e nos chips do modal. */
+.den-perm-tag { display: inline-flex; align-items: center; gap: 4px; font: 700 10px var(--font); letter-spacing: .02em; padding: 3px 8px; border-radius: 999px; color: var(--warning-ink); background: rgba(200,161,101,.16); }
+.den-perm-tag svg { width: 11px; height: 11px; flex: none; }
