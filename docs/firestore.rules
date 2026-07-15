@@ -1390,10 +1390,18 @@ service cloud.firestore {
     // permissoes (cap configuravel poderia ser delegada por engano, e denuncia
     // pode ser sobre a propria GP); (4) create exige login (gente do quadro),
     // mas o doc criado nao guarda quem foi; ID aleatorio.
-    // Residual aceito: correlacao temporal (quem estava logado no minuto X) so
-    // e visivel a quem opera o proprio projeto Firebase, que ja e o admin
-    // destinatario. Protocolo pro denunciante acompanhar = roadmap (exigiria
-    // leitura por codigo, outra superficie de acesso).
+    // Residuais aceitos (gate 2026-07-15): (a) correlacao temporal (quem
+    // estava logado no minuto X) so e visivel a quem opera o proprio projeto
+    // Firebase, que ja e o admin destinatario; reduzir a precisao do 'em'
+    // seria teatro (createTime dos metadados guarda o instante exato).
+    // (b) SEM rate limit de proposito: marcador por uid vazaria exatamente a
+    // correlacao que o desenho elimina; flood e visivel e o autor e do quadro.
+    // ponytail: App Check se um dia abusarem. (c) Protocolo de acompanhamento
+    // pro denunciante = roadmap; o hash exibido na confirmacao ja serve de
+    // comprovante de envio e integridade.
+    // GUARDAS DE FRONT obrigatorias (gate): add() com ID aleatorio (nunca ID
+    // derivado), ZERO logEvento/analytics no fluxo, nada em localStorage
+    // ligando conta a denuncia, contato exibido ao admin como NAO VERIFICADO.
     // ============================================================
     match /denuncias/{id} {
       function den() { return request.resource.data; }

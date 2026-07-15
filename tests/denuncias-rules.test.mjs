@@ -100,6 +100,22 @@ test("hash AUSENTE nega (campo obrigatorio)", async () =>
   assertFails(setDoc(doc(colab(), "denuncias/dSemHash"), {
     categoria: "assedio-moral", texto: TEXTO_PADRAO, em: TS(), status: "nova",
   })));
+test("Texto ACENTUADO/UTF-8 real com hash sha256 utf8 do cliente PASSA (hashing.sha256 confere UTF-8)", async () => {
+  const texto = "Sofri assédio e coação na fiação, situação já aconteceu três vezes.";
+  await assertSucceeds(setDoc(doc(colab(), "denuncias/dUtf8"), den({ texto, hash: sha256(texto) })));
+});
+test("Hash em hex MAIUSCULO tambem PASSA (regra usa .lower() dos dois lados)", async () => {
+  const texto = TEXTO_PADRAO;
+  await assertSucceeds(setDoc(doc(colab(), "denuncias/dHashMaiusculo"), den({ texto, hash: sha256(texto).toUpperCase() })));
+});
+test("Texto com exatamente 10 chars (hash correto) PASSA (boundary)", async () => {
+  const texto = "a".repeat(10);
+  await assertSucceeds(setDoc(doc(colab(), "denuncias/dTextoMin"), den({ texto, hash: sha256(texto) })));
+});
+test("Texto com exatamente 5000 chars (hash correto) PASSA (boundary)", async () => {
+  const texto = "a".repeat(5000);
+  await assertSucceeds(setDoc(doc(colab(), "denuncias/dTextoMax"), den({ texto, hash: sha256(texto) })));
+});
 
 // ---------- Read (SO admin, nem RH, sigilo de proposito) ----------
 test("ADMIN le e lista denuncias", async () => {
