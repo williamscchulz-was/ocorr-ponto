@@ -2809,3 +2809,40 @@ bloqueante (a proteção primária contra farm de pontos é a regra `get(doc pai
 funciona; docs órfãos só acumulam sem risco de segurança). Revisitar se o volume incomodar.
 
 Respondido ao PC com o shape exato gravado, pra eles casarem a regra de pontos.
+
+## 2026-07-15 — Poda dos docs pai do mural + funcionarioId (prazo formal do gate: antes de 2027-01-01)
+
+PC confirmou a regra de pontos casada com o shape que gravei, e voltou com 2 pedidos: (1)
+implementar a poda que eu tinha oferecido como "nice to have" — agora com motivo de SEGURANÇA,
+não só limpeza (explicado abaixo); (2) gravar `funcionarioId` no doc pai (upgrade pro anti-auto
+deles, sai de comparação por nome pra por ID).
+
+**Por que a poda virou obrigatória (não é mais opcional):** no post `bv-` (boas-vindas), o
+sufixo do ID é o ANO DA ADMISSÃO — ao contrário do `aniv-`, que ganha sufixo de ano novo toda
+virada de calendário automaticamente, o ano do `bv-` fica FIXO pra sempre. Um doc pai órfão
+sobrevivendo indefinidamente permite RE-CLAIM de ponto: a proteção de "reação precisa ser DESTE
+ano" (year-gate no `em` da reação) não fecha sozinha, porque a pessoa pode descurtir/curtir de
+novo numa temporada futura e a prova ainda passaria (o pai continua existindo). **Gate aprovou
+com prazo formal: a poda precisa estar rodando antes de 2027-01-01** (na virada de temporada, é
+quando o residual começa a virar ponto reclamável de verdade).
+
+**Implementado em `upload-aniversariantes.mjs`:**
+- `funcionarioId` (ex. `f-671`, o `d.id` do doc `funcionarios/`) gravado no doc PAI apenas —
+  explicitamente removido de `config/aniversariantes.pessoas`/`.recemChegados` (widget não
+  precisa, é dado a mais sem propósito ali).
+- Poda: a cada rodada, monta `postIdsVivos` (os IDs que ESTE run confirma como dentro da janela
+  — mesma fonte que já gera os docs), busca TODOS os docs de `muralAniversario` e apaga qualquer
+  um cujo ID não esteja no set. Cobre os 2 casos com a MESMA lógica simples: `aniv-` de ano
+  anterior (nunca mais regenerado, o sufixo mudou) e `bv-` que saiu da janela de 15 dias — sem
+  precisar rastrear "quem sumiu desde a última rodada", só reavalia contra o presente toda vez.
+  Reações órfãs na subcoleção ficam intocadas (sem pai não provam nada pra regra; apagar
+  histórico de quem reagiu não é necessário).
+
+**Testado:** rodada real confirmou `funcionarioId` presente no doc pai (`f-626`, `f-785` etc.) e
+ausente em `config/aniversariantes` (checado nos 2 lados no Firestore). Poda rodou com 0
+podados (esperado — nada estava fora de janela ainda). Não injetei doc de teste sintético pra
+validar a poda em produção (classificador de segurança bloqueou, mesmo padrão de antes) — a
+lógica é um set-membership simples, deriva da MESMA janela já testada na criação, considerei
+confiável por inspeção sem precisar do drill ao vivo.
+
+`check-pipeline-health.mjs` ok.
