@@ -439,6 +439,16 @@ html.modo-colab.cp-dark{
 .gm-mid__bar{height:5px;border-radius:999px;background:rgba(255,255,255,.22);overflow:hidden;margin:9px 0 6px}
 .gm-mid__bar span{display:block;height:100%;background:var(--fiobras-yellow,#FFCB00);border-radius:999px}
 .gm-mid__meta{font-size:11px;font-weight:400;opacity:.9}
+/* Micro-linha de sequência (ideia A do mock streak-home-2026-07, aprovada 2026-07-15):
+   dourado só no dia cheio do ciclo de 5; branco/neutro no meio. Vale nos dois temas
+   (o card em si é fundo verde sólido, sem override de tema — igual ao resto do gm-mid). */
+.gm-strk{display:flex;align-items:center;gap:9px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.16)}
+.gm-strk__dots{display:inline-flex;gap:5px}
+.gm-strk__dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.30)}
+.gm-strk__dots i.on{background:#fff}
+.gm-strk__lbl{font-size:11px;font-weight:600;color:rgba(255,255,255,.92)}
+.gm-strk--full .gm-strk__dots i.on{background:var(--fiobras-yellow,#FFCB00);box-shadow:0 0 0 1px rgba(255,203,0,.35),0 0 7px rgba(255,203,0,.55)}
+.gm-strk--full .gm-strk__lbl{color:#fff}
 .pp-bday{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:12px 14px;position:relative;overflow:hidden}
 .pp-bday::after{content:"";position:absolute;right:-24px;top:-30px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,rgba(224,163,58,.14),transparent 70%)}
 .pp-bday__ic{width:40px;height:40px;border-radius:12px;background:rgba(224,163,58,.16);color:var(--warning);display:flex;align-items:center;justify-content:center;flex:none}

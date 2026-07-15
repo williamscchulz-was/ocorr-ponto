@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.80.0", d: "16 jul 2026", current: true, items: [
+    v: "1.81.0", d: "16 jul 2026", current: true, items: [
+      { type: "feat", title: "Sua sequencia de dias no app agora aparece no card de pontos da home: cinco pontinhos que vao enchendo a cada dia seguido. Completou os cinco, ficam dourados e o premio cai na conta." },
+    ],
+  },
+  {
+    v: "1.80.0", d: "16 jul 2026", items: [
       { type: "high", title: "Espelho de ponto: dia sem batida agora mostra o motivo real (ferias, licencas, falta abonada, falta injustificada e outros), no portal do colaborador e do gestor. Transparencia sobre o seu proprio dado." },
       { type: "feat", aud: "gestor", title: "Vagas: a candidatura do site virou FICHA COMPLETA (dados pessoais, ate 3 experiencias, pretensao salarial, transporte e indicacao) com o botao Ver ficha completa na tela Vagas." },
       { type: "feat", aud: "gestor", title: "Beneficios por vaga: catalogo proprio na nova sub-aba Beneficios (cadastra uma vez, marca por vaga) e os selos aparecem no site pro candidato." },

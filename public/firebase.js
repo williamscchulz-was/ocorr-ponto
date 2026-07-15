@@ -1859,6 +1859,9 @@
         } else {
           await ref.set({ dias: 1, ultimoDia: firebase.firestore.Timestamp.fromDate(hoje) });
         }
+        // Cache de sessao (mesmo padrao de state.gamiMeu): o card da home le daqui,
+        // sincrono, sem contador paralelo (William 2026-07-15, ideia A do mock streak-home).
+        state.gamiStreakDias = dias;
         if (dias > 0 && dias % 5 === 0) {
           // chave derivada do MESMO ultimoDia gravado (a regra exige; derivar de "agora"
           // permitiria double-claim na virada de meia-noite UTC, gate delta 4)

@@ -2781,7 +2781,24 @@ function gamiCardHomeHtml() {
       <div class="gm-mid__top"><span class="gm-mid__lbl">${cpIcon("medalha")}Seus pontos</span><span class="gm-mid__pts">${total}<small>pts</small></span><span class="gm-mid__season">Temporada ${escapeHtml(cfg.ano)}</span></div>
       <div class="gm-mid__bar"><span style="width:${pct}%"></span></div>
       <div class="gm-mid__meta">${prox ? `faltam ${prox - total} pro marco ${prox}` : "Todos os marcos do ano conquistados"}</div>
+      ${gamiStreakHtml(cfg)}
     </button>`;
+}
+
+// Micro-linha de sequência no rodapé do card (ideia A do mock streak-home-2026-07,
+// aprovada por William 2026-07-15): 5 pontinhos, dourado no dia cheio. state.gamiStreakDias
+// é a MESMA fonte do task 93 (gamiPingStreak em firebase.js, contador de presença diária),
+// só cacheada em state pro card nascer preenchido na sessão (mesmo padrão de gamiMeu.total).
+// A sequência conta em ciclos de 5 (o contador de dias nunca reseta sozinho, só o prêmio
+// repete a cada múltiplo); só o dia 1 de cada ciclo fica de fora pra não poluir a home.
+function gamiStreakHtml(cfg) {
+  if (!(Number(cfg.tabela && cfg.tabela.streak) > 0)) return "";
+  const dias = Number(state.gamiStreakDias) || 0;
+  const pos = dias > 0 ? ((dias - 1) % 5) + 1 : 0;
+  if (pos <= 1) return "";
+  const cheia = pos === 5;
+  const dots = [0, 1, 2, 3, 4].map((i) => `<i class="${i < pos ? "on" : ""}"></i>`).join("");
+  return `<div class="gm-strk${cheia ? " gm-strk--full" : ""}"><span class="gm-strk__dots">${dots}</span><span class="gm-strk__lbl">${pos}/5 dias seguidos</span></div>`;
 }
 
 // Medalha (estrela + fita) pro centro do anel na cerimônia de marco.
@@ -16991,7 +17008,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.80.0";
+window.CURRENT_VERSION = "1.81.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
