@@ -273,6 +273,110 @@
   @media (prefers-reduced-motion: reduce) {
     .candidatura .step-seg i, .candidatura .disc-prog i, .candidatura .cer, .candidatura .cv-chip { transition: none; animation: none; }
   }
+
+  /* ===== Gente no Coração: selo no herói ===== */
+  .selo-gc { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .09em;
+    text-transform: uppercase; color: #ffd83d; background: rgba(255,255,255,.1); border: 1px solid rgba(255,203,0,.28);
+    border-radius: 999px; padding: 8px 15px; margin-bottom: 16px; }
+  .selo-gc svg { width: 17px; height: 17px; flex: 0 0 auto; }
+
+  /* ===== Seção do valor (entre passos e vagas) ===== */
+  .valor { max-width: 1060px; margin: 30px auto 0; padding: 0 26px; }
+  .valor__card { display: flex; align-items: center; gap: 26px; background: #fff; border: 1px solid #e0e6d9; border-radius: 22px;
+    padding: 28px 30px; box-shadow: 0 3px 14px rgba(10,40,20,.05); }
+  .valor__heart { flex: 0 0 auto; width: 118px; color: #008835; }
+  .valor__heart svg { width: 100%; height: auto; display: block; }
+  .valor__tx small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #8a927f; margin-bottom: 4px; }
+  .valor__tx b { display: block; font-size: clamp(20px, 3vw, 24px); font-weight: 800; letter-spacing: -.01em; color: #04331a; }
+  .valor__tx p { margin: 8px 0 0; font-size: 14px; color: #45523f; line-height: 1.6; max-width: 460px; }
+  @media (max-width: 620px) { .valor__card { flex-direction: column; text-align: center; } .valor__tx p { margin-left: auto; margin-right: auto; } }
+
+  /* ===== Benefícios no cartão da vaga ===== */
+  .sben { border-top: 1px solid #eef0ea; padding-top: 13px; margin: 0 0 14px; }
+  .sben-l { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #8a927f; margin-bottom: 8px; }
+  .sben-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sben-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: #2f6b3f;
+    background: #f2f8f2; border: 1px solid #dbe9dc; border-radius: 999px; padding: 5px 11px; }
+  .sben-chip svg { width: 12px; height: 12px; color: #008835; flex: 0 0 auto; }
+
+  /* ===== Ficha: controles das etapas (dentro do dialog) ===== */
+  .candidatura .grp { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: #8a927f;
+    margin: 18px 0 10px; display: flex; align-items: center; gap: 8px; }
+  .candidatura .grp::after { content: ""; flex: 1; height: 1px; background: #e7e9e1; }
+  .candidatura .grp:first-of-type { margin-top: 4px; }
+  .candidatura .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .candidatura .field select { width: 100%; border: 1.5px solid var(--borda); border-radius: 12px; padding: 11px 13px;
+    font: 500 14.5px "Poppins", sans-serif; color: var(--ink); background: #fff; transition: border-color .15s, box-shadow .15s; }
+  .candidatura .field select:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px #00883521; }
+  .candidatura .field.err select { border-color: #d64545; }
+  .candidatura .sel { position: relative; }
+  .candidatura .sel select { appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer; }
+  .candidatura .sel::after { content: ""; position: absolute; right: 15px; top: 50%; width: 9px; height: 9px;
+    border-right: 2px solid #7c8676; border-bottom: 2px solid #7c8676; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+  .candidatura .field.sel::after { top: 62%; }
+  .candidatura .money input { font-variant-numeric: tabular-nums; }
+
+  .candidatura .seg { display: inline-flex; background: #eef0ea; border-radius: 12px; padding: 3px; gap: 3px; }
+  .candidatura .seg button { border: 0; background: transparent; padding: 9px 22px; border-radius: 9px; font: 600 13px "Poppins", sans-serif;
+    color: var(--muted); cursor: pointer; transition: background .15s, color .15s; }
+  .candidatura .seg button.on { background: #fff; color: var(--verde-esc); box-shadow: 0 1px 3px #00000018; }
+  .candidatura .segextra { margin-top: 12px; }
+  .candidatura .segextra[hidden] { display: none; }
+  .candidatura .nstep { display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--borda); border-radius: 12px; padding: 4px; background: #fff; }
+  .candidatura .nstep button { width: 34px; height: 34px; border: 0; border-radius: 9px; background: #f2f4ee; color: var(--verde-esc);
+    font: 700 18px/1 "Poppins", sans-serif; cursor: pointer; }
+  .candidatura .nstep b { min-width: 34px; text-align: center; font: 700 15px "Poppins", sans-serif; }
+
+  .candidatura .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .candidatura .chip { display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--borda); background: #fff;
+    border-radius: 999px; padding: 9px 15px; font: 600 12.5px "Poppins", sans-serif; color: #45523f; cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s; }
+  .candidatura .chip svg { width: 15px; height: 15px; }
+  .candidatura .chip.on { border-color: var(--verde); background: #00883510; color: var(--verde-esc); }
+
+  .candidatura .checkcard { display: flex; gap: 11px; align-items: center; border: 1.5px solid var(--borda); border-radius: 14px;
+    padding: 13px 14px; margin-bottom: 15px; cursor: pointer; background: #fff; transition: border-color .15s, background .15s; }
+  .candidatura .checkcard.on { border-color: var(--verde); background: #00883508; }
+  .candidatura .checkcard .box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #c2cbba; flex: 0 0 auto;
+    display: grid; place-items: center; transition: background .15s, border-color .15s; }
+  .candidatura .checkcard.on .box { background: var(--verde); border-color: var(--verde); }
+  .candidatura .checkcard .box svg { width: 13px; height: 13px; opacity: 0; transition: opacity .15s; }
+  .candidatura .checkcard.on .box svg { opacity: 1; }
+  .candidatura .checkcard p { font-size: 12.5px; color: #45523f; line-height: 1.45; }
+  .candidatura .checkcard p b { font-weight: 600; color: var(--ink); }
+
+  .candidatura .empty { text-align: center; padding: 26px 16px 22px; border: 1.5px dashed #d3d9cc; border-radius: 16px; background: #fbfcf9; margin-bottom: 14px; }
+  .candidatura .empty .ic { width: 54px; height: 54px; border-radius: 16px; background: #eef1ea; color: #9aa392; display: grid; place-items: center; margin: 0 auto 11px; }
+  .candidatura .empty .ic svg { width: 26px; height: 26px; }
+  .candidatura .empty b { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .candidatura .empty span { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .candidatura .add-exp { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px dashed #b9ccae;
+    border-radius: 15px; background: #f4f9f1; color: var(--verde); font: 600 13.5px "Poppins", sans-serif; padding: 14px; cursor: pointer;
+    transition: background .15s, border-color .15s; }
+  .candidatura .add-exp:hover { background: #edf6ea; border-color: var(--verde); }
+  .candidatura .add-exp[hidden] { display: none; }
+  .candidatura .add-exp svg { width: 17px; height: 17px; }
+  .candidatura .add-hint { text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 9px; }
+
+  .candidatura .exp { position: relative; border: 1px solid var(--borda); border-radius: 16px; padding: 14px 15px; margin-bottom: 12px; background: #fff; }
+  .candidatura .exp .exp-top { display: flex; align-items: flex-start; gap: 10px; }
+  .candidatura .exp .exp-ic { width: 34px; height: 34px; border-radius: 10px; background: #00883514; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; }
+  .candidatura .exp .exp-ic svg { width: 17px; height: 17px; }
+  .candidatura .exp .exp-nm { flex: 1; min-width: 0; }
+  .candidatura .exp .exp-nm b { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; word-break: break-word; }
+  .candidatura .exp .exp-nm span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .candidatura .exp .exp-acts { display: flex; gap: 5px; flex: 0 0 auto; }
+  .candidatura .exp .exp-acts button { width: 30px; height: 30px; border-radius: 9px; border: 0; background: #f2f4ee; color: #6b7563; cursor: pointer; display: grid; place-items: center; }
+  .candidatura .exp .exp-acts button svg { width: 15px; height: 15px; }
+  .candidatura .exp .exp-meta { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .candidatura .exp .exp-meta div { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: #45523f; }
+  .candidatura .exp .exp-meta svg { width: 14px; height: 14px; color: #97a08f; flex: 0 0 auto; }
+  .candidatura .exp .exp-meta b { font-weight: 600; color: var(--ink); }
+
+  .candidatura .rev-row .rt .li { display: block; font-size: 12px; color: #45523f; line-height: 1.5; }
+  .candidatura .rev-edit { align-self: center; margin-left: auto; font: 600 11.5px "Poppins", sans-serif; color: var(--verde);
+    background: none; border: 0; cursor: pointer; flex: 0 0 auto; }
+  .candidatura .rev-row { align-items: flex-start; }
 </style>
 </head>
 <body>
@@ -290,8 +394,9 @@
       <div class="logo"><span class="logo-mark">F</span><b>Fiobras</b></div>
       <a href="#vagas">Ver as vagas</a>
     </div>
+    <span class="selo-gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg>Gente no Coração</span>
     <h1>Venha <span class="marca"><span class="verbo ativo">tecer</span><span class="verbo">tingir</span></span> o seu futuro com a gente</h1>
-    <p class="sub">A Fiobras cresce todo ano, e cresce puxada por gente boa. Escolha a sua vaga e candidate-se aqui mesmo, rápido e direto para a nossa equipe de Gestão de Pessoas.</p>
+    <p class="sub">Na Fiobras, acreditamos que grandes resultados são construídos por pessoas. Encontre a oportunidade que combina com o seu talento, cadastre seu currículo e venha crescer conosco.</p>
     <div class="hero__acao">
       <a class="hero__cta" href="#vagas">Ver vagas abertas</a>
       <span class="hero__n" id="contagem" hidden></span>
@@ -304,6 +409,22 @@
   <div class="passo"><b><span class="n">2</span>Preencha o formulário</b><p>Um toque em "Candidatar-se" abre um formulário rápido, aqui mesmo na página.</p></div>
   <div class="passo"><b><span class="n">3</span>Fale com gente de verdade</b><p>Quem analisa é a nossa equipe de Gestão de Pessoas, sem robô.</p></div>
 </div>
+
+<section class="valor" aria-label="Gente no Coração">
+  <div class="valor__card">
+    <div class="valor__heart">
+      <svg viewBox="0 0 120 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 88 C 16 94 24 82 34 86 C 42 89 50 90 58 85 C 32 64 22 42 33 27 C 43 14 57 19 60 33 C 63 19 77 14 87 27 C 98 42 88 64 63 84 C 70 91 82 93 94 86 C 100 82 104 78 108 74"/>
+        <g stroke="#04331a"><path d="M100 80 L 116 68" stroke-width="4"/><circle cx="102" cy="78.6" r="1.7" stroke-width="1.6" fill="#04331a"/></g>
+      </svg>
+    </div>
+    <div class="valor__tx">
+      <small>Um dos nossos 5 valores</small>
+      <b>Gente no Coração</b>
+      <p>Sempre colocamos as necessidades das pessoas no centro do nosso negócio.</p>
+    </div>
+  </div>
+</section>
 
 <main class="secao" id="vagas">
   <h2>Vagas abertas</h2>
@@ -336,24 +457,112 @@
       </div>
     </div>
     <div class="cand__stepper">
-      <div class="step-line"><span class="step-count" id="stepCount">Etapa 1 de 4</span><span class="step-name" id="stepName">Sobre você</span></div>
+      <div class="step-line"><span class="step-count" id="stepCount">Etapa 1 de 6</span><span class="step-name" id="stepName">Dados pessoais</span></div>
       <div class="step-bar" id="stepBar">
-        <span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span>
+        <span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span>
       </div>
     </div>
   </div>
 
   <div class="cand__body" id="candBody">
 
-    <!-- ETAPA 1: sobre você -->
-    <div class="step-view" id="cs1">
-      <div class="stitle">Prazer, quem é você?</div>
-      <div class="shint">Só o essencial pra gente te chamar. Leva menos de um minuto.</div>
+    <!-- ETAPA 1a: dados pessoais · identificação -->
+    <div class="step-view" id="cp1a">
+      <div class="stitle">Vamos começar por você</div>
+      <div class="shint">Preencha com calma. Seus dados ficam protegidos e são usados só nesta seleção.</div>
+      <div class="grp">Identificação</div>
       <div class="field" id="cf-nome">
         <label for="ci-nome">Nome completo</label>
         <input id="ci-nome" type="text" maxlength="80" placeholder="Seu nome e sobrenome" autocomplete="name">
         <div class="msg">Digite seu nome completo.</div>
       </div>
+      <div class="field" id="cf-nasc">
+        <label for="ci-nasc">Data de nascimento</label>
+        <input id="ci-nasc" type="date" autocomplete="bday">
+        <div class="msg">Informe sua data de nascimento.</div>
+      </div>
+      <div class="field sel" id="cf-ec">
+        <label for="ci-ec">Estado civil</label>
+        <select id="ci-ec">
+          <option value="solteiro">Solteiro(a)</option>
+          <option value="casado">Casado(a)</option>
+          <option value="uniao-estavel">União estável</option>
+          <option value="divorciado">Divorciado(a)</option>
+          <option value="viuvo">Viúvo(a)</option>
+        </select>
+      </div>
+      <div class="field sel" id="cf-esc">
+        <label for="ci-esc">Escolaridade</label>
+        <select id="ci-esc">
+          <option value="fundamental">Ensino fundamental</option>
+          <option value="medio-incompleto">Médio incompleto</option>
+          <option value="medio-completo" selected>Médio completo</option>
+          <option value="tecnico">Técnico</option>
+          <option value="superior-incompleto">Superior incompleto</option>
+          <option value="superior-completo">Superior completo</option>
+          <option value="pos">Pós-graduação</option>
+        </select>
+      </div>
+      <div class="grp">Você tem filhos?</div>
+      <div data-segwrap>
+        <div class="seg" id="seg-filhos" data-seg>
+          <button type="button" class="on" data-val="nao">Não</button>
+          <button type="button" data-val="sim">Sim</button>
+        </div>
+        <div class="segextra" id="segextra-filhos" hidden>
+          <div class="field" style="margin-top:12px">
+            <label>Quantos?</label>
+            <div class="nstep" id="nstep-filhos">
+              <button type="button" data-d="-1" aria-label="Menos um">−</button>
+              <b data-n>1</b>
+              <button type="button" data-d="1" aria-label="Mais um">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ETAPA 1b: dados pessoais · endereço e contato -->
+    <div class="step-view" id="cp1b" hidden>
+      <div class="stitle">Onde você mora</div>
+      <div class="shint">É por aqui que a gente confirma a região e monta o cadastro na admissão.</div>
+      <div class="grp">Endereço</div>
+      <div class="field" id="cf-cep">
+        <label for="ci-cep">CEP</label>
+        <input id="ci-cep" type="text" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="postal-code">
+        <div class="msg">Informe um CEP válido.</div>
+      </div>
+      <div class="field" id="cf-rua">
+        <label for="ci-rua">Rua e número</label>
+        <input id="ci-rua" type="text" maxlength="120" placeholder="Rua das Flores, 100" autocomplete="street-address">
+        <div class="msg">Informe a rua e o número.</div>
+      </div>
+      <div class="duo">
+        <div class="field" id="cf-bairro">
+          <label for="ci-bairro">Bairro</label>
+          <input id="ci-bairro" type="text" maxlength="60">
+          <div class="msg">Informe o bairro.</div>
+        </div>
+        <div class="field" id="cf-cidade">
+          <label for="ci-cidade">Cidade / UF</label>
+          <input id="ci-cidade" type="text" maxlength="60" placeholder="Indaial, SC" autocomplete="address-level2">
+          <div class="msg">Informe a cidade.</div>
+        </div>
+      </div>
+      <div class="grp">Naturalidade</div>
+      <div class="duo">
+        <div class="field" id="cf-nac">
+          <label for="ci-nac">Nacionalidade</label>
+          <input id="ci-nac" type="text" maxlength="60" placeholder="Brasileira">
+          <div class="msg">Informe a nacionalidade.</div>
+        </div>
+        <div class="field" id="cf-nat">
+          <label for="ci-nat">Cidade natal</label>
+          <input id="ci-nat" type="text" maxlength="60" placeholder="Cidade, UF">
+          <div class="msg">Informe a cidade natal.</div>
+        </div>
+      </div>
+      <div class="grp">Contato</div>
       <div class="field" id="cf-zap">
         <label for="ci-zap">WhatsApp</label>
         <input id="ci-zap" type="tel" maxlength="20" placeholder="(47) 9 9999-9999" autocomplete="tel" inputmode="tel">
@@ -364,19 +573,66 @@
         <input id="ci-mail" type="email" maxlength="120" placeholder="voce@email.com" autocomplete="email" inputmode="email">
         <div class="msg">Confira o e-mail, parece incompleto.</div>
       </div>
-      <div class="field" id="cf-nasc">
-        <label for="ci-nasc">Data de nascimento</label>
-        <input id="ci-nasc" type="date" autocomplete="bday">
-        <div class="msg">Informe sua data de nascimento.</div>
-      </div>
       <div class="cand__campo hp">
         <label for="candSite">Não preencha</label>
         <input type="text" id="candSite" name="site" tabindex="-1" autocomplete="off">
       </div>
     </div>
 
-    <!-- ETAPA 2: currículo -->
-    <div class="step-view" id="cs2" hidden>
+    <!-- ETAPA 2: experiências -->
+    <div class="step-view" id="cp2" hidden>
+      <div id="expList">
+        <div class="stitle" id="expTitle">Suas últimas experiências</div>
+        <div class="shint" id="expHint">Conte suas 3 experiências mais recentes. Se ainda não trabalhou de carteira assinada, marque abaixo.</div>
+        <div class="checkcard" id="expPrimeiro">
+          <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <p><b>Este é meu primeiro emprego</b><br>Você não precisa preencher nenhuma experiência.</p>
+        </div>
+        <div id="expCards"></div>
+        <button type="button" class="add-exp" id="expAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Adicionar experiência</button>
+        <div class="add-hint" id="expAddHint">Até 3. Você adiciona uma de cada vez.</div>
+      </div>
+      <div id="expForm" hidden>
+        <div class="stitle" id="expFormTitle">Experiência</div>
+        <div class="shint">Comece pela empresa mais recente. Depois você pode adicionar outra.</div>
+        <div class="field" id="cf-emp">
+          <label for="ci-emp">Nome da empresa</label>
+          <input id="ci-emp" type="text" maxlength="80">
+          <div class="msg">Informe o nome da empresa.</div>
+        </div>
+        <div class="duo">
+          <div class="field" id="cf-adm">
+            <label for="ci-adm">Admissão</label>
+            <input id="ci-adm" type="date">
+            <div class="msg">Informe a data.</div>
+          </div>
+          <div class="field" id="cf-dem">
+            <label for="ci-dem">Demissão</label>
+            <input id="ci-dem" type="date">
+            <div class="msg">Informe a data.</div>
+          </div>
+        </div>
+        <div class="field money" id="cf-sal">
+          <label for="ci-sal">Último salário</label>
+          <input id="ci-sal" type="text" inputmode="numeric" placeholder="R$ 0,00">
+          <div class="msg">Informe o último salário.</div>
+        </div>
+        <div class="field sel" id="cf-mot">
+          <label for="ci-mot">Motivo da saída</label>
+          <select id="ci-mot">
+            <option>Dispensa sem justa causa</option>
+            <option>Pedido de demissão</option>
+            <option>Fim de contrato</option>
+            <option>Acordo</option>
+            <option>Ainda trabalho aqui</option>
+            <option>Outro</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ETAPA 3: currículo -->
+    <div class="step-view" id="cp3" hidden>
       <div class="stitle">Seu currículo</div>
       <div class="shint">Se tiver um PDF na mão, ele ajuda a gente a te conhecer melhor. Mas não é obrigatório.</div>
       <div class="cv-drop" id="cvDrop">
@@ -398,8 +654,8 @@
       <div class="cv-ok" id="cvOk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Tudo certo, pode continuar</div>
     </div>
 
-    <!-- ETAPA 3: perfil (mais/menos) -->
-    <div class="step-view" id="cs3" hidden>
+    <!-- ETAPA 4: perfil (mais/menos) -->
+    <div class="step-view" id="cp4" hidden>
       <div id="discRun">
         <div class="disc-top">
           <div class="disc-count" id="discCount">Pergunta 1 de 8</div>
@@ -417,35 +673,48 @@
       </div>
     </div>
 
-    <!-- ETAPA 4: revisão + envio -->
-    <div class="step-view" id="cs4" hidden>
-      <div class="stitle">Quase lá, confira e envie</div>
-      <div class="shint">Dê uma olhada nos seus dados. Se algo mudou, é só voltar.</div>
-      <div class="rev-card">
-        <div class="rev-row">
-          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
-          <div class="rt"><small>Você</small><b id="rvNome">—</b></div>
+    <!-- ETAPA 5: informações adicionais -->
+    <div class="step-view" id="cp5" hidden>
+      <div class="stitle">Últimas perguntas</div>
+      <div class="shint">Ajudam a GP a te conhecer melhor. É rapidinho.</div>
+      <div class="grp">Qual a sua pretensão salarial?</div>
+      <div class="field money" id="cf-pret">
+        <input id="ci-pret" type="text" inputmode="numeric" placeholder="R$ 0,00" aria-label="Pretensão salarial">
+        <div class="msg">Informe a pretensão salarial.</div>
+      </div>
+      <div class="grp">Como você viria trabalhar?</div>
+      <div class="chips" id="chips-vem" data-chipgroup>
+        <button type="button" class="chip" data-val="a-pe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M9 21l2-6 3 2 1 4M11 15l-2-4 4-2 2 3"/></svg>A pé</button>
+        <button type="button" class="chip" data-val="bicicleta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 18l4-8h5l3 8M10 10l-1-3H7"/></svg>Bicicleta</button>
+        <button type="button" class="chip" data-val="moto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M8 17h6l-3-6h4l2-3M11 11L9 8H6"/></svg>Moto</button>
+        <button type="button" class="chip" data-val="carro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l2-5h10l2 5M3 17h18v-4H3zM6 17v2M18 17v2"/></svg>Carro</button>
+        <button type="button" class="chip" data-val="carona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/></svg>Carona</button>
+        <button type="button" class="chip" data-val="onibus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10M4 16h16M4 16v2M20 16v2M7 8h10M8 12h.01M16 12h.01"/></svg>Ônibus</button>
+      </div>
+      <div id="msg-vem" hidden style="font-size:11px;color:#d64545;margin-top:8px;">Escolha como você viria.</div>
+      <div class="grp">Conhece alguém que trabalha na Fiobras?</div>
+      <div data-segwrap>
+        <div class="seg" id="seg-conhece" data-seg>
+          <button type="button" class="on" data-val="nao">Não</button>
+          <button type="button" data-val="sim">Sim</button>
         </div>
-        <div class="rev-row">
-          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg></div>
-          <div class="rt"><small>Contato</small><b id="rvContato">—</b></div>
-        </div>
-        <div class="rev-row">
-          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-          <div class="rt"><small>Nascimento</small><b id="rvNasc">—</b></div>
-        </div>
-        <div class="rev-row">
-          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/></svg></div>
-          <div class="rt"><small>Currículo</small><b id="rvCv" class="dim">—</b></div>
-        </div>
-        <div class="rev-row">
-          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div class="rt"><small>Perfil</small><b>Teste concluído</b></div>
+        <div class="segextra" id="segextra-conhece" hidden>
+          <div class="field" style="margin-top:12px">
+            <label for="ci-quem">Quem?</label>
+            <input id="ci-quem" type="text" maxlength="80" placeholder="Nome e setor">
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- ETAPA 6: revisão + envio -->
+    <div class="step-view" id="cp6" hidden>
+      <div class="stitle">Confira sua ficha e envie</div>
+      <div class="shint">Se algo mudou, volte e ajuste antes de enviar.</div>
+      <div class="rev-card" id="revCard"></div>
       <div class="lgpd" id="cLgpd">
         <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-        <p>Ao enviar, você autoriza a Fiobras a usar estes dados, seu currículo e o resultado do teste de perfil apenas neste processo seletivo.</p>
+        <p>Ao enviar, você autoriza a Fiobras a tratar, <b>apenas para esta seleção</b>, os dados desta ficha: nome, data de nascimento, estado civil, escolaridade, se possui filhos, endereço completo, nacionalidade e naturalidade, telefone e e-mail, o histórico das últimas experiências (empresa, datas, último salário e motivo da saída), currículo, pretensão salarial, forma de deslocamento, indicação e o resultado do teste de perfil. <b>Guardamos por até 6 meses e depois apagamos automaticamente.</b></p>
       </div>
       <div class="cand__erroGeral" id="erroGeral"></div>
     </div>
@@ -494,7 +763,7 @@
     var SEND_SVG = '<svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>';
 
     // Cache leve: corta leituras repetidas de quem navega/volta; TTL 5 min.
-    var CACHE_KEY = "vagas-cache-v3";
+    var CACHE_KEY = "vagas-cache-v4";
     var cacheado = null;
     try {
       var raw = sessionStorage.getItem(CACHE_KEY);
@@ -510,6 +779,7 @@
               var v = d.data();
               return { id: d.id, titulo: v.titulo, setor: v.setor, turno: v.turno,
                 cidade: v.cidade, descricao: v.descricao, requisitos: v.requisitos,
+                beneficios: Array.isArray(v.beneficios) ? v.beneficios.filter(function (b) { return typeof b === "string" && b; }) : [],
                 pub: v.publicadaEm && v.publicadaEm.toMillis ? v.publicadaEm.toMillis() : 0 };
             }),
           };
@@ -535,10 +805,17 @@
           v.turno ? '<span class="tag tag--turno">' + esc(v.turno) + "</span>" : "",
           v.cidade ? '<span class="tag">' + esc(v.cidade) + "</span>" : "",
         ].join("");
+        // Benefícios ligados na vaga: selos discretos antes do candidatar. Sem benefícios, nada aparece.
+        var ck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        var bens = (v.beneficios && v.beneficios.length)
+          ? '<div class="sben"><div class="sben-l">Benefícios</div><div class="sben-chips">' +
+            v.beneficios.map(function (b) { return '<span class="sben-chip">' + ck + esc(b) + "</span>"; }).join("") + "</div></div>"
+          : "";
         return '<article class="vaga"><h3>' + esc(v.titulo) + "</h3>" +
           (tags ? '<div class="tags">' + tags + "</div>" : "") +
           (v.descricao ? '<p class="desc">' + esc(v.descricao) + "</p>" : "") +
           (v.requisitos ? '<p class="req">Requisitos: ' + esc(v.requisitos) + "</p>" : "") +
+          bens +
           '<div class="vfoot"><span class="data">' + esc(quando) + "</span>" + cta + "</div></article>";
       }).join("");
     }).catch(function (e) {
@@ -569,9 +846,21 @@
   var reduzMov = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var vibrar = function (p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
 
-  var STEP_NOMES = ["Sobre você", "Currículo", "Seu jeito de trabalhar", "Revisão"];
-  var step = 1, cvFile = null, cvEstado = "", discIdx = 0, pos = 0;
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  // Ficha em 6 etapas nomeadas; a etapa 1 (Dados pessoais) aparece em dois painéis
+  // curtos (identificação, depois endereço/contato). PANES = painéis; PANE_STEP mapeia
+  // cada painel na etapa nomeada que o stepper pinta.
+  var STEP_NOMES = ["Dados pessoais", "Experiências", "Currículo", "Perfil", "Adicionais", "Revisão"];
+  var TOT = STEP_NOMES.length;
+  var PANES = ["cp1a", "cp1b", "cp2", "cp3", "cp4", "cp5", "cp6"];
+  var PANE_STEP = [1, 1, 2, 3, 4, 5, 6];
+  var paneIdx = 0;
+  var cvFile = null, cvEstado = "", discIdx = 0, pos = 0;
   var discResp = [], ordemGrupos = null, discResult = null, lgpdOn = false;
+  // Dados que não moram no DOM entre navegações da ficha.
+  var experiencias = [], expMode = "list", expEditIdx = null, primeiroEmprego = false;
+  var temFilhos = false, filhosCount = 1, comoViria = "", conheceAlguem = false;
+  var MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
   // Os 8 grupos do teste (uma frase por dimensão D/I/S/C). Formato "mais e menos":
   // o candidato toca a que MAIS combina e depois a que MENOS. O scoring vem do campo .d;
@@ -587,7 +876,7 @@
     [ {d:"S",t:"Calmo e de confiança"}, {d:"I",t:"Animado e comunicativo"}, {d:"D",t:"Decidido e que vai à luta"}, {d:"C",t:"Caprichoso e organizado"} ]
   ];
   var N = GRUPOS.length;
-  var views = { 1: $c("cs1"), 2: $c("cs2"), 3: $c("cs3"), 4: $c("cs4") };
+  var paneEl = function (i) { return $c(PANES[i]); };
 
   // limite superior do date picker = hoje (sem nascimento no futuro)
   try { $c("ci-nasc").max = new Date().toISOString().slice(0, 10); } catch (e) {}
@@ -604,13 +893,27 @@
   $c("candFechar").addEventListener("click", function () { dlg.close(); });
   $c("cerFechar").addEventListener("click", function () { dlg.close(); });
 
+  function setSeg(segId, val) {
+    var seg = $c(segId); if (!seg) return;
+    Array.prototype.forEach.call(seg.querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-val") === val); });
+  }
   function resetFlow() {
-    step = 1; cvFile = null; cvEstado = ""; discIdx = 0; pos = 0;
-    discResp = []; ordemGrupos = null; discResult = null; lgpdOn = false;
-    ["ci-nome", "ci-zap", "ci-mail", "ci-nasc"].forEach(function (id) {
-      var el = $c(id); if (el) { el.value = ""; el.closest(".field").classList.remove("err"); }
+    paneIdx = 0; cvFile = null; cvEstado = "";
+    discIdx = 0; pos = 0; discResp = []; ordemGrupos = null; discResult = null; lgpdOn = false;
+    experiencias = []; expMode = "list"; expEditIdx = null; primeiroEmprego = false;
+    temFilhos = false; filhosCount = 1; comoViria = ""; conheceAlguem = false;
+    ["ci-nome", "ci-nasc", "ci-cep", "ci-rua", "ci-bairro", "ci-cidade", "ci-nac", "ci-nat", "ci-zap", "ci-mail", "ci-quem", "ci-pret", "ci-emp", "ci-adm", "ci-dem", "ci-sal"].forEach(function (id) {
+      var el = $c(id); if (el) { el.value = ""; var f = el.closest(".field"); if (f) f.classList.remove("err"); }
     });
+    $c("ci-ec").selectedIndex = 0;
+    $c("ci-esc").value = "medio-completo";
+    $c("ci-mot").selectedIndex = 0;
     $c("candSite").value = "";
+    setSeg("seg-filhos", "nao"); $c("segextra-filhos").hidden = true; $c("nstep-filhos").querySelector("[data-n]").textContent = "1";
+    setSeg("seg-conhece", "nao"); $c("segextra-conhece").hidden = true;
+    $$(".chip", $c("chips-vem")).forEach(function (c) { c.classList.remove("on"); });
+    $c("msg-vem").hidden = true;
+    $c("expPrimeiro").classList.remove("on");
     limparCv();
     $c("cLgpd").classList.remove("on");
     $c("erroGeral").textContent = "";
@@ -620,27 +923,33 @@
     if ($c("cPulse")) $c("cPulse").style.animation = "none";
     $c("discDone").classList.remove("on");
     $c("discRun").style.display = "";
-    for (var k in views) views[k].hidden = (k !== "1");
+    expMode = "list"; renderExp();
+    for (var i = 0; i < PANES.length; i++) paneEl(i).hidden = (i !== 0);
     pintarStepper(); ajustarFoot();
   }
 
-  // ===== stepper =====
+  // ===== stepper (6 etapas) =====
   function pintarStepper() {
-    $c("stepCount").textContent = "Etapa " + step + " de 4";
+    var step = PANE_STEP[paneIdx];
+    $c("stepCount").textContent = "Etapa " + step + " de " + TOT;
     $c("stepName").textContent = STEP_NOMES[step - 1];
     var segs = $c("stepBar").children;
     for (var i = 0; i < segs.length; i++) {
       segs[i].classList.toggle("done", (i + 1) < step);
       segs[i].classList.toggle("now", (i + 1) === step);
     }
-    $c("candBack").hidden = (step === 1);
+    $c("candBack").hidden = (paneIdx === 0);
   }
 
-  // ===== troca de etapa =====
-  function irStep(n, dir) {
-    if (n < 1 || n > 4) return;
-    var de = views[step], para = views[n];
-    step = n;
+  // ===== troca de painel =====
+  function irPane(idx, dir) {
+    if (idx < 0 || idx >= PANES.length) return;
+    if (PANES[idx] === "cp2") { expMode = "list"; expEditIdx = null; }
+    var de = paneEl(paneIdx), para = paneEl(idx);
+    paneIdx = idx;
+    if (PANES[idx] === "cp2") renderExp();
+    if (PANES[idx] === "cp4" && !discResp.length) iniciarDisc();
+    if (PANES[idx] === "cp6") preencherRevisao();
     pintarStepper(); ajustarFoot();
     if (de !== para) {
       de.hidden = true; para.hidden = false;
@@ -650,38 +959,167 @@
       }
       $c("candBody").scrollTop = 0;
     }
-    if (n === 3 && !discResp.length) iniciarDisc();
-    if (n === 4) preencherRevisao();
   }
 
   // ===== footer contextual =====
   function ajustarFoot() {
-    var foot = $c("candFoot"), btn = $c("candPrim");
-    if (step === 3) {
+    var foot = $c("candFoot"), btn = $c("candPrim"), pane = PANES[paneIdx];
+    if (pane === "cp2" && expMode === "form") { foot.hidden = false; btn.textContent = "Salvar experiência"; btn.disabled = false; return; }
+    if (pane === "cp4") {
       foot.hidden = !discConcluido();
-      if (!foot.hidden) { btn.textContent = "Ir para a última etapa"; btn.disabled = false; }
+      if (!foot.hidden) { btn.textContent = "Continuar"; btn.disabled = false; }
       return;
     }
     foot.hidden = false;
-    if (step === 4) { btn.textContent = "Enviar candidatura"; btn.disabled = !lgpdOn; }
+    if (pane === "cp6") { btn.textContent = "Enviar candidatura"; btn.disabled = !lgpdOn; }
     else { btn.textContent = "Continuar"; btn.disabled = false; }
   }
 
-  // ===== ETAPA 1: validação inline (cidade REMOVIDA: não persiste no backend) =====
-  function validaStep1() {
-    var ok = true;
-    function checa(campo, cond) { $c(campo).classList.toggle("err", !cond); if (!cond) ok = false; }
-    var zap = $c("ci-zap").value.replace(/\D/g, "");
-    var mail = $c("ci-mail").value.trim();
-    var nasc = $c("ci-nasc").value;
-    checa("cf-nome", $c("ci-nome").value.trim().length >= 3);
-    checa("cf-zap", zap.length >= 10);
-    checa("cf-mail", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail));
-    checa("cf-nasc", /^\d{4}-\d{2}-\d{2}$/.test(nasc));
-    return ok;
+  // ===== helpers da ficha =====
+  function parseMoney(v) { var d = String(v || "").replace(/\D/g, ""); return d ? parseInt(d, 10) / 100 : 0; }
+  function fmtReais(n) { return "R$ " + Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function mesAno(iso) { var p = String(iso || "").split("-"); if (p.length < 3) return ""; return (MESES[parseInt(p[1], 10) - 1] || "") + " " + p[0]; }
+  function selText(id) { var s = $c(id); return (s && s.options[s.selectedIndex]) ? s.options[s.selectedIndex].text : ""; }
+  function svgw(inner) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + "</svg>"; }
+  function checaCampo(fieldId, cond, st) { var el = $c(fieldId); if (el) el.classList.toggle("err", !cond); if (!cond) st.ok = false; return cond; }
+  function montarEndereco() {
+    var cep = $c("ci-cep").value.trim();
+    return [$c("ci-rua").value.trim(), $c("ci-bairro").value.trim(), $c("ci-cidade").value.trim(), cep ? ("CEP " + cep) : ""].filter(Boolean).join(" · ").slice(0, 200);
   }
-  ["ci-nome", "ci-zap", "ci-mail", "ci-nasc"].forEach(function (id) {
-    $c(id).addEventListener("input", function () { this.closest(".field").classList.remove("err"); });
+
+  // ===== validação por etapa =====
+  function validaP1a() {
+    var st = { ok: true };
+    checaCampo("cf-nome", $c("ci-nome").value.trim().length >= 3, st);
+    checaCampo("cf-nasc", /^\d{4}-\d{2}-\d{2}$/.test($c("ci-nasc").value), st);
+    return st.ok;
+  }
+  function validaP1b() {
+    var st = { ok: true };
+    checaCampo("cf-cep", $c("ci-cep").value.replace(/\D/g, "").length === 8, st);
+    checaCampo("cf-rua", $c("ci-rua").value.trim().length >= 1, st);
+    checaCampo("cf-bairro", $c("ci-bairro").value.trim().length >= 1, st);
+    checaCampo("cf-cidade", $c("ci-cidade").value.trim().length >= 1, st);
+    checaCampo("cf-nac", $c("ci-nac").value.trim().length >= 1, st);
+    checaCampo("cf-nat", $c("ci-nat").value.trim().length >= 1, st);
+    checaCampo("cf-zap", $c("ci-zap").value.replace(/\D/g, "").length >= 10, st);
+    checaCampo("cf-mail", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($c("ci-mail").value.trim()), st);
+    return st.ok;
+  }
+  function validaP5() {
+    var st = { ok: true };
+    var pret = parseMoney($c("ci-pret").value);
+    checaCampo("cf-pret", pret > 0 && pret <= 1000000, st);
+    if (!comoViria) { $c("msg-vem").hidden = false; st.ok = false; } else { $c("msg-vem").hidden = true; }
+    return st.ok;
+  }
+
+  // ===== ETAPA 2: experiências (0..3) =====
+  var IC_BRIEF = '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>';
+  var IC_EDIT = '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>';
+  var IC_TRASH = '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>';
+  var IC_CAL = '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>';
+  var IC_MONEY = '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>';
+  var IC_CHECK2 = '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>';
+  function expCardHtml(e, i) {
+    return '<div class="exp"><div class="exp-top"><span class="exp-ic">' + svgw(IC_BRIEF) + "</span>"
+      + '<div class="exp-nm"><b>' + esc(e.empresa) + "</b><span>Experiência " + (i + 1) + "</span></div>"
+      + '<div class="exp-acts"><button type="button" data-exp-edit="' + i + '" aria-label="Editar">' + svgw(IC_EDIT) + "</button>"
+      + '<button type="button" data-exp-del="' + i + '" aria-label="Remover">' + svgw(IC_TRASH) + "</button></div></div>"
+      + '<div class="exp-meta"><div>' + svgw(IC_CAL) + esc(mesAno(e.admissao)) + " <b>—</b> " + esc(mesAno(e.demissao)) + "</div>"
+      + "<div>" + svgw(IC_MONEY) + "Último salário <b>" + esc(fmtReais(e.salario)) + "</b></div>"
+      + "<div>" + svgw(IC_CHECK2) + esc(e.motivoSaida) + "</div></div></div>";
+  }
+  function renderExp() {
+    var inForm = (expMode === "form");
+    $c("expList").hidden = inForm;
+    $c("expForm").hidden = !inForm;
+    if (inForm) return;
+    $c("expPrimeiro").classList.toggle("on", primeiroEmprego);
+    var cards = $c("expCards");
+    if (primeiroEmprego) cards.innerHTML = "";
+    else if (!experiencias.length) cards.innerHTML = '<div class="empty"><div class="ic">' + svgw(IC_BRIEF) + "</div><b>Nenhuma experiência ainda</b><span>Adicione a mais recente primeiro.</span></div>";
+    else cards.innerHTML = experiencias.map(expCardHtml).join("");
+    var add = $c("expAdd"), hint = $c("expAddHint");
+    add.hidden = primeiroEmprego || experiencias.length >= 3;
+    hint.hidden = primeiroEmprego;
+    hint.textContent = experiencias.length ? (experiencias.length + " de 3 adicionadas.") : "Até 3. Você adiciona uma de cada vez.";
+    $c("expHint").textContent = experiencias.length
+      ? ("Você já adicionou " + experiencias.length + ". Pode adicionar mais uma ou seguir.")
+      : "Conte suas 3 experiências mais recentes. Se ainda não trabalhou de carteira assinada, marque abaixo.";
+  }
+  function abrirExpForm(idx) {
+    expMode = "form"; expEditIdx = (idx == null ? null : idx);
+    var e = (idx == null) ? null : experiencias[idx];
+    $c("ci-emp").value = e ? e.empresa : "";
+    $c("ci-adm").value = e ? e.admissao : "";
+    $c("ci-dem").value = e ? e.demissao : "";
+    $c("ci-sal").value = e ? fmtReais(e.salario) : "";
+    $c("ci-mot").value = e ? e.motivoSaida : $c("ci-mot").options[0].value;
+    ["cf-emp", "cf-adm", "cf-dem", "cf-sal"].forEach(function (f) { $c(f).classList.remove("err"); });
+    $c("expFormTitle").textContent = "Experiência " + ((idx == null ? experiencias.length : idx) + 1);
+    renderExp(); ajustarFoot(); $c("candBody").scrollTop = 0;
+  }
+  function salvarExp() {
+    var st = { ok: true };
+    var emp = $c("ci-emp").value.trim();
+    var adm = $c("ci-adm").value, dem = $c("ci-dem").value;
+    var sal = parseMoney($c("ci-sal").value);
+    checaCampo("cf-emp", emp.length >= 1 && emp.length <= 80, st);
+    checaCampo("cf-adm", /^\d{4}-\d{2}-\d{2}$/.test(adm), st);
+    checaCampo("cf-dem", /^\d{4}-\d{2}-\d{2}$/.test(dem), st);
+    checaCampo("cf-sal", sal > 0 && sal <= 1000000, st);
+    if (!st.ok) return;
+    var obj = { empresa: emp.slice(0, 80), admissao: adm, demissao: dem, salario: sal, motivoSaida: String($c("ci-mot").value).slice(0, 120) };
+    if (expEditIdx != null) experiencias[expEditIdx] = obj; else experiencias.push(obj);
+    expMode = "list"; expEditIdx = null;
+    renderExp(); ajustarFoot(); $c("candBody").scrollTop = 0;
+  }
+
+  // ===== bindings de uma vez (o dialog é persistente) =====
+  $c("expPrimeiro").addEventListener("click", function () {
+    primeiroEmprego = !primeiroEmprego;
+    if (primeiroEmprego) experiencias = [];
+    renderExp();
+  });
+  $c("expAdd").addEventListener("click", function () { if (experiencias.length < 3) abrirExpForm(null); });
+  $c("expCards").addEventListener("click", function (ev) {
+    var ed = ev.target.closest("[data-exp-edit]"), rm = ev.target.closest("[data-exp-del]");
+    if (ed) { abrirExpForm(parseInt(ed.getAttribute("data-exp-edit"), 10)); return; }
+    if (rm) { experiencias.splice(parseInt(rm.getAttribute("data-exp-del"), 10), 1); renderExp(); }
+  });
+  $c("seg-filhos").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    temFilhos = (b.getAttribute("data-val") === "sim");
+    setSeg("seg-filhos", temFilhos ? "sim" : "nao");
+    $c("segextra-filhos").hidden = !temFilhos;
+  });
+  $c("nstep-filhos").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    filhosCount = Math.max(1, Math.min(20, filhosCount + (parseInt(b.getAttribute("data-d"), 10) || 0)));
+    $c("nstep-filhos").querySelector("[data-n]").textContent = String(filhosCount);
+  });
+  $c("seg-conhece").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    conheceAlguem = (b.getAttribute("data-val") === "sim");
+    setSeg("seg-conhece", conheceAlguem ? "sim" : "nao");
+    $c("segextra-conhece").hidden = !conheceAlguem;
+  });
+  $c("chips-vem").addEventListener("click", function (ev) {
+    var c = ev.target.closest(".chip"); if (!c) return;
+    comoViria = c.getAttribute("data-val") || "";
+    $$(".chip", $c("chips-vem")).forEach(function (x) { x.classList.toggle("on", x === c); });
+    $c("msg-vem").hidden = true;
+  });
+  ["ci-sal", "ci-pret"].forEach(function (id) {
+    $c(id).addEventListener("input", function () {
+      var d = this.value.replace(/\D/g, "").slice(0, 9);
+      this.value = d ? fmtReais(parseInt(d, 10) / 100) : "";
+    });
+  });
+  // erro inline some ao corrigir qualquer campo da ficha
+  $c("candBody").addEventListener("input", function (ev) {
+    var f = ev.target.closest(".field"); if (f) f.classList.remove("err");
   });
 
   // ===== ETAPA 2: currículo (arquivo real) =====
@@ -721,7 +1159,7 @@
     mostrarChip(f);
   });
   $c("cvX").addEventListener("click", limparCv);
-  $c("btnPular").addEventListener("click", function () { cvEstado = "pulado"; irStep(3, "frente"); });
+  $c("btnPular").addEventListener("click", function () { cvEstado = "pulado"; irPane(4, "frente"); });
 
   // ===== ETAPA 3: teste de perfil (mais/menos) =====
   function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
@@ -783,7 +1221,7 @@
     }, st === "most" ? 250 : 320);
   });
   $c("discBack").addEventListener("click", function () {
-    if (pos === 0) { irStep(2, "tras"); return; }
+    if (pos === 0) { irPane(3, "tras"); return; }
     var np = pos - 1, b = blockAt(np), st = stageAt(np);
     if (st === "least") { if (discResp[b]) discResp[b].least = undefined; }
     else { discResp[b] = undefined; }
@@ -806,29 +1244,65 @@
     ajustarFoot();
   }
 
-  // ===== ETAPA 4: revisão + LGPD =====
+  // ===== ETAPA 6: revisão + LGPD =====
   function formatarData(iso) {
     var p = String(iso || "").split("-");
     return p.length === 3 ? (p[2] + "/" + p[1] + "/" + p[0]) : iso;
   }
-  function preencherRevisao() {
-    $c("rvNome").textContent = $c("ci-nome").value.trim() || "—";
-    $c("rvContato").textContent = $c("ci-zap").value.trim() + "  ·  " + $c("ci-mail").value.trim();
-    var nasc = $c("ci-nasc").value;
-    $c("rvNasc").textContent = nasc ? formatarData(nasc) : "—";
-    var cv = $c("rvCv");
-    if (cvEstado === "anexado" && cvFile) { cv.textContent = cvFile.name + " (" + fmtTam(cvFile.size) + ")"; cv.classList.remove("dim"); }
-    else { cv.textContent = "Não enviado (opcional)"; cv.classList.add("dim"); }
+  var IC_USER = '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>';
+  var IC_PIN = '<path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>';
+  var IC_PHONE = '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/>';
+  var IC_FILE = '<path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/>';
+  var IC_CAR = '<circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M8 17h6l-3-6h4l2-3"/>';
+  var COMO_LABEL = { "a-pe": "a pé", bicicleta: "de bicicleta", moto: "de moto", carro: "de carro", carona: "de carona", onibus: "de ônibus" };
+  function revRow(ic, label, bodyHtml, goto) {
+    return '<div class="rev-row"><div class="ri">' + svgw(ic) + "</div>"
+      + '<div class="rt"><small>' + label + "</small>" + bodyHtml + "</div>"
+      + '<button type="button" class="rev-edit" data-goto="' + goto + '">Editar</button></div>';
   }
+  function preencherRevisao() {
+    var nome = $c("ci-nome").value.trim();
+    var nasc = $c("ci-nasc").value;
+    var filhosTxt = temFilhos ? (filhosCount + (filhosCount > 1 ? " filhos" : " filho")) : "sem filhos";
+    var dp = [nome, nasc ? formatarData(nasc) : "", selText("ci-ec"), selText("ci-esc"), filhosTxt].filter(Boolean).join(" · ");
+    var origem = [$c("ci-nac").value.trim(), $c("ci-nat").value.trim() ? ("natural de " + $c("ci-nat").value.trim()) : ""].filter(Boolean).join(", ");
+    var endLine = [montarEndereco(), origem].filter(Boolean).join(" · ");
+    var contato = [$c("ci-zap").value.trim(), $c("ci-mail").value.trim()].filter(Boolean).join(" · ");
+    var expBody;
+    if (primeiroEmprego) expBody = '<span class="li">Primeiro emprego</span>';
+    else if (experiencias.length) expBody = experiencias.map(function (e) { return '<span class="li">' + esc(e.empresa) + " (" + esc(mesAno(e.admissao)) + "—" + esc(mesAno(e.demissao)) + ")</span>"; }).join("");
+    else expBody = '<span class="li">Nenhuma informada</span>';
+    var cvTxt = (cvEstado === "anexado" && cvFile) ? (cvFile.name + " (" + fmtTam(cvFile.size) + ")") : "Não enviado (opcional)";
+    var adic = ["Pretensão " + fmtReais(parseMoney($c("ci-pret").value)), comoViria ? ("vem " + (COMO_LABEL[comoViria] || comoViria)) : "", (conheceAlguem && $c("ci-quem").value.trim()) ? ("conhece " + $c("ci-quem").value.trim()) : "não indicou ninguém"].filter(Boolean).join(" · ");
+    var expLabel = "Experiências" + (primeiroEmprego ? "" : (experiencias.length ? (" · " + experiencias.length) : ""));
+    $c("revCard").innerHTML =
+        revRow(IC_USER, "Dados pessoais", "<b>" + esc(dp) + "</b>", 0)
+      + revRow(IC_PIN, "Endereço e origem", "<b>" + esc(endLine) + "</b>", 1)
+      + revRow(IC_PHONE, "Contato", "<b>" + esc(contato) + "</b>", 1)
+      + revRow(IC_BRIEF, expLabel, expBody, 2)
+      + revRow(IC_FILE, "Currículo e perfil", "<b>" + esc(cvTxt) + " · teste de perfil concluído</b>", 3)
+      + revRow(IC_CAR, "Adicionais", "<b>" + esc(adic) + "</b>", 5);
+  }
+  $c("revCard").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-goto]"); if (!b) return;
+    irPane(parseInt(b.getAttribute("data-goto"), 10), "tras");
+  });
   $c("cLgpd").addEventListener("click", function () { lgpdOn = !lgpdOn; this.classList.toggle("on", lgpdOn); ajustarFoot(); });
 
   // ===== botões principais =====
-  $c("candBack").addEventListener("click", function () { if (step > 1) irStep(step - 1, "tras"); });
+  $c("candBack").addEventListener("click", function () {
+    if (PANES[paneIdx] === "cp2" && expMode === "form") { expMode = "list"; expEditIdx = null; renderExp(); ajustarFoot(); return; }
+    if (paneIdx > 0) irPane(paneIdx - 1, "tras");
+  });
   $c("candPrim").addEventListener("click", function () {
-    if (step === 1) { if (validaStep1()) irStep(2, "frente"); return; }
-    if (step === 2) { if (!cvEstado) cvEstado = "pulado"; irStep(3, "frente"); return; }
-    if (step === 3) { irStep(4, "frente"); return; }
-    if (step === 4) {
+    var pane = PANES[paneIdx];
+    if (pane === "cp1a") { if (validaP1a()) irPane(1, "frente"); return; }
+    if (pane === "cp1b") { if (validaP1b()) irPane(2, "frente"); return; }
+    if (pane === "cp2") { if (expMode === "form") { salvarExp(); return; } irPane(3, "frente"); return; }
+    if (pane === "cp3") { if (!cvEstado) cvEstado = "pulado"; irPane(4, "frente"); return; }
+    if (pane === "cp4") { irPane(5, "frente"); return; }
+    if (pane === "cp5") { if (validaP5()) irPane(6, "frente"); return; }
+    if (pane === "cp6") {
       if ($c("candSite").value) { sucesso(); return; } // honeypot: finge sucesso, não envia
       enviar();
     }
@@ -859,6 +1333,10 @@
     if (!db) return Promise.reject(new Error("sem-db"));
     return db.collection("candidaturas").doc(docId).set(payload);
   }
+  // Payload da FICHA COMPLETA. Casa EXATO no create de /candidaturas (docs/firestore.rules):
+  // enums hifenizados (estadoCivil/escolaridade/comoViria), filhos int, pretensaoSalarial
+  // number, experiencias 0..3 com shape fechado (salario number), indicacao "" quando não,
+  // mensagem "" (obrigatório), disc/discPrimario/curriculoPath opcionais aditivos.
   function montarPayload() {
     var raw = discResult ? discResult.raw : { D: 0, I: 0, S: 0, C: 0 };
     return {
@@ -869,6 +1347,18 @@
       email: $c("ci-mail").value.trim().slice(0, 120),
       mensagem: "",
       nascimento: $c("ci-nasc").value,
+      estadoCivil: $c("ci-ec").value,
+      escolaridade: $c("ci-esc").value,
+      filhos: temFilhos ? Math.max(0, Math.min(20, filhosCount | 0)) : 0,
+      endereco: montarEndereco(),
+      nacionalidade: $c("ci-nac").value.trim().slice(0, 60),
+      naturalidade: $c("ci-nat").value.trim().slice(0, 60),
+      experiencias: (primeiroEmprego ? [] : experiencias.slice(0, 3)).map(function (e) {
+        return { empresa: String(e.empresa).slice(0, 80), admissao: e.admissao, demissao: e.demissao, salario: e.salario, motivoSaida: String(e.motivoSaida).slice(0, 120) };
+      }),
+      pretensaoSalarial: parseMoney($c("ci-pret").value),
+      comoViria: comoViria,
+      indicacao: conheceAlguem ? $c("ci-quem").value.trim().slice(0, 80) : "",
       disc: { d: raw.D, i: raw.I, s: raw.S, c: raw.C },
       discPrimario: discResult ? (discResult.equilibrado ? "equilibrado" : discResult.primario) : "equilibrado",
       em: (window.firebase && firebase.firestore) ? firebase.firestore.FieldValue.serverTimestamp() : null,

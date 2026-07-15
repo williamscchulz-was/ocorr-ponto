@@ -3528,25 +3528,40 @@ function cpMesLabel(dataIso) {
   try { const s = new Date(String(dataIso) + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); return s.charAt(0).toUpperCase() + s.slice(1); }
   catch (e) { return ""; }
 }
-// Rótulo NEUTRO pro dia sem batida. Deriva de situacoes[] (interno do RH) SEM revelar
-// atraso/falta/suspensão — esses viram "Sem marcação"; só as situações da lista abaixo
-// aparecem nomeadas (nas DUAS telas: colaborador sobre si mesmo e gestor).
-// "Falta abonada" antes de qualquer padrão futuro com "falta": ordem importa.
-const SIT_NEUTRAS = [
-  [/faltas? abonadas?/, "Falta abonada"],
-  [/folga|dsr|descanso/, "Folga"],
-  [/feriado/, "Feriado"],
-  [/f[ée]rias/, "Férias"],
-];
+// Rótulo do dia sem batida, derivado de situacoes[] do WK. Lista FINAL dos 12 códigos
+// (missão WKRADAR 2026-07-16, grafia exata do WK Radar; decisão William: TODOS visíveis
+// nas DUAS telas, colaborador incluído, transparência sobre o próprio dado). Chave em
+// minúsculas (o " - " da chave é dado do WK, não texto de UI). Código desconhecido
+// segue "Sem marcação": fail-closed, nunca inventa rótulo.
+const SIT_ESPELHO = {
+  "faltas abonadas": "Falta abonada",
+  "faltas injustificadas": "Falta injustificada",
+  "horas ausência para compensação": "Ausência a Compensar",
+  "acompanhamento filho doente": "Acomp. Filho Doente",
+  "falecimento": "Licença",
+  "férias": "Férias",
+  "licença médica - até 15 dias": "Licença Médica",
+  "licença maternidade": "Licença Maternidade",
+  "suspensão": "Suspensão",
+  "férias coletivas": "Férias Coletivas",
+  "licença paternidade": "Licença Paternidade",
+  "auxílio doença": "Auxílio Doença",
+};
 function cpDiaSemMarcacaoLabel(situacoes) {
-  const s = (Array.isArray(situacoes) ? situacoes : [situacoes]).map((x) => String(x || "").toLowerCase()).join(" ");
-  for (const [re, label] of SIT_NEUTRAS) if (re.test(s)) return label;
+  const lista = (Array.isArray(situacoes) ? situacoes : [situacoes])
+    .map((x) => String(x || "").trim().toLowerCase()).filter(Boolean);
+  for (const s of lista) { if (SIT_ESPELHO[s]) return SIT_ESPELHO[s]; }
+  // Folga/DSR/feriado não vêm na lista dos 12 (não são "ausência"), seguem por padrão.
+  const s = lista.join(" ");
+  if (/folga|dsr|descanso/.test(s)) return "Folga";
+  if (/feriado/.test(s)) return "Feriado";
   return "Sem marcação";
 }
 
 // Um dia do espelho de ponto (banco-horas-self.dias[]): NEUTRO, só os horários que a pessoa bateu.
-// marcacoes: ["07:26","12:00",...]. Dia sem batida = SIT_NEUTRAS ou "Sem marcação".
-// situacoes[] é interno do RH — NUNCA mostrar atraso/falta/suspensão pro colaborador.
+// marcacoes: ["07:26","12:00",...]. Dia sem batida = SIT_ESPELHO ou "Sem marcação".
+// Desde 2026-07-16 (decisão William) TODAS as situações da lista aparecem nomeadas,
+// inclusive as sensíveis: transparência da pessoa sobre o próprio dado.
 function colabDiaMarcHtml(d) {
   const iso = d.dataIso || "";
   const dia = String(iso).slice(8, 10) || "--";
@@ -4922,6 +4937,29 @@ function idadeDeNascimento(nasc) {
   return (idade >= 0 && idade <= 120) ? idade : null;
 }
 
+// Catálogo de benefícios: 8 mais comuns pré-preenchidos quando a GP ainda não salvou o
+// dela (config/vagas.beneficiosCatalogo). O front sempre trabalha sobre este conjunto.
+const DEFAULT_BENEFICIOS = ["Vale alimentação", "Vale transporte", "Plano de saúde", "Plano odontológico", "Seguro de vida", "PPR", "Cesta básica", "Convênio farmácia"];
+function beneficiosCatalogo() {
+  const c = state.vagasConfig && state.vagasConfig.beneficiosCatalogo;
+  return (Array.isArray(c) && c.length) ? c.filter((b) => typeof b === "string" && b) : DEFAULT_BENEFICIOS.slice();
+}
+// Enums hifenizados da ficha (rules) → rótulo legível na tela da GP. Defensivo: valor
+// fora do mapa (candidatura v3 antiga ou dado estranho) cai no próprio valor cru.
+const CAND_ESTADO_CIVIL = { solteiro: "Solteiro(a)", casado: "Casado(a)", "uniao-estavel": "União estável", divorciado: "Divorciado(a)", viuvo: "Viúvo(a)" };
+const CAND_ESCOLARIDADE = { fundamental: "Ensino fundamental", "medio-incompleto": "Médio incompleto", "medio-completo": "Médio completo", tecnico: "Técnico", "superior-incompleto": "Superior incompleto", "superior-completo": "Superior completo", pos: "Pós-graduação" };
+const CAND_COMO_VIRIA = { "a-pe": "A pé", bicicleta: "Bicicleta", moto: "Moto", carro: "Carro", carona: "Carona", onibus: "Ônibus" };
+const CAND_MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function mesAnoBR(iso) { const p = String(iso || "").split("-"); if (p.length < 3) return ""; return (CAND_MESES[parseInt(p[1], 10) - 1] || "") + " " + p[0]; }
+// Resumo curto do endereço da ficha (formato "rua · bairro · cidade, UF · CEP ...") pro
+// card enxuto: prefere o segmento "Cidade, UF", senão o último segmento não vazio.
+function enderecoResumo(end) {
+  if (!end || typeof end !== "string") return "";
+  const parts = end.split("·").map((s) => s.trim()).filter(Boolean);
+  const cidade = parts.find((p) => /,\s*[A-Za-zÀ-ÿ]{2}$/.test(p));
+  return cidade || parts[parts.length - 1] || "";
+}
+
 function renderVagas() {
   const view = $("#view");
   if (state.vagas === undefined) {
@@ -4950,7 +4988,13 @@ function renderVagas() {
     const pk = discPerfilKey(c.discPrimario);
     const perfil = pk ? DISC_PERFIL[pk] : null;
     const idade = idadeDeNascimento(c.nascimento);
-    const sub = [idade != null ? `${idade} anos` : "", c.cidade].filter(Boolean).map(escapeHtml).join(" · ");
+    // Ficha completa (v4): campos novos enxutos no card + botão pro modal. v3 antiga:
+    // campos ausentes somem, botão não aparece.
+    const escolLabel = c.escolaridade ? (CAND_ESCOLARIDADE[c.escolaridade] || c.escolaridade) : "";
+    const sub = [idade != null ? `${idade} anos` : "", escolLabel].filter(Boolean).map(escapeHtml).join(" · ");
+    const pretTxt = (typeof c.pretensaoSalarial === "number") ? formatMoeda(c.pretensaoSalarial) : "";
+    const metaLinha = [pretTxt ? `Pretensão ${pretTxt}` : "", enderecoResumo(c.endereco)].filter(Boolean).map(escapeHtml).join(" · ");
+    const temFicha = !!(c.estadoCivil || c.escolaridade || c.endereco || Array.isArray(c.experiencias) || typeof c.pretensaoSalarial === "number" || c.nacionalidade);
     const avBg = perfil ? perfil.av : "var(--text-muted)";
     const avInk = perfil ? perfil.avInk : "#fff";
     const avatar = `<span class="g-cand__av" style="background:${avBg};color:${avInk}">${escapeHtml(comIniciais(c.nome))}</span>`;
@@ -4979,8 +5023,12 @@ function renderVagas() {
         <div class="g-cand__bd">
           <div class="g-cand__id">${avatar}<div class="g-cand__idt"><b>${escapeHtml(c.nome || "")}</b>${sub ? `<span>${sub}</span>` : ""}</div></div>
           <div class="g-cand__ct"><span>${[c.telefone, c.email].filter(Boolean).map(escapeHtml).join(" · ")}</span></div>
+          ${metaLinha ? `<div class="g-cand__meta">${metaLinha}</div>` : ""}
           ${c.mensagem ? `<p class="g-cand__msg">${escapeHtml(c.mensagem)}</p>` : ""}
-          ${cvHtml}
+          <div class="g-cand__acts">
+            ${cvHtml}
+            ${temFicha ? `<button class="btn btn--soft btn--sm g-cand__ficha" data-cand-ficha="${escapeHtml(c.id)}">Ver ficha completa</button>` : ""}
+          </div>
           <span class="g-cand__data">${c.em ? `${fmt(c.em)} às ${horaAud(c.em)}` : ""}</span>
         </div>
         ${perfilBloco}
@@ -5037,15 +5085,28 @@ function renderVagas() {
       </div>
       <div class="field"><label for="vg-desc">Descrição</label><textarea id="vg-desc" rows="3" maxlength="3000">${escapeHtml(v?.descricao || "")}</textarea></div>
       <div class="field"><label for="vg-req">Requisitos</label><textarea id="vg-req" rows="2" maxlength="3000">${escapeHtml(v?.requisitos || "")}</textarea></div>
+      ${(() => {
+        const catForm = beneficiosCatalogo();
+        const marcados = new Set(Array.isArray(v?.beneficios) ? v.beneficios : []);
+        if (!catForm.length) return `<p class="gami-hint">Cadastre benefícios na sub-aba <b>Benefícios</b> para marcá-los aqui.</p>`;
+        return `<div class="g-ben-h">Benefícios</div>
+          <div class="g-ben" id="vg-ben">
+            ${catForm.map((b) => `<button type="button" class="g-ben-it${marcados.has(b) ? " on" : ""}" data-ben="${escapeHtml(b)}"><span class="g-ben-bx">${icon("check")}</span>${escapeHtml(b)}</button>`).join("")}
+          </div>
+          <p class="g-ben-cat">${icon("info")}<span>Catálogo padrão. Gerencie os itens na sub-aba <b>Benefícios</b>.</span></p>`;
+      })()}
       <div class="gami-acao">
         <button class="btn btn--primary" id="vg-salvar">${edit === "nova" ? "Criar rascunho" : "Salvar"}</button>
         <button class="btn btn--ghost" id="vg-cancelar">Cancelar</button>
         <span class="gami-erro" id="vg-erro"></span>
       </div>
     </div>` : "";
-  if (!setHtml(view, `
-    <header class="page-header"><div><h1>Vagas</h1>
-      <p>O site vagas.fiobras.com.br mostra as publicadas na hora. Link pra divulgar em redes e grupos.</p></div></header>
+  const subtab = state.view.vagaSubtab === "beneficios" ? "beneficios" : "vagas";
+  const subtabsHtml = `<div class="g-subtabs" role="tablist">
+      <button class="g-subtab${subtab === "vagas" ? " on" : ""}" data-subtab="vagas" role="tab">Vagas</button>
+      <button class="g-subtab${subtab === "beneficios" ? " on" : ""}" data-subtab="beneficios" role="tab">Benefícios</button>
+    </div>`;
+  const vagasTabHtml = `
     <div class="gami-card g-wrap">
       <div class="gami-card__h"><h3>Vagas</h3>${edit ? "" : `<button class="btn btn--primary btn--sm" id="vg-nova">Nova vaga</button>`}</div>
       ${linhas || `<p class="gami-hint" style="margin:0;">Nenhuma vaga ainda. Crie a primeira que ela aparece no site assim que publicar.</p>`}
@@ -5058,11 +5119,63 @@ function renderVagas() {
         <input type="text" id="vg-zap" value="${escapeHtml((state.vagasConfig && state.vagasConfig.whatsapp) || "")}" placeholder="+55 47 99999-0000">
         <button class="btn btn--primary btn--sm" id="vg-zap-salvar">Salvar</button>
         <span class="gami-erro" id="vg-zap-erro"></span></div>
-    </div>`)) return;
+    </div>`;
+  const cat = beneficiosCatalogo();
+  const beneficiosTabHtml = `
+    <div class="gami-card g-wrap">
+      <div class="gami-card__h"><h3>Catálogo de benefícios</h3></div>
+      <p class="gami-hint">Cadastre aqui uma vez. Na hora de criar ou editar uma vaga, é só marcar os que valem. Já vem com os mais comuns.</p>
+      <div class="g-cat" id="g-cat">${cat.map((b, i) => `<div class="g-cat-it"><b>${escapeHtml(b)}</b><button class="g-cat-rm" data-cat-rm="${i}" aria-label="Remover ${escapeHtml(b)}">${icon("trash")}</button></div>`).join("") || `<p class="gami-hint" style="margin:0;">Nenhum benefício no catálogo.</p>`}</div>
+      <div class="g-cat-add">
+        <input type="text" id="g-cat-input" maxlength="40" placeholder="Novo benefício, ex.: Auxílio creche">
+        <button class="btn btn--primary btn--sm" id="g-cat-add">Adicionar</button>
+        <span class="gami-erro" id="g-cat-erro"></span>
+      </div>
+    </div>`;
+  if (!setHtml(view, `
+    <header class="page-header"><div><h1>Vagas</h1>
+      <p>O site vagas.fiobras.com.br mostra as publicadas na hora. Link pra divulgar em redes e grupos.</p></div></header>
+    ${subtabsHtml}
+    ${subtab === "beneficios" ? beneficiosTabHtml : vagasTabHtml}`)) return;
+  $$("#view [data-subtab]").forEach((b) => b.addEventListener("click", () => {
+    const alvo = b.dataset.subtab === "beneficios" ? "beneficios" : "vagas";
+    if (state.view.vagaSubtab === alvo) return;
+    state.view.vagaSubtab = alvo;
+    if (alvo === "beneficios") state.view.vagaEdit = null;
+    renderApp();
+  }));
+  if (subtab === "beneficios") {
+    const salvarCatalogo = (novo) => withBusy("vg-cat", $("#g-cat-add") || $("#view"), async () => {
+      try { await window.salvarConfigVagas?.((state.vagasConfig && state.vagasConfig.whatsapp) || "", novo); await window.carregarVagasGestor?.(); renderApp(); }
+      catch (e) { const el = $("#g-cat-erro"); if (el) el.textContent = "Não salvou: " + (e?.message || e); }
+    });
+    $("#g-cat-add")?.addEventListener("click", () => {
+      const inp = $("#g-cat-input"); const nome = (inp?.value || "").trim().slice(0, 40);
+      if (!nome) { $("#g-cat-erro").textContent = "Digite o nome do benefício."; return; }
+      const atual = beneficiosCatalogo();
+      if (atual.some((b) => b.toLowerCase() === nome.toLowerCase())) { $("#g-cat-erro").textContent = "Esse benefício já está no catálogo."; return; }
+      if (atual.length >= 30) { $("#g-cat-erro").textContent = "O catálogo comporta até 30 itens."; return; }
+      salvarCatalogo(atual.concat([nome]));
+    });
+    $("#g-cat-input")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#g-cat-add")?.click(); } });
+    $$("#view [data-cat-rm]").forEach((b) => b.addEventListener("click", () => {
+      const idx = parseInt(b.dataset.catRm, 10);
+      const atual = beneficiosCatalogo();
+      if (idx < 0 || idx >= atual.length) return;
+      salvarCatalogo(atual.filter((_, i) => i !== idx));
+    }));
+    return;
+  }
+  $$("#view .g-ben-it").forEach((b) => b.addEventListener("click", () => b.classList.toggle("on")));
+  $$("#view [data-cand-ficha]").forEach((b) => b.addEventListener("click", () => {
+    const c = (state.candidaturas || []).find((x) => x.id === b.dataset.candFicha);
+    if (c) openFichaModal(c);
+  }));
   $("#vg-nova")?.addEventListener("click", () => { state.view.vagaEdit = "nova"; renderApp(); });
   $("#vg-cancelar")?.addEventListener("click", () => { state.view.vagaEdit = null; renderApp(); });
   $("#vg-salvar")?.addEventListener("click", () => withBusy("vg-salvar", $("#vg-salvar"), async () => {
-    const dados = { titulo: $("#vg-titulo").value.trim(), setor: $("#vg-setor").value.trim(), turno: $("#vg-turno").value.trim(), cidade: $("#vg-cidade").value.trim(), descricao: $("#vg-desc").value.trim(), requisitos: $("#vg-req").value.trim() };
+    const beneficios = $$("#vg-ben .g-ben-it.on").map((el) => el.dataset.ben).filter(Boolean).slice(0, 15);
+    const dados = { titulo: $("#vg-titulo").value.trim(), setor: $("#vg-setor").value.trim(), turno: $("#vg-turno").value.trim(), cidade: $("#vg-cidade").value.trim(), descricao: $("#vg-desc").value.trim(), requisitos: $("#vg-req").value.trim(), beneficios };
     if (!dados.titulo) { $("#vg-erro").textContent = "A vaga precisa de um título."; return; }
     try {
       await window.salvarVaga(edit === "nova" ? null : edit, dados);
@@ -5135,6 +5248,55 @@ function renderVagas() {
     try { await window.salvarConfigVagas(num); toast("WhatsApp salvo."); $("#vg-zap-erro").textContent = ""; }
     catch (e) { $("#vg-zap-erro").textContent = "Não salvou: " + (e?.message || e); }
   }));
+}
+
+// Ficha completa do candidato (modal padrão, 2 colunas no desktop). TODO campo passa por
+// escapeHtml (vem do site público, fronteira de confiança máxima). Candidatura v3 antiga
+// (sem os campos da ficha) degrada: cada campo ausente simplesmente some.
+function openFichaModal(c) {
+  const dl = (rot, val) => val ? `<div class="ficha-row"><dt>${rot}</dt><dd>${escapeHtml(val)}</dd></div>` : "";
+  const idade = idadeDeNascimento(c.nascimento);
+  const nasc = c.nascimento ? `${String(c.nascimento).slice(0, 10).split("-").reverse().join("/")}${idade != null ? ` (${idade} anos)` : ""}` : "";
+  const ec = c.estadoCivil ? (CAND_ESTADO_CIVIL[c.estadoCivil] || c.estadoCivil) : "";
+  const escol = c.escolaridade ? (CAND_ESCOLARIDADE[c.escolaridade] || c.escolaridade) : "";
+  const filhos = (typeof c.filhos === "number") ? (c.filhos > 0 ? String(c.filhos) : "Não") : "";
+  const como = c.comoViria ? (CAND_COMO_VIRIA[c.comoViria] || c.comoViria) : "";
+  const pret = (typeof c.pretensaoSalarial === "number") ? formatMoeda(c.pretensaoSalarial) : "";
+  const indic = (typeof c.indicacao === "string") ? (c.indicacao || "Não") : "";
+  const dados = [
+    dl("Nome", c.nome), dl("Nascimento", nasc), dl("Estado civil", ec), dl("Escolaridade", escol),
+    dl("Filhos", filhos), dl("Nacionalidade", c.nacionalidade), dl("Naturalidade", c.naturalidade),
+    dl("Endereço", c.endereco), dl("Telefone", c.telefone), dl("E-mail", c.email),
+  ].join("");
+  let expHtml;
+  if (Array.isArray(c.experiencias) && c.experiencias.length) {
+    expHtml = c.experiencias.map((e, i) => {
+      const per = [mesAnoBR(e.admissao), mesAnoBR(e.demissao)].filter(Boolean).join(" — ");
+      const sal = (typeof e.salario === "number") ? formatMoeda(e.salario) : "";
+      const meta = [per, sal ? `Último salário ${sal}` : "", e.motivoSaida].filter(Boolean).map((s) => `<span>${escapeHtml(s)}</span>`).join("");
+      return `<div class="ficha-exp"><b>${escapeHtml(e.empresa || "")}</b><span class="ficha-exp__n">Experiência ${i + 1}</span>${meta ? `<div class="ficha-exp__meta">${meta}</div>` : ""}</div>`;
+    }).join("");
+  } else if (Array.isArray(c.experiencias)) {
+    expHtml = `<p class="ficha-vazio">Primeiro emprego (nenhuma experiência informada).</p>`;
+  } else {
+    expHtml = `<p class="ficha-vazio">Sem histórico de experiências nesta candidatura.</p>`;
+  }
+  const adic = [dl("Pretensão salarial", pret), dl("Como vem trabalhar", como), dl("Conhece alguém na Fiobras", indic)].join("");
+  const vazio = `<p class="ficha-vazio">Não informado.</p>`;
+  openModal(`
+    <div class="modal__header">
+      <div><h2>Ficha de ${escapeHtml(c.nome || "candidato")}</h2><p>${escapeHtml(c.vagaTitulo || "")}</p></div>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      <div class="ficha-grid">
+        <section class="ficha-sec"><h3>Dados pessoais</h3><dl class="ficha-dl">${dados || vazio}</dl></section>
+        <section class="ficha-sec"><h3>Experiências profissionais</h3>${expHtml}</section>
+        <section class="ficha-sec ficha-sec--full"><h3>Informações adicionais</h3><dl class="ficha-dl">${adic || vazio}</dl></section>
+      </div>
+    </div>
+    <div class="modal__footer"><button class="btn btn--ghost" data-close>Fechar</button></div>
+  `, { className: "modal--wide", dismissOnBackdrop: true, onMount: (m) => m.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal)) });
 }
 
 // Abre o currículo (PDF que o candidato de FORA subiu, fronteira de confiança máxima)
@@ -16829,7 +16991,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.79.0";
+window.CURRENT_VERSION = "1.80.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

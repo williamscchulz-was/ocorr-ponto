@@ -1925,6 +1925,11 @@
         cidade: String(dados.cidade || "").slice(0, 60),
         descricao: String(dados.descricao || "").slice(0, 3000),
         requisitos: String(dados.requisitos || "").slice(0, 3000),
+        // Benefícios marcados nesta vaga (só os do catálogo): lista <=15 de strings 1..40
+        // (contrato /vagas nas rules). O front só oferece itens do catálogo.
+        beneficios: Array.isArray(dados.beneficios)
+          ? dados.beneficios.filter((b) => typeof b === "string" && b).map((b) => b.slice(0, 40)).slice(0, 15)
+          : [],
       };
       if (id) { await db.collection("vagas").doc(id).update(campos); return id; }
       const ref = await db.collection("vagas").add({ ...campos, status: "rascunho", criadoPor: uid, criadoEm: _FV.serverTimestamp() });
@@ -1939,9 +1944,18 @@
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Encerrou vaga do site", alvo: id });
     };
     window.excluirVaga = async function (id) { await db.collection("vagas").doc(id).delete(); };
-    window.salvarConfigVagas = async function (whatsapp) {
-      await db.collection("config").doc("vagas").set({ whatsapp: String(whatsapp || "").slice(0, 30) });
-      state.vagasConfig = { whatsapp };
+    // config/vagas guarda whatsapp + catálogo de benefícios NO MESMO doc (shape
+    // hasOnly(['whatsapp','beneficiosCatalogo']) nas rules; whatsapp SEMPRE presente).
+    // Cada save reescreve o doc, então preserva o outro campo a partir do state.
+    window.salvarConfigVagas = async function (whatsapp, beneficiosCatalogo) {
+      const cur = state.vagasConfig || {};
+      const wa = String(whatsapp != null ? whatsapp : (cur.whatsapp || "")).slice(0, 30);
+      const cat = Array.isArray(beneficiosCatalogo) ? beneficiosCatalogo
+        : (Array.isArray(cur.beneficiosCatalogo) ? cur.beneficiosCatalogo : null);
+      const payload = { whatsapp: wa };
+      if (cat) payload.beneficiosCatalogo = cat.filter((b) => typeof b === "string" && b).map((b) => b.slice(0, 40)).slice(0, 30);
+      await db.collection("config").doc("vagas").set(payload);
+      state.vagasConfig = payload;
     };
     // Candidaturas: gravadas pelo site publico (fora da empresa, fronteira de
     // confianca maxima); todo campo passa por escapeHtml no render do gestor.

@@ -1,0 +1,166 @@
+// PROBE do site de vagas (public-vagas/index.html) contra o servidor 8081, com Firebase
+// STUBBADO (__testMode). Preenche a FICHA COMPLETA e AFIRMA que o payload casa campo a
+// campo com o contrato do create de /candidaturas (docs/firestore.rules): enums
+// hifenizados, filhos int, pretensaoSalarial/salario number, datas, mensagem "", indicacao
+// string, docId = vagaId__email. Também prova o XSS ESCAPADO na revisão.
+import { chromium } from "playwright";
+
+const ALLOWED = ["vagaId", "vagaTitulo", "nome", "telefone", "email", "mensagem", "em", "status", "nascimento", "estadoCivil", "escolaridade", "filhos", "endereco", "nacionalidade", "naturalidade", "experiencias", "pretensaoSalarial", "comoViria", "indicacao", "disc", "discPrimario", "curriculoPath"];
+const REQUIRED = ["vagaId", "vagaTitulo", "nome", "telefone", "email", "mensagem", "em", "status", "nascimento", "estadoCivil", "escolaridade", "filhos", "endereco", "nacionalidade", "naturalidade", "experiencias", "pretensaoSalarial", "comoViria", "indicacao"];
+const EC = ["solteiro", "casado", "uniao-estavel", "divorciado", "viuvo"];
+const ESC = ["fundamental", "medio-incompleto", "medio-completo", "tecnico", "superior-incompleto", "superior-completo", "pos"];
+const VEM = ["a-pe", "bicicleta", "moto", "carro", "carona", "onibus"];
+const DATE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
+
+const fails = [];
+const ok = [];
+const check = (cond, msg) => { (cond ? ok : fails).push(msg); };
+
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 420, height: 900 } });
+await ctx.route("**/firebase.config.js*", (r) => r.abort());
+await ctx.route("**gstatic.com**", (r) => r.abort());
+await ctx.addInitScript(() => {
+  // serverTimestamp sem SDK real
+  window.firebase = { firestore: (function () { const f = function () {}; f.FieldValue = { serverTimestamp: () => "__server_ts__" }; return f; })() };
+  window.__captured = null;
+  window.__testMode = {
+    set: (docId, payload) => { window.__captured = { docId, payload }; return Promise.resolve(); },
+    upload: () => Promise.resolve(),
+  };
+});
+const p = await ctx.newPage();
+const jsErros = [];
+p.on("pageerror", (e) => jsErros.push(String(e).slice(0, 200)));
+await p.goto("http://localhost:8081/public-vagas/index.html", { waitUntil: "domcontentloaded" });
+
+async function preencherFicha(opts) {
+  return await p.evaluate(async (o) => {
+    const $ = (id) => document.getElementById(id);
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const set = (id, val) => { const el = $(id); el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); };
+    // abre o dialog via botão de vaga injetado
+    document.querySelectorAll(".cta--form._probe").forEach((x) => x.remove());
+    const btn = document.createElement("button");
+    btn.className = "cta cta--form _probe";
+    btn.setAttribute("data-vaga-id", o.vagaId);
+    btn.setAttribute("data-vaga-titulo", o.vagaTitulo);
+    document.getElementById("lista").appendChild(btn);
+    btn.click();
+    await sleep(60);
+    // cp1a
+    set("ci-nome", o.nome);
+    set("ci-nasc", "1994-03-12");
+    set("ci-ec", "casado");
+    set("ci-esc", "medio-completo");
+    if (o.filhos) { $("seg-filhos").querySelector('[data-val="sim"]').click(); $("nstep-filhos").querySelector('[data-d="1"]').click(); }
+    $("candPrim").click(); await sleep(60);
+    // cp1b
+    set("ci-cep", "89120-000");
+    set("ci-rua", "Rua das Palmeiras, 240");
+    set("ci-bairro", "Warnow");
+    set("ci-cidade", "Indaial, SC");
+    set("ci-nac", "Brasileira");
+    set("ci-nat", "Blumenau, SC");
+    set("ci-zap", "(47) 9 9812-3344");
+    set("ci-mail", o.email);
+    $("candPrim").click(); await sleep(60);
+    // cp2 experiências
+    if (o.primeiroEmprego) {
+      $("expPrimeiro").click(); await sleep(20);
+    } else {
+      $("expAdd").click(); await sleep(30);
+      set("ci-emp", "Tecelagem Malhas SC");
+      set("ci-adm", "2019-03-04");
+      set("ci-dem", "2023-08-18");
+      set("ci-sal", "185000");
+      set("ci-mot", "Pedido de demissão");
+      $("candPrim").click(); await sleep(40); // salvar experiência
+    }
+    $("candPrim").click(); await sleep(60); // continuar -> cp3
+    // cp3 currículo: pular
+    $("candPrim").click(); await sleep(80); // -> cp4
+    // cp4 DISC (16 toques: most+least de 8 blocos)
+    for (let i = 0; i < 16; i++) {
+      const opt = document.querySelector("#discCard .disc-opt:not([disabled])");
+      if (!opt) break;
+      opt.click();
+      await sleep(420);
+    }
+    await sleep(500);
+    $("candPrim").click(); await sleep(80); // -> cp5
+    // cp5 adicionais
+    set("ci-pret", "190000");
+    $("chips-vem").querySelector('[data-val="moto"]').click();
+    $("seg-conhece").querySelector('[data-val="sim"]').click();
+    set("ci-quem", o.indicacao);
+    $("candPrim").click(); await sleep(80); // -> cp6
+    const revHtml = $("revCard").innerHTML;
+    const stepTxt = $("stepCount").textContent;
+    $("cLgpd").click(); await sleep(20);
+    $("candPrim").click(); await sleep(80); // enviar
+    return { captured: window.__captured, revHtml, stepTxt };
+  }, opts);
+}
+
+// ---- cenário principal: com experiência + XSS ----
+const XSS_NOME = '<img src=x onerror=alert(1)> Ana Paula';
+const XSS_QUEM = '<b>João</b> da Producao';
+const r = await preencherFicha({ vagaId: "vaga123", vagaTitulo: "Auxiliar de Produção", nome: XSS_NOME, email: "ana@email.com", indicacao: XSS_QUEM, filhos: true, primeiroEmprego: false });
+
+check(!!r.captured, "payload capturado pelo __testMode.set");
+if (r.captured) {
+  const pl = r.captured.payload;
+  const keys = Object.keys(pl);
+  check(keys.every((k) => ALLOWED.includes(k)), "sem chave fora do hasOnly das rules (extra: " + keys.filter((k) => !ALLOWED.includes(k)).join(",") + ")");
+  check(REQUIRED.every((k) => k in pl), "todos os obrigatórios presentes (faltando: " + REQUIRED.filter((k) => !(k in pl)).join(",") + ")");
+  check(pl.vagaId === "vaga123", "vagaId ok");
+  check(pl.vagaTitulo === "Auxiliar de Produção", "vagaTitulo == título da vaga");
+  check(r.captured.docId === "vaga123__ana@email.com", "docId = vagaId__email.lower (" + r.captured.docId + ")");
+  check(pl.status === "nova", "status == nova");
+  check(pl.mensagem === "", "mensagem == '' (obrigatório)");
+  check(pl.em === "__server_ts__", "em presente (serverTimestamp)");
+  check(typeof pl.nome === "string" && pl.nome.includes("<img"), "nome cru preservado no payload (dado, não HTML)");
+  check(DATE.test(pl.nascimento), "nascimento é YYYY-MM-DD");
+  check(EC.includes(pl.estadoCivil), "estadoCivil enum hifenizado: " + pl.estadoCivil);
+  check(ESC.includes(pl.escolaridade), "escolaridade enum hifenizado: " + pl.escolaridade);
+  check(Number.isInteger(pl.filhos) && pl.filhos === 2, "filhos int == 2 (" + pl.filhos + ", type " + typeof pl.filhos + ")");
+  check(typeof pl.endereco === "string" && pl.endereco.length >= 1 && pl.endereco.length <= 200, "endereco string 1..200");
+  check(typeof pl.nacionalidade === "string" && pl.nacionalidade.length <= 60, "nacionalidade string <=60");
+  check(typeof pl.naturalidade === "string" && pl.naturalidade.length <= 60, "naturalidade string <=60");
+  check(Array.isArray(pl.experiencias) && pl.experiencias.length === 1, "experiencias lista com 1 item (" + (pl.experiencias || []).length + ")");
+  const e = (pl.experiencias || [])[0] || {};
+  const ekeys = Object.keys(e).sort().join(",");
+  check(ekeys === "admissao,demissao,empresa,motivoSaida,salario", "experiencia shape fechado: " + ekeys);
+  check(typeof e.salario === "number" && e.salario === 1850, "salario number == 1850 (" + e.salario + ", type " + typeof e.salario + ")");
+  check(DATE.test(e.admissao) && DATE.test(e.demissao), "admissao/demissao YYYY-MM-DD");
+  check(typeof e.motivoSaida === "string" && e.motivoSaida === "Pedido de demissão", "motivoSaida string (enviado como texto): " + e.motivoSaida);
+  check(typeof e.empresa === "string" && e.empresa.length >= 1 && e.empresa.length <= 80, "empresa string 1..80");
+  check(typeof pl.pretensaoSalarial === "number" && pl.pretensaoSalarial === 1900, "pretensaoSalarial number == 1900 (" + pl.pretensaoSalarial + ", type " + typeof pl.pretensaoSalarial + ")");
+  check(VEM.includes(pl.comoViria) && pl.comoViria === "moto", "comoViria enum hifenizado == moto: " + pl.comoViria);
+  check(typeof pl.indicacao === "string" && pl.indicacao.includes("João") && pl.indicacao.length <= 80, "indicacao string com nome (<=80)");
+  check(pl.disc && typeof pl.disc === "object" && ["d", "i", "s", "c"].every((k) => Number.isInteger(pl.disc[k])), "disc {d,i,s,c} ints");
+  check(["D", "I", "S", "C", "equilibrado"].includes(pl.discPrimario), "discPrimario válido: " + pl.discPrimario);
+  check(!("curriculoPath" in pl), "sem curriculoPath quando não anexou (opcional)");
+}
+// XSS escapado na revisão
+check(r.revHtml.includes("&lt;img") && !r.revHtml.includes("<img src=x onerror"), "XSS de nome ESCAPADO na revisão");
+check(r.revHtml.includes("&lt;b&gt;João") && !r.revHtml.includes("<b>João"), "XSS de indicação ESCAPADO na revisão");
+check(r.stepTxt === "Etapa 6 de 6", "stepper chegou em Etapa 6 de 6 (" + r.stepTxt + ")");
+
+// ---- cenário 2: primeiro emprego => experiencias [] ----
+const r2 = await preencherFicha({ vagaId: "vagaZ", vagaTitulo: "Auxiliar de Produção", nome: "Bruno Souza", email: "bruno@email.com", indicacao: "", filhos: false, primeiroEmprego: true });
+check(!!r2.captured, "cenário 2 capturado");
+if (r2.captured) {
+  const pl2 = r2.captured.payload;
+  check(Array.isArray(pl2.experiencias) && pl2.experiencias.length === 0, "primeiro emprego -> experiencias == [] (" + JSON.stringify(pl2.experiencias) + ")");
+  check(pl2.filhos === 0 && Number.isInteger(pl2.filhos), "filhos 'não' -> 0 int");
+  check(pl2.indicacao === "", "indicação 'não conhece' -> '' ");
+}
+
+await b.close();
+console.log("OK (" + ok.length + "):");
+ok.forEach((m) => console.log("  ✓ " + m));
+if (jsErros.length) console.log("\npageErrors:\n  " + jsErros.join("\n  "));
+if (fails.length) { console.log("\nFALHAS (" + fails.length + "):"); fails.forEach((m) => console.log("  ✗ " + m)); process.exit(1); }
+console.log("\nPROBE SITE FICHA: PASSOU (" + ok.length + " asserções).");

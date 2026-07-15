@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.79.0", d: "16 jul 2026", current: true, items: [
+    v: "1.80.0", d: "16 jul 2026", current: true, items: [
+      { type: "high", title: "Espelho de ponto: dia sem batida agora mostra o motivo real (ferias, licencas, falta abonada, falta injustificada e outros), no portal do colaborador e do gestor. Transparencia sobre o seu proprio dado." },
+      { type: "feat", aud: "gestor", title: "Vagas: a candidatura do site virou FICHA COMPLETA (dados pessoais, ate 3 experiencias, pretensao salarial, transporte e indicacao) com o botao Ver ficha completa na tela Vagas." },
+      { type: "feat", aud: "gestor", title: "Beneficios por vaga: catalogo proprio na nova sub-aba Beneficios (cadastra uma vez, marca por vaga) e os selos aparecem no site pro candidato." },
+    ],
+  },
+  {
+    v: "1.79.0", d: "16 jul 2026", items: [
       { type: "feat", title: "Mural mais esperto: depois que voce da as boas-vindas a um colega, o convite se despede da sua home com uma animacao suave. Ele continua aparecendo so pra quem ainda nao deu." },
     ],
   },
