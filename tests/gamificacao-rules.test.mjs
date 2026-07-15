@@ -30,6 +30,13 @@ const TABELA = {
   "documento-assinatura": 5, pesquisa: 5, autoavaliacao: 5, termo: 5, foto: 5, streak: 1,
 };
 const MARCOS = [25, 50, 100, 150, 200];
+// Mural (coracao/boas-vindas), gate Fable 2026-07-15: postIds do doc pai gravado pelo
+// pipeline. POST_CORACAO_VELHO usa um ano 2 temporadas atras, so pra provar o sufixo.
+const ANO_VELHO_MURAL = String(Number(ANO) - 2);
+const POST_CORACAO = `aniv-fulana-teste-${ANO}`;
+const POST_BV = `bv-novato-silva-${ANO}`;
+const POST_CORACAO_VELHO = `aniv-velha-pessoa-${ANO_VELHO_MURAL}`;
+const POST_BV_AUTO = `bv-maria-${ANO}`; // nome do pai == nome do uColab, prova o anti-auto
 
 before(async () => {
   env = await initializeTestEnvironment({
@@ -42,6 +49,7 @@ before(async () => {
     await setDoc(doc(db, "users/uRh"),     { role: "rh", nome: "Suyanne" });
     await setDoc(doc(db, "users/uColab"),  { role: "colaborador", nome: "Maria", funcionarioId: "f-1", turno: 1, setor: "Producao", fotoBase64: "data:image/png;base64,AAA" });
     await setDoc(doc(db, "users/uColab2"), { role: "colaborador", nome: "Ana", funcionarioId: "f-2", turno: 2, setor: "Repasse" });
+    await setDoc(doc(db, "users/uColab3"), { role: "colaborador", nome: "Bia", funcionarioId: "f-3" });
     await setDoc(doc(db, "funcionarios/f-1"), { nome: "Maria", turno: 1, setor: "Producao" });
     await setDoc(doc(db, "funcionarios/f-2"), { nome: "Ana", turno: 2, setor: "Repasse" });
 
@@ -68,6 +76,19 @@ before(async () => {
     await setDoc(doc(db, "documentos/doc2/assinaturas/uColab"), { uid: "uColab", versaoAssinada: 1, em: new Date() });
     await setDoc(doc(db, "muralAniversario/aniv-joao-2026/reacoes/uColab"), { uid: "uColab", tipo: "coracao", autorNome: "Maria", em: new Date() });
     await setDoc(doc(db, "muralAniversario/bv-ana-2026/reacoes/uColab"), { uid: "uColab", tipo: "bemvindo", autorNome: "Maria", em: new Date() });
+
+    // Doc PAI do mural (gravado pelo pipeline, gate Fable 2026-07-15): a prova real de
+    // coracao/boas-vindas passa a exigir ESTE doc + a reacao do proprio uid.
+    await setDoc(doc(db, `muralAniversario/${POST_CORACAO}`), { tipo: "aniversario", nome: "Fulana Teste", dia: 1, mes: 1, ano: Number(ANO) });
+    await setDoc(doc(db, `muralAniversario/${POST_BV}`), { tipo: "bemvindo", nome: "Novato Silva", admissao: `${ANO}-07-01` });
+    await setDoc(doc(db, `muralAniversario/${POST_CORACAO_VELHO}`), { tipo: "aniversario", nome: "Velha Pessoa", dia: 5, mes: 3, ano: Number(ANO_VELHO_MURAL) });
+    // Pai bemvindo com nome IGUAL ao do uColab (Maria): prova o anti-auto (pai.nome != users.nome).
+    await setDoc(doc(db, `muralAniversario/${POST_BV_AUTO}`), { tipo: "bemvindo", nome: "Maria", admissao: `${ANO}-07-01` });
+    // Reacao JA EXISTENTE com 'em' do ANO PASSADO (uColab2, sob o post de coracao valido):
+    // prova o year-gate do 'em' quando o claim novo NAO reescreve a reacao no batch.
+    await setDoc(doc(db, `muralAniversario/${POST_CORACAO}/reacoes/uColab2`), { uid: "uColab2", tipo: "coracao", autorNome: "Ana", em: new Date(`${ANO_PASSADO}-06-01T12:00:00Z`) });
+    // Probe do gate 2026-07-15: reacao FRESCA pre-existente (deletavel num batch adversarial)
+    await setDoc(doc(db, `muralAniversario/${POST_CORACAO}/reacoes/uColab3`), { uid: "uColab3", tipo: "coracao", autorNome: "Bia", em: new Date() });
     await setDoc(doc(db, "pesquisasClima/p1"), { titulo: "Clima", anonima: true, status: "aberta", publico: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
     await setDoc(doc(db, "pesquisasClima/p1/recibos/uColab"), { em: new Date() });
     await setDoc(doc(db, "pesquisasClima/p2"), { titulo: "Clima 2", anonima: true, status: "aberta", publico: { tipo: "todos", valores: [] }, criadoPor: "uRh", criadoEm: new Date() });
@@ -100,6 +121,22 @@ function ganhaPonto(db, uid, acao, refId, pontos, { placarDe = null, nome = "Mar
   const eid = `${acao}_${refId}`;
   b.set(doc(db, `gamificacao/${ano}/pontos/${uid}/eventos/${eid}`), { acao, refId, pontos, em: TS(), ...(rotulo ? { rotulo } : {}) });
   b.set(doc(db, `gamificacao/${ano}/pontos/${uid}`), { nome, ultimoEvento: eid, total: total != null ? total : (placarDe === null ? pontos : placarDe + pontos) });
+  return b.commit();
+}
+
+// batch do mural (coracao/boas-vindas): reacao REAL no post (respeita reacaoOk() da
+// regra do mural: tipo casa com o prefixo do postId, bv- -> bemvindo, senao coracao) +
+// evento {acao}_{postId} + placar. comReacao:false pula a reacao (prova SEM ela, ou
+// reaproveita uma reacao ja existente sem reescrever).
+function ganhaPontoMural(db, uid, acao, postId, pontos, { placarDe = null, nome = "Maria", total, comReacao = true } = {}) {
+  const b = writeBatch(db);
+  const eid = `${acao}_${postId}`;
+  if (comReacao) {
+    const tipoReacao = postId.startsWith("bv-") ? "bemvindo" : "coracao";
+    b.set(doc(db, `muralAniversario/${postId}/reacoes/${uid}`), { uid, tipo: tipoReacao, autorNome: nome, em: TS() });
+  }
+  b.set(doc(db, `gamificacao/${ANO}/pontos/${uid}/eventos/${eid}`), { acao, refId: postId, pontos, em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/${uid}`), { nome, ultimoEvento: eid, total: total != null ? total : (placarDe === null ? pontos : placarDe + pontos) });
   return b.commit();
 }
 
@@ -176,6 +213,32 @@ test("ANONIMATO: evento pesquisa no MESMO batch do recibo NEGA (join de timestam
 });
 test("REPLAY CROSS-ANO: prova com em do ano passado NEGA (year-gate)", async () =>
   assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com3", 1, { nome: "Ana" })));
+
+// ---------- Mural: coracao/boas-vindas (DESTRAVADO 2026-07-15, doc pai do pipeline) ----------
+test("coracao: pai aniversario + reacao propria no MESMO batch PASSA (+1)", async () =>
+  assertSucceeds(ganhaPontoMural(colab(), "uColab", "coracao", POST_CORACAO, 1, { placarDe: 29 })));
+test("boas-vindas: pai bemvindo + reacao propria no MESMO batch PASSA (+1)", async () =>
+  assertSucceeds(ganhaPontoMural(colab(), "uColab", "boas-vindas", POST_BV, 1, { placarDe: 30 })));
+test("coracao SEM doc pai (postId inventado) NEGA", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "coracao", `aniv-inventado-${ANO}`, 1, { nome: "Ana" })));
+test("boas-vindas SEM a reacao (evento+placar sozinhos) NEGA", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "boas-vindas", POST_BV, 1, { nome: "Ana", comReacao: false })));
+test("tipo trocado: coracao apontando pai bemvindo NEGA", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "coracao", POST_BV, 1, { nome: "Ana" })));
+test("tipo trocado: boas-vindas apontando pai aniversario NEGA", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "boas-vindas", POST_CORACAO, 1, { nome: "Ana" })));
+test("coracao em post de ANO VELHO (sufixo do refId) NEGA mesmo com pai+reacao novos", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "coracao", POST_CORACAO_VELHO, 1, { nome: "Ana" })));
+test("reacao com em de ANO VELHO ja existente, sem reescrever, NEGA (year-gate do em)", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "coracao", POST_CORACAO, 1, { nome: "Ana", comReacao: false })));
+test("ANTI-AUTO: pai.nome == users.nome NEGA (uColab == Maria)", async () =>
+  assertFails(ganhaPontoMural(colab(), "uColab", "boas-vindas", POST_BV_AUTO, 1, { placarDe: 30 })));
+test("double-claim coracao (mesmo evento 2x) NEGA (create em doc existente)", async () =>
+  assertFails(ganhaPontoMural(colab(), "uColab", "coracao", POST_CORACAO, 1, { placarDe: 30 })));
+test("boas-vindas com pontos != tabela NEGA (prova valida, valor errado)", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "boas-vindas", POST_BV, 5, { nome: "Ana" })));
+test("acao inventada 'abraco' (fora da tabela) NEGA", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "abraco", POST_CORACAO, 1, { nome: "Ana", comReacao: false })));
 
 // ---------- Eventos: negacoes ----------
 test("SEM prova NEGA (uColab2 nao leu com1)", async () =>
@@ -350,4 +413,16 @@ test("temporada INATIVA nega evento mesmo com prova valida", async () => {
     await updateDoc(doc(ctx.firestore(), `gamificacao/${ANO}`), { ativa: false });
   });
   await assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 1, { nome: "Ana" }));
+});
+
+// ---------- Probes do gate Fable 2026-07-15 (promovidas da sonda adversarial) ----------
+test("PROBE gate: cliente NAO forja o doc pai do mural", async () =>
+  assertFails(setDoc(doc(colab(), `muralAniversario/aniv-hack-${ANO}`), { tipo: "aniversario", nome: "Hack", dia: 1, mes: 1, ano: Number(ANO) })));
+test("PROBE gate: claim com a reacao DELETADA no mesmo batch NEGA (getAfter fail-closed)", async () => {
+  const db = env.authenticatedContext("uColab3").firestore();
+  const b = writeBatch(db);
+  b.delete(doc(db, `muralAniversario/${POST_CORACAO}/reacoes/uColab3`));
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab3/eventos/coracao_${POST_CORACAO}`), { acao: "coracao", refId: POST_CORACAO, pontos: 1, em: TS() });
+  b.set(doc(db, `gamificacao/${ANO}/pontos/uColab3`), { nome: "Bia", ultimoEvento: `coracao_${POST_CORACAO}`, total: 1 });
+  await assertFails(b.commit());
 });

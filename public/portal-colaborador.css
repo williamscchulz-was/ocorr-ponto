@@ -407,15 +407,6 @@ html.modo-colab.cp-dark{
 .pp-greet__tx p{font-size:12.5px;color:var(--text-muted);margin:3px 0 0;display:flex;align-items:center;gap:6px}
 .pp-greet__tx p svg{width:13px;height:13px;flex:none}
 .pp-greet--bday .pp-greet__tx h1{color:var(--warning)}
-.pp-novi{display:flex;align-items:center;gap:13px;width:100%;text-align:left;font:inherit;cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:14px 15px;margin-top:10px}
-.pp-novi:active{filter:brightness(.97)}
-.pp-novi__ic{width:44px;height:44px;border-radius:13px;background:var(--surface-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
-.pp-novi__ic svg{width:22px;height:22px}
-.pp-novi__bd{flex:1;min-width:0}
-.pp-novi__t{display:block;font-size:15px;font-weight:600;color:var(--text-body)}
-.pp-novi__s{display:block;font-size:12px;color:var(--text-muted);margin-top:1px}
-.pp-novi__chev{color:var(--text-muted);flex:none}
-.pp-novi__chev svg{width:18px;height:18px}
 .pp-bday{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:12px 14px;position:relative;overflow:hidden}
 .pp-bday::after{content:"";position:absolute;right:-24px;top:-30px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,rgba(224,163,58,.14),transparent 70%)}
 .pp-bday__ic{width:40px;height:40px;border-radius:12px;background:rgba(224,163,58,.16);color:var(--warning);display:flex;align-items:center;justify-content:center;flex:none}
@@ -622,12 +613,6 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 .pp-atl__b{position:absolute;top:-2px;right:-2px;min-width:17px;height:17px;border-radius:999px;background:var(--warning);color:#3a2a05;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg)}
 .pp-atl__l{font-size:10.5px;font-weight:600;color:var(--text-muted);text-align:center;line-height:1.25}
 @media (min-width:901px){.pp-atl{display:none}}
-/* No mobile o atalho "Novidades" cobre o card; no desktop o card segue no grid. Exceção:
-   Home vazia (sem pendência nem comunicado) mostra o card pra preencher o vão. */
-@media (max-width:900px){
-  .pp-home .pp-novi{display:none}
-  .pp-home--vazia .pp-novi{display:flex}
-}
 /* Badge de não lidos na barra de baixo (âncora no ícone) */
 .modo-colab .cp-bn-ic{position:relative}
 .cp-bn-dot{position:absolute;top:-4px;right:-10px;min-width:15px;height:15px;border-radius:999px;background:var(--warning);color:#3a2a05;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 3px}
@@ -636,7 +621,7 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
    Escopado em .pp-home pra não mexer no herói de outras telas (que fica em 18). */
 .pp-home__col{display:flex;flex-direction:column;gap:10px}
 .pp-home .pp-hero{border-radius:var(--pp-rc)}
-.pp-home__col>.pp-novi,.pp-home__col>.pp-pend{margin:0}
+.pp-home__col>.pp-pend{margin:0}
 
 /* Alvos de toque ≥44px sem inflar o visual (área de clique via pseudo-elemento). */
 .pp-avcam::before{content:"";position:absolute;inset:-7px;border-radius:50%}
@@ -645,7 +630,7 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 /* Hover padrão no desktop pra todo clicável do portal: cards ganham elevação sutil +
    borda mais forte; as linhas do grupo (border-top, não caixa) ganham tint, não transform. */
 @media (hover:hover){
-  .pp-novi:hover,.pp-card:hover,.pp-pend:hover,.pp-hero:hover{
+  .pp-card:hover,.pp-pend:hover,.pp-hero:hover{
     transform:translateY(-1px);box-shadow:var(--pp-sh-hero);border-color:var(--border-strong);
     transition:transform .15s,box-shadow .15s,border-color .15s;
   }
@@ -750,6 +735,17 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 .den-flow { display: flex; flex-direction: column; }
 .den-flow.pp-fade > * { animation: ppFade .34s both; }
 .den-hd { background: linear-gradient(162deg, #0a9a43, #008835 55%, #00702c); color: #fff; padding: 16px 18px 18px; border-radius: 0 0 22px 22px; margin: -6px -2px 16px; }
+/* Celular: TOPO ZERO como o resto do app (erro apontado pelo William 2026-07-15,
+   o hero flutuava como card solto). As margens negativas casam o padding real do
+   .app__main mobile (16px lateral; topo = max(safe-area, 16px) + 8px) e o
+   padding-top interno devolve a area do notch pro conteudo. */
+@media (max-width: 900px) {
+  .den-hd { margin: calc(-1 * (max(env(safe-area-inset-top), 16px) + 8px)) -16px 16px; padding: calc(max(env(safe-area-inset-top), 16px) + 14px) 18px 18px; border-radius: 0 0 26px 26px; }
+}
+/* Desktop (conteudo com cap): card intencional, arredondado nos 4 cantos */
+@media (min-width: 901px) {
+  .den-hd { border-radius: 22px; }
+}
 .den-back { display: inline-flex; align-items: center; gap: 3px; background: rgba(255,255,255,.16); border: 0; color: #fff; font: 600 12.5px var(--font); border-radius: 999px; padding: 7px 13px 7px 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .den-back svg { width: 15px; height: 15px; transform: rotate(180deg); }
 .den-hd__tt { display: flex; align-items: center; gap: 12px; margin-top: 15px; }

@@ -1793,6 +1793,14 @@
       try { pesqLocal = JSON.parse(localStorage.getItem("gamiPesqPend") || "[]"); } catch { /* lixo local */ }
       for (const pid of pesqLocal) pend.push(["pesquisa", pid, "Pesquisa de clima"]);
       if (state.termoAdesaoOk === true) pend.push(["termo", user.uid, "Termo de Adesão à assinatura eletrônica"]);
+      // coracao/boas-vindas: so cobre os posts do mural ja carregados nesta sessao
+      // (state._reacoesCache, preenchido ao renderizar os cards da home) com minha reacao
+      // ligada. NAO varre o mural inteiro -- fora da janela visivel nao pontua, por design.
+      for (const [post, r] of Object.entries(state._reacoesCache || {})) {
+        if (!r || r.minhaReacao !== true) continue;
+        if (post.startsWith("aniv-")) pend.push(["coracao", post, "Parabenizou um colega"]);
+        else if (post.startsWith("bv-")) pend.push(["boas-vindas", post, "Deu boas-vindas a um colega"]);
+      }
       // Foto NUNCA entra no catch-up (decisao William, gate delta 3): o ponto e pelo ATO
       // de trocar/adicionar (gancho no atualizarMinhaFoto). As fotos oficiais importadas
       // vivem no mesmo campo e virariam brinde em massa aqui.

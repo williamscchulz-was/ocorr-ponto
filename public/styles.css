@@ -136,6 +136,9 @@ html, body {
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Sem elastico alem do limite (William 2026-07-15, "nao deveria poder subir"):
+     o overscroll do iOS puxava a tela e revelava o fundo. */
+  overscroll-behavior-y: none;
 }
 
 button, input, select, textarea {
@@ -4769,26 +4772,20 @@ button.gm-card { cursor: pointer; }
    estas regras (o snapshot nunca existe) e fica com o comportamento atual.
    O par de shared element do avatar do colaborador mora em portal-colaborador.css.
    ============================================================ */
-/* Root: crossfade sóbrio + o conteúdo novo entra com um leve deslize (push iOS). */
-::view-transition-old(root) { animation: 280ms var(--ease-ios) both vt-fade-out; }
-::view-transition-new(root) { animation: 280ms var(--ease-ios) both vt-fade-in, 280ms var(--ease-ios) both vt-slide-in; }
+/* Root: crossfade puro e sóbrio. SEM deslize de propósito: com o chrome fixo dentro
+   do root (ver nota abaixo), qualquer transform moveria a barra junto; o fade entre
+   telas de chrome idêntico deixa a barra visualmente imóvel, que é o efeito certo. */
+::view-transition-old(root) { animation: 240ms var(--ease-ios) both vt-fade-out; }
+::view-transition-new(root) { animation: 240ms var(--ease-ios) both vt-fade-in; }
 @keyframes vt-fade-out { to { opacity: 0; } }
 @keyframes vt-fade-in { from { opacity: 0; } }
-@keyframes vt-slide-in { from { transform: translateY(8px); } }
 
-/* Chrome persistente (sidebar do gestor, topbar, barra de baixo do colab) NÃO desliza
-   com a página: cada um vira seu próprio snapshot estável (name único, elemento existe
-   uma vez só), então fica parado enquanto o conteúdo transiciona. Assim a navegação
-   não "pisca" a barra. Crossfade curtinho no lugar cobre o que muda (aba ativa, título). */
-#sidebar { view-transition-name: vt-sidebar; }
-.topbar { view-transition-name: vt-topbar; }
-#bottom-nav { view-transition-name: vt-bottomnav; }
-::view-transition-group(vt-sidebar),
-::view-transition-group(vt-topbar),
-::view-transition-group(vt-bottomnav) {
-  animation-duration: 220ms;
-  animation-timing-function: var(--ease-ios);
-}
+/* Chrome fixo (sidebar, topbar, barra de baixo) fica SEM view-transition-name de
+   propósito: nomear elemento fixed/sticky com a página ROLADA desenha o snapshot na
+   coordenada errada no Safari iOS (a barra "subia pro meio da tela", bug real do
+   William 2026-07-15, print do iPhone). Sem nome, o chrome entra no crossfade do
+   root, e como ele é idêntico entre as telas o crossfade é invisível: estabilidade
+   igual, bug nenhum. NÃO reintroduzir os names vt-sidebar/vt-topbar/vt-bottomnav. */
 
 /* Quem prefere menos movimento não recebe nenhuma animação de transição (além do
    agendador já não iniciar a transição, isto desliga qualquer resíduo). */

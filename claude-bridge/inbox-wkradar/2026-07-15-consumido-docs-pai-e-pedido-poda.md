@@ -30,3 +30,12 @@ deletar na rodada seguinte a sair da janela. Reacoes orfas na subcolecao podem f
 (sem pai nao provam nada).
 
 — Claude PC
+
+## ADENDO (gate 2026-07-15, prazo formal da poda)
+
+O gate aprovou os pontos de coracao/boas-vindas com uma CONDICAO DE PRAZO pra poda:
+ela precisa estar RODANDO antes de 2027-01-01 (na virada da temporada, todo pai bv-
+orfao sobrevivente vira +1 ponto reclaimavel por pessoa; ate la o residual e pequeno
+e auditavel, depois cresce). E o upgrade que voce pode incluir na MESMA mexida:
+gravar funcionarioId no doc pai; com ele, meu anti-auto migra de comparacao por nome
+pra por id (imune a grafia/acento). Me avisa quando a poda estiver no ar.

@@ -1971,6 +1971,14 @@ async function onParabenizar(heart) {
   heart.dataset.busy = "1";
   try {
     await window.toggleReacaoAniversario(post, ligar);
+    // Gami: ponto SO ao ligar (desligar nao remove o credito ja dado -- decisao William,
+    // ponto dado e dado). Claim disparado, nao esperado: nunca no mesmo batch da acao
+    // principal, falha silenciosa (gamiClaim engole erro; o catch-up cobre), sem toast
+    // aqui (o extrato de pontos mostra).
+    if (ligar) {
+      const primeiro = (heart.getAttribute("aria-label") || "").replace(/^Parabenizar /, "").trim();
+      window.gamiClaim?.("coracao", post, primeiro ? `Parabenizou ${primeiro}` : "Parabenizou um colega");
+    }
   } catch (err) {
     debug?.("[aniv parabenizar] falhou:", err?.code, err?.message);
     aplica(wasOn, totalAntes, wasOn);
@@ -2648,17 +2656,8 @@ function renderColaboradorHome() {
   // Dados reais do próprio funcionário (carregado no boot: state.funcionarios[0] = só o doc dele).
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
-  // noviCard só no desktop (no mobile o atalho "Novidades" do hub cobre; CSS esconde).
-  const noviCard = `<button class="pp-novi" data-nav="colab-roadmap">
-      <span class="pp-novi__ic">${cpIcon("roadmap")}</span>
-      <span class="pp-novi__bd"><span class="pp-novi__t">Novidades</span><span class="pp-novi__s">Veja a evolução do portal e o que chegou</span></span>
-      <span class="pp-novi__chev">${cpIcon("chevron")}</span>
-    </button>`;
-  // Home "vazia": sem pendência e sem comunicado fixado. Aí o card Novidades aparece também
-  // no mobile (pp-home--vazia), pra não sobrar ~55% de tela em branco entre herói e ilha.
-  const homeVazia = !precisaAtencaoHtml() && !comunicadoFixadoHtml();
   const escreveu = setHtml(view, `
-    <div class="pp-fade pp-home${homeVazia ? " pp-home--vazia" : ""}">
+    <div class="pp-fade pp-home">
       ${colabGreetHtml(f, nome)}
       ${colabAtalhosHtml()}
       <div class="pp-home__grid">
@@ -2666,7 +2665,6 @@ function renderColaboradorHome() {
           ${bhHeroHtml(f)}
           ${gamiCardHomeHtml()}
           ${precisaAtencaoHtml()}
-          ${noviCard}
         </div>
         <div class="pp-home__col">
           ${comunicadoFixadoHtml()}
@@ -3615,7 +3613,10 @@ function renderApp() {
     const page = (state.view && state.view.page) || "";
     const trocouPagina = _ultimaPageRenderizada !== null && page !== _ultimaPageRenderizada;
     _ultimaPageRenderizada = page;
-    if (trocouPagina && document.startViewTransition && !prefereMenosMovimento()) {
+    // window.scrollY < 4: página ROLADA não transiciona (bug real do Safari iOS
+    // 2026-07-15, o William viu a tela inteira deslocada com vão preto: o snapshot
+    // da transição é pintado com o offset do scroll). Rolado = troca seca, correta.
+    if (trocouPagina && document.startViewTransition && !prefereMenosMovimento() && window.scrollY < 4) {
       // .ready rejeita se a transição é pulada (ex.: view-transition-name duplicado):
       // engole pra não virar unhandledrejection no console (o abort já é silencioso).
       document.startViewTransition(() => _renderAppNow()).ready.catch(() => {});
@@ -4362,6 +4363,8 @@ const GAMI_ACOES = [
   ["termo", "Primeira entrada + Termo de Adesão", 5],
   ["foto", "Adicionar a própria foto de perfil (1x por temporada)", 5],
   ["streak", "Sequência de 5 dias seguidos entrando no app", 1],
+  ["coracao", "Parabenizou um aniversariante", 1],
+  ["boas-vindas", "Deu boas-vindas a quem chegou", 1],
 ];
 const GAMI_MARCOS_DEFAULT = [25, 50, 100, 150, 200];
 
@@ -6433,6 +6436,13 @@ async function onBoasVindas(hand) {
   hand.dataset.busy = "1";
   try {
     await window.toggleReacaoAniversario(post, ligar, "bemvindo");
+    // Gami: mesma liturgia do coracao (onParabenizar) -- ponto so ao ligar, desligar nao
+    // remove, claim disparado (nao esperado) e silencioso. O card do gestor (vg-adm) nao
+    // tem nome no botao (so title generico), entao cai no rotulo generico.
+    if (ligar) {
+      const primeiro = (hand.getAttribute("aria-label") || "").replace(/^Dar as boas-vindas a /, "").trim();
+      window.gamiClaim?.("boas-vindas", post, primeiro ? `Deu boas-vindas a ${primeiro}` : "Deu boas-vindas a um colega");
+    }
   } catch (err) {
     debug?.("[boas-vindas] falhou:", err?.code, err?.message);
     aplica(wasOn, totalAntes);
@@ -16301,7 +16311,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.72.0";
+window.CURRENT_VERSION = "1.73.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

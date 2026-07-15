@@ -1224,10 +1224,18 @@ service cloud.firestore {
           // nasce no MESMO commit da resposta anonima, senao o par de timestamps iguais
           // (em do evento x createTime da resposta) desanonimizaria por join exato. O
           // cliente reivindica o ponto DEPOIS (proxima abertura do app).
-          // ponytail: coracao/boas-vindas ficaram FORA do v1 (bloqueador 1: o mural nao
-          // tem doc pai, reacao em postId inventado seria mina de pontos infinita);
-          // quando o pipeline (WKRADAR, Admin SDK) escrever /muralAniversario/{postId},
-          // restaurar com existsAfter(reacao) && exists(pai) + year-gate.
+          // coracao/boas-vindas DESTRAVADOS 2026-07-15: o pipeline (WKRADAR) agora
+          // grava o DOC PAI /muralAniversario/{postId} (aniv-<slug>-<anoAtual> tipo
+          // 'aniversario'; bv-<slug>-<anoDaAdmissao> tipo 'bemvindo'), entao a prova
+          // e real: pai existe com o tipo certo + a MINHA reacao (getAfter) e DESTE
+          // ano + anti-auto (nome do pai != meu nome). Year-gate: no coracao o
+          // proprio postId termina no ano corrente; no bv o ano e o da ADMISSAO
+          // (dezembro na janela vira janeiro), quem fecha re-claim anual e o em da
+          // reacao + a PODA dos pais fora da janela (WKRADAR, PRAZO: rodando antes
+          // de 2027-01-01; gate 2026-07-15). Magnitude do residual ate la: 1 ponto
+          // por ANO por pai bv- orfao sobrevivente (claim auditavel no extrato).
+          // Upgrade futuro anotado: pai ganhar funcionarioId e o anti-auto migrar
+          // de nome pra meuFuncionarioId() (imune a grafia).
           function provaOk(acao, refId) {
             return (acao == 'cartao-ponto'
                      && getAfter(/databases/$(database)/documents/recibos/$(refId)/assinaturas/$(uid)).data.em.year() == request.time.year()
@@ -1277,6 +1285,15 @@ service cloud.firestore {
               // double-claim na virada de meia-noite UTC dentro da mesma janela de 24h
               // (gate Fable delta 4). ultimoDia e monotonico pelos ramos do update, entao
               // cada dia canonico aparece no maximo 1x por uid.
+              || (acao == 'coracao'
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.tipo == 'aniversario'
+                     && refId.matches('.*-' + string(request.time.year()))
+                     && getAfter(/databases/$(database)/documents/muralAniversario/$(refId)/reacoes/$(uid)).data.em.year() == request.time.year()
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.nome != userDoc().nome)
+              || (acao == 'boas-vindas'
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.tipo == 'bemvindo'
+                     && getAfter(/databases/$(database)/documents/muralAniversario/$(refId)/reacoes/$(uid)).data.em.year() == request.time.year()
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.nome != userDoc().nome)
               || (acao == 'streak'
                      && refId == string(getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.ultimoDia.year())
                           + '-' + string(getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.ultimoDia.month())
