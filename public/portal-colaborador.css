@@ -4,7 +4,7 @@
    ============================================================ */
 
 /* ---- Tela de acesso (#acesso) ---- */
-.acesso{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px;background:linear-gradient(165deg,var(--surface-warm) 0%,#F7F9F6 60%)}
+.acesso{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px;background:linear-gradient(165deg,var(--surface-warm) 0%,var(--milk) 60%)}
 .acesso__brand{display:flex;flex-direction:column;align-items:center;gap:11px;margin-bottom:26px}
 .acesso__brand img{width:54px;height:54px;object-fit:contain}
 .acesso__w{font-weight:800;font-size:22px;color:var(--plum);letter-spacing:-.02em;text-align:center;line-height:1.1}
@@ -26,6 +26,12 @@
 .acesso__half--colab .acesso__arr{color:rgba(255,255,255,.85)}
 .acesso__half--gestor .acesso__arr{color:var(--border-strong)}
 .acesso__arr svg{width:20px;height:20px;stroke-width:2.2}
+/* Card "em voo" (buscando credencial do cofre / logando): spinner no lugar da seta,
+   sem deixar a tela morta enquanto resolve. */
+.acesso__half--busy{position:relative;pointer-events:none;cursor:progress;opacity:.9}
+.acesso__half--busy .acesso__arr{visibility:hidden}
+.acesso__half--busy::after{content:"";position:absolute;right:20px;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;border:2.4px solid currentColor;border-top-color:transparent;opacity:.85;animation:acSpin .7s linear infinite}
+@keyframes acSpin{to{transform:rotate(360deg)}}
 .acesso__rod{margin-top:26px;font-size:11px;color:var(--text-muted);text-align:center}
 
 /* ---- Voltar no login ---- */
