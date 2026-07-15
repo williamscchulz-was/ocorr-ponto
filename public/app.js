@@ -5245,6 +5245,95 @@ function enderecoResumo(end) {
   return cidade || parts[parts.length - 1] || "";
 }
 
+// ---------- Funil de status (fase 1, mock funil-email-2026-07, aprovado 2026-07-16) ----------
+// Os 4 passos do funil (chaves = enum das rules). cls = modificador de cor sóbrio,
+// theme-aware (tokens semânticos legíveis no claro e no dark do gestor).
+const CAND_STATUS = [
+  { k: "recebida", lbl: "Recebida", cls: "rec" },
+  { k: "em-analise", lbl: "Em análise", cls: "ana" },
+  { k: "aprovada", lbl: "Aprovada", cls: "apr" },
+  { k: "nao-seguiu", lbl: "Não seguiu adiante", cls: "rec2" },
+];
+// Status cru → chave do funil. Legado/ausente/'nova' (como o site grava)/desconhecido =
+// Recebida (o front nunca quebra com dado antigo; a GP sobe pro enum novo no 1º toque).
+function candStatusKey(s) {
+  const k = String(s || "").trim();
+  return CAND_STATUS.some((x) => x.k === k) ? k : "recebida";
+}
+function candStatusInfo(s) { const k = candStatusKey(s); return CAND_STATUS.find((x) => x.k === k); }
+// Mensagens ao candidato, VERBATIM de docs/emails-candidato-2026-07-v1.md (texto aprovado).
+// corpo = parágrafos; a quebra de linha do bloco de assinatura é preservada, o resto flui
+// (as quebras de 80-col do doc são formatação, não quebra real). {{nome}} = primeiro nome,
+// {{vaga}} = título da vaga, preenchidos antes de encodar.
+const CAND_MSG = {
+  recebida: {
+    assunto: "Recebemos a sua candidatura, {{nome}}",
+    corpo: [
+      "Olá, {{nome}}!",
+      "A sua candidatura para a vaga de {{vaga}} chegou direitinho aqui na Fiobras. Obrigado por querer tingir o seu futuro com a gente.",
+      "A nossa equipe de Gestão de Pessoas vai analisar o seu perfil com atenção, gente de verdade lendo, sem robô decidindo nada. Assim que houver novidade, você recebe um email nosso.",
+      "Um abraço,\nEquipe de Gestão de Pessoas · Fiobras",
+    ],
+  },
+  "em-analise": {
+    assunto: "Sua candidatura está em análise",
+    corpo: [
+      "Olá, {{nome}}!",
+      "Passando pra te contar que a sua candidatura para {{vaga}} está em análise pela nossa equipe. O seu perfil está sendo avaliado junto com os demais candidatos da vaga.",
+      "Não precisa fazer nada por enquanto. Qualquer novidade, a gente te escreve.",
+      "Um abraço,\nEquipe de Gestão de Pessoas · Fiobras",
+    ],
+  },
+  aprovada: {
+    assunto: "Boas notícias sobre a sua candidatura, {{nome}}",
+    corpo: [
+      "Olá, {{nome}}!",
+      "Temos boas notícias: o seu perfil chamou a nossa atenção e queremos conversar com você sobre a vaga de {{vaga}}.",
+      "Em breve a nossa equipe entra em contato pelo telefone que você deixou na candidatura pra combinar os próximos passos. Fica de olho no WhatsApp.",
+      "Até já,\nEquipe de Gestão de Pessoas · Fiobras",
+    ],
+  },
+  "nao-seguiu": {
+    assunto: "Sobre a sua candidatura na Fiobras",
+    corpo: [
+      "Olá, {{nome}}.",
+      "Queremos te agradecer de verdade pelo interesse na vaga de {{vaga}} e pelo tempo que você dedicou à candidatura. Desta vez, seguimos com outro perfil pra essa posição.",
+      "Isso não diminui em nada a sua trajetória. O seu cadastro fica conosco por até 6 meses e pode ser considerado em outras oportunidades, e as vagas abertas estão sempre em vagas.fiobras.com.br.",
+      "Desejamos muito sucesso no seu caminho.\nEquipe de Gestão de Pessoas · Fiobras",
+    ],
+  },
+};
+function primeiroNomeCand(nome) { return String(nome || "").trim().split(/\s+/)[0] || ""; }
+function preencherMsg(tpl, nome, vaga) {
+  return String(tpl).replace(/\{\{nome\}\}/g, nome).replace(/\{\{vaga\}\}/g, vaga);
+}
+// Assunto + corpo prontos (placeholders preenchidos) pro status ATUAL da candidatura.
+function candMensagem(c) {
+  const st = candStatusKey(c && c.status);
+  const nome = primeiroNomeCand(c && c.nome);
+  const vaga = String((c && c.vagaTitulo) || "");
+  const m = CAND_MSG[st];
+  return {
+    assunto: preencherMsg(m.assunto, nome, vaga),
+    corpo: m.corpo.map((p) => preencherMsg(p, nome, vaga)).join("\n\n"),
+  };
+}
+// mailto: assunto + corpo do status. TUDO encodeURIComponent (candidato vem do site público,
+// fronteira de confiança máxima: XSS/injeção de header não escapa da URL, nem o endereço).
+function candMailto(c) {
+  const { assunto, corpo } = candMensagem(c);
+  return "mailto:" + encodeURIComponent(String((c && c.email) || "")) +
+    "?subject=" + encodeURIComponent(assunto) + "&body=" + encodeURIComponent(corpo);
+}
+// wa.me/<só dígitos, com 55 do Brasil>?text=<MESMO corpo, sem assunto>. Número já com DDI
+// (12-13 dígitos) fica; sem DDI (<=11) ganha o 55.
+function candWhats(c) {
+  const { corpo } = candMensagem(c);
+  let d = String((c && c.telefone) || "").replace(/\D/g, "");
+  if (d && d.length <= 11) d = "55" + d;
+  return "https://wa.me/" + d + "?text=" + encodeURIComponent(corpo);
+}
+
 function renderVagas() {
   const view = $("#view");
   if (state.vagas === undefined) {
@@ -5305,6 +5394,29 @@ function renderVagas() {
           <p class="g-cand__leitura"><b>${escapeHtml(perfil.leitura[0])}</b> ${escapeHtml(perfil.leitura[1])}</p>
         </div>`;
     }
+    // Funil de status no rodapé (mock cena 1): segmented sóbrio dos 4 passos + botão
+    // "Mensagem ao candidato". O passo ATIVO = status atual (legado/'nova' = Recebida);
+    // a sugestão mostra o assunto pronto daquele status; o botão acende quando a GP
+    // acabou de mover (state.view.candMsgAceso), nudge pra enviar. Tudo escapado.
+    const stKey = candStatusKey(c.status);
+    const sugAssunto = candMensagem(c).assunto;
+    const aceso = state.view.candMsgAceso === c.id;
+    const segBtns = CAND_STATUS.map((s, i) => {
+      const on = s.k === stKey;
+      return `${i === 2 ? `<span class="g-cand__seg-sep"></span>` : ""}<button type="button" class="g-cand__st${on ? " on g-cand__st--" + s.cls : ""}" data-cand-st="${escapeHtml(s.k)}" data-cand-id="${escapeHtml(c.id)}" role="tab" aria-selected="${on ? "true" : "false"}"><span class="g-cand__sd"></span>${escapeHtml(s.lbl)}</button>`;
+    }).join("");
+    const funilHtml = `
+      <div class="g-cand__funil">
+        <div class="g-cand__funil-l">
+          <div class="g-cand__funil-rot">Status da candidatura</div>
+          <div class="g-cand__seg" role="tablist">${segBtns}</div>
+          <div class="g-cand__sug">${icon("send")}<span>Mensagem pronta: <b>${escapeHtml(sugAssunto)}</b></span></div>
+        </div>
+        <div class="g-cand__funil-r">
+          <button type="button" class="g-cand__msg${aceso ? " aceso" : ""}" data-cand-msg="${escapeHtml(c.id)}">${icon("send")}Mensagem ao candidato</button>
+          <span class="g-cand__canal">email ou WhatsApp</span>
+        </div>
+      </div>`;
     return `
     <div class="g-cand${perfil ? ` g-cand--${perfil.cls}` : ""}">
       <div class="g-cand__main${perfil ? " g-cand__main--dual" : ""}">
@@ -5312,7 +5424,7 @@ function renderVagas() {
           <div class="g-cand__id">${avatar}<div class="g-cand__idt"><b>${escapeHtml(c.nome || "")}</b>${sub ? `<span>${sub}</span>` : ""}</div></div>
           <div class="g-cand__ct"><span>${[c.telefone, c.email].filter(Boolean).map(escapeHtml).join(" · ")}</span></div>
           ${metaLinha ? `<div class="g-cand__meta">${metaLinha}</div>` : ""}
-          ${c.mensagem ? `<p class="g-cand__msg">${escapeHtml(c.mensagem)}</p>` : ""}
+          ${c.mensagem ? `<p class="g-cand__msg-txt">${escapeHtml(c.mensagem)}</p>` : ""}
           <div class="g-cand__acts">
             ${cvHtml}
             ${temFicha ? `<button class="btn btn--soft btn--sm g-cand__ficha" data-cand-ficha="${escapeHtml(c.id)}">Ver ficha completa</button>` : ""}
@@ -5322,6 +5434,7 @@ function renderVagas() {
         ${perfilBloco}
       </div>
       <button class="btn btn--ghost btn--sm g-cand__del" data-cand-excluir="${escapeHtml(c.id)}">Excluir</button>
+      ${funilHtml}
     </div>`;
   };
   const painelHtml = (id) => {
@@ -5524,6 +5637,22 @@ function renderVagas() {
       catch (e) { toast("Não excluiu: " + (e?.message || e), "danger"); }
     });
   }));
+  // Funil de status: clicar num passo move a candidatura e acende o botão de enviar.
+  $$("#view [data-cand-st]").forEach((b) => b.addEventListener("click", () => {
+    const id = b.dataset.candId, st = b.dataset.candSt;
+    const c = (state.candidaturas || []).find((x) => x.id === id);
+    if (!c || !CAND_STATUS.some((s) => s.k === st)) return;
+    state.view.candMsgAceso = id; // mover acende o botão (sugere a mensagem do status)
+    if (candStatusKey(c.status) === st) { renderApp(); return; } // já neste status: só acende
+    withBusy("cand-st:" + id, b, async () => {
+      try { await window.atualizarStatusCandidatura?.(id, st); renderApp(); }
+      catch (e) { toast("Não atualizou o status: " + (e?.message || e), "danger"); }
+    });
+  }));
+  $$("#view [data-cand-msg]").forEach((b) => b.addEventListener("click", () => {
+    const c = (state.candidaturas || []).find((x) => x.id === b.dataset.candMsg);
+    if (c) abrirEscolhaMensagem(c);
+  }));
   $$("#view [data-cand-excluir-todas]").forEach((b) => b.addEventListener("click", async () => {
     const lista = candidaturasDaVaga(b.dataset.candExcluirTodas);
     if (!lista.length) return;
@@ -5543,6 +5672,55 @@ function renderVagas() {
     try { await window.salvarConfigVagas(num); toast("WhatsApp salvo."); $("#vg-zap-erro").textContent = ""; }
     catch (e) { $("#vg-zap-erro").textContent = "Não salvou: " + (e?.message || e); }
   }));
+}
+
+// Escolha de canal (Email | WhatsApp) da mensagem ao candidato (funil fase 1). Folha
+// mínima criada na hora (fora de #view, some ao escolher/fechar): não suja o DOM, então
+// o re-render do card nasce idêntico. Os canais são âncoras reais (mailto / wa.me),
+// href montado com encodeURIComponent → seguro mesmo com dado hostil do site público.
+function abrirEscolhaMensagem(c) {
+  const info = candStatusInfo(c.status);
+  const assunto = candMensagem(c).assunto;
+  const mailto = candMailto(c);
+  const wa = candWhats(c);
+  const temTel = !!String(c.telefone || "").replace(/\D/g, "");
+  const prevFocus = document.activeElement;
+  const root = document.createElement("div");
+  root.className = "modal-backdrop modal-backdrop--confirm";
+  root.innerHTML = `
+    <div class="modal modal--sm" role="dialog" aria-modal="true" aria-label="Enviar mensagem ao candidato">
+      <div class="modal__header">
+        <div><h2>Mensagem ao candidato</h2></div>
+        <button class="modal__close" data-fechar aria-label="Fechar">${icon("x")}</button>
+      </div>
+      <div class="modal__body">
+        <p class="msg-canal__sug">${icon("send")}<span>Mensagem de <b>${escapeHtml(info.lbl)}</b>: ${escapeHtml(assunto)}</span></p>
+        <div class="msg-canal__ops">
+          <a class="msg-canal__op" data-canal="email" href="${escapeHtml(mailto)}">${icon("mail")}<b>Email</b><span>${escapeHtml(c.email || "sem email")}</span></a>
+          ${temTel
+            ? `<a class="msg-canal__op" data-canal="whatsapp" href="${escapeHtml(wa)}" target="_blank" rel="noopener">${icon("message")}<b>WhatsApp</b><span>${escapeHtml(c.telefone)}</span></a>`
+            : `<span class="msg-canal__op" data-canal="whatsapp" aria-disabled="true">${icon("message")}<b>WhatsApp</b><span>sem telefone</span></span>`}
+        </div>
+        <p class="msg-canal__micro">${icon("info")}<span>O candidato recebe a mensagem do status por email ou WhatsApp, você escolhe na hora.</span></p>
+      </div>
+    </div>`;
+  document.body.appendChild(root);
+  let fechado = false;
+  const fechar = () => {
+    if (fechado) return;
+    fechado = true;
+    document.removeEventListener("keydown", onKey, true);
+    root.remove();
+    if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch {} }
+  };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fechar(); } };
+  document.addEventListener("keydown", onKey, true);
+  root.addEventListener("click", (e) => { if (e.target === root) fechar(); });
+  root.querySelectorAll("[data-fechar]").forEach((b) => b.addEventListener("click", fechar));
+  // Escolher um canal abre o app (mailto / wa.me) e fecha a folha logo em seguida.
+  root.querySelectorAll("a[data-canal]").forEach((a) => a.addEventListener("click", () => setTimeout(fechar, 0)));
+  aplicarFisicaSheet(root.querySelector(".modal"), { onFechar: fechar });
+  setTimeout(() => root.querySelector("[data-canal='email']")?.focus(), 30);
 }
 
 // Ficha completa do candidato (modal padrão, 2 colunas no desktop). TODO campo passa por
@@ -17409,7 +17587,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.87.0";
+window.CURRENT_VERSION = "1.88.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

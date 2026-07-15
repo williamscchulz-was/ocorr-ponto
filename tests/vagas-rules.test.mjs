@@ -50,6 +50,17 @@ before(async () => {
       vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Candidato Legado", telefone: "47900001111",
       email: "legado@mail.com", mensagem: "form antigo", em: new Date(), status: "nova",
     });
+    // Funil de status (fase 1): docs com status 'nova' (como o site grava) pra provar que a
+    // GP MOVE o status pelos 4 valores do enum. 'mover' e reusado em toda a bateria de move;
+    // 'legmover' fica intocado ate o teste de legado subir do 'nova' pro enum novo.
+    await setDoc(doc(db, "candidaturas/vCand__mover@mail.com"), {
+      vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Candidato Mover", telefone: "47922223333",
+      email: "mover@mail.com", mensagem: "", em: new Date(), status: "nova",
+    });
+    await setDoc(doc(db, "candidaturas/vCand__legmover@mail.com"), {
+      vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Candidato Legado Mover", telefone: "47933334444",
+      email: "legmover@mail.com", mensagem: "", em: new Date(), status: "nova",
+    });
   });
 });
 after(async () => { await env.cleanup(); });
@@ -183,8 +194,33 @@ test("RH le, lista e exclui candidatura (LGPD)", async () => {
   await assertSucceeds(getDocs(collection(rh(), "candidaturas")));
   await assertSucceeds(deleteDoc(doc(rh(), "candidaturas/vCand__gp@mail.com")));
 });
-test("RH NAO atualiza candidatura (update fechado no v1)", async () =>
-  assertFails(updateDoc(doc(rh(), "candidaturas/vCand__ana@mail.com"), { status: "vista" })));
+// ---------- FUNIL DE STATUS (fase 1, 2026-07-16): GP move a candidatura ----------
+// update NOVO: gpCand troca SO o status, e so pra um dos 4 valores do funil. O resto do
+// cadastro (PII) segue imutavel. Docs legados (status 'nova' do site) sobem pro enum novo.
+test("GP move status: cada valor do enum passa (nova -> recebida -> em-analise -> aprovada -> nao-seguiu)", async () => {
+  await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "recebida" }));
+  await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "em-analise" }));
+  await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "aprovada" }));
+  await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "nao-seguiu" }));
+});
+test("GP move status: admin tambem move", async () =>
+  assertSucceeds(updateDoc(doc(admin(), "candidaturas/vCand__mover@mail.com"), { status: "recebida" })));
+test("status fora do enum NEGA (ex.: 'vista')", async () =>
+  assertFails(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "vista" })));
+test("status legado 'nova' de VOLTA no update NEGA (nao e valor do funil)", async () =>
+  assertFails(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "nova" })));
+test("mudar status JUNTO de outro campo NEGA (hasOnly status, PII imutavel)", async () =>
+  assertFails(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "aprovada", nome: "Hacker" })));
+test("update que NAO mexe em status (so outro campo) NEGA", async () =>
+  assertFails(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { nome: "Outro Nome" })));
+test("COLABORADOR NAO move status", async () =>
+  assertFails(updateDoc(doc(colab(), "candidaturas/vCand__mover@mail.com"), { status: "aprovada" })));
+test("ANONIMO NAO move status", async () =>
+  assertFails(updateDoc(doc(anon(), "candidaturas/vCand__mover@mail.com"), { status: "aprovada" })));
+test("LEGADO (status 'nova' do site) segue legivel e SOBE pro enum novo", async () => {
+  await assertSucceeds(getDoc(doc(rh(), "candidaturas/vCand__legmover@mail.com")));
+  await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__legmover@mail.com"), { status: "em-analise" }));
+});
 
 // ---------- FICHA COMPLETA v4 (2026-07-15: dados da GP + experiencias + adicionais) ----------
 test("candidatura COMPLETA (base + disc + curriculo) passa", async () =>

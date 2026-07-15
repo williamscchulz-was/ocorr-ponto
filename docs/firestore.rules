@@ -1676,7 +1676,16 @@ service cloud.firestore {
         && c().em == request.time
         && c().status == 'nova'
         && cid == c().vagaId + '__' + c().email.lower();
-      allow update: if false;
+      // FUNIL DE STATUS (fase 1, 2026-07-16): a GP move a candidatura entre os 4
+      // passos do funil, e SO isso. gpCand troca UNICAMENTE o campo status
+      // (affectedKeys hasOnly) e so pra um valor do enum; todo o resto do cadastro
+      // (PII do candidato) segue IMUTAVEL. Docs criados pelo site nascem com status
+      // 'nova' (create acima, public-vagas intocado); o front trata 'nova'/ausente
+      // como Recebida e sobe pro enum novo no primeiro toque. Sem transicao proibida:
+      // qualquer um dos 4 vai pra qualquer um (a GP corrige um clique errado).
+      allow update: if gpCand()
+        && c().diff(resource.data).affectedKeys().hasOnly(['status'])
+        && c().status in ['recebida', 'em-analise', 'aprovada', 'nao-seguiu'];
       allow delete: if gpCand();
     }
 

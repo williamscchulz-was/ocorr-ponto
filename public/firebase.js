@@ -1989,6 +1989,20 @@
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Excluiu candidatura", alvo: id });
     };
 
+    // FUNIL DE STATUS (fase 1, 2026-07-16): a GP move a candidatura entre os 4 passos.
+    // Escreve SO o campo status (a regra exige affectedKeys().hasOnly(['status']) e o
+    // valor no enum); o resto do cadastro do candidato fica imutavel. Espelha no state
+    // local pra tela refletir na hora sem re-fetch. Auditoria SEM PII: so o rotulo do
+    // status e o id do doc (mesmo alvo do "Excluiu candidatura", padrao ja existente).
+    const _CAND_STATUS_ROTULO = { recebida: "Recebida", "em-analise": "Em análise", aprovada: "Aprovada", "nao-seguiu": "Não seguiu adiante" };
+    window.atualizarStatusCandidatura = async function (id, status) {
+      if (!_CAND_STATUS_ROTULO[status]) throw new Error("status inválido");
+      await db.collection("candidaturas").doc(id).update({ status });
+      const c = (state.candidaturas || []).find((x) => x.id === id);
+      if (c) c.status = status; // mantém o state honesto na sessão (doc já gravado)
+      window.registrarAuditoria?.({ tipo: "vagas", acao: "Moveu candidatura para " + _CAND_STATUS_ROTULO[status], alvo: id });
+    };
+
     // EXPURGO AUTOMÁTICO de candidaturas (LGPD, decisão William 2026-07-16): candidatura de
     // vaga ENCERRADA há mais de 6 meses se apaga SOZINHA, "sem depender de ninguém lembrar".
     // O consentimento do site diz "guardamos por até 6 meses e depois apagamos

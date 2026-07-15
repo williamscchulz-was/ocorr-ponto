@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.87.0", d: "16 jul 2026", current: true, items: [
+    v: "1.88.0", d: "16 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Funil de candidatos: cada candidatura agora tem o acompanhamento (Recebida, Em analise, Aprovada, Nao seguiu adiante) direto no card, e o botao Mensagem ao candidato abre o email ou o WhatsApp ja escrito no tom da Fiobras. Um toque pra mover, um toque pra avisar." },
+    ],
+  },
+  {
+    v: "1.87.0", d: "16 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Apuracao de denuncia virou dossie de tela cheia no desktop: relato de um lado, apuracao do outro, nada de rolagem. E ganhou o selo de 24 horas: concluiu, tem um dia pra ajustes, depois o registro sela pra sempre, com avisos claros em cada momento." },
       { type: "fix", title: "A barra da tela de atualizacao agora nasce vazia e enche suave ate o fim, sem travadas. O app tambem para de trabalhar escondido embaixo dela, entao a troca de versao ficou mais rapida." },
     ],

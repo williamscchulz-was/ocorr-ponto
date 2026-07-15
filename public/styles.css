@@ -4806,7 +4806,7 @@ button.gm-card { cursor: pointer; }
 /* Candidatura na visão da GP: contato + currículo à esquerda, perfil DISC à direita
    (mock candidatura-completa-2026-07 Parte 2). Cores nos tokens semânticos = legível
    no claro e no dark do gestor. Perfil só aparece no fluxo novo (tem discPrimario). */
-.g-cand { display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: var(--surface-warm); border-radius: 12px; border-left: 3px solid transparent; }
+.g-cand { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; padding: 14px; background: var(--surface-warm); border-radius: 12px; border-left: 3px solid transparent; }
 .g-cand--pd { border-left-color: var(--danger); }
 .g-cand--pi { border-left-color: var(--warning); }
 .g-cand--ps { border-left-color: var(--success); }
@@ -4822,7 +4822,7 @@ button.gm-card { cursor: pointer; }
 .g-cand__idt span { font-size: 11.5px; color: var(--text-muted); }
 .g-cand__ct { margin-top: 9px; }
 .g-cand__ct span { font-size: 12px; color: var(--text-muted); word-break: break-word; }
-.g-cand__msg { margin: 8px 0 0; font-size: 12.5px; color: var(--text-body); line-height: 1.5; white-space: pre-wrap; }
+.g-cand__msg-txt { margin: 8px 0 0; font-size: 12.5px; color: var(--text-body); line-height: 1.5; white-space: pre-wrap; }
 .g-cand__cv { display: inline-flex; align-items: center; gap: 8px; margin-top: 11px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 10px; padding: 8px 12px; cursor: pointer; font: 600 12.5px var(--font); color: var(--text-body); transition: background .15s, border-color .15s; }
 .g-cand__cv:hover { background: var(--surface-warm); border-color: var(--plum); }
 .g-cand__cv .icon { width: 15px; height: 15px; }
@@ -4858,10 +4858,55 @@ button.gm-card { cursor: pointer; }
 .g-cand__meta { margin-top: 6px; font-size: 12px; color: var(--text-body); font-weight: 600; }
 .g-cand__acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .g-cand__ficha { flex: 0 0 auto; }
+
+/* Funil de status (fase 1, mock funil-email-2026-07 cena 1): rodapé full-width do card,
+   segmented sóbrio dos 4 passos + botão "Mensagem ao candidato". Cores nos tokens
+   semânticos = legível no claro e no dark do gestor. */
+.g-cand__funil { flex: 1 0 100%; margin-top: 4px; padding-top: 14px; border-top: 1px dashed var(--border-strong); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.g-cand__funil-l { flex: 1 1 360px; min-width: 260px; }
+.g-cand__funil-rot { font: 600 10px var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 8px; }
+.g-cand__seg { display: inline-flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; gap: 3px; }
+.g-cand__st { border: 0; background: none; cursor: pointer; border-radius: 9px; padding: 8px 13px; font: 600 12.5px var(--font); color: var(--text-muted); display: inline-flex; align-items: center; gap: 7px; transition: background .18s, color .18s, box-shadow .18s; }
+.g-cand__sd { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); flex: 0 0 auto; transition: background .18s; }
+.g-cand__st:hover { color: var(--text-body); }
+.g-cand__st.on { background: var(--surface-warm); box-shadow: 0 1px 2px rgba(0, 0, 0, .06), 0 2px 8px -4px rgba(4, 51, 26, .18); }
+.g-cand__st--rec { color: var(--info); } .g-cand__st--rec .g-cand__sd { background: var(--info); }
+.g-cand__st--ana { color: var(--warning-ink); } .g-cand__st--ana .g-cand__sd { background: var(--warning); }
+.g-cand__st--apr { color: var(--success); } .g-cand__st--apr .g-cand__sd { background: var(--success); }
+.g-cand__st--rec2 { color: var(--text-muted); } .g-cand__st--rec2 .g-cand__sd { background: var(--text-muted); }
+.g-cand__seg-sep { width: 1px; align-self: stretch; background: var(--border); margin: 4px 2px; }
+.g-cand__sug { margin-top: 10px; font-size: 12px; color: var(--text-body); display: flex; align-items: center; gap: 7px; line-height: 1.45; }
+.g-cand__sug .icon { width: 14px; height: 14px; color: var(--text-muted); flex: 0 0 auto; }
+.g-cand__sug b { font-weight: 600; }
+.g-cand__funil-r { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.g-cand__msg { display: inline-flex; align-items: center; gap: 9px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text-body); border-radius: 13px; padding: 10px 15px; cursor: pointer; font: 700 13px var(--font); transition: background .18s, border-color .18s, box-shadow .25s, transform .12s; }
+.g-cand__msg .icon { width: 16px; height: 16px; }
+.g-cand__msg:hover { border-color: var(--plum); }
+.g-cand__msg:active { transform: scale(.98); }
+.g-cand__msg.aceso { background: var(--plum); border-color: var(--plum); color: var(--text-on-plum, #fff); box-shadow: 0 6px 18px -6px rgba(0, 136, 53, .4); }
+.g-cand__msg.aceso .icon { color: currentColor; }
+.g-cand__canal { font-size: 11px; color: var(--text-muted); }
 @media (max-width: 700px) {
   .g-cand__main--dual { grid-template-columns: 1fr; gap: 14px; }
   .g-cand__perfil { border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 14px; }
+  .g-cand__funil { flex-direction: column; align-items: stretch; }
+  .g-cand__funil-r { flex-direction: row; align-items: center; justify-content: space-between; }
 }
+
+/* Escolha de canal (Email | WhatsApp) da mensagem ao candidato (funil fase 1). */
+.msg-canal__sug { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--text-body); line-height: 1.45; margin: 0 0 14px; }
+.msg-canal__sug .icon { width: 15px; height: 15px; color: var(--text-muted); flex: 0 0 auto; margin-top: 2px; }
+.msg-canal__sug b { font-weight: 600; }
+.msg-canal__ops { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.msg-canal__op { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; text-decoration: none; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 13px; padding: 14px 15px; cursor: pointer; transition: background .15s, border-color .15s; color: var(--text-body); }
+.msg-canal__op:hover { background: var(--surface-warm); border-color: var(--plum); }
+.msg-canal__op .icon { width: 20px; height: 20px; color: var(--plum); }
+.msg-canal__op b { font: 700 14px var(--font); color: var(--text-body); }
+.msg-canal__op span { font-size: 11.5px; color: var(--text-muted); word-break: break-word; }
+.msg-canal__op[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.msg-canal__micro { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin: 14px 0 0; padding: 11px 13px; background: var(--surface-warm); border: 1px dashed var(--border-strong); border-radius: 12px; }
+.msg-canal__micro .icon { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; }
+@media (max-width: 480px) { .msg-canal__ops { grid-template-columns: 1fr; } }
 
 /* ===== Vagas: sub-abas (Vagas | Benefícios) ===== */
 .g-subtabs { display: inline-flex; gap: 4px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 16px; }
