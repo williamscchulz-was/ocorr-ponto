@@ -94,10 +94,6 @@
   .cand__erro { font-size: 11.5px; color: #b3261e; margin-top: 4px; min-height: 14px; }
   .cand__erroGeral { font-size: 12.5px; color: #b3261e; background: #fbeceb; border-radius: 10px; padding: 9px 12px; margin: 0 0 14px; }
   .cand__erroGeral:empty { display: none; }
-  .cand__consent { font-size: 11px; color: #6b7563; line-height: 1.5; margin: 4px 0 16px; }
-  .cand__enviar { width: 100%; justify-content: center; }
-  .cand__enviar:disabled { opacity: .65; cursor: default; transform: none; }
-  .cand__msg { font-size: 13.5px; color: #0b6e33; background: #eaf4ec; border-radius: 14px; padding: 20px; text-align: center; line-height: 1.6; }
   .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; margin: 0; }
 
   @media (max-width: 760px) {
@@ -115,6 +111,168 @@
   .zapfab svg { width: 28px; height: 28px; }
   .zapfab:hover { transform: scale(1.07); box-shadow: 0 6px 14px #00000038, 0 16px 40px -8px #128c4b80; }
   .zapfab:active { transform: scale(.95); }
+
+  /* ===== CANDIDATURA COMPLETA (4 etapas · dentro do dialog) ===== */
+  dialog.candidatura { --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00; --azul: #0076BE;
+    --ink: #1d2a19; --muted: #68716a; --borda: #d8ded0; --ease-ios: cubic-bezier(.32,.72,.28,1); }
+  dialog.candidatura[open] { display: flex; flex-direction: column; }
+  .candidatura .cand__head { flex: 0 0 auto; padding: 16px 20px 12px; }
+  .candidatura .cand__headrow { display: flex; align-items: center; gap: 10px; padding-right: 30px; }
+  .candidatura .cand__back { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; border: 0;
+    background: rgba(255,255,255,.16); color: #fff; display: grid; place-items: center; cursor: pointer; transition: background .15s; }
+  .candidatura .cand__back[hidden] { display: none; }
+  .candidatura .cand__back svg { width: 16px; height: 16px; }
+  .candidatura .cand__back:hover { background: rgba(255,255,255,.3); }
+  .candidatura .cand__headtxt { min-width: 0; }
+  .candidatura .cand__head h3 { font-size: 16px; }
+  .candidatura .cand__head p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* stepper */
+  .candidatura .cand__stepper { margin-top: 12px; }
+  .candidatura .step-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+  .candidatura .step-count { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.75); letter-spacing: .04em; }
+  .candidatura .step-name { font-size: 12px; font-weight: 600; color: #fff; }
+  .candidatura .step-bar { display: flex; gap: 5px; }
+  .candidatura .step-seg { flex: 1; height: 4px; border-radius: 999px; background: rgba(255,255,255,.24); overflow: hidden; }
+  .candidatura .step-seg i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--amarelo); transition: width .5s var(--ease-ios); }
+  .candidatura .step-seg.done i { width: 100%; }
+  .candidatura .step-seg.now i { width: 100%; background: #fff; }
+
+  /* corpo · flex fill entre head e foot */
+  .candidatura .cand__body { flex: 1 1 auto; min-height: 0; max-height: none; padding: 18px 22px 6px; }
+  .candidatura .step-view[hidden] { display: none; }
+  .candidatura .stitle { font-size: 18px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+  .candidatura .shint { color: var(--muted); font-size: 12.5px; margin: 5px 0 16px; line-height: 1.5; }
+
+  .candidatura .field { margin-bottom: 13px; }
+  .candidatura .field label { display: block; font-size: 12px; font-weight: 600; color: #384a32; margin-bottom: 5px; }
+  .candidatura .field input { width: 100%; border: 1.5px solid var(--borda); border-radius: 12px; padding: 11px 13px;
+    font: 500 14.5px "Poppins", sans-serif; color: var(--ink); background: #fff; transition: border-color .15s, box-shadow .15s; }
+  .candidatura .field input::placeholder { color: #a9b0a5; }
+  .candidatura .field input:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px #00883521; }
+  .candidatura .field.err input { border-color: #d64545; }
+  .candidatura .field .msg { font-size: 11px; color: #d64545; margin-top: 4px; min-height: 13px; opacity: 0; transition: opacity .15s; }
+  .candidatura .field.err .msg { opacity: 1; }
+
+  /* currículo */
+  .candidatura .cv-drop { border: 2px dashed #c6cfbf; border-radius: 16px; background: #fbfcf9; padding: 24px 16px;
+    text-align: center; cursor: pointer; transition: border-color .18s, background .18s, transform .12s var(--ease-ios); }
+  .candidatura .cv-drop:hover { border-color: var(--verde); background: #00883508; }
+  .candidatura .cv-drop:active { transform: scale(.985); }
+  .candidatura .cv-drop .cvic { width: 50px; height: 50px; border-radius: 14px; background: #00883514; color: var(--verde);
+    display: grid; place-items: center; margin: 0 auto 11px; }
+  .candidatura .cv-drop .cvic svg { width: 25px; height: 25px; }
+  .candidatura .cv-drop b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .candidatura .cv-drop span { font-size: 11.5px; color: var(--muted); }
+  .candidatura .cv-erro { font-size: 11.5px; color: #d64545; margin-top: 9px; text-align: center; min-height: 14px; }
+  .candidatura .cv-chip { display: none; align-items: center; gap: 12px; border: 1.5px solid #cbe3d3; background: #f0f8f2;
+    border-radius: 14px; padding: 12px 13px; animation: candpop .32s var(--ease-ios); }
+  .candidatura .cv-chip.on { display: flex; }
+  .candidatura .cv-chip .pdf { width: 38px; height: 44px; border-radius: 7px; background: #fff; border: 1px solid #d9e6dd;
+    position: relative; flex: 0 0 auto; display: grid; place-items: end center; padding-bottom: 5px; }
+  .candidatura .cv-chip .pdf b { font-size: 8px; font-weight: 700; color: #d64545; letter-spacing: .04em; }
+  .candidatura .cv-chip .meta { flex: 1; min-width: 0; }
+  .candidatura .cv-chip .meta b { display: block; font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .candidatura .cv-chip .meta span { font-size: 11px; color: var(--muted); }
+  .candidatura .cv-x { width: 30px; height: 30px; border-radius: 50%; border: 0; background: #e6ece1; color: #5a6852;
+    cursor: pointer; flex: 0 0 auto; display: grid; place-items: center; transition: background .15s; }
+  .candidatura .cv-x:hover { background: #d8e0d1; }
+  .candidatura .cv-x svg { width: 14px; height: 14px; }
+  .candidatura .cv-skip { margin-top: 18px; text-align: center; }
+  .candidatura .cv-skip p { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+  .candidatura .btn-link { background: none; border: 0; color: var(--verde); font: 600 12.5px "Poppins", sans-serif;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+  .candidatura .cv-ok { margin-top: 14px; font-size: 11.5px; color: var(--verde); display: none; align-items: center; gap: 6px; justify-content: center; }
+  .candidatura .cv-ok.on { display: flex; }
+  .candidatura .cv-ok svg { width: 14px; height: 14px; }
+
+  /* DISC */
+  .candidatura .disc-top { margin-bottom: 15px; }
+  .candidatura .disc-count { font-size: 11.5px; font-weight: 600; color: var(--muted); letter-spacing: .03em; margin-bottom: 6px; }
+  .candidatura .disc-prog { height: 5px; border-radius: 999px; background: #e6ece1; overflow: hidden; }
+  .candidatura .disc-prog i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--verde), #16a34a); transition: width .45s var(--ease-ios); }
+  .candidatura .disc-q { font-size: 15px; font-weight: 700; line-height: 1.35; letter-spacing: -.01em; color: var(--ink); margin-bottom: 3px; }
+  .candidatura .disc-q b { font-weight: 700; }
+  .candidatura .disc-qs { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .candidatura .disc-opt { display: block; width: 100%; text-align: left; border: 1.5px solid var(--borda); background: #fff;
+    border-radius: 14px; padding: 14px 15px; margin-bottom: 10px; font: 500 13.5px/1.4 "Poppins", sans-serif; color: var(--ink);
+    cursor: pointer; position: relative; transition: border-color .15s, background .15s, transform .12s var(--ease-ios); }
+  .candidatura .disc-opt:hover { border-color: #bcd8c6; }
+  .candidatura .disc-opt:active { transform: scale(.985); }
+  .candidatura .disc-opt .ot { display: block; }
+  .candidatura .disc-opt.most { border-color: var(--verde); background: #00883510; font-weight: 600; }
+  .candidatura .disc-opt.least { border-color: #cdd4c7; background: #eef0ea; color: #7a8170; }
+  .candidatura .disc-opt.locked, .candidatura .disc-opt:disabled { cursor: default; }
+  .candidatura .disc-opt.most .ot, .candidatura .disc-opt.least .ot { padding-right: 60px; }
+  .candidatura .obadge { position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
+    font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: .05em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; }
+  .candidatura .obadge.b-most { background: var(--verde); color: #fff; }
+  .candidatura .obadge.b-least { background: #b6bfad; color: #fff; }
+  .candidatura .disc-back { background: none; border: 0; color: var(--muted); font: 600 12px "Poppins", sans-serif;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 5px; padding: 6px 2px; margin-top: 2px; }
+  .candidatura .disc-back[hidden] { display: none; }
+  .candidatura .disc-back svg { width: 13px; height: 13px; }
+  .candidatura .disc-done { display: none; text-align: center; padding: 30px 12px 0; }
+  .candidatura .disc-done.on { display: block; animation: candfade .35s var(--ease-ios); }
+  .candidatura .disc-done .chk { width: 72px; height: 72px; border-radius: 50%; background: #00883514; display: grid; place-items: center; margin: 0 auto 15px; }
+  .candidatura .disc-done .chk svg { width: 38px; height: 38px; }
+  .candidatura .disc-done b { font-size: 18px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+  .candidatura .disc-done p { color: var(--muted); font-size: 13px; margin: 6px 0 0; line-height: 1.5; }
+
+  /* revisão */
+  .candidatura .rev-card { background: #fff; border: 1px solid var(--borda); border-radius: 16px; padding: 4px 16px; margin-bottom: 14px; }
+  .candidatura .rev-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eef0ea; }
+  .candidatura .rev-row:last-child { border-bottom: 0; }
+  .candidatura .rev-row .ri { width: 34px; height: 34px; border-radius: 10px; background: #00883514; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; }
+  .candidatura .rev-row .ri svg { width: 17px; height: 17px; }
+  .candidatura .rev-row .rt { flex: 1; min-width: 0; }
+  .candidatura .rev-row .rt small { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+  .candidatura .rev-row .rt b { font-size: 13.5px; font-weight: 600; color: var(--ink); word-break: break-word; }
+  .candidatura .rev-row .rt b.dim { color: var(--muted); font-weight: 500; }
+  .candidatura .lgpd { display: flex; gap: 11px; align-items: flex-start; background: #f7f8f4; border: 1px solid var(--borda);
+    border-radius: 13px; padding: 13px 14px; margin-bottom: 4px; cursor: pointer; }
+  .candidatura .lgpd .box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #c2cbba; flex: 0 0 auto;
+    display: grid; place-items: center; transition: background .15s, border-color .15s; margin-top: 1px; }
+  .candidatura .lgpd.on .box { background: var(--verde); border-color: var(--verde); }
+  .candidatura .lgpd .box svg { width: 13px; height: 13px; opacity: 0; transition: opacity .15s; }
+  .candidatura .lgpd.on .box svg { opacity: 1; }
+  .candidatura .lgpd p { font-size: 11.5px; color: #55604f; line-height: 1.5; }
+
+  /* footer */
+  .candidatura .cand__foot { flex: 0 0 auto; padding: 12px 22px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid #eceee8; background: #fbfcf9; }
+  .candidatura .cand__foot[hidden] { display: none; }
+  .candidatura .cand__foot .cta { width: 100%; justify-content: center; }
+  .candidatura .cand__foot .cta:disabled { opacity: .55; cursor: default; transform: none; }
+  .candidatura .spin { display: inline-block; width: 15px; height: 15px; border: 2.5px solid rgba(255,255,255,.4);
+    border-top-color: #fff; border-radius: 50%; animation: candsp .7s linear infinite; vertical-align: -3px; margin-right: 8px; }
+
+  /* cerimônia */
+  .candidatura .cer { position: absolute; inset: 0; z-index: 70; display: grid; place-items: center; background: #f6f7f2f2;
+    backdrop-filter: blur(7px); opacity: 0; pointer-events: none; transition: opacity .3s; padding: 24px; }
+  .candidatura .cer.on { opacity: 1; pointer-events: auto; }
+  .candidatura .cer-in { text-align: center; }
+  .candidatura .ring { position: relative; width: 96px; height: 96px; margin: 0 auto 20px; }
+  .candidatura .ring svg.r { width: 96px; height: 96px; transform: rotate(-90deg); }
+  .candidatura .ring .trk { fill: none; stroke: #dfe4dc; stroke-width: 5; }
+  .candidatura .ring .arc { fill: none; stroke: var(--verde); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 276; }
+  .candidatura .ring .ck { position: absolute; inset: 0; display: grid; place-items: center; }
+  .candidatura .ring .ck svg { width: 44px; height: 44px; }
+  .candidatura .ring .ck path { fill: none; stroke: var(--verde); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 48; stroke-dashoffset: 48; }
+  .candidatura .pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid #00883555; opacity: 0; }
+  .candidatura .cer-t { font-size: 19px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+  .candidatura .cer-s { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.55; max-width: 250px; margin-left: auto; margin-right: auto; }
+  .candidatura .cer .cta { width: auto; padding: 12px 26px; margin-top: 22px; }
+  .candidatura .cand__erroGeral { margin-top: 12px; }
+
+  @keyframes candsp { to { transform: rotate(360deg); } }
+  @keyframes candpop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes candfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes candarco { to { stroke-dashoffset: 0; } }
+  @keyframes candtick { to { stroke-dashoffset: 0; } }
+  @keyframes candpuls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .candidatura .step-seg i, .candidatura .disc-prog i, .candidatura .cer, .candidatura .cv-chip { transition: none; animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -168,43 +326,153 @@
 <dialog class="candidatura" id="dlgCandidatura">
   <div class="cand__head">
     <button type="button" class="cand__fechar" id="candFechar" aria-label="Fechar">&times;</button>
-    <h3>Candidatar-se</h3>
-    <p id="candVagaNome"></p>
+    <div class="cand__headrow">
+      <button type="button" class="cand__back" id="candBack" hidden aria-label="Voltar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>
+      </button>
+      <div class="cand__headtxt">
+        <h3>Candidatar-se</h3>
+        <p id="candVagaNome"></p>
+      </div>
+    </div>
+    <div class="cand__stepper">
+      <div class="step-line"><span class="step-count" id="stepCount">Etapa 1 de 4</span><span class="step-name" id="stepName">Sobre você</span></div>
+      <div class="step-bar" id="stepBar">
+        <span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span>
+      </div>
+    </div>
   </div>
+
   <div class="cand__body" id="candBody">
-    <form id="candForm" novalidate>
-      <div class="cand__erroGeral" id="erroGeral"></div>
-      <div class="cand__campo">
-        <label for="candNome">Nome completo</label>
-        <input type="text" id="candNome" name="nome" maxlength="80" autocomplete="name">
-        <div class="cand__erro" id="erroNome"></div>
+
+    <!-- ETAPA 1: sobre você -->
+    <div class="step-view" id="cs1">
+      <div class="stitle">Prazer, quem é você?</div>
+      <div class="shint">Só o essencial pra gente te chamar. Leva menos de um minuto.</div>
+      <div class="field" id="cf-nome">
+        <label for="ci-nome">Nome completo</label>
+        <input id="ci-nome" type="text" maxlength="80" placeholder="Seu nome e sobrenome" autocomplete="name">
+        <div class="msg">Digite seu nome completo.</div>
       </div>
-      <div class="cand__campo">
-        <label for="candTelefone">WhatsApp ou telefone</label>
-        <input type="tel" id="candTelefone" name="telefone" maxlength="20" autocomplete="tel">
-        <div class="cand__erro" id="erroTelefone"></div>
+      <div class="field" id="cf-zap">
+        <label for="ci-zap">WhatsApp</label>
+        <input id="ci-zap" type="tel" maxlength="20" placeholder="(47) 9 9999-9999" autocomplete="tel" inputmode="tel">
+        <div class="msg">Informe um número válido com DDD.</div>
       </div>
-      <div class="cand__campo">
-        <label for="candEmail">E-mail</label>
-        <input type="email" id="candEmail" name="email" maxlength="120" autocomplete="email">
-        <div class="cand__erro" id="erroEmail"></div>
+      <div class="field" id="cf-mail">
+        <label for="ci-mail">E-mail</label>
+        <input id="ci-mail" type="email" maxlength="120" placeholder="voce@email.com" autocomplete="email" inputmode="email">
+        <div class="msg">Confira o e-mail, parece incompleto.</div>
       </div>
-      <div class="cand__campo">
-        <label for="candMensagem">Conte um pouco sobre você (opcional)</label>
-        <textarea id="candMensagem" name="mensagem" maxlength="1000"></textarea>
+      <div class="field" id="cf-nasc">
+        <label for="ci-nasc">Data de nascimento</label>
+        <input id="ci-nasc" type="date" autocomplete="bday">
+        <div class="msg">Informe sua data de nascimento.</div>
       </div>
       <div class="cand__campo hp">
         <label for="candSite">Não preencha</label>
         <input type="text" id="candSite" name="site" tabindex="-1" autocomplete="off">
       </div>
-      <p class="cand__consent">Ao enviar, você autoriza a Fiobras a usar estes dados apenas neste processo seletivo.</p>
-      <button type="submit" class="cta cand__enviar" id="candEnviar">Enviar candidatura</button>
-    </form>
+    </div>
+
+    <!-- ETAPA 2: currículo -->
+    <div class="step-view" id="cs2" hidden>
+      <div class="stitle">Seu currículo</div>
+      <div class="shint">Se tiver um PDF na mão, ele ajuda a gente a te conhecer melhor. Mas não é obrigatório.</div>
+      <div class="cv-drop" id="cvDrop">
+        <div class="cvic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/><path d="M12 18v-6"/><path d="M9.5 14.5 12 12l2.5 2.5"/></svg></div>
+        <b>Anexar currículo</b>
+        <span>PDF, até 3 MB · toque para escolher</span>
+      </div>
+      <input type="file" id="cvInput" accept="application/pdf" hidden>
+      <div class="cv-erro" id="cvErro"></div>
+      <div class="cv-chip" id="cvChip">
+        <div class="pdf"><b>PDF</b></div>
+        <div class="meta"><b id="cvNome">curriculo.pdf</b><span id="cvTam"></span></div>
+        <button type="button" class="cv-x" id="cvX" aria-label="Remover currículo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="cv-skip" id="cvSkip">
+        <p>Sem currículo em PDF? Sem problema, você pode enviar mesmo assim.</p>
+        <button type="button" class="btn-link" id="btnPular">Pular esta etapa</button>
+      </div>
+      <div class="cv-ok" id="cvOk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Tudo certo, pode continuar</div>
+    </div>
+
+    <!-- ETAPA 3: perfil (mais/menos) -->
+    <div class="step-view" id="cs3" hidden>
+      <div id="discRun">
+        <div class="disc-top">
+          <div class="disc-count" id="discCount">Pergunta 1 de 8</div>
+          <div class="disc-prog"><i id="discFill"></i></div>
+        </div>
+        <div class="disc-q" id="discPrompt">Toque na frase que <b>mais</b> combina com você</div>
+        <div class="disc-qs">Não existe resposta certa. Vá pela primeira impressão.</div>
+        <div class="disc-card" id="discCard"></div>
+        <button type="button" class="disc-back" id="discBack" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Pergunta anterior</button>
+      </div>
+      <div class="disc-done" id="discDone">
+        <div class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="#008835" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <b>Pronto!</b>
+        <p>Falta só a última etapa. Obrigado por responder com sinceridade.</p>
+      </div>
+    </div>
+
+    <!-- ETAPA 4: revisão + envio -->
+    <div class="step-view" id="cs4" hidden>
+      <div class="stitle">Quase lá, confira e envie</div>
+      <div class="shint">Dê uma olhada nos seus dados. Se algo mudou, é só voltar.</div>
+      <div class="rev-card">
+        <div class="rev-row">
+          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+          <div class="rt"><small>Você</small><b id="rvNome">—</b></div>
+        </div>
+        <div class="rev-row">
+          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg></div>
+          <div class="rt"><small>Contato</small><b id="rvContato">—</b></div>
+        </div>
+        <div class="rev-row">
+          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <div class="rt"><small>Nascimento</small><b id="rvNasc">—</b></div>
+        </div>
+        <div class="rev-row">
+          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/></svg></div>
+          <div class="rt"><small>Currículo</small><b id="rvCv" class="dim">—</b></div>
+        </div>
+        <div class="rev-row">
+          <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="rt"><small>Perfil</small><b>Teste concluído</b></div>
+        </div>
+      </div>
+      <div class="lgpd" id="cLgpd">
+        <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <p>Ao enviar, você autoriza a Fiobras a usar estes dados, seu currículo e o resultado do teste de perfil apenas neste processo seletivo.</p>
+      </div>
+      <div class="cand__erroGeral" id="erroGeral"></div>
+    </div>
+
+  </div>
+
+  <div class="cand__foot" id="candFoot">
+    <button type="button" class="cta" id="candPrim">Continuar</button>
+  </div>
+
+  <div class="cer" id="cer">
+    <div class="cer-in">
+      <div class="ring">
+        <span class="pulse" id="cPulse"></span>
+        <svg class="r" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44"/><circle class="arc" id="cArc" cx="50" cy="50" r="44"/></svg>
+        <span class="ck"><svg viewBox="0 0 46 46"><path id="cTick" d="M13 24 L20.5 31.5 L33 16"/></svg></span>
+      </div>
+      <div class="cer-t">Candidatura enviada</div>
+      <div class="cer-s">A Gestão de Pessoas já recebeu tudo e vai analisar. Boa sorte!</div>
+      <button type="button" class="cta" id="cerFechar">Fechar</button>
+    </div>
   </div>
 </dialog>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
 <script src="firebase.config.js"></script>
 <script>
 (function () {
@@ -294,97 +562,361 @@
     }).catch(function () { /* sem config, sem botão */ });
   }
 
-  // ===== Candidatura (modal) : funciona independente do carregamento das vagas =====
-  var dlg = document.getElementById("dlgCandidatura");
-  var candBody = document.getElementById("candBody");
-  var candVagaNome = document.getElementById("candVagaNome");
-  var CAND_FORM_HTML = candBody.innerHTML;
-  var vagaAtualId = "";
-  var vagaAtualTitulo = "";
+  // ===== Candidatura completa (4 etapas) : funciona independente do carregamento das vagas =====
+  var $c = function (id) { return document.getElementById(id); };
+  var dlg = $c("dlgCandidatura");
+  var vagaAtualId = "", vagaAtualTitulo = "";
+  var reduzMov = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var vibrar = function (p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+
+  var STEP_NOMES = ["Sobre você", "Currículo", "Seu jeito de trabalhar", "Revisão"];
+  var step = 1, cvFile = null, cvEstado = "", discIdx = 0, pos = 0;
+  var discResp = [], ordemGrupos = null, discResult = null, lgpdOn = false;
+
+  // Os 8 grupos do teste (uma frase por dimensão D/I/S/C). Formato "mais e menos":
+  // o candidato toca a que MAIS combina e depois a que MENOS. O scoring vem do campo .d;
+  // as frases são comportamentos concretos, equilibrados em desejabilidade.
+  var GRUPOS = [
+    [ {d:"S",t:"Sigo a mesma ordem de sempre"}, {d:"D",t:"Já começo pela parte mais difícil"}, {d:"C",t:"Confiro o que preciso antes de começar"}, {d:"I",t:"Puxo conversa com quem está do lado"} ],
+    [ {d:"C",t:"Paro para achar a causa certa"}, {d:"I",t:"Chamo alguém para pensar junto"}, {d:"D",t:"Decido na hora e sigo em frente"}, {d:"S",t:"Mantenho a calma e vou com cuidado"} ],
+    [ {d:"I",t:"Rendo mais quando o time está junto"}, {d:"C",t:"Faço com capricho, sem pressa"}, {d:"S",t:"Prefiro um ritmo firme e sem sustos"}, {d:"D",t:"Gosto de meta e de bater tempo"} ],
+    [ {d:"D",t:"Falo direto o que penso"}, {d:"S",t:"Tenho paciência para ensinar quem chega"}, {d:"I",t:"Deixo o clima do setor mais animado"}, {d:"C",t:"Explico o passo a passo certinho"} ],
+    [ {d:"S",t:"Falto pouco e chego no horário"}, {d:"C",t:"Percebo o erro que passa batido"}, {d:"D",t:"Encaro pressão e prazo curto"}, {d:"I",t:"Me entendo bem com todo tipo de gente"} ],
+    [ {d:"C",t:"Prefiro instrução clara e por escrito"}, {d:"D",t:"Me diz o objetivo, o resto eu resolvo"}, {d:"S",t:"Gosto de saber o que esperam de mim"}, {d:"I",t:"Gosto de combinar as coisas conversando"} ],
+    [ {d:"I",t:"Animo o pessoal para não cair o astral"}, {d:"S",t:"Sigo firme no meu posto, sem me abalar"}, {d:"C",t:"Vou com atenção para não deixar erro"}, {d:"D",t:"Assumo a frente e divido o serviço"} ],
+    [ {d:"S",t:"Calmo e de confiança"}, {d:"I",t:"Animado e comunicativo"}, {d:"D",t:"Decidido e que vai à luta"}, {d:"C",t:"Caprichoso e organizado"} ]
+  ];
+  var N = GRUPOS.length;
+  var views = { 1: $c("cs1"), 2: $c("cs2"), 3: $c("cs3"), 4: $c("cs4") };
+
+  // limite superior do date picker = hoje (sem nascimento no futuro)
+  try { $c("ci-nasc").max = new Date().toISOString().slice(0, 10); } catch (e) {}
 
   lista.addEventListener("click", function (ev) {
     var btn = ev.target.closest(".cta--form");
     if (!btn) return;
     vagaAtualId = btn.getAttribute("data-vaga-id") || "";
     vagaAtualTitulo = btn.getAttribute("data-vaga-titulo") || "";
-    candBody.innerHTML = CAND_FORM_HTML;
-    candVagaNome.textContent = vagaAtualTitulo;
+    $c("candVagaNome").textContent = vagaAtualTitulo;
+    resetFlow();
     dlg.showModal();
   });
+  $c("candFechar").addEventListener("click", function () { dlg.close(); });
+  $c("cerFechar").addEventListener("click", function () { dlg.close(); });
 
-  document.getElementById("candFechar").addEventListener("click", function () {
-    dlg.close();
-  });
-
-  function validarCandidatura(nome, telefone, email) {
-    var erros = {};
-    if (nome.length < 3) erros.nome = "Digite seu nome completo.";
-    if (telefone.length < 8) erros.telefone = "Informe um telefone válido.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) erros.email = "Informe um e-mail válido.";
-    return erros;
-  }
-
-  function mostrarErrosCandidatura(erros) {
-    var nomeEl = document.getElementById("erroNome");
-    var telEl = document.getElementById("erroTelefone");
-    var emailEl = document.getElementById("erroEmail");
-    if (nomeEl) nomeEl.textContent = erros.nome || "";
-    if (telEl) telEl.textContent = erros.telefone || "";
-    if (emailEl) emailEl.textContent = erros.email || "";
-  }
-
-  candBody.addEventListener("submit", function (ev) {
-    if (ev.target.id !== "candForm") return;
-    ev.preventDefault();
-    var form = ev.target;
-    var honeypot = form.site.value;
-    if (honeypot) {
-      candBody.innerHTML = '<p class="cand__msg">Candidatura enviada. A equipe de Gestão de Pessoas vai analisar e entra em contato.</p>';
-      return;
-    }
-    var nome = form.nome.value.trim();
-    var telefone = form.telefone.value.trim();
-    var email = form.email.value.trim();
-    var mensagem = form.mensagem.value.trim();
-    mostrarErrosCandidatura({});
-    document.getElementById("erroGeral").textContent = "";
-
-    var erros = validarCandidatura(nome, telefone, email);
-    if (Object.keys(erros).length) {
-      mostrarErrosCandidatura(erros);
-      return;
-    }
-
-    if (!db) {
-      document.getElementById("erroGeral").textContent = "Não conseguimos enviar agora. Tente de novo em instantes.";
-      return;
-    }
-
-    var btn = document.getElementById("candEnviar");
-    btn.disabled = true;
-    btn.textContent = "Enviando...";
-
-    var docId = vagaAtualId + "__" + email.toLowerCase();
-    db.collection("candidaturas").doc(docId).set({
-      vagaId: vagaAtualId,
-      vagaTitulo: vagaAtualTitulo.slice(0, 120),
-      nome: nome.slice(0, 80),
-      telefone: telefone.slice(0, 20),
-      email: email.slice(0, 120),
-      mensagem: mensagem.slice(0, 1000),
-      em: firebase.firestore.FieldValue.serverTimestamp(),
-      status: "nova",
-    }).then(function () {
-      candBody.innerHTML = '<p class="cand__msg">Candidatura enviada. A equipe de Gestão de Pessoas vai analisar e entra em contato.</p>';
-    }).catch(function (e) {
-      btn.disabled = false;
-      btn.textContent = "Enviar candidatura";
-      var erroGeral = document.getElementById("erroGeral");
-      erroGeral.textContent = e && e.code === "permission-denied"
-        ? "Já recebemos uma candidatura sua pra esta vaga."
-        : "Não conseguimos enviar agora. Tente de novo em instantes.";
+  function resetFlow() {
+    step = 1; cvFile = null; cvEstado = ""; discIdx = 0; pos = 0;
+    discResp = []; ordemGrupos = null; discResult = null; lgpdOn = false;
+    ["ci-nome", "ci-zap", "ci-mail", "ci-nasc"].forEach(function (id) {
+      var el = $c(id); if (el) { el.value = ""; el.closest(".field").classList.remove("err"); }
     });
+    $c("candSite").value = "";
+    limparCv();
+    $c("cLgpd").classList.remove("on");
+    $c("erroGeral").textContent = "";
+    $c("cer").classList.remove("on");
+    if ($c("cArc")) $c("cArc").style.animation = "none";
+    if ($c("cTick")) $c("cTick").style.animation = "none";
+    if ($c("cPulse")) $c("cPulse").style.animation = "none";
+    $c("discDone").classList.remove("on");
+    $c("discRun").style.display = "";
+    for (var k in views) views[k].hidden = (k !== "1");
+    pintarStepper(); ajustarFoot();
+  }
+
+  // ===== stepper =====
+  function pintarStepper() {
+    $c("stepCount").textContent = "Etapa " + step + " de 4";
+    $c("stepName").textContent = STEP_NOMES[step - 1];
+    var segs = $c("stepBar").children;
+    for (var i = 0; i < segs.length; i++) {
+      segs[i].classList.toggle("done", (i + 1) < step);
+      segs[i].classList.toggle("now", (i + 1) === step);
+    }
+    $c("candBack").hidden = (step === 1);
+  }
+
+  // ===== troca de etapa =====
+  function irStep(n, dir) {
+    if (n < 1 || n > 4) return;
+    var de = views[step], para = views[n];
+    step = n;
+    pintarStepper(); ajustarFoot();
+    if (de !== para) {
+      de.hidden = true; para.hidden = false;
+      if (!reduzMov) {
+        var dx = (dir === "tras" ? -24 : 24);
+        para.animate([{ opacity: 0, transform: "translateX(" + dx + "px)" }, { opacity: 1, transform: "none" }], { duration: 280, easing: "cubic-bezier(.32,.72,.28,1)" });
+      }
+      $c("candBody").scrollTop = 0;
+    }
+    if (n === 3 && !discResp.length) iniciarDisc();
+    if (n === 4) preencherRevisao();
+  }
+
+  // ===== footer contextual =====
+  function ajustarFoot() {
+    var foot = $c("candFoot"), btn = $c("candPrim");
+    if (step === 3) {
+      foot.hidden = !discConcluido();
+      if (!foot.hidden) { btn.textContent = "Ir para a última etapa"; btn.disabled = false; }
+      return;
+    }
+    foot.hidden = false;
+    if (step === 4) { btn.textContent = "Enviar candidatura"; btn.disabled = !lgpdOn; }
+    else { btn.textContent = "Continuar"; btn.disabled = false; }
+  }
+
+  // ===== ETAPA 1: validação inline (cidade REMOVIDA: não persiste no backend) =====
+  function validaStep1() {
+    var ok = true;
+    function checa(campo, cond) { $c(campo).classList.toggle("err", !cond); if (!cond) ok = false; }
+    var zap = $c("ci-zap").value.replace(/\D/g, "");
+    var mail = $c("ci-mail").value.trim();
+    var nasc = $c("ci-nasc").value;
+    checa("cf-nome", $c("ci-nome").value.trim().length >= 3);
+    checa("cf-zap", zap.length >= 10);
+    checa("cf-mail", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail));
+    checa("cf-nasc", /^\d{4}-\d{2}-\d{2}$/.test(nasc));
+    return ok;
+  }
+  ["ci-nome", "ci-zap", "ci-mail", "ci-nasc"].forEach(function (id) {
+    $c(id).addEventListener("input", function () { this.closest(".field").classList.remove("err"); });
   });
+
+  // ===== ETAPA 2: currículo (arquivo real) =====
+  function fmtTam(b) {
+    if (b < 1024) return b + " B";
+    if (b < 1024 * 1024) return Math.round(b / 1024) + " KB";
+    return (b / 1024 / 1024).toFixed(1).replace(".", ",") + " MB";
+  }
+  function mostrarChip(file) {
+    cvFile = file; cvEstado = "anexado";
+    $c("cvDrop").style.display = "none";
+    $c("cvSkip").style.display = "none";
+    $c("cvChip").classList.add("on");
+    $c("cvNome").textContent = file.name;
+    $c("cvTam").textContent = fmtTam(file.size);
+    $c("cvOk").classList.add("on");
+    vibrar(8);
+  }
+  function limparCv() {
+    cvFile = null; cvEstado = "";
+    var el;
+    if ((el = $c("cvChip"))) el.classList.remove("on");
+    if ((el = $c("cvOk"))) el.classList.remove("on");
+    if ((el = $c("cvDrop"))) el.style.display = "";
+    if ((el = $c("cvSkip"))) el.style.display = "";
+    if ((el = $c("cvInput"))) el.value = "";
+    if ((el = $c("cvErro"))) el.textContent = "";
+  }
+  $c("cvDrop").addEventListener("click", function () { $c("cvInput").click(); });
+  $c("cvInput").addEventListener("change", function () {
+    var f = this.files && this.files[0]; if (!f) return;
+    var erEl = $c("cvErro");
+    var ehPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+    if (!ehPdf) { erEl.textContent = "Envie um arquivo PDF."; this.value = ""; return; }
+    if (f.size >= 3 * 1024 * 1024) { erEl.textContent = "O arquivo passa de 3 MB. Envie um PDF menor."; this.value = ""; return; }
+    erEl.textContent = "";
+    mostrarChip(f);
+  });
+  $c("cvX").addEventListener("click", limparCv);
+  $c("btnPular").addEventListener("click", function () { cvEstado = "pulado"; irStep(3, "frente"); });
+
+  // ===== ETAPA 3: teste de perfil (mais/menos) =====
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function stageAt(p) { return (p % 2 === 0) ? "most" : "least"; }
+  function blockAt(p) { return Math.floor(p / 2); }
+  function discConcluido() {
+    if (discResp.length < N) return false;
+    for (var i = 0; i < N; i++) { if (!discResp[i] || !discResp[i].most || !discResp[i].least) return false; }
+    return true;
+  }
+  function iniciarDisc() {
+    pos = 0; discResp = []; discResult = null;
+    ordemGrupos = GRUPOS.map(function (g) { return shuffle(g.slice()); });
+    $c("discDone").classList.remove("on"); $c("discRun").style.display = "";
+    renderMicro(0, "frente");
+  }
+  function renderMicro(p, dir) {
+    pos = p;
+    var b = blockAt(p), st = stageAt(p);
+    discIdx = b;
+    var resp = discResp[b] || {};
+    $c("discCount").textContent = "Pergunta " + (b + 1) + " de " + N;
+    $c("discFill").style.width = (p / (2 * N) * 100) + "%";
+    $c("discBack").hidden = (p === 0);
+    $c("discPrompt").innerHTML = (st === "most")
+      ? 'Toque na frase que <b>mais</b> combina com você'
+      : 'Agora, a que <b>menos</b> combina com você';
+    var card = $c("discCard");
+    card.innerHTML = ordemGrupos[b].map(function (o) {
+      var trava = (st === "least" && resp.most === o.d);
+      var cls = "disc-opt" + (trava ? " most locked" : "");
+      var badge = trava ? '<span class="obadge b-most">Mais</span>' : "";
+      return '<button type="button" class="' + cls + '" data-dim="' + o.d + '"' + (trava ? " disabled" : "") + '><span class="ot">' + o.t + "</span>" + badge + "</button>";
+    }).join("");
+    if (!reduzMov) {
+      var dx = (dir === "tras" ? -22 : 22);
+      card.animate([{ opacity: 0, transform: "translateX(" + dx + "px)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: "cubic-bezier(.32,.72,.28,1)" });
+    }
+  }
+  function marcarSel(btn, tipo) {
+    btn.classList.add(tipo);
+    var bd = document.createElement("span");
+    bd.className = "obadge b-" + tipo;
+    bd.textContent = (tipo === "most") ? "Mais" : "Menos";
+    btn.appendChild(bd);
+  }
+  $c("discCard").addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".disc-opt");
+    if (!btn || btn.disabled) return;
+    var dim = btn.getAttribute("data-dim");
+    var b = discIdx, st = stageAt(pos);
+    if (st === "most") { discResp[b] = { most: dim, least: undefined }; marcarSel(btn, "most"); }
+    else { if (discResp[b] && discResp[b].most === dim) return; discResp[b].least = dim; marcarSel(btn, "least"); }
+    vibrar(10);
+    $c("discFill").style.width = ((pos + 1) / (2 * N) * 100) + "%";
+    setTimeout(function () {
+      if (pos + 1 >= 2 * N) concluirDisc();
+      else renderMicro(pos + 1, "frente");
+    }, st === "most" ? 250 : 320);
+  });
+  $c("discBack").addEventListener("click", function () {
+    if (pos === 0) { irStep(2, "tras"); return; }
+    var np = pos - 1, b = blockAt(np), st = stageAt(np);
+    if (st === "least") { if (discResp[b]) discResp[b].least = undefined; }
+    else { discResp[b] = undefined; }
+    renderMicro(np, "tras");
+  });
+  // scoring: raw = (# MAIS) - (# MENOS) por dimensão; primário = maior raw com liderança >= 2
+  function calcularPerfil() {
+    var raw = { D: 0, I: 0, S: 0, C: 0 };
+    discResp.forEach(function (r) { if (!r) return; if (r.most) raw[r.most]++; if (r.least) raw[r.least]--; });
+    var ordem = Object.keys(raw).sort(function (a, b) { return raw[b] - raw[a]; });
+    var clara = (raw[ordem[0]] - raw[ordem[1]]) >= 2;
+    return { raw: raw, ordem: ordem, equilibrado: !clara, primario: clara ? ordem[0] : null };
+  }
+  function concluirDisc() {
+    $c("discFill").style.width = "100%";
+    discResult = calcularPerfil();
+    $c("discRun").style.display = "none";
+    $c("discDone").classList.add("on");
+    vibrar([10, 40, 14]);
+    ajustarFoot();
+  }
+
+  // ===== ETAPA 4: revisão + LGPD =====
+  function formatarData(iso) {
+    var p = String(iso || "").split("-");
+    return p.length === 3 ? (p[2] + "/" + p[1] + "/" + p[0]) : iso;
+  }
+  function preencherRevisao() {
+    $c("rvNome").textContent = $c("ci-nome").value.trim() || "—";
+    $c("rvContato").textContent = $c("ci-zap").value.trim() + "  ·  " + $c("ci-mail").value.trim();
+    var nasc = $c("ci-nasc").value;
+    $c("rvNasc").textContent = nasc ? formatarData(nasc) : "—";
+    var cv = $c("rvCv");
+    if (cvEstado === "anexado" && cvFile) { cv.textContent = cvFile.name + " (" + fmtTam(cvFile.size) + ")"; cv.classList.remove("dim"); }
+    else { cv.textContent = "Não enviado (opcional)"; cv.classList.add("dim"); }
+  }
+  $c("cLgpd").addEventListener("click", function () { lgpdOn = !lgpdOn; this.classList.toggle("on", lgpdOn); ajustarFoot(); });
+
+  // ===== botões principais =====
+  $c("candBack").addEventListener("click", function () { if (step > 1) irStep(step - 1, "tras"); });
+  $c("candPrim").addEventListener("click", function () {
+    if (step === 1) { if (validaStep1()) irStep(2, "frente"); return; }
+    if (step === 2) { if (!cvEstado) cvEstado = "pulado"; irStep(3, "frente"); return; }
+    if (step === 3) { irStep(4, "frente"); return; }
+    if (step === 4) {
+      if ($c("candSite").value) { sucesso(); return; } // honeypot: finge sucesso, não envia
+      enviar();
+    }
+  });
+
+  // ===== envio: upload do currículo (se houver) -> set da candidatura -> cerimônia =====
+  function uuid() {
+    return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+      : (Date.now().toString(16) + "-" + Math.random().toString(16).slice(2));
+  }
+  // nome do arquivo = {vagaId}__{email}__{uuid}.pdf, saneado pro charset do Storage
+  // ([A-Za-z0-9@._-]+): emails têm '+' que NÃO está no charset, então tudo que não casa
+  // vira '-'. O email REAL vai no doc; o nome do arquivo é só identificação.
+  function nomeArquivoCurriculo(vagaId, email) {
+    var base = vagaId + "__" + String(email).toLowerCase() + "__" + uuid();
+    return base.replace(/[^A-Za-z0-9@._-]/g, "-") + ".pdf";
+  }
+  function doUpload(file, path) {
+    if (window.__testMode && typeof window.__testMode.upload === "function") {
+      try { return Promise.resolve(window.__testMode.upload(file, path)); } catch (e) { return Promise.reject(e); }
+    }
+    return firebase.storage().ref().child(path).put(file, { contentType: "application/pdf" });
+  }
+  function doSet(docId, payload) {
+    if (window.__testMode && typeof window.__testMode.set === "function") {
+      try { return Promise.resolve(window.__testMode.set(docId, payload)); } catch (e) { return Promise.reject(e); }
+    }
+    if (!db) return Promise.reject(new Error("sem-db"));
+    return db.collection("candidaturas").doc(docId).set(payload);
+  }
+  function montarPayload() {
+    var raw = discResult ? discResult.raw : { D: 0, I: 0, S: 0, C: 0 };
+    return {
+      vagaId: vagaAtualId,
+      vagaTitulo: vagaAtualTitulo,
+      nome: $c("ci-nome").value.trim().slice(0, 80),
+      telefone: $c("ci-zap").value.trim().slice(0, 20),
+      email: $c("ci-mail").value.trim().slice(0, 120),
+      mensagem: "",
+      nascimento: $c("ci-nasc").value,
+      disc: { d: raw.D, i: raw.I, s: raw.S, c: raw.C },
+      discPrimario: discResult ? (discResult.equilibrado ? "equilibrado" : discResult.primario) : "equilibrado",
+      em: (window.firebase && firebase.firestore) ? firebase.firestore.FieldValue.serverTimestamp() : null,
+      status: "nova"
+    };
+  }
+  function falha(e) {
+    var btn = $c("candPrim");
+    btn.disabled = false; btn.textContent = "Enviar candidatura";
+    $c("erroGeral").textContent = (e && e.code === "permission-denied")
+      ? "Já recebemos uma candidatura sua pra esta vaga."
+      : "Não conseguimos enviar agora. Tente de novo em instantes.";
+  }
+  function enviar() {
+    var btn = $c("candPrim");
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Enviando...';
+    $c("erroGeral").textContent = "";
+    var email = $c("ci-mail").value.trim();
+    var docId = vagaAtualId + "__" + email.toLowerCase();
+    var payload = montarPayload();
+
+    var pre = Promise.resolve();
+    if (cvFile) {
+      var path = "curriculos/" + nomeArquivoCurriculo(vagaAtualId, email);
+      // Se o upload falhar, a candidatura segue SEM currículo (não bloqueia o candidato).
+      pre = doUpload(cvFile, path).then(function () { payload.curriculoPath = path; }).catch(function () {});
+    }
+    pre.then(function () { return doSet(docId, payload); })
+      .then(function () { sucesso(); })
+      .catch(falha);
+  }
+  function sucesso() {
+    var cer = $c("cer"); cer.classList.add("on");
+    var arc = $c("cArc"), tick = $c("cTick"), pulse = $c("cPulse");
+    if (!reduzMov) {
+      if (arc) arc.style.animation = "candarco .55s cubic-bezier(.4,0,.2,1) forwards";
+      setTimeout(function () {
+        if (tick) tick.style.animation = "candtick .3s cubic-bezier(.2,.8,.2,1) forwards";
+        if (pulse) pulse.style.animation = "candpuls .7s ease-out forwards";
+        vibrar([12, 60, 18]);
+      }, 480);
+    } else {
+      if (arc) arc.style.strokeDashoffset = "0";
+      if (tick) tick.style.strokeDashoffset = "0";
+    }
+  }
+
+  pintarStepper();
 
   // ===== Headline: verbo alternando (tecer / tingir) =====
   var reduzMovimento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

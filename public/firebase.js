@@ -2973,6 +2973,7 @@
       try {
         await auth.signInWithEmailAndPassword(emailOrId, senha);
         try { localStorage.setItem("fiopulse:ultimoUser", emailOrId); } catch {}
+        window.credencialGuardar?.(emailOrId, senha, "FioPulse · Gestor");
         // onAuthStateChanged toma o controle daqui (vai carregar dados +
         // renderizar). Botão fica em "Entrando..." até a transição.
         return true;
@@ -2983,16 +2984,50 @@
       }
     };
 
+    // ===== Credenciais no COFRE DO SISTEMA (Credential Management API) =====
+    // O app NUNCA guarda senha por conta própria (decisão William 2026-07-15,
+    // "bem resolvido, profissional"): store() entrega ao gerenciador do
+    // Chrome/Android; get() faz a entrada em 1 toque (silenciosa quando o
+    // usuário já permitiu). iPhone/Safari não tem a API e usa o autofill nativo
+    // do teclado (Face ID), que os atributos autocomplete dos forms habilitam.
+    const _temCredApi = () => typeof window.PasswordCredential === "function" && !!navigator.credentials;
+    window.credencialGuardar = async function (id, senha, rotulo) {
+      if (!_temCredApi() || !id || !senha) return;
+      try {
+        await navigator.credentials.store(new PasswordCredential({ id: String(id), password: String(senha), name: rotulo || "FioPulse" }));
+      } catch (e) { /* usuário recusou ou navegador negou: silencioso por design */ }
+    };
+    window.credencialObter = async function () {
+      if (!_temCredApi()) return null;
+      try {
+        const c = await navigator.credentials.get({ password: true, mediation: "optional" });
+        return (c && c.type === "password" && c.password) ? { id: c.id, senha: c.password } : null;
+      } catch (e) { return null; }
+    };
+    // Entrada em 1 toque: pega a credencial do cofre e loga no portal certo
+    // (11 dígitos = CPF de colaborador; com @ = email de gestor). Retorna true
+    // se logou; false deixa o chamador cair no formulário normal.
+    window.entrarComCredencialSalva = async function () {
+      const cred = await window.credencialObter();
+      if (!cred) return false;
+      const soDigitos = String(cred.id).replace(/\D/g, "");
+      if (soDigitos.length === 11 && !String(cred.id).includes("@")) {
+        return window.loginColaborador(soDigitos, cred.senha);
+      }
+      return window.login ? window.login(cred.id, cred.senha) : false;
+    };
+
     window.logout = async function () {
       try { await window.logEvento?.({ tipo: "acessos", acao: "Saiu", alvo: (currentUser()?.nome || "") }); } catch (e) {}
+      // Pós-logout o cofre não entra mais em silêncio (padrão da API: o próximo
+      // acesso pede o toque no seletor de credencial).
+      try { await navigator.credentials?.preventSilentAccess?.(); } catch (e) {}
       await auth.signOut();
     };
 
     // Login do COLABORADOR por CPF: monta o e-mail sintético e entra. Erros vão pro
-    // campo da tela #login-colab (não o #login-error do gestor). "Login automático" (checkbox
-    // #colab-remember): marcado → LOCAL (login automático, sobrevive a fechar o app); desmarcado
-    // → NONE (sessão só na memória, mais seguro em aparelho compartilhado/quiosque). Mesma chave
-    // localStorage do gestor, pra o boot restaurar a sessão automaticamente quando LOCAL.
+    // campo da tela #login-colab (não o #login-error do gestor). Persistência é
+    // SEMPRE LOCAL (William 2026-07-15, login automático; o antigo checkbox saiu).
     window.loginColaborador = async function (cpf, senha) {
       const err = $("#colab-login-error");
       if (err) err.classList.add("hidden");
@@ -3009,14 +3044,18 @@
         setErr("Digite sua senha."); return false;
       }
       const email = dig + "@colaborador.fiobras.local";
-      const auto = !!$("#colab-remember")?.checked;
-      try { localStorage.setItem("fiopulse:manterConectado", auto ? "1" : "0"); } catch {}
+      // Colaborador fica logado SEMPRE (William 2026-07-15, "automático, urgente"):
+      // o antigo checkbox opt-in fazia quase todo mundo cair em NONE e relogar a
+      // cada abertura. Aparelho pessoal, o colab só vê os próprios dados e o Sair
+      // segue na Conta. O GESTOR mantém o opt-in (dados de todos os funcionários).
+      try { localStorage.setItem("fiopulse:manterConectado", "1"); } catch {}
       try {
-        await auth.setPersistence(auto ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.NONE);
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       } catch (e) {}
       try {
         await auth.signInWithEmailAndPassword(email, senha);
         try { localStorage.setItem("fiopulse:ultimoCpf", String(cpf || "")); } catch {}
+        window.credencialGuardar?.(dig, senha, "FioPulse · Colaborador");
         return true; // onAuthStateChanged assume daqui (carrega + renderiza)
       } catch (e) {
         // A tela do colaborador só tem CPF + senha; erro de credencial não pode
