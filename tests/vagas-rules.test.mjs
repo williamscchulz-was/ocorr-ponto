@@ -44,6 +44,12 @@ before(async () => {
       vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Pessoa Seed", telefone: "47911112222",
       email: "gp@mail.com", mensagem: "", em: new Date(), status: "nova",
     });
+    // Doc v3 LEGADO (shape antigo, sem os campos novos): prova que docs criados antes
+    // da ficha completa seguem legiveis/deletaveis pela GP mesmo com o create novo mais rigido.
+    await setDoc(doc(db, "candidaturas/vCand__legado@mail.com"), {
+      vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Candidato Legado", telefone: "47900001111",
+      email: "legado@mail.com", mensagem: "form antigo", em: new Date(), status: "nova",
+    });
   });
 });
 after(async () => { await env.cleanup(); });
@@ -106,9 +112,27 @@ test("RH exclui vaga ENCERRADA (novo, William 2026-07-14)", async () =>
   assertSucceeds(deleteDoc(doc(rh(), "vagas/vEncDel"))));
 
 // ---------- Candidaturas (PRIMEIRA escrita anonima do projeto: funil estreito) ----------
+// Ficha COMPLETA (v4, 2026-07-15): base = todos os campos obrigatorios, valida. Os
+// testes negativos sobrescrevem UM campo pra isolar a violacao. curriculoPath e disc
+// (teste de perfil) sao OPCIONAIS, so entram quando o teste os adiciona.
+const exp = (o = {}) => ({
+  empresa: "Tecelagem Malhas SC", admissao: "2019-03-04", demissao: "2023-08-18",
+  salario: 1850, motivoSaida: "Dispensa sem justa causa", ...o,
+});
 const cand = (o = {}) => ({
   vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Ana Souza", telefone: "47999998888",
-  email: "ana@mail.com", mensagem: "Tenho experiência com máquinas.", em: TS(), status: "nova", ...o,
+  email: "ana@mail.com", mensagem: "Tenho experiência com máquinas.", em: TS(), status: "nova",
+  nascimento: "1994-03-12", estadoCivil: "solteiro", escolaridade: "medio-completo",
+  filhos: 2, endereco: "Rua das Palmeiras, 240, Warnow, Indaial SC",
+  nacionalidade: "Brasileira", naturalidade: "Blumenau, SC",
+  experiencias: [], pretensaoSalarial: 2200, comoViria: "moto", indicacao: "",
+  ...o,
+});
+// Shape v3 ANTIGO (sem os campos novos obrigatorios): usado so pra provar que o create
+// novo passou a NEGAR o formulario velho.
+const candV3 = (o = {}) => ({
+  vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Ana Souza", telefone: "47999998888",
+  email: "ana@mail.com", mensagem: "", em: TS(), status: "nova", ...o,
 });
 const cid = (email, vagaId = "vCand") => `candidaturas/${vagaId}__${email.toLowerCase()}`;
 
@@ -162,8 +186,8 @@ test("RH le, lista e exclui candidatura (LGPD)", async () => {
 test("RH NAO atualiza candidatura (update fechado no v1)", async () =>
   assertFails(updateDoc(doc(rh(), "candidaturas/vCand__ana@mail.com"), { status: "vista" })));
 
-// ---------- Candidatura COMPLETA (v3, 2026-07-15: nascimento + teste DISC + curriculo) ----------
-test("candidatura COMPLETA com todos os campos novos passa", async () =>
+// ---------- FICHA COMPLETA v4 (2026-07-15: dados da GP + experiencias + adicionais) ----------
+test("candidatura COMPLETA (base + disc + curriculo) passa", async () =>
   assertSucceeds(setDoc(doc(anon(), cid("completa@mail.com")), cand({
     email: "completa@mail.com",
     nascimento: "1992-03-14",
@@ -171,8 +195,12 @@ test("candidatura COMPLETA com todos os campos novos passa", async () =>
     discPrimario: "D",
     curriculoPath: "curriculos/vCand__ana@mail.com__a1b2c3.pdf",
   }))));
-test("candidatura SEM os campos novos continua passando (retrocompat)", async () =>
-  assertSucceeds(setDoc(doc(anon(), cid("semextras@mail.com")), cand({ email: "semextras@mail.com" }))));
+test("RETROCOMPAT: shape v3 ANTIGO (sem os campos novos) NEGA no create novo", async () =>
+  assertFails(setDoc(doc(anon(), cid("v3antigo@mail.com")), candV3({ email: "v3antigo@mail.com" }))));
+test("RETROCOMPAT: doc v3 LEGADO (seed) segue legivel e deletavel pela GP", async () => {
+  await assertSucceeds(getDoc(doc(rh(), "candidaturas/vCand__legado@mail.com")));
+  await assertSucceeds(deleteDoc(doc(rh(), "candidaturas/vCand__legado@mail.com")));
+});
 test("nascimento fora do formato ISO nega", async () =>
   assertFails(setDoc(doc(anon(), cid("nasc1@mail.com")), cand({ email: "nasc1@mail.com", nascimento: "14/03/1992" }))));
 test("disc com chave extra nega", async () =>
@@ -191,3 +219,146 @@ test("curriculoPath fora do padrao (path traversal) nega", async () =>
   assertFails(setDoc(doc(anon(), cid("curr1@mail.com")), cand({ email: "curr1@mail.com", curriculoPath: "hack/../x.pdf" }))));
 test("curriculoPath com extensao errada nega", async () =>
   assertFails(setDoc(doc(anon(), cid("curr2@mail.com")), cand({ email: "curr2@mail.com", curriculoPath: "curriculos/x.exe" }))));
+
+// ----- Ficha completa: happy paths (com/sem experiencias e curriculo) -----
+test("FELIZ: ficha completa SEM experiencias (primeiro emprego) e sem curriculo passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("feliz1@mail.com")), cand({ email: "feliz1@mail.com", experiencias: [] }))));
+test("FELIZ: ficha com 3 experiencias passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("feliz3@mail.com")), cand({
+    email: "feliz3@mail.com",
+    experiencias: [exp(), exp({ empresa: "Supermercado Bom Preço", motivoSaida: "Pedido de demissão" }), exp({ empresa: "Malharia Sul" })],
+  }))));
+test("FELIZ: ficha com 1 experiencia + curriculo passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("feliz1c@mail.com")), cand({
+    email: "feliz1c@mail.com",
+    experiencias: [exp()],
+    curriculoPath: "curriculos/vCand__feliz1c@mail.com__z9.pdf",
+  }))));
+
+// ----- Enums obrigatorios: valor invalido NEGA -----
+test("estadoCivil fora da lista nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ec1@mail.com")), cand({ email: "ec1@mail.com", estadoCivil: "amigado" }))));
+test("escolaridade fora da lista nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("esc1@mail.com")), cand({ email: "esc1@mail.com", escolaridade: "doutorado" }))));
+test("comoViria fora da lista nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("cv1@mail.com")), cand({ email: "cv1@mail.com", comoViria: "helicoptero" }))));
+
+// ----- filhos (int 0..20) -----
+test("filhos negativo nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("fi1@mail.com")), cand({ email: "fi1@mail.com", filhos: -1 }))));
+test("filhos acima de 20 nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("fi2@mail.com")), cand({ email: "fi2@mail.com", filhos: 21 }))));
+test("filhos nao-inteiro nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("fi3@mail.com")), cand({ email: "fi3@mail.com", filhos: 2.5 }))));
+test("filhos zero passa (nao tem filhos)", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("fi4@mail.com")), cand({ email: "fi4@mail.com", filhos: 0 }))));
+
+// ----- endereco / nacionalidade / naturalidade -----
+test("endereco vazio nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("en1@mail.com")), cand({ email: "en1@mail.com", endereco: "" }))));
+test("endereco acima de 200 nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("en2@mail.com")), cand({ email: "en2@mail.com", endereco: "x".repeat(201) }))));
+test("nacionalidade acima de 60 nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("na1@mail.com")), cand({ email: "na1@mail.com", nacionalidade: "x".repeat(61) }))));
+test("naturalidade vazia nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("na2@mail.com")), cand({ email: "na2@mail.com", naturalidade: "" }))));
+
+// ----- nascimento agora OBRIGATORIO -----
+test("nascimento AUSENTE nega (virou obrigatorio)", async () => {
+  const c = cand({ email: "nasc2@mail.com" });
+  delete c.nascimento;
+  await assertFails(setDoc(doc(anon(), cid("nasc2@mail.com")), c));
+});
+
+// ----- indicacao (string 0..80, obrigatoria mas pode ser vazia) -----
+test("indicacao vazia passa (nao conhece ninguem)", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("in1@mail.com")), cand({ email: "in1@mail.com", indicacao: "" }))));
+test("indicacao acima de 80 nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("in2@mail.com")), cand({ email: "in2@mail.com", indicacao: "x".repeat(81) }))));
+test("indicacao AUSENTE nega (chave obrigatoria)", async () => {
+  const c = cand({ email: "in3@mail.com" });
+  delete c.indicacao;
+  await assertFails(setDoc(doc(anon(), cid("in3@mail.com")), c));
+});
+
+// ----- pretensaoSalarial (number 0 < x <= 1000000) -----
+test("pretensaoSalarial zero nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ps1@mail.com")), cand({ email: "ps1@mail.com", pretensaoSalarial: 0 }))));
+test("pretensaoSalarial acima de 1M nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ps2@mail.com")), cand({ email: "ps2@mail.com", pretensaoSalarial: 1000001 }))));
+test("pretensaoSalarial nao-number nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ps3@mail.com")), cand({ email: "ps3@mail.com", pretensaoSalarial: "2200" }))));
+
+// ----- experiencias: cardinalidade e shape por item -----
+test("experiencias com 4 itens nega (max 3)", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex1@mail.com")), cand({ email: "ex1@mail.com", experiencias: [exp(), exp(), exp(), exp()] }))));
+test("experiencia com campo EXTRA nega (hasOnly do item)", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex2@mail.com")), cand({ email: "ex2@mail.com", experiencias: [exp({ cargo: "operador" })] }))));
+test("experiencia com salario fora do range nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex3@mail.com")), cand({ email: "ex3@mail.com", experiencias: [exp({ salario: 0 })] }))));
+test("experiencia com salario nao-number nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex4@mail.com")), cand({ email: "ex4@mail.com", experiencias: [exp({ salario: "1850" })] }))));
+test("experiencia com data invalida nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex5@mail.com")), cand({ email: "ex5@mail.com", experiencias: [exp({ admissao: "03/2019" })] }))));
+test("experiencia com empresa vazia nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex6@mail.com")), cand({ email: "ex6@mail.com", experiencias: [exp({ empresa: "" })] }))));
+test("experiencia com motivoSaida acima de 120 nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex7@mail.com")), cand({ email: "ex7@mail.com", experiencias: [exp({ motivoSaida: "x".repeat(121) })] }))));
+test("experiencia com chave FALTANDO nega (item incompleto)", async () => {
+  const e = exp();
+  delete e.demissao;
+  await assertFails(setDoc(doc(anon(), cid("ex8@mail.com")), cand({ email: "ex8@mail.com", experiencias: [e] })));
+});
+test("experiencias nao-lista nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex9@mail.com")), cand({ email: "ex9@mail.com", experiencias: "nenhuma" }))));
+test("segunda experiencia invalida nega (validacao por indice, nao so a primeira)", async () =>
+  assertFails(setDoc(doc(anon(), cid("ex10@mail.com")), cand({ email: "ex10@mail.com", experiencias: [exp(), exp({ salario: -5 })] }))));
+
+// ---------- Catalogo de beneficios em config/vagas ----------
+test("config com beneficiosCatalogo (lista de strings) passa", async () =>
+  assertSucceeds(setDoc(doc(rh(), "config/vagas"), {
+    whatsapp: "+5547988887777",
+    beneficiosCatalogo: ["Vale alimentação", "Vale transporte", "Plano de saúde"],
+  })));
+test("config com beneficiosCatalogo vazio passa", async () =>
+  assertSucceeds(setDoc(doc(rh(), "config/vagas"), { whatsapp: "+55479", beneficiosCatalogo: [] })));
+test("config beneficiosCatalogo com item acima de 40 nega", async () =>
+  assertFails(setDoc(doc(rh(), "config/vagas"), { whatsapp: "+55479", beneficiosCatalogo: ["x".repeat(41)] })));
+test("config beneficiosCatalogo com item vazio nega", async () =>
+  assertFails(setDoc(doc(rh(), "config/vagas"), { whatsapp: "+55479", beneficiosCatalogo: [""] })));
+test("config beneficiosCatalogo com item nao-string nega", async () =>
+  assertFails(setDoc(doc(rh(), "config/vagas"), { whatsapp: "+55479", beneficiosCatalogo: ["ok", 123] })));
+test("config beneficiosCatalogo nao-lista nega", async () =>
+  assertFails(setDoc(doc(rh(), "config/vagas"), { whatsapp: "+55479", beneficiosCatalogo: "Vale" })));
+test("config beneficiosCatalogo com 31 itens nega (max 30)", async () =>
+  assertFails(setDoc(doc(rh(), "config/vagas"), {
+    whatsapp: "+55479",
+    beneficiosCatalogo: Array.from({ length: 31 }, (_, i) => "Ben " + i),
+  })));
+test("config beneficiosCatalogo com 30 itens passa (limite)", async () =>
+  assertSucceeds(setDoc(doc(rh(), "config/vagas"), {
+    whatsapp: "+55479",
+    beneficiosCatalogo: Array.from({ length: 30 }, (_, i) => "Ben " + i),
+  })));
+test("config com campo estranho ALEM do catalogo nega (shape-lock)", async () =>
+  assertFails(setDoc(doc(rh(), "config/vagas"), { whatsapp: "+55479", beneficiosCatalogo: ["ok"], dump: "lixo" })));
+
+// ---------- beneficios por vaga (shape-only, <=15) ----------
+test("RH cria rascunho com beneficios (lista de strings) passa", async () =>
+  assertSucceeds(setDoc(doc(rh(), "vagas/vBen"), vaga({
+    criadoEm: TS(),
+    beneficios: ["Vale alimentação", "Plano de saúde", "Seguro de vida"],
+  }))));
+test("vaga com beneficios vazio passa", async () =>
+  assertSucceeds(setDoc(doc(rh(), "vagas/vBenVazio"), vaga({ criadoEm: TS(), beneficios: [] }))));
+test("vaga com 16 beneficios nega (max 15)", async () =>
+  assertFails(setDoc(doc(rh(), "vagas/vBen16"), vaga({
+    criadoEm: TS(),
+    beneficios: Array.from({ length: 16 }, (_, i) => "Ben " + i),
+  }))));
+test("vaga com beneficio acima de 40 nega", async () =>
+  assertFails(setDoc(doc(rh(), "vagas/vBenLong"), vaga({ criadoEm: TS(), beneficios: ["x".repeat(41)] }))));
+test("vaga com beneficio nao-string nega", async () =>
+  assertFails(setDoc(doc(rh(), "vagas/vBenNum"), vaga({ criadoEm: TS(), beneficios: [42] }))));
+test("vaga com beneficios nao-lista nega", async () =>
+  assertFails(setDoc(doc(rh(), "vagas/vBenStr"), vaga({ criadoEm: TS(), beneficios: "Vale" }))));

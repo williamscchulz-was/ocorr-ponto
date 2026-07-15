@@ -84,6 +84,51 @@ service cloud.firestore {
       );
     }
 
+    // Lista de benefícios (catálogo em config/vagas e os marcados por vaga). As rules
+    // não iteram, então enumeramos os índices com curto-circuito por size (ponytail: a
+    // linguagem não tem loop; o teto 30 casa o cap do catálogo e cobre o da vaga <=15).
+    // Cada item precisa ser string 1..40; o CHAMADOR garante `is list` e o cap de tamanho
+    // (30 catálogo, 15 vaga), então índices acima do size caem no curto-circuito. Guarda
+    // de fronteira: config/vagas é PÚBLICO, um item gigante não pode ir pra internet.
+    // Custo: `let n` calcula o size 1x e benefItem indexa cada elemento 1x, pra não
+    // estourar o teto de 1000 expressões do Firestore com o catálogo cheio (30 itens).
+    function benefItem(s) {
+      return s is string && s.size() >= 1 && s.size() <= 40;
+    }
+    function benefStrings(l) {
+      let n = l.size();
+      return (n < 1  || benefItem(l[0]))
+        && (n < 2  || benefItem(l[1]))
+        && (n < 3  || benefItem(l[2]))
+        && (n < 4  || benefItem(l[3]))
+        && (n < 5  || benefItem(l[4]))
+        && (n < 6  || benefItem(l[5]))
+        && (n < 7  || benefItem(l[6]))
+        && (n < 8  || benefItem(l[7]))
+        && (n < 9  || benefItem(l[8]))
+        && (n < 10 || benefItem(l[9]))
+        && (n < 11 || benefItem(l[10]))
+        && (n < 12 || benefItem(l[11]))
+        && (n < 13 || benefItem(l[12]))
+        && (n < 14 || benefItem(l[13]))
+        && (n < 15 || benefItem(l[14]))
+        && (n < 16 || benefItem(l[15]))
+        && (n < 17 || benefItem(l[16]))
+        && (n < 18 || benefItem(l[17]))
+        && (n < 19 || benefItem(l[18]))
+        && (n < 20 || benefItem(l[19]))
+        && (n < 21 || benefItem(l[20]))
+        && (n < 22 || benefItem(l[21]))
+        && (n < 23 || benefItem(l[22]))
+        && (n < 24 || benefItem(l[23]))
+        && (n < 25 || benefItem(l[24]))
+        && (n < 26 || benefItem(l[25]))
+        && (n < 27 || benefItem(l[26]))
+        && (n < 28 || benefItem(l[27]))
+        && (n < 29 || benefItem(l[28]))
+        && (n < 30 || benefItem(l[29]));
+    }
+
     // ----- Pacote Gestor: segmentação (comunicados + documentos institucionais) -----
     // Colaborador casa com o segmento? 'todos' sempre; 'turno' por users.turno (canônico:
     // number 1|2|3 OU string 'geral'); 'setor' por users.setor denormalizado.
@@ -1361,14 +1406,17 @@ service cloud.firestore {
       function gpVagas() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
       function v() { return request.resource.data; }
       function vagaShapeOk() {
-        return v().keys().hasOnly(['titulo', 'setor', 'turno', 'cidade', 'tipo', 'descricao', 'requisitos', 'status', 'criadoPor', 'criadoEm', 'publicadaEm', 'encerradaEm'])
+        return v().keys().hasOnly(['titulo', 'setor', 'turno', 'cidade', 'tipo', 'descricao', 'requisitos', 'status', 'criadoPor', 'criadoEm', 'publicadaEm', 'encerradaEm', 'beneficios'])
           && v().titulo is string && v().titulo.size() >= 1 && v().titulo.size() <= 120
           && v().descricao is string && v().descricao.size() <= 3000
           && (!('requisitos' in v()) || (v().requisitos is string && v().requisitos.size() <= 3000))
           && (!('setor' in v()) || (v().setor is string && v().setor.size() <= 60))
           && (!('turno' in v()) || (v().turno is string && v().turno.size() <= 40))
           && (!('cidade' in v()) || (v().cidade is string && v().cidade.size() <= 60))
-          && (!('tipo' in v()) || (v().tipo is string && v().tipo.size() <= 30));
+          && (!('tipo' in v()) || (v().tipo is string && v().tipo.size() <= 30))
+          // Beneficios marcados pra esta vaga: OPCIONAL, lista <=15 de strings 1..40.
+          // Shape-only (sem cross-check com o catalogo, o front restringe).
+          && (!('beneficios' in v()) || (v().beneficios is list && v().beneficios.size() <= 15 && benefStrings(v().beneficios)));
       }
       allow read: if resource.data.status == 'publicada' || gpVagas();
       allow create: if gpVagas()
@@ -1468,14 +1516,44 @@ service cloud.firestore {
     match /candidaturas/{cid} {
       function gpCand() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
       function c() { return request.resource.data; }
+      // Uma experiencia profissional (0..3 por ficha). hasOnly fecha o shape (sem
+      // campo extra); os is/size garantem que as 5 chaves existem e sao sanas.
+      function expOk(e) {
+        return e is map
+          && e.keys().hasOnly(['empresa', 'admissao', 'demissao', 'salario', 'motivoSaida'])
+          && e.empresa is string && e.empresa.size() >= 1 && e.empresa.size() <= 80
+          && e.admissao is string && e.admissao.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          && e.demissao is string && e.demissao.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          && e.salario is number && e.salario > 0 && e.salario <= 1000000
+          && e.motivoSaida is string && e.motivoSaida.size() >= 1 && e.motivoSaida.size() <= 120;
+      }
       allow read: if gpCand();
-      // Candidatura COMPLETA (v3, mock aprovado 2026-07-15): nascimento, teste de
-      // perfil (mais/menos, raw -8..8 por dimensao) e o path do curriculo no
-      // Storage sao OPCIONAIS e aditivos; o form velho continua valido.
-      // O resultado do teste e AUTO-DECLARADO pelo cliente (indicativo por design,
-      // "nunca sozinho pra decidir"); os caps so garantem shape sano.
-      allow create: if c().keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status', 'nascimento', 'disc', 'discPrimario', 'curriculoPath'])
-        && (!('nascimento' in c().keys()) || (c().nascimento is string && c().nascimento.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')))
+      // FICHA COMPLETA (v4, lista da GP, mock aprovado 2026-07-15). O create NOVO exige
+      // os dados que a GP pediu (estadoCivil, escolaridade, filhos, endereco,
+      // nacionalidade, naturalidade, experiencias, pretensaoSalarial, comoViria,
+      // indicacao) e nascimento passa a ser OBRIGATORIO. curriculoPath e o teste de
+      // perfil (disc/discPrimario) seguem OPCIONAIS e aditivos. Docs v3 antigos
+      // (sem os novos campos) NAO passam mais no create novo, mas seguem legiveis e
+      // deletaveis pela GP (read/delete nao checam shape). O resultado do teste e
+      // AUTO-DECLARADO pelo cliente (indicativo por design); os caps so garantem shape sano.
+      allow create: if c().keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status', 'nascimento', 'estadoCivil', 'escolaridade', 'filhos', 'endereco', 'nacionalidade', 'naturalidade', 'experiencias', 'pretensaoSalarial', 'comoViria', 'indicacao', 'disc', 'discPrimario', 'curriculoPath'])
+        // --- NOVOS obrigatorios (ficha da GP) ---
+        && c().estadoCivil in ['solteiro', 'casado', 'uniao-estavel', 'divorciado', 'viuvo']
+        && c().escolaridade in ['fundamental', 'medio-incompleto', 'medio-completo', 'tecnico', 'superior-incompleto', 'superior-completo', 'pos']
+        && c().filhos is int && c().filhos >= 0 && c().filhos <= 20
+        && c().endereco is string && c().endereco.size() >= 1 && c().endereco.size() <= 200
+        && c().nacionalidade is string && c().nacionalidade.size() >= 1 && c().nacionalidade.size() <= 60
+        && c().naturalidade is string && c().naturalidade.size() >= 1 && c().naturalidade.size() <= 60
+        && c().nascimento is string && c().nascimento.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        // experiencias 0..3 (0 = primeiro emprego); validacao por indice com curto-circuito.
+        && c().experiencias is list && c().experiencias.size() <= 3
+        && (c().experiencias.size() < 1 || expOk(c().experiencias[0]))
+        && (c().experiencias.size() < 2 || expOk(c().experiencias[1]))
+        && (c().experiencias.size() < 3 || expOk(c().experiencias[2]))
+        && c().pretensaoSalarial is number && c().pretensaoSalarial > 0 && c().pretensaoSalarial <= 1000000
+        && c().comoViria in ['a-pe', 'bicicleta', 'moto', 'carro', 'carona', 'onibus']
+        && c().indicacao is string && c().indicacao.size() <= 80
+        // --- OPCIONAIS aditivos (retrocompat de validacao) ---
         && (!('disc' in c().keys()) || (c().disc is map
               && c().disc.keys().hasOnly(['d', 'i', 's', 'c'])
               && c().disc.d is int && c().disc.d >= -8 && c().disc.d <= 8
@@ -1484,6 +1562,7 @@ service cloud.firestore {
               && c().disc.c is int && c().disc.c >= -8 && c().disc.c <= 8))
         && (!('discPrimario' in c().keys()) || c().discPrimario in ['D', 'I', 'S', 'C', 'equilibrado'])
         && (!('curriculoPath' in c().keys()) || (c().curriculoPath is string && c().curriculoPath.size() <= 220 && c().curriculoPath.matches('curriculos/[A-Za-z0-9@._-]+\\.pdf')))
+        // --- Existentes (intocados) ---
         && c().vagaId is string && c().vagaId.size() >= 1 && c().vagaId.size() <= 60
         && get(/databases/$(database)/documents/vagas/$(c().vagaId)).data.status == 'publicada'
         // Igualdade com a vaga real (gate): mata titulo enganoso; mesmo doc do get
@@ -1510,9 +1589,15 @@ service cloud.firestore {
     match /config/vagas {
       allow read: if true;
       allow write: if (isAdmin() || temCap('vagas.gerenciar', isRH()))
-        && request.resource.data.keys().hasOnly(['whatsapp'])
+        && request.resource.data.keys().hasOnly(['whatsapp', 'beneficiosCatalogo'])
         && request.resource.data.whatsapp is string
-        && request.resource.data.whatsapp.size() <= 30;
+        && request.resource.data.whatsapp.size() <= 30
+        // Catalogo de beneficios (a GP mantem 1x, marca por vaga): OPCIONAL e aditivo
+        // (o doc so-whatsapp de hoje continua valido). Lista <=30 de strings 1..40.
+        && (!('beneficiosCatalogo' in request.resource.data.keys())
+            || (request.resource.data.beneficiosCatalogo is list
+                && request.resource.data.beneficiosCatalogo.size() <= 30
+                && benefStrings(request.resource.data.beneficiosCatalogo)));
     }
   }
 }
