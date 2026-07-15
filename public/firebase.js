@@ -2050,18 +2050,62 @@
       const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
       return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
     };
+    // CODIGO DE ACOMPANHAMENTO (2026-07-16): bearer token ALEATORIO FORTE gerado no
+    // cliente, NUNCA derivado de identidade (uid/CPF/nome) nem de hora — cada envio
+    // sorteia um codigo novo, entao nao identifica o autor nem correlaciona denuncias
+    // do mesmo autor. Alfabeto sem ambiguos (0/O/1/I/L fora): 31 simbolos, 8 sorteados
+    // = ~40 bits. getRandomValues com rejeicao dos bytes que enviesariam o modulo.
+    const _COD_ALFA = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // 31 chars, sem 0 O 1 I L
+    const _gerarCodigoAcomp = () => {
+      const n = _COD_ALFA.length, lim = 256 - (256 % n); // 248: descarta o resto enviesado
+      const out = [];
+      while (out.length < 8) {
+        const buf = new Uint8Array(16);
+        crypto.getRandomValues(buf);
+        for (let i = 0; i < buf.length && out.length < 8; i++) {
+          if (buf[i] < lim) out.push(_COD_ALFA[buf[i] % n]);
+        }
+      }
+      return `FBR-${out.slice(0, 4).join("")}-${out.slice(4, 8).join("")}`;
+    };
     window.enviarDenuncia = async function ({ categoria, texto, contato }) {
       const txt = String(texto).trim();
       const hash = await _denunciaHashHex(txt);
-      const payload = { categoria, texto: txt, hash, em: _FV.serverTimestamp(), status: "nova" };
+      const codigo = _gerarCodigoAcomp();
+      const payload = { categoria, texto: txt, hash, em: _FV.serverTimestamp(), status: "nova", codigoAcompanhamento: codigo };
       const cont = String(contato || "").trim();
       if (cont) payload.contato = cont.slice(0, 200);
       try {
-        await db.collection("denuncias").add(payload);
-        return { hash };
+        // Batch ATOMICO: a denuncia (id aleatorio, nunca derivado) e o espelho
+        // content-free /denunciaStatus/{codigo} sobem juntos ou nenhum sobe. O espelho
+        // carrega SO status + em (server): quem tem o codigo consulta o andamento sem
+        // ver relato/PII. ZERO log do conteudo em qualquer caminho (sucesso ou erro).
+        const batch = db.batch();
+        batch.set(db.collection("denuncias").doc(), payload); // doc() sem id = aleatorio (= add)
+        batch.set(db.collection("denunciaStatus").doc(codigo), { status: "nova", em: _FV.serverTimestamp() });
+        await batch.commit();
+        return { hash, codigo };
       } catch (e) {
         // Relança pro chamador (a UI trata); NUNCA logar o conteúdo aqui.
         throw e;
+      }
+    };
+    // CONSULTA do andamento pelo denunciante (colaborador): get por id no espelho
+    // content-free. ZERO log, ZERO auditoria, ZERO storage — o sigilo da consulta faz
+    // parte do desenho. Normaliza (trim/uppercase) e devolve {status, em, atualizadoEm}
+    // ou null. Erro de rede tambem vira null (silencioso): a UI mostra a MESMA mensagem
+    // neutra pra codigo invalido, inexistente ou offline (anti-enumeracao).
+    window.consultarDenunciaStatus = async function (codigo) {
+      const id = String(codigo || "").trim().toUpperCase();
+      if (!id) return null;
+      try {
+        const snap = await db.collection("denunciaStatus").doc(id).get();
+        if (!snap.exists) return null;
+        const x = snap.data() || {};
+        return { status: x.status || "nova", em: tsToIso(x.em), atualizadoEm: tsToIso(x.atualizadoEm) };
+      } catch (e) {
+        debug?.("[denuncia] consulta:", e?.code || e?.message); // silencioso, sem PII
+        return null;
       }
     };
     window.carregarDenunciasAdmin = async function () {
@@ -2079,17 +2123,36 @@
       if (!["nova", "em_analise", "concluida"].includes(status)) return;
       const patch = { status, nota: String(nota || "").slice(0, 2000) };
       if (typeof guardaPermanente === "boolean") patch.guardaPermanente = guardaPermanente;
+      const d = (state.denuncias || []).find((x) => x.id === id);
       if (status === "concluida") {
         patch.desfecho = desfecho;
-        const d = (state.denuncias || []).find((x) => x.id === id);
         // Carimba concluidaEm SÓ na transição pra concluída; se já estava concluída e o
         // admin só ajustou nota/desfecho/guarda, preserva o relógio de retenção original.
         if (!d || d.status !== "concluida" || !d.concluidaEm) patch.concluidaEm = _FV.serverTimestamp();
       }
       await db.collection("denuncias").doc(id).update(patch);
+      // Espelho de acompanhamento: reflete o novo andamento pro denunciante que consulta
+      // por codigo, SO quando o status realmente MUDA (nao bumpa atualizadoEm em edicao de
+      // nota/desfecho sem transicao). Denuncia LEGADA (sem codigoAcompanhamento, anterior
+      // ao protocolo) pula em silencio; falha do espelho e best-effort e NAO derruba a
+      // triagem (a fonte de verdade do andamento e a propria /denuncias).
+      const cod = d && d.codigoAcompanhamento;
+      if (cod && d.status !== status) {
+        try { await db.collection("denunciaStatus").doc(cod).update({ status, atualizadoEm: _FV.serverTimestamp() }); }
+        catch (e) { debug?.("[denuncia] espelho triagem:", e?.code || e?.message); }
+      }
       window.registrarAuditoria?.({ tipo: "denuncia", acao: `Triagem: ${status}`, alvo: id });
     };
     window.excluirDenuncia = async function (id) {
+      // Apaga o espelho de acompanhamento JUNTO (best-effort): busca o codigo no state.
+      // Espelho ausente (denuncia legada sem codigo, ou ja apagado) NAO bloqueia o expurgo
+      // do relato — o Firestore e a fonte de verdade do "existe".
+      const d = (state.denuncias || []).find((x) => x.id === id);
+      const cod = d && d.codigoAcompanhamento;
+      if (cod) {
+        try { await db.collection("denunciaStatus").doc(cod).delete(); }
+        catch (e) { debug?.("[denuncia] espelho expurgo:", e?.code || e?.message); }
+      }
       await db.collection("denuncias").doc(id).delete();
       window.registrarAuditoria?.({ tipo: "denuncia", acao: "Excluiu denuncia (LGPD)", alvo: id });
     };

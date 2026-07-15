@@ -42,10 +42,16 @@ await p.goto("http://localhost:8081/public/index.html", { waitUntil: "networkidl
 
 const falhasM1 = [], falhasM2 = [];
 async function varre(portal, paginas) {
-  for (const pg of paginas) {
-    const r = await p.evaluate(async (pagina) => {
+  for (const ent of paginas) {
+    // Entrada = id da pagina (string) OU { page, prep, label }: prep injeta sub-estado
+    // em state.view antes do render (ex.: as vistas do canal de denuncia: porta ja e o
+    // default, acompanhar/cerimonia/naoencontrado entram por aqui).
+    const item = typeof ent === "string" ? { page: ent, prep: null, label: ent } : ent;
+    const pg = item.label;
+    const r = await p.evaluate(async ({ pagina, prep }) => {
       window.__fpForceWrite = false;
       state.view.page = pagina;
+      if (prep) Object.assign(state.view, prep);
       try { _renderAppNow(); } catch (e) { return { erro: String(e).slice(0, 200) }; }
       // estabiliza: preenchedores assíncronos, cargas lazy, contagem animada (700ms)
       await new Promise((res) => setTimeout(res, 1000));
@@ -66,7 +72,7 @@ async function varre(portal, paginas) {
       window.__fpForceWrite = false;
       const bHtml = view.innerHTML; // IMEDIATO: sem esperar async, é aqui que o flicker mora
       return { a, b: bHtml, m2 };
-    }, pg);
+    }, { pagina: item.page, prep: item.prep });
     if (r.erro) { falhasM1.push(`${portal}/${pg}: ERRO DE RENDER ${r.erro}`); console.log(`  ${portal}/${pg}: ERRO`); continue; }
     const A = normaliza(r.a), B = normaliza(r.b);
     let status = [];
@@ -115,6 +121,14 @@ await p.waitForTimeout(300);
 await p.evaluate(() => { document.querySelector("#acesso")?.remove(); });
 console.log("COLAB:");
 const paginasColab = await p.evaluate(() => COLAB_NAV.map((x) => x.id));
+// Canal de denuncia: colab-denuncia e filha-do-hub (fora de COLAB_NAV), entao TODAS as
+// vistas entram aqui como sub-estados, inclusive a porta (bifurcacao) e a tela nova.
+paginasColab.push(
+  { page: "colab-denuncia", label: "colab-denuncia:porta", prep: { denVista: "porta", denEnviada: false, denHash: "", denConsulta: null } },
+  { page: "colab-denuncia", label: "colab-denuncia:acompanhar", prep: { denVista: "acompanhar", denEnviada: false, denHash: "", denCodConsulta: "FBR-7K2M-9QX4", denConsulta: { estado: "ok", status: "em_analise", em: "2026-07-12T14:30:00.000Z", atualizadoEm: null, codigo: "FBR-7K2M-9QX4" } } },
+  { page: "colab-denuncia", label: "colab-denuncia:naoencontrado", prep: { denVista: "acompanhar", denEnviada: false, denHash: "", denCodConsulta: "FBR-3T9P-1KZ0", denConsulta: { estado: "nada" } } },
+  { page: "colab-denuncia", label: "colab-denuncia:cerimonia", prep: { denVista: "fluxo", denEnviada: true, denIdentEnviada: false, denCodigo: "FBR-7K2M-9QX4", denHash: "62fa84a9d3c1b7e04f8a6c2d19b3e5f7a0c4d8e2b6f1a9c3d7e5b0f4a8c2e327ef" } },
+);
 await varre("colab", paginasColab);
 
 await b.close();

@@ -1063,7 +1063,7 @@ function mostrarTermoAdesao() {
   const nome = escapeHtml((fColab && fColab.nome) || (u && u.nome) || "");
   let cpfRaw = ""; try { cpfRaw = localStorage.getItem("fiopulse:ultimoCpf") || ""; } catch {}
   const cpf = escapeHtml(_formatarCpf(cpfRaw));
-  const local = "Jaraguá do Sul, SC"; // sede (William confirma depois)
+  const local = "Indaial, SC"; // sede, local fixo confirmado pelo William 2026-07-16 (aceites antigos com Jaraguá permanecem, registro é imutável)
   const dataExt = escapeHtml(new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }));
   const c = (v, dica) => `<span class="termo-campo" title="${escapeHtml(dica || "preenchido com os seus dados")}">${v}</span>`;
 
@@ -3230,6 +3230,8 @@ const DEN_ESC = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="curre
 const DEN_ESC_CHECK = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
 const DEN_USER = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>';
 const DEN_LOCK = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const DEN_COMPASS = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13 13 8.5 15.5 11 11"/></svg>';
+const DEN_KEY = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4"/><path d="M10.4 12.6 20 3"/><path d="M15 8l3 3"/></svg>';
 // Categorias alinhadas à Lei 14.457/2022 — VALORES casam o enum das rules (hifenizados).
 const DEN_CATS = [
   ["assedio-sexual", "Assédio sexual"],
@@ -3243,8 +3245,9 @@ const DEN_CATS = [
 const DEN_CAT_ROT = Object.fromEntries(DEN_CATS);
 const DEN_ST = { nova: "Nova", em_analise: "Em análise", concluida: "Concluída" };
 const DEN_TXT_MIN = 10, DEN_TXT_MAX = 5000;
-// Texto do hash calibrado pelo gate (NÃO alterar a essência).
-const DEN_HASH_TXT = "Seu relato foi registrado e recebeu um código de integridade. O sistema bloqueia qualquer edição do relato após o envio. Se quiser, guarde este código: ele permite comprovar, a qualquer momento, que o texto não foi alterado desde o envio.";
+// Ordem canônica do andamento (espelha o enum das rules): índice = posição na linha
+// do tempo Recebida → Em análise → Concluída.
+const DEN_ORDEM = ["nova", "em_analise", "concluida"];
 
 // Abre o canal SEMPRE do zero (limpa resíduo de um fluxo anterior concluído).
 function abrirCanalDenuncia() {
@@ -3253,6 +3256,7 @@ function abrirCanalDenuncia() {
   renderApp();
 }
 function denResetFluxo() {
+  state.view.denVista = "porta"; // bifurcação: fazer | acompanhar
   state.view.denEtapa = 1;
   state.view.denCat = "";
   state.view.denTexto = "";
@@ -3260,7 +3264,11 @@ function denResetFluxo() {
   state.view.denContato = "";
   state.view.denEnviada = false;
   state.view.denHash = "";
+  state.view.denCodigo = "";
   state.view.denIdentEnviada = false;
+  // Tela Acompanhar (consulta por código): tudo em memória (view), nunca storage.
+  state.view.denCodConsulta = "";
+  state.view.denConsulta = null;
 }
 
 // Card discreto de entrada na home do colaborador.
@@ -3276,26 +3284,56 @@ function denValido() {
   return !!state.view.denCat && String(state.view.denTexto || "").trim().length >= DEN_TXT_MIN;
 }
 
-// Cabeçalho verde (per-etapa), botão Voltar e indicador de passos.
-function denHeroHtml(step, titulo, sub) {
-  const dots = [1, 2, 3].map((n) => `<i class="${n === step ? "on" : ""}"></i>`).join("");
+// Cabeçalho verde, botão Voltar. Com step 1..3 mostra o indicador de passos (fluxo de
+// envio); com step 0/ausente é liso (porta e tela Acompanhar). badge troca o ícone.
+function denHeroHtml(step, titulo, sub, badge = DEN_ESC) {
+  const passos = [1, 2, 3].includes(step)
+    ? `<div class="den-steps">${[1, 2, 3].map((n) => `<i class="${n === step ? "on" : ""}"></i>`).join("")}</div>`
+    : "";
   return `<div class="den-hd">
     <button class="den-back" type="button" data-den-voltar>${cpIcon("chevron")}Voltar</button>
     <div class="den-hd__tt">
-      <span class="den-hd__badge">${DEN_ESC}</span>
+      <span class="den-hd__badge">${badge}</span>
       <span class="den-hd__tx"><b>${escapeHtml(titulo)}</b><span>${escapeHtml(sub)}</span></span>
     </div>
-    <div class="den-steps">${dots}</div>
+    ${passos}
   </div>`;
 }
 
 function renderColabDenuncia() {
   const view = $("#view");
   if (state.view.denEnviada && state.view.denHash) return denRenderCerimonia(view);
-  const etapa = [1, 2, 3].includes(state.view.denEtapa) ? state.view.denEtapa : (state.view.denEtapa = 1);
-  if (etapa === 2) return denRenderRelato(view);
-  if (etapa === 3) return denRenderIdent(view);
-  return denRenderAcolhe(view);
+  if (state.view.denVista === "acompanhar") return denRenderAcompanhar(view);
+  if (state.view.denVista === "fluxo") {
+    const etapa = [1, 2, 3].includes(state.view.denEtapa) ? state.view.denEtapa : (state.view.denEtapa = 1);
+    if (etapa === 2) return denRenderRelato(view);
+    if (etapa === 3) return denRenderIdent(view);
+    return denRenderAcolhe(view);
+  }
+  return denRenderPorta(view);
+}
+
+// ---- Porta: a bifurcação (fazer denúncia | acompanhar por código) ----
+function denRenderPorta(view) {
+  const path = (cls, ic, tt, sub, attr) => `<button class="den-path ${cls}" type="button" ${attr}>
+    <span class="den-path__ic">${ic}</span>
+    <span class="den-path__tx"><b>${escapeHtml(tt)}</b><span>${escapeHtml(sub)}</span></span>
+    <span class="den-path__chev">${cpIcon("chevron")}</span>
+  </button>`;
+  const escreveu = setHtml(view, `<div class="pp-fade den-flow">
+    ${denHeroHtml(0, "Canal de denúncia", "protegido do começo ao fim", DEN_ESC)}
+    <div class="den-body">
+      <h2 class="den-h">O que você quer fazer</h2>
+      <p class="den-intro">Os dois caminhos preservam o sigilo. Escolha por onde ir.</p>
+      ${path("den-path--primary", DEN_ESC, "Fazer uma denúncia", "Relate assédio, segurança ou conduta com sigilo, direto com a direção.", "data-den-fazer")}
+      ${path("", DEN_COMPASS, "Acompanhar uma denúncia", "Digite o seu código e veja o andamento, sem se identificar.", "data-den-acompanhar")}
+      <div class="den-lei">${DEN_ESC}<span>Canal previsto na <b>Lei 14.457/2022</b>, com garantia de anonimato e proteção contra retaliação.</span></div>
+    </div>
+  </div>`);
+  if (!escreveu) return;
+  view.querySelector("[data-den-voltar]").addEventListener("click", denVoltar);
+  view.querySelector("[data-den-fazer]").addEventListener("click", () => { state.view.denVista = "fluxo"; state.view.denEtapa = 1; renderApp(); });
+  view.querySelector("[data-den-acompanhar]").addEventListener("click", () => { state.view.denVista = "acompanhar"; renderApp(); });
 }
 
 // ---- Etapa 1: acolhimento ----
@@ -3408,9 +3446,15 @@ function denRenderIdent(view) {
 }
 
 function denVoltar() {
-  const et = state.view.denEtapa;
-  if (et === 3) { state.view.denEtapa = 2; return renderApp(); }
-  if (et === 2) { state.view.denEtapa = 1; return renderApp(); }
+  // Acompanhar e etapa 1 do fluxo voltam pra porta; etapas 2/3 recuam uma; a porta sai
+  // pra home. Coerente com o botão físico "voltar" e o gesto de swipe.
+  if (state.view.denVista === "acompanhar") { state.view.denVista = "porta"; return renderApp(); }
+  if (state.view.denVista === "fluxo") {
+    const et = state.view.denEtapa;
+    if (et === 3) { state.view.denEtapa = 2; return renderApp(); }
+    if (et === 2) { state.view.denEtapa = 1; return renderApp(); }
+    state.view.denVista = "porta"; return renderApp();
+  }
   state.view.page = "colab-home"; renderApp();
 }
 
@@ -3428,9 +3472,10 @@ async function denEnviar(btn) {
   await withBusy("den-enviar", btn, async () => {
     try {
       if (typeof window.enviarDenuncia !== "function") throw new Error("indisponivel");
-      const { hash } = await window.enviarDenuncia({ categoria, texto, contato });
+      const { hash, codigo } = await window.enviarDenuncia({ categoria, texto, contato });
       state.view.denIdentEnviada = !!contato;
       state.view.denHash = String(hash || "");
+      state.view.denCodigo = String(codigo || "");
       state.view.denEnviada = true;
       renderApp();
     } catch (e) {
@@ -3440,38 +3485,158 @@ async function denEnviar(btn) {
 }
 
 // ---- Cerimônia (sucesso) ----
+// O código de acompanhamento é a protagonista (chave pra consultar sem se identificar);
+// o hash de integridade recua pra uma linha discreta, expansível ao toque. Anel/selo
+// mantidos. O toggle da integridade mexe no DOM direto (não re-renderiza), pra não
+// re-cascatear a animação do anel; a tela não tem fonte reativa, então nasce e fica.
 function denRenderCerimonia(view) {
   const semMov = prefereMenosMovimento();
+  const hash = String(state.view.denHash || "");
+  const codigo = String(state.view.denCodigo || "");
+  const short = hash.length > 12 ? `${hash.slice(0, 6)}…${hash.slice(-6)}` : hash;
   const escreveu = setHtml(view, `<div class="pp-fade den-flow den-flow--cer">
     <div class="den-cer">
       ${cerAnelHtml({ anim: !semMov })}
       <div class="den-cer__t">Denúncia recebida</div>
       <div class="den-cer__prot">${DEN_ESC}<span>${state.view.denIdentEnviada ? "Enviada com identificação" : "Enviada de forma anônima"}</span></div>
-      <p class="den-cer__s">${escapeHtml(DEN_HASH_TXT)}</p>
-      <div class="den-cer__box">
-        <div class="den-cer__lbl">${DEN_ESC_CHECK}Código de integridade</div>
-        <div class="den-cer__hash" id="den-hash">${escapeHtml(state.view.denHash || "")}</div>
-        <button class="btn btn--ghost btn--sm den-cer__copy" type="button" data-den-copiar>${icon("clipboard")}<span style="margin-left:5px;">Copiar código</span></button>
+      <div class="den-key">
+        <div class="den-key__lbl">${DEN_KEY}Código de acompanhamento</div>
+        <div class="den-key__code" id="den-codigo">${escapeHtml(codigo)}</div>
+        <button class="den-key__copy" type="button" data-den-copcod>${icon("clipboard")}<span data-cop-lbl>Copiar código</span></button>
+      </div>
+      <p class="den-guard"><b>Guarde este código.</b> Ele é a sua chave pra acompanhar a apuração, sem se identificar.</p>
+      <div class="den-cint">
+        <button class="den-cint__tog" type="button" data-den-integ aria-expanded="false">
+          ${cpIcon("chevron")}<span class="den-cint__lbl">integridade do relato</span><span class="den-cint__short">${escapeHtml(short)}</span>
+        </button>
+        <div class="den-cint__full">
+          <code class="den-cint__hash" id="den-hash">${escapeHtml(hash)}</code>
+          <button class="den-cint__copy" type="button" data-den-cophash>${icon("clipboard")}<span data-cop-lbl>Copiar</span></button>
+        </div>
       </div>
       <button class="btn btn--primary btn--block den-cer__inicio" type="button" data-den-inicio>Voltar ao início</button>
     </div>
   </div>`);
   if (!escreveu) return;
   if (!semMov) { try { navigator.vibrate && navigator.vibrate([12, 60, 18]); } catch (e) {} }
-  view.querySelector("[data-den-copiar]").addEventListener("click", (e) => denCopiarHash(e.currentTarget));
+  view.querySelector("[data-den-copcod]").addEventListener("click", (e) => denCopiar(codigo, e.currentTarget, "Código copiado."));
+  view.querySelector("[data-den-cophash]").addEventListener("click", (e) => denCopiar(hash, e.currentTarget, "Hash copiado."));
+  const tog = view.querySelector("[data-den-integ]");
+  tog.addEventListener("click", () => {
+    const aberto = tog.closest(".den-cint").classList.toggle("open");
+    tog.setAttribute("aria-expanded", aberto ? "true" : "false");
+  });
   view.querySelector("[data-den-inicio]").addEventListener("click", () => { denResetFluxo(); state.view.page = "colab-home"; renderApp(); });
 }
 
-function denCopiarHash(btn) {
-  const h = state.view.denHash || "";
-  const ok = () => toast("Código copiado.");
+// Copia texto com feedback (toast + swap transitório do rótulo do botão + háptico).
+// Fallback silencioso quando a área de transferência não abre (headless/permissão).
+function denCopiar(texto, btn, okMsg = "Copiado.") {
+  const feedback = () => {
+    toast(okMsg);
+    vibrar(8);
+    const lbl = btn && btn.querySelector("[data-cop-lbl]");
+    if (lbl && !btn._copBusy) {
+      btn._copBusy = true;
+      const orig = lbl.textContent;
+      lbl.textContent = "Copiado";
+      btn.classList.add("is-copiado");
+      setTimeout(() => { lbl.textContent = orig; btn.classList.remove("is-copiado"); btn._copBusy = false; }, 1400);
+    }
+  };
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(h).then(ok).catch(() => toast("Não foi possível copiar.", "danger"));
+      navigator.clipboard.writeText(texto).then(feedback).catch(() => toast("Não foi possível copiar.", "danger"));
     } else {
-      toast("Copie o código manualmente.", "danger");
+      toast("Copie manualmente.", "danger");
     }
   } catch (e) { toast("Não foi possível copiar.", "danger"); }
+}
+
+// ---- Acompanhar: consulta o andamento por código (sem se identificar) ----
+function denRenderAcompanhar(view) {
+  const escreveu = setHtml(view, `<div class="pp-fade den-flow">
+    ${denHeroHtml(0, "Acompanhar denúncia", "sem se identificar", DEN_COMPASS)}
+    <div class="den-body">
+      <label class="den-lbl den-lbl--ac" for="den-cod">Seu código de acompanhamento</label>
+      <div class="den-acfield">
+        <input class="den-acinput" id="den-cod" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="14" placeholder="FBR-0000-0000" value="${escapeHtml(state.view.denCodConsulta || "")}">
+        <button class="btn btn--primary btn--block btn--lg den-cta" type="button" id="den-consultar" data-den-consultar>Consultar</button>
+      </div>
+      <div class="den-acpriv">${DEN_LOCK}<span>A consulta não registra quem você é. Só quem tem o código vê o andamento.</span></div>
+      <div class="den-acout">${denConsultaHtml()}</div>
+    </div>
+  </div>`);
+  if (!escreveu) return;
+  view.querySelector("[data-den-voltar]").addEventListener("click", denVoltar);
+  const inp = view.querySelector("#den-cod");
+  // Digitação persiste em memória (view), NUNCA storage. Sem renderApp: o nó do input
+  // (foco/caret) fica de pé; a tela só re-renderiza no Consultar.
+  inp.addEventListener("input", (e) => { state.view.denCodConsulta = e.target.value; });
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); denConsultar(view.querySelector("#den-consultar")); } });
+  view.querySelector("[data-den-consultar]").addEventListener("click", (e) => denConsultar(e.currentTarget));
+}
+
+// Formata "12 jul 2026, 14h30" (reusa CAND_MESES; hora local do usuário).
+function denDataTL(iso) {
+  const dt = iso ? new Date(iso) : null;
+  if (!dt || isNaN(dt.getTime())) return "";
+  const hm = String(dt.getHours()).padStart(2, "0") + "h" + String(dt.getMinutes()).padStart(2, "0");
+  return `${dt.getDate()} ${CAND_MESES[dt.getMonth()]} ${dt.getFullYear()}, ${hm}`;
+}
+
+// Resultado da consulta, 100% derivado de state.view.denConsulta (re-render idêntico):
+// null → vazio; {estado:"nada"} → mensagem neutra; {estado:"ok"} → linha do tempo.
+function denConsultaHtml() {
+  const c = state.view.denConsulta;
+  if (!c) return "";
+  if (c.estado !== "ok") {
+    return `<div class="den-acnone">
+      <div class="den-acnone__ic"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/><path d="M11 8v3.5M11 14h.01"/></svg></div>
+      <b>Código não localizado</b>
+      <span>Confira os caracteres e tente de novo. A resposta é a mesma para qualquer código que não confira.</span>
+    </div>`;
+  }
+  const idx = DEN_ORDEM.indexOf(c.status);
+  const iAtual = idx < 0 ? 0 : idx;
+  const passo = (pos, titulo, subDone, subNow, subTodo) => {
+    const cls = pos < iAtual ? "done" : pos === iAtual ? "now" : "todo";
+    const check = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+    const relogio = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.6"/></svg>`;
+    const marca = cls === "done" ? check : (cls === "now" ? relogio : "");
+    const sub = cls === "done" ? subDone : cls === "now" ? subNow : subTodo;
+    const pill = cls === "now" ? `<span class="den-tl__pill">estágio atual</span>` : "";
+    return `<div class="den-tl__step ${cls}">
+      <div class="den-tl__node"><div class="den-tl__dot">${marca}</div><div class="den-tl__line"></div></div>
+      <div class="den-tl__body"><b>${titulo}</b>${sub ? `<span>${escapeHtml(sub)}</span>` : ""}${pill}</div>
+    </div>`;
+  };
+  const dtRec = denDataTL(c.em);
+  const dtFim = denDataTL(c.atualizadoEm);
+  return `<div class="den-acres">
+    <div class="den-acres__hd">
+      <div class="den-acres__code">${escapeHtml(c.codigo || "")}<span>protocolo da denúncia</span></div>
+      <span class="den-acres__tag">${DEN_LOCK}sem rastro</span>
+    </div>
+    <div class="den-tl">
+      ${passo(0, "Recebida", dtRec, dtRec, dtRec)}
+      ${passo(1, "Em análise", "apuração em andamento", "a direção está apurando", "ainda não")}
+      ${passo(2, "Concluída", dtFim || "apuração encerrada", dtFim || "apuração encerrada", "ainda não")}
+    </div>
+  </div>`;
+}
+
+async function denConsultar(btn) {
+  const code = String(state.view.denCodConsulta || "").trim();
+  if (!code) { state.view.denConsulta = { estado: "nada" }; return renderApp(); }
+  await withBusy("den-consultar", btn, async () => {
+    let res = null;
+    try { if (typeof window.consultarDenunciaStatus === "function") res = await window.consultarDenunciaStatus(code); } catch (e) { res = null; }
+    state.view.denConsulta = (res && res.status)
+      ? { estado: "ok", status: res.status, em: res.em, atualizadoEm: res.atualizadoEm, codigo: code.toUpperCase() }
+      : { estado: "nada" }; // inválido, inexistente e offline caem na MESMA mensagem
+    renderApp();
+  });
 }
 
 // Conta do colaborador: dados do cadastro (SELF, sem PII) + aparência + trocar senha + sair.
@@ -17078,7 +17243,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.84.0";
+window.CURRENT_VERSION = "1.85.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.84.0", d: "16 jul 2026", current: true, items: [
+    v: "1.85.0", d: "16 jul 2026", current: true, items: [
+      { type: "high", title: "Canal de denuncia com acompanhamento: ao enviar, voce recebe um codigo que e a sua chave pra consultar o andamento da apuracao a qualquer momento, sem se identificar. E o canal ganhou dois caminhos na entrada: fazer uma denuncia e acompanhar uma denuncia." },
+    ],
+  },
+  {
+    v: "1.84.0", d: "16 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Canal de denuncia com governanca de gente grande: concluir agora exige um desfecho registrado (procedente, improcedente ou sem elementos), denuncia nao pode mais ser excluida (retencao de 5 anos com expurgo automatico, e guarda permanente pra casos graves) e um lacre dourado no menu avisa quando ha denuncia nova." },
       { type: "note", title: "Transparencia do canal de denuncia: os registros concluidos sao mantidos por 5 anos como compliance e eliminados automaticamente depois." },
     ],

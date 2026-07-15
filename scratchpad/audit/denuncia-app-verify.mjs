@@ -39,6 +39,11 @@ check("card de entrada na home", await page.locator("#view [data-den-abrir]").co
 await page.click("#view [data-den-abrir]");
 await page.waitForTimeout(300);
 
+// PORTA: bifurcação (fazer denúncia | acompanhar por código)
+check("porta: 2 caminhos", await page.locator("#view .den-path").count() === 2);
+await page.click("#view [data-den-fazer]");
+await page.waitForTimeout(250);
+
 // ETAPA 1: acolhimento
 check("etapa1 acolhimento (Lei 14.457)", (await page.locator("#view .den-lei").innerText()).includes("14.457"));
 check("etapa1 bloco LGPD presente", await page.locator("#view .den-lgpd").count() === 1);
@@ -77,15 +82,16 @@ await page.click('#view [data-den-ident="0"]');
 await page.waitForTimeout(150);
 check("volta anonimo esconde contato", await page.locator("#view #den-contato").isHidden());
 
-// stub do envio e ENVIAR -> cerimônia
-await page.evaluate(() => { window.enviarDenuncia = async () => ({ hash: "abc123def456abc123def456abc123def456abc123def456abc123def456aaaa" }); });
+// stub do envio e ENVIAR -> cerimônia (protocolo: devolve hash + codigo)
+await page.evaluate(() => { window.enviarDenuncia = async () => ({ hash: "abc123def456abc123def456abc123def456abc123def456abc123def456aaaa", codigo: "FBR-7K2M-9QX4" }); });
 await page.click("#view [data-den-enviar]");
 await page.waitForTimeout(1400);
 check("cerimonia: titulo Denuncia recebida", (await page.locator("#view .den-cer__t").innerText()).includes("Denúncia recebida"));
-check("cerimonia: hash exibido", (await page.locator("#view #den-hash").innerText()).includes("abc123def456"));
-check("cerimonia: texto do hash calibrado", (await page.locator("#view .den-cer__s").innerText()).includes("código de integridade") && (await page.locator("#view .den-cer__s").innerText()).includes("não foi alterado"));
+check("cerimonia: codigo de acompanhamento protagonista", (await page.locator("#view .den-key__code").innerText()).trim() === "FBR-7K2M-9QX4");
+check("cerimonia: guarda 'sua chave'", (await page.locator("#view .den-guard").innerText()).toLowerCase().includes("chave"));
+check("cerimonia: integridade do relato rebaixada", (await page.locator("#view .den-cint__tog").innerText()).toLowerCase().includes("integridade do relato"));
 check("cerimonia: selo anonima", (await page.locator("#view .den-cer__prot").innerText()).includes("anônima"));
-check("cerimonia: botao copiar codigo", await page.locator("#view [data-den-copiar]").count() === 1);
+check("cerimonia: botao copiar codigo", await page.locator("#view [data-den-copcod]").count() === 1);
 await page.screenshot({ path: `${OUT}/denuncia-app-colab-cerimonia.png` });
 // voltar ao inicio limpa o fluxo
 await page.click("#view [data-den-inicio]");

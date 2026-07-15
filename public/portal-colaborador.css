@@ -863,12 +863,91 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 .den-cer__prot { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--plum-deep); background: rgba(0,136,53,.08); border: 1px solid rgba(0,136,53,.16); border-radius: 999px; padding: 6px 12px; }
 .den-cer__prot svg { width: 13px; height: 13px; color: var(--plum); }
 .den-cer__s { font-size: 12.5px; color: var(--text-muted); margin-top: 14px; line-height: 1.55; }
-.den-cer__box { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 15px; text-align: left; }
-.den-cer__lbl { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
-.den-cer__lbl svg { width: 14px; height: 14px; color: var(--plum); }
-.den-cer__hash { font: 600 12.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .02em; color: var(--text-body); margin: 8px 0; word-break: break-all; }
-.den-cer__copy { width: auto; }
 .den-cer__inicio { margin-top: 20px; }
+
+/* ============================================================
+   PROTOCOLO DE ACOMPANHAMENTO (mock docs/mockups/acompanhar-denuncia-2026-07.html)
+   Porta (bifurcacao) + codigo protagonista na cerimonia + tela Acompanhar.
+   Tokens do colaborador (recolore no dark); tint plum literal como o resto do canal.
+   ============================================================ */
+/* Porta: dois caminhos (fazer | acompanhar) */
+.den-path { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; font: inherit; background: var(--surface); border: 1.5px solid var(--border); border-radius: 18px; padding: 16px 15px; margin-bottom: 13px; cursor: pointer; transition: transform .16s var(--ease-ios), border-color .16s, box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+.den-path:active { transform: scale(.985); }
+.den-path--primary { border-color: rgba(0,136,53,.28); background: rgba(0,136,53,.06); }
+.den-path__ic { width: 44px; height: 44px; border-radius: 13px; display: flex; align-items: center; justify-content: center; flex: none; background: rgba(0,136,53,.09); color: var(--plum); }
+.den-path__ic svg { width: 22px; height: 22px; }
+.den-path__tx { flex: 1; min-width: 0; }
+.den-path__tx b { display: block; font-size: 14.5px; font-weight: 700; line-height: 1.25; color: var(--text-body); }
+.den-path__tx span { display: block; font-size: 11.8px; color: var(--text-muted); line-height: 1.4; margin-top: 3px; }
+.den-path__chev { color: var(--border-strong); flex: none; }
+.den-path__chev svg { width: 17px; height: 17px; }
+
+/* Cerimonia: codigo de acompanhamento protagonista */
+.den-key { margin-top: 18px; width: 100%; background: rgba(0,136,53,.07); border: 1.5px solid rgba(0,136,53,.28); border-radius: 16px; padding: 15px; text-align: center; }
+.den-key__lbl { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--plum-deep); }
+.den-key__lbl svg { width: 14px; height: 14px; }
+.den-key__code { font: 700 20px/1.1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; white-space: nowrap; color: var(--text-body); margin: 11px 0 13px; font-variant-numeric: tabular-nums; }
+.den-key__copy { display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--border); background: var(--surface); color: var(--plum-deep); font: 700 12.5px var(--font); border-radius: 11px; padding: 9px 16px; cursor: pointer; transition: transform .14s var(--ease-ios), border-color .16s; -webkit-tap-highlight-color: transparent; }
+.den-key__copy:active { transform: scale(.96); }
+.den-key__copy.is-copiado { border-color: var(--plum); }
+.den-key__copy svg { width: 15px; height: 15px; }
+.den-guard { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin: 14px auto 0; max-width: 262px; }
+.den-guard b { color: var(--text-body); font-weight: 600; }
+/* Integridade rebaixada: linha discreta, expansivel ao toque */
+.den-cint { margin-top: 16px; }
+.den-cint__tog { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; cursor: pointer; font: 500 10.8px ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-muted); letter-spacing: .01em; padding: 5px 4px; -webkit-tap-highlight-color: transparent; }
+.den-cint__tog svg { width: 12px; height: 12px; flex: none; transition: transform .2s; }
+.den-cint.open .den-cint__tog svg { transform: rotate(90deg); }
+.den-cint__lbl { font-family: var(--font); }
+.den-cint__short { color: var(--text-body); font-weight: 600; }
+.den-cint__full { display: none; margin-top: 10px; text-align: center; }
+.den-cint.open .den-cint__full { display: block; animation: denRevela .26s var(--ease-ios); }
+.den-cint__hash { display: block; text-align: left; font: 600 11px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-body); word-break: break-all; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.den-cint__copy { margin-top: 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font: 600 11.5px var(--font); border-radius: 9px; padding: 6px 12px; cursor: pointer; }
+.den-cint__copy svg { width: 13px; height: 13px; }
+
+/* Tela Acompanhar: campo unico + linha do tempo */
+.den-lbl--ac { margin-top: 4px; }
+.den-acfield { display: flex; flex-direction: column; gap: 10px; }
+.den-acfield .den-cta { margin-top: 0; }
+.den-acinput { width: 100%; border: 1.5px solid var(--border); border-radius: 14px; padding: 15px; font: 700 17px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .14em; text-align: center; text-transform: uppercase; color: var(--text-body); background: var(--surface); outline: 0; transition: border-color .16s; }
+.den-acinput::placeholder { color: var(--border-strong); font-weight: 600; letter-spacing: .1em; }
+.den-acinput:focus { border-color: var(--plum); }
+.den-acpriv { display: flex; gap: 8px; align-items: flex-start; margin: 14px 2px 0; font-size: 10.8px; color: var(--text-muted); line-height: 1.5; }
+.den-acpriv svg { width: 14px; height: 14px; color: var(--plum); flex: none; margin-top: 1px; }
+.den-acout:empty { display: none; }
+/* Resultado: cabecalho do protocolo + linha do tempo */
+.den-acres { margin-top: 20px; animation: denRevela .34s var(--ease-ios); }
+.den-acres__hd { display: flex; align-items: center; gap: 10px; padding: 12px 13px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 13px; }
+.den-acres__code { font: 700 13px ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; color: var(--text-body); }
+.den-acres__code span { display: block; font: 500 10.5px var(--font); letter-spacing: 0; color: var(--text-muted); margin-top: 2px; }
+.den-acres__tag { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font: 600 10px var(--font); color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 9px; flex: none; }
+.den-acres__tag svg { width: 11px; height: 11px; }
+.den-tl { margin: 20px 4px 0; display: flex; flex-direction: column; }
+.den-tl__step { display: grid; grid-template-columns: 26px 1fr; gap: 13px; }
+.den-tl__node { display: flex; flex-direction: column; align-items: center; }
+.den-tl__dot { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; border: 2px solid var(--border-strong); background: var(--surface); color: var(--text-muted); }
+.den-tl__dot svg { width: 13px; height: 13px; }
+.den-tl__line { flex: 1; width: 2px; background: var(--border); min-height: 24px; margin: 3px 0; }
+.den-tl__step:last-child .den-tl__line { display: none; }
+.den-tl__body { padding-bottom: 22px; }
+.den-tl__body b { display: block; font-size: 13.5px; font-weight: 700; color: var(--text-body); }
+.den-tl__body span { display: block; font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.den-tl__step.done .den-tl__dot { border-color: var(--plum); background: var(--plum); color: #fff; }
+.den-tl__step.done .den-tl__line { background: var(--plum); }
+.den-tl__step.now .den-tl__dot { border-color: var(--plum); background: var(--surface); color: var(--plum); box-shadow: 0 0 0 4px rgba(0,136,53,.10); }
+.den-tl__step.now .den-tl__body b { color: var(--plum-deep); }
+.den-tl__step.todo .den-tl__body b { color: var(--text-muted); font-weight: 600; }
+.den-tl__pill { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 10px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--plum-deep); background: rgba(0,136,53,.08); border-radius: 999px; padding: 3px 9px; }
+/* Codigo nao localizado (neutro, anti-enumeracao) */
+.den-acnone { margin-top: 20px; text-align: center; padding: 26px 18px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 16px; animation: denRevela .34s var(--ease-ios); }
+.den-acnone__ic { width: 52px; height: 52px; border-radius: 15px; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.den-acnone__ic svg { width: 24px; height: 24px; }
+.den-acnone b { display: block; font-size: 14.5px; font-weight: 700; color: var(--text-body); }
+.den-acnone span { display: block; font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-top: 6px; max-width: 240px; margin-left: auto; margin-right: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .den-acres, .den-acnone, .den-cint.open .den-cint__full { animation: none; }
+}
 
 /* ============================================================
    CERIMONIA DE CONCLUSAO (mock nivel-apple-2026-07, demo 3)
