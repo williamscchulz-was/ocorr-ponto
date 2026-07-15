@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Acompanhar denúncia por código (proposta)</title>
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+
+  :root {
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00;
+    --page-bg: #f2f3ee; --page-card: #ffffff; --page-borda: #e3e5dd; --page-muted: #68716a;
+    --ease-ios: cubic-bezier(.32, .72, .28, 1);
+  }
+  /* Tokens do aparelho, tema CLARO (colaborador) */
+  .phone {
+    --screen: #f6f7f2; --surface: #ffffff; --surface-warm: #faf9f4;
+    --ink: #1c231d; --muted: #68716a; --borda: #e3e5dd; --borda-strong: #cfd4cb;
+    --plum: #008835; --plum-deep: #04331a; --plum-tint: rgba(0,136,53,.08);
+    --warn-ink: #9a6a12; --warn-bg: #fbf1da; --warn-bd: #f0dfb0;
+  }
+  /* Tokens do aparelho, tema ESCURO (espelho exato do app, html.modo-colab.cp-dark) */
+  .phone.dark {
+    --screen: #0E130E; --surface: #161D15; --surface-warm: #1E261D;
+    --ink: #EDF3EA; --muted: #8A9884; --borda: #232C22; --borda-strong: #2A332A;
+    --plum: #5FCB85; --plum-deep: #9FE0B5; --plum-tint: rgba(95,203,133,.12);
+    --warn-ink: #E8B468; --warn-bg: #3A2E18; --warn-bd: #4a3c1e;
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--page-bg); color: var(--verde-esc); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 48px 20px 90px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  .kicker svg { width: 14px; height: 14px; }
+  h1 { font: 700 clamp(26px, 4vw, 40px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; color: #1c231d; }
+  .sub { color: var(--page-muted); max-width: 780px; font-size: 15.5px; }
+
+  .sec { margin-top: 56px; }
+  .sec-hd { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; flex-wrap: wrap; }
+  .sec-hd .n { font: 700 12px/1 Poppins, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--verde); background: #00883512; border: 1px solid #00883522; padding: 7px 11px; border-radius: 999px; }
+  .sec-hd h2 { font: 700 22px/1.2 Poppins, system-ui, sans-serif; letter-spacing: -.02em; color: #1c231d; }
+  .sec > p.lead { color: var(--page-muted); font-size: 14px; max-width: 740px; margin: 4px 0 24px; }
+
+  /* ---------- palco: aparelho claro + escuro lado a lado + legenda ---------- */
+  .stage { display: flex; flex-wrap: wrap; gap: 30px 34px; align-items: flex-start; }
+  .pair { display: flex; gap: 26px; flex-wrap: wrap; }
+  .device { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .device .cap { font: 600 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--page-muted); }
+  .phone { width: 300px; flex: 0 0 auto; background: #0b0d0c; border-radius: 46px; padding: 10px; box-shadow: 0 2px 4px #0003, 0 26px 64px -20px #04331a55, inset 0 0 0 2px #262b28; }
+  .screen { position: relative; overflow: hidden; border-radius: 37px; background: var(--screen); height: 616px; isolation: isolate; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 90px; height: 25px; border-radius: 999px; background: #0b0d0c; z-index: 60; }
+  .view { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--screen); }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 26px 0; font: 600 12px Poppins, system-ui, sans-serif; }
+  .sbar.on-green { color: #fff; }
+  .sbar.on-screen { color: var(--ink); }
+
+  /* topo verde compartilhado (saturado nos dois temas, como o herói de BH) */
+  .ghd { background: linear-gradient(162deg, #0a9a43, var(--verde) 55%, #00702c); color: #fff; padding: 0 0 20px; border-radius: 0 0 28px 28px; }
+  .ghd-in { padding: 20px 22px 0; }
+  .back { display: inline-flex; align-items: center; gap: 5px; background: #ffffff26; border: 0; color: #fff; font: 600 12px Poppins, system-ui, sans-serif; border-radius: 999px; padding: 7px 13px 7px 9px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .back svg { width: 14px; height: 14px; }
+  .ghd-tt { display: flex; align-items: center; gap: 12px; margin-top: 15px; }
+  .ghd-tt .badge { width: 42px; height: 42px; border-radius: 13px; background: #ffffff26; display: grid; place-items: center; flex: 0 0 auto; }
+  .ghd-tt .badge svg { width: 22px; height: 22px; color: #fff; }
+  .ghd-tt b { display: block; font: 700 16px/1.2 Poppins, system-ui, sans-serif; }
+  .ghd-tt span { font-size: 11.5px; opacity: .85; }
+
+  .body { flex: 1; padding: 18px 16px; overflow-y: auto; overflow-x: hidden; }
+  .body::-webkit-scrollbar { width: 0; }
+
+  /* ===== QUADRO 1: porta do canal (dois caminhos) ===== */
+  .porta-h { font: 700 20px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.02em; color: var(--ink); margin: 4px 2px 6px; }
+  .porta-intro { font-size: 12.8px; color: var(--muted); margin: 0 2px 18px; line-height: 1.5; }
+  .path { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; background: var(--surface); border: 1.5px solid var(--borda); border-radius: 18px; padding: 16px 15px; margin-bottom: 13px; cursor: pointer; transition: transform .16s var(--ease-ios), border-color .16s, box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+  .path:active { transform: scale(.985); }
+  .path.primary { border-color: #00883540; background: var(--plum-tint); }
+  .path__ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; flex: 0 0 auto; background: var(--plum-tint); color: var(--plum); }
+  .path__ic svg { width: 22px; height: 22px; }
+  .path__tx { flex: 1; min-width: 0; }
+  .path__tx b { display: block; font: 700 14.5px/1.25 Poppins, system-ui, sans-serif; color: var(--ink); }
+  .path__tx span { display: block; font-size: 11.8px; color: var(--muted); line-height: 1.4; margin-top: 3px; }
+  .path__chev { color: var(--borda-strong); flex: 0 0 auto; }
+  .path__chev svg { width: 17px; height: 17px; }
+  .lei-line { display: flex; gap: 9px; align-items: flex-start; margin-top: 6px; padding: 12px 13px; background: var(--surface-warm); border: 1px solid var(--borda); border-radius: 13px; font-size: 11.2px; color: var(--muted); line-height: 1.5; }
+  .lei-line svg { width: 15px; height: 15px; color: var(--plum); flex: 0 0 auto; margin-top: 1px; }
+  .lei-line b { color: var(--ink); font-weight: 600; }
+
+  /* ===== QUADRO 2: cerimônia do envio (código protagonista) ===== */
+  .cer { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 22px 12px; }
+  .ring { position: relative; width: 96px; height: 96px; margin: 6px auto 18px; }
+  .ring svg.r { width: 96px; height: 96px; transform: rotate(-90deg); }
+  .ring .trk { fill: none; stroke: var(--borda); stroke-width: 5; }
+  .ring .arc { fill: none; stroke: var(--plum); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 276; }
+  .ring .chk { position: absolute; inset: 0; display: grid; place-items: center; }
+  .ring .chk svg { width: 44px; height: 44px; }
+  .ring .chk path { fill: none; stroke: var(--plum); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 50; stroke-dashoffset: 50; }
+  .ring .pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid #00883555; opacity: 0; }
+  .ring.play .arc { animation: arco .6s cubic-bezier(.4,0,.2,1) .12s forwards; }
+  .ring.play .chk path { animation: tick .32s cubic-bezier(.2,.8,.2,1) .58s forwards; }
+  .ring.play .pulse { animation: puls .7s ease-out .58s forwards; }
+  @keyframes arco { to { stroke-dashoffset: 0; } }
+  @keyframes tick { to { stroke-dashoffset: 0; } }
+  @keyframes puls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+
+  .cer-t { font: 700 19px Poppins, system-ui, sans-serif; letter-spacing: -.01em; color: var(--ink); }
+  .cer-selo { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--plum-deep); background: var(--plum-tint); border: 1px solid #00883526; border-radius: 999px; padding: 6px 12px; }
+  .cer-selo svg { width: 13px; height: 13px; color: var(--plum); }
+
+  /* código de acompanhamento: a chave, protagonista */
+  .cd-key { margin-top: 20px; width: 100%; background: var(--plum-tint); border: 1.5px solid #00883540; border-radius: 16px; padding: 15px 15px 14px; }
+  .cd-key__lbl { display: flex; align-items: center; justify-content: center; gap: 7px; font: 700 10px Poppins, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--plum-deep); }
+  .cd-key__lbl svg { width: 13px; height: 13px; }
+  .cd-key__code { font: 700 20px/1.1 "Poppins", ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; white-space: nowrap; color: var(--ink); margin: 11px 0 13px; font-variant-numeric: tabular-nums; }
+  .cd-copy { display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--borda); background: var(--surface); color: var(--plum-deep); font: 700 12.5px Poppins, system-ui, sans-serif; border-radius: 11px; padding: 9px 16px; cursor: pointer; transition: transform .14s var(--ease-ios), border-color .16s; -webkit-tap-highlight-color: transparent; }
+  .cd-copy:active { transform: scale(.96); }
+  .cd-copy svg { width: 15px; height: 15px; }
+  .cd-guard { font-size: 12px; color: var(--muted); line-height: 1.55; margin: 14px 4px 0; max-width: 250px; }
+  .cd-guard b { color: var(--ink); font-weight: 600; }
+
+  /* integridade rebaixada: linha discreta, expansível */
+  .cd-integ { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; border: 0; background: none; cursor: pointer; font: 500 10.8px "Poppins", ui-monospace, monospace; color: var(--muted); letter-spacing: .01em; padding: 5px 4px; -webkit-tap-highlight-color: transparent; }
+  .cd-integ svg { width: 12px; height: 12px; flex: 0 0 auto; transition: transform .2s; }
+  .cd-integ.open svg { transform: rotate(90deg); }
+  .cd-integ .full { display: none; }
+  .cd-integ.open .short { display: none; }
+  .cd-integ.open .full { display: inline; word-break: break-all; }
+  .cd-integ .hx { color: var(--ink); font-weight: 600; }
+
+  .cer-inicio { width: 100%; border: 0; border-radius: 15px; background: var(--plum); color: #fff; font: 700 14px Poppins, system-ui, sans-serif; padding: 14px; cursor: pointer; margin-top: 22px; transition: transform .15s var(--ease-ios); -webkit-tap-highlight-color: transparent; }
+  .cer-inicio:active { transform: scale(.97); }
+
+  /* ===== QUADROS 3 e 4: tela acompanhar ===== */
+  .ac-lbl { display: block; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--ink); margin: 4px 2px 9px; }
+  .ac-field { display: flex; flex-direction: column; gap: 10px; }
+  .ac-input { width: 100%; border: 1.5px solid var(--borda); border-radius: 14px; padding: 15px 15px; font: 700 17px/1 "Poppins", ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .14em; text-align: center; text-transform: uppercase; color: var(--ink); background: var(--surface); outline: 0; transition: border-color .16s; }
+  .ac-input::placeholder { color: var(--borda-strong); font-weight: 600; letter-spacing: .1em; }
+  .ac-input:focus { border-color: var(--plum); }
+  .ac-consult { width: 100%; border: 0; border-radius: 14px; background: var(--plum); color: #fff; font: 700 14px Poppins, system-ui, sans-serif; padding: 14px; cursor: pointer; transition: transform .15s var(--ease-ios); -webkit-tap-highlight-color: transparent; }
+  .ac-consult:active { transform: scale(.97); }
+  .ac-priv { display: flex; gap: 8px; align-items: flex-start; margin: 14px 2px 0; font-size: 10.8px; color: var(--muted); line-height: 1.5; }
+  .ac-priv svg { width: 14px; height: 14px; color: var(--plum); flex: 0 0 auto; margin-top: 1px; }
+
+  /* resultado: cabeçalho do protocolo + linha do tempo */
+  .ac-res { margin-top: 20px; animation: revela .34s var(--ease-ios); }
+  @keyframes revela { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .ac-res__hd { display: flex; align-items: center; gap: 10px; padding: 12px 13px; background: var(--surface-warm); border: 1px solid var(--borda); border-radius: 13px; }
+  .ac-res__hd .code { font: 700 13px "Poppins", ui-monospace, monospace; letter-spacing: .06em; color: var(--ink); }
+  .ac-res__hd .code span { display: block; font: 500 10.5px Poppins, system-ui, sans-serif; letter-spacing: 0; color: var(--muted); margin-top: 2px; }
+  .ac-res__hd .anon { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font: 600 10px Poppins, system-ui, sans-serif; color: var(--muted); background: var(--surface); border: 1px solid var(--borda); border-radius: 999px; padding: 4px 9px; flex: 0 0 auto; }
+  .ac-res__hd .anon svg { width: 11px; height: 11px; }
+
+  .tl { margin: 20px 4px 0; display: flex; flex-direction: column; }
+  .tl-step { display: grid; grid-template-columns: 26px 1fr; gap: 13px; }
+  .tl-node { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; border: 2px solid var(--borda-strong); background: var(--surface); color: var(--muted); }
+  .tl-dot svg { width: 13px; height: 13px; }
+  .tl-line { flex: 1; width: 2px; background: var(--borda); min-height: 26px; margin: 3px 0; }
+  .tl-step:last-child .tl-line { display: none; }
+  .tl-body { padding-bottom: 22px; }
+  .tl-body b { display: block; font: 700 13.5px Poppins, system-ui, sans-serif; color: var(--ink); }
+  .tl-body span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  /* estado concluído (etapa já cumprida) */
+  .tl-step.done .tl-dot { border-color: var(--plum); background: var(--plum); color: #fff; }
+  .tl-step.done .tl-line { background: var(--plum); }
+  /* estágio atual, aceso */
+  .tl-step.now .tl-dot { border-color: var(--plum); background: var(--surface); color: var(--plum); box-shadow: 0 0 0 4px var(--plum-tint); }
+  .tl-step.now .tl-body b { color: var(--plum-deep); }
+  .tl-step.now .tl-pill { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; font: 600 10px Poppins, system-ui, sans-serif; letter-spacing: .02em; text-transform: uppercase; color: var(--plum-deep); background: var(--plum-tint); border-radius: 999px; padding: 3px 9px; }
+  /* etapa futura */
+  .tl-step.todo .tl-body b { color: var(--muted); font-weight: 600; }
+
+  /* estado código não localizado */
+  .ac-none { margin-top: 20px; text-align: center; padding: 26px 18px; background: var(--surface-warm); border: 1px solid var(--borda); border-radius: 16px; animation: revela .34s var(--ease-ios); }
+  .ac-none__ic { width: 52px; height: 52px; border-radius: 15px; background: var(--surface); border: 1px solid var(--borda); color: var(--muted); display: grid; place-items: center; margin: 0 auto 14px; }
+  .ac-none__ic svg { width: 24px; height: 24px; }
+  .ac-none b { display: block; font: 700 14.5px Poppins, system-ui, sans-serif; color: var(--ink); }
+  .ac-none span { display: block; font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 6px; max-width: 230px; margin-left: auto; margin-right: auto; }
+
+  /* ---------- legenda ao lado do par ---------- */
+  .legend { flex: 1; min-width: 280px; padding-top: 8px; }
+  .legend h4 { font: 700 15px Poppins, system-ui, sans-serif; margin-bottom: 4px; color: #1c231d; }
+  .legend p { font-size: 13px; color: var(--page-muted); margin-bottom: 16px; max-width: 460px; }
+  .legend ul { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+  .legend li { display: flex; gap: 11px; align-items: flex-start; font-size: 12.8px; color: #1c231d; }
+  .legend li .k { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 7px; background: var(--verde); color: #fff; font: 700 11px/22px Poppins, system-ui, sans-serif; text-align: center; }
+  .legend li b { font-weight: 600; }
+  .legend li span { color: var(--page-muted); }
+  .legend .note { margin-top: 18px; font-size: 12px; color: var(--verde-esc); background: #ffcb0018; border: 1px solid #e8c34d55; border-radius: 12px; padding: 10px 13px; line-height: 1.5; }
+
+  /* toast do copiar */
+  .toast { position: fixed; left: 50%; bottom: 30px; transform: translate(-50%, 20px); background: var(--verde-esc); color: #fff; font: 600 13px Poppins, system-ui, sans-serif; padding: 11px 18px; border-radius: 12px; box-shadow: 0 16px 40px -14px #04331a88; opacity: 0; pointer-events: none; transition: opacity .22s, transform .22s var(--ease-ios); z-index: 200; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  .foot { margin-top: 60px; padding-top: 26px; border-top: 1px solid var(--page-borda); color: var(--page-muted); font-size: 13px; text-align: center; line-height: 1.7; max-width: 640px; margin-left: auto; margin-right: auto; }
+  .foot b { color: var(--verde-esc); font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ring .arc { stroke-dashoffset: 0; }
+    .ring .chk path { stroke-dashoffset: 0; }
+    .ring.play .arc, .ring.play .chk path, .ring.play .pulse { animation: none; }
+    .ac-res, .ac-none { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="kicker">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13 13 8.5 15.5 11 11"/></svg>
+    Proposta · aprovação antes de tocar o app
+  </span>
+  <h1>Acompanhar a denúncia por código</h1>
+  <p class="sub">Quem denuncia some de propósito. O problema: sumir também tira dela qualquer notícia da apuração. O código de acompanhamento resolve isso sem trair o anonimato. No envio, a pessoa recebe uma chave curta; com essa chave, e só com ela, consulta o andamento a qualquer hora, sem se identificar e sem deixar rastro da consulta. História linear abaixo, o mesmo aparelho em claro e escuro.</p>
+
+  <!-- ================= QUADRO 1: A PORTA DO CANAL ================= -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Quadro 1</span><h2>A porta do canal</h2></div>
+    <p class="lead">Hoje o canal abre direto no fluxo de denúncia. A porta ganha uma bifurcação honesta: fazer uma denúncia, ou acompanhar uma que já existe. O segundo caminho diz numa linha o que entrega, sem prometer identidade.</p>
+    <div class="stage">
+      <div class="pair">
+        <div class="device">
+          <div class="phone" id="ph-porta-claro">
+            <div class="screen">
+              <div class="island"></div>
+              <div class="view">
+                <div class="ghd">
+                  <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+                  <div class="ghd-in">
+                    <button class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+                    <div class="ghd-tt">
+                      <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></div>
+                      <div><b>Canal de denúncia</b><span>protegido do começo ao fim</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="body">
+                  <h3 class="porta-h">O que você quer fazer</h3>
+                  <p class="porta-intro">Os dois caminhos preservam o sigilo. Escolha por onde ir.</p>
+                  <button class="path primary">
+                    <span class="path__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></span>
+                    <span class="path__tx"><b>Fazer uma denúncia</b><span>Relate assédio, segurança ou conduta com sigilo, direto com a direção.</span></span>
+                    <span class="path__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+                  </button>
+                  <button class="path">
+                    <span class="path__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13 13 8.5 15.5 11 11"/></svg></span>
+                    <span class="path__tx"><b>Acompanhar uma denúncia</b><span>Digite o seu código e veja o andamento, sem se identificar.</span></span>
+                    <span class="path__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+                  </button>
+                  <div class="lei-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg><span>Canal previsto na <b>Lei 14.457/2022</b>, com garantia de anonimato e proteção contra retaliação.</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="cap">Claro</span>
+        </div>
+        <div class="device">
+          <div class="phone dark" id="ph-porta-escuro">
+            <div class="screen">
+              <div class="island"></div>
+              <div class="view">
+                <div class="ghd">
+                  <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+                  <div class="ghd-in">
+                    <button class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+                    <div class="ghd-tt">
+                      <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></div>
+                      <div><b>Canal de denúncia</b><span>protegido do começo ao fim</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="body">
+                  <h3 class="porta-h">O que você quer fazer</h3>
+                  <p class="porta-intro">Os dois caminhos preservam o sigilo. Escolha por onde ir.</p>
+                  <button class="path primary">
+                    <span class="path__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></span>
+                    <span class="path__tx"><b>Fazer uma denúncia</b><span>Relate assédio, segurança ou conduta com sigilo, direto com a direção.</span></span>
+                    <span class="path__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+                  </button>
+                  <button class="path">
+                    <span class="path__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13 13 8.5 15.5 11 11"/></svg></span>
+                    <span class="path__tx"><b>Acompanhar uma denúncia</b><span>Digite o seu código e veja o andamento, sem se identificar.</span></span>
+                    <span class="path__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+                  </button>
+                  <div class="lei-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg><span>Canal previsto na <b>Lei 14.457/2022</b>, com garantia de anonimato e proteção contra retaliação.</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="cap">Escuro</span>
+        </div>
+      </div>
+      <div class="legend">
+        <h4>Duas portas, um sigilo</h4>
+        <p>A bifurcação não muda o tom do canal, só divide o tráfego. Quem chega pra falar segue pelo fluxo de sempre; quem já falou e quer notícia entra pelo segundo card.</p>
+        <ul>
+          <li><span class="k">1</span><div><b>Card primário</b> <span>segue sendo a denúncia, com o realce verde suave.</span></div></li>
+          <li><span class="k">2</span><div><b>Acompanhar em uma linha</b> <span>ícone de bússola em traço, e a promessa dita: veja o andamento, sem se identificar.</span></div></li>
+          <li><span class="k">3</span><div><b>Base legal à vista</b> <span>a Lei 14.457 continua ancorando a confiança, já na porta.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= QUADRO 2: A CERIMÔNIA DO ENVIO ================= -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Quadro 2</span><h2>A cerimônia do envio</h2></div>
+    <p class="lead">Fim da denúncia. A confirmação vira o momento de entregar a chave: o código de acompanhamento sobe a protagonista, com botão de copiar e a frase que explica pra que serve. O hash de integridade, que antes ocupava o centro, recua para uma linha discreta e expansível.</p>
+    <div class="stage">
+      <div class="pair">
+        <div class="device">
+          <div class="phone" id="ph-cerimonia-claro">
+            <div class="screen">
+              <div class="island"></div>
+              <div class="view">
+                <div class="sbar on-screen"><span>9:41</span><span>FioPulse</span></div>
+                <div class="body">
+                  <div class="cer">
+                    <div class="ring play">
+                      <svg class="r" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44"/><circle class="arc" cx="50" cy="50" r="44"/></svg>
+                      <span class="pulse"></span>
+                      <span class="chk"><svg viewBox="0 0 46 46"><path d="M13 24 L20.5 31.5 L33 16"/></svg></span>
+                    </div>
+                    <div class="cer-t">Denúncia recebida</div>
+                    <div class="cer-selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>Enviada de forma anônima</div>
+                    <div class="cd-key">
+                      <div class="cd-key__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4"/><path d="M10.4 12.6 20 3"/><path d="M15 8l3 3"/></svg>Código de acompanhamento</div>
+                      <div class="cd-key__code">FBR-7K2M-9QX4</div>
+                      <button class="cd-copy" data-copy="FBR-7K2M-9QX4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copiar código</button>
+                    </div>
+                    <p class="cd-guard"><b>Guarde este código.</b> Ele é a sua chave pra acompanhar a apuração, sem se identificar.</p>
+                    <button class="cd-integ" data-integ>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg>
+                      integridade do relato: <span class="short">&nbsp;<span class="hx">62fa84</span>…<span class="hx">e327ef</span></span><span class="full">&nbsp;<span class="hx">62fa84a9d3c1b7e04f8a6c2d19b3e5f7a0c4d8e2b6f1a9c3d7e5b0f4a8c2e327ef</span></span>
+                    </button>
+                    <button class="cer-inicio">Voltar ao início</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="cap">Claro</span>
+        </div>
+        <div class="device">
+          <div class="phone dark" id="ph-cerimonia-escuro">
+            <div class="screen">
+              <div class="island"></div>
+              <div class="view">
+                <div class="sbar on-screen"><span>9:41</span><span>FioPulse</span></div>
+                <div class="body">
+                  <div class="cer">
+                    <div class="ring play">
+                      <svg class="r" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44"/><circle class="arc" cx="50" cy="50" r="44"/></svg>
+                      <span class="pulse"></span>
+                      <span class="chk"><svg viewBox="0 0 46 46"><path d="M13 24 L20.5 31.5 L33 16"/></svg></span>
+                    </div>
+                    <div class="cer-t">Denúncia recebida</div>
+                    <div class="cer-selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>Enviada de forma anônima</div>
+                    <div class="cd-key">
+                      <div class="cd-key__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4"/><path d="M10.4 12.6 20 3"/><path d="M15 8l3 3"/></svg>Código de acompanhamento</div>
+                      <div class="cd-key__code">FBR-7K2M-9QX4</div>
+                      <button class="cd-copy" data-copy="FBR-7K2M-9QX4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copiar código</button>
+                    </div>
+                    <p class="cd-guard"><b>Guarde este código.</b> Ele é a sua chave pra acompanhar a apuração, sem se identificar.</p>
+                    <button class="cd-integ" data-integ>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg>
+                      integridade do relato: <span class="short">&nbsp;<span class="hx">62fa84</span>…<span class="hx">e327ef</span></span><span class="full">&nbsp;<span class="hx">62fa84a9d3c1b7e04f8a6c2d19b3e5f7a0c4d8e2b6f1a9c3d7e5b0f4a8c2e327ef</span></span>
+                    </button>
+                    <button class="cer-inicio">Voltar ao início</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="cap">Escuro</span>
+        </div>
+      </div>
+      <div class="legend">
+        <h4>A chave vem primeiro</h4>
+        <p>O código é curto, agradável de ler e de copiar. O formato agrupado (FBR, quatro, quatro) reduz o erro de digitação sem virar burocracia.</p>
+        <ul>
+          <li><span class="k">1</span><div><b>Protagonista</b> <span>monospace grande, com botão Copiar código logo abaixo.</span></div></li>
+          <li><span class="k">2</span><div><b>Hash rebaixado</b> <span>integridade do relato vira linha discreta, expansível ao toque para o hash completo.</span></div></li>
+          <li><span class="k">3</span><div><b>Cerimônia intacta</b> <span>anel que se completa e o selo Enviada de forma anônima permanecem.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= QUADRO 3: A TELA ACOMPANHAR ================= -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Quadro 3</span><h2>Acompanhar</h2></div>
+    <p class="lead">Um campo, um botão. A pessoa digita o código e vê a linha do tempo mínima da apuração, com o estágio atual aceso. Nada além do andamento aparece, e a consulta não guarda quem perguntou. É funcional: digite o código e toque em Consultar.</p>
+    <div class="stage">
+      <div class="pair">
+        <div class="device">
+          <div class="phone" id="ph-consulta-claro">
+            <div class="screen">
+              <div class="island"></div>
+              <div class="view">
+                <div class="ghd">
+                  <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+                  <div class="ghd-in">
+                    <button class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+                    <div class="ghd-tt">
+                      <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13 13 8.5 15.5 11 11"/></svg></div>
+                      <div><b>Acompanhar denúncia</b><span>sem se identificar</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="body">
+                  <label class="ac-lbl">Seu código de acompanhamento</label>
+                  <div class="ac-field">
+                    <input class="ac-input" inputmode="latin" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="14" placeholder="FBR-0000-0000" value="FBR-7K2M-9QX4">
+                    <button class="ac-consult" data-consult>Consultar</button>
+                  </div>
+                  <div class="ac-priv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>A consulta não registra quem você é. Só quem tem o código vê o andamento.</span></div>
+                  <div class="ac-out"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="cap">Claro</span>
+        </div>
+        <div class="device">
+          <div class="phone dark" id="ph-consulta-escuro">
+            <div class="screen">
+              <div class="island"></div>
+              <div class="view">
+                <div class="ghd">
+                  <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+                  <div class="ghd-in">
+                    <button class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+                    <div class="ghd-tt">
+                      <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13 13 8.5 15.5 11 11"/></svg></div>
+                      <div><b>Acompanhar denúncia</b><span>sem se identificar</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="body">
+                  <label class="ac-lbl">Seu código de acompanhamento</label>
+                  <div class="ac-field">
+                    <input class="ac-input" inputmode="latin" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="14" placeholder="FBR-0000-0000" value="FBR-7K2M-9QX4">
+                    <button class="ac-consult" data-consult>Consultar</button>
+                  </div>
+                  <div class="ac-priv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>A consulta não registra quem você é. Só quem tem o código vê o andamento.</span></div>
+                  <div class="ac-out"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="cap">Escuro</span>
+        </div>
+      </div>
+      <div class="legend">
+        <h4>Só o andamento, mais nada</h4>
+        <p>O resultado mostra o protocolo e três estágios: Recebida, Em análise, Concluída. O estágio corrente fica aceso; o texto do relato e qualquer dado da apuração ficam de fora.</p>
+        <ul>
+          <li><span class="k">1</span><div><b>Campo único</b> <span>monospace, teclado adequado, o código já formatado.</span></div></li>
+          <li><span class="k">2</span><div><b>Linha do tempo mínima</b> <span>Recebida com data, Em análise aceso, Concluída à frente.</span></div></li>
+          <li><span class="k">3</span><div><b>Sem rastro</b> <span>a consulta não registra quem perguntou.</span></div></li>
+        </ul>
+        <div class="note">O status vive separado do relato. Consultar o andamento nunca revela o conteúdo da denúncia.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= QUADRO 4: CÓDIGO NÃO ENCONTRADO ================= -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Quadro 4</span><h2>Código não encontrado</h2></div>
+    <p class="lead">Se o código não bate, a resposta é neutra e sempre a mesma, seja um erro de digitação ou um código que nunca existiu. A tela não confirma nem nega a existência de denúncia alguma. É a defesa contra enumeração. Digite qualquer código diferente e toque em Consultar.</p>
+    <div class="stage">
+      <div class="pair">
+        <div class="device">
+          <div class="phone" id="ph-naoencontrado-claro">
+            <div class="screen">
+              <div class="island"></div>
+              <div class="view">
+                <div class="ghd">
+                  <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+                  <div class="ghd-in">
+                    <button class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+                    <div class="ghd-tt">
+                      <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13 13 8.5 15.5 11 11"/></svg></div>
+                      <div><b>Acompanhar denúncia</b><span>sem se identificar</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="body">
+                  <label class="ac-lbl">Seu código de acompanhamento</label>
+                  <div class="ac-field">
+                    <input class="ac-input" inputmode="latin" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="14" placeholder="FBR-0000-0000" value="FBR-3T9P-1KZ0">
+                    <button class="ac-consult" data-consult>Consultar</button>
+                  </div>
+                  <div class="ac-priv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>A consulta não registra quem você é. Só quem tem o código vê o andamento.</span></div>
+                  <div class="ac-out"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="cap">Claro</span>
+        </div>
+        <div class="device">
+          <div class="phone dark" id="ph-naoencontrado-escuro">
+            <div class="screen">
+              <div class="island"></div>
+              <div class="view">
+                <div class="ghd">
+                  <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+                  <div class="ghd-in">
+                    <button class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+                    <div class="ghd-tt">
+                      <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13 13 8.5 15.5 11 11"/></svg></div>
+                      <div><b>Acompanhar denúncia</b><span>sem se identificar</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="body">
+                  <label class="ac-lbl">Seu código de acompanhamento</label>
+                  <div class="ac-field">
+                    <input class="ac-input" inputmode="latin" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="14" placeholder="FBR-0000-0000" value="FBR-3T9P-1KZ0">
+                    <button class="ac-consult" data-consult>Consultar</button>
+                  </div>
+                  <div class="ac-priv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>A consulta não registra quem você é. Só quem tem o código vê o andamento.</span></div>
+                  <div class="ac-out"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="cap">Escuro</span>
+        </div>
+      </div>
+      <div class="legend">
+        <h4>A mesma resposta para todos</h4>
+        <p>Código inválido e código inexistente recebem exatamente a mesma mensagem. Ninguém consegue sondar o sistema para descobrir se existe ou não uma denúncia por trás de um código.</p>
+        <ul>
+          <li><span class="k">1</span><div><b>Mensagem neutra</b> <span>código não localizado, confira os caracteres.</span></div></li>
+          <li><span class="k">2</span><div><b>Sem vazar existência</b> <span>a tela não diz se a denúncia existe, foi encerrada ou nunca houve.</span></div></li>
+          <li><span class="k">3</span><div><b>Anti-enumeração</b> <span>tentar códigos em sequência não devolve nenhum sinal útil.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <b>O status vive separado do relato.</b> Quem tem o código vê o andamento, e mais nada. Zero registro de consulta.
+  </div>
+
+</div>
+
+<div class="toast" id="toast">Código copiado.</div>
+
+<script>
+  const VALIDO = "FBR-7K2M-9QX4";
+
+  // Linha do tempo (resultado): Recebida concluída, Em análise acesa, Concluída à frente.
+  function timelineHtml() {
+    return `<div class="ac-res">
+      <div class="ac-res__hd">
+        <div class="code">FBR-7K2M-9QX4<span>protocolo da denúncia</span></div>
+        <span class="anon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>anônima</span>
+      </div>
+      <div class="tl">
+        <div class="tl-step done">
+          <div class="tl-node"><div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div class="tl-line"></div></div>
+          <div class="tl-body"><b>Recebida</b><span>12 jul 2026, 14h30</span></div>
+        </div>
+        <div class="tl-step now">
+          <div class="tl-node"><div class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.6"/></svg></div><div class="tl-line"></div></div>
+          <div class="tl-body"><b>Em análise</b><span>a direção está apurando</span><span class="tl-pill">estágio atual</span></div>
+        </div>
+        <div class="tl-step todo">
+          <div class="tl-node"><div class="tl-dot"></div></div>
+          <div class="tl-body"><b>Concluída</b><span>ainda não</span></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function naoEncontradoHtml() {
+    return `<div class="ac-none">
+      <div class="ac-none__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/><path d="M11 8v3.5M11 14h.01"/></svg></div>
+      <b>Código não localizado</b>
+      <span>Confira os caracteres e tente de novo. A resposta é a mesma para qualquer código que não confira.</span>
+    </div>`;
+  }
+
+  function consultar(phone) {
+    const inp = phone.querySelector(".ac-input");
+    const out = phone.querySelector(".ac-out");
+    const val = (inp.value || "").trim().toUpperCase();
+    out.innerHTML = val === VALIDO ? timelineHtml() : naoEncontradoHtml();
+    try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
+  }
+
+  // Estado inicial determinístico por quadro (bate com os nomes dos screenshots).
+  document.querySelectorAll("#ph-consulta-claro, #ph-consulta-escuro").forEach(consultar);
+  document.querySelectorAll("#ph-naoencontrado-claro, #ph-naoencontrado-escuro").forEach(consultar);
+
+  document.querySelectorAll("[data-consult]").forEach((b) =>
+    b.addEventListener("click", () => consultar(b.closest(".phone"))));
+
+  // Copiar código, com toast (fallback silencioso se a área de transferência não abrir).
+  const toast = document.getElementById("toast");
+  let tT = null;
+  function mostrarToast(txt) {
+    toast.textContent = txt;
+    toast.classList.add("on");
+    clearTimeout(tT);
+    tT = setTimeout(() => toast.classList.remove("on"), 1600);
+  }
+  document.querySelectorAll("[data-copy]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const code = b.dataset.copy;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(() => mostrarToast("Código copiado.")).catch(() => mostrarToast("Copie o código manualmente."));
+        } else { mostrarToast("Copie o código manualmente."); }
+      } catch (e) { mostrarToast("Copie o código manualmente."); }
+    }));
+
+  // Hash de integridade: expande/recolhe a linha discreta.
+  document.querySelectorAll("[data-integ]").forEach((b) =>
+    b.addEventListener("click", () => b.classList.toggle("open")));
+</script>
+</body>
+</html>

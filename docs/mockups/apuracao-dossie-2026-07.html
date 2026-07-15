@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FioPulse · Dossiê de apuração de denúncia (mock desktop)</title>
+<style>
+/* ============================================================
+   Fontes self-hosted (Poppins local, sem request cross-origin).
+   Caminho relativo a docs/mockups/ → public/fonts/.
+   ============================================================ */
+@font-face { font-family:"Poppins"; font-style:normal; font-weight:400; font-display:swap; src:url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+@font-face { font-family:"Poppins"; font-style:normal; font-weight:400; font-display:swap; src:url("../../public/fonts/poppins-400-latin-ext.woff2") format("woff2"); unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+1EF2-1EFF,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family:"Poppins"; font-style:normal; font-weight:500; font-display:swap; src:url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+@font-face { font-family:"Poppins"; font-style:normal; font-weight:500; font-display:swap; src:url("../../public/fonts/poppins-500-latin-ext.woff2") format("woff2"); unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+1EF2-1EFF,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family:"Poppins"; font-style:normal; font-weight:600; font-display:swap; src:url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+@font-face { font-family:"Poppins"; font-style:normal; font-weight:600; font-display:swap; src:url("../../public/fonts/poppins-600-latin-ext.woff2") format("woff2"); unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+1EF2-1EFF,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family:"Poppins"; font-style:normal; font-weight:700; font-display:swap; src:url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+@font-face { font-family:"Poppins"; font-style:normal; font-weight:700; font-display:swap; src:url("../../public/fonts/poppins-700-latin-ext.woff2") format("woff2"); unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+1EF2-1EFF,U+2C60-2C7F,U+A720-A7FF; }
+
+/* ============================================================
+   Tokens (recorte do styles.css do app: claro + escuro do gestor).
+   ============================================================ */
+:root {
+  --milk:#F7F9F6; --milk-warm:#EEF3EC;
+  --plum:#008835; --plum-deep:#006328;
+  --bg:var(--milk); --surface:#FFFFFF; --surface-warm:var(--milk-warm);
+  --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:var(--plum-deep); --text-body:#1E2D1A; --text-muted:#4A6245; --text-on-plum:#FFFFFF;
+  --accent:#C8A165;
+  --warning:#B27429; --warning-bg:#F8E4C8; --warning-ink:#7A4A12;
+  --font:"Poppins",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1); --ease-ios:cubic-bezier(.32,.72,.28,1);
+  --shadow-lg:0 24px 70px rgba(0,40,20,.22);
+  /* categorias (mesma paleta do app) */
+  --dc:#7d4a86; --dcb:#f4ecf6;
+}
+html[data-theme="escuro"] {
+  --milk:#0E130E; --milk-warm:#1E261D;
+  --plum:#5FCB85; --plum-deep:#9FE0B5;
+  --bg:#0E130E; --surface:#161D15; --surface-warm:#1E261D;
+  --border:#232C22; --border-strong:#2A332A;
+  --text:#EDF3EA; --text-body:#EDF3EA; --text-muted:#8A9884; --text-on-plum:#0E130E;
+  --accent:#C8A165;
+  --warning:#E8B468; --warning-bg:#3A2E18; --warning-ink:#E8B468;
+  --dc:#c79fce; --dcb:rgba(125,74,134,.24);
+  --shadow-lg:0 24px 70px rgba(0,0,0,.5);
+}
+
+* { box-sizing:border-box; }
+html, body { margin:0; padding:0; height:100%; }
+body {
+  font-family:var(--font); color:var(--text-body); background:var(--bg);
+  height:100vh; overflow:hidden;                       /* prova: pagina nao rola */
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.icon { width:1em; height:1em; display:inline-block; vertical-align:middle; }
+
+/* ---------- Backdrop: a tela do gestor, esmaecida ---------- */
+.backdrop {
+  position:fixed; inset:0;
+  background:
+    radial-gradient(1200px 600px at 78% -10%, rgba(0,136,53,.10), transparent 60%),
+    linear-gradient(180deg, var(--surface-warm), var(--bg));
+  display:flex; align-items:stretch; justify-content:center;
+  padding:74px 28px 26px;                              /* margens elegantes; topo cede pra barra do mock */
+}
+html[data-theme="escuro"] .backdrop {
+  background:
+    radial-gradient(1200px 600px at 78% -10%, rgba(95,203,133,.08), transparent 60%),
+    linear-gradient(180deg, #0B0F0B, var(--bg));
+}
+
+/* ============================================================
+   DOSSIÊ — o modal largo que ocupa quase a tela toda.
+   flex column: cabeçalho fixo + corpo (2 colunas) que preenche.
+   ============================================================ */
+.dossie {
+  width:min(1200px, 100%); height:100%;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:24px; box-shadow:var(--shadow-lg);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.dossie__hd {
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding:18px 26px; border-bottom:1px solid var(--border); flex:none;
+}
+.dossie__title { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.dossie__kicker { font:700 10.5px var(--font); letter-spacing:.14em; text-transform:uppercase; color:var(--plum); }
+.dossie__title h1 { margin:0; font:600 19px var(--font); color:var(--text-body); letter-spacing:-.01em; }
+.dossie__hdtag { display:inline-flex; align-items:center; gap:6px; font:600 11.5px var(--font); color:var(--text-muted); padding:6px 12px; border:1px solid var(--border); border-radius:999px; }
+.dossie__hdtag .icon { width:14px; height:14px; color:var(--plum); }
+.dossie__hdright { display:flex; align-items:center; gap:12px; flex:none; }
+.dossie__close {
+  width:38px; height:38px; border-radius:11px; border:1px solid var(--border);
+  background:var(--surface-warm); color:var(--text-muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all .16s;
+}
+.dossie__close:hover { border-color:var(--border-strong); color:var(--text-body); }
+.dossie__close .icon { width:18px; height:18px; }
+
+/* corpo: grade de 2 colunas, cada uma preenche a altura, nenhuma rola */
+.dossie__body {
+  flex:1; min-height:0;
+  display:grid; grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);
+}
+.col {
+  min-height:0; overflow:hidden;
+  display:flex; flex-direction:column;
+  padding:24px 26px;
+}
+.col--relato { background:var(--surface-warm); border-right:1px solid var(--border); }   /* tom mais quieto */
+.col--apuracao { background:var(--surface); }
+.col__eyebrow { font:700 10.5px var(--font); letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted); margin-bottom:14px; flex:none; }
+
+/* ---------- coluna esquerda · O RELATO ---------- */
+.chips { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; flex:none; }
+.cchip { font:700 10.5px var(--font); letter-spacing:.02em; padding:5px 10px; border-radius:999px; color:var(--dc); background:var(--dcb); }
+.selo { display:inline-flex; align-items:center; gap:5px; font:600 10.5px var(--font); padding:5px 10px; border-radius:999px; }
+.selo .icon { width:12px; height:12px; }
+.selo--anon { background:var(--bg); color:var(--text-muted); border:1px solid var(--border); }
+.selo--ident { background:var(--warning-bg); color:var(--warning-ink); }
+.perm-tag { display:inline-flex; align-items:center; gap:4px; font:700 10px var(--font); letter-spacing:.02em; padding:4px 9px; border-radius:999px; color:var(--warning-ink); background:rgba(200,161,101,.16); }
+.perm-tag .icon { width:11px; height:11px; }
+
+.recebida { font:500 11.5px var(--font); color:var(--text-muted); margin-bottom:16px; flex:none; }
+.recebida b { color:var(--text-body); font-weight:600; }
+
+.integ { display:flex; align-items:center; gap:11px; background:rgba(0,136,53,.06); border:1px solid rgba(0,136,53,.18); border-radius:13px; padding:12px 14px; margin-bottom:16px; flex:none; }
+html[data-theme="escuro"] .integ { background:rgba(95,203,133,.08); border-color:rgba(95,203,133,.22); }
+.integ__ck { width:32px; height:32px; border-radius:10px; background:rgba(0,136,53,.12); color:var(--plum); display:flex; align-items:center; justify-content:center; flex:none; }
+html[data-theme="escuro"] .integ__ck { background:rgba(95,203,133,.16); }
+.integ__ck .icon { width:18px; height:18px; }
+.integ__tx { min-width:0; }
+.integ__tx b { display:block; font:700 12px var(--font); color:var(--text-body); }
+.integ__hash { font:500 10.5px ui-monospace,"SF Mono",Menlo,monospace; color:var(--text-muted); letter-spacing:.02em; word-break:break-all; margin-top:2px; }
+
+.relato { flex:1; min-height:0; margin-bottom:16px; }
+.relato__box {
+  height:100%; overflow:hidden;
+  font:400 13.5px/1.62 var(--font); color:var(--text-body);
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:16px 17px; white-space:pre-wrap; word-break:break-word;
+}
+html[data-theme="escuro"] .relato__box { background:var(--milk-warm); }
+
+.contato-none { display:flex; align-items:flex-start; gap:10px; font:400 12.5px/1.5 var(--font); color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; flex:none; }
+html[data-theme="escuro"] .contato-none { background:var(--milk-warm); }
+.contato-none .icon { width:17px; height:17px; flex:none; margin-top:1px; color:var(--text-muted); }
+.contato { display:none; align-items:center; gap:12px; background:var(--warning-bg); border:1px solid var(--warning-bg); border-radius:12px; padding:13px 15px; flex:none; }
+.contato .icon { width:20px; height:20px; color:var(--warning-ink); flex:none; }
+.contato__tx b { display:block; font:600 13px var(--font); color:var(--text-body); }
+.contato__tx span { display:inline-flex; align-items:center; gap:5px; font:400 11px var(--font); color:var(--warning-ink); margin-top:2px; }
+.contato__tx span .icon { width:12px; height:12px; }
+
+/* ---------- coluna direita · A APURAÇÃO ---------- */
+.selo-selado {
+  display:none; align-items:center; gap:9px; flex:none;
+  font:600 12px var(--font); color:var(--text-muted);
+  background:var(--surface-warm); border:1px solid var(--border-strong); border-radius:12px;
+  padding:11px 14px; margin-bottom:16px;
+}
+.selo-selado .icon { width:16px; height:16px; color:var(--text-muted); flex:none; }
+.selo-selado b { color:var(--text-body); font-weight:600; }
+
+.blk { margin-bottom:16px; flex:none; }
+.blk > label { display:block; font:700 10.5px var(--font); letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); margin-bottom:9px; }
+
+.stopts { display:flex; gap:8px; }
+.stopt { flex:1; border:1.5px solid var(--border); background:var(--surface); border-radius:12px; padding:10px 8px; font:700 12px var(--font); color:var(--text-muted); cursor:pointer; text-align:center; transition:all .16s; }
+.stopt:hover { border-color:var(--border-strong); }
+.stopt.sel[data-v="nova"] { border-color:var(--plum); background:rgba(0,136,53,.08); color:var(--plum); }
+.stopt.sel[data-v="em_analise"] { border-color:var(--warning); background:var(--warning-bg); color:var(--warning-ink); }
+.stopt.sel[data-v="concluida"] { border-color:var(--border-strong); background:var(--surface-warm); color:var(--text-body); }
+
+.desfecho { border:1px dashed var(--border-strong); border-radius:14px; padding:14px; background:var(--surface-warm); }
+.desfecho .dh { display:flex; align-items:center; gap:8px; font:700 10.5px var(--font); letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); margin-bottom:11px; }
+.desfecho .dh .req { font:700 9.5px var(--font); letter-spacing:.04em; text-transform:uppercase; color:var(--warning-ink); background:var(--warning-bg); padding:2px 8px; border-radius:999px; }
+.dfopts { display:flex; gap:8px; flex-wrap:wrap; }
+.dfopt { flex:1 1 30%; min-width:120px; border:1.5px solid var(--border); background:var(--surface); border-radius:11px; padding:10px 8px; font:700 11.5px var(--font); color:var(--text-muted); cursor:pointer; text-align:center; transition:all .16s; }
+.dfopt:hover { border-color:var(--border-strong); }
+.dfopt.sel[data-d="procedente"] { border-color:var(--warning); background:var(--warning-bg); color:var(--warning-ink); }
+.dfopt.sel[data-d="improcedente"] { border-color:var(--plum); background:rgba(0,136,53,.08); color:var(--plum-deep); }
+.dfopt.sel[data-d="sem-elementos"] { border-color:var(--border-strong); background:var(--surface-warm); color:var(--text-body); }
+
+/* aviso âmbar sóbrio das 24h (só no ato de concluir) */
+.aviso-24 { display:none; align-items:flex-start; gap:9px; margin-top:12px; padding:11px 13px; border-radius:11px; background:var(--warning-bg); border:1px solid rgba(200,161,101,.4); border-left:3px solid var(--accent); font:400 11.5px/1.5 var(--font); color:var(--warning-ink); }
+.aviso-24 .icon { width:15px; height:15px; flex:none; margin-top:1px; color:var(--accent); }
+.aviso-24 b { font-weight:700; }
+
+/* toggle guarda permanente */
+.perm { display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:1.5px solid var(--border); background:var(--surface); border-radius:13px; padding:12px 14px; cursor:pointer; transition:all .16s; }
+.perm:hover { border-color:var(--border-strong); }
+.perm__sw { flex:none; width:38px; height:22px; border-radius:999px; background:var(--border-strong); position:relative; transition:background .16s; }
+.perm__sw::after { content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .18s var(--ease); }
+.perm__tx b { display:block; font:600 12.5px var(--font); color:var(--text-body); }
+.perm__tx span { display:block; font:400 11px/1.45 var(--font); color:var(--text-muted); margin-top:2px; }
+
+/* anotações — absorve a folga vertical (garante colunas sem rolagem) */
+.blk--notas { flex:1; min-height:0; display:flex; flex-direction:column; margin-bottom:16px; }
+.blk--notas textarea {
+  flex:1; min-height:0; width:100%; resize:none;
+  border:1.5px solid var(--border); border-radius:12px; padding:12px 13px;
+  font:400 13px/1.55 var(--font); color:var(--text-body); background:var(--surface); outline:0;
+}
+html[data-theme="escuro"] .blk--notas textarea { background:var(--milk-warm); }
+.blk--notas textarea:focus { border-color:var(--plum); }
+.interno { display:flex; align-items:center; gap:6px; font:400 10.5px var(--font); color:var(--text-muted); margin-top:7px; }
+.interno .icon { width:12px; height:12px; flex:none; }
+
+/* rodapé da apuração: salvar + retenção */
+.apuracao__foot { flex:none; display:flex; flex-direction:column; gap:12px; }
+.btn-primary { width:100%; border:0; border-radius:13px; padding:13px; font:700 13.5px var(--font); color:var(--text-on-plum); background:var(--plum); cursor:pointer; transition:filter .16s, transform .12s var(--ease-ios); }
+.btn-primary:hover { filter:brightness(1.04); }
+.btn-primary:active { transform:translateY(1px); }
+
+.ret { display:none; gap:9px; align-items:flex-start; font:400 11.5px/1.55 var(--font); color:var(--text-muted); background:var(--surface-warm); border:1px solid var(--border); border-radius:12px; padding:11px 13px; }
+.ret .icon { width:15px; height:15px; color:var(--text-muted); flex:none; margin-top:1px; }
+.ret b { color:var(--text-body); font-weight:600; }
+.ret--janela { background:rgba(0,136,53,.06); border-color:rgba(0,136,53,.2); color:var(--text-body); }
+html[data-theme="escuro"] .ret--janela { background:rgba(95,203,133,.08); border-color:rgba(95,203,133,.22); }
+.ret--janela .icon { color:var(--plum); }
+.ret--janela .ret__sub { display:block; margin-top:5px; color:var(--text-muted); font-size:11px; }
+.ret--expurgo { background:var(--warning-bg); border-color:rgba(200,161,101,.5); color:var(--warning-ink); }
+.ret--expurgo .icon { color:var(--warning-ink); }
+.ret--expurgo b { color:var(--warning-ink); }
+.ret--perm { background:rgba(200,161,101,.12); border-color:rgba(200,161,101,.4); color:var(--text-body); }
+.ret--perm .icon { color:var(--accent); }
+
+/* ============================================================
+   ESTADOS — dirigidos por data-estado no .dossie.
+   ============================================================ */
+/* aviso 24h só ao concluir */
+.dossie[data-estado="concluir"] .aviso-24 { display:flex; }
+/* selo selado + travas */
+.dossie[data-estado="selado"] .selo-selado { display:flex; }
+.dossie[data-estado="selado"] .apuracao__foot .btn-primary { display:none; }
+.dossie[data-estado="selado"] .stopt,
+.dossie[data-estado="selado"] .dfopt,
+.dossie[data-estado="selado"] .perm { pointer-events:none; opacity:.62; cursor:default; }
+.dossie[data-estado="selado"] .stopt:not(.sel),
+.dossie[data-estado="selado"] .dfopt:not(.sel) { opacity:.42; }
+.dossie[data-estado="selado"] .blk--notas textarea { pointer-events:none; background:var(--surface-warm); border-style:solid; border-color:var(--border); color:var(--text-body); opacity:.9; }
+.dossie[data-estado="selado"] .desfecho { border-style:solid; opacity:.92; }
+.dossie[data-estado="selado"] .desfecho .req { display:none; }
+/* guarda permanente ligada */
+.dossie[data-estado="permanente"] .perm { border-color:var(--accent); background:rgba(200,161,101,.1); }
+.dossie[data-estado="permanente"] .perm__sw { background:var(--accent); }
+.dossie[data-estado="permanente"] .perm__sw::after { transform:translateX(16px); }
+.dossie:not([data-estado="permanente"]) .perm-tag { display:none; }
+/* rodapés por estado */
+.dossie[data-estado="concluir"] .ret--padrao { display:flex; }
+.dossie[data-estado="janela"] .ret--janela { display:flex; }
+.dossie[data-estado="selado"] .ret--expurgo { display:flex; }
+.dossie[data-estado="permanente"] .ret--perm { display:flex; }
+
+/* ============================================================
+   BARRA DO MOCK (chrome do mock, não faz parte do app).
+   ============================================================ */
+.mockbar {
+  position:fixed; top:0; left:0; right:0; z-index:50;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:9px 20px; min-height:52px;
+  background:color-mix(in srgb, var(--surface) 82%, transparent);
+  -webkit-backdrop-filter:saturate(1.4) blur(12px); backdrop-filter:saturate(1.4) blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.mockbar__brand { display:flex; flex-direction:column; gap:1px; margin-right:6px; }
+.mockbar__brand b { font:700 11.5px var(--font); color:var(--text-body); letter-spacing:.01em; }
+.mockbar__brand span { font:500 10px var(--font); color:var(--text-muted); }
+.seg { display:inline-flex; gap:4px; padding:4px; background:var(--surface-warm); border:1px solid var(--border); border-radius:999px; }
+.seg button { border:0; background:transparent; color:var(--text-muted); font:700 11.5px var(--font); padding:7px 13px; border-radius:999px; cursor:pointer; transition:all .14s; }
+.seg button:hover { color:var(--text-body); }
+.seg button.on { background:var(--surface); color:var(--text-body); box-shadow:0 1px 3px rgba(0,40,20,.12); }
+html[data-theme="escuro"] .seg button.on { background:#0E130E; color:var(--text); }
+.mockbar__racional { flex:1 1 260px; min-width:180px; font:500 11.5px/1.4 var(--font); color:var(--text-muted); padding-left:6px; border-left:1px solid var(--border); }
+.mockbar__racional b { color:var(--text-body); font-weight:600; }
+.themetgl { display:inline-flex; gap:4px; padding:4px; background:var(--surface-warm); border:1px solid var(--border); border-radius:999px; }
+.themetgl button { border:0; background:transparent; color:var(--text-muted); font:700 11px var(--font); padding:6px 11px; border-radius:999px; cursor:pointer; }
+.themetgl button.on { background:var(--surface); color:var(--text-body); box-shadow:0 1px 3px rgba(0,40,20,.12); }
+html[data-theme="escuro"] .themetgl button.on { background:#0E130E; color:var(--text); }
+
+/* nota de rodapé (mobile) */
+.mocknote {
+  position:fixed; left:50%; bottom:8px; transform:translateX(-50%); z-index:50;
+  font:500 10.5px var(--font); color:var(--text-muted);
+  background:color-mix(in srgb, var(--surface) 80%, transparent);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border:1px solid var(--border); border-radius:999px; padding:6px 14px; white-space:nowrap;
+}
+
+@media (max-width:900px) {
+  .mockbar__racional { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== BARRA DO MOCK ===================== -->
+<div class="mockbar">
+  <div class="mockbar__brand"><b>Mock · Dossiê de apuração</b><span>redesenho desktop do modal de denúncia</span></div>
+  <div class="seg" id="seg">
+    <button data-e="concluir" class="on">Ao concluir</button>
+    <button data-e="janela">Janela viva</button>
+    <button data-e="selado">Selado</button>
+    <button data-e="permanente">Guarda permanente</button>
+  </div>
+  <div class="mockbar__racional" id="racional"></div>
+  <div class="themetgl" id="themetgl">
+    <button data-t="claro" class="on">Claro</button>
+    <button data-t="escuro">Escuro</button>
+  </div>
+</div>
+
+<!-- ===================== DOSSIÊ ===================== -->
+<div class="backdrop">
+  <div class="dossie" id="dossie" data-estado="concluir">
+
+    <div class="dossie__hd">
+      <div class="dossie__title">
+        <span class="dossie__kicker">Canal de denúncia</span>
+        <h1>Apuração da denúncia</h1>
+      </div>
+      <div class="dossie__hdright">
+        <span class="dossie__hdtag" title="Acesso restrito à administração">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          Somente a direção
+        </span>
+        <button class="dossie__close" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="dossie__body">
+
+      <!-- ---------- ESQUERDA · O RELATO ---------- -->
+      <section class="col col--relato">
+        <div class="col__eyebrow">O relato</div>
+        <div class="chips">
+          <span class="cchip">Assédio moral</span>
+          <span class="selo selo--anon">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>
+            Anônima
+          </span>
+          <span class="perm-tag">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            Permanente
+          </span>
+        </div>
+        <div class="recebida">Recebida em <b>12/07/2026, 09h14</b></div>
+
+        <div class="integ">
+          <span class="integ__ck">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          </span>
+          <div class="integ__tx"><b>Relato íntegro</b><span class="integ__hash">sha256:9f2c4e7a8b13d05f6c9e2a71b40d8c3e</span></div>
+        </div>
+
+        <div class="relato">
+          <div class="relato__box">O líder do meu setor faz comentários humilhantes na frente da equipe quando erramos alguma meta. Já chamou uma colega de "incompetente" na frente de todo mundo e costuma usar tom de ameaça sobre demissão para pressionar.
+
+Isso vem acontecendo há uns três meses e piorou nas últimas semanas. Muita gente está com medo de falar. Estou enviando de forma anônima porque tenho receio de represália, mas queria que a empresa olhasse a situação do turno da tarde.</div>
+        </div>
+
+        <div class="contato-none">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>
+          <span>Enviada de forma anônima. Não há dados de contato, por escolha de quem enviou.</span>
+        </div>
+      </section>
+
+      <!-- ---------- DIREITA · A APURAÇÃO ---------- -->
+      <section class="col col--apuracao apuracao">
+        <div class="col__eyebrow">A apuração</div>
+
+        <div class="selo-selado">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          <span><b>Registro selado</b> em 15 de julho de 2026, 14h30</span>
+        </div>
+
+        <div class="blk">
+          <label>Status da apuração</label>
+          <div class="stopts">
+            <button class="stopt" data-v="nova">Nova</button>
+            <button class="stopt" data-v="em_analise">Em análise</button>
+            <button class="stopt sel" data-v="concluida">Concluída</button>
+          </div>
+        </div>
+
+        <div class="blk desfecho">
+          <div class="dh">Desfecho <span class="req">obrigatório</span></div>
+          <div class="dfopts">
+            <button class="dfopt sel" data-d="procedente">Procedente</button>
+            <button class="dfopt" data-d="improcedente">Improcedente</button>
+            <button class="dfopt" data-d="sem-elementos">Sem elementos suficientes</button>
+          </div>
+          <div class="aviso-24">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            <span><b>Ao concluir, você ainda pode ajustar esta apuração por 24 horas.</b> Depois disso, o registro é selado e não pode mais ser editado por ninguém.</span>
+          </div>
+        </div>
+
+        <div class="blk">
+          <label>Guarda permanente</label>
+          <button type="button" class="perm" role="switch">
+            <span class="perm__sw"></span>
+            <span class="perm__tx"><b>Nunca expurgar este registro</b><span>Caso grave: nunca é expurgado, nem após os 5 anos.</span></span>
+          </button>
+        </div>
+
+        <div class="blk blk--notas">
+          <label>Anotações da apuração</label>
+          <textarea placeholder="Registro interno da direção. O denunciante nunca vê isto.">Apuração conduzida junto ao RH. Ouvidas três pessoas do turno da tarde, com relatos convergentes sobre o tratamento do líder. Encaminhada advertência formal e acompanhamento do clima do setor nas próximas semanas.</textarea>
+          <div class="interno">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <span>Registro interno da direção. O denunciante nunca vê.</span>
+          </div>
+        </div>
+
+        <div class="apuracao__foot">
+          <button class="btn-primary save">Salvar apuração</button>
+
+          <div class="ret ret--padrao">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            <span>Denúncias concluídas são mantidas por <b>5 anos</b> (registro de compliance, Lei 14.457/2022) e depois expurgadas automaticamente.</span>
+          </div>
+
+          <div class="ret ret--janela">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            <span><b>Ajustes possíveis até quinta, 17 de julho, 14h30.</b> Depois, o registro sela.<span class="ret__sub">Mantida por 5 anos (Lei 14.457/2022) e depois expurgada automaticamente.</span></span>
+          </div>
+
+          <div class="ret ret--expurgo">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>Concluída em <b>12/07/2026</b>. Mantida por <b>5 anos</b> (Lei 14.457/2022) e depois expurgada automaticamente. Expurgo previsto para <b>12/07/2031</b>.</span>
+          </div>
+
+          <div class="ret ret--perm">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>
+            <span><b>Guarda permanente:</b> este registro não expira, nem após os 5 anos.</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="mocknote">No celular, o modal segue como hoje, uma folha que rola. O dossiê em duas colunas é do desktop.</div>
+
+<script>
+(function () {
+  var RACIONAL = {
+    concluir: "<b>Ao concluir.</b> No próprio ato, avisamos o que vem depois: 24 horas para ajustar, e então o registro sela.",
+    janela: "<b>Janela viva.</b> Concluída há 3 horas. A janela de 24h ainda corre e o prazo aparece vivo no rodapé.",
+    selado: "<b>Selado.</b> Concluída há 3 dias. Passadas as 24h, ninguém mais edita, nem a direção. Tudo vira leitura.",
+    permanente: "<b>Guarda permanente.</b> Caso grave marcado para nunca expirar, nem após os 5 anos."
+  };
+  var dossie = document.getElementById("dossie");
+  var racional = document.getElementById("racional");
+  var seg = document.getElementById("seg");
+  var themetgl = document.getElementById("themetgl");
+
+  function setEstado(e) {
+    if (!RACIONAL[e]) e = "concluir";
+    dossie.setAttribute("data-estado", e);
+    racional.innerHTML = RACIONAL[e];
+    seg.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.e === e); });
+  }
+  function setTema(t) {
+    if (t !== "escuro") t = "claro";
+    document.documentElement.setAttribute("data-theme", t);
+    themetgl.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.t === t); });
+  }
+
+  seg.addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return; setEstado(b.dataset.e);
+  });
+  themetgl.addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return; setTema(b.dataset.t);
+  });
+
+  // Estado/tema iniciais por querystring (usado pelo probe).
+  var q = new URLSearchParams(location.search);
+  setTema(q.get("tema") || "claro");
+  setEstado(q.get("estado") || "concluir");
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Funil de status + emails ao candidato</title>
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+  :root {
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00; --azul: #0076BE;
+    --ink: #1c231d; --muted: #68716a; --bg: #f2f3ee; --card: #ffffff;
+    --borda: #e3e5dd; --ease-ios: cubic-bezier(.32, .72, .28, 1);
+    --d: #d64545; --i: #e0a400; --s: #008835; --c: #0076be;
+    /* semântica dos status */
+    --st-rec: #4b6b86; --st-rec-bg: #eaf0f5; --st-rec-bd: #d3e0ea;
+    --st-ana: #8a6a00; --st-ana-bg: #fbf3dd; --st-ana-bd: #eddcab;
+    --st-apr: #0b6e33; --st-apr-bg: #e7f4eb; --st-apr-bd: #cbe6d3;
+    --st-rec2: #5a6552; --st-rec2-bg: #eceee8; --st-rec2-bd: #dde0d7;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 48px 20px 90px; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  h1 { font: 700 clamp(26px, 4vw, 40px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--muted); max-width: 780px; font-size: 15.5px; }
+
+  .part { margin-top: 54px; }
+  .part-h { display: flex; align-items: center; gap: 12px; font: 700 20px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .part-h .n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 10px; background: var(--verde-esc); color: #fff; font: 700 14px/30px Poppins, system-ui, sans-serif; text-align: center; }
+  .part-d { color: var(--muted); font-size: 14px; margin: 10px 0 4px; max-width: 740px; }
+  .aplica { margin: 12px 0 26px; font-size: 12.5px; color: var(--verde-esc); background: #ffcb001f; border: 1px solid #e8c34d55; border-radius: 12px; padding: 9px 12px; max-width: 740px; }
+  .aplica b { font-weight: 600; }
+
+  /* ---------------- CENA 1: card da GP (desktop ~920) ---------------- */
+  .deskwrap { display: flex; justify-content: center; }
+  .deskframe { width: 920px; max-width: 100%; background: var(--card); border: 1px solid var(--borda); border-radius: 22px; overflow: hidden; box-shadow: 0 2px 4px #0000000a, 0 30px 70px -30px #04331a3a; }
+  .desk-top { display: flex; align-items: center; gap: 8px; padding: 13px 18px; background: #fbfcf9; border-bottom: 1px solid var(--borda); }
+  .desk-dot { width: 11px; height: 11px; border-radius: 50%; background: #dfe3da; }
+  .desk-title { margin-left: 10px; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .desk-title .badge { background: #00883514; color: var(--verde); border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+  .desk-body { padding: 24px 28px 28px; background: var(--bg); }
+  .desk-h { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+  .desk-h h3 { font: 700 22px Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .desk-h .cnt { font-size: 13px; color: var(--muted); }
+  .desk-h .cnt b { color: var(--verde); font-weight: 700; }
+  .desk-tags { display: flex; gap: 6px; margin: 10px 0 20px; flex-wrap: wrap; }
+  .desk-tags .t { font-size: 11px; font-weight: 600; padding: 4px 11px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
+  .desk-tags .t.turno { background: #e8f1f8; color: var(--azul); }
+
+  .estado-rot { display: flex; align-items: center; gap: 9px; font: 600 12px Poppins, system-ui, sans-serif; color: var(--muted); margin: 4px 0 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .estado-rot .pin { width: 7px; height: 7px; border-radius: 50%; background: var(--verde); }
+  .estado-rot.b .pin { background: var(--amarelo); }
+
+  /* card clonado (g-cand real) */
+  .cc { background: #fff; border: 1px solid var(--borda); border-radius: 18px; padding: 20px 22px; margin-bottom: 22px; position: relative; overflow: hidden; }
+  .cc::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: var(--c); }
+  .cc-grid { display: grid; grid-template-columns: 300px 1fr; gap: 26px; }
+  .cc-l { padding-left: 8px; }
+  .cc-id { display: flex; align-items: center; gap: 13px; }
+  .cc-av { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; font: 700 17px Poppins, system-ui, sans-serif; color: #fff; flex: 0 0 auto; background: var(--azul); }
+  .cc-id b { display: block; font: 700 16px Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .cc-id span { font-size: 12px; color: var(--muted); }
+  .cc-meta { margin: 15px 0 0; display: flex; flex-direction: column; gap: 9px; }
+  .cc-meta div { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: #45523f; }
+  .cc-meta svg { width: 15px; height: 15px; color: var(--muted); flex: 0 0 auto; }
+  .cc-acts { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .b-soft { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #d9e6dd; background: #f6faf7; border-radius: 11px; padding: 8px 13px; cursor: pointer; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--verde-esc); transition: background .15s, border-color .15s; }
+  .b-soft:hover { background: #edf6ef; border-color: #bcd8c6; }
+  .b-ghost { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--borda); background: #fff; border-radius: 11px; padding: 8px 13px; cursor: pointer; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--muted); transition: background .15s, color .15s; }
+  .b-ghost:hover { background: #f7f8f4; color: #45523f; }
+
+  .cc-r { border-left: 1px solid #eef0ea; padding-left: 26px; }
+  .perfil-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .perfil-h small { font: 600 10.5px Poppins, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .selo { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 5px 13px; font: 700 12.5px Poppins, system-ui, sans-serif; background: #0076be14; color: #075c93; }
+  .selo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+  .bar-row { display: grid; grid-template-columns: 92px 1fr 40px; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .bar-lbl { font: 600 12px Poppins, system-ui, sans-serif; color: #45523f; }
+  .bar-track { height: 9px; border-radius: 999px; background: #eef0ea; overflow: hidden; }
+  .bar-fill { display: block; height: 100%; border-radius: 999px; width: 0; transition: width .8s var(--ease-ios); }
+  .bar-fill.d { background: var(--d); } .bar-fill.i { background: var(--i); }
+  .bar-fill.s { background: var(--s); } .bar-fill.c { background: var(--c); }
+  .bar-pct { font: 600 11.5px Poppins, system-ui, sans-serif; color: var(--muted); text-align: right; }
+  .leitura { margin-top: 14px; font-size: 12.5px; color: #45523f; line-height: 1.55; background: #f7f8f4; border-radius: 12px; padding: 11px 13px; border: 1px solid #eef0ea; }
+  .leitura b { font-weight: 600; color: var(--verde-esc); }
+
+  /* ---- a novidade: faixa de status (funil) ---- */
+  .funil { margin-top: 18px; padding-top: 18px; border-top: 1px dashed #dfe3da; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .funil-l { flex: 1 1 380px; min-width: 300px; }
+  .funil-rot { font: 600 10.5px Poppins, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; }
+  .seg { display: inline-flex; background: #f3f4ef; border: 1px solid var(--borda); border-radius: 12px; padding: 4px; gap: 3px; flex-wrap: wrap; }
+  .seg button { border: 0; background: none; cursor: pointer; border-radius: 9px; padding: 8px 13px; font: 600 12.5px Poppins, system-ui, sans-serif; color: #5a6552; display: inline-flex; align-items: center; gap: 7px; transition: background .18s var(--ease-ios), color .18s, box-shadow .18s; }
+  .seg button .sd { width: 7px; height: 7px; border-radius: 50%; background: #b9c0b1; transition: background .18s; }
+  .seg button:hover { color: var(--ink); }
+  .seg button.on { background: #fff; box-shadow: 0 1px 2px #0000000f, 0 2px 8px -4px #04331a2e; }
+  .seg button.on.recebida { color: var(--st-rec); } .seg button.on.recebida .sd { background: var(--st-rec); }
+  .seg button.on.analise { color: var(--st-ana); } .seg button.on.analise .sd { background: var(--i); }
+  .seg button.on.aprovada { color: var(--st-apr); } .seg button.on.aprovada .sd { background: var(--verde); }
+  .seg button.on.recusada { color: var(--st-rec2); } .seg button.on.recusada .sd { background: #9aa392; }
+  .seg .sep { width: 1px; align-self: stretch; background: var(--borda); margin: 4px 2px; }
+  .funil-sug { margin-top: 10px; font-size: 12px; color: #45523f; display: flex; align-items: center; gap: 7px; line-height: 1.45; }
+  .funil-sug svg { width: 14px; height: 14px; color: var(--muted); flex: 0 0 auto; }
+  .funil-sug b { font-weight: 600; color: var(--verde-esc); }
+
+  .funil-r { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .b-msg { display: inline-flex; align-items: center; gap: 9px; border: 1.5px solid #cdd9d1; background: #fff; color: #45523f; border-radius: 13px; padding: 11px 16px; cursor: pointer; font: 700 13px Poppins, system-ui, sans-serif; transition: background .18s, border-color .18s, box-shadow .25s, transform .12s var(--ease-ios); }
+  .b-msg svg { width: 17px; height: 17px; }
+  .b-msg:hover { border-color: #bcd8c6; }
+  .b-msg:active { transform: scale(.98); }
+  .b-msg.aceso { background: var(--verde); border-color: var(--verde); color: #fff; box-shadow: 0 6px 18px -6px #00883566; }
+  .b-msg.aceso:hover { background: #0b6e33; }
+  .canal { font-size: 11px; color: var(--muted); }
+  .micro { margin-top: 16px; font-size: 12px; color: var(--muted); display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; padding: 11px 14px; background: #fff; border: 1px dashed #d3d9cc; border-radius: 14px; }
+  .micro svg { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; color: #97a08f; }
+
+  /* ---------------- CENA 2: caixa de entrada mobile ---------------- */
+  .phone { width: 348px; margin: 0 auto; background: #0b0d0c; border-radius: 46px; padding: 10px; box-shadow: 0 2px 4px #0003, 0 24px 60px -20px #04331a66, inset 0 0 0 2px #262b28; }
+  .screen { position: relative; overflow: hidden; border-radius: 37px; background: #eef0ea; height: 690px; isolation: isolate; display: flex; flex-direction: column; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 92px; height: 25px; border-radius: 999px; background: #0b0d0c; z-index: 60; }
+  .m-top { background: var(--verde-esc); color: #fff; padding: 0 0 12px; flex: 0 0 auto; position: relative; }
+  .m-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, var(--verde), var(--amarelo), var(--azul)); }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 26px 0; font: 600 12px Poppins, system-ui, sans-serif; color: #fff; position: relative; z-index: 50; }
+  .m-head { padding: 12px 20px 0; display: flex; align-items: center; justify-content: space-between; }
+  .m-head b { font: 700 17px Poppins, system-ui, sans-serif; }
+  .m-head .box { font-size: 11px; color: #ffffffbe; display: inline-flex; align-items: center; gap: 5px; }
+  .m-head .box svg { width: 13px; height: 13px; }
+  .inbox { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 13px 20px; }
+  .inbox-nota { font-size: 11.5px; color: #5a6552; text-align: center; margin: 2px 6px 14px; line-height: 1.5; }
+
+  .mail { background: #fff; border: 1px solid #e6e8e1; border-radius: 17px; padding: 14px 15px 15px; margin-bottom: 13px; box-shadow: 0 1px 2px #0000000a; }
+  .mail-hd { display: flex; align-items: center; gap: 10px; }
+  .m-av { width: 38px; height: 38px; border-radius: 50%; background: var(--verde); color: #fff; display: grid; place-items: center; font: 700 17px Poppins, system-ui, sans-serif; flex: 0 0 auto; letter-spacing: .01em; }
+  .m-from { flex: 1; min-width: 0; }
+  .m-from b { display: block; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m-from span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .m-when { font-size: 10.5px; color: #9aa392; flex: 0 0 auto; align-self: flex-start; margin-top: 2px; }
+  .st { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; font: 700 10.5px Poppins, system-ui, sans-serif; letter-spacing: .01em; margin: 12px 0 9px; }
+  .st .std { width: 7px; height: 7px; border-radius: 50%; }
+  .st.recebida { background: var(--st-rec-bg); color: var(--st-rec); border: 1px solid var(--st-rec-bd); } .st.recebida .std { background: var(--st-rec); }
+  .st.analise { background: var(--st-ana-bg); color: var(--st-ana); border: 1px solid var(--st-ana-bd); } .st.analise .std { background: var(--i); }
+  .st.aprovada { background: var(--st-apr-bg); color: var(--st-apr); border: 1px solid var(--st-apr-bd); } .st.aprovada .std { background: var(--verde); }
+  .st.recusada { background: var(--st-rec2-bg); color: var(--st-rec2); border: 1px solid var(--st-rec2-bd); } .st.recusada .std { background: #9aa392; }
+  .m-subj { font: 700 14.5px/1.35 Poppins, system-ui, sans-serif; letter-spacing: -.01em; color: var(--ink); margin-bottom: 8px; }
+  .m-body p { font-size: 12.5px; line-height: 1.62; color: #3c443a; margin-bottom: 9px; }
+  .m-body p:last-child { margin-bottom: 0; }
+  .m-body p.sign { color: #5a6552; }
+
+  /* ---------------- CENA 3: fase 2 automática ---------------- */
+  .f2 { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; padding: 26px 28px 24px; max-width: 900px; margin: 0 auto; box-shadow: 0 2px 4px #0000000a, 0 24px 60px -34px #04331a30; }
+  .f2-flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 14px; margin: 6px 0 22px; }
+  .f2-node { background: #f7f8f4; border: 1px solid var(--borda); border-radius: 15px; padding: 15px 15px; text-align: center; }
+  .f2-node .ic { width: 40px; height: 40px; border-radius: 12px; margin: 0 auto 9px; display: grid; place-items: center; }
+  .f2-node.a .ic { background: #ffcb0022; color: #8a6a00; } .f2-node.b .ic { background: #04331a; color: #fff; } .f2-node.c .ic { background: #00883514; color: var(--verde); }
+  .f2-node .ic svg { width: 20px; height: 20px; }
+  .f2-node b { display: block; font: 600 13px Poppins, system-ui, sans-serif; color: var(--ink); }
+  .f2-node span { font-size: 11.5px; color: var(--muted); line-height: 1.45; display: block; margin-top: 3px; }
+  .f2-arr { color: #b6bfad; display: grid; place-items: center; }
+  .f2-arr svg { width: 22px; height: 22px; }
+  .f2-mail { font: 600 11.5px Poppins, system-ui, sans-serif; color: var(--verde-esc); background: #00883510; border: 1px solid #cbe6d3; border-radius: 999px; padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; }
+  .f2-mail svg { width: 13px; height: 13px; }
+
+  .f2-legenda { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 6px; }
+  .fase { border-radius: 15px; padding: 15px 16px; border: 1px solid var(--borda); }
+  .fase.um { background: #fbf7e6; border-color: #ecdfae; }
+  .fase.dois { background: #eef5f0; border-color: #cfe4d6; }
+  .fase .ft { display: flex; align-items: center; gap: 8px; font: 700 12.5px Poppins, system-ui, sans-serif; margin-bottom: 6px; }
+  .fase .tag { font: 700 9.5px Poppins, system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+  .fase.um .tag { background: var(--amarelo); color: #4a3c00; }
+  .fase.dois .tag { background: var(--verde); color: #fff; }
+  .fase p { font-size: 12px; color: #45523f; line-height: 1.55; }
+  .f2-nota { margin-top: 16px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.55; }
+  .f2-nota b { color: var(--verde-esc); font-weight: 600; }
+
+  .foot { margin-top: 52px; color: var(--muted); font-size: 12.5px; text-align: center; line-height: 1.7; max-width: 820px; margin-left: auto; margin-right: auto; }
+
+  @media (max-width: 680px) {
+    .cc-grid { grid-template-columns: 1fr; gap: 18px; }
+    .cc-r { border-left: 0; border-top: 1px solid #eef0ea; padding-left: 8px; padding-top: 18px; }
+    .funil { flex-direction: column; align-items: stretch; }
+    .funil-r { flex-direction: row; align-items: center; justify-content: space-between; }
+    .f2-flow { grid-template-columns: 1fr; }
+    .f2-arr { transform: rotate(90deg); }
+    .f2-legenda { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="kicker">Proposta · fase 1 aprovada em conceito</span>
+  <h1>Do funil de status ao email certo, sem esforço</h1>
+  <p class="sub">Hoje a candidatura chega e fica parada: não dá pra dizer em que pé está, e a pessoa do outro lado nunca sabe se foi lida. A proposta dá um status simples a cada candidatura e, a cada passo, oferece a mensagem pronta pro candidato. A GP só confere e envia. Três cenas: o funil no card do gestor, os quatro emails que o candidato recebe e a fase 2, quando tudo isso passa a sair sozinho.</p>
+
+  <!-- ============ CENA 1: O FUNIL NO CARD ============ -->
+  <div class="part">
+    <div class="part-h"><span class="n">1</span>O funil de status no card da candidatura</div>
+    <p class="part-d">O mesmo card rico de sempre (contato, currículo, perfil comportamental) ganha uma faixa de status no rodapé: um controle sóbrio com os quatro passos do funil. Ao lado, o botão Mensagem ao candidato, que já sugere a mensagem certa pro status escolhido. Abaixo, o mesmo candidato em dois momentos.</p>
+    <div class="aplica"><b>Onde entra:</b> evolui o card de candidatura da tela Vagas do gestor. Toque nos passos do funil para ver a mensagem sugerida mudar.</div>
+
+    <div class="deskwrap"><div class="deskframe">
+      <div class="desk-top">
+        <span class="desk-dot"></span><span class="desk-dot"></span><span class="desk-dot"></span>
+        <span class="desk-title">FioPulse · Gestão de Pessoas <span class="badge">Vagas</span></span>
+      </div>
+      <div class="desk-body">
+        <div class="desk-h">
+          <h3>Controlador de Materiais</h3>
+          <span class="cnt"><b>1</b> candidatura</span>
+        </div>
+        <div class="desk-tags"><span class="t">Almoxarifado</span><span class="t turno">1º turno</span><span class="t">Indaial, SC</span></div>
+
+        <!-- ESTADO A: recém-chegada (Recebida) -->
+        <div class="estado-rot"><span class="pin"></span>Estado A · recém-chegada</div>
+        <div class="cc" id="cardA">
+          <div class="cc-grid">
+            <div class="cc-l">
+              <div class="cc-id">
+                <span class="cc-av">AC</span>
+                <div><b>Ana Carolina Duarte</b><span>28 anos · Indaial, SC</span></div>
+              </div>
+              <div class="cc-meta">
+                <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg>(47) 9 9614-2085</div>
+                <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>ana.duarte@email.com</div>
+              </div>
+              <div class="cc-acts">
+                <button class="b-soft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/></svg>Abrir currículo</button>
+                <button class="b-soft">Ver ficha completa</button>
+                <button class="b-ghost">Excluir</button>
+              </div>
+            </div>
+            <div class="cc-r">
+              <div class="perfil-h">
+                <small>Perfil comportamental</small>
+                <span class="selo"><span class="dot"></span>Analítico</span>
+              </div>
+              <div class="bar-row"><span class="bar-lbl">Decisão</span><div class="bar-track"><i class="bar-fill d" data-w="31"></i></div><span class="bar-pct">31%</span></div>
+              <div class="bar-row"><span class="bar-lbl">Comunicação</span><div class="bar-track"><i class="bar-fill i" data-w="25"></i></div><span class="bar-pct">25%</span></div>
+              <div class="bar-row"><span class="bar-lbl">Estabilidade</span><div class="bar-track"><i class="bar-fill s" data-w="63"></i></div><span class="bar-pct">63%</span></div>
+              <div class="bar-row"><span class="bar-lbl">Detalhe</span><div class="bar-track"><i class="bar-fill c" data-w="88"></i></div><span class="bar-pct">88%</span></div>
+              <div class="leitura"><b>Foco em precisão, processo e qualidade.</b> Combina com conferência e controle de materiais. Costuma render mais com instrução clara.</div>
+            </div>
+          </div>
+          <div class="funil" data-card="A">
+            <div class="funil-l">
+              <div class="funil-rot">Status da candidatura</div>
+              <div class="seg" role="tablist">
+                <button class="on recebida" data-st="recebida" role="tab"><span class="sd"></span>Recebida</button>
+                <button data-st="analise" role="tab"><span class="sd"></span>Em análise</button>
+                <span class="sep"></span>
+                <button data-st="aprovada" role="tab"><span class="sd"></span>Aprovada</button>
+                <button data-st="recusada" role="tab"><span class="sd"></span>Não seguiu adiante</button>
+              </div>
+              <div class="funil-sug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg><span>Mensagem pronta: <b data-sug>Recebemos a sua candidatura, Ana Carolina</b></span></div>
+            </div>
+            <div class="funil-r">
+              <button class="b-msg" data-msg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>Mensagem ao candidato</button>
+              <span class="canal">email ou WhatsApp</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESTADO B: movida para Em análise -->
+        <div class="estado-rot b"><span class="pin"></span>Estado B · movida para Em análise</div>
+        <div class="cc" id="cardB">
+          <div class="cc-grid">
+            <div class="cc-l">
+              <div class="cc-id">
+                <span class="cc-av">AC</span>
+                <div><b>Ana Carolina Duarte</b><span>28 anos · Indaial, SC</span></div>
+              </div>
+              <div class="cc-meta">
+                <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg>(47) 9 9614-2085</div>
+                <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>ana.duarte@email.com</div>
+              </div>
+              <div class="cc-acts">
+                <button class="b-soft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/></svg>Abrir currículo</button>
+                <button class="b-soft">Ver ficha completa</button>
+                <button class="b-ghost">Excluir</button>
+              </div>
+            </div>
+            <div class="cc-r">
+              <div class="perfil-h">
+                <small>Perfil comportamental</small>
+                <span class="selo"><span class="dot"></span>Analítico</span>
+              </div>
+              <div class="bar-row"><span class="bar-lbl">Decisão</span><div class="bar-track"><i class="bar-fill d" data-w="31"></i></div><span class="bar-pct">31%</span></div>
+              <div class="bar-row"><span class="bar-lbl">Comunicação</span><div class="bar-track"><i class="bar-fill i" data-w="25"></i></div><span class="bar-pct">25%</span></div>
+              <div class="bar-row"><span class="bar-lbl">Estabilidade</span><div class="bar-track"><i class="bar-fill s" data-w="63"></i></div><span class="bar-pct">63%</span></div>
+              <div class="bar-row"><span class="bar-lbl">Detalhe</span><div class="bar-track"><i class="bar-fill c" data-w="88"></i></div><span class="bar-pct">88%</span></div>
+              <div class="leitura"><b>Foco em precisão, processo e qualidade.</b> Combina com conferência e controle de materiais. Costuma render mais com instrução clara.</div>
+            </div>
+          </div>
+          <div class="funil" data-card="B">
+            <div class="funil-l">
+              <div class="funil-rot">Status da candidatura</div>
+              <div class="seg" role="tablist">
+                <button data-st="recebida" role="tab"><span class="sd"></span>Recebida</button>
+                <button class="on analise" data-st="analise" role="tab"><span class="sd"></span>Em análise</button>
+                <span class="sep"></span>
+                <button data-st="aprovada" role="tab"><span class="sd"></span>Aprovada</button>
+                <button data-st="recusada" role="tab"><span class="sd"></span>Não seguiu adiante</button>
+              </div>
+              <div class="funil-sug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg><span>Mensagem pronta: <b data-sug>Sua candidatura está em análise</b></span></div>
+            </div>
+            <div class="funil-r">
+              <button class="b-msg aceso" data-msg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>Mensagem ao candidato</button>
+              <span class="canal">email ou WhatsApp</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="micro">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          O candidato recebe a mensagem do status por email ou WhatsApp, você escolhe na hora.
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ CENA 2: OS 4 EMAILS ============ -->
+  <div class="part">
+    <div class="part-h"><span class="n">2</span>Os quatro emails que o candidato recebe</div>
+    <p class="part-d">Uma mensagem por status, escrita com cuidado, sem jargão e sem promessa que a empresa não pode cumprir. O mesmo chip de status que aparece no card da GP liga cada email ao passo do funil. Aqui estão os quatro, na caixa de entrada da Ana Carolina.</p>
+    <div class="aplica"><b>Onde entra:</b> remetente Fiobras · Gestão de Pessoas &lt;vagas@fiobras.com.br&gt;. Os textos abaixo são os aprovados em rascunho, com o nome e a vaga preenchidos.</div>
+
+    <div class="phone"><div class="screen">
+      <div class="island"></div>
+      <div class="m-top">
+        <div class="sbar"><span>9:41</span><span>Caixa de entrada</span></div>
+        <div class="m-head">
+          <b>Entrada</b>
+          <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>4 mensagens</span>
+        </div>
+      </div>
+      <div class="inbox">
+        <p class="inbox-nota">As quatro mensagens, uma por status do funil.</p>
+
+        <!-- EMAIL 1 · Recebida -->
+        <div class="mail">
+          <div class="mail-hd">
+            <span class="m-av">F</span>
+            <div class="m-from"><b>Fiobras · Gestão de Pessoas</b><span>vagas@fiobras.com.br</span></div>
+            <span class="m-when">agora</span>
+          </div>
+          <span class="st recebida"><span class="std"></span>Recebida</span>
+          <div class="m-subj">Recebemos a sua candidatura, Ana Carolina</div>
+          <div class="m-body">
+            <p>Olá, Ana Carolina! A sua candidatura para a vaga de CONTROLADOR DE MATERIAIS chegou direitinho aqui na Fiobras. Obrigado por querer tingir o seu futuro com a gente.</p>
+            <p>A nossa equipe de Gestão de Pessoas vai analisar o seu perfil com atenção, gente de verdade lendo, sem robô decidindo nada. Assim que houver novidade, você recebe um email nosso.</p>
+            <p class="sign">Um abraço, Equipe de Gestão de Pessoas · Fiobras</p>
+          </div>
+        </div>
+
+        <!-- EMAIL 2 · Em análise -->
+        <div class="mail">
+          <div class="mail-hd">
+            <span class="m-av">F</span>
+            <div class="m-from"><b>Fiobras · Gestão de Pessoas</b><span>vagas@fiobras.com.br</span></div>
+            <span class="m-when">2 dias</span>
+          </div>
+          <span class="st analise"><span class="std"></span>Em análise</span>
+          <div class="m-subj">Sua candidatura está em análise</div>
+          <div class="m-body">
+            <p>Olá, Ana Carolina! Passando pra te contar que a sua candidatura para CONTROLADOR DE MATERIAIS está em análise pela nossa equipe.</p>
+            <p>O seu perfil está sendo avaliado junto com os demais candidatos da vaga. Não precisa fazer nada por enquanto. Qualquer novidade, a gente te escreve.</p>
+            <p class="sign">Um abraço, Equipe de Gestão de Pessoas · Fiobras</p>
+          </div>
+        </div>
+
+        <!-- EMAIL 3 · Aprovada -->
+        <div class="mail">
+          <div class="mail-hd">
+            <span class="m-av">F</span>
+            <div class="m-from"><b>Fiobras · Gestão de Pessoas</b><span>vagas@fiobras.com.br</span></div>
+            <span class="m-when">5 dias</span>
+          </div>
+          <span class="st aprovada"><span class="std"></span>Aprovada</span>
+          <div class="m-subj">Boas notícias sobre a sua candidatura, Ana Carolina</div>
+          <div class="m-body">
+            <p>Olá, Ana Carolina! Temos boas notícias: o seu perfil chamou a nossa atenção e queremos conversar com você sobre a vaga de CONTROLADOR DE MATERIAIS.</p>
+            <p>Em breve a nossa equipe entra em contato pelo telefone que você deixou na candidatura pra combinar os próximos passos. Fica de olho no WhatsApp.</p>
+            <p class="sign">Até já, Equipe de Gestão de Pessoas · Fiobras</p>
+          </div>
+        </div>
+
+        <!-- EMAIL 4 · Não seguiu adiante -->
+        <div class="mail">
+          <div class="mail-hd">
+            <span class="m-av">F</span>
+            <div class="m-from"><b>Fiobras · Gestão de Pessoas</b><span>vagas@fiobras.com.br</span></div>
+            <span class="m-when">5 dias</span>
+          </div>
+          <span class="st recusada"><span class="std"></span>Não seguiu adiante</span>
+          <div class="m-subj">Sobre a sua candidatura na Fiobras</div>
+          <div class="m-body">
+            <p>Olá, Ana Carolina. Queremos te agradecer de verdade pelo interesse na vaga de CONTROLADOR DE MATERIAIS e pelo tempo que você dedicou à candidatura.</p>
+            <p>Desta vez, seguimos com outro perfil pra essa posição. Isso não diminui em nada a sua trajetória. O seu cadastro fica conosco por até 6 meses e pode ser considerado em outras oportunidades, e as vagas abertas estão sempre em vagas.fiobras.com.br.</p>
+            <p>Desejamos muito sucesso no seu caminho.</p>
+            <p class="sign">Equipe de Gestão de Pessoas · Fiobras</p>
+          </div>
+        </div>
+
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============ CENA 3: FASE 2 ============ -->
+  <div class="part">
+    <div class="part-h"><span class="n">3</span>Fase 2: o mesmo fluxo, sem toque nenhum</div>
+    <p class="part-d">Depois que a fase 1 estiver rodando e o texto das mensagens estiver validado no uso, a fase 2 pluga o envio automático. A candidatura enviada dispara o primeiro email sozinha, e cada mudança de status dispara o email correspondente, tudo pela extensão oficial em vagas@fiobras.com.br. A tela do gestor continua igual.</p>
+
+    <div class="f2">
+      <div class="f2-flow">
+        <div class="f2-node a">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+          <b>Status muda no card</b>
+          <span>a GP move o funil, como sempre</span>
+        </div>
+        <div class="f2-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></div>
+        <div class="f2-node b">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"/><circle cx="12" cy="12" r="3.2"/></svg></div>
+          <b>Envio automático</b>
+          <span>a extensão dispara sem ninguém tocar</span>
+        </div>
+        <div class="f2-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></div>
+        <div class="f2-node c">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+          <b>Email chega ao candidato</b>
+          <span class="f2-mail" style="margin-top:6px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>vagas@fiobras.com.br</span>
+        </div>
+      </div>
+
+      <div class="f2-legenda">
+        <div class="fase um">
+          <div class="ft"><span class="tag">Fase 1</span>GP envia com um toque</div>
+          <p>Sai primeiro. A mensagem certa já aparece pronta no card, a GP confere e envia por email ou WhatsApp. Controle total, zero automação nova pra configurar.</p>
+        </div>
+        <div class="fase dois">
+          <div class="ft"><span class="tag">Fase 2</span>Automático</div>
+          <p>Pluga depois, sem mudar nada na tela. O mesmo funil passa a disparar o email correspondente sozinho, pela extensão oficial. Quem já usa a fase 1 nem percebe a diferença no dia a dia.</p>
+        </div>
+      </div>
+      <p class="f2-nota">A fase 1 sai primeiro e a fase 2 é só um encaixe: <b>o funil e os textos são exatamente os mesmos</b>, muda só quem aperta o botão de enviar.</p>
+    </div>
+  </div>
+
+  <p class="foot">Protótipo em HTML, sem dependência nova nem rede externa: Poppins local do app, ícones em SVG inline e o funil interativo em JS puro. O envio por email (extensão oficial no vagas@fiobras.com.br) e o atalho de WhatsApp entram na implementação, depois do seu OK. Reduz movimento para quem prefere.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // mensagem sugerida por status (assunto do email correspondente)
+  var SUG = {
+    recebida: "Recebemos a sua candidatura, Ana Carolina",
+    analise: "Sua candidatura está em análise",
+    aprovada: "Boas notícias sobre a sua candidatura, Ana Carolina",
+    recusada: "Sobre a sua candidatura na Fiobras"
+  };
+  // anima as barras do perfil ao carregar
+  requestAnimationFrame(function () {
+    document.querySelectorAll(".bar-fill").forEach(function (el) { el.style.width = (el.dataset.w || 0) + "%"; });
+  });
+  // funil interativo: cada faixa é independente
+  document.querySelectorAll(".funil").forEach(function (funil) {
+    var seg = funil.querySelector(".seg");
+    var sug = funil.querySelector("[data-sug]");
+    var btn = funil.querySelector("[data-msg]");
+    seg.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-st]");
+      if (!b) return;
+      var st = b.dataset.st;
+      seg.querySelectorAll("button").forEach(function (x) {
+        x.classList.remove("on", "recebida", "analise", "aprovada", "recusada");
+      });
+      b.classList.add("on", st);
+      sug.textContent = SUG[st];
+      btn.classList.add("aceso");   // status recém-mexido acende o botão de enviar
+    });
+  });
+})();
+</script>
+</body>
+</html>

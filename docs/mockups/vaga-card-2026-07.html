@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card de vaga · 3 ideias · Fiobras</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23008835'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Arial' font-weight='800' font-size='18' fill='%23fff'%3EF%3C/text%3E%3C/svg%3E">
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+
+  :root {
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00; --azul: #0076BE;
+    --verde-chip: #0b6e33; --ink: #1d2a19; --canvas: #e9ede4; --card: #f4f6f1;
+    --ease: cubic-bezier(.32,.72,.28,1);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background:
+      radial-gradient(1100px 520px at 14% -6%, #f2f7ef, transparent 60%),
+      radial-gradient(900px 480px at 96% 2%, #eef4f8, transparent 55%),
+      var(--canvas);
+    font-family: "Poppins", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased;
+    padding: 46px 26px 90px; }
+
+  /* ===== Cabeçalho da página de review ===== */
+  .head { max-width: 1180px; margin: 0 auto 8px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .brand .mk { width: 40px; height: 40px; border-radius: 11px; background: var(--verde); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 20px; }
+  .brand b { font-size: 16px; letter-spacing: .01em; }
+  .brand small { display: block; font-size: 11.5px; color: #6b7563; font-weight: 500; }
+  .kick { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--verde); background: #00883512; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  .head h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.12; letter-spacing: -.02em; margin: 18px 0 12px; font-weight: 700; max-width: 760px; }
+  .head h1 .hl { position: relative; white-space: nowrap; }
+  .head h1 .hl::after { content: ""; position: absolute; left: -2px; right: -2px; bottom: 4px; height: 34%; background: #FFCB0055; border-radius: 4px; z-index: -1; }
+  .lede { max-width: 720px; font-size: 15px; line-height: 1.65; color: #46523f; margin: 0; }
+
+  .problema { max-width: 1180px; margin: 22px auto 0; display: flex; gap: 14px; align-items: flex-start;
+    background: #fff; border: 1px solid #e5ddc4; border-left: 4px solid var(--amarelo); border-radius: 16px; padding: 16px 18px; box-shadow: 0 3px 14px rgba(10,40,20,.05); }
+  .problema .pic { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; background: #fff7db; color: #a8820b; display: grid; place-items: center; }
+  .problema .pic svg { width: 19px; height: 19px; }
+  .problema p { margin: 0; font-size: 13.5px; line-height: 1.6; color: #45523f; }
+  .problema b { color: var(--ink); font-weight: 600; }
+
+  /* ===== Seção por ideia ===== */
+  .ideias { max-width: 1180px; margin: 34px auto 0; display: flex; flex-direction: column; gap: 34px; }
+  .ideia { background: #fbfcf9; border: 1px solid #e2e7da; border-radius: 24px; padding: 26px 26px 30px; box-shadow: 0 10px 34px -18px rgba(10,40,20,.28); }
+  .ideia__hd { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .badge { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; font-weight: 700; color: #fff; }
+  .badge.a { background: linear-gradient(135deg, #0aa04a, #04331a); }
+  .badge.b { background: linear-gradient(135deg, #1a8fd0, #045a8f); }
+  .badge.c { background: linear-gradient(135deg, #e9b400, #b07d00); }
+  .ideia__tx { min-width: 240px; flex: 1; }
+  .ideia__tx h2 { margin: 2px 0 6px; font-size: 21px; font-weight: 700; letter-spacing: -.01em; }
+  .ideia__tx .rac { margin: 0; font-size: 13.5px; line-height: 1.55; color: #55604f; max-width: 620px; }
+  .custo { flex: 0 0 auto; align-self: center; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #45523f; background: #eef1ea; border: 1px solid #e0e6d9; border-radius: 999px; padding: 8px 14px; }
+  .custo .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+  .custo .dot.lv { background: #2ba24a; }
+  .custo .dot.md { background: var(--amarelo); }
+  .custo .dot.mn { background: #8bbf3a; }
+
+  .rail { display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .cap { font-size: 12px; font-weight: 600; color: #5a6852; display: inline-flex; align-items: center; gap: 7px; }
+  .cap .tg { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #8a927f; background: #eef1ea; border-radius: 6px; padding: 3px 7px; }
+
+  /* ===== Device / frame mobile ===== */
+  .frame { position: relative; width: 390px; }
+  .device { border-radius: 46px; background: linear-gradient(#161d13, #0c1109); padding: 12px; box-shadow: 0 34px 60px -26px rgba(4,51,26,.5), 0 10px 22px -12px rgba(0,0,0,.32); }
+  .screen { position: relative; border-radius: 34px; background: var(--card); overflow: hidden; }
+  .screen.scroll { height: 712px; display: flex; flex-direction: column; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 11px 24px 6px; font-size: 12.5px; font-weight: 600; color: var(--ink); background: var(--card); flex: 0 0 auto; }
+  .statusbar .dots { display: inline-flex; gap: 5px; align-items: center; }
+  .statusbar .dots i { width: 15px; height: 9px; border: 1.4px solid var(--ink); border-radius: 3px; display: inline-block; position: relative; opacity: .8; }
+  .statusbar .dots i::after { content: ""; position: absolute; right: -3px; top: 2px; width: 2px; height: 3px; background: var(--ink); border-radius: 1px; }
+  .statusbar .sig { display: inline-flex; gap: 2px; align-items: flex-end; height: 10px; }
+  .statusbar .sig span { width: 3px; background: var(--ink); border-radius: 1px; opacity: .8; }
+  .statusbar .sig span:nth-child(1){height:4px}.statusbar .sig span:nth-child(2){height:6px}.statusbar .sig span:nth-child(3){height:8px}.statusbar .sig span:nth-child(4){height:10px}
+
+  /* barra de contexto do app (topo verde do site) */
+  .appbar { background: var(--verde-esc); color: #fff; padding: 12px 18px 13px; flex: 0 0 auto; }
+  .appbar .logo { display: flex; align-items: center; gap: 9px; }
+  .appbar .logo .m { width: 26px; height: 26px; border-radius: 8px; background: #fff; color: var(--verde); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+  .appbar .logo b { font-size: 14px; }
+  .appbar h4 { margin: 12px 0 1px; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+  .appbar span { font-size: 12px; opacity: .82; }
+
+  .canvas { padding: 16px; background: var(--card); }
+  .screen.scroll .canvas { flex: 1 1 auto; overflow-y: auto; }
+
+  /* ===== Cartão de vaga: linguagem REAL do site ===== */
+  .vaga { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid #e0e6d9; border-radius: 18px; padding: 20px 20px 18px; box-shadow: 0 3px 14px rgba(10,40,20,.05); overflow: hidden; }
+  .vaga::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #008835, #FFCB00, #0076BE); }
+  .vaga h3 { margin: 4px 0 0; font-size: 17.5px; font-weight: 700; line-height: 1.3; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 12px; }
+  .tag { font-size: 10.5px; font-weight: 700; padding: 3.5px 11px; border-radius: 999px; background: #eaf4ec; color: var(--verde-chip); }
+  .tag--turno { background: #e8f1f8; color: #0076BE; }
+  .desc { margin: 0 0 8px; font-size: 13.5px; color: #45523f; line-height: 1.6; }
+  .req { margin: 0 0 16px; font-size: 12.5px; color: #6b7563; line-height: 1.55; }
+  .vfoot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .data { font-size: 11px; color: #8a927f; }
+  .cta { display: inline-flex; align-items: center; gap: 8px; background: var(--verde); color: #fff; border: 0; font: 700 13.5px "Poppins", sans-serif; padding: 12px 18px; border-radius: 999px; cursor: pointer; text-decoration: none; transition: background .15s ease, transform .15s ease; }
+  .cta:hover { background: #0b6e33; transform: translateY(-1px); }
+  .cta svg { width: 17px; height: 17px; fill: currentColor; }
+
+  /* Benefícios (selo do site) */
+  .sben { border-top: 1px solid #eef0ea; padding-top: 13px; margin: 0 0 14px; }
+  .sben-l { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #8a927f; margin-bottom: 8px; }
+  .sben-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sben-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: #2f6b3f; background: #f2f8f2; border: 1px solid #dbe9dc; border-radius: 999px; padding: 5px 11px; white-space: nowrap; }
+  .sben-chip svg { width: 12px; height: 12px; color: var(--verde); flex: 0 0 auto; }
+  .sben-chip.plus { color: #5a6852; background: #eef1ea; border-color: #e0e6d9; }
+
+  /* ============ IDEIA A: expandível ============ */
+  .vexp .desc { overflow: hidden; max-height: 4.9em; transition: max-height .42s var(--ease); }
+  .vexp.open .desc { max-height: 46em; }
+  .vexp .descbox { position: relative; }
+  .vexp .fade { pointer-events: none; position: absolute; left: 0; right: 0; bottom: 8px; height: 2.1em; background: linear-gradient(rgba(255,255,255,0), #fff); transition: opacity .3s var(--ease); }
+  .vexp.open .fade { opacity: 0; }
+  .vexp .preview-ben { transition: opacity .2s var(--ease); }
+  .vexp.open .preview-ben { display: none; }
+  .vexp .areveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .42s var(--ease); }
+  .vexp.open .areveal { grid-template-rows: 1fr; }
+  .vexp .areveal-in { overflow: hidden; min-height: 0; }
+  .vexp .areveal .req { margin-top: 2px; }
+  .ghost { background: #eef4ec; color: var(--verde-chip); border: 0; font: 700 13px "Poppins", sans-serif; padding: 11px 17px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: background .15s ease; }
+  .ghost:hover { background: #e3efe5; }
+  .ghost svg { width: 15px; height: 15px; transition: transform .3s var(--ease); }
+  .vexp.open .ghost svg { transform: rotate(180deg); }
+
+  /* ============ IDEIA B: card compacto + página ============ */
+  .vcompact { position: relative; background: #fff; border: 1px solid #e0e6d9; border-radius: 16px; padding: 15px 16px 14px; box-shadow: 0 3px 14px rgba(10,40,20,.05); overflow: hidden; cursor: pointer; transition: transform .16s var(--ease), box-shadow .16s var(--ease); }
+  .vcompact::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: linear-gradient(#008835, #FFCB00, #0076BE); }
+  .vcompact:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -12px rgba(10,40,20,.22); }
+  .vcompact + .vcompact { margin-top: 12px; }
+  .vcompact h3 { margin: 0 0 0 4px; font-size: 15.5px; font-weight: 700; line-height: 1.25; }
+  .vcompact .tags { margin: 9px 0 9px 4px; }
+  .vcompact .tag { font-size: 10px; padding: 3px 9px; }
+  .rsum { margin: 0 0 0 4px; font-size: 12.5px; color: #55604f; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cfoot { margin: 11px 0 0 4px; display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #8a927f; }
+  .cfoot .bn { color: #2f6b3f; font-weight: 600; }
+  .cfoot .go { margin-left: auto; color: var(--verde); font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+  .cfoot .go svg { width: 13px; height: 13px; }
+  .listlabel { font-size: 12px; font-weight: 600; color: #6b7563; margin: 2px 2px 12px; }
+  .listlabel b { color: var(--ink); }
+
+  /* página da vaga (frame B detalhe) */
+  .pg-head { background: var(--verde-esc); color: #fff; padding: 14px 18px 18px; flex: 0 0 auto; position: relative; }
+  .pg-head .back { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.14); border: 0; color: #fff; font: 600 12px "Poppins", sans-serif; border-radius: 999px; padding: 7px 13px 7px 9px; cursor: pointer; margin-bottom: 14px; }
+  .pg-head .back svg { width: 14px; height: 14px; }
+  .pg-head h3 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; line-height: 1.22; }
+  .pg-head .tags { margin: 12px 0 0; }
+  .pg-head .tag { background: rgba(255,255,255,.14); color: #eafaef; }
+  .pg-head .tag--turno { background: rgba(0,118,190,.34); color: #dcefff; }
+  .pg-body { padding: 18px; background: var(--card); }
+  .pg-sec { margin: 0 0 18px; }
+  .pg-sec:last-child { margin-bottom: 4px; }
+  .pg-sec .lb { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8a927f; margin-bottom: 7px; }
+  .pg-sec p { margin: 0; font-size: 13.5px; line-height: 1.62; color: #45523f; }
+  .pg-body .sben { border-top: 0; padding-top: 0; }
+  .pg-foot { flex: 0 0 auto; border-top: 1px solid #e6e9e0; background: #fbfcf9; padding: 13px 18px calc(14px + env(safe-area-inset-bottom)); }
+  .pg-foot .cta { width: 100%; justify-content: center; padding: 14px; font-size: 14.5px; }
+
+  /* ============ IDEIA C: dieta ============ */
+  .vc .desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
+  .vc.open .desc { display: block; -webkit-line-clamp: unset; }
+  .vermais { background: none; border: 0; color: var(--verde); font: 600 12.5px "Poppins", sans-serif; cursor: pointer; padding: 2px 0 0; text-decoration: underline; text-underline-offset: 3px; margin-bottom: 12px; }
+  .vc .benline { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
+  .vc .benline-clip { display: flex; gap: 6px; overflow: hidden; flex: 1 1 auto; min-width: 0; }
+  .vc .benline .plus { flex: 0 0 auto; }
+  .req-disc { border-top: 1px solid #eef0ea; padding-top: 11px; margin-bottom: 15px; }
+  .req-disc summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 7px; font: 600 12.5px "Poppins", sans-serif; color: #45523f; }
+  .req-disc summary::-webkit-details-marker { display: none; }
+  .req-disc summary .chev { width: 8px; height: 8px; border-right: 2px solid #7c8676; border-bottom: 2px solid #7c8676; transform: rotate(-45deg); transition: transform .2s var(--ease); flex: 0 0 auto; margin-left: 1px; }
+  .req-disc[open] summary .chev { transform: rotate(45deg); }
+  .req-disc .rq { margin: 9px 0 0; font-size: 12.5px; color: #6b7563; line-height: 1.55; }
+
+  /* ===== Recomendação ===== */
+  .reco { max-width: 1180px; margin: 40px auto 0; background: var(--verde-esc); color: #fff; border-radius: 22px; padding: 28px 30px; position: relative; overflow: hidden; }
+  .reco::after { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(255,203,0,.18), transparent 65%); }
+  .reco .lb { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #ffd83d; margin-bottom: 10px; }
+  .reco h3 { margin: 0 0 10px; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+  .reco p { margin: 0; font-size: 14px; line-height: 1.68; color: #dbe7dd; max-width: 780px; }
+  .reco p b { color: #fff; font-weight: 600; }
+  .reco .pick { display: inline-block; background: var(--amarelo); color: #332902; font-weight: 700; border-radius: 6px; padding: 0 6px; }
+
+  .foot { max-width: 1180px; margin: 26px auto 0; font-size: 11.5px; color: #8a927f; line-height: 1.6; }
+
+  @media (max-width: 760px) {
+    body { padding: 30px 14px 70px; }
+    .ideia { padding: 20px 14px 24px; }
+    .frame { width: 340px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vexp .desc, .vexp .areveal, .vexp .fade, .cta, .ghost svg, .vcompact { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="brand"><span class="mk">F</span><span><b>FioPulse · Vagas</b><small>Mock de review · 16/07/2026</small></span></div>
+  <span class="kick">Card de vaga · 3 ideias</span>
+  <h1>A vaga real ficou <span class="hl">grande demais</span>. Três formas de enxugar.</h1>
+  <p class="lede">A primeira vaga de verdade, CONTROLADOR DE MATERIAIS, trouxe descrição longa, requisitos e 9 benefícios. No card de hoje isso vira quase uma página inteira de rolagem para uma vaga só. Abaixo, três desenhos que resolvem o tamanho sem esconder informação, todos na linguagem visual do site publicado.</p>
+</div>
+
+<div class="problema">
+  <span class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+  <p><b>O problema, no print do William:</b> uma vaga rica preenche a tela inteira. Com duas ou três vagas assim, a lista deixa de ser escaneável. A meta é dar o essencial de cara e deixar o resto a um toque de distância.</p>
+</div>
+
+<div class="ideias">
+
+  <!-- ===================== IDEIA A ===================== -->
+  <section class="ideia">
+    <div class="ideia__hd">
+      <span class="badge a">A</span>
+      <div class="ideia__tx">
+        <h2>Card resumo que expande</h2>
+        <p class="rac">A lista mostra o essencial, quem se interessa abre o resto ali mesmo, sem trocar de tela.</p>
+      </div>
+      <span class="custo"><span class="dot lv"></span>Custo leve: um botão e um bloco que revela, no mesmo componente</span>
+    </div>
+
+    <div class="rail">
+      <!-- A fechado -->
+      <div class="col" id="a-fechado">
+        <div class="frame"><div class="device"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dots"><span class="sig"><span></span><span></span><span></span><span></span></span><i></i></span></div>
+          <div class="appbar"><div class="logo"><span class="m">F</span><b>Fiobras</b></div><h4>Vagas abertas</h4><span>Indaial, SC</span></div>
+          <div class="canvas">
+            <article class="vaga vexp">
+              <h3>CONTROLADOR DE MATERIAIS</h3>
+              <div class="tags"><span class="tag">Produção</span><span class="tag tag--turno">Geral</span><span class="tag">Indaial SC</span></div>
+              <div class="descbox"><p class="desc" data-desc></p><span class="fade"></span></div>
+              <div class="sben preview-ben">
+                <div class="sben-l">Benefícios</div>
+                <div class="sben-chips" data-fill="3"></div>
+              </div>
+              <div class="areveal"><div class="areveal-in">
+                <p class="req">Requisitos: Ensino Médio Completo, Conhecimento Básico de Informática</p>
+                <div class="sben"><div class="sben-l">Todos os benefícios</div><div class="sben-chips" data-fill="all"></div></div>
+              </div></div>
+              <div class="vfoot">
+                <button class="ghost" data-togglea>Saiba mais<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+                <button class="cta"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Candidatar-se</button>
+              </div>
+            </article>
+          </div>
+        </div></div></div>
+        <span class="cap"><span class="tg">Estado</span>Fechado, na lista</span>
+      </div>
+
+      <!-- A aberto -->
+      <div class="col" id="a-aberto">
+        <div class="frame"><div class="device"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dots"><span class="sig"><span></span><span></span><span></span><span></span></span><i></i></span></div>
+          <div class="appbar"><div class="logo"><span class="m">F</span><b>Fiobras</b></div><h4>Vagas abertas</h4><span>Indaial, SC</span></div>
+          <div class="canvas">
+            <article class="vaga vexp open">
+              <h3>CONTROLADOR DE MATERIAIS</h3>
+              <div class="tags"><span class="tag">Produção</span><span class="tag tag--turno">Geral</span><span class="tag">Indaial SC</span></div>
+              <div class="descbox"><p class="desc" data-desc></p><span class="fade"></span></div>
+              <div class="sben preview-ben">
+                <div class="sben-l">Benefícios</div>
+                <div class="sben-chips" data-fill="3"></div>
+              </div>
+              <div class="areveal"><div class="areveal-in">
+                <p class="req">Requisitos: Ensino Médio Completo, Conhecimento Básico de Informática</p>
+                <div class="sben"><div class="sben-l">Todos os benefícios</div><div class="sben-chips" data-fill="all"></div></div>
+              </div></div>
+              <div class="vfoot">
+                <button class="ghost" data-togglea>Mostrar menos<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+                <button class="cta"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Candidatar-se</button>
+              </div>
+            </article>
+          </div>
+        </div></div></div>
+        <span class="cap"><span class="tg">Estado</span>Aberto, revela tudo inline</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== IDEIA B ===================== -->
+  <section class="ideia">
+    <div class="ideia__hd">
+      <span class="badge b">B</span>
+      <div class="ideia__tx">
+        <h2>Card compacto + página da vaga</h2>
+        <p class="rac">A lista vira índice escaneável, o conteúdo completo mora numa página só da vaga.</p>
+      </div>
+      <span class="custo"><span class="dot md"></span>Custo médio, melhor para escala: exige uma tela de detalhe</span>
+    </div>
+
+    <div class="rail">
+      <!-- B lista -->
+      <div class="col" id="b-lista">
+        <div class="frame"><div class="device"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dots"><span class="sig"><span></span><span></span><span></span><span></span></span><i></i></span></div>
+          <div class="appbar"><div class="logo"><span class="m">F</span><b>Fiobras</b></div><h4>Vagas abertas</h4><span>Indaial, SC</span></div>
+          <div class="canvas">
+            <p class="listlabel"><b>3 vagas</b> abertas agora</p>
+
+            <article class="vcompact">
+              <h3>CONTROLADOR DE MATERIAIS</h3>
+              <div class="tags"><span class="tag">Produção</span><span class="tag tag--turno">Geral</span><span class="tag">Indaial SC</span></div>
+              <p class="rsum">Receber e organizar fios, insumos e produtos químicos do setor industrial.</p>
+              <div class="cfoot"><span class="bn">9 benefícios</span><span>·</span><span class="go">Ver vaga<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            </article>
+
+            <article class="vcompact">
+              <h3>AUXILIAR DE PRODUÇÃO</h3>
+              <div class="tags"><span class="tag">Produção</span><span class="tag tag--turno">1º turno</span><span class="tag">Indaial SC</span></div>
+              <p class="rsum">Apoiar a operação das máquinas e manter o setor abastecido e organizado.</p>
+              <div class="cfoot"><span class="bn">7 benefícios</span><span>·</span><span class="go">Ver vaga<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            </article>
+
+            <article class="vcompact">
+              <h3>OPERADOR DE MÁQUINAS</h3>
+              <div class="tags"><span class="tag">Produção</span><span class="tag tag--turno">2º turno</span><span class="tag">Indaial SC</span></div>
+              <p class="rsum">Operar e monitorar as máquinas de fiação, garantindo qualidade e ritmo.</p>
+              <div class="cfoot"><span class="bn">9 benefícios</span><span>·</span><span class="go">Ver vaga<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            </article>
+          </div>
+        </div></div></div>
+        <span class="cap"><span class="tg">Estado</span>Lista escaneável, 3 vagas</span>
+      </div>
+
+      <!-- B detalhe -->
+      <div class="col" id="b-detalhe">
+        <div class="frame"><div class="device"><div class="screen scroll">
+          <div class="statusbar"><span>9:41</span><span class="dots"><span class="sig"><span></span><span></span><span></span><span></span></span><i></i></span></div>
+          <div class="pg-head">
+            <button class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Vagas</button>
+            <h3>CONTROLADOR DE MATERIAIS</h3>
+            <div class="tags"><span class="tag">Produção</span><span class="tag tag--turno">Geral</span><span class="tag">Indaial SC</span></div>
+          </div>
+          <div class="canvas pg-body">
+            <div class="pg-sec"><div class="lb">A vaga</div><p data-desc></p></div>
+            <div class="pg-sec"><div class="lb">Requisitos</div><p>Ensino Médio Completo, Conhecimento Básico de Informática</p></div>
+            <div class="pg-sec"><div class="lb">Benefícios</div><div class="sben"><div class="sben-chips" data-fill="all"></div></div></div>
+          </div>
+          <div class="pg-foot"><button class="cta"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Candidatar-se</button></div>
+        </div></div></div>
+        <span class="cap"><span class="tg">Estado</span>Página da vaga, botão fixo</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== IDEIA C ===================== -->
+  <section class="ideia">
+    <div class="ideia__hd">
+      <span class="badge c">C</span>
+      <div class="ideia__tx">
+        <h2>Dieta no card atual</h2>
+        <p class="rac">Mesmo desenho de hoje, só que a descrição corta em três linhas, os benefícios ficam numa linha e os requisitos recolhem.</p>
+      </div>
+      <span class="custo"><span class="dot mn"></span>Custo mínimo: só CSS e um ver mais, zero tela nova</span>
+    </div>
+
+    <div class="rail">
+      <div class="col" id="c-frame">
+        <div class="frame"><div class="device"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="dots"><span class="sig"><span></span><span></span><span></span><span></span></span><i></i></span></div>
+          <div class="appbar"><div class="logo"><span class="m">F</span><b>Fiobras</b></div><h4>Vagas abertas</h4><span>Indaial, SC</span></div>
+          <div class="canvas">
+            <article class="vaga vc">
+              <h3>CONTROLADOR DE MATERIAIS</h3>
+              <div class="tags"><span class="tag">Produção</span><span class="tag tag--turno">Geral</span><span class="tag">Indaial SC</span></div>
+              <p class="desc" data-desc></p>
+              <button class="vermais" data-togglec>ver mais</button>
+              <div class="sben">
+                <div class="sben-l">Benefícios</div>
+                <div class="sben-chips benline"><div class="benline-clip" data-fill="line"></div><span class="sben-chip plus" data-plus></span></div>
+              </div>
+              <details class="req-disc">
+                <summary><span class="chev"></span>Requisitos</summary>
+                <p class="rq">Ensino Médio Completo, Conhecimento Básico de Informática</p>
+              </details>
+              <div class="vfoot"><span class="data">Publicada em 15/07/2026</span><button class="cta"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Candidatar-se</button></div>
+            </article>
+          </div>
+        </div></div></div>
+        <span class="cap"><span class="tg">Estado</span>Card enxuto, ver mais e requisitos recolhidos</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="reco">
+  <div class="lb">Recomendação</div>
+  <h3>Se a lista vai crescer, vá de <span class="pick">B</span>. Se não, <span class="pick">A</span> resolve.</h3>
+  <p>Recomendo a <b>B</b> quando a Fiobras tende a manter várias vagas abertas ao mesmo tempo: a página por vaga mantém a lista curta e escaneável e ainda abre espaço para conteúdo rico, como uma descrição da empresa. Se o normal é ter poucas vagas abertas por vez, a <b>A</b> entrega quase o mesmo alívio com custo bem menor e sem criar tela nova. A <b>C</b> é o remendo rápido para hoje, dá para subir em minutos e conviver com A ou B depois.</p>
+</div>
+
+<p class="foot">Mock de review, não é a tela final. Linguagem visual clonada de public-vagas/index.html (barra gradiente verde, amarelo e azul no topo do card, chips de setor e turno, paleta Fiobras, Poppins local). Conteúdo real da vaga do print para fidelidade. Auxiliar de Produção e Operador de Máquinas são exemplos inventados só para provar a escaneabilidade da lista.</p>
+
+<script>
+  var BENS = ["Vale alimentação","Vale transporte","Plano de saúde","Plano odontológico","Seguro de vida","Convênio farmácia","Convênio Posto Combustível","Refeição na Empresa","Uniforme"];
+  var DESC = "Receber fios, produtos químicos, cavaco e demais insumos utilizados no setor industrial. Fazer encaminhamento de notas fiscais ao setor de compras, encaminhar e-mail as pessoas envolvidas. Identificar as mercadorias recebidas com as informações necessárias. Acompanhar os descarregamentos e colocar nos locais definidos de forma organizada. Organizar e auxiliar na limpeza de todas as áreas de estoques da área industrial. Abastecer as máquinas de preparação e repasse com fios e demais insumos necessários na operação diária.";
+  var CK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  function chip(b) { return '<span class="sben-chip">' + CK + b + '</span>'; }
+  function plus(n) { return '<span class="sben-chip plus">+' + n + '</span>'; }
+
+  // preenche descrições
+  document.querySelectorAll("[data-desc]").forEach(function (el) { el.textContent = DESC; });
+
+  // preenche listas de benefícios
+  document.querySelectorAll("[data-fill]").forEach(function (el) {
+    var mode = el.getAttribute("data-fill");
+    if (mode === "all") { el.innerHTML = BENS.map(chip).join(""); }
+    else if (mode === "3") { el.innerHTML = BENS.slice(0, 3).map(chip).join("") + plus(BENS.length - 3); }
+    else if (mode === "line") { el.innerHTML = [chip(BENS[0]), chip(BENS[2])].join(""); }
+  });
+  // contador de overflow da ideia C, sempre inteiro por fora do recorte
+  document.querySelectorAll("[data-plus]").forEach(function (el) { el.textContent = "+" + (BENS.length - 2); });
+
+  // IDEIA A: expandir / recolher
+  document.querySelectorAll("[data-togglea]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var card = btn.closest(".vexp");
+      var open = card.classList.toggle("open");
+      btn.childNodes[0].nodeValue = open ? "Mostrar menos" : "Saiba mais";
+    });
+  });
+
+  // IDEIA C: ver mais / ver menos (line-clamp real)
+  document.querySelectorAll("[data-togglec]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var card = btn.closest(".vc");
+      var open = card.classList.toggle("open");
+      btn.textContent = open ? "ver menos" : "ver mais";
+    });
+  });
+</script>
+</body>
+</html>

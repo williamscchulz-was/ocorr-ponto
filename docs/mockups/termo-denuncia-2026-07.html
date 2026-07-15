@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Termo do canal de denúncia (proposta)</title>
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 800; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+
+  /* ---- tokens claros (espelham public/styles.css :root) ---- */
+  :root {
+    --plum: #008835; --plum-soft: #1AA34F; --plum-deep: #006328;
+    --surface: #FFFFFF; --surface-warm: #EEF3EC; --milk: #F7F9F6; --milk-warm: #EEF3EC;
+    --border: #E7EDE4; --border-strong: #D8E2D3;
+    --text-body: #1E2D1A; --text-muted: #4A6245;
+    --text-on-plum: #FFFFFF;
+    --success-bg: #E0EAD8; --warning-bg: #F8E4C8; --warning-ink: #7A4A12;
+    --page-bg: #f1f3ed; --page-card: #ffffff; --page-border: #e3e5dd;
+    --phone-shell: #0b0d0c; --phone-ring: #262b28;
+    --ease-ios: cubic-bezier(.32, .72, .28, 1);
+    --ease-out: cubic-bezier(.23, 1, .32, 1);
+  }
+  /* ---- tokens escuros (espelham portal-colaborador.css .cp-dark) ---- */
+  body.dark {
+    --plum: #5FCB85; --plum-soft: #5FCB85; --plum-deep: #9FE0B5;
+    --surface: #161D15; --surface-warm: #1E261D; --milk: #0E130E; --milk-warm: #1E261D;
+    --border: #232C22; --border-strong: #2A332A;
+    --text-body: #EDF3EA; --text-muted: #8A9884;
+    --text-on-plum: #08160C;
+    --success-bg: #193220; --warning-bg: #3A2E18; --warning-ink: #E8B468;
+    --page-bg: #0a0e0a; --page-card: #12180F; --page-border: #232C22;
+    --phone-shell: #050605; --phone-ring: #1b211a;
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--page-bg); color: var(--text-body); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 46px 20px 96px; -webkit-font-smoothing: antialiased; transition: background .3s var(--ease-out), color .3s var(--ease-out); }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* cabeçalho da folha de proposta */
+  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--plum); background: color-mix(in srgb, var(--plum) 8%, transparent); border: 1px solid color-mix(in srgb, var(--plum) 22%, transparent); padding: 8px 14px; border-radius: 999px; }
+  .kicker svg { width: 14px; height: 14px; }
+  h1 { font: 700 clamp(26px, 4vw, 40px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--text-muted); max-width: 780px; font-size: 15px; }
+
+  .theme { display: inline-flex; align-items: center; gap: 8px; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--text-body); background: var(--page-card); border: 1px solid var(--page-border); border-radius: 999px; padding: 9px 15px; cursor: pointer; transition: background .16s, border-color .16s; -webkit-tap-highlight-color: transparent; }
+  .theme:hover { border-color: var(--plum); }
+  .theme svg { width: 16px; height: 16px; }
+
+  /* seção / quadro */
+  .sec { margin-top: 52px; }
+  .sec-hd { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; flex-wrap: wrap; }
+  .sec-hd .n { font: 700 12px/1 Poppins, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--plum); background: color-mix(in srgb, var(--plum) 12%, transparent); border: 1px solid color-mix(in srgb, var(--plum) 24%, transparent); padding: 7px 11px; border-radius: 999px; }
+  .sec-hd h2 { font: 700 22px/1.2 Poppins, system-ui, sans-serif; letter-spacing: -.02em; }
+  .sec > p.lead { color: var(--text-muted); font-size: 14px; max-width: 740px; margin: 4px 0 24px; }
+
+  .stage { display: flex; flex-wrap: wrap; gap: 34px; align-items: flex-start; }
+
+  /* ---------- frame de celular (padrão aprovado) ---------- */
+  .phone { width: 306px; flex: 0 0 auto; background: var(--phone-shell); border-radius: 46px; padding: 10px; box-shadow: 0 2px 4px #0003, 0 26px 64px -20px #04331a55, inset 0 0 0 2px var(--phone-ring); }
+  .screen { position: relative; overflow: hidden; border-radius: 37px; background: var(--milk); height: 616px; isolation: isolate; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 90px; height: 25px; border-radius: 999px; background: var(--phone-shell); z-index: 60; }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 26px 6px; font: 600 12px Poppins, system-ui, sans-serif; color: var(--text-body); }
+
+  /* ===== app "por trás" do gate (esmaecido) ===== */
+  .behind { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--milk); filter: saturate(.7); }
+  .behind .home-hd { padding: 4px 22px 4px; }
+  .behind .hi { font: 700 19px/1.2 Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .behind .hi span { color: var(--text-muted); font-weight: 500; font-size: 12.5px; display: block; margin-top: 2px; }
+  .behind .body { padding: 14px 15px; display: flex; flex-direction: column; gap: 11px; }
+  .rowcard { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px 15px; }
+  .rowcard.quiet { background: var(--milk-warm); }
+  .ric { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
+  .ric svg { width: 20px; height: 20px; }
+  .ric.green { background: color-mix(in srgb, var(--plum) 14%, transparent); color: var(--plum); }
+  .ric.neutral { background: var(--surface-warm); color: var(--text-muted); }
+  .rtx { flex: 1; min-width: 0; }
+  .rtx b { display: block; font: 600 13.5px/1.25 Poppins, system-ui, sans-serif; color: var(--text-body); }
+  .rtx span { font-size: 11.5px; color: var(--text-muted); line-height: 1.35; display: block; }
+  .chev { color: var(--border-strong); flex: 0 0 auto; }
+  .chev svg { width: 16px; height: 16px; }
+
+  /* ===== gate do termo (clone de .termo-ov / .termo-card do app) ===== */
+  .termo-ov { position: absolute; inset: 0; background: rgba(12,28,16,.55); display: flex; align-items: center; justify-content: center; padding: 16px 14px; z-index: 40; }
+  body.dark .termo-ov { background: rgba(0,0,0,.62); }
+  .termo-card { background: var(--surface); width: 100%; max-width: 420px; max-height: 100%; border-radius: 18px; padding: 20px 18px; box-shadow: 0 18px 50px rgba(0,40,20,.3); display: flex; flex-direction: column; animation: troca-up .3s var(--ease-ios); }
+  .termo-card__t { font-size: 16px; font-weight: 800; color: var(--text-body); text-align: center; letter-spacing: -.01em; line-height: 1.25; margin: 0; }
+  .termo-card__s { font-size: 12px; color: var(--text-muted); text-align: center; margin: 5px 0 13px; }
+  .termo-box { flex: 1; min-height: 0; overflow-y: auto; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; font-size: 11.5px; line-height: 1.62; color: var(--text-body); margin-bottom: 13px; box-shadow: inset 0 1px 3px rgba(0,30,15,.04); }
+  .termo-box::-webkit-scrollbar { width: 5px; }
+  .termo-box::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+  .termo-box p { margin: 0 0 10px; }
+  .termo-box p:last-child { margin-bottom: 0; }
+  .termo-box b { color: var(--text-body); }
+  .termo-campo { background: var(--success-bg); color: var(--text-body); font-weight: 600; padding: 1px 5px; border-radius: 5px; white-space: nowrap; }
+  .termo-aceite { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; color: var(--text-body); line-height: 1.5; margin-bottom: 13px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .termo-aceite input { margin-top: 2px; width: 17px; height: 17px; accent-color: var(--plum); flex: none; cursor: pointer; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: 8px; font: 600 14px Poppins, system-ui, sans-serif; border: 1px solid transparent; cursor: pointer; transition: background .16s var(--ease-out), box-shadow .2s var(--ease-out), transform .12s var(--ease-out); -webkit-tap-highlight-color: transparent; }
+  .btn--primary { background: var(--plum); color: var(--text-on-plum); }
+  .btn--primary:hover { background: var(--plum-soft); box-shadow: 0 6px 18px rgba(0,136,53,.24); }
+  .btn--primary:active { transform: scale(.97); }
+  .btn--block { width: 100%; }
+  .btn--lg { padding: 14px 22px; font-size: 15px; }
+  .termo-card .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+  @keyframes troca-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  /* ===== cerimônia do aceite (clone de cerAnelHtml / .cer-ov) ===== */
+  .cer-ov { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 26px 22px; text-align: center; background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px); }
+  .cer-in { max-width: 260px; width: 100%; }
+  .cer__ring { position: relative; width: 100px; height: 100px; margin: 0 auto 20px; }
+  .cer__svg { width: 100px; height: 100px; transform: rotate(-90deg); }
+  .cer__trk { fill: none; stroke: var(--border); stroke-width: 5; }
+  .cer__arc { fill: none; stroke: var(--plum); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 276; }
+  .cer__chk { position: absolute; inset: 0; display: grid; place-items: center; }
+  .cer__chk svg { width: 46px; height: 46px; }
+  .cer__chk path { fill: none; stroke: var(--plum); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 50; stroke-dashoffset: 50; }
+  .cer__pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--plum) 40%, transparent); opacity: 0; }
+  .cer-in.play .cer__arc { animation: cerArco .58s var(--ease-out) forwards; }
+  .cer-in.play .cer__chk path { animation: cerTick .3s cubic-bezier(.2,.8,.2,1) .5s forwards; }
+  .cer-in.play .cer__pulse { animation: cerPuls .7s ease-out .5s forwards; }
+  @keyframes cerArco { to { stroke-dashoffset: 0; } }
+  @keyframes cerTick { to { stroke-dashoffset: 0; } }
+  @keyframes cerPuls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+  .cer__t { font: 700 19px Poppins, system-ui, sans-serif; letter-spacing: -.01em; color: var(--text-body); }
+  .cer__s { font-size: 12.5px; color: var(--text-muted); margin-top: 9px; line-height: 1.55; }
+
+  /* nota de registro imutável */
+  .reg-nota { margin-top: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 15px; padding: 14px 15px; text-align: left; box-shadow: 0 8px 24px -18px rgba(0,40,20,.4); }
+  .reg-linha { display: flex; align-items: center; gap: 8px; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--text-body); }
+  .reg-linha svg { width: 15px; height: 15px; color: var(--plum); flex: 0 0 auto; }
+  .reg-meta { font-size: 11px; color: var(--text-muted); margin: 7px 0 0 23px; line-height: 1.5; }
+  .reg-hash { display: flex; align-items: center; gap: 7px; margin: 9px 0 0; padding-top: 9px; border-top: 1px solid var(--border); font: 500 10.5px "Poppins", ui-monospace, monospace; color: var(--text-muted); letter-spacing: .02em; }
+  .reg-hash svg { width: 12px; height: 12px; color: var(--plum); flex: 0 0 auto; }
+
+  /* ===== canal inalterado (Quadro 3) ===== */
+  .canal-hd { padding: 4px 22px 8px; }
+  .canal-hd .hi { font: 700 20px/1.2 Poppins, system-ui, sans-serif; letter-spacing: -.01em; color: var(--text-body); }
+  .canal-hd .hi span { color: var(--text-muted); font-weight: 500; font-size: 12.5px; display: block; margin-top: 2px; }
+  .canal-body { padding: 12px 15px; display: flex; flex-direction: column; gap: 11px; }
+  .rowcard.tap { position: relative; }
+  .rowcard.tap::after { content: ""; position: absolute; inset: 0; border-radius: 18px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--plum) 55%, transparent); opacity: 0; animation: tap 2.4s var(--ease-ios) infinite; pointer-events: none; }
+  @keyframes tap { 0%, 62%, 100% { opacity: 0; } 72%, 86% { opacity: 1; } }
+
+  /* legenda ao lado do celular */
+  .legend { flex: 1; min-width: 280px; padding-top: 6px; }
+  .legend h4 { font: 700 15px Poppins, system-ui, sans-serif; margin-bottom: 6px; }
+  .legend p { font-size: 13.5px; color: var(--text-muted); margin-bottom: 16px; max-width: 470px; line-height: 1.55; }
+  .legend ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .legend li { display: flex; gap: 11px; align-items: flex-start; font-size: 13px; color: var(--text-body); line-height: 1.5; }
+  .legend li .k { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 7px; background: var(--plum); color: var(--text-on-plum); font: 700 11px/22px Poppins, system-ui, sans-serif; text-align: center; }
+  .legend li b { font-weight: 600; }
+  .legend li span { color: var(--text-muted); }
+  .legend .note { margin-top: 20px; display: flex; gap: 9px; align-items: flex-start; font-size: 12.5px; color: var(--text-body); background: var(--surface-warm); border: 1px solid var(--border); border-radius: 13px; padding: 12px 14px; line-height: 1.55; }
+  .legend .note svg { width: 16px; height: 16px; color: var(--plum); flex: 0 0 auto; margin-top: 1px; }
+  .legend .note b { font-weight: 700; }
+
+  /* rodapé */
+  .foot { margin-top: 58px; padding-top: 26px; border-top: 1px solid var(--page-border); color: var(--text-muted); font-size: 13px; text-align: center; line-height: 1.65; }
+  .foot .seal { display: inline-flex; align-items: center; gap: 8px; font: 700 11px Poppins, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--plum); margin-bottom: 12px; }
+  .foot .seal svg { width: 15px; height: 15px; }
+  .foot b { color: var(--text-body); font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    .cer__arc { stroke-dashoffset: 0; }
+    .cer__chk path { stroke-dashoffset: 0; }
+  }
+  @media (max-width: 640px) { body { padding: 30px 14px 70px; } .phone { margin: 0 auto; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <span class="kicker">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>
+        Proposta · aprovação antes de tocar o app
+      </span>
+    </div>
+    <button class="theme" id="themeToggle" type="button" aria-label="Alternar tema claro ou escuro">
+      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <span id="themeLabel">Tema escuro</span>
+    </button>
+  </div>
+
+  <h1>Termo do canal de denúncia</h1>
+  <p class="sub">Assinado uma vez, no primeiro acesso ao app, no mesmo padrão do Termo de Adesão à Assinatura Eletrônica que o FioPulse já tem. A data do aceite fica no primeiro acesso de propósito: se o termo aparecesse na porta do canal de denúncia, a data da assinatura entregaria quem usou o canal. Vivendo no primeiro acesso, todo mundo aceita no mesmo momento e nada correlaciona a assinatura ao uso. Os três quadros abaixo contam a história em ordem.</p>
+
+  <!-- ============ QUADRO 1: gate ============ -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Quadro 1</span><h2>O gate, logo depois do login</h2></div>
+    <p class="lead">Overlay bloqueante sobre o app, sem X e sem Esc: só sai aceitando. Cabeçalho, corpo rolável com o texto do termo, nome e CPF já preenchidos com os dados do colaborador, o mesmo destaque verde do termo de adesão. O botão Aceitar e continuar só acende quando a caixa Li e concordo é marcada, exatamente como no gate real.</p>
+
+    <div class="stage">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+
+        <!-- app esmaecido por trás -->
+        <div class="behind" aria-hidden="true">
+          <div class="sbar"><span>9:41</span><span>FioPulse</span></div>
+          <div class="home-hd"><div class="hi">Boa tarde, Maria<span>Fiação · 1º turno</span></div></div>
+          <div class="body">
+            <div class="rowcard"><div class="ric neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="rtx"><b>Meu ponto</b><span>saldo e espelho do mês</span></div></div>
+            <div class="rowcard"><div class="ric neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div><div class="rtx"><b>Avisos</b><span>2 comunicados novos</span></div></div>
+          </div>
+        </div>
+
+        <!-- gate -->
+        <div class="termo-ov">
+          <div class="termo-card" role="dialog" aria-modal="true" aria-labelledby="tt1">
+            <h2 class="termo-card__t" id="tt1">Termo do canal de denúncias</h2>
+            <div class="termo-card__s">Leia e dê o seu aceite pra continuar.</div>
+            <div class="termo-box" id="termoBox" tabindex="0"></div>
+            <label class="termo-aceite" for="chk"><input type="checkbox" id="chk"><span>Li e concordo com o termo acima</span></label>
+            <button class="btn btn--primary btn--block btn--lg" id="btnAceitar" disabled>Aceitar e continuar</button>
+          </div>
+        </div>
+      </div></div>
+
+      <div class="legend">
+        <h4>Mesma liturgia do termo de adesão</h4>
+        <p>Nada de nova mecânica: o colaborador já conhece esse cartão do primeiro acesso. O texto foi adaptado do canal externo que a GP usava, em português sóbrio, e revela o essencial com todas as letras: sigilo, anonimato por construção, responsabilidade de quem relata e guarda por 5 anos.</p>
+        <ul>
+          <li><span class="k">1</span><div><b>Bloqueante e único.</b> <span>Aparece uma só vez, no primeiro acesso, e não some sem o aceite.</span></div></li>
+          <li><span class="k">2</span><div><b>Nome e CPF preenchidos.</b> <span>Vêm do cadastro, no destaque verde, sem digitação.</span></div></li>
+          <li><span class="k">3</span><div><b>Botão trava até marcar.</b> <span>Aceitar e continuar só acende com a caixa Li e concordo, igual ao real.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUADRO 2: aceite ============ -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Quadro 2</span><h2>O aceite, cerimônia curta</h2></div>
+    <p class="lead">Mesmo anel do app que se completa e o traço que confirma. Logo abaixo, a nota de registro: a data do aceite, a versão do termo e o selo de imutabilidade, com o hash do texto ecoando o mesmo cofre do termo de adesão.</p>
+
+    <div class="stage">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="cer-ov">
+          <div class="cer-in play" id="cerIn">
+            <div class="cer__ring">
+              <svg viewBox="0 0 100 100" class="cer__svg"><circle class="cer__trk" cx="50" cy="50" r="44"/><circle class="cer__arc" cx="50" cy="50" r="44"/></svg>
+              <span class="cer__pulse"></span>
+              <span class="cer__chk"><svg viewBox="0 0 46 46"><path d="M13 24 L20.5 31.5 L33 16"/></svg></span>
+            </div>
+            <div class="cer__t">Termo aceito</div>
+            <p class="cer__s">Seu aceite ao termo do canal de denúncia ficou registrado.</p>
+            <div class="reg-nota">
+              <div class="reg-linha">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Aceite registrado em 15 de julho de 2026
+              </div>
+              <div class="reg-meta">Versão do termo 2026-07-v1 · registro imutável</div>
+              <div class="reg-hash">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                hash sha-256 do texto · 4f2a9c…e17b
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+
+      <div class="legend">
+        <h4>Um registro que ninguém reescreve</h4>
+        <p>O aceite grava a versão exata do termo e o hash do texto canônico. Se uma vírgula mudar amanhã, isso vira outra versão: o que o colaborador aceitou hoje continua provável, palavra por palavra. É a mesma regra imutável do termo de adesão, na coleção própria de cada colaborador.</p>
+        <ul>
+          <li><span class="k">1</span><div><b>Data do aceite.</b> <span>Carimbada no ato, no dia do primeiro acesso.</span></div></li>
+          <li><span class="k">2</span><div><b>Versão 2026-07-v1.</b> <span>Cravada junto do hash, para provar qual texto foi lido.</span></div></li>
+          <li><span class="k">3</span><div><b>Imutável.</b> <span>Grava uma vez e não permite reescrita nem apagar.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUADRO 3: canal inalterado ============ -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Quadro 3</span><h2>O canal de denúncia não muda</h2></div>
+    <p class="lead">Depois do aceite, a porta do canal continua exatamente como é hoje: um atalho discreto no meio dos outros. Nenhum termo aparece aqui, e é esse o ponto. Se o termo vivesse nesta porta, a data da assinatura viraria um rastro de quem entrou. Vivendo no primeiro acesso, o aceite não diz nada sobre quem usa o canal.</p>
+
+    <div class="stage">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span>9:41</span><span>FioPulse</span></div>
+        <div class="canal-hd"><div class="hi">Boa tarde, Maria<span>Fiação · 1º turno</span></div></div>
+        <div class="canal-body">
+          <div class="rowcard"><div class="ric neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="rtx"><b>Meu ponto</b><span>saldo e espelho do mês</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+          <div class="rowcard"><div class="ric neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div><div class="rtx"><b>Avisos</b><span>2 comunicados novos</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+          <div class="rowcard quiet tap">
+            <div class="ric green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></div>
+            <div class="rtx"><b>Canal de denúncia</b><span>Assédio, segurança ou conduta: fale com sigilo, direto com a direção.</span></div>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+          </div>
+        </div>
+      </div></div>
+
+      <div class="legend">
+        <h4>Anonimato que começa antes do primeiro toque</h4>
+        <p>O canal já é anônimo por construção: o app não registra quem envia. Se ainda pedisse o aceite na entrada do canal, a existência de uma assinatura, e sua data, apontaria para quem esteve ali. Por isso o termo mora no primeiro acesso, longe da porta do canal.</p>
+        <ul>
+          <li><span class="k">1</span><div><b>Sem termo na porta.</b> <span>A tela do canal segue idêntica à de hoje.</span></div></li>
+          <li><span class="k">2</span><div><b>Aceite descolado do uso.</b> <span>Todo mundo aceita no primeiro acesso, ninguém correlaciona.</span></div></li>
+          <li><span class="k">3</span><div><b>Entrada discreta.</b> <span>Um atalho no meio dos outros, sem chamar atenção.</span></div></li>
+        </ul>
+        <div class="note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>
+          <div><b>Por que aqui não.</b> Assinar na porta do canal geraria uma data de aceite por pessoa que usa o canal. Isso é justamente o rastro que a decisão de desenho quis evitar.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span class="seal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Mesmo cofre do termo de adesão
+    </span>
+    <div>Assinado uma vez, guardado como <b>registro imutável com versão e hash do texto</b>, na coleção própria de cada colaborador,<br>exatamente onde vive o Termo de Adesão à Assinatura Eletrônica.</div>
+  </div>
+
+</div>
+
+<script>
+  // Texto do termo (fonte da verdade da proposta). Campos entre <span class="termo-campo">
+  // são os auto-preenchidos, no mesmo destaque verde do termo de adesão real.
+  const NOME = "Maria Aparecida da Silva";
+  const CPF = "123.456.789-09";
+  const LOCAL = "Jaraguá do Sul, SC";
+  const DATA = "15 de julho de 2026";
+  const campo = (v) => '<span class="termo-campo">' + v + '</span>';
+
+  document.getElementById("termoBox").innerHTML = [
+    '<p>Seja bem-vindo(a) ao Canal de Denúncias da Fiobras. Este é um canal exclusivo para a comunicação segura e anônima de condutas antiéticas ou que violem os princípios éticos, os padrões de conduta, a legislação vigente ou a proteção de dados. Eu, ' + campo(NOME) + ', portador(a) do CPF nº ' + campo(CPF) + ', declaro ter lido e compreendido as disposições a seguir.</p>',
+    '<p><b>1. Do propósito.</b> As denúncias registradas são recebidas e avaliadas diretamente pela direção da Fiobras, com sigilo absoluto. A Fiobras tem o compromisso de entender e tratar adequadamente cada situação que viole suas diretrizes e valores.</p>',
+    '<p><b>2. Do anonimato.</b> A identificação é sempre opcional. Por padrão, a denúncia é anônima por construção: o aplicativo não registra quem a enviou. Caso você opte por se identificar, esses dados ficam visíveis apenas para a direção e servem somente para eventual retorno sobre o caso.</p>',
+    '<p><b>3. Da responsabilidade.</b> A veracidade das informações é de responsabilidade de quem relata. Todas as informações são verificadas durante a apuração, e as ações decorrentes são tomadas a critério da Fiobras, respeitando os princípios éticos, morais e legais.</p>',
+    '<p><b>4. Do acompanhamento e da integridade.</b> Ao enviar, você recebe um código de acompanhamento. Com ele, pode consultar o andamento da apuração a qualquer momento, sem se identificar. O mesmo código também comprova o conteúdo exato do seu relato.</p>',
+    '<p><b>5. Da guarda dos registros (LGPD).</b> Em conformidade com a Lei nº 13.709/2018, as denúncias concluídas são mantidas por 5 anos como registro de compliance e, depois desse prazo, eliminadas automaticamente.</p>',
+    '<p>Para assuntos não contemplados por este canal, você também pode falar diretamente com a Gestão de Pessoas pelo email jenifer@fiobras.com.br.</p>',
+    '<p>Declaro ter lido e compreendido este termo, firmando a minha ciência livremente.</p>',
+    '<p>' + campo(LOCAL) + ', ' + campo(DATA) + '.</p>',
+    '<p>Nome completo: ' + campo(NOME) + '. CPF: ' + campo(CPF) + '. Ciência eletrônica registrada no ato.</p>'
+  ].join("");
+
+  // Botão trava até marcar a caixa (mesma regra do gate real: chk.change -> btn.disabled).
+  const chk = document.getElementById("chk");
+  const btn = document.getElementById("btnAceitar");
+  chk.addEventListener("change", () => { btn.disabled = !chk.checked; });
+  btn.addEventListener("click", () => { if (!btn.disabled) document.querySelector(".sec:nth-of-type(2)").scrollIntoView({ behavior: "smooth" }); });
+
+  // Tema claro/escuro da folha inteira.
+  const body = document.body;
+  const icon = document.getElementById("themeIcon");
+  const label = document.getElementById("themeLabel");
+  const SOL = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  const LUA = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
+  function aplicarTema(escuro) {
+    body.classList.toggle("dark", escuro);
+    icon.innerHTML = escuro ? SOL : LUA;
+    label.textContent = escuro ? "Tema claro" : "Tema escuro";
+  }
+  document.getElementById("themeToggle").addEventListener("click", () => aplicarTema(!body.classList.contains("dark")));
+  // segue o sistema no primeiro paint
+  aplicarTema(!!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches));
+
+  // Reinicia a animação do anel quando volta a ficar visível (para o screenshot).
+  window.__replayCer = function () {
+    const el = document.getElementById("cerIn");
+    el.classList.remove("play"); void el.offsetWidth; el.classList.add("play");
+  };
+</script>
+</body>
+</html>
