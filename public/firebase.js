@@ -1948,6 +1948,45 @@
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Excluiu candidatura", alvo: id });
     };
 
+    // ===== CANAL DE DENUNCIA (sigilo por desenho; ver docs/firestore.rules,
+    // bloco "CANAL DE DENUNCIA", secao "GUARDAS DE FRONT obrigatorias"). =====
+    // O ENVIO e ANONIMO por desenho: add() com ID aleatorio (nunca doc(id).set),
+    // ZERO logEvento/console.log do conteudo, NADA em localStorage/sessionStorage
+    // em qualquer caminho (sucesso ou erro). Só a TRIAGEM do admin é auditada.
+    const _denunciaHashHex = async (texto) => {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
+      return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    };
+    window.enviarDenuncia = async function ({ categoria, texto, contato }) {
+      const txt = String(texto).trim();
+      const hash = await _denunciaHashHex(txt);
+      const payload = { categoria, texto: txt, hash, em: _FV.serverTimestamp(), status: "nova" };
+      const cont = String(contato || "").trim();
+      if (cont) payload.contato = cont.slice(0, 200);
+      try {
+        await db.collection("denuncias").add(payload);
+        return { hash };
+      } catch (e) {
+        // Relança pro chamador (a UI trata); NUNCA logar o conteúdo aqui.
+        throw e;
+      }
+    };
+    window.carregarDenunciasAdmin = async function () {
+      try {
+        const ds = await db.collection("denuncias").orderBy("em", "desc").get();
+        state.denuncias = ds.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
+      } catch (e) { debug?.("[denuncia] admin:", e?.code || e?.message); state.denuncias = state.denuncias || []; }
+    };
+    window.triarDenuncia = async function (id, status, nota) {
+      if (!["nova", "em_analise", "concluida"].includes(status)) return;
+      await db.collection("denuncias").doc(id).update({ status, nota: String(nota || "").slice(0, 2000) });
+      window.registrarAuditoria?.({ tipo: "denuncia", acao: `Triagem: ${status}`, alvo: id });
+    };
+    window.excluirDenuncia = async function (id) {
+      await db.collection("denuncias").doc(id).delete();
+      window.registrarAuditoria?.({ tipo: "denuncia", acao: "Excluiu denuncia (LGPD)", alvo: id });
+    };
+
     window.criarDocumentoInstitucional = async function (dados, publicarAgora) {
       const u = currentUser();
       const seg = dados.segmento || { tipo: "todos", valores: [] };
