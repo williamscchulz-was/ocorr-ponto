@@ -2774,3 +2774,38 @@ protege automaticamente qualquer tela nova).
 Missão completa mandada via bridge (`2026-07-14d-auditoria-completa-flicker-renderapp.md`).
 Nada implementado por mim — é código de vocês (app.js/firebase.js), e mexer no mecanismo central
 de render pede o mesmo gate do Fable que o fix de 09/07 teve.
+
+## 2026-07-15 — Docs pai do mural: destrava pontuação de coração/boas-vindas na gamificação
+
+PC mandou missão (William testou boas-vindas ao vivo e reportou não somar ponto): a regra de
+pontos da gamificação exige provar que um postId de reação é legítimo (`get(doc pai) + exists`)
+mas `muralAniversario/{postId}` nunca existia como documento — só as reações
+(`muralAniversario/{postId}/reacoes/{uid}`) viviam, sem pai.
+
+**Achado antes de implementar:** a descrição da missão tinha 2 imprecisões que corrigi
+verificando o código real do app antes de gravar qualquer coisa (mesma disciplina de sempre —
+não confiar cegamente na descrição, conferir contra `app.js`):
+- PC descreveu o postId de boas-vindas como `bv-<slug>-<admissaoIso>` — o código real
+  (`bvPostId`, app.js:1860-1864) usa só o **ANO da admissão**, não a data ISO completa.
+- A mesma lógica vale pro de aniversário (`muralPostId`, app.js:1853-1856): `aniv-<slug>-<ano
+  ATUAL>` (não o ano de nascimento).
+
+**Implementado em `upload-aniversariantes.mjs`:** réplica exata de `slugify()`
+(`public/utils.js:285-290` — NFD normalize + remove diacríticos + `[^a-z0-9]`→hífen) pra garantir
+que o postId gravado bate byte a byte com o que o cliente calcula. Roda toda rodada (idempotente,
+merge), cobre TODO `pessoas` (97 pessoas, `aniv-{slug}-{anoAtual}`) + todo `recemChegados` (3
+pessoas hoje, `bv-{slug}-{anoDaAdmissao}`).
+
+**Testado:** rodado de verdade, conferido no Firestore — nomes com acento (ex.: "Yusmary del
+Carmen Rovaina Romero") geram slug correto (`yusmary-del-carmen-rovaina-romero`), 100 docs pai
+criados (97 aniv- + 3 bv-). `check-pipeline-health.mjs` ok.
+
+**Sem PII** nos docs pai (nome + dia/mês/ano OU nome + admissão — mesmos campos já expostos em
+`config/aniversariantes`, nada novo).
+
+**Não implementado (registrado, não urgente):** poda de docs pai que saem da janela (aniversário
+de ano anterior, boas-vindas com >15 dias) — PC mencionou como "comportamento desejado" mas não
+bloqueante (a proteção primária contra farm de pontos é a regra `get(doc pai) + exists`, que já
+funciona; docs órfãos só acumulam sem risco de segurança). Revisitar se o volume incomodar.
+
+Respondido ao PC com o shape exato gravado, pra eles casarem a regra de pontos.
