@@ -158,6 +158,84 @@ if (r2.captured) {
   check(pl2.indicacao === "", "indicação 'não conhece' -> '' ");
 }
 
+// ---- cenário 3: EMPREGO ATUAL (motivo "Ainda trabalho aqui" -> demissao "") ----
+// Fluxo próprio até cp2 pra o probe (a) medir o campo Demissão sumindo, (b) tirar print,
+// (c) provar que trocar o motivo o traz de volta, (d) capturar payload com demissao "".
+await p.evaluate(async () => {
+  const $ = (id) => document.getElementById(id);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const set = (id, val) => { const el = $(id); el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); };
+  document.querySelectorAll(".cta--form._probe").forEach((x) => x.remove());
+  const btn = document.createElement("button");
+  btn.className = "cta cta--form _probe";
+  btn.setAttribute("data-vaga-id", "vagaAtual");
+  btn.setAttribute("data-vaga-titulo", "Auxiliar de Produção");
+  document.getElementById("lista").appendChild(btn);
+  btn.click(); await sleep(60);
+  set("ci-nome", "Carla Atual"); set("ci-nasc", "1990-05-05"); set("ci-ec", "solteiro"); set("ci-esc", "medio-completo");
+  $("candPrim").click(); await sleep(60);
+  set("ci-cep", "89120-000"); set("ci-rua", "Rua X, 10"); set("ci-bairro", "Centro"); set("ci-cidade", "Indaial, SC");
+  set("ci-nac", "Brasileira"); set("ci-nat", "Indaial, SC"); set("ci-zap", "47999990000"); set("ci-mail", "carla@email.com");
+  $("candPrim").click(); await sleep(60);
+  // cp2: abre o form de experiência e preenche tudo MENOS a demissão
+  $("expAdd").click(); await sleep(30);
+  set("ci-emp", "Fiobras"); set("ci-adm", "2012-02-01"); set("ci-sal", "250000");
+});
+const demAntes = await p.evaluate(() => document.getElementById("cf-dem").hidden);
+check(demAntes === false, "campo Demissão visível com o motivo padrão");
+// escolhe "Ainda trabalho aqui"
+await p.evaluate(() => { const s = document.getElementById("ci-mot"); s.value = "Ainda trabalho aqui"; s.dispatchEvent(new Event("change", { bubbles: true })); });
+const comAtual = await p.evaluate(() => ({
+  demHidden: document.getElementById("cf-dem").hidden,
+  demValue: document.getElementById("ci-dem").value,
+  duoSolo: document.getElementById("duo-datas").classList.contains("solo"),
+}));
+check(comAtual.demHidden === true, "campo Demissão SOME com 'Ainda trabalho aqui'");
+check(comAtual.demValue === "", "campo Demissão é LIMPO ao virar emprego atual");
+check(comAtual.duoSolo === true, "grid de datas vira coluna única (solo), sem buraco");
+// screenshot do formulário com o campo escondido
+await p.screenshot({ path: "scratchpad/audit/out/vagas-emprego-atual-form.png" });
+// troca pra outro motivo: o campo VOLTA e volta a ser obrigatório
+await p.evaluate(() => { const s = document.getElementById("ci-mot"); s.value = "Pedido de demissão"; s.dispatchEvent(new Event("change", { bubbles: true })); });
+const volta = await p.evaluate(() => ({ demHidden: document.getElementById("cf-dem").hidden, duoSolo: document.getElementById("duo-datas").classList.contains("solo") }));
+check(volta.demHidden === false, "trocar pra outro motivo TRAZ o campo Demissão de volta");
+check(volta.duoSolo === false, "grid volta a 2 colunas com outro motivo");
+// valida inline coerente: com "Ainda trabalho aqui", salvar NÃO exige data (nada de 'Informe a data')
+const r3 = await p.evaluate(async () => {
+  const $ = (id) => document.getElementById(id);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const set = (id, val) => { const el = $(id); el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); };
+  const s = $("ci-mot"); s.value = "Ainda trabalho aqui"; s.dispatchEvent(new Event("change", { bubbles: true }));
+  $("candPrim").click(); await sleep(40); // salvar experiência (sem erro de data)
+  const demErr = $("cf-dem").classList.contains("err");
+  const inForm = !$("expForm").hidden; // se salvou, saiu do form
+  const cardHtml = $("expCards").innerHTML;
+  $("candPrim").click(); await sleep(60); // cp2 -> cp3
+  $("candPrim").click(); await sleep(80); // cp3 -> cp4
+  for (let i = 0; i < 16; i++) { const opt = document.querySelector("#discCard .disc-opt:not([disabled])"); if (!opt) break; opt.click(); await sleep(420); }
+  await sleep(500);
+  $("candPrim").click(); await sleep(80); // cp4 -> cp5
+  set("ci-pret", "300000");
+  $("chips-vem").querySelector('[data-val="carro"]').click();
+  $("seg-conhece").querySelector('[data-val="nao"]').click();
+  $("candPrim").click(); await sleep(80); // cp5 -> cp6
+  const revHtml = $("revCard").innerHTML;
+  $("cLgpd").click(); await sleep(20);
+  $("candPrim").click(); await sleep(80); // enviar
+  return { captured: window.__captured, revHtml, cardHtml, demErr, inForm };
+});
+check(r3.demErr === false && r3.inForm === false, "emprego atual salva SEM 'Informe a data' (nunca mais exige demissão)");
+check(r3.cardHtml.includes("atual") && !/—/.test(r3.cardHtml), "card da experiência mostra 'atual' (sem intervalo com fim)");
+check(/·\s*atual/.test(r3.revHtml), "revisão da ficha mostra '· atual' no lugar do fim");
+check(!!r3.captured && r3.captured.docId === "vagaAtual__carla@email.com", "cenário atual: docId ok (" + (r3.captured && r3.captured.docId) + ")");
+if (r3.captured) {
+  const ea = (r3.captured.payload.experiencias || [])[0] || {};
+  check(ea.demissao === "", "payload: experiencia.demissao === '' (emprego atual, casa com as rules)");
+  check(DATE.test(ea.admissao), "payload: admissao segue YYYY-MM-DD (só a demissão fica vazia)");
+  check(Object.keys(ea).sort().join(",") === "admissao,demissao,empresa,motivoSaida,salario", "payload: shape da experiência intacto (chave demissao PRESENTE, valor '')");
+  check(ea.motivoSaida === "Ainda trabalho aqui", "payload: motivoSaida = 'Ainda trabalho aqui'");
+}
+
 await b.close();
 console.log("OK (" + ok.length + "):");
 ok.forEach((m) => console.log("  ✓ " + m));

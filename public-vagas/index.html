@@ -305,6 +305,7 @@
   .candidatura .grp::after { content: ""; flex: 1; height: 1px; background: #e7e9e1; }
   .candidatura .grp:first-of-type { margin-top: 4px; }
   .candidatura .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .candidatura .duo.solo { grid-template-columns: 1fr; }
   .candidatura .field select { width: 100%; border: 1.5px solid var(--borda); border-radius: 12px; padding: 11px 13px;
     font: 500 14.5px "Poppins", sans-serif; color: var(--ink); background: #fff; transition: border-color .15s, box-shadow .15s; }
   .candidatura .field select:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px #00883521; }
@@ -600,7 +601,7 @@
           <input id="ci-emp" type="text" maxlength="80">
           <div class="msg">Informe o nome da empresa.</div>
         </div>
-        <div class="duo">
+        <div class="duo" id="duo-datas">
           <div class="field" id="cf-adm">
             <label for="ci-adm">Admissão</label>
             <input id="ci-adm" type="date">
@@ -1026,7 +1027,7 @@
       + '<div class="exp-nm"><b>' + esc(e.empresa) + "</b><span>Experiência " + (i + 1) + "</span></div>"
       + '<div class="exp-acts"><button type="button" data-exp-edit="' + i + '" aria-label="Editar">' + svgw(IC_EDIT) + "</button>"
       + '<button type="button" data-exp-del="' + i + '" aria-label="Remover">' + svgw(IC_TRASH) + "</button></div></div>"
-      + '<div class="exp-meta"><div>' + svgw(IC_CAL) + esc(mesAno(e.admissao)) + " <b>—</b> " + esc(mesAno(e.demissao)) + "</div>"
+      + '<div class="exp-meta"><div>' + svgw(IC_CAL) + esc(mesAno(e.admissao)) + (e.demissao ? " <b>—</b> " + esc(mesAno(e.demissao)) : " <b>·</b> atual") + "</div>"
       + "<div>" + svgw(IC_MONEY) + "Último salário <b>" + esc(fmtReais(e.salario)) + "</b></div>"
       + "<div>" + svgw(IC_CHECK2) + esc(e.motivoSaida) + "</div></div></div>";
   }
@@ -1048,6 +1049,16 @@
       ? ("Você já adicionou " + experiencias.length + ". Pode adicionar mais uma ou seguir.")
       : "Conte suas 3 experiências mais recentes. Se ainda não trabalhou de carteira assinada, marque abaixo.";
   }
+  // Emprego atual: motivo "Ainda trabalho aqui" some com a Demissão (esconde + limpa +
+  // deixa de ser obrigatória) e o payload manda demissao "". Fonte da verdade = o select.
+  var MOT_ATUAL = "Ainda trabalho aqui";
+  function sincDemissao() {
+    var atual = $c("ci-mot").value === MOT_ATUAL;
+    $c("cf-dem").hidden = atual;
+    $c("duo-datas").classList.toggle("solo", atual);
+    if (atual) { $c("ci-dem").value = ""; $c("cf-dem").classList.remove("err"); }
+  }
+  $c("ci-mot").addEventListener("change", sincDemissao);
   function abrirExpForm(idx) {
     expMode = "form"; expEditIdx = (idx == null ? null : idx);
     var e = (idx == null) ? null : experiencias[idx];
@@ -1056,6 +1067,7 @@
     $c("ci-dem").value = e ? e.demissao : "";
     $c("ci-sal").value = e ? fmtReais(e.salario) : "";
     $c("ci-mot").value = e ? e.motivoSaida : $c("ci-mot").options[0].value;
+    sincDemissao();
     ["cf-emp", "cf-adm", "cf-dem", "cf-sal"].forEach(function (f) { $c(f).classList.remove("err"); });
     $c("expFormTitle").textContent = "Experiência " + ((idx == null ? experiencias.length : idx) + 1);
     renderExp(); ajustarFoot(); $c("candBody").scrollTop = 0;
@@ -1063,11 +1075,12 @@
   function salvarExp() {
     var st = { ok: true };
     var emp = $c("ci-emp").value.trim();
-    var adm = $c("ci-adm").value, dem = $c("ci-dem").value;
+    var atual = $c("ci-mot").value === MOT_ATUAL;
+    var adm = $c("ci-adm").value, dem = atual ? "" : $c("ci-dem").value;
     var sal = parseMoney($c("ci-sal").value);
     checaCampo("cf-emp", emp.length >= 1 && emp.length <= 80, st);
     checaCampo("cf-adm", /^\d{4}-\d{2}-\d{2}$/.test(adm), st);
-    checaCampo("cf-dem", /^\d{4}-\d{2}-\d{2}$/.test(dem), st);
+    if (!atual) checaCampo("cf-dem", /^\d{4}-\d{2}-\d{2}$/.test(dem), st);
     checaCampo("cf-sal", sal > 0 && sal <= 1000000, st);
     if (!st.ok) return;
     var obj = { empresa: emp.slice(0, 80), admissao: adm, demissao: dem, salario: sal, motivoSaida: String($c("ci-mot").value).slice(0, 120) };
@@ -1270,7 +1283,7 @@
     var contato = [$c("ci-zap").value.trim(), $c("ci-mail").value.trim()].filter(Boolean).join(" · ");
     var expBody;
     if (primeiroEmprego) expBody = '<span class="li">Primeiro emprego</span>';
-    else if (experiencias.length) expBody = experiencias.map(function (e) { return '<span class="li">' + esc(e.empresa) + " (" + esc(mesAno(e.admissao)) + "—" + esc(mesAno(e.demissao)) + ")</span>"; }).join("");
+    else if (experiencias.length) expBody = experiencias.map(function (e) { var per = e.demissao ? (esc(mesAno(e.admissao)) + "—" + esc(mesAno(e.demissao))) : (esc(mesAno(e.admissao)) + " · atual"); return '<span class="li">' + esc(e.empresa) + " (" + per + ")</span>"; }).join("");
     else expBody = '<span class="li">Nenhuma informada</span>';
     var cvTxt = (cvEstado === "anexado" && cvFile) ? (cvFile.name + " (" + fmtTam(cvFile.size) + ")") : "Não enviado (opcional)";
     var adic = ["Pretensão " + fmtReais(parseMoney($c("ci-pret").value)), comoViria ? ("vem " + (COMO_LABEL[comoViria] || comoViria)) : "", (conheceAlguem && $c("ci-quem").value.trim()) ? ("conhece " + $c("ci-quem").value.trim()) : "não indicou ninguém"].filter(Boolean).join(" · ");

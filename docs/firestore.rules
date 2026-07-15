@@ -1523,7 +1523,10 @@ service cloud.firestore {
           && e.keys().hasOnly(['empresa', 'admissao', 'demissao', 'salario', 'motivoSaida'])
           && e.empresa is string && e.empresa.size() >= 1 && e.empresa.size() <= 80
           && e.admissao is string && e.admissao.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
-          && e.demissao is string && e.demissao.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          // demissao vazia '' = EMPREGO ATUAL (candidato ainda trabalha na empresa);
+          // a chave segue obrigatoria no shape (hasOnly + is string), so o valor ganha o
+          // caso vazio, sem inventar data de saida (William, smoke 2026-07-15).
+          && e.demissao is string && (e.demissao == '' || e.demissao.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}'))
           && e.salario is number && e.salario > 0 && e.salario <= 1000000
           && e.motivoSaida is string && e.motivoSaida.size() >= 1 && e.motivoSaida.size() <= 120;
       }

@@ -314,6 +314,22 @@ test("experiencias nao-lista nega", async () =>
 test("segunda experiencia invalida nega (validacao por indice, nao so a primeira)", async () =>
   assertFails(setDoc(doc(anon(), cid("ex10@mail.com")), cand({ email: "ex10@mail.com", experiencias: [exp(), exp({ salario: -5 })] }))));
 
+// ----- demissao: '' = EMPREGO ATUAL (nao inventa data de saida); lixo segue negado -----
+// A chave demissao continua OBRIGATORIA no shape (hasOnly + is string); so o VALOR ganha
+// o caso vazio. Emprego atual: candidato ainda trabalha na empresa (William, smoke 2026-07-15).
+test("demissao '' PASSA (emprego atual)", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("dm1@mail.com")), cand({ email: "dm1@mail.com", experiencias: [exp({ demissao: "" })] }))));
+test("demissao '' na 2a experiencia PASSA (validacao por indice)", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("dm2@mail.com")), cand({ email: "dm2@mail.com", experiencias: [exp(), exp({ demissao: "" })] }))));
+test("demissao com lixo textual ('hoje') NEGA (nao e '' nem casa a shape)", async () =>
+  assertFails(setDoc(doc(anon(), cid("dm3@mail.com")), cand({ email: "dm3@mail.com", experiencias: [exp({ demissao: "hoje" })] }))));
+test("demissao com barras ('2023/08/18') NEGA (formato invalido)", async () =>
+  assertFails(setDoc(doc(anon(), cid("dm4@mail.com")), cand({ email: "dm4@mail.com", experiencias: [exp({ demissao: "2023/08/18" })] }))));
+test("demissao com digito faltando ('2026-13-9') NEGA (shape 4-2-2 nao casa)", async () =>
+  assertFails(setDoc(doc(anon(), cid("dm5@mail.com")), cand({ email: "dm5@mail.com", experiencias: [exp({ demissao: "2026-13-9" })] }))));
+// chave demissao AUSENTE ja e negada em "experiencia com chave FALTANDO nega" (ex8, delete e.demissao):
+// vazio ('') e permitido, mas a chave TEM de existir e ser string.
+
 // ---------- Catalogo de beneficios em config/vagas ----------
 test("config com beneficiosCatalogo (lista de strings) passa", async () =>
   assertSucceeds(setDoc(doc(rh(), "config/vagas"), {

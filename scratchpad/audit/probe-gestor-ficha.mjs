@@ -30,7 +30,10 @@ const res = await p.evaluate((XSS) => {
     nascimento: "1994-03-12", estadoCivil: "casado", escolaridade: "medio-completo", filhos: 2,
     endereco: "Rua das Palmeiras, 240 · Warnow · Indaial, SC · CEP 89120-000",
     nacionalidade: "Brasileira", naturalidade: "Blumenau, SC",
-    experiencias: [{ empresa: XSS + " Tecelagem", admissao: "2019-03-04", demissao: "2023-08-18", salario: 1850, motivoSaida: "Pedido de demissão" }],
+    experiencias: [
+      { empresa: XSS + " Tecelagem", admissao: "2019-03-04", demissao: "2023-08-18", salario: 1850, motivoSaida: "Pedido de demissão" },
+      { empresa: "Malharia Atual", admissao: "2024-01-10", demissao: "", salario: 3000, motivoSaida: "Ainda trabalho aqui" },
+    ],
     pretensaoSalarial: 1900, comoViria: "moto", indicacao: XSS + " João",
     disc: { d: 3, i: -1, s: 2, c: 4 }, discPrimario: "C", em: "2026-07-15T12:00:00",
   };
@@ -84,6 +87,12 @@ const res = await p.evaluate((XSS) => {
   out.modal2col = !!document.querySelector("#modal-root .modal--wide") && !!document.querySelector("#modal-root .ficha-grid");
   out.modalXssEscapado = mHtml.includes("&lt;img") && !mHtml.includes("<img src=x onerror");
   out.modalSalario = mHtml.includes("1.850") || mHtml.toLowerCase().includes("salário");
+  // emprego atual (demissao ""): mostra "atual", nunca string vazia nem Invalid Date; a
+  // experiência COM data continua com o intervalo (retrocompat na mesma ficha).
+  out.modalAtual = mHtml.includes("· atual");
+  out.modalIntervalo = /jan 2024/.test(mHtml) === false || mHtml.includes("jan 2024 · atual");
+  out.modalSemInvalid = !mHtml.includes("Invalid");
+  out.modalRetro = /mar 2019\s*—\s*ago 2023/.test(mHtml);
   closeModal();
 
   // ---- E) modal com candidatura v3 antiga: degrada sem quebrar ----
@@ -118,6 +127,9 @@ check(res.modalEstadoCivil, "modal mostra estado civil por extenso (Casado(a))")
 check(res.modalComoViria, "modal mostra como viria por extenso (Moto)");
 check(res.modalCidade, "modal mostra endereço");
 check(res.modalExp, "modal mostra experiência (Tecelagem)");
+check(res.modalAtual, "modal mostra 'atual' pra experiência sem data de saída (emprego atual)");
+check(res.modalSemInvalid, "modal não mostra 'Invalid Date' pra demissao vazia");
+check(res.modalRetro, "retrocompat: experiência com data segue mostrando o intervalo (mar 2019 — ago 2023)");
 check(res.modalXssEscapado, "XSS do modal ESCAPADO");
 check(res.v3ModalOk, "modal da candidatura v3 antiga NÃO quebra");
 check(res.v3SemExp, "candidatura v3 sem experiências -> nota 'Sem histórico'");
