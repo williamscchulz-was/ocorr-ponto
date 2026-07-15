@@ -2846,3 +2846,45 @@ lógica é um set-membership simples, deriva da MESMA janela já testada na cria
 confiável por inspeção sem precisar do drill ao vivo.
 
 `check-pipeline-health.mjs` ok.
+
+---
+
+## 2026-07-15 · 🔍 Investigação: importação automática de "apontamentos" (Gestum) — não é o RAID
+
+William reportou que às vezes o servidor trava e pediu pra investigar erros numa importação automática que não é o pipeline RH. Descoberta + investigação completa (read-only, sem varredura recursiva em D:\WKRadar).
+
+### O que é (infraestrutura nova, não documentada até agora)
+Existe um **fluxo de importação nativo do WK Radar**, totalmente separado dos pipelines Fiobras:
+- **Processo:** `WKSImport` (background, roda o dia todo, não é Task Scheduler)
+- **Origem dos dados:** sistema externo **Gestum** (provavelmente MES/apontamento de produção), via rede: `\192.168.0.4\Dados\Gestum\Temp\proc\ImportandoTemp\`
+- **Conectores auxiliares:** processos `MTEF*` (MTEFIntegraS, MTEFLancIntegS, MTEFSConxWK, etc.) — provável integração com sistema "Multitherm"
+- **Pasta local:** `D:\WKRadar\Importacoes\` com `Imp_OK\` (sucesso) e `Imp_Erro\` (falha)
+- **Conteúdo:** arquivos "apontamento" (apontamento de produção — chão de fábrica), chegando a cada 1-3 minutos, o dia todo
+- **Volume do dia (15/07):** 811 sucesso / 52 erro (~6% de falha)
+
+### Causa dos 52 erros — LIDOS 28 dos ~31 registros de erro
+**NÃO é causado pelo travamento do disco.** É majoritariamente qualidade de dado vindo do Gestum / cadastro incompleto no WK Radar:
+
+| Erro | Ocorrências (amostra) | Natureza |
+|---|---|---|
+| "Falta informar a conta estoque do produto" | ~7 (cluster 15/07 10:14-10:28) | Produto sem campo obrigatório cadastrado |
+| "Não é permitido baixar materiais não previstos..." | ~8, OPs diferentes (000367, 000704, 000397, 000368, 000771, 000741...) | Chão de fábrica consumindo material fora do planejado na OP |
+| "Data e hora de conclusão do apontamento devem ser iguais ou anteriores..." | ~5, OPs diferentes | Apontamento chegou depois da OP já ter sido encerrada no WK |
+| "Toda entrada deve conter pelo menos um item de composição" | ~6 | Arquivo do Gestum incompleto |
+| "Falha ao instanciar servidor... Violação do compartilhamento do arquivo" | 1 (09:37:14, 15/07) | ⚠️ Único erro **técnico** (concorrência/lock), não de dado |
+
+**Ação sugerida (não executada — fora do escopo desta sessão):** reportar pro time que cuida do Gestum/produção os 4 padrões de erro de dado acima; o de "conta estoque" em especial parece ser 1 produto específico com cadastro incompleto no WK — vale achar qual e corrigir, resolveria o cluster inteiro de uma vez.
+
+### 🔴 Achado paralelo importante: o RAID ainda está resetando (fix de 29/05 foi parcial)
+Query direta no Event Viewer (não dependeu do logger, que estava morto) mostrou:
+```
+15/07/2026 03:32:39-03:35:19  4x iaStorVD evento 129 (reset RaidPort0)
+2026-07-07                    11x evento 129
+```
+Ou seja: **o cache de escrita habilitado em 29/05 ajudou mas não eliminou o problema.** O servidor continua travando periodicamente sob carga. Essa janela (madrugada) não coincide com o horário dos erros de importação (majoritariamente comercial) — são **dois problemas paralelos, não a mesma causa**. Reforça a recomendação já registrada de trocar os SSDs Crucial BX500 como correção definitiva.
+
+### 🟡 Logger de disco estava morto há mais de 1 mês
+`disk-watch.ps1` (PID 22480, iniciado 29/05) tinha morrido em **02/06** — última linha antes de parar mostrava justamente fila de disco alta (queue=31) sem processo culpado, possível indício do próprio congelamento que o matou. Ficamos **sem monitoramento contínuo de 02/06 a 15/07**. **Reiniciado agora** (novo PID 14320). Falta ainda registrar como tarefa de boot/SYSTEM (pendência de admin já documentada em `_diag\README.md`) — isso teria evitado a lacuna.
+
+### Lição
+"PC trava" (percebido pelo usuário) e "erro de importação" são dois sintomas que PARECEM relacionados mas **têm causas diferentes** neste caso. Vale sempre ler o conteúdo real do erro antes de assumir causa raiz por correlação temporal solta.
