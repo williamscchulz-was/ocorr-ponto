@@ -1989,6 +1989,58 @@
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Excluiu candidatura", alvo: id });
     };
 
+    // EXPURGO AUTOMÁTICO de candidaturas (LGPD, decisão William 2026-07-16): candidatura de
+    // vaga ENCERRADA há mais de 6 meses se apaga SOZINHA, "sem depender de ninguém lembrar".
+    // O consentimento do site diz "guardamos por até 6 meses e depois apagamos
+    // automaticamente" — esta varredura é o que cumpre a promessa. A VAGA em si fica
+    // (histórico da empresa); só o dado pessoal do candidato (cadastro + currículo no cofre)
+    // sai, reusando window.excluirCandidatura (arquivo-antes-do-doc + auditoria). Roda em
+    // background na sessão da GP quando a tela Vagas carrega os dados; fire-and-forget: nunca
+    // bloqueia o render, erro individual pula em silêncio (a próxima sessão tenta de novo).
+    const EXPURGO_CAND_MESES = 6; // janela de guarda; sem knob de config (YAGNI)
+    let _expurgoEmCurso = false;
+    window.expurgarCandidaturasVencidas = async function () {
+      // SÓ quem gerencia vagas: sem a cap as rules negariam o delete e viraria ruído.
+      if (typeof can !== "function" || !can("vagas.gerenciar")) return;
+      if (_expurgoEmCurso) return; // uma varredura de cada vez
+      _expurgoEmCurso = true;
+      try {
+        const vagas = state.vagas || [];
+        const candidaturas = state.candidaturas || [];
+        if (!vagas.length || !candidaturas.length) return;
+        const corte = new Date();
+        corte.setMonth(corte.getMonth() - EXPURGO_CAND_MESES); // 6 meses atrás (fronteira de mês real)
+        const corteMs = corte.getTime();
+        // encerradaEm chega como Timestamp cru (carregarVagasGestor não o converte); defensivo
+        // pra string/número também. Sem data válida = não expurga (não sabe quando encerrou).
+        const encMs = (v) => {
+          const e = v && v.encerradaEm;
+          if (!e) return null;
+          const d = (typeof e.toDate === "function") ? e.toDate() : new Date(e);
+          return isNaN(d.getTime()) ? null : d.getTime();
+        };
+        for (const v of vagas) {
+          if (v.status !== "encerrada") continue;         // publicada/rascunho: intocada
+          const ms = encMs(v);
+          if (ms == null || ms >= corteMs) continue;       // sem data ou dentro da janela: intocada
+          const alvos = candidaturas.filter((c) => c.vagaId === v.id);
+          if (!alvos.length) continue;
+          let ok = 0;
+          for (const c of alvos) {
+            try {
+              await window.excluirCandidatura(c.id); // canônico: cofre ANTES do doc + auditoria
+              ok++;
+              const i = candidaturas.indexOf(c); // mantém o state honesto na sessão (doc já saiu)
+              if (i >= 0) candidaturas.splice(i, 1);
+            } catch (e) { debug?.("[vagas] expurgo auto (pula 1):", e?.code || e?.message); }
+          }
+          // 1 entrada-resumo por vaga varrida (as de "Excluiu candidatura" já saem do reuso).
+          // ZERO PII do candidato aqui: só o título da vaga e a contagem.
+          if (ok) window.registrarAuditoria?.({ tipo: "vagas", acao: `Expurgo automático: ${ok} candidatura(s), 6 meses após encerrar`, alvo: "Vaga · " + (v.titulo || v.id) });
+        }
+      } finally { _expurgoEmCurso = false; }
+    };
+
     // ===== CANAL DE DENUNCIA (sigilo por desenho; ver docs/firestore.rules,
     // bloco "CANAL DE DENUNCIA", secao "GUARDAS DE FRONT obrigatorias"). =====
     // O ENVIO e ANONIMO por desenho: add() com ID aleatorio (nunca doc(id).set),

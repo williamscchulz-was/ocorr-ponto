@@ -4988,6 +4988,9 @@ function renderVagas() {
     (async () => {
       await Promise.all([window.carregarVagasGestor?.(), window.carregarCandidaturasGestor?.()]);
       if (state.view.page === "vagas") renderApp();
+      // Expurgo LGPD em background (William 2026-07-16): candidaturas de vagas encerradas há
+      // mais de 6 meses somem sozinhas. Fire-and-forget, roda depois do render, nunca bloqueia.
+      window.expurgarCandidaturasVencidas?.();
     })();
     return;
   }
@@ -5130,6 +5133,7 @@ function renderVagas() {
     <div class="gami-card g-wrap">
       <div class="gami-card__h"><h3>Vagas</h3>${edit ? "" : `<button class="btn btn--primary btn--sm" id="vg-nova">Nova vaga</button>`}</div>
       ${linhas || `<p class="gami-hint" style="margin:0;">Nenhuma vaga ainda. Crie a primeira que ela aparece no site assim que publicar.</p>`}
+      ${linhas ? `<p class="gami-hint" style="margin:12px 0 0;">Candidaturas de vagas encerradas são apagadas automaticamente após 6 meses (LGPD).</p>` : ""}
     </div>
     ${formHtml}
     <div class="gami-card" style="margin-top:16px;">
@@ -17011,7 +17015,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.81.1";
+window.CURRENT_VERSION = "1.82.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

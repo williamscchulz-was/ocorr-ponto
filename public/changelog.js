@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.81.1", d: "16 jul 2026", current: true, items: [
+    v: "1.82.0", d: "16 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Expurgo automatico LGPD: candidaturas de vagas encerradas ha mais de 6 meses (cadastro e curriculo) sao apagadas sozinhas, com registro na auditoria. A vaga fica no historico; o dado pessoal do candidato sai." },
+    ],
+  },
+  {
+    v: "1.81.1", d: "16 jul 2026", items: [
       { type: "fix", title: "A bolinha de pendencia do Meu ponto e do Pagamento contava documentos que voce ja tinha assinado (dependia do aparelho lembrar que voce viu). Assinado nunca mais aparece como pendente, em nenhum aparelho." },
     ],
   },
