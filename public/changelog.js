@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.78.0", d: "16 jul 2026", current: true, items: [
+    v: "1.79.0", d: "16 jul 2026", current: true, items: [
+      { type: "feat", title: "Mural mais esperto: depois que voce da as boas-vindas a um colega, o convite se despede da sua home com uma animacao suave. Ele continua aparecendo so pra quem ainda nao deu." },
+    ],
+  },
+  {
+    v: "1.78.0", d: "16 jul 2026", items: [
       { type: "high", title: "O app agora abre sempre na escolha de portal: toque no seu e, com a sessao salva, voce entra direto, sem digitar nada. E da pra trocar de portal por um atalho na sua conta, nos dois portais." },
       { type: "feat", title: "Atualizacao transparente: quando chega uma versao nova, o app avisa que esta atualizando, mostra a barra de progresso e recarrega sozinho ja no novo." },
     ],

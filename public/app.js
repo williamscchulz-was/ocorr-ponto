@@ -2320,6 +2320,11 @@ function aniversarianteHojeHtml(meuNome) {
 // populado pelo pipeline (missao no bridge 2026-07-14); sem o campo, o card nao
 // existe (dormente). Reusa a anatomia .pp-bday e a liturgia bv- do mural
 // (preencherCardsBoasVindas/onBoasVindas ja operam por [data-bv-post] no DOM).
+// Filtro POR PESSOA (William, 2026-07-16): quem ja deu o like nao ve mais o card
+// (some antes dos 15 dias); quem ainda nao deu continua vendo ate o fim da janela.
+// So decide com cache QUENTE (contrato de DOM estavel entre re-renders); sem cache
+// ainda (1a carga da sessao) o card nasce normal e quem preenche depois
+// (preencherCardsBoasVindas) e quem colapsa se descobrir que ja foi reagido.
 function colabBoasVindasHtml(meuNome) {
   const rec = (state.aniversariantes && Array.isArray(state.aniversariantes.recemChegados))
     ? state.aniversariantes.recemChegados : [];
@@ -2336,6 +2341,7 @@ function colabBoasVindasHtml(meuNome) {
     const post = bvPostId(nome, p.admissao);
     const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
     const mine = !!(c && c.minhaReacao);
+    if (mine) return ""; // ja reagiu: card nao nasce (cache quente == DOM identico)
     return `<div class="pp-bday" data-bv-post="${escapeHtml(post)}">
       <div class="pp-bday__ic">${cpIcon("users")}</div>
       <div class="pp-bday__bd">
@@ -6865,6 +6871,25 @@ function _bvTexto(total, mine) {
   return total === 1 ? "1 colega deu as boas-vindas" : `${total} colegas deram as boas-vindas`;
 }
 
+// Colapso elegante (WAAPI, mesmo espírito de animarEntrada: não mexe em classe/style
+// persistente) do card de boas-vindas quando a pessoa já reagiu. Anima altura+opacidade
+// e remove do DOM ao terminar -- nunca um pop seco, e o remove garante que o próximo
+// re-render (agora com cache quente) já nasce sem o card, sem depender do CSS.
+function _colapsarCardBv(el) {
+  if (!el || !el.parentNode) return;
+  if (prefereMenosMovimento() || typeof el.animate !== "function") { el.remove(); return; }
+  const h = el.getBoundingClientRect().height;
+  const cs = getComputedStyle(el);
+  const anim = el.animate(
+    [
+      { opacity: 1, transform: "scale(1)", maxHeight: h + "px", marginTop: cs.marginTop, marginBottom: cs.marginBottom },
+      { opacity: 0, transform: "scale(.96)", maxHeight: "0px", marginTop: "0px", marginBottom: "0px" },
+    ],
+    { duration: 320, easing: "cubic-bezier(.2, .8, .2, 1)" }
+  );
+  anim.onfinish = () => el.remove();
+}
+
 // Preenche contagem + estado da mão nos cards [data-bv-post] (mesma leitura do mural).
 async function preencherCardsBoasVindas() {
   if (typeof window.carregarReacoesAniversario !== "function") return;
@@ -6876,6 +6901,11 @@ async function preencherCardsBoasVindas() {
     try { dados = await window.carregarReacoesAniversario(post); }
     catch { return; }
     if (!document.contains(el)) return;
+    // Colab (.pp-bday): a 1a carga da sessão pode não ter cache ainda, então o card
+    // nasceu visível; se a leitura chega dizendo que a pessoa já reagiu, ele não faz
+    // mais sentido (William, 2026-07-16) -- colapsa em vez de atualizar contagem/mão.
+    // O card do gestor (vg-adm) não entra nessa regra, continua mostrando "on".
+    if (dados.minhaReacao && el.classList.contains("pp-bday")) { _colapsarCardBv(el); return; }
     const cnt = el.querySelector("[data-bv-count]");
     if (cnt) cnt.textContent = _bvTexto(dados.total, dados.minhaReacao);
     const hand = el.querySelector("[data-bv-hand]");
@@ -6919,6 +6949,12 @@ async function onBoasVindas(hand) {
     if (ligar) {
       const primeiro = (hand.getAttribute("aria-label") || "").replace(/^Dar as boas-vindas a /, "").trim();
       window.gamiClaim?.("boas-vindas", post, primeiro ? `Deu boas-vindas a ${primeiro}` : "Deu boas-vindas a um colega");
+      // Colab (.pp-bday): assim que a pessoa deu o like o card não faz mais sentido
+      // (William, 2026-07-16) -- espera um instante pra ela ver a confirmação (mão
+      // acesa + contagem) e então colapsa. O card do gestor (vg-adm) fica como está.
+      if (card.classList.contains("pp-bday")) {
+        setTimeout(() => { if (hand.classList.contains("on")) _colapsarCardBv(card); }, 550);
+      }
     }
   } catch (err) {
     debug?.("[boas-vindas] falhou:", err?.code, err?.message);
@@ -16793,7 +16829,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.78.0";
+window.CURRENT_VERSION = "1.79.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
