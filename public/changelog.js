@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.77.0", d: "15 jul 2026", current: true, items: [
+    v: "1.78.0", d: "16 jul 2026", current: true, items: [
+      { type: "high", title: "O app agora abre sempre na escolha de portal: toque no seu e, com a sessao salva, voce entra direto, sem digitar nada. E da pra trocar de portal por um atalho na sua conta, nos dois portais." },
+      { type: "feat", title: "Atualizacao transparente: quando chega uma versao nova, o app avisa que esta atualizando, mostra a barra de progresso e recarrega sozinho ja no novo." },
+    ],
+  },
+  {
+    v: "1.77.0", d: "15 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Vagas: as candidaturas agora chegam com perfil comportamental (barras D I S C, selo e leitura pronta), idade e curriculo aberto dentro do app. Excluir uma candidatura tambem expurga o curriculo do cofre." },
       { type: "feat", title: "Espelho de ponto: dia com falta abonada agora aparece nomeado, em vez do generico Sem marcacao, no portal do colaborador e do gestor." },
     ],

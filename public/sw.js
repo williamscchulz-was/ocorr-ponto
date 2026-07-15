@@ -10,10 +10,14 @@
 //  - activate purga TODO cache com nome != CACHE atual. Bumpar CACHE a
 //    cada deploy que mexa em SW/estratégia (segue o ?v= do index.html).
 
-const CACHE = "fiopulse-v346";
+const CACHE = "fiopulse-v347";
 
 self.addEventListener("install", () => {
-  self.skipWaiting(); // ativa imediato, sem esperar abas antigas
+  // NÃO faz skipWaiting automático: um SW novo ESPERA. Quem decide ativar é o app,
+  // no boot, mandando SKIP_WAITING (aí ele mostra a tela de atualização e recarrega
+  // 1x). Assim uma atualização achada NO MEIO da sessão não interrompe nada — fica
+  // pro próximo open. No 1º install (sem controller) o SW ativa sozinho, pois não há
+  // worker ativo pra substituir (skipWaiting só importa quando existe um).
 });
 
 self.addEventListener("activate", (e) => {
@@ -22,6 +26,13 @@ self.addEventListener("activate", (e) => {
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// O app manda SKIP_WAITING no boot quando detecta um SW novo esperando: ativa na
+// hora (→ controllerchange → o app recarrega UMA vez pra pegar o código novo).
+self.addEventListener("message", (e) => {
+  const d = e && e.data;
+  if (d === "SKIP_WAITING" || (d && d.type === "SKIP_WAITING")) self.skipWaiting();
 });
 
 self.addEventListener("fetch", (e) => {

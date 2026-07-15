@@ -858,7 +858,9 @@ function login(userId, senha) {
   }
   err.classList.add("hidden");
   state.currentUserId = u.id;
+  window.__escolhaPortal = false; // login deliberado no demo entra no portal
   store.save({ ...state, view: undefined });
+  $("#acesso")?.classList.add("hidden");
   $("#login").classList.add("hidden");
   $("#app").classList.remove("hidden");
   state.view = { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
@@ -868,6 +870,7 @@ function login(userId, senha) {
 
 function logout() {
   state.currentUserId = null;
+  window.__escolhaPortal = false; // deslogado: a escolha é a de "sem sessão"
   // Permite que o toast de aniversário reapareça no próximo login da sessão.
   window.__niverToastShown = false;
   store.save({ ...state, view: undefined });
@@ -890,7 +893,92 @@ function mostrarAcesso() {
   $("#app")?.classList.add("hidden");
   $("#login")?.classList.add("hidden");
   $("#login-colab")?.classList.add("hidden");
+  // Volta à escolha com os cards limpos (nunca um card preso em "busy" de uma
+  // tentativa anterior). NÃO mexe em window.__escolhaPortal: quem estaciona a
+  // sessão viva (boot/Trocar de portal) seta a flag ANTES de chamar mostrarAcesso.
+  ["#acesso-colab", "#acesso-gestor"].forEach((s) => _acessoBusy($(s), false));
   $("#acesso")?.classList.remove("hidden");
+}
+
+// Feedback "em voo" no card tocado da escolha (spinner + trava), pra nunca deixar a
+// tela morta enquanto a credencial do cofre ou o login resolvem.
+function _acessoBusy(card, on) {
+  if (!card) return;
+  card.classList.toggle("acesso__half--busy", on);
+  card.setAttribute("aria-busy", on ? "true" : "false");
+  if ("disabled" in card) card.disabled = !!on;
+}
+
+// Navega pra DENTRO do portal com a sessão já viva (toque no card que corresponde à
+// sessão restaurada). Em modo Firebase delega ao observador (que também liga a
+// presença do gestor); em modo demo navega direto. Sempre limpa a flag de escolha.
+function entrarPortalComSessao() {
+  window.__escolhaPortal = false;
+  if (typeof window.__entrarPortalComSessao === "function") { window.__entrarPortalComSessao(); return; }
+  // Demo (sem Firebase): a sessão é só state.currentUserId. Navega pela landing do papel.
+  const u = currentUser();
+  const ehColab = u && u.role === "colaborador";
+  $("#acesso")?.classList.add("hidden");
+  $("#login")?.classList.add("hidden");
+  $("#login-colab")?.classList.add("hidden");
+  $("#app")?.classList.remove("hidden");
+  window.hideSplash?.();
+  state.view = ehColab
+    ? { page: "colab-home" }
+    : { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
+  renderApp();
+}
+
+// Toque num card de portal na tela de escolha (William 2026-07-15):
+//  2a. Sessão viva DO MESMO portal → entra direto, sem pedir nada.
+//  2b. Sem sessão correspondente → tenta a credencial salva DAQUELE portal (pode
+//      abrir o seletor do sistema); sucesso entra direto.
+//  2c. Sem credencial ou falha → cai no login normal daquele portal.
+// Troca de conta (sessão viva do OUTRO portal): desloga a atual ANTES de logar a
+// outra, sem estado zumbi. entrarComCredencialSalva é do firebase.js (undefined no
+// demo → cai direto no formulário, comportamento correto de "sem cofre").
+let _escolhendoPortal = false;
+async function escolherPortal(portal) {
+  if (_escolhendoPortal) return;
+  const card = portal === "colab" ? $("#acesso-colab") : $("#acesso-gestor");
+  const u = currentUser();
+  const livePortal = u ? (u.role === "colaborador" ? "colab" : "gestor") : null;
+
+  // 2a: a sessão viva já é a deste portal → entra direto.
+  if (livePortal === portal) { entrarPortalComSessao(); return; }
+
+  _escolhendoPortal = true;
+  _acessoBusy(card, true);
+  try {
+    // Troca de conta: havia sessão viva do OUTRO portal → desloga antes de trocar.
+    if (livePortal && livePortal !== portal) {
+      window.__escolhaPortal = true; // segura o render na escolha durante a troca
+      if (window.logout) await window.logout(); else logout();
+      _acessoBusy(card, true); // o logout reabre a escolha e limpa o busy; reafirma
+    }
+    // 2b: credencial salva DAQUELE portal (só existe em modo Firebase).
+    let entrou = false;
+    if (typeof window.entrarComCredencialSalva === "function") {
+      entrou = await window.entrarComCredencialSalva(portal);
+    }
+    if (!entrou) {
+      // 2c: sem cofre/credencial ou falhou → login normal daquele portal.
+      _acessoBusy(card, false);
+      if (portal === "colab") mostrarLoginColaborador(); else mostrarLoginGestor();
+    }
+    // Sucesso: mantém o card "em voo"; onAuthStateChanged (intencional) esconde a
+    // escolha e entra no portal. mostrarAcesso limpa o busy se algo voltar pra cá.
+  } finally {
+    _escolhendoPortal = false;
+  }
+}
+
+// "Trocar de portal": volta à escolha SEM deslogar (atalho da Conta do colaborador e
+// do menu do gestor). A sessão fica viva; tocar o mesmo portal reentra direto, tocar
+// o outro segue a troca de conta em escolherPortal.
+function trocarDePortal() {
+  window.__escolhaPortal = true;
+  mostrarAcesso();
 }
 function mostrarLoginGestor() {
   $("#acesso")?.classList.add("hidden");
@@ -1062,6 +1150,7 @@ function cpIcon(name) {
     roadmap: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/>',
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    swap: '<polyline points="7 4 3 8 7 12"/><path d="M3 8h14"/><polyline points="17 20 21 16 17 12"/><path d="M21 16H7"/>',
     info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -3633,6 +3722,11 @@ function renderColabConta() {
           <span class="pp-rw__bd"><span class="pp-rw__t">Trocar senha</span></span>
           <span class="pp-rw__chev">${cpIcon("chevron")}</span>
         </button>
+        <button class="pp-rw" data-acao="trocar-portal">
+          <span class="pp-ico pp-ico--neutral">${cpIcon("swap")}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">Trocar de portal</span><span class="pp-rw__s">Voltar à escolha de acesso</span></span>
+          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
+        </button>
         <button class="pp-rw pp-rw--danger" data-acao="sair">
           <span class="pp-ico pp-ico--danger">${cpIcon("logout")}</span>
           <span class="pp-rw__bd"><span class="pp-rw__t">Sair</span></span>
@@ -3653,6 +3747,7 @@ function renderColabConta() {
     if (typeof window.alterarMinhaSenha === "function") openTrocarSenhaModal();
     else toast("Troca de senha disponível apenas no app conectado.", "danger");
   });
+  view.querySelector('[data-acao="trocar-portal"]')?.addEventListener("click", trocarDePortal);
   view.querySelector('[data-acao="sair"]')?.addEventListener("click", confirmarSairColab);
   const _seg = view.querySelector("#cp-seg-tema");
   const _pill = _seg?.querySelector(".pp-seg__pill");
@@ -3890,6 +3985,10 @@ function renderApp() {
 function _renderAppNow() {
   const u = currentUser();
   if (!u) { mostrarAcesso(); return; }
+  // Sessão viva mas ESTACIONADA na escolha de portal (boot restaurado ou "Trocar de
+  // portal"): não entra no portal até o toque no card. Um snapshot/refetch em
+  // background não pode empurrar pra dentro do app — a escolha já está na tela.
+  if (window.__escolhaPortal) return;
 
   // Novidades: pop-up 1x por sessão (gestor E colaborador). O colaborador só vê o que
   // muda pra ele (frontend); o filtro por público mora em checkChangelog/renderChangelog.
@@ -8480,6 +8579,10 @@ function openProfileModal() {
         ${icon("settings")}<span>Alterar minha senha</span>
       </button>
       ${!isFirebaseMode ? `<span class="field__hint">Disponível só em modo Firebase.</span>` : ""}
+
+      <button class="btn btn--soft btn--block" id="btn-trocar-portal" style="margin-top:10px;">
+        ${icon("swap")}<span>Trocar de portal</span>
+      </button>
     </div>
     <div class="modal__footer">
       <button class="btn btn--danger" id="btn-do-logout" style="margin-right:auto;">${icon("alert")}<span>Sair</span></button>
@@ -8497,6 +8600,7 @@ function openProfileModal() {
         if (_pill) _pill.style.transform = `translateX(${i * 100}%)`;
       }));
       $("#btn-do-logout").addEventListener("click", () => { closeModal(); logout(); });
+      $("#btn-trocar-portal")?.addEventListener("click", () => { closeModal(); trocarDePortal(); });
       const trocar = $("#btn-trocar-senha");
       if (trocar && isFirebaseMode) trocar.addEventListener("click", openTrocarSenhaModal);
 
@@ -16689,7 +16793,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.77.0";
+window.CURRENT_VERSION = "1.78.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -16840,13 +16944,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Auto-restore session if user was logged in
+  // Boot com sessão restaurada (modo demo): ESTACIONA na escolha de portal, NÃO
+  // navega direto (William 2026-07-15). A sessão fica viva; tocar o card do portal
+  // entra sem pedir nada. Em modo Firebase quem decide isto é o onAuthStateChanged;
+  // aqui a flag mantém a escolha na tela caso um render em background dispare.
   if (state.currentUserId && getUser(state.currentUserId)) {
-    $("#acesso")?.classList.add("hidden");
-    $("#login").classList.add("hidden");
-    $("#app").classList.remove("hidden");
-    state.view = { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" };
-    renderApp();
+    window.__escolhaPortal = true;
+    mostrarAcesso();
   }
 
   // Login form com loading state no botão
@@ -16892,9 +16996,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Logout
   $("#user-area").addEventListener("click", openProfileModal);
 
-  // Tela de acesso: Gestor revela o login do gestor; Colaborador vai pro login por CPF.
-  $("#acesso-gestor")?.addEventListener("click", mostrarLoginGestor);
-  $("#acesso-colab")?.addEventListener("click", mostrarLoginColaborador);
+  // Tela de acesso: toque no card decide o caminho (entra direto com sessão viva,
+  // credencial salva, ou login normal daquele portal). Ver escolherPortal.
+  $("#acesso-gestor")?.addEventListener("click", () => escolherPortal("gestor"));
+  $("#acesso-colab")?.addEventListener("click", () => escolherPortal("colab"));
   $("#login-voltar")?.addEventListener("click", mostrarAcesso);
 
   // Login do colaborador (CPF): voltar, olho, máscara de CPF e submit
@@ -16997,27 +17102,107 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// PWA: registra o service worker + AUTO-UPDATE.
-// Quando um deploy troca o sw.js, o novo SW assume (skipWaiting + clients.claim
-// no sw.js) e dispara "controllerchange" → recarregamos UMA vez pra pegar o
-// HTML/JS novos. Assim o usuário nunca fica preso numa versão velha.
+// ============================================================
+// TELA DE ATUALIZAÇÃO (William 2026-07-15: "quando abre e tem atualização, mostra
+// 'estamos atualizando o app pra você ter uma experiência melhor' e uma barra").
+// Full-screen premium: marca + textos + barra DETERMINADA (mapeia os estados do SW
+// novo em progresso). Some com o reload. Funções globais (o probe as exercita).
+// ============================================================
+let _upScreenEl = null;
+function mostrarTelaAtualizacao() {
+  if (_upScreenEl) return _upScreenEl;
+  const el = document.createElement("div");
+  el.id = "up-screen";
+  el.className = "up-screen";
+  el.setAttribute("role", "status");
+  el.setAttribute("aria-live", "polite");
+  el.innerHTML = `
+    <div class="up-screen__in">
+      <div class="up-screen__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="up-screen__t">Estamos atualizando o app</div>
+      <div class="up-screen__s">pra você ter uma experiência melhor</div>
+      <div class="up-screen__bar"><i></i></div>
+      <div class="up-screen__m">isso leva só um instante</div>
+    </div>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.classList.add("show"); progressoAtualizacao("installing"); });
+  _upScreenEl = el;
+  return el;
+}
+// Mapeia o estado do worker novo (installing → installed → activating → activated)
+// em preenchimento suave da barra (a transição de largura no CSS faz o "enche").
+function progressoAtualizacao(estado) {
+  if (!_upScreenEl) return;
+  const barra = _upScreenEl.querySelector(".up-screen__bar i");
+  if (!barra) return;
+  const pct = { installing: 35, installed: 72, activating: 90, activated: 100 }[estado];
+  if (pct != null) barra.style.width = pct + "%";
+}
+function enviarSkipWaiting(worker) {
+  try { worker && worker.postMessage && worker.postMessage("SKIP_WAITING"); } catch (e) {}
+}
+// Aplica a atualização achada no boot: mostra a tela, reflete o estado atual e manda
+// o SW ativar. O controllerchange (abaixo) recarrega 1x quando ele assume.
+function aplicarAtualizacaoBoot(worker) {
+  mostrarTelaAtualizacao();
+  progressoAtualizacao(worker && worker.state ? worker.state : "installed");
+  enviarSkipWaiting(worker);
+}
+// Reload ÚNICO com guarda anti-loop (sessionStorage): nunca recarrega duas vezes
+// seguidas. window.__swReload é uma indireção pro reload (o probe a substitui por
+// um stub pra afirmar "chamado no máximo 1 vez" sem recarregar de verdade).
+window.__swReload = window.__swReload || function () { location.reload(); };
+let _swRecarregou = false;
+function swRecarregarUmaVez() {
+  if (_swRecarregou) return;
+  try { if (sessionStorage.getItem("fiopulse:swReloaded") === "1") return; } catch (e) {}
+  _swRecarregou = true;
+  try { sessionStorage.setItem("fiopulse:swReloaded", "1"); } catch (e) {}
+  progressoAtualizacao("activated");
+  window.__swReload();
+}
+
+// PWA: registra o service worker + atualização CONTROLADA.
+// O SW novo ESPERA (sw.js não faz skipWaiting sozinho). No BOOT, se há um SW novo
+// esperando (ou chegando nos primeiros segundos), mostramos a tela de atualização,
+// mandamos SKIP_WAITING e recarregamos UMA vez quando ele assume (controllerchange).
+// Atualização achada NO MEIO da sessão só instala e espera → aplica no próximo open.
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
-  let recarregando = false;
-  // Só auto-recarrega em ATUALIZAÇÃO. No 1º acesso o controller é null e a
-  // posse inicial NÃO deve recarregar (senão vira loop no primeiro load).
+  // Só recarrega em ATUALIZAÇÃO. No 1º acesso o controller é null e a posse inicial
+  // NÃO recarrega (senão vira loop no primeiro load).
   let tinhaController = !!navigator.serviceWorker.controller;
+  // Janela de boot: updates achados nos primeiros segundos são "de abertura" (tela +
+  // aplica); depois disso ficam pro próximo open (silencioso, não interrompe).
+  let janelaBoot = true;
+  setTimeout(() => { janelaBoot = false; }, 12000);
+  const jaRecarregou = () => { try { return sessionStorage.getItem("fiopulse:swReloaded") === "1"; } catch (e) { return false; } };
+
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (!tinhaController) { tinhaController = true; return; }
-    if (recarregando) return;
-    recarregando = true;
-    try { toast("Atualizando para a versão nova…"); } catch (e) {}
-    setTimeout(() => location.reload(), 600);
+    swRecarregarUmaVez();
   });
 
   navigator.serviceWorker.register("sw.js").then((reg) => {
-    // Procura deploy novo ao focar a aba e a cada 30 min (pega atualização
-    // feita com o app já aberto). update() busca o sw.js (no-cache); se mudou,
-    // instala o novo → controllerchange acima → reload.
+    // Update JÁ esperando de uma sessão anterior (aba reaberta): aplica agora.
+    if (reg.waiting && navigator.serviceWorker.controller && !jaRecarregou()) {
+      aplicarAtualizacaoBoot(reg.waiting);
+    }
+    reg.addEventListener("updatefound", () => {
+      const sw = reg.installing;
+      if (!sw) return;
+      // É ATUALIZAÇÃO (não 1º install) só quando já há um controller ativo.
+      const deBoot = janelaBoot && !!navigator.serviceWorker.controller && !jaRecarregou();
+      if (!deBoot) return; // mid-sessão: instala e ESPERA, sem interromper nada.
+      aplicarAtualizacaoBoot(sw);
+      sw.addEventListener("statechange", () => {
+        progressoAtualizacao(sw.state);
+        if (sw.state === "installed") enviarSkipWaiting(reg.waiting || sw);
+      });
+    });
+    // Procura deploy novo ao focar a aba e a cada 30 min (pega o que saiu com o app
+    // aberto). Fora da janela de boot isso só instala/espera, sem interromper.
     const checar = () => { try { reg.update(); } catch (e) {} };
     document.addEventListener("visibilitychange", () => { if (!document.hidden) checar(); });
     setInterval(checar, 30 * 60 * 1000);

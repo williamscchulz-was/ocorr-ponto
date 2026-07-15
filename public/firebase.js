@@ -2986,6 +2986,10 @@
         debug?.("[Auth] não foi possível ajustar persistência:", e);
       }
 
+      // Login DELIBERADO (form ou toque no card via entrarComCredencialSalva): sinaliza
+      // pro onAuthStateChanged ENTRAR no portal. Sem isto (boot restaurando sessão) ele
+      // ESTACIONA na escolha de portal (William 2026-07-15).
+      window.__entrarIntencional = true;
       try {
         await auth.signInWithEmailAndPassword(emailOrId, senha);
         try { localStorage.setItem("fiopulse:ultimoUser", emailOrId); } catch {}
@@ -2994,6 +2998,7 @@
         // renderizar). Botão fica em "Entrando..." até a transição.
         return true;
       } catch (e) {
+        window.__entrarIntencional = false;
         err.textContent = traduzErroAuth(e);
         err.classList.remove("hidden");
         return false;
@@ -3023,13 +3028,17 @@
     // Entrada em 1 toque: pega a credencial do cofre e loga no portal certo
     // (11 dígitos = CPF de colaborador; com @ = email de gestor). Retorna true
     // se logou; false deixa o chamador cair no formulário normal.
-    window.entrarComCredencialSalva = async function () {
+    // portalDesejado (opcional, "colab"|"gestor"): se a credencial do cofre não
+    // casa com o portal tocado, devolve false SEM logar — assim tocar Gestor nunca
+    // entra por engano com uma credencial de colaborador salva (e vice-versa).
+    window.entrarComCredencialSalva = async function (portalDesejado) {
       const cred = await window.credencialObter();
       if (!cred) return false;
       const soDigitos = String(cred.id).replace(/\D/g, "");
-      if (soDigitos.length === 11 && !String(cred.id).includes("@")) {
-        return window.loginColaborador(soDigitos, cred.senha);
-      }
+      const ehColab = soDigitos.length === 11 && !String(cred.id).includes("@");
+      if (portalDesejado === "colab" && !ehColab) return false;
+      if (portalDesejado === "gestor" && ehColab) return false;
+      if (ehColab) return window.loginColaborador(soDigitos, cred.senha);
       return window.login ? window.login(cred.id, cred.senha) : false;
     };
 
@@ -3068,12 +3077,16 @@
       try {
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       } catch (e) {}
+      // Login DELIBERADO → onAuthStateChanged ENTRA no portal (vs. boot restaurando,
+      // que estaciona na escolha). Ver window.login (gestor).
+      window.__entrarIntencional = true;
       try {
         await auth.signInWithEmailAndPassword(email, senha);
         try { localStorage.setItem("fiopulse:ultimoCpf", String(cpf || "")); } catch {}
         window.credencialGuardar?.(dig, senha, "FioPulse · Colaborador");
         return true; // onAuthStateChanged assume daqui (carrega + renderiza)
       } catch (e) {
+        window.__entrarIntencional = false;
         // A tela do colaborador só tem CPF + senha; erro de credencial não pode
         // vazar "Email" (detalhe do login sintético). Reescreve pra CPF.
         const cred = e && (e.code === "auth/invalid-credential" || e.code === "auth/wrong-password" || e.code === "auth/user-not-found");
@@ -3534,11 +3547,38 @@
       else { var sp = document.getElementById("splash"); if (sp) sp.classList.add("splash--out"); }
     }
 
+    // Navega pra DENTRO do portal com a sessão já viva. Dois chamadores:
+    //  (1) onAuthStateChanged num login DELIBERADO (form ou toque no card via credencial);
+    //  (2) app.js quando o usuário toca o card do portal que corresponde à sessão viva
+    //      (window.__entrarPortalComSessao), depois que o boot estacionou na escolha.
+    // Reúne o que antes era inline no observador (esconde telas de acesso/login, revela
+    // #app, define a landing por papel, renderiza e liga a presença do gestor).
+    function entrarNoPortal() {
+      const u = currentUser();
+      const ehColab = u?.role === "colaborador";
+      window.__escolhaPortal = false;
+      $("#acesso")?.classList.add("hidden");
+      $("#login")?.classList.add("hidden");
+      $("#login-colab")?.classList.add("hidden");
+      $("#app")?.classList.remove("hidden");
+      esconderSplash();
+      // Landing SEMPRE na Visão geral pro gestor (pedido William 2026-07-08).
+      state.view = ehColab
+        ? { page: "colab-home" }
+        : { page: "visao-geral", filterTab: "pendentes", filterTurno: null, search: "" };
+      renderApp();
+      // F3 (Fundação SELF): presença NÃO é ligada para o colaborador (privacidade +
+      // rule de presence não o contempla). Só o gestor entra na presença em tempo real.
+      if (!ehColab) iniciarPresenca().catch((e) => debug?.("[Presence] init falhou:", e));
+    }
+    window.__entrarPortalComSessao = entrarNoPortal;
+
     // Observador de autenticação
     auth.onAuthStateChanged(async (fbUser) => {
       if (!fbUser) {
         await limparPresenca();
         state.currentUserId = null;
+        window.__escolhaPortal = false; // deslogado: a escolha é a de "sem sessão"
         $("#app")?.classList.add("hidden");
         // Sem sessão → tela de ACESSO (escolha de portal). Mantém o login do
         // gestor a um toque, sem regressão. Fallback pro #login se o app.js
@@ -3610,25 +3650,22 @@
         state.dadosCarregadosEm = new Date().toISOString();
         window.logEvento?.({ tipo: "acessos", acao: "Entrou", alvo: userInState.nome });
 
-        $("#acesso")?.classList.add("hidden");
-        $("#login").classList.add("hidden");
-        $("#login-colab")?.classList.add("hidden"); // login do colaborador (CPF) é tela separada — sem isto fica por cima travada em "Entrando..."
-        $("#app").classList.remove("hidden");
-        esconderSplash(); // troca splash → app direto (login nunca pisca)
-        const ehColab = userInState.role === "colaborador";
-        // Landing SEMPRE na Visão geral pro gestor (marretado, pedido William 2026-07-08):
-        // o boot por sessão restaurada caía em "dashboard" (Ocorrências); o login manual
-        // (app.js) já mandava pra visao-geral, então isto alinha os dois caminhos.
-        state.view = ehColab
-          ? { page: "colab-home" }
-          : { page: "visao-geral", filterTab: "pendentes", filterTurno: null, search: "" };
-        renderApp();
-
-        // F3 (Fundação SELF): presença NÃO é ligada para o colaborador — privacidade
-        // + a rule de presence não o contempla (evita permission-denied na F5).
-        if (!ehColab) {
-          // Inicia presença DEPOIS do app renderizar (state.view existe)
-          iniciarPresenca().catch((e) => debug?.("[Presence] init falhou:", e));
+        // Login DELIBERADO entra no portal; boot RESTAURANDO a sessão estaciona na
+        // escolha de portal (William 2026-07-15: "carrega o app e depois vai pra tela
+        // dos dois portais; ao tocar no do colaborador entra direto"). Nos dois casos a
+        // sessão fica viva e os dados já carregados — o toque no card só navega.
+        const intencional = window.__entrarIntencional === true;
+        window.__entrarIntencional = false;
+        if (intencional) {
+          entrarNoPortal();
+        } else {
+          // Estaciona na escolha. A flag trava o _renderAppNow: um snapshot/refetch em
+          // background NÃO pode empurrar pra dentro do portal antes do toque no card.
+          window.__escolhaPortal = true;
+          $("#login").classList.add("hidden");
+          $("#login-colab")?.classList.add("hidden");
+          mostrarAcesso();
+          esconderSplash();
         }
       } catch (err) {
         debug?.("Erro carregando perfil:", err);
