@@ -246,6 +246,21 @@ Ao gerar um relatório de ocorrências via **Integrador WK** + `ExportacaoAutoma
 
 **Bônus:** o Integrador **auto-incrementa** o nome do config se já existir (`...Apurações.txt` → `...Apurações1.txt`). E o modelo de export herda o layout do modelo selecionado no Minerador (no caso, o da apuração, com previsto×apurado + saldo — mais rico que o "Relação de Ocorrências" de 9 colunas).
 
+**CORREÇÃO/ATUALIZAÇÃO (2026-07-15):** o achado acima NÃO vale pra todo modelo do Minerador —
+testado hoje contra `Config_Minerador_Ocorrencias.txt` (`Modelo="Relacao de Ocorrencias2"`, o que
+o pipeline usa desde a migração de 06/07 pra `ExpAuto_Ocorrencias_Minerador.txt`), e o `.exe`
+**RESPEITA** `IdsSituacoes` sim, mesmo headless: com `IdsSituacoes="32,36,37,38,55"`, o código 31
+("Faltas Abonadas") tinha **ZERO linhas** no CSV inteiro (grep na empresa toda, não só 1 pessoa) —
+confirmado com o caso real de Jenifer (671), Falta Abonada visível na tela de Apuração do WK
+(10/07/2026) mas ausente do CSV que o pipeline lê. Ou seja: o achado de 26/06 (filtro ignorado)
+foi específico do MODELO "apuração" testado na época — o modelo "Relação de Ocorrências2" atual
+FILTRA de verdade por `IdsSituacoes`. **Lição: não generalizar comportamento do .exe entre
+modelos diferentes — testar de novo se o modelo mudar.** Pra incluir um código novo (ex.: 31),
+precisa editar `IdsSituacoes` no `Config_Minerador_Ocorrencias.txt` (byte-safe, latin1+CRLF,
+mesmo cuidado de sempre — nunca confirmado se string vazia = "todos" pra este campo específico,
+diferente do `IdsFuncionarios`; até confirmar, preferir ADICIONAR o código à lista existente em
+vez de zerar o campo).
+
 ---
 
 ## Quirk: ExportacaoAutomatica.exe pode sair OK (exit 0) sem gerar arquivo, se a janela não tiver apuração "fechada" (2026-07-02)
