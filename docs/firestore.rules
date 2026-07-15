@@ -1483,12 +1483,21 @@ service cloud.firestore {
       // sha256 do relato e a REGRA recalcula e confere; com texto e hash
       // imutaveis pos-create, qualquer adulteracao posterior e detectavel.
       allow create: if request.auth != null
-        && den().keys().hasOnly(['categoria', 'texto', 'hash', 'contato', 'em', 'status'])
+        && den().keys().hasOnly(['categoria', 'texto', 'hash', 'contato', 'em', 'status', 'codigoAcompanhamento'])
         && den().categoria in ['assedio-sexual', 'assedio-moral', 'discriminacao', 'violencia', 'seguranca', 'fraude', 'outro']
         && den().texto is string && den().texto.size() >= 10 && den().texto.size() <= 5000
         && den().hash is string
         && den().hash.lower() == hashing.sha256(den().texto).toHexString().lower()
         && (!('contato' in den().keys()) || (den().contato is string && den().contato.size() <= 200))
+        // PROTOCOLO DE ACOMPANHAMENTO (2026-07-16): codigo OPCIONAL, aleatorio forte
+        // gerado no cliente, que liga esta denuncia ao espelho content-free
+        // /denunciaStatus/{codigo} (a triagem sabe qual andamento atualizar). NAO
+        // enfraquece o anonimato: o codigo e um bearer token aleatorio, nao deriva de
+        // pessoa (uid/CPF/nome), nao identifica autor nem correlaciona denuncias do
+        // mesmo autor (cada envio gera um codigo novo). Imutavel pos-create: a regra de
+        // update (hasOnly abaixo) nao o inclui em affectedKeys, logo nao ha como alterar.
+        && (!('codigoAcompanhamento' in den().keys())
+            || (den().codigoAcompanhamento is string && den().codigoAcompanhamento.size() >= 12 && den().codigoAcompanhamento.size() <= 40))
         && den().em == request.time
         && den().status == 'nova';
       allow read: if isAdmin();
@@ -1517,6 +1526,45 @@ service cloud.firestore {
         && resource.data.get('guardaPermanente', false) != true
         && resource.data.get('concluidaEm', request.time) is timestamp
         && resource.data.get('concluidaEm', request.time) < request.time - duration.value(1825, 'd');
+    }
+
+    // ============================================================
+    // PROTOCOLO DE ACOMPANHAMENTO da denuncia (2026-07-16, William).
+    // Espelho content-free do andamento: o denunciante guarda o codigo (bearer
+    // token aleatorio forte, gerado no cliente) e consulta SO o status, sem ver
+    // relato/PII/desfecho/nota. Desenho de sigilo, casa com /denuncias:
+    //  - O doc carrega APENAS status e carimbos de tempo, ZERO conteudo e ZERO
+    //    PII, entao expor o get por id ao publico nao vaza nada da apuracao.
+    //  - GET por id: aberto (quem tem o codigo le o proprio andamento, e o desenho).
+    //  - LIST: negado EXPLICITO. Ninguem enumera a colecao (anti-varredura): sem
+    //    isso, um list vazaria o conjunto de codigos e o volume de denuncias.
+    //  - CREATE: mesmo autor anonimo do envio (autenticado do quadro), junto da
+    //    denuncia; shape fechado hasOnly(status,em) com status=='nova' e em==server,
+    //    e id com tamanho sano (12..40) pra barrar ids triviais tipo "1". O doc NUNCA
+    //    ganha desfecho/nota/relato (o publico veria) porque o hasOnly nem os permite.
+    //  - UPDATE: SO admin, e so pra refletir o andamento (status + atualizadoEm
+    //    carimbado no servidor); affectedKeys fechado nega qualquer campo de conteudo.
+    //  - DELETE: SO admin, SEM a trava de 5 anos da /denuncias. Decisao (justificada):
+    //    a trava de retencao existe pra proteger o RELATO/apuracao (LGPD, integridade);
+    //    o espelho nao tem conteudo nenhum, entao nao ha nada a reter. Espelhar a trava
+    //    exigiria denormalizar desfecho/concluidaEm aqui, contrariando o "zero conteudo"
+    //    e podendo deixar espelho ORFAO apontando pra denuncia ja expurgada. Admin-only
+    //    e o suficiente: o expurgo LGPD da denuncia varre o espelho junto.
+    // ============================================================
+    match /denunciaStatus/{codigo} {
+      function st() { return request.resource.data; }
+      allow create: if request.auth != null
+        && codigo.size() >= 12 && codigo.size() <= 40
+        && st().keys().hasOnly(['status', 'em'])
+        && st().status == 'nova'
+        && st().em == request.time;
+      allow get: if true;
+      allow list: if false;
+      allow update: if isAdmin()
+        && st().diff(resource.data).affectedKeys().hasOnly(['status', 'atualizadoEm'])
+        && st().status in ['nova', 'em_analise', 'concluida']
+        && st().atualizadoEm == request.time;
+      allow delete: if isAdmin();
     }
 
     // ============================================================

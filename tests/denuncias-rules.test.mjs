@@ -64,6 +64,8 @@ before(async () => {
     const seisAnos = new Date(); seisAnos.setFullYear(seisAnos.getFullYear() - 6);
     await setDoc(doc(db, "denuncias/dSeedDelAntiga"), { categoria: "violencia", ...seedTexto("Relato semeado concluido ha seis anos, exclusao deve passar."), em: new Date(), status: "concluida", desfecho: "procedente", concluidaEm: seisAnos });
     await setDoc(doc(db, "denuncias/dSeedDelAntigaPerm"), { categoria: "violencia", ...seedTexto("Relato concluido ha seis anos MAS com guarda permanente."), em: new Date(), status: "concluida", desfecho: "procedente", concluidaEm: seisAnos, guardaPermanente: true });
+    // ----- protocolo de acompanhamento (codigoAcompanhamento imutavel na /denuncias) -----
+    await setDoc(doc(db, "denuncias/dSeedCodImut"), { categoria: "assedio-moral", ...seedTexto("Relato semeado com codigo de acompanhamento, imutavel."), em: new Date(), status: "nova", codigoAcompanhamento: "AC-7f3a9b2e5c1d8046" });
   });
 });
 after(async () => { await env.cleanup(); });
@@ -132,6 +134,16 @@ test("Texto com exatamente 5000 chars (hash correto) PASSA (boundary)", async ()
   const texto = "a".repeat(5000);
   await assertSucceeds(setDoc(doc(colab(), "denuncias/dTextoMax"), den({ texto, hash: sha256(texto) })));
 });
+
+// ---------- codigoAcompanhamento (protocolo de acompanhamento, OPCIONAL e imutavel) ----------
+test("Create COM codigoAcompanhamento valido (12..40) PASSA", async () =>
+  assertSucceeds(setDoc(doc(colab(), "denuncias/dCod1"), den({ codigoAcompanhamento: "AC-7f3a9b2e5c1d8046" }))));
+test("codigoAcompanhamento curto (< 12) nega (barra codigo trivial)", async () =>
+  assertFails(setDoc(doc(colab(), "denuncias/dCodCurto"), den({ codigoAcompanhamento: "abc" }))));
+test("codigoAcompanhamento nao-string nega", async () =>
+  assertFails(setDoc(doc(colab(), "denuncias/dCodTipo"), den({ codigoAcompanhamento: 12345678901234 }))));
+test("ADMIN NAO altera codigoAcompanhamento no update (imutavel, hasOnly da triagem fecha)", async () =>
+  assertFails(updateDoc(doc(admin(), "denuncias/dSeedCodImut"), { codigoAcompanhamento: "AC-outro-codigo-9999" })));
 
 // ---------- Read (SO admin, nem RH, sigilo de proposito) ----------
 test("ADMIN le e lista denuncias", async () => {
