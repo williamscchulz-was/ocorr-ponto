@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.76.0", d: "15 jul 2026", current: true, items: [
+    v: "1.77.0", d: "15 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Vagas: as candidaturas agora chegam com perfil comportamental (barras D I S C, selo e leitura pronta), idade e curriculo aberto dentro do app. Excluir uma candidatura tambem expurga o curriculo do cofre." },
+      { type: "feat", title: "Espelho de ponto: dia com falta abonada agora aparece nomeado, em vez do generico Sem marcacao, no portal do colaborador e do gestor." },
+    ],
+  },
+  {
+    v: "1.76.0", d: "15 jul 2026", items: [
       { type: "high", title: "Voce nao precisa mais logar toda vez: o portal do colaborador agora mantem voce conectado sempre. Um login e pronto, o app abre direto." },
       { type: "high", title: "Momentos que importam ganharam celebracao: assinar recibo ou documento, aceitar o termo, responder pesquisa e, o melhor, CRUZAR UM MARCO de pontos agora tem a confirmacao cerimonial com o anel dourado." },
       { type: "feat", title: "No Android, o app agora oferece salvar sua senha no cofre do celular e entrar com um toque. No iPhone, o teclado oferece a senha salva com Face ID." },

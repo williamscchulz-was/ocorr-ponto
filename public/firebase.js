@@ -1951,7 +1951,23 @@
         state.candidaturas = cs.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
       } catch (e) { debug?.("[vagas] candidaturas:", e?.code || e?.message); state.candidaturas = state.candidaturas || []; }
     };
+    // URL de download do currículo (PDF que o candidato subiu). O gestor SÓ abre no viewer
+    // pdf.js interno (rasteriza, não executa nada de dentro do PDF). null = objeto sumiu do
+    // cofre (404) ou a regra negou → o chamador mostra "não encontrado no cofre".
+    window.urlCurriculo = async function (curriculoPath) {
+      try { return await firebase.storage().ref(curriculoPath).getDownloadURL(); }
+      catch (e) { debug?.("[vagas] url curriculo:", e?.message || e); return null; }
+    };
     window.excluirCandidatura = async function (id) {
+      // EXPURGO LGPD (ordem do gate): o ARQUIVO do candidato (currículo no cofre) sai ANTES
+      // do cadastro. Arquivo já ausente (excluído numa tentativa anterior, ou nunca enviado)
+      // NÃO bloqueia o expurgo do doc — o Firestore é a fonte de verdade do "existe".
+      const c = (state.candidaturas || []).find((x) => x.id === id);
+      const path = c && c.curriculoPath;
+      if (path) {
+        try { await firebase.storage().ref(path).delete(); }
+        catch (e) { debug?.("[vagas] expurgo curriculo:", e?.code || e?.message); }
+      }
       await db.collection("candidaturas").doc(id).delete();
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Excluiu candidatura", alvo: id });
     };

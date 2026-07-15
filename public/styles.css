@@ -4762,14 +4762,62 @@ button.gm-card { cursor: pointer; }
 .g-vaga__bd[data-cand-toggle] { cursor: pointer; }
 .g-cand-badge { font: 700 11px var(--font); color: var(--plum); background: var(--surface-warm); border: 1px solid var(--border-strong); padding: 4px 11px; border-radius: 999px; cursor: pointer; }
 .g-cand-wrap { padding: 4px 0 16px; border-top: 1px dashed var(--border); display: flex; flex-direction: column; gap: 8px; }
-.g-cand { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--surface-warm); border-radius: 10px; }
-.g-cand__bd { flex: 1; min-width: 0; }
-.g-cand__bd b { display: block; font-size: 13.5px; color: var(--text-body); }
-.g-cand__bd span { font-size: 11.5px; color: var(--text-muted); }
-.g-cand__bd p { margin: 6px 0 0; font-size: 12.5px; color: var(--text-body); line-height: 1.5; white-space: pre-wrap; }
-.g-cand__data { display: block; margin-top: 6px; font-size: 10.5px; }
+/* Candidatura na visão da GP: contato + currículo à esquerda, perfil DISC à direita
+   (mock candidatura-completa-2026-07 Parte 2). Cores nos tokens semânticos = legível
+   no claro e no dark do gestor. Perfil só aparece no fluxo novo (tem discPrimario). */
+.g-cand { display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: var(--surface-warm); border-radius: 12px; border-left: 3px solid transparent; }
+.g-cand--pd { border-left-color: var(--danger); }
+.g-cand--pi { border-left-color: var(--warning); }
+.g-cand--ps { border-left-color: var(--success); }
+.g-cand--pc { border-left-color: var(--info); }
+.g-cand--pe { border-left-color: var(--border-strong); }
+.g-cand__main { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start; }
+.g-cand__main--dual { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; }
+.g-cand__bd { min-width: 0; }
+.g-cand__id { display: flex; align-items: center; gap: 11px; }
+.g-cand__av { width: 42px; height: 42px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; font: 700 14px var(--font); }
+.g-cand__idt { min-width: 0; }
+.g-cand__idt b { display: block; font-size: 14px; color: var(--text-body); }
+.g-cand__idt span { font-size: 11.5px; color: var(--text-muted); }
+.g-cand__ct { margin-top: 9px; }
+.g-cand__ct span { font-size: 12px; color: var(--text-muted); word-break: break-word; }
+.g-cand__msg { margin: 8px 0 0; font-size: 12.5px; color: var(--text-body); line-height: 1.5; white-space: pre-wrap; }
+.g-cand__cv { display: inline-flex; align-items: center; gap: 8px; margin-top: 11px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 10px; padding: 8px 12px; cursor: pointer; font: 600 12.5px var(--font); color: var(--text-body); transition: background .15s, border-color .15s; }
+.g-cand__cv:hover { background: var(--surface-warm); border-color: var(--plum); }
+.g-cand__cv .icon { width: 15px; height: 15px; }
+.g-cand__cv--none { cursor: default; color: var(--text-muted); border-style: dashed; background: transparent; }
+.g-cand__cv--none:hover { background: transparent; border-color: var(--border-strong); }
+.g-cand__data { display: block; margin-top: 10px; font-size: 10.5px; color: var(--text-muted); }
+.g-cand__perfil { min-width: 0; border-left: 1px solid var(--border); padding-left: 18px; }
+.g-cand__ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.g-cand__ph small { font: 600 10px var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.g-cand__selo { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 11px; font: 700 11.5px var(--font); }
+.g-cand__dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+.g-cand__selo--pd { background: var(--danger-bg); color: var(--danger); }
+.g-cand__selo--pi { background: var(--warning-bg); color: var(--warning-ink); }
+.g-cand__selo--ps { background: var(--success-bg); color: var(--success); }
+.g-cand__selo--pc { background: var(--info-bg); color: var(--info); }
+.g-cand__selo--pe { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border-strong); }
+.g-cand__bar { display: grid; grid-template-columns: 80px 1fr 38px; align-items: center; gap: 9px; margin-bottom: 8px; }
+.g-cand__bl { font: 600 11.5px var(--font); color: var(--text-body); }
+.g-cand__bt { height: 8px; border-radius: 999px; background: var(--border-strong); overflow: hidden; }
+.g-cand__bf { display: block; height: 100%; border-radius: 999px; }
+.g-cand__bf--d { background: var(--danger); }
+.g-cand__bf--i { background: var(--warning); }
+.g-cand__bf--s { background: var(--success); }
+.g-cand__bf--c { background: var(--info); }
+.g-cand__bp { font: 600 11px var(--font); color: var(--text-muted); text-align: right; }
+.g-cand__leitura { margin: 13px 0 0; font-size: 12px; color: var(--text-body); line-height: 1.55; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.g-cand__leitura b { font-weight: 600; }
+.g-cand__del { flex: 0 0 auto; }
 .g-cand-lgpd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: #fff7e0; border: 1px solid #e8c34d66; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 12.5px; color: #6b5300; }
+.g-cand-nota { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin-top: 4px; padding: 11px 13px; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: 12px; }
+.g-cand-nota .icon { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; }
 .g-cand-empty { margin: 0; padding: 10px 0 4px; font-size: 12.5px; color: var(--text-muted); }
+@media (max-width: 700px) {
+  .g-cand__main--dual { grid-template-columns: 1fr; gap: 14px; }
+  .g-cand__perfil { border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 14px; }
+}
 
 /* ============================================================
    Navegação com continuidade (View Transitions API nativa). A transição só é
