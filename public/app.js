@@ -2250,20 +2250,49 @@ function precisaAtencaoHtml() {
 const CP_SALDO_VAZIO = "Em breve";
 const CP_SALDO_VAZIO_SUB = "Seu saldo aparece aqui assim que a GP sincronizar";
 
-// Herói de banco de horas: 3 estados com selo. Mesmo gradiente verde sempre; o sinal
-// e o selo comunicam. Esconde pro bhExempt (diretor/Geral sem ponto).
-// estatico=true (dentro do Meu ponto): vira bloco não clicável rotulado "Saldo do mês"
-// (não navega pra própria tela nem duplica o rótulo do chip ativo).
-function bhHeroHtml(f, estatico) {
-  if (f && f.bhExempt) return "";
+// Núcleo de exibição do saldo de banco de horas, compartilhado pelo cartaz do Meu ponto
+// (bhHeroHtml) e pelo selo da saudação (bhSeloHtml): deriva 100% de state.meuSaldoBH,
+// sem timestamp regenerado (flicker-safe). estado ∈ pos|neg|zero|semdado; bhStr inteiro.
+function bhSaldoCore() {
   const bh = state.meuSaldoBH || null;
   const _bhOrig = bhFolgaMin(bh); // saldo pra folga (original); null = sem sincronizacao ainda
   const bhMin = _bhOrig != null ? _bhOrig : (bh ? (typeof bh.minutos === "number" ? bh.minutos : (typeof bh.saldoMin === "number" ? bh.saldoMin : null)) : null);
   let bhStr = _bhOrig != null ? bhFolgaStr(bh) : (bh ? (bh.saldoFormatado || (bhMin != null && typeof formatSaldoHoras === "function" ? formatSaldoHoras(bhMin) : null)) : null);
   const estado = bhMin == null ? "semdado" : (bhMin > 0 ? "pos" : (bhMin < 0 ? "neg" : "zero"));
   if (estado === "zero") bhStr = "00:00";
-  const selos = { pos: ["check", "A favor"], neg: [null, "A compensar"], zero: ["check", "Em dia"], semdado: [null, ""] };
-  const [selIc, selTxt] = selos[estado];
+  return { bh, bhMin, bhStr, estado };
+}
+
+// Selo do banco de horas na saudação da home (hipótese H4 aprovada): o saldo vira um chip
+// tocável colado ao nome, abre Meu ponto. O número aparece SEMPRE inteiro; cor e rótulo
+// dão o sinal. 3 estados: a favor (verde), a compensar (âmbar suave), sincronizando
+// (neutro, sem dado ainda). Vazio pro bhExempt (diretor/Geral sem ponto), igual ao cartaz.
+function bhSeloHtml(f) {
+  if (f && f.bhExempt) return "";
+  const { bhStr, estado } = bhSaldoCore();
+  const mapa = {
+    pos: { cls: "", ic: "clock", v: bhStr, s: "a favor" },
+    zero: { cls: "", ic: "clock", v: bhStr, s: "em dia" },
+    neg: { cls: " bhseal--neg", ic: "clock", v: bhStr, s: "a compensar" },
+    semdado: { cls: " bhseal--sync", ic: "refresh", v: "--:--", s: "sincronizando" },
+  };
+  const e = mapa[estado] || mapa.semdado;
+  const val = e.v || "--:--";
+  return `<button class="bhseal${e.cls}" data-nav="colab-ponto" aria-label="Banco de horas: ${escapeHtml(val)} ${e.s}. Abrir Meu ponto.">`
+    + `<span class="bhseal__ic">${cpIcon(e.ic)}</span>`
+    + `<span class="bhseal__v">${escapeHtml(val)}</span>`
+    + `<span class="bhseal__s">${e.s}</span>`
+    + `</button>`;
+}
+
+// Herói de banco de horas: 3 estados com selo. Mesmo gradiente verde sempre; o sinal
+// e o selo comunicam. Esconde pro bhExempt (diretor/Geral sem ponto).
+// estatico=true (dentro do Meu ponto): vira bloco não clicável rotulado "Saldo do mês"
+// (não navega pra própria tela nem duplica o rótulo do chip ativo).
+function bhHeroHtml(f, estatico) {
+  if (f && f.bhExempt) return "";
+  const { bh, bhStr, estado } = bhSaldoCore();
+  const selTxt = { pos: "A favor", neg: "A compensar", zero: "Em dia", semdado: "" }[estado];
   let iso = bh && bh.atualizadoEm;
   if (iso && typeof iso.toDate === "function") iso = iso.toDate().toISOString();
   else if (iso && typeof iso === "object" && typeof iso.seconds === "number") iso = new Date(iso.seconds * 1000).toISOString();
@@ -2300,15 +2329,20 @@ function colabGreetHtml(f, nome) {
   const foto = (u && typeof u.fotoBase64 === "string" && u.fotoBase64.indexOf("data:image/") === 0) ? u.fotoBase64 : null;
   const avSt = foto ? ` style="background-image:url(${foto});background-size:cover;background-position:center;color:transparent"` : "";
   const av = foto ? "" : escapeHtml(initials(nome || "?"));
+  // Selo do banco de horas colado ao nome (H4). Presente também no aniversário; se o
+  // funcionário é bhExempt vem vazio e a saudação segue sem o modificador de linha.
+  const selo = bhSeloHtml(f);
+  const seloMod = selo ? " pp-greet--seal" : "";
   const ehAniv = f && Number(f.aniversarioDia) === hoje.getDate() && Number(f.aniversarioMes) === (hoje.getMonth() + 1);
   if (ehAniv) {
     // Sem coração (não se parabeniza a si mesmo). A linha de contagem (data-bday-count) é
     // preenchida por preencherCardsAniversario com a copy "N colegas já te parabenizaram".
+    // O selo vai NO h1 (nunca no [data-bday-count], que preencherCardsAniversario reescreve).
     const post = muralPostId(nome);
     const c = _reacoesCached(post); // nasce com a contagem da última leitura (anti-flicker)
-    return `<div class="pp-greet pp-greet--bday" data-bday-post="${escapeHtml(post)}" data-bday-me>
+    return `<div class="pp-greet pp-greet--bday${seloMod}" data-bday-post="${escapeHtml(post)}" data-bday-me>
       <div class="pp-greet__av"${avSt}>${av}<span class="spark">${cpIcon("cake")}</span></div>
-      <div class="pp-greet__tx"><h1>Feliz aniversário, <b>${escapeHtml(primeiro)}</b></h1><p data-bday-count>${c ? escapeHtml(_parabTexto(c.total, c.minhaReacao, true)) : "Toda a Fiobras te deseja um dia incrível"}</p></div>
+      <div class="pp-greet__tx"><h1>Feliz aniversário, <b>${escapeHtml(primeiro)}</b> ${selo}</h1><p data-bday-count>${c ? escapeHtml(_parabTexto(c.total, c.minhaReacao, true)) : "Toda a Fiobras te deseja um dia incrível"}</p></div>
     </div>`;
   }
   const saud = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
@@ -2318,9 +2352,9 @@ function colabGreetHtml(f, nome) {
   const turnoLabel = (f && f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label : null;
   const sub = [`${ds}, ${hoje.getDate()} de ${mesNome}`, turnoLabel].filter(Boolean).join(" · ");
   const icoHora = (h >= 6 && h < 18) ? "sun" : "moon";
-  return `<div class="pp-greet">
+  return `<div class="pp-greet${seloMod}">
     <div class="pp-greet__av"${avSt}>${av}</div>
-    <div class="pp-greet__tx"><h1>${saud}, <b>${escapeHtml(primeiro)}</b></h1><p>${cpIcon(icoHora)}${escapeHtml(sub)}</p></div>
+    <div class="pp-greet__tx"><h1>${saud}, <b>${escapeHtml(primeiro)}</b> ${selo}</h1><p>${cpIcon(icoHora)}${escapeHtml(sub)}</p></div>
   </div>`;
 }
 
@@ -2463,12 +2497,12 @@ function gamiCardHomeHtml() {
   const prox = marcos.find((m) => m > total);
   const prev = marcos.filter((m) => m <= total).pop() || 0;
   const pct = prox ? Math.round(((total - prev) / (prox - prev)) * 100) : 100;
-  return `<button class="gm-card" data-nav="colab-conquistas" aria-label="Seus pontos: ${total}. Abrir Conquistas.">
-      <div class="gm-card__top"><span class="gm-card__lbl">Seus pontos</span><span class="gm-card__season">Temporada ${escapeHtml(cfg.ano)}</span></div>
-      <div class="gm-card__pts">${total} <small>pts</small></div>
-      <div class="gm-bar"><span style="width:${pct}%"></span></div>
-      <div class="gm-card__meta"><span>${prox ? `Próximo marco: ${prox} · surpresa` : "Todos os marcos do ano conquistados"}</span><span>${prox ? `faltam ${prox - total} pts` : ""}</span></div>
-      <div class="gm-selos">${marcos.map((m) => `<span class="gm-selo${total >= m ? " ok" : ""}">${m}</span>`).join("")}</div>
+  // Formato compacto (variação C aprovada, H4): único destaque verde da primeira dobra.
+  // Sem os chips de marcos; barra fina + "faltam N pro marco". Abre Conquistas ao toque.
+  return `<button class="gm-mid" data-nav="colab-conquistas" aria-label="Seus pontos: ${total}. Abrir Conquistas.">
+      <div class="gm-mid__top"><span class="gm-mid__lbl">${cpIcon("medalha")}Seus pontos</span><span class="gm-mid__pts">${total}<small>pts</small></span><span class="gm-mid__season">Temporada ${escapeHtml(cfg.ano)}</span></div>
+      <div class="gm-mid__bar"><span style="width:${pct}%"></span></div>
+      <div class="gm-mid__meta">${prox ? `faltam ${prox - total} pro marco ${prox}` : "Todos os marcos do ano conquistados"}</div>
     </button>`;
 }
 
@@ -2662,7 +2696,6 @@ function renderColaboradorHome() {
       ${colabAtalhosHtml()}
       <div class="pp-home__grid">
         <div class="pp-home__col">
-          ${bhHeroHtml(f)}
           ${gamiCardHomeHtml()}
           ${precisaAtencaoHtml()}
         </div>
@@ -16311,7 +16344,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.73.0";
+window.CURRENT_VERSION = "1.74.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -4626,9 +4626,6 @@ button.gm-card { cursor: pointer; }
 .gm-bar { height: 9px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; margin: 10px 0 6px; }
 .gm-bar span { display: block; height: 100%; background: var(--fiobras-yellow, #FFCB00); border-radius: 999px; }
 .gm-card__meta { display: flex; justify-content: space-between; font-size: 11.5px; opacity: .9; }
-.gm-selos { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-.gm-selo { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.16); }
-.gm-selo.ok { background: var(--fiobras-yellow, #FFCB00); color: #4a3c00; }
 
 /* Tela Conquistas: abas + secoes */
 /* Loading da 1a abertura (barra pedida pelo William 2026-07-14) */

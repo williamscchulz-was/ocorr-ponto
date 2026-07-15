@@ -407,6 +407,32 @@ html.modo-colab.cp-dark{
 .pp-greet__tx p{font-size:12.5px;color:var(--text-muted);margin:3px 0 0;display:flex;align-items:center;gap:6px}
 .pp-greet__tx p svg{width:13px;height:13px;flex:none}
 .pp-greet--bday .pp-greet__tx h1{color:var(--warning)}
+/* H4: selo do banco de horas colado ao nome. Número SEMPRE inteiro; cor+rótulo dão o
+   sinal. 3 estados via tokens cp-dark/light (legível nos dois temas). Abre Meu ponto. */
+.pp-greet--seal .pp-greet__tx h1{line-height:1.34}
+.bhseal{display:inline-flex;align-items:center;gap:6px;vertical-align:2px;margin-left:4px;padding:4px 11px 4px 8px;border-radius:999px;cursor:pointer;border:1px solid transparent;font:inherit;white-space:nowrap;background:var(--success-bg);transition:transform .16s var(--ease-ios)}
+.bhseal:active{transform:scale(.95)}
+.bhseal__ic{flex:none;display:flex;color:var(--plum)}
+.bhseal__ic svg{width:14px;height:14px;stroke-width:2}
+.bhseal__v{font-size:14px;font-weight:800;color:var(--text-body);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.bhseal__s{font-size:11px;font-weight:600;color:var(--plum)}
+.bhseal--neg{background:var(--warning-bg)}
+.bhseal--neg .bhseal__ic,.bhseal--neg .bhseal__s{color:var(--warning-tx)}
+.bhseal--sync{background:var(--surface-warm);border-color:var(--border)}
+.bhseal--sync .bhseal__ic,.bhseal--sync .bhseal__s,.bhseal--sync .bhseal__v{color:var(--text-muted)}
+/* Card compacto de pontos (gm-mid): único destaque verde da 1ª dobra da home. Fundo
+   saturado de marca, branco por cima (idem pp-hero, vale nos dois temas). */
+.gm-mid{display:block;width:100%;text-align:left;border:0;font:inherit;cursor:pointer;background:linear-gradient(135deg,#008835,#0b6e33);border-radius:var(--pp-rc);padding:13px 16px;color:#fff;transition:transform .16s var(--ease-ios);box-shadow:0 10px 26px -14px rgba(0,90,40,.7)}
+.gm-mid:active{transform:scale(.985)}
+.gm-mid__top{display:flex;align-items:baseline;gap:9px}
+.gm-mid__lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.85;display:inline-flex;align-items:center;gap:6px}
+.gm-mid__lbl svg{width:14px;height:14px}
+.gm-mid__pts{font-size:28px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gm-mid__pts small{font-size:13px;font-weight:700;opacity:.85;margin-left:3px}
+.gm-mid__season{margin-left:auto;align-self:center;font-size:9.5px;font-weight:700;background:rgba(255,255,255,.16);padding:3px 8px;border-radius:999px}
+.gm-mid__bar{height:5px;border-radius:999px;background:rgba(255,255,255,.22);overflow:hidden;margin:9px 0 6px}
+.gm-mid__bar span{display:block;height:100%;background:var(--fiobras-yellow,#FFCB00);border-radius:999px}
+.gm-mid__meta{font-size:11px;font-weight:400;opacity:.9}
 .pp-bday{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:12px 14px;position:relative;overflow:hidden}
 .pp-bday::after{content:"";position:absolute;right:-24px;top:-30px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,rgba(224,163,58,.14),transparent 70%)}
 .pp-bday__ic{width:40px;height:40px;border-radius:12px;background:rgba(224,163,58,.16);color:var(--warning);display:flex;align-items:center;justify-content:center;flex:none}
@@ -617,10 +643,8 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 .modo-colab .cp-bn-ic{position:relative}
 .cp-bn-dot{position:absolute;top:-4px;right:-10px;min-width:15px;height:15px;border-radius:999px;background:var(--warning);color:#3a2a05;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 3px}
 
-/* Home: herói e cards irmãos com o mesmo raio (16) e ritmo vertical de 10px.
-   Escopado em .pp-home pra não mexer no herói de outras telas (que fica em 18). */
+/* Home: cards irmãos com ritmo vertical de 10px. */
 .pp-home__col{display:flex;flex-direction:column;gap:10px}
-.pp-home .pp-hero{border-radius:var(--pp-rc)}
 .pp-home__col>.pp-pend{margin:0}
 
 /* Alvos de toque ≥44px sem inflar o visual (área de clique via pseudo-elemento). */

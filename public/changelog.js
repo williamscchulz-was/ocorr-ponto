@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.73.0", d: "15 jul 2026", current: true, items: [
+    v: "1.74.0", d: "15 jul 2026", current: true, items: [
+      { type: "high", title: "Home repaginada: o saldo do banco de horas agora vive num selo elegante junto do seu nome (toque nele pra abrir o Meu ponto) e os seus pontos da temporada ganharam o palco, num card mais enxuto. Menos poluicao, mesma informacao." },
+    ],
+  },
+  {
+    v: "1.73.0", d: "15 jul 2026", items: [
       { type: "high", title: "Parabenizar um aniversariante e dar boas-vindas a quem chegou agora VALEM PONTO na temporada. Quem ja curtiu este ano recebe o retroativo sozinho ao abrir Conquistas." },
       { type: "fix", title: "iPhone: consertado o defeito que deslocava a tela e a barra de navegacao ao trocar de tela com a pagina rolada. E a tela nao estica mais alem do limite ao puxar." },
       { type: "fix", title: "Canal de denuncia: o cabecalho agora vai ate as bordas no celular, como o resto do app. E a home ficou mais limpa: Novidades vive no atalho redondo do hub." },
