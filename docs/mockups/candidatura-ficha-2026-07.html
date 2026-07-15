@@ -1,0 +1,1244 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Candidatura com ficha completa (lista da GP)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23008835'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Arial' font-weight='800' font-size='18' fill='%23fff'%3EF%3C/text%3E%3C/svg%3E">
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+  :root {
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00; --azul: #0076BE;
+    --ink: #1c231d; --muted: #68716a; --bg: #f2f3ee; --card: #ffffff;
+    --borda: #e3e5dd; --ease-ios: cubic-bezier(.32, .72, .28, 1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 46px 20px 90px; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  h1 { font: 700 clamp(26px, 4vw, 40px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--muted); max-width: 780px; font-size: 15.5px; }
+
+  /* cobertura da lista oficial da GP */
+  .cob { margin-top: 30px; background: var(--card); border: 1px solid var(--borda); border-radius: 20px; padding: 22px 24px 24px; box-shadow: 0 2px 4px #0000000a, 0 24px 60px -40px #04331a2e; }
+  .cob-h { display: flex; align-items: center; gap: 10px; font: 700 15px Poppins, system-ui, sans-serif; }
+  .cob-h .tick { width: 26px; height: 26px; border-radius: 8px; background: #00883514; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; }
+  .cob-h .tick svg { width: 15px; height: 15px; }
+  .cob-h small { margin-left: auto; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+  .cob-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px 22px; margin-top: 16px; }
+  .cob-col h4 { font: 600 11px Poppins, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; color: var(--verde-esc); margin-bottom: 9px; }
+  .cob-col ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+  .cob-col li { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #45523f; background: #f5f7f1; border: 1px solid #e5e9df; border-radius: 999px; padding: 5px 11px 5px 8px; }
+  .cob-col li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--verde); flex: 0 0 auto; }
+  .cob-col.leg li::before { background: var(--azul); }
+
+  /* seção por etapa */
+  .part { margin-top: 52px; }
+  .part-h { display: flex; align-items: center; gap: 12px; font: 700 20px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.01em; flex-wrap: wrap; }
+  .part-h .n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 10px; background: var(--verde-esc); color: #fff; font: 700 14px/30px Poppins, system-ui, sans-serif; text-align: center; }
+  .part-h .ja { font: 600 11px Poppins, system-ui, sans-serif; letter-spacing: .02em; color: var(--azul); background: #0076be14; border: 1px solid #0076be2e; padding: 4px 11px; border-radius: 999px; text-transform: none; }
+  .part-d { color: var(--muted); font-size: 14px; margin: 10px 0 4px; max-width: 760px; }
+
+  /* board de quadros */
+  .board { display: flex; flex-wrap: wrap; gap: 42px 34px; margin-top: 24px; }
+  .quadro { width: 342px; display: flex; flex-direction: column; }
+  .cap { margin-top: 14px; font-size: 12.5px; color: #45523f; line-height: 1.55; max-width: 342px; }
+  .cap b { display: block; font: 600 13px Poppins, system-ui, sans-serif; color: var(--verde-esc); margin-bottom: 2px; }
+
+  /* ---------- frame de celular ---------- */
+  .phone { width: 342px; background: #0b0d0c; border-radius: 46px; padding: 10px; box-shadow: 0 2px 4px #0003, 0 24px 60px -20px #04331a5c, inset 0 0 0 2px #262b28; }
+  .screen { position: relative; overflow: hidden; border-radius: 37px; background: #f6f7f2; isolation: isolate; display: flex; flex-direction: column; min-height: 300px; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 92px; height: 25px; border-radius: 999px; background: #0b0d0c; z-index: 60; }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 26px 0; font: 600 12px Poppins, system-ui, sans-serif; color: #fff; position: relative; z-index: 50; }
+
+  .cand-top { background: var(--verde-esc); color: #fff; padding: 0 0 14px; flex: 0 0 auto; position: relative; }
+  .cand-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, var(--verde), var(--amarelo), var(--azul)); }
+  .cand-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 0; }
+  .cand-back { width: 32px; height: 32px; border-radius: 50%; border: 0; background: #ffffff1f; color: #fff; display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; }
+  .cand-back svg { width: 16px; height: 16px; }
+  .cand-back[hidden] { display: none; }
+  .cand-vaga { min-width: 0; }
+  .cand-vaga small { font-size: 11px; opacity: .72; letter-spacing: .02em; text-transform: uppercase; font-weight: 600; }
+  .cand-vaga b { display: block; font: 700 16px/1.2 Poppins, system-ui, sans-serif; }
+
+  .stepper { padding: 12px 18px 2px; }
+  .step-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; gap: 10px; }
+  .step-count { font: 600 11px Poppins, system-ui, sans-serif; color: #ffffffc4; letter-spacing: .04em; white-space: nowrap; }
+  .step-name { font: 600 12px Poppins, system-ui, sans-serif; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .step-bar { display: flex; gap: 4px; }
+  .step-seg { flex: 1; height: 4px; border-radius: 999px; background: #ffffff2b; overflow: hidden; }
+  .step-seg i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--amarelo); }
+  .step-seg.done i { width: 100%; }
+  .step-seg.now i { width: 100%; background: #fff; }
+
+  .body { flex: 1; padding: 18px 18px 6px; }
+  .stitle { font: 700 18px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .shint { color: var(--muted); font-size: 12.5px; margin: 5px 0 15px; line-height: 1.5; }
+  .grp { font: 600 10.5px Poppins, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .07em; color: #8a927f; margin: 18px 0 10px; display: flex; align-items: center; gap: 8px; }
+  .grp::after { content: ""; flex: 1; height: 1px; background: #e7e9e1; }
+  .grp:first-of-type { margin-top: 4px; }
+
+  /* campos */
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font: 600 12px Poppins, system-ui, sans-serif; color: #384a32; margin-bottom: 5px; }
+  .field input, .field select { width: 100%; border: 1.5px solid var(--borda); border-radius: 13px; padding: 12px 13px; font: 500 14.5px Poppins, system-ui, sans-serif; color: var(--ink); background: #fff; transition: border-color .15s, box-shadow .15s; }
+  .field input::placeholder { color: #a9b0a5; }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px #00883521; }
+  .field.err input, .field.err select { border-color: #d64545; }
+  .field .msg { font-size: 11px; color: #d64545; margin-top: 5px; min-height: 13px; opacity: 0; }
+  .field.err .msg { opacity: 1; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* select nativo com chevron */
+  .sel { position: relative; }
+  .sel select { appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer; }
+  .sel::after { content: ""; position: absolute; right: 15px; top: 50%; width: 9px; height: 9px; border-right: 2px solid #7c8676; border-bottom: 2px solid #7c8676; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+  .money input { font-variant-numeric: tabular-nums; }
+
+  /* segmentado Não | Sim */
+  .seg { display: inline-flex; background: #eef0ea; border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg button { border: 0; background: transparent; padding: 9px 22px; border-radius: 9px; font: 600 13px Poppins, system-ui, sans-serif; color: var(--muted); cursor: pointer; transition: background .15s, color .15s; }
+  .seg button.on { background: #fff; color: var(--verde-esc); box-shadow: 0 1px 3px #00000018; }
+  .segextra { margin-top: 12px; }
+  .segextra[hidden] { display: none; }
+
+  /* stepper numérico (quantos filhos) */
+  .nstep { display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--borda); border-radius: 12px; padding: 4px; background: #fff; }
+  .nstep button { width: 34px; height: 34px; border: 0; border-radius: 9px; background: #f2f4ee; color: var(--verde-esc); font: 700 18px/1 Poppins, system-ui, sans-serif; cursor: pointer; }
+  .nstep b { min-width: 34px; text-align: center; font: 700 15px Poppins, system-ui, sans-serif; }
+
+  /* chips escolha única (transporte) */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--borda); background: #fff; border-radius: 999px; padding: 9px 15px; font: 600 12.5px Poppins, system-ui, sans-serif; color: #45523f; cursor: pointer; transition: border-color .15s, background .15s, color .15s; }
+  .chip svg { width: 15px; height: 15px; }
+  .chip.on { border-color: var(--verde); background: #00883510; color: var(--verde-esc); }
+
+  /* checkbox card (primeiro emprego) */
+  .checkcard { display: flex; gap: 11px; align-items: center; border: 1.5px solid var(--borda); border-radius: 14px; padding: 13px 14px; margin-bottom: 15px; cursor: pointer; background: #fff; transition: border-color .15s, background .15s; }
+  .checkcard.on { border-color: var(--verde); background: #00883508; }
+  .checkcard .box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #c2cbba; flex: 0 0 auto; display: grid; place-items: center; transition: background .15s, border-color .15s; }
+  .checkcard.on .box { background: var(--verde); border-color: var(--verde); }
+  .checkcard .box svg { width: 13px; height: 13px; opacity: 0; transition: opacity .15s; }
+  .checkcard.on .box svg { opacity: 1; }
+  .checkcard p { font-size: 12.5px; color: #45523f; line-height: 1.45; }
+  .checkcard p b { font-weight: 600; color: var(--ink); }
+
+  /* estado vazio de experiências */
+  .empty { text-align: center; padding: 26px 16px 22px; border: 1.5px dashed #d3d9cc; border-radius: 16px; background: #fbfcf9; margin-bottom: 14px; }
+  .empty .ic { width: 54px; height: 54px; border-radius: 16px; background: #eef1ea; color: #9aa392; display: grid; place-items: center; margin: 0 auto 11px; }
+  .empty .ic svg { width: 26px; height: 26px; }
+  .empty b { font: 600 13.5px Poppins, system-ui, sans-serif; color: var(--ink); }
+  .empty span { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  .add-exp { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px dashed #b9ccae; border-radius: 15px; background: #f4f9f1; color: var(--verde); font: 600 13.5px Poppins, system-ui, sans-serif; padding: 14px; cursor: pointer; transition: background .15s, border-color .15s; }
+  .add-exp:hover { background: #edf6ea; border-color: var(--verde); }
+  .add-exp svg { width: 17px; height: 17px; }
+  .add-hint { text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 9px; }
+
+  /* card de experiência preenchida */
+  .exp { position: relative; border: 1px solid var(--borda); border-radius: 16px; padding: 14px 15px; margin-bottom: 12px; background: #fff; }
+  .exp .exp-top { display: flex; align-items: flex-start; gap: 10px; }
+  .exp .exp-ic { width: 34px; height: 34px; border-radius: 10px; background: #00883514; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; }
+  .exp .exp-ic svg { width: 17px; height: 17px; }
+  .exp .exp-nm { flex: 1; min-width: 0; }
+  .exp .exp-nm b { font: 600 14.5px Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .exp .exp-nm span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .exp .exp-acts { display: flex; gap: 5px; flex: 0 0 auto; }
+  .exp .exp-acts button { width: 30px; height: 30px; border-radius: 9px; border: 0; background: #f2f4ee; color: #6b7563; cursor: pointer; display: grid; place-items: center; }
+  .exp .exp-acts button svg { width: 15px; height: 15px; }
+  .exp .exp-meta { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .exp .exp-meta div { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: #45523f; }
+  .exp .exp-meta svg { width: 14px; height: 14px; color: #97a08f; flex: 0 0 auto; }
+  .exp .exp-meta b { font-weight: 600; color: var(--ink); }
+
+  /* currículo (encurtado) */
+  .cv-drop { border: 2px dashed #c6cfbf; border-radius: 18px; background: #fbfcf9; padding: 26px 16px; text-align: center; }
+  .cv-drop .cvic { width: 52px; height: 52px; border-radius: 15px; background: #00883514; color: var(--verde); display: grid; place-items: center; margin: 0 auto 12px; }
+  .cv-drop .cvic svg { width: 26px; height: 26px; }
+  .cv-drop b { display: block; font: 600 14px Poppins, system-ui, sans-serif; color: var(--ink); }
+  .cv-drop span { font-size: 11.5px; color: var(--muted); }
+  .cv-skip { margin-top: 16px; text-align: center; }
+  .cv-skip p { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 6px; }
+  .btn-link { background: none; border: 0; color: var(--verde); font: 600 12.5px Poppins, system-ui, sans-serif; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+
+  /* DISC (encurtado) */
+  .disc-count { font: 600 11.5px Poppins, system-ui, sans-serif; color: var(--muted); letter-spacing: .03em; margin-bottom: 6px; }
+  .disc-prog { height: 5px; border-radius: 999px; background: #e6ece1; overflow: hidden; margin-bottom: 16px; }
+  .disc-prog i { display: block; height: 100%; width: 31%; border-radius: 999px; background: linear-gradient(90deg, var(--verde), #16a34a); }
+  .disc-q { font: 700 15px/1.35 Poppins, system-ui, sans-serif; letter-spacing: -.01em; margin-bottom: 3px; }
+  .disc-qs { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .disc-opt { display: block; width: 100%; text-align: left; border: 1.5px solid var(--borda); background: #fff; border-radius: 15px; padding: 15px; margin-bottom: 10px; font: 500 13.5px/1.4 Poppins, system-ui, sans-serif; color: var(--ink); cursor: pointer; }
+  .disc-opt.most { border-color: var(--verde); background: #00883510; font-weight: 600; }
+
+  /* revisão */
+  .rev-card { background: #fff; border: 1px solid var(--borda); border-radius: 18px; padding: 4px 15px; margin-bottom: 14px; }
+  .rev-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eef0ea; }
+  .rev-row:last-child { border-bottom: 0; }
+  .rev-row .ri { width: 32px; height: 32px; border-radius: 9px; background: #00883514; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; margin-top: 1px; }
+  .rev-row .ri svg { width: 16px; height: 16px; }
+  .rev-row .rt { flex: 1; min-width: 0; }
+  .rev-row .rt small { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; margin-bottom: 2px; }
+  .rev-row .rt b { font: 500 12.8px/1.45 Poppins, system-ui, sans-serif; color: var(--ink); word-break: break-word; }
+  .rev-row .rt .li { display: block; font-size: 12px; color: #45523f; }
+  .rev-edit { align-self: center; margin-left: auto; font: 600 11.5px Poppins, system-ui, sans-serif; color: var(--verde); background: none; border: 0; cursor: pointer; flex: 0 0 auto; }
+
+  .lgpd { display: flex; gap: 11px; align-items: flex-start; background: #f7f8f4; border: 1px solid var(--borda); border-radius: 14px; padding: 13px 14px; margin-bottom: 4px; cursor: pointer; }
+  .lgpd .box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #c2cbba; flex: 0 0 auto; display: grid; place-items: center; margin-top: 1px; transition: background .15s, border-color .15s; }
+  .lgpd.on .box { background: var(--verde); border-color: var(--verde); }
+  .lgpd .box svg { width: 13px; height: 13px; opacity: 0; transition: opacity .15s; }
+  .lgpd.on .box svg { opacity: 1; }
+  .lgpd p { font-size: 11.3px; color: #55604f; line-height: 1.55; }
+  .lgpd p b { font-weight: 600; color: var(--verde-esc); }
+
+  /* footer / botão */
+  .cand-foot { flex: 0 0 auto; padding: 12px 18px 16px; border-top: 1px solid #eceee8; background: #fbfcf9; }
+  .btn { width: 100%; border: 0; border-radius: 15px; background: var(--verde); color: #fff; font: 700 14.5px Poppins, system-ui, sans-serif; padding: 15px; cursor: pointer; transition: background .15s, transform .14s var(--ease-ios); }
+  .btn:hover { background: #0b6e33; }
+  .btn:active { transform: scale(.98); }
+  .btn.amar { background: var(--amarelo); color: #332902; }
+  .btn.amar:hover { background: #eaba00; }
+  .btn.ghost { background: #eef1ea; color: var(--verde-esc); }
+  .btn.ghost:hover { background: #e5e9df; }
+
+  /* strip de detalhes de interação */
+  .det { margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .detc { background: var(--card); border: 1px solid var(--borda); border-radius: 18px; padding: 18px 18px 20px; }
+  .detc h5 { font: 700 13px Poppins, system-ui, sans-serif; margin-bottom: 4px; }
+  .detc p { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+  .detc .field { margin-bottom: 0; }
+
+  /* ===== cena Benefícios da vaga ===== */
+  .part-h .n.ic { display: grid; place-items: center; }
+  .part-h .n.ic svg { width: 17px; height: 17px; }
+  .bencena { display: flex; flex-wrap: wrap; gap: 34px 30px; align-items: flex-start; margin-top: 24px; }
+  .bencol { display: flex; flex-direction: column; max-width: 100%; }
+
+  /* frame do portal do gestor (tema claro do app) */
+  .gframe { width: 560px; max-width: 100%; background: #fff; border: 1px solid #E7EDE4; border-radius: 20px; overflow: hidden; box-shadow: 0 2px 4px #0000000a, 0 30px 70px -34px #04331a33; }
+  .gbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #F7F9F6; border-bottom: 1px solid #E7EDE4; }
+  .gdot { width: 11px; height: 11px; border-radius: 50%; background: #dfe3da; }
+  .gbar .gt { margin-left: 10px; font: 600 12.5px Poppins, system-ui, sans-serif; color: #4A6245; display: flex; align-items: center; gap: 8px; }
+  .gbar .gt .b { background: #00883514; color: #008835; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+  .gbody { padding: 22px; background: #F7F9F6; }
+  .gcard { background: #fff; border: 1px solid #E7EDE4; border-radius: 18px; padding: 20px; box-shadow: 0 1px 2px rgba(0,40,20,.05); }
+  .gcard-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .gcard-h h3 { font: 700 16.5px Poppins, system-ui, sans-serif; color: #1E2D1A; }
+  .gstatus { font: 800 10.5px Poppins, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .04em; padding: 4px 11px; border-radius: 999px; background: #E0EAD8; color: #2F6B3F; }
+  .gform { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }
+  .gfield { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+  .gfield.span2 { grid-column: 1 / -1; }
+  .gfield label { font: 600 13px Poppins, system-ui, sans-serif; color: #008835; }
+  .gfield input, .gfield textarea, .gfield select { background: #fff; border: 1px solid #E7EDE4; border-radius: 12px; padding: 11px 13px; font: 500 14px Poppins, system-ui, sans-serif; color: #1E2D1A; }
+  .gfield input:focus, .gfield textarea:focus, .gfield select:focus { outline: none; border-color: #008835; box-shadow: 0 0 0 3px rgba(0,136,53,.12); }
+  .gfield textarea { resize: vertical; min-height: 54px; font-family: Poppins, system-ui, sans-serif; }
+  .gfield.sel { position: relative; }
+  .gfield.sel select { appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer; }
+  .gfield.sel::after { content: ""; position: absolute; right: 15px; top: 38px; width: 8px; height: 8px; border-right: 2px solid #7c8676; border-bottom: 2px solid #7c8676; transform: rotate(45deg); pointer-events: none; }
+
+  .gben-h { font: 700 12px Poppins, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .05em; color: #4A6245; margin: 4px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .gben-h::after { content: ""; flex: 1; height: 1px; background: #E7EDE4; }
+  .gben { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .gben-it { display: flex; align-items: center; gap: 10px; border: 1px solid #E7EDE4; border-radius: 12px; padding: 11px 13px; background: #fff; cursor: pointer; font: 500 13.5px Poppins, system-ui, sans-serif; color: #1E2D1A; transition: border-color .15s, background .15s; }
+  .gben-it .bx { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #c7d2c0; flex: 0 0 auto; display: grid; place-items: center; transition: background .15s, border-color .15s; }
+  .gben-it .bx svg { width: 12px; height: 12px; opacity: 0; transition: opacity .15s; }
+  .gben-it.on { border-color: #008835; background: #00883508; }
+  .gben-it.on .bx { background: #008835; border-color: #008835; }
+  .gben-it.on .bx svg { opacity: 1; }
+  .gben-cat { font-size: 11.5px; color: #4A6245; margin-top: 12px; display: flex; align-items: center; gap: 7px; line-height: 1.5; }
+  .gben-cat svg { width: 14px; height: 14px; color: #97a08f; flex: 0 0 auto; }
+  .gben-cat b { color: #008835; font-weight: 600; }
+  .gacts { display: flex; gap: 10px; margin-top: 18px; }
+  .gbtn { border: 1px solid transparent; border-radius: 8px; padding: 11px 16px; font: 600 13.5px Poppins, system-ui, sans-serif; cursor: pointer; }
+  .gbtn.pri { background: #008835; color: #fff; }
+  .gbtn.pri:hover { background: #1AA34F; }
+  .gbtn.gh { background: #fff; color: #1E2D1A; border-color: #E7EDE4; }
+
+  /* sub-abas da tela Vagas + catálogo de benefícios */
+  .gtabs { display: inline-flex; gap: 4px; background: #EEF3EC; border-radius: 12px; padding: 4px; margin-bottom: 16px; }
+  .gtab { border: 0; background: transparent; padding: 8px 20px; border-radius: 9px; font: 600 13px Poppins, system-ui, sans-serif; color: #4A6245; cursor: pointer; }
+  .gtab.on { background: #fff; color: #1E2D1A; box-shadow: 0 1px 3px #00000014; }
+  .ghint { font-size: 12.5px; color: #4A6245; line-height: 1.55; margin: 0 0 10px; }
+  .gcat-it { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid #EEF3EC; }
+  .gcat-it b { flex: 1; font: 500 13.5px Poppins, system-ui, sans-serif; color: #1E2D1A; }
+  .gcat-rm { width: 30px; height: 30px; border-radius: 9px; border: 0; background: #f2f4ee; color: #6b7563; cursor: pointer; display: grid; place-items: center; flex: 0 0 auto; transition: background .15s; }
+  .gcat-rm:hover { background: #e5e9df; }
+  .gcat-rm svg { width: 14px; height: 14px; }
+  .gcat-add { display: flex; gap: 10px; margin-top: 14px; }
+  .gcat-add input { flex: 1; min-width: 0; background: #fff; border: 1px solid #E7EDE4; border-radius: 12px; padding: 11px 13px; font: 500 14px Poppins, system-ui, sans-serif; color: #1E2D1A; }
+  .gcat-add input::placeholder { color: #a9b0a5; }
+  .gcat-add input:focus { outline: none; border-color: #008835; box-shadow: 0 0 0 3px rgba(0,136,53,.12); }
+
+  /* ===== cena: o site com Gente no Coração ===== */
+  .hframe { width: 640px; max-width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #dfe4d9; box-shadow: 0 2px 4px #0000000a, 0 30px 70px -34px #04331a33; }
+  .hero2 { position: relative; background: #04331a; color: #fff; overflow: hidden; }
+  .hero2 svg.fios { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hero2__in { position: relative; padding: 24px 30px 92px; }
+  .htop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .hlogo { display: flex; align-items: center; gap: 9px; font: 700 14px Poppins, system-ui, sans-serif; }
+  .hmark { width: 32px; height: 32px; border-radius: 9px; background: #fff; color: #008835; display: grid; place-items: center; font: 900 16px Poppins, system-ui, sans-serif; }
+  .hlink { font: 600 11.5px Poppins, system-ui, sans-serif; color: #fff; opacity: .85; border: 1px solid #ffffff4d; border-radius: 999px; padding: 7px 14px; }
+  .selo-gc { display: inline-flex; align-items: center; gap: 8px; font: 600 10.5px Poppins, system-ui, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: #ffd83d; background: #ffffff12; border: 1px solid #ffcb0042; border-radius: 999px; padding: 7px 14px; margin-bottom: 14px; }
+  .selo-gc svg { width: 17px; height: 17px; flex: 0 0 auto; }
+  .hh1 { font: 900 30px/1.08 Poppins, system-ui, sans-serif; letter-spacing: -.02em; max-width: 420px; margin: 0 0 12px; }
+  .marca2 { position: relative; display: inline-block; color: #04331a; padding: 0 6px; isolation: isolate; }
+  .marca2::before { content: ""; position: absolute; inset: 8% -2% 4%; background: #FFCB00; border-radius: 8px; transform: rotate(-1.2deg); z-index: -1; }
+  .hsub { font-size: 13px; opacity: .9; line-height: 1.65; max-width: 380px; }
+  .hcta { display: inline-flex; align-items: center; gap: 8px; background: #FFCB00; color: #332902; font: 800 13px Poppins, system-ui, sans-serif; padding: 11px 20px; border-radius: 999px; margin-top: 18px; box-shadow: 0 8px 24px #ffcb0047; }
+
+  /* seção do valor no meio da página (entre passos e vagas) */
+  .vbody { background: #f4f6f1; padding: 18px 20px 20px; }
+  .vmini { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .vmini-c { background: #fff; border: 1px solid #e0e6d9; border-radius: 12px; padding: 10px 11px; font: 600 10.5px Poppins, system-ui, sans-serif; color: #1d2a19; display: flex; align-items: center; gap: 7px; }
+  .vmini-c .n2 { width: 20px; height: 20px; border-radius: 50%; background: #eaf4ec; color: #0b6e33; display: grid; place-items: center; font: 800 10px Poppins, system-ui, sans-serif; flex: 0 0 auto; }
+  .vcore { display: flex; align-items: center; gap: 24px; background: #fff; border: 1px solid #e0e6d9; border-radius: 18px; padding: 26px 28px; }
+  .vheart { flex: 0 0 auto; width: 118px; color: #008835; }
+  .vheart svg { width: 100%; height: auto; display: block; }
+  .vtx small { display: block; font: 700 10.5px Poppins, system-ui, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: #8a927f; margin-bottom: 4px; }
+  .vtx b { display: block; font: 700 20px Poppins, system-ui, sans-serif; letter-spacing: -.01em; color: #04331a; }
+  .vtx p { font-size: 13px; color: #45523f; line-height: 1.6; margin-top: 6px; max-width: 380px; }
+  .vnext { margin-top: 16px; display: flex; align-items: baseline; gap: 10px; opacity: .5; }
+  .vnext h4 { font: 800 17px Poppins, system-ui, sans-serif; color: #1d2a19; }
+  .vnext span { font-size: 12px; color: #5a6852; }
+  @media (max-width: 620px) { .vcore { flex-direction: column; text-align: center; } .vtx p { margin-left: auto; margin-right: auto; } }
+
+  /* cartão da vaga no site público */
+  .sframe { width: 360px; max-width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #dfe4d9; box-shadow: 0 2px 4px #0000000a, 0 30px 70px -34px #04331a33; }
+  .sbar2 { display: flex; align-items: center; gap: 8px; padding: 11px 14px; background: #04331a; color: #fff; font: 600 12px Poppins, system-ui, sans-serif; }
+  .sbar2 svg { width: 13px; height: 13px; opacity: .82; flex: 0 0 auto; }
+  .sbody2 { background: #f4f6f1; padding: 20px 18px; }
+  .svaga { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid #e0e6d9; border-radius: 18px; padding: 20px 20px 18px; box-shadow: 0 3px 14px rgba(10,40,20,.05); overflow: hidden; }
+  .svaga::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #008835, #FFCB00, #0076BE); }
+  .svaga h3 { font: 700 17.5px/1.3 Poppins, system-ui, sans-serif; margin: 4px 0 0; color: #1d2a19; }
+  .svaga .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 12px; }
+  .svaga .tag { font: 700 10.5px Poppins, system-ui, sans-serif; padding: 3.5px 11px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
+  .svaga .tag.turno { background: #e8f1f8; color: #0076BE; }
+  .svaga .desc { font-size: 13.5px; color: #45523f; line-height: 1.6; margin: 0 0 12px; }
+  .sben { border-top: 1px solid #eef0ea; padding-top: 13px; margin-bottom: 15px; }
+  .sben-l { font: 600 10.5px Poppins, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .05em; color: #8a927f; margin-bottom: 8px; }
+  .sben-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sben-chip { display: inline-flex; align-items: center; gap: 6px; font: 600 11.5px Poppins, system-ui, sans-serif; color: #2f6b3f; background: #f2f8f2; border: 1px solid #dbe9dc; border-radius: 999px; padding: 5px 11px; }
+  .sben-chip svg { width: 12px; height: 12px; color: #008835; flex: 0 0 auto; }
+  .sben-empty { font-size: 11.5px; color: #8a927f; }
+  .svaga .vfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .svaga .data { font-size: 11px; color: #8a927f; }
+  .svaga .cta { display: inline-flex; align-items: center; gap: 8px; background: #008835; color: #fff; border: 0; font: 700 13.5px Poppins, system-ui, sans-serif; padding: 12px 18px; border-radius: 999px; cursor: pointer; }
+  .svaga .cta svg { width: 16px; height: 16px; fill: currentColor; }
+
+  @media (max-width: 620px) { .gform, .gben { grid-template-columns: 1fr; } }
+
+  .foot { margin-top: 52px; color: var(--muted); font-size: 12.5px; line-height: 1.7; text-align: center; max-width: 760px; margin-left: auto; margin-right: auto; }
+
+  @media (max-width: 620px) { body { padding: 30px 14px 70px; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .quadro { opacity: 0; transform: translateY(14px); }
+    .quadro.in { opacity: 1; transform: none; transition: opacity .5s var(--ease-ios), transform .5s var(--ease-ios); }
+    .step-seg i { transition: width .5s var(--ease-ios); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="kicker">Proposta · aprovação antes de tocar o site</span>
+  <h1>Candidatura com ficha completa</h1>
+  <p class="sub">A Gestão de Pessoas mandou a lista oficial do que o candidato precisa preencher. Esta proposta expande a candidatura do site de vagas para cobrir tudo, sem virar formulário-parede: cada etapa é curta, uma pergunta clara por vez, com o controle certo pra cada campo. Abaixo está a história do fluxo, tela por tela, na ordem nova. É protótipo para aprovar antes de mexer em vagas.fiobras.com.br.</p>
+
+  <div class="cob">
+    <div class="cob-h">
+      <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+      Tudo da lista da GP entra na ficha
+      <small>azul = já existe no fluxo de hoje</small>
+    </div>
+    <div class="cob-grid">
+      <div class="cob-col">
+        <h4>Dados pessoais</h4>
+        <ul>
+          <li>Nome completo</li><li>Nascimento</li><li>Estado civil</li><li>Escolaridade</li><li>Possui filhos</li><li>Endereço completo</li><li>Nacionalidade</li><li>Naturalidade</li><li>WhatsApp</li><li>E-mail</li>
+        </ul>
+      </div>
+      <div class="cob-col">
+        <h4>Experiências · 0 a 3</h4>
+        <ul>
+          <li>Nome da empresa</li><li>Admissão</li><li>Demissão</li><li>Último salário</li><li>Motivo da saída</li><li>Primeiro emprego</li>
+        </ul>
+      </div>
+      <div class="cob-col">
+        <h4>Informações adicionais</h4>
+        <ul>
+          <li>Pretensão salarial</li><li>Como vem trabalhar</li><li>Conhece alguém na Fiobras</li>
+        </ul>
+      </div>
+      <div class="cob-col leg">
+        <h4>Já no fluxo atual</h4>
+        <ul>
+          <li>Currículo PDF</li><li>Teste de perfil</li><li>Consentimento LGPD</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENA: o site com Gente no Coração -->
+  <div class="part">
+    <div class="part-h"><span class="n ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg></span>O site com Gente no Coração</div>
+    <p class="part-d">Gente no Coração é um dos 5 valores da Fiobras ("sempre colocamos as necessidades das pessoas no centro do nosso negócio"), e a arte oficial é um coração desenhado por um fio de linha com agulha, que casa direto com a identidade que o site já tem (venha tecer, ondas de fio). A proposta costura o valor na página: selo discreto no herói, a frase institucional como texto de apoio e uma seção enxuta do valor entre o "como funciona" e as vagas. O valor da empresa vira a assinatura do site.</p>
+    <div class="bencena">
+
+      <!-- Quadro 1: herói atualizado -->
+      <div class="bencol">
+        <div class="hframe">
+          <div class="sbar2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>vagas.fiobras.com.br</div>
+          <div class="hero2">
+            <svg class="fios" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+              <path d="M-40 480 C 240 380, 420 560, 700 440 S 1120 340, 1260 420" stroke="#0a5c30" stroke-width="60" fill="none" stroke-linecap="round"/>
+              <path d="M-40 520 C 260 430, 460 590, 740 480 S 1140 390, 1260 470" stroke="#0e7a3f" stroke-width="34" fill="none" stroke-linecap="round" opacity=".9"/>
+              <path d="M-40 545 C 280 470, 500 620, 780 515 S 1160 430, 1260 505" stroke="#FFCB00" stroke-width="13" fill="none" stroke-linecap="round" opacity=".95"/>
+              <path d="M-40 570 C 300 505, 540 645, 820 550 S 1180 470, 1260 540" stroke="#0076BE" stroke-width="9" fill="none" stroke-linecap="round" opacity=".85"/>
+              <circle cx="1050" cy="120" r="130" fill="#0a5c30" opacity=".5"/>
+              <circle cx="1120" cy="80" r="60" fill="#FFCB00" opacity=".14"/>
+            </svg>
+            <div class="hero2__in">
+              <div class="htop">
+                <span class="hlogo"><span class="hmark">F</span><b>Fiobras</b></span>
+                <span class="hlink">Ver as vagas</span>
+              </div>
+              <span class="selo-gc" data-selo-gc><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg>Gente no Coração</span>
+              <h2 class="hh1">Venha <span class="marca2">tecer</span> o seu futuro com a gente</h2>
+              <p class="hsub" data-frase-inst>Na Fiobras, acreditamos que grandes resultados são construídos por pessoas. Encontre a oportunidade que combina com o seu talento, cadastre seu currículo e venha crescer conosco.</p>
+              <span class="hcta">Ver vagas abertas</span>
+            </div>
+          </div>
+        </div>
+        <div class="cap"><b>Herói: selo + frase institucional</b>Acima da headline (que fica como está), o selo Gente no Coração com o coração de fio em traço único. O texto de apoio vira a frase institucional oficial, no lugar do "a Fiobras cresce todo ano".</div>
+      </div>
+
+      <!-- Quadro 2: seção do valor no meio da página -->
+      <div class="bencol">
+        <div class="hframe">
+          <div class="sbar2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>vagas.fiobras.com.br</div>
+          <div class="vbody">
+            <div class="vmini" aria-hidden="true">
+              <div class="vmini-c"><span class="n2">1</span>Escolha a vaga</div>
+              <div class="vmini-c"><span class="n2">2</span>Preencha o formulário</div>
+              <div class="vmini-c"><span class="n2">3</span>Fale com gente de verdade</div>
+            </div>
+            <section class="vcore" data-vcore>
+              <div class="vheart">
+                <svg viewBox="0 0 120 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 88 C 16 94 24 82 34 86 C 42 89 50 90 58 85 C 32 64 22 42 33 27 C 43 14 57 19 60 33 C 63 19 77 14 87 27 C 98 42 88 64 63 84 C 70 91 82 93 94 86 C 100 82 104 78 108 74"/>
+                  <g stroke="#04331a"><path d="M100 80 L 116 68" stroke-width="4"/><circle cx="102" cy="78.6" r="1.7" stroke-width="1.6" fill="#04331a"/></g>
+                </svg>
+              </div>
+              <div class="vtx">
+                <small>Um dos nossos 5 valores</small>
+                <b>Gente no Coração</b>
+                <p>Sempre colocamos as necessidades das pessoas no centro do nosso negócio.</p>
+              </div>
+            </section>
+            <div class="vnext" aria-hidden="true"><h4>Vagas abertas</h4><span>Indaial, SC</span></div>
+          </div>
+        </div>
+        <div class="cap"><b>Seção do valor</b>Entre os 3 passos e a lista de vagas, uma seção enxuta e respirada: o coração de fio maior, terminando na agulhinha, ao lado do nome do valor e da descrição oficial. Fundo claro, sem competir com as vagas.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CENA: Benefícios da vaga -->
+  <div class="part">
+    <div class="part-h"><span class="n ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v9h14v-9"/><path d="M12 8S10 3 7.5 3 5 6.5 12 8zM12 8s2-5 4.5-5S19 6.5 12 8z"/></svg></span>Benefícios da vaga</div>
+    <p class="part-d">Ideia da GP: os benefícios ficam num catálogo que ela mesma mantém numa sub-aba da tela Vagas, já com os mais comuns pré-preenchidos. Na vaga, ela só marca os que valem, e o candidato vê os escolhidos no cartão antes de se candidatar. Cadastra uma vez, marca por vaga, aparece no site. Toque nas caixas do formulário: os selos do site mudam na hora.</p>
+    <div class="bencena">
+
+      <!-- Quadro 1: sub-aba Benefícios (catálogo) -->
+      <div class="bencol">
+        <div class="gframe">
+          <div class="gbar">
+            <span class="gdot"></span><span class="gdot"></span><span class="gdot"></span>
+            <span class="gt">FioPulse · Gestão de Pessoas <span class="b">Vagas</span></span>
+          </div>
+          <div class="gbody">
+            <div class="gtabs" role="tablist"><button class="gtab" role="tab">Vagas</button><button class="gtab on" role="tab" aria-selected="true">Benefícios</button></div>
+            <div class="gcard">
+              <div class="gcard-h"><h3>Catálogo de benefícios</h3></div>
+              <p class="ghint">Cadastre aqui uma vez. Na hora de criar ou editar uma vaga, é só marcar os que valem. Já vem com os mais comuns.</p>
+              <div data-cat>
+                <div class="gcat-it"><b>Vale alimentação</b><button class="gcat-rm" aria-label="Remover Vale alimentação"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+                <div class="gcat-it"><b>Vale transporte</b><button class="gcat-rm" aria-label="Remover Vale transporte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+                <div class="gcat-it"><b>Plano de saúde</b><button class="gcat-rm" aria-label="Remover Plano de saúde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+                <div class="gcat-it"><b>Plano odontológico</b><button class="gcat-rm" aria-label="Remover Plano odontológico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+                <div class="gcat-it"><b>Seguro de vida</b><button class="gcat-rm" aria-label="Remover Seguro de vida"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+                <div class="gcat-it"><b>PPR</b><button class="gcat-rm" aria-label="Remover PPR"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+                <div class="gcat-it"><b>Cesta básica</b><button class="gcat-rm" aria-label="Remover Cesta básica"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+                <div class="gcat-it"><b>Convênio farmácia</b><button class="gcat-rm" aria-label="Remover Convênio farmácia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+              </div>
+              <div class="gcat-add">
+                <input type="text" placeholder="Novo benefício, ex.: Auxílio creche" aria-label="Novo benefício" data-cat-input>
+                <button class="gbtn pri" data-cat-add>Adicionar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cap"><b>A GP cadastra uma vez</b>Sub-aba Benefícios dentro da tela Vagas: catálogo pré-preenchido com os mais comuns, cada item com remover, e um campo pra incluir novos. Cadastrou aqui, aparece pra seleção em toda vaga.</div>
+      </div>
+
+      <!-- Quadro 2: formulário da vaga no gestor -->
+      <div class="bencol">
+        <div class="gframe">
+          <div class="gbar">
+            <span class="gdot"></span><span class="gdot"></span><span class="gdot"></span>
+            <span class="gt">FioPulse · Gestão de Pessoas <span class="b">Vagas</span></span>
+          </div>
+          <div class="gbody">
+            <div class="gcard">
+              <div class="gcard-h"><h3>Editar vaga</h3><span class="gstatus">Publicada</span></div>
+              <div class="gform">
+                <div class="gfield"><label for="g-tit">Título</label><input id="g-tit" type="text" value="Auxiliar de Produção"></div>
+                <div class="gfield"><label for="g-set">Setor</label><input id="g-set" type="text" value="Produção"></div>
+                <div class="gfield sel"><label for="g-tur">Turno</label><select id="g-tur"><option>1º turno</option><option>2º turno</option><option>3º turno</option><option>Comercial</option></select></div>
+                <div class="gfield"><label for="g-cid">Cidade</label><input id="g-cid" type="text" value="Indaial, SC"></div>
+                <div class="gfield span2"><label for="g-desc">Descrição</label><textarea id="g-desc" rows="2">Atuação na linha de produção têxtil, com treinamento na função.</textarea></div>
+              </div>
+
+              <div class="gben-h">Benefícios</div>
+              <div class="gben" data-benform>
+                <div class="gben-it on" data-ben="Vale alimentação"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Vale alimentação</div>
+                <div class="gben-it on" data-ben="Vale transporte"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Vale transporte</div>
+                <div class="gben-it on" data-ben="Plano de saúde"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Plano de saúde</div>
+                <div class="gben-it" data-ben="Plano odontológico"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Plano odontológico</div>
+                <div class="gben-it on" data-ben="Seguro de vida"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Seguro de vida</div>
+                <div class="gben-it" data-ben="PPR"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>PPR</div>
+                <div class="gben-it on" data-ben="Cesta básica"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Cesta básica</div>
+                <div class="gben-it" data-ben="Convênio farmácia"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Convênio farmácia</div>
+              </div>
+              <div class="gben-cat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>Catálogo padrão. Gerencie os itens na sub-aba <b>Benefícios</b>.</div>
+
+              <div class="gacts"><button class="gbtn pri">Salvar</button><button class="gbtn gh">Cancelar</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="cap"><b>A GP marca por vaga</b>No formulário da vaga, o bloco Benefícios já traz o catálogo da sub-aba em caixas. Ela só liga os que valem pra esta vaga, sem digitar nada.</div>
+      </div>
+
+      <!-- Quadro 2: cartão da vaga no site público -->
+      <div class="bencol">
+        <div class="sframe">
+          <div class="sbar2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>vagas.fiobras.com.br</div>
+          <div class="sbody2">
+            <article class="svaga">
+              <h3>Auxiliar de Produção</h3>
+              <div class="tags"><span class="tag">Produção</span><span class="tag turno">1º turno</span><span class="tag">Indaial, SC</span></div>
+              <p class="desc">Atuação na linha de produção têxtil, com treinamento na função.</p>
+              <div class="sben">
+                <div class="sben-l">Benefícios</div>
+                <div class="sben-chips" data-benout>
+                  <span class="sben-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Vale alimentação</span>
+                  <span class="sben-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Vale transporte</span>
+                  <span class="sben-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Plano de saúde</span>
+                  <span class="sben-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Seguro de vida</span>
+                  <span class="sben-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Cesta básica</span>
+                </div>
+              </div>
+              <div class="vfoot">
+                <span class="data">Publicada em 14/07/2026</span>
+                <button class="cta"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Candidatar-se</button>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="cap"><b>O candidato vê</b>No site, os benefícios ligados aparecem como selos discretos abaixo da descrição, logo antes do botão de candidatar. Nada marcado, nenhum selo.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ETAPA 1 -->
+  <div class="part">
+    <div class="part-h"><span class="n">1</span>Dados pessoais</div>
+    <p class="part-d">A ficha começa por aqui. Como são muitos campos, eles vêm agrupados e respirados em duas telas curtas: identificação, depois endereço e contato. Estado civil e escolaridade usam seletor nativo, filhos é um toque, nada de digitar o que dá pra escolher.</p>
+    <div class="board">
+
+      <!-- Q1a -->
+      <figure class="quadro">
+        <div class="phone" data-step="1" data-noback>
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="stitle">Vamos começar por você</div>
+              <div class="shint">Preencha com calma. Seus dados ficam protegidos e são usados só nesta seleção.</div>
+
+              <div class="grp">Identificação</div>
+              <div class="field">
+                <label for="q1-nome">Nome completo</label>
+                <input id="q1-nome" type="text" value="Ana Paula Ribeiro" autocomplete="name">
+              </div>
+              <div class="field">
+                <label for="q1-nasc">Data de nascimento</label>
+                <input id="q1-nasc" type="date" value="1994-03-12" autocomplete="bday">
+              </div>
+              <div class="field sel">
+                <label for="q1-ec">Estado civil</label>
+                <select id="q1-ec">
+                  <option>Solteiro(a)</option>
+                  <option>Casado(a)</option>
+                  <option>União estável</option>
+                  <option>Divorciado(a)</option>
+                  <option>Viúvo(a)</option>
+                </select>
+              </div>
+              <div class="field sel">
+                <label for="q1-esc">Escolaridade</label>
+                <select id="q1-esc">
+                  <option>Ensino fundamental</option>
+                  <option>Médio incompleto</option>
+                  <option selected>Médio completo</option>
+                  <option>Técnico</option>
+                  <option>Superior incompleto</option>
+                  <option>Superior completo</option>
+                  <option>Pós-graduação</option>
+                </select>
+              </div>
+
+              <div class="grp">Você tem filhos?</div>
+              <div data-segwrap>
+                <div class="seg" data-seg>
+                  <button data-val="nao">Não</button>
+                  <button class="on" data-val="sim">Sim</button>
+                </div>
+                <div class="segextra" data-segextra>
+                  <div class="field" style="margin-top:12px">
+                    <label>Quantos?</label>
+                    <div class="nstep" data-nstep>
+                      <button data-d="-1" aria-label="Menos um">−</button>
+                      <b data-n>2</b>
+                      <button data-d="1" aria-label="Mais um">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cand-foot"><button class="btn">Continuar</button></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>1 · Identificação</b>Nome, nascimento no seletor de data, estado civil e escolaridade em lista, filhos em um toque com contador de quantos.</figcaption>
+      </figure>
+
+      <!-- Q1b -->
+      <figure class="quadro">
+        <div class="phone" data-step="1">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="stitle">Onde você mora</div>
+              <div class="shint">É por aqui que a gente confirma a região e monta o cadastro na admissão.</div>
+
+              <div class="grp">Endereço</div>
+              <div class="field">
+                <label for="q1-cep">CEP</label>
+                <input id="q1-cep" type="text" inputmode="numeric" value="89120-000" autocomplete="postal-code">
+              </div>
+              <div class="field">
+                <label for="q1-rua">Rua e número</label>
+                <input id="q1-rua" type="text" value="Rua das Palmeiras, 240" autocomplete="street-address">
+              </div>
+              <div class="duo">
+                <div class="field">
+                  <label for="q1-bairro">Bairro</label>
+                  <input id="q1-bairro" type="text" value="Warnow">
+                </div>
+                <div class="field">
+                  <label for="q1-cid">Cidade / UF</label>
+                  <input id="q1-cid" type="text" value="Indaial, SC" autocomplete="address-level2">
+                </div>
+              </div>
+
+              <div class="grp">Naturalidade</div>
+              <div class="duo">
+                <div class="field">
+                  <label for="q1-nac">Nacionalidade</label>
+                  <input id="q1-nac" type="text" value="Brasileira">
+                </div>
+                <div class="field">
+                  <label for="q1-nat">Cidade natal</label>
+                  <input id="q1-nat" type="text" value="Blumenau, SC">
+                </div>
+              </div>
+
+              <div class="grp">Contato</div>
+              <div class="field">
+                <label for="q1-zap">WhatsApp</label>
+                <input id="q1-zap" type="tel" inputmode="tel" value="(47) 9 9812-3344" autocomplete="tel">
+              </div>
+              <div class="field">
+                <label for="q1-mail">E-mail</label>
+                <input id="q1-mail" type="email" inputmode="email" value="ana.ribeiro@email.com" autocomplete="email">
+              </div>
+            </div>
+            <div class="cand-foot"><button class="btn">Continuar</button></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>1 · Endereço e contato</b>Endereço em campos separados (CEP com teclado numérico), nacionalidade e naturalidade, WhatsApp com teclado de telefone e e-mail com teclado de e-mail.</figcaption>
+      </figure>
+
+    </div>
+  </div>
+
+  <!-- ETAPA 2 -->
+  <div class="part">
+    <div class="part-h"><span class="n">2</span>Experiências profissionais</div>
+    <p class="part-d">As últimas 3 experiências, de 0 a 3. Quem nunca trabalhou de carteira assinada marca "primeiro emprego" e segue em frente. Quem já trabalhou adiciona um bloco de cada vez, e cada bloco tem empresa, período, último salário e motivo da saída.</p>
+    <div class="board">
+
+      <!-- Q2 vazio -->
+      <figure class="quadro">
+        <div class="phone" data-step="2">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="stitle">Suas últimas experiências</div>
+              <div class="shint">Conte suas 3 experiências mais recentes. Se ainda não trabalhou de carteira assinada, marque abaixo.</div>
+
+              <div class="checkcard" data-check>
+                <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <p><b>Este é meu primeiro emprego</b><br>Você não precisa preencher nenhuma experiência.</p>
+              </div>
+
+              <div class="empty">
+                <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
+                <b>Nenhuma experiência ainda</b>
+                <span>Adicione a mais recente primeiro.</span>
+              </div>
+              <button class="add-exp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Adicionar experiência</button>
+              <div class="add-hint">Até 3. Você adiciona uma de cada vez.</div>
+            </div>
+            <div class="cand-foot"><button class="btn">Continuar</button></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>2 · Estado vazio</b>Sem nenhuma experiência. O toque em "primeiro emprego" libera seguir sem preencher nada; senão, o botão adiciona o primeiro bloco.</figcaption>
+      </figure>
+
+      <!-- Q2 form -->
+      <figure class="quadro">
+        <div class="phone" data-step="2">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="stitle">Experiência 1</div>
+              <div class="shint">Comece pela empresa mais recente. Depois você pode adicionar outra.</div>
+
+              <div class="field">
+                <label for="q2-emp">Nome da empresa</label>
+                <input id="q2-emp" type="text" value="Tecelagem Malhas SC">
+              </div>
+              <div class="duo">
+                <div class="field">
+                  <label for="q2-adm">Admissão</label>
+                  <input id="q2-adm" type="date" value="2019-03-04">
+                </div>
+                <div class="field">
+                  <label for="q2-dem">Demissão</label>
+                  <input id="q2-dem" type="date" value="2023-08-18">
+                </div>
+              </div>
+              <div class="field money">
+                <label for="q2-sal">Último salário</label>
+                <input id="q2-sal" type="text" inputmode="numeric" value="R$ 1.850,00">
+              </div>
+              <div class="field sel">
+                <label for="q2-mot">Motivo da saída</label>
+                <select id="q2-mot">
+                  <option selected>Dispensa sem justa causa</option>
+                  <option>Pedido de demissão</option>
+                  <option>Fim de contrato</option>
+                  <option>Acordo</option>
+                  <option>Ainda trabalho aqui</option>
+                  <option>Outro</option>
+                </select>
+              </div>
+            </div>
+            <div class="cand-foot"><button class="btn">Salvar experiência</button></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>2 · Um bloco</b>É assim que cada experiência é preenchida: datas no seletor nativo lado a lado, salário com máscara de R$ e teclado numérico, motivo em lista.</figcaption>
+      </figure>
+
+      <!-- Q2 cheio -->
+      <figure class="quadro">
+        <div class="phone" data-step="2">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="stitle">Suas últimas experiências</div>
+              <div class="shint">Você já adicionou 2. Pode adicionar mais uma ou seguir.</div>
+
+              <div class="exp">
+                <div class="exp-top">
+                  <span class="exp-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
+                  <div class="exp-nm"><b>Tecelagem Malhas SC</b><span>Experiência 1</span></div>
+                  <div class="exp-acts">
+                    <button aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                    <button aria-label="Remover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+                  </div>
+                </div>
+                <div class="exp-meta">
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>mar 2019 <b>—</b> ago 2023</div>
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Último salário <b>R$ 1.850,00</b></div>
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Dispensa sem justa causa</div>
+                </div>
+              </div>
+
+              <div class="exp">
+                <div class="exp-top">
+                  <span class="exp-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
+                  <div class="exp-nm"><b>Supermercado Bom Preço</b><span>Experiência 2</span></div>
+                  <div class="exp-acts">
+                    <button aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                    <button aria-label="Remover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+                  </div>
+                </div>
+                <div class="exp-meta">
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>set 2023 <b>—</b> jan 2026</div>
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Último salário <b>R$ 2.100,00</b></div>
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Pedido de demissão</div>
+                </div>
+              </div>
+
+              <button class="add-exp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Adicionar experiência</button>
+              <div class="add-hint">2 de 3 adicionadas.</div>
+            </div>
+            <div class="cand-foot"><button class="btn">Continuar</button></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>2 · Dois blocos preenchidos</b>Cada experiência salva vira um cartão enxuto com período, salário e motivo, com editar e remover. Dá pra adicionar a terceira ou seguir.</figcaption>
+      </figure>
+
+    </div>
+  </div>
+
+  <!-- ETAPA 3 e 4 -->
+  <div class="part">
+    <div class="part-h"><span class="n">3</span>Currículo e perfil<span class="ja">telas já no ar hoje</span></div>
+    <p class="part-d">Estas duas etapas já existem no site e não mudam. Ficam aqui, encurtadas, só pra situar a ordem: depois das experiências vem o currículo opcional e o teste de perfil de 8 perguntas. O candidato nunca vê o resultado do teste.</p>
+    <div class="board">
+
+      <!-- Q3 currículo -->
+      <figure class="quadro">
+        <div class="phone" data-step="3">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="stitle">Seu currículo</div>
+              <div class="shint">Se tiver um PDF na mão, ele ajuda. Mas não é obrigatório.</div>
+              <div class="cv-drop">
+                <div class="cvic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/><path d="M12 18v-6"/><path d="M9.5 14.5 12 12l2.5 2.5"/></svg></div>
+                <b>Anexar currículo</b>
+                <span>PDF, até 3 MB · toque para escolher</span>
+              </div>
+              <div class="cv-skip">
+                <p>Sem currículo em PDF? Sem problema.</p>
+                <button class="btn-link">Pular esta etapa</button>
+              </div>
+            </div>
+            <div class="cand-foot"><button class="btn">Continuar</button></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>3 · Currículo (sem mudança)</b>Anexo de PDF opcional, exatamente como está hoje no site.</figcaption>
+      </figure>
+
+      <!-- Q4 perfil -->
+      <figure class="quadro">
+        <div class="phone" data-step="4">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="disc-count">Pergunta 3 de 8</div>
+              <div class="disc-prog"><i></i></div>
+              <div class="disc-q">Toque na frase que <b>mais</b> combina com você</div>
+              <div class="disc-qs">Não existe resposta certa. Vá pela primeira impressão.</div>
+              <button class="disc-opt">Rendo mais quando o time está junto</button>
+              <button class="disc-opt most">Faço com capricho, sem pressa</button>
+              <button class="disc-opt">Prefiro um ritmo firme e sem sustos</button>
+              <button class="disc-opt">Gosto de meta e de bater tempo</button>
+            </div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>4 · Perfil (sem mudança)</b>Teste de 8 perguntas, uma por vez. Resultado é ferramenta interna da GP, o candidato nunca vê.</figcaption>
+      </figure>
+
+    </div>
+  </div>
+
+  <!-- ETAPA 5 -->
+  <div class="part">
+    <div class="part-h"><span class="n">5</span>Informações adicionais</div>
+    <p class="part-d">As últimas perguntas que a GP pediu, leves de responder: a pretensão salarial, como a pessoa se desloca até o trabalho e se ela conhece alguém que já é da casa. Pretensão com máscara de R$ e teclado numérico, transporte em escolha única de chips, indicação é um toque que revela o campo do nome só quando faz sentido.</p>
+    <div class="board">
+
+      <!-- Q5 adicionais -->
+      <figure class="quadro">
+        <div class="phone" data-step="5">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="stitle">Últimas perguntas</div>
+              <div class="shint">Ajudam a GP a te conhecer melhor. É rapidinho.</div>
+
+              <div class="grp">Qual a sua pretensão salarial?</div>
+              <div class="field money">
+                <input id="q5-pret" type="text" inputmode="numeric" placeholder="R$ 0,00" value="R$ 1.900,00" aria-label="Pretensão salarial">
+              </div>
+
+              <div class="grp">Como você viria trabalhar?</div>
+              <div class="chips" data-chipgroup>
+                <button class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M9 21l2-6 3 2 1 4M11 15l-2-4 4-2 2 3"/></svg>A pé</button>
+                <button class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 18l4-8h5l3 8M10 10l-1-3H7"/></svg>Bicicleta</button>
+                <button class="chip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M8 17h6l-3-6h4l2-3M11 11L9 8H6"/></svg>Moto</button>
+                <button class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l2-5h10l2 5M3 17h18v-4H3zM6 17v2M18 17v2"/></svg>Carro</button>
+                <button class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/></svg>Carona</button>
+                <button class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10M4 16h16M4 16v2M20 16v2M7 8h10M8 12h.01M16 12h.01"/></svg>Ônibus</button>
+              </div>
+
+              <div class="grp">Conhece alguém que trabalha na Fiobras?</div>
+              <div data-segwrap>
+                <div class="seg" data-seg>
+                  <button data-val="nao">Não</button>
+                  <button class="on" data-val="sim">Sim</button>
+                </div>
+                <div class="segextra" data-segextra>
+                  <div class="field" style="margin-top:12px">
+                    <label for="q5-quem">Quem?</label>
+                    <input id="q5-quem" type="text" value="Ana Paula, da Produção">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cand-foot"><button class="btn">Continuar</button></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>5 · Adicionais</b>Pretensão salarial com máscara de R$ que formata enquanto digita. Transporte em chips de escolha única. "Conhece alguém" abre o campo do nome só quando a resposta é sim.</figcaption>
+      </figure>
+
+    </div>
+  </div>
+
+  <!-- ETAPA 6 -->
+  <div class="part">
+    <div class="part-h"><span class="n">6</span>Revisão e envio</div>
+    <p class="part-d">A revisão agora resume a ficha inteira, agrupada, com um atalho pra voltar e ajustar qualquer parte. O texto de consentimento é honesto: nomeia todos os dados coletados e diz que a Fiobras guarda por até 6 meses e depois apaga automaticamente.</p>
+    <div class="board">
+
+      <!-- Q6 revisão -->
+      <figure class="quadro">
+        <div class="phone" data-step="6">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="cand-top">
+              <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+              <div class="cand-head">
+                <button class="cand-back" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg></button>
+                <div class="cand-vaga"><small>Candidatura</small><b>Auxiliar de Produção</b></div>
+              </div>
+              <div class="stepper"></div>
+            </div>
+            <div class="body">
+              <div class="stitle">Confira sua ficha e envie</div>
+              <div class="shint">Se algo mudou, volte e ajuste antes de enviar.</div>
+
+              <div class="rev-card">
+                <div class="rev-row">
+                  <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+                  <div class="rt"><small>Dados pessoais</small><b>Ana Paula Ribeiro · 12/03/1994 · Solteira · Médio completo · 2 filhos</b></div>
+                  <button class="rev-edit">Editar</button>
+                </div>
+                <div class="rev-row">
+                  <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+                  <div class="rt"><small>Endereço e origem</small><b>Rua das Palmeiras, 240 · Warnow · Indaial, SC · CEP 89120-000 · brasileira, natural de Blumenau, SC</b></div>
+                  <button class="rev-edit">Editar</button>
+                </div>
+                <div class="rev-row">
+                  <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg></div>
+                  <div class="rt"><small>Contato</small><b>(47) 9 9812-3344 · ana.ribeiro@email.com</b></div>
+                  <button class="rev-edit">Editar</button>
+                </div>
+                <div class="rev-row">
+                  <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
+                  <div class="rt"><small>Experiências · 2</small><span class="li">Tecelagem Malhas SC (mar 2019—ago 2023)</span><span class="li">Supermercado Bom Preço (set 2023—jan 2026)</span></div>
+                  <button class="rev-edit">Editar</button>
+                </div>
+                <div class="rev-row">
+                  <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/></svg></div>
+                  <div class="rt"><small>Currículo e perfil</small><b>curriculo-ana.pdf (1,2 MB) · teste de perfil concluído</b></div>
+                  <button class="rev-edit">Editar</button>
+                </div>
+                <div class="rev-row">
+                  <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M8 17h6l-3-6h4l2-3"/></svg></div>
+                  <div class="rt"><small>Adicionais</small><b>Pretensão R$ 1.900,00 · vem de moto · conhece Ana Paula, da Produção</b></div>
+                  <button class="rev-edit">Editar</button>
+                </div>
+              </div>
+
+              <label class="lgpd on" data-lgpd>
+                <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <p>Ao enviar, você autoriza a Fiobras a tratar, <b>apenas para esta seleção</b>, os dados desta ficha: nome, data de nascimento, estado civil, escolaridade, se possui filhos, endereço completo, nacionalidade e naturalidade, telefone e e-mail, o histórico das últimas experiências (empresa, datas, último salário e motivo da saída), currículo, pretensão salarial, forma de deslocamento, indicação e o resultado do teste de perfil. <b>Guardamos por até 6 meses e depois apagamos automaticamente.</b></p>
+              </label>
+            </div>
+            <div class="cand-foot"><button class="btn amar">Enviar candidatura</button></div>
+          </div>
+        </div>
+        <figcaption class="cap"><b>6 · Revisão e consentimento</b>Ficha inteira resumida e agrupada, cada bloco com "editar". O consentimento nomeia todos os dados novos e a retenção de 6 meses com limpeza automática.</figcaption>
+      </figure>
+
+    </div>
+  </div>
+
+  <!-- detalhes de interação -->
+  <div class="part">
+    <div class="part-h"><span class="n">·</span>Detalhes de interação</div>
+    <p class="part-d">O capricho está no controle certo pra cada campo. Nada de digitar o que dá pra tocar, teclado sob medida, e o erro aparece na hora, embaixo do campo, sem levar a pessoa pra outra tela.</p>
+    <div class="det">
+      <div class="detc">
+        <h5>Erro inline</h5>
+        <p>Validação no próprio campo, mensagem curta embaixo. A pessoa corrige e segue.</p>
+        <div class="field err">
+          <label for="d-mail">E-mail</label>
+          <input id="d-mail" type="email" value="ana.ribeiro@email">
+          <div class="msg">Confira o e-mail, parece incompleto.</div>
+        </div>
+      </div>
+      <div class="detc">
+        <h5>Salário com máscara R$</h5>
+        <p>Teclado numérico e a máscara formata sozinha enquanto digita.</p>
+        <div class="field money">
+          <label for="d-sal">Último salário</label>
+          <input id="d-sal" type="text" inputmode="numeric" value="R$ 2.100,00">
+        </div>
+      </div>
+      <div class="detc">
+        <h5>Data no seletor nativo</h5>
+        <p>Sem digitar dd/mm/aaaa. O calendário do próprio celular resolve.</p>
+        <div class="field">
+          <label for="d-date">Data de admissão</label>
+          <input id="d-date" type="date" value="2019-03-04">
+        </div>
+      </div>
+      <div class="detc">
+        <h5>Lista em vez de texto livre</h5>
+        <p>Estado civil, escolaridade e motivo saem de uma lista, dado limpo pra GP.</p>
+        <div class="field sel">
+          <label for="d-sel">Estado civil</label>
+          <select id="d-sel">
+            <option>Solteiro(a)</option><option selected>Casado(a)</option><option>União estável</option><option>Divorciado(a)</option><option>Viúvo(a)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Protótipo em HTML, sem dependência nova e sem rede externa: Poppins é local, os controles são nativos do navegador (data, lista, teclado por tipo de campo). A persistência da ficha (Firestore) e a leitura pela Gestão de Pessoas entram na fase de implementação, depois do seu OK. Respeita quem prefere menos movimento.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var NOMES = ["Dados pessoais", "Experiências", "Currículo", "Perfil", "Adicionais", "Revisão"];
+  var TOT = NOMES.length;
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  // monta o stepper e a visibilidade do voltar por quadro
+  $$(".phone").forEach(function (ph) {
+    var step = parseInt(ph.getAttribute("data-step"), 10) || 1;
+    var box = ph.querySelector(".stepper");
+    if (box) {
+      var segs = "";
+      for (var i = 1; i <= TOT; i++) {
+        var c = i < step ? "done" : (i === step ? "now" : "");
+        segs += '<span class="step-seg ' + c + '"><i></i></span>';
+      }
+      box.innerHTML = '<div class="step-line"><span class="step-count">Etapa ' + step + " de " + TOT +
+        '</span><span class="step-name">' + NOMES[step - 1] + '</span></div><div class="step-bar">' + segs + "</div>";
+    }
+    var back = ph.querySelector(".cand-back");
+    if (back && ph.hasAttribute("data-noback")) back.hidden = true;
+  });
+
+  // chips de escolha única
+  $$("[data-chipgroup]").forEach(function (g) {
+    g.addEventListener("click", function (ev) {
+      var c = ev.target.closest(".chip");
+      if (!c || !g.contains(c)) return;
+      $$(".chip", g).forEach(function (x) { x.classList.remove("on"); });
+      c.classList.add("on");
+    });
+  });
+
+  // segmentado Não | Sim (revela o extra quando "sim")
+  $$("[data-seg]").forEach(function (s) {
+    s.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button");
+      if (!b || !s.contains(b)) return;
+      $$("button", s).forEach(function (x) { x.classList.remove("on"); });
+      b.classList.add("on");
+      var wrap = s.closest("[data-segwrap]");
+      if (wrap) {
+        var extra = wrap.querySelector("[data-segextra]");
+        if (extra) extra.hidden = (b.getAttribute("data-val") !== "sim");
+      }
+    });
+  });
+
+  // contador de filhos
+  $$("[data-nstep]").forEach(function (ns) {
+    ns.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button");
+      if (!b) return;
+      var alvo = ns.querySelector("[data-n]");
+      if (!alvo) return;
+      var n = parseInt(alvo.textContent, 10) || 0;
+      n = Math.max(1, Math.min(10, n + (parseInt(b.getAttribute("data-d"), 10) || 0)));
+      alvo.textContent = String(n);
+    });
+  });
+
+  // checkbox card e lgpd: alternam ao tocar
+  $$(".checkcard, [data-lgpd]").forEach(function (el) {
+    el.addEventListener("click", function (ev) { if (ev.target.tagName !== "INPUT") el.classList.toggle("on"); });
+  });
+
+  // catálogo de benefícios: a GP marca no gestor, os selos do site refletem na hora
+  var benOut = document.querySelector("[data-benout]");
+  function syncBen() {
+    if (!benOut) return;
+    var ck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    var on = $$(".gben-it.on");
+    benOut.innerHTML = on.length
+      ? on.map(function (it) { return '<span class="sben-chip">' + ck + (it.getAttribute("data-ben") || "") + "</span>"; }).join("")
+      : '<span class="sben-empty">Nenhum benefício selecionado.</span>';
+  }
+  $$(".gben-it").forEach(function (it) {
+    it.addEventListener("click", function () { it.classList.toggle("on"); syncBen(); });
+  });
+  syncBen();
+
+  // sub-aba Benefícios: catálogo com remover e adicionar (nome via textContent, nunca HTML)
+  var cat = document.querySelector("[data-cat]");
+  if (cat) {
+    var LIXO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+    cat.addEventListener("click", function (ev) {
+      var rm = ev.target.closest(".gcat-rm");
+      if (rm) rm.closest(".gcat-it").remove();
+    });
+    var addBtn = document.querySelector("[data-cat-add]");
+    var addInp = document.querySelector("[data-cat-input]");
+    var addItem = function () {
+      var v = (addInp.value || "").trim();
+      if (!v) return;
+      var it = document.createElement("div");
+      it.className = "gcat-it";
+      var nome = document.createElement("b");
+      nome.textContent = v;
+      var btn = document.createElement("button");
+      btn.className = "gcat-rm";
+      btn.setAttribute("aria-label", "Remover " + v);
+      btn.innerHTML = LIXO;
+      it.appendChild(nome); it.appendChild(btn);
+      cat.appendChild(it);
+      addInp.value = "";
+      addInp.focus();
+    };
+    if (addBtn && addInp) {
+      addBtn.addEventListener("click", addItem);
+      addInp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") addItem(); });
+    }
+  }
+
+  // máscara R$ ao vivo (salário da experiência e pretensão salarial)
+  $$(".money input").forEach(function (inp) {
+    inp.addEventListener("input", function () {
+      var d = this.value.replace(/\D/g, "").slice(0, 9);
+      if (!d) { this.value = ""; return; }
+      var n = (parseInt(d, 10) / 100).toFixed(2);
+      this.value = "R$ " + n.replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    });
+  });
+
+  // entrada suave dos quadros (respeita reduce motion)
+  var reduz = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var quadros = $$(".quadro");
+  if (reduz || !("IntersectionObserver" in window)) {
+    quadros.forEach(function (q) { q.classList.add("in"); });
+  } else {
+    var io = new IntersectionObserver(function (ents, obs) {
+      ents.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); obs.unobserve(e.target); } });
+    }, { threshold: .12 });
+    quadros.forEach(function (q) { io.observe(q); });
+  }
+})();
+</script>
+</body>
+</html>
