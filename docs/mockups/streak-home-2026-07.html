@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>FioPulse · Streak na home: 3 ideias minimais</title>
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+
+  :root {
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00;
+    --ink: #1c231d; --muted: #68716a; --pg: #f2f3ee; --card: #ffffff;
+    --borda: #e3e5dd; --ease-ios: cubic-bezier(.32, .72, .28, 1);
+    --pp-rc: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--pg); color: var(--ink); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 44px 20px 90px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  h1.tt { font: 700 clamp(26px, 4vw, 37px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--muted); max-width: 760px; font-size: 15px; }
+  .sub b { color: var(--ink); font-weight: 600; }
+
+  .bar { margin-top: 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  #toggle { display: inline-flex; align-items: center; gap: 9px; font: 600 13px Poppins, system-ui, sans-serif; color: #cfe6d6; background: #0d120e; border: 1px solid #23331f; border-radius: 12px; padding: 10px 15px; cursor: pointer; transition: transform .15s var(--ease-ios); }
+  #toggle:active { transform: scale(.97); }
+  #toggle .sw { width: 15px; height: 15px; border-radius: 5px; background: #0E130E; border: 1px solid #2A332A; flex: none; }
+  .bar .hint { font-size: 12.5px; color: var(--muted); }
+
+  /* colunas das 3 ideias, lado a lado */
+  .deck { margin-top: 34px; display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; justify-content: center; }
+  .idea { width: 320px; }
+  .idea__h { display: flex; align-items: center; gap: 11px; }
+  .idea__n { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 9px; color: #fff; font: 700 14px/28px Poppins, system-ui, sans-serif; text-align: center; }
+  .idea__n--a { background: var(--verde); }
+  .idea__n--b { background: #9a6a1e; }
+  .idea__n--c { background: #0a5f97; }
+  .idea__h h2 { font: 700 18px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .idea__r { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 10px 0 4px; min-height: 58px; }
+  .idea__frame { margin-top: 18px; }
+  .cap { display: block; text-align: center; font: 600 11.5px Poppins, system-ui, sans-serif; color: var(--muted); margin-bottom: 10px; }
+  .cap--full { color: #9a6a1e; }
+
+  /* ---------- frame de celular ---------- */
+  .phone { width: 300px; margin: 0 auto; background: #050706; border-radius: 44px; padding: 10px; box-shadow: 0 2px 4px #0004, 0 22px 54px -22px #0009, inset 0 0 0 2px #1a201b; }
+  .screen { position: relative; overflow: hidden; border-radius: 35px; background: var(--c-bg); height: 468px; isolation: isolate; transition: background .25s; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 86px; height: 23px; border-radius: 999px; background: #000; z-index: 60; }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 26px 0; font: 600 12px Poppins, system-ui, sans-serif; color: var(--c-text); position: relative; z-index: 50; }
+  .sbar .r { display: flex; align-items: center; gap: 6px; opacity: .9; }
+  .sbar .r svg { width: 16px; height: 15px; }
+  .body { padding: 15px 15px 18px; }
+
+  /* tokens do tema (claro = padrão, escuro via [data-theme]) — espelham os do app */
+  .deck { --c-bg: #EEF3EC; --c-surface: #FFFFFF; --c-surface-warm: #EEF3EC; --c-border: #E7EDE4;
+          --c-text: #1E2D1A; --c-muted: #4A6245; --c-plum: #008835; --c-success-bg: #E0EAD8;
+          --c-warn: #B27429; --c-warn-tx: #7A4A12; --c-warn-bg: #F8E4C8; }
+  .deck[data-theme="dark"] { --c-bg: #0E130E; --c-surface: #161D15; --c-surface-warm: #1E261D; --c-border: #232C22;
+          --c-text: #EDF3EA; --c-muted: #8A9884; --c-plum: #5FCB85; --c-success-bg: #193220;
+          --c-warn: #E8B468; --c-warn-tx: #E8B468; --c-warn-bg: #3A2E18; }
+
+  /* saudação (.pp-greet + selo BH), clonada do portal real */
+  .pp-greet { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+  .pp-greet__av { width: 48px; height: 48px; border-radius: 16px; background: linear-gradient(150deg, #1AA34F, #0B7A36); color: #fff; display: flex; align-items: center; justify-content: center; font: 700 17px Poppins, system-ui, sans-serif; flex: none; }
+  .pp-greet__tx { min-width: 0; flex: 1; }
+  .pp-greet__tx h1 { font: 700 22px/1.34 Poppins, system-ui, sans-serif; letter-spacing: -.02em; color: var(--c-text); margin: 0; }
+  .pp-greet__tx h1 b { font-weight: 800; }
+  .pp-greet__tx p { font-size: 12px; color: var(--c-muted); margin: 3px 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; row-gap: 6px; }
+  .pp-greet__tx p > svg { width: 13px; height: 13px; flex: none; }
+  .pp-greet__tx p .dt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .bhseal { display: inline-flex; align-items: center; gap: 6px; vertical-align: 2px; margin-left: 4px; padding: 4px 11px 4px 8px; border-radius: 999px; cursor: pointer; border: 1px solid transparent; font: inherit; white-space: nowrap; background: var(--c-success-bg); }
+  .bhseal__ic { flex: none; display: flex; color: var(--c-plum); }
+  .bhseal__ic svg { width: 14px; height: 14px; stroke-width: 2; }
+  .bhseal__v { font: 800 14px Poppins, system-ui, sans-serif; color: var(--c-text); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .bhseal__s { font: 600 11px Poppins, system-ui, sans-serif; color: var(--c-plum); }
+
+  /* IDEIA B: chip de sequência na linha da saudação, ao lado do selo BH */
+  .strk-chip { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 3px 9px 3px 7px; border-radius: 999px; background: var(--c-surface-warm); border: 1px solid var(--c-border); color: var(--c-muted); font: 700 11px Poppins, system-ui, sans-serif; white-space: nowrap; flex: none; }
+  .strk-chip svg { width: 12px; height: 12px; color: var(--c-plum); }
+  .strk-chip.full { background: var(--c-warn-bg); border-color: transparent; color: var(--c-warn-tx); }
+  .strk-chip.full svg { color: var(--c-warn-tx); }
+
+  /* hub de atalhos (.pp-atl) */
+  .pp-atl { display: flex; gap: 6px; overflow: hidden; padding: 2px 0 6px; margin-bottom: 14px; }
+  .pp-atl__it { flex: none; width: 60px; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; color: var(--c-text); font: inherit; cursor: pointer; padding: 0; }
+  .pp-atl__c { position: relative; width: 52px; height: 52px; border-radius: 50%; background: var(--c-surface-warm); border: 1px solid var(--c-border); display: flex; align-items: center; justify-content: center; color: var(--c-plum); }
+  .pp-atl__c svg { width: 21px; height: 21px; }
+  .pp-atl__b { position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; border-radius: 999px; background: var(--c-warn); color: #3a2a05; font: 800 10px Poppins; display: flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid var(--c-bg); }
+  .pp-atl__l { font: 600 9.5px Poppins, system-ui, sans-serif; color: var(--c-muted); text-align: center; line-height: 1.2; }
+
+  /* card compacto de pontos (.gm-mid), clonado do portal real */
+  .gm-mid { display: block; width: 100%; text-align: left; border: 0; font: inherit; cursor: pointer; background: linear-gradient(135deg, #008835, #0b6e33); border-radius: var(--pp-rc); padding: 13px 16px; color: #fff; box-shadow: 0 10px 26px -14px rgba(0,90,40,.7); }
+  .gm-mid__top { display: flex; align-items: baseline; gap: 9px; }
+  .gm-mid__lbl { font: 700 11px Poppins; text-transform: uppercase; letter-spacing: .06em; opacity: .85; display: inline-flex; align-items: center; gap: 6px; }
+  .gm-mid__lbl svg { width: 14px; height: 14px; }
+  .gm-mid__pts { font: 800 28px Poppins; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .gm-mid__pts small { font: 700 13px Poppins; opacity: .85; margin-left: 3px; }
+  .gm-mid__season { margin-left: auto; align-self: center; font: 700 9.5px Poppins; background: rgba(255,255,255,.16); padding: 3px 8px; border-radius: 999px; }
+  .gm-mid__bar { height: 5px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; margin: 9px 0 6px; }
+  .gm-mid__bar span { display: block; height: 100%; background: var(--amarelo); border-radius: 999px; }
+  .gm-mid__meta { font: 400 11px Poppins; opacity: .9; }
+
+  /* IDEIA A: micro-linha de sequência no rodapé do card */
+  .gm-strk { display: flex; align-items: center; gap: 9px; margin-top: 10px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,.16); }
+  .gm-strk__dots { display: inline-flex; gap: 5px; }
+  .gm-strk__dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.30); }
+  .gm-strk__dots i.on { background: #fff; }
+  .gm-strk__lbl { font: 600 11px Poppins, system-ui, sans-serif; color: rgba(255,255,255,.92); }
+  .gm-strk--full .gm-strk__dots i.on { background: var(--amarelo); box-shadow: 0 0 0 1px rgba(255,203,0,.35), 0 0 7px rgba(255,203,0,.55); }
+  .gm-strk--full .gm-strk__lbl { color: #fff; }
+
+  /* IDEIA C: anel de progresso fininho ao redor do número de pontos */
+  .gm-mid--ring .gm-mid__top { align-items: center; }
+  .gm-ring { position: relative; width: 50px; height: 50px; display: grid; place-items: center; flex: none; }
+  .gm-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gm-ring__track { fill: none; stroke: rgba(255,255,255,.24); stroke-width: 3.5; }
+  .gm-ring__arc { fill: none; stroke: #fff; stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 138.2; stroke-dashoffset: 55.3; transition: stroke-dashoffset .4s var(--ease-ios), stroke .3s; }
+  .gm-ring__num { font: 800 20px Poppins; color: #fff; font-variant-numeric: tabular-nums; }
+  .gm-ring.full .gm-ring__arc { stroke-dashoffset: 0; stroke: var(--amarelo); filter: drop-shadow(0 0 4px rgba(255,203,0,.6)); }
+  .gm-ring__cap { display: flex; align-items: center; gap: 5px; font: 400 11px Poppins; color: rgba(255,255,255,.85); margin-top: 8px; }
+  .gm-ring__cap svg { width: 12px; height: 12px; flex: none; }
+
+  /* card comunicado (contexto real da home) */
+  .pp-card { display: block; width: 100%; text-align: left; font: inherit; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--pp-rc); overflow: hidden; margin-top: 10px; box-shadow: 0 1px 3px rgba(0,40,20,.06); }
+  .pp-card__bd { padding: 12px 14px; }
+  .pp-card__meta { display: flex; align-items: center; gap: 6px; font: 500 11px Poppins; color: var(--c-muted); margin-bottom: 6px; }
+  .pp-card__meta svg { width: 13px; height: 13px; }
+  .pp-card__t { font: 600 14px Poppins; letter-spacing: -.01em; line-height: 1.3; color: var(--c-text); }
+
+  .reco { margin-top: 40px; background: var(--card); border: 1px solid var(--borda); border-left: 4px solid var(--verde); border-radius: 16px; padding: 20px 22px; box-shadow: 0 1px 2px #0000000a, 0 12px 40px -22px #04331a2e; }
+  .reco h3 { font: 700 15px Poppins; display: flex; align-items: center; gap: 9px; }
+  .reco h3 .dot { width: 22px; height: 22px; border-radius: 7px; background: var(--verde); color: #fff; display: grid; place-items: center; font: 700 12px/1 Poppins; }
+  .reco p { color: var(--muted); font-size: 13.5px; margin-top: 10px; line-height: 1.6; }
+  .reco p b { color: var(--ink); font-weight: 600; }
+
+  .foot { margin-top: 46px; color: var(--muted); font-size: 12.5px; text-align: center; line-height: 1.6; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="kicker">Proposta · aprovação antes de tocar o app</span>
+  <h1 class="tt">O streak de dias na home, bem minimal</h1>
+  <p class="sub">A gamificação já pontua a <b>sequência de dias entrando no app</b> (5 dias seguidos viram ponto), mas hoje isso não aparece em lugar nenhum: a pessoa pontua sem nunca ver a própria sequência. Três formas de mostrá-la sem virar poluição e sem competir com o banco de horas. Cada frame é a home real do colaborador clonada: saudação com o selo de banco de horas e o card compacto de pontos. Cada ideia em dois estados: a sequência no meio (3 de 5) e completa (5 de 5, com o micro-momento dourado da recompensa).</p>
+
+  <div class="bar">
+    <button id="toggle"><span class="sw"></span>Ver no tema claro</button>
+    <span class="hint">Os frames nascem no tema escuro, o mesmo dos prints; o tema claro recebe exatamente as mesmas mudanças.</span>
+  </div>
+
+  <div class="deck" id="deck" data-theme="dark"></div>
+
+  <div class="reco">
+    <h3><span class="dot">✓</span>Leitura das três</h3>
+    <p><b>A · pontinhos no card</b> é a mais honesta com o pedido: não acrescenta nada novo na primeira dobra, a sequência nasce dentro do card onde os pontos já moram, e os cinco pontinhos leem na hora. <b>B · chip na saudação</b> é o mais notável, um raio discreto ao lado do selo; some sozinho quando a sequência é 0 ou 1, então nunca aparece sem valor. <b>C · anel no número</b> é o mais invisível, elegante, mas exige um toque pra revelar a sequência, então informa menos de relance. Recomendo a <b>A</b>: máximo de clareza pelo mínimo de tinta, e o dourado dos 5 dias entrega a recompensa sem estourar a tela.</p>
+  </div>
+
+  <p class="foot">Mock de aprovação. Toda a anatomia (saudação, selo de banco de horas, hub e card de pontos) reproduz o portal real do colaborador, nos temas claro e escuro. Nada foi tocado no app: as mudanças entram em public/ só depois do seu aval.</p>
+</div>
+
+<script>
+  const ICON = {
+    clock:    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    sun:      '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    medalha:  '<circle cx="12" cy="9" r="5.5"/><path d="M8.8 13.5 7 21l5-2.6L17 21l-1.8-7.5"/>',
+    conquista:'<circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/>',
+    bolt:     '<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>',
+    megafone: '<path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/>',
+    ponto:    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    pag:      '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/>',
+    doc:      '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/>'
+  };
+  const svg = (p, w) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w || 2}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+
+  function statusbar() {
+    return `<div class="sbar"><span>9:41</span><span class="r">`
+      + `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>`
+      + `<svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>`
+      + `</span></div>`;
+  }
+
+  function greeting(idea, full) {
+    const chip = idea === 'b'
+      ? `<span class="strk-chip ${full ? 'full' : ''}">${svg(ICON.bolt)}${full ? '5 dias' : '3 dias'}</span>`
+      : '';
+    return `<div class="pp-greet">
+      <div class="pp-greet__av">MC</div>
+      <div class="pp-greet__tx">
+        <h1>Boa tarde, <b>Maria</b> <button class="bhseal"><span class="bhseal__ic">${svg(ICON.clock)}</span><span class="bhseal__v">04:12</span><span class="bhseal__s">a favor</span></button></h1>
+        <p>${svg(ICON.sun)}<span class="dt">Terça, 14 de julho · 1º turno</span>${chip}</p>
+      </div>
+    </div>`;
+  }
+
+  function hub() {
+    const items = [['Meu ponto', ICON.ponto, 1], ['Pagamento', ICON.pag, 0], ['Avisos', ICON.megafone, 2], ['Conquistas', ICON.conquista, 0], ['Documentos', ICON.doc, 0]];
+    return `<div class="pp-atl">` + items.map(([l, ic, b]) =>
+      `<button class="pp-atl__it"><span class="pp-atl__c">${svg(ic)}${b ? `<span class="pp-atl__b">${b}</span>` : ''}</span><span class="pp-atl__l">${l}</span></button>`).join('') + `</div>`;
+  }
+
+  function card(idea, full) {
+    const lbl = `<span class="gm-mid__lbl">${svg(ICON.medalha)}Seus pontos</span>`;
+    if (idea === 'c') {
+      const cap = full ? 'sequência completa · 5 dias' : 'sequência de 3 dias';
+      return `<button class="gm-mid gm-mid--ring">
+        <div class="gm-mid__top">${lbl}
+          <span class="gm-ring ${full ? 'full' : ''}"><svg viewBox="0 0 50 50"><circle class="gm-ring__track" cx="25" cy="25" r="22"/><circle class="gm-ring__arc" cx="25" cy="25" r="22"/></svg><span class="gm-ring__num">16</span></span>
+          <span class="gm-mid__season">2026</span>
+        </div>
+        <div class="gm-mid__bar"><span style="width:32%"></span></div>
+        <div class="gm-mid__meta">faltam 34 pro marco 50</div>
+        <div class="gm-ring__cap">${svg(ICON.bolt)}${cap}</div>
+      </button>`;
+    }
+    const dots = idea === 'a'
+      ? `<div class="gm-strk ${full ? 'gm-strk--full' : ''}"><span class="gm-strk__dots">${[0, 1, 2, 3, 4].map(i => `<i class="${(full || i < 3) ? 'on' : ''}"></i>`).join('')}</span><span class="gm-strk__lbl">${full ? '5 dias seguidos' : '3 dias seguidos'}</span></div>`
+      : '';
+    return `<button class="gm-mid">
+      <div class="gm-mid__top">${lbl}<span class="gm-mid__pts">16<small>pts</small></span><span class="gm-mid__season">Temporada 2026</span></div>
+      <div class="gm-mid__bar"><span style="width:32%"></span></div>
+      <div class="gm-mid__meta">faltam 34 pro marco 50</div>
+      ${dots}
+    </button>`;
+  }
+
+  function comunicado() {
+    return `<div class="pp-card"><div class="pp-card__bd"><div class="pp-card__meta">${svg(ICON.megafone)}Comunicado fixado</div><div class="pp-card__t">Confraternização de julho: confirme presença até sexta</div></div></div>`;
+  }
+
+  function phone(idea, full) {
+    return `<div class="phone"><div class="screen">
+      <div class="island"></div>
+      ${statusbar()}
+      <div class="body">${greeting(idea, full)}${hub()}${card(idea, full)}${comunicado()}</div>
+    </div></div>`;
+  }
+
+  const IDEAS = [
+    ['a', 'A', 'Pontinhos no card de pontos', 'Uma micro-linha no rodapé do próprio card, com cinco pontinhos preenchidos conforme a sequência. Zero elemento novo na home: o streak mora onde os pontos já moram.'],
+    ['b', 'B', 'Chip na saudação', 'Um chip mínimo com um raio em traço, ao lado do selo de banco de horas. Discreto, e some por completo quando a sequência é 0 ou 1.'],
+    ['c', 'C', 'Anel no número', 'O número de pontos ganha um anel finíssimo que fecha aos 5 dias, com a sequência ao toque. O mais invisível dos três.']
+  ];
+
+  const deck = document.getElementById('deck');
+  deck.innerHTML = IDEAS.map(([k, letter, title, rat]) => `
+    <section class="idea" id="idea-${k}">
+      <div class="idea__h"><span class="idea__n idea__n--${k}">${letter}</span><h2>${title}</h2></div>
+      <p class="idea__r">${rat}</p>
+      <div class="idea__frame"><span class="cap">Sequência 3 de 5</span>${phone(k, false)}</div>
+      <div class="idea__frame"><span class="cap cap--full">Sequência completa · 5 de 5</span>${phone(k, true)}</div>
+    </section>`).join('');
+
+  const toggle = document.getElementById('toggle');
+  toggle.addEventListener('click', () => {
+    const dark = deck.getAttribute('data-theme') === 'dark';
+    deck.setAttribute('data-theme', dark ? 'light' : 'dark');
+    toggle.lastChild.textContent = dark ? 'Ver no tema escuro' : 'Ver no tema claro';
+  });
+</script>
+</body>
+</html>
