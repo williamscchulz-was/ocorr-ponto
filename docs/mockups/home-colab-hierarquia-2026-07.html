@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Home do colaborador: hierarquia da tela inteira</title>
+<style>
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+
+  :root {
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00;
+    --ink: #1c231d; --muted: #68716a; --bg: #f2f3ee; --card: #ffffff;
+    --borda: #e3e5dd; --ease-ios: cubic-bezier(.32, .72, .28, 1);
+
+    /* tokens do TEMA ESCURO do colaborador (html.modo-colab.cp-dark do app real) */
+    --d-bg: #0E130E; --d-surface: #161D15; --d-surface-warm: #1E261D;
+    --d-border: #232C22; --d-border-strong: #2A332A;
+    --d-text: #EDF3EA; --d-muted: #8A9884; --d-plum: #5FCB85; --d-warn: #E8B468;
+    --d-warn-bg: #3A2E18;
+    --pp-ri: 14px; --pp-rc: 16px; --pp-rh: 18px;
+    --d-sh-card: 0 2px 10px -4px rgba(0,0,0,.55);
+    --d-sh-hero: 0 14px 34px -14px rgba(0,0,0,.7);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 46px 20px 96px; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  h1 { font: 700 clamp(26px, 4vw, 38px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--muted); max-width: 760px; font-size: 15.5px; }
+  .sub b { color: var(--ink); font-weight: 600; }
+  .tema-note { margin-top: 14px; display: inline-flex; align-items: center; gap: 9px; font-size: 12.5px; background: #0d120e; color: #cfe6d6; border: 1px solid #23331f; border-radius: 12px; padding: 9px 14px; }
+  .tema-note .sw { width: 15px; height: 15px; border-radius: 5px; background: #0E130E; border: 1px solid #2A332A; flex: none; }
+
+  /* tira de prioridade: a história que a home deve contar, em ordem */
+  .prio { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+  .prio__it { flex: 1 1 200px; display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--borda); border-radius: 15px; padding: 13px 15px; box-shadow: 0 1px 2px #0000000a; }
+  .prio__n { flex: none; width: 30px; height: 30px; border-radius: 9px; background: var(--verde); color: #fff; font: 700 15px/30px Poppins; text-align: center; }
+  .prio__it:nth-child(2) .prio__n { background: #117a39; }
+  .prio__it:nth-child(3) .prio__n { background: #d79b2c; }
+  .prio__it:nth-child(4) .prio__n { background: #7a8b7f; }
+  .prio__tx b { display: block; font: 600 13.5px Poppins; color: var(--ink); }
+  .prio__tx span { font-size: 11.5px; color: var(--muted); }
+
+  /* seções */
+  .sec { margin-top: 54px; }
+  .sec-h { font: 700 20px/1.3 Poppins, system-ui, sans-serif; letter-spacing: -.01em; display: flex; align-items: center; gap: 11px; }
+  .sec-p { color: var(--muted); font-size: 14px; margin: 12px 0 0; max-width: 780px; }
+  .sec-p b { color: var(--ink); font-weight: 600; }
+
+  .frames { display: flex; flex-wrap: wrap; gap: 34px 26px; margin-top: 30px; justify-content: center; align-items: flex-start; }
+  .fcol { width: 300px; display: flex; flex-direction: column; }
+  .cap { font: 600 13px Poppins, system-ui, sans-serif; color: var(--ink); text-align: center; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 7px; }
+  .cap .tg { font: 700 10px/1 Poppins; letter-spacing: .06em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; }
+  .cap .tg.was { background: #eceee7; color: #8a938a; }
+  .cap .tg.h1 { background: #00883514; color: var(--verde); }
+  .cap .tg.h2 { background: #e8b46822; color: #9a6a1e; }
+  .cap .tg.h3 { background: #0076be18; color: #0a5f97; }
+  .cap small { font: 500 11.5px Poppins; color: var(--muted); }
+  .tradeoff { margin-top: 14px; font-size: 12px; line-height: 1.5; color: var(--verde-esc); background: #ffcb0016; border: 1px solid #e8c34d44; border-radius: 12px; padding: 10px 12px; }
+  .tradeoff b { font-weight: 600; }
+  .tradeoff.warn { color: #6a4a12; background: #e8b46815; border-color: #e8b46840; }
+
+  /* ---------- frame de celular (TELA ESCURA) ---------- */
+  .phone { width: 300px; margin: 0 auto; background: #050706; border-radius: 44px; padding: 10px; box-shadow: 0 2px 4px #0004, 0 24px 60px -20px #000a, inset 0 0 0 2px #1a201b; }
+  .screen { position: relative; overflow: hidden; border-radius: 35px; background: var(--d-bg); height: 604px; isolation: isolate; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 88px; height: 24px; border-radius: 999px; background: #000; z-index: 60; }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 26px 0; font: 600 12px Poppins, system-ui, sans-serif; color: var(--d-text); position: relative; z-index: 50; }
+  .sbar .r { display: flex; align-items: center; gap: 6px; opacity: .9; }
+  .sbar .r svg { width: 16px; height: 15px; }
+  .body { padding: 15px 15px 78px; height: calc(604px - 28px); overflow: hidden; }
+  /* fade suave no fim do conteúdo, sinalizando que a home continua rolando por baixo da barra */
+  .screen::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 96px; background: linear-gradient(transparent, var(--d-bg) 78%); pointer-events: none; z-index: 40; }
+
+  /* saudação (.pp-greet) */
+  .pp-greet { display: flex; align-items: center; gap: 13px; margin-bottom: 15px; }
+  .pp-greet__av { position: relative; width: 46px; height: 46px; border-radius: 15px; background: linear-gradient(150deg, #1AA34F, #0B7A36); color: #fff; display: flex; align-items: center; justify-content: center; font: 700 16px Poppins, system-ui, sans-serif; flex: none; }
+  .pp-greet__tx { min-width: 0; flex: 1; }
+  .pp-greet__tx h1 { font: 700 21px/1.12 Poppins, system-ui, sans-serif; letter-spacing: -.02em; color: var(--d-text); margin: 0; }
+  .pp-greet__tx h1 b { font-weight: 800; }
+  .pp-greet__tx p { font-size: 11.5px; color: var(--d-muted); margin: 3px 0 0; display: flex; align-items: center; gap: 6px; }
+  .pp-greet__tx p svg { width: 13px; height: 13px; flex: none; }
+
+  /* hub de atalhos (.pp-atl) — circular, padrão de hoje */
+  .hub { position: relative; margin: 0 0 14px; }
+  .hub::after { content: ""; position: absolute; top: 0; bottom: 8px; right: 0; width: 30px; pointer-events: none; z-index: 2; background: linear-gradient(90deg, transparent, var(--d-bg)); }
+  .pp-atl { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
+  .pp-atl::-webkit-scrollbar { display: none; }
+  .pp-atl__it { flex: none; width: 66px; display: flex; flex-direction: column; align-items: center; gap: 7px; background: none; border: 0; color: var(--d-text); font: inherit; cursor: pointer; padding: 0; }
+  .pp-atl__c { position: relative; width: 52px; height: 52px; border-radius: 50%; background: var(--d-surface-warm); border: 1px solid var(--d-border); display: flex; align-items: center; justify-content: center; color: var(--d-plum); transition: filter .15s var(--ease-ios), transform .15s var(--ease-ios); }
+  .pp-atl__it:active .pp-atl__c { filter: brightness(1.15); transform: scale(.94); }
+  .pp-atl__c svg { width: 21px; height: 21px; }
+  .pp-atl__b { position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; border-radius: 999px; background: var(--d-warn); color: #3a2a05; font: 800 10px Poppins; display: flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid var(--d-bg); }
+  .pp-atl__l { font: 600 10px Poppins, system-ui, sans-serif; color: var(--d-muted); text-align: center; line-height: 1.25; }
+
+  /* herói banco de horas ATUAL (.pp-hero) — o cartaz gigante que come a dobra */
+  .pp-hero { position: relative; border-radius: var(--pp-rc); padding: 15px 17px; background: linear-gradient(150deg, #1AA34F 0%, #117A39 62%, #0B7A36 100%); box-shadow: var(--d-sh-hero); overflow: hidden; color: #fff; display: block; width: 100%; text-align: left; border: 0; font: inherit; cursor: pointer; }
+  .pp-hero::before { content: ""; position: absolute; top: -40px; right: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(255,255,255,.26), transparent 65%); pointer-events: none; }
+  .pp-hero__top { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+  .pp-hero__lbl { font: 500 11px Poppins; color: rgba(255,255,255,.85); display: flex; align-items: center; gap: 6px; }
+  .pp-hero__lbl svg { width: 15px; height: 15px; }
+  .pp-hero__badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,.18); color: #fff; font: 600 10.5px Poppins; border: 1px solid rgba(255,255,255,.2); }
+  .pp-hero__val { position: relative; z-index: 1; margin-top: 9px; font: 800 36px Poppins; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .pp-hero__sub { position: relative; z-index: 1; margin-top: 7px; font: 400 11.5px Poppins; color: rgba(255,255,255,.95); text-shadow: 0 1px 2px rgba(0,40,20,.28); }
+
+  /* card de pontos ATUAL grande (.gm-card) — o segundo herói verde */
+  .gm-card { display: block; width: 100%; text-align: left; border: 0; font: inherit; background: linear-gradient(135deg, #008835, #0b6e33); border-radius: 18px; padding: 15px 17px; color: #fff; margin-top: 10px; cursor: pointer; }
+  .gm-card__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .gm-card__lbl { font: 700 11px Poppins; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+  .gm-card__season { font: 700 10px Poppins; background: rgba(255,255,255,.16); padding: 3px 10px; border-radius: 999px; }
+  .gm-card__pts { font: 800 36px Poppins; line-height: 1.1; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  .gm-card__pts small { font: 600 14px Poppins; opacity: .85; }
+  .gm-bar { height: 9px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; margin: 10px 0 6px; }
+  .gm-bar span { display: block; height: 100%; background: var(--amarelo); border-radius: 999px; }
+  .gm-card__meta { display: flex; justify-content: space-between; font: 400 11.5px Poppins; opacity: .9; }
+  .gm-selos { display: flex; gap: 6px; margin-top: 11px; flex-wrap: wrap; }
+  .gm-selo { font: 700 10.5px Poppins; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.16); }
+  .gm-selo.ok { background: var(--amarelo); color: #4a3c00; }
+
+  /* comunicado fixado (.pp-card / .pp-card--pin) */
+  .pp-card { display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--d-surface); border: 1px solid var(--d-border); border-radius: var(--pp-rc); box-shadow: var(--d-sh-card); overflow: hidden; margin-top: 12px; transition: filter .16s var(--ease-ios); }
+  .pp-card:active { filter: brightness(1.06); }
+  .pp-card--pin { border-color: transparent; box-shadow: 0 0 0 1.5px #1AA34F, var(--d-sh-card); }
+  .pp-card__bd { padding: 13px 14px; }
+  .pp-card__meta { display: flex; align-items: center; gap: 6px; font: 500 11px Poppins; color: var(--d-muted); margin-bottom: 7px; }
+  .pp-card__meta .pin { color: var(--d-plum); }
+  .pp-card__meta svg { width: 13px; height: 13px; }
+  .pp-card__t { font: 600 14px Poppins; letter-spacing: -.01em; line-height: 1.3; color: var(--d-text); }
+
+  /* social: aniversário / boas-vindas (.pp-bday) */
+  .pp-bday { display: flex; align-items: center; gap: 12px; background: var(--d-surface); border: 1px solid var(--d-border); border-radius: var(--pp-rc); box-shadow: var(--d-sh-card); padding: 12px 14px; position: relative; overflow: hidden; margin-top: 10px; width: 100%; text-align: left; font: inherit; cursor: pointer; }
+  .pp-bday::after { content: ""; position: absolute; right: -24px; top: -30px; width: 96px; height: 96px; border-radius: 50%; background: radial-gradient(circle, rgba(232,180,104,.14), transparent 70%); }
+  .pp-bday__ic { width: 40px; height: 40px; border-radius: 12px; background: rgba(232,180,104,.16); color: var(--d-warn); display: flex; align-items: center; justify-content: center; flex: none; }
+  .pp-bday__ic.wc { background: rgba(95,203,133,.15); color: var(--d-plum); }
+  .pp-bday__ic svg { width: 20px; height: 20px; }
+  .pp-bday__bd { flex: 1; min-width: 0; position: relative; z-index: 1; }
+  .pp-bday__t { display: block; font: 600 13px Poppins; color: var(--d-text); line-height: 1.3; }
+  .pp-bday__s { display: block; font: 400 11.5px Poppins; color: var(--d-muted); margin-top: 2px; }
+  .pp-bday__heart { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--d-surface-warm); border: 1px solid var(--d-border); color: var(--d-warn); display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; }
+  .pp-bday__heart svg { width: 16px; height: 16px; }
+
+  /* rótulo de bloco discreto */
+  .blk-lbl { font: 700 10.5px Poppins; letter-spacing: .08em; text-transform: uppercase; color: var(--d-muted); margin: 16px 2px 8px; }
+
+  /* ====== H1 · resumo do mês (card fundido de 2 colunas) ====== */
+  .resumo { display: flex; align-items: stretch; width: 100%; text-align: left; font: inherit; cursor: pointer; border: 0; position: relative; overflow: hidden; border-radius: var(--pp-rc); padding: 15px 4px; background: linear-gradient(150deg, #12522e 0%, #0c3a20 72%, #0a3119 100%); box-shadow: var(--d-sh-hero); color: #fff; transition: transform .16s var(--ease-ios); }
+  .resumo:active { transform: scale(.985); }
+  .resumo::before { content: ""; position: absolute; top: -36px; right: -26px; width: 130px; height: 130px; background: radial-gradient(circle, rgba(95,203,133,.22), transparent 66%); pointer-events: none; }
+  .resumo__col { flex: 1; min-width: 0; padding: 0 15px; position: relative; z-index: 1; }
+  .resumo__div { width: 1px; align-self: stretch; margin: 2px 0; background: linear-gradient(transparent, rgba(255,255,255,.18) 20%, rgba(255,255,255,.18) 80%, transparent); flex: none; }
+  .resumo__lbl { display: flex; align-items: center; gap: 6px; font: 600 10.5px Poppins; letter-spacing: .04em; text-transform: uppercase; color: rgba(206,232,214,.72); }
+  .resumo__lbl svg { width: 13px; height: 13px; }
+  .resumo__val { display: block; margin-top: 8px; font: 800 25px Poppins; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .resumo__val small { font: 700 13px Poppins; opacity: .9; margin-left: 1px; }
+  .resumo__sub { margin-top: 6px; font: 500 11px Poppins; color: rgba(206,232,214,.82); display: flex; align-items: center; gap: 5px; }
+  .resumo__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--d-plum); flex: none; }
+  .resumo__dot.warn { background: var(--d-warn); }
+
+  /* ====== H2 · pendência (topo do feed) ====== */
+  .pend { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--d-warn-bg); border: 1px solid rgba(232,180,104,.3); border-radius: var(--pp-rc); padding: 13px 14px; box-shadow: var(--d-sh-card); transition: transform .16s var(--ease-ios); }
+  .pend:active { transform: scale(.985); }
+  .pend__ic { width: 42px; height: 42px; border-radius: 12px; background: rgba(232,180,104,.2); color: var(--d-warn); display: flex; align-items: center; justify-content: center; flex: none; }
+  .pend__ic svg { width: 21px; height: 21px; }
+  .pend__bd { flex: 1; min-width: 0; }
+  .pend__t { display: block; font: 600 13.5px Poppins; color: var(--d-text); line-height: 1.3; }
+  .pend__s { display: block; font: 400 11.5px Poppins; color: #c9a86e; margin-top: 3px; }
+  .pend__chev { color: var(--d-warn); flex: none; opacity: .8; }
+  .pend__chev svg { width: 18px; height: 18px; }
+
+  /* ====== H2 · banco de horas MÉDIO (sem cartaz) ====== */
+  .bh-mid { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--d-surface); border: 1px solid var(--d-border); border-radius: var(--pp-rc); box-shadow: var(--d-sh-card); padding: 13px 15px; margin-top: 10px; transition: transform .16s var(--ease-ios); position: relative; overflow: hidden; }
+  .bh-mid:active { transform: scale(.985); }
+  .bh-mid::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--d-plum); }
+  .bh-mid__ic { width: 40px; height: 40px; border-radius: 12px; background: rgba(95,203,133,.14); color: var(--d-plum); display: flex; align-items: center; justify-content: center; flex: none; }
+  .bh-mid__ic svg { width: 20px; height: 20px; }
+  .bh-mid__bd { flex: 1; min-width: 0; }
+  .bh-mid__lbl { display: block; font: 600 10.5px Poppins; letter-spacing: .05em; text-transform: uppercase; color: var(--d-muted); }
+  .bh-mid__val { display: block; font: 800 30px Poppins; letter-spacing: -.02em; color: var(--d-text); font-variant-numeric: tabular-nums; line-height: 1.05; margin-top: 3px; }
+  .bh-mid__fav { flex: none; align-self: center; display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(95,203,133,.14); color: var(--d-plum); font: 700 10.5px Poppins; }
+
+  /* ====== VARIAÇÃO A "linha viva" reaproveitada (pontos em H2) ====== */
+  .gm-line { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; cursor: pointer; height: 62px; padding: 0 14px; margin-top: 10px; background: var(--d-surface); border: 1px solid var(--d-border); border-radius: var(--pp-rc); box-shadow: var(--d-sh-card); transition: transform .16s var(--ease-ios); }
+  .gm-line:active { transform: scale(.985); }
+  .gm-line__ic { width: 30px; height: 30px; border-radius: 9px; background: var(--d-warn-bg); color: var(--d-warn); display: flex; align-items: center; justify-content: center; flex: none; }
+  .gm-line__ic svg { width: 17px; height: 17px; }
+  .gm-line__pts { font: 800 18px Poppins; color: var(--d-text); font-variant-numeric: tabular-nums; flex: none; }
+  .gm-line__pts small { font: 600 12px Poppins; color: var(--d-muted); margin-left: 2px; }
+  .gm-line__mid { flex: 1; min-width: 0; }
+  .gm-line__bar { height: 4px; border-radius: 999px; background: var(--d-surface-warm); overflow: hidden; }
+  .gm-line__bar span { display: block; height: 100%; background: var(--amarelo); border-radius: 999px; }
+  .gm-line__r { display: flex; align-items: center; gap: 4px; flex: none; color: var(--d-muted); }
+  .gm-line__r span { font: 600 11px Poppins; }
+  .gm-line__r svg { width: 15px; height: 15px; }
+
+  /* ====== H3 · cockpit (dois mini-cards de peso igual) ====== */
+  .mini-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 4px; }
+  .mini { display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--d-surface); border: 1px solid var(--d-border); border-radius: var(--pp-rc); box-shadow: var(--d-sh-card); padding: 12px 13px; transition: transform .16s var(--ease-ios); }
+  .mini:active { transform: scale(.97); }
+  .mini__top { display: flex; align-items: center; gap: 8px; }
+  .mini__ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .mini__ic svg { width: 17px; height: 17px; }
+  .mini__ic.bh { background: rgba(95,203,133,.14); color: var(--d-plum); }
+  .mini__ic.pt { background: var(--d-warn-bg); color: var(--d-warn); }
+  .mini__lbl { font: 600 10px Poppins; letter-spacing: .04em; text-transform: uppercase; color: var(--d-muted); white-space: nowrap; }
+  .mini__val { display: block; font: 800 22px Poppins; letter-spacing: -.02em; color: var(--d-text); font-variant-numeric: tabular-nums; line-height: 1; margin-top: 10px; }
+  .mini__val small { font: 700 12px Poppins; color: var(--d-muted); margin-left: 1px; }
+  .mini__sub { display: block; font: 500 10.5px Poppins; color: var(--d-muted); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini__sub b { color: var(--d-plum); font-weight: 700; }
+
+  /* ====== H3 · linha compacta de atalhos ====== */
+  .atl-line { display: flex; gap: 7px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; }
+  .atl-line::-webkit-scrollbar { display: none; }
+  .atl-chip { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px 8px 10px; border-radius: 999px; background: var(--d-surface); border: 1px solid var(--d-border); color: var(--d-text); font: 600 11.5px Poppins; cursor: pointer; transition: transform .15s var(--ease-ios); }
+  .atl-chip:active { transform: scale(.95); }
+  .atl-chip__ic { width: 26px; height: 26px; border-radius: 50%; background: var(--d-surface-warm); color: var(--d-plum); display: flex; align-items: center; justify-content: center; flex: none; }
+  .atl-chip__ic svg { width: 15px; height: 15px; }
+  .atl-chip__b { min-width: 15px; height: 15px; border-radius: 999px; background: var(--d-warn); color: #3a2a05; font: 800 9px Poppins; display: flex; align-items: center; justify-content: center; padding: 0 4px; margin-left: -3px; }
+
+  /* ====== H4 · INVERSÃO ====== */
+  /* selo do banco de horas na saudação: legível de relance (o número vem inteiro),
+     tocável, abre Meu ponto. Estado padrão = a favor (verde suave). */
+  .pp-greet--h4 .pp-greet__tx h1 { line-height: 1.35; }
+  /* selo inline, colado ao nome (padrão da variação B do mock anterior): o número
+     vem inteiro, então a consulta de relance continua imediata; cor e rótulo = sinal. */
+  .bhseal { display: inline-flex; align-items: center; gap: 6px; vertical-align: 2px; margin-left: 3px; padding: 4px 11px 4px 8px; border-radius: 999px; cursor: pointer; font: inherit; white-space: nowrap; transition: transform .16s var(--ease-ios); background: rgba(95,203,133,.13); border: 1px solid rgba(95,203,133,.28); }
+  .bhseal:active { transform: scale(.95); }
+  .bhseal__ic { flex: none; color: var(--d-plum); display: flex; }
+  .bhseal__ic svg { width: 14px; height: 14px; }
+  .bhseal__v { font: 800 14px Poppins; color: var(--d-text); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .bhseal__s { font: 600 11px Poppins; color: var(--d-plum); }
+  /* estados alternativos do selo */
+  .bhseal--neg { background: rgba(232,180,104,.12); border-color: rgba(232,180,104,.32); }
+  .bhseal--neg .bhseal__ic, .bhseal--neg .bhseal__s { color: var(--d-warn); }
+  .bhseal--sync { background: var(--d-surface-warm); border-color: var(--d-border); }
+  .bhseal--sync .bhseal__ic, .bhseal--sync .bhseal__s { color: var(--d-muted); }
+  .bhseal--sync .bhseal__v { color: var(--d-muted); }
+  .estados__it .bhseal { align-self: flex-start; }
+
+  /* card meio-termo dos pontos (variação C do mock anterior): único destaque verde */
+  .gm-mid { display: block; width: 100%; text-align: left; border: 0; font: inherit; cursor: pointer; background: linear-gradient(135deg, #008835, #0b6e33); border-radius: var(--pp-rc); padding: 13px 16px; color: #fff; margin-top: 4px; transition: transform .16s var(--ease-ios); box-shadow: 0 10px 26px -14px rgba(0,90,40,.7); }
+  .gm-mid:active { transform: scale(.985); }
+  .gm-mid__top { display: flex; align-items: baseline; gap: 9px; }
+  .gm-mid__lbl { font: 700 11px Poppins; text-transform: uppercase; letter-spacing: .06em; opacity: .85; display: inline-flex; align-items: center; gap: 6px; }
+  .gm-mid__lbl svg { width: 14px; height: 14px; }
+  .gm-mid__pts { font: 800 28px Poppins; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .gm-mid__pts small { font: 700 13px Poppins; opacity: .85; margin-left: 3px; }
+  .gm-mid__season { margin-left: auto; align-self: center; font: 700 9.5px Poppins; background: rgba(255,255,255,.16); padding: 3px 8px; border-radius: 999px; }
+  .gm-mid__bar { height: 5px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; margin: 9px 0 6px; }
+  .gm-mid__bar span { display: block; height: 100%; background: var(--amarelo); border-radius: 999px; }
+  .gm-mid__meta { font: 400 11px Poppins; opacity: .9; }
+
+  /* strip dos estados do selo (contexto de apresentação, fundo escuro pra ver o real) */
+  .estados { margin-top: 26px; background: #0d120e; border: 1px solid #23331f; border-radius: 18px; padding: 20px; }
+  .estados__h { font: 700 12px Poppins; color: #cfe6d6; letter-spacing: .02em; margin-bottom: 4px; }
+  .estados__p { font: 400 12.5px Poppins; color: #8ea394; max-width: 640px; }
+  .estados__row { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 22px; }
+  .estados__it { display: flex; flex-direction: column; gap: 8px; }
+  .estados__it > span:last-child { font: 500 11.5px Poppins; color: #8ea394; }
+  .estados__it b { color: #cfe6d6; font-weight: 600; }
+
+  /* ---------- barra inferior: ILHA DE VIDRO (liquid glass, valores reais do app) ---------- */
+  .gnav { position: absolute; left: 14px; right: 14px; bottom: 13px; z-index: 55; display: flex; justify-content: space-around; padding: 7px; border-radius: 26px; background: rgba(21,29,20,.55); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 24px 48px -16px rgba(0,0,0,.85); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%); }
+  .gnav__pill { position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 14px) / 4); border-radius: 19px; background: rgba(95,203,133,.17); z-index: 0; }
+  .gnav__it { position: relative; z-index: 1; flex: 1; min-width: 0; background: none; border: 0; padding: 7px 4px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--d-muted); font: inherit; cursor: pointer; }
+  .gnav__it.active { color: var(--d-plum); }
+  .gnav__ic { position: relative; display: flex; align-items: center; justify-content: center; }
+  .gnav__ic svg { width: 22px; height: 22px; }
+  .gnav__av { width: 23px; height: 23px; border-radius: 7px; background: linear-gradient(150deg, #1AA34F, #0B7A36); color: #fff; font: 700 9px Poppins; display: flex; align-items: center; justify-content: center; }
+  .gnav__dot { position: absolute; top: -4px; right: -6px; min-width: 15px; height: 15px; border-radius: 999px; background: var(--d-warn); color: #3a2a05; font: 800 9px Poppins; display: flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #12190f; }
+  .gnav__lb { font: 500 10px Poppins; line-height: 1; }
+
+  /* toast simulado */
+  .ftoast { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%) translateY(8px); background: rgba(14,19,14,.95); color: var(--d-text); border: 1px solid var(--d-border-strong); padding: 9px 15px 9px 12px; border-radius: 12px; font: 600 12px Poppins; opacity: 0; transition: opacity .22s, transform .22s; pointer-events: none; z-index: 70; white-space: nowrap; display: flex; align-items: center; gap: 7px; box-shadow: 0 8px 24px -8px #000c; }
+  .ftoast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .ftoast svg { width: 15px; height: 15px; color: var(--d-plum); }
+
+  .reco { margin-top: 40px; background: var(--card); border: 1px solid var(--borda); border-left: 4px solid var(--verde); border-radius: 16px; padding: 20px 22px; box-shadow: 0 1px 2px #0000000a, 0 12px 40px -22px #04331a2e; }
+  .reco h3 { font: 700 15px Poppins; display: flex; align-items: center; gap: 9px; }
+  .reco h3 .dot { width: 22px; height: 22px; border-radius: 7px; background: var(--verde); color: #fff; display: grid; place-items: center; font: 700 12px/1 Poppins; }
+  .reco p { color: var(--muted); font-size: 13.5px; margin-top: 11px; }
+  .reco p b { color: var(--ink); font-weight: 600; }
+
+  .foot { margin-top: 50px; color: var(--muted); font-size: 12.5px; text-align: center; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="kicker">Proposta · aprovação antes de tocar o app</span>
+  <h1>Home do colaborador: hierarquia da tela inteira</h1>
+  <p class="sub">A variação de pontos ficou boa, mas o problema é mais fundo: o <b>banco de horas</b> é um cartaz gigante que come a primeira dobra e, com tudo grande ao mesmo tempo, <b>nada tem hierarquia</b>. Aqui a home é repensada por inteiro para contar uma história em ordem de importância real, com no máximo um elemento de destaque por dobra. Quatro caminhos completos, cada um com um trade-off honesto; o quarto, H4, inverte a lógica e é a hipótese favorita pra dar vazão à gamificação.</p>
+  <p class="tema-note"><span class="sw"></span>Os frames estão no tema escuro, o mesmo dos prints. O tema claro do portal recebe exatamente as mesmas mudanças.</p>
+
+  <div class="prio">
+    <div class="prio__it"><span class="prio__n">1</span><span class="prio__tx"><b>Tem algo novo pra mim?</b><span>Pendência, documento a assinar, aviso não lido</span></span></div>
+    <div class="prio__it"><span class="prio__n">2</span><span class="prio__tx"><b>Meu saldo de horas</b><span>Banco de horas do mês, a favor ou a compensar</span></span></div>
+    <div class="prio__it"><span class="prio__n">3</span><span class="prio__tx"><b>O social</b><span>Aniversários, boas-vindas, o time</span></span></div>
+    <div class="prio__it"><span class="prio__n">4</span><span class="prio__tx"><b>Atalhos de consulta</b><span>Meu ponto, folha, documentos, novidades</span></span></div>
+  </div>
+
+  <!-- =================== HOJE (referência do problema) =================== -->
+  <section class="sec">
+    <h2 class="sec-h">O problema de hoje</h2>
+    <p class="sec-p">Dois blocos verdes gigantes empilhados (banco de horas e pontos), cada um com número enorme, disputando a mesma dobra. O conteúdo vivo (comunicados, social) só aparece depois de rolar. A tela é cheia, mas <b>plana</b>: sem um ponto de foco claro.</p>
+    <div class="frames">
+      <div class="fcol">
+        <div class="cap"><span class="tg was">Hoje</span> tudo grande, nada em foco</div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="pp-atl__b">2</span></span><span class="pp-atl__l">Avisos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="pp-atl__l">Conquistas</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+            </div></div>
+            <div class="pp-hero">
+              <div class="pp-hero__top"><span class="pp-hero__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho de 2026</span></div>
+              <div class="pp-hero__val">04:12</div>
+              <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+            </div>
+            <button class="gm-card" onclick="tapTo(event,'Abre Conquistas')">
+              <div class="gm-card__top"><span class="gm-card__lbl">Seus pontos</span><span class="gm-card__season">Temporada 2026</span></div>
+              <div class="gm-card__pts">16 <small>pts</small></div>
+              <div class="gm-bar"><span style="width:32%"></span></div>
+              <div class="gm-card__meta"><span>Próximo marco: 50</span><span>faltam 34 pts</span></div>
+              <div class="gm-selos"><span class="gm-selo ok">50</span><span class="gm-selo">100</span><span class="gm-selo">200</span><span class="gm-selo">500</span></div>
+            </button>
+          </div>
+          <nav class="gnav">
+            <span class="gnav__pill"></span>
+            <button class="gnav__it active"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v10h12V10"/></svg></span><span class="gnav__lb">Início</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="gnav__dot">2</span></span><span class="gnav__lb">Avisos</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="gnav__lb">Conquistas</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><span class="gnav__av">MC</span></span><span class="gnav__lb">Conta</span></button>
+          </nav>
+        </div></div>
+        <div class="tradeoff"><b>Sintoma:</b> dois heróis verdes e um número gigante competindo, sem hierarquia, empurram comunicado e social pra fora da primeira dobra.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== 3 PROPOSTAS =================== -->
+  <section class="sec">
+    <h2 class="sec-h">Três hierarquias completas</h2>
+    <p class="sec-p">Cada frame é a home real, de cima a baixo. A barra de vidro de baixo continua flutuando e o conteúdo rola por baixo dela, exatamente como no app. A quarta proposta, a favorita, vem logo depois.</p>
+
+    <div class="frames">
+
+      <!-- ===== H1 · RESUMO DO MÊS ===== -->
+      <div class="fcol">
+        <div class="cap"><span class="tg h1">H1</span> Resumo do mês <small>· saldo fundido</small></div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <button class="resumo" onclick="tapTo(event,'Abre Banco de horas')">
+              <span class="resumo__col">
+                <span class="resumo__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Banco de horas</span>
+                <span class="resumo__val">04:12</span>
+                <span class="resumo__sub"><span class="resumo__dot"></span>A favor · julho</span>
+              </span>
+              <span class="resumo__div"></span>
+              <span class="resumo__col">
+                <span class="resumo__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg>Pontos</span>
+                <span class="resumo__val">16<small> pts</small></span>
+                <span class="resumo__sub"><span class="resumo__dot warn"></span>faltam 34</span>
+              </span>
+            </button>
+            <div class="pp-card pp-card--pin" onclick="tapTo(event,'Abre o comunicado')">
+              <div class="pp-card__bd">
+                <div class="pp-card__meta"><svg class="pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 7 3 2v2H7v-2l3-2z"/></svg>Comunicado fixado</div>
+                <div class="pp-card__t">Confraternização de julho: confirme presença até sexta</div>
+              </div>
+            </div>
+            <button class="pp-bday" onclick="tapTo(event,'Parabeniza Ana')">
+              <span class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-6h16v6"/><path d="M6 15V9a6 6 0 0 1 12 0v6"/><path d="M12 3v2"/></svg></span>
+              <span class="pp-bday__bd"><span class="pp-bday__t">Hoje é aniversário de Ana Beatriz</span><span class="pp-bday__s">Manda um abraço pra ela</span></span>
+              <span class="pp-bday__heart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C1 8 2.5 4.5 6 4.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 15.5 12 20 12 20z"/></svg></span>
+            </button>
+            <div class="blk-lbl">Atalhos</div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span><span class="pp-atl__l">Novidades</span></button>
+            </div></div>
+          </div>
+          <nav class="gnav">
+            <span class="gnav__pill"></span>
+            <button class="gnav__it active"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v10h12V10"/></svg></span><span class="gnav__lb">Início</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="gnav__dot">2</span></span><span class="gnav__lb">Avisos</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="gnav__lb">Conquistas</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><span class="gnav__av">MC</span></span><span class="gnav__lb">Conta</span></button>
+          </nav>
+        </div></div>
+        <div class="tradeoff"><b>Trade-off:</b> um só bloco de status, calmo, com metade da altura, libera a dobra pro conteúdo; em compensação, banco de horas e pontos passam a dividir um cartão, perdendo destaque individual.</div>
+      </div>
+
+      <!-- ===== H2 · O QUE IMPORTA AGORA ===== -->
+      <div class="fcol">
+        <div class="cap"><span class="tg h2">H2</span> O que importa agora <small>· feed priorizado</small></div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <button class="pend" onclick="tapTo(event,'Abre o documento')">
+              <span class="pend__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M14 3v4h4"/><path d="M9 17c1.2-.3 2-1 3-2.4.6.9 1.4 1.4 2.6 1.4"/></svg></span>
+              <span class="pend__bd"><span class="pend__t">1 documento esperando sua assinatura</span><span class="pend__s">Toque para revisar e assinar</span></span>
+              <span class="pend__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+            </button>
+            <div class="hub" style="margin-top:14px"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="pp-atl__b">2</span></span><span class="pp-atl__l">Avisos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+            </div></div>
+            <button class="bh-mid" onclick="tapTo(event,'Abre Banco de horas')">
+              <span class="bh-mid__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+              <span class="bh-mid__bd"><span class="bh-mid__lbl">Banco de horas · julho</span><span class="bh-mid__val">04:12</span></span>
+              <span class="bh-mid__fav">A favor</span>
+            </button>
+            <button class="gm-line" onclick="tapTo(event,'Abre Conquistas')">
+              <span class="gm-line__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span>
+              <span class="gm-line__pts">16<small>pts</small></span>
+              <span class="gm-line__mid"><span class="gm-line__bar"><span style="width:32%"></span></span></span>
+              <span class="gm-line__r"><span>faltam 34 · marco 50</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+            </button>
+            <button class="pp-bday" onclick="tapTo(event,'Parabeniza Ana')">
+              <span class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-6h16v6"/><path d="M6 15V9a6 6 0 0 1 12 0v6"/><path d="M12 3v2"/></svg></span>
+              <span class="pp-bday__bd"><span class="pp-bday__t">Hoje é aniversário de Ana Beatriz</span><span class="pp-bday__s">Manda um abraço pra ela</span></span>
+              <span class="pp-bday__heart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C1 8 2.5 4.5 6 4.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 15.5 12 20 12 20z"/></svg></span>
+            </button>
+          </div>
+          <nav class="gnav">
+            <span class="gnav__pill"></span>
+            <button class="gnav__it active"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v10h12V10"/></svg></span><span class="gnav__lb">Início</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="gnav__dot">2</span></span><span class="gnav__lb">Avisos</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="gnav__lb">Conquistas</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><span class="gnav__av">MC</span></span><span class="gnav__lb">Conta</span></button>
+          </nav>
+        </div></div>
+        <div class="tradeoff warn"><b>Trade-off:</b> quando há pendência, ela lidera e a home vira ação; o custo é a ordem mudar conforme o dia. Sem pendência, o banco de horas sobe pro topo e ocupa esse lugar.</div>
+      </div>
+
+      <!-- ===== H3 · COCKPIT ===== -->
+      <div class="fcol">
+        <div class="cap"><span class="tg h3">H3</span> Cockpit <small>· par de peso igual</small></div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <div class="mini-row">
+              <button class="mini" onclick="tapTo(event,'Abre Banco de horas')">
+                <span class="mini__top"><span class="mini__ic bh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="mini__lbl">Banco h.</span></span>
+                <span class="mini__val">04:12</span>
+                <span class="mini__sub"><b>A favor</b> · julho</span>
+              </button>
+              <button class="mini" onclick="tapTo(event,'Abre Conquistas')">
+                <span class="mini__top"><span class="mini__ic pt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="mini__lbl">Pontos</span></span>
+                <span class="mini__val">16<small> pts</small></span>
+                <span class="mini__sub">faltam 34 · marco 50</span>
+              </button>
+            </div>
+            <div class="pp-card pp-card--pin" onclick="tapTo(event,'Abre o comunicado')">
+              <div class="pp-card__bd">
+                <div class="pp-card__meta"><svg class="pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 7 3 2v2H7v-2l3-2z"/></svg>Comunicado fixado</div>
+                <div class="pp-card__t">Confraternização de julho: confirme presença até sexta</div>
+              </div>
+            </div>
+            <button class="pp-bday" onclick="tapTo(event,'Parabeniza Ana')">
+              <span class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-6h16v6"/><path d="M6 15V9a6 6 0 0 1 12 0v6"/><path d="M12 3v2"/></svg></span>
+              <span class="pp-bday__bd"><span class="pp-bday__t">Hoje é aniversário de Ana Beatriz</span><span class="pp-bday__s">Manda um abraço pra ela</span></span>
+              <span class="pp-bday__heart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C1 8 2.5 4.5 6 4.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 15.5 12 20 12 20z"/></svg></span>
+            </button>
+            <button class="pp-bday" onclick="tapTo(event,'Dê boas-vindas a Rafael')">
+              <span class="pp-bday__ic wc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 20c0-3.6 3.1-6 7-6"/><path d="M18 8.5v5M15.5 11h5"/></svg></span>
+              <span class="pp-bday__bd"><span class="pp-bday__t">Rafael entrou no time esta semana</span><span class="pp-bday__s">Dê as boas-vindas</span></span>
+              <span class="pp-bday__heart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+            </button>
+            <div class="atl-line">
+              <button class="atl-chip"><span class="atl-chip__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>Meu ponto</button>
+              <button class="atl-chip"><span class="atl-chip__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span>Folha</button>
+              <button class="atl-chip"><span class="atl-chip__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span>Documentos</button>
+              <button class="atl-chip"><span class="atl-chip__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span>Novidades</button>
+            </div>
+          </div>
+          <nav class="gnav">
+            <span class="gnav__pill"></span>
+            <button class="gnav__it active"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v10h12V10"/></svg></span><span class="gnav__lb">Início</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="gnav__dot">2</span></span><span class="gnav__lb">Avisos</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="gnav__lb">Conquistas</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><span class="gnav__av">MC</span></span><span class="gnav__lb">Conta</span></button>
+          </nav>
+        </div></div>
+        <div class="tradeoff"><b>Trade-off:</b> uma faixa de status enxuta lê como um só painel e libera a dobra inteira pro conteúdo vivo; em troca, nenhum dos dois números tem o peso de um herói, ficam informativos.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =================== H4 · INVERSÃO (favorita) =================== -->
+  <section class="sec">
+    <h2 class="sec-h">H4 · Inversão <span style="font:700 10px/1 Poppins;letter-spacing:.06em;text-transform:uppercase;color:#9a6a1e;background:#e8b46822;padding:5px 10px;border-radius:999px;">Hipótese favorita</span></h2>
+    <p class="sec-p">Inverte a lógica: o <b>banco de horas vira um selo</b> na saudação, junto do nome, e o cartaz verde some da home. Com isso, o único destaque verde da primeira dobra passa a ser o <b>card de pontos</b>, de propósito, pra gamificação ganhar vazão, uso e engajamento. O selo mostra o valor inteiro, então a consulta de relance, que é o uso mais comum do banco de horas, continua funcionando.</p>
+    <div class="frames">
+      <div class="fcol">
+        <div class="cap"><span class="tg h1">H4</span> Selo de horas, pontos em card</div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet pp-greet--h4">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b> <button class="bhseal" onclick="tapTo(event,'Abre Meu ponto')"><span class="bhseal__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="bhseal__v">04:12</span><span class="bhseal__s">a favor</span></button></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <button class="gm-mid" onclick="tapTo(event,'Abre Conquistas')">
+              <div class="gm-mid__top"><span class="gm-mid__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg>Seus pontos</span><span class="gm-mid__pts">16<small>pts</small></span><span class="gm-mid__season">Temporada 2026</span></div>
+              <div class="gm-mid__bar"><span style="width:32%"></span></div>
+              <div class="gm-mid__meta">faltam 34 pro próximo marco</div>
+            </button>
+            <div class="pp-card pp-card--pin" onclick="tapTo(event,'Abre o comunicado')">
+              <div class="pp-card__bd">
+                <div class="pp-card__meta"><svg class="pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 7 3 2v2H7v-2l3-2z"/></svg>Comunicado fixado</div>
+                <div class="pp-card__t">Confraternização de julho: confirme presença até sexta</div>
+              </div>
+            </div>
+            <button class="pp-bday" onclick="tapTo(event,'Parabeniza Ana')">
+              <span class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-6h16v6"/><path d="M6 15V9a6 6 0 0 1 12 0v6"/><path d="M12 3v2"/></svg></span>
+              <span class="pp-bday__bd"><span class="pp-bday__t">Hoje é aniversário de Ana Beatriz</span><span class="pp-bday__s">Manda um abraço pra ela</span></span>
+              <span class="pp-bday__heart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C1 8 2.5 4.5 6 4.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 15.5 12 20 12 20z"/></svg></span>
+            </button>
+            <div class="blk-lbl">Atalhos</div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span><span class="pp-atl__l">Novidades</span></button>
+            </div></div>
+          </div>
+          <nav class="gnav">
+            <span class="gnav__pill"></span>
+            <button class="gnav__it active"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v10h12V10"/></svg></span><span class="gnav__lb">Início</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="gnav__dot">2</span></span><span class="gnav__lb">Avisos</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="gnav__lb">Conquistas</span></button>
+            <button class="gnav__it"><span class="gnav__ic"><span class="gnav__av">MC</span></span><span class="gnav__lb">Conta</span></button>
+          </nav>
+        </div></div>
+        <div class="tradeoff"><b>Trade-off:</b> a gamificação ganha o único palco verde da dobra e o topo abre calmo; o risco é que o banco de horas, a informação mais consultada, cabe num selo, então ele precisa mostrar o número inteiro e os três estados abaixo, sem virar caça ao tesouro.</div>
+      </div>
+
+      <div style="width:300px">
+        <div class="estados">
+          <div class="estados__h">Os três estados do selo</div>
+          <div class="estados__p">O número aparece sempre inteiro; cor e rótulo dizem o sinal. Assim a consulta de relance continua imediata, mesmo virando selo.</div>
+          <div class="estados__row">
+            <div class="estados__it">
+              <button class="bhseal"><span class="bhseal__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="bhseal__v">04:12</span><span class="bhseal__s">a favor</span></button>
+              <span><b>A favor.</b> Verde suave, saldo positivo.</span>
+            </div>
+            <div class="estados__it">
+              <button class="bhseal bhseal--neg"><span class="bhseal__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="bhseal__v">-00:24</span><span class="bhseal__s">a compensar</span></button>
+              <span><b>A compensar.</b> Âmbar, sinal negativo sem alarme.</span>
+            </div>
+            <div class="estados__it">
+              <button class="bhseal bhseal--sync"><span class="bhseal__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14-4M4 5v3h3"/><path d="M4 13a8 8 0 0 0 14 4M20 19v-3h-3"/></svg></span><span class="bhseal__v">--:--</span><span class="bhseal__s">sincronizando</span></button>
+              <span><b>Sem sincronização.</b> Neutro, valor ainda em apuração.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reco">
+      <h3><span class="dot">✓</span>Recomendação: H4, a inversão, com uma condição</h3>
+      <p>É a que conta a melhor história para a meta que o próprio pedido coloca: dar <b>vazão à gamificação</b> sem sacrificar o essencial. O achado é que o banco de horas, mesmo sendo a informação mais consultada, fica <b>mais</b> à mão como selo no topo, colado ao nome, do que como cartaz no meio da dobra, desde que o número apareça inteiro. O selo mostra <b>04:12</b> direto, com cor e rótulo pro sinal, então a consulta de relance continua imediata e os estados negativo e sem sincronização ficam resolvidos acima. Isso libera o único destaque verde da primeira dobra pro card de pontos, que é exatamente o que se quer engajar. Comparando: a <b>H3</b> é a mais equilibrada se a prioridade fosse pura hierarquia de informação, saldo e pontos com o mesmo peso, e fica como plano B seguro; a <b>H1</b> é a mais compacta, mas fundir tempo e jogo num cartão só tira a leitura rápida de cada um; a <b>H2</b> é a mais forte quando existe pendência, porém o topo muda de dono conforme o dia e custa previsibilidade. A H4 é a única que transforma o problema de hierarquia numa decisão de produto: o que perde palco segue legível de relance, o que ganha palco é o que precisa de engajamento. <b>Condição única:</b> o selo nunca abrevia o número e os três estados ficam calibrados, senão o banco de horas vira caça ao tesouro.</p>
+    </div>
+  </section>
+
+  <p class="foot">Mock de aprovação. Toda a anatomia (saudação, faixa de status, comunicado, social, atalhos e a barra de vidro flutuante) reproduz o portal real do colaborador no tema escuro. Nada foi tocado no app: as mudanças entram em public/ só depois do seu aval.</p>
+</div>
+
+<script>
+  function tapTo(e, label) {
+    e.preventDefault();
+    const scr = e.currentTarget.closest(".screen");
+    if (!scr) return;
+    let t = scr.querySelector(".ftoast");
+    if (!t) {
+      t = document.createElement("div");
+      t.className = "ftoast";
+      t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span></span>';
+      scr.appendChild(t);
+    }
+    t.querySelector("span").textContent = label;
+    t.classList.remove("show");
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove("show"), 1500);
+  }
+</script>
+</body>
+</html>

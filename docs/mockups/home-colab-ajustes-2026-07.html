@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Home do colaborador: 2 ajustes</title>
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+
+  :root {
+    /* tokens de apresentação (fundo claro da página, como o mock nível Apple) */
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00;
+    --ink: #1c231d; --muted: #68716a; --bg: #f2f3ee; --card: #ffffff;
+    --borda: #e3e5dd; --ease-ios: cubic-bezier(.32, .72, .28, 1);
+
+    /* tokens do TEMA ESCURO do colaborador (html.modo-colab.cp-dark do app real) */
+    --d-bg: #0E130E; --d-surface: #161D15; --d-surface-warm: #1E261D;
+    --d-border: #232C22; --d-border-strong: #2A332A;
+    --d-text: #EDF3EA; --d-muted: #8A9884; --d-plum: #5FCB85; --d-warn: #E8B468;
+    --d-warn-bg: #3A2E18;
+    --pp-ri: 14px; --pp-rc: 16px; --pp-rh: 18px;
+    --d-sh-card: 0 2px 10px -4px rgba(0,0,0,.55);
+    --d-sh-hero: 0 14px 34px -14px rgba(0,0,0,.7);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 46px 20px 96px; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  h1 { font: 700 clamp(26px, 4vw, 38px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--muted); max-width: 730px; font-size: 15.5px; }
+  .tema-note { margin-top: 14px; display: inline-flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--verde-esc); background: #0d120e; color: #cfe6d6; border: 1px solid #23331f; border-radius: 12px; padding: 9px 14px; }
+  .tema-note .sw { width: 15px; height: 15px; border-radius: 5px; background: #0E130E; border: 1px solid #2A332A; flex: none; }
+
+  /* seções */
+  .sec { margin-top: 52px; }
+  .sec-h { font: 700 20px/1.3 Poppins, system-ui, sans-serif; letter-spacing: -.01em; display: flex; align-items: center; gap: 11px; }
+  .sec-h .n { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 9px; background: var(--verde); color: #fff; font: 700 14px/28px Poppins, system-ui, sans-serif; text-align: center; }
+  .sec-p { color: var(--muted); font-size: 14px; margin: 12px 0 0; max-width: 760px; }
+  .sec-p b { color: var(--ink); font-weight: 600; }
+
+  .frames { display: flex; flex-wrap: wrap; gap: 30px 26px; margin-top: 30px; justify-content: center; }
+  .fcol { width: 300px; display: flex; flex-direction: column; }
+  .cap { font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--ink); text-align: center; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 7px; }
+  .cap .tg { font: 700 10px/1 Poppins; letter-spacing: .08em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; }
+  .cap .tg.was { background: #eceee7; color: #8a938a; }
+  .cap .tg.now { background: #00883514; color: var(--verde); border: 1px solid #00883526; }
+  .cap .tg.a { background: #00883514; color: var(--verde); }
+  .cap .tg.b { background: #e8b46822; color: #9a6a1e; }
+  .cap .tg.c { background: #0076be18; color: #0a5f97; }
+  .tradeoff { margin-top: 13px; font-size: 12px; line-height: 1.5; color: var(--verde-esc); background: #ffcb0016; border: 1px solid #e8c34d44; border-radius: 12px; padding: 10px 12px; }
+  .tradeoff b { font-weight: 600; }
+
+  /* ---------- frame de celular (TELA ESCURA) ---------- */
+  .phone { width: 300px; margin: 0 auto; background: #050706; border-radius: 44px; padding: 10px; box-shadow: 0 2px 4px #0004, 0 24px 60px -20px #000a, inset 0 0 0 2px #1a201b; }
+  .screen { position: relative; overflow: hidden; border-radius: 35px; background: var(--d-bg); height: 566px; isolation: isolate; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 88px; height: 24px; border-radius: 999px; background: #000; z-index: 60; }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 26px 0; font: 600 12px Poppins, system-ui, sans-serif; color: var(--d-text); position: relative; z-index: 50; }
+  .sbar .r { display: flex; align-items: center; gap: 6px; opacity: .9; }
+  .sbar .r svg { width: 16px; height: 15px; }
+  .body { padding: 16px 15px 18px; }
+
+  /* saudação (.pp-greet) */
+  .pp-greet { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+  .pp-greet__av { width: 48px; height: 48px; border-radius: 16px; background: linear-gradient(150deg, #1AA34F, #0B7A36); color: #fff; display: flex; align-items: center; justify-content: center; font: 700 17px Poppins, system-ui, sans-serif; flex: none; }
+  .pp-greet__tx { min-width: 0; flex: 1; }
+  .pp-greet__tx h1 { font: 700 22px/1.12 Poppins, system-ui, sans-serif; letter-spacing: -.02em; color: var(--d-text); margin: 0; }
+  .pp-greet__tx h1 b { font-weight: 800; }
+  .pp-greet__tx p { font-size: 12px; color: var(--d-muted); margin: 3px 0 0; display: flex; align-items: center; gap: 6px; }
+  .pp-greet__tx p svg { width: 13px; height: 13px; flex: none; }
+  /* selo dourado de pontos na saudação (variação B): chip inline que flui logo
+     depois do nome; assim o subtítulo mantém a largura toda e nada se espreme */
+  .pp-greet__seal { display: inline-flex; align-items: center; gap: 5px; vertical-align: 3px; margin-left: 4px; padding: 4px 10px; border-radius: 999px; background: rgba(232,180,104,.15); color: var(--d-warn); border: 1px solid rgba(232,180,104,.28); font: 700 12px Poppins, system-ui, sans-serif; cursor: pointer; transition: transform .16s var(--ease-ios); white-space: nowrap; }
+  .pp-greet__seal:active { transform: scale(.94); }
+  .pp-greet__seal svg { width: 13px; height: 13px; }
+
+  /* hub de atalhos (.pp-atl) */
+  .hub { position: relative; margin: 0 0 16px; }
+  .hub::after { content: ""; position: absolute; top: 0; bottom: 8px; right: 0; width: 34px; pointer-events: none; z-index: 2; background: linear-gradient(90deg, transparent, var(--d-bg)); }
+  /* quando o hub está rolado até o fim (mostrando o novo atalho), o fade vira pra esquerda */
+  .hub--end::after { display: none; }
+  .hub--end::before { content: ""; position: absolute; top: 0; bottom: 8px; left: 0; width: 34px; pointer-events: none; z-index: 2; background: linear-gradient(270deg, transparent, var(--d-bg)); }
+  .pp-atl { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+  .pp-atl::-webkit-scrollbar { display: none; }
+  .pp-atl__it { flex: none; width: 68px; display: flex; flex-direction: column; align-items: center; gap: 7px; background: none; border: 0; color: var(--d-text); font: inherit; cursor: pointer; padding: 0; }
+  .pp-atl__c { position: relative; width: 54px; height: 54px; border-radius: 50%; background: var(--d-surface-warm); border: 1px solid var(--d-border); display: flex; align-items: center; justify-content: center; color: var(--d-plum); transition: filter .15s var(--ease-ios), transform .15s var(--ease-ios); }
+  .pp-atl__it:active .pp-atl__c { filter: brightness(1.15); transform: scale(.94); }
+  .pp-atl__c svg { width: 22px; height: 22px; }
+  .pp-atl__b { position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; border-radius: 999px; background: var(--d-warn); color: #3a2a05; font: 800 10px Poppins; display: flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid var(--d-bg); }
+  .pp-atl__l { font: 600 10px Poppins, system-ui, sans-serif; color: var(--d-muted); text-align: center; line-height: 1.25; }
+  /* atalho Novidades novo: aro/ícone destacado pra dar a entender que chegou */
+  .pp-atl__it.novo .pp-atl__c { color: var(--d-warn); border-color: rgba(232,180,104,.4); background: rgba(232,180,104,.1); }
+
+  /* herói banco de horas (.pp-hero) */
+  .pp-hero { position: relative; border-radius: var(--pp-rc); padding: 15px 17px; background: linear-gradient(150deg, #1AA34F 0%, #117A39 62%, #0B7A36 100%); box-shadow: var(--d-sh-hero); overflow: hidden; color: #fff; display: block; width: 100%; text-align: left; border: 0; font: inherit; cursor: pointer; }
+  .pp-hero::before { content: ""; position: absolute; top: -40px; right: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(255,255,255,.26), transparent 65%); pointer-events: none; }
+  .pp-hero__top { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+  .pp-hero__lbl { font: 500 11px Poppins; color: rgba(255,255,255,.85); display: flex; align-items: center; gap: 6px; }
+  .pp-hero__lbl svg { width: 15px; height: 15px; }
+  .pp-hero__badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,.18); color: #fff; font: 600 10.5px Poppins; border: 1px solid rgba(255,255,255,.2); }
+  .pp-hero__val { position: relative; z-index: 1; margin-top: 9px; font: 800 36px Poppins; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .pp-hero__sub { position: relative; z-index: 1; margin-top: 7px; font: 400 11.5px Poppins; color: rgba(255,255,255,.95); text-shadow: 0 1px 2px rgba(0,40,20,.28); }
+
+  /* card de pontos ATUAL (grande) — o que compete */
+  .gm-card { display: block; width: 100%; text-align: left; border: 0; font: inherit; background: linear-gradient(135deg, #008835, #0b6e33); border-radius: 18px; padding: 15px 17px; color: #fff; margin-top: 10px; cursor: pointer; }
+  .gm-card__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .gm-card__lbl { font: 700 11px Poppins; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+  .gm-card__season { font: 700 10px Poppins; background: rgba(255,255,255,.16); padding: 3px 10px; border-radius: 999px; }
+  .gm-card__pts { font: 800 38px Poppins; line-height: 1.1; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  .gm-card__pts small { font: 600 14px Poppins; opacity: .85; }
+  .gm-bar { height: 9px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; margin: 10px 0 6px; }
+  .gm-bar span { display: block; height: 100%; background: var(--amarelo); border-radius: 999px; }
+  .gm-card__meta { display: flex; justify-content: space-between; font: 400 11.5px Poppins; opacity: .9; }
+  .gm-selos { display: flex; gap: 6px; margin-top: 11px; flex-wrap: wrap; }
+  .gm-selo { font: 700 10.5px Poppins; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.16); }
+  .gm-selo.ok { background: var(--amarelo); color: #4a3c00; }
+
+  /* card Novidades da home (.pp-novi) — o que sai no ajuste 1 */
+  .pp-novi { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--d-surface); border: 1px solid var(--d-border); border-radius: var(--pp-rc); box-shadow: var(--d-sh-card); padding: 14px 15px; margin-top: 10px; }
+  .pp-novi__ic { width: 44px; height: 44px; border-radius: 13px; background: var(--d-surface-warm); color: var(--d-plum); display: flex; align-items: center; justify-content: center; flex: none; }
+  .pp-novi__ic svg { width: 22px; height: 22px; }
+  .pp-novi__bd { flex: 1; min-width: 0; }
+  .pp-novi__t { display: block; font: 600 15px Poppins; color: var(--d-text); }
+  .pp-novi__s { display: block; font: 400 12px Poppins; color: var(--d-muted); margin-top: 1px; }
+  .pp-novi__chev { color: var(--d-muted); flex: none; }
+  .pp-novi__chev svg { width: 18px; height: 18px; }
+
+  /* card comunicado genérico (contexto real da home) (.pp-card) */
+  .pp-card { display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--d-surface); border: 1px solid var(--d-border); border-radius: var(--pp-rc); box-shadow: var(--d-sh-card); overflow: hidden; margin-top: 10px; }
+  .pp-card__bd { padding: 13px 14px; }
+  .pp-card__meta { display: flex; align-items: center; gap: 6px; font: 500 11px Poppins; color: var(--d-muted); margin-bottom: 7px; }
+  .pp-card__meta svg { width: 13px; height: 13px; }
+  .pp-card__t { font: 600 14.5px Poppins; letter-spacing: -.01em; line-height: 1.3; color: var(--d-text); }
+
+  /* ====== VARIAÇÃO A: linha viva (uma dobra, ~64px) ====== */
+  .gm-line { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; cursor: pointer; height: 64px; padding: 0 14px; margin-top: 10px; background: var(--d-surface); border: 1px solid var(--d-border); border-radius: var(--pp-rc); box-shadow: var(--d-sh-card); transition: transform .16s var(--ease-ios); }
+  .gm-line:active { transform: scale(.985); }
+  .gm-line__ic { width: 30px; height: 30px; border-radius: 9px; background: var(--d-warn-bg); color: var(--d-warn); display: flex; align-items: center; justify-content: center; flex: none; }
+  .gm-line__ic svg { width: 17px; height: 17px; }
+  .gm-line__pts { font: 800 18px Poppins; color: var(--d-text); font-variant-numeric: tabular-nums; flex: none; }
+  .gm-line__pts small { font: 600 12px Poppins; color: var(--d-muted); margin-left: 2px; }
+  .gm-line__mid { flex: 1; min-width: 0; }
+  .gm-line__bar { height: 4px; border-radius: 999px; background: var(--d-surface-warm); overflow: hidden; }
+  .gm-line__bar span { display: block; height: 100%; background: var(--amarelo); border-radius: 999px; }
+  .gm-line__r { display: flex; align-items: center; gap: 4px; flex: none; color: var(--d-muted); }
+  .gm-line__r span { font: 600 11px Poppins; }
+  .gm-line__r svg { width: 15px; height: 15px; }
+
+  /* ====== VARIAÇÃO C: card meio-termo (~96px) ====== */
+  .gm-mid { display: block; width: 100%; text-align: left; border: 0; font: inherit; cursor: pointer; background: linear-gradient(135deg, #008835, #0b6e33); border-radius: var(--pp-rc); padding: 13px 16px; color: #fff; margin-top: 10px; transition: transform .16s var(--ease-ios); }
+  .gm-mid:active { transform: scale(.985); }
+  .gm-mid__top { display: flex; align-items: baseline; gap: 9px; }
+  .gm-mid__lbl { font: 700 11px Poppins; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+  .gm-mid__pts { font: 800 28px Poppins; line-height: 1; font-variant-numeric: tabular-nums; }
+  .gm-mid__season { margin-left: auto; align-self: center; font: 700 9.5px Poppins; background: rgba(255,255,255,.16); padding: 3px 8px; border-radius: 999px; }
+  .gm-mid__bar { height: 5px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; margin: 9px 0 6px; }
+  .gm-mid__bar span { display: block; height: 100%; background: var(--amarelo); border-radius: 999px; }
+  .gm-mid__meta { font: 400 11px Poppins; opacity: .9; }
+
+  /* toast simulado dentro do frame (mostra pra onde o toque leva) */
+  .ftoast { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(8px); background: rgba(14,19,14,.95); color: var(--d-text); border: 1px solid var(--d-border-strong); padding: 9px 15px 9px 12px; border-radius: 12px; font: 600 12px Poppins; opacity: 0; transition: opacity .22s, transform .22s; pointer-events: none; z-index: 70; white-space: nowrap; display: flex; align-items: center; gap: 7px; box-shadow: 0 8px 24px -8px #000c; }
+  .ftoast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .ftoast svg { width: 15px; height: 15px; color: var(--d-plum); }
+
+  .reco { margin-top: 34px; background: var(--card); border: 1px solid var(--borda); border-left: 4px solid var(--verde); border-radius: 16px; padding: 20px 22px; box-shadow: 0 1px 2px #0000000a, 0 12px 40px -22px #04331a2e; }
+  .reco h3 { font: 700 15px Poppins; display: flex; align-items: center; gap: 9px; }
+  .reco h3 .dot { width: 22px; height: 22px; border-radius: 7px; background: var(--verde); color: #fff; display: grid; place-items: center; font: 700 12px/1 Poppins; }
+  .reco p { color: var(--muted); font-size: 13.5px; margin-top: 10px; }
+  .reco p b { color: var(--ink); font-weight: 600; }
+
+  .foot { margin-top: 50px; color: var(--muted); font-size: 12.5px; text-align: center; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="kicker">Proposta · aprovação antes de tocar o app</span>
+  <h1>Home do colaborador: dois ajustes</h1>
+  <p class="sub">Dois pedidos vindos dos prints de hoje. Primeiro: tirar o card grande de Novidades da home e transformá-lo num atalho redondo no hub do topo. Segundo, o principal: encolher o card de pontos, que hoje briga de igual pra igual com o banco de horas. Cada frame abaixo é a home real do colaborador, com a mesma anatomia do app (saudação, hub de atalhos, herói do banco de horas, card de pontos).</p>
+  <p class="tema-note"><span class="sw"></span>Os frames estão no tema escuro, o mesmo dos prints que motivaram os ajustes. O tema claro do portal recebe exatamente as mesmas mudanças.</p>
+
+  <!-- =================== AJUSTE 1 =================== -->
+  <section class="sec">
+    <h2 class="sec-h"><span class="n">1</span>Novidades vira atalho no hub</h2>
+    <p class="sec-p">O card grande <b>Novidades</b> sai da home e vira o sexto atalho redondo do hub, por último, com o ícone de pulso. O hub rola na horizontal quando aperta, então cabe sem espremer os outros. A home fica mais curta e vai direto ao que importa (banco de horas e pontos).</p>
+    <div class="frames">
+
+      <!-- ANTES -->
+      <div class="fcol">
+        <div class="cap"><span class="tg was">Hoje</span> hub de 5 + card grande</div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="pp-atl__b">2</span></span><span class="pp-atl__l">Avisos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="pp-atl__l">Conquistas</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+            </div></div>
+            <div class="pp-hero">
+              <div class="pp-hero__top"><span class="pp-hero__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho de 2026</span></div>
+              <div class="pp-hero__val">04:12</div>
+              <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+            </div>
+            <button class="pp-novi" onclick="tapTo(event,'Abre Novidades')">
+              <span class="pp-novi__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span>
+              <span class="pp-novi__bd"><span class="pp-novi__t">Novidades</span><span class="pp-novi__s">Veja a evolução do portal e o que chegou</span></span>
+              <span class="pp-novi__chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+            </button>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- DEPOIS -->
+      <div class="fcol">
+        <div class="cap"><span class="tg now">Proposta</span> hub de 6, home sem o card</div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="pp-atl__b">2</span></span><span class="pp-atl__l">Avisos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="pp-atl__l">Conquistas</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+              <button class="pp-atl__it novo" onclick="tapTo(event,'Abre Novidades')"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span><span class="pp-atl__l">Novidades</span></button>
+            </div></div>
+            <div class="pp-hero">
+              <div class="pp-hero__top"><span class="pp-hero__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho de 2026</span></div>
+              <div class="pp-hero__val">04:12</div>
+              <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+            </div>
+            <div class="pp-card" onclick="tapTo(event,'Abre o aviso')">
+              <div class="pp-card__bd">
+                <div class="pp-card__meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>Comunicado fixado</div>
+                <div class="pp-card__t">Confraternização de julho: confirme presença até sexta</div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =================== AJUSTE 2 =================== -->
+  <section class="sec">
+    <h2 class="sec-h"><span class="n">2</span>Card de pontos mais discreto</h2>
+    <p class="sec-p">Hoje são <b>dois blocos verdes grandes</b> empilhados: o banco de horas e os pontos. O card de pontos tem número gigante, barra grossa e a fileira de chips de marcos (50, 100, 200...), então briga de igual pra igual com o banco de horas. Os chips já vivem na tela Conquistas, não precisam se repetir na home. Abaixo, o problema de hoje e três formas de resolver. Em todas, o toque continua abrindo a tela Conquistas.</p>
+
+    <div class="frames">
+      <!-- HOJE (problema) -->
+      <div class="fcol">
+        <div class="cap"><span class="tg was">Hoje</span> os dois competem</div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="pp-atl__b">2</span></span><span class="pp-atl__l">Avisos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="pp-atl__l">Conquistas</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+            </div></div>
+            <div class="pp-hero">
+              <div class="pp-hero__top"><span class="pp-hero__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho de 2026</span></div>
+              <div class="pp-hero__val">04:12</div>
+              <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+            </div>
+            <button class="gm-card" onclick="tapTo(event,'Abre Conquistas')">
+              <div class="gm-card__top"><span class="gm-card__lbl">Seus pontos</span><span class="gm-card__season">Temporada 2026</span></div>
+              <div class="gm-card__pts">16 <small>pts</small></div>
+              <div class="gm-bar"><span style="width:32%"></span></div>
+              <div class="gm-card__meta"><span>Próximo marco: 50 · surpresa</span><span>faltam 34 pts</span></div>
+              <div class="gm-selos"><span class="gm-selo ok">50</span><span class="gm-selo">100</span><span class="gm-selo">200</span><span class="gm-selo">500</span><span class="gm-selo">1000</span></div>
+            </button>
+          </div>
+        </div></div>
+        <div class="tradeoff"><b>Problema:</b> dois heróis verdes na mesma dobra e a fileira de marcos duplica o que já está na tela Conquistas.</div>
+      </div>
+    </div>
+
+    <div class="frames">
+
+      <!-- A: Linha viva -->
+      <div class="fcol">
+        <div class="cap"><span class="tg a">A</span> Linha viva</div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="pp-atl__b">2</span></span><span class="pp-atl__l">Avisos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="pp-atl__l">Conquistas</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+            </div></div>
+            <div class="pp-hero">
+              <div class="pp-hero__top"><span class="pp-hero__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho de 2026</span></div>
+              <div class="pp-hero__val">04:12</div>
+              <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+            </div>
+            <button class="gm-line" onclick="tapTo(event,'Abre Conquistas')">
+              <span class="gm-line__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span>
+              <span class="gm-line__pts">16<small>pts</small></span>
+              <span class="gm-line__mid"><span class="gm-line__bar"><span style="width:32%"></span></span></span>
+              <span class="gm-line__r"><span>faltam 34 · marco 50</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+            </button>
+            <div class="pp-card" onclick="tapTo(event,'Abre o aviso')">
+              <div class="pp-card__bd">
+                <div class="pp-card__meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>Comunicado fixado</div>
+                <div class="pp-card__t">Confraternização de julho: confirme presença até sexta</div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <div class="tradeoff"><b>Trade-off:</b> footprint mínimo e ainda mostra progresso, quanto falta e o próximo marco; perde o impacto do número grande, que passa a viver só na tela Conquistas.</div>
+      </div>
+
+      <!-- B: Selo na saudação -->
+      <div class="fcol">
+        <div class="cap"><span class="tg b">B</span> Selo na saudação</div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b> <button class="pp-greet__seal" onclick="tapTo(event,'Abre Conquistas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg>16 pts</button></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="pp-atl__b">2</span></span><span class="pp-atl__l">Avisos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="pp-atl__l">Conquistas</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+            </div></div>
+            <div class="pp-hero">
+              <div class="pp-hero__top"><span class="pp-hero__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho de 2026</span></div>
+              <div class="pp-hero__val">04:12</div>
+              <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+            </div>
+            <div class="pp-card" onclick="tapTo(event,'Abre o aviso')">
+              <div class="pp-card__bd">
+                <div class="pp-card__meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>Comunicado fixado</div>
+                <div class="pp-card__t">Confraternização de julho: confirme presença até sexta</div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <div class="tradeoff"><b>Trade-off:</b> home 100% limpa e o banco de horas manda sozinho; o custo é visibilidade quase nula, os pontos viram algo que a pessoa precisa procurar.</div>
+      </div>
+
+      <!-- C: Card meio-termo -->
+      <div class="fcol">
+        <div class="cap"><span class="tg c">C</span> Card meio-termo</div>
+        <div class="phone"><div class="screen">
+          <div class="island"></div>
+          <div class="sbar"><span>9:41</span><span class="r">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h3v4H2zM7 13h3v8H7zM12 9h3v12h-3zM17 5h3v16h-3z"/></svg>
+            <svg viewBox="0 0 26 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="11" rx="3"/><rect x="4.5" y="9.5" width="10" height="6" rx="1.5" fill="currentColor"/><path d="M23 11v6" stroke-linecap="round"/></svg>
+          </span></div>
+          <div class="body">
+            <div class="pp-greet">
+              <div class="pp-greet__av">MC</div>
+              <div class="pp-greet__tx"><h1>Boa tarde, <b>Maria</b></h1><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>Terça, 14 de julho · 1º turno</p></div>
+            </div>
+            <div class="hub"><div class="pp-atl">
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="pp-atl__b">1</span></span><span class="pp-atl__l">Meu ponto</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg></span><span class="pp-atl__l">Pagamento</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg><span class="pp-atl__b">2</span></span><span class="pp-atl__l">Avisos</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="pp-atl__l">Conquistas</span></button>
+              <button class="pp-atl__it"><span class="pp-atl__c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 16.5h4"/></svg></span><span class="pp-atl__l">Documentos</span></button>
+            </div></div>
+            <div class="pp-hero">
+              <div class="pp-hero__top"><span class="pp-hero__lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Banco de horas</span><span class="pp-hero__badge">Julho de 2026</span></div>
+              <div class="pp-hero__val">04:12</div>
+              <div class="pp-hero__sub">Atualizado hoje · A favor</div>
+            </div>
+            <button class="gm-mid" onclick="tapTo(event,'Abre Conquistas')">
+              <div class="gm-mid__top"><span class="gm-mid__lbl">Seus pontos</span><span class="gm-mid__pts">16</span><span class="gm-mid__season">2026</span></div>
+              <div class="gm-mid__bar"><span style="width:32%"></span></div>
+              <div class="gm-mid__meta">faltam 34 pro marco 50</div>
+            </button>
+            <div class="pp-card" onclick="tapTo(event,'Abre o aviso')">
+              <div class="pp-card__bd">
+                <div class="pp-card__meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l5 4V6L7 10H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>Comunicado fixado</div>
+                <div class="pp-card__t">Confraternização de julho: confirme presença até sexta</div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <div class="tradeoff"><b>Trade-off:</b> mantém a identidade de card verde sem o número gigante nem os chips; ainda é um segundo bloco verde, então não fica tão enxuto quanto a linha viva.</div>
+      </div>
+
+    </div>
+
+    <div class="reco">
+      <h3><span class="dot">✓</span>Recomendação: variação A, a linha viva</h3>
+      <p>Ela é a única que resolve a queixa de fato: a linha é neutra (fundo escuro, não verde), então deixa de disputar com o banco de horas e vira claramente o elemento secundário, sem sumir. Ainda assim carrega o essencial (pontos, progresso, quanto falta e o próximo marco) e mantém o toque pra Conquistas. A variação <b>B</b> é a mais limpa, mas esconde demais uma feature cujo trabalho é justamente ser vista e engajar; a <b>C</b> encolhe, porém segue lendo como um segundo herói verde. Se depois quiser reforço, dá pra somar o selo dourado de B na saudação sem trazer o card de volta, mas a linha viva sozinha já entrega.</p>
+    </div>
+  </section>
+
+  <p class="foot">Mock de aprovação. Toda a anatomia (saudação, hub, herói do banco de horas, cards) reproduz o portal real do colaborador no tema escuro. Nada foi tocado no app: as mudanças entram em public/ só depois do seu aval.</p>
+</div>
+
+<script>
+  function tapTo(e, label) {
+    e.preventDefault();
+    const scr = e.currentTarget.closest(".screen");
+    if (!scr) return;
+    let t = scr.querySelector(".ftoast");
+    if (!t) {
+      t = document.createElement("div");
+      t.className = "ftoast";
+      t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span></span>';
+      scr.appendChild(t);
+    }
+    t.querySelector("span").textContent = label;
+    t.classList.remove("show");
+    void t.offsetWidth;
+    t.classList.add("show");
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove("show"), 1500);
+  }
+
+  // O frame "Proposta" do ajuste 1 já nasce rolado até o fim, pra mostrar o novo
+  // atalho Novidades (por último) e provar que o hub rola na horizontal.
+  window.addEventListener("load", () => {
+    const novo = document.querySelector(".pp-atl__it.novo");
+    if (!novo) return;
+    const atl = novo.closest(".pp-atl");
+    const hub = novo.closest(".hub");
+    if (hub) hub.classList.add("hub--end");
+    if (atl) atl.scrollLeft = atl.scrollWidth;
+  });
+</script>
+</body>
+</html>

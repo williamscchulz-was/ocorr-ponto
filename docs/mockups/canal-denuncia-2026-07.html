@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Canal de denúncia (proposta)</title>
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+  :root {
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00;
+    --ink: #1c231d; --muted: #68716a; --bg: #f2f3ee; --card: #ffffff;
+    --borda: #e3e5dd; --milk-warm: #faf9f4; --ease-ios: cubic-bezier(.32, .72, .28, 1);
+    /* categorias, tons calmos */
+    --c-ass: #b4453f;   --c-ass-bg: #fbeceb;
+    --c-mor: #7d4a86;   --c-mor-bg: #f4ecf6;
+    --c-dis: #3f5aa6;   --c-dis-bg: #eaeefb;
+    --c-vio: #b5562a;   --c-vio-bg: #fbeee4;
+    --c-seg: #9a6a12;   --c-seg-bg: #fbf1da;
+    --c-fin: #0a7a53;   --c-fin-bg: #e6f4ec;
+    --c-out: #5c6470;   --c-out-bg: #eef0f2;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 48px 20px 90px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  .kicker svg { width: 14px; height: 14px; }
+  h1 { font: 700 clamp(26px, 4vw, 40px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--muted); max-width: 760px; font-size: 15.5px; }
+
+  .sec { margin-top: 54px; }
+  .sec-hd { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; flex-wrap: wrap; }
+  .sec-hd .n { font: 700 12px/1 Poppins, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--verde); background: #00883512; border: 1px solid #00883522; padding: 7px 11px; border-radius: 999px; }
+  .sec-hd h2 { font: 700 22px/1.2 Poppins, system-ui, sans-serif; letter-spacing: -.02em; }
+  .sec > p.lead { color: var(--muted); font-size: 14px; max-width: 720px; margin: 4px 0 24px; }
+
+  /* ---------- frame de celular (reuso do padrao aprovado) ---------- */
+  .stage { display: flex; flex-wrap: wrap; gap: 34px; align-items: flex-start; }
+  .phone { width: 306px; flex: 0 0 auto; background: #0b0d0c; border-radius: 46px; padding: 10px; box-shadow: 0 2px 4px #0003, 0 26px 64px -20px #04331a66, inset 0 0 0 2px #262b28; }
+  .screen { position: relative; overflow: hidden; border-radius: 37px; background: #f6f7f2; height: 604px; isolation: isolate; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 90px; height: 25px; border-radius: 999px; background: #0b0d0c; z-index: 60; }
+
+  .view { position: absolute; inset: 0; display: flex; flex-direction: column; background: #f6f7f2; }
+  .view[hidden] { display: none; }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 26px 0; font: 600 12px Poppins, system-ui, sans-serif; }
+  .sbar.on-green { color: #fff; }
+  .sbar.on-milk { color: var(--ink); }
+
+  /* topo verde compartilhado */
+  .ghd { background: linear-gradient(162deg, #0a9a43, var(--verde) 55%, #00702c); color: #fff; padding: 0 0 20px; border-radius: 0 0 28px 28px; }
+  .ghd-in { padding: 20px 22px 0; }
+  .back { display: inline-flex; align-items: center; gap: 5px; background: #ffffff26; border: 0; color: #fff; font: 600 12px Poppins, system-ui, sans-serif; border-radius: 999px; padding: 7px 13px 7px 9px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .back svg { width: 14px; height: 14px; }
+  .ghd-tt { display: flex; align-items: center; gap: 12px; margin-top: 15px; }
+  .ghd-tt .badge { width: 42px; height: 42px; border-radius: 13px; background: #ffffff26; display: grid; place-items: center; flex: 0 0 auto; }
+  .ghd-tt .badge svg { width: 22px; height: 22px; color: #fff; }
+  .ghd-tt b { display: block; font: 700 16px/1.2 Poppins, system-ui, sans-serif; }
+  .ghd-tt span { font-size: 11.5px; opacity: .85; }
+
+  .body { flex: 1; padding: 16px 15px; overflow-y: auto; overflow-x: hidden; }
+  .body::-webkit-scrollbar { width: 0; }
+
+  /* ===== home do colab (entrada discreta) ===== */
+  .home-hd { padding: 26px 22px 4px; }
+  .home-hd .hi { font: 700 20px/1.2 Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .home-hd .hi span { color: var(--muted); font-weight: 500; font-size: 13px; display: block; margin-top: 2px; }
+  .rowcard { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--borda); border-radius: 18px; padding: 14px 15px; margin-bottom: 11px; cursor: pointer; transition: transform .18s var(--ease-ios), box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+  .rowcard:active { transform: scale(.975); }
+  .rowcard.quiet { background: var(--milk-warm); }
+  .ric { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
+  .ric svg { width: 20px; height: 20px; }
+  .ric.green { background: #00883514; color: var(--verde); }
+  .ric.neutral { background: #eef0ec; color: #7c847c; }
+  .rtx { flex: 1; min-width: 0; }
+  .rtx b { display: block; font: 600 13.5px/1.25 Poppins, system-ui, sans-serif; }
+  .rtx span { font-size: 11.5px; color: var(--muted); line-height: 1.35; display: block; }
+  .chev { color: #b9bfb7; flex: 0 0 auto; }
+  .chev svg { width: 16px; height: 16px; }
+
+  /* passos, indicador */
+  .steps { display: flex; gap: 6px; justify-content: center; padding: 14px 0 4px; }
+  .steps i { width: 7px; height: 7px; border-radius: 999px; background: #d4d9cf; transition: width .3s var(--ease-ios), background .3s; }
+  .steps i.on { width: 20px; background: var(--verde); }
+
+  /* ===== etapa 1: acolhimento ===== */
+  .acolhe { padding: 6px 20px 20px; }
+  .acolhe h3 { font: 700 20px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 6px 0 6px; }
+  .acolhe .intro { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .guar { display: flex; gap: 13px; align-items: flex-start; padding: 13px 0; border-top: 1px solid var(--borda); }
+  .guar:first-of-type { border-top: 0; }
+  .guar .gi { width: 34px; height: 34px; border-radius: 11px; background: #00883512; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; }
+  .guar .gi svg { width: 18px; height: 18px; }
+  .guar .gt b { display: block; font: 600 13px/1.35 Poppins, system-ui, sans-serif; margin-bottom: 2px; }
+  .guar .gt span { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .lei-line { display: flex; gap: 9px; align-items: flex-start; margin-top: 16px; padding: 12px 13px; background: var(--milk-warm); border: 1px solid var(--borda); border-radius: 13px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .lei-line svg { width: 15px; height: 15px; color: var(--verde); flex: 0 0 auto; margin-top: 1px; }
+  .lei-line b { color: var(--verde-esc); font-weight: 600; }
+
+  /* etapa 3: escolha de identificacao (cards grandes) */
+  .idchoose { padding: 6px 18px 12px; }
+  .idchoose h3 { font: 700 20px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 6px 0 6px; }
+  .idchoose .intro { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  .optbig { border: 1.6px solid var(--borda); border-radius: 17px; padding: 15px 15px; margin-bottom: 12px; cursor: pointer; background: #fff; transition: border-color .16s, background .16s, box-shadow .2s; -webkit-tap-highlight-color: transparent; position: relative; }
+  .optbig:active { transform: scale(.99); }
+  .optbig.sel { border-color: var(--verde); background: #00883508; box-shadow: 0 0 0 3px #00883514; }
+  .optbig__h { display: flex; align-items: center; gap: 11px; }
+  .optbig__ic { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; background: #00883512; color: var(--verde); }
+  .optbig__ic svg { width: 20px; height: 20px; }
+  .optbig__t { flex: 1; }
+  .optbig__t b { display: block; font: 700 14px Poppins, system-ui, sans-serif; }
+  .optbig__t .tag { font-size: 10px; font-weight: 700; color: var(--verde); background: #00883514; border-radius: 999px; padding: 2px 8px; margin-left: 2px; vertical-align: 1px; }
+  .optbig__mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #cfd4cb; flex: 0 0 auto; display: grid; place-items: center; }
+  .optbig.sel .optbig__mark { border-color: var(--verde); background: var(--verde); }
+  .optbig.sel .optbig__mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+  .optbig__d { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 9px 0 0 49px; }
+  .optbig .contato-in { margin: 12px 0 2px; animation: revela .3s var(--ease-ios); }
+  .optbig .contato-in[hidden] { display: none; }
+  .optbig .aviso { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; color: #8a5b12; margin-top: 11px; line-height: 1.5; }
+  .optbig .aviso svg { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 1px; }
+
+  /* ===== etapa 2: formulario ===== */
+  .form { padding: 4px 18px 8px; }
+  .flabel { font: 600 12.5px Poppins, system-ui, sans-serif; margin: 16px 0 9px; display: block; }
+  .flabel:first-child { margin-top: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1.5px solid var(--borda); background: #fff; color: var(--ink); border-radius: 999px; padding: 8px 14px; font: 600 12.5px Poppins, system-ui, sans-serif; cursor: pointer; transition: border-color .16s, background .16s, color .16s, transform .12s var(--ease-ios); -webkit-tap-highlight-color: transparent; }
+  .chip:active { transform: scale(.96); }
+  .chip.on { border-color: var(--verde); background: #00883510; color: var(--verde-esc); }
+  textarea { width: 100%; border: 1.5px solid var(--borda); border-radius: 15px; padding: 13px 14px; font: 400 13.5px/1.5 Poppins, system-ui, sans-serif; color: var(--ink); resize: none; height: 116px; background: #fff; outline: 0; transition: border-color .16s; }
+  textarea:focus { border-color: var(--verde); }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 7px; line-height: 1.45; }
+
+  @keyframes revela { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .inp { width: 100%; border: 1.5px solid var(--borda); border-radius: 12px; padding: 11px 13px; font: 400 13px Poppins, system-ui, sans-serif; margin-top: 10px; outline: 0; background: #fff; }
+  .inp:focus { border-color: var(--verde); }
+
+  .rodape-sigilo { display: flex; gap: 9px; align-items: flex-start; margin: 18px 2px 4px; font-size: 10.8px; color: var(--muted); line-height: 1.5; }
+  .rodape-sigilo svg { width: 14px; height: 14px; color: var(--verde); flex: 0 0 auto; margin-top: 1px; }
+
+  .btn { width: 100%; border: 0; border-radius: 16px; background: var(--verde); color: #fff; font: 700 14px Poppins, system-ui, sans-serif; padding: 15px; cursor: pointer; transition: transform .15s var(--ease-ios), opacity .2s; -webkit-tap-highlight-color: transparent; }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .55; }
+  .btn.block { margin-top: 18px; }
+  .btn.ghost { background: #fff; color: var(--verde-esc); border: 1.5px solid var(--borda); }
+  .spin { display: inline-block; width: 16px; height: 16px; border: 2.5px solid #ffffff66; border-top-color: #fff; border-radius: 50%; animation: sp .7s linear infinite; vertical-align: -3px; margin-right: 8px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  /* ===== cerimonia ===== */
+  .cer { position: absolute; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; background: #f6f7f2f2; backdrop-filter: blur(7px); opacity: 0; pointer-events: none; transition: opacity .3s; }
+  .cer.on { opacity: 1; pointer-events: auto; }
+  .cer-in { text-align: center; }
+  .ring { position: relative; width: 100px; height: 100px; margin: 0 auto 20px; }
+  .ring svg.r { width: 100px; height: 100px; transform: rotate(-90deg); }
+  .ring .trk { fill: none; stroke: #dfe4dc; stroke-width: 5; }
+  .ring .arc { fill: none; stroke: var(--verde); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 276; }
+  .ring .chk { position: absolute; inset: 0; display: grid; place-items: center; }
+  .ring .chk svg { width: 46px; height: 46px; }
+  .ring .chk path { fill: none; stroke: var(--verde); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 50; stroke-dashoffset: 50; }
+  .pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid #00883555; opacity: 0; }
+  .cer-t { font: 700 19px Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .cer-s { font-size: 12.8px; color: var(--muted); margin-top: 7px; line-height: 1.5; max-width: 230px; margin-left: auto; margin-right: auto; }
+  .cer .prot { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 11px; color: var(--verde-esc); background: #00883510; border: 1px solid #00883522; border-radius: 999px; padding: 6px 12px; }
+  .cer .prot svg { width: 13px; height: 13px; color: var(--verde); }
+  .cer .integ { margin-top: 16px; background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 13px 15px; max-width: 240px; margin-left: auto; margin-right: auto; text-align: left; }
+  .cer .integ .lbl { display: flex; align-items: center; gap: 7px; font: 700 10px Poppins, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .cer .integ .lbl svg { width: 13px; height: 13px; color: var(--verde); }
+  .cer .integ .hash { font: 600 15px "Poppins", ui-monospace, monospace; letter-spacing: .04em; color: var(--verde-esc); margin: 7px 0 6px; }
+  .cer .integ .exp { font-size: 10.5px; color: var(--muted); line-height: 1.5; }
+  .cer .btn { width: auto; padding: 12px 26px; margin-top: 20px; }
+  @keyframes arco { to { stroke-dashoffset: 0; } }
+  @keyframes tick { to { stroke-dashoffset: 0; } }
+  @keyframes puls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+  /* legenda ao lado do celular */
+  .legend { flex: 1; min-width: 280px; padding-top: 8px; }
+  .legend h4 { font: 700 14px Poppins, system-ui, sans-serif; margin-bottom: 4px; }
+  .legend p { font-size: 13px; color: var(--muted); margin-bottom: 16px; max-width: 460px; }
+  .legend ul { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+  .legend li { display: flex; gap: 11px; align-items: flex-start; font-size: 12.8px; color: var(--ink); }
+  .legend li .k { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 7px; background: var(--verde); color: #fff; font: 700 11px/22px Poppins, system-ui, sans-serif; text-align: center; }
+  .legend li b { font-weight: 600; }
+  .legend li span { color: var(--muted); }
+  .legend .try { margin-top: 20px; font-size: 12px; color: var(--verde-esc); background: #ffcb0018; border: 1px solid #e8c34d55; border-radius: 12px; padding: 10px 13px; }
+
+  /* ========================================================= */
+  /* PARTE 2, portal do gestor, janela desktop                  */
+  /* ========================================================= */
+  .win { width: 100%; max-width: 960px; margin: 0 auto; border-radius: 18px; overflow: hidden; background: var(--card); border: 1px solid var(--borda); box-shadow: 0 2px 4px #0000000a, 0 30px 70px -30px #04331a3a; }
+  .win-bar { display: flex; align-items: center; gap: 8px; padding: 11px 15px; background: #eef0ea; border-bottom: 1px solid var(--borda); }
+  .win-bar .dots { display: flex; gap: 7px; }
+  .win-bar .dots i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .win-bar .dots i:nth-child(1) { background: #f0655a; }
+  .win-bar .dots i:nth-child(2) { background: #f4be4f; }
+  .win-bar .dots i:nth-child(3) { background: #63c956; }
+  .win-bar .url { flex: 1; text-align: center; font-size: 11.5px; color: var(--muted); }
+  .win-bar .url b { color: var(--ink); font-weight: 600; }
+
+  .gframe { display: grid; grid-template-columns: 210px 1fr; min-height: 620px; position: relative; }
+  .gside { background: linear-gradient(180deg, #05391d, #04331a); color: #fff; padding: 20px 12px; display: flex; flex-direction: column; gap: 20px; }
+  .gbrand { display: flex; align-items: center; gap: 10px; padding: 0 9px 14px; border-bottom: 1px solid #ffffff18; }
+  .gbrand .mk { width: 32px; height: 32px; border-radius: 9px; background: var(--amarelo); color: #4a3c00; display: grid; place-items: center; font: 800 14px Poppins, system-ui, sans-serif; }
+  .gbrand .tx { font: 700 14px Poppins, system-ui, sans-serif; letter-spacing: .01em; }
+  .gbrand .tx small { display: block; font: 400 10px Poppins, system-ui, sans-serif; color: #ffffff80; margin-top: 2px; }
+  .gnav { display: flex; flex-direction: column; gap: 2px; }
+  .gnav a { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 11px; color: #ffffffbf; font: 500 13px Poppins, system-ui, sans-serif; text-decoration: none; cursor: pointer; transition: background .15s, color .15s; }
+  .gnav a svg { width: 17px; height: 17px; flex: 0 0 auto; }
+  .gnav a:hover { background: #ffffff12; color: #fff; }
+  .gnav a.active { background: #ffffff1a; color: #fff; font-weight: 600; }
+  .gnav a .lock { margin-left: auto; opacity: .8; }
+  .gnav a .lock svg { width: 13px; height: 13px; }
+  .gside .adminbox { margin-top: auto; font-size: 10.5px; color: #ffffff9e; background: #ffffff10; border: 1px solid #ffffff1a; border-radius: 11px; padding: 10px 11px; line-height: 1.5; display: flex; gap: 8px; }
+  .gside .adminbox svg { width: 14px; height: 14px; color: var(--amarelo); flex: 0 0 auto; margin-top: 1px; }
+
+  .gmain { padding: 24px 26px 30px; overflow-x: hidden; }
+  .gtop { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+  .gtop h3 { font: 700 21px Poppins, system-ui, sans-serif; letter-spacing: -.02em; display: flex; align-items: center; gap: 9px; }
+  .gtop h3 svg { width: 19px; height: 19px; color: var(--verde); }
+  .gtop .sub2 { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+  .gtop .sub2 svg { width: 13px; height: 13px; }
+  .counter { text-align: right; }
+  .counter b { font: 700 26px Poppins, system-ui, sans-serif; color: var(--verde-esc); line-height: 1; }
+  .counter span { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; font-weight: 600; }
+
+  .toolbar { display: flex; gap: 8px; align-items: center; margin: 20px 0 16px; flex-wrap: wrap; }
+  .filt { border: 1px solid var(--borda); background: #fff; color: var(--muted); border-radius: 999px; padding: 7px 13px; font: 600 12px Poppins, system-ui, sans-serif; cursor: pointer; transition: all .15s; }
+  .filt.on { background: var(--verde-esc); color: #fff; border-color: var(--verde-esc); }
+  .toolbar .demo-empty { margin-left: auto; font: 600 11.5px Poppins, system-ui, sans-serif; color: var(--verde); background: none; border: 1px dashed #00883540; border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+
+  .dlist { display: flex; flex-direction: column; gap: 11px; }
+  .dcard { display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; background: #fff; border: 1px solid var(--borda); border-radius: 15px; padding: 15px 16px; cursor: pointer; transition: border-color .16s, box-shadow .2s, transform .16s var(--ease-ios); }
+  .dcard:hover { border-color: #cfd6cb; box-shadow: 0 10px 26px -18px #04331a44; transform: translateY(-1px); }
+  .dcard.nova { border-left: 3px solid var(--verde); }
+  .dcard .cat-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
+  .dcard .cat-ic svg { width: 20px; height: 20px; }
+  .dc-mid { min-width: 0; }
+  .dc-top { display: flex; align-items: center; gap: 9px; margin-bottom: 4px; flex-wrap: wrap; }
+  .cchip { font: 700 10.5px Poppins, system-ui, sans-serif; letter-spacing: .02em; padding: 4px 9px; border-radius: 999px; }
+  .seal { display: inline-flex; align-items: center; gap: 5px; font: 600 10.5px Poppins, system-ui, sans-serif; padding: 4px 9px; border-radius: 999px; }
+  .seal svg { width: 12px; height: 12px; }
+  .seal.anon { background: #eef0f2; color: #5c6470; }
+  .seal.ident { background: #fbf1da; color: #9a6a12; }
+  .dc-mid .excerpt { font-size: 12.8px; color: var(--ink); line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dc-mid .when { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .dc-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: 0 0 auto; }
+  .status { font: 700 11px Poppins, system-ui, sans-serif; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
+  .status.nova { background: #00883514; color: var(--verde); }
+  .status.analise { background: #fbf1da; color: #9a6a12; }
+  .status.concluida { background: #eef0f2; color: #5c6470; }
+  .dc-right .arrow { color: #c2c9bf; }
+  .dc-right .arrow svg { width: 17px; height: 17px; }
+
+  /* empty state */
+  .empty { display: none; text-align: center; padding: 66px 20px; }
+  .empty.on { display: block; }
+  .empty .em-ic { width: 66px; height: 66px; border-radius: 20px; background: #00883510; color: var(--verde); display: grid; place-items: center; margin: 0 auto 18px; }
+  .empty .em-ic svg { width: 32px; height: 32px; }
+  .empty b { font: 700 17px Poppins, system-ui, sans-serif; display: block; }
+  .empty span { font-size: 13px; color: var(--muted); display: block; margin-top: 6px; }
+
+  /* painel de detalhe (slide da direita) */
+  .panel-bd { position: absolute; inset: 0; background: #04331a; opacity: 0; pointer-events: none; transition: opacity .28s; z-index: 20; }
+  .panel-bd.on { opacity: .34; pointer-events: auto; }
+  .panel { position: absolute; top: 0; right: 0; bottom: 0; width: 420px; max-width: 84%; background: #fff; z-index: 30; box-shadow: -20px 0 60px -24px #04331a55; transform: translateX(102%); transition: transform .42s var(--ease-ios); display: flex; flex-direction: column; }
+  .panel.on { transform: none; }
+  .panel-hd { padding: 20px 22px 16px; border-bottom: 1px solid var(--borda); }
+  .panel-hd .row1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .panel-hd .closep { border: 0; background: #eef0ea; width: 32px; height: 32px; border-radius: 10px; cursor: pointer; color: var(--ink); display: grid; place-items: center; }
+  .panel-hd .closep svg { width: 16px; height: 16px; }
+  .panel-hd .chips2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .panel-bd + .panel .panel-body { padding: 20px 22px; overflow-y: auto; flex: 1; }
+  .p-when { font-size: 11.5px; color: var(--muted); margin: 14px 0 4px; }
+  .integ-adm { display: flex; align-items: center; gap: 10px; background: #00883508; border: 1px solid #00883522; border-radius: 12px; padding: 11px 13px; margin-bottom: 16px; }
+  .integ-adm .ck { width: 30px; height: 30px; border-radius: 9px; background: #00883514; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; }
+  .integ-adm .ck svg { width: 17px; height: 17px; }
+  .integ-adm .tx { min-width: 0; flex: 1; }
+  .integ-adm .tx b { display: block; font: 700 11.5px Poppins, system-ui, sans-serif; color: var(--verde-esc); }
+  .integ-adm .tx .hash { font: 500 10.5px "Poppins", ui-monospace, monospace; color: var(--muted); letter-spacing: .02em; word-break: break-all; margin-top: 1px; }
+  .p-text { font-size: 13.5px; line-height: 1.6; color: var(--ink); background: var(--milk-warm); border: 1px solid var(--borda); border-radius: 13px; padding: 15px 16px; white-space: pre-line; }
+  .p-block { margin-top: 22px; }
+  .p-block > label { font: 700 11px Poppins, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 10px; }
+  .contact-card { display: flex; align-items: center; gap: 12px; background: #fbf1da; border: 1px solid #f0dfb0; border-radius: 13px; padding: 13px 15px; }
+  .contact-card svg { width: 20px; height: 20px; color: #b77a18; flex: 0 0 auto; }
+  .contact-card b { display: block; font: 600 13px Poppins, system-ui, sans-serif; }
+  .contact-card span { font-size: 12px; color: #8a5b12; }
+  .contact-none { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); background: #eef0f2; border-radius: 12px; padding: 12px 14px; }
+  .contact-none svg { width: 17px; height: 17px; flex: 0 0 auto; }
+  .st-opts { display: flex; gap: 8px; }
+  .st-opt { flex: 1; border: 1.5px solid var(--borda); background: #fff; border-radius: 12px; padding: 11px 8px; font: 700 12px Poppins, system-ui, sans-serif; color: var(--muted); cursor: pointer; text-align: center; transition: all .16s; }
+  .st-opt:hover { border-color: #cfd6cb; }
+  .st-opt.sel[data-v="nova"] { border-color: var(--verde); background: #00883510; color: var(--verde); }
+  .st-opt.sel[data-v="analise"] { border-color: #d9b25a; background: #fbf1da; color: #9a6a12; }
+  .st-opt.sel[data-v="concluida"] { border-color: #b9c0b3; background: #eef0f2; color: #4d554d; }
+  .p-block textarea { height: 92px; font-size: 13px; }
+  .p-block .interno { font-size: 10.5px; color: var(--muted); margin-top: 7px; display: flex; align-items: center; gap: 6px; }
+  .p-block .interno svg { width: 12px; height: 12px; }
+  .panel-foot { padding: 16px 22px; border-top: 1px solid var(--borda); }
+  .btn-danger { width: 100%; border: 1.5px solid #ecc9c6; background: #fff; color: #b4453f; font: 700 13px Poppins, system-ui, sans-serif; padding: 12px; border-radius: 13px; cursor: pointer; transition: background .15s; }
+  .btn-danger:hover { background: #fbeceb; }
+  .lgpd { display: flex; gap: 8px; align-items: flex-start; font-size: 10.5px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+  .lgpd svg { width: 13px; height: 13px; color: #b4453f; flex: 0 0 auto; margin-top: 1px; }
+
+  .foot { margin-top: 54px; color: var(--muted); font-size: 12.5px; text-align: center; line-height: 1.6; }
+  .foot b { color: var(--verde-esc); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="kicker">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>
+    Proposta · aprovação antes de tocar o app
+  </span>
+  <h1>Canal de denúncia</h1>
+  <p class="sub">Um lugar seguro pra quem precisa falar e tem medo de falar. O piso é técnico: nada do denunciante viaja quando ele escolhe o anonimato. O teto é humano: cada tela existe pra baixar o batimento de quem está ali, com texto direto, tons calmos e a promessa de sigilo dita com todas as letras. As duas partes abaixo são funcionais, pode tocar.</p>
+
+  <!-- ================= PARTE 1: COLABORADOR ================= -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Parte 1</span><h2>Portal do colaborador</h2></div>
+    <p class="lead">A entrada é discreta, sem drama, no meio dos outros atalhos. Ao tocar, o fluxo em quatro etapas: acolhimento com as garantias e a base legal, o relato, a escolha de se identificar ou não, e a confirmação cerimonial com protocolo de integridade. Toque no card "Canal de denúncia".</p>
+
+    <div class="stage">
+      <div class="phone"><div class="screen" id="scr">
+
+        <div class="island"></div>
+
+        <!-- VIEW 0: home -->
+        <div class="view" id="v-home">
+          <div class="sbar on-milk"><span>9:41</span><span>FioPulse</span></div>
+          <div class="home-hd">
+            <div class="hi">Boa tarde, Maria<span>Fiação · 1º turno</span></div>
+          </div>
+          <div class="body">
+            <div class="rowcard">
+              <div class="ric neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+              <div class="rtx"><b>Meu ponto</b><span>saldo e espelho do mês</span></div>
+              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+            </div>
+            <div class="rowcard">
+              <div class="ric neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+              <div class="rtx"><b>Avisos</b><span>2 comunicados novos</span></div>
+              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+            </div>
+            <div class="rowcard quiet" onclick="irAcolhe()" id="entry">
+              <div class="ric green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></div>
+              <div class="rtx"><b>Canal de denúncia</b><span>Assédio, segurança ou conduta: fale com sigilo, direto com a direção.</span></div>
+              <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 1: acolhimento -->
+        <div class="view" id="v-acolhe" hidden>
+          <div class="ghd">
+            <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+            <div class="ghd-in">
+              <button class="back" onclick="irHome()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+              <div class="ghd-tt">
+                <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></div>
+                <div><b>Canal de denúncia</b><span>protegido do começo ao fim</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="acolhe">
+              <h3>Um canal seguro, direto com a direção</h3>
+              <p class="intro">Antes de começar, é justo você saber exatamente como isso funciona.</p>
+              <div class="guar">
+                <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+                <div class="gt"><b>Anônima por padrão</b><span>Ninguém sabe que foi você, nem o sistema guarda seu nome.</span></div>
+              </div>
+              <div class="guar">
+                <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+                <div class="gt"><b>Só a direção da empresa lê</b><span>Nem a GP nem os líderes têm acesso a esta caixa.</span></div>
+              </div>
+              <div class="guar">
+                <div class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg></div>
+                <div class="gt"><b>Você escolhe se quer se identificar</b><span>Só se quiser ser contatado pra dar continuidade. É opcional, e vem só no fim.</span></div>
+              </div>
+              <div class="lei-line">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M6 7h12M7 7l-2 7a4 4 0 0 0 8 0l-2-7M17 7l-2 7a4 4 0 0 0 8 0l-2-7M12 7v13M8 21h8"/></svg>
+                <span>Canal previsto na <b>Lei 14.457/2022</b>, com garantia de anonimato e proteção contra retaliação.</span>
+              </div>
+              <button class="btn block" onclick="irForm()">Começar</button>
+              <div class="steps"><i class="on"></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: formulario -->
+        <div class="view" id="v-form" hidden>
+          <div class="ghd">
+            <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+            <div class="ghd-in">
+              <button class="back" onclick="irAcolhe()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+              <div class="ghd-tt">
+                <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></div>
+                <div><b>Conte com segurança</b><span>leva o tempo que precisar</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="form">
+              <label class="flabel">Sobre o que é</label>
+              <div class="chips" id="cats">
+                <button class="chip" onclick="selChip(this)">Assédio sexual</button>
+                <button class="chip" onclick="selChip(this)">Assédio moral</button>
+                <button class="chip" onclick="selChip(this)">Discriminação</button>
+                <button class="chip" onclick="selChip(this)">Violência no trabalho</button>
+                <button class="chip" onclick="selChip(this)">Segurança do trabalho</button>
+                <button class="chip" onclick="selChip(this)">Fraude ou financeiro</button>
+                <button class="chip" onclick="selChip(this)">Outro</button>
+              </div>
+
+              <label class="flabel">Conte o que aconteceu</label>
+              <textarea placeholder="Descreva com suas palavras. Se lembrar, ajuda dizer quando, onde e quem estava."></textarea>
+              <p class="hint">Quanto mais detalhes, melhor a apuração. Mas escreva do seu jeito, sem se preocupar com formato.</p>
+
+              <div class="rodape-sigilo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>
+                <span>Nenhum dado seu é anexado quando você envia como anônimo. Nem quem enviou, nem de qual aparelho.</span>
+              </div>
+
+              <button class="btn block" onclick="irIdent()">Continuar</button>
+              <div class="steps"><i></i><i class="on"></i><i></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 3: identificacao -->
+        <div class="view" id="v-ident" hidden>
+          <div class="ghd">
+            <div class="sbar on-green"><span>9:41</span><span>FioPulse</span></div>
+            <div class="ghd-in">
+              <button class="back" onclick="irForm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Voltar</button>
+              <div class="ghd-tt">
+                <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></div>
+                <div><b>Uma última escolha</b><span>quem envia esta denúncia</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="idchoose">
+              <h3>Quer se identificar?</h3>
+              <p class="intro">Sua escolha, e só sua. Os dois caminhos entregam a denúncia à direção do mesmo jeito.</p>
+
+              <div class="optbig sel" id="opt-anon" onclick="escolheId(false)">
+                <div class="optbig__h">
+                  <div class="optbig__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg></div>
+                  <div class="optbig__t"><b>Continuar anônimo <span class="tag">recomendado</span></b></div>
+                  <div class="optbig__mark"></div>
+                </div>
+                <div class="optbig__d">Ninguém sabe que foi você. Nem o sistema guarda seu nome ou o aparelho de onde saiu.</div>
+              </div>
+
+              <div class="optbig" id="opt-ident" onclick="escolheId(true)">
+                <div class="optbig__h">
+                  <div class="optbig__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg></div>
+                  <div class="optbig__t"><b>Me identificar</b></div>
+                  <div class="optbig__mark"></div>
+                </div>
+                <div class="optbig__d">Deixe um contato caso a direção precise falar com você para dar continuidade.</div>
+                <div class="contato-in" id="contato" hidden>
+                  <input class="inp" placeholder="Seu nome">
+                  <input class="inp" placeholder="Telefone ou e-mail para contato">
+                  <div class="aviso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Só a direção verá, e a lei proíbe qualquer retaliação por você ter falado.</div>
+                </div>
+              </div>
+
+              <button class="btn block" id="btn-env" onclick="enviar()">Enviar denúncia</button>
+              <div class="steps"><i></i><i></i><i class="on"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CERIMONIA -->
+        <div class="cer" id="cer">
+          <div class="cer-in">
+            <div class="ring">
+              <span class="pulse" id="pulse"></span>
+              <svg class="r" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44"/><circle class="arc" id="arc" cx="50" cy="50" r="44"/></svg>
+              <span class="chk"><svg viewBox="0 0 46 46"><path id="tick" d="M13 24 L20.5 31.5 L33 16"/></svg></span>
+            </div>
+            <div class="cer-t">Denúncia recebida</div>
+            <div class="cer-s">Ela foi entregue com sigilo à direção. Obrigado pela coragem.</div>
+            <div class="prot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg><span>Enviada de forma anônima</span></div>
+            <div class="integ">
+              <div class="lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Protocolo de integridade</div>
+              <div class="hash" id="cer-hash">a3f8c2…9d41</div>
+              <div class="exp">Este código prova que o seu relato não pode ser alterado por ninguém, nem pela empresa.</div>
+            </div>
+            <button class="btn ghost" onclick="resetColab()">Refazer a demo</button>
+          </div>
+        </div>
+
+      </div></div>
+
+      <div class="legend">
+        <h4>O que essa parte precisa transmitir</h4>
+        <p>Quem chega aqui está com medo. Cada detalhe trabalha contra esse medo: o card de entrada não grita, o topo verde acolhe, e a identificação só é perguntada no fim, quando a pessoa já contou tudo e sabe que o anônimo é o caminho recomendado.</p>
+        <ul>
+          <li><span class="k">1</span><div><b>Acolhimento.</b> <span>Três garantias curtas mais a base legal: canal previsto na Lei 14.457/2022, anonimato e proteção contra retaliação.</span></div></li>
+          <li><span class="k">2</span><div><b>Relato.</b> <span>Categoria em chip conforme a lei e texto livre, sem burocracia. Nada de identificação nesta etapa.</span></div></li>
+          <li><span class="k">3</span><div><b>Identificação.</b> <span>Só agora a pergunta: continuar anônimo, em destaque e recomendado, ou se identificar para contato.</span></div></li>
+          <li><span class="k">4</span><div><b>Cerimônia.</b> <span>O círculo fecha, o aparelho vibra, e um protocolo de integridade prova que o relato não pode ser alterado.</span></div></li>
+        </ul>
+        <div class="try">Experimente: percorra acolhimento, escreva no relato, e na última tela troque para "Me identificar" e veja o campo de contato surgir. Depois toque em Enviar e sinta o momento cerimonial com o hash.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PARTE 2: GESTOR (ADMIN) ================= -->
+  <section class="sec">
+    <div class="sec-hd"><span class="n">Parte 2</span><h2>Portal do gestor · tela só do admin</h2></div>
+    <p class="lead">Este item de menu tem cadeado: só o perfil admin da direção enxerga. GP e líderes nem veem que ele existe. Clique num card pra abrir a apuração, troque o status e veja a lista acompanhar.</p>
+
+    <div class="win">
+      <div class="win-bar">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="url"><b>FioPulse</b> · portal do gestor · denúncias</div>
+      </div>
+      <div class="gframe">
+        <aside class="gside">
+          <div class="gbrand"><span class="mk">F</span><span class="tx">FioPulse<small>Portal do gestor</small></span></div>
+          <nav class="gnav">
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Visão geral</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 11h5M16 15h5"/></svg>Funcionários</a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Ocorrências</a>
+            <a class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>Denúncias<span class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span></a>
+            <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5h6M10 3h4M6 8h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z"/></svg>Comunicados</a>
+          </nav>
+          <div class="adminbox">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <span>Visível só para a direção, perfil admin. GP e líderes não têm acesso.</span>
+          </div>
+        </aside>
+
+        <main class="gmain">
+          <div class="gtop">
+            <div>
+              <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>Denúncias</h3>
+              <div class="sub2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Caixa reservada à direção · tratada com sigilo</div>
+            </div>
+            <div class="counter"><b id="cnt">2</b><span>novas</span></div>
+          </div>
+
+          <div class="toolbar">
+            <button class="filt on">Todas</button>
+            <button class="filt">Novas</button>
+            <button class="filt">Em análise</button>
+            <button class="filt">Concluídas</button>
+            <button class="demo-empty" onclick="toggleEmpty()" id="btnEmpty">ver estado vazio</button>
+          </div>
+
+          <div class="dlist" id="dlist">
+            <!-- cards preenchidos via JS -->
+          </div>
+
+          <div class="empty" id="empty">
+            <div class="em-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+            <b>Nenhuma denúncia</b>
+            <span>Que continue assim.</span>
+          </div>
+        </main>
+
+        <!-- painel de detalhe -->
+        <div class="panel-bd" id="pbd" onclick="fecharPanel()"></div>
+        <aside class="panel" id="panel">
+          <div class="panel-hd">
+            <div class="row1">
+              <div class="chips2" id="p-chips"></div>
+              <button class="closep" onclick="fecharPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="p-when" id="p-when"></div>
+          </div>
+          <div class="panel-body">
+            <div class="integ-adm">
+              <div class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+              <div class="tx"><b>Relato íntegro</b><span class="hash" id="p-hash"></span></div>
+            </div>
+            <div class="p-text" id="p-text"></div>
+
+            <div class="p-block">
+              <label>Contato</label>
+              <div id="p-contact"></div>
+            </div>
+
+            <div class="p-block">
+              <label>Status da apuração</label>
+              <div class="st-opts" id="p-status">
+                <button class="st-opt" data-v="nova" onclick="setStatus('nova')">Nova</button>
+                <button class="st-opt" data-v="analise" onclick="setStatus('analise')">Em análise</button>
+                <button class="st-opt" data-v="concluida" onclick="setStatus('concluida')">Concluída</button>
+              </div>
+            </div>
+
+            <div class="p-block">
+              <label>Anotações da apuração</label>
+              <textarea placeholder="Registro interno da direção. O denunciante nunca vê isto."></textarea>
+              <div class="interno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Visível apenas para a direção.</div>
+            </div>
+          </div>
+          <div class="panel-foot">
+            <button class="btn-danger" onclick="alert('Demo: excluir de vez remove a denúncia em definitivo.')">Excluir de vez</button>
+            <div class="lgpd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Exclusão definitiva e sem volta. Só use após a apuração encerrada, conforme a política de retenção da LGPD.</span></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">Tudo acima usa recurso nativo do navegador, zero dependência nova. <b>O sigilo não é só uma promessa de texto:</b> no anônimo, o envio não carrega identidade nem impressão do aparelho, e a caixa é restrita ao perfil admin por regra do Firestore. Navegador sem suporte cai no comportamento atual, ninguém fica pra trás.</p>
+</div>
+
+<script>
+  // ---------------- PARTE 1: colaborador ----------------
+  const VIEWS = ["v-home","v-acolhe","v-form","v-ident"];
+  function mostra(id) {
+    VIEWS.forEach(v => document.getElementById(v).hidden = (v !== id));
+    const el = document.getElementById(id);
+    if (id !== "v-home") el.querySelector(".body")?.scrollTo(0, 0);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate([{ opacity: 0, transform: "translateX(22px)" }, { opacity: 1, transform: "none" }],
+      { duration: 300, easing: "cubic-bezier(.32,.72,.28,1)" });
+  }
+  function irHome() { mostra("v-home"); }
+  function irAcolhe() { mostra("v-acolhe"); }
+  function irForm() { mostra("v-form"); }
+  function irIdent() { mostra("v-ident"); }
+
+  function selChip(el) {
+    el.parentElement.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c === el));
+    try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
+  }
+
+  let identificado = false;
+  function escolheId(quer) {
+    identificado = quer;
+    document.getElementById("opt-anon").classList.toggle("sel", !quer);
+    document.getElementById("opt-ident").classList.toggle("sel", quer);
+    document.getElementById("contato").hidden = !quer;
+    try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
+  }
+
+  // sha256 abreviado do relato, prova de integridade (real quando o browser suporta)
+  async function hashRelato() {
+    const txt = (document.querySelector("#v-form textarea")?.value || "").trim()
+      || ("denuncia-" + Date.now());
+    try {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt));
+      const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+      return hex.slice(0, 6) + "…" + hex.slice(-4);
+    } catch (e) {
+      const r = () => Math.floor(Math.random() * 16).toString(16);
+      return Array.from({ length: 6 }, r).join("") + "…" + Array.from({ length: 4 }, r).join("");
+    }
+  }
+
+  async function enviar() {
+    const b = document.getElementById("btn-env");
+    b.innerHTML = '<span class="spin"></span>Entregando com sigilo...';
+    b.disabled = true;
+    const prot = document.querySelector(".cer .prot span");
+    prot.textContent = identificado ? "Enviada com identificação" : "Enviada de forma anônima";
+    document.getElementById("cer-hash").textContent = await hashRelato();
+    setTimeout(() => {
+      document.getElementById("cer").classList.add("on");
+      document.getElementById("arc").style.animation = "arco .58s cubic-bezier(.4,0,.2,1) forwards";
+      setTimeout(() => {
+        document.getElementById("tick").style.animation = "tick .3s cubic-bezier(.2,.8,.2,1) forwards";
+        document.getElementById("pulse").style.animation = "puls .7s ease-out forwards";
+        try { navigator.vibrate && navigator.vibrate([12, 60, 18]); } catch (e) {}
+      }, 500);
+    }, 850);
+  }
+  function resetColab() {
+    document.getElementById("cer").classList.remove("on");
+    document.getElementById("arc").style.animation = "none";
+    document.getElementById("tick").style.animation = "none";
+    document.getElementById("pulse").style.animation = "none";
+    const b = document.getElementById("btn-env");
+    b.innerHTML = "Enviar denúncia"; b.disabled = false;
+    escolheId(false);
+    document.querySelectorAll("#cats .chip").forEach(c => c.classList.remove("on"));
+    document.querySelector("#v-form textarea").value = "";
+    irHome();
+  }
+
+  // ---------------- PARTE 2: gestor (admin) ----------------
+  const CAT = {
+    assedio_sexual: { rot: "Assédio sexual",        ic: "c-ass", bg: "var(--c-ass-bg)", cor: "var(--c-ass)" },
+    assedio_moral:  { rot: "Assédio moral",         ic: "c-mor", bg: "var(--c-mor-bg)", cor: "var(--c-mor)" },
+    discriminacao:  { rot: "Discriminação",         ic: "c-dis", bg: "var(--c-dis-bg)", cor: "var(--c-dis)" },
+    violencia:      { rot: "Violência no trabalho", ic: "c-vio", bg: "var(--c-vio-bg)", cor: "var(--c-vio)" },
+    seguranca:      { rot: "Segurança do trabalho", ic: "c-seg", bg: "var(--c-seg-bg)", cor: "var(--c-seg)" },
+    fraude:         { rot: "Fraude ou financeiro",  ic: "c-fin", bg: "var(--c-fin-bg)", cor: "var(--c-fin)" },
+    outro:          { rot: "Outro",                 ic: "c-out", bg: "var(--c-out-bg)", cor: "var(--c-out)" }
+  };
+  const ST = { nova: "Nova", analise: "Em análise", concluida: "Concluída" };
+  const catIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>';
+
+  const DENUN = [
+    { id: "d1", cat: "assedio_sexual", anon: true, status: "nova", when: "Hoje, 08:14",
+      hash: "a3f8c2e1b7d049a6f2c8e5b1d3a90f74c6e2b8d1a4f7c093e5b2d8a16f4c7e9d41",
+      text: "Um líder de turno vem fazendo comentários constrangedores sobre a aparência de colegas mulheres na troca de turno. Já aconteceu na frente de outras pessoas mais de uma vez e ninguém se sente à vontade pra reagir na hora.\n\nAconteceu na área da fiação, sempre no fim do 1º turno." },
+    { id: "d2", cat: "seguranca", anon: false, status: "nova", when: "Ontem, 17:02",
+      hash: "b1d9f4e2a6c8017d3e5b9a2f4c6d8e0b1a3f5c7d9e2b4a6c8f0d1e3b5a7c9f2e04",
+      contato: { nome: "Colaborador identificado", via: "(47) 9 9xxx-xxxx" },
+      text: "A saída de emergência do setor de acabamento está bloqueada por paletes há mais de uma semana. Se acontecer alguma coisa, ninguém passa por ali. Já avisei o encarregado mas continua do mesmo jeito." },
+    { id: "d3", cat: "fraude", anon: true, status: "analise", when: "3 dias atrás",
+      hash: "c7e2b8d1a4f7c093e5b2d8a16f4c7e9da3f8c2e1b7d049a6f2c8e5b1d3a90f7c6",
+      text: "Percebi lançamentos de horas extras em nomes de gente que estava de férias no período. Não sei explicar direito, mas os números não fecham com quem realmente estava na linha." },
+    { id: "d4", cat: "assedio_moral", anon: false, status: "concluida", when: "Semana passada",
+      hash: "d4a6c8f0d1e3b5a7c9f2e04b1d9f4e2a6c8017d3e5b9a2f4c6d8e0b1a3f5c7d9e",
+      contato: { nome: "Colaborador identificado", via: "colaborador@exemplo.com" },
+      text: "Um supervisor humilha um colega da equipe na frente dos outros, com apelidos e cobranças em tom agressivo, quase todo dia. A pessoa está adoecendo com isso e não sabe a quem recorrer." }
+  ];
+
+  function sealHtml(anon) {
+    return anon
+      ? '<span class="seal anon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>Anônima</span>'
+      : '<span class="seal ident"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>Identificada</span>';
+  }
+
+  function renderList() {
+    const box = document.getElementById("dlist");
+    box.innerHTML = DENUN.map(d => {
+      const c = CAT[d.cat];
+      const primeiraLinha = d.text.split("\n")[0];
+      return `<div class="dcard ${d.status === "nova" ? "nova" : ""}" data-id="${d.id}" onclick="abrirPanel('${d.id}')">
+        <div class="cat-ic" style="background:${c.bg};color:${c.cor}">${catIcon}</div>
+        <div class="dc-mid">
+          <div class="dc-top">
+            <span class="cchip" style="background:${c.bg};color:${c.cor}">${c.rot}</span>
+            ${sealHtml(d.anon)}
+          </div>
+          <div class="excerpt">${primeiraLinha}</div>
+          <div class="when">${d.when}</div>
+        </div>
+        <div class="dc-right">
+          <span class="status ${d.status}" data-st="${d.id}">${ST[d.status]}</span>
+          <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span>
+        </div>
+      </div>`;
+    }).join("");
+    atualizaContador();
+  }
+
+  function atualizaContador() {
+    const n = DENUN.filter(d => d.status === "nova").length;
+    document.getElementById("cnt").textContent = n;
+    document.querySelector(".counter span").textContent = n === 1 ? "nova" : "novas";
+  }
+
+  let abertoId = null;
+  function abrirPanel(id) {
+    abertoId = id;
+    const d = DENUN.find(x => x.id === id);
+    const c = CAT[d.cat];
+    document.getElementById("p-chips").innerHTML =
+      `<span class="cchip" style="background:${c.bg};color:${c.cor}">${c.rot}</span>` + sealHtml(d.anon);
+    document.getElementById("p-when").textContent = "Recebida " + d.when.toLowerCase();
+    document.getElementById("p-hash").textContent = "sha256 " + d.hash;
+    document.getElementById("p-text").textContent = d.text;
+    // contato
+    const cbox = document.getElementById("p-contact");
+    if (!d.anon && d.contato) {
+      cbox.innerHTML = `<div class="contact-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+        <div><b>${d.contato.nome}</b><span>${d.contato.via}</span></div>
+      </div>`;
+    } else {
+      cbox.innerHTML = `<div class="contact-none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>
+        Enviada de forma anônima. Não há dados de contato, por escolha de quem enviou.
+      </div>`;
+    }
+    // status
+    document.querySelectorAll("#p-status .st-opt").forEach(o =>
+      o.classList.toggle("sel", o.dataset.v === d.status));
+    // abrir
+    document.getElementById("pbd").classList.add("on");
+    document.getElementById("panel").classList.add("on");
+  }
+  function fecharPanel() {
+    document.getElementById("pbd").classList.remove("on");
+    document.getElementById("panel").classList.remove("on");
+    abertoId = null;
+  }
+  function setStatus(v) {
+    if (!abertoId) return;
+    const d = DENUN.find(x => x.id === abertoId);
+    d.status = v;
+    document.querySelectorAll("#p-status .st-opt").forEach(o =>
+      o.classList.toggle("sel", o.dataset.v === v));
+    // reflete na lista sem refazer tudo
+    const pill = document.querySelector(`[data-st="${abertoId}"]`);
+    if (pill) { pill.className = "status " + v; pill.textContent = ST[v]; }
+    const card = document.querySelector(`.dcard[data-id="${abertoId}"]`);
+    if (card) card.classList.toggle("nova", v === "nova");
+    atualizaContador();
+    try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
+  }
+
+  let vazio = false;
+  function toggleEmpty() {
+    vazio = !vazio;
+    document.getElementById("dlist").style.display = vazio ? "none" : "flex";
+    document.getElementById("empty").classList.toggle("on", vazio);
+    document.querySelector(".toolbar").style.opacity = vazio ? ".4" : "1";
+    document.getElementById("btnEmpty").textContent = vazio ? "voltar à lista" : "ver estado vazio";
+    if (vazio) fecharPanel();
+  }
+
+  renderList();
+</script>
+</body>
+</html>

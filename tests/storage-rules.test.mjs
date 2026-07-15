@@ -13,7 +13,7 @@
 import { readFileSync } from "node:fs";
 import { test, before, after } from "node:test";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { ref, uploadBytes, getBytes } from "firebase/storage";
+import { ref, uploadBytes, getBytes, deleteObject, listAll } from "firebase/storage";
 
 let env;
 
@@ -39,6 +39,12 @@ before(async () => {
     await uploadBytes(ref(st, "documentos-assinados/f-1/doc1-v1.pdf"), PDF, META_PDF);
     await uploadBytes(ref(st, "recibos/f-1/assinado/2026-06-recibo.pdf"), PDF, META_PDF);
     await uploadBytes(ref(st, "recibos/f-1/original/2026-06-recibo.pdf"), PDF, META_PDF);
+    // curriculos (candidatura completa v3): seeds separados por proposito, pra nenhum
+    // teste depender da ordem de execucao dos outros (create-only + delete sao destrutivos).
+    await uploadBytes(ref(st, "curriculos/seed__ler@mail.com__lll111.pdf"), PDF, META_PDF);
+    await uploadBytes(ref(st, "curriculos/seed__naodeletaranon@mail.com__ddd222.pdf"), PDF, META_PDF);
+    await uploadBytes(ref(st, "curriculos/seed__gestordeleta@mail.com__ggg444.pdf"), PDF, META_PDF);
+    await uploadBytes(ref(st, "curriculos/exist__overwrite@mail.com__ooo333.pdf"), PDF, META_PDF);
   });
 });
 after(async () => { await env.cleanup(); });
@@ -105,6 +111,47 @@ test("Recibo original: dono le o proprio", async () =>
 
 test("Recibo original: terceiro NAO le", async () =>
   assertFails(getBytes(ref(st("u2", COLAB2), "recibos/f-1/original/2026-06-recibo.pdf"))));
+
+// ================= curriculos/{arquivo} (site publico de vagas, escrita ANONIMA) =================
+
+const GRANDE_CURR = new Uint8Array(3 * 1024 * 1024 + 1024); // > 3 MB
+
+test("ANONIMO cria curriculo PDF < 3MB (create)", async () =>
+  assertSucceeds(uploadBytes(ref(anon(), "curriculos/vaga__mail@x.com__r1.pdf"), PDF, META_PDF)));
+
+test("ANONIMO NAO cria curriculo com contentType errado", async () =>
+  assertFails(uploadBytes(ref(anon(), "curriculos/vaga__mail@x.com__r2.pdf"), PDF, META_PNG)));
+
+test("ANONIMO NAO cria curriculo acima de 3 MB", async () =>
+  assertFails(uploadBytes(ref(anon(), "curriculos/vaga__mail@x.com__r3.pdf"), GRANDE_CURR, META_PDF)));
+
+test("ANONIMO NAO sobrescreve curriculo ja existente (create-only)", async () =>
+  assertFails(uploadBytes(ref(anon(), "curriculos/exist__overwrite@mail.com__ooo333.pdf"), PDF, META_PDF)));
+
+test("nome com segmento extra (barra) nao casa o match: negado", async () =>
+  assertFails(uploadBytes(ref(anon(), "curriculos/a/b.pdf"), PDF, META_PDF)));
+
+test("ANONIMO NAO le nem deleta curriculo", async () => {
+  await assertFails(getBytes(ref(anon(), "curriculos/seed__ler@mail.com__lll111.pdf")));
+  await assertFails(deleteObject(ref(anon(), "curriculos/seed__naodeletaranon@mail.com__ddd222.pdf")));
+});
+
+test("GESTOR (RH) le e deleta curriculo", async () => {
+  await assertSucceeds(getBytes(ref(st("uR", RH), "curriculos/seed__ler@mail.com__lll111.pdf")));
+  await assertSucceeds(deleteObject(ref(st("uR", RH), "curriculos/seed__gestordeleta@mail.com__ggg444.pdf")));
+});
+
+test("COLABORADOR comum NAO le curriculo", async () =>
+  assertFails(getBytes(ref(st("u1", COLAB1), "curriculos/seed__ler@mail.com__lll111.pdf"))));
+
+test("ANONIMO NAO lista curriculos (listAll, nao-enumeracao)", async () =>
+  assertFails(listAll(ref(anon(), "curriculos"))));
+
+test("ANONIMO NAO cria curriculo com nome fora do charset (espaco)", async () =>
+  assertFails(uploadBytes(ref(anon(), "curriculos/nome com espaco.pdf"), PDF, META_PDF)));
+
+test("ANONIMO NAO cria curriculo com extensao maiuscula (match e case-sensitive)", async () =>
+  assertFails(uploadBytes(ref(anon(), "curriculos/x.PDF"), PDF, META_PDF)));
 
 // ================= caminho fora das rules: negado =================
 

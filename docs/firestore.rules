@@ -1462,7 +1462,21 @@ service cloud.firestore {
       function gpCand() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
       function c() { return request.resource.data; }
       allow read: if gpCand();
-      allow create: if c().keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status'])
+      // Candidatura COMPLETA (v3, mock aprovado 2026-07-15): nascimento, teste de
+      // perfil (mais/menos, raw -8..8 por dimensao) e o path do curriculo no
+      // Storage sao OPCIONAIS e aditivos; o form velho continua valido.
+      // O resultado do teste e AUTO-DECLARADO pelo cliente (indicativo por design,
+      // "nunca sozinho pra decidir"); os caps so garantem shape sano.
+      allow create: if c().keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status', 'nascimento', 'disc', 'discPrimario', 'curriculoPath'])
+        && (!('nascimento' in c().keys()) || (c().nascimento is string && c().nascimento.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')))
+        && (!('disc' in c().keys()) || (c().disc is map
+              && c().disc.keys().hasOnly(['d', 'i', 's', 'c'])
+              && c().disc.d is int && c().disc.d >= -8 && c().disc.d <= 8
+              && c().disc.i is int && c().disc.i >= -8 && c().disc.i <= 8
+              && c().disc.s is int && c().disc.s >= -8 && c().disc.s <= 8
+              && c().disc.c is int && c().disc.c >= -8 && c().disc.c <= 8))
+        && (!('discPrimario' in c().keys()) || c().discPrimario in ['D', 'I', 'S', 'C', 'equilibrado'])
+        && (!('curriculoPath' in c().keys()) || (c().curriculoPath is string && c().curriculoPath.size() <= 220 && c().curriculoPath.matches('curriculos/[A-Za-z0-9@._-]+\\.pdf')))
         && c().vagaId is string && c().vagaId.size() >= 1 && c().vagaId.size() <= 60
         && get(/databases/$(database)/documents/vagas/$(c().vagaId)).data.status == 'publicada'
         // Igualdade com a vaga real (gate): mata titulo enganoso; mesmo doc do get

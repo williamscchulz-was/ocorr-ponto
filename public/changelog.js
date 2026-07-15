@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.74.0", d: "15 jul 2026", current: true, items: [
+    v: "1.75.0", d: "15 jul 2026", current: true, items: [
+      { type: "high", title: "Os paineis do celular ganharam fisica de verdade: sobem com mola, seguem o seu dedo quando voce arrasta pela alca, e decidem sozinhos se fecham ou voltam. Igualzinho aos apps que voce ja ama." },
+    ],
+  },
+  {
+    v: "1.74.0", d: "15 jul 2026", items: [
       { type: "high", title: "Home repaginada: o saldo do banco de horas agora vive num selo elegante junto do seu nome (toque nele pra abrir o Meu ponto) e os seus pontos da temporada ganharam o palco, num card mais enxuto. Menos poluicao, mesma informacao." },
     ],
   },

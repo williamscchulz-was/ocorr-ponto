@@ -1673,6 +1673,12 @@ textarea:focus-visible,
   position: relative; /* âncora pro form-blocker absoluto */
 }
 
+/* Alça de bottom-sheet (mock nivel-apple, demo "Sheets com física"): injetada por
+   aplicarFisicaSheet nos sheets do mobile que não têm grip próprio (o colab já usa
+   .pp-sheet__grip). Barrinha 40x5 do mock; touch-action:none pra o arrasto pela
+   alça não virar scroll no touch. */
+.grab { width: 40px; height: 5px; flex: none; border-radius: 999px; background: var(--border-strong); margin: 8px auto 2px; touch-action: none; }
+
 /* Overlay bloqueante usado durante OCR/upload (não deixa editar) */
 .form-blocker {
   position: absolute;
@@ -2044,6 +2050,9 @@ textarea:focus-visible,
     align-self: flex-end; margin-top: auto;
     display: flex; flex-direction: column; overflow: hidden;
     padding-bottom: env(safe-area-inset-bottom);
+    /* Aqui o sheet sobe com mola via aplicarFisicaSheet (Web Animations); o slideUp
+       do CSS sairia por cima da mola. Reduced-motion cai no fade curto do helper. */
+    animation: none;
   }
   .modal__header, .modal__footer { flex-shrink: 0; }
   .modal__body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }

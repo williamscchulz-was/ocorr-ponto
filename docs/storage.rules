@@ -62,6 +62,27 @@ service firebase.storage {
         && request.resource.size < 10 * 1024 * 1024;
     }
 
+    // curriculos/{arquivo}
+    //   Curriculo de CANDIDATO EXTERNO (site publico de vagas, SEM login): a UNICA
+    //   escrita anonima do Storage, e por isso um funil: CREATE-ONLY (resource ==
+    //   null, ninguem sobrescreve curriculo alheio nem o proprio), so PDF, teto
+    //   3 MB, nome sano (sem barra; o cliente gera {vagaId}__{email}__{rand}.pdf e
+    //   grava o path no campo curriculoPath da candidatura, que e o vinculo real).
+    //   Leitura e exclusao SO GP (nem o proprio anonimo rele o que subiu); o
+    //   expurgo LGPD da candidatura apaga o arquivo pelo path gravado.
+    //   Residual aceito (mesma classe do gate das candidaturas): bot pode subir
+    //   PDFs variando nomes; teto 3MB + budget alert + poda manual da GP.
+    //   ponytail: App Check/Functions se abusarem.
+    match /curriculos/{arquivo} {
+      allow read, delete: if gestor();
+      allow create: if resource == null
+        && request.resource != null
+        && request.resource.contentType == 'application/pdf'
+        && request.resource.size < 3 * 1024 * 1024
+        && arquivo.matches('[A-Za-z0-9@._-]+\\.pdf');
+      allow update: if false;
+    }
+
     // Qualquer outro caminho: negado por padrão (não precisa de match explícito).
   }
 }

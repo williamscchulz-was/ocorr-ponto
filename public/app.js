@@ -266,6 +266,9 @@ const FOCAVEIS_SEL =
 
 function openModal(html, opts = {}) {
   const root = $("#modal-root");
+  // Já havia um sheet aberto? Então isto é um re-render de conteúdo (ex.: passos da
+  // assinatura), não uma abertura nova: o sheet não deve re-saltar do rodapé.
+  const reabrindo = !!root.querySelector(".modal");
   // Guarda quem tinha foco antes de abrir pra restaurar no closeModal (a11y).
   window._modalPrevFocus = document.activeElement;
   document.body.classList.add("modal-aberto"); // some os FABs por baixo do modal
@@ -319,6 +322,9 @@ function openModal(html, opts = {}) {
     }
   });
   if (opts.onMount) opts.onMount(modal);
+  // Física de bottom-sheet no mobile (alça + arrasto + fecha por embalo). No desktop
+  // o helper devolve sem tocar em nada. Depois do onMount pra pegar o header final.
+  aplicarFisicaSheet(modal, { onFechar: closeModal, animarEntrada: !reabrindo });
   // Move o foco pro 1º elemento focável do modal (se o onMount não focou nada).
   // Os modais que já dão foco manual (ex.: confirmar) continuam funcionando.
   setTimeout(() => {
@@ -354,6 +360,91 @@ function closeModal() {
   if (prev && typeof prev.focus === "function" && document.contains(prev)) {
     try { prev.focus(); } catch {}
   }
+}
+
+// ---------- Física de bottom-sheet (nível Apple) ----------
+// UM helper pra TODOS os sheets do mobile (mock nivel-apple-2026-07, demo "Sheets com
+// física de verdade"): sobe com mola, segue o dedo quando se arrasta a alça e, ao
+// soltar, decide sozinho — passou do limiar OU veio com velocidade = fecha com embalo;
+// senão volta com mola. Só liga quando o componente É bottom-sheet (mobile, `mq`); no
+// desktop (diálogo central) devolve sem tocar em nada, a física "só liga no mobile".
+// prefers-reduced-motion: abre com fade curto, sem mola e sem gesto.
+//   el   = o elemento que sobe/desce (.modal, .esp-sheet__folha)
+//   opts = { onFechar, mq, animarEntrada }
+const SHEET_SPRING = "cubic-bezier(.28, 1.12, .38, 1)";
+function aplicarFisicaSheet(el, opts = {}) {
+  if (!el || !window.matchMedia) return;
+  const mq = opts.mq || "(max-width: 540px)";
+  if (!window.matchMedia(mq).matches) return; // desktop / diálogo central: sem física
+  const onFechar = typeof opts.onFechar === "function" ? opts.onFechar : () => {};
+  const reduz = prefereMenosMovimento();
+
+  // Alça: reusa um grip que o sheet já tenha, ou injeta a barrinha do mock.
+  let alca = el.querySelector(":scope > .grab, :scope > .pp-sheet__grip");
+  if (!alca) { alca = document.createElement("div"); alca.className = "grab"; el.insertBefore(alca, el.firstChild); }
+  alca.style.touchAction = "none";
+
+  // Entrada só em abertura NOVA (num re-render de conteúdo o sheet não re-salta).
+  if (opts.animarEntrada !== false) {
+    if (reduz) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: "ease" });
+    else el.animate([{ transform: "translateY(100%)" }, { transform: "translateY(0)" }], { duration: 480, easing: SHEET_SPRING });
+  }
+  if (reduz) return; // modo reduzido não ganha gesto
+
+  // Backdrop: dá pra escurecer proporcional ao arrasto, mas o sheet é FILHO do
+  // backdrop no app (ao contrário do mock, onde é irmão). Mexer na `opacity` do
+  // backdrop apagaria o sheet junto — então fademos só o ALFA do fundo.
+  const bd = el.closest(".modal-backdrop, .esp-sheet");
+  const bdBase = bd ? getComputedStyle(bd).backgroundColor : null;
+  const bdRGBA = bdBase && bdBase.match(/rgba?\(([^)]+)\)/);
+  const bdParts = bdRGBA ? bdRGBA[1].split(",").map((s) => parseFloat(s)) : null;
+  const bdFade = (k) => {
+    if (!bd || !bdParts) return;
+    const a0 = bdParts.length > 3 ? bdParts[3] : 1;
+    bd.style.backgroundColor = `rgba(${bdParts[0] | 0}, ${bdParts[1] | 0}, ${bdParts[2] | 0}, ${(a0 * k).toFixed(3)})`;
+  };
+
+  // Zonas de arrasto: a alça sempre; o cabeçalho só no vazio (nunca em botão/campo,
+  // pra o X e os controles continuarem clicáveis). O corpo rola normal (fora daqui).
+  el.querySelectorAll(".modal__header, .pp-sheet__head").forEach((h) => { h.style.touchAction = "none"; });
+  const naZonaArrasto = (t) => t.closest(".grab, .pp-sheet__grip") ||
+    (t.closest(".modal__header, .pp-sheet__head") && !t.closest("button, a, input, textarea, select, label, [role='switch'], [contenteditable]"));
+
+  let drag = null;
+  const onDown = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (!naZonaArrasto(e.target)) return;
+    el.getAnimations().forEach((a) => { try { a.cancel(); } catch {} });
+    el.style.transform = "translateY(0)";
+    drag = { y0: e.clientY, t0: performance.now(), dy: 0 };
+    try { el.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onMove = (e) => {
+    if (!drag) return;
+    drag.dy = Math.max(0, e.clientY - drag.y0);
+    el.style.transform = `translateY(${drag.dy}px)`;
+    bdFade(Math.max(0, 1 - drag.dy / 320));
+  };
+  const onUp = () => {
+    if (!drag) return;
+    const vel = drag.dy / Math.max(1, performance.now() - drag.t0); // px/ms
+    const d = drag; drag = null;
+    if (d.dy > 120 || vel > 0.55) {
+      bdFade(0);
+      const dur = Math.max(160, 300 - vel * 40); // veio rápido: fecha mais curto
+      const anim = el.animate([{ transform: `translateY(${d.dy}px)` }, { transform: "translateY(100%)" }],
+        { duration: dur, easing: "cubic-bezier(.4, 0, 1, 1)", fill: "forwards" });
+      anim.onfinish = () => { try { onFechar(); } catch {} };
+    } else {
+      const anim = el.animate([{ transform: `translateY(${d.dy}px)` }, { transform: "translateY(0)" }],
+        { duration: 480, easing: SHEET_SPRING, fill: "forwards" });
+      anim.onfinish = () => { try { anim.commitStyles(); anim.cancel(); } catch {} el.style.transform = ""; if (bd) bd.style.backgroundColor = ""; };
+    }
+  };
+  el.addEventListener("pointerdown", onDown);
+  el.addEventListener("pointermove", onMove);
+  el.addEventListener("pointerup", onUp);
+  el.addEventListener("pointercancel", onUp);
 }
 
 // Busca unificada das telas de pessoas (Funcionários, Banco de horas, Espelho):
@@ -425,6 +516,9 @@ function confirmar({ titulo = "Confirmar", msg = "", okLabel = "Confirmar", canc
     root.addEventListener("click", (e) => { if (e.target === root) fechar(false); }); // clica fora = cancela
     root.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", () => fechar(false)));
     root.querySelector("[data-ok]").addEventListener("click", () => fechar(true));
+    // No mobile o diálogo é um bottom-sheet: arrastar a alça pra baixo = cancelar
+    // (o gesto de dispensar cai sempre na escolha não destrutiva).
+    aplicarFisicaSheet(root.querySelector(".modal"), { onFechar: () => fechar(false) });
     setTimeout(() => root.querySelector("[data-ok]")?.focus(), 30);
   });
 }
@@ -4172,6 +4266,8 @@ function espAbrirSheetMobile() {
   const fechar = () => { casa.appendChild(det); ov.remove(); };
   ov.addEventListener("click", (e) => { if (e.target === ov) fechar(); });
   ov.querySelector(".esp-sheet__x").addEventListener("click", fechar);
+  // Mesma física dos outros sheets (a folha do espelho abre até 760px).
+  aplicarFisicaSheet(ov.querySelector(".esp-sheet__folha"), { mq: "(max-width: 760px)", onFechar: fechar });
 }
 
 function espSelecionar(f, viaToque) {
@@ -16344,7 +16440,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.74.0";
+window.CURRENT_VERSION = "1.75.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

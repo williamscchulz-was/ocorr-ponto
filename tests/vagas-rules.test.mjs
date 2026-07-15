@@ -161,3 +161,33 @@ test("RH le, lista e exclui candidatura (LGPD)", async () => {
 });
 test("RH NAO atualiza candidatura (update fechado no v1)", async () =>
   assertFails(updateDoc(doc(rh(), "candidaturas/vCand__ana@mail.com"), { status: "vista" })));
+
+// ---------- Candidatura COMPLETA (v3, 2026-07-15: nascimento + teste DISC + curriculo) ----------
+test("candidatura COMPLETA com todos os campos novos passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("completa@mail.com")), cand({
+    email: "completa@mail.com",
+    nascimento: "1992-03-14",
+    disc: { d: 5, i: -2, s: -3, c: 0 },
+    discPrimario: "D",
+    curriculoPath: "curriculos/vCand__ana@mail.com__a1b2c3.pdf",
+  }))));
+test("candidatura SEM os campos novos continua passando (retrocompat)", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("semextras@mail.com")), cand({ email: "semextras@mail.com" }))));
+test("nascimento fora do formato ISO nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("nasc1@mail.com")), cand({ email: "nasc1@mail.com", nascimento: "14/03/1992" }))));
+test("disc com chave extra nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("disc1@mail.com")), cand({ email: "disc1@mail.com", disc: { d: 1, i: 1, s: 1, c: 1, x: 1 } }))));
+test("disc com valor acima da faixa (d:9) nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("disc2@mail.com")), cand({ email: "disc2@mail.com", disc: { d: 9, i: 0, s: 0, c: 0 } }))));
+test("disc com valor abaixo da faixa (d:-9) nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("disc3@mail.com")), cand({ email: "disc3@mail.com", disc: { d: -9, i: 0, s: 0, c: 0 } }))));
+test("disc com valor nao-inteiro nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("disc4@mail.com")), cand({ email: "disc4@mail.com", disc: { d: "5", i: 0, s: 0, c: 0 } }))));
+test("disc INCOMPLETO (sem a chave d) nega (chave ausente = erro de avaliacao = nega)", async () =>
+  assertFails(setDoc(doc(anon(), cid("disc5@mail.com")), cand({ email: "disc5@mail.com", disc: { i: 0, s: 0, c: 0 } }))));
+test("discPrimario fora da lista nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("discp1@mail.com")), cand({ email: "discp1@mail.com", discPrimario: "X" }))));
+test("curriculoPath fora do padrao (path traversal) nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("curr1@mail.com")), cand({ email: "curr1@mail.com", curriculoPath: "hack/../x.pdf" }))));
+test("curriculoPath com extensao errada nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("curr2@mail.com")), cand({ email: "curr2@mail.com", curriculoPath: "curriculos/x.exe" }))));

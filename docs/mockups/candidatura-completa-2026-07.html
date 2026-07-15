@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Candidatura completa: currículo + perfil</title>
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+  :root {
+    --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00; --azul: #0076BE;
+    --ink: #1c231d; --muted: #68716a; --bg: #f2f3ee; --card: #ffffff;
+    --borda: #e3e5dd; --ease-ios: cubic-bezier(.32, .72, .28, 1);
+    --d: #d64545; --i: #e0a400; --s: #008835; --c: #0076be;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 48px 20px 90px; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  h1 { font: 700 clamp(26px, 4vw, 40px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--muted); max-width: 760px; font-size: 15.5px; }
+
+  .part { margin-top: 52px; }
+  .part-h { display: flex; align-items: center; gap: 12px; font: 700 20px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .part-h .n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 10px; background: var(--verde-esc); color: #fff; font: 700 14px/30px Poppins, system-ui, sans-serif; text-align: center; }
+  .part-d { color: var(--muted); font-size: 14px; margin: 10px 0 4px; max-width: 720px; }
+  .aplica { margin: 12px 0 26px; font-size: 12.5px; color: var(--verde-esc); background: #ffcb001f; border: 1px solid #e8c34d55; border-radius: 12px; padding: 9px 12px; max-width: 720px; }
+  .aplica b { font-weight: 600; }
+
+  /* ---------- frame de celular ~340 ---------- */
+  .phone { width: 342px; margin: 0 auto; background: #0b0d0c; border-radius: 46px; padding: 10px; box-shadow: 0 2px 4px #0003, 0 24px 60px -20px #04331a66, inset 0 0 0 2px #262b28; }
+  .screen { position: relative; overflow: hidden; border-radius: 37px; background: #f6f7f2; height: 648px; isolation: isolate; display: flex; flex-direction: column; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 92px; height: 25px; border-radius: 999px; background: #0b0d0c; z-index: 60; }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 26px 0; font: 600 12px Poppins, system-ui, sans-serif; color: #fff; position: relative; z-index: 50; }
+
+  /* topo da candidatura */
+  .cand-top { background: var(--verde-esc); color: #fff; padding: 0 0 14px; flex: 0 0 auto; position: relative; }
+  .cand-top::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, var(--verde), var(--amarelo), var(--azul)); }
+  .cand-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 0; }
+  .cand-back { width: 32px; height: 32px; border-radius: 50%; border: 0; background: #ffffff1f; color: #fff; display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; transition: background .15s, opacity .2s; }
+  .cand-back svg { width: 16px; height: 16px; }
+  .cand-back:hover { background: #ffffff30; }
+  .cand-back[hidden] { display: none; }
+  .cand-vaga { min-width: 0; }
+  .cand-vaga small { font-size: 11px; opacity: .72; letter-spacing: .02em; text-transform: uppercase; font-weight: 600; }
+  .cand-vaga b { display: block; font: 700 16px/1.2 Poppins, system-ui, sans-serif; }
+
+  /* stepper fino */
+  .stepper { padding: 12px 18px 12px; }
+  .step-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .step-count { font: 600 11px Poppins, system-ui, sans-serif; color: #ffffffc4; letter-spacing: .04em; }
+  .step-name { font: 600 12px Poppins, system-ui, sans-serif; color: #fff; }
+  .step-bar { display: flex; gap: 5px; }
+  .step-seg { flex: 1; height: 4px; border-radius: 999px; background: #ffffff2b; overflow: hidden; }
+  .step-seg i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--amarelo); transition: width .5s var(--ease-ios); }
+  .step-seg.done i { width: 100%; }
+  .step-seg.now i { width: 100%; background: #fff; }
+
+  /* corpo dos passos */
+  .stepwrap { flex: 1; position: relative; overflow: hidden; }
+  .step-view { position: absolute; inset: 0; padding: 18px 18px 8px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .step-view[hidden] { display: none; }
+  .stitle { font: 700 18px/1.25 Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .shint { color: var(--muted); font-size: 12.5px; margin: 5px 0 16px; line-height: 1.5; }
+
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font: 600 12px Poppins, system-ui, sans-serif; color: #384a32; margin-bottom: 5px; }
+  .field input { width: 100%; border: 1.5px solid var(--borda); border-radius: 13px; padding: 12px 13px; font: 500 14.5px Poppins, system-ui, sans-serif; color: var(--ink); background: #fff; transition: border-color .15s, box-shadow .15s; }
+  .field input::placeholder { color: #a9b0a5; }
+  .field input:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px #00883521; }
+  .field.err input { border-color: #d64545; }
+  .field .msg { font-size: 11px; color: #d64545; margin-top: 4px; min-height: 13px; opacity: 0; transition: opacity .15s; }
+  .field.err .msg { opacity: 1; }
+
+  /* currículo */
+  .cv-drop { border: 2px dashed #c6cfbf; border-radius: 18px; background: #fbfcf9; padding: 26px 16px; text-align: center; cursor: pointer; transition: border-color .18s, background .18s, transform .12s var(--ease-ios); }
+  .cv-drop:hover { border-color: var(--verde); background: #00883508; }
+  .cv-drop:active { transform: scale(.985); }
+  .cv-drop .cvic { width: 52px; height: 52px; border-radius: 15px; background: #00883514; color: var(--verde); display: grid; place-items: center; margin: 0 auto 12px; }
+  .cv-drop .cvic svg { width: 26px; height: 26px; }
+  .cv-drop b { display: block; font: 600 14px Poppins, system-ui, sans-serif; color: var(--ink); }
+  .cv-drop span { font-size: 11.5px; color: var(--muted); }
+  .cv-chip { display: none; align-items: center; gap: 12px; border: 1.5px solid #cbe3d3; background: #f0f8f2; border-radius: 15px; padding: 13px 14px; animation: pop .32s var(--ease-ios); }
+  .cv-chip.on { display: flex; }
+  .cv-chip .pdf { width: 40px; height: 46px; border-radius: 8px; background: #fff; border: 1px solid #d9e6dd; position: relative; flex: 0 0 auto; display: grid; place-items: end center; padding-bottom: 6px; }
+  .cv-chip .pdf::before { content: ""; position: absolute; top: 0; right: 0; width: 13px; height: 13px; background: linear-gradient(225deg, #d9e6dd 50%, transparent 50%); border-top-right-radius: 8px; }
+  .cv-chip .pdf b { font: 700 8px Poppins, system-ui, sans-serif; color: #d64545; letter-spacing: .04em; }
+  .cv-chip .meta { flex: 1; min-width: 0; }
+  .cv-chip .meta b { display: block; font: 600 13px Poppins, system-ui, sans-serif; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cv-chip .meta span { font-size: 11px; color: var(--muted); }
+  .cv-x { width: 30px; height: 30px; border-radius: 50%; border: 0; background: #e6ece1; color: #5a6852; cursor: pointer; flex: 0 0 auto; display: grid; place-items: center; transition: background .15s; }
+  .cv-x:hover { background: #d8e0d1; }
+  .cv-x svg { width: 14px; height: 14px; }
+  .cv-skip { margin-top: 18px; text-align: center; }
+  .cv-skip p { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+  .btn-link { background: none; border: 0; color: var(--verde); font: 600 12.5px Poppins, system-ui, sans-serif; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+  .cv-ok { margin-top: 14px; font-size: 11.5px; color: var(--verde); display: none; align-items: center; gap: 6px; justify-content: center; }
+  .cv-ok.on { display: flex; }
+  .cv-ok svg { width: 14px; height: 14px; }
+
+  /* DISC */
+  .disc-top { margin-bottom: 16px; }
+  .disc-count { font: 600 11.5px Poppins, system-ui, sans-serif; color: var(--muted); letter-spacing: .03em; margin-bottom: 6px; }
+  .disc-prog { height: 5px; border-radius: 999px; background: #e6ece1; overflow: hidden; }
+  .disc-prog i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--verde), #16a34a); transition: width .45s var(--ease-ios); }
+  .disc-q { font: 700 15px/1.35 Poppins, system-ui, sans-serif; letter-spacing: -.01em; margin-bottom: 3px; }
+  .disc-qs { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .disc-stage { position: relative; }
+  .disc-card { }
+  .disc-opt { display: block; width: 100%; text-align: left; border: 1.5px solid var(--borda); background: #fff; border-radius: 15px; padding: 15px 15px; margin-bottom: 10px; font: 500 13.5px/1.4 Poppins, system-ui, sans-serif; color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s, transform .12s var(--ease-ios); }
+  .disc-opt:hover { border-color: #bcd8c6; }
+  .disc-opt:active { transform: scale(.985); }
+  .disc-opt.sel { border-color: var(--verde); background: #00883510; font-weight: 600; }
+  .disc-back { background: none; border: 0; color: var(--muted); font: 600 12px Poppins, system-ui, sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; padding: 6px 2px; margin-top: 2px; }
+  .disc-back svg { width: 13px; height: 13px; }
+  .disc-back[hidden] { display: none; }
+  /* opção escolhida como MAIS / MENOS */
+  .disc-opt { position: relative; }
+  .disc-opt .ot { display: block; }
+  .disc-opt.most { border-color: var(--verde); background: #00883510; font-weight: 600; }
+  .disc-opt.least { border-color: #cdd4c7; background: #eef0ea; color: #7a8170; }
+  .disc-opt.locked, .disc-opt:disabled { cursor: default; opacity: 1; }
+  .disc-opt.most .ot, .disc-opt.least .ot { padding-right: 62px; }
+  .obadge { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); font: 700 9.5px/1 Poppins, system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; }
+  .obadge.b-most { background: var(--verde); color: #fff; }
+  .obadge.b-least { background: #b6bfad; color: #fff; }
+
+  /* DISC concluído */
+  .disc-done { display: none; text-align: center; padding: 40px 12px 0; }
+  .disc-done.on { display: block; animation: fadein .35s var(--ease-ios); }
+  .disc-done .chk { width: 76px; height: 76px; border-radius: 50%; background: #00883514; display: grid; place-items: center; margin: 0 auto 16px; }
+  .disc-done .chk svg { width: 40px; height: 40px; }
+  .disc-done b { font: 700 18px Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .disc-done p { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.5; }
+
+  /* revisão */
+  .rev-card { background: #fff; border: 1px solid var(--borda); border-radius: 18px; padding: 6px 16px; margin-bottom: 14px; }
+  .rev-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eef0ea; }
+  .rev-row:last-child { border-bottom: 0; }
+  .rev-row .ri { width: 34px; height: 34px; border-radius: 10px; background: #00883514; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; }
+  .rev-row .ri svg { width: 17px; height: 17px; }
+  .rev-row .rt { flex: 1; min-width: 0; }
+  .rev-row .rt small { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+  .rev-row .rt b { font: 600 13.5px Poppins, system-ui, sans-serif; word-break: break-word; }
+  .rev-row .rt b.dim { color: var(--muted); font-weight: 500; }
+  .lgpd { display: flex; gap: 11px; align-items: flex-start; background: #f7f8f4; border: 1px solid var(--borda); border-radius: 14px; padding: 13px 14px; margin-bottom: 4px; cursor: pointer; }
+  .lgpd .box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #c2cbba; flex: 0 0 auto; display: grid; place-items: center; transition: background .15s, border-color .15s; margin-top: 1px; }
+  .lgpd.on .box { background: var(--verde); border-color: var(--verde); }
+  .lgpd .box svg { width: 13px; height: 13px; opacity: 0; transition: opacity .15s; }
+  .lgpd.on .box svg { opacity: 1; }
+  .lgpd p { font-size: 11.5px; color: #4b544544; color: #55604f; line-height: 1.5; }
+
+  /* footer / botões */
+  .cand-foot { flex: 0 0 auto; padding: 12px 18px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid #eceee8; background: #fbfcf9; }
+  .cand-foot[hidden] { display: none; }
+  .btn { width: 100%; border: 0; border-radius: 15px; background: var(--verde); color: #fff; font: 700 14.5px Poppins, system-ui, sans-serif; padding: 15px; cursor: pointer; transition: transform .14s var(--ease-ios), background .15s, opacity .2s; }
+  .btn:hover { background: #0b6e33; }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .5; cursor: default; transform: none; }
+  .btn.amar { background: var(--amarelo); color: #332902; }
+  .btn.amar:hover { background: #eaba00; }
+
+  /* cerimônia */
+  .cer { position: absolute; inset: 0; z-index: 70; display: grid; place-items: center; background: #f6f7f2f2; backdrop-filter: blur(7px); opacity: 0; pointer-events: none; transition: opacity .3s; padding: 24px; }
+  .cer.on { opacity: 1; pointer-events: auto; }
+  .cer-in { text-align: center; }
+  .ring { position: relative; width: 100px; height: 100px; margin: 0 auto 20px; }
+  .ring svg.r { width: 100px; height: 100px; transform: rotate(-90deg); }
+  .ring .trk { fill: none; stroke: #dfe4dc; stroke-width: 5; }
+  .ring .arc { fill: none; stroke: var(--verde); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 276; }
+  .ring .chk { position: absolute; inset: 0; display: grid; place-items: center; }
+  .ring .chk svg { width: 46px; height: 46px; }
+  .ring .chk path { fill: none; stroke: var(--verde); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 48; stroke-dashoffset: 48; }
+  .pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid #00883555; opacity: 0; }
+  .cer-t { font: 700 19px Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .cer-s { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.55; max-width: 250px; margin-left: auto; margin-right: auto; }
+  .cer .btn { width: auto; padding: 12px 26px; margin-top: 24px; display: inline-block; }
+  .spin { display: inline-block; width: 16px; height: 16px; border: 2.5px solid #ffffff66; border-top-color: #fff; border-radius: 50%; animation: sp .7s linear infinite; vertical-align: -3px; margin-right: 8px; }
+
+  @keyframes sp { to { transform: rotate(360deg); } }
+  @keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes arco { to { stroke-dashoffset: 0; } }
+  @keyframes tick { to { stroke-dashoffset: 0; } }
+  @keyframes puls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+
+  /* ============ PARTE 2: visão GP (desktop ~900) ============ */
+  .deskwrap { display: flex; justify-content: center; }
+  .deskframe { width: 900px; max-width: 100%; background: var(--card); border: 1px solid var(--borda); border-radius: 22px; overflow: hidden; box-shadow: 0 2px 4px #0000000a, 0 30px 70px -30px #04331a3a; }
+  .desk-top { display: flex; align-items: center; gap: 8px; padding: 13px 18px; background: #fbfcf9; border-bottom: 1px solid var(--borda); }
+  .desk-dot { width: 11px; height: 11px; border-radius: 50%; background: #dfe3da; }
+  .desk-title { margin-left: 10px; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .desk-title .badge { background: #00883514; color: var(--verde); border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+  .desk-body { padding: 26px 28px 30px; background: var(--bg); }
+  .desk-h { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+  .desk-h h3 { font: 700 22px Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .desk-h .cnt { font-size: 13px; color: var(--muted); }
+  .desk-h .cnt b { color: var(--verde); font-weight: 700; }
+  .desk-tags { display: flex; gap: 6px; margin: 10px 0 22px; flex-wrap: wrap; }
+  .desk-tags .t { font-size: 11px; font-weight: 600; padding: 4px 11px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
+  .desk-tags .t.turno { background: #e8f1f8; color: var(--azul); }
+
+  .cc { background: #fff; border: 1px solid var(--borda); border-radius: 18px; padding: 20px 22px; margin-bottom: 16px; display: grid; grid-template-columns: 300px 1fr; gap: 26px; position: relative; overflow: hidden; }
+  .cc::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; }
+  .cc.pd::before { background: var(--d); } .cc.pi::before { background: var(--i); }
+  .cc.ps::before { background: var(--s); } .cc.pc::before { background: var(--c); }
+  .cc.pe::before { background: #b6bfad; }
+  .cc-l { padding-left: 8px; }
+  .cc-id { display: flex; align-items: center; gap: 13px; }
+  .cc-av { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; font: 700 17px Poppins, system-ui, sans-serif; color: #fff; flex: 0 0 auto; }
+  .cc-id b { display: block; font: 700 16px Poppins, system-ui, sans-serif; letter-spacing: -.01em; }
+  .cc-id span { font-size: 12px; color: var(--muted); }
+  .cc-meta { margin: 15px 0 0; display: flex; flex-direction: column; gap: 9px; }
+  .cc-meta div { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: #45523f; }
+  .cc-meta svg { width: 15px; height: 15px; color: var(--muted); flex: 0 0 auto; }
+  .cc-cv { margin-top: 16px; }
+  .cv-btn { display: inline-flex; align-items: center; gap: 9px; border: 1px solid #d9e6dd; background: #f6faf7; border-radius: 12px; padding: 9px 13px 9px 10px; cursor: pointer; font: 600 12.5px Poppins, system-ui, sans-serif; color: var(--verde-esc); transition: background .15s, border-color .15s; }
+  .cv-btn:hover { background: #edf6ef; border-color: #bcd8c6; }
+  .cv-btn .pdf { width: 24px; height: 28px; border-radius: 5px; background: #fff; border: 1px solid #d9e6dd; display: grid; place-items: end center; padding-bottom: 3px; position: relative; }
+  .cv-btn .pdf b { font: 700 6.5px Poppins, system-ui, sans-serif; color: var(--d); }
+  .cv-none { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); background: #f3f4ef; border: 1px dashed #d3d9cc; border-radius: 12px; padding: 9px 13px; }
+  .cv-none svg { width: 15px; height: 15px; }
+
+  .cc-r { border-left: 1px solid #eef0ea; padding-left: 26px; }
+  .perfil-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .perfil-h small { font: 600 10.5px Poppins, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .selo { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 5px 13px; font: 700 12.5px Poppins, system-ui, sans-serif; }
+  .selo .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .selo.pd { background: #d6454514; color: #a82f2f; } .selo.pd .dot { background: var(--d); }
+  .selo.pi { background: #e0a40018; color: #8a6a00; } .selo.pi .dot { background: var(--i); }
+  .selo.ps { background: #00883514; color: #0b6e33; } .selo.ps .dot { background: var(--s); }
+  .selo.pc { background: #0076be14; color: #075c93; } .selo.pc .dot { background: var(--c); }
+  .selo.pe { background: #eceee8; color: #5a6552; } .selo.pe .dot { background: #9aa392; }
+
+  .bar-row { display: grid; grid-template-columns: 92px 1fr 40px; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .bar-lbl { font: 600 12px Poppins, system-ui, sans-serif; color: #45523f; }
+  .bar-track { height: 9px; border-radius: 999px; background: #eef0ea; overflow: hidden; }
+  .bar-fill { display: block; height: 100%; border-radius: 999px; width: 0; transition: width .8s var(--ease-ios); }
+  .bar-fill.d { background: var(--d); } .bar-fill.i { background: var(--i); }
+  .bar-fill.s { background: var(--s); } .bar-fill.c { background: var(--c); }
+  .bar-pct { font: 600 11.5px Poppins, system-ui, sans-serif; color: var(--muted); text-align: right; }
+  .leitura { margin-top: 14px; font-size: 12.5px; color: #45523f; line-height: 1.55; background: #f7f8f4; border-radius: 12px; padding: 11px 13px; border: 1px solid #eef0ea; }
+  .leitura b { font-weight: 600; color: var(--verde-esc); }
+  .nota { display: flex; align-items: flex-start; gap: 9px; font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 8px; padding: 12px 14px; background: #fff; border: 1px dashed #d3d9cc; border-radius: 14px; }
+  .nota svg { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 1px; color: #97a08f; }
+
+  .foot { margin-top: 50px; color: var(--muted); font-size: 12.5px; text-align: center; line-height: 1.7; }
+
+  @media (max-width: 620px) {
+    .cc { grid-template-columns: 1fr; gap: 18px; }
+    .cc-r { border-left: 0; border-top: 1px solid #eef0ea; padding-left: 8px; padding-top: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="kicker">Proposta · aprovação antes de tocar o app</span>
+  <h1>Candidatura de verdade: currículo, perfil e triagem</h1>
+  <p class="sub">O site de vagas hoje pede quatro campos e pronto. A proposta transforma isso em recrutamento sério sem pesar a mão: o candidato sobe o currículo e responde um teste rápido de perfil, tudo em etapas curtas de onde não dá vontade de sair. Do outro lado, a Gestão de Pessoas recebe o candidato já com o currículo em mãos e uma leitura de perfil pronta pra guiar a entrevista. Toque nos dois protótipos abaixo, os dois funcionam.</p>
+
+  <!-- ============ PARTE 1: FLUXO DO CANDIDATO ============ -->
+  <div class="part">
+    <div class="part-h"><span class="n">1</span>O que o candidato vê, no celular</div>
+    <p class="part-d">Quatro etapas curtas com um stepper fino no topo que sempre mostra onde a pessoa está. Dá pra voltar sem perder nada, a validação aparece na hora e o currículo é opcional de propósito: ninguém desiste porque não tem PDF na mão. O teste de perfil é apresentado como um joguinho de 2 minutos, uma pergunta por vez, e o resultado nunca aparece pro candidato.</p>
+    <div class="aplica"><b>Onde entra:</b> substitui o formulário atual do dialog em vagas.fiobras.com.br. Toque para navegar: preencha, anexe (ou pule) o currículo, responda o teste de perfil e envie.</div>
+
+    <div class="phone"><div class="screen" id="scr">
+      <div class="island"></div>
+
+      <div class="cand-top">
+        <div class="sbar"><span>9:41</span><span>vagas.fiobras.com.br</span></div>
+        <div class="cand-head">
+          <button class="cand-back" id="btnBack" hidden aria-label="Voltar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>
+          </button>
+          <div class="cand-vaga"><small>Candidatura</small><b>Operador de Máquina</b></div>
+        </div>
+        <div class="stepper">
+          <div class="step-line"><span class="step-count" id="stepCount">Etapa 1 de 4</span><span class="step-name" id="stepName">Sobre você</span></div>
+          <div class="step-bar" id="stepBar">
+            <span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stepwrap" id="stepWrap">
+
+        <!-- ETAPA 1: sobre você -->
+        <div class="step-view" id="s1">
+          <div class="stitle">Prazer, quem é você?</div>
+          <div class="shint">Só o essencial pra gente te chamar. Leva menos de um minuto.</div>
+          <div class="field" id="f-nome">
+            <label for="i-nome">Nome completo</label>
+            <input id="i-nome" type="text" placeholder="Seu nome e sobrenome" autocomplete="name">
+            <div class="msg">Digite seu nome completo.</div>
+          </div>
+          <div class="field" id="f-zap">
+            <label for="i-zap">WhatsApp</label>
+            <input id="i-zap" type="tel" placeholder="(47) 9 9999-9999" autocomplete="tel" inputmode="tel">
+            <div class="msg">Informe um número válido com DDD.</div>
+          </div>
+          <div class="field" id="f-mail">
+            <label for="i-mail">E-mail</label>
+            <input id="i-mail" type="email" placeholder="voce@email.com" autocomplete="email" inputmode="email">
+            <div class="msg">Confira o e-mail, parece incompleto.</div>
+          </div>
+          <div class="field" id="f-cidade">
+            <label for="i-cidade">Cidade onde mora</label>
+            <input id="i-cidade" type="text" placeholder="Ex.: Indaial, SC" autocomplete="address-level2">
+            <div class="msg">Diga a cidade onde você mora.</div>
+          </div>
+        </div>
+
+        <!-- ETAPA 2: currículo -->
+        <div class="step-view" id="s2" hidden>
+          <div class="stitle">Seu currículo</div>
+          <div class="shint">Se tiver um PDF na mão, ele ajuda a gente a te conhecer melhor. Mas não é obrigatório.</div>
+          <div class="cv-drop" id="cvDrop">
+            <div class="cvic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/><path d="M12 18v-6"/><path d="M9.5 14.5 12 12l2.5 2.5"/></svg></div>
+            <b>Anexar currículo</b>
+            <span>PDF, até 3 MB · toque para escolher</span>
+          </div>
+          <div class="cv-chip" id="cvChip">
+            <div class="pdf"><b>PDF</b></div>
+            <div class="meta"><b id="cvNome">curriculo.pdf</b><span id="cvTam">1,2 MB</span></div>
+            <button class="cv-x" id="cvX" aria-label="Remover currículo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div class="cv-skip" id="cvSkip">
+            <p>Sem currículo em PDF? Sem problema, você pode enviar mesmo assim.</p>
+            <button class="btn-link" id="btnPular">Pular esta etapa</button>
+          </div>
+          <div class="cv-ok" id="cvOk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Tudo certo, pode continuar</div>
+        </div>
+
+        <!-- ETAPA 3: DISC -->
+        <div class="step-view" id="s3" hidden>
+          <div id="discRun">
+            <div class="disc-top">
+              <div class="disc-count" id="discCount">Pergunta 1 de 8</div>
+              <div class="disc-prog"><i id="discFill"></i></div>
+            </div>
+            <div class="disc-q" id="discPrompt">Toque na frase que <b>mais</b> combina com você</div>
+            <div class="disc-qs">Não existe resposta certa. Vá pela primeira impressão, é rapidinho.</div>
+            <div class="disc-stage"><div class="disc-card" id="discCard"></div></div>
+            <button class="disc-back" id="discBack" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Pergunta anterior</button>
+          </div>
+          <div class="disc-done" id="discDone">
+            <div class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="#008835" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <b>Pronto!</b>
+            <p>Falta só a última etapa. Obrigado por responder com sinceridade.</p>
+          </div>
+        </div>
+
+        <!-- ETAPA 4: revisão + envio -->
+        <div class="step-view" id="s4" hidden>
+          <div class="stitle">Quase lá, confira e envie</div>
+          <div class="shint">Dê uma olhada nos seus dados. Se algo mudou, é só voltar.</div>
+          <div class="rev-card">
+            <div class="rev-row">
+              <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+              <div class="rt"><small>Você</small><b id="rvNome">—</b></div>
+            </div>
+            <div class="rev-row">
+              <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg></div>
+              <div class="rt"><small>Contato</small><b id="rvContato">—</b></div>
+            </div>
+            <div class="rev-row">
+              <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/></svg></div>
+              <div class="rt"><small>Currículo</small><b id="rvCv" class="dim">—</b></div>
+            </div>
+            <div class="rev-row">
+              <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="rt"><small>Perfil</small><b>Teste concluído</b></div>
+            </div>
+          </div>
+          <label class="lgpd" id="lgpd">
+            <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <p>Autorizo a Fiobras a usar meus dados apenas neste processo seletivo, conforme a LGPD.</p>
+          </label>
+        </div>
+
+      </div>
+
+      <div class="cand-foot" id="foot">
+        <button class="btn" id="btnPrim">Continuar</button>
+      </div>
+
+      <!-- cerimônia -->
+      <div class="cer" id="cer">
+        <div class="cer-in">
+          <div class="ring">
+            <span class="pulse" id="pulse"></span>
+            <svg class="r" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44"/><circle class="arc" id="arc" cx="50" cy="50" r="44"/></svg>
+            <span class="chk"><svg viewBox="0 0 46 46"><path id="tick" d="M13 24 L20.5 31.5 L33 16"/></svg></span>
+          </div>
+          <div class="cer-t">Candidatura enviada</div>
+          <div class="cer-s">A Gestão de Pessoas já recebeu tudo e vai analisar. Boa sorte!</div>
+          <button class="btn" onclick="resetTudo()">Refazer a demo</button>
+        </div>
+      </div>
+
+    </div></div>
+  </div>
+
+  <!-- ============ PARTE 2: VISÃO DA GP ============ -->
+  <div class="part">
+    <div class="part-h"><span class="n">2</span>O que a Gestão de Pessoas recebe</div>
+    <p class="part-d">Na tela Vagas do portal do gestor, cada candidatura chega completa: contato, cidade, currículo a um clique e o perfil comportamental já traduzido em quatro barras e um selo, com uma linha de leitura pronta pra guiar a entrevista. Abaixo, quatro candidatos de perfis diferentes na mesma vaga, incluindo um sem traço dominante, pra mostrar a variedade.</p>
+    <div class="aplica"><b>Onde entra:</b> evolui o card de candidatura que hoje é só nome, contato e mensagem. O perfil é ferramenta interna, o candidato nunca vê a classificação.</div>
+
+    <div class="deskwrap"><div class="deskframe">
+      <div class="desk-top">
+        <span class="desk-dot"></span><span class="desk-dot"></span><span class="desk-dot"></span>
+        <span class="desk-title">FioPulse · Gestão de Pessoas <span class="badge">Vagas</span></span>
+      </div>
+      <div class="desk-body">
+        <div class="desk-h">
+          <h3>Operador de Máquina</h3>
+          <span class="cnt"><b>4</b> candidaturas novas</span>
+        </div>
+        <div class="desk-tags"><span class="t">Produção</span><span class="t turno">1º turno</span><span class="t">Indaial, SC</span></div>
+
+        <!-- candidato 1: Executor (D) -->
+        <div class="cc pd">
+          <div class="cc-l">
+            <div class="cc-id">
+              <span class="cc-av" style="background:#d64545">MP</span>
+              <div><b>Marcos Pereira</b><span>34 anos · Indaial, SC</span></div>
+            </div>
+            <div class="cc-meta">
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg>(47) 9 8812-4407</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>marcos.pereira@email.com</div>
+            </div>
+            <div class="cc-cv">
+              <button class="cv-btn"><span class="pdf"><b>PDF</b></span>Abrir currículo · 1,2 MB</button>
+            </div>
+          </div>
+          <div class="cc-r">
+            <div class="perfil-h">
+              <small>Perfil comportamental</small>
+              <span class="selo pd"><span class="dot"></span>Executor</span>
+            </div>
+            <div class="bar-row"><span class="bar-lbl">Decisão</span><div class="bar-track"><i class="bar-fill d" data-w="88"></i></div><span class="bar-pct">88%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Comunicação</span><div class="bar-track"><i class="bar-fill i" data-w="44"></i></div><span class="bar-pct">44%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Estabilidade</span><div class="bar-track"><i class="bar-fill s" data-w="38"></i></div><span class="bar-pct">38%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Detalhe</span><div class="bar-track"><i class="bar-fill c" data-w="31"></i></div><span class="bar-pct">31%</span></div>
+            <div class="leitura"><b>Tende a decidir rápido e a preferir autonomia.</b> Bom pra funções com meta, ritmo puxado e pressão. Vale checar na entrevista como ele lida com processo e trabalho em equipe.</div>
+          </div>
+        </div>
+
+        <!-- candidato 2: Comunicador (I) -->
+        <div class="cc pi">
+          <div class="cc-l">
+            <div class="cc-id">
+              <span class="cc-av" style="background:#e0a400;color:#3a2c00">JB</span>
+              <div><b>Juliana Barros</b><span>27 anos · Blumenau, SC</span></div>
+            </div>
+            <div class="cc-meta">
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg>(47) 9 9143-2288</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>ju.barros@email.com</div>
+            </div>
+            <div class="cc-cv">
+              <button class="cv-btn"><span class="pdf"><b>PDF</b></span>Abrir currículo · 890 KB</button>
+            </div>
+          </div>
+          <div class="cc-r">
+            <div class="perfil-h">
+              <small>Perfil comportamental</small>
+              <span class="selo pi"><span class="dot"></span>Comunicador</span>
+            </div>
+            <div class="bar-row"><span class="bar-lbl">Decisão</span><div class="bar-track"><i class="bar-fill d" data-w="50"></i></div><span class="bar-pct">50%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Comunicação</span><div class="bar-track"><i class="bar-fill i" data-w="81"></i></div><span class="bar-pct">81%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Estabilidade</span><div class="bar-track"><i class="bar-fill s" data-w="44"></i></div><span class="bar-pct">44%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Detalhe</span><div class="bar-track"><i class="bar-fill c" data-w="25"></i></div><span class="bar-pct">25%</span></div>
+            <div class="leitura"><b>Gosta de gente e comunica com facilidade.</b> Bom pra atendimento, integração de time e funções que dependem de contato. Pode precisar de apoio em tarefas muito repetitivas e solitárias.</div>
+          </div>
+        </div>
+
+        <!-- candidato 3: Analítico (C) -->
+        <div class="cc pc">
+          <div class="cc-l">
+            <div class="cc-id">
+              <span class="cc-av" style="background:#0076be">RS</span>
+              <div><b>Rafael Souza</b><span>41 anos · Indaial, SC</span></div>
+            </div>
+            <div class="cc-meta">
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg>(47) 9 9067-5531</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>rafael.souza@email.com</div>
+            </div>
+            <div class="cc-cv">
+              <span class="cv-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M18 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8l5 5v11a2 2 0 0 1-2 2z"/></svg>Sem currículo (candidato pulou)</span>
+            </div>
+          </div>
+          <div class="cc-r">
+            <div class="perfil-h">
+              <small>Perfil comportamental</small>
+              <span class="selo pc"><span class="dot"></span>Analítico</span>
+            </div>
+            <div class="bar-row"><span class="bar-lbl">Decisão</span><div class="bar-track"><i class="bar-fill d" data-w="31"></i></div><span class="bar-pct">31%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Comunicação</span><div class="bar-track"><i class="bar-fill i" data-w="19"></i></div><span class="bar-pct">19%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Estabilidade</span><div class="bar-track"><i class="bar-fill s" data-w="63"></i></div><span class="bar-pct">63%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Detalhe</span><div class="bar-track"><i class="bar-fill c" data-w="88"></i></div><span class="bar-pct">88%</span></div>
+            <div class="leitura"><b>Foco em precisão, processo e qualidade.</b> Bom pra conferência, controle e funções técnicas que não admitem erro. Costuma render mais com instrução clara do que sob improviso.</div>
+          </div>
+        </div>
+
+        <!-- candidato 4: Perfil equilibrado (sem traço dominante) -->
+        <div class="cc pe">
+          <div class="cc-l">
+            <div class="cc-id">
+              <span class="cc-av" style="background:#8a9280">DM</span>
+              <div><b>Diego Martins</b><span>30 anos · Timbó, SC</span></div>
+            </div>
+            <div class="cc-meta">
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z"/></svg>(47) 9 9330-1846</div>
+              <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>diego.martins@email.com</div>
+            </div>
+            <div class="cc-cv">
+              <button class="cv-btn"><span class="pdf"><b>PDF</b></span>Abrir currículo · 1,1 MB</button>
+            </div>
+          </div>
+          <div class="cc-r">
+            <div class="perfil-h">
+              <small>Perfil comportamental</small>
+              <span class="selo pe"><span class="dot"></span>Equilibrado</span>
+            </div>
+            <div class="bar-row"><span class="bar-lbl">Decisão</span><div class="bar-track"><i class="bar-fill d" data-w="56"></i></div><span class="bar-pct">56%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Comunicação</span><div class="bar-track"><i class="bar-fill i" data-w="38"></i></div><span class="bar-pct">38%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Estabilidade</span><div class="bar-track"><i class="bar-fill s" data-w="63"></i></div><span class="bar-pct">63%</span></div>
+            <div class="bar-row"><span class="bar-lbl">Detalhe</span><div class="bar-track"><i class="bar-fill c" data-w="44"></i></div><span class="bar-pct">44%</span></div>
+            <div class="leitura"><b>Sem um traço que se destaque no teste.</b> Perfil versátil, tende a se moldar ao que a função pede. Na entrevista, peça exemplos concretos do dia a dia pra ver onde ele rende melhor.</div>
+          </div>
+        </div>
+
+        <div class="nota">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          Classificação indicativa a partir do teste de perfil. Use junto com a entrevista e a análise do currículo, nunca sozinha para decidir.
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <p class="foot">Tudo acima é protótipo em HTML, sem dependência nova: stepper, teste de perfil e cerimônia usam recurso nativo do navegador (Web Animations, vibração). O upload de currículo (Storage) e o cálculo do perfil (Cloud Function ou cliente) entram na fase de implementação, depois do seu OK. Reduz movimento para quem prefere.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var vibrar = function (p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+
+  // ===== estado =====
+  var STEP_NOMES = ["Sobre você", "Currículo", "Seu jeito de trabalhar", "Revisão"];
+  var step = 1;                // 1..4
+  var cvEstado = "";           // "", "anexado", "pulado"
+  var discIdx = 0;
+  var pos = 0;                 // micro-passo 0..2N-1 (cada bloco = MAIS depois MENOS)
+  var discResp = [];           // por bloco: {most:"D", least:"C"}
+
+  // ===== os 8 grupos do teste (uma frase por dimensão D/I/S/C) =====
+  // formato "mais e menos": o candidato toca a que MAIS combina e depois a que MENOS combina.
+  // frases equilibradas em desejabilidade: dentro de cada grupo nenhuma é "a bonita",
+  // são comportamentos concretos do dia a dia de fábrica/escritório. scoring vem do campo .d.
+  var GRUPOS = [
+    [ {d:"S",t:"Sigo a mesma ordem de sempre"}, {d:"D",t:"Já começo pela parte mais difícil"}, {d:"C",t:"Confiro o que preciso antes de começar"}, {d:"I",t:"Puxo conversa com quem está do lado"} ],
+    [ {d:"C",t:"Paro para achar a causa certa"}, {d:"I",t:"Chamo alguém para pensar junto"}, {d:"D",t:"Decido na hora e sigo em frente"}, {d:"S",t:"Mantenho a calma e vou com cuidado"} ],
+    [ {d:"I",t:"Rendo mais quando o time está junto"}, {d:"C",t:"Faço com capricho, sem pressa"}, {d:"S",t:"Prefiro um ritmo firme e sem sustos"}, {d:"D",t:"Gosto de meta e de bater tempo"} ],
+    [ {d:"D",t:"Falo direto o que penso"}, {d:"S",t:"Tenho paciência para ensinar quem chega"}, {d:"I",t:"Deixo o clima do setor mais animado"}, {d:"C",t:"Explico o passo a passo certinho"} ],
+    [ {d:"S",t:"Falto pouco e chego no horário"}, {d:"C",t:"Percebo o erro que passa batido"}, {d:"D",t:"Encaro pressão e prazo curto"}, {d:"I",t:"Me entendo bem com todo tipo de gente"} ],
+    [ {d:"C",t:"Prefiro instrução clara e por escrito"}, {d:"D",t:"Me diz o objetivo, o resto eu resolvo"}, {d:"S",t:"Gosto de saber o que esperam de mim"}, {d:"I",t:"Gosto de combinar as coisas conversando"} ],
+    [ {d:"I",t:"Animo o pessoal para não cair o astral"}, {d:"S",t:"Sigo firme no meu posto, sem me abalar"}, {d:"C",t:"Vou com atenção para não deixar erro"}, {d:"D",t:"Assumo a frente e divido o serviço"} ],
+    [ {d:"S",t:"Calmo e de confiança"}, {d:"I",t:"Animado e comunicativo"}, {d:"D",t:"Decidido e que vai à luta"}, {d:"C",t:"Caprichoso e organizado"} ]
+  ];
+  var N = GRUPOS.length;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var views = { 1: $("s1"), 2: $("s2"), 3: $("s3"), 4: $("s4") };
+
+  // ===== stepper =====
+  function pintarStepper() {
+    $("stepCount").textContent = "Etapa " + step + " de 4";
+    $("stepName").textContent = STEP_NOMES[step - 1];
+    var segs = $("stepBar").children;
+    for (var i = 0; i < segs.length; i++) {
+      segs[i].classList.toggle("done", (i + 1) < step);
+      segs[i].classList.toggle("now", (i + 1) === step);
+    }
+    $("btnBack").hidden = (step === 1);
+  }
+
+  // ===== troca de etapa (fade/slide) =====
+  var reduz = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function irStep(n, dir) {
+    if (n < 1 || n > 4) return;
+    var de = views[step], para = views[n];
+    step = n;
+    pintarStepper();
+    ajustarFoot();
+    if (de === para) return;
+    de.hidden = true;
+    para.hidden = false;
+    if (!reduz) {
+      var dx = (dir === "tras" ? -24 : 24);
+      para.animate([{ opacity: 0, transform: "translateX(" + dx + "px)" }, { opacity: 1, transform: "none" }], { duration: 280, easing: "cubic-bezier(.32,.72,.28,1)" });
+    }
+    para.scrollTop = 0;
+    if (n === 3 && !discResp.length) iniciarDisc();
+    if (n === 4) preencherRevisao();
+  }
+
+  // ===== footer contextual =====
+  function ajustarFoot() {
+    var foot = $("foot"), btn = $("btnPrim");
+    if (step === 3) {                 // DISC avança por seleção; sem botão até concluir
+      foot.hidden = !discConcluido();
+      if (!foot.hidden) { btn.textContent = "Ir para a última etapa"; btn.className = "btn"; }
+      return;
+    }
+    foot.hidden = false;
+    if (step === 4) { btn.textContent = "Enviar candidatura"; btn.className = "btn amar"; btn.disabled = !$("lgpd").classList.contains("on"); }
+    else { btn.textContent = "Continuar"; btn.className = "btn"; btn.disabled = false; }
+  }
+
+  // ===== ETAPA 1: validação inline =====
+  function validaStep1() {
+    var ok = true;
+    function checa(campo, cond) {
+      var el = $(campo); el.classList.toggle("err", !cond); if (!cond) ok = false;
+    }
+    var zap = $("i-zap").value.replace(/\D/g, "");
+    var mail = $("i-mail").value.trim();
+    checa("f-nome", $("i-nome").value.trim().length >= 3);
+    checa("f-zap", zap.length >= 10);
+    checa("f-mail", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail));
+    checa("f-cidade", $("i-cidade").value.trim().length >= 2);
+    return ok;
+  }
+  ["i-nome", "i-zap", "i-mail", "i-cidade"].forEach(function (id) {
+    $(id).addEventListener("input", function () { this.closest(".field").classList.remove("err"); });
+  });
+
+  // ===== ETAPA 2: currículo =====
+  function mostrarChip() {
+    cvEstado = "anexado";
+    $("cvDrop").style.display = "none";
+    $("cvSkip").style.display = "none";
+    $("cvChip").classList.add("on");
+    $("cvNome").textContent = "curriculo-" + primeiroNome().toLowerCase() + ".pdf";
+    $("cvTam").textContent = "1,2 MB";
+    $("cvOk").classList.add("on");
+    vibrar(8);
+  }
+  function limparCv() {
+    cvEstado = "";
+    $("cvChip").classList.remove("on");
+    $("cvOk").classList.remove("on");
+    $("cvDrop").style.display = "";
+    $("cvSkip").style.display = "";
+  }
+  $("cvDrop").addEventListener("click", mostrarChip);
+  $("cvX").addEventListener("click", limparCv);
+  $("btnPular").addEventListener("click", function () { cvEstado = "pulado"; irStep(3, "frente"); });
+
+  function primeiroNome() { return ($("i-nome").value.trim().split(/\s+/)[0] || "candidato"); }
+
+  // ===== ETAPA 3: DISC (mais e menos) =====
+  // cada bloco vira dois micro-passos: primeiro a que MAIS combina, depois a que MENOS.
+  function stageAt(p) { return (p % 2 === 0) ? "most" : "least"; }
+  function blockAt(p) { return Math.floor(p / 2); }
+  function discConcluido() {
+    if (discResp.length < N) return false;
+    for (var i = 0; i < N; i++) { if (!discResp[i] || !discResp[i].most || !discResp[i].least) return false; }
+    return true;
+  }
+  function iniciarDisc() {
+    pos = 0; discResp = [];
+    $("discDone").classList.remove("on"); $("discRun").style.display = "";
+    renderMicro(0, "frente");
+  }
+
+  function renderMicro(p, dir) {
+    pos = p;
+    var b = blockAt(p), st = stageAt(p);
+    discIdx = b;
+    var resp = discResp[b] || {};
+    $("discCount").textContent = "Pergunta " + (b + 1) + " de " + N;
+    $("discFill").style.width = (p / (2 * N) * 100) + "%";
+    $("discBack").hidden = (p === 0);
+    $("discPrompt").innerHTML = (st === "most")
+      ? 'Toque na frase que <b>mais</b> combina com você'
+      : 'Agora, a que <b>menos</b> combina com você';
+    var card = $("discCard");
+    card.innerHTML = GRUPOS[b].map(function (o) {
+      var trava = (st === "least" && resp.most === o.d);
+      var cls = "disc-opt" + (trava ? " most locked" : "");
+      var badge = trava ? '<span class="obadge b-most">Mais</span>' : "";
+      return '<button class="' + cls + '" data-dim="' + o.d + '"' + (trava ? " disabled" : "") + '><span class="ot">' + o.t + "</span>" + badge + "</button>";
+    }).join("");
+    if (!reduz) {
+      var dx = (dir === "tras" ? -22 : 22);
+      card.animate([{ opacity: 0, transform: "translateX(" + dx + "px)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: "cubic-bezier(.32,.72,.28,1)" });
+    }
+  }
+
+  function marcarSel(btn, tipo) {
+    btn.classList.add(tipo);
+    var bd = document.createElement("span");
+    bd.className = "obadge b-" + tipo;
+    bd.textContent = (tipo === "most") ? "Mais" : "Menos";
+    btn.appendChild(bd);
+  }
+
+  $("discCard").addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".disc-opt");
+    if (!btn || btn.disabled) return;
+    var dim = btn.getAttribute("data-dim");
+    var b = discIdx, st = stageAt(pos);
+    if (st === "most") {
+      discResp[b] = { most: dim, least: undefined };
+      marcarSel(btn, "most");
+    } else {
+      if (discResp[b] && discResp[b].most === dim) return;
+      discResp[b].least = dim;
+      marcarSel(btn, "least");
+    }
+    vibrar(10);
+    $("discFill").style.width = ((pos + 1) / (2 * N) * 100) + "%";
+    setTimeout(function () {
+      if (pos + 1 >= 2 * N) concluirDisc();
+      else renderMicro(pos + 1, "frente");
+    }, st === "most" ? 250 : 320);
+  });
+
+  $("discBack").addEventListener("click", function () {
+    if (pos === 0) { irStep(2, "tras"); return; }
+    var np = pos - 1, b = blockAt(np), st = stageAt(np);
+    if (st === "least") { if (discResp[b]) discResp[b].least = undefined; }
+    else { discResp[b] = undefined; }   // volta pro MAIS: refaz o bloco todo
+    renderMicro(np, "tras");
+  });
+
+  // ===== scoring: raw = (# MAIS) - (# MENOS) por dimensão =====
+  function calcularPerfil() {
+    var raw = { D: 0, I: 0, S: 0, C: 0 };
+    discResp.forEach(function (r) { if (!r) return; if (r.most) raw[r.most]++; if (r.least) raw[r.least]--; });
+    var pct = {};
+    Object.keys(raw).forEach(function (k) { pct[k] = Math.round((raw[k] + N) / (2 * N) * 100); });
+    var ordem = Object.keys(raw).sort(function (a, b) { return raw[b] - raw[a]; });
+    var claraPrimario = (raw[ordem[0]] - raw[ordem[1]]) >= 2;  // precisa liderar por 2+ pontos
+    return {
+      raw: raw, pct: pct, ordem: ordem,
+      equilibrado: !claraPrimario,
+      primario: claraPrimario ? ordem[0] : null,
+      secundario: ordem[1]
+    };
+  }
+
+  function concluirDisc() {
+    $("discFill").style.width = "100%";
+    window.__discResult = calcularPerfil();   // interno; o candidato nunca vê
+    $("discRun").style.display = "none";
+    $("discDone").classList.add("on");
+    vibrar([10, 40, 14]);
+    ajustarFoot();
+  }
+
+  // ===== ETAPA 4: revisão =====
+  function preencherRevisao() {
+    $("rvNome").textContent = $("i-nome").value.trim() + " · " + $("i-cidade").value.trim();
+    $("rvContato").textContent = $("i-zap").value.trim() + "  ·  " + $("i-mail").value.trim();
+    var cv = $("rvCv");
+    if (cvEstado === "anexado") { cv.textContent = "curriculo-" + primeiroNome().toLowerCase() + ".pdf (1,2 MB)"; cv.classList.remove("dim"); }
+    else { cv.textContent = "Não enviado (opcional)"; cv.classList.add("dim"); }
+  }
+  $("lgpd").addEventListener("click", function () { this.classList.toggle("on"); ajustarFoot(); });
+
+  // ===== botão principal =====
+  $("btnPrim").addEventListener("click", function () {
+    if (step === 1) { if (validaStep1()) irStep(2, "frente"); return; }
+    if (step === 2) { if (!cvEstado) cvEstado = "pulado"; irStep(3, "frente"); return; }
+    if (step === 3) { irStep(4, "frente"); return; }
+    if (step === 4) { enviar(); return; }
+  });
+  $("btnBack").addEventListener("click", function () { if (step > 1) irStep(step - 1, "tras"); });
+
+  // ===== envio + cerimônia =====
+  function enviar() {
+    var b = $("btnPrim");
+    b.innerHTML = '<span class="spin"></span>Enviando...';
+    b.disabled = true;
+    setTimeout(function () {
+      $("cer").classList.add("on");
+      $("arc").style.animation = "arco .55s cubic-bezier(.4,0,.2,1) forwards";
+      setTimeout(function () {
+        $("tick").style.animation = "tick .3s cubic-bezier(.2,.8,.2,1) forwards";
+        $("pulse").style.animation = "puls .7s ease-out forwards";
+        vibrar([12, 60, 18]);
+      }, 480);
+    }, 780);
+  }
+
+  window.resetTudo = function () {
+    $("cer").classList.remove("on");
+    $("arc").style.animation = "none"; $("tick").style.animation = "none"; $("pulse").style.animation = "none";
+    ["i-nome", "i-zap", "i-mail", "i-cidade"].forEach(function (id) { $(id).value = ""; $(id).closest(".field").classList.remove("err"); });
+    limparCv();
+    $("lgpd").classList.remove("on");
+    discResp = []; discIdx = 0; pos = 0;
+    step = 1;
+    for (var k in views) views[k].hidden = (k !== "1");
+    pintarStepper();
+    ajustarFoot();
+  };
+
+  // ===== barras de perfil da visão GP (anima ao aparecer) =====
+  function animarBarras() {
+    var barras = document.querySelectorAll(".bar-fill");
+    var pinta = function () { barras.forEach(function (b) { b.style.width = b.getAttribute("data-w") + "%"; }); };
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (ents, obs) {
+        ents.forEach(function (e) { if (e.isIntersecting) { e.target.style.width = e.target.getAttribute("data-w") + "%"; obs.unobserve(e.target); } });
+      }, { threshold: .2 });
+      barras.forEach(function (b) { io.observe(b); });
+    } else { pinta(); }
+  }
+
+  // init
+  pintarStepper();
+  ajustarFoot();
+  animarBarras();
+})();
+</script>
+</body>
+</html>

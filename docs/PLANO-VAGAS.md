@@ -91,3 +91,22 @@ portal) ficam no ROADMAP** como fase 2.
 - OBRIGAÇÃO LGPD criada pelo consentimento ("apenas neste processo seletivo"):
   (a) GP expurga candidaturas quando o processo encerra (a UI já força excluir
   candidaturas antes da vaga); (b) canal do titular pra exclusão = contato com a GP.
+
+## v3 backend (2026-07-15): curriculo + teste de perfil (gate GO)
+- Storage /curriculos: create-only ANONIMO (PDF <= 3MB, nome charset fechado,
+  segmento unico), read/delete SO gestor por claims; update false. LIST NEGADO
+  pra todo mundo pelas rules (match de segmento unico nao casa o prefixo):
+  a poda/listagem da GP e VIA CONSOLE do Firebase, o app nao lista.
+- Campos novos da candidatura (opcionais, retrocompat): nascimento (YYYY-MM-DD),
+  disc {d,i,s,c} ints -8..8 (mapa parcial NEGA por erro de avaliacao, semantica
+  testada), discPrimario, curriculoPath (matches proprio; o vinculo real e o campo).
+- LGPD (gate): consentimento do form NOMEIA curriculo e teste com finalidade e
+  prazo; retencao = DECISAO PENDENTE do William (sugestao 6 meses pos-encerramento);
+  ordem do expurgo no front: apagar o ARQUIVO pelo curriculoPath ANTES do doc.
+- Guardas pro front (quando implementar): rand do nome via crypto.randomUUID();
+  GP abre curriculo SEMPRE no viewer pdf.js interno (nao executa script de PDF),
+  download como fallback deliberado.
+- Residuais aceitos: bytes nao-PDF com contentType forjado (viewer pdf.js degrada
+  com erro), bomba gzip via contentEncoding (alvo GP, neutralizada pelo viewer),
+  DISC auto-declarado (indicativo por design), curriculoPath apontando arquivo
+  inexistente (404 pra GP, integridade baixa).
