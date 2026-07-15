@@ -79,11 +79,11 @@ before(async () => {
 
     // Doc PAI do mural (gravado pelo pipeline, gate Fable 2026-07-15): a prova real de
     // coracao/boas-vindas passa a exigir ESTE doc + a reacao do proprio uid.
-    await setDoc(doc(db, `muralAniversario/${POST_CORACAO}`), { tipo: "aniversario", nome: "Fulana Teste", dia: 1, mes: 1, ano: Number(ANO) });
-    await setDoc(doc(db, `muralAniversario/${POST_BV}`), { tipo: "bemvindo", nome: "Novato Silva", admissao: `${ANO}-07-01` });
-    await setDoc(doc(db, `muralAniversario/${POST_CORACAO_VELHO}`), { tipo: "aniversario", nome: "Velha Pessoa", dia: 5, mes: 3, ano: Number(ANO_VELHO_MURAL) });
+    await setDoc(doc(db, `muralAniversario/${POST_CORACAO}`), { tipo: "aniversario", nome: "Fulana Teste", funcionarioId: "f-77", dia: 1, mes: 1, ano: Number(ANO) });
+    await setDoc(doc(db, `muralAniversario/${POST_BV}`), { tipo: "bemvindo", nome: "Novato Silva", funcionarioId: "f-88", admissao: `${ANO}-07-01` });
+    await setDoc(doc(db, `muralAniversario/${POST_CORACAO_VELHO}`), { tipo: "aniversario", nome: "Velha Pessoa", funcionarioId: "f-99", dia: 5, mes: 3, ano: Number(ANO_VELHO_MURAL) });
     // Pai bemvindo com nome IGUAL ao do uColab (Maria): prova o anti-auto (pai.nome != users.nome).
-    await setDoc(doc(db, `muralAniversario/${POST_BV_AUTO}`), { tipo: "bemvindo", nome: "Maria", admissao: `${ANO}-07-01` });
+    await setDoc(doc(db, `muralAniversario/${POST_BV_AUTO}`), { tipo: "bemvindo", nome: "Maria", funcionarioId: "f-66", admissao: `${ANO}-07-01` });
     // Reacao JA EXISTENTE com 'em' do ANO PASSADO (uColab2, sob o post de coracao valido):
     // prova o year-gate do 'em' quando o claim novo NAO reescreve a reacao no batch.
     await setDoc(doc(db, `muralAniversario/${POST_CORACAO}/reacoes/uColab2`), { uid: "uColab2", tipo: "coracao", autorNome: "Ana", em: new Date(`${ANO_PASSADO}-06-01T12:00:00Z`) });
@@ -413,6 +413,21 @@ test("temporada INATIVA nega evento mesmo com prova valida", async () => {
     await updateDoc(doc(ctx.firestore(), `gamificacao/${ANO}`), { ativa: false });
   });
   await assertFails(ganhaPonto(colab2(), "uColab2", "comunicado", "com2", 1, { nome: "Ana" }));
+});
+
+// Anti-auto em dupla (upgrade 2026-07-15): id igual nega mesmo com nome diferente
+const POST_BV_AUTO_ID = `bv-apelido-diferente-${ANO}`;
+test("anti-auto por funcionarioId: pai com MEU id nega mesmo com nome divergente", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `muralAniversario/${POST_BV_AUTO_ID}`), { tipo: "bemvindo", nome: "Apelido Diferente", funcionarioId: "f-1", admissao: `${ANO}-07-01` });
+  });
+  await assertFails(ganhaPontoMural(colab(), "uColab", "boas-vindas", POST_BV_AUTO_ID, 1));
+});
+test("pai SEM funcionarioId (legado pre-poda) nega o claim (fail-closed)", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `muralAniversario/bv-legado-${ANO}`), { tipo: "bemvindo", nome: "Legado Sem Id", admissao: `${ANO}-07-01` });
+  });
+  await assertFails(ganhaPontoMural(colab(), "uColab", "boas-vindas", `bv-legado-${ANO}`, 1));
 });
 
 // ---------- Probes do gate Fable 2026-07-15 (promovidas da sonda adversarial) ----------

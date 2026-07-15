@@ -842,20 +842,7 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 /* Cerimônia */
 .den-flow--cer { min-height: 60vh; }
 .den-cer { text-align: center; padding: 24px 10px; margin: auto; max-width: 340px; }
-.den-cer__ring { position: relative; width: 100px; height: 100px; margin: 0 auto 20px; }
-.den-cer__svg { width: 100px; height: 100px; transform: rotate(-90deg); }
-.den-cer__trk { fill: none; stroke: var(--border); stroke-width: 5; }
-.den-cer__arc { fill: none; stroke: var(--plum); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 0; }
-.den-cer__pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid rgba(0,136,53,.34); opacity: 0; }
-.den-cer__chk { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.den-cer__chk svg { width: 46px; height: 46px; }
-.den-cer__chk path { fill: none; stroke: var(--plum); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 50; stroke-dashoffset: 0; }
-.den-cer--anim .den-cer__arc { stroke-dashoffset: 276; animation: denArco .58s cubic-bezier(.4,0,.2,1) forwards; }
-.den-cer--anim .den-cer__chk path { stroke-dashoffset: 50; animation: denTick .3s cubic-bezier(.2,.8,.2,1) .5s forwards; }
-.den-cer--anim .den-cer__pulse { animation: denPuls .7s ease-out .5s forwards; }
-@keyframes denArco { to { stroke-dashoffset: 0; } }
-@keyframes denTick { to { stroke-dashoffset: 0; } }
-@keyframes denPuls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+.den-cer .cer__ring { margin: 0 auto 20px; }
 .den-cer__t { font-size: 19px; font-weight: 700; letter-spacing: -.01em; color: var(--text-body); }
 .den-cer__prot { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--plum-deep); background: rgba(0,136,53,.08); border: 1px solid rgba(0,136,53,.16); border-radius: 999px; padding: 6px 12px; }
 .den-cer__prot svg { width: 13px; height: 13px; color: var(--plum); }
@@ -866,3 +853,47 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 .den-cer__hash { font: 600 12.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .02em; color: var(--text-body); margin: 8px 0; word-break: break-all; }
 .den-cer__copy { width: auto; }
 .den-cer__inicio { margin-top: 20px; }
+
+/* ============================================================
+   CERIMONIA DE CONCLUSAO (mock nivel-apple-2026-07, demo 3)
+   Anel que se completa + traco + pulso + toque. A PRIMITIVA do anel (.cer__ring
+   e filhos) e compartilhada entre o canal de denuncia (tela dentro do #view) e o
+   overlay central mostrarCerimonia(). Reduced-motion: sem .is-anim, o anel nasce
+   completo (o helper decide por prefereMenosMovimento()).
+   ============================================================ */
+.cer__ring { position: relative; width: 100px; height: 100px; margin: 0 auto 20px; }
+.cer__svg { width: 100px; height: 100px; transform: rotate(-90deg); }
+.cer__trk { fill: none; stroke: var(--border); stroke-width: 5; }
+.cer__arc { fill: none; stroke: var(--plum); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 0; }
+.cer__pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid rgba(0,136,53,.34); opacity: 0; }
+.cer__chk { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.cer__chk svg { width: 46px; height: 46px; }
+.cer__chk path { fill: none; stroke: var(--plum); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 50; stroke-dashoffset: 0; }
+.cer__ico { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--plum); }
+.cer__ico svg { width: 42px; height: 42px; }
+.cer__ring.is-anim .cer__arc { stroke-dashoffset: 276; animation: cerArco .58s cubic-bezier(.4,0,.2,1) forwards; }
+.cer__ring.is-anim .cer__chk path { stroke-dashoffset: 50; animation: cerTick .3s cubic-bezier(.2,.8,.2,1) .5s forwards; }
+.cer__ring.is-anim .cer__ico { opacity: 0; animation: cerIco .34s cubic-bezier(.2,.8,.2,1) .48s forwards; }
+.cer__ring.is-anim .cer__pulse { animation: cerPuls .7s ease-out .5s forwards; }
+@keyframes cerArco { to { stroke-dashoffset: 0; } }
+@keyframes cerTick { to { stroke-dashoffset: 0; } }
+@keyframes cerIco { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
+@keyframes cerPuls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+/* Tom ouro: marco da gamificacao (anel/traco/medalha dourados). */
+.cer__ring--ouro .cer__arc { stroke: #E6A700; }
+.cer__ring--ouro .cer__ico { color: #E6A700; }
+.cer__ring--ouro .cer__pulse { border-color: rgba(230,167,0,.42); }
+
+/* Overlay central: fora do #view e do #modal-root (direto no body), acima de tudo. */
+.cer-ov { position: fixed; inset: 0; z-index: 9992; display: flex; align-items: center; justify-content: center; padding: 28px 22px calc(28px + env(safe-area-inset-bottom,0px)); background: var(--surface); background: color-mix(in srgb, var(--surface) 85%, transparent); -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px); animation: cerOvIn .3s ease both; }
+.cer-ov--out { animation: cerOvOut .2s ease both; }
+.cer-ov__card { text-align: center; max-width: 340px; width: 100%; }
+.cer__t { font-size: 19px; font-weight: 700; letter-spacing: -.01em; color: var(--text-body); }
+.cer__s { font-size: 12.5px; color: var(--text-muted); margin-top: 10px; line-height: 1.55; }
+.cer__det { margin-top: 14px; }
+.cer__premio { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--plum-deep); background: rgba(0,136,53,.08); border: 1px solid rgba(0,136,53,.16); border-radius: 999px; padding: 7px 14px; }
+.cer__premio svg { width: 15px; height: 15px; flex: none; }
+.cer__ok { width: auto; margin: 22px auto 0; padding: 11px 26px; }
+@keyframes cerOvIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cerOvOut { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cer-ov, .cer-ov--out { animation: none; } }

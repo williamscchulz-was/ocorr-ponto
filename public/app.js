@@ -523,6 +523,71 @@ function confirmar({ titulo = "Confirmar", msg = "", okLabel = "Confirmar", canc
   });
 }
 
+// ---------- Cerimônia de conclusão (mock nivel-apple-2026-07, demo 3) ----------
+// Um instante de preparo, o círculo se completa, o traço confirma, o aparelho dá um
+// toque na mão. SÓ para conclusões importantes (assinar, aceitar, enviar, cruzar marco),
+// NUNCA em ação repetitiva. O anel (.cer__ring) é a mesma primitiva do canal de denúncia.
+
+// Markup do anel: círculo que se completa + tick (ou ícone central) + pulso. `anim`
+// liga a animação (o call site decide por prefereMenosMovimento()); `centro` troca o
+// tick por um ícone (SVG) e `tom` pinta (ex.: "ouro" no marco).
+function cerAnelHtml({ anim = true, tom = "", centro = "" } = {}) {
+  const meio = centro
+    ? `<span class="cer__ico">${centro}</span>`
+    : `<span class="cer__chk"><svg viewBox="0 0 46 46"><path d="M13 24 L20.5 31.5 L33 16"/></svg></span>`;
+  return `<div class="cer__ring${anim ? " is-anim" : ""}${tom ? " cer__ring--" + tom : ""}">
+    <svg viewBox="0 0 100 100" class="cer__svg"><circle class="cer__trk" cx="50" cy="50" r="44"/><circle class="cer__arc" cx="50" cy="50" r="44"/></svg>
+    <span class="cer__pulse"></span>
+    ${meio}
+  </div>`;
+}
+
+// Overlay central da cerimônia. Vive FORA do #view e do #modal-root (direto no body, como
+// o confirmar()): assim closeModal() não o apaga e ele empilha sobre o app. Fecha no
+// toque/botão/backdrop/Esc/Enter e, com auto!==false, sozinha em ~2.5s (não bloqueia).
+// aoFechar roda EXATAMENTE 1x. Reduced-motion: entra por fade, sem animação de anel nem
+// vibração. Devolve a função de fechar.
+function mostrarCerimonia({ titulo, subtitulo = "", detalheHtml = "", aoFechar, auto = true, tom = "", centro = "", fecharLabel = "Continuar" } = {}) {
+  const semMov = prefereMenosMovimento();
+  const prevFocus = document.activeElement;
+  const ov = document.createElement("div");
+  ov.className = "cer-ov";
+  ov.innerHTML = `<div class="cer-ov__card" role="dialog" aria-live="polite" aria-label="${escapeHtml(titulo || "Concluído")}">
+    ${cerAnelHtml({ anim: !semMov, tom, centro })}
+    <div class="cer__t">${escapeHtml(titulo || "")}</div>
+    ${subtitulo ? `<p class="cer__s">${escapeHtml(subtitulo)}</p>` : ""}
+    ${detalheHtml ? `<div class="cer__det">${detalheHtml}</div>` : ""}
+    <button class="btn btn--primary cer__ok" type="button" data-cer-ok>${escapeHtml(fecharLabel)}</button>
+  </div>`;
+  document.body.appendChild(ov);
+  let fechado = false, tAuto = null, tVib = null;
+  const fechar = () => {
+    if (fechado) return;
+    fechado = true;
+    if (tAuto) clearTimeout(tAuto);
+    if (tVib) clearTimeout(tVib);
+    document.removeEventListener("keydown", onKey, true);
+    const remover = () => {
+      ov.remove();
+      if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch {} }
+      if (typeof aoFechar === "function") aoFechar();
+    };
+    if (semMov) { remover(); return; }
+    ov.classList.add("cer-ov--out");
+    setTimeout(remover, 200);
+  };
+  // Captura no topo pra Esc/Enter não vazarem pro handler global de modal.
+  const onKey = (e) => { if (e.key === "Escape" || e.key === "Enter") { e.stopPropagation(); e.preventDefault(); fechar(); } };
+  document.addEventListener("keydown", onKey, true);
+  ov.addEventListener("click", (e) => { if (e.target === ov) fechar(); });
+  ov.querySelector("[data-cer-ok]").addEventListener("click", fechar);
+  // Toque na mão no momento em que o traço confirma (mock: ~tick), não na entrada.
+  if (!semMov) tVib = setTimeout(() => { try { navigator.vibrate && navigator.vibrate([12, 60, 18]); } catch (e) {} }, 500);
+  if (auto !== false) tAuto = setTimeout(fechar, 2500);
+  setTimeout(() => { try { ov.querySelector("[data-cer-ok]")?.focus({ preventScroll: true }); } catch {} }, semMov ? 0 : 60);
+  return fechar;
+}
+
 // ---------- Login ----------
 
 function renderLoginQuick() {
@@ -846,9 +911,8 @@ function mostrarLoginColaborador() {
   if (cs) cs.disabled = false;
   // Pré-preenche o CPF do último acesso (a pessoa só digita a senha e clica Entrar).
   try { const ult = localStorage.getItem("fiopulse:ultimoCpf"); if (cc && ult && !cc.value) cc.value = ult; } catch {}
-  // Login automático LIGADO por padrão (só desliga se a pessoa desmarcou explicitamente).
-  const rem = $("#colab-remember");
-  if (rem) { try { rem.checked = localStorage.getItem("fiopulse:manterConectado") !== "0"; } catch {} }
+  // Colaborador fica logado SEMPRE (firebase.js força Persistence.LOCAL): não há mais
+  // opção de "login automático" a restaurar aqui. O Sair continua na Conta.
   $("#login-colab")?.classList.remove("hidden");
   setTimeout(() => (cc && cc.value ? $("#colab-senha") : $("#colab-cpf"))?.focus(), 60);
 }
@@ -968,8 +1032,12 @@ function mostrarTermoAdesao() {
     const res = await window.registrarTermoAdesao?.();
     if (res && res.ok) {
       state.termoAdesaoOk = true;
-      ov.remove(); vibrar(20);
+      ov.remove();
       renderApp(); // re-render já com o app liberado
+      // Cerimônia "Termo aceito": o gate é delicado, então NÃO bloqueia (o app já foi
+      // liberado atrás) — fecha sozinha em ~2.5s ou no toque. A cerimônia dá o toque na
+      // mão (substitui o vibrar(20) antigo).
+      mostrarCerimonia({ titulo: "Termo aceito", subtitulo: "Sua adesão à assinatura eletrônica ficou registrada. Agora é só usar o app." });
     } else {
       toast((res && res.msg) || "Não consegui registrar o aceite. Tente de novo.", "danger");
     }
@@ -1610,6 +1678,10 @@ function openAssinarReciboSheet(reciboId) {
       return {
         ok: true,
         okToast: "Assinado. O carimbo já está dentro do arquivo.",
+        cerimonia: {
+          titulo: r.tipo === "cartao-ponto" ? "Cartão ponto assinado" : "Recibo assinado",
+          subtitulo: "Registrado com data, hora e local. O comprovante já está no seu histórico.",
+        },
         // mostra na hora a versão carimbada (temos ela local, sem esperar o Storage)
         verComprovante: {
           titulo: `${RCB_TIPOS[r.tipo] || "Documento"} · ${rcbCompetenciaLabel(r.competencia)}`,
@@ -1744,10 +1816,23 @@ async function assAssinar() {
     }
     _assState = null;
     closeModal();
-    if (res.okToast) toast(res.okToast);
     renderApp();
-    // mostra na hora o comprovante/versão assinada (temos localmente, sem esperar o Storage)
-    if (res.verComprovante) openDocViewer(res.verComprovante);
+    // Cerimônia de conclusão (pós-sucesso): celebra a assinatura e, ao fechar, mostra o
+    // comprovante/versão carimbada (temos localmente, sem esperar o Storage). Fallback ao
+    // toast se um alvo não trouxer cerimônia.
+    if (res.cerimonia) {
+      // Com comprovante a abrir depois, a cerimônia NÃO auto-fecha (evita o viewer pular
+      // sozinho): espera o toque em Continuar, que aí abre o comprovante.
+      mostrarCerimonia({
+        titulo: res.cerimonia.titulo,
+        subtitulo: res.cerimonia.subtitulo,
+        auto: !res.verComprovante,
+        aoFechar: res.verComprovante ? () => openDocViewer(res.verComprovante) : undefined,
+      });
+    } else {
+      if (res.okToast) toast(res.okToast);
+      if (res.verComprovante) openDocViewer(res.verComprovante);
+    }
   } catch (e) {
     hideFormBlocker();
     toast("Falha ao assinar: " + (e?.message || e), "danger");
@@ -1908,6 +1993,10 @@ function openColabAssinarSheet(docId) {
       return {
         ok: true,
         okToast: "Documento assinado. O documento já está guardado.",
+        cerimonia: {
+          titulo: "Documento assinado",
+          subtitulo: "Registrado com data, hora e local. O comprovante já está no seu histórico.",
+        },
         verComprovante: { titulo: `Documento assinado · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url: dataUrl, nome: "documento-assinado.pdf", mime: "application/pdf" } },
       };
     },
@@ -2600,6 +2689,37 @@ function gamiCardHomeHtml() {
     </button>`;
 }
 
+// Medalha (estrela + fita) pro centro do anel na cerimônia de marco.
+const CER_MEDALHA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 13.7 6 22l6-3.2L18 22l-2.5-8.3"/><circle cx="12" cy="8.5" r="6"/><path d="M12 5.4l1 2 2.2.3-1.6 1.6.4 2.2-2-1-2 1 .4-2.2L8.8 7.7l2.2-.3z"/></svg>';
+
+// Marco cruzado (5a do "momento cerimonial"): ao abrir Conquistas, se o TOTAL passou de um
+// marco NOVO desde a última celebração, cerimônia dourada "Você cruzou o marco N!". Guarda
+// o maior marco celebrado POR ANO em localStorage (a gamificação pode usar storage; só o
+// canal de denúncia não pode). Idempotente: reabrir não repete; grava ANTES de celebrar.
+function gamiTalvezCelebrarMarco(cfg) {
+  if (!cfg || cfg.ativa !== true) return;
+  const total = (state.gamiMeu && Number(state.gamiMeu.total)) || 0;
+  const marcos = (cfg.marcos || []).slice().map(Number).filter((m) => m > 0).sort((a, b) => a - b);
+  const cruzados = marcos.filter((m) => total >= m);
+  const maior = cruzados.length ? cruzados[cruzados.length - 1] : 0;
+  if (maior <= 0) return;
+  const ano = String(cfg.ano || new Date().getFullYear());
+  let cel = {};
+  try { cel = JSON.parse(localStorage.getItem("gami-marco-celebrado") || "{}"); } catch { cel = {}; }
+  if (!cel || typeof cel !== "object") cel = {};
+  if ((Number(cel[ano]) || 0) >= maior) return; // já celebrado neste ano
+  cel[ano] = maior;
+  try { localStorage.setItem("gami-marco-celebrado", JSON.stringify(cel)); } catch {}
+  const ent = (state.gamiEntregas || []).find((e) => Number(e.marco) === maior);
+  mostrarCerimonia({
+    titulo: `Você cruzou o marco ${maior}!`,
+    subtitulo: "Prêmio surpresa: a GP vai te procurar.",
+    detalheHtml: ent && ent.premio ? `<span class="cer__premio">${cpIcon("medalha")} ${escapeHtml(ent.premio)}</span>` : "",
+    tom: "ouro",
+    centro: CER_MEDALHA,
+  });
+}
+
 function renderColabConquistas() {
   const view = $("#view");
   const cfg = state.gamiConfig;
@@ -2632,6 +2752,8 @@ function renderColabConquistas() {
       </div>
       ${tab === "pts" ? gamiTabPontosHtml(cfg) : gamiTabBadgesHtml(cfg)}
     </div>`);
+  // Marco cruzado: celebra 1x quando os dados já estão de pé (independe do tab e de escreveu).
+  gamiTalvezCelebrarMarco(cfg);
   // Re-sincroniza em TODA abertura (nao so na 1a da sessao): a GP pode ter mudado a
   // config, e acoes feitas noutro aparelho/aba entram aqui. Silencioso; re-render
   // so se algo creditou. Guard contra sobreposicao.
@@ -2965,7 +3087,17 @@ async function _climaEnviarResposta(s, btn) {
     _climaResp = null;
     state.view.page = "colab-home";
     renderApp();
-    toast("Resposta enviada. Obrigado!");
+    // Cerimônia de conclusão (DENTRO do withBusy: só celebra o que gravou). Repete a linha
+    // de transparência da gamificação (participação vira ponto; nunca o conteúdo, e o
+    // crédito chega depois de propósito, pra não ligar resposta a horário).
+    const pts = (state.gamiConfig && state.gamiConfig.ativa === true && Number(state.gamiConfig.tabela && state.gamiConfig.tabela.pesquisa) > 0)
+      ? Number(state.gamiConfig.tabela.pesquisa) : 0;
+    mostrarCerimonia({
+      titulo: "Resposta enviada",
+      subtitulo: pts > 0
+        ? `Obrigado por responder. Sua participação vira ${pts} pontos na temporada; o crédito chega na próxima vez que você abrir o app.`
+        : "Obrigado por responder. Sua voz ajuda a melhorar o clima.",
+    });
   });
 }
 
@@ -3196,12 +3328,8 @@ async function denEnviar(btn) {
 function denRenderCerimonia(view) {
   const semMov = prefereMenosMovimento();
   const escreveu = setHtml(view, `<div class="pp-fade den-flow den-flow--cer">
-    <div class="den-cer${semMov ? "" : " den-cer--anim"}">
-      <div class="den-cer__ring">
-        <svg viewBox="0 0 100 100" class="den-cer__svg"><circle class="den-cer__trk" cx="50" cy="50" r="44"/><circle class="den-cer__arc" cx="50" cy="50" r="44"/></svg>
-        <span class="den-cer__pulse"></span>
-        <span class="den-cer__chk"><svg viewBox="0 0 46 46"><path d="M13 24 L20.5 31.5 L33 16"/></svg></span>
-      </div>
+    <div class="den-cer">
+      ${cerAnelHtml({ anim: !semMov })}
       <div class="den-cer__t">Denúncia recebida</div>
       <div class="den-cer__prot">${DEN_ESC}<span>${state.view.denIdentEnviada ? "Enviada com identificação" : "Enviada de forma anônima"}</span></div>
       <p class="den-cer__s">${escapeHtml(DEN_HASH_TXT)}</p>
@@ -16440,7 +16568,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.75.0";
+window.CURRENT_VERSION = "1.76.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

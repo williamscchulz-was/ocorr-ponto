@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Tela de acesso que te reconhece</title>
+<style>
+  /* Poppins LOCAL do app (public/fonts), sem depender de rede externa */
+  @font-face { font-family: "Poppins"; font-weight: 400; font-display: swap; src: url("../../public/fonts/poppins-400-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 500; font-display: swap; src: url("../../public/fonts/poppins-500-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 600; font-display: swap; src: url("../../public/fonts/poppins-600-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+  @font-face { font-family: "Poppins"; font-weight: 800; font-display: swap; src: url("../../public/fonts/poppins-700-latin.woff2") format("woff2"); }
+  :root {
+    --verde: #008835; --verde-soft: #1AA34F; --verde-deep: #006328; --amarelo: #FFCB00;
+    --ink: #1E2D1A; --muted: #4A6245; --bg: #f2f3ee; --card: #ffffff;
+    --milk-warm: #EEF3EC; --borda: #E7EDE4; --borda-forte: #D8E2D3;
+    --ios-blue: #007aff; --ease-ios: cubic-bezier(.32, .72, .28, 1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 15px/1.55 Poppins, system-ui, sans-serif; padding: 48px 20px 90px; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 Poppins, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); background: #00883514; border: 1px solid #00883526; padding: 8px 14px; border-radius: 999px; }
+  h1 { font: 800 clamp(26px, 4vw, 40px)/1.15 Poppins, system-ui, sans-serif; letter-spacing: -.02em; margin: 18px 0 10px; }
+  .sub { color: var(--muted); max-width: 760px; font-size: 15.5px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px; margin-top: 44px; }
+  .demo { background: var(--card); border: 1px solid var(--borda); border-radius: 26px; padding: 26px 24px 30px; box-shadow: 0 1px 2px #0000000a, 0 12px 40px -18px #04331a2e; display: flex; flex-direction: column; }
+  .demo h2 { font: 700 17px/1.3 Poppins, system-ui, sans-serif; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
+  .demo h2 .n { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 9px; background: var(--verde); color: #fff; font: 700 13px/26px Poppins, system-ui, sans-serif; text-align: center; }
+  .demo > p { color: var(--muted); font-size: 13.5px; margin: 10px 0 4px; }
+  .aplica { margin: 10px 0 20px; font-size: 12.5px; color: var(--verde-deep); background: #ffcb001f; border: 1px solid #e8c34d55; border-radius: 12px; padding: 9px 12px; }
+  .aplica b { font-weight: 600; }
+
+  /* ---------- frame de celular ---------- */
+  .phone { width: 300px; margin: 0 auto; background: #0b0d0c; border-radius: 44px; padding: 10px; box-shadow: 0 2px 4px #0003, 0 24px 60px -20px #04331a66, inset 0 0 0 2px #262b28; }
+  .screen { position: relative; overflow: hidden; border-radius: 35px; background: #f6f7f2; height: 566px; isolation: isolate; }
+  .island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 88px; height: 24px; border-radius: 999px; background: #0b0d0c; z-index: 60; }
+  .sbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px 0; font: 600 12px Poppins, system-ui, sans-serif; color: var(--ink); position: relative; z-index: 50; }
+
+  /* telas internas genericas */
+  .app-view { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .hd { background: linear-gradient(160deg, #0a9a43, var(--verde) 55%, #00702c); color: #fff; padding: 0 0 18px; border-radius: 0 0 26px 26px; }
+  .hd .sbar { color: #fff; margin-bottom: 8px; }
+  .hd-in { padding: 22px 18px 0; display: flex; align-items: center; gap: 12px; }
+  .av { width: 44px; height: 44px; border-radius: 50%; background: var(--amarelo); color: #4a3c00; font: 800 15px/44px Poppins, system-ui, sans-serif; text-align: center; flex: 0 0 auto; }
+  .hd-tx b { display: block; font: 700 16px/1.2 Poppins, system-ui, sans-serif; }
+  .hd-tx span { font-size: 12px; opacity: .85; }
+  .body { flex: 1; padding: 16px 14px; overflow: hidden; }
+  .rowcard { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--borda); border-radius: 16px; padding: 12px 13px; margin-bottom: 9px; cursor: pointer; transition: transform .18s var(--ease-ios); -webkit-tap-highlight-color: transparent; }
+  .rowcard:active { transform: scale(.975); }
+  .ric { width: 38px; height: 38px; border-radius: 12px; background: #00883514; color: var(--verde); display: grid; place-items: center; flex: 0 0 auto; }
+  .ric svg { width: 19px; height: 19px; }
+  .rtx { flex: 1; min-width: 0; }
+  .rtx b { display: block; font: 600 13.5px/1.25 Poppins, system-ui, sans-serif; }
+  .rtx span { font-size: 11.5px; color: var(--muted); }
+  .chev { color: #b9bfb7; flex: 0 0 auto; }
+  .chev svg { width: 16px; height: 16px; }
+
+  /* ---------- tela de acesso (o coracao do mock) ---------- */
+  .ac { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 26px 16px; background: linear-gradient(165deg, var(--milk-warm), #F7F9F6 60%); }
+  .ac-brand { display: flex; flex-direction: column; align-items: center; gap: 9px; margin-bottom: 22px; }
+  .ac-brand svg { width: 46px; height: 46px; }
+  .ac-wm { font: 800 19px/1 Poppins, system-ui, sans-serif; color: var(--verde); letter-spacing: -.02em; }
+  .ac-cards { width: 100%; display: flex; flex-direction: column; gap: 11px; }
+  .ac-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 1px solid var(--borda); border-radius: 18px; padding: 14px 13px; cursor: pointer; background: var(--card); font: inherit; color: var(--ink); transition: transform .18s var(--ease-ios), box-shadow .2s, filter .15s; -webkit-tap-highlight-color: transparent; }
+  .ac-card:active { transform: scale(.978); filter: brightness(.99); }
+  .ac-card--colab { background: linear-gradient(150deg, var(--verde-soft), var(--verde-deep)); color: #fff; border-color: transparent; }
+  .ac-ic { flex: none; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; }
+  .ac-card--gestor .ac-ic { background: var(--milk-warm); color: var(--verde-deep); }
+  .ac-card--colab .ac-ic { background: #ffffff2e; color: #fff; }
+  .ac-ic svg { width: 22px; height: 22px; }
+  .ac-av { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--amarelo); color: #4a3c00; font: 800 15px/44px Poppins, system-ui, sans-serif; text-align: center; }
+  .ac-card--colab .ac-av { box-shadow: 0 0 0 2px #ffffff55; }
+  .ac-tx { flex: 1; min-width: 0; }
+  .ac-eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: .01em; opacity: .82; }
+  .ac-card--gestor .ac-eyebrow { color: var(--muted); }
+  .ac-title { font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+  .ac-sub { font-size: 11.5px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .ac-card--colab .ac-sub { color: #ffffffe6; }
+  .ac-arr { flex: none; color: #c2c9bd; }
+  .ac-card--colab .ac-arr { color: #ffffffcc; }
+  .ac-arr svg { width: 18px; height: 18px; }
+  .selo { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 10px; font-weight: 600; padding: 3px 9px 3px 7px; border-radius: 999px; }
+  .ac-card--gestor .selo { background: #00883514; color: var(--verde-deep); }
+  .ac-card--colab .selo { background: #ffffff2b; color: #fff; }
+  .selo .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .selo svg { width: 11px; height: 11px; }
+  .ac-alt { margin-top: 17px; background: none; border: 0; font: 600 12px Poppins, system-ui, sans-serif; color: var(--muted); cursor: pointer; padding: 4px; }
+  .ac-alt u { text-underline-offset: 2px; }
+  .ac-alt:hover { color: var(--verde); }
+  .ac-rod { margin-top: 20px; font-size: 10.5px; color: var(--muted); }
+
+  /* forma de login manual / colab CPF (visual) */
+  .lg { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 24px 20px; background: linear-gradient(165deg, var(--milk-warm), #F7F9F6 60%); }
+  .lg-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; background: none; border: 0; color: var(--muted); font: 600 12.5px Poppins; cursor: pointer; margin-bottom: 14px; }
+  .lg-back svg { width: 15px; height: 15px; }
+  .lg-brand { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 10px 0 22px; }
+  .lg-brand svg { width: 42px; height: 42px; }
+  .lg-brand b { font: 700 15px Poppins; color: var(--ink); }
+  .fld { margin-bottom: 14px; }
+  .fld label { display: block; font: 600 11.5px Poppins; color: var(--muted); margin-bottom: 6px; }
+  .fld .inp { height: 44px; border: 1.5px solid var(--borda-forte); border-radius: 13px; background: #fff; display: flex; align-items: center; padding: 0 13px; font: 500 14px Poppins; color: var(--ink); }
+  .fld .inp.ph { color: #a7b0a3; font-weight: 400; }
+  .fld .inp.focus { border-color: var(--ios-blue); box-shadow: 0 0 0 3px #007aff26; }
+  .caret { width: 2px; height: 20px; background: var(--ios-blue); margin-left: 1px; animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .lg-btn { margin-top: 6px; height: 46px; border: 0; border-radius: 14px; background: var(--verde); color: #fff; font: 700 14px Poppins; cursor: pointer; }
+
+  /* ---------- demo 2: tira de estados ---------- */
+  .scr-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; background: linear-gradient(165deg, var(--milk-warm), #F7F9F6 60%); }
+  .scr-scroll::-webkit-scrollbar { width: 5px; }
+  .scr-scroll::-webkit-scrollbar-thumb { background: #cdd4c8; border-radius: 999px; }
+  .d2-list { padding: 18px 15px 22px; display: flex; flex-direction: column; gap: 17px; }
+  .cap { font: 700 10px Poppins; letter-spacing: .11em; text-transform: uppercase; color: var(--verde); margin: 0 2px 8px; display: flex; align-items: baseline; gap: 7px; }
+  .cap span { color: var(--muted); font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 11px; }
+  .d2-list .ac-cards { gap: 9px; }
+
+  /* ---------- demo 3: menu do gestor (ilustracao) ---------- */
+  .gm { margin-top: 18px; border: 1px solid var(--borda); border-radius: 18px; padding: 14px; background: linear-gradient(180deg, #fff, var(--milk-warm)); }
+  .gm-cap { font: 700 10px Poppins; letter-spacing: .11em; text-transform: uppercase; color: var(--verde); margin-bottom: 10px; }
+  .gm-user { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--borda); border-radius: 13px; padding: 9px 11px; }
+  .gm-user .av { width: 34px; height: 34px; font-size: 13px; line-height: 34px; }
+  .gm-user b { font: 700 13px Poppins; display: block; }
+  .gm-user span { font-size: 11px; color: var(--muted); }
+  .gm-user .up { margin-left: auto; color: #b9bfb7; }
+  .gm-user .up svg { width: 15px; height: 15px; }
+  .gm-pop { margin-top: 8px; background: #fff; border: 1px solid var(--borda); border-radius: 13px; box-shadow: 0 12px 30px -14px #04331a45; overflow: hidden; }
+  .gm-item { display: flex; align-items: center; gap: 10px; padding: 11px 13px; font: 600 12.5px Poppins; cursor: pointer; }
+  .gm-item + .gm-item { border-top: 1px solid var(--borda); }
+  .gm-item svg { width: 17px; height: 17px; flex: none; }
+  .gm-item--go { color: var(--verde-deep); background: #00883508; }
+  .gm-item--exit { color: #c0392b; }
+
+  /* ---------- demo 4: Android vs iPhone ---------- */
+  .osseg { display: flex; gap: 4px; background: var(--milk-warm); border: 1px solid var(--borda); border-radius: 12px; padding: 4px; width: fit-content; margin: 0 auto 14px; }
+  .osseg button { border: 0; background: none; font: 600 12px Poppins; color: var(--muted); padding: 7px 18px; border-radius: 9px; cursor: pointer; transition: background .15s, color .15s, box-shadow .15s; }
+  .osseg button.on { background: #fff; color: var(--verde-deep); box-shadow: 0 1px 3px #00000018; }
+  .os-note { margin-top: 14px; font-size: 12px; color: var(--muted); background: var(--milk-warm); border: 1px solid var(--borda); border-radius: 12px; padding: 10px 12px; line-height: 1.5; }
+  .os-note b { color: var(--ink); font-weight: 600; }
+
+  /* Android: folha de credencial do sistema (fonte de sistema) */
+  .andsheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 42; background: #fff; border-radius: 24px 24px 0 0; padding: 14px 18px 22px; transform: translateY(112%); box-shadow: 0 -14px 44px -12px #0006; font-family: "Roboto", "Segoe UI", system-ui, sans-serif; }
+  .andsheet .grab2 { width: 34px; height: 4px; border-radius: 999px; background: #dcdfe4; margin: 0 auto 14px; }
+  .and-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .and-hd .glo { width: 30px; height: 30px; border-radius: 50%; background: #e8f0fe; color: #1a73e8; display: grid; place-items: center; }
+  .and-hd .glo svg { width: 17px; height: 17px; }
+  .and-hd b { font: 500 15px "Roboto", system-ui, sans-serif; color: #202124; }
+  .and-hd small { display: block; font-size: 11.5px; color: #5f6368; }
+  .and-acct { display: flex; align-items: center; gap: 12px; padding: 13px 6px 4px; }
+  .and-acct .av { width: 38px; height: 38px; font-size: 14px; line-height: 38px; }
+  .and-acct b { font: 500 14px "Roboto", system-ui, sans-serif; color: #202124; display: block; }
+  .and-acct span { font-size: 12px; color: #5f6368; }
+  .and-acct .lock { margin-left: auto; color: #5f6368; }
+  .and-acct .lock svg { width: 17px; height: 17px; }
+  .and-status { text-align: center; font: 500 13px "Roboto", system-ui, sans-serif; color: #1a73e8; padding: 16px 0 2px; display: none; }
+
+  /* iOS: teclado com barra de senha sugerida (fonte de sistema) */
+  .ioskb { position: absolute; left: 0; right: 0; bottom: 0; z-index: 42; transform: translateY(112%); font-family: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif; }
+  .kb-suggest { background: #cbced4; padding: 8px 8px; }
+  .pwchip { display: flex; align-items: center; gap: 9px; background: #fff; border-radius: 9px; padding: 9px 11px; box-shadow: 0 1px 2px #0000002e; cursor: pointer; }
+  .pwchip:active { background: #f1f2f4; }
+  .pwchip .key { width: 26px; height: 26px; border-radius: 7px; background: #f1f3f5; color: #1c1c1e; display: grid; place-items: center; flex: none; }
+  .pwchip .key svg { width: 15px; height: 15px; }
+  .pwchip .pw b { font: 590 13px -apple-system, system-ui, sans-serif; color: #1c1c1e; display: block; }
+  .pwchip .pw span { font-size: 11px; color: #6c6c70; letter-spacing: 1px; }
+  .pwchip .faceid { margin-left: auto; color: #1c1c1e; flex: none; }
+  .pwchip .faceid svg { width: 24px; height: 24px; }
+  .kb-keys { background: #d1d4db; padding: 8px 4px 10px; }
+  .kb-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
+  .kb-row:last-child { margin-bottom: 0; }
+  .kb-key { min-width: 20px; height: 34px; padding: 0 2px; flex: 1; max-width: 25px; background: #fff; border-radius: 6px; box-shadow: 0 1px 0 #00000033; font: 400 15px -apple-system, system-ui, sans-serif; color: #1c1c1e; display: grid; place-items: center; }
+  .kb-key.wide { max-width: 46px; flex: 1.6; }
+  .kb-key.dark { background: #adb3bd; }
+  .kb-key.space { max-width: 130px; flex: 4; }
+  .kb-key.blue { background: var(--ios-blue); color: #fff; }
+
+  /* backdrop compartilhado dos overlays */
+  .ov-bd { position: absolute; inset: 0; background: #04120a; opacity: 0; pointer-events: none; transition: opacity .28s; z-index: 41; }
+
+  .foot { margin-top: 46px; color: var(--muted); font-size: 12.5px; text-align: center; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="kicker">Proposta · aprovação antes de tocar o app</span>
+  <h1>A tela de acesso que te reconhece</h1>
+  <p class="sub">Hoje a tela de acesso é estática: você escolhe o portal e digita a credencial toda vez. A ideia aprovada: o app abre, mostra o portal pra escolher e, se a senha já está salva, entra num toque. A senha fica guardada só pelo gerenciador do sistema (Android e iPhone), nunca pelo app. Cada quadro abaixo é interativo, toque e sinta.</p>
+
+  <div class="grid">
+
+    <!-- ============ DEMO 1: escolha com sessao lembrada ============ -->
+    <div class="demo">
+      <h2><span class="n">1</span>Escolha com sessão lembrada</h2>
+      <p>O app abre nesta tela. O portal que você já usou aparece com seu rosto e um toque entra. O outro fica no estado neutro de sempre. Toque no card do William.</p>
+      <div class="aplica"><b>Onde entra:</b> primeiro quadro que aparece ao abrir o app, nos dois portais.</div>
+      <div class="phone"><div class="screen" id="d1">
+
+        <div class="island"></div>
+        <div class="app-view" id="d1-esc">
+          <div class="ac">
+            <div class="ac-brand">
+              <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div class="ac-wm">FioPulse</div>
+            </div>
+            <div class="ac-cards">
+              <!-- gestor: RICO, sessao lembrada -->
+              <button class="ac-card ac-card--gestor" onclick="d1entra()">
+                <span class="ac-av">WS</span>
+                <span class="ac-tx">
+                  <span class="ac-eyebrow">Bem-vindo de volta</span>
+                  <span class="ac-title">Entrar como William</span>
+                  <span class="selo"><span class="dot"></span>conectado</span>
+                </span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </button>
+              <!-- colab: NEUTRO -->
+              <button class="ac-card ac-card--colab" onclick="d1cpf()">
+                <span class="ac-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                <span class="ac-tx">
+                  <span class="ac-title">Portal do Colaborador</span>
+                  <span class="ac-sub">Entre com seu CPF. Ponto, comunicados e documentos.</span>
+                </span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </button>
+            </div>
+            <button class="ac-alt" onclick="d1cpf()">Não é você? <u>Entrar com outra conta</u></button>
+            <div class="ac-rod">© 2026 Fiobras · acesso restrito</div>
+          </div>
+        </div>
+
+        <!-- home fake do gestor (apos 1 toque) -->
+        <div class="app-view" id="d1-home" style="display:none">
+          <div class="hd">
+            <div class="sbar"><span>9:41</span><span>FioPulse</span></div>
+            <div class="hd-in">
+              <div class="av">WS</div>
+              <div class="hd-tx"><b>Boa tarde, William</b><span>Gestão de Pessoas</span></div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="rowcard"><div class="ric"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div><div class="rtx"><b>Visão geral</b><span>indicadores do mês</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            <div class="rowcard"><div class="ric"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div><div class="rtx"><b>Ocorrências</b><span>3 aguardando conferência</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            <div class="rowcard"><div class="ric"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="rtx"><b>Funcionários</b><span>quadro completo</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            <button class="ac-alt" style="margin:8px auto 0;display:block" onclick="d1volta()">Voltar à tela de acesso</button>
+          </div>
+        </div>
+
+        <!-- form manual (colab CPF / outra conta) -->
+        <div class="app-view" id="d1-form" style="display:none">
+          <div class="lg">
+            <button class="lg-back" onclick="d1volta()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Voltar</button>
+            <div class="lg-brand">
+              <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <b>Portal do Colaborador</b>
+            </div>
+            <div class="fld"><label>CPF</label><div class="inp ph">000.000.000-00</div></div>
+            <div class="fld"><label>Senha</label><div class="inp ph">sua senha</div></div>
+            <button class="lg-btn">Entrar</button>
+          </div>
+        </div>
+
+      </div></div>
+    </div>
+
+    <!-- ============ DEMO 2: estados do card ============ -->
+    <div class="demo">
+      <h2><span class="n">2</span>Os estados do card</h2>
+      <p>O mesmo card muda conforme o que o aparelho lembra de você. Role para comparar os quatro estados, do neutro ao caso de quem usa os dois portais.</p>
+      <div class="aplica"><b>Onde entra:</b> o card de cada portal na tela de acesso.</div>
+      <div class="phone"><div class="screen scr-scroll">
+        <div class="d2-list">
+
+          <div class="d2-state">
+            <div class="cap">a<span>Neutro · nada salvo ainda</span></div>
+            <div class="ac-cards">
+              <div class="ac-card ac-card--colab">
+                <span class="ac-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                <span class="ac-tx"><span class="ac-title">Portal do Colaborador</span><span class="ac-sub">Entre com seu CPF.</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="d2-state">
+            <div class="cap">b<span>Entrada rápida · senha no gerenciador</span></div>
+            <div class="ac-cards">
+              <div class="ac-card ac-card--gestor">
+                <span class="ac-ic" style="background:#ffcb0022;color:#9a7b00"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M17.5 5.5 20 8M14.5 8.5 17 11"/></svg></span>
+                <span class="ac-tx"><span class="ac-title">Entrar como William</span><span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M17.5 5.5 20 8"/></svg>entrada rápida</span><span class="ac-sub" style="margin-top:5px">Entra sem digitar.</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="d2-state">
+            <div class="cap">c<span>Conectado · sessão viva</span></div>
+            <div class="ac-cards">
+              <div class="ac-card ac-card--gestor">
+                <span class="ac-av">WS</span>
+                <span class="ac-tx"><span class="ac-eyebrow">Bem-vindo de volta</span><span class="ac-title">Entrar como William</span><span class="selo"><span class="dot"></span>conectado</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="d2-state">
+            <div class="cap">d<span>Caso duplo · você usa os dois</span></div>
+            <div class="ac-cards">
+              <div class="ac-card ac-card--gestor">
+                <span class="ac-av">WS</span>
+                <span class="ac-tx"><span class="ac-eyebrow">Gestão de Pessoas</span><span class="ac-title">Entrar como William</span><span class="selo"><span class="dot"></span>conectado</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+              <div class="ac-card ac-card--colab">
+                <span class="ac-av">WS</span>
+                <span class="ac-tx"><span class="ac-eyebrow">Portal do Colaborador</span><span class="ac-title">Entrar como William</span><span class="selo"><span class="dot"></span>conectado</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ============ DEMO 3: trocar de portal ============ -->
+    <div class="demo">
+      <h2><span class="n">3</span>Trocar de portal</h2>
+      <p>Quem usa os dois (você e a Jenifer) troca sem sair do jeito difícil: um atalho leva de volta à escolha. No colaborador fica na tela Conta, junto de Sair. Toque em Trocar de portal.</p>
+      <div class="aplica"><b>Onde entra:</b> tela Conta (colaborador) e menu do usuário (gestor).</div>
+      <div class="phone"><div class="screen" id="d3">
+
+        <div class="island"></div>
+        <div class="app-view" id="d3-conta">
+          <div class="hd">
+            <div class="sbar"><span>9:41</span><span>FioPulse</span></div>
+            <div class="hd-in">
+              <div class="av">WS</div>
+              <div class="hd-tx"><b>Minha conta</b><span>William · Fiação</span></div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="rowcard"><div class="ric"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></div><div class="rtx"><b>Aparência</b><span>tema claro, escuro ou do sistema</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            <div class="rowcard rowcard--go" onclick="d3troca()"><div class="ric" style="background:#00883514;color:var(--verde)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 4 3 8 7 12"/><path d="M3 8h14"/><polyline points="17 20 21 16 17 12"/><path d="M21 16H7"/></svg></div><div class="rtx"><b>Trocar de portal</b><span>voltar à escolha de acesso</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            <div class="rowcard" style="border-color:#f0d6d2"><div class="ric" style="background:#c738381a;color:#c0392b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div><div class="rtx"><b style="color:#c0392b">Sair</b><span>encerrar a sessão neste aparelho</span></div></div>
+          </div>
+        </div>
+
+        <!-- volta pra escolha (estado d, os dois ricos) -->
+        <div class="app-view" id="d3-esc" style="display:none">
+          <div class="ac">
+            <div class="ac-brand">
+              <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div class="ac-wm">FioPulse</div>
+            </div>
+            <div class="ac-cards">
+              <button class="ac-card ac-card--gestor" onclick="d3volta()">
+                <span class="ac-av">WS</span>
+                <span class="ac-tx"><span class="ac-eyebrow">Gestão de Pessoas</span><span class="ac-title">Entrar como William</span><span class="selo"><span class="dot"></span>conectado</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </button>
+              <button class="ac-card ac-card--colab" onclick="d3volta()">
+                <span class="ac-av">WS</span>
+                <span class="ac-tx"><span class="ac-eyebrow">Portal do Colaborador</span><span class="ac-title">Entrar como William</span><span class="selo"><span class="dot"></span>conectado</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </button>
+            </div>
+            <button class="ac-alt" onclick="d3volta()">Voltar</button>
+          </div>
+        </div>
+
+      </div></div>
+
+      <div class="gm">
+        <div class="gm-cap">No gestor: menu do usuário na barra lateral</div>
+        <div class="gm-user">
+          <div class="av">WS</div>
+          <div><b>William Schulz</b><span>Gestão de Pessoas</span></div>
+          <span class="up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></span>
+        </div>
+        <div class="gm-pop">
+          <div class="gm-item gm-item--go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 4 3 8 7 12"/><path d="M3 8h14"/><polyline points="17 20 21 16 17 12"/><path d="M21 16H7"/></svg>Trocar de portal</div>
+          <div class="gm-item gm-item--exit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sair</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DEMO 4: Android vs iPhone ============ -->
+    <div class="demo">
+      <h2><span class="n">4</span>Android e iPhone</h2>
+      <p>A senha vem do gerenciador do sistema, e cada plataforma tem seu jeito. Escolha o sistema e toque em Entrar como William.</p>
+      <div class="aplica"><b>Onde entra:</b> entrada rápida, com a segurança do próprio aparelho (impressão ou rosto).</div>
+
+      <div class="osseg">
+        <button id="os-and" class="on" onclick="setOS('and')">Android</button>
+        <button id="os-ios" onclick="setOS('ios')">iPhone</button>
+      </div>
+
+      <div class="phone"><div class="screen" id="d4">
+        <div class="island"></div>
+
+        <div class="app-view" id="d4-esc">
+          <div class="ac">
+            <div class="ac-brand">
+              <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div class="ac-wm">FioPulse</div>
+            </div>
+            <div class="ac-cards">
+              <button class="ac-card ac-card--gestor" onclick="d4entra()">
+                <span class="ac-ic" style="background:#ffcb0022;color:#9a7b00"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M17.5 5.5 20 8M14.5 8.5 17 11"/></svg></span>
+                <span class="ac-tx"><span class="ac-title">Entrar como William</span><span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M17.5 5.5 20 8"/></svg>entrada rápida</span><span class="ac-sub" style="margin-top:5px" id="d4-hint">Toque: o Android abre a conta salva.</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </button>
+              <button class="ac-card ac-card--colab" style="opacity:.6">
+                <span class="ac-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                <span class="ac-tx"><span class="ac-title">Portal do Colaborador</span><span class="ac-sub">Entre com seu CPF.</span></span>
+                <span class="ac-arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- iOS: form com senha em foco (o teclado sobe por cima) -->
+        <div class="app-view" id="d4-iosform" style="display:none">
+          <div class="lg" style="padding-bottom:0">
+            <div class="lg-brand" style="margin-top:14px">
+              <svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <b>Gestor / Administrador</b>
+            </div>
+            <div class="fld"><label>Usuário</label><div class="inp">william</div></div>
+            <div class="fld"><label>Senha</label><div class="inp focus"><span style="color:#a7b0a3;font-weight:400">senha do usuário</span><span class="caret"></span></div></div>
+          </div>
+        </div>
+
+        <!-- home fake apos autenticar -->
+        <div class="app-view" id="d4-home" style="display:none">
+          <div class="hd">
+            <div class="sbar"><span>9:41</span><span>FioPulse</span></div>
+            <div class="hd-in">
+              <div class="av">WS</div>
+              <div class="hd-tx"><b>Boa tarde, William</b><span>Gestão de Pessoas</span></div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="rowcard"><div class="ric"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div><div class="rtx"><b>Visão geral</b><span>indicadores do mês</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            <div class="rowcard"><div class="ric"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div><div class="rtx"><b>Ocorrências</b><span>3 aguardando conferência</span></div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg></span></div>
+            <button class="ac-alt" style="margin:8px auto 0;display:block" onclick="d4reset()">Refazer a demo</button>
+          </div>
+        </div>
+
+        <!-- overlay: folha de credencial do Android -->
+        <div class="ov-bd" id="d4-bd"></div>
+        <div class="andsheet" id="d4-and">
+          <div class="grab2"></div>
+          <div class="and-hd">
+            <span class="glo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M17.5 5.5 20 8M14.5 8.5 17 11"/></svg></span>
+            <div><b>Usar senha salva</b><small>para FioPulse</small></div>
+          </div>
+          <div class="and-acct">
+            <div class="av">WS</div>
+            <div><b>William Schulz</b><span>gestor · senha salva</span></div>
+            <span class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+          </div>
+          <div class="and-status" id="d4-and-st">Autenticando com a impressão digital...</div>
+        </div>
+
+        <!-- overlay: teclado do iOS com barra de senha -->
+        <div class="ioskb" id="d4-kb">
+          <div class="kb-suggest">
+            <div class="pwchip" onclick="d4iosFill()">
+              <span class="key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M17.5 5.5 20 8"/></svg></span>
+              <span class="pw"><b>william</b><span>••••••••••</span></span>
+              <span class="faceid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10v1.5M15 10v1.5M12 9.5v3l-1 1M9.3 15c.8.6 1.7.9 2.7.9s1.9-.3 2.7-.9"/></svg></span>
+            </div>
+          </div>
+          <div class="kb-keys">
+            <div class="kb-row"><span class="kb-key">q</span><span class="kb-key">w</span><span class="kb-key">e</span><span class="kb-key">r</span><span class="kb-key">t</span><span class="kb-key">y</span><span class="kb-key">u</span><span class="kb-key">i</span><span class="kb-key">o</span><span class="kb-key">p</span></div>
+            <div class="kb-row"><span class="kb-key">a</span><span class="kb-key">s</span><span class="kb-key">d</span><span class="kb-key">f</span><span class="kb-key">g</span><span class="kb-key">h</span><span class="kb-key">j</span><span class="kb-key">k</span><span class="kb-key">l</span></div>
+            <div class="kb-row"><span class="kb-key dark">⇧</span><span class="kb-key">z</span><span class="kb-key">x</span><span class="kb-key">c</span><span class="kb-key">v</span><span class="kb-key">b</span><span class="kb-key">n</span><span class="kb-key">m</span><span class="kb-key dark">⌫</span></div>
+            <div class="kb-row"><span class="kb-key wide dark">123</span><span class="kb-key space">espaço</span><span class="kb-key wide blue">ir</span></div>
+          </div>
+        </div>
+
+      </div></div>
+
+      <div class="os-note" id="d4-note"><b>Android:</b> a Credential Management API abre a conta salva e, com a digital, entra direto. Sem tela de senha.</div>
+    </div>
+
+  </div>
+
+  <p class="foot">Nada de senha guardada pelo app: quem guarda é o Android e o iPhone, com biometria. A tela segue minimalista, só ganhou memória.</p>
+</div>
+
+<script>
+  // transicao WAAPI entre app-views (independente por telefone, sem clash de nomes)
+  function go(showId, hideId, back) {
+    const s = document.getElementById(showId), h = document.getElementById(hideId);
+    if (!s || !h) return;
+    s.style.display = "flex";
+    const dx = back ? -1 : 1;
+    s.animate([{ opacity: 0, transform: `translateX(${18 * dx}px)` }, { opacity: 1, transform: "none" }], { duration: 300, easing: "cubic-bezier(.32,.72,.28,1)" });
+    const a = h.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: "ease" });
+    a.finished.then(() => { h.style.display = "none"; }).catch(() => { h.style.display = "none"; });
+  }
+  const buzz = () => { try { navigator.vibrate && navigator.vibrate(9); } catch (e) {} };
+
+  // ---------- demo 1 ----------
+  function d1entra() { buzz(); go("d1-home", "d1-esc"); }
+  function d1cpf() { go("d1-form", "d1-esc"); }
+  function d1volta() {
+    ["d1-home", "d1-form"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.display = "none"; });
+    go("d1-esc", "d1-home", true);
+    document.getElementById("d1-form").style.display = "none";
+  }
+
+  // ---------- demo 3 ----------
+  function d3troca() { buzz(); go("d3-esc", "d3-conta"); }
+  function d3volta() { go("d3-conta", "d3-esc", true); }
+
+  // ---------- demo 4: Android vs iPhone ----------
+  let os = "and";
+  const kb = () => document.getElementById("d4-kb");
+  const and = () => document.getElementById("d4-and");
+  const bd = () => document.getElementById("d4-bd");
+  function setOS(v) {
+    os = v;
+    document.getElementById("os-and").classList.toggle("on", v === "and");
+    document.getElementById("os-ios").classList.toggle("on", v === "ios");
+    document.getElementById("d4-hint").textContent = v === "and" ? "Toque: o Android abre a conta salva." : "Toque: o iPhone oferece a senha no teclado.";
+    document.getElementById("d4-note").innerHTML = v === "and"
+      ? "<b>Android:</b> a Credential Management API abre a conta salva e, com a digital, entra direto. Sem tela de senha."
+      : "<b>iPhone:</b> o campo de senha abre em foco e o teclado oferece a senha salva. Um toque, o Face ID confirma e entra.";
+    d4reset();
+  }
+  function d4reset() {
+    ["d4-iosform", "d4-home"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.display = "none"; });
+    document.getElementById("d4-esc").style.display = "flex";
+    kb().style.transform = "translateY(112%)";
+    and().style.transform = "translateY(112%)";
+    bd().style.opacity = "0"; bd().style.pointerEvents = "none";
+    document.getElementById("d4-and-st").style.display = "none";
+  }
+  function d4entra() {
+    buzz();
+    if (os === "and") {
+      bd().style.opacity = ".4"; bd().style.pointerEvents = "auto";
+      and().animate([{ transform: "translateY(112%)" }, { transform: "translateY(0)" }], { duration: 460, easing: "cubic-bezier(.28,1.1,.38,1)", fill: "forwards" });
+      setTimeout(() => {
+        document.getElementById("d4-and-st").style.display = "block";
+        buzz();
+        setTimeout(() => {
+          and().animate([{ transform: "translateY(0)" }, { transform: "translateY(112%)" }], { duration: 260, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" });
+          bd().style.opacity = "0"; bd().style.pointerEvents = "none";
+          document.getElementById("d4-esc").style.display = "none";
+          go("d4-home", "d4-esc");
+        }, 1000);
+      }, 750);
+    } else {
+      document.getElementById("d4-esc").style.display = "none";
+      const f = document.getElementById("d4-iosform");
+      f.style.display = "flex";
+      f.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 });
+      setTimeout(() => {
+        kb().animate([{ transform: "translateY(112%)" }, { transform: "translateY(0)" }], { duration: 420, easing: "cubic-bezier(.28,1.1,.38,1)", fill: "forwards" });
+      }, 160);
+    }
+  }
+  function d4iosFill() {
+    buzz();
+    const inp = document.querySelector("#d4-iosform .inp.focus");
+    if (inp) inp.innerHTML = '<span style="color:#1E2D1A;letter-spacing:2px">••••••••••</span>';
+    kb().animate([{ transform: "translateY(0)" }, { transform: "translateY(112%)" }], { duration: 300, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" });
+    setTimeout(() => {
+      document.getElementById("d4-iosform").style.display = "none";
+      go("d4-home", "d4-iosform");
+    }, 360);
+  }
+</script>
+</body>
+</html>

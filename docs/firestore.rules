@@ -1285,14 +1285,21 @@ service cloud.firestore {
               // double-claim na virada de meia-noite UTC dentro da mesma janela de 24h
               // (gate Fable delta 4). ultimoDia e monotonico pelos ramos do update, entao
               // cada dia canonico aparece no maximo 1x por uid.
+              // Anti-auto em DUPLA (upgrade do gate, 2026-07-15): o pipeline agora
+              // grava funcionarioId no pai; exigir id E nome diferentes e imune a
+              // grafia (id) e a formato divergente de id (nome segura). Pai antigo
+              // sem funcionarioId = erro de avaliacao = NEGA (fail-closed; a poda
+              // recria os pais toda rodada ja com o campo).
               || (acao == 'coracao'
                      && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.tipo == 'aniversario'
                      && refId.matches('.*-' + string(request.time.year()))
                      && getAfter(/databases/$(database)/documents/muralAniversario/$(refId)/reacoes/$(uid)).data.em.year() == request.time.year()
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.funcionarioId != meuFuncionarioId()
                      && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.nome != userDoc().nome)
               || (acao == 'boas-vindas'
                      && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.tipo == 'bemvindo'
                      && getAfter(/databases/$(database)/documents/muralAniversario/$(refId)/reacoes/$(uid)).data.em.year() == request.time.year()
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.funcionarioId != meuFuncionarioId()
                      && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.nome != userDoc().nome)
               || (acao == 'streak'
                      && refId == string(getAfter(/databases/$(database)/documents/gamificacao/$(ano)/presenca/$(uid)).data.ultimoDia.year())

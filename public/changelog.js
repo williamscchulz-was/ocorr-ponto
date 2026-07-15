@@ -14,7 +14,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.75.0", d: "15 jul 2026", current: true, items: [
+    v: "1.76.0", d: "15 jul 2026", current: true, items: [
+      { type: "high", title: "Voce nao precisa mais logar toda vez: o portal do colaborador agora mantem voce conectado sempre. Um login e pronto, o app abre direto." },
+      { type: "high", title: "Momentos que importam ganharam celebracao: assinar recibo ou documento, aceitar o termo, responder pesquisa e, o melhor, CRUZAR UM MARCO de pontos agora tem a confirmacao cerimonial com o anel dourado." },
+      { type: "feat", title: "No Android, o app agora oferece salvar sua senha no cofre do celular e entrar com um toque. No iPhone, o teclado oferece a senha salva com Face ID." },
+    ],
+  },
+  {
+    v: "1.75.0", d: "15 jul 2026", items: [
       { type: "high", title: "Os paineis do celular ganharam fisica de verdade: sobem com mola, seguem o seu dedo quando voce arrasta pela alca, e decidem sozinhos se fecham ou voltam. Igualzinho aos apps que voce ja ama." },
     ],
   },
