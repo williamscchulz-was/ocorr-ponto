@@ -51,22 +51,58 @@
   .secao { max-width: 1060px; margin: 0 auto; padding: 44px 26px 10px; }
   .secao > h2 { margin: 0 0 4px; font-size: clamp(22px, 3.4vw, 30px); font-weight: 800; letter-spacing: -.01em; }
   .secao > p.sub { margin: 0 0 22px; font-size: 14px; color: #5a6852; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-  .vaga { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid #e0e6d9; border-radius: 18px; padding: 20px 20px 18px; box-shadow: 0 3px 14px rgba(10,40,20,.05); transition: transform .16s ease, box-shadow .16s ease; overflow: hidden; }
-  .vaga::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #008835, #FFCB00, #0076BE); }
-  .vaga:hover { transform: translateY(-4px); box-shadow: 0 14px 34px rgba(10,40,20,.12); }
-  .vaga h3 { margin: 4px 0 0; font-size: 17.5px; font-weight: 700; line-height: 1.3; }
+  .listlabel { font-size: 13px; font-weight: 500; color: #6b7563; margin: 0 2px 16px; }
+  .listlabel[hidden] { display: none; }
+  .listlabel b { color: #1d2a19; font-weight: 700; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
   .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 12px; }
   .tag { font-size: 10.5px; font-weight: 700; padding: 3.5px 11px; border-radius: 999px; background: #eaf4ec; color: #0b6e33; }
   .tag--turno { background: #e8f1f8; color: #0076BE; }
-  .desc { margin: 0 0 8px; font-size: 13.5px; color: #45523f; line-height: 1.6; white-space: pre-line; }
-  .req { margin: 0 0 16px; font-size: 12.5px; color: #6b7563; line-height: 1.55; white-space: pre-line; }
-  .vfoot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-  .data { font-size: 11px; color: #8a927f; }
+
+  /* ===== Card compacto (ideia B): lista escaneável, um toque abre a página da vaga ===== */
+  .vcompact { position: relative; background: #fff; border: 1px solid #e0e6d9; border-radius: 16px; padding: 15px 16px 14px; box-shadow: 0 3px 14px rgba(10,40,20,.05); overflow: hidden; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
+  .vcompact::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: linear-gradient(#008835, #FFCB00, #0076BE); }
+  .vcompact:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -12px rgba(10,40,20,.22); }
+  .vcompact:focus-visible { outline: 2px solid #008835; outline-offset: 2px; }
+  .vcompact h3 { margin: 0 0 0 4px; font-size: 15.5px; font-weight: 700; line-height: 1.25; }
+  .vcompact .tags { margin: 9px 0 9px 4px; }
+  .vcompact .tag { font-size: 10px; padding: 3px 9px; }
+  .rsum { margin: 0 0 0 4px; font-size: 12.5px; color: #55604f; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cfoot { margin: 11px 0 0 4px; display: flex; align-items: center; gap: 7px; font-size: 12px; color: #6e7663; }
+  .cfoot .bn { color: #2f6b3f; font-weight: 600; }
+  .cfoot .go { margin-left: auto; color: #008835; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+  .cfoot .go svg { width: 13px; height: 13px; }
+
   .cta { display: inline-flex; align-items: center; gap: 8px; background: #008835; color: #fff; border: 0; font: 700 13.5px "Poppins", sans-serif; padding: 12px 18px; border-radius: 999px; cursor: pointer; text-decoration: none; transition: background .15s ease, transform .15s ease; }
   .cta:hover { background: #0b6e33; transform: translateY(-1px); }
   .cta svg { width: 17px; height: 17px; fill: currentColor; }
   .vazio, .carregando { grid-column: 1 / -1; text-align: center; padding: 54px 20px; color: #6b7563; font-size: 14.5px; background: #fff; border: 1px dashed #cfd8c6; border-radius: 18px; }
+
+  /* ===== Página da vaga (ideia B): tela dedicada, corpo rolável, Candidatar-se fixo ===== */
+  body.vp-lock { overflow: hidden; }
+  /* Com a página da vaga aberta, o FAB do WhatsApp não pode tapar o Candidatar-se fixo. */
+  body.vp-lock .zapfab { display: none; }
+  .vagapage { position: fixed; inset: 0; z-index: 80; background: #f4f6f1; display: none; flex-direction: column; }
+  .vagapage.on { display: flex; }
+  .vagapage[hidden] { display: none; }
+  .vp-wrap { max-width: 680px; margin: 0 auto; width: 100%; }
+  .vp-head { background: #04331a; color: #fff; padding: 16px 22px 22px; flex: 0 0 auto; }
+  .vp-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; background: rgba(255,255,255,.14); border: 0; color: #fff; font: 600 13px "Poppins", sans-serif; border-radius: 999px; padding: 9px 15px 9px 11px; cursor: pointer; margin-bottom: 16px; }
+  .vp-back:hover { background: rgba(255,255,255,.24); }
+  .vp-back svg { width: 15px; height: 15px; }
+  .vp-head h2 { margin: 0; font-size: clamp(21px, 4.5vw, 26px); font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
+  .vp-head .tags { margin: 14px 0 0; }
+  .vp-head .tag { background: rgba(255,255,255,.14); color: #eafaef; }
+  .vp-head .tag--turno { background: rgba(0,118,190,.34); color: #dcefff; }
+  .vp-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 22px; }
+  .vp-sec { margin: 0 0 22px; }
+  .vp-sec[hidden] { display: none; }
+  .vp-sec:last-child { margin-bottom: 8px; }
+  .vp-lb { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6e7663; margin-bottom: 8px; }
+  .vp-sec p { margin: 0; font-size: 14.5px; line-height: 1.65; color: #45523f; white-space: pre-line; }
+  .vp-body .sben { border-top: 0; padding-top: 0; margin: 0; }
+  .vp-foot { flex: 0 0 auto; border-top: 1px solid #e6e9e0; background: #fbfcf9; padding: 14px 22px calc(16px + env(safe-area-inset-bottom)); }
+  .vp-foot .cta { width: 100%; justify-content: center; padding: 15px; font-size: 15px; }
 
   /* ===== POR QUE A FIOBRAS ===== */
   .porque { max-width: 1060px; margin: 26px auto 0; padding: 0 26px 40px; }
@@ -75,7 +111,7 @@
   .porque__it b { display: block; font-size: 14.5px; margin-bottom: 5px; color: #ffd83d; }
   .porque__it p { margin: 0; font-size: 12.5px; opacity: .85; line-height: 1.6; }
 
-  .foot { text-align: center; padding: 8px 22px 34px; font-size: 11.5px; color: #8a927f; line-height: 1.7; max-width: 640px; margin: 0 auto; }
+  .foot { text-align: center; padding: 8px 22px 34px; font-size: 11.5px; color: #6e7663; line-height: 1.7; max-width: 640px; margin: 0 auto; }
 
   /* ===== CANDIDATURA (modal) ===== */
   dialog.candidatura { border: none; border-radius: 20px; padding: 0; width: min(460px, 92vw); max-height: 88vh; overflow: hidden; box-shadow: 0 24px 60px rgba(4,51,26,.35); }
@@ -101,7 +137,7 @@
     .porque__card { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .vaga, .cta, .hero__cta { transition: none; }
+    .vcompact, .cta, .hero__cta { transition: none; }
     .hero h1 .marca .verbo { transition: none; }
   }
   /* Botão flutuante do WhatsApp (criado por JS só quando a GP cadastrou o número) */
@@ -286,21 +322,21 @@
     padding: 28px 30px; box-shadow: 0 3px 14px rgba(10,40,20,.05); }
   .valor__heart { flex: 0 0 auto; width: 118px; color: #008835; }
   .valor__heart svg { width: 100%; height: auto; display: block; }
-  .valor__tx small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #8a927f; margin-bottom: 4px; }
+  .valor__tx small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #6e7663; margin-bottom: 4px; }
   .valor__tx b { display: block; font-size: clamp(20px, 3vw, 24px); font-weight: 800; letter-spacing: -.01em; color: #04331a; }
   .valor__tx p { margin: 8px 0 0; font-size: 14px; color: #45523f; line-height: 1.6; max-width: 460px; }
   @media (max-width: 620px) { .valor__card { flex-direction: column; text-align: center; } .valor__tx p { margin-left: auto; margin-right: auto; } }
 
   /* ===== Benefícios no cartão da vaga ===== */
   .sben { border-top: 1px solid #eef0ea; padding-top: 13px; margin: 0 0 14px; }
-  .sben-l { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #8a927f; margin-bottom: 8px; }
+  .sben-l { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6e7663; margin-bottom: 8px; }
   .sben-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .sben-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: #2f6b3f;
     background: #f2f8f2; border: 1px solid #dbe9dc; border-radius: 999px; padding: 5px 11px; }
   .sben-chip svg { width: 12px; height: 12px; color: #008835; flex: 0 0 auto; }
 
   /* ===== Ficha: controles das etapas (dentro do dialog) ===== */
-  .candidatura .grp { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: #8a927f;
+  .candidatura .grp { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: #6e7663;
     margin: 18px 0 10px; display: flex; align-items: center; gap: 8px; }
   .candidatura .grp::after { content: ""; flex: 1; height: 1px; background: #e7e9e1; }
   .candidatura .grp:first-of-type { margin-top: 4px; }
@@ -378,6 +414,44 @@
   .candidatura .rev-edit { align-self: center; margin-left: auto; font: 600 11.5px "Poppins", sans-serif; color: var(--verde);
     background: none; border: 0; cursor: pointer; flex: 0 0 auto; }
   .candidatura .rev-row { align-items: flex-start; }
+
+  /* ===== G1: o par de campos (.duo) não pode transbordar em telas estreitas ===== */
+  .candidatura .duo > .field { min-width: 0; }
+  .candidatura .field input, .candidatura .field select { max-width: 100%; }
+
+  /* ===== P3: alvos de toque >= 44px sem inflar o visual (área de toque via ::before) ===== */
+  .cand__fechar { position: relative; }
+  .cand__fechar::before { content: ""; position: absolute; inset: -7px; }
+  .candidatura .cand__back { position: relative; }
+  .candidatura .cand__back::before { content: ""; position: absolute; inset: -6px; }
+  .candidatura .exp .exp-acts { gap: 12px; }
+  .candidatura .exp .exp-acts button { position: relative; }
+  .candidatura .exp .exp-acts button::before { content: ""; position: absolute; top: 50%; left: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+  .candidatura .cv-x { position: relative; }
+  .candidatura .cv-x::before { content: ""; position: absolute; inset: -7px; }
+  .candidatura .nstep button { position: relative; }
+  .candidatura .nstep button::before { content: ""; position: absolute; inset: -5px; }
+
+  /* ===== P4: primeiro emprego não apaga experiências em silêncio ===== */
+  .candidatura .checkcard.disabled { opacity: .55; cursor: not-allowed; }
+  .candidatura .pe-hint { font-size: 11.5px; color: #6e7663; line-height: 1.45; margin: -9px 0 15px 2px; }
+  .candidatura .pe-hint[hidden] { display: none; }
+
+  /* ===== P5: enviar desabilitado rola até o consentimento e o realça 1x ===== */
+  .candidatura .cand__foot .cta.looksdisabled { opacity: .55; }
+  .candidatura .lgpd.flash { animation: candflash .9s var(--ease-ios); }
+  @keyframes candflash {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,136,53,0); border-color: var(--borda); }
+    30% { box-shadow: 0 0 0 4px #00883533; border-color: var(--verde); }
+  }
+
+  /* ===== Auditoria: dica gentil enquanto o grupo do teste de perfil está incompleto ===== */
+  .candidatura .disc-hint { margin-top: 14px; font-size: 11.5px; color: var(--muted); line-height: 1.5; text-align: center; }
+  .candidatura .disc-hint b { font-weight: 600; color: #45523f; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .candidatura .lgpd.flash { animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -430,6 +504,7 @@
 <main class="secao" id="vagas">
   <h2>Vagas abertas</h2>
   <p class="sub">Indaial, SC</p>
+  <p class="listlabel" id="listlabel" hidden></p>
   <div class="grid" id="lista">
     <p class="carregando">Carregando as vagas…</p>
   </div>
@@ -444,6 +519,28 @@
 </section>
 
 <footer class="foot">Fiobras · Rua Dr. Blumenau, 2725 · Encano, Indaial SC</footer>
+
+<section class="vagapage" id="vagapage" hidden aria-labelledby="vpTitulo">
+  <header class="vp-head">
+    <div class="vp-wrap">
+      <button type="button" class="vp-back" id="vpBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>Vagas</button>
+      <h2 id="vpTitulo"></h2>
+      <div class="tags" id="vpTags"></div>
+    </div>
+  </header>
+  <div class="vp-body" id="vpBody">
+    <div class="vp-wrap">
+      <div class="vp-sec" id="vpSecDesc"><div class="vp-lb">A vaga</div><p id="vpDesc"></p></div>
+      <div class="vp-sec" id="vpSecReq"><div class="vp-lb">Requisitos</div><p id="vpReq"></p></div>
+      <div class="vp-sec" id="vpSecBen"><div class="vp-lb">Benefícios</div><div class="sben" id="vpBen"></div></div>
+    </div>
+  </div>
+  <footer class="vp-foot">
+    <div class="vp-wrap">
+      <button type="button" class="cta" id="vpCta"></button>
+    </div>
+  </footer>
+</section>
 
 <dialog class="candidatura" id="dlgCandidatura">
   <div class="cand__head">
@@ -585,10 +682,11 @@
       <div id="expList">
         <div class="stitle" id="expTitle">Suas últimas experiências</div>
         <div class="shint" id="expHint">Conte suas 3 experiências mais recentes. Se ainda não trabalhou de carteira assinada, marque abaixo.</div>
-        <div class="checkcard" id="expPrimeiro">
+        <div class="checkcard" id="expPrimeiro" role="checkbox" aria-checked="false" tabindex="0">
           <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           <p><b>Este é meu primeiro emprego</b><br>Você não precisa preencher nenhuma experiência.</p>
         </div>
+        <div class="pe-hint" id="expPrimeiroHint" hidden>Remova as experiências para marcar esta opção.</div>
         <div id="expCards"></div>
         <button type="button" class="add-exp" id="expAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Adicionar experiência</button>
         <div class="add-hint" id="expAddHint">Até 3. Você adiciona uma de cada vez.</div>
@@ -665,6 +763,7 @@
         <div class="disc-q" id="discPrompt">Toque na frase que <b>mais</b> combina com você</div>
         <div class="disc-qs">Não existe resposta certa. Vá pela primeira impressão.</div>
         <div class="disc-card" id="discCard"></div>
+        <div class="disc-hint" id="discHint">Escolha a frase que <b>mais</b> combina e a que <b>menos</b> combina para continuar.</div>
         <button type="button" class="disc-back" id="discBack" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 6 9 12 15 18"/></svg>Pergunta anterior</button>
       </div>
       <div class="disc-done" id="discDone">
@@ -754,17 +853,21 @@
   };
   var lista = document.getElementById("lista");
   var contagem = document.getElementById("contagem");
+  var listlabel = document.getElementById("listlabel");
   var db = null;
+  var SEND_SVG = '<svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>';
+  // Mapa id -> vaga (fonte da página da vaga e do link direto #vaga=<id>).
+  var VAGAS = {};
+  var pageVagaId = "", pageVagaTitulo = "", pageAberta = false, veioDeLista = false;
 
   if (!window.FIREBASE_CONFIG) {
     lista.innerHTML = '<p class="vazio">Página em manutenção. Tente de novo mais tarde.</p>';
   } else {
     firebase.initializeApp(window.FIREBASE_CONFIG);
     db = firebase.firestore();
-    var SEND_SVG = '<svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>';
 
     // Cache leve: corta leituras repetidas de quem navega/volta; TTL 5 min.
-    var CACHE_KEY = "vagas-cache-v4";
+    var CACHE_KEY = "vagas-cache-v5";
     var cacheado = null;
     try {
       var raw = sessionStorage.getItem(CACHE_KEY);
@@ -796,29 +899,35 @@
         lista.innerHTML = '<p class="vazio">Não temos vagas abertas neste momento. Volte em breve, elas aparecem primeiro aqui.</p>';
         return;
       }
+      VAGAS = {};
+      vagas.forEach(function (v) { VAGAS[v.id] = v; });
       contagem.hidden = false;
       contagem.textContent = vagas.length + (vagas.length === 1 ? " vaga aberta agora" : " vagas abertas agora");
+      listlabel.hidden = false;
+      listlabel.innerHTML = "<b>" + vagas.length + (vagas.length === 1 ? " vaga</b> aberta agora" : " vagas</b> abertas agora");
+      // Card COMPACTO (ideia B): título, chips, resumo de 1 linha e rodapé. O corpo completo
+      // mora na página da vaga; o card inteiro é o alvo de toque (Enter/Espaço no teclado).
       lista.innerHTML = vagas.map(function (v) {
-        var quando = v.pub ? "Publicada em " + new Date(v.pub).toLocaleDateString("pt-BR") : "";
-        var cta = '<button type="button" class="cta cta--form" data-vaga-id="' + esc(v.id) + '" data-vaga-titulo="' + esc(v.titulo) + '">' + SEND_SVG + "Candidatar-se</button>";
         var tags = [
           v.setor ? '<span class="tag">' + esc(v.setor) + "</span>" : "",
           v.turno ? '<span class="tag tag--turno">' + esc(v.turno) + "</span>" : "",
           v.cidade ? '<span class="tag">' + esc(v.cidade) + "</span>" : "",
         ].join("");
-        // Benefícios ligados na vaga: selos discretos antes do candidatar. Sem benefícios, nada aparece.
-        var ck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-        var bens = (v.beneficios && v.beneficios.length)
-          ? '<div class="sben"><div class="sben-l">Benefícios</div><div class="sben-chips">' +
-            v.beneficios.map(function (b) { return '<span class="sben-chip">' + ck + esc(b) + "</span>"; }).join("") + "</div></div>"
-          : "";
-        return '<article class="vaga"><h3>' + esc(v.titulo) + "</h3>" +
+        var resumo = v.descricao ? esc(String(v.descricao).replace(/\s+/g, " ").trim()) : "";
+        var n = (v.beneficios && v.beneficios.length) || 0;
+        var benTxt = n ? '<span class="bn">' + n + (n === 1 ? " benefício" : " benefícios") + '</span><span aria-hidden="true">·</span>' : "";
+        var go = '<span class="go">Ver vaga<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></span>';
+        return '<article class="vcompact" data-vaga-id="' + esc(v.id) + '" data-vaga-titulo="' + esc(v.titulo) + '" tabindex="0" role="button" aria-label="Ver vaga: ' + esc(v.titulo) + '">' +
+          '<h3>' + esc(v.titulo) + "</h3>" +
           (tags ? '<div class="tags">' + tags + "</div>" : "") +
-          (v.descricao ? '<p class="desc">' + esc(v.descricao) + "</p>" : "") +
-          (v.requisitos ? '<p class="req">Requisitos: ' + esc(v.requisitos) + "</p>" : "") +
-          bens +
-          '<div class="vfoot"><span class="data">' + esc(quando) + "</span>" + cta + "</div></article>";
+          (resumo ? '<p class="rsum">' + resumo + "</p>" : "") +
+          '<div class="cfoot">' + benTxt + go + "</div></article>";
       }).join("");
+      // Link direto: com #vaga=<id> válido, abre a página daquela vaga na hora;
+      // hash de vaga inexistente é limpo e cai na lista normal.
+      var hid = lerHashVaga();
+      if (hid && VAGAS[hid]) abrirVaga(hid, false);
+      else if (hid) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
     }).catch(function (e) {
       lista.innerHTML = '<p class="vazio">Não conseguimos carregar as vagas agora. Tente de novo em instantes.</p>';
     });
@@ -882,17 +991,84 @@
   // limite superior do date picker = hoje (sem nascimento no futuro)
   try { $c("ci-nasc").max = new Date().toISOString().slice(0, 10); } catch (e) {}
 
-  lista.addEventListener("click", function (ev) {
-    var btn = ev.target.closest(".cta--form");
-    if (!btn) return;
-    vagaAtualId = btn.getAttribute("data-vaga-id") || "";
-    vagaAtualTitulo = btn.getAttribute("data-vaga-titulo") || "";
+  function abrirCandidatura(id, titulo) {
+    vagaAtualId = id || "";
+    vagaAtualTitulo = titulo || "";
     $c("candVagaNome").textContent = vagaAtualTitulo;
     resetFlow();
     dlg.showModal();
+  }
+  // Clique na lista: o botão .cta--form (injetado por probe) abre a ficha direto;
+  // o card compacto abre a PÁGINA da vaga.
+  lista.addEventListener("click", function (ev) {
+    var form = ev.target.closest(".cta--form");
+    if (form) { abrirCandidatura(form.getAttribute("data-vaga-id"), form.getAttribute("data-vaga-titulo")); return; }
+    var card = ev.target.closest(".vcompact");
+    if (card) abrirVaga(card.getAttribute("data-vaga-id"), true);
+  });
+  lista.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter" && ev.key !== " " && ev.key !== "Spacebar") return;
+    var card = ev.target.closest(".vcompact");
+    if (card) { ev.preventDefault(); abrirVaga(card.getAttribute("data-vaga-id"), true); }
   });
   $c("candFechar").addEventListener("click", function () { dlg.close(); });
   $c("cerFechar").addEventListener("click", function () { dlg.close(); });
+
+  // ===== Página da vaga + link direto (#vaga=<id>) =====
+  function lerHashVaga() {
+    var m = /(?:^|#)vaga=([^&]+)/.exec(location.hash || "");
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+  function renderVagaPage(v) {
+    $c("vpTitulo").textContent = v.titulo || "";
+    $c("vpTags").innerHTML = [
+      v.setor ? '<span class="tag">' + esc(v.setor) + "</span>" : "",
+      v.turno ? '<span class="tag tag--turno">' + esc(v.turno) + "</span>" : "",
+      v.cidade ? '<span class="tag">' + esc(v.cidade) + "</span>" : "",
+    ].join("");
+    var secD = $c("vpSecDesc");
+    if (v.descricao) { $c("vpDesc").textContent = v.descricao; secD.hidden = false; } else secD.hidden = true;
+    var secR = $c("vpSecReq");
+    if (v.requisitos) { $c("vpReq").textContent = v.requisitos; secR.hidden = false; } else secR.hidden = true;
+    var secB = $c("vpSecBen");
+    if (v.beneficios && v.beneficios.length) {
+      var ck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      $c("vpBen").innerHTML = '<div class="sben-chips">' +
+        v.beneficios.map(function (b) { return '<span class="sben-chip">' + ck + esc(b) + "</span>"; }).join("") + "</div>";
+      secB.hidden = false;
+    } else secB.hidden = true;
+    $c("vpCta").innerHTML = SEND_SVG + "Candidatar-se";
+  }
+  function abrirVaga(id, push) {
+    var v = VAGAS[id]; if (!v) return;
+    renderVagaPage(v);
+    var pg = $c("vagapage");
+    pg.hidden = false; pg.classList.add("on");
+    document.body.classList.add("vp-lock");
+    pageAberta = true; pageVagaId = id; pageVagaTitulo = v.titulo;
+    $c("vpBody").scrollTop = 0;
+    if (push) { try { history.pushState({ vaga: id }, "", "#vaga=" + encodeURIComponent(id)); veioDeLista = true; } catch (e) {} }
+    try { $c("vpBack").focus({ preventScroll: true }); } catch (e) {}
+  }
+  function fecharVaga() {
+    var pg = $c("vagapage");
+    pg.classList.remove("on"); pg.hidden = true;
+    document.body.classList.remove("vp-lock");
+    pageAberta = false;
+  }
+  function voltarDaVaga() {
+    // Se abriu a partir da lista, volta pela história (limpa o hash); se caiu direto
+    // no link, apenas limpa o hash e fecha sem sair do site.
+    if (veioDeLista) { veioDeLista = false; history.back(); }
+    else { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} fecharVaga(); }
+  }
+  $c("vpBack").addEventListener("click", voltarDaVaga);
+  $c("vpCta").addEventListener("click", function () { abrirCandidatura(pageVagaId, pageVagaTitulo); });
+  window.addEventListener("popstate", function () {
+    var id = lerHashVaga();
+    if (id && VAGAS[id]) { if (!pageAberta || pageVagaId !== id) abrirVaga(id, false); }
+    else { veioDeLista = false; fecharVaga(); }
+  });
 
   function setSeg(segId, val) {
     var seg = $c(segId); if (!seg) return;
@@ -965,6 +1141,7 @@
   // ===== footer contextual =====
   function ajustarFoot() {
     var foot = $c("candFoot"), btn = $c("candPrim"), pane = PANES[paneIdx];
+    btn.classList.remove("looksdisabled"); btn.removeAttribute("aria-disabled");
     if (pane === "cp2" && expMode === "form") { foot.hidden = false; btn.textContent = "Salvar experiência"; btn.disabled = false; return; }
     if (pane === "cp4") {
       foot.hidden = !discConcluido();
@@ -972,8 +1149,33 @@
       return;
     }
     foot.hidden = false;
-    if (pane === "cp6") { btn.textContent = "Enviar candidatura"; btn.disabled = !lgpdOn; }
-    else { btn.textContent = "Continuar"; btn.disabled = false; }
+    if (pane === "cp6") {
+      // P5: nunca desabilita de fato; fica clicável pra rolar até o consentimento e realçá-lo.
+      btn.textContent = "Enviar candidatura"; btn.disabled = false;
+      btn.classList.toggle("looksdisabled", !lgpdOn);
+      btn.setAttribute("aria-disabled", lgpdOn ? "false" : "true");
+    } else { btn.textContent = "Continuar"; btn.disabled = false; }
+  }
+  // G2: rola até o primeiro campo inválido do painel e o foca (feedback visível em tela longa).
+  function focarPrimeiroErro(paneId) {
+    var pane = $c(paneId); if (!pane) return;
+    var alvo = pane.querySelector(".field.err");
+    if (!alvo && paneId === "cp5" && !$c("msg-vem").hidden) alvo = $c("msg-vem");
+    if (!alvo) return;
+    try { alvo.scrollIntoView({ block: "center", behavior: reduzMov ? "auto" : "smooth" }); }
+    catch (e) { try { alvo.scrollIntoView(); } catch (e2) {} }
+    var input = alvo.querySelector && alvo.querySelector("input, select, textarea");
+    if (input) { try { input.focus({ preventScroll: true }); } catch (e) {} }
+  }
+  // P5: leva a pessoa ao bloco de consentimento e o realça uma vez.
+  function realcarConsentimento() {
+    var el = $c("cLgpd");
+    try { el.scrollIntoView({ block: "center", behavior: reduzMov ? "auto" : "smooth" }); }
+    catch (e) { try { el.scrollIntoView(); } catch (e2) {} }
+    el.classList.remove("flash");
+    void el.offsetWidth;
+    el.classList.add("flash");
+    vibrar(12);
   }
 
   // ===== helpers da ficha =====
@@ -1027,7 +1229,7 @@
       + '<div class="exp-nm"><b>' + esc(e.empresa) + "</b><span>Experiência " + (i + 1) + "</span></div>"
       + '<div class="exp-acts"><button type="button" data-exp-edit="' + i + '" aria-label="Editar">' + svgw(IC_EDIT) + "</button>"
       + '<button type="button" data-exp-del="' + i + '" aria-label="Remover">' + svgw(IC_TRASH) + "</button></div></div>"
-      + '<div class="exp-meta"><div>' + svgw(IC_CAL) + esc(mesAno(e.admissao)) + (e.demissao ? " <b>—</b> " + esc(mesAno(e.demissao)) : " <b>·</b> atual") + "</div>"
+      + '<div class="exp-meta"><div>' + svgw(IC_CAL) + esc(mesAno(e.admissao)) + (e.demissao ? " a " + esc(mesAno(e.demissao)) : " <b>·</b> atual") + "</div>"
       + "<div>" + svgw(IC_MONEY) + "Último salário <b>" + esc(fmtReais(e.salario)) + "</b></div>"
       + "<div>" + svgw(IC_CHECK2) + esc(e.motivoSaida) + "</div></div></div>";
   }
@@ -1037,6 +1239,12 @@
     $c("expForm").hidden = !inForm;
     if (inForm) return;
     $c("expPrimeiro").classList.toggle("on", primeiroEmprego);
+    // P4: com experiências cadastradas, marcar apagaria em silêncio. Bloqueia com dica.
+    var pe = $c("expPrimeiro"), bloqueado = experiencias.length > 0;
+    pe.classList.toggle("disabled", bloqueado);
+    pe.setAttribute("aria-checked", primeiroEmprego ? "true" : "false");
+    pe.setAttribute("aria-disabled", bloqueado ? "true" : "false");
+    $c("expPrimeiroHint").hidden = !bloqueado;
     var cards = $c("expCards");
     if (primeiroEmprego) cards.innerHTML = "";
     else if (!experiencias.length) cards.innerHTML = '<div class="empty"><div class="ic">' + svgw(IC_BRIEF) + "</div><b>Nenhuma experiência ainda</b><span>Adicione a mais recente primeiro.</span></div>";
@@ -1082,7 +1290,7 @@
     checaCampo("cf-adm", /^\d{4}-\d{2}-\d{2}$/.test(adm), st);
     if (!atual) checaCampo("cf-dem", /^\d{4}-\d{2}-\d{2}$/.test(dem), st);
     checaCampo("cf-sal", sal > 0 && sal <= 1000000, st);
-    if (!st.ok) return;
+    if (!st.ok) { focarPrimeiroErro("cp2"); return; }
     var obj = { empresa: emp.slice(0, 80), admissao: adm, demissao: dem, salario: sal, motivoSaida: String($c("ci-mot").value).slice(0, 120) };
     if (expEditIdx != null) experiencias[expEditIdx] = obj; else experiencias.push(obj);
     expMode = "list"; expEditIdx = null;
@@ -1090,10 +1298,14 @@
   }
 
   // ===== bindings de uma vez (o dialog é persistente) =====
-  $c("expPrimeiro").addEventListener("click", function () {
+  function togglePrimeiro() {
+    if (experiencias.length > 0) return; // não apaga em silêncio; fica desabilitado
     primeiroEmprego = !primeiroEmprego;
-    if (primeiroEmprego) experiencias = [];
     renderExp();
+  }
+  $c("expPrimeiro").addEventListener("click", togglePrimeiro);
+  $c("expPrimeiro").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar") { ev.preventDefault(); togglePrimeiro(); }
   });
   $c("expAdd").addEventListener("click", function () { if (experiencias.length < 3) abrirExpForm(null); });
   $c("expCards").addEventListener("click", function (ev) {
@@ -1283,7 +1495,7 @@
     var contato = [$c("ci-zap").value.trim(), $c("ci-mail").value.trim()].filter(Boolean).join(" · ");
     var expBody;
     if (primeiroEmprego) expBody = '<span class="li">Primeiro emprego</span>';
-    else if (experiencias.length) expBody = experiencias.map(function (e) { var per = e.demissao ? (esc(mesAno(e.admissao)) + "—" + esc(mesAno(e.demissao))) : (esc(mesAno(e.admissao)) + " · atual"); return '<span class="li">' + esc(e.empresa) + " (" + per + ")</span>"; }).join("");
+    else if (experiencias.length) expBody = experiencias.map(function (e) { var per = e.demissao ? (esc(mesAno(e.admissao)) + " a " + esc(mesAno(e.demissao))) : (esc(mesAno(e.admissao)) + " · atual"); return '<span class="li">' + esc(e.empresa) + " (" + per + ")</span>"; }).join("");
     else expBody = '<span class="li">Nenhuma informada</span>';
     var cvTxt = (cvEstado === "anexado" && cvFile) ? (cvFile.name + " (" + fmtTam(cvFile.size) + ")") : "Não enviado (opcional)";
     var adic = ["Pretensão " + fmtReais(parseMoney($c("ci-pret").value)), comoViria ? ("vem " + (COMO_LABEL[comoViria] || comoViria)) : "", (conheceAlguem && $c("ci-quem").value.trim()) ? ("conhece " + $c("ci-quem").value.trim()) : "não indicou ninguém"].filter(Boolean).join(" · ");
@@ -1309,13 +1521,14 @@
   });
   $c("candPrim").addEventListener("click", function () {
     var pane = PANES[paneIdx];
-    if (pane === "cp1a") { if (validaP1a()) irPane(1, "frente"); return; }
-    if (pane === "cp1b") { if (validaP1b()) irPane(2, "frente"); return; }
+    if (pane === "cp1a") { if (validaP1a()) irPane(1, "frente"); else focarPrimeiroErro("cp1a"); return; }
+    if (pane === "cp1b") { if (validaP1b()) irPane(2, "frente"); else focarPrimeiroErro("cp1b"); return; }
     if (pane === "cp2") { if (expMode === "form") { salvarExp(); return; } irPane(3, "frente"); return; }
     if (pane === "cp3") { if (!cvEstado) cvEstado = "pulado"; irPane(4, "frente"); return; }
     if (pane === "cp4") { irPane(5, "frente"); return; }
-    if (pane === "cp5") { if (validaP5()) irPane(6, "frente"); return; }
+    if (pane === "cp5") { if (validaP5()) irPane(6, "frente"); else focarPrimeiroErro("cp5"); return; }
     if (pane === "cp6") {
+      if (!lgpdOn) { realcarConsentimento(); return; } // P5: falta o consentimento
       if ($c("candSite").value) { sucesso(); return; } // honeypot: finge sucesso, não envia
       enviar();
     }
