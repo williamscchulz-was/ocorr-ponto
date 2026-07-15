@@ -87,6 +87,8 @@
      pelo toggle; a UI nova (clima) herda daqui em vez de espalhar magic numbers. */
   --ease-out: cubic-bezier(.23, 1, .32, 1);
   --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  /* Curva de push do iOS (deslize de tela): usada nas View Transitions de navegação. */
+  --ease-ios: cubic-bezier(.32, .72, .28, 1);
 
   /* Aliases p/ refs legadas var(--primary)/var(--verde) resolverem ao token
      real (antes caíam no fallback). Foco e contraste reforçados na auditoria 2. */
@@ -4759,3 +4761,39 @@ button.gm-card { cursor: pointer; }
 .g-cand__data { display: block; margin-top: 6px; font-size: 10.5px; }
 .g-cand-lgpd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: #fff7e0; border: 1px solid #e8c34d66; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 12.5px; color: #6b5300; }
 .g-cand-empty { margin: 0; padding: 10px 0 4px; font-size: 12.5px; color: var(--text-muted); }
+
+/* ============================================================
+   Navegação com continuidade (View Transitions API nativa). A transição só é
+   disparada pelo agendador do renderApp() quando state.view.page muda; re-render
+   da mesma página nunca transiciona. Navegador sem startViewTransition ignora
+   estas regras (o snapshot nunca existe) e fica com o comportamento atual.
+   O par de shared element do avatar do colaborador mora em portal-colaborador.css.
+   ============================================================ */
+/* Root: crossfade sóbrio + o conteúdo novo entra com um leve deslize (push iOS). */
+::view-transition-old(root) { animation: 280ms var(--ease-ios) both vt-fade-out; }
+::view-transition-new(root) { animation: 280ms var(--ease-ios) both vt-fade-in, 280ms var(--ease-ios) both vt-slide-in; }
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } }
+@keyframes vt-slide-in { from { transform: translateY(8px); } }
+
+/* Chrome persistente (sidebar do gestor, topbar, barra de baixo do colab) NÃO desliza
+   com a página: cada um vira seu próprio snapshot estável (name único, elemento existe
+   uma vez só), então fica parado enquanto o conteúdo transiciona. Assim a navegação
+   não "pisca" a barra. Crossfade curtinho no lugar cobre o que muda (aba ativa, título). */
+#sidebar { view-transition-name: vt-sidebar; }
+.topbar { view-transition-name: vt-topbar; }
+#bottom-nav { view-transition-name: vt-bottomnav; }
+::view-transition-group(vt-sidebar),
+::view-transition-group(vt-topbar),
+::view-transition-group(vt-bottomnav) {
+  animation-duration: 220ms;
+  animation-timing-function: var(--ease-ios);
+}
+
+/* Quem prefere menos movimento não recebe nenhuma animação de transição (além do
+   agendador já não iniciar a transição, isto desliga qualquer resíduo). */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}

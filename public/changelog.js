@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.70.1", d: "15 jul 2026", current: true, items: [
+    v: "1.71.0", d: "15 jul 2026", current: true, items: [
+      { type: "high", title: "Navegar ficou suave: as telas agora se encaixam com transicao continua em vez de trocar no corte seco, e na home o seu avatar viaja junto ate a tela Conta. Em quem prefere menos movimento, tudo continua instantaneo." },
+    ],
+  },
+  {
+    v: "1.70.1", d: "15 jul 2026", items: [
       { type: "note", title: "Motor de tela reconstruido por dentro: o app so redesenha o que realmente mudou. Mais leve no celular, e o que voce esta digitando nunca se perde quando algo atualiza sozinho." },
     ],
   },

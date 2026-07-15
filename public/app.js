@@ -3284,10 +3284,10 @@ function renderPortalRoadmap() {
     railSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     const fr = flow.getBoundingClientRect();
     const orbEl = flow.querySelector(".fp-orb"); if (!orbEl) return;
-    // Arredonda a 2 casas: getBoundingClientRect tem ruído de subpixel entre
-    // medições (mesmo sem mudança visual real), o que fazia o traçado renascer
-    // byte-diferente a cada desenho e derrubava o cache do canal setHtml.
-    const r2 = (n) => Math.round(n * 100) / 100;
+    // Arredonda pra INTEIRO: getBoundingClientRect tem ruído de subpixel entre
+    // medições (2 casas ainda flutuavam 0.01 e derrubavam o cache do canal
+    // setHtml); num traço de 3.4px, 1px de quantização é invisível.
+    const r2 = (n) => Math.round(n);
     const o = orbEl.getBoundingClientRect();
     const nodes = [{ x: r2(o.left - fr.left + o.width / 2), y: r2(o.top - fr.top + o.height / 2) }];
     flow.querySelectorAll(".fp-ring").forEach((r) => { const b = r.getBoundingClientRect(); nodes.push({ x: r2(b.left - fr.left + b.width / 2), y: r2(b.top - fr.top + b.height / 2) }); });
@@ -3331,11 +3331,33 @@ function renderPortalRoadmap() {
 // entao a rajada vira 1 repaint. Seguro: nenhum chamador le o DOM de forma sincrona
 // logo apos renderApp() (verificado). Quem precisa do render agora usa _renderAppNow().
 let _renderRaf = 0;
+// Última página EFETIVAMENTE renderizada (nível de módulo, só o agendador mexe). Serve
+// pra decidir a transição: null = boot OU sessão deslogada, os dois casos em que o
+// PRÓXIMO render (login) não pode transicionar.
+let _ultimaPageRenderizada = null;
 function renderApp() {
   if (_renderRaf) return;
   // Reset do flag ANTES de _renderAppNow (intencional, revisao Fable): se o corpo
   // lancar, o flag ja voltou a 0 e os renders futuros continuam; NAO reordenar.
-  _renderRaf = requestAnimationFrame(() => { _renderRaf = 0; _renderAppNow(); });
+  _renderRaf = requestAnimationFrame(() => {
+    _renderRaf = 0;
+    // Navegação com continuidade (View Transitions API): a transição vive AQUI, no
+    // agendador, NUNCA em _renderAppNow (o flicker-guard chama _renderAppNow direto e
+    // não pode virar transição). Só transiciona quando: há sessão, a página REALMENTE
+    // mudou, o navegador suporta e o usuário não pediu menos movimento. Deslogado zera a
+    // "última página" pra o login/boot não deslizar.
+    if (!currentUser()) { _ultimaPageRenderizada = null; _renderAppNow(); return; }
+    const page = (state.view && state.view.page) || "";
+    const trocouPagina = _ultimaPageRenderizada !== null && page !== _ultimaPageRenderizada;
+    _ultimaPageRenderizada = page;
+    if (trocouPagina && document.startViewTransition && !prefereMenosMovimento()) {
+      // .ready rejeita se a transição é pulada (ex.: view-transition-name duplicado):
+      // engole pra não virar unhandledrejection no console (o abort já é silencioso).
+      document.startViewTransition(() => _renderAppNow()).ready.catch(() => {});
+    } else {
+      _renderAppNow();
+    }
+  });
 }
 
 function _renderAppNow() {
@@ -15825,7 +15847,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.70.1";
+window.CURRENT_VERSION = "1.71.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

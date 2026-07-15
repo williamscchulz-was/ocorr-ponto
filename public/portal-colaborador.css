@@ -716,3 +716,16 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 @media (max-width: 760px) {
   .enps10 { grid-template-columns: repeat(6, 1fr); }
 }
+
+/* Continuidade do avatar entre a saudação da Home (.pp-greet__av) e a foto da tela
+   Conta (.pp-av): telas distintas do #view, nunca no DOM ao mesmo tempo, então o mesmo
+   view-transition-name faz o avatar "viajar" de uma pra outra em vez de piscar. Se um dia
+   as duas coexistirem numa tela, a transição aborta em silêncio (o .ready.catch cobre). */
+.pp-greet__av, .pp-av { view-transition-name: vt-avatar; }
+::view-transition-group(vt-avatar) {
+  animation-duration: 340ms;
+  animation-timing-function: var(--ease-ios, cubic-bezier(.32, .72, .28, 1));
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(vt-avatar) { animation: none !important; }
+}
