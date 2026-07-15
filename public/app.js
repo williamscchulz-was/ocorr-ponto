@@ -3434,17 +3434,23 @@ function cpMesLabel(dataIso) {
   catch (e) { return ""; }
 }
 // Rótulo NEUTRO pro dia sem batida. Deriva de situacoes[] (interno do RH) SEM revelar
-// atraso/falta/suspensão — esses viram "Sem marcação"; só folga/feriado/férias aparecem nomeados.
+// atraso/falta/suspensão — esses viram "Sem marcação"; só as situações da lista abaixo
+// aparecem nomeadas (nas DUAS telas: colaborador sobre si mesmo e gestor).
+// "Falta abonada" antes de qualquer padrão futuro com "falta": ordem importa.
+const SIT_NEUTRAS = [
+  [/faltas? abonadas?/, "Falta abonada"],
+  [/folga|dsr|descanso/, "Folga"],
+  [/feriado/, "Feriado"],
+  [/f[ée]rias/, "Férias"],
+];
 function cpDiaSemMarcacaoLabel(situacoes) {
   const s = (Array.isArray(situacoes) ? situacoes : [situacoes]).map((x) => String(x || "").toLowerCase()).join(" ");
-  if (/folga|dsr|descanso/.test(s)) return "Folga";
-  if (/feriado/.test(s)) return "Feriado";
-  if (/f[ée]rias/.test(s)) return "Férias";
+  for (const [re, label] of SIT_NEUTRAS) if (re.test(s)) return label;
   return "Sem marcação";
 }
 
 // Um dia do espelho de ponto (banco-horas-self.dias[]): NEUTRO, só os horários que a pessoa bateu.
-// marcacoes: ["07:26","12:00",...]. Dia sem batida = Folga/Feriado/Férias/Sem marcação.
+// marcacoes: ["07:26","12:00",...]. Dia sem batida = SIT_NEUTRAS ou "Sem marcação".
 // situacoes[] é interno do RH — NUNCA mostrar atraso/falta/suspensão pro colaborador.
 function colabDiaMarcHtml(d) {
   const iso = d.dataIso || "";
@@ -4759,6 +4765,58 @@ function bindGamiEntregas() {
 // ============================================================
 const VAGA_TURNOS = ["1º turno", "2º turno", "3º turno", "Geral"];
 
+// Perfil comportamental (DISC) da candidatura: selo + leitura pronta de 1-2 linhas por
+// perfil. O TEXTO é NOSSO (fixo, copiado do mock aprovado candidatura-completa-2026-07);
+// o candidato NUNCA vê a classificação, é ferramenta interna da GP pra guiar a entrevista.
+// Cores mapeadas nos tokens semânticos (theme-aware, legíveis no dark do gestor).
+const DISC_PERFIL = {
+  D: { cls: "pd", nome: "Executor", av: "#d64545", avInk: "#fff",
+    leitura: ["Tende a decidir rápido e a preferir autonomia.", "Bom pra funções com meta, ritmo puxado e pressão. Vale checar na entrevista como ele lida com processo e trabalho em equipe."] },
+  I: { cls: "pi", nome: "Comunicador", av: "#e0a400", avInk: "#3a2c00",
+    leitura: ["Gosta de gente e comunica com facilidade.", "Bom pra atendimento, integração de time e funções que dependem de contato. Pode precisar de apoio em tarefas muito repetitivas e solitárias."] },
+  S: { cls: "ps", nome: "Estável", av: "#008835", avInk: "#fff",
+    leitura: ["Constante, paciente e de confiança no dia a dia.", "Bom pra funções que pedem ritmo firme, rotina e trabalho em equipe. Costuma render menos sob mudança brusca e cobrança agressiva."] },
+  C: { cls: "pc", nome: "Analítico", av: "#0076be", avInk: "#fff",
+    leitura: ["Foco em precisão, processo e qualidade.", "Bom pra conferência, controle e funções técnicas que não admitem erro. Costuma render mais com instrução clara do que sob improviso."] },
+  equilibrado: { cls: "pe", nome: "Equilibrado", av: "#8a9280", avInk: "#fff",
+    leitura: ["Sem um traço que se destaque no teste.", "Perfil versátil, tende a se moldar ao que a função pede. Na entrevista, peça exemplos concretos do dia a dia pra ver onde ele rende melhor."] },
+};
+// As 4 barras, na ordem D·I·S·C, lendo o disc bruto {d,i,s,c} (-8..8) do candidato.
+const DISC_BARRAS = [
+  { k: "d", cls: "d", lbl: "Decisão" },
+  { k: "i", cls: "i", lbl: "Comunicação" },
+  { k: "s", cls: "s", lbl: "Estabilidade" },
+  { k: "c", cls: "c", lbl: "Detalhe" },
+];
+// discPrimario chega como 'D'|'I'|'S'|'C'|'equilibrado'. Defensivo: normaliza ou null.
+function discPerfilKey(dp) {
+  const s = String(dp || "").trim();
+  if (/^[disc]$/i.test(s)) return s.toUpperCase();
+  if (s.toLowerCase() === "equilibrado") return "equilibrado";
+  return null;
+}
+// raw -8..8 → % com a convenção midpoint-50: raw 0 = 50%, raw 8 = 100%, raw -8 = 0%.
+// Clampa a faixa (defensivo contra dado fora do contrato) e devolve null se não for número.
+function discPct(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.round((Math.max(-8, Math.min(8, n)) + 8) / 16 * 100);
+}
+// Idade a partir do nascimento ('YYYY-MM-DD'). Defensivo: ausente/inválido/impossível
+// (ex.: 2020-02-30) ou fora de uma faixa sã → null (o chamador simplesmente não mostra).
+function idadeDeNascimento(nasc) {
+  if (nasc == null) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(nasc));
+  if (!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - y;
+  if (hoje.getMonth() < mo - 1 || (hoje.getMonth() === mo - 1 && hoje.getDate() < d)) idade--;
+  return (idade >= 0 && idade <= 120) ? idade : null;
+}
+
 function renderVagas() {
   const view = $("#view");
   if (state.vagas === undefined) {
@@ -4780,16 +4838,51 @@ function renderVagas() {
     : s === "encerrada" ? `<span class="g-status g-status--enc">Encerrada</span>`
     : `<span class="g-status g-status--rasc">Rascunho</span>`;
   const candidaturasDaVaga = (id) => candidaturas.filter((c) => c.vagaId === id);
-  const candidaturaHtml = (c) => `
-    <div class="g-cand">
-      <div class="g-cand__bd">
-        <b>${escapeHtml(c.nome || "")}</b>
-        <span>${[c.telefone, c.email].filter(Boolean).map(escapeHtml).join(" · ")}</span>
-        ${c.mensagem ? `<p>${escapeHtml(c.mensagem)}</p>` : ""}
-        <span class="g-cand__data">${c.em ? `${fmt(c.em)} às ${horaAud(c.em)}` : ""}</span>
+  // Todo campo do candidato passa por escapeHtml: vem do site público (fora da empresa,
+  // fronteira de confiança máxima). Candidatura EVOLUÍDA (fluxo novo, tem discPrimario)
+  // ganha idade, avatar, 4 barras, selo e leitura; ANTIGA mostra só o que tem (retrocompat).
+  const candidaturaHtml = (c) => {
+    const pk = discPerfilKey(c.discPrimario);
+    const perfil = pk ? DISC_PERFIL[pk] : null;
+    const idade = idadeDeNascimento(c.nascimento);
+    const sub = [idade != null ? `${idade} anos` : "", c.cidade].filter(Boolean).map(escapeHtml).join(" · ");
+    const avBg = perfil ? perfil.av : "var(--text-muted)";
+    const avInk = perfil ? perfil.avInk : "#fff";
+    const avatar = `<span class="g-cand__av" style="background:${avBg};color:${avInk}">${escapeHtml(comIniciais(c.nome))}</span>`;
+    // Currículo: botão que abre no viewer pdf.js interno (fluxo novo com arquivo) OU nota
+    // "sem currículo" (fluxo novo em que o candidato pulou). Antiga sem perfil: nem mostra.
+    const cvHtml = c.curriculoPath
+      ? `<button class="g-cand__cv" data-cand-cv="${escapeHtml(c.id)}">${icon("file")}<span>Abrir currículo</span></button>`
+      : (perfil ? `<span class="g-cand__cv g-cand__cv--none">${icon("file")}<span>Sem currículo (candidato pulou)</span></span>` : "");
+    let perfilBloco = "";
+    if (perfil) {
+      const barras = (c.disc && typeof c.disc === "object") ? DISC_BARRAS.map((bar) => {
+        const pct = discPct(c.disc[bar.k]);
+        if (pct == null) return "";
+        return `<div class="g-cand__bar"><span class="g-cand__bl">${bar.lbl}</span><span class="g-cand__bt"><i class="g-cand__bf g-cand__bf--${bar.cls}" style="width:${pct}%"></i></span><span class="g-cand__bp">${pct}%</span></div>`;
+      }).join("") : "";
+      perfilBloco = `
+        <div class="g-cand__perfil">
+          <div class="g-cand__ph"><small>Perfil comportamental</small><span class="g-cand__selo g-cand__selo--${perfil.cls}"><span class="g-cand__dot"></span>${escapeHtml(perfil.nome)}</span></div>
+          ${barras ? `<div class="g-cand__bars">${barras}</div>` : ""}
+          <p class="g-cand__leitura"><b>${escapeHtml(perfil.leitura[0])}</b> ${escapeHtml(perfil.leitura[1])}</p>
+        </div>`;
+    }
+    return `
+    <div class="g-cand${perfil ? ` g-cand--${perfil.cls}` : ""}">
+      <div class="g-cand__main${perfil ? " g-cand__main--dual" : ""}">
+        <div class="g-cand__bd">
+          <div class="g-cand__id">${avatar}<div class="g-cand__idt"><b>${escapeHtml(c.nome || "")}</b>${sub ? `<span>${sub}</span>` : ""}</div></div>
+          <div class="g-cand__ct"><span>${[c.telefone, c.email].filter(Boolean).map(escapeHtml).join(" · ")}</span></div>
+          ${c.mensagem ? `<p class="g-cand__msg">${escapeHtml(c.mensagem)}</p>` : ""}
+          ${cvHtml}
+          <span class="g-cand__data">${c.em ? `${fmt(c.em)} às ${horaAud(c.em)}` : ""}</span>
+        </div>
+        ${perfilBloco}
       </div>
-      <button class="btn btn--ghost btn--sm" data-cand-excluir="${escapeHtml(c.id)}">Excluir</button>
+      <button class="btn btn--ghost btn--sm g-cand__del" data-cand-excluir="${escapeHtml(c.id)}">Excluir</button>
     </div>`;
+  };
   const painelHtml = (id) => {
     const lista = candidaturasDaVaga(id);
     const vg = vagas.find((v) => v.id === id);
@@ -4800,7 +4893,10 @@ function renderVagas() {
         <span>Processo encerrado: exclua os dados de quem não seguiu no processo (LGPD).</span>
         <button class="btn btn--ghost btn--sm" data-cand-excluir-todas="${escapeHtml(id)}">Excluir todas (${lista.length})</button>
       </div>` : "";
-    return `<div class="g-cand-wrap">${lgpd}${lista.length ? lista.map(candidaturaHtml).join("") : `<p class="g-cand-empty">Nenhuma candidatura ainda para esta vaga.</p>`}</div>`;
+    // Nota do painel (do mock): a classificação é indicativa, nunca decide sozinha.
+    const nota = lista.some((c) => discPerfilKey(c.discPrimario)) ? `
+      <div class="g-cand-nota">${icon("info")}<span>Classificação indicativa a partir do teste de perfil. Use junto com a entrevista e a análise do currículo, nunca sozinha para decidir.</span></div>` : "";
+    return `<div class="g-cand-wrap">${lgpd}${lista.length ? lista.map(candidaturaHtml).join("") + nota : `<p class="g-cand-empty">Nenhuma candidatura ainda para esta vaga.</p>`}</div>`;
   };
   const linhas = vagas.map((x) => {
     const n = candidaturasDaVaga(x.id).length;
@@ -4904,6 +5000,10 @@ function renderVagas() {
     state.view.vagaCandAberta = state.view.vagaCandAberta === id ? null : id;
     renderApp();
   }));
+  $$("#view [data-cand-cv]").forEach((b) => b.addEventListener("click", () => {
+    const c = (state.candidaturas || []).find((x) => x.id === b.dataset.candCv);
+    if (c) withBusy("vg-cand-cv:" + c.id, b, () => abrirCurriculoGestor(c));
+  }));
   $$("#view [data-cand-excluir]").forEach((b) => b.addEventListener("click", async () => {
     if (!(await confirmar({ titulo: "Excluir candidatura", msg: "Os dados desta pessoa somem de vez (LGPD). Confirma?", okLabel: "Excluir", perigo: true }))) return;
     withBusy("vg-cand-del", b, async () => {
@@ -4930,6 +5030,27 @@ function renderVagas() {
     try { await window.salvarConfigVagas(num); toast("WhatsApp salvo."); $("#vg-zap-erro").textContent = ""; }
     catch (e) { $("#vg-zap-erro").textContent = "Não salvou: " + (e?.message || e); }
   }));
+}
+
+// Abre o currículo (PDF que o candidato de FORA subiu, fronteira de confiança máxima)
+// SEMPRE no viewer pdf.js interno: pdf.js rasteriza em canvas e NÃO executa nada de dentro
+// do PDF (exigência do gate). Nunca entrega o arquivo ao renderer nativo (window.open).
+// Baixa do cofre e vira data: pra o viewer embutir (mesmo caminho do recibo assinado).
+// 404/arquivo sumido/fetch bloqueado = mensagem honesta, sem cair no renderer nativo.
+async function abrirCurriculoGestor(c) {
+  const path = c && c.curriculoPath;
+  if (!path) return;
+  const dl = window.urlCurriculo ? await window.urlCurriculo(path) : null;
+  if (!dl) { toast("Currículo não encontrado no cofre.", "danger"); return; }
+  let url;
+  try {
+    const blob = await (await fetch(dl)).blob();
+    url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
+  } catch (e) {
+    toast("Currículo não encontrado no cofre.", "danger");
+    return;
+  }
+  openDocViewer({ titulo: `Currículo · ${c.nome || "candidato"}`, tipo: "Currículo", anexo: { url, nome: "curriculo.pdf", mime: "application/pdf" } });
 }
 
 function gestorAtalhosHtml(u) {
@@ -16568,7 +16689,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.76.0";
+window.CURRENT_VERSION = "1.77.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
