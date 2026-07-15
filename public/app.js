@@ -1049,7 +1049,7 @@ function renderBottomNavColaborador() {
   ];
   // Telas filhas do hub (acessadas por atalho da Home) não têm item próprio na barra:
   // acendem "Início" pra a barra nunca ficar sem item ativo.
-  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap", "colab-pesquisa", "colab-desempenho", "colab-desempenho-res"];
+  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap", "colab-pesquisa", "colab-desempenho", "colab-desempenho-res", "colab-denuncia"];
   const pageAtiva = filhasDoHub.includes(state.view.page) ? "colab-home" : state.view.page;
   const idxAtivo = Math.max(0, items.findIndex((it) => it.id === pageAtiva));
   // A barra é rebuilt a cada render; pra pill DESLIZAR (não teleportar), nasce na
@@ -1077,7 +1077,7 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação", "colab-denuncia": "Canal de denúncia" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conquistas") return renderColabConquistas();
   if (page === "colab-conta") return renderColabConta();
@@ -1089,6 +1089,7 @@ function renderViewColaborador() {
   if (page === "colab-ponto") return renderColabPonto();
   if (page === "colab-comunicados") return renderColabComunicados();
   if (page === "colab-documentos") return renderColabDocumentos();
+  if (page === "colab-denuncia") return renderColabDenuncia();
   return renderColaboradorHome();
 }
 
@@ -2674,11 +2675,13 @@ function renderColaboradorHome() {
           <div class="pp-aniv-d">${aniversariantesDoMesHtml(nome)}</div>
         </div>
       </div>
+      ${colabDenunciaCardHtml()}
     </div>
   `);
   if (escreveu) {
     bindColabNav(view);
     bindClimaConvite(view);
+    view.querySelector("[data-den-abrir]")?.addEventListener("click", abrirCanalDenuncia);
   }
   // Preenche as contagens/coração dos cards de aniversário (0 a 2 no DOM). Assíncrono e
   // barato; se a home re-renderizar, re-preencher é ok. Não bloqueia o render.
@@ -2839,6 +2842,268 @@ async function _climaEnviarResposta(s, btn) {
     renderApp();
     toast("Resposta enviada. Obrigado!");
   });
+}
+
+// ============================================================
+// CANAL DE DENÚNCIA — colaborador (mock docs/mockups/canal-denuncia-2026-07.html).
+// SIGILO POR DESENHO (gate 2026-07-15): ZERO logEvento/console/storage no fluxo; o
+// texto vive só em state.view.den* (em memória — store.save exclui view no persist e
+// este fluxo nunca chama store.save), então sair no meio perde o rascunho, e isso é
+// CORRETO. As micro-interações (chip, texto, identificação) mexem no DOM direto e NÃO
+// re-renderizam (só a navegação entre etapas chama renderApp), então a tela derivada
+// 100% de state.view nasce idêntica a cada re-render. window.enviarDenuncia (firebase.js)
+// grava anônimo com id aleatório e devolve { hash }.
+// ============================================================
+const DEN_ESC = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>';
+const DEN_ESC_CHECK = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+const DEN_USER = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>';
+const DEN_LOCK = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+// Categorias alinhadas à Lei 14.457/2022 — VALORES casam o enum das rules (hifenizados).
+const DEN_CATS = [
+  ["assedio-sexual", "Assédio sexual"],
+  ["assedio-moral", "Assédio moral"],
+  ["discriminacao", "Discriminação"],
+  ["violencia", "Violência no trabalho"],
+  ["seguranca", "Segurança do trabalho"],
+  ["fraude", "Fraude ou financeiro"],
+  ["outro", "Outro"],
+];
+const DEN_CAT_ROT = Object.fromEntries(DEN_CATS);
+const DEN_ST = { nova: "Nova", em_analise: "Em análise", concluida: "Concluída" };
+const DEN_TXT_MIN = 10, DEN_TXT_MAX = 5000;
+// Texto do hash calibrado pelo gate (NÃO alterar a essência).
+const DEN_HASH_TXT = "Seu relato foi registrado e recebeu um código de integridade. O sistema bloqueia qualquer edição do relato após o envio. Se quiser, guarde este código: ele permite comprovar, a qualquer momento, que o texto não foi alterado desde o envio.";
+
+// Abre o canal SEMPRE do zero (limpa resíduo de um fluxo anterior concluído).
+function abrirCanalDenuncia() {
+  denResetFluxo();
+  state.view.page = "colab-denuncia";
+  renderApp();
+}
+function denResetFluxo() {
+  state.view.denEtapa = 1;
+  state.view.denCat = "";
+  state.view.denTexto = "";
+  state.view.denIdent = false;
+  state.view.denContato = "";
+  state.view.denEnviada = false;
+  state.view.denHash = "";
+  state.view.denIdentEnviada = false;
+}
+
+// Card discreto de entrada na home do colaborador.
+function colabDenunciaCardHtml() {
+  return `<button class="pp-den" data-den-abrir type="button" aria-label="Canal de denúncia">
+    <span class="pp-den__ic">${DEN_ESC}</span>
+    <span class="pp-den__bd"><span class="pp-den__t">Canal de denúncia</span><span class="pp-den__s">Assédio, segurança ou conduta: fale com sigilo, direto com a direção.</span></span>
+    <span class="pp-den__chev">${cpIcon("chevron")}</span>
+  </button>`;
+}
+
+function denValido() {
+  return !!state.view.denCat && String(state.view.denTexto || "").trim().length >= DEN_TXT_MIN;
+}
+
+// Cabeçalho verde (per-etapa), botão Voltar e indicador de passos.
+function denHeroHtml(step, titulo, sub) {
+  const dots = [1, 2, 3].map((n) => `<i class="${n === step ? "on" : ""}"></i>`).join("");
+  return `<div class="den-hd">
+    <button class="den-back" type="button" data-den-voltar>${cpIcon("chevron")}Voltar</button>
+    <div class="den-hd__tt">
+      <span class="den-hd__badge">${DEN_ESC}</span>
+      <span class="den-hd__tx"><b>${escapeHtml(titulo)}</b><span>${escapeHtml(sub)}</span></span>
+    </div>
+    <div class="den-steps">${dots}</div>
+  </div>`;
+}
+
+function renderColabDenuncia() {
+  const view = $("#view");
+  if (state.view.denEnviada && state.view.denHash) return denRenderCerimonia(view);
+  const etapa = [1, 2, 3].includes(state.view.denEtapa) ? state.view.denEtapa : (state.view.denEtapa = 1);
+  if (etapa === 2) return denRenderRelato(view);
+  if (etapa === 3) return denRenderIdent(view);
+  return denRenderAcolhe(view);
+}
+
+// ---- Etapa 1: acolhimento ----
+function denRenderAcolhe(view) {
+  const guar = (ic, t, s) => `<div class="den-guar"><span class="den-guar__ic">${ic}</span><span class="den-guar__tx"><b>${escapeHtml(t)}</b><span>${escapeHtml(s)}</span></span></div>`;
+  const escreveu = setHtml(view, `<div class="pp-fade den-flow">
+    ${denHeroHtml(1, "Canal de denúncia", "protegido do começo ao fim")}
+    <div class="den-body">
+      <h2 class="den-h">Um canal seguro, direto com a direção</h2>
+      <p class="den-intro">Antes de começar, é justo você saber exatamente como isso funciona.</p>
+      ${guar('<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>', "Anônima por padrão", "Ninguém sabe que foi você, nem o sistema guarda seu nome.")}
+      ${guar(DEN_LOCK, "Só a direção da empresa lê", "Nem a GP nem os líderes têm acesso a esta caixa.")}
+      ${guar(DEN_USER, "Você escolhe se quer se identificar", "Só se quiser ser contatado pra dar continuidade. É opcional, e vem só no fim.")}
+      <div class="den-lei">${DEN_ESC}<span>Canal previsto na <b>Lei 14.457/2022</b>, com garantia de anonimato e proteção contra retaliação.</span></div>
+      <div class="den-lgpd">
+        <b>Transparência (LGPD)</b>
+        <span>Coletamos apenas: o relato, um contato (se você optar por se identificar) e a data do envio.</span>
+        <span>Quem lê: apenas o administrador da direção.</span>
+        <span>Retenção: até a conclusão da apuração.</span>
+      </div>
+      <button class="btn btn--primary btn--block btn--lg den-cta" type="button" data-den-comecar>Começar</button>
+    </div>
+  </div>`);
+  if (!escreveu) return;
+  view.querySelector("[data-den-voltar]").addEventListener("click", denVoltar);
+  view.querySelector("[data-den-comecar]").addEventListener("click", () => { state.view.denEtapa = 2; renderApp(); });
+}
+
+// ---- Etapa 2: relato ----
+function denRenderRelato(view) {
+  const len = String(state.view.denTexto || "").length;
+  const chips = DEN_CATS.map(([val, rot]) => `<button type="button" class="den-chip ${state.view.denCat === val ? "on" : ""}" data-den-cat="${val}">${escapeHtml(rot)}</button>`).join("");
+  const escreveu = setHtml(view, `<div class="pp-fade den-flow">
+    ${denHeroHtml(2, "Conte com segurança", "leva o tempo que precisar")}
+    <div class="den-body">
+      <label class="den-lbl">Sobre o que é</label>
+      <div class="den-chips">${chips}</div>
+      <label class="den-lbl">Conte o que aconteceu</label>
+      <textarea id="den-ta" class="den-ta" maxlength="${DEN_TXT_MAX}" placeholder="Descreva com suas palavras. Se lembrar, ajuda dizer quando, onde e quem estava.">${escapeHtml(state.view.denTexto || "")}</textarea>
+      <div class="den-tafoot"><span class="den-hint" id="den-hint">${len > 0 && len < DEN_TXT_MIN ? "Escreva ao menos 10 caracteres." : "Quanto mais detalhes, melhor a apuração."}</span><span class="den-count" id="den-count">${len}/${DEN_TXT_MAX}</span></div>
+      <div class="den-sigilo">${DEN_ESC}<span>Nenhum dado seu é anexado quando você envia como anônimo. Nem quem enviou, nem de qual aparelho.</span></div>
+      <button class="btn btn--primary btn--block btn--lg den-cta" type="button" id="den-continuar" data-den-continuar ${denValido() ? "" : "disabled"}>Continuar</button>
+    </div>
+  </div>`);
+  if (!escreveu) return;
+  view.querySelector("[data-den-voltar]").addEventListener("click", denVoltar);
+  const ta = view.querySelector("#den-ta");
+  const count = view.querySelector("#den-count");
+  const hint = view.querySelector("#den-hint");
+  const cont = view.querySelector("#den-continuar");
+  const sync = () => {
+    const n = String(state.view.denTexto || "").length;
+    count.textContent = `${n}/${DEN_TXT_MAX}`;
+    hint.textContent = n > 0 && n < DEN_TXT_MIN ? "Escreva ao menos 10 caracteres." : "Quanto mais detalhes, melhor a apuração.";
+    cont.disabled = !denValido();
+  };
+  // Persiste em memória (state.view) — NUNCA storage. Sem renderApp: o nó do textarea
+  // (foco/IME/seleção) fica de pé; a tela só re-renderiza na navegação entre etapas.
+  ta.addEventListener("input", (e) => { state.view.denTexto = e.target.value; sync(); });
+  view.querySelectorAll("[data-den-cat]").forEach((c) => c.addEventListener("click", () => {
+    state.view.denCat = c.dataset.denCat;
+    view.querySelectorAll("[data-den-cat]").forEach((x) => x.classList.toggle("on", x === c));
+    cont.disabled = !denValido();
+    try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
+  }));
+  view.querySelector("[data-den-continuar]").addEventListener("click", () => {
+    if (!denValido()) return;
+    state.view.denEtapa = 3; renderApp();
+  });
+}
+
+// ---- Etapa 3: identificação + envio ----
+function denRenderIdent(view) {
+  const ident = !!state.view.denIdent;
+  const escreveu = setHtml(view, `<div class="pp-fade den-flow">
+    ${denHeroHtml(3, "Uma última escolha", "quem envia esta denúncia")}
+    <div class="den-body">
+      <h2 class="den-h">Quer se identificar?</h2>
+      <p class="den-intro">Sua escolha, e só sua. Os dois caminhos entregam a denúncia à direção do mesmo jeito.</p>
+      <div class="den-opt ${ident ? "" : "sel"}" data-den-ident="0">
+        <div class="den-opt__h"><span class="den-opt__ic">${DEN_ESC}</span><span class="den-opt__t"><b>Continuar anônimo <span class="den-tag">recomendado</span></b></span><span class="den-opt__mark"></span></div>
+        <div class="den-opt__d">Ninguém sabe que foi você. Nem o sistema guarda seu nome ou o aparelho de onde saiu.</div>
+      </div>
+      <div class="den-opt ${ident ? "sel" : ""}" data-den-ident="1">
+        <div class="den-opt__h"><span class="den-opt__ic">${DEN_USER}</span><span class="den-opt__t"><b>Me identificar</b></span><span class="den-opt__mark"></span></div>
+        <div class="den-opt__d">Deixe um contato caso a direção precise falar com você para dar continuidade.</div>
+        <div class="den-contato" id="den-contato" ${ident ? "" : "hidden"}>
+          <input class="den-inp" id="den-contato-inp" maxlength="200" placeholder="Nome e telefone ou e-mail para contato" value="${escapeHtml(state.view.denContato || "")}">
+          <div class="den-aviso-id">${DEN_LOCK}<span>Só a direção verá, e a lei proíbe qualquer retaliação por você ter falado.</span></div>
+        </div>
+      </div>
+      <p class="den-erro" id="den-erro" hidden></p>
+      <button class="btn btn--primary btn--block btn--lg den-cta" type="button" id="den-enviar" data-den-enviar>Enviar denúncia</button>
+    </div>
+  </div>`);
+  if (!escreveu) return;
+  view.querySelector("[data-den-voltar]").addEventListener("click", denVoltar);
+  const contato = view.querySelector("#den-contato");
+  const inp = view.querySelector("#den-contato-inp");
+  view.querySelectorAll("[data-den-ident]").forEach((o) => o.addEventListener("click", () => {
+    const quer = o.dataset.denIdent === "1";
+    state.view.denIdent = quer;
+    view.querySelectorAll("[data-den-ident]").forEach((x) => x.classList.toggle("sel", x === o));
+    contato.hidden = !quer;
+    if (quer) setTimeout(() => inp.focus(), 60);
+    try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
+  }));
+  inp.addEventListener("input", (e) => { state.view.denContato = e.target.value; });
+  view.querySelector("[data-den-enviar]").addEventListener("click", (e) => denEnviar(e.currentTarget));
+}
+
+function denVoltar() {
+  const et = state.view.denEtapa;
+  if (et === 3) { state.view.denEtapa = 2; return renderApp(); }
+  if (et === 2) { state.view.denEtapa = 1; return renderApp(); }
+  state.view.page = "colab-home"; renderApp();
+}
+
+async function denEnviar(btn) {
+  const erro = $("#den-erro");
+  if (erro) erro.hidden = true;
+  const categoria = state.view.denCat;
+  const texto = String(state.view.denTexto || "").trim();
+  const contato = state.view.denIdent ? String(state.view.denContato || "").trim() : "";
+  // Guarda de fronteira: sem categoria/texto válidos não há o que enviar (a etapa 2 já
+  // trava, isto é a rede de baixo). Volta pra etapa do relato em vez de falhar mudo.
+  if (!categoria || texto.length < DEN_TXT_MIN) { state.view.denEtapa = 2; return renderApp(); }
+  // withBusy engole exceção; por isso o pós-sucesso mora DENTRO do try e o erro tem
+  // tratamento PRÓPRIO (mensagem fixa na tela, nunca toast passageiro, zero log).
+  await withBusy("den-enviar", btn, async () => {
+    try {
+      if (typeof window.enviarDenuncia !== "function") throw new Error("indisponivel");
+      const { hash } = await window.enviarDenuncia({ categoria, texto, contato });
+      state.view.denIdentEnviada = !!contato;
+      state.view.denHash = String(hash || "");
+      state.view.denEnviada = true;
+      renderApp();
+    } catch (e) {
+      if (erro) { erro.textContent = "Não conseguimos enviar agora. Tente de novo em instantes."; erro.hidden = false; }
+    }
+  });
+}
+
+// ---- Cerimônia (sucesso) ----
+function denRenderCerimonia(view) {
+  const semMov = prefereMenosMovimento();
+  const escreveu = setHtml(view, `<div class="pp-fade den-flow den-flow--cer">
+    <div class="den-cer${semMov ? "" : " den-cer--anim"}">
+      <div class="den-cer__ring">
+        <svg viewBox="0 0 100 100" class="den-cer__svg"><circle class="den-cer__trk" cx="50" cy="50" r="44"/><circle class="den-cer__arc" cx="50" cy="50" r="44"/></svg>
+        <span class="den-cer__pulse"></span>
+        <span class="den-cer__chk"><svg viewBox="0 0 46 46"><path d="M13 24 L20.5 31.5 L33 16"/></svg></span>
+      </div>
+      <div class="den-cer__t">Denúncia recebida</div>
+      <div class="den-cer__prot">${DEN_ESC}<span>${state.view.denIdentEnviada ? "Enviada com identificação" : "Enviada de forma anônima"}</span></div>
+      <p class="den-cer__s">${escapeHtml(DEN_HASH_TXT)}</p>
+      <div class="den-cer__box">
+        <div class="den-cer__lbl">${DEN_ESC_CHECK}Código de integridade</div>
+        <div class="den-cer__hash" id="den-hash">${escapeHtml(state.view.denHash || "")}</div>
+        <button class="btn btn--ghost btn--sm den-cer__copy" type="button" data-den-copiar>${icon("clipboard")}<span style="margin-left:5px;">Copiar código</span></button>
+      </div>
+      <button class="btn btn--primary btn--block den-cer__inicio" type="button" data-den-inicio>Voltar ao início</button>
+    </div>
+  </div>`);
+  if (!escreveu) return;
+  if (!semMov) { try { navigator.vibrate && navigator.vibrate([12, 60, 18]); } catch (e) {} }
+  view.querySelector("[data-den-copiar]").addEventListener("click", (e) => denCopiarHash(e.currentTarget));
+  view.querySelector("[data-den-inicio]").addEventListener("click", () => { denResetFluxo(); state.view.page = "colab-home"; renderApp(); });
+}
+
+function denCopiarHash(btn) {
+  const h = state.view.denHash || "";
+  const ok = () => toast("Código copiado.");
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(h).then(ok).catch(() => toast("Não foi possível copiar.", "danger"));
+    } else {
+      toast("Copie o código manualmente.", "danger");
+    }
+  } catch (e) { toast("Não foi possível copiar.", "danger"); }
 }
 
 // Conta do colaborador: dados do cadastro (SELF, sem PII) + aparência + trocar senha + sair.
@@ -3974,7 +4239,7 @@ const NAV_GRUPOS = [
   ["Ponto", ["dashboard", "banco-horas", "espelho-ponto"]],
   ["Equipe", ["funcionarios", "avaliacoes", "gamificacao", "vagas", "disciplinar"]],
   ["Comunicação", ["comunicados", "documentos"]],
-  ["Sistema", ["pj", "obrigacoes", "auditoria", "config"]],
+  ["Sistema", ["pj", "obrigacoes", "denuncias", "auditoria", "config"]],
 ];
 
 function navItemBtnHtml(it) {
@@ -4023,6 +4288,9 @@ function renderNav() {
   if (can("vagas.gerenciar")) items.push({ id: "vagas", label: "Vagas", icon: "briefcase" });
   if (can("documentos.gerenciar")) items.push({ id: "documentos", label: "Documentos", icon: "file" });
   if (["admin", "rh", "lider"].includes(currentUser()?.role)) items.push({ id: "disciplinar", label: "Disciplinar", icon: "alert" });
+  // Denúncias: caixa da direção, VISÍVEL SÓ para o perfil admin (fora da matriz can()
+  // de propósito — a denúncia pode ser sobre a própria GP; ver rules bloco CANAL DE DENUNCIA).
+  if (currentUser()?.role === "admin") items.push({ id: "denuncias", label: "Denúncias", icon: "shield" });
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
@@ -4304,7 +4572,7 @@ function renderVagas() {
         ${campo("vg-titulo", "Título", v?.titulo, "Operador de Máquina I")}
         ${campo("vg-setor", "Setor", v?.setor, "Produção")}
         ${campoTurno}
-        ${campo("vg-cidade", "Cidade", v?.cidade ?? "Guaramirim, SC", "Guaramirim, SC")}
+        ${campo("vg-cidade", "Cidade", v?.cidade ?? "Indaial, SC", "Indaial, SC")}
       </div>
       <div class="field"><label for="vg-desc">Descrição</label><textarea id="vg-desc" rows="3" maxlength="3000">${escapeHtml(v?.descricao || "")}</textarea></div>
       <div class="field"><label for="vg-req">Requisitos</label><textarea id="vg-req" rows="2" maxlength="3000">${escapeHtml(v?.requisitos || "")}</textarea></div>
@@ -4526,6 +4794,11 @@ function renderView() {
     state.view.page = "dashboard";
     if (can("ocorrencias.revisarAuto")) state.view.filterTab = "rh-confere";
     return renderDashboard();
+  }
+  if (page === "denuncias") {
+    // Caixa da direção: só admin (checagem por role, NÃO pela matriz can()).
+    if (currentUser()?.role !== "admin") { state.view.page = "visao-geral"; return renderVisaoGeral(); }
+    return renderDenuncias();
   }
   if (page === "auditoria") {
     if (!can("auditoria.ver")) {
@@ -14413,6 +14686,187 @@ function resumoAuditoria(itens) {
   return { evHoje, loginHoje, assin7, pessoas: pessoasHoje.size };
 }
 
+// ============================================================
+// CANAL DE DENÚNCIA — administração (mock docs/mockups/canal-denuncia-2026-07.html).
+// Caixa RESERVADA À DIREÇÃO (só role admin, gated no nav e em renderView). Lista a
+// partir de state.denuncias (carregado por window.carregarDenunciasAdmin, lazy no 1º
+// open). Contato de denúncia identificada SEMPRE com selo "informado pelo denunciante,
+// não verificado" (gate). Relato e nota via triarDenuncia/excluirDenuncia (firebase.js).
+// ============================================================
+function denDataHora(iso) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+  } catch (e) { return String(iso); }
+}
+function denStatusDe(d) {
+  return ["nova", "em_analise", "concluida"].includes(d && d.status) ? d.status : "nova";
+}
+function denSeloHtml(anon) {
+  return anon
+    ? `<span class="den-selo den-selo--anon">${DEN_ESC}Anônima</span>`
+    : `<span class="den-selo den-selo--ident">${DEN_USER}Identificada</span>`;
+}
+function denCardHtml(d) {
+  const st = denStatusDe(d);
+  const anon = !d.contato;
+  const rot = DEN_CAT_ROT[d.categoria] || "Outro";
+  const cls = DEN_CAT_ROT[d.categoria] ? d.categoria : "outro";
+  const trecho = String(d.texto || "").split("\n").find((l) => l.trim()) || "";
+  return `<div class="den-card ${st === "nova" ? "nova" : ""}" data-den-card="${escapeHtml(d.id)}" role="button" tabindex="0" aria-label="Abrir denúncia">
+    <span class="den-card__ic den-cat--${cls}">${DEN_ESC}</span>
+    <div class="den-card__mid">
+      <div class="den-card__top"><span class="den-cchip den-cat--${cls}">${escapeHtml(rot)}</span>${denSeloHtml(anon)}</div>
+      <div class="den-card__ex">${escapeHtml(trecho)}</div>
+      <div class="den-card__when">${escapeHtml(denDataHora(d.em))}</div>
+    </div>
+    <div class="den-card__right"><span class="den-status den-status--${st}">${DEN_ST[st]}</span><span class="den-card__arr">${icon("chevron")}</span></div>
+  </div>`;
+}
+
+function renderDenuncias() {
+  $("#topbar-title").textContent = "Denúncias";
+  const filtroValido = ["novas", "analise", "concluidas"].includes(state.view.denFiltro) ? state.view.denFiltro : "todas";
+  state.view.denFiltro = filtroValido;
+  const todas = Array.isArray(state.denuncias) ? state.denuncias : [];
+  const nNovas = todas.filter((d) => denStatusDe(d) === "nova").length;
+  const pred = {
+    todas: () => true,
+    novas: (d) => denStatusDe(d) === "nova",
+    analise: (d) => denStatusDe(d) === "em_analise",
+    concluidas: (d) => denStatusDe(d) === "concluida",
+  }[filtroValido];
+  const lista = todas.filter(pred);
+  const filtros = [["todas", "Todas"], ["novas", "Novas"], ["analise", "Em análise"], ["concluidas", "Concluídas"]];
+  const corpo = todas.length === 0
+    ? `<div class="den-empty"><span class="den-empty__ic">${DEN_ESC_CHECK}</span><b>Nenhuma denúncia</b><span>Que continue assim.</span></div>`
+    : (lista.length === 0
+      ? `<div class="den-empty den-empty--filtro"><b>Nada neste filtro</b><span>Não há denúncia com este status.</span></div>`
+      : lista.map(denCardHtml).join(""));
+
+  const escreveu = setHtml($("#view"), `
+    <header class="page-header">
+      <div>
+        <h1 class="den-title">${DEN_ESC}Denúncias</h1>
+        <p>Caixa reservada à direção · tratada com sigilo</p>
+      </div>
+      <div class="den-counter"><b>${nNovas}</b><span>${nNovas === 1 ? "nova" : "novas"}</span></div>
+    </header>
+    <div class="den-adminaviso">${DEN_LOCK}<span>Caixa reservada à direção. GP e líderes não têm acesso.</span></div>
+    <div class="den-toolbar">
+      ${filtros.map(([id, label]) => `<button class="den-filt ${filtroValido === id ? "on" : ""}" data-den-filt="${id}">${label}</button>`).join("")}
+    </div>
+    <div class="den-adminlist">${corpo}</div>
+  `);
+
+  // Carga lazy no 1º open (não pesa no boot). Em demo/sem firebase o loader não existe:
+  // pinta direto de state.denuncias (o que o harness injeta).
+  if (!state._denCarregado && typeof window.carregarDenunciasAdmin === "function") {
+    state._denCarregado = true;
+    window.carregarDenunciasAdmin().then(() => { if (state.view.page === "denuncias") renderApp(); });
+  }
+
+  if (!escreveu) return;
+  $$("#view [data-den-filt]").forEach((b) => b.addEventListener("click", () => { state.view.denFiltro = b.dataset.denFilt; renderApp(); }));
+  $$("#view [data-den-card]").forEach((c) => {
+    c.addEventListener("click", () => denAbrirDetalhe(c.dataset.denCard));
+    c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); denAbrirDetalhe(c.dataset.denCard); } });
+  });
+}
+
+function denAbrirDetalhe(id) {
+  const d = (state.denuncias || []).find((x) => x.id === id);
+  if (!d) return;
+  const st = denStatusDe(d);
+  const anon = !d.contato;
+  const rot = DEN_CAT_ROT[d.categoria] || "Outro";
+  const cls = DEN_CAT_ROT[d.categoria] ? d.categoria : "outro";
+  const contatoHtml = anon
+    ? `<div class="den-contact-none">${DEN_ESC}<span>Enviada de forma anônima. Não há dados de contato, por escolha de quem enviou.</span></div>`
+    : `<div class="den-contact">
+        <span class="den-contact__ic">${DEN_USER}</span>
+        <div class="den-contact__tx"><b>${escapeHtml(d.contato)}</b><span>${DEN_LOCK}Informado pelo denunciante, não verificado</span></div>
+      </div>`;
+  const stBtn = (v, lab) => `<button class="den-stopt ${st === v ? "sel" : ""}" data-den-st="${v}" data-v="${v}">${lab}</button>`;
+  openModal(`
+    <div class="den-mdl">
+      <div class="den-mdl__hd">
+        <div class="den-mdl__chips"><span class="den-cchip den-cat--${cls}">${escapeHtml(rot)}</span>${denSeloHtml(anon)}</div>
+        <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+      </div>
+      <div class="den-mdl__when">Recebida em ${escapeHtml(denDataHora(d.em))}</div>
+      <div class="den-mdl__bd">
+        <div class="den-integ">
+          <span class="den-integ__ck">${DEN_ESC_CHECK}</span>
+          <div class="den-integ__tx"><b>Relato íntegro</b><span class="den-integ__hash">${escapeHtml(d.hash || "")}</span></div>
+        </div>
+        <div class="den-ptext">${escapeHtml(d.texto || "")}</div>
+        <div class="den-mblock">
+          <label>Contato</label>
+          ${contatoHtml}
+        </div>
+        <div class="den-mblock">
+          <label>Status da apuração</label>
+          <div class="den-stopts" id="den-stopts">
+            ${stBtn("nova", "Nova")}${stBtn("em_analise", "Em análise")}${stBtn("concluida", "Concluída")}
+          </div>
+        </div>
+        <div class="den-mblock">
+          <label>Anotações da apuração</label>
+          <textarea id="den-nota" maxlength="2000" placeholder="Registro interno da direção. O denunciante nunca vê isto.">${escapeHtml(d.nota || "")}</textarea>
+          <div class="den-interno">${DEN_LOCK}<span>Visível apenas para a direção.</span></div>
+        </div>
+      </div>
+      <div class="den-mdl__foot">
+        <button class="btn btn--primary" id="den-salvar">Salvar apuração</button>
+        <button class="btn btn--danger-ghost" id="den-excluir">Excluir de vez</button>
+        <div class="den-lgpd">${icon("alert")}<span>Exclusão definitiva e sem volta. Só use após a apuração encerrada, conforme a política de retenção da LGPD.</span></div>
+      </div>
+    </div>
+  `, { className: "modal--den" });
+
+  let stSel = st;
+  const root = $("#modal-root");
+  root.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
+  root.querySelectorAll("[data-den-st]").forEach((o) => o.addEventListener("click", () => {
+    stSel = o.dataset.denSt;
+    root.querySelectorAll("[data-den-st]").forEach((x) => x.classList.toggle("sel", x === o));
+  }));
+  root.querySelector("#den-salvar").addEventListener("click", (e) => {
+    const nota = root.querySelector("#den-nota").value;
+    denSalvarTriagem(id, stSel, nota, e.currentTarget);
+  });
+  root.querySelector("#den-excluir").addEventListener("click", (e) => denExcluir(id, e.currentTarget));
+}
+
+async function denSalvarTriagem(id, status, nota, btn) {
+  await withBusy("den-triar:" + id, btn, async () => {
+    if (typeof window.triarDenuncia === "function") await window.triarDenuncia(id, status, nota);
+    const d = (state.denuncias || []).find((x) => x.id === id);
+    if (d) { d.status = status; d.nota = String(nota || "").slice(0, 2000); }
+    closeModal();
+    renderApp();
+    toast("Apuração salva.");
+  });
+}
+
+async function denExcluir(id, btn) {
+  const ok = await confirmar({
+    titulo: "Excluir de vez",
+    msg: "Exclusão definitiva e sem volta. Só use após a apuração encerrada, conforme a política de retenção da LGPD.",
+    okLabel: "Excluir de vez",
+    perigo: true,
+  });
+  if (!ok) return;
+  await withBusy("den-excluir:" + id, btn, async () => {
+    if (typeof window.excluirDenuncia === "function") await window.excluirDenuncia(id);
+    state.denuncias = (state.denuncias || []).filter((x) => x.id !== id);
+    closeModal();
+    renderApp();
+    toast("Denúncia excluída.");
+  });
+}
+
 function renderAuditoria() {
   $("#topbar-title").textContent = "Auditoria";
   if (!state.view.audCat) state.view.audCat = "todos";
@@ -15847,7 +16301,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.71.0";
+window.CURRENT_VERSION = "1.72.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

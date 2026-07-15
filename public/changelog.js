@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.71.0", d: "15 jul 2026", current: true, items: [
+    v: "1.72.0", d: "15 jul 2026", current: true, items: [
+      { type: "high", title: "Canal de denuncia no ar: um espaco seguro pra relatar assedio, discriminacao, violencia, problema de seguranca ou fraude, direto pra direcao da empresa. Anonimo por padrao (nem o sistema guarda quem enviou), com codigo de integridade que prova que o relato nunca foi alterado. Previsto na Lei 14.457/2022." },
+    ],
+  },
+  {
+    v: "1.71.0", d: "15 jul 2026", items: [
       { type: "high", title: "Navegar ficou suave: as telas agora se encaixam com transicao continua em vez de trocar no corte seco, e na home o seu avatar viaja junto ate a tela Conta. Em quem prefere menos movimento, tudo continua instantaneo." },
     ],
   },

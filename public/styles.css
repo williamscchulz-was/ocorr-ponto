@@ -4797,3 +4797,105 @@ button.gm-card { cursor: pointer; }
   ::view-transition-old(*),
   ::view-transition-new(*) { animation: none !important; }
 }
+
+/* ============================================================
+   CANAL DE DENÚNCIA — administração (mock canal-denuncia-2026-07.html).
+   Caixa da direção (só admin). Token-driven -> recolore no dark do gestor;
+   as cores calmas de categoria têm override próprio no dark (translúcidas).
+   ============================================================ */
+.den-title { display: flex; align-items: center; gap: 9px; }
+.den-title svg { width: 20px; height: 20px; color: var(--plum); }
+.den-counter { text-align: right; flex: none; }
+.den-counter b { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+.den-counter span { display: block; font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; font-weight: 600; }
+.den-adminaviso { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); background: var(--surface-warm); border: 1px solid var(--border); border-radius: 12px; padding: 10px 13px; margin-bottom: 16px; }
+.den-adminaviso svg { width: 15px; height: 15px; color: var(--plum); flex: none; }
+.den-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.den-filt { border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 999px; padding: 7px 14px; font: 600 12px var(--font); cursor: pointer; transition: all .15s; }
+.den-filt:hover { border-color: var(--border-strong); }
+.den-filt.on { background: var(--text); color: var(--surface); border-color: var(--text); }
+
+.den-adminlist { display: flex; flex-direction: column; gap: 11px; }
+.den-card { display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 15px; padding: 15px 16px; cursor: pointer; transition: border-color .16s, box-shadow .2s, transform .16s var(--ease-ios); }
+.den-card:hover { border-color: var(--border-strong); box-shadow: 0 10px 26px -18px rgba(0,40,20,.28); transform: translateY(-1px); }
+.den-card.nova { border-left: 3px solid var(--plum); }
+.den-card__ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex: none; color: var(--dc, var(--text-muted)); background: var(--dcb, var(--surface-warm)); }
+.den-card__ic svg { width: 20px; height: 20px; }
+.den-card__mid { min-width: 0; }
+.den-card__top { display: flex; align-items: center; gap: 9px; margin-bottom: 4px; flex-wrap: wrap; }
+.den-cchip { font: 700 10.5px var(--font); letter-spacing: .02em; padding: 4px 9px; border-radius: 999px; color: var(--dc, var(--text-muted)); background: var(--dcb, var(--surface-warm)); }
+.den-selo { display: inline-flex; align-items: center; gap: 5px; font: 600 10.5px var(--font); padding: 4px 9px; border-radius: 999px; }
+.den-selo svg { width: 12px; height: 12px; }
+.den-selo--anon { background: var(--surface-warm); color: var(--text-muted); }
+.den-selo--ident { background: var(--warning-bg); color: var(--warning-ink); }
+.den-card__ex { font-size: 12.8px; color: var(--text-body); line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.den-card__when { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.den-card__right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: none; }
+.den-status { font: 700 11px var(--font); padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
+.den-status--nova { background: rgba(0,136,53,.1); color: var(--plum); }
+.den-status--em_analise { background: var(--warning-bg); color: var(--warning-ink); }
+.den-status--concluida { background: var(--surface-warm); color: var(--text-muted); }
+.den-card__arr { color: var(--border-strong); display: flex; }
+.den-card__arr svg { width: 17px; height: 17px; }
+
+.den-empty { text-align: center; padding: 64px 20px; }
+.den-empty__ic { width: 66px; height: 66px; border-radius: 20px; background: rgba(0,136,53,.08); color: var(--plum); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; }
+.den-empty__ic svg { width: 32px; height: 32px; }
+.den-empty b { font-size: 17px; font-weight: 700; display: block; color: var(--text-body); }
+.den-empty span { font-size: 13px; color: var(--text-muted); display: block; margin-top: 6px; }
+
+/* Categorias — cores calmas (mock). Cada classe seta as duas variáveis consumidas
+   por .den-card__ic e .den-cchip. */
+.den-cat--assedio-sexual { --dc: #b4453f; --dcb: #fbeceb; }
+.den-cat--assedio-moral  { --dc: #7d4a86; --dcb: #f4ecf6; }
+.den-cat--discriminacao  { --dc: #3f5aa6; --dcb: #eaeefb; }
+.den-cat--violencia      { --dc: #b5562a; --dcb: #fbeee4; }
+.den-cat--seguranca      { --dc: #9a6a12; --dcb: #fbf1da; }
+.den-cat--fraude         { --dc: #0a7a53; --dcb: #e6f4ec; }
+.den-cat--outro          { --dc: #5c6470; --dcb: #eef0f2; }
+html.cp-dark:not(.modo-colab) .den-cat--assedio-sexual { --dc: #e79b96; --dcb: rgba(180,69,63,.2); }
+html.cp-dark:not(.modo-colab) .den-cat--assedio-moral  { --dc: #c79fce; --dcb: rgba(125,74,134,.24); }
+html.cp-dark:not(.modo-colab) .den-cat--discriminacao  { --dc: #97a9e0; --dcb: rgba(63,90,166,.26); }
+html.cp-dark:not(.modo-colab) .den-cat--violencia      { --dc: #e0996f; --dcb: rgba(181,86,42,.22); }
+html.cp-dark:not(.modo-colab) .den-cat--seguranca      { --dc: #d7ab5c; --dcb: rgba(154,106,18,.24); }
+html.cp-dark:not(.modo-colab) .den-cat--fraude         { --dc: #5fc79c; --dcb: rgba(10,122,83,.24); }
+html.cp-dark:not(.modo-colab) .den-cat--outro          { --dc: #a7afba; --dcb: rgba(92,100,112,.26); }
+
+/* Detalhe (modal) */
+.modal--den { max-width: 560px; }
+.den-mdl { display: flex; flex-direction: column; }
+.den-mdl__hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 20px 22px 0; }
+.den-mdl__chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.den-mdl__when { font-size: 11.5px; color: var(--text-muted); padding: 10px 22px 0; }
+.den-mdl__bd { padding: 16px 22px 4px; }
+.den-integ { display: flex; align-items: center; gap: 10px; background: rgba(0,136,53,.05); border: 1px solid rgba(0,136,53,.16); border-radius: 12px; padding: 11px 13px; margin-bottom: 16px; }
+.den-integ__ck { width: 30px; height: 30px; border-radius: 9px; background: rgba(0,136,53,.1); color: var(--plum); display: flex; align-items: center; justify-content: center; flex: none; }
+.den-integ__ck svg { width: 17px; height: 17px; }
+.den-integ__tx { min-width: 0; flex: 1; }
+.den-integ__tx b { display: block; font-size: 11.5px; font-weight: 700; color: var(--text); }
+.den-integ__hash { font: 500 10.5px ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-muted); letter-spacing: .02em; word-break: break-all; margin-top: 1px; }
+.den-ptext { font-size: 13.5px; line-height: 1.6; color: var(--text-body); background: var(--surface-warm); border: 1px solid var(--border); border-radius: 13px; padding: 15px 16px; white-space: pre-wrap; word-break: break-word; }
+.den-mblock { margin-top: 22px; }
+.den-mblock > label { font: 700 11px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 10px; }
+.den-contact { display: flex; align-items: center; gap: 12px; background: var(--warning-bg); border: 1px solid var(--warning-bg); border-radius: 13px; padding: 13px 15px; }
+.den-contact__ic { color: var(--warning-ink); flex: none; }
+.den-contact__ic svg { width: 20px; height: 20px; }
+.den-contact__tx b { display: block; font-size: 13px; font-weight: 600; color: var(--text-body); word-break: break-word; }
+.den-contact__tx span { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--warning-ink); margin-top: 2px; }
+.den-contact__tx span svg { width: 12px; height: 12px; flex: none; }
+.den-contact-none { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-muted); background: var(--surface-warm); border-radius: 12px; padding: 12px 14px; line-height: 1.45; }
+.den-contact-none svg { width: 17px; height: 17px; flex: none; }
+.den-stopts { display: flex; gap: 8px; }
+.den-stopt { flex: 1; border: 1.5px solid var(--border); background: var(--surface); border-radius: 12px; padding: 11px 8px; font: 700 12px var(--font); color: var(--text-muted); cursor: pointer; text-align: center; transition: all .16s; }
+.den-stopt:hover { border-color: var(--border-strong); }
+.den-stopt.sel[data-v="nova"] { border-color: var(--plum); background: rgba(0,136,53,.08); color: var(--plum); }
+.den-stopt.sel[data-v="em_analise"] { border-color: var(--warning); background: var(--warning-bg); color: var(--warning-ink); }
+.den-stopt.sel[data-v="concluida"] { border-color: var(--border-strong); background: var(--surface-warm); color: var(--text-body); }
+.den-mblock textarea { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 13px; font: 400 13px/1.5 var(--font); color: var(--text-body); background: var(--surface); resize: vertical; min-height: 92px; outline: 0; }
+.den-mblock textarea:focus { border-color: var(--plum); }
+.den-interno { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-muted); margin-top: 7px; }
+.den-interno svg { width: 12px; height: 12px; flex: none; }
+.den-mdl__foot { padding: 16px 22px 20px; border-top: 1px solid var(--border); margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.den-mdl__foot .btn { flex: 1 1 auto; }
+.den-lgpd { display: flex; gap: 8px; align-items: flex-start; font-size: 10.5px; color: var(--text-muted); line-height: 1.5; flex-basis: 100%; margin-top: 2px; }
+.den-lgpd svg { width: 13px; height: 13px; color: var(--danger); flex: none; margin-top: 1px; }

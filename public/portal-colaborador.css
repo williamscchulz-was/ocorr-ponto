@@ -729,3 +729,120 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(vt-avatar) { animation: none !important; }
 }
+
+/* ============================================================
+   CANAL DE DENÚNCIA — colaborador (mock canal-denuncia-2026-07.html).
+   Token-driven (recolore no dark do colaborador); o cabeçalho verde é bloco
+   saturado de marca (mesmo verde em claro/escuro, como o herói de BH).
+   ============================================================ */
+/* Card de entrada na home (discreto, quiet como o mock .rowcard.quiet) */
+.pp-den { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--surface-warm); border: 1px solid var(--border); border-radius: var(--pp-rc, 18px); padding: 14px 15px; margin-top: 11px; transition: transform .18s var(--ease-ios), box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+.pp-den:active { transform: scale(.985); }
+.pp-den__ic { width: 40px; height: 40px; border-radius: 12px; background: rgba(0,136,53,.09); color: var(--plum); display: flex; align-items: center; justify-content: center; flex: none; }
+.pp-den__ic svg { width: 20px; height: 20px; }
+.pp-den__bd { flex: 1; min-width: 0; }
+.pp-den__t { display: block; font-size: 14px; font-weight: 600; color: var(--text-body); }
+.pp-den__s { display: block; font-size: 11.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.35; }
+.pp-den__chev { color: var(--border-strong); flex: none; }
+.pp-den__chev svg { width: 16px; height: 16px; }
+
+/* Fluxo (etapas) */
+.den-flow { display: flex; flex-direction: column; }
+.den-flow.pp-fade > * { animation: ppFade .34s both; }
+.den-hd { background: linear-gradient(162deg, #0a9a43, #008835 55%, #00702c); color: #fff; padding: 16px 18px 18px; border-radius: 0 0 22px 22px; margin: -6px -2px 16px; }
+.den-back { display: inline-flex; align-items: center; gap: 3px; background: rgba(255,255,255,.16); border: 0; color: #fff; font: 600 12.5px var(--font); border-radius: 999px; padding: 7px 13px 7px 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.den-back svg { width: 15px; height: 15px; transform: rotate(180deg); }
+.den-hd__tt { display: flex; align-items: center; gap: 12px; margin-top: 15px; }
+.den-hd__badge { width: 42px; height: 42px; border-radius: 13px; background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center; flex: none; }
+.den-hd__badge svg { width: 22px; height: 22px; }
+.den-hd__tx b { display: block; font-size: 16px; font-weight: 700; line-height: 1.2; }
+.den-hd__tx span { font-size: 11.5px; opacity: .86; }
+.den-steps { display: flex; gap: 6px; justify-content: center; margin-top: 15px; }
+.den-steps i { width: 7px; height: 7px; border-radius: 999px; background: rgba(255,255,255,.4); transition: width .3s var(--ease-ios), background .3s; }
+.den-steps i.on { width: 20px; background: #fff; }
+
+.den-body { padding: 0 2px; }
+.den-h { font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: var(--text-body); margin: 4px 0 6px; }
+.den-intro { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5; }
+
+.den-guar { display: flex; gap: 13px; align-items: flex-start; padding: 13px 0; border-top: 1px solid var(--border); }
+.den-guar:first-of-type { border-top: 0; padding-top: 4px; }
+.den-guar__ic { width: 34px; height: 34px; border-radius: 11px; background: rgba(0,136,53,.09); color: var(--plum); display: flex; align-items: center; justify-content: center; flex: none; }
+.den-guar__ic svg { width: 18px; height: 18px; }
+.den-guar__tx b { display: block; font-size: 13px; font-weight: 600; color: var(--text-body); margin-bottom: 2px; }
+.den-guar__tx span { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; }
+.den-lei { display: flex; gap: 9px; align-items: flex-start; margin-top: 16px; padding: 12px 13px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 13px; font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
+.den-lei svg { width: 16px; height: 16px; color: var(--plum); flex: none; margin-top: 1px; }
+.den-lei b { color: var(--text-body); font-weight: 600; }
+.den-lgpd { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; padding: 12px 13px; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; }
+.den-lgpd b { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+.den-lgpd span { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; }
+.den-cta { margin-top: 18px; }
+
+/* Etapa 2: relato */
+.den-lbl { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-body); margin: 16px 0 9px; }
+.den-lbl:first-child { margin-top: 4px; }
+.den-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.den-chip { border: 1.5px solid var(--border); background: var(--surface); color: var(--text-body); border-radius: 999px; padding: 8px 14px; font: 600 12.5px var(--font); cursor: pointer; transition: border-color .16s, background .16s, color .16s, transform .12s var(--ease-ios); -webkit-tap-highlight-color: transparent; }
+.den-chip:active { transform: scale(.96); }
+.den-chip.on { border-color: var(--plum); background: rgba(0,136,53,.08); color: var(--plum-deep); }
+.den-ta { width: 100%; border: 1.5px solid var(--border); border-radius: 15px; padding: 13px 14px; font: 400 13.5px/1.5 var(--font); color: var(--text-body); resize: none; height: 130px; background: var(--surface); outline: 0; transition: border-color .16s; }
+.den-ta:focus { border-color: var(--plum); }
+.den-tafoot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 7px; }
+.den-hint { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.den-count { font-size: 11px; color: var(--text-muted); flex: none; font-variant-numeric: tabular-nums; }
+.den-sigilo { display: flex; gap: 9px; align-items: flex-start; margin: 16px 2px 2px; font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+.den-sigilo svg { width: 15px; height: 15px; color: var(--plum); flex: none; margin-top: 1px; }
+
+/* Etapa 3: identificação */
+.den-opt { border: 1.6px solid var(--border); border-radius: 17px; padding: 15px; margin-bottom: 12px; cursor: pointer; background: var(--surface); transition: border-color .16s, background .16s, box-shadow .2s; -webkit-tap-highlight-color: transparent; }
+.den-opt:active { transform: scale(.99); }
+.den-opt.sel { border-color: var(--plum); background: rgba(0,136,53,.04); box-shadow: 0 0 0 3px rgba(0,136,53,.08); }
+.den-opt__h { display: flex; align-items: center; gap: 11px; }
+.den-opt__ic { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex: none; background: rgba(0,136,53,.09); color: var(--plum); }
+.den-opt__ic svg { width: 20px; height: 20px; }
+.den-opt__t { flex: 1; }
+.den-opt__t b { display: block; font-size: 14px; font-weight: 700; color: var(--text-body); }
+.den-tag { font-size: 10px; font-weight: 700; color: var(--plum); background: rgba(0,136,53,.1); border-radius: 999px; padding: 2px 8px; margin-left: 2px; vertical-align: 1px; }
+.den-opt__mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border-strong); flex: none; display: flex; align-items: center; justify-content: center; }
+.den-opt.sel .den-opt__mark { border-color: var(--plum); background: var(--plum); }
+.den-opt.sel .den-opt__mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+.den-opt__d { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin: 9px 0 0 49px; }
+.den-contato { margin: 12px 0 2px; animation: denRevela .3s var(--ease-ios); }
+.den-contato[hidden] { display: none; }
+.den-inp { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 11px 13px; font: 400 13px var(--font); color: var(--text-body); outline: 0; background: var(--surface); }
+.den-inp:focus { border-color: var(--plum); }
+.den-aviso-id { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; color: var(--warning-ink); margin-top: 11px; line-height: 1.5; }
+.den-aviso-id svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+@keyframes denRevela { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .den-contato { animation: none; } }
+.den-erro { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--danger); background: var(--danger-bg); border-radius: 12px; padding: 11px 13px; margin: 4px 0 0; line-height: 1.45; }
+.den-erro[hidden] { display: none; }
+
+/* Cerimônia */
+.den-flow--cer { min-height: 60vh; }
+.den-cer { text-align: center; padding: 24px 10px; margin: auto; max-width: 340px; }
+.den-cer__ring { position: relative; width: 100px; height: 100px; margin: 0 auto 20px; }
+.den-cer__svg { width: 100px; height: 100px; transform: rotate(-90deg); }
+.den-cer__trk { fill: none; stroke: var(--border); stroke-width: 5; }
+.den-cer__arc { fill: none; stroke: var(--plum); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 0; }
+.den-cer__pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid rgba(0,136,53,.34); opacity: 0; }
+.den-cer__chk { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.den-cer__chk svg { width: 46px; height: 46px; }
+.den-cer__chk path { fill: none; stroke: var(--plum); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 50; stroke-dashoffset: 0; }
+.den-cer--anim .den-cer__arc { stroke-dashoffset: 276; animation: denArco .58s cubic-bezier(.4,0,.2,1) forwards; }
+.den-cer--anim .den-cer__chk path { stroke-dashoffset: 50; animation: denTick .3s cubic-bezier(.2,.8,.2,1) .5s forwards; }
+.den-cer--anim .den-cer__pulse { animation: denPuls .7s ease-out .5s forwards; }
+@keyframes denArco { to { stroke-dashoffset: 0; } }
+@keyframes denTick { to { stroke-dashoffset: 0; } }
+@keyframes denPuls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+.den-cer__t { font-size: 19px; font-weight: 700; letter-spacing: -.01em; color: var(--text-body); }
+.den-cer__prot { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--plum-deep); background: rgba(0,136,53,.08); border: 1px solid rgba(0,136,53,.16); border-radius: 999px; padding: 6px 12px; }
+.den-cer__prot svg { width: 13px; height: 13px; color: var(--plum); }
+.den-cer__s { font-size: 12.5px; color: var(--text-muted); margin-top: 14px; line-height: 1.55; }
+.den-cer__box { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 15px; text-align: left; }
+.den-cer__lbl { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.den-cer__lbl svg { width: 14px; height: 14px; color: var(--plum); }
+.den-cer__hash { font: 600 12.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .02em; color: var(--text-body); margin: 8px 0; word-break: break-all; }
+.den-cer__copy { width: auto; }
+.den-cer__inicio { margin-top: 20px; }
