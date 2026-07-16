@@ -1707,5 +1707,91 @@ service cloud.firestore {
                 && request.resource.data.beneficiosCatalogo.size() <= 30
                 && benefStrings(request.resource.data.beneficiosCatalogo)));
     }
+
+    // ============================================================
+    // FILA DE EMAILS (extensao Trigger Email, 2026-07-16). A extensao processa
+    // /mail via Admin SDK (IGNORA estas rules) e monta o corpo a partir dos
+    // moldes em /emailTemplates. As rules governam SO os clientes: o desenho e
+    // anti-spam ESTRUTURAL, ninguem usa o remetente da Fiobras pra nada fora do
+    // funil de candidaturas. A propriedade que as duas portas garantem: um email
+    // so pode ir pro proprio email de uma candidatura REAL, com molde PINADO, e
+    // no maximo 1 vez por (candidatura, template) -- o doc id e deterministico e
+    // create-only, entao repetir vira update, que NEGA.
+    //   (a) EMAIL 1 (anonimo, molde 'candidatura-recebida'): sai junto do envio
+    //       da candidatura, no MESMO batch; o id do mail E o id da candidatura e
+    //       o to tem que ser o email dela (getAfter ve o irmao criado junto). O
+    //       existsAfter tambem casa candidatura pre-existente, e ta OK: o to
+    //       segue travado no email dela e o id trava 1 recebida por candidatura,
+    //       entao nao ha amplificacao (nunca email pra endereco arbitrario nem
+    //       repetido).
+    //   (b) EMAILS DE STATUS (pela GP, cap vagas.gerenciar): a candidatura JA
+    //       existe; o id do mail e '<candidaturaId>-<status>' (status in
+    //       em-analise/aprovada/nao-seguiu) e o to tem que ser o email dela. O
+    //       candidaturaId sai do proprio mailId tirando o sufixo '-<status>'
+    //       (replace ancorado em $) e e RE-CONFIRMADO por concatenacao
+    //       (mailId == candId + '-' + status): strip+concat e airtight mesmo que
+    //       o email da candidatura contenha o texto de um status. Cada status e
+    //       um ramo EXPLICITO (nao deriva string de template.name): lixo em
+    //       template.name/id cai fora dos 3 e NEGA.
+    //   READ/UPDATE/DELETE de cliente: false. O doc ganha PII do candidato (to)
+    //   e status de entrega escrito pela extensao; so a extensao (Admin SDK) mexe.
+    // ============================================================
+    match /mail/{mailId} {
+      function gpCand() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
+      function m() { return request.resource.data; }
+      // template.data e so DISPLAY (primeiro nome do candidato + titulo da vaga):
+      // shape-only, strings sanas. O anti-spam vem do to travado no email da
+      // candidatura + do molde pinado + do id deterministico, nao deste conteudo.
+      function moldeOk(nome) {
+        return m().keys().hasOnly(['to', 'template'])
+          && m().to is string
+          && m().template is map
+          && m().template.keys().hasOnly(['name', 'data'])
+          && m().template.name == nome
+          && m().template.data is map
+          && m().template.data.keys().hasOnly(['nome', 'vaga'])
+          && m().template.data.nome is string
+          && m().template.data.nome.size() >= 1 && m().template.data.nome.size() <= 80
+          && m().template.data.vaga is string
+          && m().template.data.vaga.size() >= 1 && m().template.data.vaga.size() <= 120;
+      }
+      // (a) email 1: id == id da candidatura; ela existe (no batch ou ja gravada)
+      // e o to e o email dela. Sem cap: e a porta do envio anonimo do site.
+      function criaRecebida() {
+        return moldeOk('candidatura-recebida')
+          && existsAfter(/databases/$(database)/documents/candidaturas/$(mailId))
+          && m().to == getAfter(/databases/$(database)/documents/candidaturas/$(mailId)).data.email;
+      }
+      // (b) email de status: so a GP; id == '<candidaturaId>-<status>'.
+      function criaStatus(status) {
+        let candId = mailId.replace('-' + status + '$', '');
+        return gpCand()
+          && moldeOk('candidatura-' + status)
+          && mailId == candId + '-' + status
+          && exists(/databases/$(database)/documents/candidaturas/$(candId))
+          && m().to == get(/databases/$(database)/documents/candidaturas/$(candId)).data.email;
+      }
+      allow create: if criaRecebida()
+        || criaStatus('em-analise')
+        || criaStatus('aprovada')
+        || criaStatus('nao-seguiu');
+      allow read, update, delete: if false;
+    }
+
+    // ----- emailTemplates (moldes da extensao Trigger Email) -----
+    // Leitura: qualquer autenticado (os moldes nao tem segredo; o app pode
+    // exibi-los pra GP). Escrita: SO admin, com shape sano (subject/text/html
+    // strings, caps generosos). O seed e idempotente pelo cliente admin (setDoc
+    // = create/update). Delete fica no default-deny: molde e conteudo que a
+    // extensao consome; nao ha fluxo de exclusao pelo cliente (Admin SDK/console
+    // resolvem, se um dia precisar).
+    match /emailTemplates/{tid} {
+      allow read: if isAuthed();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['subject', 'text', 'html'])
+        && request.resource.data.subject is string && request.resource.data.subject.size() <= 200
+        && request.resource.data.text is string && request.resource.data.text.size() <= 10000
+        && request.resource.data.html is string && request.resource.data.html.size() <= 10000;
+    }
   }
 }
