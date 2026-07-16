@@ -2946,3 +2946,31 @@ Causa raiz secundária: `export-espelho.mjs` era o único dos 2 exports que roda
 
 ### Por que não é o mesmo achado do `suprimido999DiaCoerente` (07/07/26, caso Acira)
 Aquele cobre RUÍDO disperso (dia com contagem certa, só desviou horário — pessoa aleatória, dia aleatório). Este é um FALHA DE INFRAESTRUTURA (export não rodou) que corrompe um DIA INTEIRO pra TODO MUNDO de uma vez — sintoma completamente diferente (quantidade de marcação errada, não desvio de horário), preventivo diferente (frescor de arquivo, não coerência de dado).
+
+---
+
+## 2026-07-16 · 🩹 Follow-up da rajada: os 36 docs falsos JÁ CRIADOS ficaram presos pelo circuit breaker — fix com evidência positiva (revisão do Fable)
+
+O fix acima (gate de mtime) impede a rajada de se REPETIR, mas não limpa os docs que a rodada ruim das 09:08 BRT já tinha criado em `ocorrencias-auto` — William testou de novo mais tarde e apontou direto: "vc não resolveu o problema, ainda aparece lá" (caso concreto: funcionário 1145/Luisana, zero ocorrência real, card "Marcação Não Identificada" ainda `rh_confere`). Pediu explicitamente consulta ao Fable: "esse tipo de erro não pode acontecer... se deu algum problema no pipeline/exports, precisa se arrumar sozinho".
+
+### Por que a reconciliação automática (que já existe) não limpou sozinha
+`upload-ocorrencias-auto.mjs` roda toda rodada uma reverificação: doc `rh_confere` cujo `dedupId` sumiu do parse fresco vira `auto_resolvida`. Isso teria resolvido a rajada inteira sozinho — só que existe um circuit breaker (desde 2026-07-06): se resolveria mais de 50% dos `rh_confere` da janela, ABORTA a etapa inteira (proteção contra CSV truncado/corrompido gerar uma limpeza em massa por engano). Medido ao vivo: 45 `rh_confere` na janela, 36 candidatos da rajada → 36 > 22,5 (50%) → breaker abortado, e ficaria abortado até 01/08 (quando a janela rola e os docs saem dela, sem nunca serem tocados) — os 34 falsos ficariam visíveis pra RH por ~6 semanas.
+
+### Consulta ao Fable — vetou minha 1ª proposta, trouxe a certa
+Propus usar o mtime do Espelho carimbado em cada doc como sinal de bypass do breaker. Fable apontou a falha fatal: **isso é derrotado exatamente pelo cenário que o breaker protege** — um export que produz arquivo TRUNCADO também tem mtime novo, então todo doc escaparia do threshold bem na hora que o breaker mais precisa agir. mtime prova que o arquivo foi *reescrito*, não que é *confiável*.
+
+A resposta certa (evidência positiva de cobertura da fonte): distinguir **ausência** (o parse fresco não menciona aquele pessoa-dia — indistinguível de truncamento, breaker deve continuar desconfiando) de **evidência positiva** (o Espelho fresco CONTÉM a linha daquele (código,dataIso) e mesmo assim o detector 999 não reafirma o dedupId — um arquivo truncado PERDE linhas, nunca INVENTA presença, essa evidência é imune ao próprio cenário que o breaker protege).
+
+### Fix implementado (revisão completa do Fable, sem bugs achados nos 3 fixes anteriores)
+1. **`process-ocorrencias-rh.py`**: `carrega_espelho()` agora coleta `presenca` — set de `(código,dataIso)` de TODA linha parseada do Espelho (não só quando tem marcação — dia com zero apuradas também é cobertura). Emitido no JSON como `espelhoPresenca` (lista `"cod_dataIso"`), filtrado à janela madura (`GO_LIVE <= dataIso <= MADURO_LIMITE_EFETIVO`). Campo aditivo `espelhoMtimeIso` em cada doc `esp_` (auditoria/forense apenas — NÃO é sinal de segurança, ver acima).
+2. **`upload-ocorrencias-auto.mjs`**: candidatos a resolver particionam em 2 grupos — `esp_` com `(código,dataIso)` presente em `espelhoPresenca` resolve DIRETO (fora do breaker, histórico: "Espelho recapturado cobre este dia e não aponta mais a ocorrência"); resto continua sujeito ao breaker normal, com denominador ajustado (`totalRhConfereNaJanela - resolvidasComEvidencia` — menor = mais conservador, não menos). Retrocompatível: `espelhoPresenca` ausente (parser antigo) = set vazio = comportamento idêntico ao de antes.
+3. **Alerta ativo**: `upload-ocorrencias-auto.mjs` grava `occ-auto-alerta.json` toda rodada (estado atual, se autolimpa em rodada saudável); `write-heartbeat-report.mjs` lê esse flag + `regras.naoIdentArquivoObsoleto` do parser e promove os dois pro frontmatter do report (mesmo canal que a cloud routine do Claude PC já vigia via `fontesVelhas`) — antes só existia `console.warn` numa rodada agendada que ninguém lia.
+
+### Validação e resolução ao vivo
+- `node --check` OK nos 2 arquivos.
+- `--dry` contra o dado real de hoje: `resolvidasComEvidencia=34`, breaker NÃO disparou (2 candidatos sem evidência / denominador 10, bem abaixo de 50%), os casos genuínos intocados.
+- Rodando de verdade (não esperei a próxima rodada agendada — só amanhã 09:00 BRT, ~18h depois, incompatível com "ainda aparece lá" sendo reclamado ao vivo; decisão de rodar agora porque é o mecanismo PADRÃO já sancionado, soft/reversível/auditado, só disparado manualmente em vez de pelo relógio, não um script ad-hoc): **34 docs resolvidos pra `auto_resolvida`** (incluindo `esp_1145_2026-07-15_marcacao-nao-identificada`, o caso da Luisana), **4 permaneceram `rh_confere`** (genuinamente presentes no parse fresco — casos reais, não tocados). Confirmado direto no Firestore, doc a doc.
+- Script scratch `inline-cleanup-rajada.mjs` (bypass manual do breaker, sem a lógica de evidência) foi descartado sem rodar — Fable alertou que mutação em massa manual exigiria autorização à parte, e a rota do mecanismo sancionado dispensa isso.
+
+### Nota sobre trabalho paralelo
+O fix do gate de mtime (commit `0b57809` local + `736b0ad` neste repo) foi feito de forma **independente por uma sessão paralela** investigando a MESMA mensagem do William quase no mesmo minuto — cheguei à mesma causa raiz e ao mesmo fix por conta própria antes de notar que já existia (git não mostrou diff quando tentei reaplicar — o conteúdo já batia). Sem duplicidade de código no final; só a comprovação de que o raciocínio bate entre sessões independentes.
