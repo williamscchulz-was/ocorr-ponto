@@ -68,7 +68,13 @@ const STUB = () => {
   };
   window.__captured = null;
   window.__testMode = {
-    set: function (id, payload) { window.__captured = { docId: id, payload: payload }; return Promise.resolve(); },
+    // site v361: envio em batch (candidatura + mail); captura a candidatura como antes
+    commit: function (writes) {
+      var cand = null;
+      for (var i = 0; i < writes.length; i++) { if (writes[i].col === 'candidaturas') cand = writes[i]; }
+      if (cand) window.__captured = { docId: cand.id, payload: cand.data };
+      return Promise.resolve();
+    },
     upload: function () { return Promise.resolve(); }
   };
 };

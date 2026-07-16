@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.89.0", d: "16 jul 2026", current: true, items: [
+    v: "1.90.0", d: "16 jul 2026", current: true, items: [
+      { type: "high", aud: "gestor", title: "Email automatico ao candidato: quem se candidata recebe na hora o Recebemos a sua candidatura, e mover o funil dispara sozinho o email do status (em analise, aprovada ou nao seguiu). O botao Mensagem ao candidato segue para reenvios e WhatsApp." },
+    ],
+  },
+  {
+    v: "1.89.0", d: "16 jul 2026", items: [
       { type: "high", title: "Os seus termos assinados agora moram na tela Documentos, no grupo Meus termos: releia o texto quando quiser e baixe o comprovante carimbado do seu aceite, gerado na hora do registro." },
       { type: "feat", title: "A barra da tela de atualizacao ganhou o percentual: agora voce ve exatamente quanto falta." },
     ],

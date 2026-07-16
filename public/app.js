@@ -5443,6 +5443,23 @@ const CAND_MSG = {
     ],
   },
 };
+// Moldes da extensao Trigger Email (colecao emailTemplates), derivados 1:1 de CAND_MSG (o
+// MESMO texto do funil manual, fonte unica). subject/text/html mantem os {{nome}}/{{vaga}}
+// LITERAIS: quem interpola e escapa e a extensao (Handlebars escapa {{ }} por padrao). O
+// molde e conteudo NOSSO (constante confiavel, sem HTML especial) e NUNCA carrega dado do
+// candidato, entao nome/vaga com XSS nao tem como vazar pro corpo (viajam so no template.data
+// do /mail, texto puro escapado pela extensao). Sem <b>: o doc v1 nao tem negrito.
+function moldeEmail(statusKey) {
+  const m = CAND_MSG[statusKey];
+  if (!m) return null;
+  return {
+    subject: m.assunto,
+    text: m.corpo.join("\n\n"),
+    html: m.corpo.map((p) => "<p>" + p.replace(/\n/g, "<br>") + "</p>").join(""),
+  };
+}
+// [{ id, key }] dos 4 moldes na ordem do funil (id = candidatura-<statusKey>).
+const MOLDES_EMAIL = Object.keys(CAND_MSG).map((k) => ({ id: "candidatura-" + k, key: k }));
 function primeiroNomeCand(nome) { return String(nome || "").trim().split(/\s+/)[0] || ""; }
 function preencherMsg(tpl, nome, vaga) {
   return String(tpl).replace(/\{\{nome\}\}/g, nome).replace(/\{\{vaga\}\}/g, vaga);
@@ -5482,6 +5499,8 @@ function renderVagas() {
     (async () => {
       await Promise.all([window.carregarVagasGestor?.(), window.carregarCandidaturasGestor?.()]);
       if (state.view.page === "vagas") renderApp();
+      // Molde de email faltando? Admin semeia em silencio (idempotente, so os ausentes).
+      window.semearMoldesEmail?.();
       // Expurgo LGPD em background (William 2026-07-16): candidaturas de vagas encerradas há
       // mais de 6 meses somem sozinhas. Fire-and-forget, roda depois do render, nunca bloqueia.
       window.expurgarCandidaturasVencidas?.();
@@ -5785,7 +5804,14 @@ function renderVagas() {
     state.view.candMsgAceso = id; // mover acende o botão (sugere a mensagem do status)
     if (candStatusKey(c.status) === st) { renderApp(); return; } // já neste status: só acende
     withBusy("cand-st:" + id, b, async () => {
-      try { await window.atualizarStatusCandidatura?.(id, st); renderApp(); }
+      try {
+        const emailOk = await window.atualizarStatusCandidatura?.(id, st);
+        renderApp();
+        // Toast honesto: o sufixo aparece SO quando um email foi enfileirado (gravado !=
+        // entregue); mover pra Recebida (ou mail que ja existia) nao promete email novo.
+        const rot = (CAND_STATUS.find((s) => s.k === st) || {}).lbl || "";
+        toast("Candidatura movida para " + rot + "." + (emailOk ? " Email automático a caminho." : ""));
+      }
       catch (e) { toast("Não atualizou o status: " + (e?.message || e), "danger"); }
     });
   }));
@@ -17896,7 +17922,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.89.0";
+window.CURRENT_VERSION = "1.90.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

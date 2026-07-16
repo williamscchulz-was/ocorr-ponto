@@ -2001,6 +2001,44 @@
       const c = (state.candidaturas || []).find((x) => x.id === id);
       if (c) c.status = status; // mantém o state honesto na sessão (doc já gravado)
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Moveu candidatura para " + _CAND_STATUS_ROTULO[status], alvo: id });
+      // EMAIL AUTOMATICO de status (extensao Trigger Email): enfileira mail/{id}-{status}
+      // pros 3 status finais; 'recebida' NAO dispara (esse email sai do site, no envio).
+      // Best-effort: o status JA foi gravado acima, entao um erro aqui (ex.: re-visitar um
+      // status = mail create-only ja existe, a rule nega o update) NAO desfaz nada, so vira
+      // debug. Retorna se o mail foi enfileirado (o toast honra "gravado != entregue"). to ==
+      // email da candidatura + molde pinado = shape exato de /mail (docs/firestore.rules).
+      if (status === "recebida" || !c) return false;
+      try {
+        await db.collection("mail").doc(id + "-" + status).set({
+          to: c.email,
+          template: { name: "candidatura-" + status, data: { nome: primeiroNomeCand(c.nome), vaga: String(c.vagaTitulo || "").slice(0, 120) } },
+        });
+        debug?.("[email] status enfileirado:", id, status);
+        return true;
+      } catch (e) { debug?.("[email] status nao enfileirado:", id, status, e?.code || e?.message); return false; }
+    };
+
+    // SEED DOS MOLDES de email. Quando um ADMIN abre a tela Vagas, garante que os 4 moldes
+    // existem em /emailTemplates e cria SO os que faltam (idempotente; a rule da create/update
+    // SO a admin). Best-effort e silencioso: le a colecao 1x (list, permitida a autenticado),
+    // cria os ausentes, erro vira debug e nunca quebra a tela. Nao-admin nem tenta (evita ruido
+    // de permission-denied). moldeEmail/MOLDES_EMAIL vem do app.js (fonte unica dos textos).
+    window.semearMoldesEmail = async function () {
+      const u = currentUser();
+      if (!u || u.role !== "admin") return;
+      if (typeof MOLDES_EMAIL === "undefined" || typeof moldeEmail !== "function") return;
+      try {
+        const snap = await db.collection("emailTemplates").get();
+        const existentes = {};
+        snap.docs.forEach((d) => { existentes[d.id] = true; });
+        for (const { id, key } of MOLDES_EMAIL) {
+          if (existentes[id]) continue; // ja existe: nao toca (preserva customizacao manual)
+          const molde = moldeEmail(key);
+          if (!molde) continue;
+          try { await db.collection("emailTemplates").doc(id).set(molde); debug?.("[email] molde semeado:", id); }
+          catch (e) { debug?.("[email] seed de molde falhou:", id, e?.code || e?.message); }
+        }
+      } catch (e) { debug?.("[email] seed abortado:", e?.code || e?.message); }
     };
 
     // EXPURGO AUTOMÁTICO de candidaturas (LGPD, decisão William 2026-07-16): candidatura de

@@ -24,8 +24,16 @@ await ctx.addInitScript(() => {
   // serverTimestamp sem SDK real
   window.firebase = { firestore: (function () { const f = function () {}; f.FieldValue = { serverTimestamp: () => "__server_ts__" }; return f; })() };
   window.__captured = null;
+  window.__capturedMail = null;
   window.__testMode = {
-    set: (docId, payload) => { window.__captured = { docId, payload }; return Promise.resolve(); },
+    // site v361: envio virou BATCH (candidatura + mail juntos); o stub captura os dois
+    commit: (writes) => {
+      const cand = writes.find((w) => w.col === "candidaturas");
+      const mail = writes.find((w) => w.col === "mail");
+      if (cand) window.__captured = { docId: cand.id, payload: cand.data };
+      if (mail) window.__capturedMail = { docId: mail.id, payload: mail.data };
+      return Promise.resolve();
+    },
     upload: () => Promise.resolve(),
   };
 });
@@ -99,7 +107,7 @@ async function preencherFicha(opts) {
     const stepTxt = $("stepCount").textContent;
     $("cLgpd").click(); await sleep(20);
     $("candPrim").click(); await sleep(80); // enviar
-    return { captured: window.__captured, revHtml, stepTxt };
+    return { captured: window.__captured, capturedMail: window.__capturedMail, revHtml, stepTxt };
   }, opts);
 }
 
@@ -108,7 +116,18 @@ const XSS_NOME = '<img src=x onerror=alert(1)> Ana Paula';
 const XSS_QUEM = '<b>João</b> da Producao';
 const r = await preencherFicha({ vagaId: "vaga123", vagaTitulo: "Auxiliar de Produção", nome: XSS_NOME, email: "ana@email.com", indicacao: XSS_QUEM, filhos: true, primeiroEmprego: false });
 
-check(!!r.captured, "payload capturado pelo __testMode.set");
+check(!!r.captured, "payload capturado pelo __testMode.commit (batch)");
+// email 1 (recebida) no MESMO batch, shape exato da rule /mail
+check(!!r.capturedMail, "mail doc capturado no mesmo batch");
+if (r.capturedMail) {
+  const m = r.capturedMail.payload;
+  check(r.capturedMail.docId === "vaga123__ana@email.com", "mail docId == candidatura docId");
+  check(Object.keys(m).every((k) => ["to", "template"].includes(k)), "mail hasOnly to/template");
+  check(m.to === "ana@email.com", "mail.to == email da candidatura");
+  check(m.template && m.template.name === "candidatura-recebida", "molde pinado candidatura-recebida");
+  check(m.template && m.template.data && typeof m.template.data.nome === "string" && !m.template.data.nome.includes(" "), "data.nome = primeiro nome (1 token)");
+  check(m.template && m.template.data && m.template.data.vaga === "Auxiliar de Produção", "data.vaga = título da vaga");
+}
 if (r.captured) {
   const pl = r.captured.payload;
   const keys = Object.keys(pl);

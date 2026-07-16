@@ -1593,12 +1593,17 @@
     }
     return firebase.storage().ref().child(path).put(file, { contentType: "application/pdf" });
   }
-  function doSet(docId, payload) {
-    if (window.__testMode && typeof window.__testMode.set === "function") {
-      try { return Promise.resolve(window.__testMode.set(docId, payload)); } catch (e) { return Promise.reject(e); }
+  // Grava a candidatura + o email 1 (recebida) no MESMO batch: atomico (tudo-ou-nada, como o
+  // set antigo). O stub de teste captura o batch inteiro via __testMode.commit; em prod, um
+  // firestore batch. O email vai junto pra a rule /mail enxergar o irmao (existsAfter).
+  function doCommit(writes) {
+    if (window.__testMode && typeof window.__testMode.commit === "function") {
+      try { return Promise.resolve(window.__testMode.commit(writes)); } catch (e) { return Promise.reject(e); }
     }
     if (!db) return Promise.reject(new Error("sem-db"));
-    return db.collection("candidaturas").doc(docId).set(payload);
+    var batch = db.batch();
+    writes.forEach(function (w) { batch.set(db.collection(w.col).doc(w.id), w.data); });
+    return batch.commit();
   }
   // Payload da FICHA COMPLETA. Casa EXATO no create de /candidaturas (docs/firestore.rules):
   // enums hifenizados (estadoCivil/escolaridade/comoViria), filhos int, pretensaoSalarial
@@ -1646,6 +1651,10 @@
     var email = $c("ci-mail").value.trim();
     var docId = vagaAtualId + "__" + email.toLowerCase();
     var payload = montarPayload();
+    // email 1 (recebida): MESMO batch, id == candidaturaId, to == email da candidatura, data =
+    // primeiro nome (1o token, igual ao funil) + titulo da vaga. Shape exato da rule /mail.
+    var primeiroNome = String(payload.nome).trim().split(/\s+/)[0] || "";
+    var mailDoc = { to: payload.email, template: { name: "candidatura-recebida", data: { nome: primeiroNome, vaga: String(payload.vagaTitulo || "").slice(0, 120) } } };
 
     var pre = Promise.resolve();
     if (cvFile) {
@@ -1653,7 +1662,10 @@
       // Se o upload falhar, a candidatura segue SEM currículo (não bloqueia o candidato).
       pre = doUpload(cvFile, path).then(function () { payload.curriculoPath = path; }).catch(function () {});
     }
-    pre.then(function () { return doSet(docId, payload); })
+    pre.then(function () { return doCommit([
+      { col: "candidaturas", id: docId, data: payload },
+      { col: "mail", id: docId, data: mailDoc },
+    ]); })
       .then(function () { sucesso(); })
       .catch(falha);
   }
