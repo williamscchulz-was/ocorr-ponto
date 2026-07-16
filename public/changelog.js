@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.88.0", d: "16 jul 2026", current: true, items: [
+    v: "1.88.1", d: "16 jul 2026", current: true, items: [
+      { type: "fix", title: "O botao Comprovante dos documentos assinados nao ficava mais mudo: agora ele abre o comprovante mesmo em assinaturas antigas e, se algo impedir, diz exatamente o motivo." },
+    ],
+  },
+  {
+    v: "1.88.0", d: "16 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Funil de candidatos: cada candidatura agora tem o acompanhamento (Recebida, Em analise, Aprovada, Nao seguiu adiante) direto no card, e o botao Mensagem ao candidato abre o email ou o WhatsApp ja escrito no tom da Fiobras. Um toque pra mover, um toque pra avisar." },
     ],
   },

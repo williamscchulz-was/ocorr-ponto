@@ -2667,10 +2667,47 @@
       return { ok: true, arquivoPath };
     };
 
-    // URL de download da versão assinada (Storage). null se não der (regra/estado).
-    window.urlArquivoAssinado = async function (arquivoPath) {
-      try { return await firebase.storage().ref(arquivoPath).getDownloadURL(); }
-      catch (e) { debug?.("[recibos] url assinado:", e?.message || e); return null; }
+    // URL de download da versão assinada (Storage). Retorna a URL ou null — os call sites
+    // (recibos e comprovante) seguem lendo url|null, sem mudança de contrato. Em falha grava
+    // o CÓDIGO do erro do path original em window.__ultimoErroStorage (ex.:
+    // 'storage/object-not-found', 'storage/unauthorized') pra o chamador dar um toast com a
+    // causa certa em vez de silêncio.
+    //
+    // TOLERÂNCIA A PASTA IRMÃ (só comprovantes de documentos): o path é
+    // `documentos-assinados/{dono}/{arquivo}`, onde {dono} foi `funcionarioId || uid` no ato
+    // de assinar. Se a claim funcionarioId do token mudou entre assinar e ler (re-provisão do
+    // pipeline), ou caiu no fallback uid, a leitura do path EXATO é negada. A TRILHA é
+    // IMUTÁVEL por regra (hasOnly) — NÃO reescrevemos o arquivoPath; só tentamos as pastas
+    // irmãs plausíveis (funcionarioId atual, uid atual e, no gestor, o funcionarioId do
+    // assinante) com o MESMO nome de arquivo. A pasta que o token autoriza abre normal. As
+    // rules não mudam: pasta errada continua negada por design. (Caminho PLANO de 2 segmentos
+    // nunca existiu neste código — confirmado no git —, mas o mesmo mecanismo o cobriria.)
+    window.urlArquivoAssinado = async function (arquivoPath, opts) {
+      const tentar = async (p) => {
+        try { return { url: await firebase.storage().ref(p).getDownloadURL() }; }
+        catch (e) { const code = (e && e.code) || String((e && e.message) || e); debug?.("[recibos] url assinado (" + p + "):", code); return { url: null, code }; }
+      };
+      const primeira = await tentar(arquivoPath);
+      window.__ultimoErroStorage = primeira.url ? null : primeira.code;
+      if (primeira.url) return primeira.url;
+      // Fallback de pasta irmã só pra comprovantes de documentos (recibos têm outro prefixo).
+      const m = /^documentos-assinados\/(?:(.+)\/)?([^/]+)$/.exec(String(arquivoPath || ""));
+      if (!m) return null;
+      const donoOriginal = m[1] || null; // pasta já tentada acima (null se path plano)
+      const arquivo = m[2];              // {docId}-v{n}.pdf
+      const u = currentUser();
+      const candidatos = [
+        opts && opts.funcionarioId,                  // assinante (contexto gestor/trilha)
+        u && u.funcionarioId,                        // funcionarioId do usuário atual
+        auth.currentUser && auth.currentUser.uid,    // uid do usuário atual (legado do fallback)
+      ].filter((c) => c && c !== donoOriginal);
+      const vistos = new Set();
+      for (const c of candidatos) {
+        if (vistos.has(c)) continue; vistos.add(c);
+        const r = await tentar("documentos-assinados/" + c + "/" + arquivo);
+        if (r.url) { debug?.("[recibos] comprovante aberto por pasta irmã:", c); window.__ultimoErroStorage = null; return r.url; }
+      }
+      return null;
     };
 
     // ===== Disciplinares (advertencia/suspensao) — dado SENSIVEL =====

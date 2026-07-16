@@ -2104,15 +2104,30 @@ function colabDocRowHtml(d) {
   </div>`;
 }
 
+// Mensagem de erro por CAUSA do Storage (autodiagnóstico do comprovante): converte o código
+// gravado em window.__ultimoErroStorage num texto que diz ao usuário o que aconteceu.
+function msgErroComprovante(code) {
+  if (code === "storage/object-not-found") return "O comprovante desta assinatura não está no cofre.";
+  if (code === "storage/unauthorized")    return "Sem permissão para abrir o comprovante.";
+  return "Não consegui abrir o comprovante agora. Tente de novo em instantes.";
+}
+
 // Abre o COMPROVANTE de assinatura guardado no cofre (Storage). Busca a URL assinada e
-// mostra no viewer pdf.js. Rede de segurança: se a URL não vier (regra/estado), avisa.
+// mostra no viewer pdf.js. AUTODIAGNÓSTICO: TODO o fluxo vive num try/catch próprio pra o
+// toast NUNCA depender de nada não estourar (o withBusy do handler engoliria a exceção num
+// toast genérico), e a mensagem é específica pela causa (código do Storage) — nunca silêncio.
 async function abrirComprovanteColab(docId) {
-  const d = (state.documentosColab || []).find((x) => x.id === docId);
-  const path = d && d.minhaAssinatura && d.minhaAssinatura.arquivoPath;
-  if (!path) return toast("Comprovante indisponível.", "danger");
-  const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(path) : null;
-  if (!url) return toast("Não consegui abrir o comprovante agora. Tente de novo em instantes.", "danger");
-  openDocViewer({ titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
+  try {
+    const d = (state.documentosColab || []).find((x) => x.id === docId);
+    const path = d && d.minhaAssinatura && d.minhaAssinatura.arquivoPath;
+    if (!path) return toast("Comprovante indisponível.", "danger");
+    const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(path) : null;
+    if (!url) return toast(msgErroComprovante(window.__ultimoErroStorage), "danger");
+    openDocViewer({ titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
+  } catch (e) {
+    debug?.("[comprovante colab]", e?.message || e);
+    toast("Não consegui abrir o comprovante agora. Tente de novo em instantes.", "danger");
+  }
 }
 
 function colabLerDocUI(id) {
@@ -11253,10 +11268,18 @@ function abrirTrilhaConfirmacao(d, f, x, assina) {
   `, { onMount: (modal) => {
     modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
     const cb = modal.querySelector("[data-trg-comprovante]");
+    // Passa o funcionarioId do ASSINANTE (x.funcionarioId, ou f.id) pra a tolerância de pasta
+    // irmã acertar mesmo se o dono gravado no path não bater. try/catch próprio: o toast de
+    // erro (específico pela causa) nunca depende de openDocViewer não estourar.
     if (cb) cb.addEventListener("click", () => withBusy("ver-comprovante-" + x.arquivoPath, cb, async () => {
-      const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(x.arquivoPath) : null;
-      if (!url) return toast("Não consegui abrir o comprovante agora.", "danger");
-      openDocViewer({ titulo: `Comprovante · ${d.titulo}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
+      try {
+        const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(x.arquivoPath, { funcionarioId: x.funcionarioId || f.id }) : null;
+        if (!url) return toast(msgErroComprovante(window.__ultimoErroStorage), "danger");
+        openDocViewer({ titulo: `Comprovante · ${d.titulo}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
+      } catch (e) {
+        debug?.("[comprovante trilha]", e?.message || e);
+        toast("Não consegui abrir o comprovante agora.", "danger");
+      }
     }));
   } });
 }
@@ -17587,7 +17610,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.88.0";
+window.CURRENT_VERSION = "1.88.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
