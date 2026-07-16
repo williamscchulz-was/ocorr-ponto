@@ -325,3 +325,23 @@ Todo uploader do pipeline RH que faz **limpeza de docs órfãos** (deletar quem 
 - `upload-banco-horas-self.mjs` — limpeza de `banco-horas-self` (2026-07-06, ver `HISTORICO-DECISOES.md` do mesmo dia). Testado contra produção: 94 docs, 0 órfãos, breaker não disparou.
 
 **Quando aplicar em algo novo**: qualquer uploader futuro que apague com base em "ausência no CSV desta rodada" (não em campo explícito tipo `Demissão`) deveria nascer já com esse breaker — é mais barato copiar o padrão de cara do que descobrir o buraco depois de um export truncado de verdade apagar saldo/dado de alguém em produção. Threshold de 50% é o que já está validado nos 2 lugares acima; não há necessidade de recalibrar por coleção sem um motivo concreto.
+
+---
+
+## Quirk: "maduro por calendário" não é "arquivo fresco" — gate de maturidade precisa checar o mtime, não só a data (2026-07-16)
+
+Complementa o quirk acima (2026-07-02, `.exe` pode sair OK sem atualizar o arquivo). Achado novo, consumidor-side: **mesmo quando existe um gate de maturidade** (ex.: "só confia num dia depois que ele vira 'ontem', dando tempo do WK consolidar"), esse gate normalmente compara só **calendário** (`dataIso <= hoje-1`) — e isso pressupõe que o arquivo sendo lido foi de fato REGERADO depois que aquele dia fechou. Se o export falhou (timeout/"árvore travada") e o pipeline caiu pro arquivo anterior (comportamento best-effort normal, documentado em vários lugares), o arquivo pode estar **fisicamente parado numa foto do MEIO do dia** — e o gate, olhando só a data, marca esse dia como "maduro" mesmo assim.
+
+**Sintoma real** (`fiobras-pipeline-rh`, 16/07/2026): `export-espelho.mjs` (Espelho de Ponto, `ExpAuto_Espelho_Ponto.txt`) capturou com sucesso às 14h do dia 15/07 e depois falhou 2 rodadas seguidas ("árvore travada") — o arquivo ficou preso nessa foto de 14h por quase 24h. O detector de "Marcações Não Identificadas" (999) e o Espelho self-service (Portal do Colaborador/gestor) tratavam 15/07 como fechado (`hoje-1`) e leram ~36 pessoas com só a ENTRADA batida — pareceu uma rajada de falta de marcação; era só o arquivo velho, o dia real estava normal (confirmado assim que o export conseguiu rodar de novo).
+
+**Fix (padrão pra reaplicar em qualquer gate de maturidade novo que dependa de export headless best-effort):**
+```
+mtimeData = mtime do arquivo consumido
+arquivoMaduroAte = mtimeData - 1 dia   // só confia em dia ANTERIOR à foto
+maduroLimiteEfetivo = min(maduroLimiteCalendario, arquivoMaduroAte)
+```
+Se o arquivo está fresco (mtime = hoje), `arquivoMaduroAte == maduroLimiteCalendario` e nada muda — zero efeito no caso saudável. Se está velho, a maturidade "trava" na última data que o arquivo realmente cobriu por inteiro, em vez de avançar cega com o relógio.
+
+**Implementado em:** `process-ocorrencias-rh.py` (`ARQUIVO_MADURO_ATE`/`MADURO_LIMITE_EFETIVO`, contador `naoIdentArquivoObsoleto`) e `process-espelho-ponto.mjs` (`arquivoMaduroAteIso`/`maduroLimiteEfetivoIso`) — ambos consumidores de `ExpAuto_Espelho_Ponto.txt`. Complementado com retry em `export-espelho.mjs` (`run-pipeline.mjs`, mesmo padrão já usado em `export-ocorrencias.mjs` desde 2026-07-08) pra reduzir a chance de precisar do gate. Detalhe completo em `HISTORICO-DECISOES.md`, entrada 2026-07-16.
+
+**Quando aplicar em algo novo**: qualquer script que leia um CSV/export headless do WK e decida "esse dia já fechou, posso confiar" com base só em `dataIso <= hoje-N` deveria cruzar com o mtime do arquivo fonte, não só o relógio do sistema.

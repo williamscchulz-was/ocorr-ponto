@@ -2917,3 +2917,32 @@ Os 3 discos físicos (2 SSDs do RAID + HD do E:) estão atrás do **mesmo contro
 Vai aparecer popup na hora + o arquivo `_ULTIMO-RESET-RAID.txt` vai ter o snapshot completo do que estava rodando. Isso deve permitir, no próximo evento real, cruzar exatamente qual tarefa/processo estava ativo no momento do reset — informação que não tínhamos até agora (só sabíamos horários, não o contexto).
 
 ⚠️ Pendência antiga que segue valendo: registrar o logger como tarefa de boot/SYSTEM (precisa admin) pra sobreviver a reinícios — segue documentada em `_diag\README.md`.
+
+---
+
+## 2026-07-16 · 🐛 Rajada de "Marcação Não Identificada" falsa (36 pessoas, 1 dia) — causa raiz: arquivo do Espelho travado numa foto do MEIO do dia
+
+William repassou reclamação do RH: "ele puxou do WK as marcações de ontem como 'Marcação não identificada', mas a maioria não tem nada de errado".
+
+### Investigação
+`parsed-ocorrencias.json` da rodada das 09:00 BRT de hoje mostrava `naoIdentGerado: 38`, TODOS os 38 marcados `classificacaoIncerta:true` — e 36 deles no MESMO dia (15/07), todos com o MESMO padrão: `motivo: "só 1 de 4 marcações esperadas bateram"`, só a ENTRADA batida (ex.: código 626, turno que termina 13:30, só tinha "04:58" apurado — nem o próprio horário de saída, já passado há horas). Não é ruído disperso (o que `suprimido999DiaCoerente` já cobre desde 07/07/26) — é um dia INTEIRO com cara de "ainda não fechou".
+
+Checado o mtime real de `D:\WKRadar\BI\Registros\ExpAuto_Espelho_Ponto.txt`: **15/07/2026 14:00:17** — uma foto tirada no MEIO da tarde do PRÓPRIO dia 15/07, não depois dele fechar. Cruzando com `pipeline-bh.log`: `export-espelho.mjs` rodou com sucesso às 14:00 BRT do dia 15/07 (gerou esse arquivo) e depois **falhou 2 vezes seguidas** ("árvore travada", timeout de 300s) — 15/07 17:00 BRT e 16/07 09:00 BRT — caindo pro "arquivo anterior" nas duas, sem nunca conseguir recapturar o Espelho depois que o dia 15/07 realmente fechou. `MADURO_LIMITE` (calendário: hoje-1) não tinha como saber disso: confiava que "ontem" tinha fechado só pela DATA bater, sem checar se o ARQUIVO foi atualizado depois.
+
+Causa raiz secundária: `export-espelho.mjs` era o único dos 2 exports que rodam `ExportacaoAutomatica.exe` no pipeline SEM retry (`export-ocorrencias.mjs` já tem `runComRetry` desde 2026-07-08) — 1 falha já bastava pra cair no fallback, sem chance de recuperação automática na mesma rodada.
+
+**Confirmado ao vivo**: a rodada agendada das 11:00 BRT rodou DURANTE a investigação e `export-espelho.mjs` conseguiu capturar de novo (mtime virou 16/07 11:00). Re-rodando os parsers com o arquivo fresco: a rajada inteira SUMIU (36→poucos casos esparsos, todos os códigos testados — 785/626/183 — voltaram com as 4 marcações completas, situação "Trabalhando" normal). Confirma 100% que não era bug de lógica do detector nem dado ruim do WK — era só a idade do arquivo.
+
+### Fix (3 partes, `C:\fiobras-pipeline-rh\`)
+1. **`process-ocorrencias-rh.py`** (999-detector): novo `ARQUIVO_MADURO_ATE` = mtime do Espelho − 1 dia; `MADURO_LIMITE_EFETIVO = min(MADURO_LIMITE, ARQUIVO_MADURO_ATE)` — só confia numa data como fechada se o arquivo foi escrito num dia POSTERIOR a ela. Novo contador `naoIdentArquivoObsoleto` (separado de `naoIdentImaturo`) pra auditoria distinguir "dia genuinamente recente" de "arquivo velho" — com warning explícito no console/log quando dispara.
+2. **`process-espelho-ponto.mjs`** (Espelho self-service — Portal do Colaborador + tela do gestor): MESMA falha de raiz existia aqui (`maduroLimiteIso` também só olhava calendário) — sem esse fix, o colaborador veria o PRÓPRIO ponto de ontem incompleto por engano, não só a fila do RH. Mesmo gate (`maduroLimiteEfetivoIso = min(maduroLimiteIso, mtime-1dia)`) + warning.
+3. **`run-pipeline.mjs`**: `export-espelho.mjs` agora usa `runComRetry(..., 300_000, 2, 20_000)` — mesmo padrão de retry do `export-ocorrencias.mjs` — reduz a CHANCE do fallback precisar disparar (o gate de frescor cobre se mesmo assim falhar 2x).
+
+### Validação
+- Sintaxe: `node --check` nos 2 `.mjs` + `python -m py_compile` no `.py` — todos OK.
+- Aritmética do gate testada isolada (sem tocar arquivo real): cenário da rajada real (mtime 15/07, hoje 16/07) → `MADURO_LIMITE_EFETIVO=2026-07-14` (teria suprimido a rajada inteira); cenário saudável (arquivo do próprio dia) → sem restrição extra, idêntico ao comportamento de sempre.
+- Rodada real pós-fix (arquivo já fresco de novo): 0 acionamentos do novo contador (esperado — arquivo saudável não aciona nada), confirma que o fix é transparente no caso normal.
+- Não dava pra reproduzir o cenário "arquivo travado" ao vivo sem mexer no mtime real do arquivo em `D:\WKRadar` (fora de cogitação — é um dos 4 caminhos sagrados, só leitura). Confiança alta mesmo assim: a lógica é aritmética de data pura (3 linhas), já testada isolada, e o comportamento "normal" (sem regressão) foi confirmado com dado real.
+
+### Por que não é o mesmo achado do `suprimido999DiaCoerente` (07/07/26, caso Acira)
+Aquele cobre RUÍDO disperso (dia com contagem certa, só desviou horário — pessoa aleatória, dia aleatório). Este é um FALHA DE INFRAESTRUTURA (export não rodou) que corrompe um DIA INTEIRO pra TODO MUNDO de uma vez — sintoma completamente diferente (quantidade de marcação errada, não desvio de horário), preventivo diferente (frescor de arquivo, não coerência de dado).
