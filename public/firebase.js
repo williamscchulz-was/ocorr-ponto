@@ -2895,6 +2895,35 @@
       }
     };
 
+    // Carrega os DOCS completos dos aceites do próprio colaborador (tela Documentos, grupo
+    // "Meus termos"). Get por uid nas 2 coleções self-read (/termoAdesao, /termoCanalDenuncia;
+    // rule read = dono+admin+RH). Não denormaliza PII: nome/CPF/local vêm no cliente das mesmas
+    // fontes do gate. Cacheia em state.meusTermos SÓ quando não houve erro (erro deixa undefined
+    // pra reabrir refazer a leitura). Retorna { ok } — o caller decide o toast.
+    window.carregarMeusTermos = async function () {
+      const uidT = (auth.currentUser && auth.currentUser.uid) || (currentUser() && currentUser().id);
+      if (!uidT) { state.meusTermos = []; return { ok: true }; }
+      const defs = [
+        { tipo: "adesao", col: "termoAdesao" },
+        { tipo: "canal", col: "termoCanalDenuncia" },
+      ];
+      const out = []; let erro = false;
+      await Promise.all(defs.map(async (d) => {
+        try {
+          const snap = await db.collection(d.col).doc(String(uidT)).get();
+          if (snap.exists) {
+            const dat = snap.data() || {};
+            out.push({ tipo: d.tipo, em: tsToIso(dat.em), versao: dat.versao || "", hashSha256: dat.hashSha256 || "", id: d.col + "/" + uidT });
+          }
+        } catch (e) { erro = true; debug?.("[colab] meus termos " + d.tipo + ":", e?.message || e); }
+      }));
+      if (erro) return { ok: false }; // não cacheia: próxima abertura tenta de novo
+      const ordem = { adesao: 0, canal: 1 };
+      out.sort((a, b) => (ordem[a.tipo] ?? 9) - (ordem[b.tipo] ?? 9));
+      state.meusTermos = out;
+      return { ok: true };
+    };
+
     // Import Banco de Horas: substituição completa em /bancoHoras
     window.doImportBancoHorasFirebase = async function (entries) {
       const u = currentUser();

@@ -212,6 +212,9 @@ html.splash-off .splash { display: none; }
    em 0, enche até 90% no palco ~2s, fecho em 100%). transform-origin left: o track não
    muda visualmente; imune ao jank do boot na main thread (bug William v353). */
 .up-screen__bar i { display: block; height: 100%; width: 100%; transform: scaleX(0); transform-origin: left center; border-radius: 999px; background: linear-gradient(90deg, var(--plum-soft), var(--plum)); }
+/* Percentual discreto que acompanha a barra: tabular-nums pra a largura não pular a cada
+   dígito (movimento da barra segue compositado; só o texto lê o progresso por rAF leve). */
+.up-screen__pct { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .up-screen__m { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .up-screen__mark { animation: none; } }
 

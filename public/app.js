@@ -1743,6 +1743,20 @@ function colabDiscSecaoHtml() {
 // ===== Documentos do colaborador — lê + assina (re-auth no ato) =====
 const COLAB_DOC_IC = { regras: "clipboard", conduta: "shield", cultura: "smile", privacidade: "lock", termo: "file", outro: "file" };
 
+// ---- Meus termos (aceites do 1º acesso na tela Documentos) ----
+// Os aceites (/termoAdesao, /termoCanalDenuncia) deixam de sumir depois do gate: viram um
+// grupo próprio na tela Documentos. carregarMeusTermos (firebase.js) traz os registros;
+// nome/CPF/local NÃO moram no registro (PII não denormalizada), vêm no cliente das mesmas
+// fontes do gate. O título/ícone por tipo e o texto da ciência de cada termo:
+const TERMO_META = {
+  adesao: { titulo: "Termo de Adesão à Assinatura Eletrônica", curto: "Termo de Adesão", ic: "edit" },
+  canal:  { titulo: "Termo do Canal de Denúncias", curto: "Termo do Canal de Denúncias", ic: "shield" },
+};
+const TERMO_CIENCIA = {
+  adesao: "Declaro ter lido e compreendido o presente termo, firmando-o livremente.",
+  canal:  "Declaro ter lido e compreendido este termo, firmando a minha ciência livremente.",
+};
+
 function colabDocPendente(d) {
   const nivel = docNivel(d);
   if (nivel === "nenhuma") return false; // informativo: nunca cobra nada
@@ -2041,10 +2055,23 @@ function renderColabFolha() {
 
 function renderColabDocumentos() {
   cpRefreshAoAbrir();
+  carregarMeusTermosAoAbrir();
   const lista = (state.documentosColab || []).slice().sort((a, b) => String(b.publicadoEm || "").localeCompare(String(a.publicadoEm || "")));
   const pend = lista.filter(colabDocPendente);
   const emdia = lista.filter((d) => !colabDocPendente(d));
-  if (lista.length === 0) {
+  const termos = state.meusTermos || [];
+  // Grupo "Meus termos": abaixo dos Publicados, com contador e a nota de que o comprovante
+  // nasce do registro (padrão .cp-bhnote do app). Sem aceite = grupo simplesmente não aparece.
+  const termosGrp = termos.length
+    ? `<div class="pp-ovl">Meus termos<span class="pp-ct">${termos.length}</span></div>`
+      + `<div class="pp-grp">${termos.map(colabTermoRowHtml).join("")}</div>`
+      + `<div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>Só você vê os seus termos. O comprovante é gerado na hora a partir do registro do seu aceite.</span></div>`
+    : "";
+  // Vazio total (nenhum documento E nenhum termo): stub. Se há termos mas nenhum documento,
+  // segue pro corpo normal e mostra só o grupo "Meus termos". Enquanto os termos ainda
+  // CARREGAM (meusTermos undefined), NÃO mostra o stub "nenhum documento" (evita o flash
+  // stub→grupo no caso comum: colaborador sem docs mas com termos aceitos).
+  if (lista.length === 0 && !termos.length && state.meusTermos !== undefined) {
     if (setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>
       ${colabVazioHtml("file", "Nenhum documento pra você por enquanto. Quando a GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.")}</div>`)) {
       bindColabVazioAtz($("#view"));
@@ -2054,7 +2081,100 @@ function renderColabDocumentos() {
   setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>`
     + (pend.length ? `<div class="pp-ovl">Precisa de você<span class="pp-ct">${pend.length}</span></div>${pend.map(colabDocCardHtml).join("")}` : "")
     + (emdia.length ? `<div class="pp-ovl">Publicados</div><div class="pp-grp">${emdia.map(colabDocRowHtml).join("")}</div>` : "")
+    + termosGrp
     + `</div>`);
+}
+
+// Carga sob demanda dos aceites ao abrir a tela Documentos (padrão de cache da casa: a
+// 1ª carga da sessão pode preencher depois; re-render idêntico daí em diante). Só a 1ª
+// vez (state.meusTermos undefined); erro deixa undefined pra reabrir tentar de novo, com
+// toast claro (erro nunca mudo). state.meusTermos sempre vira um array (nunca fica
+// undefined "pra sempre"), então o flicker-guard nasce idêntico entre renders.
+function carregarMeusTermosAoAbrir() {
+  if (state.meusTermos !== undefined) return;
+  if (state._meusTermosCarregando) return;
+  // Demo/prévia (sem backend): não há aceites a carregar → resolve pra [] na hora, pra o
+  // stub de "nenhum documento" poder aparecer (sem ficar preso em "carregando" pra sempre).
+  if (typeof window.carregarMeusTermos !== "function") { state.meusTermos = []; return; }
+  state._meusTermosCarregando = true;
+  window.carregarMeusTermos().then((r) => {
+    state._meusTermosCarregando = false;
+    if (r && r.ok === false) toast("Não consegui carregar seus termos agora. Tente de novo.", "danger");
+    if ((state.view && state.view.page) === "colab-documentos") renderApp();
+  }).catch((e) => {
+    state._meusTermosCarregando = false;
+    debug?.("[termos] carga:", e?.message || e);
+    toast("Não consegui carregar seus termos agora. Tente de novo.", "danger");
+  });
+}
+
+// Linha de um termo aceito (mesma anatomia do documento assinado): ícone verde, título do
+// termo, legenda "Termo · Aceito em [data] · v[versão]" e o pill Comprovante. Tocar na
+// linha abre o TEXTO no viewer; tocar em Comprovante gera o A4 carimbado na hora.
+function colabTermoRowHtml(t) {
+  const meta = TERMO_META[t.tipo] || { titulo: "Termo", ic: "file" };
+  const dataExt = t.em ? new Date(t.em).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }) : "";
+  const sub = ["Termo", dataExt ? `Aceito em ${dataExt}` : "Aceito", t.versao ? `v${t.versao}` : ""].filter(Boolean).join(" · ");
+  return `<div class="pp-rw pp-rw--termo" data-termo-view="${escapeHtml(t.tipo)}" style="cursor:pointer">
+    <span class="pp-ico pp-ico--green">${cpIcon(meta.ic)}</span>
+    <span class="pp-rw__bd"><span class="pp-rw__t">${escapeHtml(meta.titulo)}</span><span class="pp-rw__s">${escapeHtml(sub)}</span></span>
+    <button type="button" class="pp-rw__ro" data-termo-comprovante="${escapeHtml(t.tipo)}">${cpIcon("file")}Comprovante</button>
+  </div>`;
+}
+
+// Campos derivados de um termo aceito. O registro guarda só {em, versao, hashSha256, id};
+// nome/CPF/local vêm das MESMAS fontes do gate (funcionário do cadastro, último CPF do
+// login, sede fixa). Datas em três formatos: extenso (linha), curto (selo), completo (hora).
+function termoCampos(t) {
+  const fColab = (state.funcionarios && state.funcionarios[0]) || null;
+  const u = currentUser();
+  const nome = (fColab && fColab.nome) || (u && u.nome) || "";
+  let cpfRaw = ""; try { cpfRaw = localStorage.getItem("fiopulse:ultimoCpf") || ""; } catch {}
+  const cpf = _formatarCpf(cpfRaw);
+  const local = "Indaial, SC"; // sede, mesmo local fixo do gate (registro é imutável)
+  const em = t.em ? new Date(t.em) : null;
+  const valida = em && !isNaN(em.getTime());
+  // dataHora montada de data + hora (não toLocaleString, que insere vírgula "10/07/2026,
+  // 09:14"): o mock aprovado mostra "10/07/2026 09:14" sem vírgula.
+  const dataSelo = valida ? em.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
+  const hora = valida ? em.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+  return {
+    nome, cpf, local,
+    versao: t.versao || "", hash: t.hashSha256 || "", id: t.id || "",
+    dataExt: valida ? em.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }) : "",
+    dataSelo,
+    dataHora: valida ? `${dataSelo} ${hora}` : "",
+  };
+}
+
+// Tocar na LINHA: gera o TEXTO canônico do termo (com nome/CPF/local/data e selo ACEITO)
+// e abre no viewer interno. Erro nunca mudo: try/catch próprio com toast claro.
+async function abrirTermoTexto(tipo) {
+  try {
+    const t = (state.meusTermos || []).find((x) => x.tipo === tipo);
+    if (!t) return toast("Termo indisponível.", "danger");
+    const meta = TERMO_META[tipo] || { titulo: "Termo" };
+    const { dataUrl } = await gerarTermoTextoPdf(t);
+    openDocViewer({ titulo: meta.titulo, tipo: "Termo · Aceito", anexo: { url: dataUrl, nome: "termo.pdf", mime: "application/pdf" } });
+  } catch (e) {
+    debug?.("[termo texto]", e?.message || e);
+    toast("Não consegui abrir o termo agora. Tente de novo em instantes.", "danger");
+  }
+}
+
+// Tocar em COMPROVANTE: gera o A4 carimbado do aceite na hora (nada é gravado) e abre no
+// viewer pdf. Erro nunca mudo: try/catch próprio com toast claro.
+async function abrirComprovanteTermo(tipo) {
+  try {
+    const t = (state.meusTermos || []).find((x) => x.tipo === tipo);
+    if (!t) return toast("Termo indisponível.", "danger");
+    const meta = TERMO_META[tipo] || { curto: "Termo" };
+    const { dataUrl } = await gerarComprovanteTermoPdf(t);
+    openDocViewer({ titulo: `Comprovante · ${meta.curto}`, tipo: "Ciência eletrônica", anexo: { url: dataUrl, nome: "comprovante-termo.pdf", mime: "application/pdf" } });
+  } catch (e) {
+    debug?.("[termo comprovante]", e?.message || e);
+    toast("Não consegui gerar o comprovante agora. Tente de novo em instantes.", "danger");
+  }
 }
 
 // Documento PENDENTE: card-herói com borda âmbar + botão grande (assinar/ler).
@@ -2210,6 +2330,11 @@ if (!window._colabDocBound) {
     // o original), então precisa vencer e barrar a propagação pra não disparar os dois.
     const cp = e.target.closest("[data-doc-comprovante]");
     if (cp) { e.preventDefault(); e.stopPropagation(); const cid = cp.dataset.docComprovante; withBusy("comprovante:" + cid, cp, () => abrirComprovanteColab(cid)); return; }
+    // Termos: Comprovante ANTES da linha (mesmo motivo — o pill vive dentro da linha).
+    const tcp = e.target.closest("[data-termo-comprovante]");
+    if (tcp) { e.preventDefault(); e.stopPropagation(); const tt = tcp.dataset.termoComprovante; withBusy("termo-cp:" + tt, tcp, () => abrirComprovanteTermo(tt)); return; }
+    const tv = e.target.closest("[data-termo-view]");
+    if (tv) { e.preventDefault(); const tt = tv.dataset.termoView; withBusy("termo-view:" + tt, tv, () => abrirTermoTexto(tt)); return; }
     const dv = e.target.closest("[data-doc-view]");
     if (dv) {
       e.preventDefault();
@@ -11819,6 +11944,167 @@ function quebrarTexto(txt, font, size, maxW) {
   return out.length ? out : [""];
 }
 
+// Desenha um parágrafo composto de "runs" (trechos com fonte normal/negrito) com quebra de
+// linha por palavra e quebra de página automática (ctx.pg/ctx.y são mutáveis). Alinhado à
+// esquerda. Usado no texto do termo (leads numerados e o nome do signatário em negrito).
+function desenharParagrafoRuns(ctx, runs, o) {
+  const toks = [];
+  for (const run of runs) {
+    const font = run.b ? o.fB : o.fN;
+    for (const w of winAnsiSeguro(run.t).split(/\s+/)) if (w) toks.push({ t: w, font, w: font.widthOfTextAtSize(w, o.size) });
+  }
+  const espW = o.fN.widthOfTextAtSize(" ", o.size);
+  let linha = [], larg = 0;
+  const flush = () => {
+    if (ctx.y < 56) o.nova();
+    let x = o.mx;
+    for (const tk of linha) { ctx.pg.drawText(tk.t, { x, y: ctx.y, size: o.size, font: tk.font, color: o.color }); x += tk.w + espW; }
+    ctx.y -= o.lh; linha = []; larg = 0;
+  };
+  for (const tk of toks) {
+    const add = (linha.length ? espW : 0) + tk.w;
+    if (larg + add > o.maxW && linha.length) flush();
+    larg += (linha.length ? espW : 0) + tk.w;
+    linha.push(tk);
+  }
+  if (linha.length) flush();
+}
+
+// Parágrafos (runs) do TEXTO CANÔNICO de cada termo (docs/termo-*-2026-07-v1.txt, o mesmo
+// texto cujo SHA-256 está cravado na regra), com nome/CPF/local/data preenchidos. Fonte de
+// verdade do que o colaborador aceitou; o negrito marca o nome e os leads numerados.
+function termoAdesaoRuns(c) {
+  return [
+    [{ t: "Pelo presente termo, eu, " }, { t: c.nome || "—", b: 1 }, { t: `, portador(a) do CPF nº ${c.cpf || "—"}, funcionário(a) da FIOBRAS LTDA, inscrita no CNPJ nº 01.475.188/0001-97, declaro estar ciente e de acordo com as disposições a seguir.` }],
+    [{ t: "1. Do objeto.", b: 1 }, { t: " A Fiobras disponibiliza o aplicativo interno FioPulse para a assinatura eletrônica de documentos relacionados à relação de emprego, incluindo, entre outros, recibos de pagamento, comunicados internos, advertências e demais documentos institucionais. Por meio deste termo, consinto em assinar tais documentos eletronicamente quando disponibilizados no FioPulse, dispensada, para esses fins, a assinatura em papel." }],
+    [{ t: "2. Da natureza e validade da assinatura.", b: 1 }, { t: " A assinatura realizada no FioPulse constitui assinatura eletrônica avançada, na forma da Lei nº 14.063/2020 e do art. 10, §2º, da Medida Provisória nº 2.200-2/2001, produzida mediante autenticação por credenciais pessoais (CPF e senha reconfirmada no ato), associada a carimbo de data e hora do servidor, geolocalização do dispositivo utilizado no momento da assinatura e hash SHA-256 do arquivo original, elementos que compõem trilha de auditoria imutável e são anexados, em página própria de autenticação, ao próprio documento assinado. A senha cadastrada é de meu conhecimento exclusivo, armazenada de forma criptografada, não tendo a Fiobras, após o primeiro acesso, qualquer meio técnico de visualizá-la, recuperá-la ou de assinar documentos em meu nome. Reconheço, em razão disso, que a autoria de cada assinatura eletrônica realizada com minhas credenciais é exclusivamente minha, não sendo cabível alegação posterior de que a própria empresa a teria produzido ou alterado. Reconheço, ainda, que essa assinatura tem validade jurídica entre as partes e produz, para os fins internos da relação de emprego, os mesmos efeitos da assinatura de próprio punho, nos termos do art. 411, II, do Código de Processo Civil." }],
+    [{ t: "3. Do consentimento para tratamento de dados pessoais (LGPD).", b: 1 }, { t: " Em conformidade com a Lei nº 13.709/2018, consinto expressamente com a coleta e o tratamento, no momento de cada assinatura eletrônica, dos seguintes dados: credenciais de autenticação (CPF e confirmação de senha), geolocalização do dispositivo utilizado e metadados técnicos do ato (data, hora e hash do arquivo), com a finalidade específica de comprovação de autoria, integridade e validade jurídica dos documentos assinados. Esses dados serão tratados unicamente para essa finalidade, pelo tempo necessário à guarda dos documentos a que se referem." }],
+    [{ t: "4. Do acesso aos documentos assinados.", b: 1 }, { t: " Fica assegurado o direito de solicitar, a qualquer tempo, cópia de qualquer documento assinado eletronicamente por meio do FioPulse, mediante solicitação ao setor de Recursos Humanos ou diretamente pelo aplicativo." }],
+    [{ t: "Declaro ter lido e compreendido o presente termo, firmando-o livremente." }],
+    [{ t: `${c.local || "—"}, ${c.dataExt || "—"}.` }],
+    [{ t: `Nome completo: ${c.nome || "—"}. CPF: ${c.cpf || "—"}. Ciência eletrônica registrada no ato.` }],
+  ];
+}
+function termoCanalRuns(c) {
+  return [
+    [{ t: "Seja bem-vindo(a) ao Canal de Denúncias da Fiobras. Este é um canal exclusivo para a comunicação segura e anônima de condutas antiéticas ou que violem os princípios éticos, os padrões de conduta, a legislação vigente ou a proteção de dados. Eu, " }, { t: c.nome || "—", b: 1 }, { t: `, portador(a) do CPF nº ${c.cpf || "—"}, declaro ter lido e compreendido as disposições a seguir.` }],
+    [{ t: "1. Do propósito.", b: 1 }, { t: " As denúncias registradas são recebidas e avaliadas diretamente pela direção da Fiobras, com sigilo absoluto. A Fiobras tem o compromisso de entender e tratar adequadamente cada situação que viole suas diretrizes e valores." }],
+    [{ t: "2. Do anonimato.", b: 1 }, { t: " A identificação é sempre opcional. Por padrão, a denúncia é anônima por construção: o aplicativo não registra quem a enviou. Caso você opte por se identificar, esses dados ficam visíveis apenas para a direção e servem somente para eventual retorno sobre o caso." }],
+    [{ t: "3. Da responsabilidade.", b: 1 }, { t: " A veracidade das informações é de responsabilidade de quem relata. Todas as informações são verificadas durante a apuração, e as ações decorrentes são tomadas a critério da Fiobras, respeitando os princípios éticos, morais e legais." }],
+    [{ t: "4. Do acompanhamento e da integridade.", b: 1 }, { t: " Ao enviar, você recebe um código de acompanhamento. Com ele, pode consultar o andamento da apuração a qualquer momento, sem se identificar. O mesmo código também comprova o conteúdo exato do seu relato." }],
+    [{ t: "5. Da guarda dos registros (LGPD).", b: 1 }, { t: " Em conformidade com a Lei nº 13.709/2018, as denúncias concluídas são mantidas por 5 anos como registro de compliance e, depois desse prazo, eliminadas automaticamente." }],
+    [{ t: "Para assuntos não contemplados por este canal, você também pode falar diretamente com a Gestão de Pessoas pelo email jenifer@fiobras.com.br." }],
+    [{ t: "Declaro ter lido e compreendido este termo, firmando a minha ciência livremente." }],
+    [{ t: `${c.local || "—"}, ${c.dataExt || "—"}.` }],
+    [{ t: `Nome completo: ${c.nome || "—"}. CPF: ${c.cpf || "—"}. Ciência eletrônica registrada no ato.` }],
+  ];
+}
+
+// TEXTO do termo aceito como PDF A4 (aberto no viewer interno pdf.js). Renderiza o texto
+// canônico com nome/CPF/local/data preenchidos e o selo ACEITO (data do aceite) no canto.
+// Nada é gravado: nasce do registro a cada toque.
+async function gerarTermoTextoPdf(t) {
+  const PDFLib = await loadPdfLib();
+  const pdf = await PDFLib.PDFDocument.create();
+  const fN = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+  const fB = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const rgb = PDFLib.rgb;
+  const meta = TERMO_META[t.tipo] || { titulo: "Termo" };
+  const c = termoCampos(t);
+  const paras = (t.tipo === "canal" ? termoCanalRuns : termoAdesaoRuns)(c);
+
+  const A4 = [595.28, 841.89], mx = 48, topo = 800, maxW = A4[0] - mx * 2;
+  const preto = rgb(0.13, 0.15, 0.13), cinza = rgb(0.35, 0.42, 0.36);
+  const ctx = { pg: pdf.addPage(A4), y: topo };
+  const nova = () => { ctx.pg = pdf.addPage(A4); ctx.y = topo; };
+
+  // Cabeçalho: título (bold, com folga à direita p/ o selo) + versão
+  for (const ln of quebrarTexto(winAnsiSeguro(meta.titulo), fB, 12.5, maxW - 100)) {
+    ctx.pg.drawText(ln, { x: mx, y: ctx.y, size: 12.5, font: fB, color: rgb(0.06, 0.2, 0.11) });
+    ctx.y -= 16;
+  }
+  ctx.pg.drawText(winAnsiSeguro("Versão " + (c.versao || "")), { x: mx, y: ctx.y, size: 9, font: fN, color: cinza });
+
+  // Selo ACEITO (canto superior direito, com a data do aceite)
+  const sbw = 86, sbh = 32, sbx = A4[0] - mx - sbw, sby = 778;
+  ctx.pg.drawRectangle({ x: sbx, y: sby, width: sbw, height: sbh, borderColor: rgb(0, 0.5, 0.22), borderWidth: 1.5, color: rgb(0.93, 0.97, 0.93) });
+  ctx.pg.drawText("ACEITO", { x: sbx + 14, y: sby + 18, size: 11.5, font: fB, color: rgb(0, 0.47, 0.19) });
+  if (c.dataSelo) ctx.pg.drawText(winAnsiSeguro(c.dataSelo), { x: sbx + 14, y: sby + 6, size: 7.5, font: fN, color: rgb(0.04, 0.4, 0.2) });
+
+  ctx.y -= 26;
+  const o = { mx, maxW, size: 10.5, lh: 15, fN, fB, color: preto, nova };
+  for (const runs of paras) { desenharParagrafoRuns(ctx, runs, o); ctx.y -= 9; }
+
+  const bytes = await pdf.save();
+  return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
+}
+
+// COMPROVANTE A4 do aceite de um termo, gerado na hora (nada é gravado). Deriva do
+// gerarComprovantePdf (cabeçalho Fiobras, blocos rótulo→valor, assinatura cursiva, rodapé),
+// com o vocabulário de CIÊNCIA e os campos do registro. O aceite do termo NÃO grava
+// geolocalização, então a localização é a sede (Indaial, SC) sem coordenadas fabricadas e o
+// nível de segurança reflete só o que o ato captura (credenciais de acesso).
+// ponytail: se surgir um 3º formato de comprovante, extrair um núcleo _comprovanteA4 comum.
+async function gerarComprovanteTermoPdf(t) {
+  const PDFLib = await loadPdfLib();
+  const fontkit = await loadFontkit();
+  const fonte = await fonteAssinaturaBytes();
+  const pdf = await PDFLib.PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const fCursiva = await pdf.embedFont(fonte, { subset: true });
+  const fN = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+  const fB = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const rgb = PDFLib.rgb;
+  const meta = TERMO_META[t.tipo] || { titulo: "Termo" };
+  const c = termoCampos(t);
+  const ciencia = TERMO_CIENCIA[t.tipo] || "Declaro ter lido e compreendido o presente termo, firmando a minha ciência livremente.";
+
+  const pg = pdf.addPage([595.28, 841.89]);
+  const W = pg.getWidth();
+  const mx = 48;
+  let y = 800;
+  const verde = rgb(0, 0.533, 0.208), cinza = rgb(0.33, 0.33, 0.33), preto = rgb(0.1, 0.1, 0.1);
+
+  pg.drawRectangle({ x: 0, y: 812, width: W, height: 30, color: verde });
+  pg.drawText("FioPulse", { x: mx, y: 820, size: 14, font: fB, color: rgb(1, 1, 1) });
+  pg.drawText("Comprovante de ciência eletrônica", { x: mx, y: 786, size: 15, font: fB, color: preto });
+  y = 762;
+
+  const bloco = (lbl, val, mono) => {
+    pg.drawText(winAnsiSeguro(lbl), { x: mx, y, size: 7.5, font: fB, color: cinza });
+    y -= 13;
+    const size = mono ? 8 : 9.5;
+    const linhas = quebrarTexto(winAnsiSeguro(val == null ? "—" : val), fN, size, W - mx * 2);
+    for (const ln of linhas) { pg.drawText(ln, { x: mx, y, size, font: fN, color: preto }); y -= size + 3; }
+    y -= 8;
+  };
+
+  bloco("Documento", `${meta.titulo} · Termo`);
+  bloco("Versão aceita", c.versao || "—");
+  bloco("Identificador do registro", c.id || "—", true);
+  bloco("SHA-256 do texto canônico do termo", c.hash || "—", true);
+  bloco("Signatário", `${c.nome || "—"}${c.cpf ? ` · CPF ${c.cpf}` : ""}`);
+  bloco("Data e hora", c.dataHora || "—");
+  bloco("Localização", c.local || "—");
+  bloco("Nível de segurança", "credenciais de acesso");
+  bloco("Texto da ciência", ciencia);
+
+  y -= 6;
+  pg.drawLine({ start: { x: mx, y }, end: { x: mx + 260, y }, thickness: 0.6, color: rgb(0.55, 0.55, 0.55) });
+  y -= 6;
+  let sigSize = 26;
+  const nomeSig = winAnsiSeguro(c.nome || "");
+  while (sigSize > 12 && fCursiva.widthOfTextAtSize(nomeSig, sigSize) > 256) sigSize -= 1;
+  pg.drawText(nomeSig, { x: mx + 4, y: y - sigSize + 6, size: sigSize, font: fCursiva, color: rgb(0.07, 0.23, 0.42) });
+  y -= sigSize + 6;
+  pg.drawText("Ciência eletrônica do signatário", { x: mx, y, size: 7.5, font: fN, color: cinza });
+
+  pg.drawText("Documento gerado eletronicamente pelo FioPulse. A validade depende da trilha registrada no sistema.", { x: mx, y: 40, size: 7, font: fN, color: cinza });
+
+  const bytes = await pdf.save();
+  return { dataUrl: "data:application/pdf;base64," + bytesParaBase64(bytes), bytes };
+}
+
 // Normaliza pra comparar nomes: MAIÚSCULO, sem acentos (̀-ͯ = diacríticos do NFD), 1 espaço.
 function rcbNorm(s) {
   return String(s || "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
@@ -17610,7 +17896,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.88.1";
+window.CURRENT_VERSION = "1.89.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -17931,6 +18217,7 @@ let _upFloor = 0;   // ALVO semântico vindo dos estados reais do SW (sobe por e
 let _upAnim = null; // animação WAAPI corrente da barra (transform: scaleX, COMPOSITADO)
 let _upDone = false;
 let _upFallback = 0; // timer de segurança: solta o boot se o SW não assumir
+let _upPctRaf = 0;   // rAF leve que sincroniza o texto de percentual com a barra
 // Tempo MÍNIMO de palco (William 2026-07-15, "aparece muito rápido"): mesmo que o
 // worker assuma em milissegundos, a tela fica ~2s antes do reload — mesmo princípio
 // do __splashMin do splash. E a barra pausa ~250ms cheia (a pessoa VÊ os 100%).
@@ -17951,18 +18238,39 @@ function mostrarTelaAtualizacao() {
       <div class="up-screen__t">Estamos atualizando o app</div>
       <div class="up-screen__s">pra você ter uma experiência melhor</div>
       <div class="up-screen__bar"><i></i></div>
+      <div class="up-screen__pct" aria-hidden="true">0%</div>
       <div class="up-screen__m">isso leva só um instante</div>
     </div>`;
   document.body.appendChild(el);
   requestAnimationFrame(() => el.classList.add("show"));
   _upScreenEl = el;
   _upT0 = Date.now();
+  // Percentual: lê a fração REAL da barra (scaleX computado) por rAF leve e escreve o
+  // número. A barra segue compositada; só o texto acompanha. aria-hidden: a tela já é
+  // aria-live=polite ("Estamos atualizando"), o número não pode spammar o leitor de tela.
+  if (!_upPctRaf) _upPctRaf = requestAnimationFrame(_upPctTick);
   // A barra NASCE em 0 e enche progressivamente até 90% ao longo do palco mínimo (~2s);
   // os estados reais do SW (floor) só REALVEJAM esse alvo, nunca o ponto de partida. Os
   // 100% são exclusivos do fecho. Movimento COMPOSITADO (transform: scaleX) pra não
   // engasgar com o boot rodando na main thread (bug William v353: "começa quase cheia").
   _upAnimarBarra(0.9, UP_MIN_MS);
   return el;
+}
+// Escreve o percentual da barra a cada frame enquanto a tela existe. Fração vinda de
+// _upFrac (monotônica → o número nunca recua); em prefereMenosMovimento a barra usa
+// steps(4), então o número anda nos mesmos passos discretos de graça. Chega a 100% no
+// fecho (barra vai a scaleX(1) e pausa UP_HOLD_MS antes do reload). Encerra quando a tela
+// sai (reload/__upReset). Só escreve quando muda (sem thrash de layout).
+function _upPctTick() {
+  _upPctRaf = 0;
+  const el = _upScreenEl;
+  if (!el) return;
+  const pctEl = el.querySelector(".up-screen__pct");
+  if (pctEl) {
+    const txt = Math.round(_upFrac() * 100) + "%";
+    if (pctEl.textContent !== txt) pctEl.textContent = txt;
+  }
+  _upPctRaf = requestAnimationFrame(_upPctTick);
 }
 // Fração exibida AGORA (scaleX da matrix computada): o retarget parte da posição real.
 function _upFrac() {
@@ -18061,6 +18369,7 @@ window.__upDbg = () => ({ frac: _upFrac(), floor: _upFloor, done: _upDone, ativo
 // Reset SÓ pro harness (isola cenários da tela de atualização entre asserts). No-op em produção.
 window.__upReset = () => {
   if (_upFallback) { clearTimeout(_upFallback); _upFallback = 0; }
+  if (_upPctRaf) { cancelAnimationFrame(_upPctRaf); _upPctRaf = 0; }
   if (_upScreenEl) { _upScreenEl.remove(); _upScreenEl = null; }
   _upAnim = null; _upDone = false; _upFloor = 0; _upT0 = 0; _swRecarregou = false;
   window.__atualizandoApp = false;

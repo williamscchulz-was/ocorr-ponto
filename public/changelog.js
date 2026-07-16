@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.88.1", d: "16 jul 2026", current: true, items: [
+    v: "1.89.0", d: "16 jul 2026", current: true, items: [
+      { type: "high", title: "Os seus termos assinados agora moram na tela Documentos, no grupo Meus termos: releia o texto quando quiser e baixe o comprovante carimbado do seu aceite, gerado na hora do registro." },
+      { type: "feat", title: "A barra da tela de atualizacao ganhou o percentual: agora voce ve exatamente quanto falta." },
+    ],
+  },
+  {
+    v: "1.88.1", d: "16 jul 2026", items: [
       { type: "fix", title: "O botao Comprovante dos documentos assinados nao ficava mais mudo: agora ele abre o comprovante mesmo em assinaturas antigas e, se algo impedir, diz exatamente o motivo." },
     ],
   },
