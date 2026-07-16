@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.90.0", d: "16 jul 2026", current: true, items: [
+    v: "1.90.1", d: "17 jul 2026", current: true, items: [
+      { type: "fix", title: "A barra de navegacao nao fica mais presa no meio da tela durante a rolagem no iPhone." },
+      { type: "fix", title: "O botao Comprovante dos documentos assinados agora sempre responde: se o cofre demorar, o app avisa em poucos segundos em vez de ficar em silencio." },
+    ],
+  },
+  {
+    v: "1.90.0", d: "16 jul 2026", items: [
       { type: "high", aud: "gestor", title: "Email automatico ao candidato: quem se candidata recebe na hora o Recebemos a sua candidatura, e mover o funil dispara sozinho o email do status (em analise, aprovada ou nao seguiu). O botao Mensagem ao candidato segue para reenvios e WhatsApp." },
     ],
   },

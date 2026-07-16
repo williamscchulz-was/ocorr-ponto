@@ -2721,8 +2721,18 @@
     // rules não mudam: pasta errada continua negada por design. (Caminho PLANO de 2 segmentos
     // nunca existiu neste código — confirmado no git —, mas o mesmo mecanismo o cobriria.)
     window.urlArquivoAssinado = async function (arquivoPath, opts) {
+      // TIMEOUT por tentativa (bug B2, William 2026-07-17): o SDK do Storage re-tenta por até
+      // 2 minutos antes de rejeitar; numa rede ruim isso vira botão MUDO (promise pendurada
+      // segura o withBusy e nem toast sai). Prazo de 6s por tentativa: estourou, vira código
+      // 'timeout', a promise SEMPRE assenta e o usuário SEMPRE recebe resposta.
       const tentar = async (p) => {
-        try { return { url: await firebase.storage().ref(p).getDownloadURL() }; }
+        try {
+          const url = await Promise.race([
+            firebase.storage().ref(p).getDownloadURL(),
+            new Promise((_, rej) => setTimeout(() => rej({ code: "timeout" }), 6000)),
+          ]);
+          return { url };
+        }
         catch (e) { const code = (e && e.code) || String((e && e.message) || e); debug?.("[recibos] url assinado (" + p + "):", code); return { url: null, code }; }
       };
       const primeira = await tentar(arquivoPath);

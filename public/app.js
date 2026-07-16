@@ -2229,6 +2229,7 @@ function colabDocRowHtml(d) {
 function msgErroComprovante(code) {
   if (code === "storage/object-not-found") return "O comprovante desta assinatura não está no cofre.";
   if (code === "storage/unauthorized")    return "Sem permissão para abrir o comprovante.";
+  if (code === "timeout")                 return "O cofre demorou demais pra responder. Confere a internet e tenta de novo.";
   return "Não consegui abrir o comprovante agora. Tente de novo em instantes.";
 }
 
@@ -17922,7 +17923,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.90.0";
+window.CURRENT_VERSION = "1.90.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

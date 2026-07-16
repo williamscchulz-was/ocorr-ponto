@@ -2221,6 +2221,10 @@ textarea:focus-visible,
   left: 16px;
   right: 16px;
   z-index: 60;
+  /* B1 (Safari iOS): fixed + backdrop-filter perde a pintura na rolagem com inercia e a
+     ilha fica carimbada no meio da tela. Camada de composicao propria cola ela na viewport. */
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
   background: rgba(255, 255, 255, 0.66);
   border: 1px solid rgba(16, 48, 28, 0.10);
   border-radius: 26px;
