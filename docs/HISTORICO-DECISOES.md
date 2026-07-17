@@ -3009,3 +3009,25 @@ Logger reiniciado (após 2 tentativas — a 1ª falhou com exit 255, isolar o `S
 
 ### Atualização da recomendação
 Esse foi o episódio mais grave e mais bem documentado até agora (137 de fila, 4-7s de latência, 3 fontes confirmando). Reforça com força total a recomendação de **trocar os 2 SSDs Crucial BX500** — as mitigações em vigor (cache de escrita, limpeza de E:) reduzem frequência mas claramente não eliminam picos desse porte.
+
+---
+
+## 2026-07-17 (cont.) · 🎯 Primeira vez com processos NOMEADOS durante o travamento
+
+Seguimento do episódio acima. O novo alerta por métrica (adicionado hoje) capturou o pico das 08:57 com detalhe que nunca tínhamos tido: processos nomeados fazendo I/O real, não "controlador sem culpado".
+
+### Descoberta: a sessão `wkradar` está logada desde quarta (15/07 08:07) sem deslogar
+`query user` mostra 1 única sessão RDP ativa, contínua há dias. Todos os ~101 processos WK Radar (`WKS*`, `DFS*`, `CNS*`, `FNS*`, `FTS*`, `PPS*`, `ESS*`, `MTEF*`) são filhos do mesmo `svchost.exe` (pid 2144) dessa sessão. O cliente WK Radar (arquitetura antiga, 1 .exe por módulo/tela) não encerra os processos das telas já abertas — eles ficam residentes. Isso é comportamento normal do software, não vazamento/bug.
+
+### O pico das 08:57-09:00 teve processos novos nascendo na hora exata
+- `WKSEXP.exe` às **09:00:01** — bate com o slot de 30min das exportações de Saldo Estoque já conhecidas
+- `DFSINDICE.exe` às 08:57:31 — nome sugere reconstrução de índice (explicaria full-scan/leitura pesada)
+- `FNSIST.exe` (08:56:49), `DFSESTCB.EXE` (08:57:17) — outros módulos iniciando na mesma janela
+
+Simultaneamente, múltiplos processos leram em volume alto: `CNSRel` 1514 MB/s, `ESSMOV` 654 MB/s, `FNSTES` 566 MB/s, `FTSPed` 520 MB/s, `FnsCrp` 411 MB/s. Vários módulos WK Radar concorrendo pelo mesmo RAID lento ao mesmo tempo.
+
+### Interpretação (correlação forte, não 100% confirmada como causa raiz única)
+O travamento não é misterioso "controlador do nada" nesse caso — é **o próprio WK Radar fazendo trabalho pesado interno** (provável reindexação + export de estoque agendado coincidindo) que o RAID/SSD não aguenta processar em tempo hábil. Explica por que o usuário não via "nada rodando": os nomes de processo são módulos internos do ERP, não soam como tarefa pesada, e o pico dura segundos.
+
+### Não mudou a recomendação
+Continua sendo hardware o teto real (SSD lento não aguenta o volume que o próprio WK Radar gera normalmente). Mas agora sabemos que ALGUNS episódios têm causa identificável (múltiplos módulos concorrendo), não só "reset espontâneo do controlador" — vale, no futuro, considerar se dá pra escalonar/serializar operações pesadas do WK Radar (ex.: não deixar reindexação coincidir com exports agendados).
