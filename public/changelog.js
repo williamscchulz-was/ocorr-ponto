@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.94.1", d: "17 jul 2026", current: true, items: [
+    v: "1.94.2", d: "17 jul 2026", current: true, items: [
+      { type: "fix", title: "Documentos agora e carga unica de verdade: o esqueleto so cede quando termos E publicados chegaram juntos, nada mais pinga depois." },
+      { type: "fix", title: "Entrar em Conquistas ficou suave: a primeira carga revela a tela com transicao em vez de trocar num corte." },
+    ],
+  },
+  {
+    v: "1.94.1", d: "17 jul 2026", items: [
       { type: "fix", title: "Comprovante de assinatura garantido de vez: o app tenta o arquivo do cofre por no maximo 4 segundos e, se nao vier, gera o comprovante na hora a partir do registro. Abrir sempre abre." },
     ],
   },

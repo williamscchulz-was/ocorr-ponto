@@ -4305,6 +4305,11 @@
         }));
         state.documentosColab = darr; state._dbgDocN = darr.length;
       } catch (e) { debug?.("[colab] documentos:", e?.message || e); state._dbgDocErr = (e && (e.code || e.message)) || String(e); state.documentosColab = []; }
+      // Sinal de prontidão pro portão da carga única da tela Documentos (v369): o
+      // skeleton só cede quando PUBLICADOS e TERMOS chegaram; sem isto, abrir a tela
+      // no meio do boot mostrava só os termos e os publicados pingavam depois.
+      state.documentosColabProntos = true;
+      if ((state.view && state.view.page) === "colab-documentos") { try { renderApp(); } catch (e) { /* */ } }
       })(),
       (async () => {
       // Registro disciplinar do PROPRIO colaborador (advertencia/suspensao). where(funcionarioId==)

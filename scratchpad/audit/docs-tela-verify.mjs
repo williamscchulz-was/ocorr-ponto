@@ -12,8 +12,17 @@ const r = await p.evaluate(async () => {
   state.users.push({ id: "cp", usuario: "cp", senha: "x", role: "colaborador", nome: "Probe Colab", funcionarioCodigo: state.funcionarios[0]?.codigo });
   login("cp", "x");
   document.querySelector("#acesso")?.remove();
-  // forca a 1a carga da sessao: termos chegam ASSINCRONOS (800ms)
+  // portao DUPLO (v369): docs nao prontos seguram o skeleton MESMO com termos em cache
+  state.meusTermos = [];
+  state.documentosColabProntos = undefined;
+  window.carregarMeusTermos = () => Promise.resolve({ ok: true });
+  state.view.page = "colab-documentos";
+  _renderAppNow();
+  await new Promise((res) => setTimeout(res, 100));
+  const gateDocs = document.querySelectorAll(".cpdoc-sk__ic").length === 5;
+  // agora o cenario cheio: docs prontos, termos chegam ASSINCRONOS (800ms)
   state.meusTermos = undefined;
+  state.documentosColabProntos = true;
   window.carregarMeusTermos = () => new Promise((res) => setTimeout(() => { state.meusTermos = []; res({ ok: true }); }, 800));
   state.view.page = "colab-documentos";
   _renderAppNow();
@@ -34,10 +43,10 @@ const r = await p.evaluate(async () => {
   _renderAppNow();
   await new Promise((res) => setTimeout(res, 60));
   const identico = document.querySelector("#view").innerHTML === a;
-  return { sk, fim, identico };
+  return { gateDocs, sk, fim, identico };
 });
 console.log(JSON.stringify({ r, erros }, null, 2));
 await b.close();
-const ok = r.sk.ics === 5 && r.sk.bar && r.sk.conteudoAusente && r.fim.ics === 0 && r.fim.h1 === "Documentos" && r.identico && !erros.length;
+const ok = r.gateDocs && r.sk.ics === 5 && r.sk.bar && r.sk.conteudoAusente && r.fim.ics === 0 && r.fim.h1 === "Documentos" && r.identico && !erros.length;
 if (!ok) { console.error("FALHOU"); process.exit(1); }
 console.log("DOCS TELA OK");

@@ -2070,7 +2070,10 @@ function renderColabDocumentos() {
   // reais + barra fina no topo (único movimento). Nada de conteúdo pingando por
   // partes; quando tudo chega, a tela nasce inteira com revelação one-shot (WAAPI).
   // Cargas seguintes da sessão (meusTermos já no cache) nem passam por aqui.
-  if (state.meusTermos === undefined) {
+  // O portão vigia AS DUAS fontes (achado William v368): termos E publicados; o
+  // check de carregarMeusTermos distingue o modo real do demo (demo não espera).
+  const docsVoando = typeof window.carregarMeusTermos === "function" && state.documentosColabProntos !== true;
+  if (state.meusTermos === undefined || docsVoando) {
     state._docsRevelar = true;
     const skRw = `<div class="pp-rw cpdoc-sk__rw"><span class="cpdoc-sk__ic"></span><span class="cpdoc-sk__bd"><span class="cpdoc-sk__ln cpdoc-sk__ln--t"></span><span class="cpdoc-sk__ln cpdoc-sk__ln--s"></span></span></div>`;
     if (setHtml($("#view"), `<div class="pp-fade"><div class="cpdoc-ld__bar" aria-hidden="true"><i></i></div><div class="pp-hi"><h1>Documentos</h1></div>
@@ -3245,6 +3248,7 @@ function renderColabConquistas() {
   // ainda nao reivindicados, incluindo o claim adiado da pesquisa). Re-render ao fim.
   if (state.gamiExtrato === undefined) {
     state.gamiExtrato = null; // trava reentrada
+    state._gamiRevelar = true; // a troca stub -> conteúdo sai em revelação, não em corte
     setHtml(view, `<div class="pp-fade"><div class="gm-load" role="status">
         <div class="gm-load__ic">${cpIcon("medalha")}</div>
         <p>Buscando seus pontos e conquistas…</p>
@@ -3265,6 +3269,14 @@ function renderColabConquistas() {
       </div>
       ${tab === "pts" ? gamiTabPontosHtml(cfg) : gamiTabBadgesHtml(cfg)}
     </div>`);
+  // Revelação única pós-stub (achado William v368, "pisca ao entrar"): mesma
+  // liturgia one-shot da tela Documentos, nunca classe persistente.
+  if (state._gamiRevelar) {
+    state._gamiRevelar = false;
+    const vc = view.firstElementChild;
+    if (vc && typeof vc.animate === "function" && !prefereMenosMovimento())
+      vc.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
+  }
   // Marco cruzado: celebra 1x quando os dados já estão de pé (independe do tab e de escreveu).
   gamiTalvezCelebrarMarco(cfg);
   // Re-sincroniza em TODA abertura (nao so na 1a da sessao): a GP pode ter mudado a
@@ -18088,7 +18100,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.94.1";
+window.CURRENT_VERSION = "1.94.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
