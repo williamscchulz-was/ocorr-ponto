@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.94.0", d: "17 jul 2026", current: true, items: [
+    v: "1.94.1", d: "17 jul 2026", current: true, items: [
+      { type: "fix", title: "Comprovante de assinatura garantido de vez: o app tenta o arquivo do cofre por no maximo 4 segundos e, se nao vier, gera o comprovante na hora a partir do registro. Abrir sempre abre." },
+    ],
+  },
+  {
+    v: "1.94.0", d: "17 jul 2026", items: [
       { type: "feat", title: "A tela Documentos agora carrega de uma vez: um esqueleto discreto com barra de progresso enquanto busca, e tudo (termos e publicados) aparece junto, sem conteudo pingando." },
       { type: "fix", title: "O botao Comprovante nunca mais fica mudo: se o arquivo nao estiver no cofre, o comprovante e gerado na hora a partir do registro da sua assinatura." },
     ],

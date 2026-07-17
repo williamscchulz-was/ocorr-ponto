@@ -2276,42 +2276,51 @@ function msgErroComprovante(code) {
 // toast NUNCA depender de nada não estourar (o withBusy do handler engoliria a exceção num
 // toast genérico), e a mensagem é específica pela causa (código do Storage) — nunca silêncio.
 async function abrirComprovanteColab(docId) {
-  try {
-    const d = (state.documentosColab || []).find((x) => x.id === docId);
-    const path = d && d.minhaAssinatura && d.minhaAssinatura.arquivoPath;
-    if (!path) return toast("Comprovante indisponível.", "danger");
-    const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(path) : null;
-    if (!url) {
-      // Cofre SEM o arquivo (assinatura da época em que o upload podia falhar mudo,
-      // caso Regulamento do William 2026-07-17): gera o comprovante NA HORA a partir
-      // do registro da trilha, a mesma geração local dos termos, que nunca falha.
-      // Só no object-not-found; outras causas (rede, permissão) mantêm a mensagem.
-      if (window.__ultimoErroStorage === "storage/object-not-found") {
-        const ass = d.minhaAssinatura;
-        const f = (state.funcionarios && state.funcionarios[0]) || null;
-        const dtAss = (typeof tsParaData === "function") ? tsParaData(ass.em) : (ass.em ? new Date(ass.em) : null);
-        const quando = dtAss ? dtAss.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
-        const { dataUrl } = await gerarComprovantePdf(d, {
-          titulo: d.titulo || docTipoLabel(d.tipo),
-          tipoLabel: docTipoLabel(d.tipo),
-          docId,
-          versaoAssinada: ass.versaoAssinada || d.versao || 1,
-          nome: (f && f.nome) || currentUser()?.nome || "",
-          codigo: (f && f.codigo) || "",
-          quando,
-          geo: ass.geo || null,
-          hashOriginal: ass.hashOriginal || "",
-          aceiteTexto: "Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura.",
-        });
-        openDocViewer({ titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url: dataUrl, nome: "comprovante.pdf", mime: "application/pdf" } });
+  const d = (state.documentosColab || []).find((x) => x.id === docId);
+  if (!d || !d.minhaAssinatura) return toast("Comprovante indisponível.", "danger");
+  const titulo = `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`;
+  // DECISÃO William 2026-07-17 ("resolver de vez"): o cofre é BÔNUS, nunca
+  // dependência. Tenta o arquivo carimbado por NO MÁXIMO 4s no total; qualquer
+  // falha, demora ou surpresa (404, permissão, CORS, rede) cai na geração LOCAL
+  // a partir da trilha da assinatura, o mesmo caminho dos termos que nunca falha.
+  const path = d.minhaAssinatura.arquivoPath;
+  if (path && typeof window.urlArquivoAssinado === "function") {
+    try {
+      const url = await Promise.race([
+        window.urlArquivoAssinado(path),
+        new Promise((res) => setTimeout(() => res(null), 4000)),
+      ]);
+      if (url) {
+        // Embute como dataURL (mesma liturgia dos recibos): o viewer nunca depende
+        // de fetch remoto na hora de pintar.
+        const blob = await (await fetch(url)).blob();
+        const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
+        openDocViewer({ titulo, tipo: "Assinado", anexo: { url: dataUrl, nome: "comprovante.pdf", mime: "application/pdf" } });
         return;
       }
-      return toast(msgErroComprovante(window.__ultimoErroStorage), "danger");
-    }
-    openDocViewer({ titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
+    } catch (e) { debug?.("[comprovante] cofre falhou, gerando local:", e?.message || e); }
+  }
+  try {
+    const ass = d.minhaAssinatura;
+    const f = (state.funcionarios && state.funcionarios[0]) || null;
+    const dtAss = (typeof tsParaData === "function") ? tsParaData(ass.em) : (ass.em ? new Date(ass.em) : null);
+    const quando = dtAss ? dtAss.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+    const { dataUrl } = await gerarComprovantePdf(d, {
+      titulo: d.titulo || docTipoLabel(d.tipo),
+      tipoLabel: docTipoLabel(d.tipo),
+      docId,
+      versaoAssinada: ass.versaoAssinada || d.versao || 1,
+      nome: (f && f.nome) || currentUser()?.nome || "",
+      codigo: (f && f.codigo) || "",
+      quando,
+      geo: ass.geo || null,
+      hashOriginal: ass.hashOriginal || "",
+      aceiteTexto: "Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura.",
+    });
+    openDocViewer({ titulo, tipo: "Assinado", anexo: { url: dataUrl, nome: "comprovante.pdf", mime: "application/pdf" } });
   } catch (e) {
     debug?.("[comprovante colab]", e?.message || e);
-    toast("Não consegui abrir o comprovante agora. Tente de novo em instantes.", "danger");
+    toast("Não consegui gerar o comprovante agora. Fecha e abre o app e tenta de novo.", "danger");
   }
 }
 
@@ -18079,7 +18088,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.94.0";
+window.CURRENT_VERSION = "1.94.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
