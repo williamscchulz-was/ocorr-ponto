@@ -26,7 +26,7 @@ const ANO_PASSADO = String(new Date().getFullYear() - 1);
 // configuradas, o provaOk nao tem ramo pra elas (mural sem doc pai = mina; gate Fable).
 const TABELA = {
   "cartao-ponto": 1, folha: 1, comunicado: 1, "documento-leitura": 1,
-  coracao: 1, "boas-vindas": 1,
+  coracao: 1, "boas-vindas": 1, "tempo-casa": 1,
   "documento-assinatura": 5, pesquisa: 5, autoavaliacao: 5, termo: 5, foto: 5, streak: 1,
 };
 const MARCOS = [25, 50, 100, 150, 200];
@@ -37,6 +37,11 @@ const POST_CORACAO = `aniv-fulana-teste-${ANO}`;
 const POST_BV = `bv-novato-silva-${ANO}`;
 const POST_CORACAO_VELHO = `aniv-velha-pessoa-${ANO_VELHO_MURAL}`;
 const POST_BV_AUTO = `bv-maria-${ANO}`; // nome do pai == nome do uColab, prova o anti-auto
+// Tempo de casa (2026-07-17, shape do pipeline): tdc-{slug}-{anoCorrente}, recorrente.
+// uColabT (Tania, f-9) e dedicada a estes claims: placar dela nasce aqui, imune a ordem.
+const POST_TDC = `tdc-veterano-teste-${ANO}`;
+const POST_TDC_VELHO = `tdc-antigo-funcionario-${ANO_VELHO_MURAL}`;
+const POST_TDC_AUTO = `tdc-tania-${ANO}`; // nome E funcionarioId do pai == uColabT
 
 before(async () => {
   env = await initializeTestEnvironment({
@@ -50,6 +55,7 @@ before(async () => {
     await setDoc(doc(db, "users/uColab"),  { role: "colaborador", nome: "Maria", funcionarioId: "f-1", turno: 1, setor: "Producao", fotoBase64: "data:image/png;base64,AAA" });
     await setDoc(doc(db, "users/uColab2"), { role: "colaborador", nome: "Ana", funcionarioId: "f-2", turno: 2, setor: "Repasse" });
     await setDoc(doc(db, "users/uColab3"), { role: "colaborador", nome: "Bia", funcionarioId: "f-3" });
+    await setDoc(doc(db, "users/uColabT"), { role: "colaborador", nome: "Tania", funcionarioId: "f-9" });
     await setDoc(doc(db, "funcionarios/f-1"), { nome: "Maria", turno: 1, setor: "Producao" });
     await setDoc(doc(db, "funcionarios/f-2"), { nome: "Ana", turno: 2, setor: "Repasse" });
 
@@ -84,6 +90,10 @@ before(async () => {
     await setDoc(doc(db, `muralAniversario/${POST_CORACAO_VELHO}`), { tipo: "aniversario", nome: "Velha Pessoa", funcionarioId: "f-99", dia: 5, mes: 3, ano: Number(ANO_VELHO_MURAL) });
     // Pai bemvindo com nome IGUAL ao do uColab (Maria): prova o anti-auto (pai.nome != users.nome).
     await setDoc(doc(db, `muralAniversario/${POST_BV_AUTO}`), { tipo: "bemvindo", nome: "Maria", funcionarioId: "f-66", admissao: `${ANO}-07-01` });
+    // Pais tempo-casa (2026-07-17): valido, ano velho (sufixo nega) e auto (id+nome do uColabT).
+    await setDoc(doc(db, `muralAniversario/${POST_TDC}`), { tipo: "tempo-casa", nome: "Veterano Teste", funcionarioId: "f-55", dia: 17, mes: 7, anos: 9, ano: Number(ANO) });
+    await setDoc(doc(db, `muralAniversario/${POST_TDC_VELHO}`), { tipo: "tempo-casa", nome: "Antigo Funcionario", funcionarioId: "f-44", dia: 5, mes: 3, anos: 3, ano: Number(ANO_VELHO_MURAL) });
+    await setDoc(doc(db, `muralAniversario/${POST_TDC_AUTO}`), { tipo: "tempo-casa", nome: "Tania", funcionarioId: "f-9", dia: 17, mes: 7, anos: 2, ano: Number(ANO) });
     // Reacao JA EXISTENTE com 'em' do ANO PASSADO (uColab2, sob o post de coracao valido):
     // prova o year-gate do 'em' quando o claim novo NAO reescreve a reacao no batch.
     await setDoc(doc(db, `muralAniversario/${POST_CORACAO}/reacoes/uColab2`), { uid: "uColab2", tipo: "coracao", autorNome: "Ana", em: new Date(`${ANO_PASSADO}-06-01T12:00:00Z`) });
@@ -113,6 +123,7 @@ const admin  = () => env.authenticatedContext("uAdmin").firestore();
 const rh     = () => env.authenticatedContext("uRh").firestore();
 const colab  = () => env.authenticatedContext("uColab").firestore();
 const colab2 = () => env.authenticatedContext("uColab2").firestore();
+const colabT = () => env.authenticatedContext("uColabT").firestore();
 const anon   = () => env.unauthenticatedContext().firestore();
 
 // batch canonico: evento {acao}_{refId} + placar (create se placarDe === null; senao total acumulado)
@@ -239,6 +250,24 @@ test("boas-vindas com pontos != tabela NEGA (prova valida, valor errado)", async
   assertFails(ganhaPontoMural(colab2(), "uColab2", "boas-vindas", POST_BV, 5, { nome: "Ana" })));
 test("acao inventada 'abraco' (fora da tabela) NEGA", async () =>
   assertFails(ganhaPontoMural(colab2(), "uColab2", "abraco", POST_CORACAO, 1, { nome: "Ana", comReacao: false })));
+
+// ---------- Mural: tempo de casa (2026-07-17, espelho do coracao com pai tipo 'tempo-casa') ----------
+// A reacao em post tdc- usa tipo 'coracao' (mesmo gesto da UI; ganhaPontoMural ja
+// resolve: so bv- vira 'bemvindo'). Quem amarra o credito ao pai certo e o provaOk.
+test("tempo-casa: pai tdc + reacao propria no MESMO batch PASSA (+1)", async () =>
+  assertSucceeds(ganhaPontoMural(colabT(), "uColabT", "tempo-casa", POST_TDC, 1, { nome: "Tania" })));
+test("tempo-casa SEM doc pai (postId inventado) NEGA", async () =>
+  assertFails(ganhaPontoMural(colabT(), "uColabT", "tempo-casa", `tdc-inventado-${ANO}`, 1, { nome: "Tania", placarDe: 1 })));
+test("tempo-casa em post de ANO VELHO (sufixo do refId) NEGA mesmo com pai+reacao novos", async () =>
+  assertFails(ganhaPontoMural(colabT(), "uColabT", "tempo-casa", POST_TDC_VELHO, 1, { nome: "Tania", placarDe: 1 })));
+test("ANTI-AUTO tempo-casa: pai com MEU funcionarioId e nome NEGA (uColabT == Tania/f-9)", async () =>
+  assertFails(ganhaPontoMural(colabT(), "uColabT", "tempo-casa", POST_TDC_AUTO, 1, { nome: "Tania", placarDe: 1 })));
+test("tipo trocado: coracao apontando pai tempo-casa NEGA", async () =>
+  assertFails(ganhaPontoMural(colabT(), "uColabT", "coracao", POST_TDC, 1, { nome: "Tania", placarDe: 1, comReacao: false })));
+test("tipo trocado: tempo-casa apontando pai aniversario NEGA", async () =>
+  assertFails(ganhaPontoMural(colab2(), "uColab2", "tempo-casa", POST_CORACAO, 1, { nome: "Ana" })));
+test("double-claim tempo-casa (mesmo evento 2x) NEGA (create em doc existente)", async () =>
+  assertFails(ganhaPontoMural(colabT(), "uColabT", "tempo-casa", POST_TDC, 1, { nome: "Tania", placarDe: 1 })));
 
 // ---------- Eventos: negacoes ----------
 test("SEM prova NEGA (uColab2 nao leu com1)", async () =>

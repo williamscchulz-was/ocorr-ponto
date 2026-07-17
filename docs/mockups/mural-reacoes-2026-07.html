@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mural da home · correções das reações + tempo de casa</title>
+<style>
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-400-latin.woff2') format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-500-latin.woff2') format('woff2');font-weight:500;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-600-latin.woff2') format('woff2');font-weight:600;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-700-latin.woff2') format('woff2');font-weight:700;font-display:swap}
+
+  :root{
+    --milk:#F6F8F4;--surface:#FFFFFF;--border:#E7EDE4;--border-strong:#D8E2D3;
+    --text-body:#1E2D1A;--text-muted:#4A6245;--plum:#008835;--warning:#B27429;
+    --pp-rc:16px;--pp-sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+    --nota-bg:#F0F5EE;--ruim:#B3261E;--ruim-bg:#FBEEED;
+  }
+  html.dark{
+    --milk:#0E130E;--surface:#161D15;--border:#232C22;--border-strong:#2A332A;
+    --text-body:#EDF3EA;--text-muted:#8A9884;--plum:#5FCB85;--warning:#E8B468;
+    --pp-sh-card:0 2px 10px -4px rgba(0,0,0,.55);
+    --nota-bg:#1A221A;--ruim:#E58A84;--ruim-bg:#2E1B1A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Poppins',system-ui,sans-serif;background:var(--milk);color:var(--text-body);padding:26px 16px 60px;transition:background .2s}
+  .wrap{max-width:560px;margin:0 auto}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+  h1{font-size:19px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.5}
+  .tema{flex:none;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-body);border-radius:999px;padding:7px 14px;font:600 11.5px 'Poppins',sans-serif;cursor:pointer}
+
+  .sec{margin-top:26px}
+  .sec>h2{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .sec>h2 .tag{font-size:9.5px;letter-spacing:.05em;padding:2px 8px;border-radius:999px;font-weight:700}
+  .tag.bug{background:var(--ruim-bg);color:var(--ruim)}
+  .tag.fix{background:rgba(0,136,53,.12);color:var(--plum)}
+  html.dark .tag.fix{background:rgba(95,203,133,.14)}
+  .tag.novo{background:rgba(178,116,41,.12);color:var(--warning)}
+  html.dark .tag.novo{background:rgba(232,180,104,.14)}
+
+  .fone{max-width:392px;margin:0;background:var(--milk);border:1px solid var(--border);border-radius:22px;padding:14px;box-shadow:var(--pp-sh-card)}
+
+  /* ===== anatomia REAL do card (copiada de portal-colaborador.css) ===== */
+  .pp-bday{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:12px 14px;position:relative;overflow:hidden}
+  .pp-bday+.pp-bday{margin-top:12px}
+  .pp-bday::after{content:"";position:absolute;right:-24px;top:-30px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,rgba(224,163,58,.14),transparent 70%)}
+  .pp-bday--tdc::after{background:radial-gradient(circle,rgba(0,136,53,.12),transparent 70%)}
+  html.dark .pp-bday--tdc::after{background:radial-gradient(circle,rgba(95,203,133,.12),transparent 70%)}
+  .pp-bday__ic{width:40px;height:40px;border-radius:12px;background:rgba(224,163,58,.16);color:var(--warning);display:flex;align-items:center;justify-content:center;flex:none}
+  .pp-bday--tdc .pp-bday__ic{background:rgba(0,136,53,.12);color:var(--plum)}
+  html.dark .pp-bday--tdc .pp-bday__ic{background:rgba(95,203,133,.14)}
+  .pp-bday__ic svg{width:21px;height:21px}
+  .pp-bday__bd{flex:1;min-width:0;position:relative;z-index:1}
+  .pp-bday__t{font-size:13.5px;font-weight:600;color:var(--text-body)}
+  .pp-bday__s{font-size:11.5px;color:var(--text-muted);margin-top:1px}
+  .pp-bday__heart{flex:none;position:relative;z-index:1;width:40px;height:40px;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface);color:var(--plum);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .pp-bday__heart svg{width:20px;height:20px}
+  .pp-bday__heart.on{background:var(--plum);border-color:var(--plum);color:#fff;box-shadow:0 6px 16px rgba(0,136,53,.26)}
+  .pp-bday__stack{display:flex;margin-top:6px}
+  .pp-bday__stk{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface);margin-left:-7px;display:grid;place-items:center;color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;flex:none}
+  .pp-bday__stk:first-child{margin-left:0}
+  .pp-bday__stk--foto{background-size:cover;background-position:center}
+  .pp-bday__mais{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface);margin-left:-7px;display:grid;place-items:center;background:var(--border-strong);color:var(--text-muted);font-size:8.5px;font-weight:700;flex:none}
+
+  .nota{margin-top:10px;background:var(--nota-bg);border:1px solid var(--border);border-radius:12px;padding:10px 13px;font-size:12px;line-height:1.55;color:var(--text-muted)}
+  .nota b{color:var(--text-body);font-weight:600}
+  .legenda{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+  .legenda .it{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-muted)}
+  .legenda .it .pp-bday__stk{margin-left:0;border-color:var(--milk)}
+  .aviso-foto{margin-top:22px;font-size:11px;color:var(--text-muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Mural da home: reações com rosto + tempo de casa</h1>
+      <p class="sub">Os dois problemas de hoje, com a causa encontrada e a correção proposta. Fotos ilustrativas: no app entram as fotos oficiais.</p>
+    </div>
+    <button class="tema" onclick="document.documentElement.classList.toggle('dark')">claro · escuro</button>
+  </header>
+
+  <!-- ============ 1. o bug de hoje ============ -->
+  <section class="sec">
+    <h2>Como está hoje <span class="tag bug">bug</span></h2>
+    <div class="fone">
+      <div class="pp-bday">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg></div>
+        <div class="pp-bday__bd">
+          <div class="pp-bday__t">Hoje é aniversário de Jhenyffer</div>
+          <div class="pp-bday__s">Você parabenizou</div>
+          <div class="pp-bday__stack"><span class="pp-bday__stk" style="background:#3B7A57">WS</span></div>
+        </div>
+        <button class="pp-bday__heart on" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      </div>
+    </div>
+    <p class="nota"><b>Causa encontrada.</b> O chip busca sua foto no cadastro de funcionário, que não guarda foto nenhuma, em vez do seu perfil de usuário, onde a foto oficial mora. Por isso cai sempre nas iniciais WS. E as reações dos colegas nem tentam foto: viram iniciais direto.</p>
+  </section>
+
+  <!-- ============ 2. correcao ============ -->
+  <section class="sec">
+    <h2>Como fica <span class="tag fix">correção</span></h2>
+    <div class="fone">
+      <div class="pp-bday">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg></div>
+        <div class="pp-bday__bd">
+          <div class="pp-bday__t">Hoje é aniversário de Jhenyffer</div>
+          <div class="pp-bday__s">Você parabenizou</div>
+          <div class="pp-bday__stack">
+            <span class="pp-bday__stk pp-bday__stk--foto" title="Você" style="background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23B9CBB4'/%3E%3Ccircle cx='24' cy='18' r='8.5' fill='%23E8C39A'/%3E%3Cpath d='M6 46c1-10 8.5-15 18-15s17 5 18 15' fill='%23145C36'/%3E%3Cpath d='M15.5 15.5a8.5 8.5 0 0 1 17 0v1.5h-2.2c-2.6 0-5-1-6.3-2.6-1.3 1.6-3.7 2.6-6.3 2.6z' fill='%234A3524'/%3E%3C/svg%3E&quot;)"></span>
+          </div>
+        </div>
+        <button class="pp-bday__heart on" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      </div>
+
+      <div class="pp-bday">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg></div>
+        <div class="pp-bday__bd">
+          <div class="pp-bday__t">Hoje é aniversário de Josielem</div>
+          <div class="pp-bday__s">Você e mais 4 parabenizaram</div>
+          <div class="pp-bday__stack">
+            <span class="pp-bday__stk pp-bday__stk--foto" title="Você" style="background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23B9CBB4'/%3E%3Ccircle cx='24' cy='18' r='8.5' fill='%23E8C39A'/%3E%3Cpath d='M6 46c1-10 8.5-15 18-15s17 5 18 15' fill='%23145C36'/%3E%3Cpath d='M15.5 15.5a8.5 8.5 0 0 1 17 0v1.5h-2.2c-2.6 0-5-1-6.3-2.6-1.3 1.6-3.7 2.6-6.3 2.6z' fill='%234A3524'/%3E%3C/svg%3E&quot;)"></span>
+            <span class="pp-bday__stk pp-bday__stk--foto" title="Maria" style="background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23C9BBAE'/%3E%3Ccircle cx='24' cy='18' r='8.5' fill='%23C98E63'/%3E%3Cpath d='M6 46c1-10 8.5-15 18-15s17 5 18 15' fill='%23A0522D'/%3E%3Cpath d='M14 22c-1-7 3-13 10-13s11 6 10 13c0-2-1.5-3.5-3-5-1.8 1.2-4.5 1.8-7 1.8s-5.2-.6-7-1.8c-1.5 1.5-3 3-3 5z' fill='%23241A12'/%3E%3C/svg%3E&quot;)"></span>
+            <span class="pp-bday__stk pp-bday__stk--foto" title="João" style="background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23AEBECB'/%3E%3Ccircle cx='24' cy='18' r='8.5' fill='%237A4B2A'/%3E%3Cpath d='M6 46c1-10 8.5-15 18-15s17 5 18 15' fill='%232E4A66'/%3E%3Cpath d='M15.5 14.5a8.5 8.5 0 0 1 17 0l-.5 2c-1-2-3-3.4-8-3.4s-7 1.4-8 3.4z' fill='%23181210'/%3E%3C/svg%3E&quot;)"></span>
+            <span class="pp-bday__stk" title="Carla Souza" style="background:#7A5EA8">CS</span>
+            <span class="pp-bday__mais">+1</span>
+          </div>
+        </div>
+        <button class="pp-bday__heart on" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      </div>
+    </div>
+    <div class="legenda">
+      <span class="it"><span class="pp-bday__stk pp-bday__stk--foto" style="background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23B9CBB4'/%3E%3Ccircle cx='24' cy='18' r='8.5' fill='%23E8C39A'/%3E%3Cpath d='M6 46c1-10 8.5-15 18-15s17 5 18 15' fill='%23145C36'/%3E%3C/svg%3E&quot;)"></span> quem tem foto oficial aparece com ela</span>
+      <span class="it"><span class="pp-bday__stk" style="background:#7A5EA8">CS</span> quem não tem foto segue nas iniciais</span>
+      <span class="it"><span class="pp-bday__mais">+1</span> acima de 4, contador do restante</span>
+    </div>
+    <p class="nota"><b>De onde vêm as fotos.</b> A sua: do seu perfil, a mesma da saudação da home (troca de fonte, correção de uma linha). As dos colegas: do placar da gamificação, que já guarda a foto de cada participante com a autorização de imagem que vocês colheram em julho. Quem ainda não pontuou na temporada não tem foto lá e segue nas iniciais, sem quebrar nada. Nenhuma regra de segurança muda.</p>
+  </section>
+
+  <!-- ============ 3. tempo de casa ============ -->
+  <section class="sec">
+    <h2>Tempo de casa, caso Vorlei <span class="tag novo">novo card</span></h2>
+    <div class="fone">
+      <div class="pp-bday pp-bday--tdc">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+        <div class="pp-bday__bd">
+          <div class="pp-bday__t">Vorlei completa 9 anos de Fiobras hoje</div>
+          <div class="pp-bday__s">Seja o primeiro a parabenizar</div>
+        </div>
+        <button class="pp-bday__heart" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      </div>
+
+      <div class="pp-bday pp-bday--tdc">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+        <div class="pp-bday__bd">
+          <div class="pp-bday__t">Vorlei completa 9 anos de Fiobras hoje</div>
+          <div class="pp-bday__s">Você e mais 2 parabenizaram</div>
+          <div class="pp-bday__stack">
+            <span class="pp-bday__stk pp-bday__stk--foto" title="Você" style="background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23B9CBB4'/%3E%3Ccircle cx='24' cy='18' r='8.5' fill='%23E8C39A'/%3E%3Cpath d='M6 46c1-10 8.5-15 18-15s17 5 18 15' fill='%23145C36'/%3E%3Cpath d='M15.5 15.5a8.5 8.5 0 0 1 17 0v1.5h-2.2c-2.6 0-5-1-6.3-2.6-1.3 1.6-3.7 2.6-6.3 2.6z' fill='%234A3524'/%3E%3C/svg%3E&quot;)"></span>
+            <span class="pp-bday__stk pp-bday__stk--foto" title="Maria" style="background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23C9BBAE'/%3E%3Ccircle cx='24' cy='18' r='8.5' fill='%23C98E63'/%3E%3Cpath d='M6 46c1-10 8.5-15 18-15s17 5 18 15' fill='%23A0522D'/%3E%3Cpath d='M14 22c-1-7 3-13 10-13s11 6 10 13c0-2-1.5-3.5-3-5-1.8 1.2-4.5 1.8-7 1.8s-5.2-.6-7-1.8c-1.5 1.5-3 3-3 5z' fill='%23241A12'/%3E%3C/svg%3E&quot;)"></span>
+            <span class="pp-bday__stk" title="Pedro Lima" style="background:#2E6E8E">PL</span>
+          </div>
+        </div>
+        <button class="pp-bday__heart on" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+      </div>
+    </div>
+    <p class="nota"><b>Mesma liturgia do aniversário:</b> aparece só no dia do aniversário de admissão, com medalha verde no lugar do bolo, coração pra parabenizar e a mesma pilha de fotos. Pro próprio homenageado, vira destaque na saudação, como já acontece no aniversário. <b>Dependência:</b> o dado de quem faz quantos anos vem do pipeline (WKRADAR); a urgência do Vorlei já foi enviada hoje cedo pedindo o dado provisionado. O front fica pronto pra acender assim que ele chegar.</p>
+  </section>
+
+  <p class="aviso-foto">Mockup local, nada disso está no app ainda. Avatares ilustrativos desenhados, sem foto real de ninguém.</p>
+</div>
+</body>
+</html>

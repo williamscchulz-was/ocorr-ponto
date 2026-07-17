@@ -637,8 +637,9 @@ service cloud.firestore {
     // do adesao. Bump de versao = novo hash aqui + reaceite.
 
     // ===== Mural de aniversario (celebracao social entre colegas) =====
-    // postId "aniv-{slug}-{ano}" (aniversario) OU "bv-{slug}-{anoAdmissao}" (boas-vindas
-    // a recem-contratados, 2026-07-09; mesmo sistema de reacao, so muda o tipo). NAO exige
+    // postId "aniv-{slug}-{ano}" (aniversario), "bv-{slug}-{anoAdmissao}" (boas-vindas
+    // a recem-contratados, 2026-07-09) OU "tdc-{slug}-{anoCorrente}" (tempo de casa,
+    // 2026-07-17; shape confirmado pelo pipeline). Mesmo sistema de reacao. NAO exige
     // doc pai (subcolecoes valem sem ele); por isso o proprio /muralAniversario/{postId}
     // nunca e escrito pelo cliente.
     // Conteudo entre colegas: reacao (coracao no aniversario, bemvindo no bv-; uma por
@@ -659,7 +660,9 @@ service cloud.firestore {
         // ruim) caia em update -> negado -> toast. A igualdade anti-spoof
         // (autorNome == userDoc().nome) segue intacta.
         // Tipo casado com o prefixo do post (disjuncao explicita, padrao da casa):
-        // post bv- so aceita 'bemvindo', post de aniversario so aceita 'coracao'.
+        // post bv- so aceita 'bemvindo'; aniversario E tempo de casa (tdc-) aceitam
+        // 'coracao' (mesmo gesto na UI; quem distingue o credito e o provaOk, que
+        // le o tipo do PAI, nao o da reacao).
         // Guard de auto-toque (nao reagir ao proprio post) fica no CLIENTE: o postId
         // chaveia por slug do nome e a regra nao slugifica; o risco residual e so
         // cosmetico (contador do proprio card), sem PII nem perda de dado.
@@ -1365,6 +1368,15 @@ service cloud.firestore {
                      && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.nome != userDoc().nome)
               || (acao == 'boas-vindas'
                      && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.tipo == 'bemvindo'
+                     && getAfter(/databases/$(database)/documents/muralAniversario/$(refId)/reacoes/$(uid)).data.em.year() == request.time.year()
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.funcionarioId != meuFuncionarioId()
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.nome != userDoc().nome)
+              // Tempo de casa (2026-07-17): espelho do coracao, so muda o tipo do pai.
+              // Year-gate identico ao aniv-: o sufixo do postId e o ano CORRENTE
+              // (pipeline recria por ano), entao o matches segura re-claim de pai velho.
+              || (acao == 'tempo-casa'
+                     && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.tipo == 'tempo-casa'
+                     && refId.matches('.*-' + string(request.time.year()))
                      && getAfter(/databases/$(database)/documents/muralAniversario/$(refId)/reacoes/$(uid)).data.em.year() == request.time.year()
                      && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.funcionarioId != meuFuncionarioId()
                      && get(/databases/$(database)/documents/muralAniversario/$(refId)).data.nome != userDoc().nome)

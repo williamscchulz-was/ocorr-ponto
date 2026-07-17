@@ -135,6 +135,15 @@ test("BEMVINDO: anti-spoof mantido (autorNome != users.nome falha)", async () =>
 test("BEMVINDO: re-set idempotente SUCEDE (mesmo conteudo, doc ja existe)", async () =>
   assertSucceeds(setDoc(doc(ctxFor("uColab2"), `${POST_BV}/reacoes/uColab2`), reacao("uColab2", { tipo: "bemvindo" }))));
 
+// ---- tempo de casa (post tdc-*, reage com 'coracao' como o aniversario; 2026-07-17) ----
+const POST_TDC = "muralAniversario/tdc-vorlei-2026";
+test("TEMPO DE CASA: dono cria 'coracao' valido em post tdc-", async () =>
+  assertSucceeds(setDoc(doc(ctxFor("uColab2"), `${POST_TDC}/reacoes/uColab2`), reacao("uColab2"))));
+test("TEMPO DE CASA: 'bemvindo' em post tdc- falha (tdc nao e bv)", async () =>
+  assertFails(setDoc(doc(ctxFor("uColab"), `${POST_TDC}/reacoes/uColab`), reacao("uColab", { tipo: "bemvindo" }))));
+test("TEMPO DE CASA: anti-spoof mantido (autorNome != users.nome falha)", async () =>
+  assertFails(setDoc(doc(ctxFor("uColab"), `${POST_TDC}/reacoes/uColab`), reacao("uColab", { autorNome: "Nome Falso" }))));
+
 // ---- delete ----
 test("REACAO: dono deleta a propria", async () =>
   assertSucceeds(deleteDoc(doc(ctxFor("uColab"), `${POST}/reacoes/uColab`))));
