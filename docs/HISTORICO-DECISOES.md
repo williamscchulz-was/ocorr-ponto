@@ -2974,3 +2974,38 @@ A resposta certa (evidência positiva de cobertura da fonte): distinguir **ausê
 
 ### Nota sobre trabalho paralelo
 O fix do gate de mtime (commit `0b57809` local + `736b0ad` neste repo) foi feito de forma **independente por uma sessão paralela** investigando a MESMA mensagem do William quase no mesmo minuto — cheguei à mesma causa raiz e ao mesmo fix por conta própria antes de notar que já existia (git não mostrou diff quando tentei reaplicar — o conteúdo já batia). Sem duplicidade de código no final; só a comprovação de que o raciocínio bate entre sessões independentes.
+
+---
+
+## 2026-07-17 · 🔴 Travamento capturado AO VIVO — pior episódio registrado + achado crítico no alerta
+
+William reportou lentidão extrema em tempo real ("pc ta super lento agora"). Primeira vez que conseguimos observar o evento acontecendo, com dados cruzados de 3 fontes (PowerShell live, logger, e Resmon do próprio William).
+
+### Números do episódio (08:41-08:44, 17/07)
+- **Fila de disco: pico de 137** (recorde — anteriores eram 31-34)
+- **Latência média: 4000ms (nosso logger) / 6910ms (Resmon do William)** — ordem de grandeza consistente entre as duas fontes, medida independente
+- **Resmon confirmou visualmente:** Disco 0 (RAID) a 100% "tempo de atividade", leitura 0 KB/s, gravação 8,2 KB/s — trabalho zero apesar de "ocupado". Disco 1 (E:) em 0% — confirma que é isolado ao RAID, não ao sistema todo
+- **Lista de processos do Gerenciador de Tarefas:** todos os processos individuais com Disco=0 MB/s, mas o agregado mostrando 50% — mesma assinatura (controlador, não app)
+- Recuperação: 137 → 23 → 18 → 16 → 10 → 9 em cerca de 3 minutos, sozinho
+
+### 🔴 Achado crítico: o logger MORRE durante o episódio (2ª vez que isso acontece)
+O `disk-watch.ps1` (que tínhamos religado ontem, rodando estável por 24h+) **morreu exatamente durante este travamento**, e a 1ª tentativa de religar via PowerShell também falhou (exit code 255) — o sistema estava sob estresse forte o bastante pra atrapalhar até a criação de um novo processo. Mesmo padrão do dia 02/06 (quando o logger original morreu, com a última linha mostrando queue=31/sem processo culpado — a mesma assinatura). **Hipótese: o travamento é severo o bastante pra afetar a criação/resposta de processos no sistema, não só I/O de disco.**
+
+### 🔴 Achado crítico #2: nem todo travamento grave gera evento 129/51 no Event Log
+Apesar da gravidade (fila 137, latência 4-7s, confirmado por 3 fontes independentes), **nenhum evento 129 (reset RAID) ou 51 (timeout paginação) foi registrado no Event Viewer** para este episódio. Isso significa que o alerta antigo (que só disparava em cima do Event Log) **teria ficado em silêncio nesse caso** — um falso negativo grave, justamente no pior episódio já registrado.
+
+### Novo dado: processo com I/O real durante a recuperação
+Diferente de todos os episódios anteriores ("nenhum processo com I/O relevante"), dessa vez, no instante da recuperação (08:43:40), aparecem processos nomeados com I/O real: `DFSPla` (234,9 MBps read), `DFSCFRT` (11,4 MBps read) — provavelmente processos internos do WK Radar "descarregando" leituras que ficaram em fila durante o stall, não necessariamente causa raiz (correlação, não confirmado como causa).
+
+### Correção aplicada em `disk-watch.ps1`
+Adicionado um **segundo gatilho de alerta baseado em métrica ao vivo**, independente do Event Log:
+- `$QueueAlertThreshold = 20` (fila de disco)
+- `$LatencyAlertThresholdMs = 500` (meio segundo — bem abaixo dos 4000-6910ms observados, mas bem acima do normal)
+- Dispara popup + snapshot de diagnóstico quando qualquer um dos dois passa do limite, com o mesmo debounce de 5 min, mesmo sem evento 129/51 correspondente.
+- Mensagem do alerta agora indica explicitamente "(sem evento 129/51 correspondente ainda)" quando disparado por métrica, pra distinguir da via antiga.
+
+### Status
+Logger reiniciado (após 2 tentativas — a 1ª falhou com exit 255, isolar o `Start-Process` numa chamada própria resolveu) e confirmado rodando/logando com o código novo. Sintaxe validada com o parser (sem travessão em string, lição repetida). Espaço livre e demais automações não afetados por este episódio.
+
+### Atualização da recomendação
+Esse foi o episódio mais grave e mais bem documentado até agora (137 de fila, 4-7s de latência, 3 fontes confirmando). Reforça com força total a recomendação de **trocar os 2 SSDs Crucial BX500** — as mitigações em vigor (cache de escrita, limpeza de E:) reduzem frequência mas claramente não eliminam picos desse porte.
