@@ -114,6 +114,9 @@ const clique = await p.evaluate(async () => {
     texto: card.querySelector("[data-bday-count]").textContent,
     meuChipFoto: !!stack.querySelector('.pp-bday__stk--foto[title="Você"]'),
     meuPrimeiro: stack.firstElementChild?.getAttribute("title"),
+    // coracao C (gordinho) + batida WAAPI viva logo apos o like
+    pathC: (heart.querySelector("svg path")?.getAttribute("d") || "").startsWith("M12 21.1C6.2"),
+    pulsou: (heart.querySelector("svg")?.getAnimations?.() || []).length > 0,
   };
   // erro na escrita: reverte a pilha
   window.toggleReacaoAniversario = async () => { throw new Error("prob"); };
@@ -150,6 +153,8 @@ if (!/2 parabéns/.test(clique.aposUnlike.texto)) falhas.push(`texto pos-unlike:
 if (clique.aposLike.meuPrimeiro !== "Você") falhas.push("like nao pos meu chip NA FRENTE da pilha na hora");
 if (!clique.aposLike.meuChipFoto) falhas.push("meu chip otimista sem FOTO");
 if (!/Você e mais 2 parabenizaram/.test(clique.aposLike.texto)) falhas.push(`texto pos-like: ${clique.aposLike.texto}`);
+if (!clique.aposLike.pathC) falhas.push("coracao nao e a opcao C (path)");
+if (!clique.aposLike.pulsou) falhas.push("batida WAAPI nao rodou no like");
 // clique 3 parte do estado LIGADO: o otimista desliga, a escrita falha, o revert
 // devolve o estado anterior (coracao ON e meu chip de volta na pilha).
 if (clique.aposErro.on !== true || !clique.aposErro.chips.includes("Você")) falhas.push("erro na escrita nao reverteu a pilha");

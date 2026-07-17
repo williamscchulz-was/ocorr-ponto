@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coração do like · opções novas</title>
+<style>
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-400-latin.woff2') format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-500-latin.woff2') format('woff2');font-weight:500;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-600-latin.woff2') format('woff2');font-weight:600;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-700-latin.woff2') format('woff2');font-weight:700;font-display:swap}
+  :root{
+    --milk:#F6F8F4;--surface:#FFFFFF;--border:#E7EDE4;--border-strong:#D8E2D3;
+    --text-body:#1E2D1A;--text-muted:#4A6245;--plum:#008835;--warning:#B27429;
+    --pp-rc:16px;--pp-sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+    --nota-bg:#F0F5EE;--ruim:#B3261E;--ruim-bg:#FBEEED;
+  }
+  html.dark{
+    --milk:#0E130E;--surface:#161D15;--border:#232C22;--border-strong:#2A332A;
+    --text-body:#EDF3EA;--text-muted:#8A9884;--plum:#5FCB85;--warning:#E8B468;
+    --pp-sh-card:0 2px 10px -4px rgba(0,0,0,.55);
+    --nota-bg:#1A221A;--ruim:#E58A84;--ruim-bg:#2E1B1A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Poppins',system-ui,sans-serif;background:var(--milk);color:var(--text-body);padding:26px 16px 60px;transition:background .2s}
+  .wrap{max-width:560px;margin:0 auto}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
+  h1{font-size:19px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.5}
+  .tema{flex:none;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-body);border-radius:999px;padding:7px 14px;font:600 11.5px 'Poppins',sans-serif;cursor:pointer}
+  .sec{margin-top:24px}
+  .sec>h2{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .sec>h2 .tag{font-size:9.5px;letter-spacing:.05em;padding:2px 8px;border-radius:999px;font-weight:700}
+  .tag.hoje{background:var(--ruim-bg);color:var(--ruim)}
+  .tag.op{background:rgba(0,136,53,.12);color:var(--plum)}
+  html.dark .tag.op{background:rgba(95,203,133,.14)}
+
+  .fone{max-width:392px;background:var(--milk);border:1px solid var(--border);border-radius:22px;padding:14px;box-shadow:var(--pp-sh-card)}
+  .pp-bday{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:12px 14px;position:relative;overflow:hidden}
+  .pp-bday::after{content:"";position:absolute;right:-24px;top:-30px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,rgba(0,136,53,.13),transparent 70%)}
+  .pp-bday__ic{width:40px;height:40px;border-radius:12px;background:rgba(0,136,53,.12);color:var(--plum);display:flex;align-items:center;justify-content:center;flex:none}
+  .pp-bday__ic svg{width:21px;height:21px}
+  .pp-bday__bd{flex:1;min-width:0;position:relative;z-index:1}
+  .pp-bday__t{font-size:13.5px;font-weight:600;color:var(--text-body)}
+  .pp-bday__s{font-size:11.5px;color:var(--text-muted);margin-top:1px}
+  .pp-bday__heart{flex:none;position:relative;z-index:1;width:40px;height:40px;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface);color:var(--plum);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+  .pp-bday__heart svg{width:20px;height:20px}
+  .pp-bday__heart.on{background:var(--plum);border-color:var(--plum);color:#fff;box-shadow:0 6px 16px rgba(0,136,53,.26)}
+  .pp-bday__heart:active{transform:scale(.92)}
+  @keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.35)}65%{transform:scale(.92)}100%{transform:scale(1)}}
+  .pp-bday__heart.pop svg{animation:pop .42s cubic-bezier(.2,.8,.3,1.2)}
+
+  .par{display:flex;gap:16px;align-items:center;margin-top:10px}
+  .par .b{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10.5px;color:var(--text-muted)}
+  .par .pp-bday__heart{width:52px;height:52px;cursor:default}
+  .par .pp-bday__heart svg{width:26px;height:26px}
+  .nota{margin-top:10px;background:var(--nota-bg);border:1px solid var(--border);border-radius:12px;padding:10px 13px;font-size:12px;line-height:1.55;color:var(--text-muted)}
+  .nota b{color:var(--text-body);font-weight:600}
+  .dica{margin-top:20px;font-size:11px;color:var(--text-muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Coração do like: opções novas</h1>
+      <p class="sub">Toca nos corações dos cards pra sentir o like com a batida nova. Ao lado, os dois estados ampliados.</p>
+    </div>
+    <button class="tema" onclick="document.documentElement.classList.toggle('dark')">claro · escuro</button>
+  </header>
+
+  <section class="sec">
+    <h2>Como está hoje <span class="tag hoje">o estranho</span></h2>
+    <div class="par">
+      <span class="b"><button class="pp-bday__heart" data-shape="atual"></button>vazio</span>
+      <span class="b"><button class="pp-bday__heart on" data-shape="atual" data-on="1"></button>curtido</span>
+    </div>
+    <p class="nota"><b>O problema:</b> é um traçado à mão, os dois lóbulos são desiguais e a ponta pende pro lado. E nem é o coração do mockup que você aprovou. Sai de cena.</p>
+  </section>
+
+  <section class="sec">
+    <h2>Opção A · o clássico do mockup <span class="tag op">candidato</span></h2>
+    <div class="fone">
+      <div class="pp-bday">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+        <div class="pp-bday__bd">
+          <div class="pp-bday__t">Vorlei completa 9 anos de Fiobras hoje</div>
+          <div class="pp-bday__s">Seja o primeiro a parabenizar</div>
+        </div>
+        <button class="pp-bday__heart" data-shape="a" data-vivo></button>
+      </div>
+    </div>
+    <div class="par">
+      <span class="b"><button class="pp-bday__heart" data-shape="a"></button>vazio</span>
+      <span class="b"><button class="pp-bday__heart on" data-shape="a" data-on="1"></button>curtido</span>
+    </div>
+    <p class="nota"><b>O mesmo do mockup aprovado do mural:</b> simétrico, ombros retos, ponta firme. Sóbrio, combina com o resto da iconografia do app.</p>
+  </section>
+
+  <section class="sec">
+    <h2>Opção B · cheio e simétrico <span class="tag op">candidato</span></h2>
+    <div class="fone">
+      <div class="pp-bday">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+        <div class="pp-bday__bd">
+          <div class="pp-bday__t">Vorlei completa 9 anos de Fiobras hoje</div>
+          <div class="pp-bday__s">Seja o primeiro a parabenizar</div>
+        </div>
+        <button class="pp-bday__heart" data-shape="b" data-vivo></button>
+      </div>
+    </div>
+    <div class="par">
+      <span class="b"><button class="pp-bday__heart" data-shape="b"></button>vazio</span>
+      <span class="b"><button class="pp-bday__heart on" data-shape="b" data-on="1"></button>curtido</span>
+    </div>
+    <p class="nota"><b>Lóbulos mais encorpados, curvas contínuas:</b> o desenho clássico de cartão, perfeitamente espelhado. Mais caloroso que o A sem perder a elegância.</p>
+  </section>
+
+  <section class="sec">
+    <h2>Opção C · gordinho arredondado <span class="tag op">candidato</span></h2>
+    <div class="fone">
+      <div class="pp-bday">
+        <div class="pp-bday__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+        <div class="pp-bday__bd">
+          <div class="pp-bday__t">Vorlei completa 9 anos de Fiobras hoje</div>
+          <div class="pp-bday__s">Seja o primeiro a parabenizar</div>
+        </div>
+        <button class="pp-bday__heart" data-shape="c" data-vivo></button>
+      </div>
+    </div>
+    <div class="par">
+      <span class="b"><button class="pp-bday__heart" data-shape="c"></button>vazio</span>
+      <span class="b"><button class="pp-bday__heart on" data-shape="c" data-on="1"></button>curtido</span>
+    </div>
+    <p class="nota"><b>O mais fofo dos três:</b> bem redondo, estilo coração de mensagem, sem ponta agressiva. Mais brincalhão; ainda assim limpo no traço vazio.</p>
+  </section>
+
+  <section class="sec">
+    <p class="nota"><b>Vale pras três opções:</b> a batida nova ao curtir (o coração pulsa uma vez, sente no toque) e a troca vale pra TODOS os corações do app de uma vez: aniversário, tempo de casa e o que vier, é uma função só. Escolhe a letra que eu aplico.</p>
+  </section>
+
+  <p class="dica">Mockup local. O coração da mão de boas-vindas não muda (é outro gesto).</p>
+</div>
+
+<script>
+  // Um path por opção; mesmo contrato do app (_muralHeart): vazio = stroke, curtido = fill.
+  const SHAPES = {
+    atual: "M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z",
+    a: "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z",
+    b: "M12 20.8C6.8 16.6 2.5 12.9 2.5 8.6 2.5 5.6 4.8 3.5 7.5 3.5c1.9 0 3.5 1 4.5 2.5 1-1.5 2.6-2.5 4.5-2.5 2.7 0 5 2.1 5 5.1 0 4.3-4.3 8-9.5 12.2z",
+    c: "M12 21.1C6.2 16.4 1.9 12.7 1.9 8.5 1.9 5.3 4.4 2.9 7.4 2.9c1.9 0 3.6 1 4.6 2.7 1-1.7 2.7-2.7 4.6-2.7 3 0 5.5 2.4 5.5 5.6 0 4.2-4.3 7.9-10.1 12.6z",
+  };
+  const svgDe = (shape, on) =>
+    `<svg viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${SHAPES[shape]}"/></svg>`;
+  document.querySelectorAll(".pp-bday__heart").forEach((btn) => {
+    const shape = btn.dataset.shape;
+    let on = btn.dataset.on === "1";
+    btn.innerHTML = svgDe(shape, on);
+    if (!btn.hasAttribute("data-vivo")) return;
+    const sub = btn.closest(".pp-bday")?.querySelector(".pp-bday__s");
+    btn.addEventListener("click", () => {
+      on = !on;
+      btn.classList.toggle("on", on);
+      btn.innerHTML = svgDe(shape, on);
+      if (sub) sub.textContent = on ? "Você parabenizou" : "Seja o primeiro a parabenizar";
+      if (on) { btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop"); }
+    });
+  });
+</script>
+</body>
+</html>

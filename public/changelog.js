@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.91.1", d: "17 jul 2026", current: true, items: [
+    v: "1.92.0", d: "17 jul 2026", current: true, items: [
+      { type: "feat", title: "Coracao novo no mural: desenho redondinho e simetrico, e agora ele pulsa quando voce curte." },
+    ],
+  },
+  {
+    v: "1.91.1", d: "17 jul 2026", items: [
       { type: "fix", title: "Ao tocar o coracao, o seu rosto entra na pilha do card na hora, sem precisar recarregar a tela." },
     ],
   },

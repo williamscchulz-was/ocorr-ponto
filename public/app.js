@@ -2386,7 +2386,26 @@ function _muralCor(nome) {
   return cores[h % cores.length];
 }
 
-const _muralHeart = (on) => `<svg class="icon" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.35-10-9.5C.5 8 2.2 4.5 5.5 4.5c2 0 3.3 1.2 4 2.3.7-1.1 2-2.3 4-2.3C20.8 4.5 22.5 8 21 11.5 18.5 16.65 12 21 12 21z"/></svg>`;
+// Coração "gordinho arredondado" (opção C do mock coracao-like-2026-07, escolha do
+// William 17/07): simétrico, lóbulos redondos, sem ponta agressiva. Vazio = traço,
+// curtido = cheio. Compartilhado por TODOS os corações do mural (aniv/tdc).
+const _muralHeart = (on) => `<svg class="icon" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.1C6.2 16.4 1.9 12.7 1.9 8.5 1.9 5.3 4.4 2.9 7.4 2.9c1.9 0 3.6 1 4.6 2.7 1-1.7 2.7-2.7 4.6-2.7 3 0 5.5 2.4 5.5 5.6 0 4.2-4.3 7.9-10.1 12.6z"/></svg>`;
+
+// Batida do like: pulso one-shot via WAAPI (metodologia: nunca classe/keyframe que um
+// re-render ressuscita). Roda no svg recém-escrito pelo aplica().
+function _pulsarCoracao(heart) {
+  const svg = heart && heart.querySelector("svg");
+  if (!svg || prefereMenosMovimento() || typeof svg.animate !== "function") return;
+  svg.animate(
+    [
+      { transform: "scale(1)" },
+      { transform: "scale(1.35)", offset: 0.35 },
+      { transform: "scale(.92)", offset: 0.65 },
+      { transform: "scale(1)" },
+    ],
+    { duration: 420, easing: "cubic-bezier(.2, .8, .3, 1.2)" }
+  );
+}
 
 // Texto da contagem de parabéns (mesma copy do card e da própria saudação). total = quantas
 // reações; mine = se o próprio já parabenizou. Sem hífen/travessão (convenção do projeto).
@@ -2502,6 +2521,7 @@ async function onParabenizar(heart) {
     if (stackEl) stackEl.innerHTML = _bdayStackHtml(reacoes);
   };
   aplica(ligar, totalDepois, ligar);
+  if (ligar) _pulsarCoracao(heart);
   heart.dataset.busy = "1";
   try {
     await window.toggleReacaoAniversario(post, ligar);
@@ -17995,7 +18015,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.91.1";
+window.CURRENT_VERSION = "1.92.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
