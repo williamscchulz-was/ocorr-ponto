@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boot contínuo: a proposta em movimento</title>
+<style>
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-400-latin.woff2') format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-500-latin.woff2') format('woff2');font-weight:500;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-600-latin.woff2') format('woff2');font-weight:600;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-700-latin.woff2') format('woff2');font-weight:700;font-display:swap}
+  :root{
+    --milk:#F6F8F4;--surface:#FFFFFF;--border:#E7EDE4;--border-strong:#D8E2D3;
+    --text-body:#1E2D1A;--text-muted:#4A6245;--plum:#008835;
+    --sh:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+    --nota-bg:#F0F5EE;
+  }
+  html.dark{
+    --milk:#0E130E;--surface:#161D15;--border:#232C22;--border-strong:#2A332A;
+    --text-body:#EDF3EA;--text-muted:#8A9884;--plum:#5FCB85;
+    --sh:0 2px 10px -4px rgba(0,0,0,.55);--nota-bg:#1A221A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Poppins',system-ui,sans-serif;background:var(--milk);color:var(--text-body);padding:26px 16px 60px}
+  .wrap{max-width:820px;margin:0 auto}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  h1{font-size:19px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.5;max-width:560px}
+  .tema{flex:none;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-body);border-radius:999px;padding:7px 14px;font:600 11.5px 'Poppins',sans-serif;cursor:pointer}
+
+  .palco{display:flex;gap:26px;margin-top:24px;align-items:flex-start;flex-wrap:wrap}
+  .controles{flex:1;min-width:260px;display:flex;flex-direction:column;gap:10px}
+  .ctl{border:1px solid var(--border-strong);background:var(--surface);color:var(--text-body);border-radius:14px;padding:13px 16px;font:600 13px 'Poppins',sans-serif;cursor:pointer;text-align:left;box-shadow:var(--sh);transition:border-color .15s}
+  .ctl:hover{border-color:var(--plum)}
+  .ctl small{display:block;font-weight:400;font-size:11px;color:var(--text-muted);margin-top:2px}
+  .ctl[disabled]{opacity:.45;cursor:default}
+  .legenda{min-height:64px;background:var(--nota-bg);border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:12px;line-height:1.55;color:var(--text-muted)}
+  .legenda b{color:var(--plum);font-weight:700;display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+
+  /* ===== aparelho ===== */
+  .fone{flex:none;width:280px;height:580px;border-radius:30px;border:1px solid var(--border-strong);box-shadow:var(--sh);overflow:hidden;position:relative;background:#0b0b0c}
+  .cam{position:relative;width:100%;height:100%}
+
+  /* camada: tela do sistema (antes do toque) */
+  .lay-so{position:absolute;inset:0;background:#0b0b0c;display:flex;align-items:center;justify-content:center;z-index:1}
+  .lay-so .ic{width:76px;height:76px;border-radius:19px;background:#008835;display:grid;place-items:center;cursor:pointer;transition:transform .12s}
+  .lay-so .ic:active{transform:scale(.94)}
+  .lay-so svg{width:40px;height:40px}
+  .lay-so i{position:absolute;bottom:56px;left:0;right:0;text-align:center;font-style:normal;color:#9aa;font-size:11px}
+
+  /* camada: escolha de portal */
+  /* camadas invisíveis NÃO pegam toque (senão bloqueiam o que está por baixo) */
+  .lay-esc{position:absolute;inset:0;background:linear-gradient(165deg,#EEF4EA,#F6F8F4);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 24px;z-index:2;opacity:0;pointer-events:none}
+  .lay-esc.ativa{pointer-events:auto}
+  .lay-esc .espaco-marca{height:66px}
+  .lay-esc .card{width:100%;background:#fff;border:1px solid #D8E2D3;border-radius:16px;padding:15px 16px;display:flex;align-items:center;gap:11px;cursor:pointer;box-shadow:0 1px 3px rgba(0,40,20,.07);opacity:0;transform:translateY(14px);transition:transform .12s}
+  .lay-esc .card:active{transform:scale(.97)}
+  .lay-esc .card i{width:34px;height:34px;border-radius:10px;background:rgba(0,136,53,.12);display:grid;place-items:center;flex:none}
+  .lay-esc .card i svg{width:18px;height:18px;stroke:#008835}
+  .lay-esc .card b{font-size:13px;color:#1E2D1A;display:block}
+  .lay-esc .card s{text-decoration:none;font-size:10.5px;color:#4A6245}
+  .lay-esc .dica-esc{font-size:10px;color:#4A6245;opacity:0;margin-top:2px}
+
+  /* camada: home */
+  .lay-home{position:absolute;inset:0;background:linear-gradient(165deg,#EEF4EA,#F6F8F4);z-index:3;opacity:0;padding:26px 18px;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+  .lay-home .g{display:flex;align-items:center;gap:9px}
+  .lay-home .av{width:34px;height:34px;border-radius:50%;background:#008835;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
+  .lay-home .g b{font-size:15px;color:#1E2D1A}
+  .lay-home .g s{text-decoration:none;display:block;font-size:10px;color:#4A6245}
+  .lay-home .r{border-radius:13px;background:#fff;border:1px solid #E7EDE4;box-shadow:0 1px 3px rgba(0,40,20,.06)}
+  .lay-home .r1{height:52px}.lay-home .r2{height:64px}.lay-home .r3{height:46px}.lay-home .r4{height:46px}
+
+  /* ===== A CORTINA (a estrela): uma so, nunca sai de cena, so transforma ===== */
+  .cortina{position:absolute;inset:0;background:linear-gradient(170deg,#008835,#0B7A36);z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none}
+  .cortina .conteudo{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;padding:0 34px}
+  .cortina .ecg{width:150px;height:40px;transition:opacity .4s,transform .4s}
+  .cortina .ecg path{fill:none;stroke:rgba(255,255,255,.92);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:420;stroke-dashoffset:420;animation:bater 1.6s linear infinite}
+  @keyframes bater{0%{stroke-dashoffset:420}70%{stroke-dashoffset:0}100%{stroke-dashoffset:0}}
+  .cortina .wm{color:#fff;font-size:15px;font-weight:700;letter-spacing:.02em;transition:opacity .4s}
+  .cortina .up{display:flex;flex-direction:column;align-items:center;gap:9px;width:100%;max-height:0;opacity:0;overflow:hidden;transition:max-height .5s,opacity .5s}
+  .cortina .up t{color:#fff;font-size:12.5px;font-weight:600}
+  .cortina .up s{text-decoration:none;color:rgba(255,255,255,.75);font-size:10.5px;margin-top:-6px}
+  .cortina .bar{width:100%;height:5px;border-radius:99px;background:rgba(255,255,255,.22);overflow:hidden}
+  .cortina .bar i{display:block;height:100%;width:100%;background:#fff;border-radius:99px;transform:scaleX(0);transform-origin:left}
+  .cortina .pct{color:rgba(255,255,255,.85);font-size:10.5px;font-weight:600}
+  .cortina .selo-reload{margin-top:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:9px;font-weight:600;border-radius:999px;padding:3px 10px;opacity:0;transition:opacity .3s}
+
+  /* a MARCA compartilhada: vive ACIMA de tudo e desliza da cortina pra escolha */
+  .marca{position:absolute;left:50%;top:38%;width:56px;height:56px;margin-left:-28px;border-radius:15px;background:rgba(255,255,255,.16);display:grid;place-items:center;z-index:12;opacity:0;pointer-events:none;transition:top .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1),background .6s}
+  .marca svg{width:28px;height:28px;transition:stroke .6s}
+  .marca.na-escolha{top:24%;transform:scale(.86);background:#008835}
+
+  .secao{margin-top:30px}
+  .secao>h2{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+  .muda{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .muda .m{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px 14px;box-shadow:var(--sh);font-size:11.5px;line-height:1.55;color:var(--text-muted)}
+  .muda .m b{display:block;color:var(--text-body);font-size:12px;margin-bottom:3px}
+  .dica{margin-top:18px;font-size:11px;color:var(--text-muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>A proposta: boot contínuo, uma cortina só</h1>
+      <p class="sub">A correção do pisca pisca. Toca no ícone do aparelho ao lado (ou nos botões) e sente: a cortina verde entra UMA vez, se transforma por dentro e se despede UMA vez. Nada de segundo splash, nada de corte seco.</p>
+    </div>
+    <button class="tema" onclick="document.documentElement.classList.toggle('dark')">claro · escuro</button>
+  </header>
+
+  <div class="palco">
+    <div class="fone"><div class="cam" id="cam">
+      <div class="lay-so" id="laySo"><div class="ic" id="icone"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><i>toca no ícone</i></div>
+      <div class="lay-esc" id="layEsc">
+        <div class="espaco-marca"></div>
+        <div class="card" data-portal><i><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></i><span><b>Portal do gestor</b><s>gestão e conferências</s></span></div>
+        <div class="card" data-portal><i><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></i><span><b>Portal do colaborador</b><s>seu ponto, seus documentos</s></span></div>
+        <div class="dica-esc" id="dicaEsc">toca num portal, entra direto com a senha salva</div>
+      </div>
+      <div class="lay-home" id="layHome">
+        <div class="g"><span class="av">WS</span><span><b>Bom dia, William</b><s>Sexta, 17 de julho</s></span></div>
+        <div class="r r1"></div><div class="r r2"></div><div class="r r3"></div><div class="r r4"></div>
+      </div>
+      <div class="cortina" id="cortina">
+        <div class="conteudo">
+          <div style="height:66px"></div>
+          <svg class="ecg" id="ecg" viewBox="0 0 210 56"><path d="M2 28h44l10 22 18-44 12 34 8 -12 10 22h84"/></svg>
+          <div class="wm" id="wm">FioPulse</div>
+          <div class="up" id="up">
+            <t>Estamos atualizando o app</t>
+            <s>pra você ter uma experiência melhor</s>
+            <div class="bar"><i id="barI"></i></div>
+            <div class="pct" id="pct">0%</div>
+            <div class="selo-reload" id="seloReload">app novo aplicado por baixo, você nem viu</div>
+          </div>
+        </div>
+      </div>
+      <div class="marca" id="marca"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div></div>
+
+    <div class="controles">
+      <button class="ctl" id="btnNormal">Ver: abrir o app (dia a dia)<small>cortina entra, vira a escolha, toque revela a home</small></button>
+      <button class="ctl" id="btnUpdate">Ver: abrir COM atualização<small>a atualização é a PRIMEIRA tela; o reload acontece POR BAIXO, sem segundo splash</small></button>
+      <div class="legenda" id="legenda"><b>Pronto</b>Escolhe um caminho ou toca no ícone do aparelho.</div>
+    </div>
+  </div>
+
+  <section class="secao">
+    <h2>O que muda por dentro (4 mudanças, só front)</h2>
+    <div class="muda">
+      <div class="m"><b>1 · A cortina vira a dona da cena</b>O #splash de hoje deixa de ser descartável: é UM elemento que segura o palco do primeiro frame até o app pronto, e os estados (pulso, atualização) só trocam o conteúdo DENTRO dele, com transição.</div>
+      <div class="m"><b>2 · Atualização é a PRIMEIRA tela</b>O pacote novo é descoberto na sessão anterior e fica esperando; o app anota um sinal local. Na abertura seguinte, o head lê o sinal (síncrono) e a cortina JÁ NASCE no estado "Estamos atualizando": marca + barra no primeiro frame, sem pulso antes. Se o sinal mentir (pacote sumiu), ela desliza pro fluxo normal sem drama.</div>
+      <div class="m"><b>3 · Reload invisível</b>Antes de recarregar, gravamos outro sinal de sessão; o primeiro frame do boot novo re-pinta a MESMA cortina, sem replay da abertura. O olho não vê emenda nem segundo splash.</div>
+      <div class="m"><b>4 · Uma despedida só, com a marca costurando</b>A cortina só sai quando a tela de baixo está pronta: a marca desliza da cortina pro topo da escolha (elemento compartilhado) enquanto o fundo clareia. E o toque no portal deixa de ser corte seco: a home revela em crossfade curto.</div>
+    </div>
+  </section>
+
+  <p class="dica">Mockup local. Tempos honestos: pulso mínimo ~0,9s, atualização ~2s com pausa no 100%; o reload real leva ~0,5 a 1,5s e fica escondido pela cortina.</p>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const dorme = (ms) => new Promise((r) => setTimeout(r, ms));
+  const leg = (t, s) => { $("legenda").innerHTML = `<b>${t}</b>${s}`; };
+  let rodando = false;
+
+  function reset() {
+    $("laySo").style.opacity = "1"; $("laySo").style.zIndex = "1";
+    const esc = $("layEsc"); esc.style.opacity = "0"; esc.style.transition = "none"; esc.classList.remove("ativa");
+    esc.querySelectorAll(".card").forEach((c) => { c.style.opacity = "0"; c.style.transform = "translateY(14px)"; c.style.transition = "none"; });
+    $("dicaEsc").style.opacity = "0";
+    const home = $("layHome"); home.style.opacity = "0"; home.style.transition = "none"; home.style.transform = "translateY(8px)";
+    const c = $("cortina"); c.style.transition = "none"; c.style.opacity = "0";
+    $("ecg").style.opacity = "1"; $("ecg").style.transform = "none";
+    const up = $("up"); up.style.transition = "none"; up.style.maxHeight = "0"; up.style.opacity = "0"; up.style.transition = "";
+    $("barI").style.transition = "none"; $("barI").style.transform = "scaleX(0)";
+    $("pct").textContent = "0%"; $("seloReload").style.opacity = "0";
+    const m = $("marca"); m.classList.remove("na-escolha"); m.style.opacity = "0";
+  }
+
+  async function cortinaEntra() {
+    $("laySo").style.opacity = "0";
+    const c = $("cortina");
+    c.style.transition = "opacity .35s";
+    c.style.opacity = "1";
+    $("marca").style.opacity = "1";
+    await dorme(380);
+  }
+
+  async function pulsoBate(ms) {
+    leg("Cortina em cena", "O Pulso da marca bate enquanto o app carrega. É a MESMA cortina que vai ficar até o fim.");
+    await dorme(ms);
+  }
+
+  // Estado "atualizando" JA PINTADO antes da cortina entrar (o 1o frame do update
+  // e a propria atualizacao, decisao William: "precisa ser a primeira tela").
+  function nasceAtualizando() {
+    $("ecg").style.opacity = "0"; $("ecg").style.transform = "scale(.9)";
+    const up = $("up"); up.style.transition = "none"; up.style.maxHeight = "120px"; up.style.opacity = "1";
+  }
+  async function barraEnche() {
+    leg("Primeira tela: a atualização", "O app já sabia do pacote desde a sessão anterior (sinal local lido no head). A cortina NASCE no estado de atualização: marca + barra no primeiro frame, sem pulso antes.");
+    const bar = $("barI");
+    bar.style.transition = "transform 1.8s cubic-bezier(.2,.8,.2,1)";
+    bar.style.transform = "scaleX(1)";
+    const t0 = Date.now();
+    while (Date.now() - t0 < 1900) {
+      const m = getComputedStyle(bar).transform.match(/matrix\(([^)]+)\)/);
+      $("pct").textContent = Math.min(100, Math.round((m ? parseFloat(m[1].split(",")[0]) : 0) * 100)) + "%";
+      await dorme(80);
+    }
+    $("pct").textContent = "100%";
+    await dorme(280);
+  }
+
+  async function reloadInvisivel() {
+    leg("Reload invisível", "Aqui o app RECARREGOU inteiro. A cortina se re-pinta no primeiro frame do boot novo (sinal de sessão lido no head), então o olho não vê emenda nem segundo splash.");
+    $("seloReload").style.opacity = "1";
+    await dorme(1300);
+    const up = $("up"); up.style.transition = ""; // devolve a transição do CSS pro fecho suave
+    up.style.maxHeight = "0"; up.style.opacity = "0";
+    await dorme(500);
+  }
+
+  async function despedidaParaEscolha() {
+    leg("Uma despedida só", "A escolha já está pronta POR BAIXO. A marca desliza pro lugar dela na tela nova enquanto o fundo clareia. A cortina nunca deixou palco vazio.");
+    const esc = $("layEsc");
+    esc.style.transition = "opacity .55s";
+    esc.style.opacity = "1";
+    esc.classList.add("ativa");
+    $("marca").classList.add("na-escolha");
+    const c = $("cortina");
+    c.style.transition = "opacity .6s";
+    c.style.opacity = "0";
+    $("ecg").style.opacity = "0"; $("wm").style.opacity = "0";
+    await dorme(250);
+    esc.querySelectorAll(".card").forEach((card, i) => {
+      card.style.transition = `opacity .4s ${i * 90}ms, transform .45s ${i * 90}ms cubic-bezier(.2,.8,.2,1)`;
+      card.style.opacity = "1"; card.style.transform = "translateY(0)";
+    });
+    await dorme(600);
+    $("wm").style.opacity = "1";
+    $("dicaEsc").style.opacity = "1";
+    leg("Escolha de portal", "Toca num portal aí no aparelho: com a senha salva, entra direto. E repara: sem corte seco.");
+  }
+
+  async function revelaHome() {
+    leg("Revelação da home", "Crossfade curto com a home JÁ montada por baixo. Fim: a marca te acompanhou do toque até aqui, sem piscar.");
+    const home = $("layHome");
+    $("marca").style.opacity = "0";
+    home.style.transition = "opacity .4s, transform .45s cubic-bezier(.2,.8,.2,1)";
+    home.style.opacity = "1"; home.style.transform = "translateY(0)";
+    await dorme(500);
+    leg("Fim do caminho", "Cortina entrou 1x, saiu 1x. Roda o outro caminho ou de novo.");
+    rodando = false;
+  }
+
+  async function caminho(comUpdate) {
+    if (rodando) return;
+    rodando = true;
+    reset();
+    await dorme(60);
+    if (comUpdate) nasceAtualizando(); // 1o frame da cortina JA e a atualizacao
+    await cortinaEntra();
+    if (comUpdate) { await barraEnche(); await reloadInvisivel(); }
+    else await pulsoBate(1000);
+    await despedidaParaEscolha();
+    // espera o toque no portal (rodando continua true ate revelaHome)
+  }
+
+  $("btnNormal").addEventListener("click", () => caminho(false));
+  $("btnUpdate").addEventListener("click", () => caminho(true));
+  $("icone").addEventListener("click", () => caminho(false));
+  document.querySelectorAll("[data-portal]").forEach((c) => c.addEventListener("click", () => { if (rodando) revelaHome(); }));
+  reset();
+</script>
+</body>
+</html>

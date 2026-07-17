@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.92.0", d: "17 jul 2026", current: true, items: [
+    v: "1.93.0", d: "17 jul 2026", current: true, items: [
+      { type: "high", title: "Abertura continua, sem piscadas: a tela de abertura agora e uma so do toque ate o app pronto. Quando ha atualizacao, ela e a primeira coisa que aparece (marca + barra), o recarregamento acontece invisivel por baixo e a escolha de portal entra em cascata suave, sem cortes." },
+    ],
+  },
+  {
+    v: "1.92.0", d: "17 jul 2026", items: [
       { type: "feat", title: "Coracao novo no mural: desenho redondinho e simetrico, e agora ele pulsa quando voce curte." },
     ],
   },

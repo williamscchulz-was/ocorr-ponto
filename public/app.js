@@ -918,7 +918,16 @@ function entrarPortalComSessao() {
   // Demo (sem Firebase): a sessão é só state.currentUserId. Navega pela landing do papel.
   const u = currentUser();
   const ehColab = u && u.role === "colaborador";
-  $("#acesso")?.classList.add("hidden");
+  // Fim do corte seco (boot contínuo): a escolha vira overlay por um instante e sai
+  // em fade curto ENQUANTO o app já pinta por baixo. One-shot; erro nunca prende.
+  const ac = $("#acesso");
+  if (ac && !ac.classList.contains("hidden") && !prefereMenosMovimento() && typeof ac.animate === "function") {
+    ac.style.cssText = "position:fixed;inset:0;z-index:9998;margin:0";
+    const anim = ac.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: "ease" });
+    anim.onfinish = anim.oncancel = () => { ac.classList.add("hidden"); ac.style.cssText = ""; };
+  } else {
+    ac?.classList.add("hidden");
+  }
   $("#login")?.classList.add("hidden");
   $("#login-colab")?.classList.add("hidden");
   $("#app")?.classList.remove("hidden");
@@ -18015,7 +18024,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.92.0";
+window.CURRENT_VERSION = "1.93.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -18024,13 +18033,36 @@ window.CURRENT_VERSION = "1.92.0";
 window.hideSplash = function hideSplash() {
   var sp = document.getElementById("splash");
   if (!sp || sp.dataset.splashHiding) return;
+  if (window.__atualizandoApp) return; // cortina em estado de atualização: quem fecha é o reload
   sp.dataset.splashHiding = "1";
   var MIN = (typeof window.__splashMin === "number") ? window.__splashMin : 2900;
   var t0 = window.__splashT0 || Date.now();
   var wait = Math.max(0, MIN - (Date.now() - t0));
   setTimeout(function () {
+    // Despedida única (boot contínuo, mock aprovado 2026-07-17): se a escolha de
+    // portal está em cena por baixo, a entrada dela é COSTURADA no fade da cortina
+    // (marca e cards sobem em cascata). One-shot WAAPI: re-render não ressuscita.
+    try {
+      var ac = document.getElementById("acesso");
+      if (ac && !ac.classList.contains("hidden") && !prefereMenosMovimento()) {
+        var els = [ac.querySelector(".acesso__brand")].concat(Array.prototype.slice.call(ac.querySelectorAll(".acesso__half")));
+        els.forEach(function (el, i) {
+          if (!el || typeof el.animate !== "function") return;
+          el.animate(
+            [{ opacity: 0, transform: "translateY(14px)" }, { opacity: 1, transform: "translateY(0)" }],
+            { duration: 420, delay: 120 + i * 90, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" }
+          );
+        });
+      }
+    } catch (e) { /* cosmético: a revelação nunca depende disto */ }
+    // Guarda de estado nos DOIS timers: se uma atualização chegar no meio da
+    // despedida, mostrarTelaAtualizacao re-assume a cortina (apaga splashHiding)
+    // e os timers velhos NÃO podem derrubá-la por baixo (achado do probe v366).
+    if (sp.dataset.splashHiding !== "1") return;
     sp.classList.add("splash--out");
-    setTimeout(function () { if (sp && sp.parentNode) sp.style.display = "none"; }, 650);
+    setTimeout(function () {
+      if (sp && sp.parentNode && sp.dataset.splashHiding === "1") sp.style.display = "none";
+    }, 650);
   }, wait);
 };
 let _changelogCarregado = false;
@@ -18344,24 +18376,18 @@ const UP_MIN_MS = 2000;
 const UP_HOLD_MS = 250;
 function mostrarTelaAtualizacao() {
   if (_upScreenEl) return _upScreenEl;
-  const el = document.createElement("div");
-  el.id = "up-screen";
-  el.className = "up-screen";
-  el.setAttribute("role", "status");
-  el.setAttribute("aria-live", "polite");
-  el.innerHTML = `
-    <div class="up-screen__in">
-      <div class="up-screen__mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="up-screen__t">Estamos atualizando o app</div>
-      <div class="up-screen__s">pra você ter uma experiência melhor</div>
-      <div class="up-screen__bar"><i></i></div>
-      <div class="up-screen__pct" aria-hidden="true">0%</div>
-      <div class="up-screen__m">isso leva só um instante</div>
-    </div>`;
-  document.body.appendChild(el);
-  requestAnimationFrame(() => el.classList.add("show"));
+  // Boot contínuo (mock aprovado 2026-07-17): a atualização NÃO é mais uma tela
+  // própria; é um ESTADO da cortina (#splash). No 1º frame do boot o head já pode
+  // ter pintado tudo (html.splash-atualizando via sinal local); aqui só garantimos
+  // a cortina em cena (update achado tarde, ou após a cortina já ter se despedido)
+  // e ligamos a barra.
+  const el = document.getElementById("splash");
+  if (!el) return null;
+  document.documentElement.classList.add("splash-atualizando");
+  el.classList.add("splash--atualizando");
+  el.style.display = "";
+  el.classList.remove("splash--out");
+  delete el.dataset.splashHiding;
   _upScreenEl = el;
   _upT0 = Date.now();
   // Percentual: lê a fração REAL da barra (scaleX computado) por rAF leve e escreve o
@@ -18384,7 +18410,7 @@ function _upPctTick() {
   _upPctRaf = 0;
   const el = _upScreenEl;
   if (!el) return;
-  const pctEl = el.querySelector(".up-screen__pct");
+  const pctEl = el.querySelector(".splash-up__pct");
   if (pctEl) {
     const txt = Math.round(_upFrac() * 100) + "%";
     if (pctEl.textContent !== txt) pctEl.textContent = txt;
@@ -18393,7 +18419,7 @@ function _upPctTick() {
 }
 // Fração exibida AGORA (scaleX da matrix computada): o retarget parte da posição real.
 function _upFrac() {
-  const i = _upScreenEl && _upScreenEl.querySelector(".up-screen__bar i");
+  const i = _upScreenEl && _upScreenEl.querySelector(".splash-up__bar i");
   if (!i) return 0;
   const t = getComputedStyle(i).transform;
   if (!t || t === "none") return 0;
@@ -18403,7 +18429,7 @@ function _upFrac() {
 // Anima a barra (transform: scaleX, compositado) da posição atual até `alvo`. Monotônica:
 // nunca recua. prefereMenosMovimento: passos discretos (steps), ainda nascendo do 0.
 function _upAnimarBarra(alvo, dur) {
-  const i = _upScreenEl && _upScreenEl.querySelector(".up-screen__bar i");
+  const i = _upScreenEl && _upScreenEl.querySelector(".splash-up__bar i");
   if (!i || _upDone) return;
   alvo = Math.max(0, Math.min(1, alvo));
   const de = _upFrac();
@@ -18436,6 +18462,9 @@ function aplicarAtualizacaoBoot(worker) {
   // (jank + trabalho jogado fora). O reload refaz o boot limpo; firebase.js checa esta
   // flag no onAuthStateChanged.
   window.__atualizandoApp = true;
+  // Sinal local do boot contínuo: se ESTE apply não completar (aba fechada no meio),
+  // o próximo boot já nasce com a cortina no estado de atualização (1ª tela).
+  try { localStorage.setItem("fiopulse:updatePendente", "1"); } catch (e) {}
   mostrarTelaAtualizacao();
   progressoAtualizacao(worker && worker.state ? worker.state : "installed");
   enviarSkipWaiting(worker);
@@ -18462,6 +18491,9 @@ function swRecarregarUmaVez() {
   try { if (sessionStorage.getItem("fiopulse:swReloaded") === "1") return; } catch (e) {}
   _swRecarregou = true;
   try { sessionStorage.setItem("fiopulse:swReloaded", "1"); } catch (e) {}
+  // Atualização sendo aplicada: o sinal "pendente" cumpriu o papel (o pós-reload usa
+  // splash-retomada, não o estado de atualização). Se vier outro pacote, ele volta.
+  try { localStorage.removeItem("fiopulse:updatePendente"); } catch (e) {}
   // Palco mínimo: worker rápido (controllerchange quase junto da tela) espera o
   // resto dos ~2s; worker lento (decorrido já passou do mínimo) fecha na hora.
   // Fecho: barra salta pra 100% (compositado), pausa ~250ms (barra completa VISTA) e recarrega.
@@ -18475,7 +18507,7 @@ function swRecarregarUmaVez() {
 }
 // Fecho aos 100%: ignora a guarda monotônica de _upAnimarBarra (força o alvo 1).
 function _upAnimarBarraFinal() {
-  const i = _upScreenEl && _upScreenEl.querySelector(".up-screen__bar i");
+  const i = _upScreenEl && _upScreenEl.querySelector(".splash-up__bar i");
   if (!i) return;
   const de = _upFrac();
   if (_upAnim) { try { _upAnim.cancel(); } catch (e) {} _upAnim = null; }
@@ -18489,10 +18521,20 @@ window.__upDbg = () => ({ frac: _upFrac(), floor: _upFloor, done: _upDone, ativo
 window.__upReset = () => {
   if (_upFallback) { clearTimeout(_upFallback); _upFallback = 0; }
   if (_upPctRaf) { cancelAnimationFrame(_upPctRaf); _upPctRaf = 0; }
-  if (_upScreenEl) { _upScreenEl.remove(); _upScreenEl = null; }
+  // A cortina é o #splash (permanente): reset tira o ESTADO, nunca o elemento.
+  if (_upScreenEl) {
+    _upScreenEl.classList.remove("splash--atualizando");
+    const i = _upScreenEl.querySelector(".splash-up__bar i");
+    if (i) { i.getAnimations?.().forEach((a) => a.cancel()); i.style.transform = ""; }
+    const p = _upScreenEl.querySelector(".splash-up__pct");
+    if (p) p.textContent = "0%";
+    _upScreenEl = null;
+  }
+  document.documentElement.classList.remove("splash-atualizando");
   _upAnim = null; _upDone = false; _upFloor = 0; _upT0 = 0; _swRecarregou = false;
   window.__atualizandoApp = false;
   try { sessionStorage.removeItem("fiopulse:swReloaded"); } catch (e) {}
+  try { localStorage.removeItem("fiopulse:updatePendente"); } catch (e) {}
 };
 
 // PWA: registra o service worker + atualização CONTROLADA.
@@ -18520,12 +18562,26 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
     if (reg.waiting && navigator.serviceWorker.controller && !jaRecarregou()) {
       aplicarAtualizacaoBoot(reg.waiting);
     }
+    // Sinal local MENTIROSO (1º frame nasceu "atualizando" mas não há worker
+    // esperando: pacote já aplicado ou sumiu): desliga o estado e limpa o sinal;
+    // o boot normal segue e o hideSplash revela como sempre. Se um updatefound
+    // chegar logo depois, aplicarAtualizacaoBoot religa o estado sozinho.
+    if (!reg.waiting && !window.__atualizandoApp && document.documentElement.classList.contains("splash-atualizando")) {
+      document.documentElement.classList.remove("splash-atualizando");
+      try { localStorage.removeItem("fiopulse:updatePendente"); } catch (e) {}
+    }
     reg.addEventListener("updatefound", () => {
       const sw = reg.installing;
       if (!sw) return;
       // É ATUALIZAÇÃO (não 1º install) só quando já há um controller ativo.
       const deBoot = janelaBoot && !!navigator.serviceWorker.controller && !jaRecarregou();
-      if (!deBoot) return; // mid-sessão: instala e ESPERA, sem interromper nada.
+      if (!deBoot) {
+        // Mid-sessão: instala e ESPERA, sem interromper nada. Anota o sinal local:
+        // o PRÓXIMO boot já nasce com a cortina no estado de atualização (1ª tela,
+        // decisão William 2026-07-17), sem pulso antes.
+        if (navigator.serviceWorker.controller) { try { localStorage.setItem("fiopulse:updatePendente", "1"); } catch (e) {} }
+        return;
+      }
       aplicarAtualizacaoBoot(sw);
       sw.addEventListener("statechange", () => {
         progressoAtualizacao(sw.state);

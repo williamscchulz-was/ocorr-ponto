@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluxograma do boot: onde o app pisca hoje</title>
+<style>
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-400-latin.woff2') format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-500-latin.woff2') format('woff2');font-weight:500;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-600-latin.woff2') format('woff2');font-weight:600;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-700-latin.woff2') format('woff2');font-weight:700;font-display:swap}
+  :root{
+    --milk:#F6F8F4;--surface:#FFFFFF;--border:#E7EDE4;--border-strong:#D8E2D3;
+    --text-body:#1E2D1A;--text-muted:#4A6245;--plum:#008835;
+    --sh:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+    --nota-bg:#F0F5EE;--ruim:#B3261E;--ruim-bg:#FBEEED;
+  }
+  html.dark{
+    --milk:#0E130E;--surface:#161D15;--border:#232C22;--border-strong:#2A332A;
+    --text-body:#EDF3EA;--text-muted:#8A9884;--plum:#5FCB85;
+    --sh:0 2px 10px -4px rgba(0,0,0,.55);
+    --nota-bg:#1A221A;--ruim:#E58A84;--ruim-bg:#2E1B1A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Poppins',system-ui,sans-serif;background:var(--milk);color:var(--text-body);padding:26px 16px 60px}
+  .wrap{max-width:820px;margin:0 auto}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  h1{font-size:19px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.5;max-width:560px}
+  .tema{flex:none;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-body);border-radius:999px;padding:7px 14px;font:600 11.5px 'Poppins',sans-serif;cursor:pointer}
+  .sec{margin-top:28px}
+  .sec>h2{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .sec>h2 .tag{font-size:9.5px;letter-spacing:.05em;padding:2px 8px;border-radius:999px;font-weight:700}
+  .tag.comum{background:rgba(0,136,53,.12);color:var(--plum)}
+  html.dark .tag.comum{background:rgba(95,203,133,.14)}
+  .tag.pior{background:var(--ruim-bg);color:var(--ruim)}
+
+  /* trilho horizontal de frames */
+  .trilho{display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding:6px 2px 14px}
+  .passo{flex:none;display:flex;flex-direction:column;align-items:center;width:112px}
+  .frame{width:88px;height:176px;border-radius:14px;border:1px solid var(--border-strong);box-shadow:var(--sh);overflow:hidden;position:relative;background:var(--surface)}
+  .passo>b{font-size:10.5px;font-weight:600;margin-top:8px;text-align:center;line-height:1.35}
+  .passo>span{font-size:9.5px;color:var(--text-muted);margin-top:2px;text-align:center;line-height:1.4}
+  .seta{flex:none;width:56px;display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:70px}
+  .seta svg{width:26px;height:12px;color:var(--text-muted)}
+  .seta i{font-style:normal;font-size:8.5px;color:var(--text-muted);text-align:center;line-height:1.3}
+  .seta .pisca{font-size:8.5px;font-weight:700;letter-spacing:.04em;color:var(--ruim);background:var(--ruim-bg);border-radius:999px;padding:2px 7px}
+  .seta .suave{font-size:8.5px;font-weight:700;color:var(--plum);background:rgba(0,136,53,.1);border-radius:999px;padding:2px 7px}
+
+  /* miniaturas de tela */
+  .mini-so{background:#0b0b0c;display:flex;align-items:center;justify-content:center;height:100%}
+  .mini-so i{width:34px;height:34px;border-radius:9px;background:#008835;display:grid;place-items:center}
+  .mini-so svg{width:18px;height:18px}
+  .mini-splash{background:linear-gradient(170deg,#008835,#0B7A36);height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
+  .mini-splash .mk{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.16);display:grid;place-items:center}
+  .mini-splash svg{width:15px;height:15px}
+  .mini-splash .ecg{width:56px;height:14px}
+  .mini-splash .wm{color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.03em}
+  .mini-up{background:linear-gradient(170deg,#008835,#0B7A36);height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 9px}
+  .mini-up .mk{width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.16);display:grid;place-items:center}
+  .mini-up svg{width:14px;height:14px}
+  .mini-up b{color:#fff;font-size:7px;font-weight:600;text-align:center;line-height:1.35}
+  .mini-up .bar{width:100%;height:4px;border-radius:99px;background:rgba(255,255,255,.25);overflow:hidden}
+  .mini-up .bar i{display:block;height:100%;width:62%;background:#fff;border-radius:99px}
+  .mini-up .pct{color:rgba(255,255,255,.85);font-size:7px;font-weight:600}
+  .mini-branco{background:#fff;height:100%}
+  html.dark .mini-branco{background:#fff}
+  .mini-escolha{background:var(--milk);height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 8px}
+  .mini-escolha .wm{font-size:8px;font-weight:700;color:var(--plum)}
+  .mini-escolha .c{width:100%;height:34px;border-radius:9px;background:var(--surface);border:1px solid var(--border-strong);display:flex;align-items:center;gap:5px;padding:0 6px}
+  .mini-escolha .c i{width:14px;height:14px;border-radius:5px;background:rgba(0,136,53,.14);flex:none}
+  .mini-escolha .c s{text-decoration:none;font-size:6.5px;color:var(--text-body);font-weight:600}
+  .mini-home{background:var(--milk);height:100%;display:flex;flex-direction:column;gap:5px;padding:9px 7px}
+  .mini-home .g{height:14px;display:flex;align-items:center;gap:4px}
+  .mini-home .g b{font-size:7px;font-weight:700}
+  .mini-home .av{width:12px;height:12px;border-radius:50%;background:var(--plum);flex:none}
+  .mini-home .r{height:22px;border-radius:8px;background:var(--surface);border:1px solid var(--border)}
+  .mini-reload{background:#0b0b0c;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+  .mini-reload svg{width:18px;height:18px;color:#fff;opacity:.85}
+  .mini-reload b{color:#fff;font-size:7px;font-weight:600;opacity:.85}
+
+  .nota{margin-top:6px;background:var(--nota-bg);border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:12px;line-height:1.6;color:var(--text-muted)}
+  .nota b{color:var(--text-body);font-weight:600}
+  .nota .p{color:var(--ruim);font-weight:700}
+  ol.diag{margin:8px 0 0 18px;display:flex;flex-direction:column;gap:6px}
+  .prox{margin-top:26px;background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;padding:14px 16px;font-size:12.5px;line-height:1.6;color:var(--text-muted);box-shadow:var(--sh)}
+  .prox b{color:var(--text-body)}
+  .dica{margin-top:18px;font-size:11px;color:var(--text-muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Fluxograma do boot: o que pinta na tela hoje</h1>
+      <p class="sub">Mapeado do código real, com os tempos reais. Cada quadro é uma tela cheia que entra e sai por conta própria; os selos vermelhos marcam onde pisca.</p>
+    </div>
+    <button class="tema" onclick="document.documentElement.classList.toggle('dark')">claro · escuro</button>
+  </header>
+
+  <!-- ============ caminho comum ============ -->
+  <section class="sec">
+    <h2>Caminho 1 · abrir o app, sem atualização <span class="tag comum">o dia a dia</span></h2>
+    <div class="trilho">
+      <div class="passo"><div class="frame"><div class="mini-so"><i><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></i></div></div><b>Toque no ícone</b><span>tela do sistema</span></div>
+      <div class="seta"><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg><i>WebView sobe</i></div>
+      <div class="passo"><div class="frame"><div class="mini-splash"><div class="mk"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><svg class="ecg" viewBox="0 0 210 56"><path d="M2 28h44l10 22 18-44 12 34 8 -12 10 22h84" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="3"/></svg><div class="wm">FioPulse</div></div></div><b>Splash Pulso</b><span>verde, ECG batendo, mín. 0,3s</span></div>
+      <div class="seta"><span class="pisca">PISCA 1</span><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg><i>fade 0,65s verde vira claro</i></div>
+      <div class="passo"><div class="frame"><div class="mini-escolha"><div class="wm">FioPulse</div><div class="c"><i></i><s>Portal do gestor</s></div><div class="c"><i></i><s>Portal do colaborador</s></div></div></div><b>Escolha de portal</b><span>estaciona esperando o toque</span></div>
+      <div class="seta"><span class="pisca">PISCA 2</span><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg><i>corte seco no toque</i></div>
+      <div class="passo"><div class="frame"><div class="mini-home"><div class="g"><span class="av"></span><b>Bom dia</b></div><div class="r"></div><div class="r"></div><div class="r"></div><div class="r"></div></div></div><b>Home</b><span>senha salva entra direto</span></div>
+    </div>
+    <p class="nota"><b>Onde pisca no dia a dia.</b> <span class="p">PISCA 1:</span> o splash verde some em fade e revela a escolha clara por baixo, uma troca dura de cor e de cenário, a marca some e reaparece. <span class="p">PISCA 2:</span> o toque no card troca a tela inteira num corte seco, sem transição. São 3 cenários diferentes (verde, claro, home) sem nada costurando um no outro.</p>
+  </section>
+
+  <!-- ============ caminho com atualizacao ============ -->
+  <section class="sec">
+    <h2>Caminho 2 · abrir o app COM atualização esperando <span class="tag pior">o pisca pisca de hoje</span></h2>
+    <div class="trilho">
+      <div class="passo"><div class="frame"><div class="mini-so"><i><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></i></div></div><b>Toque no ícone</b><span>tela do sistema</span></div>
+      <div class="seta"><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg></div>
+      <div class="passo"><div class="frame"><div class="mini-splash"><div class="mk"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><svg class="ecg" viewBox="0 0 210 56"><path d="M2 28h44l10 22 18-44 12 34 8 -12 10 22h84" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="3"/></svg><div class="wm">FioPulse</div></div></div><b>Splash Pulso <u>1ª vez</u></b><span>o app acha o pacote novo</span></div>
+      <div class="seta"><span class="pisca">PISCA 1</span><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg><i>troca de tela cheia</i></div>
+      <div class="passo"><div class="frame"><div class="mini-up"><div class="mk"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>Estamos atualizando o app</b><div class="bar"><i></i></div><div class="pct">62%</div></div></div><b>Tela de atualização</b><span>barra, mín. 2s + 0,25s no 100%</span></div>
+      <div class="seta"><span class="pisca">PISCA 2</span><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg><i>o app RECARREGA inteiro</i></div>
+      <div class="passo"><div class="frame"><div class="mini-reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg><b>recarregando</b></div></div><b>Reload</b><span>frame escuro/branco do navegador</span></div>
+      <div class="seta"><span class="pisca">PISCA 3</span><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg><i>boot do zero</i></div>
+      <div class="passo"><div class="frame"><div class="mini-splash"><div class="mk"><svg viewBox="0 0 24 24"><path d="M3 12h4l2 5 4-12 2 7h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><svg class="ecg" viewBox="0 0 210 56"><path d="M2 28h44l10 22 18-44 12 34 8 -12 10 22h84" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="3"/></svg><div class="wm">FioPulse</div></div></div><b>Splash Pulso <u>2ª vez</u></b><span>a MESMA abertura de novo</span></div>
+      <div class="seta"><span class="pisca">PISCA 4</span><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg><i>fade verde vira claro</i></div>
+      <div class="passo"><div class="frame"><div class="mini-escolha"><div class="wm">FioPulse</div><div class="c"><i></i><s>Portal do gestor</s></div><div class="c"><i></i><s>Portal do colaborador</s></div></div></div><b>Escolha de portal</b><span>enfim</span></div>
+      <div class="seta"><span class="pisca">PISCA 5</span><svg viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 6h22m0 0-4-4m4 4-4 4"/></svg><i>corte seco</i></div>
+      <div class="passo"><div class="frame"><div class="mini-home"><div class="g"><span class="av"></span><b>Bom dia</b></div><div class="r"></div><div class="r"></div><div class="r"></div><div class="r"></div></div></div><b>Home</b></div>
+    </div>
+    <p class="nota"><b>O pisca pisca que você viveu hoje.</b> Com atualização esperando (e hoje soltei 3), a pessoa vê SEIS cenários em sequência: splash, tela de atualização, frame do reload, splash DE NOVO, escolha, home. A marca FioPulse entra e sai de cena 3 vezes. Cada tela é um ator independente com a própria entrada e saída, e o reload no meio zera o palco. Não tem bug isolado: é o desenho, cada pedaço foi nascendo numa fase e ninguém costurou o filme inteiro.</p>
+  </section>
+
+  <!-- ============ diagnostico ============ -->
+  <section class="sec">
+    <h2>Diagnóstico em uma frase</h2>
+    <div class="nota"><b>O boot não tem um dono de cena.</b> São 4 telas cheias autônomas (splash, atualização, escolha, home) mais um reload no meio; cada uma pinta, some e devolve o palco vazio pra próxima. Contínuo exige o contrário:
+      <ol class="diag">
+        <li><b>Uma cortina só</b> do toque até o app pronto, que nunca sai de cena, só TRANSFORMA o conteúdo (o Pulso vira barra de atualização, vira escolha, no mesmo fundo).</li>
+        <li><b>Reload invisível:</b> se precisa recarregar, a cortina se re-pinta INSTANTÂNEA no primeiro frame do boot novo (o app já sabe que veio de atualização), sem repetir a abertura.</li>
+        <li><b>Saída única:</b> a cortina só se despede UMA vez, revelando direto a tela que interessa (escolha ou home), com o conteúdo já pronto por baixo.</li>
+      </ol>
+    </div>
+  </section>
+
+  <div class="prox"><b>Próximo passo, como você pediu:</b> este é o mock 1, o retrato de como É hoje. Aprovando este retrato, eu monto o mock 2, a proposta do fluxo contínuo (a cortina única em movimento, clicável, do toque até a home nos dois caminhos) pra você sentir antes de eu tocar no app.</div>
+
+  <p class="dica">Mockup local. Tempos anotados vêm do código: splash mín. 0,3s + fade 0,65s; atualização mín. 2s + 0,25s no 100%; reload varia com o aparelho.</p>
+</div>
+</body>
+</html>

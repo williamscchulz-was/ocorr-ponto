@@ -191,32 +191,31 @@ html.splash-off .splash { display: none; }
 @keyframes fpPop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 @media (prefers-reduced-motion: reduce) { .splash-pl__mark { animation: none; } .splash-pl__ecg path { animation: none; stroke-dashoffset: 0; } }
 
-/* Tela de atualização (boot com SW novo esperando). Full-screen premium: marca +
-   textos + barra DETERMINADA (largura anima suave conforme installing→activated).
-   Cobre o splash (z acima). Some com o reload. Cena 2 do mock escolha-portal. */
-.up-screen {
-  position: fixed; inset: 0; z-index: 10000;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 30px; text-align: center;
-  background: linear-gradient(165deg, var(--milk-warm) 0%, var(--milk) 60%);
-  opacity: 0; transition: opacity .35s ease;
-}
-.up-screen.show { opacity: 1; }
-.up-screen__in { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.up-screen__mark { width: 66px; height: 66px; border-radius: 18px; background: #1AA34F; display: grid; place-items: center; box-shadow: 0 10px 30px rgba(0,136,53,.22); animation: fpPop 1.9s ease-in-out infinite; }
-.up-screen__mark svg { width: 40px; height: 40px; }
-.up-screen__t { margin-top: 6px; font-family: var(--font-display, 'Poppins'), sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -.01em; color: var(--text-body); }
-.up-screen__s { font-size: 13.5px; color: var(--text-muted); margin-top: -4px; }
-.up-screen__bar { width: min(220px, 62vw); height: 7px; border-radius: 999px; background: var(--border-strong); overflow: hidden; margin-top: 12px; }
+/* Estado "atualizando" DA cortina (boot contínuo, mock aprovado 2026-07-17): o
+   "Estamos atualizando" deixou de ser tela própria e virou conteúdo do #splash.
+   Dois jeitos de acender: html.splash-atualizando (PRIMEIRO frame do boot, sinal
+   local lido síncrono no head, decisão William "precisa ser a primeira tela") ou
+   #splash.splash--atualizando (morph no meio do boot, update achado tarde).
+   Cores fixas claras de propósito: as telas de abertura são sempre claras. */
+.splash-up { display: flex; flex-direction: column; align-items: center; gap: 8px; max-height: 0; opacity: 0; overflow: hidden; text-align: center; transition: max-height .45s ease, opacity .45s ease; }
+html.splash-atualizando .splash-up, .splash--atualizando .splash-up { max-height: 220px; opacity: 1; }
+/* No 1º frame o pulso nem existe (sem transição); no morph ele recolhe suave. */
+html.splash-atualizando .splash-pl__ecg, html.splash-atualizando .splash-sk__msg { display: none; }
+.splash--atualizando .splash-pl__ecg, .splash--atualizando .splash-sk__msg { opacity: 0; transition: opacity .3s ease; }
+/* A cortina fica em cena nesses estados mesmo sem sessão a restaurar, e vence o
+   splash-off (update de boot pra quem não marcou manter conectado). */
+html.splash-atualizando .splash, html.splash-retomada .splash { display: block; }
+.splash-up__t { margin-top: 4px; font-family: var(--font-display, 'Poppins'), sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -.01em; color: #1E2D1A; }
+.splash-up__s { font-size: 13.5px; color: #4e6357; margin-top: -4px; }
+.splash-up__bar { width: min(220px, 62vw); height: 7px; border-radius: 999px; background: #d7e4d8; overflow: hidden; margin-top: 10px; }
 /* Preenchimento por transform: scaleX (COMPOSITADO), pintado por WAAPI no app.js (nasce
    em 0, enche até 90% no palco ~2s, fecho em 100%). transform-origin left: o track não
    muda visualmente; imune ao jank do boot na main thread (bug William v353). */
-.up-screen__bar i { display: block; height: 100%; width: 100%; transform: scaleX(0); transform-origin: left center; border-radius: 999px; background: linear-gradient(90deg, var(--plum-soft), var(--plum)); }
+.splash-up__bar i { display: block; height: 100%; width: 100%; transform: scaleX(0); transform-origin: left center; border-radius: 999px; background: linear-gradient(90deg, #1AA34F, #008835); }
 /* Percentual discreto que acompanha a barra: tabular-nums pra a largura não pular a cada
    dígito (movimento da barra segue compositado; só o texto lê o progresso por rAF leve). */
-.up-screen__pct { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-.up-screen__m { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
-@media (prefers-reduced-motion: reduce) { .up-screen__mark { animation: none; } }
+.splash-up__pct { font-size: 11.5px; color: #4e6357; margin-top: 4px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.splash-up__m { font-size: 11.5px; color: #4e6357; margin-top: 2px; }
 
 /* Login minimalista — card flutuante (variante C aprovada) */
 .login {

@@ -22,8 +22,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=365" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=365" />
+  <link rel="stylesheet" href="styles.css?v=366" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=366" />
   <!-- Decide ANTES de renderizar, sincrono, o MODO da abertura. Estilo Apple:
        com sessao a restaurar mostra o Pulso da marca (cobre so o load, some assim
        que o app fica pronto); sem sessao vai direto pro login.
@@ -33,7 +33,23 @@
     try {
       var _root = document.documentElement;
       var _manter = localStorage.getItem("fiopulse:manterConectado") === "1";
-      if (_manter) {
+      // Boot continuo (mock aprovado 2026-07-17): a cortina e UMA e ja nasce no
+      // estado certo, decidido AQUI, sincrono, antes do primeiro paint.
+      var _retomada = false, _upPend = false;
+      try { _retomada = sessionStorage.getItem("fiopulse:swReloaded") === "1"; } catch (e2) {}
+      try { _upPend = localStorage.getItem("fiopulse:updatePendente") === "1"; } catch (e2) {}
+      if (_retomada) {
+        // Acabamos de recarregar por atualizacao: re-pinta a MESMA cortina no 1o
+        // frame (sem replay de abertura) e revela assim que o app ficar pronto.
+        _root.classList.add("splash-skeleton", "splash-retomada");
+        window.__splashMin = 0;
+      } else if (_upPend) {
+        // Pacote novo esperando desde a sessao anterior: a PRIMEIRA tela ja e a
+        // atualizacao (marca + barra), sem pulso antes (William 2026-07-17). Se o
+        // sinal mentir (sem worker esperando), o boot segue e hideSplash revela.
+        _root.classList.add("splash-skeleton", "splash-atualizando");
+        window.__splashMin = 0;
+      } else if (_manter) {
         // Sessao a restaurar: o Pulso da marca cobre o load e some quando fica pronto.
         _root.classList.add("splash-skeleton");
         window.__splashMin = 300;
@@ -67,6 +83,15 @@
         <svg class="splash-pl__ecg" viewBox="0 0 210 56" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M2 28h44l10 22 18-44 12 34 8 -12 10 22h84"/></svg>
         <div class="splash-pl__wm">FioPulse</div>
         <div class="splash-sk__msg" role="status">Carregando...</div>
+        <!-- Estado "atualizando" DA MESMA cortina (nunca uma tela a parte): visivel
+             via html.splash-atualizando (1o frame) ou .splash--atualizando (morph). -->
+        <div class="splash-up" role="status" aria-live="polite">
+          <div class="splash-up__t">Estamos atualizando o app</div>
+          <div class="splash-up__s">pra você ter uma experiência melhor</div>
+          <div class="splash-up__bar"><i></i></div>
+          <div class="splash-up__pct" aria-hidden="true">0%</div>
+          <div class="splash-up__m">isso leva só um instante</div>
+        </div>
       </div>
     </div>
 
@@ -297,16 +322,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=365"></script>
-  <script defer src="data.js?v=365"></script>
+  <script defer src="utils.js?v=366"></script>
+  <script defer src="data.js?v=366"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=365"></script>
+  <script defer src="app.js?v=366"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=365"></script>
-  <script defer src="google-drive.js?v=365"></script>
+  <script defer src="firebase.js?v=366"></script>
+  <script defer src="google-drive.js?v=366"></script>
 </body>
 </html>
