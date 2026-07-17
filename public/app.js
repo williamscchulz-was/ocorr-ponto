@@ -2478,6 +2478,7 @@ async function onParabenizar(heart) {
   if (!post) return;
   const card = heart.closest(".pp-bday") || heart.parentElement;
   const cnt = card && card.querySelector("[data-bday-count]");
+  const stackEl = card && card.querySelector("[data-bday-stack]");
   const wasOn = heart.classList.contains("on");
   const ligar = !wasOn;
   const totalAntes = Number(heart.dataset.bdayTotal || "0") || 0;
@@ -2489,9 +2490,16 @@ async function onParabenizar(heart) {
     heart.dataset.bdayTotal = String(total);
     heart.dataset.bdayMine = mine ? "1" : "0";
     if (cnt) cnt.textContent = _parabTexto(total, mine, false);
-    // Cache acompanha o otimista: um re-render no meio do toggle nasce no estado novo.
+    // Cache acompanha o otimista, INCLUSIVE a lista de reações: meu chip entra na
+    // pilha NA HORA do toque (William 2026-07-17, "está igual"), na frente pra
+    // ficar visível mesmo com a pilha cheia; desligar tira. O revert do catch
+    // passa por aqui também, então a pilha volta sozinha no erro.
     const cc = state._reacoesCache || (state._reacoesCache = {});
-    cc[post] = { ...(cc[post] || { reacoes: [] }), total, minhaReacao: mine };
+    const atual = cc[post] || { reacoes: [] };
+    const semEu = (atual.reacoes || []).filter((r) => r.uid !== state.currentUserId);
+    const reacoes = mine ? [{ uid: state.currentUserId, nome: (currentUser() || {}).nome || "" }, ...semEu] : semEu;
+    cc[post] = { ...atual, reacoes, total, minhaReacao: mine };
+    if (stackEl) stackEl.innerHTML = _bdayStackHtml(reacoes);
   };
   aplica(ligar, totalDepois, ligar);
   heart.dataset.busy = "1";
@@ -17987,7 +17995,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.91.0";
+window.CURRENT_VERSION = "1.91.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
