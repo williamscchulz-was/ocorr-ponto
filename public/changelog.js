@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.93.0", d: "17 jul 2026", current: true, items: [
+    v: "1.94.0", d: "17 jul 2026", current: true, items: [
+      { type: "feat", title: "A tela Documentos agora carrega de uma vez: um esqueleto discreto com barra de progresso enquanto busca, e tudo (termos e publicados) aparece junto, sem conteudo pingando." },
+      { type: "fix", title: "O botao Comprovante nunca mais fica mudo: se o arquivo nao estiver no cofre, o comprovante e gerado na hora a partir do registro da sua assinatura." },
+    ],
+  },
+  {
+    v: "1.93.0", d: "17 jul 2026", items: [
       { type: "high", title: "Abertura continua, sem piscadas: a tela de abertura agora e uma so do toque ate o app pronto. Quando ha atualizacao, ela e a primeira coisa que aparece (marca + barra), o recarregamento acontece invisivel por baixo e a escolha de portal entra em cascata suave, sem cortes." },
     ],
   },

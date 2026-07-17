@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentos: carga única, sem pingar conteúdo</title>
+<style>
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-400-latin.woff2') format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-600-latin.woff2') format('woff2');font-weight:600;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-700-latin.woff2') format('woff2');font-weight:700;font-display:swap}
+  :root{--milk:#F6F8F4;--surface:#fff;--border:#E7EDE4;--bs:#D8E2D3;--tb:#1E2D1A;--tm:#4A6245;--plum:#008835;--sh:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05)}
+  html.dark{--milk:#0E130E;--surface:#161D15;--border:#232C22;--bs:#2A332A;--tb:#EDF3EA;--tm:#8A9884;--plum:#5FCB85;--sh:0 2px 10px -4px rgba(0,0,0,.55)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Poppins',system-ui,sans-serif;background:var(--milk);color:var(--tb);padding:26px 16px 60px}
+  .wrap{max-width:640px;margin:0 auto}
+  header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  h1{font-size:19px;font-weight:700}
+  .sub{font-size:12.5px;color:var(--tm);margin-top:3px;line-height:1.5;max-width:460px}
+  .tema,.replay{border:1px solid var(--bs);background:var(--surface);color:var(--tb);border-radius:999px;padding:7px 14px;font:600 11.5px 'Poppins',sans-serif;cursor:pointer}
+  .replay{margin-top:14px;border-color:var(--plum);color:var(--plum)}
+  .fone{max-width:392px;margin-top:16px;background:var(--milk);border:1px solid var(--border);border-radius:22px;padding:16px 14px;box-shadow:var(--sh);position:relative;min-height:430px}
+
+  /* barra fina de progresso no topo da tela (a UNICA coisa que se move na carga) */
+  .ldbar{position:absolute;top:0;left:14px;right:14px;height:3px;border-radius:0 0 99px 99px;overflow:hidden;opacity:0}
+  .ldbar i{display:block;height:100%;background:linear-gradient(90deg,var(--plum),#1AA34F);border-radius:99px;transform:scaleX(0);transform-origin:left}
+  .fone.carregando .ldbar{opacity:1}
+
+  .h2{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--tm);margin:14px 0 8px}
+  .rw{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:8px;box-shadow:var(--sh)}
+  .rw .ic{width:34px;height:34px;border-radius:10px;background:rgba(0,136,53,.12);flex:none;display:grid;place-items:center;color:var(--plum)}
+  .rw .ic svg{width:17px;height:17px}
+  .rw b{font-size:13px;display:block}
+  .rw s{text-decoration:none;font-size:10.5px;color:var(--tm)}
+  .rw .ro{margin-left:auto;font-size:10.5px;color:var(--plum);font-weight:600;flex:none}
+
+  /* skeleton: mesma GEOMETRIA das linhas reais (nada salta quando troca) */
+  .sk .rw{box-shadow:none}
+  .sk .ic,.sk .ln{background:linear-gradient(90deg,var(--border) 25%,var(--bs) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+  .sk .ic{color:transparent}
+  .sk .ln{border-radius:6px;height:11px}
+  .sk .ln--t{width:60%;margin-bottom:6px}
+  .sk .ln--s{width:38%}
+  .sk .h2ln{width:92px;height:9px;border-radius:6px;margin:14px 0 8px;background:linear-gradient(90deg,var(--border) 25%,var(--bs) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  #conteudo{display:none}
+  .nota{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:12px;line-height:1.6;color:var(--tm)}
+  .nota b{color:var(--tb)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Documentos: a tela nasce inteira</h1>
+      <p class="sub">Toca em "ver a carga de novo": skeleton com a geometria real + barra fina no topo, e quando TUDO está pronto (termos e publicados juntos) a tela se revela de uma vez. Nada pinga depois.</p>
+    </div>
+    <button class="tema" onclick="document.documentElement.classList.toggle('dark')">claro · escuro</button>
+  </header>
+  <button class="replay" id="replay">Ver a carga de novo</button>
+
+  <div class="fone" id="fone">
+    <div class="ldbar"><i id="ldi"></i></div>
+
+    <div id="skel">
+      <div class="h2ln"></div>
+      <div class="sk">
+        <div class="rw"><span class="ic"></span><span style="flex:1"><span class="ln ln--t"></span><span class="ln ln--s" style="display:block"></span></span></div>
+        <div class="rw"><span class="ic"></span><span style="flex:1"><span class="ln ln--t"></span><span class="ln ln--s" style="display:block"></span></span></div>
+      </div>
+      <div class="h2ln"></div>
+      <div class="sk">
+        <div class="rw"><span class="ic"></span><span style="flex:1"><span class="ln ln--t"></span><span class="ln ln--s" style="display:block"></span></span></div>
+        <div class="rw"><span class="ic"></span><span style="flex:1"><span class="ln ln--t"></span><span class="ln ln--s" style="display:block"></span></span></div>
+        <div class="rw"><span class="ic"></span><span style="flex:1"><span class="ln ln--t"></span><span class="ln ln--s" style="display:block"></span></span></div>
+      </div>
+    </div>
+
+    <div id="conteudo">
+      <div class="h2">Meus termos</div>
+      <div class="rw"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span><span><b>Termo de Adesão à Assinatura Eletrônica</b><s>Aceito em 12/07/2026</s></span><span class="ro">Comprovante</span></div>
+      <div class="rw"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span><b>Termo do Canal de Denúncia</b><s>Aceito em 17/07/2026</s></span><span class="ro">Comprovante</span></div>
+      <div class="h2">Publicados</div>
+      <div class="rw"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></span><span><b>Regulamento Interno</b><s>Assinado · v1</s></span><span class="ro">Comprovante</span></div>
+      <div class="rw"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></span><span><b>Política de Segurança</b><s>Leitura confirmada</s></span><span class="ro">OK</span></div>
+      <div class="rw"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></span><span><b>Manual de Benefícios</b><s>Publicado em 10/07/2026</s></span><span class="ro">Abrir</span></div>
+    </div>
+  </div>
+
+  <div class="nota"><b>Regras da carga única:</b> o skeleton tem a MESMA geometria das linhas reais (nada salta na troca); a barra fina no topo é o único movimento; a revelação só acontece quando termos E publicados chegaram, com um fade e leve subida de uma vez só. Cargas seguintes na mesma sessão nem mostram skeleton: a tela nasce pronta do cache, como manda a metodologia.</div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  function carregar() {
+    const fone = $("fone"), sk = $("skel"), ct = $("conteudo"), bar = $("ldi");
+    ct.style.display = "none"; sk.style.display = "block";
+    fone.classList.add("carregando");
+    bar.getAnimations?.().forEach((a) => a.cancel());
+    bar.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(.85)" }], { duration: 1400, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
+    setTimeout(() => {
+      bar.animate([{ transform: "scaleX(.85)" }, { transform: "scaleX(1)" }], { duration: 180, fill: "forwards" });
+      setTimeout(() => {
+        fone.classList.remove("carregando");
+        sk.style.display = "none"; ct.style.display = "block";
+        ct.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
+      }, 220);
+    }, 1500);
+  }
+  $("replay").addEventListener("click", carregar);
+  carregar();
+</script>
+</body>
+</html>

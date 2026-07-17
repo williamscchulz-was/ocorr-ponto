@@ -2065,6 +2065,23 @@ function renderColabFolha() {
 function renderColabDocumentos() {
   cpRefreshAoAbrir();
   carregarMeusTermosAoAbrir();
+  // Carga ÚNICA (mock aprovado 2026-07-17, "super aprovado"): enquanto os termos da
+  // 1ª carga da sessão voam, a tela mostra SKELETON com a MESMA geometria das linhas
+  // reais + barra fina no topo (único movimento). Nada de conteúdo pingando por
+  // partes; quando tudo chega, a tela nasce inteira com revelação one-shot (WAAPI).
+  // Cargas seguintes da sessão (meusTermos já no cache) nem passam por aqui.
+  if (state.meusTermos === undefined) {
+    state._docsRevelar = true;
+    const skRw = `<div class="pp-rw cpdoc-sk__rw"><span class="cpdoc-sk__ic"></span><span class="cpdoc-sk__bd"><span class="cpdoc-sk__ln cpdoc-sk__ln--t"></span><span class="cpdoc-sk__ln cpdoc-sk__ln--s"></span></span></div>`;
+    if (setHtml($("#view"), `<div class="pp-fade"><div class="cpdoc-ld__bar" aria-hidden="true"><i></i></div><div class="pp-hi"><h1>Documentos</h1></div>
+      <div class="cpdoc-sk__h"></div><div class="pp-grp">${skRw}${skRw}</div>
+      <div class="cpdoc-sk__h"></div><div class="pp-grp">${skRw}${skRw}${skRw}</div></div>`)) {
+      const i = $("#view").querySelector(".cpdoc-ld__bar i");
+      if (i && typeof i.animate === "function" && !prefereMenosMovimento())
+        i.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(.85)" }], { duration: 1400, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
+    }
+    return;
+  }
   const lista = (state.documentosColab || []).slice().sort((a, b) => String(b.publicadoEm || "").localeCompare(String(a.publicadoEm || "")));
   const pend = lista.filter(colabDocPendente);
   const emdia = lista.filter((d) => !colabDocPendente(d));
@@ -2085,6 +2102,7 @@ function renderColabDocumentos() {
       ${colabVazioHtml("file", "Nenhum documento pra você por enquanto. Quando a GP publicar regras, conduta ou políticas do seu segmento, aparece aqui.")}</div>`)) {
       bindColabVazioAtz($("#view"));
     }
+    _docsRevelaAposSkeleton();
     return;
   }
   setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div>`
@@ -2092,6 +2110,17 @@ function renderColabDocumentos() {
     + (emdia.length ? `<div class="pp-ovl">Publicados</div><div class="pp-grp">${emdia.map(colabDocRowHtml).join("")}</div>` : "")
     + termosGrp
     + `</div>`);
+  _docsRevelaAposSkeleton();
+}
+
+// Revelação única após o skeleton (só na transição da 1ª carga): fade + leve subida,
+// one-shot WAAPI (nunca classe/estilo persistente; re-render não re-cascateia).
+function _docsRevelaAposSkeleton() {
+  if (!state._docsRevelar) return;
+  state._docsRevelar = false;
+  const v = $("#view") && $("#view").firstElementChild;
+  if (v && typeof v.animate === "function" && !prefereMenosMovimento())
+    v.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
 }
 
 // Carga sob demanda dos aceites ao abrir a tela Documentos (padrão de cache da casa: a
@@ -2252,7 +2281,33 @@ async function abrirComprovanteColab(docId) {
     const path = d && d.minhaAssinatura && d.minhaAssinatura.arquivoPath;
     if (!path) return toast("Comprovante indisponível.", "danger");
     const url = window.urlArquivoAssinado ? await window.urlArquivoAssinado(path) : null;
-    if (!url) return toast(msgErroComprovante(window.__ultimoErroStorage), "danger");
+    if (!url) {
+      // Cofre SEM o arquivo (assinatura da época em que o upload podia falhar mudo,
+      // caso Regulamento do William 2026-07-17): gera o comprovante NA HORA a partir
+      // do registro da trilha, a mesma geração local dos termos, que nunca falha.
+      // Só no object-not-found; outras causas (rede, permissão) mantêm a mensagem.
+      if (window.__ultimoErroStorage === "storage/object-not-found") {
+        const ass = d.minhaAssinatura;
+        const f = (state.funcionarios && state.funcionarios[0]) || null;
+        const dtAss = (typeof tsParaData === "function") ? tsParaData(ass.em) : (ass.em ? new Date(ass.em) : null);
+        const quando = dtAss ? dtAss.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+        const { dataUrl } = await gerarComprovantePdf(d, {
+          titulo: d.titulo || docTipoLabel(d.tipo),
+          tipoLabel: docTipoLabel(d.tipo),
+          docId,
+          versaoAssinada: ass.versaoAssinada || d.versao || 1,
+          nome: (f && f.nome) || currentUser()?.nome || "",
+          codigo: (f && f.codigo) || "",
+          quando,
+          geo: ass.geo || null,
+          hashOriginal: ass.hashOriginal || "",
+          aceiteTexto: "Li o documento e estou de acordo. Autorizo o registro eletrônico da minha assinatura.",
+        });
+        openDocViewer({ titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url: dataUrl, nome: "comprovante.pdf", mime: "application/pdf" } });
+        return;
+      }
+      return toast(msgErroComprovante(window.__ultimoErroStorage), "danger");
+    }
     openDocViewer({ titulo: `Comprovante · ${d.titulo || docTipoLabel(d.tipo)}`, tipo: "Assinado", anexo: { url, nome: "comprovante.pdf", mime: "application/pdf" } });
   } catch (e) {
     debug?.("[comprovante colab]", e?.message || e);
@@ -18024,7 +18079,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.93.0";
+window.CURRENT_VERSION = "1.94.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

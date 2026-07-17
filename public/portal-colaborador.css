@@ -697,6 +697,22 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 .pp-bday--tdc::after{background:radial-gradient(circle,rgba(0,136,53,.13),transparent 70%)}
 .pp-bday--tdc .pp-bday__ic{background:rgba(0,136,53,.12);color:var(--plum)}
 
+/* Carga única da tela Documentos (mock aprovado 2026-07-17): skeleton com a MESMA
+   geometria das linhas reais + barra fina no topo como único movimento. Só na 1ª
+   carga da sessão; depois a tela nasce pronta do cache. */
+.cpdoc-ld__bar{height:3px;border-radius:99px;overflow:hidden;margin:-2px 0 10px;background:var(--border)}
+.cpdoc-ld__bar i{display:block;height:100%;background:linear-gradient(90deg,var(--plum),#1AA34F);border-radius:99px;transform:scaleX(0);transform-origin:left}
+.cpdoc-sk__h{width:92px;height:9px;border-radius:6px;margin:14px 0 8px}
+.cpdoc-sk__rw{cursor:default}
+.cpdoc-sk__ic{width:34px;height:34px;border-radius:10px;flex:none}
+.cpdoc-sk__bd{flex:1;min-width:0}
+.cpdoc-sk__ln{display:block;height:11px;border-radius:6px}
+.cpdoc-sk__ln--t{width:60%;margin-bottom:6px}
+.cpdoc-sk__ln--s{width:38%}
+.cpdoc-sk__h,.cpdoc-sk__ic,.cpdoc-sk__ln{background:linear-gradient(90deg,var(--border) 25%,var(--border-strong) 50%,var(--border) 75%);background-size:200% 100%;animation:cpdocShimmer 1.4s infinite}
+@keyframes cpdocShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.cpdoc-sk__h,.cpdoc-sk__ic,.cpdoc-sk__ln{animation:none}}
+
 /* ============================================================
    PESQUISA DE CLIMA — responder (colaborador). Portado do mock aprovado
    docs/mockups/clima-mock-2026-07.html. .seal e .helpnote vivem em styles.css
