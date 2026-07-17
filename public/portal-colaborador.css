@@ -692,6 +692,10 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 .pp-bday__stk{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface);margin-left:-7px;display:grid;place-items:center;color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 .pp-bday__stk:first-child{margin-left:0}
 .pp-bday__stk--foto{background-size:cover;background-position:center}
+.pp-bday__mais{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface);margin-left:-7px;display:grid;place-items:center;background:var(--border-strong);color:var(--text-muted);font-size:8.5px;font-weight:700;flex:none}
+/* Tempo de casa: mesmo card do aniversário, tinta verde (medalha) no lugar do âmbar. */
+.pp-bday--tdc::after{background:radial-gradient(circle,rgba(0,136,53,.13),transparent 70%)}
+.pp-bday--tdc .pp-bday__ic{background:rgba(0,136,53,.12);color:var(--plum)}
 
 /* ============================================================
    PESQUISA DE CLIMA — responder (colaborador). Portado do mock aprovado

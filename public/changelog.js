@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.90.1", d: "17 jul 2026", current: true, items: [
+    v: "1.91.0", d: "17 jul 2026", current: true, items: [
+      { type: "high", title: "O mural da home agora celebra tempo de casa: no dia do aniversario de admissao de um colega, aparece o card com a medalha (Fulano completa 9 anos de Fiobras hoje) pra todo mundo parabenizar com o coracao." },
+      { type: "feat", title: "Quem parabeniza aparece com a foto de verdade: a sua e as dos colegas entram na pilha do card (quem nao tem foto segue nas iniciais), com contador quando passa de 4." },
+    ],
+  },
+  {
+    v: "1.90.1", d: "17 jul 2026", items: [
       { type: "fix", title: "A barra de navegacao nao fica mais presa no meio da tela durante a rolagem no iPhone." },
       { type: "fix", title: "O botao Comprovante dos documentos assinados agora sempre responde: se o cofre demorar, o app avisa em poucos segundos em vez de ficar em silencio." },
     ],

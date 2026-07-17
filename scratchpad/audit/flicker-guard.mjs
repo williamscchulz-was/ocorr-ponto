@@ -106,6 +106,7 @@ await p.evaluate(() => {
   state.aniversariantes = {
     pessoas: [{ nome: "Fulana Guarda", mes: hoje.getMonth() + 1, dia: hoje.getDate() }],
     recemChegados: [{ nome: "Novato Guarda", admissao: admIso, setor: "Producao" }],
+    tempoCasa: [{ nome: "Veterano Guarda", mes: hoje.getMonth() + 1, dia: hoje.getDate(), anos: 9 }],
   };
 });
 console.log("GESTOR:");

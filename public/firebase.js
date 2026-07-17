@@ -1647,6 +1647,26 @@
       }
     };
 
+    // Fotos de quem reagiu, por uid, lidas do PLACAR da gamificação (pontos/{uid}.foto,
+    // denormalizada com autorização de imagem, a mesma fonte do ranking; leitura aberta
+    // a autenticado). Cache de sessão em state._fotoReatorCache: "" = sabidamente sem
+    // foto (não re-busca); erro NÃO cacheia (tenta de novo no próximo preenchimento).
+    // O próprio uid não entra (a foto dele vem do users doc, já no state).
+    window.carregarFotosReatores = async function (uids) {
+      const cc = state._fotoReatorCache || (state._fotoReatorCache = {});
+      const meu = auth.currentUser && auth.currentUser.uid;
+      const falta = [...new Set(uids || [])].filter((u) => u && u !== meu && cc[u] === undefined);
+      if (!falta.length) return;
+      const pontos = db.collection("gamificacao").doc(String(new Date().getFullYear())).collection("pontos");
+      await Promise.all(falta.map(async (u) => {
+        try {
+          const s = await pontos.doc(u).get();
+          const f = s.exists ? s.data().foto : "";
+          cc[u] = (typeof f === "string" && f.indexOf("data:image/") === 0) ? f : "";
+        } catch (e) { debug?.("[mural fotos] placar:", e?.code || e?.message); }
+      }));
+    };
+
     // Toggle de reação do mural. ligar=true -> set reacoes/{uid}; ligar=false -> delete.
     // Retorna o novo estado (bool). Id da doc = uid (rule exige request.auth.uid == uid).
     // tipo: 'coracao' (post de aniversário) ou 'bemvindo' (post bv- de boas-vindas);
@@ -1800,6 +1820,7 @@
         if (!r || r.minhaReacao !== true) continue;
         if (post.startsWith("aniv-")) pend.push(["coracao", post, "Parabenizou um colega"]);
         else if (post.startsWith("bv-")) pend.push(["boas-vindas", post, "Deu boas-vindas a um colega"]);
+        else if (post.startsWith("tdc-")) pend.push(["tempo-casa", post, "Parabenizou um colega pelo tempo de casa"]);
       }
       // Foto NUNCA entra no catch-up (decisao William, gate delta 3): o ponto e pelo ATO
       // de trocar/adicionar (gancho no atualizarMinhaFoto). As fotos oficiais importadas

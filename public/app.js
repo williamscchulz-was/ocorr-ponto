@@ -2371,6 +2371,12 @@ function bvPostId(nome, admissao) {
   return `bv-${slugify(String(nome || ""))}-${ano}`;
 }
 
+// postId de tempo de casa = "tdc-<slug>-<ano CORRENTE>" (recorrente todo ano, igual ao
+// aniv-; shape confirmado pelo pipeline em 2026-07-17).
+function tdcPostId(nome) {
+  return `tdc-${slugify(String(nome || ""))}-${new Date().getFullYear()}`;
+}
+
 // Cor determinística por nome para os avatares de iniciais (paleta sóbria da marca).
 function _muralCor(nome) {
   const cores = ["#008835", "#0076BE", "#1AA34F", "#7a4fbf", "#c48a1a", "#0B7A36"];
@@ -2403,22 +2409,30 @@ function _parabTexto(total, mine, ehEu) {
 // "like some e volta" da auditoria do WKRADAR (2026-07-14).
 const _reacoesCached = (post) => (state._reacoesCache || {})[post] || null;
 
+// Foto de um reator por uid, do cache de sessão (alimentado por carregarFotosReatores,
+// que lê o placar da gamificação: foto denormalizada com autorização de imagem, a MESMA
+// fonte do ranking). "" = sabidamente sem foto; undefined = ainda não buscada.
+const _fotoReator = (uid) => (state._fotoReatorCache || {})[uid] || "";
+
 // Pilha de mini-avatares de quem reagiu (compartilhada entre o template, que nasce do
-// cache, e o preenchedor assíncrono).
+// cache, e o preenchedor assíncrono). Até 4 rostos + contador do restante.
 function _bdayStackHtml(reacoes) {
-  return (reacoes || []).slice(0, 4)
+  const lista = reacoes || [];
+  const chips = lista.slice(0, 4)
     .map((r) => {
-      // A MINHA reação mostra a MINHA foto (o colab tem o próprio funcionário em
-      // state.funcionarios[0]); as dos colegas ficam como iniciais (o colab não tem o
-      // diretório pra puxar foto de terceiro). autorNome vem da reação (v307).
+      // A MINHA foto vem do users doc (a mesma da saudação; o cadastro de funcionário
+      // não guarda foto). As dos colegas vêm do placar via _fotoReator; quem não tem
+      // foto lá fica nas iniciais. autorNome vem da reação (v307).
       const souEu = state.currentUserId && r.uid === state.currentUserId;
-      const fEu = (state.funcionarios && state.funcionarios[0]) || null;
-      const _foto = fEu && fEu.fotoBase64;
-      const fotoEu = (souEu && typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
-      if (fotoEu) return `<span class="pp-bday__stk pp-bday__stk--foto" style="background-image:url('${fotoEu}')" title="Você"></span>`;
-      const nome = souEu ? ((fEu && fEu.nome) || r.nome || "") : (r.nome || "");
+      const u = currentUser();
+      const _foto = souEu ? (u && u.fotoBase64) : _fotoReator(r.uid);
+      const foto = (typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
+      const nome = souEu ? ((u && u.nome) || r.nome || "") : (r.nome || "");
+      if (foto) return `<span class="pp-bday__stk pp-bday__stk--foto" style="background-image:url('${foto}')" title="${escapeHtml(souEu ? "Você" : nome)}"></span>`;
       return `<span class="pp-bday__stk" style="background:${_muralCor(nome || r.uid || "")}" title="${escapeHtml(souEu ? "Você" : nome)}">${escapeHtml(nome ? initials(nome) : "")}</span>`;
     }).join("");
+  const resto = lista.length - 4;
+  return chips + (resto > 0 ? `<span class="pp-bday__mais">+${resto}</span>` : "");
 }
 
 // Preenche os cards de aniversário da home de forma assíncrona: para cada [data-bday-post]
@@ -2447,7 +2461,12 @@ async function preencherCardsAniversario() {
       heart.dataset.bdayMine = dados.minhaReacao ? "1" : "0";
     }
     const stack = el.querySelector("[data-bday-stack]");
-    if (stack) stack.innerHTML = _bdayStackHtml(dados.reacoes);
+    if (stack) {
+      // Busca as fotos dos até 4 da pilha ANTES de escrever (cache de sessão; barato).
+      try { await window.carregarFotosReatores?.((dados.reacoes || []).slice(0, 4).map((r) => r.uid)); } catch { /* fica nas iniciais */ }
+      if (!document.contains(el)) return;
+      stack.innerHTML = _bdayStackHtml(dados.reacoes);
+    }
   }));
 }
 
@@ -2484,7 +2503,13 @@ async function onParabenizar(heart) {
     // aqui (o extrato de pontos mostra).
     if (ligar) {
       const primeiro = (heart.getAttribute("aria-label") || "").replace(/^Parabenizar /, "").trim();
-      window.gamiClaim?.("coracao", post, primeiro ? `Parabenizou ${primeiro}` : "Parabenizou um colega");
+      // tdc- credita a ação própria (rules 2026-07-17); aniv- segue no coração.
+      const ehTdc = post.startsWith("tdc-");
+      const acao = ehTdc ? "tempo-casa" : "coracao";
+      const rotulo = ehTdc
+        ? (primeiro ? `Parabenizou ${primeiro} pelo tempo de casa` : "Parabenizou um colega pelo tempo de casa")
+        : (primeiro ? `Parabenizou ${primeiro}` : "Parabenizou um colega");
+      window.gamiClaim?.(acao, post, rotulo);
     }
   } catch (err) {
     debug?.("[aniv parabenizar] falhou:", err?.code, err?.message);
@@ -2584,6 +2609,43 @@ function colabBoasVindasHtml(meuNome) {
         <div class="pp-bday__s" data-bv-count>${c ? escapeHtml(_bvTexto(c.total, mine)) : "..."}</div>
       </div>
       ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bv-hand data-bv-total="${c ? c.total : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Dar as boas-vindas a ${escapeHtml(primeiro)}">${_bvHand(mine)}</button>`}
+    </div>`;
+  }).join("");
+}
+
+// Tempo de casa na home do colaborador (2026-07-17, mock aprovado): card só no DIA do
+// aniversário de admissão. Fonte: config/aniversariantes.tempoCasa [{nome, dia, mes,
+// anos}] (pipeline, 68 pessoas). Reusa a liturgia inteira do aniversário: data-bday-post
+// (preenchedor/coração/pilha de fotos servem sem mudança), pai tdc- do pipeline, crédito
+// 'tempo-casa' resolvido em onParabenizar pelo prefixo. O próprio homenageado vê o card
+// como destaque (sem coração; não se parabeniza a si mesmo).
+function colabTempoCasaHtml(meuNome) {
+  const lista = (state.aniversariantes && Array.isArray(state.aniversariantes.tempoCasa))
+    ? state.aniversariantes.tempoCasa : [];
+  if (!lista.length) return "";
+  const hoje = new Date();
+  const mes = hoje.getMonth() + 1, diaHoje = hoje.getDate();
+  const eu = _normNome(meuNome);
+  const doDia = lista.filter((p) => Number(p.mes) === mes && Number(p.dia) === diaHoje && Number(p.anos) >= 1);
+  if (!doDia.length) return "";
+  return doDia.map((p) => {
+    const nome = String(p.nome || "").trim();
+    if (!nome) return "";
+    const souEu = eu && _normNome(nome) === eu;
+    const primeiro = nome.split(/\s+/)[0];
+    const anos = Number(p.anos);
+    const anosTxt = `${anos} ano${anos > 1 ? "s" : ""}`;
+    const post = tdcPostId(nome);
+    const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
+    const mine = !!(c && c.minhaReacao);
+    return `<div class="pp-bday pp-bday--tdc" data-bday-post="${escapeHtml(post)}"${souEu ? " data-bday-me" : ""}>
+      <div class="pp-bday__ic">${cpIcon("medalha")}</div>
+      <div class="pp-bday__bd">
+        <div class="pp-bday__t">${souEu ? `Você completa ${anosTxt} de Fiobras hoje` : `${escapeHtml(primeiro)} completa ${anosTxt} de Fiobras hoje`}</div>
+        <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine, !!souEu)) : "..."}</div>
+        <div class="pp-bday__stack" data-bday-stack>${c ? _bdayStackHtml(c.reacoes) : ""}</div>
+      </div>
+      ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>`}
     </div>`;
   }).join("");
 }
@@ -3268,6 +3330,7 @@ function renderColaboradorHome() {
         <div class="pp-home__col">
           ${comunicadoFixadoHtml()}
           <div class="pp-bday-m">${aniversarianteHojeHtml(nome)}</div>
+          <div class="pp-bday-m">${colabTempoCasaHtml(nome)}</div>
           <div class="pp-bday-m">${colabBoasVindasHtml(nome)}</div>
           <div class="pp-aniv-d">${aniversariantesDoMesHtml(nome)}</div>
         </div>
@@ -5174,6 +5237,7 @@ const GAMI_ACOES = [
   ["streak", "Sequência de 5 dias seguidos entrando no app", 1],
   ["coracao", "Parabenizou um aniversariante", 1],
   ["boas-vindas", "Deu boas-vindas a quem chegou", 1],
+  ["tempo-casa", "Parabenizou um colega por tempo de casa", 1],
 ];
 const GAMI_MARCOS_DEFAULT = [25, 50, 100, 150, 200];
 
@@ -17923,7 +17987,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.90.1";
+window.CURRENT_VERSION = "1.91.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
