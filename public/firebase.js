@@ -3889,6 +3889,10 @@
       state.documentos = [];
       state.comunicadosColab = [];
       state.documentosColab = [];
+      // Sinais da carga única de Documentos: sem resetar, o PRÓXIMO login da mesma
+      // aba pularia o skeleton com dados velhos/vazios (auditoria 2026-07-17).
+      state.documentosColabProntos = false;
+      state.meusTermos = undefined;
       state.ocorrenciasAuto = null; // null = recarrega no próximo acesso à aba
       state.monitorPipeline = null;
       state.aniversariantes = null;
@@ -4285,7 +4289,9 @@
       (async () => {
       // Documentos institucionais publicados do segmento. Mesma lógica de query por
       // segmento (a rule não filtra). O ramo 'pessoal' entra quando existir doc pessoal.
-      state.documentosColab = [];
+      // NUNCA zera a lista antes de re-buscar (auditoria William 2026-07-17, "termos
+      // aparecem antes"): o refetch de toda abertura de tela apagava os publicados por
+      // 1-2s e a tela pingava. A lista atual segue servindo e a troca é ATÔMICA no fim.
       try {
         const f2 = state.funcionarios[0] || null;
         const t2 = f2 ? f2.turno : null;

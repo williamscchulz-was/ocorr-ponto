@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.94.3", d: "17 jul 2026", current: true, items: [
+    v: "1.94.4", d: "17 jul 2026", current: true, items: [
+      { type: "fix", title: "Documentos de uma vez, agora de verdade: a atualizacao silenciosa da tela nao apaga mais os publicados enquanto re-busca, entao termos e publicados aparecem sempre juntos." },
+    ],
+  },
+  {
+    v: "1.94.3", d: "17 jul 2026", items: [
       { type: "fix", title: "Fim do pisca ao navegar: a animacao de entrada das telas agora roda uma unica vez por navegacao. Dados que chegam depois entram no lugar sem re-animar a tela inteira." },
     ],
   },
