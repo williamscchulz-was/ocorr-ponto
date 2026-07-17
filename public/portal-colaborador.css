@@ -499,11 +499,14 @@ html.modo-colab.cp-dark{
 
 /* entrada suave */
 @keyframes ppFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.pp-fade>*{animation:ppFade .4s both}
-.pp-fade>*:nth-child(2){animation-delay:.04s}.pp-fade>*:nth-child(3){animation-delay:.08s}
-.pp-fade>*:nth-child(4){animation-delay:.12s}.pp-fade>*:nth-child(5){animation-delay:.16s}
-.pp-fade>*:nth-child(6){animation-delay:.2s}.pp-fade>*:nth-child(7){animation-delay:.24s}
-@media (prefers-reduced-motion:reduce){.pp-fade>*{animation:none}}
+/* A cascata SÓ roda com html.pp-anima (ligada pelo router na troca de página e
+   desligada em re-render da mesma tela): dado assíncrono chegando depois da
+   navegação NÃO re-cascateia a tela (metodologia item 2; auditoria 2026-07-17). */
+html.pp-anima .pp-fade>*{animation:ppFade .4s both}
+html.pp-anima .pp-fade>*:nth-child(2){animation-delay:.04s}html.pp-anima .pp-fade>*:nth-child(3){animation-delay:.08s}
+html.pp-anima .pp-fade>*:nth-child(4){animation-delay:.12s}html.pp-anima .pp-fade>*:nth-child(5){animation-delay:.16s}
+html.pp-anima .pp-fade>*:nth-child(6){animation-delay:.2s}html.pp-anima .pp-fade>*:nth-child(7){animation-delay:.24s}
+@media (prefers-reduced-motion:reduce){html.pp-anima .pp-fade>*{animation:none}}
 
 /* chips de filtro (Avisos) */
 .pp-chips-f{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
@@ -793,7 +796,7 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 
 /* Fluxo (etapas) */
 .den-flow { display: flex; flex-direction: column; }
-.den-flow.pp-fade > * { animation: ppFade .34s both; }
+html.pp-anima .den-flow.pp-fade > * { animation: ppFade .34s both; }
 .den-hd { background: linear-gradient(162deg, #0a9a43, #008835 55%, #00702c); color: #fff; padding: 16px 18px 18px; border-radius: 0 0 22px 22px; margin: -6px -2px 16px; }
 /* Celular: TOPO ZERO como o resto do app (erro apontado pelo William 2026-07-15,
    o hero flutuava como card solto). As margens negativas casam o padding real do

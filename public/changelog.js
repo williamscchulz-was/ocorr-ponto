@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.94.2", d: "17 jul 2026", current: true, items: [
+    v: "1.94.3", d: "17 jul 2026", current: true, items: [
+      { type: "fix", title: "Fim do pisca ao navegar: a animacao de entrada das telas agora roda uma unica vez por navegacao. Dados que chegam depois entram no lugar sem re-animar a tela inteira." },
+    ],
+  },
+  {
+    v: "1.94.2", d: "17 jul 2026", items: [
       { type: "fix", title: "Documentos agora e carga unica de verdade: o esqueleto so cede quando termos E publicados chegaram juntos, nada mais pinga depois." },
       { type: "fix", title: "Entrar em Conquistas ficou suave: a primeira carga revela a tela com transicao em vez de trocar num corte." },
     ],

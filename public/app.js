@@ -4600,6 +4600,18 @@ function renderApp() {
 }
 
 function _renderAppNow() {
+  // Cascata de entrada SÓ na troca de página (auditoria William 2026-07-17, "ainda
+  // pisca"): a animação .pp-fade>* era CSS por classe e re-rodava em TODO re-render
+  // com DOM novo (dado assíncrono chegando = tela re-cascateava = pisca). Agora o
+  // CSS é guardado por html.pp-anima: o router liga na NAVEGAÇÃO e desliga em
+  // qualquer re-render da MESMA página, então nó novo de re-render não anima.
+  const _pg = state.view && state.view.page;
+  if (_pg !== window.__ppUltimaPage) {
+    window.__ppUltimaPage = _pg;
+    document.documentElement.classList.add("pp-anima");
+  } else {
+    document.documentElement.classList.remove("pp-anima");
+  }
   const u = currentUser();
   if (!u) { mostrarAcesso(); return; }
   // Sessão viva mas ESTACIONADA na escolha de portal (boot restaurado ou "Trocar de
@@ -18100,7 +18112,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.94.2";
+window.CURRENT_VERSION = "1.94.3";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
