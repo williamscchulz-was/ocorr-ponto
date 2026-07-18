@@ -36,6 +36,11 @@ const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, service
 await ctx.route("**/firebase.config.js*", (r) => r.abort());
 await ctx.route("**gstatic.com**", (r) => r.abort());
 const p = await ctx.newPage();
+// __semVT: desliga a View Transition de navegação no harness. login() agenda um
+// renderApp e a troca de portal (gestor -> colab) mudaria de página; sem esta flag
+// isso viraria uma transição async de 240ms com pseudo-elementos, contaminando a
+// medição de flicker. Os re-renders do probe já usam _renderAppNow direto.
+await p.addInitScript(() => { window.__semVT = true; });
 const jsErros = [];
 p.on("pageerror", (e) => jsErros.push(String(e).slice(0, 200)));
 await p.goto("http://localhost:8081/public/index.html", { waitUntil: "networkidle" });

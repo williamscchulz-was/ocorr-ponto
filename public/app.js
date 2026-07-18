@@ -4713,7 +4713,11 @@ function renderApp() {
     // window.scrollY < 4: página ROLADA não transiciona (bug real do Safari iOS
     // 2026-07-15, o William viu a tela inteira deslocada com vão preto: o snapshot
     // da transição é pintado com o offset do scroll). Rolado = troca seca, correta.
-    if (trocouPagina && document.startViewTransition && !prefereMenosMovimento() && window.scrollY < 4) {
+    // __semVT / __fpForceWrite: bypass de harness. Os probes anti-flicker chamam
+    // _renderAppNow direto (não passam por aqui), mas login() agenda um renderApp; com
+    // a flag ligada a troca de portal no harness nunca vira transição async, então a
+    // medição fica determinística. Em produção as duas são undefined: sem efeito.
+    if (trocouPagina && document.startViewTransition && !prefereMenosMovimento() && window.scrollY < 4 && !window.__semVT && !window.__fpForceWrite) {
       // .ready rejeita se a transição é pulada (ex.: view-transition-name duplicado):
       // engole pra não virar unhandledrejection no console (o abort já é silencioso).
       document.startViewTransition(() => _renderAppNow()).ready.catch(() => {});

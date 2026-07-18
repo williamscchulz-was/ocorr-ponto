@@ -6,6 +6,10 @@ const ctx = await b.newContext({ viewport: { width: 430, height: 900 }, serviceW
 await ctx.route("**/firebase.config.js*", (r) => r.abort());
 await ctx.route("**gstatic.com**", (r) => r.abort());
 const p = await ctx.newPage();
+// __semVT: harness mede a cascata pp-anima com _renderAppNow direto; desligar a View
+// Transition de navegação evita que o renderApp agendado pelo login() dispare uma
+// transição async e polua a medição (ver flicker-guard.mjs).
+await p.addInitScript(() => { window.__semVT = true; });
 const erros = []; p.on("pageerror", (e) => erros.push(String(e).slice(0, 160)));
 await p.goto("http://localhost:8081/public/index.html", { waitUntil: "domcontentloaded" });
 await p.waitForFunction(() => typeof login === "function" && state?.users?.length, null, { timeout: 8000 });
