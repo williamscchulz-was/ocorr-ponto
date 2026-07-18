@@ -107,6 +107,40 @@ function animarEntrada(container) {
   });
 }
 
+// Skeleton de dois limiares (consultoria 2026-07-17): SEM cache, o skeleton só APARECE se
+// a carga passar de SKEL_LIMIAR (dado rápido pula direto pro conteúdo, sem flash de
+// skeleton); uma vez mostrado, segura por no mínimo SKEL_MIN (não pisca entrada-e-saída).
+// COM cache, pronto=true já no 1º toque → devolve "conteudo" na hora, nunca skeleton.
+// Fases: "espera" (antes do limiar; o call site segura um frame mínimo), "skeleton",
+// "conteudo". Agenda o próprio re-render quando um limiar vence. Estado por chave de tela,
+// some quando o conteúdo entra. renderApp é coalescido, então o re-render extra é barato.
+const _skel = {};
+const SKEL_LIMIAR = 120, SKEL_MIN = 450;
+function skeletonDoisLimiares(chave, pronto) {
+  const g = _skel[chave] || (_skel[chave] = {});
+  const t = (window.performance && performance.now()) || Date.now();
+  if (pronto) {
+    if (g.mostradoEm) {
+      const resta = SKEL_MIN - (t - g.mostradoEm);
+      if (resta > 0) { // skeleton apareceu há pouco: segura pro mínimo antes de trocar
+        if (!g.tMin) g.tMin = setTimeout(() => { g.tMin = 0; renderApp(); }, resta + 8);
+        return "skeleton";
+      }
+    }
+    if (g.tLim) clearTimeout(g.tLim);
+    if (g.tMin) clearTimeout(g.tMin);
+    delete _skel[chave];
+    return "conteudo";
+  }
+  if (!g.inicio) g.inicio = t;
+  if (!g.mostradoEm && (t - g.inicio) < SKEL_LIMIAR) {
+    if (!g.tLim) g.tLim = setTimeout(() => { g.tLim = 0; renderApp(); }, SKEL_LIMIAR - (t - g.inicio) + 8);
+    return "espera";
+  }
+  if (!g.mostradoEm) g.mostradoEm = t;
+  return "skeleton";
+}
+
 // Conta os .stat__value: na 1ª vez sobe de 0; depois ROLA do valor anterior pro
 // novo quando muda (não troca seco) — "felt" de que o sistema respondeu.
 const _statPrev = {};
@@ -540,6 +574,33 @@ function cerAnelHtml({ anim = true, tom = "", centro = "" } = {}) {
     <span class="cer__pulse"></span>
     ${meio}
   </div>`;
+}
+
+// Intro do anel via WAAPI, pra tela do canal (que vive no #view e re-renderiza): a
+// classe is-anim no markup re-cascatearia a cada rebuild (churn m3, auditoria 2026-07-18).
+// element.animate não toca innerHTML — o anel nasce ASSENTADO (cerAnelHtml anim:false =
+// arco completo, tick desenhado) e a intro toca 1x, no reveal real (flag no call site).
+// O overlay mostrarCerimonia segue com is-anim (nasce e morre, nunca re-renderiza).
+function cerPlayIntro(ring) {
+  if (!ring || prefereMenosMovimento()) return;
+  const E1 = "cubic-bezier(.4,0,.2,1)", E2 = "cubic-bezier(.2,.8,.2,1)";
+  const arc = ring.querySelector(".cer__arc");
+  const chk = ring.querySelector(".cer__chk path");
+  const ico = ring.querySelector(".cer__ico");
+  const pulse = ring.querySelector(".cer__pulse");
+  if (arc && arc.animate) arc.animate([{ strokeDashoffset: 276 }, { strokeDashoffset: 0 }], { duration: 580, easing: E1 });
+  if (chk && chk.animate) chk.animate([{ strokeDashoffset: 50 }, { strokeDashoffset: 0 }], { duration: 300, delay: 500, easing: E2, fill: "backwards" });
+  if (ico && ico.animate) ico.animate([{ opacity: 0, transform: "scale(.5)" }, { opacity: 1, transform: "scale(1)" }], { duration: 340, delay: 480, easing: E2, fill: "backwards" });
+  if (pulse && pulse.animate) pulse.animate([{ transform: "scale(.7)", opacity: .8 }, { transform: "scale(1.5)", opacity: 0 }], { duration: 700, delay: 500, easing: "ease-out" });
+}
+
+// Revelação one-shot (fade + subida curta) via WAAPI pros reveals de ESTADO/INTERAÇÃO do
+// canal (resultado da consulta, contato, integridade): CSS por classe re-cascateia no
+// rebuild forçado (churn m3); o animate não toca o DOM. Reduced-motion: no-op.
+function denRevelar(el, dur = 320) {
+  if (!el || prefereMenosMovimento() || typeof el.animate !== "function") return;
+  el.animate([{ opacity: 0, transform: "translateY(-6px)" }, { opacity: 1, transform: "none" }],
+    { duration: dur, easing: "cubic-bezier(.32,.72,.28,1)", fill: "backwards" });
 }
 
 // Overlay central da cerimônia. Vive FORA do #view e do #modal-root (direto no body, como
@@ -2073,8 +2134,16 @@ function renderColabDocumentos() {
   // O portão vigia AS DUAS fontes (achado William v368): termos E publicados; o
   // check de carregarMeusTermos distingue o modo real do demo (demo não espera).
   const docsVoando = typeof window.carregarMeusTermos === "function" && state.documentosColabProntos !== true;
-  if (state.meusTermos === undefined || docsVoando) {
-    state._docsRevelar = true;
+  const pronto = !(state.meusTermos === undefined || docsVoando);
+  const fase = skeletonDoisLimiares("docs", pronto);
+  if (fase !== "conteudo") {
+    state._docsRevelar = true; // a troca (espera/skeleton -> conteúdo) sai em revelação
+    if (fase === "espera") {
+      // Antes do limiar: só o cabeçalho estável (corpo vazio). Carga rápida troca direto
+      // pro conteúdo sem flash; passando de ~120ms sem dado, o skeleton entra.
+      setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Documentos</h1></div></div>`);
+      return;
+    }
     const skRw = `<div class="pp-rw cpdoc-sk__rw"><span class="cpdoc-sk__ic"></span><span class="cpdoc-sk__bd"><span class="cpdoc-sk__ln cpdoc-sk__ln--t"></span><span class="cpdoc-sk__ln cpdoc-sk__ln--s"></span></span></div>`;
     if (setHtml($("#view"), `<div class="pp-fade"><div class="cpdoc-ld__bar" aria-hidden="true"><i></i></div><div class="pp-hi"><h1>Documentos</h1></div>
       <div class="cpdoc-sk__h"></div><div class="pp-grp">${skRw}${skRw}</div>
@@ -3247,18 +3316,27 @@ function renderColabConquistas() {
   // 1a entrada na tela: carrega extrato/ranking/entregas + catch-up (creditos do ano
   // ainda nao reivindicados, incluindo o claim adiado da pesquisa). Re-render ao fim.
   if (state.gamiExtrato === undefined) {
-    state.gamiExtrato = null; // trava reentrada
-    state._gamiRevelar = true; // a troca stub -> conteúdo sai em revelação, não em corte
-    setHtml(view, `<div class="pp-fade"><div class="gm-load" role="status">
-        <div class="gm-load__ic">${cpIcon("medalha")}</div>
-        <p>Buscando seus pontos e conquistas…</p>
-        <div class="gm-load__bar"><i></i></div>
-      </div></div>`);
+    state.gamiExtrato = null; // trava reentrada; null = carregando
     (async () => {
       await window.carregarGamificacaoColab?.();
       if (await window.gamiCatchUp?.()) await window.carregarGamificacaoColab?.();
       if (state.view.page === "colab-conquistas") renderApp();
     })();
+  }
+  // Skeleton de dois limiares: carga rápida pula direto pro conteúdo (sem flash do
+  // gm-load); só passando de ~120ms o gm-load entra, e aí segura o mínimo.
+  const faseGm = skeletonDoisLimiares("gami", state.gamiExtrato != null);
+  if (faseGm !== "conteudo") {
+    state._gamiRevelar = true; // a troca (espera/skeleton -> conteúdo) sai em revelação
+    if (faseGm === "skeleton") {
+      setHtml(view, `<div class="pp-fade"><div class="gm-load" role="status">
+          <div class="gm-load__ic">${cpIcon("medalha")}</div>
+          <p>Buscando seus pontos e conquistas…</p>
+          <div class="gm-load__bar"><i></i></div>
+        </div></div>`);
+    }
+    // faseGm === "espera": segura o frame anterior (Conquistas não tem cabeçalho próprio);
+    // a revelação one-shot suaviza a troca quando o conteúdo entrar.
     return;
   }
   const tab = state.view.gamiTab === "bdg" ? "bdg" : "pts";
@@ -3711,6 +3789,9 @@ function denHeroHtml(step, titulo, sub, badge = DEN_ESC) {
   </div>`;
 }
 
+// Sinais one-shot: "anime o próximo render" da cerimônia (após enviar) e do resultado
+// da consulta (após consultar). Consumidos no render → rebuild forçado do guard não anima.
+let _denCerRevelar = false, _denAcRevelar = false;
 function renderColabDenuncia() {
   const view = $("#view");
   if (state.view.denEnviada && state.view.denHash) return denRenderCerimonia(view);
@@ -3849,7 +3930,7 @@ function denRenderIdent(view) {
     state.view.denIdent = quer;
     view.querySelectorAll("[data-den-ident]").forEach((x) => x.classList.toggle("sel", x === o));
     contato.hidden = !quer;
-    if (quer) setTimeout(() => inp.focus(), 60);
+    if (quer) { denRevelar(contato, 300); setTimeout(() => inp.focus(), 60); }
     try { navigator.vibrate && navigator.vibrate(8); } catch (e) {}
   }));
   inp.addEventListener("input", (e) => { state.view.denContato = e.target.value; });
@@ -3888,6 +3969,7 @@ async function denEnviar(btn) {
       state.view.denHash = String(hash || "");
       state.view.denCodigo = String(codigo || "");
       state.view.denEnviada = true;
+      _denCerRevelar = true; // toca a intro do anel 1x, só neste reveal
       renderApp();
     } catch (e) {
       if (erro) { erro.textContent = "Não conseguimos enviar agora. Tente de novo em instantes."; erro.hidden = false; }
@@ -3907,7 +3989,7 @@ function denRenderCerimonia(view) {
   const short = hash.length > 12 ? `${hash.slice(0, 6)}…${hash.slice(-6)}` : hash;
   const escreveu = setHtml(view, `<div class="pp-fade den-flow den-flow--cer">
     <div class="den-cer">
-      ${cerAnelHtml({ anim: !semMov })}
+      ${cerAnelHtml({ anim: false })}
       <div class="den-cer__t">Denúncia recebida</div>
       <div class="den-cer__prot">${DEN_ESC}<span>${state.view.denIdentEnviada ? "Enviada com identificação" : "Enviada de forma anônima"}</span></div>
       <div class="den-key">
@@ -3929,13 +4011,21 @@ function denRenderCerimonia(view) {
     </div>
   </div>`);
   if (!escreveu) return;
-  if (!semMov) { try { navigator.vibrate && navigator.vibrate([12, 60, 18]); } catch (e) {} }
+  // Intro do anel via WAAPI 1x, só no reveal real (flag consumida). O rebuild forçado
+  // do guard não seta a flag → nasce assentado, zero churn m3.
+  if (_denCerRevelar) {
+    _denCerRevelar = false;
+    cerPlayIntro(view.querySelector(".cer__ring"));
+    if (!semMov) { try { navigator.vibrate && navigator.vibrate([12, 60, 18]); } catch (e) {} }
+  }
   view.querySelector("[data-den-copcod]").addEventListener("click", (e) => denCopiar(codigo, e.currentTarget, "Código copiado."));
   view.querySelector("[data-den-cophash]").addEventListener("click", (e) => denCopiar(hash, e.currentTarget, "Hash copiado."));
   const tog = view.querySelector("[data-den-integ]");
   tog.addEventListener("click", () => {
-    const aberto = tog.closest(".den-cint").classList.toggle("open");
+    const cint = tog.closest(".den-cint");
+    const aberto = cint.classList.toggle("open");
     tog.setAttribute("aria-expanded", aberto ? "true" : "false");
+    if (aberto) denRevelar(cint.querySelector(".den-cint__full"), 260); // reveal de interação
   });
   view.querySelector("[data-den-inicio]").addEventListener("click", () => { denResetFluxo(); state.view.page = "colab-home"; renderApp(); });
 }
@@ -3979,6 +4069,12 @@ function denRenderAcompanhar(view) {
     </div>
   </div>`);
   if (!escreveu) return;
+  // Resultado da consulta é reveal de ESTADO: anima 1x, só quando a consulta MUDOU
+  // (flag consumida). Rebuild forçado do guard não seta a flag → sem churn m3.
+  if (_denAcRevelar) {
+    _denAcRevelar = false;
+    denRevelar(view.querySelector(".den-acres, .den-acnone"), 340);
+  }
   view.querySelector("[data-den-voltar]").addEventListener("click", denVoltar);
   const inp = view.querySelector("#den-cod");
   // Digitação persiste em memória (view), NUNCA storage. Sem renderApp: o nó do input
@@ -4039,6 +4135,7 @@ function denConsultaHtml() {
 
 async function denConsultar(btn) {
   const code = String(state.view.denCodConsulta || "").trim();
+  _denAcRevelar = true; // anima o resultado desta consulta (código vazio ou preenchido)
   if (!code) { state.view.denConsulta = { estado: "nada" }; return renderApp(); }
   await withBusy("den-consultar", btn, async () => {
     let res = null;
@@ -8260,10 +8357,14 @@ function renderDashboard() {
   // Ink deslizante: troca de aba move só a lista (não re-renderiza o dashboard),
   // então a barrinha transiciona da aba antiga pra nova em vez de pular.
   const _ink = $("#tabs .tabs__ink");
-  const moverInk = () => {
+  const moverInk = (animar) => {
     const at = $("#tabs .tab.active");
     if (_ink && at) {
+      // No mount, posiciona SEM transição (senão o rebuild forçado do guard re-anima
+      // o left/width do zero = churn m3); a troca de aba (animar=true) desliza.
+      if (!animar) _ink.style.transition = "none";
       _ink.style.left = at.offsetLeft + "px"; _ink.style.width = at.offsetWidth + "px";
+      if (!animar) { void _ink.offsetWidth; _ink.style.transition = ""; }
     }
     // Mobile: as abas rolam numa linha só; a ativa se traz pra vista.
     if (at && window.innerWidth <= 900) at.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
@@ -8271,13 +8372,13 @@ function renderDashboard() {
   // Síncrono (não rAF): offsetLeft força layout na hora, então o fio nasce
   // posicionado no MESMO paint do write (sem frame de flicker) — e o rebuild
   // forçado do guard (m1) reproduz a tela estabilizada byte a byte.
-  moverInk();
+  moverInk(false);
   $$("#tabs .tab").forEach((t) => {
     t.addEventListener("click", () => {
       if (t.classList.contains("active")) return;
       state.view.filterTab = t.dataset.tab;
       $$("#tabs .tab").forEach((x) => x.classList.toggle("active", x === t));
-      moverInk();
+      moverInk(true);
       renderOccList();
     });
   });
@@ -18112,7 +18213,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.94.4";
+window.CURRENT_VERSION = "1.95.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -14,7 +14,13 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.94.4", d: "17 jul 2026", current: true, items: [
+    v: "1.95.0", d: "18 jul 2026", current: true, items: [
+      { type: "fix", title: "Telas mais fluidas: as animacoes de entrada e de revelacao rodam uma vez so e nao se repetem quando a tela recebe dados novos." },
+      { type: "fix", title: "Documentos e Conquistas: o carregamento so mostra o esqueleto se a busca demorar, e quando mostra segura o tempo certo pra nao piscar." },
+    ],
+  },
+  {
+    v: "1.94.4", d: "17 jul 2026", items: [
       { type: "fix", title: "Documentos de uma vez, agora de verdade: a atualizacao silenciosa da tela nao apaga mais os publicados enquanto re-busca, entao termos e publicados aparecem sempre juntos." },
     ],
   },

@@ -71,11 +71,31 @@ async function varre(portal, paginas) {
       try { _renderAppNow(); } catch (e) { window.__fpForceWrite = false; return { erro: String(e).slice(0, 200) }; }
       window.__fpForceWrite = false;
       const bHtml = view.innerHTML; // IMEDIATO: sem esperar async, é aqui que o flicker mora
-      return { a, b: bHtml, m2 };
+      // ---- m3 (consultoria 2026-07-17): CHURN DE ANIMAÇÃO = 0, binário ----
+      // Um re-render da MESMA tela (o rebuild forçado acima) não pode parir animação
+      // NOVA rodando do frame 0 (a cascata re-disparando = o pisca que o olho vê e
+      // que a comparação de HTML não pega). Espera 1 frame pro CSS avaliar.
+      await new Promise((res) => requestAnimationFrame(res));
+      // Isenção de decoração AMBIENTE contínua (roadmap: fpHalo/fpPing/fpSpin). São
+      // animações INFINITAS, não entradas one-shot: não podem ser guardadas por pp-anima
+      // (congelariam no 1o re-render) e nesta tela os re-renders reais são NO-OP (dados
+      // estáticos; expandir/recolher é DOM-direto), então nunca reiniciam em produção — só
+      // o rebuild FORÇADO daqui as recria. Contar isso seria falso-positivo (auditoria
+      // 2026-07-18). Qualquer animação one-shot re-disparada segue reprovando.
+      const AMBIENTE = /^(fpHalo|fpPing|fpSpin)$/;
+      const nascidas = (document.getAnimations ? document.getAnimations() : [])
+        .filter((an) => an.playState === "running" && (an.currentTime || 0) < 100
+          && view.contains(an.effect && an.effect.target)
+          && !AMBIENTE.test(an.animationName || "")).length;
+      return { a, b: bHtml, m2, m3: { nascidas } };
     }, { pagina: item.page, prep: item.prep });
     if (r.erro) { falhasM1.push(`${portal}/${pg}: ERRO DE RENDER ${r.erro}`); console.log(`  ${portal}/${pg}: ERRO`); continue; }
     const A = normaliza(r.a), B = normaliza(r.b);
     let status = [];
+    if (r.m3 && r.m3.nascidas > 0) {
+      falhasM1.push(`${portal}/${pg}: ${r.m3.nascidas} animação(ões) re-disparada(s) no re-render (churn m3)`);
+      status.push("m3 CHURN");
+    }
     if (A !== B) {
       let i = 0;
       while (i < Math.min(A.length, B.length) && A[i] === B[i]) i++;

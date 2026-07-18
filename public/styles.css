@@ -3636,9 +3636,12 @@ body.modal-aberto .fab { display: none; }
   background: var(--plum);
   border-radius: 2px;
   transform-origin: center;
-  animation: mi-tabInk .28s var(--ease);
 }
+/* Ink "cresce" só com html.pp-anima (ligada na navegação): re-render de outra tela não
+   re-anima o sublinhado ao recriar a aba ativa (churn m3, auditoria 2026-07-18). */
+html.pp-anima .tab.active::after { animation: mi-tabInk .28s var(--ease); }
 @keyframes mi-tabInk { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { html.pp-anima .tab.active::after { animation: none; } }
 
 /* Ink DESLIZANTE (só no #tabs do dashboard) — desliza entre abas em vez de
    crescer do centro. As abas de Configurações seguem com o ::after acima. */

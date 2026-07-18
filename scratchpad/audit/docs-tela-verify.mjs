@@ -18,15 +18,18 @@ const r = await p.evaluate(async () => {
   window.carregarMeusTermos = () => Promise.resolve({ ok: true });
   state.view.page = "colab-documentos";
   _renderAppNow();
-  await new Promise((res) => setTimeout(res, 100));
+  // Dois limiares (2026-07-18): o skeleton só entra após ~120ms. Esperar além do limiar
+  // pra ver o skeleton (a essência: carga lenta MOSTRA skeleton).
+  await new Promise((res) => setTimeout(res, 180));
   const gateDocs = document.querySelectorAll(".cpdoc-sk__ic").length === 5;
   // agora o cenario cheio: docs prontos, termos chegam ASSINCRONOS (800ms)
   state.meusTermos = undefined;
   state.documentosColabProntos = true;
+  Object.keys(_skel).forEach((k) => delete _skel[k]); // reseta o gate pro novo cenário
   window.carregarMeusTermos = () => new Promise((res) => setTimeout(() => { state.meusTermos = []; res({ ok: true }); }, 800));
   state.view.page = "colab-documentos";
   _renderAppNow();
-  await new Promise((res) => setTimeout(res, 120));
+  await new Promise((res) => setTimeout(res, 180));
   const sk = {
     ics: document.querySelectorAll(".cpdoc-sk__ic").length,
     bar: !!document.querySelector(".cpdoc-ld__bar i"),

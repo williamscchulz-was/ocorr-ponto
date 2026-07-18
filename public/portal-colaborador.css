@@ -171,6 +171,12 @@ html.modo-colab.cp-dark #bottom-nav .bn-pill{background:rgba(95,203,133,.17)}
 .fp-rootnode{position:relative;display:flex;align-items:center;gap:13px;padding:4px 0 clamp(18px,4vw,24px);margin-left:clamp(2px,1vw,6px)}
 .fp-orb{width:clamp(54px,14vw,64px);height:clamp(54px,14vw,64px);border-radius:20px;flex:0 0 auto;background:radial-gradient(120% 120% at 30% 22%,var(--plum-soft),var(--plum-deep));display:grid;place-items:center;color:#fff;position:relative;box-shadow:0 12px 30px -8px rgba(0,80,40,.45)}
 .fp-orb svg{width:30px;height:30px}
+/* Halo/ping/spin do roadmap são decorações AMBIENTE contínuas (infinitas). NÃO podem ser
+   guardadas por html.pp-anima: essa classe cai em qualquer re-render da mesma tela e
+   CONGELARIA a animação (verificado 2026-07-18). Nesta tela os re-renders reais são no-op
+   (dados estáticos; expandir/recolher é DOM-direto via classList), então nunca churnam em
+   produção; só o rebuild FORÇADO do guard as reinicia — por isso o m3 as isenta pelo nome
+   (fpHalo/fpPing/fpSpin), documentado no flicker-guard. */
 .fp-orb::after{content:"";position:absolute;inset:-6px;border-radius:24px;border:1px solid color-mix(in srgb,var(--brand) 38%,transparent);animation:fpHalo 3.4s ease-in-out infinite}
 @keyframes fpHalo{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:.08;transform:scale(1.07)}}
 .fp-rootlabel b{display:block;font-size:clamp(13px,3.4vw,15px);font-weight:700;line-height:1.2;color:var(--tx)}
@@ -867,14 +873,12 @@ html.pp-anima .den-flow.pp-fade > * { animation: ppFade .34s both; }
 .den-opt.sel .den-opt__mark { border-color: var(--plum); background: var(--plum); }
 .den-opt.sel .den-opt__mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
 .den-opt__d { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin: 9px 0 0 49px; }
-.den-contato { margin: 12px 0 2px; animation: denRevela .3s var(--ease-ios); }
+.den-contato { margin: 12px 0 2px; }
 .den-contato[hidden] { display: none; }
 .den-inp { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 11px 13px; font: 400 13px var(--font); color: var(--text-body); outline: 0; background: var(--surface); }
 .den-inp:focus { border-color: var(--plum); }
 .den-aviso-id { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; color: var(--warning-ink); margin-top: 11px; line-height: 1.5; }
 .den-aviso-id svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
-@keyframes denRevela { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .den-contato { animation: none; } }
 .den-erro { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--danger); background: var(--danger-bg); border-radius: 12px; padding: 11px 13px; margin: 4px 0 0; line-height: 1.45; }
 .den-erro[hidden] { display: none; }
 
@@ -924,7 +928,7 @@ html.pp-anima .den-flow.pp-fade > * { animation: ppFade .34s both; }
 .den-cint__lbl { font-family: var(--font); }
 .den-cint__short { color: var(--text-body); font-weight: 600; }
 .den-cint__full { display: none; margin-top: 10px; text-align: center; }
-.den-cint.open .den-cint__full { display: block; animation: denRevela .26s var(--ease-ios); }
+.den-cint.open .den-cint__full { display: block; }
 .den-cint__hash { display: block; text-align: left; font: 600 11px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-body); word-break: break-all; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
 .den-cint__copy { margin-top: 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font: 600 11.5px var(--font); border-radius: 9px; padding: 6px 12px; cursor: pointer; }
 .den-cint__copy svg { width: 13px; height: 13px; }
@@ -940,7 +944,7 @@ html.pp-anima .den-flow.pp-fade > * { animation: ppFade .34s both; }
 .den-acpriv svg { width: 14px; height: 14px; color: var(--plum); flex: none; margin-top: 1px; }
 .den-acout:empty { display: none; }
 /* Resultado: cabecalho do protocolo + linha do tempo */
-.den-acres { margin-top: 20px; animation: denRevela .34s var(--ease-ios); }
+.den-acres { margin-top: 20px; }
 .den-acres__hd { display: flex; align-items: center; gap: 10px; padding: 12px 13px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 13px; }
 .den-acres__code { font: 700 13px ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; color: var(--text-body); }
 .den-acres__code span { display: block; font: 500 10.5px var(--font); letter-spacing: 0; color: var(--text-muted); margin-top: 2px; }
@@ -962,15 +966,15 @@ html.pp-anima .den-flow.pp-fade > * { animation: ppFade .34s both; }
 .den-tl__step.now .den-tl__body b { color: var(--plum-deep); }
 .den-tl__step.todo .den-tl__body b { color: var(--text-muted); font-weight: 600; }
 .den-tl__pill { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 10px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--plum-deep); background: rgba(0,136,53,.08); border-radius: 999px; padding: 3px 9px; }
+/* Reveals do canal (den-acres/acnone/contato/cint) animam por WAAPI no JS (denRevelar),
+   nunca por classe: re-render no #view re-cascatearia (churn m3). Reduced-motion: o
+   helper vira no-op. */
 /* Codigo nao localizado (neutro, anti-enumeracao) */
-.den-acnone { margin-top: 20px; text-align: center; padding: 26px 18px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 16px; animation: denRevela .34s var(--ease-ios); }
+.den-acnone { margin-top: 20px; text-align: center; padding: 26px 18px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 16px; }
 .den-acnone__ic { width: 52px; height: 52px; border-radius: 15px; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
 .den-acnone__ic svg { width: 24px; height: 24px; }
 .den-acnone b { display: block; font-size: 14.5px; font-weight: 700; color: var(--text-body); }
 .den-acnone span { display: block; font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-top: 6px; max-width: 240px; margin-left: auto; margin-right: auto; }
-@media (prefers-reduced-motion: reduce) {
-  .den-acres, .den-acnone, .den-cint.open .den-cint__full { animation: none; }
-}
 
 /* ============================================================
    CERIMONIA DE CONCLUSAO (mock nivel-apple-2026-07, demo 3)
