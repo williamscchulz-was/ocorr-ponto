@@ -176,7 +176,12 @@ function _morphNode(de, para) {
   const k = de.getAttribute("data-key");
   if (k && k === para.getAttribute("data-key") && de.getAttribute("data-hash") === para.getAttribute("data-hash")) return;
   if (de.isEqualNode(para)) return;
-  const animando = typeof de.getAnimations === "function" && de.getAnimations().some((a) => a.playState === "running");
+  // Guarda a entrada one-shot (WAAPI) e a batida em curso: não patcha atributos de um nó que
+  // ainda anima. CSS transition NÃO conta (ela é a RESPOSTA a mudar atributo, ex.: o coração
+  // que muda de cor ao curtir; barrá-la travaria o próprio patch que a dispara). CSSTransition
+  // tem transitionProperty; CSSAnimation/WAAPI não.
+  const animando = typeof de.getAnimations === "function"
+    && de.getAnimations().some((a) => a.playState === "running" && a.transitionProperty === undefined);
   if (!animando) _morphAttrs(de, para);
   _morphChildren(de, para);
 }

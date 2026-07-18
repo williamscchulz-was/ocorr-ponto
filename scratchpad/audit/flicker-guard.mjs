@@ -175,13 +175,36 @@ async function mediaInteracao(rotulo, tipo) {
     const AMBIENTE = new RegExp(ambienteSrc);
     const view = document.querySelector("#view");
     window.__fpForceWrite = false;
+    const ehHome = (tipo === "like" || tipo === "reacoes");
     // prep: fixture-base + estabiliza (mesma página, sem cascata de navegação — o aquecimento
     // abaixo garante isso, senão a cascata one-shot contaria como churn falso).
-    if (state.funcionarios && state.funcionarios[0]) state.funcionarios[0].bhExempt = false;
-    state.meuSaldoBH = { minutosOriginal: 90, saldoOriginalFormatado: "+01:30", dias: DIAS3.map((d) => ({ ...d })) };
-    state.ocorrenciasColab = OCC2.map((o) => ({ ...o }));
-    state.view.page = "colab-ponto";
-    state.view.pontoTab = (tipo === "occ") ? "ocorrencias" : "bh";
+    let postAniv, postTdc;
+    if (ehHome) {
+      // HOME: 1 aniversariante do dia (card com coração) + 1 colega no tempo de casa (idem).
+      // Cache SEMEADO com reações de colegas e minhaReacao=false: o "like" liga o meu coração
+      // (morpha o card, meu chip entra na pilha) e "reacoes" simula a chegada de +1 reação.
+      const hoje = new Date();
+      const mes = hoje.getMonth() + 1, dia = hoje.getDate(), ano = hoje.getFullYear();
+      state.aniversariantes = {
+        pessoas: [{ nome: "Aniv Guarda", mes, dia }],
+        recemChegados: [],
+        tempoCasa: [{ nome: "Casa Guarda", mes, dia, anos: 5 }],
+      };
+      postAniv = `aniv-aniv-guarda-${ano}`;
+      postTdc = `tdc-casa-guarda-${ano}`;
+      state._reacoesCache = {
+        [postAniv]: { reacoes: [{ uid: "uA", nome: "Colega A" }, { uid: "uB", nome: "Colega B" }], minhaReacao: false, total: 2 },
+        [postTdc]: { reacoes: [{ uid: "uA", nome: "Colega A" }], minhaReacao: false, total: 1 },
+      };
+      state._fotoReatorCache = { uA: "", uB: "" };
+      state.view.page = "colab-home";
+    } else {
+      if (state.funcionarios && state.funcionarios[0]) state.funcionarios[0].bhExempt = false;
+      state.meuSaldoBH = { minutosOriginal: 90, saldoOriginalFormatado: "+01:30", dias: DIAS3.map((d) => ({ ...d })) };
+      state.ocorrenciasColab = OCC2.map((o) => ({ ...o }));
+      state.view.page = "colab-ponto";
+      state.view.pontoTab = (tipo === "occ") ? "ocorrencias" : "bh";
+    }
     _renderAppNow();
     await new Promise((res) => setTimeout(res, 80));
     // snapshot dos nós ANTES da ação: churn só conta re-semeadura em nó pré-existente (linha
@@ -194,16 +217,23 @@ async function mediaInteracao(rotulo, tipo) {
     const poLt = new PerformanceObserver((l) => { for (const e of l.getEntries()) longMax = Math.max(longMax, e.duration); });
     try { poLt.observe({ type: "longtask", buffered: false }); } catch (e) { /* */ }
     // AÇÃO: muda o state e re-renderiza (updateRegion dispara o morph). aba = shell reescreve;
-    // dia/occ = shell no-op e a região do corpo morpha (insere 1 linha keyed nova).
+    // dia/occ = shell no-op e a região do corpo morpha (insere 1 linha keyed nova); like/reacoes
+    // = shell no-op e a região do mural morpha o card no lugar (coração, contagem, pilha).
     if (tipo === "aba") state.view.pontoTab = "ocorrencias";
     else if (tipo === "dia") state.meuSaldoBH.dias.unshift({ dataIso: "2026-07-17", diaSemana: "sex", marcacoes: ["07:01", "12:00", "13:00", "17:03"], maduro: true, saldoDiaOriginalFmt: "+00:05" });
     else if (tipo === "occ") state.ocorrenciasColab.unshift({ id: "occ-novo", tipo: "atraso", data: "2026-07-15", horario: "07:22" });
+    else if (tipo === "like") _setReacaoOtimista(postTdc, true, 2); // liga meu coração no card do colega
+    else if (tipo === "reacoes") { const c = state._reacoesCache[postAniv]; state._reacoesCache[postAniv] = { ...c, reacoes: [...c.reacoes, { uid: "uC", nome: "Colega C" }], total: 3 }; }
     let erro = null;
     try { _renderAppNow(); } catch (e) { erro = String(e).slice(0, 200); }
     await new Promise((res) => requestAnimationFrame(res));
     const morphHtml = view.innerHTML;
+    // churn = animação NOVA one-shot (WAAPI/CSS-animation) re-semeada num nó que já existia.
+    // CSS transition NÃO conta: é a resposta suave a uma mudança real (ex.: o coração muda de
+    // cor ao curtir), não um pisca; CSSTransition tem transitionProperty, entrada/pulso não.
     const churn = (document.getAnimations ? document.getAnimations() : [])
       .filter((an) => an.playState === "running" && (an.currentTime || 0) < 100
+        && an.transitionProperty === undefined
         && view.contains(an.effect && an.effect.target)
         && antes.has(an.effect && an.effect.target)
         && !AMBIENTE.test(an.animationName || "")).length;
@@ -239,6 +269,14 @@ await p.waitForTimeout(700);
 await mediaInteracao("troca de aba bh<->ocorrencias", "aba");
 await mediaInteracao("refetch: dia novo no espelho", "dia");
 await mediaInteracao("refetch: ocorrência nova", "occ");
+
+// aquece a HOME (piloto estendido v374): deixa a cascata de navegação terminar, pra os
+// re-renders das interações do mural serem SEMPRE mesma-página (sem cascata = sem churn falso).
+console.log("FASE NOVA (piloto de regiões, colab-home / mural):");
+await p.evaluate(() => { state.view.page = "colab-home"; _renderAppNow(); });
+await p.waitForTimeout(700);
+await mediaInteracao("like no coração de um card do mural", "like");
+await mediaInteracao("chegada de reações novas no cache", "reacoes");
 
 await b.close();
 if (jsErros.length) console.log("\npageErrors:", jsErros);

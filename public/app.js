@@ -2599,75 +2599,65 @@ function _bdayStackHtml(reacoes) {
   return chips + (resto > 0 ? `<span class="pp-bday__mais">+${resto}</span>` : "");
 }
 
-// Preenche os cards de aniversário da home de forma assíncrona: para cada [data-bday-post]
-// no DOM, lê as reações e escreve a contagem, o estado do coração e uma pilha de iniciais.
-// Barato (0 a 2 cards); a home re-renderiza, então re-preencher é ok. Guarda contra nó
-// ausente (a home pode ter trocado de tela antes da leitura voltar).
-async function preencherCardsAniversario() {
-  if (typeof window.carregarReacoesAniversario !== "function") return;
-  const cards = Array.from(document.querySelectorAll("[data-bday-post]"));
-  await Promise.all(cards.map(async (el) => {
-    const post = el.getAttribute("data-bday-post");
-    if (!post) return;
-    let dados;
-    try { dados = await window.carregarReacoesAniversario(post); }
-    catch { return; }
-    if (!document.contains(el)) return;
-    const ehEu = el.hasAttribute("data-bday-me");
-    const cnt = el.querySelector("[data-bday-count]");
-    if (cnt) cnt.textContent = _parabTexto(dados.total, dados.minhaReacao, ehEu);
-    const heart = el.querySelector("[data-bday-heart]");
-    if (heart) {
-      heart.classList.toggle("on", !!dados.minhaReacao);
-      heart.setAttribute("aria-pressed", dados.minhaReacao ? "true" : "false");
-      heart.innerHTML = _muralHeart(!!dados.minhaReacao);
-      heart.dataset.bdayTotal = String(dados.total || 0);
-      heart.dataset.bdayMine = dados.minhaReacao ? "1" : "0";
-    }
-    const stack = el.querySelector("[data-bday-stack]");
-    if (stack) {
-      // Busca as fotos dos até 4 da pilha ANTES de escrever (cache de sessão; barato).
-      try { await window.carregarFotosReatores?.((dados.reacoes || []).slice(0, 4).map((r) => r.uid)); } catch { /* fica nas iniciais */ }
-      if (!document.contains(el)) return;
-      stack.innerHTML = _bdayStackHtml(dados.reacoes);
-    }
-  }));
+// Reconcilia as REGIÕES do mural (piloto de regiões estendido à home, v374): re-renderiza
+// saudação + cards de aniversário/tempo-de-casa a partir do CACHE e deixa o morph do
+// updateRegion patchar só o que mudou (coração, contagem, pilha), sem tocar em nó que não
+// mexeu nem cortar a batida em curso. Substitui a escrita direta (textContent/innerHTML de
+// sub-elementos) que preencherCardsAniversario fazia. Boas-vindas fica FORA (colapso
+// imperativo próprio, e o mesmo preenchedor serve o hub do gestor, que não tem regiões).
+function _reconciliarMuralRegioes() {
+  const u = currentUser();
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  const nome = (f && f.nome) || (u && u.nome) || "";
+  updateRegion("home:greet", () => colabGreetHtml(f, nome));
+  updateRegion("mural:aniv", () => aniversarianteHojeHtml(nome));
+  updateRegion("mural:tdc", () => colabTempoCasaHtml(nome));
 }
 
-// Toque no coração "Parabenizar": otimista (alterna estado + contagem na hora), chama o
-// toggle, reverte + toast no erro. Trava o toque duplo enquanto a escrita voa (data-busy).
+// Otimista do coração: muta SÓ o cache (a fonte das regiões). Minha reação entra na frente
+// da pilha na hora (some ao desligar), com contagem e "minhaReacao" acompanhando; o
+// _reconciliarMuralRegioes que vem depois é quem pinta (morph). Espelha o antigo aplica().
+function _setReacaoOtimista(post, mine, total) {
+  const cc = state._reacoesCache || (state._reacoesCache = {});
+  const atual = cc[post] || { reacoes: [] };
+  const semEu = (atual.reacoes || []).filter((r) => r.uid !== state.currentUserId);
+  const reacoes = mine ? [{ uid: state.currentUserId, nome: (currentUser() || {}).nome || "" }, ...semEu] : semEu;
+  cc[post] = { ...atual, reacoes, total, minhaReacao: mine };
+}
+
+// Leitura assíncrona das reações dos cards de aniversário/tempo-de-casa (inclui a saudação
+// do próprio aniversariante, que também tem [data-bday-post]). carregarReacoesAniversario já
+// grava no cache; as fotos vão pro _fotoReatorCache. Ao fim, reconcilia as regiões: NUNCA
+// mais escrita direta em nó. Barato (0 a poucos posts).
+async function carregarMuralAniv() {
+  if (typeof window.carregarReacoesAniversario !== "function") return;
+  const posts = [...new Set(Array.from(document.querySelectorAll("[data-bday-post]"))
+    .map((el) => el.getAttribute("data-bday-post")).filter(Boolean))];
+  if (!posts.length) return;
+  const dados = await Promise.all(posts.map((p) => window.carregarReacoesAniversario(p).catch(() => null)));
+  const uids = dados.filter(Boolean).flatMap((d) => (d.reacoes || []).slice(0, 4).map((r) => r.uid));
+  try { await window.carregarFotosReatores?.(uids); } catch { /* fica nas iniciais */ }
+  _reconciliarMuralRegioes();
+}
+
+// Toque no coração "Parabenizar": otimista (muta o cache e reconcilia a região na hora),
+// chama o toggle, reverte + toast no erro. Trava o toque duplo por post enquanto a escrita
+// voa (_muralBusy; o DOM não guarda mais o "busy", que o morph reconciliaria de volta). O
+// morph preserva o coração (casado por chave) e a batida: _pulsarCoracao só dispara DEPOIS
+// do patch, no nó preservado, então a batida em curso não é cortada.
+const _muralBusy = new Set();
 async function onParabenizar(heart) {
-  if (!heart || heart.dataset.busy === "1") return;
-  const post = heart.getAttribute("data-bday-post");
-  if (!post) return;
-  const card = heart.closest(".pp-bday") || heart.parentElement;
-  const cnt = card && card.querySelector("[data-bday-count]");
-  const stackEl = card && card.querySelector("[data-bday-stack]");
-  const wasOn = heart.classList.contains("on");
+  const post = heart && heart.getAttribute("data-bday-post");
+  if (!post || _muralBusy.has(post)) return;
+  const c = _reacoesCached(post) || { reacoes: [], total: 0, minhaReacao: false };
+  const wasOn = !!c.minhaReacao;
+  const totalAntes = Number(c.total) || 0;
   const ligar = !wasOn;
-  const totalAntes = Number(heart.dataset.bdayTotal || "0") || 0;
   const totalDepois = Math.max(0, totalAntes + (ligar ? 1 : -1));
-  const aplica = (on, total, mine) => {
-    heart.classList.toggle("on", on);
-    heart.setAttribute("aria-pressed", on ? "true" : "false");
-    heart.innerHTML = _muralHeart(on);
-    heart.dataset.bdayTotal = String(total);
-    heart.dataset.bdayMine = mine ? "1" : "0";
-    if (cnt) cnt.textContent = _parabTexto(total, mine, false);
-    // Cache acompanha o otimista, INCLUSIVE a lista de reações: meu chip entra na
-    // pilha NA HORA do toque (William 2026-07-17, "está igual"), na frente pra
-    // ficar visível mesmo com a pilha cheia; desligar tira. O revert do catch
-    // passa por aqui também, então a pilha volta sozinha no erro.
-    const cc = state._reacoesCache || (state._reacoesCache = {});
-    const atual = cc[post] || { reacoes: [] };
-    const semEu = (atual.reacoes || []).filter((r) => r.uid !== state.currentUserId);
-    const reacoes = mine ? [{ uid: state.currentUserId, nome: (currentUser() || {}).nome || "" }, ...semEu] : semEu;
-    cc[post] = { ...atual, reacoes, total, minhaReacao: mine };
-    if (stackEl) stackEl.innerHTML = _bdayStackHtml(reacoes);
-  };
-  aplica(ligar, totalDepois, ligar);
-  if (ligar) _pulsarCoracao(heart);
-  heart.dataset.busy = "1";
+  _setReacaoOtimista(post, ligar, totalDepois);
+  _reconciliarMuralRegioes();
+  if (ligar) _pulsarCoracao(heart); // heart preservado pelo morph (card casado por chave)
+  _muralBusy.add(post);
   try {
     await window.toggleReacaoAniversario(post, ligar);
     // Gami: ponto SO ao ligar (desligar nao remove o credito ja dado -- decisao William,
@@ -2686,10 +2676,11 @@ async function onParabenizar(heart) {
     }
   } catch (err) {
     debug?.("[aniv parabenizar] falhou:", err?.code, err?.message);
-    aplica(wasOn, totalAntes, wasOn);
+    _setReacaoOtimista(post, wasOn, totalAntes); // reverte
+    _reconciliarMuralRegioes();
     toast("Não consegui registrar. Tente de novo.", "danger");
   } finally {
-    heart.dataset.busy = "0";
+    _muralBusy.delete(post);
   }
 }
 
@@ -2720,8 +2711,8 @@ function aniversariantesDoMesHtml(meuNome) {
 
 // Aniversariante(s) de HOJE, UM CARD POR PESSOA (ignora o próprio colaborador: a saudação já
 // festeja quem faz aniversário). Cada card traz o coração inline "Parabenizar" (único toque);
-// a contagem começa "..." e é preenchida por preencherCardsAniversario() após o render. "" se
-// não houver ninguém hoje (aí a seção some).
+// nasce do cache (ou "..." na 1a carga) e a leitura assíncrona morpha a região. "" se não
+// houver ninguém hoje (aí a seção some).
 function aniversarianteHojeHtml(meuNome) {
   const lista = (state.aniversariantes && Array.isArray(state.aniversariantes.pessoas)) ? state.aniversariantes.pessoas : [];
   if (!lista.length) return "";
@@ -2736,15 +2727,17 @@ function aniversarianteHojeHtml(meuNome) {
     const post = muralPostId(nome);
     const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
     const mine = !!(c && c.minhaReacao);
-    return `<div class="pp-bday" data-bday-post="${escapeHtml(post)}">
+    // data-key/data-hash: o morph do updateRegion casa o card pelo post e pula quando o corpo
+    // não mudou (hash). Toggle/leitura nova morpha SÓ o que mexeu (coração, contagem, pilha).
+    const inner = `
       <div class="pp-bday__ic">${cpIcon("cake")}</div>
       <div class="pp-bday__bd">
         <div class="pp-bday__t">Hoje é aniversário de ${escapeHtml(primeiro)}</div>
         <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine, false)) : "..."}</div>
         <div class="pp-bday__stack" data-bday-stack>${c ? _bdayStackHtml(c.reacoes) : ""}</div>
       </div>
-      <button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>
-    </div>`;
+      <button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>`;
+    return `<div class="pp-bday" data-key="${escapeHtml(post)}" data-hash="${fnv1a(inner)}" data-bday-post="${escapeHtml(post)}">${inner}</div>`;
   }).join("");
 }
 
@@ -2811,15 +2804,17 @@ function colabTempoCasaHtml(meuNome) {
     const post = tdcPostId(nome);
     const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
     const mine = !!(c && c.minhaReacao);
-    return `<div class="pp-bday pp-bday--tdc" data-bday-post="${escapeHtml(post)}"${souEu ? " data-bday-me" : ""}>
+    // data-key/data-hash: idem aniversário; a chave é o post, o hash é o corpo (souEu no card
+    // fica no atributo do wrapper, não no hash, e não muda entre re-renders).
+    const inner = `
       <div class="pp-bday__ic">${cpIcon("medalha")}</div>
       <div class="pp-bday__bd">
         <div class="pp-bday__t">${souEu ? `Você completa ${anosTxt} de Fiobras hoje` : `${escapeHtml(primeiro)} completa ${anosTxt} de Fiobras hoje`}</div>
         <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine, !!souEu)) : "..."}</div>
         <div class="pp-bday__stack" data-bday-stack>${c ? _bdayStackHtml(c.reacoes) : ""}</div>
       </div>
-      ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>`}
-    </div>`;
+      ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>`}`;
+    return `<div class="pp-bday pp-bday--tdc" data-key="${escapeHtml(post)}" data-hash="${fnv1a(inner)}" data-bday-post="${escapeHtml(post)}"${souEu ? " data-bday-me" : ""}>${inner}</div>`;
   }).join("");
 }
 
@@ -3083,9 +3078,9 @@ function colabGreetHtml(f, nome) {
   const seloMod = selo ? " pp-greet--seal" : "";
   const ehAniv = f && Number(f.aniversarioDia) === hoje.getDate() && Number(f.aniversarioMes) === (hoje.getMonth() + 1);
   if (ehAniv) {
-    // Sem coração (não se parabeniza a si mesmo). A linha de contagem (data-bday-count) é
-    // preenchida por preencherCardsAniversario com a copy "N colegas já te parabenizaram".
-    // O selo vai NO h1 (nunca no [data-bday-count], que preencherCardsAniversario reescreve).
+    // Sem coração (não se parabeniza a si mesmo). A linha de contagem (data-bday-count) nasce
+    // do cache com a copy "N colegas já te parabenizaram" e a leitura assíncrona morpha a
+    // região da saudação (home:greet). O selo vai NO h1 (nunca no [data-bday-count]).
     const post = muralPostId(nome);
     const c = _reacoesCached(post); // nasce com a contagem da última leitura (anti-flicker)
     return `<div class="pp-greet pp-greet--bday${seloMod}" data-bday-post="${escapeHtml(post)}" data-bday-me>
@@ -3509,9 +3504,14 @@ function renderColaboradorHome() {
   // Dados reais do próprio funcionário (carregado no boot: state.funcionarios[0] = só o doc dele).
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
+  // SHELL estável + REGIÕES (piloto de regiões estendido à home, v374): a saudação e os cards
+  // de aniversário/tempo-de-casa vivem em regiões (data-region), que o updateRegion patcha no
+  // lugar. Assim a leitura assíncrona das reações e o toque no coração NÃO repintam a tela:
+  // morpha só o card que mudou, preservando nó/foco/batida. Boas-vindas segue inline (colapso
+  // imperativo próprio + o mesmo preenchedor serve o hub do gestor, que não tem regiões).
   const escreveu = setHtml(view, `
     <div class="pp-fade pp-home">
-      ${colabGreetHtml(f, nome)}
+      <div data-region="home:greet"></div>
       ${colabAtalhosHtml()}
       <div class="pp-home__grid">
         <div class="pp-home__col">
@@ -3520,8 +3520,8 @@ function renderColaboradorHome() {
         </div>
         <div class="pp-home__col">
           ${comunicadoFixadoHtml()}
-          <div class="pp-bday-m">${aniversarianteHojeHtml(nome)}</div>
-          <div class="pp-bday-m">${colabTempoCasaHtml(nome)}</div>
+          <div class="pp-bday-m" data-region="mural:aniv"></div>
+          <div class="pp-bday-m" data-region="mural:tdc"></div>
           <div class="pp-bday-m">${colabBoasVindasHtml(nome)}</div>
           <div class="pp-aniv-d">${aniversariantesDoMesHtml(nome)}</div>
         </div>
@@ -3529,15 +3529,18 @@ function renderColaboradorHome() {
       ${colabDenunciaCardHtml()}
     </div>
   `);
+  // SEMPRE (mesmo com o shell no-op): as regiões se reconciliam com o cache atual.
+  _reconciliarMuralRegioes();
   if (escreveu) {
     bindColabNav(view);
     bindClimaConvite(view);
     view.querySelector("[data-den-abrir]")?.addEventListener("click", abrirCanalDenuncia);
   }
-  // Preenche as contagens/coração dos cards de aniversário (0 a 2 no DOM). Assíncrono e
-  // barato; se a home re-renderizar, re-preencher é ok. Não bloqueia o render.
-  preencherCardsAniversario();
-  // Idem pros cards de boas-vindas aos recem-chegados (o clique ja e delegado).
+  // Leitura assíncrona das reações/fotos: atualiza o cache e reconcilia as regiões (nunca
+  // escreve em nó direto). Não bloqueia o render.
+  carregarMuralAniv();
+  // Boas-vindas aos recem-chegados: estado real assíncrono + colapso, inline e imperativo
+  // (mesmo preenchedor do hub do gestor; o clique já é delegado).
   preencherCardsBoasVindas();
 }
 
@@ -18237,7 +18240,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.96.0";
+window.CURRENT_VERSION = "1.97.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

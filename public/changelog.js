@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.96.0", d: "18 jul 2026", current: true, items: [
+    v: "1.97.0", d: "18 jul 2026", current: true, items: [
+      { type: "fix", title: "A home ficou mais fluida: os cards do mural (aniversario, tempo de casa) atualizam no lugar, sem repintar a tela, e curtir o coracao responde na hora." },
+    ],
+  },
+  {
+    v: "1.96.0", d: "18 jul 2026", items: [
       { type: "fix", title: "Meu ponto ficou mais leve: quando o saldo ou uma ocorrencia chega, so aquele trecho da tela se atualiza, no lugar certo, sem repintar tudo." },
     ],
   },
