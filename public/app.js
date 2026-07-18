@@ -4151,26 +4151,43 @@ async function denConsultar(btn) {
 // Meu Ponto / Banco de horas do colaborador. Herói com o saldo (3 estados) + detalhamento
 // diário (gráfico + lançamentos) que entra quando o pipeline publicar lancamentos[] no
 // banco-horas-self (pedido no bridge). Some pro bhExempt (cargo sem ponto).
+// PILOTO DE REGIÕES (gate Fable v373): a tela nasce como um SHELL estável (título + chips,
+// com o "on" seguindo a aba) e dois nós de região vazios. O conteúdo volátil (contagem de
+// ocorrências no chip, corpo da aba) vive nessas regiões, que o updateRegion patcha in-place.
+// Assim um refetch de saldo/ocorrência NÃO reescreve a tela: morpha só a região que mudou,
+// preservando nó/foco/animação. Troca de aba muda o "on" e reescreve o shell (status quo
+// aceito, NOTA FABLE 2; o ganho do morph é no refetch com dado novo).
 function renderColabPonto() {
   const view = $("#view");
-  const f = (state.funcionarios && state.funcionarios[0]) || null;
-  const minhas = (state.ocorrenciasColab || []).slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
   const tab = (state.view.pontoTab === "ocorrencias") ? "ocorrencias" : "bh";
   const chips = `<div class="pp-chips-f" id="cp-ponto-tabs">
     <button class="pp-chip-f ${tab === "bh" ? "on" : ""}" data-ponto-tab="bh">Banco de horas</button>
-    <button class="pp-chip-f ${tab === "ocorrencias" ? "on" : ""}" data-ponto-tab="ocorrencias">Ocorrências${minhas.length ? ` <span class="pp-chip-f__c">${minhas.length}</span>` : ""}</button>
+    <button class="pp-chip-f ${tab === "ocorrencias" ? "on" : ""}" data-ponto-tab="ocorrencias">Ocorrências<span data-region="ponto:occ-cnt"></span></button>
   </div>`;
-  let corpo;
-  if (tab === "ocorrencias") {
-    corpo = minhas.length
-      ? `${minhas.map(colabOccCardHtml).join("")}<div class="cp-bhnote" style="margin-top:12px;padding:0 4px">${cpIcon("info")}<span>Você vê apenas as suas ocorrências, só para acompanhar. Dúvidas, fale com seu líder.</span></div>`
-      : `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Nenhuma ocorrência sua registrada. Tudo certo.</p></div>`;
-  } else {
-    corpo = colabBhTabHtml(f);
-  }
-  if (!setHtml(view, `<div class="pp-fade"><div class="pp-hi"><h1>Meu ponto</h1></div>${chips}${corpo}</div>`)) return;
+  const escreveu = setHtml(view, `<div class="pp-fade"><div class="pp-hi"><h1>Meu ponto</h1></div>${chips}<div data-region="ponto:corpo"></div></div>`);
+  // SEMPRE (mesmo com o shell no-op): as regiões se reconciliam com o state atual.
+  updateRegion("ponto:occ-cnt", pontoOccCntHtml);
+  updateRegion("ponto:corpo", tab === "ocorrencias" ? pontoOccHtml : pontoBhHtml);
+  if (!escreveu) return; // shell inalterado: listeners de chips/nav seguem válidos (não re-atar)
   $$("#cp-ponto-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.pontoTab = b.dataset.pontoTab; renderApp(); }));
   bindColabNav(view);
+}
+
+// Corpo das regiões de "Meu ponto": extração PURA do render acima, pra o updateRegion
+// renderar cada pedaço por conta própria a partir do state global.
+function pontoOccCntHtml() {
+  const n = (state.ocorrenciasColab || []).length;
+  return n ? ` <span class="pp-chip-f__c">${n}</span>` : "";
+}
+function pontoOccHtml() {
+  const minhas = (state.ocorrenciasColab || []).slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+  return minhas.length
+    ? `${minhas.map(colabOccCardHtml).join("")}<div class="cp-bhnote" style="margin-top:12px;padding:0 4px">${cpIcon("info")}<span>Você vê apenas as suas ocorrências, só para acompanhar. Dúvidas, fale com seu líder.</span></div>`
+    : `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Nenhuma ocorrência sua registrada. Tudo certo.</p></div>`;
+}
+function pontoBhHtml() {
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  return colabBhTabHtml(f);
 }
 
 // Aba "Banco de horas": saldo (hero) + últimos 10 dias de marcação quando o pipeline publicar
@@ -4269,11 +4286,14 @@ function colabDiaMarcHtml(d) {
   const sFmt = saldoDiaStr(d);
   const sCls = sFmt.startsWith("-") ? "cp-dia__s--neg" : (/^\+?0+:0{2}$/.test(sFmt) ? "cp-dia__s--zero" : "cp-dia__s--pos");
   const saldo = sFmt ? `<div class="cp-dia__s ${sCls}" title="Saldo acumulado até o dia">${escapeHtml(sFmt)}</div>` : "";
-  return `<div class="cp-dia">
+  // data-key/data-hash: o morph por região (updateRegion) casa a linha por dia e pula quando
+  // o conteúdo não mudou (hash). key = ISO do dia (único); hash = FNV-1a do corpo da linha.
+  const inner = `
     <div class="cp-dia__d"><b>${escapeHtml(dia)}</b><span>${escapeHtml(dow)}</span></div>
     <div class="cp-dia__m${off ? " cp-dia__m--off" : ""}">${escapeHtml(corpo)}</div>
     ${saldo}
-  </div>`;
+  `;
+  return `<div class="cp-dia" data-key="${escapeHtml(iso || dia)}" data-hash="${fnv1a(inner)}">${inner}</div>`;
 }
 
 // Card read-only de ocorrência do próprio colaborador (sem ações; só acompanhar).
@@ -4289,11 +4309,15 @@ function colabOccCardHtml(o) {
   const st = (typeof isLancada === "function" && isLancada(o)) ? ["lanc", "Lançada"]
     : (typeof isPending === "function" && isPending(o)) ? ["pend", "Pendente"]
       : ["ok", "Conferida"];
-  return `<div class="cp-occ">
+  // data-key/data-hash: o morph por região casa o card pela ocorrência e pula quando nada
+  // mudou (hash). key = id da ocorrência (fallback data|tipo|horário); hash = FNV-1a do corpo.
+  const inner = `
     <div class="cp-occ__date"><b>${escapeHtml(dia)}</b><span>${escapeHtml(mes)}</span></div>
     <div class="cp-occ__bd"><div class="cp-occ__t">${escapeHtml(tipoLbl)}</div><div class="cp-occ__s">${escapeHtml(sub)}</div></div>
     <span class="cp-occ__st cp-occ__st--${st[0]}"><span class="dot"></span>${st[1]}</span>
-  </div>`;
+  `;
+  const key = o.id || `${o.data || ""}|${o.tipo || ""}|${o.horario || ""}`;
+  return `<div class="cp-occ" data-key="${escapeHtml(String(key))}" data-hash="${fnv1a(inner)}">${inner}</div>`;
 }
 
 // Folha de foto do perfil do colaborador: escolher (via cropper) ou remover. Reusa a mesma
@@ -18213,7 +18237,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.95.0";
+window.CURRENT_VERSION = "1.96.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

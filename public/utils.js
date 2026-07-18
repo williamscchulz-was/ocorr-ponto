@@ -93,6 +93,123 @@ function setHtml(el, html) {
   return true;
 }
 
+// Render por REGIÃO (piloto 2026-07-17, gate Fable v373): quando só um pedaço da tela muda
+// (refetch de saldo/ocorrência em "Meu ponto"), reescrever o #view inteiro pela via setHtml
+// pisca e corta animação em curso. updateRegion resolve o nó da região e, quando o conteúdo
+// muda DE VERDADE, faz um morph cirúrgico (patch) em vez de trocar innerHTML: nó, foco e
+// entrada one-shot em curso sobrevivem. Compartilha o MESMO _setHtmlUltimo do setHtml (zero
+// cache paralelo). Retorna true se escreveu, false se pulou. render recebe o state global (a
+// spec pedia updateRegion(key, state, render); state já é global, então passa direto):
+//   - html idêntico ao último E sem force  -> NO-OP de verdade (zero DOM).
+//   - force OU 1ª pintura da região        -> setHtml cru (byte-idêntico, sem morph).
+//   - mudança real numa região já viva     -> _morphRegion + registra o novo html.
+// O paralelo morph/cru é auditado pela fase nova do flicker-guard (paridade: o morph nasce
+// idêntico ao rebuild forçado).
+function updateRegion(key, render) {
+  const el = document.querySelector(`#view [data-region="${key}"]`);
+  if (!el) return false;
+  const html = render(state);
+  const ultimo = _setHtmlUltimo.get(el);
+  if (!window.__fpForceWrite && ultimo === html) return false;              // no-op real
+  if (window.__fpForceWrite || ultimo === undefined) return setHtml(el, html); // cru
+  _morphRegion(el, html);                                                   // patch cirúrgico
+  _setHtmlUltimo.set(el, html);
+  return true;
+}
+
+// ---- Morph caseiro (só o updateRegion usa) ----------------------------------
+// Transforma o DOM atual de `el` no que `html` produziria, sem trocar innerHTML: casa filhos
+// por chave (data-key) ou por posição, patcha texto/atributos e preserva animação em curso.
+// O <template> destacado parseia FORA do #view (o guard estático proíbe innerHTML cru em
+// #view; aqui é um nó solto). PARIDADE: o resultado nasce idêntico ao de um innerHTML cru do
+// mesmo html (auditado na fase nova do flicker-guard).
+function _morphRegion(el, html) {
+  const tpl = document.createElement("template");
+  tpl.innerHTML = html;
+  _morphChildren(el, tpl.content);
+}
+
+const _fpKey = (n) => (n.nodeType === 1 ? n.getAttribute("data-key") : null);
+const _fpMesmoTipo = (a, b) => a.nodeType === b.nodeType && (a.nodeType !== 1 || a.tagName === b.tagName);
+
+// Reconcilia os filhos de `pai` (nó vivo) com os de `novo` (fragment ou elemento). Invariante:
+// a cada volta um filho-alvo é posto logo antes do cursor, que caminha pelos filhos ainda-não
+// colocados; o que sobra no fim é nó velho sem par e é removido.
+function _morphChildren(pai, novo) {
+  const porChave = {};
+  for (let n = pai.firstChild; n; n = n.nextSibling) { const k = _fpKey(n); if (k) porChave[k] = n; }
+  let cursor = pai.firstChild;
+  let alvo = novo.firstChild;
+  while (alvo) {
+    const proximo = alvo.nextSibling;
+    const kAlvo = _fpKey(alvo);
+    if (kAlvo && porChave[kAlvo]) {
+      // casa por CHAVE: reusa o nó movendo-o pro lugar (insertBefore, nunca recria — NOTA
+      // FABLE 1: linha que só mudou de posição não pode animar entrada).
+      const casado = porChave[kAlvo];
+      delete porChave[kAlvo];
+      if (casado === cursor) cursor = cursor.nextSibling;
+      else pai.insertBefore(casado, cursor);
+      _morphNode(casado, alvo);
+    } else if (!kAlvo && cursor && !_fpKey(cursor) && _fpMesmoTipo(cursor, alvo)) {
+      // casa por POSIÇÃO (nós sem chave: hero, cabeçalhos, texto de espaçamento).
+      const atual = cursor;
+      cursor = cursor.nextSibling;
+      _morphNode(atual, alvo);
+    } else {
+      // sem par: insere um clone no lugar. Linha keyed nova = entrada one-shot.
+      const inserido = alvo.cloneNode(true);
+      pai.insertBefore(inserido, cursor);
+      if (kAlvo) _animarLinha(inserido);
+    }
+    alvo = proximo;
+  }
+  while (cursor) { const prox = cursor.nextSibling; pai.removeChild(cursor); cursor = prox; }
+}
+
+// Patch de um nó só. Tipo/tag diferente troca o nó; texto/comentário só o valor; mesma
+// chave+hash ou isEqualNode para cedo; senão patcha atributos (a menos que esteja animando,
+// pra não cortar a entrada) e SEMPRE recorre nos filhos.
+function _morphNode(de, para) {
+  if (!_fpMesmoTipo(de, para)) { de.replaceWith(para.cloneNode(true)); return; }
+  if (de.nodeType !== 1) { if (de.nodeValue !== para.nodeValue) de.nodeValue = para.nodeValue; return; }
+  const k = de.getAttribute("data-key");
+  if (k && k === para.getAttribute("data-key") && de.getAttribute("data-hash") === para.getAttribute("data-hash")) return;
+  if (de.isEqualNode(para)) return;
+  const animando = typeof de.getAnimations === "function" && de.getAnimations().some((a) => a.playState === "running");
+  if (!animando) _morphAttrs(de, para);
+  _morphChildren(de, para);
+}
+
+function _morphAttrs(de, para) {
+  const pa = para.attributes;
+  for (let i = 0; i < pa.length; i++) if (de.getAttribute(pa[i].name) !== pa[i].value) de.setAttribute(pa[i].name, pa[i].value);
+  const da = de.attributes;
+  for (let i = da.length - 1; i >= 0; i--) if (!para.hasAttribute(da[i].name)) de.removeAttribute(da[i].name);
+}
+
+// Entrada one-shot de uma linha recém-inserida (mesma curva do animarEntrada): WAAPI, não
+// classe/style, pra o DOM estabilizado seguir idêntico ao re-render (contrato do guard).
+function _animarLinha(el) {
+  if (!el || typeof el.animate !== "function") return;
+  if (typeof prefereMenosMovimento === "function" && prefereMenosMovimento()) return;
+  el.animate(
+    [{ opacity: 0, transform: "translateY(7px)" }, { opacity: 1, transform: "none" }],
+    { duration: 340, easing: "cubic-bezier(.2, .8, .2, 1)", fill: "backwards" }
+  );
+}
+
+// FNV-1a 32-bit: assinatura curta e estável do conteúdo de uma linha keyed (data-hash). Só
+// compara conteúdo (mesmo hash -> o morph pula a linha inteira), não é hash criptográfico.
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return ("0000000" + h.toString(16)).slice(-8);
+}
+
 // Valida que uma URL é http(s):// — usar antes de salvar/renderizar pra rejeitar
 // javascript:/data:text que viraria XSS via href. EXCEÇÃO: data:image/ e
 // data:application/pdf são seguras num <img>/<iframe> de PDF (não executam

@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.95.0", d: "18 jul 2026", current: true, items: [
+    v: "1.96.0", d: "18 jul 2026", current: true, items: [
+      { type: "fix", title: "Meu ponto ficou mais leve: quando o saldo ou uma ocorrencia chega, so aquele trecho da tela se atualiza, no lugar certo, sem repintar tudo." },
+    ],
+  },
+  {
+    v: "1.95.0", d: "18 jul 2026", items: [
       { type: "fix", title: "Telas mais fluidas: as animacoes de entrada e de revelacao rodam uma vez so e nao se repetem quando a tela recebe dados novos." },
       { type: "fix", title: "Documentos e Conquistas: o carregamento so mostra o esqueleto se a busca demorar, e quando mostra segura o tempo certo pra nao piscar." },
     ],

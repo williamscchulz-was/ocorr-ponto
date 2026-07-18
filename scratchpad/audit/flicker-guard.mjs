@@ -152,6 +152,94 @@ paginasColab.push(
 );
 await varre("colab", paginasColab);
 
+// ============================================================
+// FASE NOVA (piloto de regiões v373): mede 3 interações na tela colab-ponto e reprova se o
+// morph do updateRegion piscar (CLS), travar (longtask), re-semear animação em nó que já
+// existia (churn) ou divergir do rebuild forçado (paridade). A base é semeada com fixtures
+// deterministas (não depende do dado do demo). As 3 interações: troca de aba (shell reescreve,
+// status quo), refetch com dia novo no espelho, refetch com ocorrência nova.
+// ============================================================
+const falhasM4 = [];
+const DIAS3 = [
+  { dataIso: "2026-07-16", diaSemana: "qui", marcacoes: ["07:02", "12:00", "13:00", "17:04"], maduro: true, saldoDiaOriginalFmt: "+00:06" },
+  { dataIso: "2026-07-15", diaSemana: "qua", marcacoes: ["07:00", "12:01", "13:00", "16:58"], maduro: true, saldoDiaOriginalFmt: "-00:02" },
+  { dataIso: "2026-07-14", diaSemana: "ter", marcacoes: ["06:59", "12:00", "13:02", "17:00"], maduro: true, saldoDiaOriginalFmt: "+00:01" },
+];
+const OCC2 = [
+  { id: "occ-a", tipo: "atraso", data: "2026-07-10", horario: "07:18" },
+  { id: "occ-b", tipo: "falta", data: "2026-07-08", horario: "" },
+];
+
+async function mediaInteracao(rotulo, tipo) {
+  const r = await p.evaluate(async ({ tipo, DIAS3, OCC2, ambienteSrc }) => {
+    const AMBIENTE = new RegExp(ambienteSrc);
+    const view = document.querySelector("#view");
+    window.__fpForceWrite = false;
+    // prep: fixture-base + estabiliza (mesma página, sem cascata de navegação — o aquecimento
+    // abaixo garante isso, senão a cascata one-shot contaria como churn falso).
+    if (state.funcionarios && state.funcionarios[0]) state.funcionarios[0].bhExempt = false;
+    state.meuSaldoBH = { minutosOriginal: 90, saldoOriginalFormatado: "+01:30", dias: DIAS3.map((d) => ({ ...d })) };
+    state.ocorrenciasColab = OCC2.map((o) => ({ ...o }));
+    state.view.page = "colab-ponto";
+    state.view.pontoTab = (tipo === "occ") ? "ocorrencias" : "bh";
+    _renderAppNow();
+    await new Promise((res) => setTimeout(res, 80));
+    // snapshot dos nós ANTES da ação: churn só conta re-semeadura em nó pré-existente (linha
+    // nova legítima anima e é nó novo, fora deste conjunto — é o comportamento esperado).
+    const antes = new Set([view, ...view.querySelectorAll("*")]);
+    let cls = 0;
+    const poCls = new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) cls += e.value; });
+    try { poCls.observe({ type: "layout-shift", buffered: false }); } catch (e) { /* */ }
+    let longMax = 0;
+    const poLt = new PerformanceObserver((l) => { for (const e of l.getEntries()) longMax = Math.max(longMax, e.duration); });
+    try { poLt.observe({ type: "longtask", buffered: false }); } catch (e) { /* */ }
+    // AÇÃO: muda o state e re-renderiza (updateRegion dispara o morph). aba = shell reescreve;
+    // dia/occ = shell no-op e a região do corpo morpha (insere 1 linha keyed nova).
+    if (tipo === "aba") state.view.pontoTab = "ocorrencias";
+    else if (tipo === "dia") state.meuSaldoBH.dias.unshift({ dataIso: "2026-07-17", diaSemana: "sex", marcacoes: ["07:01", "12:00", "13:00", "17:03"], maduro: true, saldoDiaOriginalFmt: "+00:05" });
+    else if (tipo === "occ") state.ocorrenciasColab.unshift({ id: "occ-novo", tipo: "atraso", data: "2026-07-15", horario: "07:22" });
+    let erro = null;
+    try { _renderAppNow(); } catch (e) { erro = String(e).slice(0, 200); }
+    await new Promise((res) => requestAnimationFrame(res));
+    const morphHtml = view.innerHTML;
+    const churn = (document.getAnimations ? document.getAnimations() : [])
+      .filter((an) => an.playState === "running" && (an.currentTime || 0) < 100
+        && view.contains(an.effect && an.effect.target)
+        && antes.has(an.effect && an.effect.target)
+        && !AMBIENTE.test(an.animationName || "")).length;
+    await new Promise((res) => setTimeout(res, 350)); // deixa os observers coletarem CLS/longtask
+    poCls.disconnect(); poLt.disconnect();
+    // PARIDADE: o rebuild FORÇADO (cru) tem que nascer idêntico ao resultado do morph.
+    window.__fpForceWrite = true;
+    try { _renderAppNow(); } catch (e) { window.__fpForceWrite = false; return { erro: String(e).slice(0, 200) }; }
+    window.__fpForceWrite = false;
+    const rawHtml = view.innerHTML;
+    return { erro, cls, longMax, churn, morphHtml, rawHtml };
+  }, { tipo, DIAS3, OCC2, ambienteSrc: "^(fpHalo|fpPing|fpSpin)$" });
+
+  if (r.erro) { falhasM4.push(`${rotulo}: ERRO ${r.erro}`); console.log(`  ${rotulo}: ERRO ${r.erro}`); return; }
+  const status = [];
+  if (r.cls >= 0.02) { falhasM4.push(`${rotulo}: CLS ${r.cls.toFixed(4)} (>= 0.02)`); status.push("CLS"); }
+  if (r.longMax > 50) { falhasM4.push(`${rotulo}: longtask ${r.longMax.toFixed(0)}ms (> 50)`); status.push("longtask"); }
+  if (r.churn > 0) { falhasM4.push(`${rotulo}: ${r.churn} animação(ões) re-semeada(s) em nó pré-existente (churn)`); status.push("churn"); }
+  const A = normaliza(r.morphHtml), B = normaliza(r.rawHtml);
+  if (A !== B) {
+    let i = 0; while (i < Math.min(A.length, B.length) && A[i] === B[i]) i++;
+    falhasM4.push(`${rotulo}: PARIDADE morph != rebuild no offset ${i}\n    morph:   ...${A.slice(Math.max(0, i - 40), i + 80)}...\n    rebuild: ...${B.slice(Math.max(0, i - 40), i + 80)}...`);
+    status.push("paridade");
+  }
+  console.log(`  ${rotulo}: ${status.length ? status.join(" + ") + " REPROVOU" : `ok (CLS ${r.cls.toFixed(4)}, longtask ${r.longMax.toFixed(0)}ms, churn ${r.churn}, paridade ok)`}`);
+}
+
+console.log("FASE NOVA (piloto de regiões, colab-ponto):");
+// aquece a tela piloto e deixa a cascata de navegação terminar, pra os re-renders das
+// interações serem SEMPRE mesma-página (pp-anima desligada = sem cascata = sem churn falso).
+await p.evaluate(() => { state.view.page = "colab-ponto"; state.view.pontoTab = "bh"; _renderAppNow(); });
+await p.waitForTimeout(700);
+await mediaInteracao("troca de aba bh<->ocorrencias", "aba");
+await mediaInteracao("refetch: dia novo no espelho", "dia");
+await mediaInteracao("refetch: ocorrência nova", "occ");
+
 await b.close();
 if (jsErros.length) console.log("\npageErrors:", jsErros);
 
@@ -159,6 +247,12 @@ let reprova = false;
 if (falhasM1.length) {
   reprova = true;
   console.log(`\n${falhasM1.length} TELA(S) REPROVADAS no m1 (cache):\n` + falhasM1.map((f) => "- " + f).join("\n"));
+}
+if (falhasM4.length) {
+  // Falha do piloto de regiões é HARD (reprova mesmo sem --strict): morph quebrado pisca de
+  // verdade. CLS/longtask/churn/paridade são o contrato do updateRegion.
+  reprova = true;
+  console.log(`\n${falhasM4.length} FALHA(S) na FASE NOVA (piloto de regiões):\n` + falhasM4.map((f) => "- " + f).join("\n"));
 }
 if (falhasM2.length) {
   console.log(`\n${falhasM2.length} tela(s) sem no-op m2${ESTRITO ? " (REPROVA, modo estrito)" : " (aviso; reprova com --strict)"}:\n` + falhasM2.map((f) => "- " + f).join("\n"));
