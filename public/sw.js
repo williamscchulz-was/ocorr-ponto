@@ -10,7 +10,7 @@
 //  - activate purga TODO cache com nome != CACHE atual. Bumpar CACHE a
 //    cada deploy que mexa em SW/estratégia (segue o ?v= do index.html).
 
-const CACHE = "fiopulse-v374";
+const CACHE = "fiopulse-v375";
 
 self.addEventListener("install", () => {
   // NÃO faz skipWaiting automático: um SW novo ESPERA. Quem decide ativar é o app,

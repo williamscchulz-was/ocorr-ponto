@@ -1277,6 +1277,7 @@ function mostrarTermoCanalDenuncia() {
     const res = await window.registrarTermoCanalDenuncia?.();
     if (res && res.ok) {
       state.termoCanalOk = true;
+      state._termoCanalAceitoAgora = true; // onboarding espera o próximo acesso (não empilha)
       ov.remove();
       renderApp();
       // Cerimônia curta (mesma primitiva do anel), com a nota de registro imutável + versão.
@@ -1290,6 +1291,254 @@ function mostrarTermoCanalDenuncia() {
     }
   }));
 }
+
+// ============================================================
+// SUPER ONBOARDING do 1º acesso (colaborador). Overlay de tela cheia FORA do
+// #view (nasce, roda, morre), fiel ao mock docs/mockups/onboarding-2026-07.html.
+// Último elo da corrente de gates (senha → adesão → canal → onboarding), 1x por
+// usuário. Persistência v1: localStorage por uid (fiopulse:onboarding:<uid> =
+// versão vista). Reabrível pela Conta. As cenas moram num ÚNICO array (fonte da
+// barra de progresso também). Toque à direita avança, à esquerda volta.
+// ponytail: upgrade futuro = campo no users doc pra valer entre aparelhos.
+// ============================================================
+const ONBOARD_VERSAO = "2026-07-v1";
+const _onbA = "var(--art-accent)";
+const _onbSvg = (inner) => '<svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">' + inner + "</svg>";
+const _onbChevron = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+const ONBOARD_CENAS = [
+  {
+    kicker: "Boas-vindas",
+    title: "Que bom te ver, {nome}",
+    value: "Este é o Portal do Colaborador da Fiobras, agora no seu bolso. Em um minuto, um passeio pelo que dá pra fazer aqui.",
+    art: _onbSvg(`
+      <circle cx="60" cy="60" r="46" fill="var(--art-bg)" stroke="none"/>
+      <path d="M20 60h16l9-26 14 52 10-34 6 14h16" stroke="var(--art-ink)" stroke-width="4.5"/>
+      <circle cx="97" cy="34" r="3.4" fill="var(--yellow)" stroke="none"/>
+      <path d="M92 30l1.6-5 1.6 5 5 1.6-5 1.6-1.6 5-1.6-5-5-1.6z" fill="var(--yellow)" stroke="none" opacity=".9"/>
+    `),
+  },
+  {
+    kicker: "Início",
+    title: "O mural que aproxima a equipe",
+    value: "Aniversários, tempo de casa e quem chegou agora aparecem no seu Início. Um toque no coração celebra o colega.",
+    art: _onbSvg(`
+      <rect x="20" y="30" width="80" height="60" rx="12" fill="var(--art-bg)" stroke="none"/>
+      <circle cx="42" cy="52" r="10" stroke="var(--art-ink)"/>
+      <path d="M28 78c1-9 7-14 14-14s13 5 14 14" stroke="var(--art-ink)"/>
+      <path d="M78 46c4-5 12-4 12 3 0 6-9 10-12 13-3-3-12-7-12-13 0-7 8-8 12-3z" fill="${_onbA}" stroke="none"/>
+      <path d="M72 74h20M72 82h13" stroke="var(--art-ink)" stroke-width="3.5"/>
+    `),
+  },
+  {
+    kicker: "Meu ponto",
+    title: "Seu ponto, sempre à mão",
+    value: "Acompanhe o saldo do banco de horas e o espelho de ponto, atualizados, sem precisar perguntar pra ninguém.",
+    art: _onbSvg(`
+      <circle cx="60" cy="58" r="46" fill="var(--art-bg)" stroke="none"/>
+      <rect x="34" y="66" width="10" height="22" rx="3" fill="${_onbA}" stroke="none"/>
+      <rect x="55" y="54" width="10" height="34" rx="3" fill="${_onbA}" stroke="none" opacity=".75"/>
+      <rect x="76" y="44" width="10" height="44" rx="3" fill="${_onbA}" stroke="none" opacity=".55"/>
+      <circle cx="60" cy="40" r="17" fill="var(--surface)" stroke="var(--art-ink)"/>
+      <path d="M60 32v9l6 4" stroke="var(--art-ink)" stroke-width="3.4"/>
+    `),
+  },
+  {
+    kicker: "Folha de pagamento",
+    title: "Sua folha, assinada com validade",
+    value: "Recibos e cartão ponto você assina dentro do app. A assinatura fica carimbada no arquivo, com data e local. Prova de verdade.",
+    art: _onbSvg(`
+      <rect x="30" y="20" width="60" height="80" rx="10" fill="var(--art-bg)" stroke="none"/>
+      <path d="M42 38h36M42 50h36M42 62h22" stroke="var(--art-ink)" stroke-width="3.4"/>
+      <path d="M40 82c6-8 10-8 14-4s8 3 16-6" stroke="${_onbA}" stroke-width="4"/>
+      <circle cx="86" cy="82" r="17" fill="var(--surface)" stroke="var(--art-ink)"/>
+      <path d="M79 82l5 5 9-10" stroke="${_onbA}" stroke-width="4"/>
+    `),
+  },
+  {
+    kicker: "Avisos e Documentos",
+    title: "Fique por dentro, tudo num lugar",
+    value: "Comunicados e avisos chegam aqui, com confirmação de leitura. Termos e comprovantes ficam guardados na tela Documentos.",
+    art: _onbSvg(`
+      <circle cx="60" cy="60" r="46" fill="var(--art-bg)" stroke="none"/>
+      <path d="M34 54v12l30 12V42z" fill="${_onbA}" stroke="none"/>
+      <path d="M34 54H26a4 4 0 0 0-4 4v4a4 4 0 0 0 4 4h8" stroke="var(--art-ink)"/>
+      <path d="M46 82l3 10a4 4 0 0 0 7 1" stroke="var(--art-ink)"/>
+      <rect x="72" y="42" width="30" height="38" rx="6" fill="var(--surface)" stroke="var(--art-ink)"/>
+      <path d="M79 78l5 5 9-11" stroke="${_onbA}" stroke-width="3.6"/>
+    `),
+  },
+  {
+    kicker: "Conquistas",
+    title: "O que você faz, agora vale ponto",
+    value: "Assinar, dar ciência e voltar todo dia somam pontos na temporada. Tem medalha de tempo de casa, ranking e prêmios surpresa.",
+    art: _onbSvg(`
+      <circle cx="60" cy="52" r="26" fill="var(--art-bg)" stroke="none"/>
+      <path d="M40 22h40v14a20 20 0 0 1-40 0z" fill="${_onbA}" stroke="none"/>
+      <path d="M40 26H30v4c0 7 5 12 12 13M80 26h10v4c0 7-5 12-12 13" stroke="var(--art-ink)"/>
+      <path d="M54 72h12v10H54z" stroke="var(--art-ink)"/>
+      <path d="M42 92h36" stroke="var(--art-ink)" stroke-width="4"/>
+      <circle cx="40" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
+      <circle cx="52" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
+      <circle cx="64" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
+      <circle cx="76" cy="102" r="3.2" fill="var(--yellow)" stroke="none"/>
+    `),
+  },
+  {
+    kicker: "Canal de denúncia",
+    title: "Um canal seguro pra falar",
+    value: "Relate assédio, fraude ou risco direto pra direção, de forma anônima. Você recebe um protocolo pra acompanhar sem se identificar.",
+    art: _onbSvg(`
+      <path d="M60 18l34 12v24c0 24-16 38-34 46-18-8-34-22-34-46V30z" fill="var(--art-bg)" stroke="var(--art-ink)"/>
+      <rect x="48" y="56" width="24" height="20" rx="4" fill="${_onbA}" stroke="none"/>
+      <path d="M52 56v-6a8 8 0 0 1 16 0v6" stroke="var(--art-ink)" stroke-width="3.2"/>
+      <circle cx="60" cy="65" r="3" fill="var(--surface)" stroke="none"/>
+    `),
+  },
+];
+
+function onbVisto(uid) { try { return localStorage.getItem("fiopulse:onboarding:" + uid); } catch { return null; } }
+function marcarOnbVisto(uid) { try { localStorage.setItem("fiopulse:onboarding:" + uid, ONBOARD_VERSAO); } catch {} }
+// Pendente = colaborador que ainda não viu ESTA versão. O gate no shell (renderPortal-
+// Colaborador) só chega aqui com sessão real (termoAdesaoOk === true exclui demo/harness).
+function onboardingPendente(u) {
+  return !!u && u.role === "colaborador" && onbVisto(u.id) !== ONBOARD_VERSAO;
+}
+
+// Overlay do onboarding. Um único elemento no body, WAAPI one-shot (nunca classe re-
+// disparável), respeita prefereMenosMovimento. Concluir OU pular grava a marca de visto.
+function mostrarOnboarding() {
+  if (document.getElementById("onb-overlay")) return; // já montado
+  const semMov = prefereMenosMovimento();
+  const u = currentUser();
+  const uid = u && u.id;
+  const fColab = (state.funcionarios && state.funcionarios[0]) || null;
+  const nomeCompleto = (fColab && fColab.nome) || (u && u.nome) || "";
+  const primeiroNome = (nomeCompleto.trim().split(/\s+/)[0]) || "você";
+  const prevFocus = document.activeElement;
+
+  const ov = document.createElement("div");
+  ov.id = "onb-overlay";
+  ov.className = "onb-ov";
+  ov.innerHTML = `
+    <div class="onb-shell" role="dialog" aria-modal="true" aria-label="Apresentação do portal">
+      <div class="onb-head">
+        <div class="onb-bars" id="onb-bars">${ONBOARD_CENAS.map(() => "<i><b></b></i>").join("")}</div>
+        <div class="onb-head__row">
+          <span class="onb-brand">${cpIcon("pulso")}FioPulse</span>
+          <button class="onb-skip" id="onb-skip" type="button">Pular</button>
+        </div>
+      </div>
+      <div class="onb-stage" id="onb-stage">
+        <span class="onb-zone onb-zone--prev" id="onb-prev"></span>
+        <span class="onb-zone onb-zone--next" id="onb-next"></span>
+        <div class="onb-art" id="onb-art"></div>
+        <div class="onb-kicker" id="onb-kicker"></div>
+        <div class="onb-title" id="onb-title"></div>
+        <div class="onb-value" id="onb-value"></div>
+      </div>
+      <div class="onb-foot">
+        <button class="onb-cta" id="onb-cta" type="button"></button>
+        <button class="onb-back" id="onb-back" type="button">Voltar</button>
+      </div>
+      <div class="onb-done" id="onb-done">
+        <div class="onb-done__in">
+          <div class="onb-seal">${cpIcon("check")}</div>
+          <h2 id="onb-done-t"></h2>
+          <p>O portal é seu. Comece pelo que precisar, no seu ritmo.</p>
+          <div class="onb-note">${cpIcon("info")}<span>Quer rever esta apresentação depois? Ela fica em <b>Conta</b>, sempre à mão.</span></div>
+          <div class="onb-done__acts">
+            <button class="onb-cta" id="onb-explorar" type="button">Explorar o portal</button>
+            <button class="onb-redo" id="onb-redo" type="button">Rever a apresentação</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const q = (sel) => ov.querySelector(sel);
+  const bars = [...q("#onb-bars").children];
+  const art = q("#onb-art"), kicker = q("#onb-kicker"), title = q("#onb-title"), value = q("#onb-value");
+  const cta = q("#onb-cta"), back = q("#onb-back"), skip = q("#onb-skip");
+  const done = q("#onb-done");
+  q("#onb-done-t").textContent = "Tudo pronto, " + primeiroNome;
+
+  let i = 0, fechado = false;
+
+  function paint() {
+    const c = ONBOARD_CENAS[i];
+    art.innerHTML = c.art;
+    kicker.textContent = c.kicker;
+    title.textContent = (c.title || "").replace("{nome}", primeiroNome);
+    value.textContent = c.value;
+    bars.forEach((el, k) => { el.classList.toggle("done", k < i); el.classList.toggle("on", k === i); });
+    const last = i === ONBOARD_CENAS.length - 1;
+    cta.innerHTML = last ? "Começar a usar" : "Continuar " + _onbChevron;
+    back.classList.toggle("show", i > 0);
+    skip.classList.toggle("hide", last);
+    // Entrada one-shot da cena (WAAPI): fade + subida curta, 1x por navegação. Não deixa
+    // classe/estilo que um re-render ressuscitaria (o overlay nem re-renderiza, mas segue
+    // o padrão animarEntrada da metodologia premium).
+    if (!semMov && typeof art.animate === "function") {
+      [art, kicker, title, value].forEach((el) => el.animate(
+        [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }],
+        { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" }));
+    }
+  }
+
+  function avancar() { if (i >= ONBOARD_CENAS.length - 1) return concluir(); i++; paint(); }
+  function voltar() { if (i > 0) { i--; paint(); } }
+  function concluir() {
+    if (uid) marcarOnbVisto(uid); // chegou ao fim = visto
+    done.classList.add("on");
+    if (!semMov && typeof done.animate === "function") {
+      const inner = done.querySelector(".onb-done__in");
+      if (inner) inner.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }],
+        { duration: 500, easing: "cubic-bezier(.2,.8,.2,1)" });
+    }
+    vibrar(12);
+  }
+  function recomecar() { done.classList.remove("on"); i = 0; paint(); }
+  function fechar() {
+    if (fechado) return;
+    fechado = true;
+    document.removeEventListener("keydown", onKey, true);
+    const remover = () => { ov.remove(); if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch {} } };
+    if (semMov || typeof ov.animate !== "function") { remover(); return; }
+    const a = ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease" });
+    a.onfinish = remover; a.oncancel = remover;
+  }
+  function pular() { if (uid) marcarOnbVisto(uid); fechar(); }
+
+  q("#onb-next").addEventListener("click", avancar);
+  q("#onb-prev").addEventListener("click", voltar);
+  cta.addEventListener("click", (e) => { e.stopPropagation(); avancar(); });
+  back.addEventListener("click", (e) => { e.stopPropagation(); voltar(); });
+  skip.addEventListener("click", (e) => { e.stopPropagation(); pular(); });
+  q("#onb-explorar").addEventListener("click", fechar);
+  q("#onb-redo").addEventListener("click", recomecar);
+
+  // Teclado (a11y): setas navegam; Esc encerra (na final = fecha, antes = pula, ambos
+  // gravam+fecham); Tab preso no overlay pra o foco não vazar pro app atrás.
+  const onKey = (e) => {
+    const naFinal = done.classList.contains("on");
+    if (e.key === "ArrowRight") { e.preventDefault(); if (!naFinal) avancar(); return; }
+    if (e.key === "ArrowLeft") { e.preventDefault(); if (!naFinal) voltar(); return; }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); naFinal ? fechar() : pular(); return; }
+    if (e.key === "Tab") {
+      const foc = [...ov.querySelectorAll(FOCAVEIS_SEL)].filter((el) => el.offsetParent !== null);
+      if (!foc.length) { e.preventDefault(); return; }
+      const first = foc[0], lastEl = foc[foc.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); first.focus(); }
+    }
+  };
+  document.addEventListener("keydown", onKey, true);
+
+  if (!semMov && typeof ov.animate === "function") ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease" });
+  paint();
+  setTimeout(() => { try { cta.focus({ preventScroll: true }); } catch {} }, semMov ? 0 : 60);
+}
+
 // Chamado pelo firebase.js quando não há sessão (boot/logout). Mostra a escolha
 // por padrão; vai direto ao login só se algo pediu (ex.: erro de perfil no Auth).
 window.__portaoSemSessao = function () {
@@ -1413,7 +1662,11 @@ function renderPortalColaborador(u) {
   if (state.termoAdesaoOk === false || state.termoAdesaoOk === null) { mostrarTermoAdesao(); return; }
   // Termo do canal de denúncias: só DEPOIS da adesão resolvida. Se a adesão foi aceita neste
   // mesmo acesso (_termoAdesaoAceitoAgora), o canal espera o próximo (não empilha 2 gates).
-  if (!state._termoAdesaoAceitoAgora && (state.termoCanalOk === false || state.termoCanalOk === null)) mostrarTermoCanalDenuncia();
+  if (!state._termoAdesaoAceitoAgora && (state.termoCanalOk === false || state.termoCanalOk === null)) { mostrarTermoCanalDenuncia(); return; }
+  // Onboarding (último elo da corrente): só em sessão real com os termos apurados
+  // (termoAdesaoOk === true exclui demo/prévia, onde fica undefined) e NUNCA no mesmo acesso
+  // em que um termo foi aceito AGORA (mesma regra "um gate por acesso" da corrente). 1x por uid.
+  if (state.termoAdesaoOk === true && !state._termoAdesaoAceitoAgora && !state._termoCanalAceitoAgora && onboardingPendente(u)) mostrarOnboarding();
 }
 
 const COLAB_NAV = [
@@ -4454,6 +4707,11 @@ function renderColabConta() {
           <span class="pp-sw-rw__bd"><span class="pp-rw__t">Notificações</span><span class="pp-rw__s">Avisos de fechamento e comunicados</span></span>
           <button class="pp-switch" id="cp-notif" role="switch" aria-checked="${notif ? "true" : "false"}" aria-label="Notificações"></button>
         </div>
+        <button class="pp-rw" data-acao="rever-onboarding">
+          <span class="pp-ico pp-ico--neutral">${cpIcon("refresh")}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">Rever a apresentação</span><span class="pp-rw__s">O passeio rápido pelo que o portal faz</span></span>
+          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
+        </button>
       </div>
 
       <div class="pp-ovl">Segurança</div>
@@ -4489,6 +4747,7 @@ function renderColabConta() {
     else toast("Troca de senha disponível apenas no app conectado.", "danger");
   });
   view.querySelector('[data-acao="trocar-portal"]')?.addEventListener("click", trocarDePortal);
+  view.querySelector('[data-acao="rever-onboarding"]')?.addEventListener("click", () => mostrarOnboarding());
   view.querySelector('[data-acao="sair"]')?.addEventListener("click", confirmarSairColab);
   const _seg = view.querySelector("#cp-seg-tema");
   const _pill = _seg?.querySelector(".pp-seg__pill");
@@ -18244,7 +18503,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.97.0";
+window.CURRENT_VERSION = "1.98.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

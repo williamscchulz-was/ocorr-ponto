@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.97.0", d: "18 jul 2026", current: true, items: [
+    v: "1.98.0", d: "20 jul 2026", current: true, items: [
+      { type: "feat", title: "Novidade no primeiro acesso: uma apresentacao rapida mostra tudo que o portal faz por voce, e da pra rever quando quiser pela Conta.", aud: "colab" },
+    ],
+  },
+  {
+    v: "1.97.0", d: "18 jul 2026", items: [
       { type: "fix", title: "A home ficou mais fluida: os cards do mural (aniversario, tempo de casa) atualizam no lugar, sem repintar a tela, e curtir o coracao responde na hora." },
     ],
   },

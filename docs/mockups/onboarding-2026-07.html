@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mock · Super onboarding do 1º acesso (colaborador)</title>
+<style>
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-400-latin.woff2') format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-500-latin.woff2') format('woff2');font-weight:500;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-600-latin.woff2') format('woff2');font-weight:600;font-display:swap}
+  @font-face{font-family:'Poppins';src:url('/public/fonts/poppins-700-latin.woff2') format('woff2');font-weight:700;font-display:swap}
+
+  :root{
+    --milk:#F6F8F4;--milk-warm:#EEF3EC;--surface:#FFFFFF;--border:#E7EDE4;--border-strong:#D8E2D3;
+    --text:#132110;--text-body:#1E2D1A;--text-muted:#4A6245;
+    --plum:#008835;--plum-soft:#1AA34F;--plum-deep:#006328;--plum-ink:#0B5A2C;
+    --yellow:#FFCB00;--blue:#0076BE;--blue-bg:#DBEAF6;--blue-ink:#0A5C90;
+    --success-bg:#E0EAD8;--warm-bg:#F5EEDD;
+    --wash:linear-gradient(172deg,#EEF3EC 0%,#F6F8F4 58%);
+    --art-bg:#EEF6EF;--art-ink:var(--plum);--art-accent:var(--plum-soft);
+    --sh:0 18px 50px rgba(0,40,20,.14);--sh-card:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+    --font:'Poppins',ui-sans-serif,system-ui,sans-serif;--tr:280ms cubic-bezier(.4,0,.2,1);
+  }
+  html.dark{
+    --milk:#0E130E;--milk-warm:#161D15;--surface:#161D15;--border:#232C22;--border-strong:#2E382C;
+    --text:#F2F7EF;--text-body:#EDF3EA;--text-muted:#93A48C;
+    --plum:#5FCB85;--plum-soft:#7BD79A;--plum-deep:#3FB570;--plum-ink:#8FE0AC;
+    --yellow:#FFD84D;--blue:#5AA9DD;--blue-bg:#17262F;--blue-ink:#9CCBE8;
+    --success-bg:#17281B;--warm-bg:#241F14;
+    --wash:linear-gradient(172deg,#171F16 0%,#0E130E 58%);
+    --art-bg:#16241A;--art-ink:var(--plum);--art-accent:var(--plum-soft);
+    --sh:0 20px 54px rgba(0,0,0,.55);--sh-card:0 2px 10px -4px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--milk);color:var(--text-body);-webkit-font-smoothing:antialiased;padding:24px 16px 64px;transition:background .25s,color .25s}
+  .wrap{max-width:440px;margin:0 auto}
+
+  /* cabecalho do mock */
+  .lead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .lead h1{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+  .lead p{font-size:12px;color:var(--text-muted);margin-top:3px;line-height:1.55}
+  .tema{flex:none;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-body);border-radius:999px;padding:8px 14px;font:600 11.5px var(--font);cursor:pointer;transition:var(--tr)}
+  .tema:hover{border-color:var(--plum)}
+
+  /* telefone */
+  .phone{position:relative;max-width:412px;height:748px;margin:0 auto;background:var(--wash);border:1px solid var(--border);border-radius:30px;box-shadow:var(--sh);overflow:hidden;display:flex;flex-direction:column}
+
+  /* topo: progresso + pular */
+  .head{flex:none;padding:16px 18px 6px;position:relative;z-index:3}
+  .bars{display:flex;gap:5px}
+  .bars i{flex:1;height:3.5px;border-radius:999px;background:var(--border-strong);overflow:hidden;position:relative}
+  .bars i b{position:absolute;inset:0;width:0;border-radius:999px;background:var(--plum);transition:width var(--tr)}
+  .bars i.done b{width:100%}
+  .bars i.on b{width:100%}
+  .head__row{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+  .brand{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+  .brand svg{width:18px;height:18px;color:var(--plum)}
+  .skip{background:none;border:0;color:var(--text-muted);font:600 12.5px var(--font);cursor:pointer;padding:6px 4px;border-radius:8px;transition:var(--tr)}
+  .skip:hover{color:var(--text-body)}
+  .skip.hide{visibility:hidden}
+
+  /* palco (toque avanca) */
+  .stage{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px 30px 4px;cursor:pointer;user-select:none}
+  .zone{position:absolute;top:0;bottom:0;width:32%;z-index:2}
+  .zone.prev{left:0}
+  .zone.next{right:0;width:68%}
+
+  .art{width:196px;height:196px;margin-bottom:26px;display:flex;align-items:center;justify-content:center}
+  .art svg{width:100%;height:100%;overflow:visible}
+  .kicker{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--plum);margin-bottom:10px}
+  .title{font-size:24px;line-height:1.15;font-weight:700;letter-spacing:-.02em;color:var(--text);max-width:16ch}
+  .value{font-size:14px;line-height:1.62;color:var(--text-muted);margin-top:12px;max-width:30ch}
+
+  /* transicao de cena, one-shot no paint */
+  .fade .art,.fade .kicker,.fade .title,.fade .value{opacity:0;transform:translateY(8px)}
+  .art,.kicker,.title,.value{transition:opacity var(--tr),transform var(--tr)}
+
+  /* rodape: continuar + voltar */
+  .foot{flex:none;padding:14px 22px calc(20px + env(safe-area-inset-bottom));position:relative;z-index:3}
+  .cta{width:100%;border:0;border-radius:14px;background:var(--plum);color:#fff;font:700 15px var(--font);padding:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 20px rgba(0,136,53,.24);transition:var(--tr)}
+  html.dark .cta{color:#08130B;box-shadow:0 8px 20px rgba(95,203,133,.18)}
+  .cta:hover{background:var(--plum-deep)}
+  .cta svg{width:17px;height:17px}
+  .back{display:block;width:100%;background:none;border:0;color:var(--text-muted);font:600 12.5px var(--font);cursor:pointer;padding:11px 0 0;visibility:hidden}
+  .back.show{visibility:visible}
+
+  /* estado final */
+  .done-view{position:absolute;inset:0;z-index:5;background:var(--wash);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:34px 34px 30px}
+  .done-view.on{display:flex}
+  .done-inner{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%}
+  .done-view.on .done-inner{animation:rise .5s var(--tr)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .done-seal{width:96px;height:96px;border-radius:50%;background:var(--surface);border:1px solid var(--border);box-shadow:var(--sh-card);display:flex;align-items:center;justify-content:center;color:var(--plum);margin-bottom:22px}
+  .done-seal svg{width:44px;height:44px}
+  .done-view h2{font-size:23px;font-weight:700;letter-spacing:-.02em;color:var(--text)}
+  .done-view p{font-size:13.5px;line-height:1.6;color:var(--text-muted);margin-top:10px;max-width:30ch}
+  .done-note{margin-top:20px;display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:12px;color:var(--text-muted);line-height:1.5;text-align:left;box-shadow:var(--sh-card)}
+  .done-note svg{width:17px;height:17px;flex:none;color:var(--plum)}
+  .done-note b{color:var(--text-body);font-weight:600}
+  .done-actions{margin-top:26px;width:100%}
+  .redo{width:100%;background:none;border:0;color:var(--text-muted);font:600 12.5px var(--font);cursor:pointer;padding:14px 0 0}
+
+  /* documentacao das regras */
+  .rules{max-width:440px;margin:26px auto 0;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px;box-shadow:var(--sh-card)}
+  .rules h3{font-size:12.5px;font-weight:700;letter-spacing:.02em;color:var(--text);display:flex;align-items:center;gap:8px}
+  .rules h3 svg{width:16px;height:16px;color:var(--plum)}
+  .rules ul{list-style:none;margin-top:14px;display:flex;flex-direction:column;gap:13px}
+  .rules li{display:flex;gap:11px;font-size:12.5px;line-height:1.55;color:var(--text-muted)}
+  .rules li b{color:var(--text-body);font-weight:600}
+  .rules .dot{flex:none;width:22px;height:22px;border-radius:7px;background:var(--milk-warm);color:var(--plum);display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .rules .dot svg{width:13px;height:13px}
+  .rules code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;background:var(--milk-warm);color:var(--plum-ink);padding:1px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="lead">
+    <div>
+      <h1>Super onboarding · 1º acesso do colaborador</h1>
+      <p>Mock clicável em cenas (estilo stories). Toque à direita avança, à esquerda volta. Aprovar antes de tocar no app.</p>
+    </div>
+    <button class="tema" id="tema" type="button">Escuro</button>
+  </div>
+
+  <div class="phone">
+    <div class="head">
+      <div class="bars" id="bars"></div>
+      <div class="head__row">
+        <span class="brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2.5-7 4 15 3-9 1.5 3H22"/></svg>
+          FioPulse
+        </span>
+        <button class="skip" id="skip" type="button">Pular</button>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="zone prev" id="zprev"></div>
+      <div class="zone next" id="znext"></div>
+      <div class="art" id="art"></div>
+      <div class="kicker" id="kicker"></div>
+      <div class="title" id="title"></div>
+      <div class="value" id="value"></div>
+    </div>
+
+    <div class="foot">
+      <button class="cta" id="cta" type="button"></button>
+      <button class="back" id="back" type="button">Voltar</button>
+    </div>
+
+    <!-- estado final -->
+    <div class="done-view" id="done">
+      <div class="done-inner">
+        <div class="done-seal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h2>Tudo pronto, Maria</h2>
+        <p>O portal é seu. Comece pelo que precisar, no seu ritmo.</p>
+        <div class="done-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <span>Quer rever esta apresentação depois? Ela fica em <b>Conta</b>, sempre à mão.</span>
+        </div>
+        <div class="done-actions">
+          <button class="cta" id="explorar" type="button">Explorar o portal</button>
+          <button class="redo" id="redo" type="button">Rever a apresentação</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- documentacao -->
+  <div class="rules">
+    <h3>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+      Regras do onboarding
+    </h3>
+    <ul>
+      <li>
+        <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span><b>Roda 1 vez por usuário</b>, no primeiro acesso, depois de criar a senha e aceitar o Termo de Adesão. Concluir ou pular grava a marca de visto e ele não volta sozinho.</span>
+      </li>
+      <li>
+        <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></svg></span>
+        <span><b>Reabrível pela Conta</b>: quem quiser rever encontra a apresentação na tela Conta, sem sair da experiência normal do app.</span>
+      </li>
+      <li>
+        <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></span>
+        <span><b>Cenas num único lugar</b>: todo o conteúdo vive no array <code>CENAS</code> deste arquivo. Editar texto, ordem ou ilustração é mexer num só ponto, e a barra de progresso se ajusta sozinha.</span>
+      </li>
+      <li>
+        <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></span>
+        <span><b>Ordem no fluxo do 1º acesso</b>: escolha do portal, senha, Termo de Adesão, e então o onboarding. Depois dele, o colaborador cai no Início.</span>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CENAS: fonte única do onboarding. Editar aqui muda a tela e a
+// barra de progresso. Cada cena: art (SVG inline), kicker, title, value.
+// ============================================================
+const P = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
+const A = 'var(--art-accent)';
+const svg = (inner) => '<svg viewBox="0 0 120 120" ' + P + ' stroke-width="3">' + inner + '</svg>';
+
+const CENAS = [
+  {
+    kicker: "Boas-vindas",
+    title: "Que bom te ver, Maria",
+    value: "Este é o Portal do Colaborador da Fiobras, agora no seu bolso. Em um minuto, um passeio pelo que dá pra fazer aqui.",
+    art: svg(`
+      <circle cx="60" cy="60" r="46" fill="var(--art-bg)" stroke="none"/>
+      <path d="M20 60h16l9-26 14 52 10-34 6 14h16" stroke="var(--art-ink)" stroke-width="4.5"/>
+      <circle cx="97" cy="34" r="3.4" fill="var(--yellow)" stroke="none"/>
+      <path d="M92 30l1.6-5 1.6 5 5 1.6-5 1.6-1.6 5-1.6-5-5-1.6z" fill="var(--yellow)" stroke="none" opacity=".9"/>
+    `),
+  },
+  {
+    kicker: "Início",
+    title: "O mural que aproxima a equipe",
+    value: "Aniversários, tempo de casa e quem chegou agora aparecem no seu Início. Um toque no coração celebra o colega.",
+    art: svg(`
+      <rect x="20" y="30" width="80" height="60" rx="12" fill="var(--art-bg)" stroke="none"/>
+      <circle cx="42" cy="52" r="10" stroke="var(--art-ink)"/>
+      <path d="M28 78c1-9 7-14 14-14s13 5 14 14" stroke="var(--art-ink)"/>
+      <path d="M78 46c4-5 12-4 12 3 0 6-9 10-12 13-3-3-12-7-12-13 0-7 8-8 12-3z" fill="${A}" stroke="none"/>
+      <path d="M72 74h20M72 82h13" stroke="var(--art-ink)" stroke-width="3.5"/>
+    `),
+  },
+  {
+    kicker: "Meu ponto",
+    title: "Seu ponto, sempre à mão",
+    value: "Acompanhe o saldo do banco de horas e o espelho de ponto, atualizados, sem precisar perguntar pra ninguém.",
+    art: svg(`
+      <circle cx="60" cy="58" r="46" fill="var(--art-bg)" stroke="none"/>
+      <rect x="34" y="66" width="10" height="22" rx="3" fill="${A}" stroke="none"/>
+      <rect x="55" y="54" width="10" height="34" rx="3" fill="${A}" stroke="none" opacity=".75"/>
+      <rect x="76" y="44" width="10" height="44" rx="3" fill="${A}" stroke="none" opacity=".55"/>
+      <circle cx="60" cy="40" r="17" fill="var(--surface)" stroke="var(--art-ink)"/>
+      <path d="M60 32v9l6 4" stroke="var(--art-ink)" stroke-width="3.4"/>
+    `),
+  },
+  {
+    kicker: "Folha de pagamento",
+    title: "Sua folha, assinada com validade",
+    value: "Recibos e cartão ponto você assina dentro do app. A assinatura fica carimbada no arquivo, com data e local. Prova de verdade.",
+    art: svg(`
+      <rect x="30" y="20" width="60" height="80" rx="10" fill="var(--art-bg)" stroke="none"/>
+      <path d="M42 38h36M42 50h36M42 62h22" stroke="var(--art-ink)" stroke-width="3.4"/>
+      <path d="M40 82c6-8 10-8 14-4s8 3 16-6" stroke="${A}" stroke-width="4"/>
+      <circle cx="86" cy="82" r="17" fill="var(--surface)" stroke="var(--art-ink)"/>
+      <path d="M79 82l5 5 9-10" stroke="${A}" stroke-width="4"/>
+    `),
+  },
+  {
+    kicker: "Avisos e Documentos",
+    title: "Fique por dentro, tudo num lugar",
+    value: "Comunicados e avisos chegam aqui, com confirmação de leitura. Termos e comprovantes ficam guardados na tela Documentos.",
+    art: svg(`
+      <circle cx="60" cy="60" r="46" fill="var(--art-bg)" stroke="none"/>
+      <path d="M34 54v12l30 12V42z" fill="${A}" stroke="none"/>
+      <path d="M34 54H26a4 4 0 0 0-4 4v4a4 4 0 0 0 4 4h8" stroke="var(--art-ink)"/>
+      <path d="M46 82l3 10a4 4 0 0 0 7 1" stroke="var(--art-ink)"/>
+      <rect x="72" y="42" width="30" height="38" rx="6" fill="var(--surface)" stroke="var(--art-ink)"/>
+      <path d="M79 78l5 5 9-11" stroke="${A}" stroke-width="3.6"/>
+    `),
+  },
+  {
+    kicker: "Conquistas",
+    title: "O que você faz, agora vale ponto",
+    value: "Assinar, dar ciência e voltar todo dia somam pontos na temporada. Tem medalha de tempo de casa, ranking e prêmios surpresa.",
+    art: svg(`
+      <circle cx="60" cy="52" r="26" fill="var(--art-bg)" stroke="none"/>
+      <path d="M40 22h40v14a20 20 0 0 1-40 0z" fill="${A}" stroke="none"/>
+      <path d="M40 26H30v4c0 7 5 12 12 13M80 26h10v4c0 7-5 12-12 13" stroke="var(--art-ink)"/>
+      <path d="M54 72h12v10H54z" stroke="var(--art-ink)"/>
+      <path d="M42 92h36" stroke="var(--art-ink)" stroke-width="4"/>
+      <circle cx="40" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
+      <circle cx="52" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
+      <circle cx="64" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
+      <circle cx="76" cy="102" r="3.2" fill="var(--yellow)" stroke="none"/>
+    `),
+  },
+  {
+    kicker: "Canal de denúncia",
+    title: "Um canal seguro pra falar",
+    value: "Relate assédio, fraude ou risco direto pra direção, de forma anônima. Você recebe um protocolo pra acompanhar sem se identificar.",
+    art: svg(`
+      <path d="M60 18l34 12v24c0 24-16 38-34 46-18-8-34-22-34-46V30z" fill="var(--art-bg)" stroke="var(--art-ink)"/>
+      <rect x="48" y="56" width="24" height="20" rx="4" fill="${A}" stroke="none"/>
+      <path d="M52 56v-6a8 8 0 0 1 16 0v6" stroke="var(--art-ink)" stroke-width="3.2"/>
+      <circle cx="60" cy="65" r="3" fill="var(--surface)" stroke="none"/>
+    `),
+  },
+];
+
+const bars = document.getElementById("bars");
+bars.innerHTML = CENAS.map(() => "<i><b></b></i>").join("");
+const barEls = [...bars.children];
+
+const art = document.getElementById("art");
+const kicker = document.getElementById("kicker");
+const title = document.getElementById("title");
+const value = document.getElementById("value");
+const stage = document.getElementById("stage");
+const cta = document.getElementById("cta");
+const back = document.getElementById("back");
+const skip = document.getElementById("skip");
+const done = document.getElementById("done");
+
+let i = 0;
+
+function paint() {
+  stage.classList.add("fade");
+  setTimeout(() => {
+    const c = CENAS[i];
+    art.innerHTML = c.art;
+    kicker.textContent = c.kicker;
+    title.textContent = c.title;
+    value.textContent = c.value;
+    barEls.forEach((el, k) => {
+      el.classList.toggle("done", k < i);
+      el.classList.toggle("on", k === i);
+    });
+    const last = i === CENAS.length - 1;
+    cta.innerHTML = last
+      ? 'Começar a usar'
+      : 'Continuar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+    back.classList.toggle("show", i > 0);
+    skip.classList.toggle("hide", last);
+    stage.classList.remove("fade");
+  }, 150);
+}
+
+function avancar() {
+  if (i === CENAS.length - 1) return concluir();
+  i++;
+  paint();
+}
+function voltar() {
+  if (i > 0) { i--; paint(); }
+}
+function concluir() {
+  done.classList.add("on");
+}
+function recomecar() {
+  done.classList.remove("on");
+  i = 0;
+  paint();
+}
+
+document.getElementById("znext").addEventListener("click", avancar);
+document.getElementById("zprev").addEventListener("click", voltar);
+cta.addEventListener("click", (e) => { e.stopPropagation(); avancar(); });
+back.addEventListener("click", (e) => { e.stopPropagation(); voltar(); });
+skip.addEventListener("click", (e) => { e.stopPropagation(); concluir(); });
+document.getElementById("explorar").addEventListener("click", concluir);
+document.getElementById("redo").addEventListener("click", recomecar);
+
+// tema claro/escuro
+const tema = document.getElementById("tema");
+tema.addEventListener("click", () => {
+  const dark = document.documentElement.classList.toggle("dark");
+  tema.textContent = dark ? "Claro" : "Escuro";
+});
+
+paint();
+</script>
+</body>
+</html>

@@ -1019,3 +1019,85 @@ html.pp-anima .den-flow.pp-fade > * { animation: ppFade .34s both; }
 @keyframes cerOvIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cerOvOut { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cer-ov, .cer-ov--out { animation: none; } }
+
+/* ============================================================
+   SUPER ONBOARDING do 1º acesso (colaborador) — overlay de tela cheia FORA do
+   #view (nasce, roda, morre; ver mostrarOnboarding). Fiel ao mock
+   docs/mockups/onboarding-2026-07.html. Os tokens de arte/ilustração vivem
+   scoped no próprio overlay (mock verbatim); o tema claro/escuro herda o
+   cp-dark do app. Só o colaborador chega a ver isto.
+   ============================================================ */
+.onb-ov {
+  --milk:#F6F8F4; --milk-warm:#EEF3EC; --surface:#FFFFFF; --border:#E7EDE4; --border-strong:#D8E2D3;
+  --text:#132110; --text-body:#1E2D1A; --text-muted:#4A6245;
+  --plum:#008835; --plum-soft:#1AA34F; --plum-deep:#006328;
+  --yellow:#FFCB00; --success-bg:#E0EAD8;
+  --wash:linear-gradient(172deg,#EEF3EC 0%,#F6F8F4 58%);
+  --art-bg:#EEF6EF; --art-ink:var(--plum); --art-accent:var(--plum-soft);
+  --onb-shc:0 1px 3px rgba(0,40,20,.08),0 4px 12px rgba(0,40,20,.05);
+  --onb-tr:280ms cubic-bezier(.4,0,.2,1);
+  position: fixed; inset: 0; z-index: 9993; display: flex; flex-direction: column;
+  align-items: center; background: var(--wash); overflow: hidden;
+  padding: env(safe-area-inset-top,0px) 0 0;
+}
+html.cp-dark .onb-ov {
+  --milk:#0E130E; --milk-warm:#161D15; --surface:#161D15; --border:#232C22; --border-strong:#2E382C;
+  --text:#F2F7EF; --text-body:#EDF3EA; --text-muted:#93A48C;
+  --plum:#5FCB85; --plum-soft:#7BD79A; --plum-deep:#3FB570;
+  --yellow:#FFD84D; --success-bg:#17281B;
+  --wash:linear-gradient(172deg,#171F16 0%,#0E130E 58%);
+  --art-bg:#16241A;
+  --onb-shc:0 2px 10px -4px rgba(0,0,0,.55);
+}
+.onb-shell { width: 100%; max-width: 460px; flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+
+/* topo: progresso segmentado + marca + pular */
+.onb-head { flex: none; padding: 16px 20px 6px; }
+.onb-bars { display: flex; gap: 5px; }
+.onb-bars i { flex: 1; height: 3.5px; border-radius: 999px; background: var(--border-strong); overflow: hidden; position: relative; }
+.onb-bars i b { position: absolute; inset: 0; width: 0; border-radius: 999px; background: var(--plum); transition: width var(--onb-tr); }
+.onb-bars i.done b, .onb-bars i.on b { width: 100%; }
+.onb-head__row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.onb-brand { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+.onb-brand svg { width: 18px; height: 18px; color: var(--plum); }
+.onb-skip { background: none; border: 0; color: var(--text-muted); font: 600 12.5px var(--font); cursor: pointer; padding: 6px 4px; border-radius: 8px; }
+.onb-skip:hover { color: var(--text-body); }
+.onb-skip.hide { visibility: hidden; }
+
+/* palco (zonas de toque: direita avança, esquerda volta) */
+.onb-stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8px 30px 4px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.onb-zone { position: absolute; top: 0; bottom: 0; width: 32%; z-index: 2; }
+.onb-zone--prev { left: 0; }
+.onb-zone--next { right: 0; width: 68%; }
+.onb-art { width: 196px; height: 196px; margin-bottom: 26px; display: flex; align-items: center; justify-content: center; }
+.onb-art svg { width: 100%; height: 100%; overflow: visible; }
+.onb-kicker { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--plum); margin-bottom: 10px; }
+.onb-title { font-size: 24px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; color: var(--text); max-width: 16ch; }
+.onb-value { font-size: 14px; line-height: 1.62; color: var(--text-muted); margin-top: 12px; max-width: 30ch; }
+
+/* rodapé: continuar + voltar */
+.onb-foot { flex: none; padding: 14px 22px calc(20px + env(safe-area-inset-bottom,0px)); position: relative; z-index: 3; }
+.onb-cta { width: 100%; border: 0; border-radius: 14px; background: var(--plum); color: #fff; font: 700 15px var(--font); padding: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(0,136,53,.24); }
+html.cp-dark .onb-ov .onb-cta { color: #08130B; box-shadow: 0 8px 20px rgba(95,203,133,.18); }
+.onb-cta:hover { background: var(--plum-deep); }
+html.cp-dark .onb-ov .onb-cta:hover { background: var(--plum-deep); filter: brightness(1.03); }
+.onb-cta svg { width: 17px; height: 17px; }
+.onb-back { display: block; width: 100%; background: none; border: 0; color: var(--text-muted); font: 600 12.5px var(--font); cursor: pointer; padding: 11px 0 0; visibility: hidden; }
+.onb-back.show { visibility: visible; }
+
+/* estado final */
+.onb-done { position: absolute; inset: 0; z-index: 5; background: var(--wash); display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 34px 34px calc(30px + env(safe-area-inset-bottom,0px)); }
+.onb-done.on { display: flex; }
+.onb-done__in { display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%; max-width: 360px; }
+.onb-seal { width: 96px; height: 96px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--onb-shc); display: flex; align-items: center; justify-content: center; color: var(--plum); margin-bottom: 22px; }
+.onb-seal svg { width: 44px; height: 44px; }
+.onb-done h2 { font-size: 23px; font-weight: 700; letter-spacing: -.02em; color: var(--text); }
+.onb-done p { font-size: 13.5px; line-height: 1.6; color: var(--text-muted); margin-top: 10px; max-width: 30ch; }
+.onb-note { margin-top: 20px; display: flex; align-items: center; gap: 9px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; font-size: 12px; color: var(--text-muted); line-height: 1.5; text-align: left; box-shadow: var(--onb-shc); }
+.onb-note svg { width: 17px; height: 17px; flex: none; color: var(--plum); }
+.onb-note b { color: var(--text-body); font-weight: 600; }
+.onb-done__acts { margin-top: 26px; width: 100%; }
+.onb-redo { width: 100%; background: none; border: 0; color: var(--text-muted); font: 600 12.5px var(--font); cursor: pointer; padding: 14px 0 0; }
+.onb-redo:hover { color: var(--text-body); }
+
+@media (prefers-reduced-motion: reduce) { .onb-bars i b { transition: none; } }
