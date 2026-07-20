@@ -3031,3 +3031,42 @@ O travamento não é misterioso "controlador do nada" nesse caso — é **o pró
 
 ### Não mudou a recomendação
 Continua sendo hardware o teto real (SSD lento não aguenta o volume que o próprio WK Radar gera normalmente). Mas agora sabemos que ALGUNS episódios têm causa identificável (múltiplos módulos concorrendo), não só "reset espontâneo do controlador" — vale, no futuro, considerar se dá pra escalonar/serializar operações pesadas do WK Radar (ex.: não deixar reindexação coincidir com exports agendados).
+
+---
+
+## 2026-07-20 · 🐛 Rajada de "Faltas Injustificadas" falsas depois do fim de semana — MESMA família de bug do circuit breaker, fonte diferente (evidência cruzada, revisão do Fable)
+
+William mostrou print da tela "GP confere": muita gente com "Falta Injustificada" em 17/07 (sexta), turno 2, horários parecidos — pediu pra conferir se era o mesmo problema da rajada 999 de 15/07 e se deu erro no pipeline.
+
+### Achado 1: gap de 3 dias sem rodada nenhuma — NÃO é bug, é config existente
+`pipeline-bh.log` mostrava zero rodadas entre 17/07 17:10 BRT e 20/07 09:00 BRT (~64h). Susto inicial (máquina caiu? tarefa desabilitada?) — investigado a fundo:
+- Máquina NUNCA reiniciou nesse intervalo (`Get-WinEvent` nos IDs de boot/shutdown do log System não mostra nada entre 17/07 14:33 — 2 reboots do Windows Update, `SystemSettingsAdminFlows.exe` — e agora).
+- Exportei o XML da scheduled task (`Export-ScheduledTask`): `<DaysOfWeek><Monday/><Tuesday/><Wednesday/><Thursday/><Friday/></DaysOfWeek>` — **a tarefa só roda SEGUNDA A SEXTA, por design, desde a criação (22/05)**. Não é regressão, é o schedule sempre foi assim. Confirmado via `Get-WinEvent` no log `Microsoft-Windows-TaskScheduler/Operational`: zero eventos da tarefa em 18/07 (sábado) e 19/07 (domingo), volta a disparar certinho 20/07 09:00.
+- Implicação real (não é sobre a tarefa em si, é sobre o EFEITO): a empresa tem gente trabalhando sábado (turno 2 reduzido, confirmado em dados anteriores desta mesma investigação) — o pipeline não vê esse dado até segunda. Mudar o agendamento pra incluir fim de semana é decisão de risco/custo do William (não mexido aqui, fora de escopo desta investigação).
+
+### Achado 2: rajada real, mas NÃO do detector 999 — do LOOP PRINCIPAL
+`arquivoEspelhoMaduroAte`/`naoIdentArquivoObsoleto` do parser de hoje: tudo limpo (0), confirma que o fix de 16/07 (gate de mtime) está segurando — não é repetição daquele bug. Só que apareceu uma variante NOVA: 21 docs `Faltas Injustificadas` (situação NATIVA do WK, fonte `ExpAuto_Ocorrencias_Minerador.txt`/"Relação de Ocorrências" — NÃO o detector 999/Espelho) ficaram `rh_confere` presos, mesmo tendo sumido do parse fresco de segunda. `occ-auto-alerta.json`: `{"abortado":true,"candidatos":21,"denominador":30}` — o MESMO circuit breaker travou de novo, dessa vez pro grupo `relacao-ocorrencias`.
+
+**Causa raiz provável**: a última rodada de sexta (14:00 BRT) capturou o Minerador antes do WK terminar de consolidar o dia inteiro pra várias pessoas do 2º turno (mesmo padrão "dia ainda não fechou" documentado desde 03/07) — como não teve rodada no fim de semana pra corrigir, a classificação errada ficou visível a semana toda até segunda de manhã reprocessar.
+
+### Verificação com dado real ANTES de mexer em produção
+Conferi os 20 códigos únicos direto no Espelho de Ponto cru (fonte INDEPENDENTE — config/export diferente do Minerador): **19 tinham dia completo e normal** ("Trabalhando", 4 marcações batendo com o previsto — ex.: 1074/1082/1180/1183...) — contradiz diretamente "Falta Injustificada". **1 (código 545, Lucivane da Silva Geisler) tinha apuradas VAZIO no Espelho TAMBÉM, situação "Faltas Injustificadas" lá também** — as 2 fontes concordam, falta genuína, não deveria ser tocada.
+
+### Consulta ao Fable — corrigiu uma premissa errada
+Minha 1ª ideia era reusar `espelhoPresenca` (mera presença de linha, já aprovado pro esp_) pro loop principal também. Fable apontou por que isso seria ERRADO aqui: presença simples NÃO distingue "dia normal" de "falta genuína com apuradas vazias" — a própria Lucivane (545) TEM linha no Espelho (com apuradas vazio). Um Minerador truncado com presença-simples-como-evidência resolveria faltas REAIS em massa — o exato cenário que o breaker existe pra proteger. A epistemologia certa é assimétrica por fonte: pro `esp_`, presença basta porque o MESMO detector (que roda sobre o Espelho) já reexaminou; pro loop principal (fonte separada), precisa de evidência mais FORTE — **dia COERENTE** (contagem de apuradas bate com previstas da escala, desvios dentro de `JANELA_MATCH_MIN`=120min, mesmo critério de `suprimido999DiaCoerente`).
+
+Segunda correção do Fable: essa prova só é logicamente estanque pra **"Faltas Injustificadas"** (afirma ausência TOTAL — dia coerente contradiz isso sem ambiguidade). NÃO serve pra Atrasos/Saída Antecipada — um atraso genuíno de 21min ainda cai dentro de `JANELA_MATCH_MIN`=120min e pareceria "coerente" por engano, resolvendo um card real. Restrito por tipo, sem perda de cobertura (os 21 candidatos reais eram todos Faltas Injustificadas).
+
+### Fix (2 arquivos, `C:\fiobras-pipeline-rh\`)
+1. **`process-ocorrencias-rh.py`**: novo set `espelhoDiaCoerente` — pra cada (código,dataIso) em `presencaEspelho` dentro da janela madura, calcula `previstasArr` via `escala_do_dia`/`horarios_de` e checa coerência via `desvios_todas_posicoes` (mesmo critério do `suprimido999DiaCoerente`), com guarda `len(previstas)>=2`. Emitido no JSON ao lado de `espelhoPresenca`.
+2. **`upload-ocorrencias-auto.mjs`**: candidatos SEM prefixo `esp_` E `tipo==='Faltas Injustificadas'` E presentes em `espelhoDiaCoerente` resolvem fora do breaker (mesma transação/recheck de segurança). Mensagem do histórico reusa `occ.find` (mesmo padrão do grupo sem evidência) pra detectar RECLASSIFICAÇÃO — ex.: Franciele (1074) tinha virado "Saída Antecipada" no fresco, mensagem final: *"WK reprocessou: virou 'Saída Antecipada' em vez de 'Faltas Injustificadas'; Espelho confirma dia coerente"*. Denominador do breaker desconta os 2 grupos de evidência (esp_ + dia-coerente).
+
+### Validação e resolução ao vivo
+- `--dry`: `resolvidasDiaCoerente=20`, breaker não disparou (1/21 candidato restante, bem abaixo de 50%).
+- Rodado real, confirmado no Firestore doc a doc: **20 resolvidos** (`auto_resolvida`, histórico correto inclusive nos 2 casos reclassificados). **Lucivane (545) continua `rh_confere`**, intocada — confirma que o filtro (dia coerente, não presença) protegeu corretamente o único caso genuíno.
+
+### Retrospecto do fix de 16/07 (1ª rajada, esp_/999), pedido do Fable
+Continua funcionando sem sinal de problema: `occ-auto-alerta.json` da rodada de hoje mostrou `resolvidasComEvidencia` limpando sozinho uma rajada `esp_` menor do próprio fim de semana, enquanto o breaker corretamente segurou só o grupo novo (`relacao-ocorrencias`). Achado cosmético do Fable, não-bloqueante: `resolvidasComEvidencia++`/`resolvidasDiaCoerente++` contam antes de confirmar que a transação realmente aplicou (diferente do padrão `mudou` usado em `espSubstituidos`) — na pior hipótese superestima e encolhe o denominador do breaker, direção conservadora (mais proteção, não menos), sem ação necessária agora.
+
+### Por que essa família de bug (breaker travando limpeza legítima) já apareceu 2x em 5 dias
+Ambos os casos têm a MESMA estrutura: (1) alguma descontinuidade no pipeline ou no timing de consolidação do WK gera um lote de classificações erradas de uma vez; (2) o circuit breaker (correto, protege contra CSV truncado) não distingue "lote errado de verdade, corrige sozinho" de "export quebrado, não confia". A resposta certa nos 2 casos foi a MESMA receita — achar uma fonte de evidência INDEPENDENTE que prove positivamente o lado certo, calibrada por fonte/tipo. Vale como padrão geral pra qualquer bug futuro dessa família: não relaxar o breaker (ele está certo em desconfiar), achar evidência cruzada específica do caso.
