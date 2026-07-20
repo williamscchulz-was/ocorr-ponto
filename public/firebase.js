@@ -3477,6 +3477,7 @@
         // vazar "Email" (detalhe do login sintético). Reescreve pra CPF.
         const cred = e && (e.code === "auth/invalid-credential" || e.code === "auth/wrong-password" || e.code === "auth/user-not-found");
         setErr(cred ? "CPF ou senha inválidos." : traduzErroAuth(e));
+        window.sacudirErro?.($("#colab-senha")?.closest(".field") || $("#colab-senha")); // B · treme o campo
         return false;
       }
     };

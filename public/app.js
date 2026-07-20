@@ -168,6 +168,217 @@ function animarNumeros(scope) {
   });
 }
 
+// ============================================
+// Micro-interações v376 (mock docs/mockups/micro-interacoes-2026-07.html, aprovado inteiro
+// pelo William, 6 candidatas A..F). REGRAS COMUNS: WAAPI one-shot (nunca classe re-disparável
+// que um re-render ressuscite), elemento efêmero removido ao fim, prefereMenosMovimento =
+// estado final direto sem animar, e disparo SÓ no gesto real (comparação de valor ou flag
+// consumida), NUNCA num re-render — o guard m3 e a fase nova reprovam se a animação vazar num
+// rebuild forçado. C vive fora do #view (badges na nav); D/E/F vivem no #view e disparam só
+// quando o dado muda de verdade (extrato cresce, flag da cerimônia, 1ª carga do dia).
+// ============================================
+
+// B · SHAKE de erro: o campo treme na horizontal (3 oscilações, ~440ms) somando à borda
+// vermelha que o formulário já pinta. WAAPI de translateX: não muda layout nem deixa resíduo.
+function sacudirErro(el) {
+  if (!el || prefereMenosMovimento() || typeof el.animate !== "function") return;
+  if (el._miShake) { try { el._miShake.cancel(); } catch (e) {} }
+  el._miShake = el.animate(
+    [{ transform: "translateX(0)" }, { transform: "translateX(-8px)" }, { transform: "translateX(7px)" },
+     { transform: "translateX(-5px)" }, { transform: "translateX(4px)" }, { transform: "translateX(-2px)" }, { transform: "translateX(0)" }],
+    { duration: 440, easing: "cubic-bezier(.36,.07,.19,.97)" }
+  );
+}
+window.sacudirErro = sacudirErro; // firebase.js (login do colaborador) reusa
+
+// A · MORPH do botão de assinatura/aceite: o rótulo colapsa num círculo com spinner e, no
+// SUCESSO REAL, vira o check; o erro restaura na hora (como hoje). Devolve { sucesso, restaurar }
+// pro call site pintar o desfecho quando a operação async resolve. O botão vive em overlay/modal
+// (fora do #view), então não entra no guard, mas segue a mesma disciplina one-shot.
+function morphAssinar(btn) {
+  if (!btn || typeof btn.animate !== "function") return { sucesso() {}, restaurar() {} };
+  const semMov = prefereMenosMovimento();
+  const orig = btn.innerHTML;
+  const w = btn.offsetWidth;
+  const raio0 = getComputedStyle(btn).borderRadius;
+  const CHK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  btn.disabled = true;
+  btn.setAttribute("aria-busy", "true");
+  btn.classList.add("mba");
+  btn.style.width = w + "px";
+  btn.innerHTML = `<span class="mba__lbl">${orig}</span><span class="mba__spin" aria-hidden="true"></span><span class="mba__chk" aria-hidden="true">${CHK}</span>`;
+  const lbl = btn.querySelector(".mba__lbl");
+  const spin = btn.querySelector(".mba__spin");
+  const chk = btn.querySelector(".mba__chk");
+  const anims = [];
+  let fim = false, spinAnim = null;
+  const restaurar = () => {
+    if (fim) return; fim = true;
+    if (spinAnim) { try { spinAnim.cancel(); } catch (e) {} }
+    anims.forEach((a) => { try { a.cancel(); } catch (e) {} });
+    btn.classList.remove("mba", "mba--done");
+    btn.style.width = ""; btn.style.borderRadius = "";
+    btn.innerHTML = orig;
+    btn.removeAttribute("aria-busy");
+    btn.disabled = false;
+  };
+  const sucesso = () => {
+    if (fim) return;
+    if (spinAnim) { try { spinAnim.cancel(); } catch (e) {} }
+    spin.style.opacity = "0";
+    btn.classList.add("mba--done");
+    chk.style.opacity = "1";
+    if (!semMov && chk.animate) chk.animate([{ transform: "scale(.4)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 320, easing: "cubic-bezier(.2,.8,.3,1.3)" });
+  };
+  if (semMov) { lbl.style.opacity = "0"; spin.style.opacity = "0"; return { sucesso, restaurar }; }
+  lbl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: "forwards" });
+  anims.push(btn.animate([{ width: w + "px", borderRadius: raio0 }, { width: "46px", borderRadius: "50%" }], { duration: 360, easing: "cubic-bezier(.32,.72,.28,1)", fill: "forwards" }));
+  setTimeout(() => {
+    if (fim) return;
+    spin.style.opacity = "1";
+    spinAnim = spin.animate([{ transform: "rotate(0)" }, { transform: "rotate(360deg)" }], { duration: 620, iterations: Infinity });
+  }, 240);
+  return { sucesso, restaurar };
+}
+
+// C · EXPAND RING no badge de Avisos: um anel sai do badge, expande e some, e o número pulsa.
+// Efêmero (removido no fim). composite:"add" no pulso pra somar à posição do badge sem
+// atropelar o transform de ancoragem (o .cp-bn-dot é absolute).
+function emanarAnel(badge) {
+  if (!badge || prefereMenosMovimento() || typeof badge.animate !== "function") return;
+  const ring = document.createElement("span");
+  ring.className = "mi-anel";
+  badge.appendChild(ring);
+  const a = ring.animate(
+    [{ transform: "translate(-50%,-50%) scale(.55)", opacity: .6 }, { transform: "translate(-50%,-50%) scale(2.6)", opacity: 0 }],
+    { duration: 620, easing: "cubic-bezier(.2,.8,.2,1)" }
+  );
+  a.onfinish = a.oncancel = () => ring.remove();
+  badge.animate([{ transform: "scale(1)" }, { transform: "scale(1.32)" }, { transform: "scale(1)" }],
+    { duration: 360, easing: "cubic-bezier(.2,.8,.3,1.2)", composite: "add" });
+}
+// Dispara o anel SÓ quando o contador de avisos não lidos AUMENTA de verdade (novo comunicado
+// chegando por snapshot), nunca na 1ª carga (baseline) nem em re-render. Chamado após as navs.
+let _avisosPrev = null;
+function talvezAnelAvisos() {
+  if (state.comunicadosColab === undefined) return; // dados ainda não chegaram: sem baseline
+  const n = (typeof colabAvisosNaoLidos === "function") ? colabAvisosNaoLidos() : 0;
+  const prev = _avisosPrev;
+  _avisosPrev = n;
+  if (window.__fpForceWrite || prev === null || n <= prev) return; // baseline ou sem aumento
+  document.querySelectorAll("#nav .nav__badge--pend, #bottom-nav .cp-bn-dot").forEach(emanarAnel);
+}
+
+// D · SPARKLE no crédito de ponto: faíscas douradas discretas nascem e morrem na animação
+// (criadas e removidas no fim). Chamado só quando um crédito REAL entra (o extrato ganha item),
+// nunca em recontagem de tela. `container` precisa ser containing-block (position != static).
+const _MI_SPARK = "M12 2l1.9 6.4L20 10l-6.1 1.6L12 18l-1.9-6.4L4 10l6.1-1.6z";
+function _spawnFaisca(container, x, y, dx, dy, size, delay) {
+  const s = document.createElement("span");
+  s.className = "mi-spark";
+  s.style.width = size + "px"; s.style.height = size + "px";
+  s.style.left = x + "px"; s.style.top = y + "px";
+  s.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="' + _MI_SPARK + '"/></svg>';
+  container.appendChild(s);
+  const a = s.animate(
+    [{ transform: "translate(0,0) scale(.2) rotate(0)", opacity: 0 },
+     { transform: `translate(${dx * .5}px,${dy * .5}px) scale(1) rotate(60deg)`, opacity: 1, offset: .45 },
+     { transform: `translate(${dx}px,${dy}px) scale(.3) rotate(120deg)`, opacity: 0 }],
+    { duration: 640, delay, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" }
+  );
+  a.onfinish = a.oncancel = () => s.remove();
+}
+function faiscarCredito(container, anchor) {
+  if (!container || !anchor || prefereMenosMovimento() || typeof container.animate !== "function") return;
+  const cx = anchor.offsetLeft + Math.min(anchor.offsetWidth, 54);
+  const cy = anchor.offsetTop + 4;
+  _spawnFaisca(container, cx, cy, 10, -12, 13, 0);
+  _spawnFaisca(container, cx - 4, cy + 10, -12, 8, 9, 90);
+  _spawnFaisca(container, cx + 6, cy + 6, 12, 12, 7, 160);
+}
+// Dispara a faísca só quando o extrato de pontos GANHA item (crédito de verdade), nunca na
+// 1ª carga (baseline) nem em re-render. Chamado após o corpo de Conquistas render.
+let _gamiExtLen = null;
+function talvezFaiscarPonto() {
+  if (!Array.isArray(state.gamiExtrato)) return;   // ainda carregando: sem baseline
+  const len = state.gamiExtrato.length;
+  const prev = _gamiExtLen;
+  _gamiExtLen = len;
+  if (window.__fpForceWrite || prev === null || len <= prev) return; // baseline ou sem crédito novo
+  const card = document.querySelector("#view .gm-card");
+  const pts = document.querySelector("#view .gm-card__pts");
+  if (card && pts) faiscarCredito(card, pts);
+}
+
+// E · GLARE 1x: um brilho diagonal cruza a peça UMA vez quando ela entra em cena. Elemento
+// filho efêmero que atravessa por WAAPI e sai; `el` precisa clipar (overflow:hidden) e ser
+// containing-block. Chamado só quando a peça revela (flag consumida: _denCerRevelar / marco novo).
+function brilhoGlare(el, delay = 0) {
+  if (!el || prefereMenosMovimento() || typeof el.animate !== "function") return;
+  const sh = document.createElement("i");
+  sh.className = "mi-shine";
+  el.appendChild(sh);
+  const a = sh.animate(
+    [{ transform: "translateX(-160%) skewX(-16deg)" }, { transform: "translateX(320%) skewX(-16deg)" }],
+    { duration: 820, delay, easing: "cubic-bezier(.4,0,.2,1)", fill: "backwards" }
+  );
+  a.onfinish = a.oncancel = () => sh.remove();
+}
+
+// F · TEXT REVEAL da saudação: cada palavra sobe atrás de uma máscara, em cascata, 1x por dia
+// (marca localStorage por uid). Preserva os NÓS originais do h1 (o selo do BH é <button> com
+// listener; recriar via innerHTML perderia o clique): move-os pra fora, anima CLONES e restaura
+// os originais ao fim → o DOM estabilizado volta idêntico ao de um re-render (contrato do guard).
+function revelarPalavras(h1) {
+  if (h1.querySelector(".mi-w")) return; // já revelando: não re-embrulha (guarda de re-entrância)
+  const orig = [...h1.childNodes]; // referências originais (inclui o selo com seu listener)
+  const frag = document.createDocumentFragment();
+  const inners = [];
+  const empurra = (child) => {
+    const w = document.createElement("span"); w.className = "mi-w";
+    const i = document.createElement("i"); i.appendChild(child);
+    w.appendChild(i); frag.appendChild(w); inners.push(i);
+  };
+  orig.forEach((n) => {
+    if (n.nodeType === 3) {
+      n.nodeValue.split(/(\s+)/).forEach((p) => {
+        if (!p) return;
+        if (p.trim()) empurra(document.createTextNode(p));
+        else frag.appendChild(document.createTextNode(p)); // espaço entre palavras (fora da máscara)
+      });
+    } else {
+      empurra(n.cloneNode(true)); // CLONE do elemento; o nó original volta no restore
+    }
+  });
+  if (!inners.length) return;
+  h1.replaceChildren(frag);
+  let restaurado = false;
+  const restaurar = () => { if (restaurado) return; restaurado = true; h1.replaceChildren(...orig); };
+  // Stagger LIMITADO (Math.min(i,6)): saudação longa não pode estourar a janela de 1s do guard
+  // (o DOM tem que voltar ao limpo antes disso). Máximo ~750ms até o restore.
+  const passo = (i) => 40 + Math.min(i, 6) * 55;
+  inners.forEach((el, i) => el.animate(
+    [{ transform: "translateY(112%)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
+    { duration: 320, delay: passo(i), easing: "cubic-bezier(.2,.9,.3,1)", fill: "backwards" }
+  ));
+  setTimeout(restaurar, passo(inners.length - 1) + 320 + 60);
+}
+// Revela a saudação 1x POR DIA (marca fiopulse:saudacaoDia:<uid> = yyyy-mm-dd); demais cargas
+// nascem estáticas. NUNCA no rebuild forçado do guard. Chamado no fim de renderColaboradorHome.
+function talvezRevelarSaudacao() {
+  if (window.__fpForceWrite) return;
+  const uid = (currentUser() && currentUser().id) || state.currentUserId || "anon";
+  const chave = "fiopulse:saudacaoDia:" + uid;
+  const hoje = todayIso();
+  let visto = null;
+  try { visto = localStorage.getItem(chave); } catch (e) {}
+  if (visto === hoje) return;
+  try { localStorage.setItem(chave, hoje); } catch (e) {}
+  if (prefereMenosMovimento()) return; // marca gravada; sem animação nasce estática
+  const h1 = document.querySelector('#view [data-region="home:greet"] h1');
+  if (h1 && typeof h1.animate === "function") revelarPalavras(h1);
+}
+
 // Háptico curtinho (mobile) — confirma ações-chave. No-op onde não há suporte.
 function vibrar(ms) { try { if (navigator.vibrate && !prefereMenosMovimento()) navigator.vibrate(ms || 10); } catch (e) {} }
 
@@ -915,6 +1126,7 @@ function login(userId, senha) {
   if (!u) {
     err.textContent = "Usuário ou senha inválidos.";
     err.classList.remove("hidden");
+    sacudirErro($("#login-pass")?.closest(".field") || $("#login-pass")); // B · treme o campo
     return false;
   }
   err.classList.add("hidden");
@@ -934,6 +1146,9 @@ function logout() {
   window.__escolhaPortal = false; // deslogado: a escolha é a de "sem sessão"
   // Permite que o toast de aniversário reapareça no próximo login da sessão.
   window.__niverToastShown = false;
+  // Zera os baselines das micro-interações (C anel / D faísca) pra o próximo usuário não
+  // herdar a contagem do anterior e disparar um falso positivo na 1ª carga.
+  _avisosPrev = null; _gamiExtLen = null;
   store.save({ ...state, view: undefined });
   $("#app").classList.add("hidden");
   const lu = $("#login-user"); if (lu) lu.value = "";
@@ -1186,21 +1401,28 @@ function mostrarTermoAdesao() {
   // Foco inicial no 1º controle focável (a área de leitura, tabindex=0) — o gate
   // bloqueia o app atrás, então o foco não pode ficar solto no body.
   setTimeout(() => { const alvo = card.querySelector(FOCAVEIS_SEL) || card; alvo.focus(); }, 50);
-  btn.addEventListener("click", () => withBusy("termo-aceitar", btn, async () => {
-    const res = await window.registrarTermoAdesao?.();
+  btn.addEventListener("click", async () => {
+    if (btn.disabled) return;
+    const morph = morphAssinar(btn); // A · texto -> círculo/spinner -> check no sucesso real
+    let res = null;
+    try { res = await window.registrarTermoAdesao?.(); } catch (e) { res = null; }
     if (res && res.ok) {
       state.termoAdesaoOk = true;
       state._termoAdesaoAceitoAgora = true; // canal de denúncias espera o próximo acesso (não empilha)
-      ov.remove();
-      renderApp(); // re-render já com o app liberado
-      // Cerimônia "Termo aceito": o gate é delicado, então NÃO bloqueia (o app já foi
-      // liberado atrás) — fecha sozinha em ~2.5s ou no toque. A cerimônia dá o toque na
-      // mão (substitui o vibrar(20) antigo).
-      mostrarCerimonia({ titulo: "Termo aceito", subtitulo: "Sua adesão à assinatura eletrônica ficou registrada. Agora é só usar o app." });
+      morph.sucesso();
+      // deixa o check aparecer um instante antes de liberar o app + cerimônia
+      setTimeout(() => {
+        ov.remove();
+        renderApp(); // re-render já com o app liberado
+        // Cerimônia "Termo aceito": o gate é delicado, então NÃO bloqueia (o app já foi
+        // liberado atrás) — fecha sozinha em ~2.5s ou no toque. A cerimônia dá o toque na mão.
+        mostrarCerimonia({ titulo: "Termo aceito", subtitulo: "Sua adesão à assinatura eletrônica ficou registrada. Agora é só usar o app." });
+      }, prefereMenosMovimento() ? 0 : 460);
     } else {
+      morph.restaurar(); // erro restaura o botão como hoje
       toast((res && res.msg) || "Não consegui registrar o aceite. Tente de novo.", "danger");
     }
-  }));
+  });
 }
 
 // Termo do canal de denúncias (peça final da trilogia). 2º gate do 1º acesso, DEPOIS da
@@ -1273,23 +1495,30 @@ function mostrarTermoCanalDenuncia() {
     }
   });
   setTimeout(() => { const alvo = card.querySelector(FOCAVEIS_SEL) || card; alvo.focus(); }, 50);
-  btn.addEventListener("click", () => withBusy("termo-canal-aceitar", btn, async () => {
-    const res = await window.registrarTermoCanalDenuncia?.();
+  btn.addEventListener("click", async () => {
+    if (btn.disabled) return;
+    const morph = morphAssinar(btn); // A · texto -> círculo/spinner -> check no sucesso real
+    let res = null;
+    try { res = await window.registrarTermoCanalDenuncia?.(); } catch (e) { res = null; }
     if (res && res.ok) {
       state.termoCanalOk = true;
       state._termoCanalAceitoAgora = true; // onboarding espera o próximo acesso (não empilha)
-      ov.remove();
-      renderApp();
-      // Cerimônia curta (mesma primitiva do anel), com a nota de registro imutável + versão.
-      mostrarCerimonia({
-        titulo: "Termo aceito",
-        subtitulo: "Seu aceite ao termo do canal de denúncias ficou registrado.",
-        detalheHtml: `<span class="cer__premio">${cpIcon("lock")}<span>Registro imutável · versão ${TERMO_CANAL_VERSAO}</span></span>`,
-      });
+      morph.sucesso();
+      setTimeout(() => {
+        ov.remove();
+        renderApp();
+        // Cerimônia curta (mesma primitiva do anel), com a nota de registro imutável + versão.
+        mostrarCerimonia({
+          titulo: "Termo aceito",
+          subtitulo: "Seu aceite ao termo do canal de denúncias ficou registrado.",
+          detalheHtml: `<span class="cer__premio">${cpIcon("lock")}<span>Registro imutável · versão ${TERMO_CANAL_VERSAO}</span></span>`,
+        });
+      }, prefereMenosMovimento() ? 0 : 460);
     } else {
+      morph.restaurar(); // erro restaura o botão como hoje
       toast((res && res.msg) || "Não consegui registrar o aceite. Tente de novo.", "danger");
     }
-  }));
+  });
 }
 
 // ============================================================
@@ -1650,6 +1879,7 @@ function renderPortalColaborador(u) {
   if ($("#presence")) $("#presence").innerHTML = "";
   renderNavColaborador();
   renderBottomNavColaborador();
+  talvezAnelAvisos(); // C · anel no badge quando um aviso novo chega (compara com o render anterior)
   renderViewColaborador();
   // 1º acesso, na ordem: (1) troca obrigatória de senha, (2) termo de adesão, (3) termo do
   // canal de denúncias. UM gate por acesso: com a adesão pendente, o canal nem aparece; quem
@@ -3543,6 +3773,11 @@ function gamiTalvezCelebrarMarco(cfg) {
   if ((Number(cel[ano]) || 0) >= maior) return; // já celebrado neste ano
   cel[ano] = maior;
   try { localStorage.setItem("gami-marco-celebrado", JSON.stringify(cel)); } catch {}
+  // E · o card do marco recém-cruzado ganha um brilho diagonal 1x, só nesta celebração
+  // (idempotente com a marca de localStorage acima; re-render/rebuild forçado não re-dispara).
+  const marcoEl = [...document.querySelectorAll("#view .gm-trilha .gm-tmarco")]
+    .find((el) => (el.querySelector("b")?.textContent || "").trim() === String(maior));
+  if (marcoEl) brilhoGlare(marcoEl, 120);
   const ent = (state.gamiEntregas || []).find((e) => Number(e.marco) === maior);
   mostrarCerimonia({
     titulo: `Você cruzou o marco ${maior}!`,
@@ -3605,6 +3840,7 @@ function renderColabConquistas() {
   }
   // Marco cruzado: celebra 1x quando os dados já estão de pé (independe do tab e de escreveu).
   gamiTalvezCelebrarMarco(cfg);
+  talvezFaiscarPonto(); // D · faísca no total quando o extrato ganha item (crédito de verdade)
   // Re-sincroniza em TODA abertura (nao so na 1a da sessao): a GP pode ter mudado a
   // config, e acoes feitas noutro aparelho/aba entram aqui. Silencioso; re-render
   // so se algo creditou. Guard contra sobreposicao.
@@ -3795,6 +4031,8 @@ function renderColaboradorHome() {
   // Boas-vindas aos recem-chegados: estado real assíncrono + colapso, inline e imperativo
   // (mesmo preenchedor do hub do gestor; o clique já é delegado).
   preencherCardsBoasVindas();
+  // F · saudação revelada por palavra 1x por dia (marca por uid); demais cargas nascem estáticas.
+  talvezRevelarSaudacao();
 }
 
 // Liga os convites de pesquisa de clima (linhas "Precisa da sua atenção" + outros pontos)
@@ -4272,6 +4510,7 @@ function denRenderCerimonia(view) {
   if (_denCerRevelar) {
     _denCerRevelar = false;
     cerPlayIntro(view.querySelector(".cer__ring"));
+    brilhoGlare(view.querySelector(".den-key"), 180); // E · brilho 1x cruza o lacre (código lacrado)
     if (!semMov) { try { navigator.vibrate && navigator.vibrate([12, 60, 18]); } catch (e) {} }
   }
   view.querySelector("[data-den-copcod]").addEventListener("click", (e) => denCopiar(codigo, e.currentTarget, "Código copiado."));
@@ -4330,6 +4569,8 @@ function denRenderAcompanhar(view) {
   if (_denAcRevelar) {
     _denAcRevelar = false;
     denRevelar(view.querySelector(".den-acres, .den-acnone"), 340);
+    // B · código não localizado: o campo treme (soma à mensagem que já sobe), one-shot por consulta
+    if (state.view.denConsulta && state.view.denConsulta.estado !== "ok") sacudirErro(view.querySelector(".den-acfield"));
   }
   view.querySelector("[data-den-voltar]").addEventListener("click", denVoltar);
   const inp = view.querySelector("#den-cod");
@@ -18503,7 +18744,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.98.0";
+window.CURRENT_VERSION = "1.99.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
