@@ -23,7 +23,7 @@
   .hero__in { position: relative; max-width: 1060px; margin: 0 auto; padding: 46px 26px 120px; }
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: clamp(38px, 7vw, 72px); }
   .logo { display: flex; align-items: center; gap: 11px; }
-  .logo-mark { width: 42px; height: 42px; border-radius: 12px; background: #fff; color: #008835; display: grid; place-items: center; font-weight: 900; font-size: 21px; }
+  .logo-mark { height: 31px; width: auto; display: block; }
   .logo b { font-size: 18px; letter-spacing: .02em; }
   .topbar a { color: #fff; text-decoration: none; font-size: 13.5px; font-weight: 600; opacity: .85; padding: 9px 16px; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; }
   .topbar a:hover { opacity: 1; background: rgba(255,255,255,.08); }
@@ -465,6 +465,24 @@
   @media (prefers-reduced-motion: reduce) {
     .candidatura .lgpd.flash { animation: none; }
   }
+
+  /* ===== A: morph do Enviar · colapsa em círculo com spinner e vira check no sucesso real ===== */
+  .candidatura .cand__foot .cta.morphing { position: relative; min-width: 0; padding: 0; margin: 0 auto;
+    gap: 0; overflow: hidden; pointer-events: none; opacity: 1; }
+  .candidatura .cta__spin { position: absolute; top: 50%; left: 50%; width: 19px; height: 19px; margin: -9.5px 0 0 -9.5px;
+    border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: candsp .7s linear infinite; }
+  .candidatura .cta__chk { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; }
+  .candidatura .cta__chk svg { width: 22px; height: 22px; }
+  .candidatura .cta.morph-done { background: linear-gradient(135deg, #008835, #16a34a); }
+  .candidatura .cta.morph-done .cta__spin { opacity: 0; }
+
+  /* ===== E: brilho diagonal 1x quando o card de vaga entra na viewport (1ª carga) ===== */
+  .vcompact .vshine { position: absolute; top: 0; bottom: 0; left: 0; width: 45%; z-index: 1; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(0,136,53,.13), transparent); transform: translateX(-160%) skewX(-16deg); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .candidatura .cta__spin { animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -479,7 +497,7 @@
   </svg>
   <div class="hero__in">
     <div class="topbar">
-      <div class="logo"><span class="logo-mark">F</span><b>Fiobras</b></div>
+      <div class="logo"><img class="logo-mark" src="logo-fiobras-mark-white.png" alt="Fiobras" width="70" height="31"><b>Fiobras</b></div>
       <a href="#vagas">Ver as vagas</a>
     </div>
     <span class="selo-gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg>Gente no Coração</span>
@@ -944,6 +962,7 @@
           (resumo ? '<p class="rsum">' + resumo + "</p>" : "") +
           '<div class="cfoot">' + benTxt + go + "</div></article>";
       }).join("");
+      ativarGlare();
       // Link direto: com #vaga=<id> válido, abre a página daquela vaga na hora;
       // hash de vaga inexistente é limpo e cai na lista normal.
       var hid = lerHashVaga();
@@ -970,6 +989,32 @@
     }).catch(function () { /* sem config, sem botão */ });
   }
 
+  // E · brilho diagonal 1x por card: um IntersectionObserver dispara o glare quando o card
+  // entra na viewport na 1ª carga; unobserve + flag data-glared garantem UMA vez só (nunca
+  // re-dispara ao rolar de volta). O elemento .vshine é efêmero (removido ao terminar).
+  function ativarGlare() {
+    var glareReduz = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (glareReduz || !("IntersectionObserver" in window)) return;
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var card = en.target;
+        obs.unobserve(card);
+        if (card.getAttribute("data-glared")) return;
+        card.setAttribute("data-glared", "1");
+        var sh = document.createElement("span");
+        sh.className = "vshine";
+        card.appendChild(sh);
+        var a = sh.animate(
+          [{ transform: "translateX(-160%) skewX(-16deg)" }, { transform: "translateX(320%) skewX(-16deg)" }],
+          { duration: 900, easing: "cubic-bezier(.4,0,.2,1)" }
+        );
+        a.onfinish = function () { sh.remove(); };
+      });
+    }, { threshold: 0.35 });
+    Array.prototype.forEach.call(lista.querySelectorAll(".vcompact"), function (c) { obs.observe(c); });
+  }
+
   // ===== Candidatura completa (4 etapas) : funciona independente do carregamento das vagas =====
   var $c = function (id) { return document.getElementById(id); };
   var dlg = $c("dlgCandidatura");
@@ -987,7 +1032,7 @@
   var PANE_STEP = [1, 1, 2, 3, 4, 5, 6];
   var paneIdx = 0;
   var cvFile = null, cvEstado = "", discIdx = 0, pos = 0;
-  var discResp = [], ordemGrupos = null, discResult = null, lgpdOn = false;
+  var discResp = [], ordemGrupos = null, discResult = null, lgpdOn = false, cerTimer = null;
   // Dados que não moram no DOM entre navegações da ficha.
   var experiencias = [], expMode = "list", expEditIdx = null, primeiroEmprego = false;
   var temFilhos = false, filhosCount = 1, comoViria = "", conheceAlguem = false;
@@ -1116,6 +1161,7 @@
     Array.prototype.forEach.call(seg.querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-val") === val); });
   }
   function resetFlow() {
+    if (cerTimer) { clearTimeout(cerTimer); cerTimer = null; }
     paneIdx = 0; cvFile = null; cvEstado = "";
     discIdx = 0; pos = 0; discResp = []; ordemGrupos = null; discResult = null; lgpdOn = false;
     experiencias = []; expMode = "list"; expEditIdx = null; primeiroEmprego = false;
@@ -1182,6 +1228,7 @@
   // ===== footer contextual =====
   function ajustarFoot() {
     var foot = $c("candFoot"), btn = $c("candPrim"), pane = PANES[paneIdx];
+    morphReset(btn);
     btn.classList.remove("looksdisabled"); btn.removeAttribute("aria-disabled");
     if (pane === "cp2" && expMode === "form") { foot.hidden = false; btn.textContent = "Salvar experiência"; btn.disabled = false; return; }
     if (pane === "cp4") {
@@ -1197,16 +1244,30 @@
       btn.setAttribute("aria-disabled", lgpdOn ? "false" : "true");
     } else { btn.textContent = "Continuar"; btn.disabled = false; }
   }
+  // B · tremor de erro: além de marcar/avisar, o campo inválido balança (WAAPI translateX,
+  // ~3 oscilações em 300ms), sem mexer no layout nem deixar resíduo. reduzMov = sem balanço.
+  function shakeEl(el) {
+    if (!el || !el.animate || reduzMov) return;
+    el.animate(
+      [{ transform: "translateX(0)" }, { transform: "translateX(-6px)" }, { transform: "translateX(5px)" },
+       { transform: "translateX(-4px)" }, { transform: "translateX(3px)" }, { transform: "translateX(-2px)" }, { transform: "translateX(0)" }],
+      { duration: 300, easing: "cubic-bezier(.36,.07,.19,.97)" }
+    );
+  }
   // G2: rola até o primeiro campo inválido do painel e o foca (feedback visível em tela longa).
+  // B: e treme TODOS os inválidos do painel junto do erro que já aparece.
   function focarPrimeiroErro(paneId) {
     var pane = $c(paneId); if (!pane) return;
-    var alvo = pane.querySelector(".field.err");
+    var invalidos = $$(".field.err", pane);
+    var alvo = invalidos[0] || null;
     if (!alvo && paneId === "cp5" && !$c("msg-vem").hidden) alvo = $c("msg-vem");
     if (!alvo) return;
     try { alvo.scrollIntoView({ block: "center", behavior: reduzMov ? "auto" : "smooth" }); }
     catch (e) { try { alvo.scrollIntoView(); } catch (e2) {} }
     var input = alvo.querySelector && alvo.querySelector("input, select, textarea");
     if (input) { try { input.focus({ preventScroll: true }); } catch (e) {} }
+    invalidos.forEach(shakeEl);
+    if (paneId === "cp5" && !$c("msg-vem").hidden) shakeEl($c("chips-vem"));
   }
   // P5: leva a pessoa ao bloco de consentimento e o realça uma vez.
   function realcarConsentimento() {
@@ -1637,8 +1698,39 @@
       status: "nova"
     };
   }
+  // A · morph do Enviar: o botão colapsa em círculo com spinner (envio), vira check no
+  // sucesso REAL (antes da cerimônia) e restaura no erro. WAAPI one-shot, sem resíduo:
+  // morphReset (chamado no ajustarFoot de toda navegação) devolve o botão ao normal.
+  var CHK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  function morphReset(btn) {
+    try { btn.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {}
+    btn.classList.remove("morphing", "morph-done");
+    btn.style.width = ""; btn.style.height = "";
+  }
+  function morphStart(btn, animar) {
+    var w = btn.offsetWidth, h = btn.offsetHeight;
+    btn.disabled = true;
+    btn.classList.remove("morph-done");
+    btn.classList.add("morphing");
+    btn.innerHTML = '<span class="cta__spin"></span><span class="cta__chk">' + CHK_SVG + "</span>";
+    btn.style.height = h + "px";
+    btn.style.width = h + "px";
+    if (animar && btn.animate) {
+      btn.animate([{ width: w + "px" }, { width: h + "px" }], { duration: 340, easing: "cubic-bezier(.32,.72,.28,1)" });
+    }
+  }
+  function morphCheck(btn) {
+    btn.classList.add("morph-done");
+    var chk = btn.querySelector(".cta__chk");
+    if (chk) {
+      chk.style.opacity = "1";
+      if (!reduzMov && chk.animate) chk.animate([{ transform: "scale(.4)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.2,.8,.3,1.3)" });
+    }
+    vibrar(12);
+  }
   function falha(e) {
     var btn = $c("candPrim");
+    morphReset(btn);
     btn.disabled = false; btn.textContent = "Enviar candidatura";
     $c("erroGeral").textContent = (e && e.code === "permission-denied")
       ? "Já recebemos uma candidatura sua pra esta vaga."
@@ -1646,7 +1738,7 @@
   }
   function enviar() {
     var btn = $c("candPrim");
-    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Enviando...';
+    morphStart(btn, !reduzMov);
     $c("erroGeral").textContent = "";
     var email = $c("ci-mail").value.trim();
     var docId = vagaAtualId + "__" + email.toLowerCase();
@@ -1670,19 +1762,27 @@
       .catch(falha);
   }
   function sucesso() {
-    var cer = $c("cer"); cer.classList.add("on");
-    var arc = $c("cArc"), tick = $c("cTick"), pulse = $c("cPulse");
-    if (!reduzMov) {
-      if (arc) arc.style.animation = "candarco .55s cubic-bezier(.4,0,.2,1) forwards";
-      setTimeout(function () {
-        if (tick) tick.style.animation = "candtick .3s cubic-bezier(.2,.8,.2,1) forwards";
-        if (pulse) pulse.style.animation = "candpuls .7s ease-out forwards";
-        vibrar([12, 60, 18]);
-      }, 480);
-    } else {
-      if (arc) arc.style.strokeDashoffset = "0";
-      if (tick) tick.style.strokeDashoffset = "0";
+    // A: o botão vira check no sucesso real, ANTES da cerimônia (que o cobre logo depois).
+    var btn = $c("candPrim");
+    if (!btn.classList.contains("morphing")) morphStart(btn, false); // caminho honeypot
+    morphCheck(btn);
+    function revelar() {
+      var cer = $c("cer"); cer.classList.add("on");
+      var arc = $c("cArc"), tick = $c("cTick"), pulse = $c("cPulse");
+      if (!reduzMov) {
+        if (arc) arc.style.animation = "candarco .55s cubic-bezier(.4,0,.2,1) forwards";
+        setTimeout(function () {
+          if (tick) tick.style.animation = "candtick .3s cubic-bezier(.2,.8,.2,1) forwards";
+          if (pulse) pulse.style.animation = "candpuls .7s ease-out forwards";
+          vibrar([12, 60, 18]);
+        }, 480);
+      } else {
+        if (arc) arc.style.strokeDashoffset = "0";
+        if (tick) tick.style.strokeDashoffset = "0";
+      }
     }
+    if (reduzMov) revelar();
+    else cerTimer = setTimeout(revelar, 460);
   }
 
   pintarStepper();
