@@ -38,7 +38,9 @@ const r = await p.evaluate(async () => {
   await new Promise((res) => setTimeout(res, 80));
   const rerenderAnima = animandoNoView();
   const classeDesligada = !document.documentElement.classList.contains("pp-anima");
-  const domNovoEntrou = document.querySelector("#view").innerHTML.includes("aniversário de Novo");
+  // v379: o homenageado novo entra como um ROSTO na faixa de stories (o título cheio "Hoje é
+  // aniversário de Novo" agora vive no bottom sheet). Confere que o rosto do "Novo" entrou.
+  const domNovoEntrou = Array.from(document.querySelectorAll("#view [data-story] .st__nm")).some((el) => el.textContent.trim() === "Novo");
   return { navAnima, classeLigada, rerenderAnima, classeDesligada, domNovoEntrou };
 });
 console.log(JSON.stringify({ r, erros }, null, 2));

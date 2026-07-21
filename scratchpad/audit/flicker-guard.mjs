@@ -185,9 +185,12 @@ async function mediaInteracao(rotulo, tipo) {
     // abaixo garante isso, senão a cascata one-shot contaria como churn falso).
     let postAniv, postTdc;
     if (ehHome) {
-      // HOME: 1 aniversariante do dia (card com coração) + 1 colega no tempo de casa (idem).
-      // Cache SEMEADO com reações de colegas e minhaReacao=false: o "like" liga o meu coração
-      // (morpha o card, meu chip entra na pilha) e "reacoes" simula a chegada de +1 reação.
+      // HOME (faixa de stories v379): 1 aniversariante do dia + 1 colega no tempo de casa, cada
+      // um vira um rosto na faixa "Hoje na Fiobras". Cache SEMEADO com minhaReacao=false (anel
+      // TRACEJADO): "like" liga o meu parabéns (o anel do rosto vira SÓLIDO no reconcile, o mesmo
+      // efeito de tocar o coração no bottom sheet) e "reacoes" simula +1 reação chegando. O
+      // caminho medido é o reconcile (o pisca mora aqui); a WAAPI do anel enchendo dispara só no
+      // like REAL via sheet (mural-front-verify cobre o fluxo do sheet ponta a ponta).
       const hoje = new Date();
       const mes = hoje.getMonth() + 1, dia = hoje.getDate(), ano = hoje.getFullYear();
       state.aniversariantes = {
@@ -277,10 +280,10 @@ await mediaInteracao("refetch: ocorrência nova", "occ");
 
 // aquece a HOME (piloto estendido v374): deixa a cascata de navegação terminar, pra os
 // re-renders das interações do mural serem SEMPRE mesma-página (sem cascata = sem churn falso).
-console.log("FASE NOVA (piloto de regiões, colab-home / mural):");
+console.log("FASE NOVA (piloto de regiões, colab-home / faixa de stories):");
 await p.evaluate(() => { state.view.page = "colab-home"; _renderAppNow(); });
 await p.waitForTimeout(700);
-await mediaInteracao("like no coração de um card do mural", "like");
+await mediaInteracao("like via sheet (anel da faixa reflete)", "like");
 await mediaInteracao("chegada de reações novas no cache", "reacoes");
 
 await b.close();

@@ -416,8 +416,16 @@ html.modo-colab.cp-dark{
 .pp-greet__tx{min-width:0}
 .pp-greet__tx h1{font-size:23px;font-weight:700;letter-spacing:-.02em;line-height:1.12;color:var(--text-body);margin:0}
 .pp-greet__tx h1 b{font-weight:800}
-.pp-greet__tx p{font-size:12.5px;color:var(--text-muted);margin:3px 0 0;display:flex;align-items:center;gap:6px}
+.pp-greet__tx p{font-size:12.5px;color:var(--text-muted);margin:3px 0 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pp-greet__tx p svg{width:13px;height:13px;flex:none}
+/* Sequência de dias DISCRETA na linha da data (streak saiu do card de pontos, v379):
+   mini pontinhos verdes, dourado no dia cheio do ciclo de 5. Deriva do state (gamiStreakDias). */
+.strk-sep{opacity:.5}
+.strk-dots{display:inline-flex;gap:4px;align-items:center;vertical-align:middle}
+.strk-dots i{width:5px;height:5px;border-radius:50%;background:var(--border-strong)}
+.strk-dots i.on{background:var(--plum)}
+.strk-dots--full i.on{background:var(--fiobras-yellow,#FFCB00);box-shadow:0 0 0 1px rgba(255,203,0,.35)}
+.strk-txt{font-weight:600;color:var(--text-muted)}
 .pp-greet--bday .pp-greet__tx h1{color:var(--warning)}
 /* H4: selo do banco de horas colado ao nome. Número SEMPRE inteiro; cor+rótulo dão o
    sinal. 3 estados via tokens cp-dark/light (legível nos dois temas). Abre Meu ponto. */
@@ -432,29 +440,18 @@ html.modo-colab.cp-dark{
 .bhseal--neg .bhseal__ic,.bhseal--neg .bhseal__s{color:var(--warning-tx)}
 .bhseal--sync{background:var(--surface-warm);border-color:var(--border)}
 .bhseal--sync .bhseal__ic,.bhseal--sync .bhseal__s,.bhseal--sync .bhseal__v{color:var(--text-muted)}
-/* Card compacto de pontos (gm-mid): único destaque verde da 1ª dobra da home. Fundo
-   saturado de marca, branco por cima (idem pp-hero, vale nos dois temas). */
-.gm-mid{display:block;width:100%;text-align:left;border:0;font:inherit;cursor:pointer;background:linear-gradient(135deg,#008835,#0b6e33);border-radius:var(--pp-rc);padding:13px 16px;color:#fff;transition:transform .16s var(--ease-ios);box-shadow:0 10px 26px -14px rgba(0,90,40,.7)}
-.gm-mid:active{transform:scale(.985)}
-.gm-mid__top{display:flex;align-items:baseline;gap:9px}
-.gm-mid__lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.85;display:inline-flex;align-items:center;gap:6px}
-.gm-mid__lbl svg{width:14px;height:14px}
-.gm-mid__pts{font-size:28px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
-.gm-mid__pts small{font-size:13px;font-weight:700;opacity:.85;margin-left:3px}
-.gm-mid__season{margin-left:auto;align-self:center;font-size:9.5px;font-weight:700;background:rgba(255,255,255,.16);padding:3px 8px;border-radius:999px}
-.gm-mid__bar{height:5px;border-radius:999px;background:rgba(255,255,255,.22);overflow:hidden;margin:9px 0 6px}
-.gm-mid__bar span{display:block;height:100%;background:var(--fiobras-yellow,#FFCB00);border-radius:999px}
-.gm-mid__meta{font-size:11px;font-weight:400;opacity:.9}
-/* Micro-linha de sequência (ideia A do mock streak-home-2026-07, aprovada 2026-07-15):
-   dourado só no dia cheio do ciclo de 5; branco/neutro no meio. Vale nos dois temas
-   (o card em si é fundo verde sólido, sem override de tema — igual ao resto do gm-mid). */
-.gm-strk{display:flex;align-items:center;gap:9px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.16)}
-.gm-strk__dots{display:inline-flex;gap:5px}
-.gm-strk__dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.30)}
-.gm-strk__dots i.on{background:#fff}
-.gm-strk__lbl{font-size:11px;font-weight:600;color:rgba(255,255,255,.92)}
-.gm-strk--full .gm-strk__dots i.on{background:var(--fiobras-yellow,#FFCB00);box-shadow:0 0 0 1px rgba(255,203,0,.35),0 0 7px rgba(255,203,0,.55)}
-.gm-strk--full .gm-strk__lbl{color:#fff}
+/* Card de pontos SLIM (uma linha, v379): único destaque verde da 1ª dobra, agora sem o
+   streak dentro (ele foi pra linha da data). Fundo saturado de marca, branco por cima
+   (idem pp-hero, vale nos dois temas). Abre Conquistas ao toque. */
+.pts-slim{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;font:inherit;cursor:pointer;background:linear-gradient(135deg,#008835,#0b6e33);border-radius:var(--pp-rc);padding:10px 14px;color:#fff;transition:transform .16s var(--ease-ios);box-shadow:0 8px 22px -14px rgba(0,90,40,.7)}
+.pts-slim:active{transform:scale(.985)}
+.pts-slim__ic{width:30px;height:30px;border-radius:9px;flex:none;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center}
+.pts-slim__ic svg{width:17px;height:17px}
+.pts-slim__pts{font-size:20px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pts-slim__pts small{font-size:11px;font-weight:700;opacity:.85;margin-left:2px}
+.pts-slim__bar{flex:1;min-width:26px;height:5px;border-radius:999px;background:rgba(255,255,255,.24);overflow:hidden}
+.pts-slim__bar i{display:block;height:100%;background:var(--fiobras-yellow,#FFCB00);border-radius:999px}
+.pts-slim__meta{flex:none;font-size:10px;font-weight:500;opacity:.92;white-space:nowrap}
 .pp-bday{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:12px 14px;position:relative;overflow:hidden}
 .pp-bday::after{content:"";position:absolute;right:-24px;top:-30px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,rgba(224,163,58,.14),transparent 70%)}
 .pp-bday__ic{width:40px;height:40px;border-radius:12px;background:rgba(224,163,58,.16);color:var(--warning);display:flex;align-items:center;justify-content:center;flex:none}
@@ -705,21 +702,40 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 /* Tempo de casa: mesmo card do aniversário, tinta verde (medalha) no lugar do âmbar. */
 .pp-bday--tdc::after{background:radial-gradient(circle,rgba(0,136,53,.13),transparent 70%)}
 .pp-bday--tdc .pp-bday__ic{background:rgba(0,136,53,.12);color:var(--plum)}
-/* Linha compacta pós-parabéns (opção A, mock card-pos-like-2026-07, aprovado William
-   2026-07-21): curtiu, o card devolve espaço na home colapsando numa linha de ~44px, mas
-   segue visível (ícone mini, texto único, mini-pilha de rostos, coração cheio). Toque na
-   linha reexpande pro card cheio. overflow/position sustentam o crossfade do colapso. */
-.pp-bday--mini{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--pp-sh-card);padding:0 12px;height:44px;cursor:pointer;overflow:hidden;position:relative;text-align:left;font:inherit;color:inherit}
-.pp-mini__ic{width:24px;height:24px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(0,136,53,.12);color:var(--plum)}
-.pp-mini__ic--amber{background:rgba(224,163,58,.16);color:var(--warning)}
-.pp-mini__ic svg{width:14px;height:14px}
-.pp-mini__t{flex:1;min-width:0;font-size:12.5px;font-weight:500;color:var(--text-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pp-mini__stack{display:flex;align-items:center;flex:none}
-.pp-mini__stk{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--surface);margin-left:-5px;display:grid;place-items:center;color:#fff;font-size:6.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;background-size:cover;background-position:center;flex:none}
-.pp-mini__stk:first-child{margin-left:0}
-.pp-mini__heart{flex:none;width:18px;height:18px;color:var(--plum);display:flex;align-items:center;justify-content:center}
-.pp-mini__heart svg{width:18px;height:18px}
-@media (hover:hover){.pp-bday--mini:hover{border-color:var(--border-strong)}}
+/* ===== FAIXA DE STORIES "Hoje na Fiobras" (v379, direção A, mock home-premium-2026-07,
+   aprovado William 2026-07-21): rostos 56px dos homenageados do dia (aniversário + tempo
+   de casa). Anel TRACEJADO em quem falta parabenizar, PREENCHIDO + coração em quem já foi;
+   o próprio homenageado tem selo especial. Toque no rosto abre o bottom sheet. ===== */
+.mural-strip{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 6px;margin-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.mural-strip::-webkit-scrollbar{display:none}
+.st{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;font:inherit;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+.st__ring{position:relative;width:64px;height:64px;display:grid;place-items:center}
+.st__rsvg{position:absolute;inset:0;width:100%;height:100%}
+.st__rsvg circle{fill:none;stroke:var(--plum);stroke-width:2.4;stroke-linecap:round}
+.st--self .st__rsvg circle{stroke:var(--warning)}
+.st__av{width:52px;height:52px;border-radius:50%;background-size:cover;background-position:center;background-color:var(--surface-warm);display:grid;place-items:center;color:#fff;font-size:17px;font-weight:700;letter-spacing:.01em;text-transform:uppercase}
+.st__badge{position:absolute;right:-1px;bottom:-1px;width:22px;height:22px;border-radius:50%;border:2.5px solid var(--bg);display:flex;align-items:center;justify-content:center}
+.st__badge--type{background:var(--surface);color:var(--plum)}
+.st__badge--type.amber{color:var(--warning)}
+.st__badge--type svg{width:12px;height:12px}
+.st__badge--heart{background:var(--plum);color:#fff;display:none}
+.st__badge--heart svg{width:12px;height:12px}
+.st--done .st__badge--type{display:none}
+.st--done .st__badge--heart{display:flex}
+.st__nm{font-size:11px;font-weight:600;color:var(--text-body);max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st__mk{font-size:9.5px;font-weight:500;color:var(--text-muted);margin-top:-3px;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st:active .st__av{transform:scale(.94);transition:transform .12s var(--ease-ios)}
+@media (prefers-reduced-motion:reduce){.st__rsvg circle{transition:none}.st:active .st__av{transform:none}}
+
+/* Bottom sheet do story (nasce/morre no body, nunca re-renderiza). Reusa a anatomia
+   .pp-bday (título, pilha de reatores, coração grande) e a física dos outros sheets. */
+.mural-sheet{position:fixed;inset:0;z-index:120;background:rgba(10,20,10,.34);display:flex;align-items:flex-end;justify-content:center}
+html.cp-dark .mural-sheet{background:rgba(0,0,0,.5)}
+.mural-sheet__folha{width:100%;max-width:440px;background:var(--bg);border-radius:22px 22px 0 0;padding:6px 14px 20px;box-shadow:0 -10px 30px -12px rgba(0,30,15,.35);will-change:transform}
+.mural-sheet__folha>.grab{width:38px;height:4px;border-radius:999px;background:var(--border-strong);margin:6px auto 12px;flex:none}
+.mural-sheet__card .pp-bday{box-shadow:none}
+.mural-sheet__hint{font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:12px;line-height:1.4}
+@media (min-width:641px){.mural-sheet{align-items:center}.mural-sheet__folha{border-radius:22px}}
 
 /* Carga única da tela Documentos (mock aprovado 2026-07-17): skeleton com a MESMA
    geometria das linhas reais + barra fina no topo como único movimento. Só na 1ª
@@ -805,15 +821,15 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
    saturado de marca (mesmo verde em claro/escuro, como o herói de BH).
    ============================================================ */
 /* Card de entrada na home (discreto, quiet como o mock .rowcard.quiet) */
-.pp-den { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; cursor: pointer; background: var(--surface-warm); border: 1px solid var(--border); border-radius: var(--pp-rc, 18px); padding: 14px 15px; margin-top: 11px; transition: transform .18s var(--ease-ios), box-shadow .2s; -webkit-tap-highlight-color: transparent; }
-.pp-den:active { transform: scale(.985); }
-.pp-den__ic { width: 40px; height: 40px; border-radius: 12px; background: rgba(0,136,53,.09); color: var(--plum); display: flex; align-items: center; justify-content: center; flex: none; }
-.pp-den__ic svg { width: 20px; height: 20px; }
-.pp-den__bd { flex: 1; min-width: 0; }
-.pp-den__t { display: block; font-size: 14px; font-weight: 600; color: var(--text-body); }
-.pp-den__s { display: block; font-size: 11.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.35; }
-.pp-den__chev { color: var(--border-strong); flex: none; }
-.pp-den__chev svg { width: 16px; height: 16px; }
+/* Canal de denúncia em LINHA discreta (~44px, v379): escudo + rótulo + chevron, borda
+   só no topo (separador leve no rodapé da home). Mesmo handler (data-den-abrir). */
+.den-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; cursor: pointer; background: none; border: 0; border-top: 1px solid var(--border); padding: 0 4px; height: 44px; margin-top: 8px; -webkit-tap-highlight-color: transparent; }
+.den-row__ic { width: 24px; height: 24px; flex: none; color: var(--plum); display: flex; align-items: center; justify-content: center; }
+.den-row__ic svg { width: 17px; height: 17px; }
+.den-row__t { flex: 1; min-width: 0; font-size: 12px; font-weight: 500; color: var(--text-body); }
+.den-row__ch { flex: none; color: var(--border-strong); display: flex; }
+.den-row__ch svg { width: 15px; height: 15px; }
+@media (hover:hover){ .den-row:hover .den-row__t { color: var(--plum); } }
 
 /* Fluxo (etapas) */
 .den-flow { display: flex; flex-direction: column; }
