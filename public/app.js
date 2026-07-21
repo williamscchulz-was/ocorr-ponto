@@ -3028,22 +3028,6 @@ function _muralCor(nome) {
 // curtido = cheio. Compartilhado por TODOS os corações do mural (aniv/tdc).
 const _muralHeart = (on) => `<svg class="icon" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.1C6.2 16.4 1.9 12.7 1.9 8.5 1.9 5.3 4.4 2.9 7.4 2.9c1.9 0 3.6 1 4.6 2.7 1-1.7 2.7-2.7 4.6-2.7 3 0 5.5 2.4 5.5 5.6 0 4.2-4.3 7.9-10.1 12.6z"/></svg>`;
 
-// Batida do like: pulso one-shot via WAAPI (metodologia: nunca classe/keyframe que um
-// re-render ressuscita). Roda no svg recém-escrito pelo aplica().
-function _pulsarCoracao(heart) {
-  const svg = heart && heart.querySelector("svg");
-  if (!svg || prefereMenosMovimento() || typeof svg.animate !== "function") return;
-  svg.animate(
-    [
-      { transform: "scale(1)" },
-      { transform: "scale(1.35)", offset: 0.35 },
-      { transform: "scale(.92)", offset: 0.65 },
-      { transform: "scale(1)" },
-    ],
-    { duration: 420, easing: "cubic-bezier(.2, .8, .3, 1.2)" }
-  );
-}
-
 // Texto da contagem de parabéns (mesma copy do card e da própria saudação). total = quantas
 // reações; mine = se o próprio já parabenizou. Sem hífen/travessão (convenção do projeto).
 function _parabTexto(total, mine, ehEu) {
@@ -3216,9 +3200,9 @@ async function carregarMuralAniv() {
 
 // Toque no coração "Parabenizar": otimista (muta o cache e reconcilia a região na hora),
 // chama o toggle, reverte + toast no erro. Trava o toque duplo por post enquanto a escrita
-// voa (_muralBusy; o DOM não guarda mais o "busy", que o morph reconciliaria de volta). O
-// morph preserva o coração (casado por chave) e a batida: _pulsarCoracao só dispara DEPOIS
-// do patch, no nó preservado, então a batida em curso não é cortada.
+// voa (_muralBusy; o DOM não guarda mais o "busy", que o morph reconciliaria de volta).
+// Curtir colapsa o card na linha compacta (o feedback do like é a própria transição +
+// o coração cheio da linha), então não há mais batida no coração do card.
 const _muralBusy = new Set();
 async function onParabenizar(heart) {
   const post = heart && heart.getAttribute("data-bday-post");
@@ -3245,7 +3229,6 @@ async function onParabenizar(heart) {
   _setReacaoOtimista(post, ligar, totalDepois);
   _reconciliarMuralRegioes();
   if (vaiCompactar) _animarMuralMorph(document.querySelector(`[data-bday-post="${post}"]`), h0, snap);
-  else if (ligar) _pulsarCoracao(heart); // heart preservado pelo morph (card casado por chave)
   _muralBusy.add(post);
   try {
     await window.toggleReacaoAniversario(post, ligar);
