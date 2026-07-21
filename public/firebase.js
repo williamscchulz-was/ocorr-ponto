@@ -1793,7 +1793,13 @@
     // gate: minhaLeitura/minhaAssinatura do state vem do boot, que le o servidor).
     window.gamiCatchUp = async function () {
       const user = auth.currentUser;
-      if (!user || !state.gamiConfig || state.gamiConfig.ativa !== true) return false;
+      if (!user) return false;
+      // Config REVALIDADA antes de desistir (caso William 21/07: a tabela recém-salva
+      // pela GP só valia depois de fechar e abrir o app, porque o catch-up rodava com a
+      // config em cache da sessão). Custa 1 leitura por varredura; os claims na
+      // sequência já usam a fresca.
+      await window.carregarGamiConfig?.(true);
+      if (!state.gamiConfig || state.gamiConfig.ativa !== true) return false;
       const anoOk = (iso) => iso && String(iso).slice(0, 4) === _gamiAno();
       const pend = [];
       for (const c of state.comunicadosColab || [])
@@ -1816,11 +1822,30 @@
       // coracao/boas-vindas: so cobre os posts do mural ja carregados nesta sessao
       // (state._reacoesCache, preenchido ao renderizar os cards da home) com minha reacao
       // ligada. NAO varre o mural inteiro -- fora da janela visivel nao pontua, por design.
+      // Nome real no rótulo do retroativo (achado William 21/07, "deveria mostrar quem
+      // é"): cruza o postId com as listas do config (mesma fonte dos cards, acentos
+      // certos); sem match, capitaliza o 1º pedaço do slug. Rótulo é cosmético: erro
+      // aqui nunca derruba o crédito (try + fallback genérico).
+      const _nomeDoPost = (post) => {
+        try {
+          const a = state.aniversariantes || {};
+          const pares = [
+            ...(Array.isArray(a.pessoas) && typeof muralPostId === "function" ? a.pessoas.map((p) => [muralPostId(p.nome), p.nome]) : []),
+            ...(Array.isArray(a.tempoCasa) && typeof tdcPostId === "function" ? a.tempoCasa.map((p) => [tdcPostId(p.nome), p.nome]) : []),
+            ...(Array.isArray(a.recemChegados) && typeof bvPostId === "function" ? a.recemChegados.map((p) => [bvPostId(p.nome, p.admissao), p.nome]) : []),
+          ];
+          const hit = pares.find(([id]) => id === post);
+          if (hit && hit[1]) return String(hit[1]).trim().split(/\s+/)[0];
+        } catch (e) { /* cosmético */ }
+        const slug = post.replace(/^(aniv|bv|tdc)-/, "").replace(/-\d{4}$/, "").split("-")[0] || "";
+        return slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : "";
+      };
       for (const [post, r] of Object.entries(state._reacoesCache || {})) {
         if (!r || r.minhaReacao !== true) continue;
-        if (post.startsWith("aniv-")) pend.push(["coracao", post, "Parabenizou um colega"]);
-        else if (post.startsWith("bv-")) pend.push(["boas-vindas", post, "Deu boas-vindas a um colega"]);
-        else if (post.startsWith("tdc-")) pend.push(["tempo-casa", post, "Parabenizou um colega pelo tempo de casa"]);
+        const nome = _nomeDoPost(post);
+        if (post.startsWith("aniv-")) pend.push(["coracao", post, nome ? `Parabenizou ${nome}` : "Parabenizou um colega"]);
+        else if (post.startsWith("bv-")) pend.push(["boas-vindas", post, nome ? `Deu boas-vindas a ${nome}` : "Deu boas-vindas a um colega"]);
+        else if (post.startsWith("tdc-")) pend.push(["tempo-casa", post, nome ? `Parabenizou ${nome} pelo tempo de casa` : "Parabenizou um colega pelo tempo de casa"]);
       }
       // Foto NUNCA entra no catch-up (decisao William, gate delta 3): o ponto e pelo ATO
       // de trocar/adicionar (gancho no atualizarMinhaFoto). As fotos oficiais importadas

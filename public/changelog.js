@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "1.99.0", d: "20 jul 2026", current: true, items: [
+    v: "1.99.1", d: "21 jul 2026", current: true, items: [
+      { type: "fix", title: "Pontos retroativos agora dizem quem voce parabenizou (nome no extrato), e a tabela de pontos recem-salva pela GP vale na hora, sem precisar fechar e abrir o app.", aud: "colab" },
+    ],
+  },
+  {
+    v: "1.99.0", d: "20 jul 2026", items: [
       { type: "feat", title: "Toques finais de capricho: botoes que confirmam no proprio lugar, faisca ao ganhar ponto, brilho nas conquistas e a saudacao do dia ganhou vida.", aud: "colab" },
     ],
   },
