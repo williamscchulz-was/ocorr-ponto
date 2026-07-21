@@ -705,6 +705,21 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 /* Tempo de casa: mesmo card do aniversário, tinta verde (medalha) no lugar do âmbar. */
 .pp-bday--tdc::after{background:radial-gradient(circle,rgba(0,136,53,.13),transparent 70%)}
 .pp-bday--tdc .pp-bday__ic{background:rgba(0,136,53,.12);color:var(--plum)}
+/* Linha compacta pós-parabéns (opção A, mock card-pos-like-2026-07, aprovado William
+   2026-07-21): curtiu, o card devolve espaço na home colapsando numa linha de ~44px, mas
+   segue visível (ícone mini, texto único, mini-pilha de rostos, coração cheio). Toque na
+   linha reexpande pro card cheio. overflow/position sustentam o crossfade do colapso. */
+.pp-bday--mini{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--pp-sh-card);padding:0 12px;height:44px;cursor:pointer;overflow:hidden;position:relative;text-align:left;font:inherit;color:inherit}
+.pp-mini__ic{width:24px;height:24px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;background:rgba(0,136,53,.12);color:var(--plum)}
+.pp-mini__ic--amber{background:rgba(224,163,58,.16);color:var(--warning)}
+.pp-mini__ic svg{width:14px;height:14px}
+.pp-mini__t{flex:1;min-width:0;font-size:12.5px;font-weight:500;color:var(--text-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-mini__stack{display:flex;align-items:center;flex:none}
+.pp-mini__stk{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--surface);margin-left:-5px;display:grid;place-items:center;color:#fff;font-size:6.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;background-size:cover;background-position:center;flex:none}
+.pp-mini__stk:first-child{margin-left:0}
+.pp-mini__heart{flex:none;width:18px;height:18px;color:var(--plum);display:flex;align-items:center;justify-content:center}
+.pp-mini__heart svg{width:18px;height:18px}
+@media (hover:hover){.pp-bday--mini:hover{border-color:var(--border-strong)}}
 
 /* Carga única da tela Documentos (mock aprovado 2026-07-17): skeleton com a MESMA
    geometria das linhas reais + barra fina no topo como único movimento. Só na 1ª

@@ -2978,8 +2978,17 @@ if (!window._colabDocBound) {
     if (lr) { e.preventDefault(); const lid = lr.dataset.colabLerdoc; withBusy("lerdoc:" + lid, lr, () => colabLerDocUI(lid)); return; }
     const bh = e.target.closest("[data-bday-heart]");
     if (bh) { e.preventDefault(); onParabenizar(bh); return; }
+    // Linha compacta pós-like: toque em qualquer ponto reexpande pro card cheio.
+    const bx = e.target.closest("[data-bday-expand]");
+    if (bx) { e.preventDefault(); onReexpandirMural(bx); return; }
     const bv = e.target.closest("[data-bv-hand]");
     if (bv) { e.preventDefault(); onBoasVindas(bv); return; }
+  });
+  // Teclado na linha compacta (div[role=button]): Enter/Espaço reexpandem (acessibilidade).
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const bx = e.target.closest && e.target.closest("[data-bday-expand]");
+    if (bx) { e.preventDefault(); onReexpandirMural(bx); }
   });
 }
 
@@ -3061,25 +3070,107 @@ const _reacoesCached = (post) => (state._reacoesCache || {})[post] || null;
 // fonte do ranking). "" = sabidamente sem foto; undefined = ainda não buscada.
 const _fotoReator = (uid) => (state._fotoReatorCache || {})[uid] || "";
 
+// Um chip de reator (foto ou iniciais). A MINHA foto vem do users doc (a mesma da saudação;
+// o cadastro de funcionário não guarda foto); as dos colegas vêm do placar via _fotoReator,
+// quem não tem foto lá fica nas iniciais (autorNome vem da reação, v307). mini = variante
+// 16px da linha compacta (pós-like); cheio = 22px do card.
+function _bdayChipHtml(r, mini) {
+  const souEu = state.currentUserId && r.uid === state.currentUserId;
+  const u = currentUser();
+  const _foto = souEu ? (u && u.fotoBase64) : _fotoReator(r.uid);
+  const foto = (typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
+  const nome = souEu ? ((u && u.nome) || r.nome || "") : (r.nome || "");
+  const t = escapeHtml(souEu ? "Você" : nome);
+  if (mini) {
+    if (foto) return `<span class="pp-mini__stk" style="background-image:url('${foto}')" title="${t}"></span>`;
+    return `<span class="pp-mini__stk" style="background:${_muralCor(nome || r.uid || "")}" title="${t}">${escapeHtml(nome ? initials(nome) : "")}</span>`;
+  }
+  if (foto) return `<span class="pp-bday__stk pp-bday__stk--foto" style="background-image:url('${foto}')" title="${t}"></span>`;
+  return `<span class="pp-bday__stk" style="background:${_muralCor(nome || r.uid || "")}" title="${t}">${escapeHtml(nome ? initials(nome) : "")}</span>`;
+}
+
 // Pilha de mini-avatares de quem reagiu (compartilhada entre o template, que nasce do
 // cache, e o preenchedor assíncrono). Até 4 rostos + contador do restante.
 function _bdayStackHtml(reacoes) {
   const lista = reacoes || [];
-  const chips = lista.slice(0, 4)
-    .map((r) => {
-      // A MINHA foto vem do users doc (a mesma da saudação; o cadastro de funcionário
-      // não guarda foto). As dos colegas vêm do placar via _fotoReator; quem não tem
-      // foto lá fica nas iniciais. autorNome vem da reação (v307).
-      const souEu = state.currentUserId && r.uid === state.currentUserId;
-      const u = currentUser();
-      const _foto = souEu ? (u && u.fotoBase64) : _fotoReator(r.uid);
-      const foto = (typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
-      const nome = souEu ? ((u && u.nome) || r.nome || "") : (r.nome || "");
-      if (foto) return `<span class="pp-bday__stk pp-bday__stk--foto" style="background-image:url('${foto}')" title="${escapeHtml(souEu ? "Você" : nome)}"></span>`;
-      return `<span class="pp-bday__stk" style="background:${_muralCor(nome || r.uid || "")}" title="${escapeHtml(souEu ? "Você" : nome)}">${escapeHtml(nome ? initials(nome) : "")}</span>`;
-    }).join("");
+  const chips = lista.slice(0, 4).map((r) => _bdayChipHtml(r, false)).join("");
   const resto = lista.length - 4;
   return chips + (resto > 0 ? `<span class="pp-bday__mais">+${resto}</span>` : "");
+}
+
+// Pilha 16px da linha compacta: os mesmos rostos, sem contador (a linha é minimalista).
+function _muralMiniStackHtml(reacoes) {
+  return (reacoes || []).slice(0, 4).map((r) => _bdayChipHtml(r, true)).join("");
+}
+
+// Posts do mural que o usuário reexpandiu com o toque (linha compacta -> card cheio). A
+// variante do card (cheio vs linha) deriva SÓ do state: compacto quando já parabenizei E
+// não reabri; toque na linha entra aqui, descurtir sai. Determinismo total (o rebuild
+// forçado do flicker-guard nasce na variante certa; m1/paridade).
+function _muralExpSet() { return state._muralExp || (state._muralExp = new Set()); }
+
+// Card do mural (aniversário/tempo-de-casa), variante única derivada do state (mock opção A,
+// aprovado William 2026-07-21). Cheio = o convite pra parabenizar; LINHA COMPACTA quando já
+// parabenizei e não reabri (devolve espaço na home), com o mesmo data-key (postId) e data-hash
+// cobrindo a variante, pra o morph do updateRegion trocar cheio<->linha no lugar. O próprio
+// homenageado (souEu, sem coração) nunca compacta. opts: { post, primeiro, souEu, icone, amber
+// (só afeta a linha; no cheio a cor vem de --tdc), tdc, tituloFull, rowTexto } (tituloFull/
+// rowTexto crus: o builder escapa uma vez).
+function _muralCardHtml(opts) {
+  const { post, primeiro, souEu, icone, amber, tdc, tituloFull, rowTexto } = opts;
+  const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
+  const mine = !!(c && c.minhaReacao);
+  const compacto = !souEu && mine && !_muralExpSet().has(post);
+  if (compacto) {
+    const inner =
+      `<span class="pp-mini__ic${amber ? " pp-mini__ic--amber" : ""}">${cpIcon(icone)}</span>` +
+      `<span class="pp-mini__t">${escapeHtml(rowTexto)}</span>` +
+      `<span class="pp-mini__stack" data-bday-stack>${_muralMiniStackHtml(c.reacoes)}</span>` +
+      `<span class="pp-mini__heart">${_muralHeart(true)}</span>`;
+    return `<div class="pp-bday--mini" data-key="${escapeHtml(post)}" data-hash="${fnv1a(inner)}" data-bday-post="${escapeHtml(post)}" data-bday-expand role="button" tabindex="0" aria-label="Reabrir parabéns de ${escapeHtml(primeiro)}">${inner}</div>`;
+  }
+  const inner = `
+      <div class="pp-bday__ic">${cpIcon(icone)}</div>
+      <div class="pp-bday__bd">
+        <div class="pp-bday__t">${escapeHtml(tituloFull)}</div>
+        <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine, !!souEu)) : "..."}</div>
+        <div class="pp-bday__stack" data-bday-stack>${c ? _bdayStackHtml(c.reacoes) : ""}</div>
+      </div>
+      ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>`}`;
+  return `<div class="pp-bday${tdc ? " pp-bday--tdc" : ""}" data-key="${escapeHtml(post)}" data-hash="${fnv1a(inner)}" data-bday-post="${escapeHtml(post)}"${souEu ? " data-bday-me" : ""}>${inner}</div>`;
+}
+
+// Anima a troca cheio<->linha de UM card do mural. O reconcile (updateRegion) já trocou a
+// ESTRUTURA do nó no lugar (mesmo nó, casado por data-key); aqui só altura + crossfade, pra
+// a troca não dar pop. hDe = altura do card ANTES da troca; snap = clone visual do estado
+// anterior, sobreposto e esmaecido, cobrindo o instante da troca (senão o conteúdo pisca).
+// Espírito do _colapsarCardBv (WAAPI, nada de classe/style persistente que um re-render
+// ressuscite), mas termina no novo card, não na remoção. prefereMenosMovimento / sem WAAPI:
+// estado direto, o reconcile já pintou a variante certa (disciplina m3).
+function _animarMuralMorph(card, hDe, snap) {
+  if (!card || !hDe || prefereMenosMovimento() || typeof card.animate !== "function") { if (snap) snap.remove?.(); return; }
+  const hPara = card.getBoundingClientRect().height;
+  if (snap) {
+    // Inerte: sem chave/id/foco (o morph e a leitura assíncrona ignoram o fantasma).
+    snap.removeAttribute("data-key"); snap.removeAttribute("id"); snap.setAttribute("aria-hidden", "true");
+    snap.querySelectorAll("[data-bday-post]").forEach((e) => e.removeAttribute("data-bday-post"));
+    snap.removeAttribute("data-bday-post");
+    Object.assign(snap.style, { position: "absolute", left: "0", right: "0", top: "0", margin: "0", pointerEvents: "none", zIndex: "3" });
+    card.appendChild(snap); // card tem overflow:hidden -> o fantasma é clipado junto com a altura
+    snap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: "ease-out", fill: "forwards" }).onfinish = () => snap.remove();
+  }
+  if (Math.abs(hPara - hDe) < 1) return;
+  card.animate([{ height: hDe + "px" }, { height: hPara + "px" }], { duration: 340, easing: "cubic-bezier(.2, .8, .2, 1)" });
+}
+
+// Corta a animação de altura em curso de um card do mural ANTES de um reconcile que troque a
+// variante (colapso -> revert de erro, ou colapso -> reexpandir no meio da animação). Sem
+// isto, o guard "animando" do morph (_morphNode em utils.js, que preserva entrada/pulso)
+// pularia o patch de atributos e a classe .pp-bday--mini ficaria presa. Só WAAPI
+// (transitionProperty === undefined); a transition do coração fica intacta.
+function _cancelarMuralAnim(post) {
+  const el = document.querySelector(`[data-bday-post="${post}"]`);
+  if (el && el.getAnimations) el.getAnimations().forEach((a) => { if (a.transitionProperty === undefined) a.cancel(); });
 }
 
 // Reconcilia as REGIÕES do mural (piloto de regiões estendido à home, v374): re-renderiza
@@ -3132,14 +3223,29 @@ const _muralBusy = new Set();
 async function onParabenizar(heart) {
   const post = heart && heart.getAttribute("data-bday-post");
   if (!post || _muralBusy.has(post)) return;
+  const card = heart.closest(".pp-bday");
   const c = _reacoesCached(post) || { reacoes: [], total: 0, minhaReacao: false };
   const wasOn = !!c.minhaReacao;
   const totalAntes = Number(c.total) || 0;
   const ligar = !wasOn;
   const totalDepois = Math.max(0, totalAntes + (ligar ? 1 : -1));
+  // Curtir num card que não é o próprio colapsa pra linha compacta (devolve espaço na home).
+  // Captura geometria + snapshot do card cheio ANTES do morph trocar a estrutura, pra animar
+  // altura + crossfade sem pop. O fantasma nasce com o coração JÁ cheio (feedback do like).
+  const vaiCompactar = ligar && card && !card.hasAttribute("data-bday-me");
+  let h0 = 0, snap = null;
+  if (vaiCompactar && !prefereMenosMovimento() && typeof card.animate === "function") {
+    h0 = card.getBoundingClientRect().height;
+    snap = card.cloneNode(true);
+    const gh = snap.querySelector("[data-bday-heart]");
+    if (gh) { gh.classList.add("on"); gh.innerHTML = _muralHeart(true); }
+  }
+  _muralExpSet().delete(post); // like/unlike sempre saem do "reexpandido": ligar compacta, desligar volta ao cheio
+  _cancelarMuralAnim(post); // corta um colapso/expansão em curso pra o morph poder trocar a variante
   _setReacaoOtimista(post, ligar, totalDepois);
   _reconciliarMuralRegioes();
-  if (ligar) _pulsarCoracao(heart); // heart preservado pelo morph (card casado por chave)
+  if (vaiCompactar) _animarMuralMorph(document.querySelector(`[data-bday-post="${post}"]`), h0, snap);
+  else if (ligar) _pulsarCoracao(heart); // heart preservado pelo morph (card casado por chave)
   _muralBusy.add(post);
   try {
     await window.toggleReacaoAniversario(post, ligar);
@@ -3159,12 +3265,29 @@ async function onParabenizar(heart) {
     }
   } catch (err) {
     debug?.("[aniv parabenizar] falhou:", err?.code, err?.message);
+    _cancelarMuralAnim(post); // corta o colapso otimista pra o revert poder devolver o card cheio
     _setReacaoOtimista(post, wasOn, totalAntes); // reverte
     _reconciliarMuralRegioes();
     toast("Não consegui registrar. Tente de novo.", "danger");
   } finally {
     _muralBusy.delete(post);
   }
+}
+
+// Toque na LINHA compacta: reexpande pro card cheio (o post entra em _muralExp; o coração
+// volta ligado, dá pra descurtir ali). Só state + reconcile (a variante deriva do state);
+// anima a altura de volta com o mesmo crossfade do colapso. Não mexe no cache/gami (a reação
+// segue como está; reexpandir é só apresentação).
+function onReexpandirMural(row) {
+  const post = row && row.getAttribute("data-bday-post");
+  if (!post) return;
+  const anima = !prefereMenosMovimento() && typeof row.animate === "function";
+  const h0 = anima ? row.getBoundingClientRect().height : 0;
+  const snap = anima ? row.cloneNode(true) : null;
+  _muralExpSet().add(post);
+  _cancelarMuralAnim(post); // corta um colapso em curso pra o morph trocar linha -> card cheio
+  _reconciliarMuralRegioes();
+  _animarMuralMorph(document.querySelector(`[data-bday-post="${post}"]`), h0, snap);
 }
 
 // Aniversariantes do mês na home do colaborador. Lê config/aniversariantes (sem PII:
@@ -3207,20 +3330,10 @@ function aniversarianteHojeHtml(meuNome) {
   return doDia.map((p) => {
     const nome = (p.nome || "?").trim();
     const primeiro = nome.split(/\s+/)[0] || "?";
-    const post = muralPostId(nome);
-    const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
-    const mine = !!(c && c.minhaReacao);
-    // data-key/data-hash: o morph do updateRegion casa o card pelo post e pula quando o corpo
-    // não mudou (hash). Toggle/leitura nova morpha SÓ o que mexeu (coração, contagem, pilha).
-    const inner = `
-      <div class="pp-bday__ic">${cpIcon("cake")}</div>
-      <div class="pp-bday__bd">
-        <div class="pp-bday__t">Hoje é aniversário de ${escapeHtml(primeiro)}</div>
-        <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine, false)) : "..."}</div>
-        <div class="pp-bday__stack" data-bday-stack>${c ? _bdayStackHtml(c.reacoes) : ""}</div>
-      </div>
-      <button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>`;
-    return `<div class="pp-bday" data-key="${escapeHtml(post)}" data-hash="${fnv1a(inner)}" data-bday-post="${escapeHtml(post)}">${inner}</div>`;
+    return _muralCardHtml({
+      post: muralPostId(nome), primeiro, souEu: false, icone: "cake", amber: true, tdc: false,
+      tituloFull: `Hoje é aniversário de ${primeiro}`, rowTexto: `${primeiro} · aniversário hoje`,
+    });
   }).join("");
 }
 
@@ -3284,20 +3397,11 @@ function colabTempoCasaHtml(meuNome) {
     const primeiro = nome.split(/\s+/)[0];
     const anos = Number(p.anos);
     const anosTxt = `${anos} ano${anos > 1 ? "s" : ""}`;
-    const post = tdcPostId(nome);
-    const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
-    const mine = !!(c && c.minhaReacao);
-    // data-key/data-hash: idem aniversário; a chave é o post, o hash é o corpo (souEu no card
-    // fica no atributo do wrapper, não no hash, e não muda entre re-renders).
-    const inner = `
-      <div class="pp-bday__ic">${cpIcon("medalha")}</div>
-      <div class="pp-bday__bd">
-        <div class="pp-bday__t">${souEu ? `Você completa ${anosTxt} de Fiobras hoje` : `${escapeHtml(primeiro)} completa ${anosTxt} de Fiobras hoje`}</div>
-        <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine, !!souEu)) : "..."}</div>
-        <div class="pp-bday__stack" data-bday-stack>${c ? _bdayStackHtml(c.reacoes) : ""}</div>
-      </div>
-      ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart data-bday-post="${escapeHtml(post)}" data-bday-total="${c ? c.total : 0}" data-bday-mine="${mine ? 1 : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>`}`;
-    return `<div class="pp-bday pp-bday--tdc" data-key="${escapeHtml(post)}" data-hash="${fnv1a(inner)}" data-bday-post="${escapeHtml(post)}"${souEu ? " data-bday-me" : ""}>${inner}</div>`;
+    return _muralCardHtml({
+      post: tdcPostId(nome), primeiro, souEu: !!souEu, icone: "medalha", amber: false, tdc: true,
+      tituloFull: souEu ? `Você completa ${anosTxt} de Fiobras hoje` : `${primeiro} completa ${anosTxt} de Fiobras hoje`,
+      rowTexto: `${primeiro} · ${anosTxt} hoje`,
+    });
   }).join("");
 }
 
@@ -18744,7 +18848,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "1.99.1";
+window.CURRENT_VERSION = "1.99.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
