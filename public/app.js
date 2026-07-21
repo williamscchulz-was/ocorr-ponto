@@ -5041,6 +5041,11 @@ function renderColabConta() {
           <span class="pp-rw__bd"><span class="pp-rw__t">Rever a apresentação</span><span class="pp-rw__s">O passeio rápido pelo que o portal faz</span></span>
           <span class="pp-rw__chev">${cpIcon("chevron")}</span>
         </button>
+        <button class="pp-rw" data-acao="ver-novidades">
+          <span class="pp-ico pp-ico--neutral">${cpIcon("megafone")}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">Novidades do portal</span><span class="pp-rw__s">O que chegou e o que vem por aí</span></span>
+          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
+        </button>
       </div>
 
       <div class="pp-ovl">Segurança</div>
@@ -5077,6 +5082,9 @@ function renderColabConta() {
   });
   view.querySelector('[data-acao="trocar-portal"]')?.addEventListener("click", trocarDePortal);
   view.querySelector('[data-acao="rever-onboarding"]')?.addEventListener("click", () => mostrarOnboarding());
+  // Acesso mobile à tela Novidades (v380): os atalhos da home encolheram pra 3 no
+  // 2.0.0 e o roadmap perdeu o único caminho no colab <=900px; a Conta é a casa dele.
+  view.querySelector('[data-acao="ver-novidades"]')?.addEventListener("click", () => { state.view.page = "colab-roadmap"; renderApp(); });
   view.querySelector('[data-acao="sair"]')?.addEventListener("click", confirmarSairColab);
   const _seg = view.querySelector("#cp-seg-tema");
   const _pill = _seg?.querySelector(".pp-seg__pill");
@@ -18832,7 +18840,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.0.0";
+window.CURRENT_VERSION = "2.0.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

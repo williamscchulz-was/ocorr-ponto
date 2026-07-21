@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.0.0", d: "21 jul 2026", current: true, items: [
+    v: "2.0.1", d: "21 jul 2026", current: true, items: [
+      { type: "fix", title: "As Novidades do portal ganharam casa na tela Conta, ja que os atalhos da home ficaram mais enxutos.", aud: "colab" },
+    ],
+  },
+  {
+    v: "2.0.0", d: "21 jul 2026", items: [
       { type: "feat", title: "A tela inicial renasceu: sequencia de dias discreta no topo, pontos numa linha, e o mural do dia virou uma faixa de rostos, toque num colega pra parabenizar.", aud: "colab" },
     ],
   },
