@@ -3100,3 +3100,24 @@ Todos os 3 fixes de código testados com dado real: nenhum breaker disparou hoje
 
 ### Decisão explícita: não mexer em Atrasos/Saída Antecipada nem em export-empregado.mjs agora
 Ambos são riscos reais mas ainda hipotéticos (zero incidentes observados nesses caminhos até hoje). A receita que funcionou 2x (achar evidência cruzada específica) não se aplica sem modificação a nenhum dos dois — Atrasos precisaria comparar magnitude exata contra o Espelho (não só "dia dentro de 120min"), e `export-empregado.mjs` precisaria de um gate de frescor novo (nunca existiu nenhum ali). Registrar como risco conhecido/monitorado; revisar com o Fable se/quando virar incidente real, não generalizar preventivamente sem caso pra calibrar contra falso-positivo.
+
+---
+
+## 2026-07-22 · 🎯 Alinhamento confiante quando só 1 marcação bate (caso Maristella) — mesma família do bug Vinicius, cobertura estendida
+
+William mandou um card real pra eu conferir "tá funcionando certo": Maristella da Silva (1153), 21/07/2026, escala 06:45-09:00-09:15-12:00 (4 previstas), card mostrando "Entrada: 12:00" (06:45 riscado) e as outras 3 posições "sem batida".
+
+### Diagnóstico: dado correto, POSIÇÃO exibida provavelmente errada
+Confirmado direto no Espelho de Ponto cru: código 1153, 21/07, apurada = SÓ "12:00" (1 marcação). `diagnostica_marcacao_ausente` desiste com early-return quando faltam MAIS de 1 marcação (aqui faltam 3) — `apuradasAlinhadas` fica `null`. O app (`ocaBatidasAlinhadas`, `app.js:14167`) então cai no MESMO pareamento por índice cru que `apuradasAlinhadas` foi criado pra evitar (comentário no próprio app.js documenta essa exata classe de bug, achado original do caso Vinicius) — a única batida vai pro índice 0 = "Entrada".
+
+Só que 12:00 bate EXATO (desvio 0min) com o previsto de "Saída Final" (também 12:00) e está a 5h15 (315min) do previsto de "Entrada" (06:45) — muito mais plausível que ela trabalhou o turno inteiro e só a batida de SAÍDA registrou (faltando entrada + 2 batidas de almoço) do que "só apareceu ao meio-dia". A classificação/situação em si (`Marcação Não Identificada`, `classificacaoIncerta:true`) estava 100% correta — só a posição na tela é que provavelmente não é a certa.
+
+### Fix (revisão do Fable, 3 condições inegociáveis respeitadas)
+Novo helper `alinha_apurada_unica(previstas, apuradas)`: quando sobra EXATAMENTE 1 apurada (faltam 2+), testa essa única batida contra CADA posição prevista via `desvio_circular`/`JANELA_MATCH_MIN` (120min, mesma constante de sempre) — só afirma um alinhamento quando bate com EXATAMENTE 1 posição (não 0, não 2+, ambiguidade genuína continua `None`, comportamento de sempre). Aplicado como ÚLTIMO RECURSO nos 2 pontos que já geram `apuradasAlinhadas` (loop principal — mesmo gap do caso Edmar já documentado — e detector 999), só quando os caminhos existentes (1 posição confirmada / 2+ candidatos empatados) já desistiram.
+
+Condições do Fable, todas respeitadas: (1) nunca deriva `sit`/`posAusente`/`horarioPrevistoRelevante` do match — só `apuradasAlinhadas`, dica de apresentação; (2) `classificacaoIncerta`/`motivoIncerteza` continuam intocados — GP sempre confere; (3) o card da Maristella já existente no Firestore NÃO se corrige sozinho (modelo cria-e-nunca-reabre) — perguntei ao William se quer patch pontual desse doc específico.
+
+Generalização pra M>=2 apuradas (faltando 2+, mais de 1 batida real) fica pra depois — precisa de `itertools.combinations` com o mesmo gate de unicidade (não pareamento guloso — mesma lição do achado 2026-07-03 sobre matching guloso), e o ganho real depende de medir quantos casos incertos são M=1 vs M=2+ primeiro (não generalizar sem dado).
+
+### Validação
+7 casos-limite testados isolados (match único, ambíguo — apurada equidistante de 2 previstas próximas tipo par de almoço —, zero-match, N=3 match no meio/na borda, guard N<3, turno 3 madrugada): todos corretos, incluindo o cuidado do Fable sobre N=3+match-na-borda não disparar `intervaloAmbiguo` por engano (nulos ficam adjacentes, mas `restante` fica vazio depois de consumir a única apurada, então a condição `len(restante)==1` falha — confirmado). Contra dado real de hoje: 2 casos ativaram o fallback (Maristella + Manuel Alejandro Quintero Avendano, turno 3, "21:56" batendo só com a entrada prevista "22:00" — também corrigiu certo). Novo contador `incertoAlinhadoUnico` nas regras pra auditoria de quantas vezes ativa por rodada.
