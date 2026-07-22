@@ -49,7 +49,7 @@
   .pl-sep { color: #c8d1bd; font-weight: 400; user-select: none; }
 
   /* ===== VAGAS EM GRID ===== */
-  .secao { max-width: 1060px; margin: 0 auto; padding: 44px 26px 10px; }
+  .secao { max-width: 1060px; margin: 0 auto; padding: 26px 26px 10px; }
   .secao > h2 { margin: 0 0 4px; font-size: clamp(22px, 3.4vw, 30px); font-weight: 800; letter-spacing: -.01em; }
   .secao > p.sub { margin: 0 0 22px; font-size: 14px; color: #5a6852; }
   .listlabel { font-size: 13px; font-weight: 500; color: #6b7563; margin: 0 2px 16px; }
@@ -327,19 +327,11 @@
     border-radius: 999px; padding: 8px 15px; margin-bottom: 16px; }
   .selo-gc svg { width: 17px; height: 17px; flex: 0 0 auto; }
 
-  /* ===== Gente no Coração: linha discreta (coração pequeno + frase) entre passos e vagas ===== */
-  .valor-linha { max-width: 1060px; margin: 16px auto 0; padding: 0 26px; }
-  .valor-linha__in { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; color: #4a5842; line-height: 1.4; }
-  .valor-linha__in svg { width: 19px; height: 19px; color: #008835; flex: 0 0 auto; }
-  .valor-linha__in b { font-weight: 700; color: #04331a; }
-  .valor-linha__in .dot { color: #b9c3ac; }
-  /* A no mobile: as 3 etapas viram 3 linhas curtas; a linha do valor alinha à esquerda */
+  /* A no mobile: as 3 etapas viram 3 linhas curtas */
   @media (max-width: 620px) {
     .passos-linha__in { flex-direction: column; align-items: flex-start; border-radius: 18px; padding: 12px 16px; gap: 4px; }
     .pl { width: 100%; }
     .pl-sep { display: none; }
-    .valor-linha { text-align: left; }
-    .valor-linha__in { align-items: flex-start; }
   }
 
   /* ===== Benefícios no cartão da vaga ===== */
@@ -520,13 +512,6 @@
     <span class="pl-sep">·</span>
     <span class="pl"><span class="n">3</span>Fale com gente de verdade</span>
   </div>
-</div>
-
-<div class="valor-linha" aria-label="Gente no Coração">
-  <span class="valor-linha__in">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg>
-    <span><b>Gente no Coração</b> <span class="dot">·</span> sempre colocamos as pessoas no centro.</span>
-  </span>
 </div>
 
 <main class="secao" id="vagas">
