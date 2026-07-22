@@ -2,6 +2,10 @@
 // Ocorrências do Ponto — App Logic
 // ============================================
 
+// Instrumentacao do boot (marco: app.js comecou a executar). O head ja criou
+// __bootMarks; guarda defensiva caso este script rode isolado (harness/probe).
+(window.__bootMarks = window.__bootMarks || {}).appjs = performance.now();
+
 const state = {
   ...store.init(),
   view: { page: "visao-geral", filterTab: "pendentes", filterTurno: null, filterMes: null, search: "" },
@@ -18840,7 +18844,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.0.1";
+window.CURRENT_VERSION = "2.0.2";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -18875,11 +18879,24 @@ window.hideSplash = function hideSplash() {
     // despedida, mostrarTelaAtualizacao re-assume a cortina (apaga splashHiding)
     // e os timers velhos NÃO podem derrubá-la por baixo (achado do probe v366).
     if (sp.dataset.splashHiding !== "1") return;
+    // Marco do boot: a cortina começa a revelar o app (só a 1ª vez importa).
+    if (window.__bootMarks && window.__bootMarks.revelado == null) window.__bootMarks.revelado = performance.now();
     sp.classList.add("splash--out");
     setTimeout(function () {
       if (sp && sp.parentNode && sp.dataset.splashHiding === "1") sp.style.display = "none";
     }, 650);
   }, wait);
+};
+// Instrumentação honesta do boot: imprime (e devolve) os marcos em ms relativos ao
+// head (head→appjs→firebaseReady→authResolved→revelado). Vazio até o marco existir;
+// firebaseReady/authResolved só em modo Firebase real. Serve pra decidir cortes com dado.
+window.__bootDbg = function __bootDbg() {
+  var m = window.__bootMarks || {};
+  var base = m.head || 0;
+  var rel = {};
+  Object.keys(m).forEach(function (k) { rel[k] = Math.round((m[k] - base) * 10) / 10; });
+  try { console.table ? console.table(rel) : console.log("[boot]", rel); } catch (e) { console.log("[boot]", rel); }
+  return rel;
 };
 let _changelogCarregado = false;
 let _changelogChecado = false;
@@ -19373,16 +19390,34 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
     swRecarregarUmaVez();
   });
 
-  navigator.serviceWorker.register("sw.js").then((reg) => {
+  // REUSA o registro antecipado no <head> (window.__swRegP): registrar cedo faz o
+  // browser descobrir uma atualização ANTES de o app.js rodar. Fallback registra aqui
+  // (idempotente) se o head não pôde. Os listeners de update ficam TODOS neste .then.
+  (window.__swRegP || navigator.serviceWorker.register("sw.js")).then((reg) => {
+    // Adota um worker de atualização de boot: mostra a tela, acompanha o estado e manda
+    // ativar (mesmo caminho pro updatefound e pra um worker já instalando no catch-up).
+    const adotarWorkerDeBoot = (sw) => {
+      aplicarAtualizacaoBoot(sw);
+      sw.addEventListener("statechange", () => {
+        progressoAtualizacao(sw.state);
+        if (sw.state === "installed") enviarSkipWaiting(reg.waiting || sw);
+      });
+    };
     // Update JÁ esperando de uma sessão anterior (aba reaberta): aplica agora.
     if (reg.waiting && navigator.serviceWorker.controller && !jaRecarregou()) {
       aplicarAtualizacaoBoot(reg.waiting);
+    }
+    // CATCH-UP do registro antecipado: o updatefound pode ter disparado ANTES deste
+    // listener (o head registrou cedo). Se um worker de atualização de boot já está
+    // INSTALANDO e ainda não foi tratado, adota-o como se o evento tivesse acabado de vir.
+    else if (reg.installing && navigator.serviceWorker.controller && janelaBoot && !jaRecarregou() && !window.__atualizandoApp) {
+      adotarWorkerDeBoot(reg.installing);
     }
     // Sinal local MENTIROSO (1º frame nasceu "atualizando" mas não há worker
     // esperando: pacote já aplicado ou sumiu): desliga o estado e limpa o sinal;
     // o boot normal segue e o hideSplash revela como sempre. Se um updatefound
     // chegar logo depois, aplicarAtualizacaoBoot religa o estado sozinho.
-    if (!reg.waiting && !window.__atualizandoApp && document.documentElement.classList.contains("splash-atualizando")) {
+    if (!reg.waiting && !reg.installing && !window.__atualizandoApp && document.documentElement.classList.contains("splash-atualizando")) {
       document.documentElement.classList.remove("splash-atualizando");
       try { localStorage.removeItem("fiopulse:updatePendente"); } catch (e) {}
     }
@@ -19398,11 +19433,8 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
         if (navigator.serviceWorker.controller) { try { localStorage.setItem("fiopulse:updatePendente", "1"); } catch (e) {} }
         return;
       }
-      aplicarAtualizacaoBoot(sw);
-      sw.addEventListener("statechange", () => {
-        progressoAtualizacao(sw.state);
-        if (sw.state === "installed") enviarSkipWaiting(reg.waiting || sw);
-      });
+      if (window.__atualizandoApp) return; // já adotado pelo catch-up; não duplica
+      adotarWorkerDeBoot(sw);
     });
     // Procura deploy novo ao focar a aba e a cada 30 min (pega o que saiu com o app
     // aberto). Fora da janela de boot isso só instala/espera, sem interromper.

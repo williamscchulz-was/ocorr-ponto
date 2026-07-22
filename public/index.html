@@ -17,19 +17,30 @@
   <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" />
   <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" />
   <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js" />
+  <!-- Fonte da marca (Michroma) e o peso 600 do wordmark: preload com crossorigin
+       (fetch de fonte e SEMPRE CORS-mode, o preload precisa casar senao baixa em
+       dobro). Faz o wordmark "FioPulse" da cortina nascer no tamanho final ja no 1o
+       frame, sem o pulo fallback->Michroma pos-atualizacao. O SW ainda serve essas
+       fontes de um cache PROPRIO e PERSISTENTE (fiopulse-fontes-v1, ver sw.js) que o
+       activate nunca purga, entao pos-update elas ja vem quentes. -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/michroma-400-latin.woff2" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/poppins-600-latin.woff2" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=380" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=380" />
+  <link rel="stylesheet" href="styles.css?v=381" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=381" />
   <!-- Decide ANTES de renderizar, sincrono, o MODO da abertura. Estilo Apple:
        com sessao a restaurar mostra o Pulso da marca (cobre so o load, some assim
        que o app fica pronto); sem sessao vai direto pro login.
        __splashT0 + fallback duro de 8s no fim. -->
   <script>
     window.__splashT0 = Date.now();
+    // Instrumentacao honesta do boot: marcos em performance.now() (mesma base pro
+    // head, app.js, firebase e reveal). window.__bootDbg() imprime os deltas.
+    window.__bootMarks = { head: performance.now() };
     try {
       var _root = document.documentElement;
       var _manter = localStorage.getItem("fiopulse:manterConectado") === "1";
@@ -65,6 +76,20 @@
       var s = document.getElementById("splash");
       if (s) { s.style.transition = "opacity .5s"; s.style.opacity = "0"; setTimeout(function () { if (s) s.style.display = "none"; }, 520); }
     }, 8000);
+  </script>
+  <!-- Boot continuo: antecipa SO o registro/checagem do service worker. O resto da
+       logica (updatefound / controllerchange / tela de atualizacao) segue no app.js,
+       que REUSA esta registration (window.__swRegP) em vez de re-registrar. Registrar
+       aqui, no head, faz o browser comparar o sw.js e descobrir uma atualizacao ANTES
+       de o app.js (grande, no fim da cadeia defer) rodar, encurtando o Pulso antes do
+       morph pra atualizacao quando ela e descoberta NO boot. Idempotente. -->
+  <script>
+    try {
+      if ("serviceWorker" in navigator && location.protocol !== "file:") {
+        window.__swRegP = navigator.serviceWorker.register("sw.js");
+        window.__swRegP.catch(function () {});
+      }
+    } catch (e) {}
   </script>
 </head>
 <body>
@@ -322,16 +347,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=380"></script>
-  <script defer src="data.js?v=380"></script>
+  <script defer src="utils.js?v=381"></script>
+  <script defer src="data.js?v=381"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=380"></script>
+  <script defer src="app.js?v=381"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=380"></script>
-  <script defer src="google-drive.js?v=380"></script>
+  <script defer src="firebase.js?v=381"></script>
+  <script defer src="google-drive.js?v=381"></script>
 </body>
 </html>

@@ -5,6 +5,7 @@ import { chromium } from "playwright";
 const URL = "http://localhost:8081/public/index.html";
 const b = await chromium.launch();
 const falhas = [];
+let bootMarks = null; // marcos de instrumentacao (demo: head/appjs/revelado)
 const ok = (cond, msg) => { if (!cond) falhas.push(msg); };
 
 async function pagina(init) {
@@ -82,11 +83,16 @@ async function pagina(init) {
     atualizando: document.documentElement.classList.contains("splash-atualizando"),
     splashVisivel: getComputedStyle(document.getElementById("splash")).display,
     min: window.__splashMin,
+    // Retomada = estado QUIETO: sem ECG batendo, sem "Carregando..." (segundo pulso).
+    ecgOculto: getComputedStyle(document.querySelector(".splash-pl__ecg")).display,
+    msgOculto: getComputedStyle(document.querySelector(".splash-sk__msg")).display,
   }));
   ok(r.retomada, "B: sem splash-retomada");
   ok(!r.atualizando, "B: retomada nao pode nascer atualizando");
   ok(r.splashVisivel !== "none", "B: cortina fora de cena na retomada");
   ok(r.min === 0, "B: retomada devia revelar sem minimo");
+  ok(r.ecgOculto === "none", "B: ECG deveria sumir na retomada (sem segundo pulso)");
+  ok(r.msgOculto === "none", "B: 'Carregando...' deveria sumir na retomada");
   if (p.__erros.length) falhas.push("B pageErrors: " + p.__erros.join(" | "));
   await ctx.close();
 }
@@ -125,10 +131,77 @@ async function pagina(init) {
   ok(c.virouOverlay, "C: acesso nao virou overlay na saida (corte seco?)");
   ok(c.acessoEscondido && c.estiloLimpo, "C: acesso nao fechou/limpou apos o fade");
   ok(c.appVisivel, "C: app nao ficou visivel");
+  // Instrumentacao honesta: os marcos do boot (demo tem head/appjs/revelado; firebaseReady
+  // e authResolved so aparecem em modo Firebase real). Impressos no fim pra decidir cortes.
+  bootMarks = await p.evaluate(() => (typeof window.__bootDbg === "function" ? window.__bootDbg() : {}));
+  ok(bootMarks && typeof bootMarks.appjs === "number", "C: __bootMarks.appjs ausente (instrumentacao)");
+  ok(bootMarks && typeof bootMarks.revelado === "number", "C: __bootMarks.revelado ausente (instrumentacao)");
   if (p.__erros.length) falhas.push("C pageErrors: " + p.__erros.join(" | "));
   await ctx.close();
 }
 
+// ---------- D. fonte nunca pula: preload no index + rota persistente do SW ----------
+{
+  // D1. Preloads de fonte presentes e com crossorigin (roda com SW bloqueado, tanto faz).
+  const { ctx, p } = await pagina();
+  const d = await p.evaluate(() => {
+    const links = [...document.querySelectorAll('link[rel="preload"][as="font"]')];
+    const byHref = (frag) => links.find((l) => (l.getAttribute("href") || "").includes(frag));
+    const mich = byHref("michroma-400-latin.woff2");
+    const pop = byHref("poppins-600-latin.woff2");
+    return {
+      michPreload: !!mich, michCross: !!mich && mich.hasAttribute("crossorigin"), michType: mich && mich.getAttribute("type"),
+      popPreload: !!pop, popCross: !!pop && pop.hasAttribute("crossorigin"),
+    };
+  });
+  ok(d.michPreload, "D: preload da fonte Michroma ausente no index");
+  ok(d.michCross, "D: preload Michroma sem crossorigin (baixaria em dobro / nao casa com o uso)");
+  ok(d.michType === "font/woff2", `D: preload Michroma com type errado (${d.michType})`);
+  ok(d.popPreload, "D: preload da Poppins 600 (fallback do wordmark) ausente");
+  ok(d.popCross, "D: preload Poppins 600 sem crossorigin");
+  if (p.__erros.length) falhas.push("D pageErrors: " + p.__erros.join(" | "));
+  await ctx.close();
+}
+{
+  // D2. Rota de fonte servindo do cache PERSISTENTE via SW (fetch interceptado 2x).
+  // Contexto COM service worker (o pagina() bloqueia SW; aqui deixamos rodar de verdade).
+  const ctx = await b.newContext({ viewport: { width: 430, height: 900 } });
+  await ctx.route("**/firebase.config.js*", (r) => r.abort());
+  await ctx.route("**gstatic.com**", (r) => r.abort());
+  const p = await ctx.newPage();
+  const erros = [];
+  p.on("pageerror", (e) => erros.push(String(e).slice(0, 160)));
+  await p.goto(URL, { waitUntil: "domcontentloaded" });
+  let controlou = true;
+  try {
+    await p.waitForFunction(() => navigator.serviceWorker && !!navigator.serviceWorker.controller, null, { timeout: 10000 });
+  } catch (e) { controlou = false; }
+  ok(controlou, "D2: service worker nao assumiu o controle (cache de fonte nao testavel)");
+  if (controlou) {
+    const s = await p.evaluate(async () => {
+      const fontUrl = "fonts/michroma-400-latin.woff2";
+      const r1 = await fetch(fontUrl, { mode: "cors" }); // 1a busca: semeia o FONT_CACHE via SW
+      await new Promise((res) => setTimeout(res, 80));
+      const keys = await caches.keys();
+      const fontCacheName = keys.find((k) => /fontes/.test(k));
+      const verName = keys.find((k) => /^fiopulse-v\d/.test(k));
+      const fc = fontCacheName ? await caches.open(fontCacheName) : null;
+      const naFonte = fc ? !!(await fc.match(fontUrl)) : false;
+      const vc = verName ? await caches.open(verName) : null;
+      const noVersionado = vc ? !!(await vc.match(fontUrl)) : false;
+      const r2 = await fetch(fontUrl, { mode: "cors" }); // 2a busca: servida do cache persistente
+      return { keys, r1ok: r1.ok, r2ok: r2.ok, temFontCache: !!fontCacheName, naFonte, noVersionado };
+    });
+    ok(s.temFontCache, `D2: cache persistente de fontes nao criado (${s.keys.join(", ")})`);
+    ok(s.naFonte, "D2: fonte nao foi semeada no cache persistente");
+    ok(!s.noVersionado, "D2: fonte vazou pro cache versionado (seria purgada no activate)");
+    ok(s.r1ok && s.r2ok, "D2: rota de fonte nao serviu 200 nas 2 buscas");
+  }
+  if (erros.length) falhas.push("D2 pageErrors: " + erros.join(" | "));
+  await ctx.close();
+}
+
 await b.close();
+if (bootMarks) console.log("boot marks (demo, ms rel. head):", JSON.stringify(bootMarks));
 if (falhas.length) { console.error("FALHOU:\n- " + falhas.join("\n- ")); process.exit(1); }
-console.log("BOOT CONTINUO OK (A primeira tela + maquinaria, B retomada, C costura + saida suave)");
+console.log("BOOT CONTINUO OK (A primeira tela + maquinaria, B retomada quieta, C costura + saida suave + marcos, D preload + cache persistente de fonte)");

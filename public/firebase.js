@@ -67,6 +67,8 @@
       const db = firebase.firestore();
       // Storage: PDFs de recibo/cartão ponto (arquivo de verdade, fora do Firestore).
       const storage = firebase.storage();
+      // Marco do boot: SDK carregado e Firebase inicializado (ver window.__bootDbg()).
+      if (window.__bootMarks && window.__bootMarks.firebaseReady == null) window.__bootMarks.firebaseReady = performance.now();
 
       // Limpa qualquer sessão de modo demo
       localStorage.removeItem("ocorr-ponto:v1");
@@ -3991,6 +3993,8 @@
 
     // Observador de autenticação
     auth.onAuthStateChanged(async (fbUser) => {
+      // Marco do boot: o auth resolveu pela 1ª vez (com ou sem sessão) — ver __bootDbg().
+      if (window.__bootMarks && window.__bootMarks.authResolved == null) window.__bootMarks.authResolved = performance.now();
       if (!fbUser) {
         await limparPresenca();
         state.currentUserId = null;

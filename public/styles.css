@@ -201,6 +201,10 @@ html.splash-off .splash { display: none; }
 html.splash-atualizando .splash-up, .splash--atualizando .splash-up { max-height: 220px; opacity: 1; }
 /* No 1º frame o pulso nem existe (sem transição); no morph ele recolhe suave. */
 html.splash-atualizando .splash-pl__ecg, html.splash-atualizando .splash-sk__msg { display: none; }
+/* Retomada pós-reload (William 2026-07-21, "segundo pulso"): a cortina re-pinta num
+   estado QUIETO — marca + wordmark, SEM o ECG batendo e SEM "Carregando..." — e revela
+   como sempre. O olho lê continuação do 1º Pulso, não um replay da abertura. */
+html.splash-retomada .splash-pl__ecg, html.splash-retomada .splash-sk__msg { display: none; }
 .splash--atualizando .splash-pl__ecg, .splash--atualizando .splash-sk__msg { opacity: 0; transition: opacity .3s ease; }
 /* A cortina fica em cena nesses estados mesmo sem sessão a restaurar, e vence o
    splash-off (update de boot pra quem não marcou manter conectado). */

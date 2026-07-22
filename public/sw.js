@@ -6,11 +6,18 @@
 //  - JS/CSS com ?v=N: CACHE-FIRST. A URL versionada já garante frescor (o
 //    index novo aponta pro ?v novo), então servir do cache sem esperar a
 //    rede acelera o boot com cache quente. JS/CSS SEM ?v cai no network-first.
-//  - Imagens/ícones/fontes: cache-first (mudam raramente, ganho de perf).
-//  - activate purga TODO cache com nome != CACHE atual. Bumpar CACHE a
-//    cada deploy que mexa em SW/estratégia (segue o ?v= do index.html).
+//  - Imagens/ícones: cache-first (mudam raramente, ganho de perf).
+//  - FONTES: cache PRÓPRIO e PERSISTENTE (FONT_CACHE), que o activate NUNCA purga.
+//    As fontes não mudam entre releases (o arquivo é imutável), então mantê-las
+//    quentes faz a fonte da marca (Michroma do wordmark) já vir do cache logo após
+//    uma atualização — o wordmark "FioPulse" nasce no tamanho final, sem o pulo
+//    fallback->Michroma que aparecia quando o activate limpava o cache versionado.
+//  - activate purga TODO cache com nome != CACHE atual E != FONT_CACHE. Bumpar CACHE
+//    a cada deploy que mexa em SW/estratégia (segue o ?v= do index.html). FONT_CACHE
+//    só muda se um dia os BYTES de uma fonte mudarem (bump manual do nome, raro).
 
-const CACHE = "fiopulse-v380";
+const CACHE = "fiopulse-v381";
+const FONT_CACHE = "fiopulse-fontes-v1";
 
 self.addEventListener("install", () => {
   // NÃO faz skipWaiting automático: um SW novo ESPERA. Quem decide ativar é o app,
@@ -23,7 +30,8 @@ self.addEventListener("install", () => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      // Preserva o cache atual E o cache persistente de fontes (nunca purgado).
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== FONT_CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -43,10 +51,28 @@ self.addEventListener("fetch", (e) => {
   if (url.origin !== self.location.origin) return;
 
   const p = url.pathname;
-  const ehImagemOuFonte = /\.(png|jpg|jpeg|svg|webp|ico|gif|woff2?|ttf)$/i.test(p);
+  const ehFonte = /\.(woff2?|ttf)$/i.test(p);
+  const ehImagem = /\.(png|jpg|jpeg|svg|webp|ico|gif)$/i.test(p);
   const ehAssetVersionado = url.searchParams.has("v") && /\.(js|css)$/i.test(p);
 
-  if (ehImagemOuFonte || ehAssetVersionado) {
+  if (ehFonte) {
+    // Fontes: cache-first no cache PERSISTENTE (nunca purgado no activate). Mantém a
+    // fonte da marca quente entre releases, então o wordmark não pula de tamanho pós-
+    // atualização. Miss → busca na rede e semeia o cache de fontes.
+    e.respondWith(
+      caches.open(FONT_CACHE).then((c) =>
+        c.match(e.request).then((cached) =>
+          cached || fetch(e.request).then((resp) => {
+            if (resp.ok) c.put(e.request, resp.clone());
+            return resp;
+          })
+        )
+      )
+    );
+    return;
+  }
+
+  if (ehImagem || ehAssetVersionado) {
     // Cache-first: imagens/fontes mudam raramente; JS/CSS versionado tem a
     // URL trocada pelo index a cada deploy, então o cache nunca fica velho.
     e.respondWith(
