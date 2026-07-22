@@ -1839,8 +1839,9 @@ service cloud.firestore {
     match /waMsg/{waId} {
       function gpCand() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
       function w() { return request.resource.data; }
-      // params e so DISPLAY (primeiro nome do candidato = {{1}}, titulo da vaga =
-      // {{2}} do template Meta): shape-only, strings sanas. O anti-spam vem do
+      // params e so DISPLAY (variaveis NOMEADAS do template Meta: {{nome}} =
+      // primeiro nome do candidato, {{vaga}} = titulo da vaga; a function envia
+      // parameter_name na Graph API): shape-only, strings sanas. O anti-spam vem do
       // para travado no telefone da candidatura + do template pinado + do id
       // deterministico, nao deste conteudo. candidaturaId e um PONTEIRO explicito
       // pra function, amarrado ao id resolvido (== waId na recebida, == candId no
