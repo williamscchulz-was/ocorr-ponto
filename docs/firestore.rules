@@ -1805,5 +1805,81 @@ service cloud.firestore {
         && request.resource.data.text is string && request.resource.data.text.size() <= 10000
         && request.resource.data.html is string && request.resource.data.html.size() <= 10000;
     }
+
+    // ============================================================
+    // FILA DE WHATSAPP (caminho solo Meta Cloud API, 2026-07-22). Espelho
+    // ESTRUTURAL da /mail: uma Cloud Function (proxima etapa) consome /waMsg via
+    // Admin SDK (IGNORA estas rules), resolve o template Meta PINADO e envia
+    // pela Graph API. As rules governam SO os clientes; o desenho e anti-spam
+    // estrutural: ninguem usa o numero da Fiobras pra mandar WhatsApp fora do
+    // funil de candidaturas. A propriedade que as duas portas garantem: uma
+    // mensagem so pode ir pro PROPRIO telefone de uma candidatura REAL, com
+    // template PINADO, e no maximo 1 vez por (candidatura, template) -- o doc id
+    // e deterministico e create-only, entao repetir vira update, que NEGA.
+    //   (a) RECEBIDA (anonimo, template 'candidatura_recebida'): sai junto do
+    //       envio da candidatura, no MESMO batch; o id do waMsg E o id da
+    //       candidatura e o para tem que ser o TELEFONE dela (getAfter ve o irmao
+    //       criado junto). O existsAfter tambem casa candidatura pre-existente, e
+    //       ta OK: o para segue travado no telefone dela e o id trava 1 recebida
+    //       por candidatura, entao nao ha amplificacao (nunca WhatsApp pra numero
+    //       arbitrario nem repetido).
+    //   (b) STATUS (pela GP, cap vagas.gerenciar): a candidatura JA existe; o id
+    //       do waMsg e '<candidaturaId>-<status>' (status in
+    //       em_analise/aprovada/nao_seguiu, tokens Meta em UNDERSCORE, iguais aos
+    //       do nome do template) e o para tem que ser o telefone dela. O
+    //       candidaturaId sai do proprio waId tirando o sufixo '-<status>'
+    //       (replace ancorado em $) e e RE-CONFIRMADO por concatenacao
+    //       (waId == candId + '-' + status): strip+concat e airtight mesmo que o
+    //       telefone/email da candidatura contenha o texto de um status. Cada
+    //       status e um ramo EXPLICITO (nao deriva string de template): lixo em
+    //       template cai fora dos 3 e NEGA.
+    //   READ/UPDATE/DELETE de cliente: false. O doc ganha PII do candidato (para)
+    //   e status de envio escrito pela function; so a function (Admin SDK) mexe.
+    // ============================================================
+    match /waMsg/{waId} {
+      function gpCand() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
+      function w() { return request.resource.data; }
+      // params e so DISPLAY (primeiro nome do candidato = {{1}}, titulo da vaga =
+      // {{2}} do template Meta): shape-only, strings sanas. O anti-spam vem do
+      // para travado no telefone da candidatura + do template pinado + do id
+      // deterministico, nao deste conteudo. candidaturaId e um PONTEIRO explicito
+      // pra function, amarrado ao id resolvido (== waId na recebida, == candId no
+      // status); em == request.time (mesmo carimbo do irmao candidatura no batch).
+      function shapeOk(template, candId) {
+        return w().keys().hasOnly(['para', 'template', 'params', 'em', 'candidaturaId'])
+          && w().para is string
+          && w().template == template
+          && w().candidaturaId == candId
+          && w().em == request.time
+          && w().params is map
+          && w().params.keys().hasOnly(['nome', 'vaga'])
+          && w().params.nome is string
+          && w().params.nome.size() >= 1 && w().params.nome.size() <= 80
+          && w().params.vaga is string
+          && w().params.vaga.size() >= 1 && w().params.vaga.size() <= 120;
+      }
+      // (a) recebida: waId == id da candidatura; ela existe (no batch ou ja
+      // gravada) e o para e o telefone dela. Sem cap: e a porta do envio
+      // anonimo do site.
+      function criaRecebida() {
+        return shapeOk('candidatura_recebida', waId)
+          && existsAfter(/databases/$(database)/documents/candidaturas/$(waId))
+          && w().para == getAfter(/databases/$(database)/documents/candidaturas/$(waId)).data.telefone;
+      }
+      // (b) status: so a GP; waId == '<candidaturaId>-<status>'.
+      function criaStatus(status) {
+        let candId = waId.replace('-' + status + '$', '');
+        return gpCand()
+          && shapeOk('candidatura_' + status, candId)
+          && waId == candId + '-' + status
+          && exists(/databases/$(database)/documents/candidaturas/$(candId))
+          && w().para == get(/databases/$(database)/documents/candidaturas/$(candId)).data.telefone;
+      }
+      allow create: if criaRecebida()
+        || criaStatus('em_analise')
+        || criaStatus('aprovada')
+        || criaStatus('nao_seguiu');
+      allow read, update, delete: if false;
+    }
   }
 }
