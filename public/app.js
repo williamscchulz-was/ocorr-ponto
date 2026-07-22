@@ -949,6 +949,25 @@ function avatarFuncHtml(f, cls, styleExtra) {
   return `<div class="${cls}"${st ? ` style="${st}"` : ""}>${escapeHtml(initials((f && f.nome) || "?"))}</div>`;
 }
 
+// Colaboradores sem foto oficial que ENTRAM na conta do aviso da GP: ativos e no
+// escopo do papel, fora aprendiz (imagem de menor é assunto legal) e afastado (fora
+// da fábrica); diretor conta. Fonte única (Visão geral + Funcionários), conta pura
+// sobre o state, zero fetch — fotoDoFuncionario lê o cache users.fotoBase64.
+function funcsSemFotoOficial(u) {
+  return (state.funcionarios || []).filter((f) =>
+    podeVerFuncionario(u, f) &&
+    f.ativo !== false &&
+    f.aprendiz !== true &&
+    f.afastado !== true &&
+    !fotoDoFuncionario(f.id)
+  );
+}
+// O filtro "sem foto" só vale quando há alguém pra mostrar (evita lista vazia com o
+// aviso sumido). Estado vive em state.view.funcSemFoto, nunca em variável solta.
+function funcSemFotoAtivo(u) {
+  return !!state.view.funcSemFoto && funcsSemFotoOficial(u).length > 0;
+}
+
 // Carrega uma imagem (File) em Image element. Promise.
 function carregarImagem(file) {
   return new Promise((resolve, reject) => {
@@ -8581,26 +8600,35 @@ function vgPrecisaDeVoce(u) {
     const semAss = state.recibos.filter((r) => !(r.assinaturas || []).length).length;
     if (semAss) linhas.push({ page: "documentos", tab: "recibos", ic: "file", n: semAss, lb: `recibo${semAss > 1 ? "s" : ""} aguardando assinatura`, acao: "Ver recibos" });
   }
-  const attrs = (l) => `${l.ir ? `data-vg-ir="${l.ir}"` : ""} ${l.page ? `data-vg-page="${l.page}"` : ""} ${l.tab ? `data-vg-tab="${l.tab}"` : ""}`;
+  // Fotos oficiais faltando: nudge SECUNDÁRIO da GP (nunca vira o item em destaque);
+  // leva pra Funcionários já com o filtro sem-foto ligado (data-vg-semfoto).
+  let pendFoto = null;
+  if (can("func.ver")) {
+    const nFoto = funcsSemFotoOficial(u).length;
+    if (nFoto) pendFoto = { page: "funcionarios", semfoto: true, ic: "camera", n: nFoto, lb: `colaborador${nFoto > 1 ? "es" : ""} sem foto oficial` };
+  }
+  const attrs = (l) => `${l.ir ? `data-vg-ir="${l.ir}"` : ""} ${l.page ? `data-vg-page="${l.page}"` : ""} ${l.tab ? `data-vg-tab="${l.tab}"` : ""}${l.semfoto ? ` data-vg-semfoto="1"` : ""}`;
   const CHEV = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
-  if (!linhas.length) {
+  if (!linhas.length && !pendFoto) {
     return `
     <section class="vg-card">
       <h3 class="vg-h">${icon("alert")}<span>Precisa de você</span></h3>
       <div class="vg-ok">${icon("check")}<span>Tudo em dia. Nada esperando por você.</span></div>
     </section>`;
   }
-  const dest = linhas[0], resto = linhas.slice(1);
-  const sub = resto.length ? "a fila mais urgente primeiro" : "é a única fila esperando por você hoje";
+  const dest = linhas.length ? linhas[0] : null;
+  const pends = linhas.slice(dest ? 1 : 0);
+  if (pendFoto) pends.push(pendFoto);
+  const sub = pends.length ? "a fila mais urgente primeiro" : "é a única fila esperando por você hoje";
   return `
     <section class="vg-card">
       <h3 class="vg-h">${icon("alert")}<span>Precisa de você</span></h3>
-      <div class="vg-feat">
+      ${dest ? `<div class="vg-feat">
         <div class="vg-feat__num">${dest.n}</div>
         <div class="vg-feat__tx"><b>${escapeHtml(dest.lb)}</b><span>${sub}</span></div>
         <button class="btn btn--primary vg-feat__btn" ${attrs(dest)}><span>${escapeHtml(dest.acao)}</span>${CHEV}</button>
-      </div>
-      ${resto.map((l) => `<button class="vg-pend" ${attrs(l)}>${icon(l.ic)}<span>${l.n} ${escapeHtml(l.lb)}</span>${icon("chevron")}</button>`).join("")}
+      </div>` : ""}
+      ${pends.map((l) => `<button class="vg-pend" ${attrs(l)}>${icon(l.ic)}<span>${l.n} ${escapeHtml(l.lb)}</span>${icon("chevron")}</button>`).join("")}
     </section>`;
 }
 
@@ -8931,7 +8959,11 @@ function renderVisaoGeral() {
     }));
     $$("#view [data-vg-ir], #view [data-vg-page]").forEach((b) => b.addEventListener("click", () => {
       if (b.dataset.vgIr) { state.view.page = "dashboard"; state.view.filterTab = b.dataset.vgIr; }
-      else { if (b.dataset.vgTab) state.view.docTab = b.dataset.vgTab; state.view.page = b.dataset.vgPage; }
+      else {
+        if (b.dataset.vgTab) state.view.docTab = b.dataset.vgTab;
+        state.view.funcSemFoto = !!b.dataset.vgSemfoto; // liga o filtro só quando a linha pede (limpa nas demais)
+        state.view.page = b.dataset.vgPage;
+      }
       renderApp();
     }));
   }
@@ -9828,6 +9860,8 @@ function renderFuncionarios() {
     <p class="lista-rodape">${ultima.empty ? ultima.full : `Atualizado ${ultima.value} · ${ultima.hint}`}</p>`;
     })()}
 
+    <div id="foto-aviso-slot"></div>
+
     <div class="toolbar">
       <div class="toolbar__search">${buscaUnificadaHtml("func-search")}</div>
       <select id="func-status-filter" aria-label="Filtrar por status">
@@ -9855,11 +9889,47 @@ function renderFuncionarios() {
   if (escreveu) {
     $("#func-search").addEventListener("input", debounce(() => renderFuncList(), 150));
     bindBuscaClear("func-search");
-    $("#func-status-filter").addEventListener("change", () => renderFuncList());
+    $("#func-status-filter").addEventListener("change", () => {
+      // Mexer no status sai do modo "sem foto" (o filtro fica em suspenso enquanto ligado).
+      if (state.view.funcSemFoto) { state.view.funcSemFoto = false; renderFotoAviso(currentUser()); }
+      renderFuncList();
+    });
     $("#func-turno-filter").addEventListener("change", () => renderFuncList());
   }
+  renderFotoAviso(u);
   renderFuncList(true);
   if (escreveu) animarNumeros("#view");
+}
+
+// Aviso suave acima da lista: N colaboradores sem foto oficial + ação que filtra a
+// lista pra quem falta (e desfaz). Canal próprio (#foto-aviso-slot) pra o toggle não
+// reescrever o #view e derrubar a busca. Nasce do state; some com N=0.
+function renderFotoAviso(u) {
+  const slot = $("#foto-aviso-slot");
+  if (!slot) return;
+  const n = funcsSemFotoOficial(u).length;
+  if (!n) { setHtml(slot, ""); return; }
+  const ativo = !!state.view.funcSemFoto; // n>0 aqui, então basta a flag
+  const titulo = ativo ? `Mostrando os ${n} sem foto oficial` : `${n} colaborador${n > 1 ? "es" : ""} sem foto oficial`;
+  const sub = ativo ? "menor aprendiz e afastados ficam de fora da lista" : "menor aprendiz e afastados não entram na conta";
+  const btnTx = ativo ? "Ver todos" : "Ver quem";
+  const escreveu = setHtml(slot, `
+    <div class="foto-aviso${ativo ? " is-filtrado" : ""}">
+      <div class="foto-aviso__ic">${icon("camera")}</div>
+      <div class="foto-aviso__tx">
+        <b>${titulo}</b>
+        <span>${sub}</span>
+      </div>
+      <button class="foto-aviso__act" id="foto-aviso-btn" type="button">
+        <span>${btnTx}</span>${icon("chevron")}
+      </button>
+    </div>`);
+  if (escreveu) {
+    $("#foto-aviso-btn")?.addEventListener("click", () => {
+      state.view.funcSemFoto = !state.view.funcSemFoto;
+      renderApp();
+    });
+  }
 }
 
 // Reescreve as options do #func-turno-filter com contagens do universo passado
@@ -9901,8 +9971,13 @@ function renderFuncList(animar) {
   // Escopo de visibilidade por papel (supervisor vê só a lista dele; líder, só turno)
   list = list.filter((f) => podeVerFuncionario(u, f));
 
+  // Modo "sem foto" (aviso da GP): mostra exatamente a conta do aviso e deixa o filtro
+  // de status em suspenso (aprendiz/afastado nunca entram; diretor conta). Busca e turno
+  // seguem valendo por cima. Fora do modo, o status filtra como sempre.
+  const semFotoMode = funcSemFotoAtivo(u);
+  if (semFotoMode) list = list.filter((f) => f.ativo !== false && f.aprendiz !== true && f.afastado !== true && !fotoDoFuncionario(f.id));
   // Filtro por status (default = só ativos). afastado/diretor são ortogonais a ativo.
-  if (statusFilter === "ativo") list = list.filter((f) => f.ativo !== false);
+  else if (statusFilter === "ativo") list = list.filter((f) => f.ativo !== false);
   else if (statusFilter === "operacional") list = list.filter((f) => f.ativo !== false && f.afastado !== true && f.diretor !== true && f.aprendiz !== true);
   else if (statusFilter === "afastado") list = list.filter((f) => f.afastado === true);
   else if (statusFilter === "diretor") list = list.filter((f) => f.diretor === true);
@@ -9982,7 +10057,7 @@ function renderFuncList(animar) {
 
     return `
       <article class="func-row ${alertaSemTurno ? "func-row--semturno" : ""} ${inativo ? "func-row--inativo" : ""}" data-func="${f.id}" role="button" tabindex="0">
-        ${avatarFuncHtml(f, "func-av")}
+        ${avatarFuncHtml(f, `func-av${fotoDoFuncionario(f.id) ? "" : " func-av--nofoto"}`)}
         <div class="func-info">
           <div class="func-nome">${escapeHtml(f.nome)}</div>
           <div class="func-sub">${subHtml}</div>
@@ -18911,7 +18986,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.1.0";
+window.CURRENT_VERSION = "2.2.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

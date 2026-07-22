@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.1.0", d: "22 jul 2026", current: true, items: [
+    v: "2.2.0", d: "22 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Funcionarios avisa quando falta a foto oficial de alguem: um lembrete calmo mostra quantos estao sem e um atalho filtra a lista pra ver so quem falta. A Visao geral tambem aponta o total. Menor aprendiz e afastados nao entram na conta." },
+    ],
+  },
+  {
+    v: "2.1.0", d: "22 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Vagas: a tela ganhou um painel de numeros no topo (pessoas unicas, envios, em analise, negadas e contratadas), pra ver o funil inteiro num relance." },
       { type: "feat", aud: "gestor", title: "Funil da candidatura com o passo Contratada: separa quem foi chamado pra conversar de quem de fato entrou. Contratada nao dispara mensagem, so registra o desfecho." },
     ],
