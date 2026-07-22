@@ -40,12 +40,13 @@
   .hero__cta:hover { transform: translateY(-2px); }
   .hero__n { font-size: 13px; opacity: .8; }
 
-  /* ===== COMO FUNCIONA ===== */
-  .passos { max-width: 1060px; margin: -64px auto 0; padding: 0 26px; position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-  .passo { background: #fff; border: 1px solid #e0e6d9; border-radius: 18px; padding: 18px 18px 16px; box-shadow: 0 10px 30px rgba(10,40,20,.08); }
-  .passo b { display: flex; align-items: center; gap: 9px; font-size: 14px; }
-  .passo .n { width: 26px; height: 26px; border-radius: 50%; background: #eaf4ec; color: #0b6e33; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; flex: none; }
-  .passo p { margin: 8px 0 0; font-size: 12.5px; color: #5a6852; line-height: 1.55; }
+  /* ===== COMO FUNCIONA: os 3 passos numa linha compacta que monta sobre a borda do herói ===== */
+  .passos-linha { max-width: 1060px; margin: -24px auto 0; padding: 0 26px; position: relative; }
+  .passos-linha__in { display: flex; align-items: center; justify-content: center; gap: 6px 4px; flex-wrap: wrap;
+    background: #fff; border: 1px solid #e0e6d9; border-radius: 999px; padding: 11px 20px; box-shadow: 0 10px 30px rgba(10,40,20,.08); }
+  .pl { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: #35422f; padding: 3px 8px; }
+  .pl .n { width: 23px; height: 23px; border-radius: 50%; background: #eaf4ec; color: #0b6e33; display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
+  .pl-sep { color: #c8d1bd; font-weight: 400; user-select: none; }
 
   /* ===== VAGAS EM GRID ===== */
   .secao { max-width: 1060px; margin: 0 auto; padding: 44px 26px 10px; }
@@ -146,7 +147,6 @@
   .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; margin: 0; }
 
   @media (max-width: 760px) {
-    .passos { grid-template-columns: 1fr; margin-top: -76px; }
     .porque__card { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -327,16 +327,20 @@
     border-radius: 999px; padding: 8px 15px; margin-bottom: 16px; }
   .selo-gc svg { width: 17px; height: 17px; flex: 0 0 auto; }
 
-  /* ===== Seção do valor (entre passos e vagas) ===== */
-  .valor { max-width: 1060px; margin: 30px auto 0; padding: 0 26px; }
-  .valor__card { display: flex; align-items: center; gap: 26px; background: #fff; border: 1px solid #e0e6d9; border-radius: 22px;
-    padding: 28px 30px; box-shadow: 0 3px 14px rgba(10,40,20,.05); }
-  .valor__heart { flex: 0 0 auto; width: 118px; color: #008835; }
-  .valor__heart svg { width: 100%; height: auto; display: block; }
-  .valor__tx small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #6e7663; margin-bottom: 4px; }
-  .valor__tx b { display: block; font-size: clamp(20px, 3vw, 24px); font-weight: 800; letter-spacing: -.01em; color: #04331a; }
-  .valor__tx p { margin: 8px 0 0; font-size: 14px; color: #45523f; line-height: 1.6; max-width: 460px; }
-  @media (max-width: 620px) { .valor__card { flex-direction: column; text-align: center; } .valor__tx p { margin-left: auto; margin-right: auto; } }
+  /* ===== Gente no Coração: linha discreta (coração pequeno + frase) entre passos e vagas ===== */
+  .valor-linha { max-width: 1060px; margin: 16px auto 0; padding: 0 26px; }
+  .valor-linha__in { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; color: #4a5842; line-height: 1.4; }
+  .valor-linha__in svg { width: 19px; height: 19px; color: #008835; flex: 0 0 auto; }
+  .valor-linha__in b { font-weight: 700; color: #04331a; }
+  .valor-linha__in .dot { color: #b9c3ac; }
+  /* A no mobile: as 3 etapas viram 3 linhas curtas; a linha do valor alinha à esquerda */
+  @media (max-width: 620px) {
+    .passos-linha__in { flex-direction: column; align-items: flex-start; border-radius: 18px; padding: 12px 16px; gap: 4px; }
+    .pl { width: 100%; }
+    .pl-sep { display: none; }
+    .valor-linha { text-align: left; }
+    .valor-linha__in { align-items: flex-start; }
+  }
 
   /* ===== Benefícios no cartão da vaga ===== */
   .sben { border-top: 1px solid #eef0ea; padding-top: 13px; margin: 0 0 14px; }
@@ -508,27 +512,22 @@
   </div>
 </header>
 
-<div class="passos" aria-label="Como funciona">
-  <div class="passo"><b><span class="n">1</span>Escolha a vaga</b><p>Tudo que está aberto está aqui nesta página, sempre atualizado.</p></div>
-  <div class="passo"><b><span class="n">2</span>Preencha o formulário</b><p>Um toque em "Candidatar-se" abre um formulário rápido, aqui mesmo na página.</p></div>
-  <div class="passo"><b><span class="n">3</span>Fale com gente de verdade</b><p>Quem analisa é a nossa equipe de Gestão de Pessoas, sem robô.</p></div>
+<div class="passos-linha" aria-label="Como funciona">
+  <div class="passos-linha__in">
+    <span class="pl"><span class="n">1</span>Escolha a vaga</span>
+    <span class="pl-sep">·</span>
+    <span class="pl"><span class="n">2</span>Preencha o formulário</span>
+    <span class="pl-sep">·</span>
+    <span class="pl"><span class="n">3</span>Fale com gente de verdade</span>
+  </div>
 </div>
 
-<section class="valor" aria-label="Gente no Coração">
-  <div class="valor__card">
-    <div class="valor__heart">
-      <svg viewBox="0 0 120 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M4 88 C 16 94 24 82 34 86 C 42 89 50 90 58 85 C 32 64 22 42 33 27 C 43 14 57 19 60 33 C 63 19 77 14 87 27 C 98 42 88 64 63 84 C 70 91 82 93 94 86 C 100 82 104 78 108 74"/>
-        <g stroke="#04331a"><path d="M100 80 L 116 68" stroke-width="4"/><circle cx="102" cy="78.6" r="1.7" stroke-width="1.6" fill="#04331a"/></g>
-      </svg>
-    </div>
-    <div class="valor__tx">
-      <small>Um dos nossos 5 valores</small>
-      <b>Gente no Coração</b>
-      <p>Sempre colocamos as necessidades das pessoas no centro do nosso negócio.</p>
-    </div>
-  </div>
-</section>
+<div class="valor-linha" aria-label="Gente no Coração">
+  <span class="valor-linha__in">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg>
+    <span><b>Gente no Coração</b> <span class="dot">·</span> sempre colocamos as pessoas no centro.</span>
+  </span>
+</div>
 
 <main class="secao" id="vagas">
   <h2>Vagas abertas</h2>
