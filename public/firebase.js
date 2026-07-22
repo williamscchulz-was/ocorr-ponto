@@ -2056,6 +2056,28 @@
       // debug. Retorna se o mail foi enfileirado (o toast honra "gravado != entregue"). to ==
       // email da candidatura + molde pinado = shape exato de /mail (docs/firestore.rules).
       if (status === "recebida" || !c) return false;
+      // FILA DE WHATSAPP (espelho estrutural do mail; go-live depende de pre-req na Meta).
+      // waMsg/{id}-{status underscore}: os tokens Meta usam underscore (em_analise/aprovada/
+      // nao_seguiu). Create-only, entao re-visitar o mesmo status NEGA (permission-denied
+      // esperado, e o dedupe natural: 1 mensagem por status). Best-effort e SILENCIOSO como o
+      // mail: nunca bloqueia o mail, nunca promete no toast (o email segue o canal anunciado;
+      // o WhatsApp entra quando a Meta liberar). So dispara com telefone (candidatura legada
+      // pode nao ter); para == telefone da candidatura (a rule compara byte a byte). ZERO PII
+      // no console (loga so o token do status).
+      const _WA_STATUS = { "em-analise": "em_analise", aprovada: "aprovada", "nao-seguiu": "nao_seguiu" };
+      const waSt = _WA_STATUS[status];
+      if (waSt && c.telefone) {
+        try {
+          await db.collection("waMsg").doc(id + "-" + waSt).set({
+            para: c.telefone,
+            template: "candidatura_" + waSt,
+            params: { nome: primeiroNomeCand(c.nome), vaga: String(c.vagaTitulo || "").slice(0, 120) },
+            em: firebase.firestore.FieldValue.serverTimestamp(),
+            candidaturaId: id,
+          });
+          debug?.("[wa] status enfileirado:", waSt);
+        } catch (e) { debug?.("[wa] status nao enfileirado:", waSt, e?.code || e?.message); }
+      }
       try {
         await db.collection("mail").doc(id + "-" + status).set({
           to: c.email,

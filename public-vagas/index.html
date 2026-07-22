@@ -1664,6 +1664,34 @@
     writes.forEach(function (w) { batch.set(db.collection(w.col).doc(w.id), w.data); });
     return batch.commit();
   }
+  // Fila de WhatsApp da RECEBIDA. Escrita SEPARADA do batch (a rule tem budget apertado; o
+  // waMsg sai DEPOIS do commit da candidatura, que a rule enxerga por existsAfter). Stub de
+  // teste via __testMode.waMsg; em prod, um set solo em waMsg/{candidaturaId}.
+  function doSetWaMsg(id, data) {
+    if (window.__testMode && typeof window.__testMode.waMsg === "function") {
+      try { return Promise.resolve(window.__testMode.waMsg(id, data)); } catch (e) { return Promise.reject(e); }
+    }
+    if (!db) return Promise.reject(new Error("sem-db"));
+    return db.collection("waMsg").doc(id).set(data);
+  }
+  // Dispara a mensagem de recebida na fila /waMsg (go-live depende de pre-req na Meta), fire-
+  // and-forget DEPOIS do commit. para == telefone EXATO gravado na candidatura (a rule compara
+  // byte a byte); nome = 1o token (igual ao mail); template pinado. Falhar aqui NAO afeta a UX
+  // do candidato (o email ja e o canal garantido). So com telefone/nome/vaga (a rule exige
+  // nome 1..80 e vaga 1..120, ambos nao vazios).
+  function enviarWaRecebida(candId, payload) {
+    var tel = payload && payload.telefone;
+    var primeiroNome = String((payload && payload.nome) || "").trim().split(/\s+/)[0] || "";
+    var vaga = String((payload && payload.vagaTitulo) || "").slice(0, 120);
+    if (!tel || !primeiroNome || !vaga) return;
+    doSetWaMsg(candId, {
+      para: tel,
+      template: "candidatura_recebida",
+      params: { nome: primeiroNome.slice(0, 80), vaga: vaga },
+      em: (window.firebase && firebase.firestore) ? firebase.firestore.FieldValue.serverTimestamp() : null,
+      candidaturaId: candId,
+    }).catch(function () {});
+  }
   // Payload da FICHA COMPLETA. Casa EXATO no create de /candidaturas (docs/firestore.rules):
   // enums hifenizados (estadoCivil/escolaridade/comoViria), filhos int, pretensaoSalarial
   // number, experiencias 0..3 com shape fechado (salario number), indicacao "" quando não,
@@ -1756,7 +1784,10 @@
       { col: "candidaturas", id: docId, data: payload },
       { col: "mail", id: docId, data: mailDoc },
     ]); })
-      .then(function () { sucesso(); })
+      .then(function () {
+        try { enviarWaRecebida(docId, payload); } catch (e) {} // fila WhatsApp, separada do batch, nunca bloqueia
+        sucesso();
+      })
       .catch(falha);
   }
   function sucesso() {
