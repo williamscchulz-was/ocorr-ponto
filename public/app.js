@@ -6311,13 +6311,15 @@ function enderecoResumo(end) {
   return cidade || parts[parts.length - 1] || "";
 }
 
-// ---------- Funil de status (fase 1, mock funil-email-2026-07, aprovado 2026-07-16) ----------
-// Os 4 passos do funil (chaves = enum das rules). cls = modificador de cor sóbrio,
-// theme-aware (tokens semânticos legíveis no claro e no dark do gestor).
+// ---------- Funil de status (fase 1, mock funil-email-2026-07; +contratada v383) ----------
+// Os 5 passos do funil (chaves = enum das rules). cls = modificador de cor sóbrio,
+// theme-aware (tokens semânticos legíveis no claro e no dark do gestor). 'contratada' é o
+// passo novo depois de Aprovada e NÃO dispara mensagem (sem molde de email/template Meta).
 const CAND_STATUS = [
   { k: "recebida", lbl: "Recebida", cls: "rec" },
   { k: "em-analise", lbl: "Em análise", cls: "ana" },
   { k: "aprovada", lbl: "Aprovada", cls: "apr" },
+  { k: "contratada", lbl: "Contratada", cls: "ctr" },
   { k: "nao-seguiu", lbl: "Não seguiu adiante", cls: "rec2" },
 ];
 // Status cru → chave do funil. Legado/ausente/'nova' (como o site grava)/desconhecido =
@@ -6391,11 +6393,14 @@ function preencherMsg(tpl, nome, vaga) {
   return String(tpl).replace(/\{\{nome\}\}/g, nome).replace(/\{\{vaga\}\}/g, vaga);
 }
 // Assunto + corpo prontos (placeholders preenchidos) pro status ATUAL da candidatura.
+// Status sem molde ('contratada' não manda mensagem) retorna vazio: guarda de fronteira
+// pra nenhum chamador quebrar; a UI já esconde a sugestão/botão nesses passos.
 function candMensagem(c) {
   const st = candStatusKey(c && c.status);
   const nome = primeiroNomeCand(c && c.nome);
   const vaga = String((c && c.vagaTitulo) || "");
   const m = CAND_MSG[st];
+  if (!m) return { assunto: "", corpo: "" };
   return {
     assunto: preencherMsg(m.assunto, nome, vaga),
     corpo: m.corpo.map((p) => preencherMsg(p, nome, vaga)).join("\n\n"),
@@ -6435,6 +6440,21 @@ function renderVagas() {
   }
   const vagas = state.vagas || [];
   const candidaturas = state.candidaturas || [];
+  // Faixa de KPIs do funil (dashboard, mock vagas-dashboard-2026-07 var. A). Deriva das
+  // MESMAS candidaturas já no state (mesma fonte do contador "N candidaturas" por vaga),
+  // sem fetch novo: únicas = emails distintos (lower), envios = total, e os 3 status por
+  // candidatura. Puro sobre o state → re-render nasce idêntico.
+  const kpi = { unicas: 0, envios: candidaturas.length, analise: 0, negadas: 0, contratadas: 0 };
+  const kpiEmails = new Set();
+  candidaturas.forEach((c) => {
+    const e = String(c.email || "").trim().toLowerCase();
+    if (e) kpiEmails.add(e);
+    const k = candStatusKey(c.status);
+    if (k === "em-analise") kpi.analise++;
+    else if (k === "nao-seguiu") kpi.negadas++;
+    else if (k === "contratada") kpi.contratadas++;
+  });
+  kpi.unicas = kpiEmails.size;
   const edit = state.view.vagaEdit; // null | "nova" | id
   const v = edit && edit !== "nova" ? vagas.find((x) => x.id === edit) : null;
   const candAberta = state.view.vagaCandAberta; // id da vaga com a lista de candidaturas aberta, ou null
@@ -6484,23 +6504,29 @@ function renderVagas() {
     // a sugestão mostra o assunto pronto daquele status; o botão acende quando a GP
     // acabou de mover (state.view.candMsgAceso), nudge pra enviar. Tudo escapado.
     const stKey = candStatusKey(c.status);
-    const sugAssunto = candMensagem(c).assunto;
+    // Status com mensagem automática (tem molde): mostra a sugestão + o botão de enviar.
+    // 'contratada' não tem molde: troca por uma nota honesta e some com o botão.
+    const temMsg = !!CAND_MSG[stKey];
     const aceso = state.view.candMsgAceso === c.id;
-    const segBtns = CAND_STATUS.map((s, i) => {
+    const segBtns = CAND_STATUS.map((s) => {
       const on = s.k === stKey;
-      return `${i === 2 ? `<span class="g-cand__seg-sep"></span>` : ""}<button type="button" class="g-cand__st${on ? " on g-cand__st--" + s.cls : ""}" data-cand-st="${escapeHtml(s.k)}" data-cand-id="${escapeHtml(c.id)}" role="tab" aria-selected="${on ? "true" : "false"}"><span class="g-cand__sd"></span>${escapeHtml(s.lbl)}</button>`;
+      // Separador antes do balde "não seguiu" (o único desfecho negativo), como no mock.
+      return `${s.k === "nao-seguiu" ? `<span class="g-cand__seg-sep"></span>` : ""}<button type="button" class="g-cand__st${on ? " on g-cand__st--" + s.cls : ""}" data-cand-st="${escapeHtml(s.k)}" data-cand-id="${escapeHtml(c.id)}" role="tab" aria-selected="${on ? "true" : "false"}"><span class="g-cand__sd"></span>${escapeHtml(s.lbl)}</button>`;
     }).join("");
+    const sugHtml = temMsg
+      ? `<div class="g-cand__sug">${icon("send")}<span>Mensagem pronta: <b>${escapeHtml(candMensagem(c).assunto)}</b></span></div>`
+      : `<div class="g-cand__sug">${icon("info")}<span>Contratada não dispara mensagem automática.</span></div>`;
     const funilHtml = `
       <div class="g-cand__funil">
         <div class="g-cand__funil-l">
           <div class="g-cand__funil-rot">Status da candidatura</div>
           <div class="g-cand__seg" role="tablist">${segBtns}</div>
-          <div class="g-cand__sug">${icon("send")}<span>Mensagem pronta: <b>${escapeHtml(sugAssunto)}</b></span></div>
+          ${sugHtml}
         </div>
-        <div class="g-cand__funil-r">
+        ${temMsg ? `<div class="g-cand__funil-r">
           <button type="button" class="g-cand__msg${aceso ? " aceso" : ""}" data-cand-msg="${escapeHtml(c.id)}">${icon("send")}Mensagem ao candidato</button>
           <span class="g-cand__canal">email ou WhatsApp</span>
-        </div>
+        </div>` : ""}
       </div>`;
     return `
     <div class="g-cand${perfil ? ` g-cand--${perfil.cls}` : ""}">
@@ -6593,7 +6619,40 @@ function renderVagas() {
       <button class="g-subtab${subtab === "vagas" ? " on" : ""}" data-subtab="vagas" role="tab">Vagas</button>
       <button class="g-subtab${subtab === "beneficios" ? " on" : ""}" data-subtab="beneficios" role="tab">Benefícios</button>
     </div>`;
+  // Faixa de 5 KPIs acima da lista (só quando há candidaturas; senão evita uma fileira de
+  // zeros). Reusa .stat (padrão do app); .stat--kpi/--accent = herói Pessoas únicas, dots
+  // semânticos do funil nos 3 status, .stat--pos no número de Contratadas.
+  const kpiBandHtml = candidaturas.length ? `
+    <div class="stats vg-kpis">
+      <div class="stat stat--kpi stat--accent">
+        <span class="stat__label">${icon("users")} Pessoas únicas</span>
+        <span class="stat__value">${kpi.unicas}</span>
+        <p class="stat__hint">emails distintos</p>
+      </div>
+      <div class="stat">
+        <span class="stat__label">${icon("inbox")} Envios</span>
+        <span class="stat__value">${kpi.envios}</span>
+        <p class="stat__hint">candidaturas recebidas</p>
+      </div>
+      <div class="stat">
+        <span class="stat__label"><span class="st-dot" style="background:var(--warning)"></span> Em análise</span>
+        <span class="stat__value">${kpi.analise}</span>
+        <p class="stat__hint">por candidatura</p>
+      </div>
+      <div class="stat">
+        <span class="stat__label"><span class="st-dot" style="background:var(--text-muted)"></span> Negadas</span>
+        <span class="stat__value">${kpi.negadas}</span>
+        <p class="stat__hint">não seguiram adiante</p>
+      </div>
+      <div class="stat stat--pos">
+        <span class="stat__label"><span class="st-dot" style="background:var(--success)"></span> Contratadas</span>
+        <span class="stat__value">${kpi.contratadas}</span>
+        <p class="stat__hint">status novo do funil</p>
+      </div>
+    </div>
+    <p class="gami-hint" style="margin:-6px 0 18px;"><b>Pessoas únicas</b> conta emails distintos entre as candidaturas. <b>Envios</b> conta cada candidatura, então a mesma pessoa em duas vagas conta duas. Em análise, negadas e contratadas são contadas por candidatura.</p>` : "";
   const vagasTabHtml = `
+    ${kpiBandHtml}
     <div class="gami-card g-wrap">
       <div class="gami-card__h"><h3>Vagas</h3>${edit ? "" : `<button class="btn btn--primary btn--sm" id="vg-nova">Nova vaga</button>`}</div>
       ${linhas || `<p class="gami-hint" style="margin:0;">Nenhuma vaga ainda. Crie a primeira que ela aparece no site assim que publicar.</p>`}
@@ -18852,7 +18911,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.0.3";
+window.CURRENT_VERSION = "2.1.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

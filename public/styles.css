@@ -1291,6 +1291,11 @@ textarea:focus-visible,
 .stat--kpi .stat__value { font-size: 30px; }
 
 .stat--alert .stat__value { color: var(--danger); }
+/* Faixa de KPIs da tela Vagas (dashboard, mock vagas-dashboard-2026-07): reusa .stat. O
+   ponto colorido leva a cor semântica do funil pro rótulo sem tingir o número; .stat--pos
+   pinta só o número de Contratadas (desfecho positivo). */
+.st-dot { width: 8px; height: 8px; border-radius: 999px; flex: none; }
+.stat--pos .stat__value { color: var(--success); }
 
 @media (max-width: 700px) {
   .stat { flex: 1 1 44%; min-width: 44%; }
@@ -4171,6 +4176,11 @@ code { font-family: inherit; }
   .stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .stat__value { font-size: 24px; }
   .com-mini { width: 40px; height: 40px; }       /* alvo de toque */
+  /* Faixa de Vagas (5 KPIs): Pessoas únicas vira herói de largura cheia no topo e os
+     outros 4 ficam em 2x2 (o override solta o último-ímpar, que senão roubava a linha
+     inteira pra Contratadas e orfanava o 4º card). */
+  .vg-kpis .stat--kpi { grid-column: 1 / -1; }
+  .vg-kpis .stat:last-child:nth-child(odd) { grid-column: auto; }
 }
 @media (max-width: 540px) {
   .page-header h1 { font-size: 18px; }
@@ -4886,6 +4896,7 @@ button.gm-card { cursor: pointer; }
 .g-cand__st--rec { color: var(--info); } .g-cand__st--rec .g-cand__sd { background: var(--info); }
 .g-cand__st--ana { color: var(--warning-ink); } .g-cand__st--ana .g-cand__sd { background: var(--warning); }
 .g-cand__st--apr { color: var(--success); } .g-cand__st--apr .g-cand__sd { background: var(--success); }
+.g-cand__st--ctr { color: var(--success); } .g-cand__st--ctr .g-cand__sd { background: var(--success); }
 .g-cand__st--rec2 { color: var(--text-muted); } .g-cand__st--rec2 .g-cand__sd { background: var(--text-muted); }
 .g-cand__seg-sep { width: 1px; align-self: stretch; background: var(--border); margin: 4px 2px; }
 .g-cand__sug { margin-top: 10px; font-size: 12px; color: var(--text-body); display: flex; align-items: center; gap: 7px; line-height: 1.45; }

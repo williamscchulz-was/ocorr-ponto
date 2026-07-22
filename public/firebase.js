@@ -2042,7 +2042,7 @@
     // valor no enum); o resto do cadastro do candidato fica imutavel. Espelha no state
     // local pra tela refletir na hora sem re-fetch. Auditoria SEM PII: so o rotulo do
     // status e o id do doc (mesmo alvo do "Excluiu candidatura", padrao ja existente).
-    const _CAND_STATUS_ROTULO = { recebida: "Recebida", "em-analise": "Em análise", aprovada: "Aprovada", "nao-seguiu": "Não seguiu adiante" };
+    const _CAND_STATUS_ROTULO = { recebida: "Recebida", "em-analise": "Em análise", aprovada: "Aprovada", contratada: "Contratada", "nao-seguiu": "Não seguiu adiante" };
     window.atualizarStatusCandidatura = async function (id, status) {
       if (!_CAND_STATUS_ROTULO[status]) throw new Error("status inválido");
       await db.collection("candidaturas").doc(id).update({ status });
@@ -2064,6 +2064,8 @@
       // o WhatsApp entra quando a Meta liberar). So dispara com telefone (candidatura legada
       // pode nao ter); para == telefone da candidatura (a rule compara byte a byte). ZERO PII
       // no console (loga so o token do status).
+      // _WA_STATUS = os status COM mensagem automática (email + WhatsApp têm molde/template);
+      // 'recebida' já saiu acima, 'contratada' (v383) NÃO está aqui: não manda nada.
       const _WA_STATUS = { "em-analise": "em_analise", aprovada: "aprovada", "nao-seguiu": "nao_seguiu" };
       const waSt = _WA_STATUS[status];
       if (waSt && c.telefone) {
@@ -2078,6 +2080,10 @@
           debug?.("[wa] status enfileirado:", waSt);
         } catch (e) { debug?.("[wa] status nao enfileirado:", waSt, e?.code || e?.message); }
       }
+      // Guarda equivalente à do WhatsApp: só os status com molde criam doc de /mail. Sem
+      // isto, 'contratada' tentaria mail/{id}-contratada com molde inexistente (a rule
+      // negaria, mas não se deve nem tentar). Toast honesto: retorna false = sem promessa.
+      if (!waSt) return false;
       try {
         await db.collection("mail").doc(id + "-" + status).set({
           to: c.email,

@@ -223,6 +223,17 @@ test("GP com status FORA do enum no id NEGA (ex.: 'vista')", async () =>
     candidaturaId: cid("enum@mail.com"),
   })));
 
+// contratada (v383): status do funil SEM template Meta -> waMsg de contratada NEGA (o front
+// nao tenta criar; a rule tranca por nao estar entre os 3 status com mensagem).
+test("GP: status 'contratada' (sem template Meta) NEGA — contratada nao manda WhatsApp", async () =>
+  assertFails(setDoc(doc(rh(), statusId("enum@mail.com", "contratada")), {
+    para: "47900003333",
+    template: "candidatura_contratada",
+    params: { nome: "E", vaga: "Tecelão" },
+    em: TS(),
+    candidaturaId: cid("enum@mail.com"),
+  })));
+
 test("GP: id termina em -aprovada mas template e em_analise NEGA (id x template descasados)", async () =>
   assertFails(setDoc(doc(rh(), statusId("enum@mail.com", "aprovada")),
     statusWa("enum@mail.com", "em_analise", "47900003333"))));

@@ -196,6 +196,14 @@ test("GP com status FORA do enum no id NEGA (ex.: 'vista')", async () =>
     template: { name: "candidatura-vista", data: { nome: "E", vaga: "Tecelão" } },
   })));
 
+// contratada (v383): status do funil SEM molde de email -> mail de contratada NEGA (o front
+// nao tenta criar; a rule tranca por nao estar entre os 3 status com mensagem).
+test("GP: status 'contratada' (sem molde) NEGA — contratada nao manda email", async () =>
+  assertFails(setDoc(doc(rh(), statusId("enum@mail.com", "contratada")), {
+    to: "enum@mail.com",
+    template: { name: "candidatura-contratada", data: { nome: "E", vaga: "Tecelão" } },
+  })));
+
 test("GP: id termina em -aprovada mas molde e em-analise NEGA (id x molde descasados)", async () =>
   assertFails(setDoc(doc(rh(), statusId("enum@mail.com", "aprovada")), statusMail("enum@mail.com", "em-analise"))));
 

@@ -197,12 +197,20 @@ test("RH le, lista e exclui candidatura (LGPD)", async () => {
 // ---------- FUNIL DE STATUS (fase 1, 2026-07-16): GP move a candidatura ----------
 // update NOVO: gpCand troca SO o status, e so pra um dos 4 valores do funil. O resto do
 // cadastro (PII) segue imutavel. Docs legados (status 'nova' do site) sobem pro enum novo.
-test("GP move status: cada valor do enum passa (nova -> recebida -> em-analise -> aprovada -> nao-seguiu)", async () => {
+test("GP move status: cada valor do enum passa (nova -> recebida -> em-analise -> aprovada -> contratada -> nao-seguiu)", async () => {
   await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "recebida" }));
   await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "em-analise" }));
   await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "aprovada" }));
+  await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "contratada" }));
   await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "nao-seguiu" }));
 });
+// contratada (v383): status novo do funil, mesma liberdade dos outros (any -> any).
+test("GP move aprovada -> contratada PASSA (status novo v383)", async () => {
+  await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "aprovada" }));
+  await assertSucceeds(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "contratada" }));
+});
+test("contratada JUNTO de outro campo NEGA (hasOnly status, PII imutavel na transicao)", async () =>
+  assertFails(updateDoc(doc(rh(), "candidaturas/vCand__mover@mail.com"), { status: "contratada", nome: "Hacker" })));
 test("GP move status: admin tambem move", async () =>
   assertSucceeds(updateDoc(doc(admin(), "candidaturas/vCand__mover@mail.com"), { status: "recebida" })));
 test("status fora do enum NEGA (ex.: 'vista')", async () =>
