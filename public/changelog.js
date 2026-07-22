@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.2.0", d: "22 jul 2026", current: true, items: [
+    v: "2.3.0", d: "22 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "A lista de Funcionarios e o perfil agora mostram a situacao de cada pessoa (Ferias, Licenca Medica e afins) numa tag: amarela para afastamento de fato, cinza para um aviso como ferias, que segue contando no quadro." },
+    ],
+  },
+  {
+    v: "2.2.0", d: "22 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Funcionarios avisa quando falta a foto oficial de alguem: um lembrete calmo mostra quantos estao sem e um atalho filtra a lista pra ver so quem falta. A Visao geral tambem aponta o total. Menor aprendiz e afastados nao entram na conta." },
     ],
   },

@@ -10049,11 +10049,20 @@ function renderFuncList(animar) {
       : (semTurno
           ? `<span class="func-turno func-turno--sem"><span class="func-turno__dot"></span>Sem turno</span>`
           : `<span class="func-turno">${escapeHtml(TURNOS[f.turno].label)}</span>`);
-    // Marcadores ortogonais: contam no quadro, mas são categoria à parte.
+    // Marcadores ortogonais: contam no quadro, mas são categoria à parte. A situação
+    // (Férias, Licença etc.: texto cru do pipeline) vira badge sempre que presente,
+    // independente de afastado: warning quando é ausência real (afastado), neutral
+    // quando é só FYI (Férias conta normal no quadro). Sem situação mas afastado, cai
+    // no rótulo genérico "Afastado". Inativo já carrega a própria tag na linha.
+    const situacaoBadge = inativo
+      ? ""
+      : (f.situacao
+          ? `<span class="badge badge--${f.afastado === true ? "warning" : "neutral"}">${escapeHtml(f.situacao)}</span>`
+          : (f.afastado === true ? `<span class="badge badge--warning">Afastado</span>` : ""));
     const marcadores =
       (f.diretor === true ? `<span class="badge badge--info">Diretor</span>` : "") +
       (f.aprendiz === true ? `<span class="badge badge--neutral">Menor Aprendiz</span>` : "") +
-      (f.afastado === true && !inativo ? `<span class="badge badge--warning">Afastado</span>` : "");
+      situacaoBadge;
 
     return `
       <article class="func-row ${alertaSemTurno ? "func-row--semturno" : ""} ${inativo ? "func-row--inativo" : ""}" data-func="${f.id}" role="button" tabindex="0">
@@ -10172,7 +10181,7 @@ function renderFuncPerfilSecoes(f) {
     <div class="func-perfil-header">
       ${avatarFuncHtml(f, "avatar avatar--lg", "width:56px; height:56px; font-size:20px")}
       <div style="flex:1; min-width:0;">
-        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}${f.diretor === true ? ` <span class="func-selo-diretoria">Diretoria</span>` : ""}${f.aprendiz === true ? ` <span class="badge badge--neutral">Menor Aprendiz</span>` : ""}</div>
+        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}${f.diretor === true ? ` <span class="func-selo-diretoria">Diretoria</span>` : ""}${f.aprendiz === true ? ` <span class="badge badge--neutral">Menor Aprendiz</span>` : ""}${!inativo && f.afastado !== true && f.situacao ? ` <span class="badge badge--neutral">${escapeHtml(f.situacao)}</span>` : ""}</div>
         <div class="func-perfil-header__sub">
           ${escapeHtml(f.cargo || "sem cargo")} · ${escapeHtml(f.setor || "sem setor")}${turnoLabel ? " · " + escapeHtml(turnoLabel) : ""}
         </div>
@@ -18986,7 +18995,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.2.0";
+window.CURRENT_VERSION = "2.3.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
