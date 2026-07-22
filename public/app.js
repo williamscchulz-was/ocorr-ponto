@@ -8847,29 +8847,22 @@ function vgSeries(u, visible) {
 // Linha de delta mensal do KPI (padrao Auditoria): seta + valor + "vs <mes>".
 // Cor por metrica: good/bad conforme a direcao (inverter=true pro turnover, onde
 // cair e bom); neutro=true = so informativo (cinza). casas = decimais (turnover).
-function vgDeltaHtml(diff, opts) {
+// Delta mês a mês da régua (variante C): texto puro classificado. Retorna
+// {sinal:'g'|'b'|'', curto, full} — 'curto' entra na face (.vc__det), 'full' no title;
+// null quando não há base comparável. 'g'/'b' seguem good/bad (inverter troca o lado bom).
+function vgDelta(diff, opts) {
   opts = opts || {};
-  if (diff == null || !isFinite(diff)) return "";
-  const up = `<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 2.2 8.4 7H1.6Z" fill="currentColor"/></svg>`;
-  const down = `<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 7.8 1.6 3h6.8Z" fill="currentColor"/></svg>`;
+  if (diff == null || !isFinite(diff)) return null;
   const lim = opts.casas ? 0.05 : 0.5;
   const zero = Math.abs(diff) < lim;
-  let cls = "kpi-a__delta--flat", caret = "";
-  if (!zero) {
-    caret = diff > 0 ? up : down;
-    if (!opts.neutro) { const bom = opts.inverter ? diff < 0 : diff > 0; cls = bom ? "kpi-a__delta--good" : "kpi-a__delta--bad"; }
-  }
+  let sinal = "";
+  if (!zero && !opts.neutro) { const bom = opts.inverter ? diff < 0 : diff > 0; sinal = bom ? "g" : "b"; }
   const abs = Math.abs(diff);
   const val = opts.casas ? abs.toLocaleString("pt-BR", { minimumFractionDigits: opts.casas, maximumFractionDigits: opts.casas }) : String(Math.round(abs));
   const uni = opts.unidade ? " " + opts.unidade : "";
-  const txt = zero ? `estável vs ${opts.mes}` : `${diff > 0 ? "+" : "−"}${val}${uni} vs ${opts.mes}`;
-  return `<div class="kpi-a__delta ${cls}">${caret}<span>${escapeHtml(txt)}</span></div>`;
-}
-
-// Chip "histórico" (dica de expansão) dos cards com drill-down. A rotação da seta ao
-// abrir vive no CSS (.is-open), derivada do state — re-render nasce idêntico.
-function vgCueHtml() {
-  return `<span class="kpi-a__cue"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7.5 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>histórico</span>`;
+  const curto = zero ? "estável" : `${diff > 0 ? "+" : "−"}${val}${uni}`;
+  const full = zero ? `estável vs ${opts.mes}` : `${curto} vs ${opts.mes}`;
+  return { sinal, curto, full };
 }
 
 // Painel de histórico mês a mês (drill-down inline, largura cheia, UM por vez). Recebe a
@@ -8999,6 +8992,16 @@ function renderVisaoGeral() {
   const mesAnt = MESES_VG[(new Date().getMonth() + 11) % 12];
   const dAtivos = serie.ativos[5] - serie.ativos[4];
   const dTurn = serie.turnover[5] - serie.turnover[4];
+  // Régua ultra-slim (variante C do mock kpis-slim): face condensada + a linha inteira no
+  // title. Delta vira texto classificado (g/b, ou "estável"); a-conferir segue sem delta.
+  const htAtivos = u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro";
+  const dA = vgDelta(dAtivos, { mes: mesAnt });
+  const dT = tv.temDado ? vgDelta(dTurn, { unidade: "pt", inverter: true, casas: 1, mes: mesAnt }) : null;
+  const detConferir = podeRh ? `${nRhConfere} GP · ${comLider} líder` : `${comLider} líder`;
+  const htTurn = tv.temDado ? `${tv.admMes} contrataç${tv.admMes === 1 ? "ão" : "ões"} · ${tv.desligMes} desligamento${tv.desligMes === 1 ? "" : "s"}` : "sem quadro";
+  const resolvAutoLbl = nDoneAuto === 1 ? "automática" : "automáticas";
+  const vcAff = `<span class="vc__aff"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7.5 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+  const dSpan = (d) => d.sinal ? `<span class="${d.sinal}">${escapeHtml(d.curto)}</span>` : escapeHtml(d.curto);
 
   const escreveu = setHtml($("#view"), `
     <div class="vg-stack">
@@ -9014,33 +9017,27 @@ function renderVisaoGeral() {
 
     ${gestorAtalhosHtml(u)}
 
-    <div class="kpis-a">
-      <article class="kpi-a kpi-a--nav" role="button" tabindex="0" data-vg-conferir="${tabConferir}" aria-label="Ocorrências a conferir, abrir a tela Ocorrências">
-        <div class="kpi-a__top"><span>Ocorrências a conferir</span>${icon("clipboard")}</div>
-        <div class="kpi-a__vl">${aConferir}</div>
-        <div class="kpi-a__ht">${escapeHtml(subConferir)}</div>
-        <span class="kpi-a__live"><span class="p"></span>fila viva · abre Ocorrências</span>
-      </article>
-      <article class="kpi-a kpi-a--drill${state.view.vgDrill === "ativos" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="ativos" aria-expanded="${state.view.vgDrill === "ativos" ? "true" : "false"}" aria-controls="vg-dd-ativos" aria-label="Colaboradores ativos, ver histórico mês a mês">
-        <div class="kpi-a__top"><span>Colaboradores ativos</span>${icon("users")}</div>
-        <div class="kpi-a__vl">${countActiveFuncs(u)}</div>
-        ${vgDeltaHtml(dAtivos, { mes: mesAnt })}
-        <div class="kpi-a__ht">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
-        ${vgCueHtml()}
-      </article>
-      <article class="kpi-a kpi-a--drill${state.view.vgDrill === "resolvidas" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="resolvidas" aria-expanded="${state.view.vgDrill === "resolvidas" ? "true" : "false"}" aria-controls="vg-dd-resolvidas" aria-label="Resolvidas no mês, ver histórico mês a mês">
-        <div class="kpi-a__top"><span>Resolvidas no mês</span>${icon("check")}</div>
-        <div class="kpi-a__vl">${resolvidasMes}</div>
-        <div class="kpi-a__ht">${resolvManualMes} manual · ${nDoneAuto} ${nDoneAuto === 1 ? "automática" : "automáticas"}</div>
-        ${vgCueHtml()}
-      </article>
-      <article class="kpi-a kpi-a--drill${state.view.vgDrill === "turnover" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="turnover" aria-expanded="${state.view.vgDrill === "turnover" ? "true" : "false"}" aria-controls="vg-dd-turnover" aria-label="Turnover no mês, ver histórico mês a mês">
-        <div class="kpi-a__top"><span>Turnover no mês</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
-        <div class="kpi-a__vl">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
-        ${tv.temDado ? vgDeltaHtml(dTurn, { unidade: "pt", inverter: true, casas: 1, mes: mesAnt }) : ""}
-        <div class="kpi-a__ht">${tv.temDado ? `${tv.admMes} contrataç${tv.admMes === 1 ? "ão" : "ões"} · ${tv.desligMes} desligamento${tv.desligMes === 1 ? "" : "s"}` : "sem quadro"}</div>
-        ${vgCueHtml()}
-      </article>
+    <div class="vc">
+      <div class="vc__cell" role="button" tabindex="0" data-vg-conferir="${tabConferir}" aria-label="Ocorrências a conferir, abrir a tela Ocorrências" title="${escapeHtml(subConferir)}">
+        <div class="vc__hd"><span class="vc__lb">A conferir</span><span class="vc__aff"><span class="p"></span></span></div>
+        <div class="vc__vl">${aConferir}</div>
+        <div class="vc__det">${escapeHtml(detConferir)}</div>
+      </div>
+      <div class="vc__cell${state.view.vgDrill === "ativos" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="ativos" aria-expanded="${state.view.vgDrill === "ativos" ? "true" : "false"}" aria-controls="vg-dd-ativos" aria-label="Colaboradores ativos, ver histórico mês a mês" title="${escapeHtml(`Colaboradores ativos · ${dA.full} · ${htAtivos}`)}">
+        <div class="vc__hd"><span class="vc__lb">Ativos</span>${vcAff}</div>
+        <div class="vc__vl">${countActiveFuncs(u)}</div>
+        <div class="vc__det">${dSpan(dA)} · ${escapeHtml(htAtivos)}</div>
+      </div>
+      <div class="vc__cell${state.view.vgDrill === "resolvidas" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="resolvidas" aria-expanded="${state.view.vgDrill === "resolvidas" ? "true" : "false"}" aria-controls="vg-dd-resolvidas" aria-label="Resolvidas no mês, ver histórico mês a mês" title="${escapeHtml(`Resolvidas no mês · ${resolvManualMes} manual · ${nDoneAuto} ${resolvAutoLbl}`)}">
+        <div class="vc__hd"><span class="vc__lb">Resolvidas</span>${vcAff}</div>
+        <div class="vc__vl">${resolvidasMes}</div>
+        <div class="vc__det">${resolvManualMes} manual · ${nDoneAuto} auto</div>
+      </div>
+      <div class="vc__cell${state.view.vgDrill === "turnover" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="turnover" aria-expanded="${state.view.vgDrill === "turnover" ? "true" : "false"}" aria-controls="vg-dd-turnover" aria-label="Turnover no mês, ver histórico mês a mês" title="${escapeHtml(tv.temDado ? `Turnover no mês · ${dT.full} · ${htTurn}` : "Turnover no mês · sem quadro")}">
+        <div class="vc__hd"><span class="vc__lb">Turnover</span>${vcAff}</div>
+        <div class="vc__vl">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
+        <div class="vc__det">${tv.temDado ? `${dSpan(dT)} · ${tv.admMes}/${tv.desligMes}` : "sem quadro"}</div>
+      </div>
     </div>
     ${vgDrillHtml(state.view.vgDrill, serie, nDoneAuto)}
 
@@ -9077,15 +9074,15 @@ function renderVisaoGeral() {
       }
       renderApp();
     }));
-    // Card "a conferir": leva pra tela Ocorrências (fila viva, não expande).
-    const conf = $("#view .kpi-a[data-vg-conferir]");
+    // Célula "a conferir": leva pra tela Ocorrências (fila viva, não expande).
+    const conf = $("#view .vc__cell[data-vg-conferir]");
     if (conf) {
       const ir = () => { state.view.page = "dashboard"; state.view.filterTab = conf.dataset.vgConferir; renderApp(); };
       conf.addEventListener("click", ir);
       conf.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ir(); } });
     }
-    // Cards com histórico: acordeão inline, UM aberto por vez (state.view.vgDrill).
-    $$("#view .kpi-a[data-vg-drill]").forEach((c) => {
+    // Células com histórico: acordeão inline, UM aberto por vez (state.view.vgDrill).
+    $$("#view .vc__cell[data-vg-drill]").forEach((c) => {
       const alterna = () => {
         const k = c.dataset.vgDrill;
         state.view.vgDrill = state.view.vgDrill === k ? null : k;
@@ -19131,7 +19128,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.4.0";
+window.CURRENT_VERSION = "2.5.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

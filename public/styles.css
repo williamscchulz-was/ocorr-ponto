@@ -3041,31 +3041,28 @@ html.firebase-mode .login__forgot { display: block; }
 .vg-stack > * { margin-top: 0 !important; margin-bottom: 0 !important; }
 .vg-stack .page-header { margin-bottom: 6px !important; }
 
-/* KPIs padrão Auditoria (.aud__sum) + delta mensal */
-.kpis-a { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.kpi-a { border: 1px solid var(--border); border-radius: var(--radius); background: var(--milk-warm); padding: 14px 16px; display: flex; flex-direction: column; }
-.kpi-a__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 600; color: var(--text-muted); }
-.kpi-a__top .icon { width: 15px; height: 15px; opacity: .7; flex: none; }
-.kpi-a__vl { font-size: 30px; font-weight: 800; line-height: 1.12; color: var(--text-body); margin-top: 6px; font-variant-numeric: tabular-nums; }
-.kpi-a__delta { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.kpi-a__delta svg { width: 8px; height: 8px; flex: none; }
-.kpi-a__delta--good { color: var(--success); }
-.kpi-a__delta--bad { color: var(--danger); }
-.kpi-a__delta--flat { color: var(--text-muted); }
-.kpi-a__ht { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
-@media (max-width: 900px) { .kpis-a { grid-template-columns: repeat(2, 1fr); } }
-
-/* KPIs interativos: "a conferir" navega, os três com história abrem drill-down inline.
-   Escopo por [role=button] pra não pegar cards KPI não clicáveis num futuro reuso. */
-.kpi-a--nav, .kpi-a--drill { cursor: pointer; transition: border-color .16s var(--ease-out), transform .16s var(--ease-out), box-shadow .16s var(--ease-out); }
-.kpi-a--nav:hover, .kpi-a--drill:hover { border-color: var(--border-strong); transform: translateY(-1px); box-shadow: var(--shadow); }
-.kpi-a--nav:focus-visible, .kpi-a--drill:focus-visible { outline: 2px solid var(--plum-deep); outline-offset: 2px; }
-.kpi-a--drill.is-open { border-color: var(--plum); box-shadow: 0 0 0 1px var(--plum) inset; }
-.kpi-a__cue { display: inline-flex; align-items: center; gap: 5px; margin-top: 9px; font-size: 10.5px; font-weight: 600; color: var(--plum-deep); }
-.kpi-a__cue svg { width: 11px; height: 11px; transition: transform .18s var(--ease-out); }
-.kpi-a--drill.is-open .kpi-a__cue svg { transform: rotate(90deg); }
-.kpi-a__live { display: inline-flex; align-items: center; gap: 6px; margin-top: 9px; font-size: 10.5px; font-weight: 600; color: var(--text-muted); }
-.kpi-a__live .p { width: 6px; height: 6px; border-radius: 50%; background: var(--plum-soft); flex: none; box-shadow: 0 0 0 3px rgba(26, 163, 79, .16); }
+/* KPIs da Visão geral: régua única ultra-slim (variante C do mock kpis-slim-2026-07).
+   Uma peça só, células separadas por fio; rótulo + número na face, detalhe condensado na
+   2a linha e a linha inteira no title. Todas as células clicam: "a conferir" navega pra
+   Ocorrências, as três com história abrem o drill-down .vg-dd logo abaixo.
+   is-open: o mock não cravou; derivado do .kpi-a--drill.is-open antigo (fio plum inset) +
+   fundo surface + a seta gira 90° — sóbrio, na mesma língua de estado aberto do app. */
+.vc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.vc__cell { background: var(--milk-warm); padding: 11px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; cursor: pointer; transition: background .16s var(--ease-out); }
+.vc__cell:hover { background: var(--surface); }
+.vc__cell:focus-visible { outline: 2px solid var(--plum-deep); outline-offset: -2px; }
+.vc__cell.is-open { background: var(--surface); box-shadow: 0 0 0 1px var(--plum) inset; }
+.vc__hd { display: flex; align-items: center; gap: 6px; }
+.vc__lb { font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vc__aff { flex: none; margin-left: auto; color: var(--plum-deep); display: flex; align-items: center; }
+.vc__aff svg { width: 11px; height: 11px; transition: transform .18s var(--ease-out); }
+.vc__cell.is-open .vc__aff svg { transform: rotate(90deg); }
+.vc__aff .p { width: 5px; height: 5px; border-radius: 50%; background: var(--plum-soft); box-shadow: 0 0 0 3px rgba(26, 163, 79, .16); }
+.vc__vl { font-size: 22px; font-weight: 800; line-height: 1; color: var(--text-body); font-variant-numeric: tabular-nums; }
+.vc__det { font-size: 9.5px; color: var(--text-muted); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vc__det .g { color: var(--success); font-weight: 700; }
+.vc__det .b { color: var(--danger); font-weight: 700; }
+@media (max-width: 900px) { .vc { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* Painel do histórico (drill-down inline, largura cheia). Tokens locais pro verde
    translúcido/hachura acompanharem o tema (dark redefine --plum). */

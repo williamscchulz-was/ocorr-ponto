@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.4.0", d: "22 jul 2026", current: true, items: [
+    v: "2.5.0", d: "22 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Os quatro indicadores do topo da Visao geral viram uma regua unica e mais baixa: rotulo, numero e um resumo curto por celula, com a leitura completa na dica do cartao. A fila de ocorrencias segue abrindo a tela e os indicadores com historico seguem expandindo o mes a mes." },
+    ],
+  },
+  {
+    v: "2.4.0", d: "22 jul 2026", items: [
       { type: "fix", aud: "gestor", title: "A Visao geral corrige o cartao Ocorrencias a conferir: o numero grande agora e a fila inteira que espera decisao (Pendentes mais GP confere) e a linha de baixo diz de quem e a carga. Saiu a comparacao com o mes passado, que juntava contas diferentes." },
       { type: "feat", aud: "gestor", title: "Os cartoes de Colaboradores ativos, Resolvidas e Turnover viram historico: clique e um painel abre com os ultimos seis meses. Onde o dado so e confiavel a partir de maio de 2026, os meses anteriores aparecem marcados, sem numero inventado." },
     ],
