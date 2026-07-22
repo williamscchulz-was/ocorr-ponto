@@ -8804,17 +8804,29 @@ function vgTurnover(u) {
   return { ativos, admMes, desligMes, mensal, temDado: ativos > 0 };
 }
 
-// Série de 6 meses (mais antigo -> atual) pros sparklines dos KPIs. Só o que dá pra derivar
-// HONESTO do dado que já temos: quadro ativo por mês (admissão/demissão), resolvidas por mês
-// (dataConferencia da manual + confirmou da auto) e turnover por mês. Saldo/a-conferir não têm
-// história (dependem do WKRADAR), ficam sem gráfico. Escopo por papel.
+// Corte de confiança do histórico: só a partir de maio de 2026 o dado é fiel. Antes
+// disso o quadro de desligados chegava incompleto (pré-pipeline do WKRADAR), então
+// meses anteriores em Ativos/Turnover apareceriam inflados. Marcamos-os como slot sem
+// base em vez de mentir um número. YYYY-MM pra comparação lexicográfica direta.
+const DADOS_DESDE = "2026-05";
+const VG_MES_ABREV = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// Série de 6 meses (mais antigo -> atual) pro drill-down dos KPIs. Só o que dá pra derivar
+// HONESTO do dado que já temos: quadro ativo por mês (admissão/demissão), turnover por mês e
+// resolvidas MANUAL por mês (dataConferencia). As automáticas não têm histórico mensal (o
+// pipeline zera a coleção todo mês), então só o mês corrente soma o bloco automático, via
+// ocaDoEstagio("confirmada") no chamador. Saldo/a-conferir não têm história, ficam sem
+// gráfico. Escopo por papel. `meses` volta com {y, m, ym} pra o painel rotular e cortar.
 function vgSeries(u, visible) {
   const noEscopo = (f) => u.role === "lider" ? f.turno === u.turno
     : u.role === "supervisor" ? podeVerFuncionario(u, f) : true;
   const funcs = (state.funcionarios || []).filter(noEscopo);
   const base = new Date();
   const meses = [];
-  for (let k = 5; k >= 0; k--) { const d = new Date(base.getFullYear(), base.getMonth() - k, 1); meses.push({ y: d.getFullYear(), m: d.getMonth() }); }
+  for (let k = 5; k >= 0; k--) {
+    const d = new Date(base.getFullYear(), base.getMonth() - k, 1);
+    meses.push({ y: d.getFullYear(), m: d.getMonth(), ym: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` });
+  }
   const fimDoMes = (mm) => new Date(mm.y, mm.m + 1, 0, 23, 59, 59);
   const chave = (dt) => dt ? `${dt.getFullYear()}-${dt.getMonth()}` : "";
   const ativos = meses.map((mm) => {
@@ -8824,25 +8836,11 @@ function vgSeries(u, visible) {
   const deslig = meses.map((mm) => funcs.filter((f) => { const dm = tsParaData(f.demissao); return dm && chave(dm) === `${mm.y}-${mm.m}`; }).length);
   const adm = meses.map((mm) => funcs.filter((f) => { const a = tsParaData(f.admissao); return a && chave(a) === `${mm.y}-${mm.m}`; }).length);
   const turnover = deslig.map((d, i) => ativos[i] > 0 ? (((adm[i] + d) / 2) / ativos[i]) * 100 : 0);
-  const resolvidas = meses.map((mm) => {
+  const resolvManual = meses.map((mm) => {
     const alvo = `${mm.y}-${mm.m}`;
-    const man = (visible || []).filter((o) => !isPending(o) && chave(tsParaData(o.dataConferencia || o.data)) === alvo).length;
-    const auto = (state.ocorrenciasAuto || []).filter((o) => {
-      if (ocaEstagio(o) !== "confirmada") return false;
-      const h = [...(o.historico || [])].reverse().find((x) => x.acao === "confirmou");
-      return h && h.emIso && chave(new Date(h.emIso)) === alvo;
-    }).length;
-    return man + auto;
+    return (visible || []).filter((o) => !isPending(o) && chave(tsParaData(o.dataConferencia || o.data)) === alvo).length;
   });
-  // Ocorrencias REGISTRADAS por mes (absorve o grafico removido): total por mes,
-  // manual (o.data) + automatica (o.dataIso), chave "YYYY-MM".
-  const registradas = meses.map((mm) => {
-    const alvo = `${mm.y}-${String(mm.m + 1).padStart(2, "0")}`;
-    const man = (visible || []).filter((o) => String(o.data || "").slice(0, 7) === alvo).length;
-    const auto = (state.ocorrenciasAuto || []).filter((o) => String(o.dataIso || "").slice(0, 7) === alvo).length;
-    return man + auto;
-  });
-  return { ativos, turnover, resolvidas, registradas };
+  return { meses, ativos, turnover, resolvManual };
 }
 
 
@@ -8868,6 +8866,110 @@ function vgDeltaHtml(diff, opts) {
   return `<div class="kpi-a__delta ${cls}">${caret}<span>${escapeHtml(txt)}</span></div>`;
 }
 
+// Chip "histórico" (dica de expansão) dos cards com drill-down. A rotação da seta ao
+// abrir vive no CSS (.is-open), derivada do state — re-render nasce idêntico.
+function vgCueHtml() {
+  return `<span class="kpi-a__cue"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7.5 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>histórico</span>`;
+}
+
+// Painel de histórico mês a mês (drill-down inline, largura cheia, UM por vez). Recebe a
+// chave aberta (state.view.vgDrill), a série de 6 meses e o total automático confirmado do
+// mês. Barras CSS puras; mês corrente destacado. HONESTIDADE: Ativos/Turnover marcam meses
+// pré-DADOS_DESDE como slot sem base; Resolvidas mostra só a parte manual no passado e
+// empilha o bloco automático (hachurado) só no mês corrente. Retorna "" se nada aberto.
+function vgDrillHtml(key, serie, autoConf) {
+  if (key !== "ativos" && key !== "resolvidas" && key !== "turnover") return "";
+  const meses = serie.meses;
+  const ultimo = meses.length - 1;
+  const ehGhost = (mm) => mm.ym < DADOS_DESDE;
+  const abbr = (mm) => escapeHtml(VG_MES_ABREV[mm.m]);
+  const foot = `<p class="vg-dd__foot">O histórico completo acumula mês a mês daqui pra frente.</p>`;
+  const legendaBase = `
+      <div class="vg-dd__legend">
+        <span class="vg-lg"><span class="vg-lg__sw vg-lg__sw--now"></span>mês atual</span>
+        <span class="vg-lg"><span class="vg-lg__sw vg-lg__sw--past"></span>meses anteriores</span>
+      </div>`;
+  const corte = `<div class="vg-dd__cut"><span class="vg-dd__cut-ln"></span>dados confiáveis desde maio de 2026<span class="vg-dd__cut-ln"></span></div>`;
+
+  // Ativos/Turnover: barra simples por mês, ghost antes do corte de confiança.
+  const barrasSimples = (vals, fmt) => {
+    let max = 0;
+    meses.forEach((mm, i) => { if (!ehGhost(mm) && vals[i] > max) max = vals[i]; });
+    if (max <= 0) max = 1;
+    return meses.map((mm, i) => {
+      if (ehGhost(mm)) return `<div class="vg-bar vg-bar--ghost"><div class="vg-bar__track"><span class="vg-bar__nd">sem base<br>confiável</span></div><span class="vg-bar__m">${abbr(mm)}</span></div>`;
+      const now = i === ultimo;
+      const pct = Math.max(3, Math.round((vals[i] / max) * 100));
+      return `<div class="vg-bar${now ? " is-now" : ""}"><div class="vg-bar__track"><div class="vg-bar__fill vg-bar__fill--${now ? "now" : "past"}" style="height:${pct}%"><span class="vg-bar__v">${escapeHtml(fmt(vals[i]))}</span></div></div><span class="vg-bar__m">${abbr(mm)}</span></div>`;
+    }).join("");
+  };
+
+  // Resolvidas: passado só manual (barra cheia), mês corrente empilha manual + automático.
+  const barrasResolv = () => {
+    const man5 = serie.resolvManual[ultimo] || 0;
+    const total = man5 + (autoConf || 0);
+    let max = total;
+    meses.forEach((mm, i) => { if (i < ultimo && serie.resolvManual[i] > max) max = serie.resolvManual[i]; });
+    if (max <= 0) max = 1;
+    return meses.map((mm, i) => {
+      if (i === ultimo) {
+        const manPct = total > 0 ? Math.round((man5 / total) * 100) : 100;
+        const rot = autoConf > 0 ? `${man5} + ${autoConf}` : String(man5);
+        const stackH = Math.max(3, Math.round((total / max) * 100));
+        return `<div class="vg-bar is-now"><div class="vg-bar__track"><div class="vg-bar__fill vg-bar__fill--stack" style="height:${stackH}%"><span class="vg-bar__v">${escapeHtml(rot)}</span>${autoConf > 0 ? `<div class="vg-seg vg-seg--auto" style="height:${100 - manPct}%"></div>` : ""}<div class="vg-seg vg-seg--man" style="height:${autoConf > 0 ? manPct : 100}%"></div></div></div><span class="vg-bar__m">${abbr(mm)}</span></div>`;
+      }
+      const v = serie.resolvManual[i] || 0;
+      const pct = Math.max(3, Math.round((v / max) * 100));
+      return `<div class="vg-bar"><div class="vg-bar__track"><div class="vg-bar__fill vg-bar__fill--man" style="height:${pct}%"><span class="vg-bar__v">${v}</span></div></div><span class="vg-bar__m">${abbr(mm)}</span></div>`;
+    }).join("");
+  };
+
+  if (key === "ativos") {
+    return `
+    <div class="vg-dd" id="vg-dd-ativos">
+      <div class="vg-dd__hd">
+        <h3>Colaboradores ativos, mês a mês</h3>
+        <p>Quadro ativo no fim de cada mês. O registro só fica confiável a partir de maio de 2026: antes disso, desligamentos antigos não entraram no sistema e o número apareceria inflado.</p>
+      </div>
+      <div class="vg-dd__body">
+        <div class="vg-dd__bars">${barrasSimples(serie.ativos, (v) => String(v))}</div>
+        ${corte}${legendaBase}
+      </div>
+      ${foot}
+    </div>`;
+  }
+  if (key === "turnover") {
+    return `
+    <div class="vg-dd" id="vg-dd-turnover">
+      <div class="vg-dd__hd">
+        <h3>Turnover, mês a mês</h3>
+        <p>Rotatividade sobre o quadro ativo. Como usa admissões e desligamentos, só fica confiável a partir de maio de 2026, quando os desligamentos passaram a ser registrados por completo.</p>
+      </div>
+      <div class="vg-dd__body">
+        <div class="vg-dd__bars">${barrasSimples(serie.turnover, (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%")}</div>
+        ${corte}${legendaBase}
+      </div>
+      ${foot}
+    </div>`;
+  }
+  return `
+    <div class="vg-dd" id="vg-dd-resolvidas">
+      <div class="vg-dd__hd">
+        <h3>Resolvidas, mês a mês</h3>
+        <p>Só o mês atual mostra o total cheio (manual mais automáticas). Nos meses passados aparece só a parte manual: a coleção automática é zerada todo mês pelo pipeline, então o histórico dela ainda não existe.</p>
+      </div>
+      <div class="vg-dd__body">
+        <div class="vg-dd__bars">${barrasResolv()}</div>
+        <div class="vg-dd__legend">
+          <span class="vg-lg"><span class="vg-lg__sw vg-lg__sw--man"></span>manual</span>
+          <span class="vg-lg"><span class="vg-lg__sw vg-lg__sw--auto"></span>automáticas (só no mês atual)</span>
+        </div>
+        <p class="vg-dd__note"><b>Por que o mês atual é maior:</b> ele soma as automáticas que o robô resolveu sozinho. Os meses anteriores mostram só a parte manual porque o histórico automático do passado não ficou guardado. Quando o pipeline passar a fotografar cada mês fechado, essas barras crescem e ficam comparáveis.</p>
+      </div>
+      ${foot}
+    </div>`;
+}
+
 function renderVisaoGeral() {
   const u = currentUser();
   $("#topbar-title").textContent = "Visão geral";
@@ -8875,22 +8977,27 @@ function renderVisaoGeral() {
 
   const visible = visibleOcorrencias();
   const pending = visible.filter(isPending);
-  const done = visible.filter((o) => !isPending(o));
-  // KPI = a mesma conta da aba Pendentes e do badge da sidebar (uma verdade só);
-  // o estágio "GP confere" tem linha própria no Precisa de você.
+  // "Ocorrências a conferir" = fila inteira que espera decisão: Pendentes (com o líder) +
+  // GP confere (rh_confere). Mesmos predicados das abas de Ocorrências. Sem delta: fila viva,
+  // sem mês passado comparável (o antigo +N comparava as REGISTRADAS, outra conta).
+  const podeRh = can("ocorrencias.revisarAuto");
+  const nRhConfere = podeRh ? ocaDoEstagio("rh_confere").length : 0;
   const nComLider = ocaDoEstagio("com_lider").length;
-  const aConferir = pending.length + nComLider;
-  // Resolvidas = manual (conferida+lançada) + auto (confirmada, já inclui as lançadas): auto e
-  // manual contam no MESMO balde (pedido William 2026-07-08).
+  const comLider = pending.length + nComLider;                 // igual à aba Pendentes
+  const aConferir = comLider + nRhConfere;                      // fila inteira
+  const subConferir = podeRh ? `${nRhConfere} com a GP · ${comLider} com o líder` : `${comLider} com o líder`;
+  const tabConferir = podeRh ? "rh-confere" : "pendentes";
+  // Resolvidas no mês: manual conferida/lançada no mês + automáticas confirmadas. Sem delta
+  // (o histórico automático do mês passado não existe, ver vgSeries); a sublinha traz o split.
   const nDoneAuto = ocaDoEstagio("confirmada").length;
   const tv = vgTurnover(u);
   const tvFmt = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
   const serie = vgSeries(u, visible);
+  const resolvManualMes = serie.resolvManual[5];
+  const resolvidasMes = resolvManualMes + nDoneAuto;
   const MESES_VG = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const mesAnt = MESES_VG[(new Date().getMonth() + 11) % 12];
-  const dReg = serie.registradas[5] - serie.registradas[4];
   const dAtivos = serie.ativos[5] - serie.ativos[4];
-  const dResolv = serie.resolvidas[5] - serie.resolvidas[4];
   const dTurn = serie.turnover[5] - serie.turnover[4];
 
   const escreveu = setHtml($("#view"), `
@@ -8908,30 +9015,34 @@ function renderVisaoGeral() {
     ${gestorAtalhosHtml(u)}
 
     <div class="kpis-a">
-      <article class="kpi-a">
+      <article class="kpi-a kpi-a--nav" role="button" tabindex="0" data-vg-conferir="${tabConferir}" aria-label="Ocorrências a conferir, abrir a tela Ocorrências">
         <div class="kpi-a__top"><span>Ocorrências a conferir</span>${icon("clipboard")}</div>
         <div class="kpi-a__vl">${aConferir}</div>
-        ${vgDeltaHtml(dReg, { neutro: true, mes: mesAnt })}
-        <div class="kpi-a__ht">${serie.registradas[5]} registrada${serie.registradas[5] === 1 ? "" : "s"} no mês</div>
+        <div class="kpi-a__ht">${escapeHtml(subConferir)}</div>
+        <span class="kpi-a__live"><span class="p"></span>fila viva · abre Ocorrências</span>
       </article>
-      <article class="kpi-a">
+      <article class="kpi-a kpi-a--drill${state.view.vgDrill === "ativos" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="ativos" aria-expanded="${state.view.vgDrill === "ativos" ? "true" : "false"}" aria-controls="vg-dd-ativos" aria-label="Colaboradores ativos, ver histórico mês a mês">
         <div class="kpi-a__top"><span>Colaboradores ativos</span>${icon("users")}</div>
         <div class="kpi-a__vl">${countActiveFuncs(u)}</div>
         ${vgDeltaHtml(dAtivos, { mes: mesAnt })}
         <div class="kpi-a__ht">${u.role === "lider" ? `turno ${u.turno}` : u.role === "supervisor" ? "sob sua supervisão" : "no quadro"}</div>
+        ${vgCueHtml()}
       </article>
-      <article class="kpi-a">
+      <article class="kpi-a kpi-a--drill${state.view.vgDrill === "resolvidas" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="resolvidas" aria-expanded="${state.view.vgDrill === "resolvidas" ? "true" : "false"}" aria-controls="vg-dd-resolvidas" aria-label="Resolvidas no mês, ver histórico mês a mês">
         <div class="kpi-a__top"><span>Resolvidas no mês</span>${icon("check")}</div>
-        <div class="kpi-a__vl">${done.length + nDoneAuto}</div>
-        ${vgDeltaHtml(dResolv, { mes: mesAnt })}
+        <div class="kpi-a__vl">${resolvidasMes}</div>
+        <div class="kpi-a__ht">${resolvManualMes} manual · ${nDoneAuto} ${nDoneAuto === 1 ? "automática" : "automáticas"}</div>
+        ${vgCueHtml()}
       </article>
-      <article class="kpi-a">
+      <article class="kpi-a kpi-a--drill${state.view.vgDrill === "turnover" ? " is-open" : ""}" role="button" tabindex="0" data-vg-drill="turnover" aria-expanded="${state.view.vgDrill === "turnover" ? "true" : "false"}" aria-controls="vg-dd-turnover" aria-label="Turnover no mês, ver histórico mês a mês">
         <div class="kpi-a__top"><span>Turnover no mês</span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
         <div class="kpi-a__vl">${tv.temDado ? tvFmt(tv.mensal) : "—"}</div>
         ${tv.temDado ? vgDeltaHtml(dTurn, { unidade: "pt", inverter: true, casas: 1, mes: mesAnt }) : ""}
         <div class="kpi-a__ht">${tv.temDado ? `${tv.admMes} contrataç${tv.admMes === 1 ? "ão" : "ões"} · ${tv.desligMes} desligamento${tv.desligMes === 1 ? "" : "s"}` : "sem quadro"}</div>
+        ${vgCueHtml()}
       </article>
     </div>
+    ${vgDrillHtml(state.view.vgDrill, serie, nDoneAuto)}
 
     ${vgPrecisaDeVoce(u)}
     <div class="vg-grid">
@@ -8966,6 +9077,31 @@ function renderVisaoGeral() {
       }
       renderApp();
     }));
+    // Card "a conferir": leva pra tela Ocorrências (fila viva, não expande).
+    const conf = $("#view .kpi-a[data-vg-conferir]");
+    if (conf) {
+      const ir = () => { state.view.page = "dashboard"; state.view.filterTab = conf.dataset.vgConferir; renderApp(); };
+      conf.addEventListener("click", ir);
+      conf.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ir(); } });
+    }
+    // Cards com histórico: acordeão inline, UM aberto por vez (state.view.vgDrill).
+    $$("#view .kpi-a[data-vg-drill]").forEach((c) => {
+      const alterna = () => {
+        const k = c.dataset.vgDrill;
+        state.view.vgDrill = state.view.vgDrill === k ? null : k;
+        renderApp();
+      };
+      c.addEventListener("click", alterna);
+      c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alterna(); } });
+    });
+    // Entrada one-shot do painel (WAAPI, não classe): anima só quando ABRE de fato — o
+    // guard força re-render com o mesmo vgDrill e _vgDrillAnim já casa, então não re-cascateia.
+    const dd = state.view.vgDrill ? $("#view #vg-dd-" + state.view.vgDrill) : null;
+    if (dd && state._vgDrillAnim !== state.view.vgDrill && !prefereMenosMovimento() && typeof dd.animate === "function") {
+      dd.animate([{ opacity: 0, transform: "translateY(-6px)" }, { opacity: 1, transform: "none" }],
+        { duration: 260, easing: "cubic-bezier(.2, .8, .2, 1)" });
+    }
+    state._vgDrillAnim = state.view.vgDrill || null;
   }
   // Boas-vindas nos recém-chegados: estado real assíncrono + toque otimista; idempotente
   // (re-preencher num skip não faz mal), então roda sempre.
@@ -18995,7 +19131,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.3.0";
+window.CURRENT_VERSION = "2.4.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
