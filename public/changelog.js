@@ -14,7 +14,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.0.2", d: "22 jul 2026", current: true, items: [
+    v: "2.0.3", d: "21 jul 2026", current: true, items: [
+      { type: "feat", title: "O Canal de denuncia ganhou uma entrada tambem na tela Conta, alem da linha na home.", aud: "colab" },
+    ],
+  },
+  {
+    v: "2.0.2", d: "22 jul 2026", items: [
       { type: "fix", title: "Abrir o app ficou mais redondo: a atualizacao aparece mais cedo, a volta e continua e o nome FioPulse nao muda mais de tamanho no meio do caminho.", aud: "colab" },
     ],
   },
