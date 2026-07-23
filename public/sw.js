@@ -16,7 +16,7 @@
 //    a cada deploy que mexa em SW/estratégia (segue o ?v= do index.html). FONT_CACHE
 //    só muda se um dia os BYTES de uma fonte mudarem (bump manual do nome, raro).
 
-const CACHE = "fiopulse-v387";
+const CACHE = "fiopulse-v388";
 const FONT_CACHE = "fiopulse-fontes-v1";
 
 self.addEventListener("install", () => {
