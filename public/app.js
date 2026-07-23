@@ -5740,8 +5740,26 @@ function renderApp() {
       document.startViewTransition(() => _renderAppNow()).ready.catch(() => {});
     } else {
       _renderAppNow();
+      // P5 (BOOT PERFEITO): onde a View Transition é PULADA (sem suporte no iOS,
+      // página rolada, __semVT do harness), a troca era swap seco do #view. Fallback:
+      // fade-in curto no container recém-trocado, SÓ quando a PÁGINA mudou e o usuário
+      // não pediu menos movimento (reduced-motion segue troca instantânea). WAAPI
+      // fill:none: one-shot, não deixa classe/style que um re-render ressuscite (DOM
+      // idêntico, flicker-guard intacto), não toca html.pp-anima nem a cascata da home.
+      // Fora do harness (__semVT/__fpForceWrite chamam _renderAppNow direto e não passam
+      // aqui; a guarda extra mantém o guard 100% sem fade mesmo no login que agenda renderApp).
+      if (trocouPagina && !prefereMenosMovimento() && !window.__semVT && !window.__fpForceWrite) _fadeTrocaView();
     }
   });
+}
+
+// Fade-in one-shot do container #view na troca de página SEM View Transition (P5). WAAPI
+// com fill:none: some sozinho, nunca escreve no DOM. Só o container, opacity 0.35->1 em
+// ~90ms; a cascata dos filhos (html.pp-anima) roda por cima, sem conflito.
+function _fadeTrocaView() {
+  const view = document.getElementById("view");
+  if (!view || !view.animate) return;
+  view.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 90, easing: "ease-out", fill: "none" });
 }
 
 function _renderAppNow() {
@@ -20065,7 +20083,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.13.0";
+window.CURRENT_VERSION = "2.14.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

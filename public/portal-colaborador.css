@@ -476,6 +476,14 @@ html.modo-colab.cp-dark{
      encaixa junto: o contador da aba Documentos volta pro lado do título. */
   .modo-colab #view>.pp-fade{max-width:780px;margin-inline:auto}
   .pp-home__grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:start}
+  /* Degrada pra coluna única quando a coluna de gami+atenção não tem conteúdo
+     relevante (gami dormente + zero pendências): o grid reservava a coluna vazia
+     e sobrava um vão enorme à esquerda (a home ficava torta). Sem ela, o miolo
+     vira uma coluna de largura cheia (mesmo padrão de Avisos/Documentos), centrada
+     pelo cap de 780px acima. :has = recurso nativo (degrau 4); iOS 15.4+/Chrome 105+.
+     Só CSS: o DOM não muda, então o mobile (<=900px) fica intocado. */
+  .pp-home__grid:not(:has(> .pp-home__col:first-child > *)){display:block}
+  .pp-home__grid:not(:has(> .pp-home__col:first-child > *)) > .pp-home__col:first-child{display:none}
   .pp-aniv-d{display:block}
   /* Roadmap desktop: lista alinhada, sem alternância l/r nem tocos de conector soltos
      (os fp-trib-svg pareciam artefato de renderização numa lista já vertical). */
