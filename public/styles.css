@@ -4955,6 +4955,38 @@ button.gm-card { cursor: pointer; }
 .g-cand__acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .g-cand__ficha { flex: 0 0 auto; }
 
+/* ---- Vagas internas (fase 2) ---- */
+/* Campo Visibilidade no form: 3 chips, seleção única, default Pública. */
+.vg-vis { margin: 16px 0 2px; }
+.vg-vis__lbl { display: flex; align-items: center; gap: 7px; font: 600 12px var(--font); color: var(--text-body); margin-bottom: 9px; }
+.vg-vis__lbl .icon { width: 15px; height: 15px; color: var(--text-muted); }
+.vg-vis__row { display: flex; gap: 10px; flex-wrap: wrap; }
+.vchip { flex: 1; min-width: 210px; text-align: left; border: 1.5px solid var(--border-strong); background: var(--surface); border-radius: 14px; padding: 13px 14px; cursor: pointer; font: inherit; display: flex; gap: 11px; align-items: flex-start; transition: border-color .15s, background .15s, box-shadow .15s; }
+.vchip__bx { width: 19px; height: 19px; border-radius: 50%; border: 1.8px solid var(--border-strong); flex: 0 0 auto; margin-top: 1px; display: grid; place-items: center; transition: border-color .15s, background .15s; }
+.vchip__bx .icon { width: 12px; height: 12px; color: #fff; opacity: 0; transition: opacity .12s; }
+.vchip__tx b { display: block; font: 700 13px var(--font); color: var(--text-body); }
+.vchip__tx span { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.45; }
+.vchip.on { border-color: var(--plum); background: var(--surface-warm); box-shadow: 0 0 0 3px rgba(0, 136, 53, .10); }
+.vchip.on .vchip__bx { border-color: var(--plum); background: var(--plum); }
+.vchip.on .vchip__bx .icon { opacity: 1; }
+/* Selo discreto na lista de vagas (azul da marca = interno). */
+.vsel { display: inline-flex; align-items: center; gap: 5px; font: 700 10.5px var(--font); letter-spacing: .02em; padding: 4px 10px; border-radius: 999px; background: var(--info-bg); color: var(--info); border: 1px solid var(--info-edge); }
+.vsel .icon { width: 12px; height: 12px; }
+/* Candidatura de colaborador interno no funil: barra azul + ficha em tiles + selo Interno. */
+.g-cand--int { border-left-color: var(--info); }
+.gi-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gi-orig { display: inline-flex; align-items: center; gap: 5px; font: 800 10px var(--font); letter-spacing: .03em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: var(--info-bg); color: var(--info); border: 1px solid var(--info-edge); }
+.gi-orig .icon { width: 11px; height: 11px; }
+.gi-ficha { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 0; }
+.gi-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 10px 12px; }
+.gi-tile__k { font: 700 10px var(--font); text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); }
+.gi-tile__v { font: 700 13.5px var(--font); color: var(--text-body); margin-top: 3px; }
+.gi-mot { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 12px 13px; margin-top: 11px; }
+.gi-mot__k { font: 700 10px var(--font); text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); }
+.gi-mot p { margin: 5px 0 0; font-size: 13px; color: var(--text-body); line-height: 1.5; font-style: italic; }
+.gi-nomot { margin: 10px 0 0; font-size: 11.5px; color: var(--text-muted); }
+@media (max-width: 700px) { .gi-ficha { grid-template-columns: repeat(2, 1fr); } .vchip { min-width: 100%; } }
+
 /* Funil de status (fase 1, mock funil-email-2026-07 cena 1): rodapé full-width do card,
    segmented sóbrio dos 4 passos + botão "Mensagem ao candidato". Cores nos tokens
    semânticos = legível no claro e no dark do gestor. */

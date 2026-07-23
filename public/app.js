@@ -1836,6 +1836,7 @@ function cpIcon(name) {
     refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
     medalha: '<circle cx="12" cy="9" r="5.5"/><path d="M8.8 13.5 7 21l5-2.6L17 21l-1.8-7.5"/>',
     star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -1998,7 +1999,7 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação", "colab-denuncia": "Canal de denúncia" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação", "colab-denuncia": "Canal de denúncia", "colab-oportunidades": "Oportunidades internas" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conquistas") return renderColabConquistas();
   if (page === "colab-conta") return renderColabConta();
@@ -2011,6 +2012,7 @@ function renderViewColaborador() {
   if (page === "colab-comunicados") return renderColabComunicados();
   if (page === "colab-documentos") return renderColabDocumentos();
   if (page === "colab-denuncia") return renderColabDenuncia();
+  if (page === "colab-oportunidades") return renderColabOportunidades();
   return renderColaboradorHome();
 }
 
@@ -4175,6 +4177,7 @@ function renderColaboradorHome() {
   const escreveu = setHtml(view, `
     <div class="pp-fade pp-home">
       <div data-region="home:greet"></div>
+      ${colabOportunidadeHtml()}
       ${colabAtalhosHtml()}
       <div class="pp-home__grid">
         <div class="pp-home__col">
@@ -4425,6 +4428,160 @@ function denResetFluxo() {
   // Tela Acompanhar (consulta por código): tudo em memória (view), nunca storage.
   state.view.denCodConsulta = "";
   state.view.denConsulta = null;
+}
+
+// ===== Colaborador · OPORTUNIDADES INTERNAS (fase 2, vagas internas) =====
+// Card discreto na home + tela própria (rota colab-oportunidades, alcançável só pela home,
+// como o mock desenhou) + bottom sheet de interesse em 1 toque. Discrição estrutural: o
+// interesse vai só pra GP, o líder não é avisado, o app já conhece o colaborador.
+
+// Card da home: "Oportunidade interna aberta". Some quando não há vaga interna aberta.
+function colabOportunidadeHtml() {
+  const vagas = state.vagasInternasColab || [];
+  if (!vagas.length) return "";
+  const n = vagas.length;
+  const titulo = n === 1 ? vagas[0].titulo : `${n} oportunidades abertas`;
+  const sub = n === 1 ? "1 vaga aberta pra quem já é da casa" : "Vagas abertas pra quem já é da casa";
+  return `<button class="vi-nudge" type="button" data-nav="colab-oportunidades">
+    <span class="vi-nudge__ic">${cpIcon("briefcase")}</span>
+    <span class="vi-nudge__bd">
+      <span class="vi-nudge__k">Oportunidade interna aberta</span>
+      <span class="vi-nudge__t">${escapeHtml(titulo)}</span>
+      <span class="vi-nudge__s">${escapeHtml(sub)}</span>
+    </span>
+    <span class="vi-nudge__arr">${cpIcon("chevron")}</span>
+  </button>`;
+}
+
+// Snapshot do próprio colaborador (o que a GP recebe): tudo do state, zero digitação.
+// tempoCasaMeses calculado da admissão. Fonte de verdade do payload do interesse.
+function meuSnapshotInterno() {
+  const f = (state.funcionarios && state.funcionarios[0]) || {};
+  const turnoLbl = (f.turno && typeof TURNOS !== "undefined" && TURNOS[f.turno]) ? TURNOS[f.turno].label
+    : (f.turno === "geral" ? "Geral" : (f.turno ? `${f.turno}º turno` : ""));
+  const adm = tsParaData(f.admissao);
+  let meses = 0;
+  if (adm) {
+    const hoje = new Date();
+    meses = (hoje.getFullYear() - adm.getFullYear()) * 12 + (hoje.getMonth() - adm.getMonth());
+    if (hoje.getDate() < adm.getDate()) meses -= 1;
+    meses = Math.max(0, meses);
+  }
+  return { cargo: f.cargo || "", setor: f.setor || "", turno: turnoLbl, tempoCasaMeses: meses };
+}
+
+function vioCardHtml(vg, jaEnviei) {
+  const chips = [
+    vg.setor ? `<span class="vio__chip">${cpIcon("briefcase")}${escapeHtml(vg.setor)}</span>` : "",
+    vg.turno ? `<span class="vio__chip">${cpIcon("clock")}${escapeHtml(vg.turno)}</span>` : "",
+    vg.cidade ? `<span class="vio__chip">${cpIcon("mappin")}${escapeHtml(vg.cidade)}</span>` : "",
+  ].join("");
+  const desc = vg.descricao ? `<p class="vio__desc">${escapeHtml(String(vg.descricao).replace(/\s+/g, " ").trim())}</p>` : "";
+  return `<div class="vio${jaEnviei ? " vio--done" : ""}">
+    <p class="vio__t">${escapeHtml(vg.titulo || "")}</p>
+    ${chips ? `<div class="vio__meta">${chips}</div>` : ""}
+    ${desc}
+    <div class="vio__foot"><button class="vi-btn vi-btn--primary" type="button" data-vi-interesse="${escapeHtml(vg.id)}">${cpIcon("heart")}Tenho interesse</button></div>
+    <div class="vio__done">${cpIcon("check")}Interesse enviado à GP</div>
+  </div>`;
+}
+
+function renderColabOportunidades() {
+  const view = $("#view");
+  const vagas = state.vagasInternasColab || [];
+  const meus = state.meusInteressesInternos || {};
+  const lista = vagas.length
+    ? vagas.map((vg) => vioCardHtml(vg, !!meus[vg.id])).join("")
+    : `<div class="vi-empty">Nenhuma oportunidade interna aberta agora. Quando abrir, ela aparece aqui.</div>`;
+  const escreveu = setHtml(view, `
+    <div class="pp-fade">
+      <div class="cp-head">
+        <button class="cp-back" type="button" data-nav="colab-home" aria-label="Voltar">${cpIcon("chevron")}</button>
+        <div class="cp-head__tx"><h2>Oportunidades internas</h2><p>Vagas abertas para quem já é da Fiobras</p></div>
+      </div>
+      ${lista}
+    </div>`);
+  if (escreveu) {
+    bindColabNav(view);
+    view.querySelectorAll("[data-vi-interesse]").forEach((b) => b.addEventListener("click", () => abrirInteresseInterno(b.dataset.viInteresse)));
+  }
+}
+
+// Bottom sheet "Tenho interesse" (física .pp-sheet): mostra o snapshot que a GP recebe,
+// motivação opcional (<=300), microcopy de discrição e confirma com cerimônia curta. A folha
+// vive FORA de #view (não suja o DOM: o re-render da tela nasce idêntico). withBusy: o
+// pós-sucesso vai DENTRO do callback (senão vira falso-sucesso e perde o dado).
+function abrirInteresseInterno(vagaId) {
+  const vg = (state.vagasInternasColab || []).find((x) => x.id === vagaId);
+  if (!vg) return;
+  const snap = meuSnapshotInterno();
+  const u = currentUser();
+  const matricula = String((u && u.codigo) || "").trim();
+  const recebe = (ic, k, val) => `<div class="vi-recv__it"><span class="vi-recv__ic">${cpIcon(ic)}</span><div><div class="vi-recv__k">${k}</div><div class="vi-recv__v">${escapeHtml(val || "—")}</div></div><span class="vi-recv__auto">do app</span></div>`;
+  const prevFocus = document.activeElement;
+  const root = document.createElement("div");
+  root.className = "vi-sheet";
+  root.innerHTML = `
+    <div class="vi-sheet__bd" data-vi-fechar></div>
+    <div class="vi-sheet__folha" role="dialog" aria-modal="true" aria-label="Tenho interesse">
+      <div class="vi-sheet__grip"></div>
+      <div class="vi-form">
+        <h2>Tenho interesse</h2>
+        <p class="vi-sheet__sub">Vaga <b>${escapeHtml(vg.titulo || "")}</b>. É só confirmar, você não preenche nada. Veja o que a GP vai receber:</p>
+        <div class="vi-recv">
+          <div class="vi-recv__rot">A GP recebe</div>
+          ${recebe("user", "Nome e matrícula", `${u && u.nome ? u.nome : ""}${matricula ? ` (${matricula})` : ""}`)}
+          ${recebe("briefcase", "Cargo atual e setor", [snap.cargo, snap.setor].filter(Boolean).join(" · "))}
+          ${recebe("clock", "Turno e tempo de casa", [snap.turno, tempoCasaFmt(snap.tempoCasaMeses)].filter(Boolean).join(" · "))}
+        </div>
+        <div class="vi-mot">
+          <label for="vi-mot-tx">Quer contar por que tem interesse? <span>(opcional)</span></label>
+          <textarea id="vi-mot-tx" rows="3" maxlength="300" placeholder="Duas ou três linhas, se quiser. Pode deixar em branco."></textarea>
+        </div>
+        <div class="vi-disc">${cpIcon("lock")}<p><b>Só a equipe de Gestão de Pessoas vê o seu interesse. O seu líder não é avisado.</b></p></div>
+        <button class="vi-btn vi-btn--primary" type="button" id="vi-confirm">Confirmar interesse</button>
+        <button class="vi-btn vi-btn--ghost" type="button" id="vi-cancel">Agora não</button>
+        <span class="vi-erro" id="vi-erro"></span>
+      </div>
+      <div class="vi-ok">
+        <div class="vi-ok__ring">${cpIcon("check")}</div>
+        <h2>Interesse enviado</h2>
+        <p>A Gestão de Pessoas recebeu o seu interesse. Se fizer sentido, eles entram em contato com você. Boa sorte.</p>
+        <button class="vi-btn vi-btn--primary" type="button" id="vi-close">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(root);
+  requestAnimationFrame(() => root.classList.add("on"));
+  let fechado = false;
+  const fechar = () => {
+    if (fechado) return;
+    fechado = true;
+    document.removeEventListener("keydown", onKey, true);
+    root.classList.remove("on");
+    setTimeout(() => root.remove(), 320);
+    if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch {} }
+  };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fechar(); } };
+  document.addEventListener("keydown", onKey, true);
+  root.querySelectorAll("[data-vi-fechar]").forEach((b) => b.addEventListener("click", fechar));
+  root.querySelector("#vi-cancel")?.addEventListener("click", fechar);
+  // Fechar pós-sucesso: re-renderiza a tela pra o card virar "enviado".
+  root.querySelector("#vi-close")?.addEventListener("click", () => { fechar(); renderApp(); });
+  root.querySelector("#vi-confirm")?.addEventListener("click", () => withBusy("vi-int:" + vagaId, root.querySelector("#vi-confirm"), async () => {
+    const motiv = (root.querySelector("#vi-mot-tx")?.value || "").trim().slice(0, 300);
+    try {
+      await window.registrarInteresseInterno(vagaId, snap, motiv);
+      // Pós-sucesso DENTRO do callback (senão withBusy engole a exceção e vira falso-sucesso).
+      root.classList.add("vi-sheet--ok");
+      setTimeout(() => root.querySelector("#vi-close")?.focus(), 60);
+    } catch (e) {
+      const el = root.querySelector("#vi-erro");
+      // Interesse já enviado (repetir = update, a rule NEGA): tratamento gracioso.
+      if (el) el.textContent = /permission|denied|already|exists/i.test(String(e?.code || e?.message || e))
+        ? "Você já demonstrou interesse nesta vaga." : "Não enviou agora. Tente de novo em instantes.";
+    }
+  }));
+  setTimeout(() => root.querySelector("#vi-confirm")?.focus(), 60);
 }
 
 // Linha discreta de entrada na home do colaborador (v379, ~44px, mesmo handler data-den-abrir).
@@ -6317,6 +6474,31 @@ function bindGamiEntregas() {
 // ============================================================
 const VAGA_TURNOS = ["1º turno", "2º turno", "3º turno", "Geral"];
 
+// Visibilidade da vaga (fase 2, vagas internas): 3 opções em chip, seleção única, default
+// Pública (comportamento de hoje). Grava o campo 'visibilidade' (a rule valida o enum).
+const VAGA_VIS = [
+  { k: "publica", t: "Pública, só o site", s: "Aparece em vagas.fiobras.com.br. É como funciona hoje." },
+  { k: "interna", t: "Interna, só colaboradores", s: "Aparece no portal do colaborador. Não vai pro site." },
+  { k: "ambas", t: "Pública e interna", s: "No site e no portal ao mesmo tempo." },
+];
+// Selo discreto na lista de vagas: interna/ambas ganham selo; pública (ou legada sem o
+// campo) fica sem selo, sinal de que nada mudou pra ela.
+function vagaVisSelo(vis) {
+  return vis === "interna" ? "Interna" : vis === "ambas" ? "Pública e interna" : "";
+}
+// Tempo de casa a partir de meses (int): "3 anos", "1 ano", "5 meses", "2 anos e 3 meses".
+// Usado no funil interno (gestor) e no snapshot do bottom sheet (colaborador).
+function tempoCasaFmt(meses) {
+  const m = Number(meses);
+  if (!Number.isFinite(m) || m < 1) return "menos de 1 mês";
+  const anos = Math.floor(m / 12), rem = m % 12;
+  const pa = anos === 1 ? "ano" : "anos";
+  const pm = rem === 1 ? "mês" : "meses";
+  if (anos === 0) return `${rem} ${pm}`;
+  if (rem === 0) return `${anos} ${pa}`;
+  return `${anos} ${pa} e ${rem} ${pm}`;
+}
+
 // Perfil comportamental (DISC) da candidatura: selo + leitura pronta de 1-2 linhas por
 // perfil. O TEXTO é NOSSO (fixo, copiado do mock aprovado candidatura-completa-2026-07);
 // o candidato NUNCA vê a classificação, é ferramenta interna da GP pra guiar a entrevista.
@@ -6510,6 +6692,10 @@ function renderVagas() {
     setHtml(view, `<header class="page-header"><div><h1>Vagas</h1></div></header><div class="empty"><p>Carregando…</p></div>`);
     (async () => {
       await Promise.all([window.carregarVagasGestor?.(), window.carregarCandidaturasGestor?.()]);
+      // Backfill de visibilidade nas vagas legadas (pré-requisito do go-live da fase 2):
+      // roda 1x por abertura, idempotente e silencioso. Sem isso, as legadas somem da
+      // query nova do site (que filtra visibilidade in ['publica','ambas']).
+      await window.backfillVisibilidadeVagas?.();
       if (state.view.page === "vagas") renderApp();
       // Molde de email faltando? Admin semeia em silencio (idempotente, so os ausentes).
       window.semearMoldesEmail?.();
@@ -6629,6 +6815,50 @@ function renderVagas() {
       ${funilHtml}
     </div>`;
   };
+  // Candidatura de colaborador INTERNO (fase 2): selo Interno + barra azul + ficha vinda
+  // do sistema (snapshot congelado no doc), motivação opcional e o MESMO funil de 5 passos.
+  // SEM "Mensagem ao candidato" nem sugestão: interno não tem email/telefone (a GP fala
+  // direto). Todo campo passa por escapeHtml (defesa em profundidade, dado gravado pelo colab).
+  const candidaturaInternaHtml = (c) => {
+    const stKey = candStatusKey(c.status);
+    const segBtns = CAND_STATUS.map((s) => {
+      const on = s.k === stKey;
+      return `${s.k === "nao-seguiu" ? `<span class="g-cand__seg-sep"></span>` : ""}<button type="button" class="g-cand__st${on ? " on g-cand__st--" + s.cls : ""}" data-cand-st="${escapeHtml(s.k)}" data-cand-id="${escapeHtml(c.id)}" role="tab" aria-selected="${on ? "true" : "false"}"><span class="g-cand__sd"></span>${escapeHtml(s.lbl)}</button>`;
+    }).join("");
+    const matricula = String(c.funcionarioId || "").replace(/^f-/, "");
+    const sub = "Colaborador Fiobras" + (matricula ? ` · matrícula ${escapeHtml(matricula)}` : "");
+    const tiles = [
+      ["Cargo atual", c.cargo], ["Setor", c.setor], ["Turno", c.turno],
+      ["Tempo de casa", tempoCasaFmt(c.tempoCasaMeses)],
+    ].map(([k, val]) => `<div class="gi-tile"><div class="gi-tile__k">${k}</div><div class="gi-tile__v">${escapeHtml(val || "—")}</div></div>`).join("");
+    const mot = (typeof c.motivacao === "string" && c.motivacao.trim())
+      ? `<div class="gi-mot"><div class="gi-mot__k">Motivação</div><p>${escapeHtml(c.motivacao.trim())}</p></div>`
+      : `<p class="gi-nomot">Sem motivação escrita (o campo é opcional).</p>`;
+    return `
+    <div class="g-cand g-cand--int">
+      <div class="g-cand__main">
+        <div class="g-cand__bd">
+          <div class="g-cand__id">
+            <span class="g-cand__av" style="background:var(--info);color:#fff">${escapeHtml(comIniciais(c.nome))}</span>
+            <div class="g-cand__idt">
+              <div class="gi-name"><b>${escapeHtml(c.nome || "")}</b><span class="gi-orig">${icon("home")}Interno</span></div>
+              <span>${sub}</span>
+            </div>
+          </div>
+          <div class="gi-ficha">${tiles}</div>
+          ${mot}
+          <span class="g-cand__data">${c.em ? `${fmt(c.em)} às ${horaAud(c.em)}` : ""}</span>
+        </div>
+      </div>
+      <div class="g-cand__funil">
+        <div class="g-cand__funil-l">
+          <div class="g-cand__funil-rot">Status da candidatura</div>
+          <div class="g-cand__seg" role="tablist">${segBtns}</div>
+          <div class="g-cand__sug">${icon("info")}<span>Colaborador interno: a GP fala direto, sem email nem WhatsApp automático.</span></div>
+        </div>
+      </div>
+    </div>`;
+  };
   const painelHtml = (id) => {
     const lista = candidaturasDaVaga(id);
     const vg = vagas.find((v) => v.id === id);
@@ -6642,7 +6872,8 @@ function renderVagas() {
     // Nota do painel (do mock): a classificação é indicativa, nunca decide sozinha.
     const nota = lista.some((c) => discPerfilKey(c.discPrimario)) ? `
       <div class="g-cand-nota">${icon("info")}<span>Classificação indicativa a partir do teste de perfil. Use junto com a entrevista e a análise do currículo, nunca sozinha para decidir.</span></div>` : "";
-    return `<div class="g-cand-wrap">${lgpd}${lista.length ? lista.map(candidaturaHtml).join("") + nota : `<p class="g-cand-empty">Nenhuma candidatura ainda para esta vaga.</p>`}</div>`;
+    const cardHtml = (c) => c.origem === "interna" ? candidaturaInternaHtml(c) : candidaturaHtml(c);
+    return `<div class="g-cand-wrap">${lgpd}${lista.length ? lista.map(cardHtml).join("") + nota : `<p class="g-cand-empty">Nenhuma candidatura ainda para esta vaga.</p>`}</div>`;
   };
   const linhas = vagas.map((x) => {
     const n = candidaturasDaVaga(x.id).length;
@@ -6651,6 +6882,7 @@ function renderVagas() {
       <div class="g-vaga__bd" data-cand-toggle="${escapeHtml(x.id)}"><b>${escapeHtml(x.titulo || "")}</b>
         <span>${[x.setor, x.turno].filter(Boolean).map(escapeHtml).join(" · ")}${x.status === "publicada" && x.publicadaEm ? ` · publicada em ${fmt(x.publicadaEm)}` : ""}</span></div>
       ${n ? `<button class="g-cand-badge" data-cand-toggle="${escapeHtml(x.id)}">${n} candidatura${n > 1 ? "s" : ""}</button>` : ""}
+      ${(() => { const sl = vagaVisSelo(x.visibilidade); return sl ? `<span class="vsel">${icon("home")}${escapeHtml(sl)}</span>` : ""; })()}
       ${statusHtml(x.status)}
       ${x.status !== "encerrada" ? `<button class="btn btn--ghost btn--sm" data-vaga-editar="${escapeHtml(x.id)}">Editar</button>` : ""}
       ${x.status === "rascunho" ? `<button class="btn btn--primary btn--sm" data-vaga-publicar="${escapeHtml(x.id)}">Publicar</button>` : ""}
@@ -6689,6 +6921,15 @@ function renderVagas() {
           </div>
           <p class="g-ben-cat">${icon("info")}<span>Catálogo padrão. Gerencie os itens na sub-aba <b>Benefícios</b>.</span></p>`;
       })()}
+      <div class="vg-vis">
+        <div class="vg-vis__lbl">${icon("eye")} Visibilidade</div>
+        <div class="vg-vis__row" id="vg-vis">
+          ${VAGA_VIS.map((o) => `<button type="button" class="vchip${(v?.visibilidade || "publica") === o.k ? " on" : ""}" data-vis="${o.k}">
+            <span class="vchip__bx">${icon("check")}</span>
+            <span class="vchip__tx"><b>${escapeHtml(o.t)}</b><span>${escapeHtml(o.s)}</span></span>
+          </button>`).join("")}
+        </div>
+      </div>
       <div class="gami-acao">
         <button class="btn btn--primary" id="vg-salvar">${edit === "nova" ? "Criar rascunho" : "Salvar"}</button>
         <button class="btn btn--ghost" id="vg-cancelar">Cancelar</button>
@@ -6795,6 +7036,11 @@ function renderVagas() {
     return;
   }
   $$("#view .g-ben-it").forEach((b) => b.addEventListener("click", () => b.classList.toggle("on")));
+  // Visibilidade: seleção única (rádio em chip). Toca um, apaga os outros.
+  $$("#vg-vis .vchip").forEach((b) => b.addEventListener("click", () => {
+    $$("#vg-vis .vchip").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+  }));
   $$("#view [data-cand-ficha]").forEach((b) => b.addEventListener("click", () => {
     const c = (state.candidaturas || []).find((x) => x.id === b.dataset.candFicha);
     if (c) openFichaModal(c);
@@ -6803,7 +7049,9 @@ function renderVagas() {
   $("#vg-cancelar")?.addEventListener("click", () => { state.view.vagaEdit = null; renderApp(); });
   $("#vg-salvar")?.addEventListener("click", () => withBusy("vg-salvar", $("#vg-salvar"), async () => {
     const beneficios = $$("#vg-ben .g-ben-it.on").map((el) => el.dataset.ben).filter(Boolean).slice(0, 15);
-    const dados = { titulo: $("#vg-titulo").value.trim(), setor: $("#vg-setor").value.trim(), turno: $("#vg-turno").value.trim(), cidade: $("#vg-cidade").value.trim(), descricao: $("#vg-desc").value.trim(), requisitos: $("#vg-req").value.trim(), beneficios };
+    const visSel = ($("#vg-vis .vchip.on") || {}).dataset?.vis;
+    const visibilidade = VAGA_VIS.some((o) => o.k === visSel) ? visSel : "publica";
+    const dados = { titulo: $("#vg-titulo").value.trim(), setor: $("#vg-setor").value.trim(), turno: $("#vg-turno").value.trim(), cidade: $("#vg-cidade").value.trim(), descricao: $("#vg-desc").value.trim(), requisitos: $("#vg-req").value.trim(), beneficios, visibilidade };
     if (!dados.titulo) { $("#vg-erro").textContent = "A vaga precisa de um título."; return; }
     try {
       await window.salvarVaga(edit === "nova" ? null : edit, dados);
@@ -8679,12 +8927,14 @@ function vgPrecisaDeVoce(u) {
     if (nFoto) pendFoto = { page: "funcionarios", semfoto: true, ic: "camera", n: nFoto, lb: `colaborador${nFoto > 1 ? "es" : ""} sem foto oficial` };
   }
   // Férias vencidas: linha SECUNDÁRIA com o total de gente (no escopo do papel) que tem
-  // período vencido. Mesmo predicado do filtro "Férias vencidas" da lista (ativo + visível +
-  // temVencida) pra a conta bater com o que a tela mostra. Leva pra Funcionários já filtrado.
+  // período vencido. Mesmo predicado do filtro "Férias vencidas" da lista (ativo + NÃO afastado
+  // + visível + temVencida) pra a conta bater com o que a tela mostra. Afastado (ex.:
+  // Aposentadoria por Invalidez) NÃO tem cobrança de férias, é ruído (William 2026-07-23).
+  // Leva pra Funcionários já filtrado.
   let pendFerias = null;
   if (can("func.ver")) {
     const nFerias = (state.funcionarios || []).filter((f) =>
-      f.ativo !== false && podeVerFuncionario(u, f) && state.ferias?.[f.id]?.resumo?.temVencida
+      f.ativo !== false && f.afastado !== true && podeVerFuncionario(u, f) && state.ferias?.[f.id]?.resumo?.temVencida
     ).length;
     if (nFerias) pendFerias = { page: "funcionarios", funcstatus: "ferias-vencidas", ic: "calendar", n: nFerias, lb: `colaborador${nFerias > 1 ? "es" : ""} com férias vencidas` };
   }
@@ -10206,7 +10456,7 @@ function renderFuncList(animar) {
   else if (statusFilter === "ativo") list = list.filter((f) => f.ativo !== false);
   else if (statusFilter === "operacional") list = list.filter((f) => f.ativo !== false && f.afastado !== true && f.diretor !== true && f.aprendiz !== true);
   else if (statusFilter === "afastado") list = list.filter((f) => f.afastado === true);
-  else if (statusFilter === "ferias-vencidas") list = list.filter((f) => f.ativo !== false && state.ferias?.[f.id]?.resumo?.temVencida);
+  else if (statusFilter === "ferias-vencidas") list = list.filter((f) => f.ativo !== false && f.afastado !== true && state.ferias?.[f.id]?.resumo?.temVencida);
   else if (statusFilter === "diretor") list = list.filter((f) => f.diretor === true);
   else if (statusFilter === "aprendiz") list = list.filter((f) => f.aprendiz === true);
   else if (statusFilter === "inativo") list = list.filter((f) => f.ativo === false);
@@ -10287,8 +10537,9 @@ function renderFuncList(animar) {
           ? `<span class="badge badge--${f.afastado === true ? "warning" : "neutral"}">${escapeHtml(f.situacao)}</span>`
           : (f.afastado === true ? `<span class="badge badge--warning">Afastado</span>` : ""));
     // Férias vencidas (dado do pipeline via state.ferias, chave = f.id): badge âmbar com o
-    // total de dias vencidos, ao lado da situação (coexistem). Só ativo, só quando temVencida.
-    const fer = inativo ? null : state.ferias?.[f.id]?.resumo;
+    // total de dias vencidos, ao lado da situação (coexistem). Só ativo e NÃO afastado (afastado
+    // não tem cobrança de férias, William 2026-07-23), só quando temVencida.
+    const fer = (inativo || f.afastado === true) ? null : state.ferias?.[f.id]?.resumo;
     const feriasBadge = (fer && fer.temVencida)
       ? `<span class="badge badge--warning">${diasVencidosLabel(fer.diasVencidos)}</span>`
       : "";
@@ -19229,7 +19480,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.6.0";
+window.CURRENT_VERSION = "2.7.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

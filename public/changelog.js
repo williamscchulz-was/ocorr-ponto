@@ -19,7 +19,14 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.6.0", d: "23 jul 2026", current: true, items: [
+    v: "2.7.0", d: "23 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Vagas internas no funil, com visibilidade por vaga" },
+      { type: "feat", aud: "colab", title: "Oportunidades internas no portal, com um toque" },
+      { type: "fix", aud: "gestor", title: "Férias vencidas ignoram colaboradores afastados" },
+    ],
+  },
+  {
+    v: "2.6.0", d: "23 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Férias vencidas visíveis na lista de Funcionários" },
     ],
   },

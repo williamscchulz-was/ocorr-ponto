@@ -61,6 +61,42 @@ before(async () => {
       vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Candidato Legado Mover", telefone: "47933334444",
       email: "legmover@mail.com", mensagem: "", em: new Date(), status: "nova",
     });
+
+    // ===== VAGAS INTERNAS (fase 2, 2026-07-23) =====
+    // Papeis extra: 2o colaborador (dono de outro interesse), colaborador SEM vinculo
+    // (funcionarioId ausente => nao le interna nem cria interesse) e lider (sem a cap
+    // vagas.gerenciar => nao le candidatura, invariante de discricao).
+    await setDoc(doc(db, "users/uColab2"), { role: "colaborador", nome: "Bruno", funcionarioId: "f-2" });
+    await setDoc(doc(db, "users/uColabSemVinc"), { role: "colaborador", nome: "Sem Vinculo" });
+    await setDoc(doc(db, "users/uLider"), { role: "lider", nome: "Lider", turno: 1 });
+    // Vagas por visibilidade (todas publicadas salvo indicado). vViLegado = SEM o campo
+    // (retrocompat: ausente == publica).
+    await setDoc(doc(db, "vagas/vViInterna"), vaga({ status: "publicada", publicadaEm: new Date(), visibilidade: "interna", titulo: "Aux. de Qualidade" }));
+    await setDoc(doc(db, "vagas/vViAmbas"),   vaga({ status: "publicada", publicadaEm: new Date(), visibilidade: "ambas",   titulo: "Assistente Adm" }));
+    await setDoc(doc(db, "vagas/vViPublica"), vaga({ status: "publicada", publicadaEm: new Date(), visibilidade: "publica" }));
+    await setDoc(doc(db, "vagas/vViLegado"),  vaga({ status: "publicada", publicadaEm: new Date() }));
+    // Vagas dedicadas ao CREATE de interesse (nao mutadas por outros testes).
+    await setDoc(doc(db, "vagas/vIntOk"),      vaga({ status: "publicada", publicadaEm: new Date(), visibilidade: "interna", titulo: "Vaga Interna Ok" }));
+    await setDoc(doc(db, "vagas/vIntAmbas"),   vaga({ status: "publicada", publicadaEm: new Date(), visibilidade: "ambas",   titulo: "Vaga Ambas" }));
+    await setDoc(doc(db, "vagas/vIntPublica"), vaga({ status: "publicada", publicadaEm: new Date(), visibilidade: "publica", titulo: "Vaga Publica" }));
+    await setDoc(doc(db, "vagas/vIntLegado"),  vaga({ status: "publicada", publicadaEm: new Date(), titulo: "Vaga Legada" }));
+    await setDoc(doc(db, "vagas/vIntRasc"),    vaga({ status: "rascunho", visibilidade: "interna", titulo: "Vaga Rasc Int" }));
+    await setDoc(doc(db, "vagas/vIntSpoof"),   vaga({ status: "publicada", publicadaEm: new Date(), visibilidade: "interna", titulo: "Vaga Spoof" }));
+    // BACKFILL de visibilidade (pre-requisito do go-live): vagas LEGADAS sem o campo, uma
+    // por status. A GP adiciona visibilidade:'publica' (rascunho/publicada PASSAM; encerrada
+    // e terminal, NEGA, por isso o cliente a pula).
+    await setDoc(doc(db, "vagas/vBackPub"),  vaga({ status: "publicada", publicadaEm: new Date(), titulo: "Backfill Pub" }));
+    await setDoc(doc(db, "vagas/vBackRasc"), vaga({ status: "rascunho", titulo: "Backfill Rasc" }));
+    await setDoc(doc(db, "vagas/vBackEnc"),  vaga({ status: "encerrada", publicadaEm: new Date(), encerradaEm: new Date(), titulo: "Backfill Enc" }));
+    // Interesses internos JA gravados (read/status/mail); id vagaId__int__funcionarioId.
+    const intSeed = (o = {}) => ({
+      vagaId: "vSeedInt", origem: "interna", uid: "uColab", funcionarioId: "f-1",
+      nome: "Maria", cargo: "Op. de Máquina", setor: "Produção", turno: "1º turno",
+      tempoCasaMeses: 36, motivacao: "Quero crescer.", em: new Date(), status: "nova", ...o,
+    });
+    await setDoc(doc(db, "candidaturas/vSeedInt__int__f-1"), intSeed());
+    await setDoc(doc(db, "candidaturas/vSeedIntOutro__int__f-2"), intSeed({ vagaId: "vSeedIntOutro", uid: "uColab2", funcionarioId: "f-2", nome: "Bruno" }));
+    await setDoc(doc(db, "candidaturas/vSeedIntMove__int__f-1"), intSeed({ vagaId: "vSeedIntMove" }));
   });
 });
 after(async () => { await env.cleanup(); });
@@ -68,14 +104,24 @@ after(async () => { await env.cleanup(); });
 const admin = () => env.authenticatedContext("uAdmin").firestore();
 const rh    = () => env.authenticatedContext("uRh").firestore();
 const colab = () => env.authenticatedContext("uColab").firestore();
+const colab2 = () => env.authenticatedContext("uColab2").firestore();
+const colabSemVinc = () => env.authenticatedContext("uColabSemVinc").firestore();
+const lider = () => env.authenticatedContext("uLider").firestore();
 const anon  = () => env.unauthenticatedContext().firestore();
 
 // ---------- Leitura publica (a fronteira nova) ----------
 test("ANONIMO le vaga publicada", async () => assertSucceeds(getDoc(doc(anon(), "vagas/vPub"))));
 test("ANONIMO NAO le rascunho", async () => assertFails(getDoc(doc(anon(), "vagas/vRasc"))));
 test("ANONIMO NAO le encerrada", async () => assertFails(getDoc(doc(anon(), "vagas/vEnc"))));
-test("ANONIMO: query where status == publicada e provada", async () =>
-  assertSucceeds(getDocs(query(collection(anon(), "vagas"), where("status", "==", "publicada")))));
+// A regra passou a referenciar resource.data.visibilidade na leitura anonima (vagas
+// internas), entao a query do site fase 2 filtra visibilidade in ['publica','ambas'].
+// NOTA: a query ANTIGA (so status) e REJEITADA em PRODUCAO (rules nao sao filtros: a regra
+// referencia um campo que a query nao constrange), mas o EMULADOR e leniente com list e nao
+// reproduz essa rejeicao, entao nao da pra assertar aqui. A garantia de nao-vazamento que o
+// emulador PROVA e o GET anonimo de vaga interna, negado abaixo. Acoplamento de deploy no relatorio.
+test("ANONIMO: query do site (status publicada + visibilidade in publica/ambas) e provada", async () =>
+  assertSucceeds(getDocs(query(collection(anon(), "vagas"),
+    where("status", "==", "publicada"), where("visibilidade", "in", ["publica", "ambas"])))));
 test("ANONIMO: query SEM filtro NEGA (nao vaza rascunho)", async () =>
   assertFails(getDocs(collection(anon(), "vagas"))));
 test("ANONIMO le config/vagas (WhatsApp, publico por proposito)", async () =>
@@ -167,6 +213,15 @@ test("vaga ENCERRADA nao aceita candidatura", async () =>
   assertFails(setDoc(doc(anon(), "candidaturas/vEnc__x3@mail.com"), cand({ vagaId: "vEnc", email: "x3@mail.com" }))));
 test("vaga INEXISTENTE nao aceita candidatura", async () =>
   assertFails(setDoc(doc(anon(), "candidaturas/nada__x4@mail.com"), cand({ vagaId: "nada", email: "x4@mail.com" }))));
+// Fase 2 (vagas internas): candidatura EXTERNA do site em vaga INTERNA NEGA (guard de
+// visibilidade no criaExterna); em vaga AMBAS PASSA; em vaga PUBLICA/legada segue passando
+// (a base 'ANONIMO se candidata' acima usa vCand, sem o campo = publica).
+test("candidatura EXTERNA em vaga INTERNA nega (guard de visibilidade)", async () =>
+  assertFails(setDoc(doc(anon(), "candidaturas/vViInterna__ext@mail.com"),
+    cand({ vagaId: "vViInterna", vagaTitulo: "Aux. de Qualidade", email: "ext@mail.com" }))));
+test("candidatura EXTERNA em vaga AMBAS passa (site enxerga ambas)", async () =>
+  assertSucceeds(setDoc(doc(anon(), "candidaturas/vViAmbas__ext@mail.com"),
+    cand({ vagaId: "vViAmbas", vagaTitulo: "Assistente Adm", email: "ext@mail.com" }))));
 test("email invalido nega", async () =>
   assertFails(setDoc(doc(anon(), "candidaturas/vCand__sem-arroba"), cand({ email: "sem-arroba" }))));
 test("nome curto nega", async () =>
@@ -277,6 +332,26 @@ test("FELIZ: ficha com 1 experiencia + curriculo passa", async () =>
     email: "feliz1c@mail.com",
     experiencias: [exp()],
     curriculoPath: "curriculos/vCand__feliz1c@mail.com__z9.pdf",
+  }))));
+// ORCAMENTO DE EXPRESSOES (fase 2): criaExterna fica perto do teto de 1000 do allow. Estes
+// provam que o guard de visibilidade NAO regride o caso REALISTA pesado que o site produz
+// (3 experiencias + o teste DISC, sem curriculo), nos DOIS ramos do guard: vaga LEGADA (sem
+// o campo) e vaga com visibilidade PUBLICA explicita. NOTA: a ficha ABSOLUTA (3 exp + disc +
+// curriculo juntos) ja estourava o teto ANTES da fase 2 (limite pre-existente da ficha v4,
+// fora do escopo desta missao; reportado ao orquestrador).
+const disc3 = [exp(), exp({ empresa: "Supermercado Bom Preço", motivoSaida: "Pedido" }), exp({ empresa: "Malharia Sul" })];
+// Ramo LEGADO com a ficha ABSOLUTA (3 exp + DISC + curriculo): a combinacao que estourava o
+// teto ANTES da fase 2 e que o refactor 'let cc' devolveu pra dentro do orcamento.
+test("ORCAMENTO: ficha maxima (3exp+DISC+curriculo) em vaga legada passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("orc1@mail.com")), cand({
+    email: "orc1@mail.com", experiencias: disc3, disc: { d: 8, i: -4, s: 2, c: -6 }, discPrimario: "D",
+    curriculoPath: "curriculos/vCand__orc1@mail.com__aa.pdf",
+  }))));
+// Ramo do GUARD (visibilidade publica presente) com ficha pesada realista (3 exp + DISC).
+test("ORCAMENTO: 3 experiencias + DISC em vaga com visibilidade publica passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), "candidaturas/vViPublica__orc2@mail.com"), cand({
+    vagaId: "vViPublica", vagaTitulo: "Operador de Máquina I",
+    email: "orc2@mail.com", experiencias: disc3, disc: { d: 8, i: -4, s: 2, c: -6 }, discPrimario: "D",
   }))));
 
 // ----- Enums obrigatorios: valor invalido NEGA -----
@@ -422,3 +497,137 @@ test("vaga com beneficio nao-string nega", async () =>
   assertFails(setDoc(doc(rh(), "vagas/vBenNum"), vaga({ criadoEm: TS(), beneficios: [42] }))));
 test("vaga com beneficios nao-lista nega", async () =>
   assertFails(setDoc(doc(rh(), "vagas/vBenStr"), vaga({ criadoEm: TS(), beneficios: "Vale" }))));
+
+// ==================================================================
+// VAGAS INTERNAS (fase 2, 2026-07-23): campo visibilidade + leitura por
+// faixa + interesse interno (reuso de /candidaturas com ramo proprio).
+// ==================================================================
+
+// ---------- Campo visibilidade na vaga (aditivo, enum) ----------
+test("RH cria rascunho com visibilidade interna PASSA", async () =>
+  assertSucceeds(setDoc(doc(rh(), "vagas/vVisNova"), vaga({ criadoEm: TS(), visibilidade: "interna" }))));
+test("RH cria rascunho com visibilidade ambas PASSA", async () =>
+  assertSucceeds(setDoc(doc(rh(), "vagas/vVisNova2"), vaga({ criadoEm: TS(), visibilidade: "ambas" }))));
+test("vaga com visibilidade fora do enum NEGA (shape)", async () =>
+  assertFails(setDoc(doc(rh(), "vagas/vVisBad"), vaga({ criadoEm: TS(), visibilidade: "secreta" }))));
+test("RH publica vaga marcando visibilidade interna (rascunho -> publicada) PASSA", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "vagas/vVisNova"), { status: "publicada", visibilidade: "interna", publicadaEm: TS() })));
+// Backfill (pre-requisito do go-live): adicionar visibilidade='publica' a vaga LEGADA.
+test("BACKFILL: adiciona visibilidade publica a vaga PUBLICADA legada PASSA", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "vagas/vBackPub"), { visibilidade: "publica" })));
+test("BACKFILL: adiciona visibilidade publica a vaga RASCUNHO legada PASSA", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "vagas/vBackRasc"), { visibilidade: "publica" })));
+test("BACKFILL em vaga ENCERRADA NEGA (terminal; o cliente pula)", async () =>
+  assertFails(updateDoc(doc(rh(), "vagas/vBackEnc"), { visibilidade: "publica" })));
+
+// ---------- Leitura por faixa (GET) ----------
+test("ANONIMO NAO le vaga INTERNA (nunca vaza pro site)", async () =>
+  assertFails(getDoc(doc(anon(), "vagas/vViInterna"))));
+test("ANONIMO le vaga AMBAS", async () =>
+  assertSucceeds(getDoc(doc(anon(), "vagas/vViAmbas"))));
+test("ANONIMO le vaga com visibilidade PUBLICA explicita", async () =>
+  assertSucceeds(getDoc(doc(anon(), "vagas/vViPublica"))));
+test("ANONIMO le vaga LEGADA sem o campo (retrocompat = publica)", async () =>
+  assertSucceeds(getDoc(doc(anon(), "vagas/vViLegado"))));
+
+test("COLABORADOR com vinculo le vaga INTERNA publicada", async () =>
+  assertSucceeds(getDoc(doc(colab(), "vagas/vViInterna"))));
+test("COLABORADOR com vinculo le vaga AMBAS", async () =>
+  assertSucceeds(getDoc(doc(colab(), "vagas/vViAmbas"))));
+test("COLABORADOR com vinculo tambem le vaga PUBLICA (faixa anonima cobre)", async () =>
+  assertSucceeds(getDoc(doc(colab(), "vagas/vViPublica"))));
+test("COLABORADOR SEM vinculo NAO le vaga interna", async () =>
+  assertFails(getDoc(doc(colabSemVinc(), "vagas/vViInterna"))));
+
+// ---------- Leitura por faixa (LIST · query-provability) ----------
+test("COLABORADOR: query de internas (status publicada + visibilidade in interna/ambas) e provada", async () =>
+  assertSucceeds(getDocs(query(collection(colab(), "vagas"),
+    where("status", "==", "publicada"), where("visibilidade", "in", ["interna", "ambas"])))));
+test("COLABORADOR SEM vinculo: query de internas NEGA (sem faixa interna)", async () =>
+  assertFails(getDocs(query(collection(colabSemVinc(), "vagas"),
+    where("status", "==", "publicada"), where("visibilidade", "in", ["interna", "ambas"])))));
+test("ANONIMO: query de internas NEGA (site nao enxerga interna)", async () =>
+  assertFails(getDocs(query(collection(anon(), "vagas"),
+    where("status", "==", "publicada"), where("visibilidade", "in", ["interna", "ambas"])))));
+
+// ---------- Interesse interno · CREATE (create-only, dedupe por id) ----------
+const interesse = (o = {}) => ({
+  vagaId: "vIntOk", origem: "interna", uid: "uColab", funcionarioId: "f-1",
+  nome: "Maria", cargo: "Op. de Máquina", setor: "Produção", turno: "1º turno",
+  tempoCasaMeses: 36, motivacao: "Quero crescer na qualidade.", em: TS(), status: "nova", ...o,
+});
+const iid = (vagaId, funcId = "f-1") => `candidaturas/${vagaId}__int__${funcId}`;
+
+test("COLABORADOR cria interesse interno valido PASSA", async () =>
+  assertSucceeds(setDoc(doc(colab(), iid("vIntOk")), interesse({ vagaId: "vIntOk" }))));
+test("interesse em vaga AMBAS PASSA; DUPLICADO NEGA (create-only = dedupe)", async () => {
+  await assertSucceeds(setDoc(doc(colab(), iid("vIntAmbas")), interesse({ vagaId: "vIntAmbas" })));
+  await assertFails(setDoc(doc(colab(), iid("vIntAmbas")), interesse({ vagaId: "vIntAmbas" })));
+});
+test("interesse interno em vaga PUBLICA NEGA (v1: usa o site como qualquer um)", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntPublica")), interesse({ vagaId: "vIntPublica" }))));
+test("interesse interno em vaga LEGADA sem visibilidade NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntLegado")), interesse({ vagaId: "vIntLegado" }))));
+test("interesse interno em vaga RASCUNHO NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntRasc")), interesse({ vagaId: "vIntRasc" }))));
+test("interesse interno em vaga INEXISTENTE NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vNadaX")), interesse({ vagaId: "vNadaX" }))));
+
+// Anti-spoof (base = vIntSpoof, todas falham => nao persistem, id reutilizavel)
+test("uid FORJADO (!= auth.uid) NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", uid: "uOutro" }))));
+test("nome DIVERGENTE do users/{uid}.nome NEGA (anti-spoof mural)", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", nome: "Fulano" }))));
+test("funcionarioId de OUTRO NEGA (euSouODono)", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof", "f-2")), interesse({ vagaId: "vIntSpoof", funcionarioId: "f-2" }))));
+test("id fora do padrao vagaId__int__funcionarioId NEGA", async () =>
+  assertFails(setDoc(doc(colab(), "candidaturas/id-errado"), interesse({ vagaId: "vIntSpoof" }))));
+test("campo EXTRA no shape NEGA (hasOnly)", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", extra: "x" }))));
+test("origem != 'interna' NEGA (cai fora dos dois ramos)", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", origem: "externa" }))));
+test("status != 'nova' NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", status: "recebida" }))));
+test("em de cliente (nao server-time) NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", em: new Date() }))));
+test("motivacao acima de 300 NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", motivacao: "m".repeat(301) }))));
+test("tempoCasaMeses negativo NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", tempoCasaMeses: -1 }))));
+test("tempoCasaMeses nao-inteiro NEGA", async () =>
+  assertFails(setDoc(doc(colab(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", tempoCasaMeses: 12.5 }))));
+test("COLABORADOR SEM vinculo NAO cria interesse (euSouODono falha)", async () =>
+  assertFails(setDoc(doc(colabSemVinc(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof", uid: "uColabSemVinc" }))));
+test("ANONIMO tentando o ramo interno NEGA", async () =>
+  assertFails(setDoc(doc(anon(), iid("vIntSpoof")), interesse({ vagaId: "vIntSpoof" }))));
+
+// ---------- Interesse interno · LEITURA ----------
+test("COLABORADOR le o PROPRIO interesse (UI mostra 'interesse enviado')", async () =>
+  assertSucceeds(getDoc(doc(colab(), "candidaturas/vSeedInt__int__f-1"))));
+test("COLABORADOR NAO le interesse de OUTRO", async () =>
+  assertFails(getDoc(doc(colab(), "candidaturas/vSeedIntOutro__int__f-2"))));
+test("GP le o interesse interno (mesma lista da vaga)", async () =>
+  assertSucceeds(getDoc(doc(rh(), "candidaturas/vSeedInt__int__f-1"))));
+test("LIDER (sem cap) NAO le interesse interno (invariante de discricao)", async () =>
+  assertFails(getDoc(doc(lider(), "candidaturas/vSeedInt__int__f-1"))));
+test("ANONIMO NAO le interesse interno", async () =>
+  assertFails(getDoc(doc(anon(), "candidaturas/vSeedInt__int__f-1"))));
+
+// ---------- Interesse interno · FUNIL (GP) + colab nao move ----------
+test("GP move status do interesse interno PASSA (mesmo funil)", async () =>
+  assertSucceeds(updateDoc(doc(rh(), "candidaturas/vSeedIntMove__int__f-1"), { status: "recebida" })));
+test("COLABORADOR NAO move status do interesse (nem o proprio)", async () =>
+  assertFails(updateDoc(doc(colab(), "candidaturas/vSeedInt__int__f-1"), { status: "recebida" })));
+test("COLABORADOR NAO deleta o proprio interesse (retirar = v2)", async () =>
+  assertFails(deleteDoc(doc(colab(), "candidaturas/vSeedInt__int__f-1"))));
+
+// ---------- Defesa em profundidade: /mail e /waMsg nao servem doc interno (sem email/telefone) ----------
+test("GP: mail de status pra doc INTERNO NEGA (guarda 'email' in)", async () =>
+  assertFails(setDoc(doc(rh(), "mail/vSeedInt__int__f-1-em-analise"), {
+    to: "x@y.com", template: { name: "candidatura-em-analise", data: { nome: "Maria", vaga: "Aux" } },
+  })));
+test("GP: waMsg de status pra doc INTERNO NEGA (guarda 'telefone' in)", async () =>
+  assertFails(setDoc(doc(rh(), "waMsg/vSeedInt__int__f-1-em_analise"), {
+    para: "47999998888", template: "candidatura_em_analise",
+    params: { nome: "Maria", vaga: "Aux" }, em: TS(), candidaturaId: "vSeedInt__int__f-1",
+  })));

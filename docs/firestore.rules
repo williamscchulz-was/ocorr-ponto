@@ -1440,20 +1440,27 @@ service cloud.firestore {
     }
 
     // ============================================================
-    // VAGAS (2026-07-14, decisao William: v1 SO PUBLICO). A pagina
-    // vagas.fiobras.com.br le SEM LOGIN: e a PRIMEIRA leitura publica do
-    // projeto, entao a fronteira e estreita DE PROPOSITO: anonimo le
-    // EXCLUSIVAMENTE vaga com status 'publicada' (query where status ==
-    // 'publicada' e provada; rascunho/encerrada negam) e o doc config/vagas
-    // (so o WhatsApp de candidaturas, publico por PROPOSITO). Nenhuma
-    // escrita anonima em lugar nenhum. Conteudo de vaga nao tem PII.
-    // Vagas internas (colaborador se candidata) = fase 2 no roadmap.
+    // VAGAS (2026-07-14 v1 publico; 2026-07-23 fase 2 = vagas internas). A pagina
+    // vagas.fiobras.com.br le SEM LOGIN. A fronteira de leitura tem 3 faixas:
+    //  - ANONIMO/site: vaga 'publicada' com visibilidade 'publica' ou 'ambas' (ou
+    //    SEM o campo, que vale 'publica' por retrocompat). Interna NUNCA vaza pro site.
+    //  - COLABORADOR com vinculo (users/{uid}.funcionarioId): tambem le 'publicada'
+    //    com visibilidade 'interna' ou 'ambas' (oportunidade interna no portal).
+    //  - GP (cap vagas.gerenciar): tudo (rascunho/publicada/encerrada, qualquer visibilidade).
+    // config/vagas segue publico por PROPOSITO (so o WhatsApp). Conteudo de vaga nao tem PII.
+    // ACOPLAMENTO DE DEPLOY (query-provability): a leitura anonima passou a referenciar
+    // resource.data.visibilidade, entao a LIST do site tem que constranger o campo na query
+    // (where visibilidade in ['publica','ambas']); a query ANTIGA (so status) DEIXA de ser
+    // provada e e rejeitada. Logo o deploy desta regra exige, JUNTO, a query nova do site +
+    // backfill de visibilidade='publica' nas vagas ja existentes (o filtro 'in' nao devolve
+    // doc sem o campo). Vagas internas so devem ser criadas depois desta regra no ar. Detalhe
+    // no PLANO / relatorio de fase 1.
     // ============================================================
     match /vagas/{id} {
       function gpVagas() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
       function v() { return request.resource.data; }
       function vagaShapeOk() {
-        return v().keys().hasOnly(['titulo', 'setor', 'turno', 'cidade', 'tipo', 'descricao', 'requisitos', 'status', 'criadoPor', 'criadoEm', 'publicadaEm', 'encerradaEm', 'beneficios'])
+        return v().keys().hasOnly(['titulo', 'setor', 'turno', 'cidade', 'tipo', 'descricao', 'requisitos', 'status', 'criadoPor', 'criadoEm', 'publicadaEm', 'encerradaEm', 'beneficios', 'visibilidade'])
           && v().titulo is string && v().titulo.size() >= 1 && v().titulo.size() <= 120
           && v().descricao is string && v().descricao.size() <= 3000
           && (!('requisitos' in v()) || (v().requisitos is string && v().requisitos.size() <= 3000))
@@ -1461,11 +1468,24 @@ service cloud.firestore {
           && (!('turno' in v()) || (v().turno is string && v().turno.size() <= 40))
           && (!('cidade' in v()) || (v().cidade is string && v().cidade.size() <= 60))
           && (!('tipo' in v()) || (v().tipo is string && v().tipo.size() <= 30))
+          // VISIBILIDADE (fase 2, vagas internas): OPCIONAL, ausente == 'publica' (retrocompat
+          // com as vagas ja criadas). Enum fechado quando presente; QUEM ve o que fica na
+          // LEITURA (anonimo publica/ambas; colaborador com vinculo tambem interna/ambas).
+          && (!('visibilidade' in v()) || v().visibilidade in ['publica', 'interna', 'ambas'])
           // Beneficios marcados pra esta vaga: OPCIONAL, lista <=15 de strings 1..40.
           // Shape-only (sem cross-check com o catalogo, o front restringe).
           && (!('beneficios' in v()) || (v().beneficios is list && v().beneficios.size() <= 15 && benefStrings(v().beneficios)));
       }
-      allow read: if resource.data.status == 'publicada' || gpVagas();
+      // Faixa anonima/site: publicada E (sem visibilidade OU visibilidade publica/ambas).
+      // Faixa colaborador: vinculo real (meuFuncionarioId != '') + publicada + visibilidade
+      // interna/ambas (o 'visibilidade' in guarda contra doc legado sem o campo, que e publica).
+      allow read: if gpVagas()
+        || (resource.data.status == 'publicada'
+            && (!('visibilidade' in resource.data) || resource.data.visibilidade in ['publica', 'ambas']))
+        || (meuFuncionarioId() != ''
+            && resource.data.status == 'publicada'
+            && 'visibilidade' in resource.data
+            && resource.data.visibilidade in ['interna', 'ambas']);
       allow create: if gpVagas()
         && vagaShapeOk()
         && v().status == 'rascunho'
@@ -1651,7 +1671,16 @@ service cloud.firestore {
           && e.salario is number && e.salario > 0 && e.salario <= 1000000
           && e.motivoSaida is string && e.motivoSaida.size() >= 1 && e.motivoSaida.size() <= 120;
       }
-      allow read: if gpCand();
+      // LEITURA: a GP (cap) le tudo; o colaborador le SO o proprio interesse interno
+      // (origem 'interna' + uid == ele), pra UI mostrar "interesse enviado" entre sessoes.
+      // Lider/supervisor SEM a cap seguem SEM ler candidatura (invariante de discricao da
+      // mobilidade interna: o chefe direto nao fica sabendo). O 'origem' in guarda contra o
+      // doc externo (sem origem), que assim nao entra neste ramo e segue so-GP.
+      allow read: if gpCand()
+        || (isAuthed()
+            && 'origem' in resource.data
+            && resource.data.origem == 'interna'
+            && resource.data.uid == request.auth.uid);
       // FICHA COMPLETA (v4, lista da GP, mock aprovado 2026-07-15). O create NOVO exige
       // os dados que a GP pediu (estadoCivil, escolaridade, filhos, endereco,
       // nacionalidade, naturalidade, experiencias, pretensaoSalarial, comoViria,
@@ -1660,47 +1689,101 @@ service cloud.firestore {
       // (sem os novos campos) NAO passam mais no create novo, mas seguem legiveis e
       // deletaveis pela GP (read/delete nao checam shape). O resultado do teste e
       // AUTO-DECLARADO pelo cliente (indicativo por design); os caps so garantem shape sano.
-      allow create: if c().keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status', 'nascimento', 'estadoCivil', 'escolaridade', 'filhos', 'endereco', 'nacionalidade', 'naturalidade', 'experiencias', 'pretensaoSalarial', 'comoViria', 'indicacao', 'disc', 'discPrimario', 'curriculoPath'])
+      // EXTERNA (site): o hasOnly NAO lista 'origem', entao qualquer doc com 'origem' cai FORA
+      // deste ramo (vai pro criaInterna ou nega) — a disjuncao publica/interna e explicita.
+      function criaExterna() {
+        // ORCAMENTO (Fable/2026-07-23): a ficha v4 estava proxima do teto de 1000 expressoes
+        // por allow. Ligar 'cc' a request.resource.data UMA vez (em vez de ~40 chamadas c(),
+        // cada uma inlined a request.resource.data) e 'vd' a vaga UMA vez devolve folga real —
+        // suficiente pra ficha realista (3 experiencias + DISC) + o guard de visibilidade da
+        // fase 2. Semanticamente IDENTICO (cc == c() == request.resource.data). Uso de 'in cc'
+        // pra os opcionais (era 'in cc.keys()') evita reconstruir a lista de chaves 3x.
+        let cc = request.resource.data;
+        let vd = get(/databases/$(database)/documents/vagas/$(cc.vagaId)).data;
+        return cc.keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status', 'nascimento', 'estadoCivil', 'escolaridade', 'filhos', 'endereco', 'nacionalidade', 'naturalidade', 'experiencias', 'pretensaoSalarial', 'comoViria', 'indicacao', 'disc', 'discPrimario', 'curriculoPath'])
         // --- NOVOS obrigatorios (ficha da GP) ---
-        && c().estadoCivil in ['solteiro', 'casado', 'uniao-estavel', 'divorciado', 'viuvo']
-        && c().escolaridade in ['fundamental', 'medio-incompleto', 'medio-completo', 'tecnico', 'superior-incompleto', 'superior-completo', 'pos']
-        && c().filhos is int && c().filhos >= 0 && c().filhos <= 20
-        && c().endereco is string && c().endereco.size() >= 1 && c().endereco.size() <= 200
-        && c().nacionalidade is string && c().nacionalidade.size() >= 1 && c().nacionalidade.size() <= 60
-        && c().naturalidade is string && c().naturalidade.size() >= 1 && c().naturalidade.size() <= 60
-        && c().nascimento is string && c().nascimento.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && cc.estadoCivil in ['solteiro', 'casado', 'uniao-estavel', 'divorciado', 'viuvo']
+        && cc.escolaridade in ['fundamental', 'medio-incompleto', 'medio-completo', 'tecnico', 'superior-incompleto', 'superior-completo', 'pos']
+        && cc.filhos is int && cc.filhos >= 0 && cc.filhos <= 20
+        && cc.endereco is string && cc.endereco.size() >= 1 && cc.endereco.size() <= 200
+        && cc.nacionalidade is string && cc.nacionalidade.size() >= 1 && cc.nacionalidade.size() <= 60
+        && cc.naturalidade is string && cc.naturalidade.size() >= 1 && cc.naturalidade.size() <= 60
+        && cc.nascimento is string && cc.nascimento.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
         // experiencias 0..3 (0 = primeiro emprego); validacao por indice com curto-circuito.
-        && c().experiencias is list && c().experiencias.size() <= 3
-        && (c().experiencias.size() < 1 || expOk(c().experiencias[0]))
-        && (c().experiencias.size() < 2 || expOk(c().experiencias[1]))
-        && (c().experiencias.size() < 3 || expOk(c().experiencias[2]))
-        && c().pretensaoSalarial is number && c().pretensaoSalarial > 0 && c().pretensaoSalarial <= 1000000
-        && c().comoViria in ['a-pe', 'bicicleta', 'moto', 'carro', 'carona', 'onibus']
-        && c().indicacao is string && c().indicacao.size() <= 80
+        && cc.experiencias is list && cc.experiencias.size() <= 3
+        && (cc.experiencias.size() < 1 || expOk(cc.experiencias[0]))
+        && (cc.experiencias.size() < 2 || expOk(cc.experiencias[1]))
+        && (cc.experiencias.size() < 3 || expOk(cc.experiencias[2]))
+        && cc.pretensaoSalarial is number && cc.pretensaoSalarial > 0 && cc.pretensaoSalarial <= 1000000
+        && cc.comoViria in ['a-pe', 'bicicleta', 'moto', 'carro', 'carona', 'onibus']
+        && cc.indicacao is string && cc.indicacao.size() <= 80
         // --- OPCIONAIS aditivos (retrocompat de validacao) ---
-        && (!('disc' in c().keys()) || (c().disc is map
-              && c().disc.keys().hasOnly(['d', 'i', 's', 'c'])
-              && c().disc.d is int && c().disc.d >= -8 && c().disc.d <= 8
-              && c().disc.i is int && c().disc.i >= -8 && c().disc.i <= 8
-              && c().disc.s is int && c().disc.s >= -8 && c().disc.s <= 8
-              && c().disc.c is int && c().disc.c >= -8 && c().disc.c <= 8))
-        && (!('discPrimario' in c().keys()) || c().discPrimario in ['D', 'I', 'S', 'C', 'equilibrado'])
-        && (!('curriculoPath' in c().keys()) || (c().curriculoPath is string && c().curriculoPath.size() <= 220 && c().curriculoPath.matches('curriculos/[A-Za-z0-9@._-]+\\.pdf')))
+        && (!('disc' in cc) || (cc.disc is map
+              && cc.disc.keys().hasOnly(['d', 'i', 's', 'c'])
+              && cc.disc.d is int && cc.disc.d >= -8 && cc.disc.d <= 8
+              && cc.disc.i is int && cc.disc.i >= -8 && cc.disc.i <= 8
+              && cc.disc.s is int && cc.disc.s >= -8 && cc.disc.s <= 8
+              && cc.disc.c is int && cc.disc.c >= -8 && cc.disc.c <= 8))
+        && (!('discPrimario' in cc) || cc.discPrimario in ['D', 'I', 'S', 'C', 'equilibrado'])
+        && (!('curriculoPath' in cc) || (cc.curriculoPath is string && cc.curriculoPath.size() <= 220 && cc.curriculoPath.matches('curriculos/[A-Za-z0-9@._-]+\\.pdf')))
         // --- Existentes (intocados) ---
-        && c().vagaId is string && c().vagaId.size() >= 1 && c().vagaId.size() <= 60
-        && get(/databases/$(database)/documents/vagas/$(c().vagaId)).data.status == 'publicada'
-        // Igualdade com a vaga real (gate): mata titulo enganoso; mesmo doc do get
-        // acima, o acesso repetido e cacheado, zero read extra.
-        && c().vagaTitulo is string && c().vagaTitulo.size() <= 120
-        && c().vagaTitulo == get(/databases/$(database)/documents/vagas/$(c().vagaId)).data.titulo
-        && c().nome is string && c().nome.size() >= 3 && c().nome.size() <= 80
-        && c().telefone is string && c().telefone.size() >= 8 && c().telefone.size() <= 20
-        && c().email is string && c().email.size() >= 5 && c().email.size() <= 120
-        && c().email.matches('[^@\\s]+@[^@\\s]+\\.[^@\\s]+')
-        && c().mensagem is string && c().mensagem.size() <= 1000
-        && c().em == request.time
-        && c().status == 'nova'
-        && cid == c().vagaId + '__' + c().email.lower();
+        && cc.vagaId is string && cc.vagaId.size() >= 1 && cc.vagaId.size() <= 60
+        && vd.status == 'publicada'
+        // VISIBILIDADE (fase 2): vaga INTERNA nao aceita candidatura externa do site.
+        // Quando presente, tem que ser publica/ambas; legada (sem o campo) = publica,
+        // segue aceitando (retrocompat com as vagas ja criadas).
+        && (!('visibilidade' in vd) || vd.visibilidade in ['publica', 'ambas'])
+        // Igualdade com a vaga real (gate): mata titulo enganoso; mesmo doc lido acima.
+        && cc.vagaTitulo is string && cc.vagaTitulo.size() <= 120
+        && cc.vagaTitulo == vd.titulo
+        && cc.nome is string && cc.nome.size() >= 3 && cc.nome.size() <= 80
+        && cc.telefone is string && cc.telefone.size() >= 8 && cc.telefone.size() <= 20
+        && cc.email is string && cc.email.size() >= 5 && cc.email.size() <= 120
+        && cc.email.matches('[^@\\s]+@[^@\\s]+\\.[^@\\s]+')
+        && cc.mensagem is string && cc.mensagem.size() <= 1000
+        && cc.em == request.time
+        && cc.status == 'nova'
+        && cid == cc.vagaId + '__' + cc.email.lower();
+      }
+      // INTERNA (portal do colaborador, fase 2 vagas internas): interesse em 1 toque. Reusa
+      // /candidaturas com ramo proprio e id DETERMINISTICO vagaId__int__funcionarioId (1
+      // interesse por vaga por colaborador; repetir vira update -> NEGA = dedupe estrutural).
+      // Snapshot do momento (cargo/setor/turno/tempoCasa congelados de proposito, shape-only:
+      // sao display pra GP, a seguranca esta no anti-spoof de uid/funcionarioId/nome). Anti-spoof:
+      // uid == quem chama, funcionarioId == o vinculo REAL dele (euSouODono, que exige vinculo
+      // nao vazio) e nome == users/{uid}.nome (precedente do mural). So aceita em vaga PUBLICADA
+      // com visibilidade interna/ambas — interesse em vaga 'publica' (ou legado sem o campo)
+      // NEGA no v1 (nesse caso o colaborador usa o site como qualquer um). Retirar interesse = v2
+      // (update/delete de colab negam: colab nao e gpCand).
+      function criaInterna() {
+        return isAuthed()
+          && c().keys().hasOnly(['vagaId', 'origem', 'uid', 'funcionarioId', 'nome', 'cargo', 'setor', 'turno', 'tempoCasaMeses', 'motivacao', 'em', 'status'])
+          && c().origem == 'interna'
+          && c().status == 'nova'
+          && c().em == request.time
+          && c().uid == request.auth.uid
+          && euSouODono(c().funcionarioId)
+          && c().nome is string && c().nome.size() >= 1 && c().nome.size() <= 120
+          && c().nome == userDoc().nome
+          && c().cargo is string && c().cargo.size() <= 80
+          && c().setor is string && c().setor.size() <= 80
+          && c().turno is string && c().turno.size() <= 40
+          && c().tempoCasaMeses is int && c().tempoCasaMeses >= 0 && c().tempoCasaMeses <= 1200
+          && c().motivacao is string && c().motivacao.size() <= 300
+          && c().vagaId is string && c().vagaId.size() >= 1 && c().vagaId.size() <= 60
+          && cid == c().vagaId + '__int__' + c().funcionarioId
+          && get(/databases/$(database)/documents/vagas/$(c().vagaId)).data.status == 'publicada'
+          && 'visibilidade' in get(/databases/$(database)/documents/vagas/$(c().vagaId)).data
+          && get(/databases/$(database)/documents/vagas/$(c().vagaId)).data.visibilidade in ['interna', 'ambas'];
+      }
+      // Disjuncao EXPLICITA em DUAS allow-create (OR nativo do Firestore): candidatura externa
+      // do site OU interesse interno do portal. Duas regras separadas (em vez de
+      // criaExterna() || criaInterna() numa so) porque cada allow tem seu PROPRIO orcamento de
+      // ~1000 expressoes; a criaExterna (ficha v4) sozinha ja fica perto do teto, e somar a
+      // criaInterna na MESMA expressao estourava o limite (deny espurio). Lixo em 'origem' nega
+      // nos dois: a externa nao lista 'origem' no hasOnly, a interna exige == 'interna'.
+      allow create: if criaExterna();
+      allow create: if criaInterna();
       // FUNIL DE STATUS (fase 1, 2026-07-16; +contratada v383 2026-07-22): a GP move a
       // candidatura entre os 5 passos do funil, e SO isso. gpCand troca UNICAMENTE o campo
       // status (affectedKeys hasOnly) e so pra um valor do enum; todo o resto do cadastro
@@ -1711,6 +1794,9 @@ service cloud.firestore {
       // 'contratada' entra no funil mas NAO tem mensagem: as filas /mail e /waMsg seguem SO
       // nos 3 status com molde (em-analise/aprovada/nao-seguiu), entao um mail/waMsg de
       // 'contratada' e NEGADO la (defesa em profundidade; o front tambem nao tenta criar).
+      // O interesse INTERNO (origem 'interna') entra no MESMO funil sem regra a mais: a GP move
+      // o status igual; e como o doc interno nao tem email/telefone, os creates de /mail e
+      // /waMsg NAO se aplicam a ele (guarda 'email'/'telefone' in la; o front nem tenta).
       allow update: if gpCand()
         && c().diff(resource.data).affectedKeys().hasOnly(['status'])
         && c().status in ['recebida', 'em-analise', 'aprovada', 'contratada', 'nao-seguiu'];
@@ -1790,15 +1876,20 @@ service cloud.firestore {
       function criaRecebida() {
         return moldeOk('candidatura-recebida')
           && existsAfter(/databases/$(database)/documents/candidaturas/$(mailId))
+          && 'email' in getAfter(/databases/$(database)/documents/candidaturas/$(mailId)).data
           && m().to == getAfter(/databases/$(database)/documents/candidaturas/$(mailId)).data.email;
       }
       // (b) email de status: so a GP; id == '<candidaturaId>-<status>'.
+      // Guarda 'email' in: candidatura de interesse INTERNO nao tem email (defesa em
+      // profundidade); sem ela, get().data.email estouraria a avaliacao. Nunca afrouxa
+      // (so torna o deny limpo, o front interno nem cria mail).
       function criaStatus(status) {
         let candId = mailId.replace('-' + status + '$', '');
         return gpCand()
           && moldeOk('candidatura-' + status)
           && mailId == candId + '-' + status
           && exists(/databases/$(database)/documents/candidaturas/$(candId))
+          && 'email' in get(/databases/$(database)/documents/candidaturas/$(candId)).data
           && m().to == get(/databases/$(database)/documents/candidaturas/$(candId)).data.email;
       }
       allow create: if criaRecebida()
@@ -1887,15 +1978,19 @@ service cloud.firestore {
       function criaRecebida() {
         return shapeOk('candidatura_recebida', waId)
           && existsAfter(/databases/$(database)/documents/candidaturas/$(waId))
+          && 'telefone' in getAfter(/databases/$(database)/documents/candidaturas/$(waId)).data
           && w().para == getAfter(/databases/$(database)/documents/candidaturas/$(waId)).data.telefone;
       }
       // (b) status: so a GP; waId == '<candidaturaId>-<status>'.
+      // Guarda 'telefone' in: candidatura de interesse INTERNO nao tem telefone (defesa em
+      // profundidade); sem ela, get().data.telefone estouraria a avaliacao. Nunca afrouxa.
       function criaStatus(status) {
         let candId = waId.replace('-' + status + '$', '');
         return gpCand()
           && shapeOk('candidatura_' + status, candId)
           && waId == candId + '-' + status
           && exists(/databases/$(database)/documents/candidaturas/$(candId))
+          && 'telefone' in get(/databases/$(database)/documents/candidaturas/$(candId)).data
           && w().para == get(/databases/$(database)/documents/candidaturas/$(candId)).data.telefone;
       }
       allow create: if criaRecebida()

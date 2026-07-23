@@ -145,8 +145,20 @@ await p.evaluate(() => {
 });
 await p.waitForTimeout(300);
 await p.evaluate(() => { document.querySelector("#acesso")?.remove(); });
+// Vagas internas (fase 2): semeia a lista + o meu interesse por vaga pra a tela nova
+// (colab-oportunidades) e o card discreto da home renderizarem com conteudo no pente fino.
+await p.evaluate(() => {
+  state.vagasInternasColab = [
+    { id: "vi-1", titulo: "Auxiliar de Controle de Qualidade", setor: "Qualidade", turno: "1º turno", cidade: "Indaial, SC", descricao: "Apoio à rotina de inspeção e controle de qualidade na produção." },
+    { id: "vi-2", titulo: "Assistente Administrativo", setor: "Administrativo", turno: "Geral", cidade: "Indaial, SC", descricao: "Rotinas administrativas de apoio às áreas." },
+  ];
+  state.meusInteressesInternos = { "vi-2": { status: "nova", em: "2026-07-20T10:00:00.000Z" } };
+});
 console.log("COLAB:");
 const paginasColab = await p.evaluate(() => COLAB_NAV.map((x) => x.id));
+// Oportunidades internas (fase 2): filha-da-home (fora de COLAB_NAV, como o canal de
+// denuncia), entra no pente fino explicitamente com a lista ja semeada acima.
+paginasColab.push({ page: "colab-oportunidades", label: "colab-oportunidades" });
 // Canal de denuncia: colab-denuncia e filha-do-hub (fora de COLAB_NAV), entao TODAS as
 // vistas entram aqui como sub-estados, inclusive a porta (bifurcacao) e a tela nova.
 paginasColab.push(

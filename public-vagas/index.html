@@ -906,7 +906,7 @@
 
     var carregar = cacheado
       ? Promise.resolve(cacheado)
-      : db.collection("vagas").where("status", "==", "publicada").get().then(function (snap) {
+      : db.collection("vagas").where("status", "==", "publicada").where("visibilidade", "in", ["publica", "ambas"]).get().then(function (snap) {
           var dados = {
             t: Date.now(),
             vagas: snap.docs.map(function (d) {

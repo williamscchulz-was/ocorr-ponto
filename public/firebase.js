@@ -1996,6 +1996,8 @@
         beneficios: Array.isArray(dados.beneficios)
           ? dados.beneficios.filter((b) => typeof b === "string" && b).map((b) => b.slice(0, 40)).slice(0, 15)
           : [],
+        // Visibilidade (fase 2): default 'publica' = comportamento de hoje. A rule valida o enum.
+        visibilidade: ["publica", "interna", "ambas"].includes(dados.visibilidade) ? dados.visibilidade : "publica",
       };
       if (id) { await db.collection("vagas").doc(id).update(campos); return id; }
       const ref = await db.collection("vagas").add({ ...campos, status: "rascunho", criadoPor: uid, criadoEm: _FV.serverTimestamp() });
@@ -2010,6 +2012,83 @@
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Encerrou vaga do site", alvo: id });
     };
     window.excluirVaga = async function (id) { await db.collection("vagas").doc(id).delete(); };
+    // BACKFILL de visibilidade (pré-requisito do go-live, fase 2): a query nova do site filtra
+    // visibilidade in ['publica','ambas'], que NÃO devolve doc SEM o campo. Ao abrir a tela
+    // Vagas, marco 'publica' nas vagas legadas (rascunho/publicada) que ainda não têm o campo,
+    // pra elas seguirem aparecendo no site. Encerrada fica de fora (update é one-way, seria
+    // negado, e ela nem entra na query do site). Update de 1 campo passa no vagaShapeOk;
+    // idempotente (uma vez gravado, o filtro pula) e best-effort silencioso (falha isolada
+    // não trava a tela). Patcha o state local pra o selo refletir sem re-fetch.
+    window.backfillVisibilidadeVagas = async function () {
+      const vagas = state.vagas || [];
+      const legadas = vagas.filter((v) => v && !("visibilidade" in v) && v.status !== "encerrada");
+      if (!legadas.length) return;
+      await Promise.allSettled(legadas.map(async (v) => {
+        try {
+          await db.collection("vagas").doc(v.id).update({ visibilidade: "publica" });
+          v.visibilidade = "publica";
+        } catch (e) { debug?.("[vagas] backfill visibilidade:", e?.code || e?.message); }
+      }));
+    };
+    // VAGAS INTERNAS no portal do colaborador (fase 2). Query: publicada + visibilidade
+    // interna/ambas (a rule deixa o colaborador COM vinculo ler essa faixa). Lê tambem o
+    // PROPRIO interesse por vaga (doc vagaId__int__funcionarioId; a rule permite ler o proprio),
+    // pra a tela mostrar "interesse enviado" persistente entre sessoes. Cache no state.
+    window.carregarVagasInternasColab = async function () {
+      const u = currentUser();
+      state.vagasInternasColab = state.vagasInternasColab || [];
+      state.meusInteressesInternos = state.meusInteressesInternos || {};
+      if (!u || u.role !== "colaborador" || !u.funcionarioId) { state.vagasInternasColab = []; state.meusInteressesInternos = {}; return; }
+      try {
+        const snap = await db.collection("vagas")
+          .where("status", "==", "publicada")
+          .where("visibilidade", "in", ["interna", "ambas"]).get();
+        const vagas = snap.docs.map((d) => {
+          const v = d.data();
+          return { id: d.id, titulo: v.titulo || "", setor: v.setor || "", turno: v.turno || "",
+            cidade: v.cidade || "", descricao: v.descricao || "", visibilidade: v.visibilidade || "" };
+        });
+        // Meu interesse por vaga: 1 get por vaga (poucas internas abertas). A rule libera SO o
+        // proprio doc (origem interna + uid == ele). Falha isolada nao esconde a vaga.
+        const meus = {};
+        await Promise.all(vagas.map(async (vg) => {
+          try {
+            const r = await db.collection("candidaturas").doc(`${vg.id}__int__${u.funcionarioId}`).get();
+            if (r.exists) { const d = r.data(); meus[vg.id] = { status: d.status || "nova", em: tsToIso(d.em) }; }
+          } catch (e) { /* leitura do proprio interesse; nao trava a lista */ }
+        }));
+        state.vagasInternasColab = vagas;
+        state.meusInteressesInternos = meus;
+      } catch (e) { debug?.("[colab] vagas internas:", e?.code || e?.message); state.vagasInternasColab = state.vagasInternasColab || []; }
+    };
+    // INTERESSE INTERNO (1 toque). Grava candidatura com o shape EXATO do criaInterna (hasOnly):
+    // vagaId/origem/uid/funcionarioId/nome/cargo/setor/turno/tempoCasaMeses/motivacao/em/status.
+    // id deterministico vagaId__int__funcionarioId (1 interesse por vaga por colaborador; repetir
+    // vira update -> NEGA = dedupe estrutural). nome == users/{uid}.nome (anti-spoof da rule).
+    window.registrarInteresseInterno = async function (vagaId, snapshot, motivacao) {
+      const u = currentUser();
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!u || !u.funcionarioId || !uid) throw new Error("Sem vínculo de colaborador.");
+      const s = snapshot || {};
+      const payload = {
+        vagaId: String(vagaId).slice(0, 60),
+        origem: "interna",
+        uid,
+        funcionarioId: u.funcionarioId,
+        nome: u.nome, // EXATO = users/{uid}.nome (a rule exige a igualdade)
+        cargo: String(s.cargo || "").slice(0, 80),
+        setor: String(s.setor || "").slice(0, 80),
+        turno: String(s.turno || "").slice(0, 40),
+        tempoCasaMeses: Math.max(0, Math.min(1200, Math.round(Number(s.tempoCasaMeses) || 0))),
+        motivacao: String(motivacao || "").slice(0, 300),
+        em: _FV.serverTimestamp(),
+        status: "nova",
+      };
+      await db.collection("candidaturas").doc(`${vagaId}__int__${u.funcionarioId}`).set(payload);
+      // Reflete no state pra a tela mostrar "enviado" na hora, sem re-fetch.
+      state.meusInteressesInternos = state.meusInteressesInternos || {};
+      state.meusInteressesInternos[vagaId] = { status: "nova", em: new Date().toISOString() };
+    };
     // config/vagas guarda whatsapp + catálogo de benefícios NO MESMO doc (shape
     // hasOnly(['whatsapp','beneficiosCatalogo']) nas rules; whatsapp SEMPRE presente).
     // Cada save reescreve o doc, então preserva o outro campo a partir do state.
@@ -4478,6 +4557,11 @@
       (async () => {
       // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
       try { await window.carregarAniversariantes(); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
+      })(),
+      (async () => {
+      // Vagas internas abertas + o meu interesse por vaga (fase 2). Depende do vinculo
+      // (funcionarioId, ja em u). Falha isolada -> lista vazia, nao derruba o boot.
+      try { await window.carregarVagasInternasColab(); } catch (e) { debug?.("[colab] vagas internas:", e?.message || e); state.vagasInternasColab = []; }
       })(),
       (async () => {
       // Termo de adesão à assinatura eletrônica (1º acesso): true = já aceitou a versão

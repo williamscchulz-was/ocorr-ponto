@@ -18,7 +18,7 @@ const STUB = () => {
   var now = Date.now();
   function vaga(id, titulo, turno, off) {
     return { id: id, data: function () { return {
-      status: "publicada", titulo: titulo, setor: "Produção", turno: turno, cidade: "Indaial, SC",
+      status: "publicada", visibilidade: "publica", titulo: titulo, setor: "Produção", turno: turno, cidade: "Indaial, SC",
       descricao: "Apoiar a operação e manter o setor organizado ao longo do turno.",
       requisitos: "Ensino fundamental completo.", beneficios: BENS,
       publicadaEm: { toMillis: function () { return now - off; } }
@@ -30,10 +30,13 @@ const STUB = () => {
     vaga("vaga-c", "CONTROLADOR DE MATERIAIS", "Geral", 2000),
   ] };
   function coll(name) {
+    var snap = function () { return Promise.resolve(name === "vagas" ? snapVagas : { docs: [] }); };
+    // where CHAINAVEL (a query do site fase 2 encadeia .where(status).where(visibilidade)).
+    var q = { where: function () { return q; }, get: snap };
     return {
-      where: function () { return { get: function () { return Promise.resolve(name === "vagas" ? snapVagas : { docs: [] }); } }; },
+      where: function () { return q; },
       doc: function () { return { get: function () { return Promise.resolve({ exists: false }); }, set: function () { return Promise.resolve(); } }; },
-      get: function () { return Promise.resolve(name === "vagas" ? snapVagas : { docs: [] }); }
+      get: snap
     };
   }
   var fs2 = function () { return { collection: coll }; };
