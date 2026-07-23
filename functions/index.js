@@ -1,4 +1,5 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
@@ -10,7 +11,8 @@ const FieldValue = admin.firestore.FieldValue;
 const WHATSAPP_TOKEN = defineSecret('WHATSAPP_TOKEN');
 
 const PHONE_NUMBER_ID = '1230898980101128';
-const GRAPH_URL = `https://graph.facebook.com/v23.0/${PHONE_NUMBER_ID}/messages`;
+// Graph API v25 (a Meta ja opera nela); templates com parameter_name sao estaveis v23->v25.
+const GRAPH_URL = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
 const TIMEOUT_MS = 10000;
 
 const TEMPLATES = [
@@ -133,5 +135,98 @@ exports.enviarWaMsg = onDocumentCreated(
     const wamid = (json && json.messages && json.messages[0] && json.messages[0].id) || null;
     await ref.update({ delivery: { state: 'SENT', em: FieldValue.serverTimestamp(), wamid } });
     logger.info('waMsg enviado', { docId, state: 'SENT' });
+  }
+);
+
+// ===== EXPURGO LGPD de candidaturas (agendado) =====
+// Espelho SERVER-SIDE da varredura window.expurgarCandidaturasVencidas (public/firebase.js
+// ~2145), que hoje so roda quando a GP abre a tela Vagas. Esta versao diaria cumpre a
+// promessa de consentimento do site ("guardamos por ate 6 meses e depois apagamos
+// automaticamente") sem depender de ninguem lembrar de abrir o app. A varredura do FRONT
+// CONTINUA existindo; as duas sao idempotentes e convergem no mesmo estado.
+//
+// Semantica identica ao canonico window.excluirCandidatura (firebase.js ~2041): condicao
+// = vaga ENCERRADA cujo encerradaEm ja passou de 6 meses; ordem = OBJETO do curriculo no
+// cofre ANTES do doc da candidatura; arquivo ja ausente NAO bloqueia (o Firestore e a fonte
+// de verdade do "existe"). NAO toca /mail nem /waMsg: o cliente tambem nao (excluirCandidatura
+// so mexe no cofre + doc), entao nem mais nem menos.
+//
+// ZERO PII nos logs: o id da candidatura ({vagaId}__{email}) e o curriculoPath CARREGAM o
+// email do candidato; so logamos id de vaga (id aleatorio do Firestore) e contagens.
+const EXPURGO_CAND_MESES = 6; // espelha EXPURGO_CAND_MESES do front; janela de guarda LGPD
+// Mesmo bucket do web SDK (public/firebase.config.js). Pinado de proposito: o default do
+// Admin SDK em Functions resolveria pra <projeto>.appspot.com, e os curriculos vivem no
+// bucket .firebasestorage.app, entao o delete tem que apontar pra ca.
+const CURRICULOS_BUCKET = 'ocorr-ponto.firebasestorage.app';
+
+exports.expurgarCandidaturasVencidas = onSchedule(
+  {
+    schedule: 'every day 03:15',
+    timeZone: 'America/Sao_Paulo',
+    region: 'us-central1',
+  },
+  async () => {
+    const corte = new Date();
+    corte.setMonth(corte.getMonth() - EXPURGO_CAND_MESES); // 6 meses atras (mesma fronteira do front)
+    const corteMs = corte.getTime();
+
+    // encerradaEm chega como Timestamp; defensivo pra string/numero tambem (igual ao front).
+    // Sem data valida = nao expurga (nao sabe quando encerrou).
+    const encMs = (data) => {
+      const e = data && data.encerradaEm;
+      if (!e) return null;
+      const d = (typeof e.toDate === 'function') ? e.toDate() : new Date(e);
+      return isNaN(d.getTime()) ? null : d.getTime();
+    };
+
+    let vagasVarridas = 0;
+    let candidaturasApagadas = 0;
+
+    let vagasSnap;
+    try {
+      vagasSnap = await db.collection('vagas').where('status', '==', 'encerrada').get();
+    } catch (e) {
+      logger.error('expurgo: leitura de vagas falhou', { erro: (e && e.code) || 'erro' });
+      return;
+    }
+
+    const bucket = admin.storage().bucket(CURRICULOS_BUCKET);
+
+    for (const vagaDoc of vagasSnap.docs) {
+      const ms = encMs(vagaDoc.data());
+      if (ms == null || ms >= corteMs) continue; // sem data ou dentro da janela: intocada
+
+      let candSnap;
+      try {
+        candSnap = await db.collection('candidaturas').where('vagaId', '==', vagaDoc.id).get();
+      } catch (e) {
+        logger.error('expurgo: leitura de candidaturas falhou', { vaga: vagaDoc.id, erro: (e && e.code) || 'erro' });
+        continue;
+      }
+      if (candSnap.empty) continue;
+
+      let ok = 0;
+      for (const candDoc of candSnap.docs) {
+        // try/catch por candidatura: uma falha nao derruba a varredura (as outras seguem).
+        try {
+          const path = candDoc.get('curriculoPath');
+          if (typeof path === 'string' && path) {
+            // Cofre ANTES do doc (ordem do canonico). QUALQUER erro do cofre e engolido aqui,
+            // igual ao front: o doc sai mesmo assim (Firestore = fonte de verdade). ignoreNotFound
+            // deixa o 404 (arquivo ja sumiu) silencioso = idempotente.
+            try { await bucket.file(path).delete({ ignoreNotFound: true }); }
+            catch (e) { logger.warn('expurgo: cofre nao apagou (segue mesmo assim)', { vaga: vagaDoc.id, erro: (e && e.code) || 'erro' }); }
+          }
+          await candDoc.ref.delete(); // Firestore delete e idempotente (doc ja ausente = ok)
+          ok++;
+        } catch (e) {
+          logger.warn('expurgo: pulou 1 candidatura', { vaga: vagaDoc.id, erro: (e && e.code) || 'erro' });
+        }
+      }
+      candidaturasApagadas += ok;
+      if (ok) { vagasVarridas++; logger.info('expurgo: vaga varrida', { vaga: vagaDoc.id, apagadas: ok }); }
+    }
+
+    logger.info('expurgo concluido', { vagasVarridas, candidaturasApagadas });
   }
 );
