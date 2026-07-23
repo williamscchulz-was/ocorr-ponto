@@ -38,11 +38,14 @@ before(async () => {
     await setDoc(doc(db, "users/uRh"), { role: "rh", nome: "Suyanne" });
     await setDoc(doc(db, "users/uLider"), { role: "lider", turno: 1, nome: "Adelir" });
     await setDoc(doc(db, "users/uSuperv"), { role: "supervisor", funcionariosVisiveis: ["f-476"], turnosVisiveis: [1], nome: "Jacques" });
-    // Colaborador DONO do doc /ferias/476 (codigo == 476, funcionarioId == f-476): prova que
-    // nem o proprio le nesta v1.
+    // Colaborador DONO do doc /ferias/476 (codigo == 476, funcionarioId == f-476): le SO o proprio.
     await setDoc(doc(db, "users/uColab"), { role: "colaborador", codigo: 476, funcionarioId: "f-476", nome: "Jacques R" });
+    // Colaborador SEM vinculo (users sem funcionarioId): meuFuncionarioId() == '' => sempre NEGA.
+    await setDoc(doc(db, "users/uColabSV"), { role: "colaborador", nome: "Sem Vinculo" });
     // Doc de ferias ja gravado pelo "pipeline".
     await setDoc(doc(db, "ferias/476"), feriasDoc());
+    // Ferias de OUTRO funcionario (codigo 477): o colab de f-476 nao pode ler.
+    await setDoc(doc(db, "ferias/477"), { ...feriasDoc(), funcionarioId: "f-477" });
   });
 });
 after(async () => { await env.cleanup(); });
@@ -52,6 +55,7 @@ const rh     = () => env.authenticatedContext("uRh").firestore();
 const lider  = () => env.authenticatedContext("uLider").firestore();
 const superv = () => env.authenticatedContext("uSuperv").firestore();
 const colab  = () => env.authenticatedContext("uColab").firestore();
+const colabSV = () => env.authenticatedContext("uColabSV").firestore();
 const anon   = () => env.unauthenticatedContext().firestore();
 
 // ---------- LEITURA: cada papel gestor da guarda LE ----------
@@ -62,9 +66,13 @@ test("LIDER le ferias (guarda global, espelha /funcionarios)", async () =>
 test("SUPERVISOR le ferias (guarda global, espelha /funcionarios)", async () =>
   assertSucceeds(getDoc(doc(superv(), "ferias/476"))));
 
-// ---------- LEITURA negada: colaborador (inclusive o proprio) + anonimo ----------
-test("COLABORADOR DONO (codigo == doc) NAO le ferias (v1 so gestor)", async () =>
-  assertFails(getDoc(doc(colab(), "ferias/476"))));
+// ---------- LEITURA colaborador: SO o proprio vinculo (users.funcionarioId == 'f-'+codigo) ----------
+test("COLABORADOR DONO (funcionarioId == f-476) LE o proprio ferias/476", async () =>
+  assertSucceeds(getDoc(doc(colab(), "ferias/476"))));
+test("COLABORADOR NAO le ferias de OUTRO codigo (ferias/477)", async () =>
+  assertFails(getDoc(doc(colab(), "ferias/477"))));
+test("COLABORADOR SEM vinculo (users sem funcionarioId) NAO le ferias", async () =>
+  assertFails(getDoc(doc(colabSV(), "ferias/476"))));
 test("ANONIMO NAO le ferias", async () =>
   assertFails(getDoc(doc(anon(), "ferias/476"))));
 

@@ -444,9 +444,13 @@ service cloud.firestore {
     // e onde o badge "X dias vencidos" mora, a lista de Funcionarios, que os quatro papeis ja
     // leem global. O doc NAO traz funcionarioTurno, entao nao da pra escopar lider por turno como
     // o /bancoHoras faz; seguimos o precedente de /funcionarios (global) de proposito. Colaborador
-    // NAO le, nem o proprio codigo (v2 futura, decisao de produto). Escrita de cliente: false.
+    // le SO o proprio vinculo (users.funcionarioId == 'f-'+codigo, via euSouODono, espelhando o
+    // precedente de /funcionarios que usa euSouODono(id)): get do proprio doc passa; query por
+    // outro codigo NEGA e list amplo NEGA (o predicado depende do codigo do path, nao ha faixa
+    // que libere varredura). Escrita de cliente: false (o pipeline escreve por Admin SDK).
     match /ferias/{codigo} {
-      allow read: if isAdmin() || isRH() || isLider() || isSupervisor();
+      allow read: if isAdmin() || isRH() || isLider() || isSupervisor()
+                  || (isColaborador() && euSouODono('f-' + codigo)); // colaborador vê só as próprias
       allow write: if false;
     }
 
