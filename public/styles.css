@@ -2804,6 +2804,81 @@ html.firebase-mode .login__forgot { display: block; }
   border-radius: 999px; padding: 2px 9px; margin-left: 6px;
 }
 
+/* ============================================
+   Perfil · abas (Perfil | Férias, v394)
+   ============================================ */
+/* Reusa .gm-tabs (pílula). O painel troca por atributo hidden, entrada one-shot no JS. */
+.func-tabs { margin: 0 0 16px; }
+.func-tabpanel[hidden] { display: none; }
+/* Caixa "sem dado" honesta (não deixa parede de "—"). */
+.secao-ghost {
+  border: 1px dashed var(--border-strong); border-radius: var(--radius);
+  padding: 12px 14px; font-size: 12px; color: var(--text-muted); background: var(--milk);
+}
+.secao-ghost b { color: var(--text-body); font-weight: 600; }
+
+/* ---- Bloco Férias ---- */
+.fer-destaques { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+/* Vencidas: protagonista âmbar, uma linha por período. */
+.fer-vencidas { background: var(--warning-bg); border: 1px solid var(--warning); border-radius: var(--radius); padding: 12px 14px; }
+.fer-vencidas__rot { display: flex; align-items: center; gap: 7px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--warning-ink); margin-bottom: 8px; }
+.fer-vencidas__rot svg { width: 14px; height: 14px; flex: none; }
+.fer-venc { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; }
+.fer-venc + .fer-venc { border-top: 1px dashed var(--warning); }
+.fer-venc__num { font-size: 20px; font-weight: 800; color: var(--warning-ink); letter-spacing: -.01em; flex: none; min-width: 78px; font-variant-numeric: tabular-nums; }
+.fer-venc__num small { font-size: 11px; font-weight: 600; }
+.fer-venc__meta { font-size: 11.5px; color: var(--warning-ink); line-height: 1.5; opacity: .92; }
+.fer-venc__meta b { font-weight: 700; }
+
+/* Proporcional: número em destaque + avos de apoio. */
+.fer-prop { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--milk-warm); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; }
+.fer-prop__l { min-width: 0; }
+.fer-prop__rot { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.fer-prop__sub { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+.fer-prop__num { font-size: 32px; font-weight: 800; color: var(--plum); letter-spacing: -.02em; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fer-prop__num small { font-size: 14px; font-weight: 600; }
+.fer-avos { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.fer-avos__bar { display: inline-flex; gap: 2px; }
+.fer-avos__tick { width: 5px; height: 11px; border-radius: 2px; background: var(--milk-edge); }
+.fer-avos__tick.on { background: var(--plum-soft); }
+
+/* Linha do tempo dos períodos (camada secundária). */
+.fer-tl { display: flex; flex-direction: column; gap: 8px; }
+.fer-per { border: 1px solid var(--border); border-left: 3px solid var(--border-strong); border-radius: var(--radius); padding: 10px 13px; background: var(--surface); }
+.fer-per--venc { border-left-color: var(--warning); }
+.fer-per--pend { border-left-color: var(--info); }
+.fer-per--aquis { border-left-color: var(--plum-soft); }
+.fer-per--concl { border-left-color: var(--success); }
+.fer-per--inde { border-left-color: var(--info); }
+.fer-per--canc { border-left-color: var(--border-strong); }
+.fer-per--perd { border-left-color: var(--danger); }
+.fer-per__top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.fer-per__ano { font-size: 12.5px; font-weight: 600; color: var(--text-body); font-variant-numeric: tabular-nums; }
+.fer-chip { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .02em; white-space: nowrap; }
+.fer-chip--venc { background: var(--warning-bg); color: var(--warning-ink); }
+.fer-chip--pend { background: var(--info-bg); color: var(--info); }
+.fer-chip--aquis { background: var(--surface-warm); color: var(--text-muted); }
+.fer-chip--concl { background: var(--success-bg); color: var(--success); }
+.fer-chip--inde { background: var(--info-bg); color: var(--info); opacity: .75; }
+.fer-chip--canc { background: var(--surface-warm); color: var(--text-muted); }
+.fer-chip--perd { background: var(--danger-bg); color: var(--danger); }
+.fer-per__datas { font-size: 11px; color: var(--text-muted); line-height: 1.55; }
+.fer-per__datas b { color: var(--text-body); font-weight: 600; }
+.fer-per__tail { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.fer-per__tail strong { color: var(--text-body); font-weight: 600; }
+
+/* Últimos gozos. */
+.fer-gozos { margin-top: 12px; }
+.fer-gozo { display: flex; align-items: baseline; gap: 8px; font-size: 11.5px; color: var(--text-muted); padding: 4px 0; }
+.fer-gozo + .fer-gozo { border-top: 1px solid var(--border); }
+.fer-gozo__d { font-weight: 700; color: var(--text-body); flex: none; min-width: 52px; }
+
+/* Estreito (modal quase full em mobile): a proporcional empilha o número. */
+@media (max-width: 430px) {
+  .fer-prop { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .fer-prop__num { font-size: 28px; }
+}
+
 /* ===== Obrigações do GH (checklist recorrente: card no dashboard + tela) ===== */
 .ob-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin: 0 0 20px; }
 .ob-card__head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 10px; cursor: pointer; }

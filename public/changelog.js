@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.7.1", d: "23 jul 2026", current: true, items: [
+    v: "2.8.0", d: "23 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Aba Férias no perfil, com vencidas e proporcional" },
+    ],
+  },
+  {
+    v: "2.7.1", d: "23 jul 2026", items: [
       { type: "fix", aud: "colab", title: "Card de boas-vindas volta a aparecer na tela inicial" },
       { type: "feat", aud: "todos", title: "Nova mãozinha de boas-vindas, com aceno ao tocar" },
     ],

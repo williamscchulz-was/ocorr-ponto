@@ -10642,53 +10642,14 @@ function graficoBarrasBH(lancamentos) {
   return `<svg viewBox="0 0 ${W} ${H}" class="bh-grafico" preserveAspectRatio="none"><line x1="${P}" y1="${y0.toFixed(1)}" x2="${W - P}" y2="${y0.toFixed(1)}" stroke="var(--border-strong)" stroke-width="1"/>${bars}</svg>`;
 }
 
-function renderFuncPerfilSecoes(f) {
+// Cabeçalho do perfil (avatar + nome + cargo/setor/turno + banner de status).
+// Fica ACIMA da barra de abas: a identidade e a tag de situação seguem visíveis
+// nas duas abas (Perfil e Férias), inclusive pra afastado.
+function renderFuncPerfilHeader(f) {
   if (!f) return "";
-  const nascStr = tsToDateStr(f.nascimento);
-  const admStr = tsToDateStr(f.admissao);
-  const demStr = tsToDateStr(f.demissao);
   const inativo = f.ativo === false;
-
-  // Banco de horas: gráfico do mês (só admin/RH têm lancamentos via pipeline-rh/cur).
-  const bh = (state.bancoHoras || {})[f.id];
-  const lanc = (bh && Array.isArray(bh.lancamentos)) ? bh.lancamentos : [];
-  const temGraficoBH = lanc.length >= 2;
-  let bhPico = 0, bhVale = 0, bhMesLabel = "";
-  if (temGraficoBH) {
-    const mins = lanc.map((l) => Number(l.saldoMin) || 0);
-    bhPico = Math.max(...mins, 0);
-    bhVale = Math.min(...mins, 0);
-    const ultima = lanc[lanc.length - 1]?.dataIso || bh.ultimaDataIso;
-    if (ultima) {
-      const NOMES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-      const m = parseInt(String(ultima).slice(5, 7), 10);
-      if (m >= 1 && m <= 12) bhMesLabel = " · " + NOMES[m - 1];
-    }
-  }
-  const bhPerfilMin = bh ? (bhFolgaMin(bh) != null ? bhFolgaMin(bh) : bh.minutos) : null;
-  const bhTone = !bh ? "neutral" : (bhPerfilMin > 0 ? "success" : bhPerfilMin < 0 ? "danger" : "neutral");
-
-  // Header com avatar grande + nome + cargo/setor/turno
+  const demStr = tsToDateStr(f.demissao);
   const turnoLabel = f.turno && TURNOS[f.turno] ? TURNOS[f.turno].label : null;
-
-  // Seção em grade que COLAPSA os vazios (auditoria): só renderiza os itens com
-  // valor; se nenhum tem, mostra uma nota única em vez de uma parede de "—".
-  // itens: [{ label, valor, full? }]. valor null/""/undefined é omitido.
-  const gridSecao = (titulo, itens) => {
-    const cheios = itens.filter((it) => it.valor !== null && it.valor !== undefined && it.valor !== "");
-    const corpo = cheios.length
-      ? `<div class="func-perfil-grid">${cheios.map((it) => `
-          <div class="func-perfil-grid__item"${it.full ? ` style="grid-column: span 2;"` : ""}>
-            <label>${it.label}</label>
-            <span>${escapeHtml(String(it.valor))}</span>
-          </div>`).join("")}</div>`
-      : `<div class="text-xs muted">Dados do ERP ainda não sincronizados.</div>`;
-    return `
-    <div class="func-perfil-secao">
-      <div class="func-perfil-secao__titulo">${titulo}</div>
-      ${corpo}
-    </div>`;
-  };
 
   return `
     <div class="func-perfil-header">
@@ -10724,7 +10685,55 @@ function renderFuncPerfilSecoes(f) {
         </div>
       </div>
     ` : ""}
+  `;
+}
 
+// Corpo da aba Perfil (seções que hoje seguem o cabeçalho). Conteúdo intocado:
+// só saiu do renderFuncPerfilSecoes pra virar o painel da aba "Perfil".
+function renderFuncPerfilCorpo(f) {
+  if (!f) return "";
+  const nascStr = tsToDateStr(f.nascimento);
+  const admStr = tsToDateStr(f.admissao);
+
+  // Banco de horas: gráfico do mês (só admin/RH têm lancamentos via pipeline-rh/cur).
+  const bh = (state.bancoHoras || {})[f.id];
+  const lanc = (bh && Array.isArray(bh.lancamentos)) ? bh.lancamentos : [];
+  const temGraficoBH = lanc.length >= 2;
+  let bhPico = 0, bhVale = 0, bhMesLabel = "";
+  if (temGraficoBH) {
+    const mins = lanc.map((l) => Number(l.saldoMin) || 0);
+    bhPico = Math.max(...mins, 0);
+    bhVale = Math.min(...mins, 0);
+    const ultima = lanc[lanc.length - 1]?.dataIso || bh.ultimaDataIso;
+    if (ultima) {
+      const NOMES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      const m = parseInt(String(ultima).slice(5, 7), 10);
+      if (m >= 1 && m <= 12) bhMesLabel = " · " + NOMES[m - 1];
+    }
+  }
+  const bhPerfilMin = bh ? (bhFolgaMin(bh) != null ? bhFolgaMin(bh) : bh.minutos) : null;
+  const bhTone = !bh ? "neutral" : (bhPerfilMin > 0 ? "success" : bhPerfilMin < 0 ? "danger" : "neutral");
+
+  // Seção em grade que COLAPSA os vazios (auditoria): só renderiza os itens com
+  // valor; se nenhum tem, mostra uma nota única em vez de uma parede de "—".
+  // itens: [{ label, valor, full? }]. valor null/""/undefined é omitido.
+  const gridSecao = (titulo, itens) => {
+    const cheios = itens.filter((it) => it.valor !== null && it.valor !== undefined && it.valor !== "");
+    const corpo = cheios.length
+      ? `<div class="func-perfil-grid">${cheios.map((it) => `
+          <div class="func-perfil-grid__item"${it.full ? ` style="grid-column: span 2;"` : ""}>
+            <label>${it.label}</label>
+            <span>${escapeHtml(String(it.valor))}</span>
+          </div>`).join("")}</div>`
+      : `<div class="text-xs muted">Dados do ERP ainda não sincronizados.</div>`;
+    return `
+    <div class="func-perfil-secao">
+      <div class="func-perfil-secao__titulo">${titulo}</div>
+      ${corpo}
+    </div>`;
+  };
+
+  return `
     ${gridSecao("Dados pessoais", [
       { label: "Idade", valor: f.idade ? `${f.idade} anos` : null },
       { label: "Nascimento", valor: nascStr },
@@ -10767,6 +10776,144 @@ function renderFuncPerfilSecoes(f) {
   `;
 }
 
+// Perfil inteiro (cabeçalho + corpo). Mantido pra callers legados; a mesma saída
+// de sempre. O modal chama header e corpo separados pra encaixar a barra de abas.
+function renderFuncPerfilSecoes(f) {
+  if (!f) return "";
+  return `${renderFuncPerfilHeader(f)}${renderFuncPerfilCorpo(f)}`;
+}
+
+// Aba Férias do perfil (v394): dado do pipeline WKRADAR em state.ferias[f.id]
+// (coleção ferias/{codigo}, SEM PII, só ATIVOS). Dois protagonistas no topo,
+// VENCIDAS (âmbar, uma linha por período com a data em que venceu) e a
+// PROPORCIONAL atual (dias + avos), depois a linha do tempo dos períodos e os
+// últimos gozos como camada secundária. Degrada honesto: sem entry mostra vazio
+// explícito; com resumo mas sem períodos detalhados, renderiza o que dá.
+function renderFuncFeriasTab(f) {
+  const fer = (f && state.ferias) ? state.ferias[f.id] : null;
+  if (!fer) {
+    return `
+      <div class="func-perfil-secao">
+        <div class="func-perfil-secao__titulo">Férias</div>
+        <div class="secao-ghost">Sem dados de férias sincronizados do ERP para este colaborador.</div>
+      </div>`;
+  }
+
+  const resumo = fer.resumo || {};
+  const periodos = Array.isArray(fer.periodos) ? fer.periodos : [];
+  const nd = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  const iso = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || "")); return m ? `${m[3]}/${m[2]}/${m[1]}` : ""; };
+  const ano = (p) => { const a = String(p.aquisitivoInicio || "").slice(0, 4); const b = String(p.aquisitivoFim || "").slice(0, 4); return a && b ? `${a}/${b}` : (a || b || ""); };
+  const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  const SIT = {
+    "em aquisicao": { cls: "aquis", label: "Em aquisição" },
+    "pendentes": { cls: "pend", label: "Pendentes" },
+    "vencidas": { cls: "venc", label: "Vencidas" },
+    "concluidas": { cls: "concl", label: "Concluídas" },
+    "indenizadas": { cls: "inde", label: "Indenizadas" },
+    "canceladas": { cls: "canc", label: "Canceladas" },
+    "perdidas": { cls: "perd", label: "Perdidas" },
+  };
+  const sit = (p) => SIT[norm(p.situacao)] || { cls: "aquis", label: p.situacao || "—" };
+  const diasDe = (p) => (p.saldo != null ? p.saldo : (p.direito != null ? p.direito : 0));
+
+  // Destaque 1: VENCIDAS (uma linha por período; a data em que venceu = fim do concessivo).
+  const vencidos = periodos.filter((p) => norm(p.situacao) === "vencidas");
+  let vencidasHtml = "";
+  if (resumo.temVencida || (resumo.diasVencidos || 0) > 0 || vencidos.length) {
+    const linhas = vencidos.length
+      ? vencidos.map((p) => `
+        <div class="fer-venc">
+          <div class="fer-venc__num">${nd(diasDe(p))} <small>dias</small></div>
+          <div class="fer-venc__meta">Período aquisitivo <b>${escapeHtml(ano(p))}</b>${p.aquisitivoInicio && p.aquisitivoFim ? ` (${iso(p.aquisitivoInicio)} a ${iso(p.aquisitivoFim)})` : ""}${p.concessivoFim ? `<br>venceu em <b>${iso(p.concessivoFim)}</b>, fora do prazo de concessão` : ""}</div>
+        </div>`).join("")
+      : `
+        <div class="fer-venc">
+          <div class="fer-venc__num">${nd(resumo.diasVencidos)} <small>dias</small></div>
+          <div class="fer-venc__meta">Total em aberto, fora do prazo de concessão. Detalhe por período ainda não disponível.</div>
+        </div>`;
+    vencidasHtml = `
+      <div class="fer-vencidas">
+        <div class="fer-vencidas__rot">${icon("alert")} Férias vencidas</div>
+        ${linhas}
+      </div>`;
+  }
+
+  // Destaque 2: PROPORCIONAL atual (dias em destaque + avos do período em aquisição).
+  const aquis = periodos.find((p) => norm(p.situacao) === "em aquisicao");
+  const propDias = resumo.proporcionalAtual != null ? resumo.proporcionalAtual : (aquis ? diasDe(aquis) : null);
+  const avos = (aquis && aquis.avos != null) ? Math.max(0, Math.min(12, Math.round(aquis.avos))) : null;
+  let propHtml = "";
+  if (propDias != null || aquis) {
+    propHtml = `
+      <div class="fer-prop">
+        <div class="fer-prop__l">
+          <div class="fer-prop__rot">Proporcional atual</div>
+          ${avos != null ? `<div class="fer-avos"><span class="fer-avos__bar">${Array.from({ length: 12 }, (_, i) => `<i class="fer-avos__tick${i < avos ? " on" : ""}"></i>`).join("")}</span> ${avos} avos de 12</div>` : ""}
+          ${aquis ? `<div class="fer-prop__sub">Período em aquisição ${escapeHtml(ano(aquis))}</div>` : ""}
+        </div>
+        <div class="fer-prop__num">${nd(propDias)}<small> dias</small></div>
+      </div>`;
+  }
+
+  // Camada secundária: linha do tempo de todos os períodos.
+  const concessivoSuf = (p) => {
+    if (!p.concessivoFim) return "";
+    const n = norm(p.situacao);
+    if (n === "pendentes") return ` · concessivo até <b>${iso(p.concessivoFim)}</b>`;
+    if (n === "vencidas") return ` · concessivo venceu em <b>${iso(p.concessivoFim)}</b>`;
+    return "";
+  };
+  const tail = (p) => {
+    const n = norm(p.situacao);
+    const gozados = Array.isArray(p.gozos) ? p.gozos.reduce((s, g) => s + (Number(g.dias) || 0), 0) : 0;
+    if (n === "em aquisicao") return `${p.avos != null ? p.avos + " avos · " : ""}proporcional <strong>${nd(diasDe(p))} dias</strong>`;
+    if (n === "pendentes") return `${nd(diasDe(p))} dias a agendar · dentro do prazo`;
+    if (n === "vencidas") return `${nd(diasDe(p))} dias em aberto`;
+    if (n === "concluidas") return `${nd(gozados || p.direito)} dias gozados`;
+    if (n === "indenizadas") return `${nd(diasDe(p) || p.direito)} dias indenizados`;
+    if (n === "canceladas") return "período cancelado";
+    if (n === "perdidas") return `${nd(diasDe(p) || p.direito)} dias perdidos`;
+    return p.saldo != null ? `${nd(p.saldo)} dias` : "";
+  };
+  const timelineHtml = periodos.length ? `
+    <div class="fer-tl">
+      ${periodos.map((p) => {
+        const s = sit(p);
+        return `
+        <div class="fer-per fer-per--${s.cls}">
+          <div class="fer-per__top"><span class="fer-chip fer-chip--${s.cls}">${escapeHtml(s.label)}</span><span class="fer-per__ano">${escapeHtml(ano(p))}</span></div>
+          <div class="fer-per__datas">Aquisitivo <b>${iso(p.aquisitivoInicio)}</b> a <b>${iso(p.aquisitivoFim)}</b>${concessivoSuf(p)}</div>
+          <div class="fer-per__tail">${tail(p)}</div>
+        </div>`;
+      }).join("")}
+    </div>` : "";
+
+  // Últimos gozos (achatados de todos os períodos, mais recente primeiro).
+  const gozos = [];
+  periodos.forEach((p) => { if (Array.isArray(p.gozos)) p.gozos.forEach((g) => gozos.push(g)); });
+  gozos.sort((a, b) => String(b.inicio || "").localeCompare(String(a.inicio || "")));
+  const gozosHtml = gozos.length ? `
+    <div class="fer-gozos">
+      <div class="func-perfil-secao__titulo" style="margin-bottom:6px;">Últimos gozos</div>
+      ${gozos.slice(0, 4).map((g) => `<div class="fer-gozo"><span class="fer-gozo__d">${nd(g.dias)} dias</span><span>${iso(g.inicio)} a ${iso(g.fim)}${g.retorno ? ` · retorno ${iso(g.retorno)}` : ""}</span></div>`).join("")}
+    </div>` : "";
+
+  const temAlgo = vencidasHtml || propHtml || timelineHtml || gozosHtml;
+  const atualizado = tsToDateStr(fer.atualizadoEm);
+
+  return `
+    <div class="func-perfil-secao">
+      <div class="func-perfil-secao__titulo">Férias</div>
+      ${temAlgo ? `
+        ${(vencidasHtml || propHtml) ? `<div class="fer-destaques">${vencidasHtml}${propHtml}</div>` : ""}
+        ${timelineHtml}
+        ${gozosHtml}
+        ${atualizado ? `<div class="text-xs muted" style="margin-top:12px;">Fonte: relatório de férias do ERP, atualizado em ${atualizado}.</div>` : ""}
+      ` : `<div class="secao-ghost">Sem períodos de férias registrados para este colaborador.</div>`}
+    </div>`;
+}
+
 function openFuncionarioModal(id) {
   const f = id ? state.funcionarios.find((x) => x.id === id) : null;
   const isNew = !f;
@@ -10775,18 +10922,9 @@ function openFuncionarioModal(id) {
   // Só admin/RH editam o cadastro. Supervisor abre em modo leitura (vê o perfil).
   const podeEditarFunc = u && can("func.editar", u);
 
-  openModal(`
-    <div class="modal__header">
-      <div>
-        <h2>${isNew ? "Novo funcionário" : "Perfil do funcionário"}</h2>
-        <p>${isNew ? "Será incluído no cadastro." : podeEditarFunc ? "Dados vêm do ERP · campos editáveis abaixo." : "Dados vêm do ERP."}</p>
-      </div>
-      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
-    </div>
-    <div class="modal__body">
-      ${isNew ? "" : renderFuncPerfilSecoes(f)}
-
-      ${podeEditarFunc ? `
+  // Form de edição (turno/setor/status). Fica dentro da aba Perfil quando editando
+  // um cadastro; sozinho no corpo quando criando um novo (sem abas).
+  const formEditarHtml = podeEditarFunc ? `
       <div class="func-perfil-secao" ${isNew ? "" : `style="border-top:1px solid var(--border); padding-top:14px; margin-top:4px;"`}>
         ${isNew ? "" : `<div class="func-perfil-secao__titulo">Editar (turno / setor / status)</div>`}
         <form id="func-form" class="${isNew ? "form2" : ""}" onsubmit="return false">
@@ -10832,7 +10970,31 @@ function openFuncionarioModal(id) {
           ` : ""}
         </form>
       </div>
-      ` : ""}
+      ` : "";
+
+  openModal(`
+    <div class="modal__header">
+      <div>
+        <h2>${isNew ? "Novo funcionário" : "Perfil do funcionário"}</h2>
+        <p>${isNew ? "Será incluído no cadastro." : podeEditarFunc ? "Dados vêm do ERP · campos editáveis abaixo." : "Dados vêm do ERP."}</p>
+      </div>
+      <button class="modal__close" data-close aria-label="Fechar">${icon("x")}</button>
+    </div>
+    <div class="modal__body">
+      ${isNew ? formEditarHtml : `
+        ${renderFuncPerfilHeader(f)}
+        <div class="gm-tabs func-tabs" role="tablist" id="func-perfil-tabs">
+          <button type="button" role="tab" aria-selected="true" class="on" data-func-tab="perfil">Perfil</button>
+          <button type="button" role="tab" aria-selected="false" data-func-tab="ferias">Férias</button>
+        </div>
+        <div class="func-tabpanel" data-func-panel="perfil">
+          ${renderFuncPerfilCorpo(f)}
+          ${formEditarHtml}
+        </div>
+        <div class="func-tabpanel" data-func-panel="ferias" hidden>
+          ${renderFuncFeriasTab(f)}
+        </div>
+      `}
     </div>
     <div class="modal__footer">
       ${podeEditarFunc && !isNew ? `<button class="btn btn--danger-ghost" id="btn-del-func" style="margin-right:auto;">${icon("trash")}<span>Excluir</span></button>` : ""}
@@ -10845,6 +11007,29 @@ function openFuncionarioModal(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       if ($("#btn-save-func")) $("#btn-save-func").addEventListener("click", () => saveFuncionario(id));
       if (podeEditarFunc && !isNew && $("#btn-del-func")) $("#btn-del-func").addEventListener("click", () => deleteFuncionario(id));
+
+      // Abas Perfil | Férias (v394): troca local, sem re-fetch (o dado já está no
+      // state) e sem renderApp (o modal é overlay próprio). Entrada one-shot via
+      // WAAPI, nunca classe persistente que um re-render ressuscitaria.
+      const abas = modal.querySelector("#func-perfil-tabs");
+      if (abas) {
+        abas.querySelectorAll("[data-func-tab]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const alvo = btn.dataset.funcTab;
+            abas.querySelectorAll("[data-func-tab]").forEach((b) => {
+              const on = b.dataset.funcTab === alvo;
+              b.classList.toggle("on", on);
+              b.setAttribute("aria-selected", on ? "true" : "false");
+            });
+            modal.querySelectorAll("[data-func-panel]").forEach((p) => {
+              const on = p.dataset.funcPanel === alvo;
+              p.hidden = !on;
+              if (on && typeof p.animate === "function" && !prefereMenosMovimento())
+                p.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" });
+            });
+          });
+        });
+      }
 
       // Carrega PII async (admin/RH só) — UI mostra placeholder enquanto carrega.
       if (!isNew && can("func.dadosSensiveis", u) && typeof window.lerSaldoSensivel === "function" && f?.codigo) {
@@ -19508,7 +19693,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.7.1";
+window.CURRENT_VERSION = "2.8.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
