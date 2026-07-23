@@ -3828,7 +3828,11 @@ const gamiInnerNum = (n, rot) => `<text x="40" y="42" text-anchor="middle" font-
 // Coracao e mao REDESENHADOS (William 2026-07-14, "com muito carinho"): silhueta
 // solida com gradiente branco (volume) + brilho no lobulo, legiveis em 62px.
 const GAMI_HEART = '<path d="M40 49 C35.6 45.9 28.8 41 26.9 34.6 C25.4 29.5 28.4 25 33 25 C36 25 38.3 26.8 40 29.7 C41.7 26.8 44 25 47 25 C51.6 25 54.6 29.5 53.1 34.6 C51.2 41 44.4 45.9 40 49 Z" fill="url(#__W__)"/><path d="M40 49 C35.6 45.9 28.8 41 26.9 34.6 C25.4 29.5 28.4 25 33 25 C36 25 38.3 26.8 40 29.7 C41.7 26.8 44 25 47 25 C51.6 25 54.6 29.5 53.1 34.6 C51.2 41 44.4 45.9 40 49 Z" fill="none" stroke="#00000022" stroke-width=".8"/><ellipse cx="33.4" cy="30.6" rx="2.7" ry="3.5" fill="#fff" transform="rotate(-24 33.4 30.6)"/>';
-const GAMI_HAND = '<path d="M32.6 45.6 c-2.6-2.4-5.2-6-6-8.2 -.6-1.7.9-3.2 2.6-2.7 1 .3 2.1 1.1 3.3 2.4 l.9 1 V27.4 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V25.6 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V26.8 a2.15 2.15 0 0 1 4.3 0 V34 h1.2 V29.6 a2.05 2.05 0 0 1 4.1 0 V38.6 c0 5.4-3.7 9.6-9.1 9.6 h-3.2 c-2.4 0-4.5-.9-6.1-2.6 z" fill="url(#__W__)"/><path d="M32.6 45.6 c-2.6-2.4-5.2-6-6-8.2 -.6-1.7.9-3.2 2.6-2.7 1 .3 2.1 1.1 3.3 2.4 l.9 1 V27.4 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V25.6 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V26.8 a2.15 2.15 0 0 1 4.3 0 V34 h1.2 V29.6 a2.05 2.05 0 0 1 4.1 0 V38.6 c0 5.4-3.7 9.6-9.1 9.6 h-3.2 c-2.4 0-4.5-.9-6.1-2.6 z" fill="none" stroke="#00000022" stroke-width=".8"/>';
+// Mão aberta em aceno (opção A do mock de boas-vindas, SEM os tracinhos que a mão do card
+// usa: numa medalha eles virariam ruído). Silhueta 24x24 posicionada no espaço da medalha
+// (80x94) por um único transform; mesmo par gradiente + contorno do GAMI_HEART (contorno
+// único, sem traços internos). stroke .8/scale pra o contorno sair na mesma espessura visual.
+const GAMI_HAND = '<g transform="translate(23.89 18.97) scale(1.466)"><path d="M 6.6 18.8 L 6.6 16.4 C 4.7 16.5 3.4 14.8 3.6 12.9 C 3.8 11 5.3 12.2 6.8 11.6 L 7 8.4 A 1.5 1.5 0 0 1 10 8.4 Q 9.85 11.4 9.7 6 A 1.6 1.6 0 0 1 12.9 6 Q 12.7 11.4 12.5 5.2 A 1.6 1.6 0 0 1 15.7 5.2 Q 15.55 11.4 15.4 6.8 A 1.5 1.5 0 0 1 18.4 6.8 L 18.4 6.8 L 18.4 18.8 Q 18.4 21 16.2 21 L 8.8 21 Q 6.6 21 6.6 18.8 Z" fill="url(#__W__)"/><path d="M 6.6 18.8 L 6.6 16.4 C 4.7 16.5 3.4 14.8 3.6 12.9 C 3.8 11 5.3 12.2 6.8 11.6 L 7 8.4 A 1.5 1.5 0 0 1 10 8.4 Q 9.85 11.4 9.7 6 A 1.6 1.6 0 0 1 12.9 6 Q 12.7 11.4 12.5 5.2 A 1.6 1.6 0 0 1 15.7 5.2 Q 15.55 11.4 15.4 6.8 A 1.5 1.5 0 0 1 18.4 6.8 L 18.4 6.8 L 18.4 18.8 Q 18.4 21 16.2 21 L 8.8 21 Q 6.6 21 6.6 18.8 Z" fill="none" stroke="#00000022" stroke-width=".546"/></g>';
 const GAMI_CHAT = '<path d="M53 36.2a11.7 11.7 0 0 1-1.25 5.3 11.85 11.85 0 0 1-10.6 6.55 11.7 11.7 0 0 1-5.3-1.25L28 49.5l2.65-7.95a11.7 11.7 0 0 1-1.25-5.3 11.85 11.85 0 0 1 6.55-10.6 11.7 11.7 0 0 1 5.3-1.25h.7A11.82 11.82 0 0 1 53 35.55z" fill="#fff"/><circle cx="36" cy="36.5" r="1.6" fill="#1a63a8"/><circle cx="41.5" cy="36.5" r="1.6" fill="#1a63a8"/><circle cx="47" cy="36.5" r="1.6" fill="#1a63a8"/>';
 const GAMI_CHECK = '<path d="M29 38.5 L37 46.5 L52 29" fill="none" stroke="#fff" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>';
 function gamiCoroaSvg() {
@@ -9004,9 +9008,32 @@ function vgAdmissoesHtml(u) {
     </section>`;
 }
 
-// Mesma silhueta da medalha Recepcionista (GAMI_HAND): contorno ÚNICO, sem traços
-// internos ("parece um risco dentro", William 2026-07-14). off = contorno, on = cheia.
-const _bvHand = (on) => `<svg class="icon" viewBox="24 21 32 29" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M32.6 45.6 c-2.6-2.4-5.2-6-6-8.2 -.6-1.7.9-3.2 2.6-2.7 1 .3 2.1 1.1 3.3 2.4 l.9 1 V27.4 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V25.6 a2.15 2.15 0 0 1 4.3 0 V33.6 h1.2 V26.8 a2.15 2.15 0 0 1 4.3 0 V34 h1.2 V29.6 a2.05 2.05 0 0 1 4.1 0 V38.6 c0 5.4-3.7 9.6-9.1 9.6 h-3.2 c-2.4 0-4.5-.9-6.1-2.6 z"/></svg>`;
+// Mão de boas-vindas: opção C do mock aprovado (docs/mockups/mao-boasvindas-2026-07.html,
+// William 2026-07-23: "gostei da micro interacao, ficou linda"). Mão aberta em aceno (a
+// mesma silhueta da opção A) MAIS 2 tracinhos de movimento SEMPRE fora da silhueta (stroke,
+// nunca traço interno). Contrato mantido: off = contorno, on = cheia (fill currentColor).
+// O aceno one-shot ao dar o like vive em _acenarMao (só no gesto, nunca no render).
+const _bvHand = (on) => `<svg class="icon" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 7.2 18.9 L 7.2 16.2 C 5.3 16.3 4.1 14.9 4.3 13 C 4.5 11.1 5.7 12.4 7.2 11.8 L 7.4 8.4 A 1.5 1.5 0 0 1 10.4 8.4 Q 10.17 11.4 9.95 6.2 A 1.55 1.55 0 0 1 13.05 6.2 Q 12.75 11.4 12.45 5.4 A 1.55 1.55 0 0 1 15.55 5.4 Q 15.23 11.4 14.9 7 A 1.5 1.5 0 0 1 17.9 7 L 17.8 7 L 17.8 18.9 Q 17.8 21 15.7 21 L 9.3 21 Q 7.2 21 7.2 18.9 Z"/><path d="M19.7 9 C20.8 10.1 20.8 11.9 19.7 13" fill="none"/><path d="M21.3 7.5 C22.9 9.3 22.9 12.7 21.3 14.5" fill="none"/></svg>`;
+
+// Aceno one-shot da mão ao dar o like (mock opção C): a mão gira como quem acena e os
+// tracinhos giram junto (mesmo svg), pivotando no punho (transform-origin 50% 78%). WAAPI
+// como animarEntrada: não toca classe nem estilo persistente, então um re-render não
+// ressuscita o aceno (metodologia premium item 2). Disparado SÓ no gesto (onBoasVindas ao
+// ligar), nunca no render; prefereMenosMovimento não anima.
+function _acenarMao(hand) {
+  if (!hand || prefereMenosMovimento()) return;
+  const svg = hand.querySelector("svg");
+  if (!svg || typeof svg.animate !== "function") return;
+  svg.animate(
+    [
+      { transformOrigin: "50% 78%", transform: "rotate(0deg)" },
+      { transformOrigin: "50% 78%", transform: "rotate(-11deg)", offset: 0.25 },
+      { transformOrigin: "50% 78%", transform: "rotate(11deg)", offset: 0.75 },
+      { transformOrigin: "50% 78%", transform: "rotate(0deg)" },
+    ],
+    { duration: 500, easing: "ease-in-out" }
+  );
+}
 
 // Copy da contagem de boas-vindas (mesma família da _parabTexto, sem "!").
 function _bvTexto(total, mine) {
@@ -9087,6 +9114,7 @@ async function onBoasVindas(hand) {
     cc[post] = { ...(cc[post] || { reacoes: [] }), total, minhaReacao: on };
   };
   aplica(ligar, totalDepois);
+  if (ligar) _acenarMao(hand); // aceno só no gesto de dar boas-vindas, nunca no re-render
   hand.dataset.busy = "1";
   try {
     await window.toggleReacaoAniversario(post, ligar, "bemvindo");
@@ -19480,7 +19508,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.7.0";
+window.CURRENT_VERSION = "2.7.1";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

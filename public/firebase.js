@@ -1346,14 +1346,24 @@
     window.desfazerLancamentoAuto = (id) => _lancamentoOca(id, false);
 
     // config/aniversariantes (sem PII: nome/dia/mes). Leitura autenticada (rule config/{doc}).
-    window.carregarAniversariantes = async function () {
-      try {
-        const snap = await db.collection("config").doc("aniversariantes").get();
-        state.aniversariantes = snap.exists ? snap.data() : null;
-      } catch (e) {
-        debug?.("[aniversariantes] carregar:", e?.message || e);
-        state.aniversariantes = null;
+    // RETRY (paridade com verificarTermoAdesao): no cold start do PWA o Firestore rejeita as
+    // primeiras leituras com "client is offline"; sem retry, os recem-chegados nunca chegavam e
+    // o card de boas-vindas da home nao nascia. So a ULTIMA falha zera o state (uma falha
+    // intermediaria nao apaga o que ja tinha). Devolve o dado carregado (ou null).
+    window.carregarAniversariantes = async function (tentativas) {
+      const n = Math.max(1, tentativas || 1);
+      for (let i = 0; i < n; i++) {
+        try {
+          const snap = await db.collection("config").doc("aniversariantes").get();
+          state.aniversariantes = snap.exists ? snap.data() : null;
+          return state.aniversariantes;
+        } catch (e) {
+          debug?.("[aniversariantes] carregar (tentativa " + (i + 1) + "):", e?.message || e);
+          if (i < n - 1) await new Promise((r) => setTimeout(r, 1200));
+        }
       }
+      state.aniversariantes = null;
+      return null;
     };
 
     // ===== PESQUISA DE CLIMA (cliente) — regras /pesquisasClima NO AR (gate Fable).
@@ -4555,8 +4565,17 @@
       try { await window.gamiPingStreak(); } catch (e) { debug?.("[colab] streak:", e?.message || e); }
       })(),
       (async () => {
-      // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home.
-      try { await window.carregarAniversariantes(); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
+      // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home e os
+      // recém-chegados do card de boas-vindas. RETRY 3x (cold start offline não entregava o
+      // dado). Se ele chegar DEPOIS do 1º render (refetch de foco, ou boot que já pintou a
+      // home), repinta a home — mas SÓ quando o dado mudou de fato (espelho do bloco de
+      // documentos acima): re-render coalescido, e sem mudança o DOM nasce idêntico (o
+      // flicker-guard cobre). Sem isto, o card "chegaram há pouco" nunca aparecia num boot frio.
+      const antesAniv = JSON.stringify(state.aniversariantes || null);
+      try { await window.carregarAniversariantes(3); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
+      if (JSON.stringify(state.aniversariantes || null) !== antesAniv && (state.view && state.view.page) === "colab-home") {
+        try { renderApp(); } catch (e) { /* */ }
+      }
       })(),
       (async () => {
       // Vagas internas abertas + o meu interesse por vaga (fase 2). Depende do vinculo
