@@ -300,45 +300,6 @@
   /* corpo do site atras da barra */
   .fone__body{ flex:1 1 auto; position:relative; overflow:hidden; }
 
-  /* ---- APP (tela de acesso, fiel ao public/index.html) ---- */
-  .app{
-    position:absolute; inset:0; padding:16px 14px 12px;
-    background:linear-gradient(165deg,#EEF3EC 0%,#F7F9F6 60%);
-    display:flex; flex-direction:column; align-items:center;
-    font-family:"Poppins",sans-serif;
-  }
-  .app-brand{ display:flex; flex-direction:column; align-items:center; gap:7px; margin:6px 0 15px; }
-  .app-brand .fp-mark{ width:36px; height:36px; display:block; }
-  .app-w{ font-weight:700; font-size:15px; color:var(--verde); letter-spacing:-.02em; }
-  .app-split{ width:100%; display:flex; flex-direction:column; gap:9px; }
-  .ac{
-    display:flex; align-items:center; gap:7px; width:100%; text-align:left;
-    border:1px solid var(--border); border-radius:14px; padding:11px 10px;
-  }
-  .ac--colab{ background:linear-gradient(150deg,#1AA34F,#006328); color:#fff; border-color:transparent; }
-  .ac--gestor{ background:#fff; color:var(--tinta); }
-  .ac__ic{ flex:0 0 auto; width:27px; height:27px; border-radius:8px; display:flex; align-items:center; justify-content:center; }
-  .ac__ic svg{ width:15px; height:15px; stroke-width:1.9; fill:none; }
-  .ac--colab .ac__ic{ background:rgba(255,255,255,.18); color:#fff; }
-  .ac--gestor .ac__ic{ background:var(--verde-claro); color:var(--verde-deep); }
-  .ac__t{ flex:1 1 auto; min-width:0; font-size:9.5px; font-weight:700; display:flex; flex-direction:column; gap:3px; }
-  .ac__sub{ font-size:8px; font-weight:400; opacity:.92; line-height:1.3; }
-  .ac--gestor .ac__sub{ color:var(--tinta-suave); opacity:1; }
-  .ac__arr{ flex:0 0 auto; display:flex; }
-  .ac__arr svg{ width:12px; height:12px; stroke-width:2.2; fill:none; }
-  .ac--colab .ac__arr{ color:rgba(255,255,255,.85); }
-  .ac--gestor .ac__arr{ color:#c9d3cc; }
-  .app-rod{ margin-top:auto; font-size:8px; color:var(--tinta-suave); text-align:center; padding-top:10px; }
-  .fone--hero .app{ padding:20px 18px 14px; }
-  .fone--hero .app-brand .fp-mark{ width:44px; height:44px; }
-  .fone--hero .app-w{ font-size:19px; }
-  .fone--hero .ac{ padding:13px 12px; border-radius:17px; gap:9px; }
-  .fone--hero .ac__ic{ width:33px; height:33px; border-radius:10px; }
-  .fone--hero .ac__ic svg{ width:18px; height:18px; }
-  .fone--hero .ac__t{ font-size:11.5px; gap:4px; }
-  .fone--hero .ac__sub{ font-size:9px; }
-  .fone--hero .ac__arr svg{ width:14px; height:14px; }
-  .fone--hero .app-split{ gap:11px; }
 
   /* scrim atras de menu/dialogo */
   .scrim{ position:absolute; inset:0; background:rgba(15,25,18,.42); z-index:6; }
@@ -400,14 +361,20 @@
 
   /* ---- Tela "Adicionar a Tela de Inicio" (iOS) ---- */
   .a2{
-    position:absolute; top:26px; left:5px; right:5px; z-index:10;
+    position:absolute; top:26px; left:4px; right:4px; z-index:10;
     background:#F2F2F5; border-radius:14px; overflow:hidden; font-family:var(--sys-ios);
     box-shadow:0 6px 22px rgba(0,0,0,.22);
   }
-  .a2__nav{ display:flex; align-items:center; justify-content:space-between; padding:10px 13px; background:#fff; border-bottom:1px solid #e2e2e6; }
-  .a2__cancel{ font-size:10px; color:#3f6ad6; }
-  .a2__ttl{ font-size:10.5px; font-weight:700; color:#1c1c1e; }
-  .a2__add{ font-size:10px; font-weight:700; color:#3f6ad6; display:inline-block; padding:3px 7px; border-radius:7px; background:#FFF3D6; }
+  /* barra de navegacao no padrao iOS real: Cancelar a esquerda, titulo centrado em
+     UMA linha, Adicionar a direita, com folga (titulo fora do fluxo pra nunca espremer). */
+  /* 3 colunas 1fr|auto|1fr: Cancelar a esquerda, titulo SEMPRE centrado em uma linha,
+     Adicionar a direita, com folga simetrica garantida (o 1fr de cada lado divide a sobra). */
+  .a2__nav{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:8px 9px; background:#fff; border-bottom:1px solid #e2e2e6; }
+  .a2__cancel{ justify-self:start; font-size:8px; color:#3f6ad6; white-space:nowrap; }
+  .a2__ttl{ justify-self:center; font-size:8.5px; font-weight:700; color:#1c1c1e; white-space:nowrap; }
+  /* Adicionar no estilo texto do iOS (nao um botao preenchido): so o aro ambar do .alvo
+     destaca, sem caixa, pra caber ao lado do titulo centrado sem encostar. */
+  .a2__add{ justify-self:end; font-size:8px; font-weight:700; color:#3f6ad6; white-space:nowrap; display:inline-block; padding:2px 2px; border-radius:6px; }
   .a2__body{ display:flex; align-items:center; gap:11px; background:#fff; margin:10px; border-radius:11px; padding:11px; }
   .a2__body .app-icon{ width:40px; height:40px; flex:0 0 auto; border-radius:9px; }
   .a2__nm{ font-size:11px; font-weight:600; color:#1c1c1e; }
@@ -422,6 +389,27 @@
   .seta svg{ display:block; filter:drop-shadow(0 1px 1px rgba(0,0,0,.15)); }
   /* aro ambar preso ao proprio elemento alvo (respeita o border-radius e a quebra de linha) */
   .alvo{ box-shadow:0 0 0 2.4px var(--ambar), 0 0 0 5.5px rgba(238,148,18,.20); }
+
+  /* ==================================================================
+     PRINT REAL do app dentro da moldura (capturado do proprio app em
+     390px pelo harness Playwright — docs/tutorial-assets/). A moldura de
+     celular e os menus de navegador continuam desenhados aqui em CSS.
+     ================================================================== */
+  .shot{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top; display:block; background:#F7F9F6; }
+  .shot--dim{ filter:saturate(.62) brightness(.99); }
+
+  /* ============== PAGINA 4 · o que te espera ============== */
+  .plataforma.portal{ background:#FFF4E0; }
+  .espera{ margin-top:16px; display:flex; flex-direction:column; flex:1 1 auto; }
+  .espera__intro{ font-size:10.5pt; color:var(--tinta); line-height:1.55; max-width:158mm; }
+  .espera__intro b{ color:var(--verde-deep); }
+  .espera-grade{ margin-top:18px; display:grid; grid-template-columns:repeat(4,1fr); gap:10px 14px; justify-items:center; flex:0 0 auto; }
+  .espera-card{ display:flex; flex-direction:column; align-items:center; }
+  .espera-card figcaption{ margin-top:11px; font-size:9.2pt; font-weight:700; color:var(--verde-deep); text-align:center; line-height:1.28; max-width:44mm; }
+  .espera-card figcaption span{ display:block; font-size:8.1pt; font-weight:400; color:var(--tinta-suave); margin-top:3px; }
+  .fone--onb{ --pw:150px; --ph:322px; border-radius:26px; padding:5px; }
+  .fone--onb .fone__scr{ border-radius:22px; }
+  .fone--onb .fone__scr::after{ display:none; }
 </style>
 
 <!-- ================================================================
@@ -500,25 +488,7 @@
             </span>
           </div>
           <div class="fone__body">
-            <div class="app">
-              <div class="app-brand">
-                <svg class="fp-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <div class="app-w">FioPulse</div>
-              </div>
-              <div class="app-split">
-                <div class="ac ac--colab">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-                  <span class="ac__t">Portal do Colaborador<span class="ac__sub">Entre com seu CPF. Ponto, comunicados e documentos.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-                <div class="ac ac--gestor">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
-                  <span class="ac__t">Gestor / Administrador<span class="ac__sub">GP, líderes e supervisores.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-              </div>
-              <div class="app-rod">© 2026 Fiobras · acesso restrito</div>
-            </div>
+            <img class="shot" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
         </div>
       </div>
@@ -529,7 +499,7 @@
   <footer class="rodape">
     <span class="duvida">Dúvida? Fale com a GP.</span>
     <span class="marca-mini"><span class="app-icon"></span>FioPulse · Fiobras</span>
-    <span class="pag-num">Página 1 de 3</span>
+    <span class="pag-num">Página 1 de 4</span>
   </footer>
 
 </section>
@@ -584,25 +554,7 @@
             </div>
           </div>
           <div class="fone__body">
-            <div class="app">
-              <div class="app-brand">
-                <svg class="fp-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <div class="app-w">FioPulse</div>
-              </div>
-              <div class="app-split">
-                <div class="ac ac--colab">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-                  <span class="ac__t">Portal do Colaborador<span class="ac__sub">Entre com seu CPF.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-                <div class="ac ac--gestor">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
-                  <span class="ac__t">Gestor / Administrador<span class="ac__sub">GP e líderes.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-              </div>
-              <div class="app-rod">© 2026 Fiobras</div>
-            </div>
+            <img class="shot" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
         </div>
       </div>
@@ -636,25 +588,7 @@
             </div>
           </div>
           <div class="fone__body">
-            <div class="app">
-              <div class="app-brand">
-                <svg class="fp-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <div class="app-w">FioPulse</div>
-              </div>
-              <div class="app-split">
-                <div class="ac ac--colab">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-                  <span class="ac__t">Portal do Colaborador<span class="ac__sub">Entre com seu CPF.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-                <div class="ac ac--gestor">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
-                  <span class="ac__t">Gestor / Administrador<span class="ac__sub">GP e líderes.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-              </div>
-              <div class="app-rod">© 2026 Fiobras</div>
-            </div>
+            <img class="shot" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
           <!-- destaque nos tres pontinhos -->
           <div class="spot" style="top:24px; right:6px; width:22px; height:22px;"></div>
@@ -693,7 +627,7 @@
             </div>
           </div>
           <div class="fone__body">
-            <div class="app" style="filter:saturate(.6)"></div>
+            <img class="shot shot--dim" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
           <div class="scrim"></div>
           <div class="chr-menu">
@@ -740,7 +674,7 @@
             </div>
           </div>
           <div class="fone__body">
-            <div class="app" style="filter:saturate(.6)"></div>
+            <img class="shot shot--dim" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
           <div class="scrim"></div>
           <div class="sheet">
@@ -786,7 +720,7 @@
   <footer class="rodape">
     <span class="duvida">Dúvida? Fale com a GP.</span>
     <span class="marca-mini"><span class="app-icon"></span>FioPulse · Fiobras</span>
-    <span class="pag-num">Página 2 de 3 · Android</span>
+    <span class="pag-num">Página 2 de 4 · Android</span>
   </footer>
 
 </section>
@@ -832,25 +766,7 @@
             </span>
           </div>
           <div class="fone__body">
-            <div class="app">
-              <div class="app-brand">
-                <svg class="fp-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <div class="app-w">FioPulse</div>
-              </div>
-              <div class="app-split">
-                <div class="ac ac--colab">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-                  <span class="ac__t">Portal do Colaborador<span class="ac__sub">Entre com seu CPF.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-                <div class="ac ac--gestor">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
-                  <span class="ac__t">Gestor / Administrador<span class="ac__sub">GP e líderes.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-              </div>
-              <div class="app-rod">© 2026 Fiobras</div>
-            </div>
+            <img class="shot" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
           <div class="sfr-bot">
             <button><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
@@ -891,25 +807,7 @@
             </span>
           </div>
           <div class="fone__body">
-            <div class="app">
-              <div class="app-brand">
-                <svg class="fp-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#1AA34F"/><path d="M2 12.5h4.2l2-5.5 3.4 10 2.4-6 1.7 3.5H22" transform="translate(8 8)" stroke="#fff" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <div class="app-w">FioPulse</div>
-              </div>
-              <div class="app-split">
-                <div class="ac ac--colab">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-                  <span class="ac__t">Portal do Colaborador<span class="ac__sub">Entre com seu CPF.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-                <div class="ac ac--gestor">
-                  <span class="ac__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
-                  <span class="ac__t">Gestor / Administrador<span class="ac__sub">GP e líderes.</span></span>
-                  <span class="ac__arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
-                </div>
-              </div>
-              <div class="app-rod">© 2026 Fiobras</div>
-            </div>
+            <img class="shot" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
           <div class="sfr-bot">
             <button><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
@@ -944,7 +842,7 @@
             </span>
           </div>
           <div class="fone__body">
-            <div class="app" style="filter:saturate(.6)"></div>
+            <img class="shot shot--dim" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
           <div class="scrim"></div>
           <div class="share">
@@ -995,7 +893,7 @@
             </span>
           </div>
           <div class="fone__body">
-            <div class="app" style="filter:saturate(.6)"></div>
+            <img class="shot shot--dim" src="tutorial-assets/acesso.png" alt="Tela do FioPulse">
           </div>
           <div class="scrim"></div>
           <div class="a2">
@@ -1043,7 +941,113 @@
   <footer class="rodape">
     <span class="duvida">Dúvida? Fale com a GP.</span>
     <span class="marca-mini"><span class="app-icon"></span>FioPulse · Fiobras</span>
-    <span class="pag-num">Página 3 de 3 · iPhone</span>
+    <span class="pag-num">Página 3 de 4 · iPhone</span>
+  </footer>
+
+</section>
+
+<!-- =================== PAGINA 4 · O QUE TE ESPERA =================== -->
+<section class="pagina p4">
+
+  <div class="secao-cab">
+    <div class="plataforma portal">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EE9412" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.3 4.7 5.2.8-3.7 3.6.9 5.1L12 15l-4.6 2.4.9-5.1L4.5 8.5l5.2-.8z"/></svg>
+    </div>
+    <div class="rot">
+      <h2>O que te espera lá dentro</h2>
+      <div class="nav">No primeiro acesso, o app te recebe com uma apresentação rápida. Aqui vai uma prévia.</div>
+    </div>
+  </div>
+
+  <div class="espera">
+    <p class="espera__intro">Assim que você entra com o seu CPF, o portal já aparece <b>com o seu nome</b> e com tudo à mão: seu ponto, sua folha assinada, os avisos da empresa e um canal seguro pra falar. As telas abaixo são de verdade, tiradas do próprio aplicativo.</p>
+
+    <div class="espera-grade">
+      <figure class="espera-card">
+        <div class="fone fone--onb">
+          <div class="fone__scr">
+            <div class="sb">
+            <span class="sb__time">9:41</span>
+            <span class="sb__sys">
+              <svg width="14" height="10" viewBox="0 0 18 12" aria-hidden="true"><g fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+              <svg width="13" height="10" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M1.4 4.3a10 10 0 0 1 13.2 0"/><path d="M3.9 6.9a6.2 6.2 0 0 1 8.2 0"/><path d="M6.4 9.4a2.5 2.5 0 0 1 3.2 0"/></svg>
+              <svg width="20" height="10" viewBox="0 0 26 13" aria-hidden="true"><rect x="0.6" y="0.9" width="22" height="11.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.5" width="16" height="8" rx="1.4" fill="currentColor"/><rect x="23.4" y="4.2" width="2.1" height="4.6" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+            <div class="fone__body"><img class="shot" src="tutorial-assets/home.png" alt="Tela inicial do FioPulse"></div>
+          </div>
+        </div>
+        <figcaption>Sua tela inicial<span>Já com o seu nome e o saldo do banco de horas.</span></figcaption>
+      </figure>
+      <figure class="espera-card">
+        <div class="fone fone--onb">
+          <div class="fone__scr">
+            <div class="sb">
+            <span class="sb__time">9:41</span>
+            <span class="sb__sys">
+              <svg width="14" height="10" viewBox="0 0 18 12" aria-hidden="true"><g fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+              <svg width="13" height="10" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M1.4 4.3a10 10 0 0 1 13.2 0"/><path d="M3.9 6.9a6.2 6.2 0 0 1 8.2 0"/><path d="M6.4 9.4a2.5 2.5 0 0 1 3.2 0"/></svg>
+              <svg width="20" height="10" viewBox="0 0 26 13" aria-hidden="true"><rect x="0.6" y="0.9" width="22" height="11.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.5" width="16" height="8" rx="1.4" fill="currentColor"/><rect x="23.4" y="4.2" width="2.1" height="4.6" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+            <div class="fone__body"><img class="shot" src="tutorial-assets/onb-1.png" alt="Boas-vindas do FioPulse"></div>
+          </div>
+        </div>
+        <figcaption>As boas-vindas<span>Uma volta rápida pelo que dá pra fazer aqui.</span></figcaption>
+      </figure>
+      <figure class="espera-card">
+        <div class="fone fone--onb">
+          <div class="fone__scr">
+            <div class="sb">
+            <span class="sb__time">9:41</span>
+            <span class="sb__sys">
+              <svg width="14" height="10" viewBox="0 0 18 12" aria-hidden="true"><g fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+              <svg width="13" height="10" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M1.4 4.3a10 10 0 0 1 13.2 0"/><path d="M3.9 6.9a6.2 6.2 0 0 1 8.2 0"/><path d="M6.4 9.4a2.5 2.5 0 0 1 3.2 0"/></svg>
+              <svg width="20" height="10" viewBox="0 0 26 13" aria-hidden="true"><rect x="0.6" y="0.9" width="22" height="11.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.5" width="16" height="8" rx="1.4" fill="currentColor"/><rect x="23.4" y="4.2" width="2.1" height="4.6" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+            <div class="fone__body"><img class="shot" src="tutorial-assets/onb-6.png" alt="Tela de Conquistas"></div>
+          </div>
+        </div>
+        <figcaption>Conquistas<span>O que você faz no dia a dia vira ponto e prêmio.</span></figcaption>
+      </figure>
+      <figure class="espera-card">
+        <div class="fone fone--onb">
+          <div class="fone__scr">
+            <div class="sb">
+            <span class="sb__time">9:41</span>
+            <span class="sb__sys">
+              <svg width="14" height="10" viewBox="0 0 18 12" aria-hidden="true"><g fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+              <svg width="13" height="10" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M1.4 4.3a10 10 0 0 1 13.2 0"/><path d="M3.9 6.9a6.2 6.2 0 0 1 8.2 0"/><path d="M6.4 9.4a2.5 2.5 0 0 1 3.2 0"/></svg>
+              <svg width="20" height="10" viewBox="0 0 26 13" aria-hidden="true"><rect x="0.6" y="0.9" width="22" height="11.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.5" width="16" height="8" rx="1.4" fill="currentColor"/><rect x="23.4" y="4.2" width="2.1" height="4.6" rx="1" fill="currentColor"/></svg>
+            </span>
+          </div>
+            <div class="fone__body"><img class="shot" src="tutorial-assets/onb-7.png" alt="Canal de denúncia"></div>
+          </div>
+        </div>
+        <figcaption>Canal seguro<span>Fale com a direção de forma anônima, se precisar.</span></figcaption>
+      </figure>
+    </div>
+
+    <div class="resultado">
+      <div class="home-mini" aria-label="Ícone do FioPulse na tela inicial">
+        <div class="hm-grid">
+        <span class="hm-dot"></span><span class="hm-dot"></span><span class="hm-dot"></span><span class="hm-dot"></span>
+        <span class="hm-dot hm-fio"><span class="app-icon"></span></span><span class="hm-dot"></span><span class="hm-dot"></span><span class="hm-dot"></span>
+        </div>
+        <span class="hm-lbl">FioPulse</span>
+      </div>
+      <div class="rtx">
+        <div class="rt">Tudo isso já está <span>pronto pra você</span>.</div>
+        <div class="rd">É só instalar seguindo os passos deste guia, tocar no ícone do FioPulse e entrar com o seu CPF.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="rodape">
+    <span class="duvida">Dúvida? Fale com a GP.</span>
+    <span class="marca-mini"><span class="app-icon"></span>FioPulse · Fiobras</span>
+    <span class="pag-num">Página 4 de 4 · Seu portal</span>
   </footer>
 
 </section>
