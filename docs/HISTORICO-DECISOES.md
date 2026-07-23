@@ -3160,3 +3160,23 @@ Shape do doc final (`ferias/{codigo}`), pra referência de quem for consumir no 
   funcionarioId, atualizadoEm,
 }
 ```
+
+---
+
+## 2026-07-22/23 · 🍽️ Pausa de almoço/lanche valida por DURAÇÃO, não por relógio — fix na função de posição ausente (revisão do Fable)
+
+William pediu uma varredura geral ("varre e vê se não tem erro nas ocorrências"). Pipeline saudável (13/13 rodadas OK, sem incidente, breaker limpo), mas um cross-check contra o Espelho cru achou 2 casos onde a MENSAGEM do sistema não batia com os dados: **Carlos Zoz (356, 22/07)** marcado "ambíguo entre 2 posições" quando uma opção bate a 7min e a outra a 113min (quase no limite dos 120 — não é ambíguo de verdade); **Patricia Jorge (1195, 11/07)** marcado "nenhuma posição bate" quando 2 das 3 marcações batem com folga de 4-6min.
+
+### Causa raiz (achado do Fable, não das minhas 2 primeiras ideias)
+A pausa de almoço/lanche desliza do horário nominal da escala na prática real — confirmado no Espelho cru, meses inteiros, tanto turno 3 (Zoz/Patricia, pausa real ~02:00-02:45 contra nominal 00:00-00:30) quanto turno 2 (código 1206, pausa real ~17:30-18:02 contra nominal 17:00-17:30). Essa é a MESMA lição já aplicada em `desvios_todas_posicoes`/`suprimido999DiaCoerente` desde o achado Carlos Zoz original de 2026-07-06 ("pausa é por DURAÇÃO, não por relógio") — só que `diagnostica_marcacao_ausente` (a função que decide QUAL posição está ausente) ainda testava a pausa por relógio absoluto, a única função restante que não seguia essa regra.
+
+Propus 2 ideias — **as duas foram vetadas pelo Fable, com razão**: desempate por menor desvio escolheria a posição ERRADA no próprio caso que motivou (verificado: a volta do lanche do Zoz é mesmo a posição 2, um desempate por desvio escolheria a 1); busca inversa por apurada espúria partia de uma premissa factualmente errada (02:46 da Patricia NÃO é espúria, é a volta do lanche dela, a ±6min do padrão diário).
+
+### Fix (métrica posição-aware, só em escalas de 4 marcações)
+Extremos (entrada/saída final) continuam testados por relógio (`desvio_circular <= JANELA_MATCH_MIN`, sem mudança). O par de pausa ganha 2 regras novas: se o candidato testado NÃO é uma das 2 posições do meio, o par sobrevive intacto na hipótese e é validado por **duração** real vs nominal (`PAUSA_DURACAO_TOL_MIN=60`, calibrado contra desvios reais de 2-15min observados — não é threshold arbitrário); se o candidato testado É uma das posições do meio, só sobra metade do par, que fica isenta de teste (relógio dela não significa nada). `candidatos`-plural/unicidade/early-returns intocados — zero categoria nova, os 2 casos passam a cair no caminho `intervaloAmbiguo`/"Não Registrou Entrada/Saída Lanche" já existente e bem tratado.
+
+### Validação
+Isolado: 7 cenários (os 2 casos reais + um caso "Vinicius-like" de regressão + os outros 4 casos "ambíguo entre 2" que já existiam hoje) — só os 2 motivadores mudam de desfecho, os outros 4 continuam idênticos (já estavam corretos). Contra o pipeline inteiro com dado real: mesma coisa, zero regressão nos demais 20 casos incertos do dia.
+
+### Transição dos 2 docs existentes — verificada segura, sem ação manual
+O `dedupId` muda pros 2 casos (inclui o rótulo da situação). Isso já tem proteção: **Zoz** (doc antigo ainda `rh_confere`) foi resolvido sozinho pela reconciliação/evidência assim que rodei o uploader. **Patricia** (doc antigo já `confirmada` por humano) **não duplicou** — a guarda `puladoEspLabelDrift` (já existente, achada pelo Fable na semana passada pra exatamente esse cenário de "rótulo mudou entre rodadas") bloqueou a criação do doc novo automaticamente. Bônus curioso: o humano que confirmou o caso da Patricia na época (Djoniffer Krieck Gonçalves) já tinha escrito manualmente "Não bateu saída para o lanche" — o sistema só agora chegou na mesma conclusão que um humano já tinha tirado sozinho meses atrás.
