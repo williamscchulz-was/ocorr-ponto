@@ -12,6 +12,12 @@
 (function () {
   const cfg = window.FIREBASE_CONFIG;
 
+  // Seam de teste do contrato de loader (P2 do BOOT PERFEITO): exposto ANTES do guard de
+  // demo porque o probe boot-loaders-verify roda em modo demo (config abortado) e precisa
+  // exercitar o retry+diff+render REAL. loaderHome só depende de globais (state, renderApp,
+  // debug) — a declaração `async function` mais abaixo é hasteada, então vale nos 2 modos.
+  window.__loaderHome = loaderHome;
+
   // Sem config → modo demo, não faz nada
   if (!cfg || !cfg.apiKey || cfg.apiKey === "COLE_AQUI") {
     console.info("[Firebase] sem config — rodando em modo demo (localStorage).");
@@ -80,6 +86,17 @@
       // Templates de email (reset senha, verificação) saem em pt-BR
       auth.languageCode = "pt";
       const db = firebase.firestore();
+      // P1 (BOOT PERFEITO) · persistência local do Firestore, ANTES de qualquer leitura
+      // (o SDK compat exige ser a 1ª operação sobre o db). Efeito: no cold start do PWA
+      // as leituras resolvem do cache em disco na hora (o "client is offline" some) e a
+      // "última home boa" nasce de graça do próprio SDK. failed-precondition (várias abas
+      // sem suporte a multi-tab) e unimplemented (navegador sem IndexedDB) degradam pra
+      // sem-persistência, com debug, NUNCA quebram o boot.
+      try {
+        db.enablePersistence({ synchronizeTabs: true }).catch((e) => {
+          debug?.("[Firestore] persistência indisponível (" + (e && e.code) + "), seguindo sem cache em disco");
+        });
+      } catch (e) { debug?.("[Firestore] enablePersistence falhou:", (e && (e.code || e.message)) || e); }
       // Storage: PDFs de recibo/cartão ponto (arquivo de verdade, fora do Firestore).
       const storage = firebase.storage();
       // Marco do boot: SDK carregado e Firebase inicializado (ver window.__bootDbg()).
@@ -1478,7 +1495,11 @@
       const qs = [col.where("status", "==", "aberta").where("publico.tipo", "==", "todos")];
       if (meuTurno != null) qs.push(col.where("status", "==", "aberta").where("publico.tipo", "==", "turno").where("publico.valores", "array-contains", meuTurno));
       if (meuSetor) qs.push(col.where("status", "==", "aberta").where("publico.tipo", "==", "setor").where("publico.valores", "array-contains", meuSetor));
-      const snaps = await Promise.all(qs.map((q) => q.get().catch((e) => { debug?.("[clima] colab q:", e?.message || e); return null; })));
+      let algum = false;
+      const snaps = await Promise.all(qs.map((q) => q.get().then((s) => { algum = true; return s; }).catch((e) => { debug?.("[clima] colab q:", e?.message || e); return null; })));
+      // Total failure (cold start offline) -> lanca pra o loaderHome tentar de novo, sem
+      // zerar o cache. Falha PARCIAL (um segmento) segue tolerada: dedupe do que veio.
+      if (qs.length && !algum) throw new Error("clima offline");
       const seen = {}, arr = [];
       for (const sn of snaps) { if (!sn) continue; for (const d of sn.docs) { if (seen[d.id]) continue; seen[d.id] = 1; arr.push({ id: d.id, ...d.data() }); } }
       await Promise.all(arr.map(async (p) => { try { const r = await col.doc(p.id).collection("recibos").doc(uid).get(); p.jaRespondi = r.exists; } catch { p.jaRespondi = false; } }));
@@ -1591,7 +1612,9 @@
         if (meuTurno != null) qs.push(col.where("status", "==", st).where("publico.tipo", "==", "turno").where("publico.valores", "array-contains", meuTurno));
         if (meuSetor) qs.push(col.where("status", "==", st).where("publico.tipo", "==", "setor").where("publico.valores", "array-contains", meuSetor));
       }
-      const snaps = await Promise.all(qs.map((q) => q.get().catch((e) => { debug?.("[desemp] colab q:", e?.message || e); return null; })));
+      let algum = false;
+      const snaps = await Promise.all(qs.map((q) => q.get().then((s) => { algum = true; return s; }).catch((e) => { debug?.("[desemp] colab q:", e?.message || e); return null; })));
+      if (qs.length && !algum) throw new Error("desempenho offline"); // total failure -> loaderHome tenta de novo
       const seen = {}, arr = [];
       for (const sn of snaps) { if (!sn) continue; for (const d of sn.docs) { if (seen[d.id]) continue; seen[d.id] = 1; arr.push({ id: d.id, ...d.data() }); } }
       // Enriquece: nos ativos de modalidade 'auto', a MINHA auto (convite some quando
@@ -1721,12 +1744,17 @@
     const _gami = () => db.collection("gamificacao").doc(_gamiAno());
 
     // Config da temporada (cache de sessao). null = sem temporada -> feature dormente.
+    // P2 (BOOT PERFEITO): FALHA DE REDE NAO CACHEIA. So o sucesso grava state.gamiConfig
+    // (inclusive "doc nao existe", que e resposta valida -> null legitimo). Antes o catch
+    // gravava null e, como o guard abaixo pula reler quando != undefined, uma unica falha
+    // no cold start grudava a feature dormente a sessao inteira. Agora a leitura seguinte
+    // (proximo carregarGamiHome/refetch de foco) tenta de novo.
     window.carregarGamiConfig = async function (force) {
       if (state.gamiConfig !== undefined && !force) return state.gamiConfig;
       try {
         const s = await _gami().get();
         state.gamiConfig = s.exists ? { ano: _gamiAno(), ...s.data() } : null;
-      } catch (e) { debug?.("[gami] config:", e?.code || e?.message); state.gamiConfig = null; }
+      } catch (e) { debug?.("[gami] config:", e?.code || e?.message); /* nao gruda: fica undefined pra reler */ }
       return state.gamiConfig;
     };
 
@@ -2049,27 +2077,27 @@
       state.vagasInternasColab = state.vagasInternasColab || [];
       state.meusInteressesInternos = state.meusInteressesInternos || {};
       if (!u || u.role !== "colaborador" || !u.funcionarioId) { state.vagasInternasColab = []; state.meusInteressesInternos = {}; return; }
-      try {
-        const snap = await db.collection("vagas")
-          .where("status", "==", "publicada")
-          .where("visibilidade", "in", ["interna", "ambas"]).get();
-        const vagas = snap.docs.map((d) => {
-          const v = d.data();
-          return { id: d.id, titulo: v.titulo || "", setor: v.setor || "", turno: v.turno || "",
-            cidade: v.cidade || "", descricao: v.descricao || "", visibilidade: v.visibilidade || "" };
-        });
-        // Meu interesse por vaga: 1 get por vaga (poucas internas abertas). A rule libera SO o
-        // proprio doc (origem interna + uid == ele). Falha isolada nao esconde a vaga.
-        const meus = {};
-        await Promise.all(vagas.map(async (vg) => {
-          try {
-            const r = await db.collection("candidaturas").doc(`${vg.id}__int__${u.funcionarioId}`).get();
-            if (r.exists) { const d = r.data(); meus[vg.id] = { status: d.status || "nova", em: tsToIso(d.em) }; }
-          } catch (e) { /* leitura do proprio interesse; nao trava a lista */ }
-        }));
-        state.vagasInternasColab = vagas;
-        state.meusInteressesInternos = meus;
-      } catch (e) { debug?.("[colab] vagas internas:", e?.code || e?.message); state.vagasInternasColab = state.vagasInternasColab || []; }
+      // P2 (BOOT PERFEITO): a query principal PROPAGA a falha (o loaderHome tenta de novo e
+      // preserva o cache); antes o catch engolia e zerava. Fetch-then-swap: so grava no fim.
+      const snap = await db.collection("vagas")
+        .where("status", "==", "publicada")
+        .where("visibilidade", "in", ["interna", "ambas"]).get();
+      const vagas = snap.docs.map((d) => {
+        const v = d.data();
+        return { id: d.id, titulo: v.titulo || "", setor: v.setor || "", turno: v.turno || "",
+          cidade: v.cidade || "", descricao: v.descricao || "", visibilidade: v.visibilidade || "" };
+      });
+      // Meu interesse por vaga: 1 get por vaga (poucas internas abertas). A rule libera SO o
+      // proprio doc (origem interna + uid == ele). Falha isolada nao esconde a vaga.
+      const meus = {};
+      await Promise.all(vagas.map(async (vg) => {
+        try {
+          const r = await db.collection("candidaturas").doc(`${vg.id}__int__${u.funcionarioId}`).get();
+          if (r.exists) { const d = r.data(); meus[vg.id] = { status: d.status || "nova", em: tsToIso(d.em) }; }
+        } catch (e) { /* leitura do proprio interesse; nao trava a lista */ }
+      }));
+      state.vagasInternasColab = vagas;
+      state.meusInteressesInternos = meus;
     };
     // INTERESSE INTERNO (1 toque). Grava candidatura com o shape EXATO do criaInterna (hasOnly):
     // vagaId/origem/uid/funcionarioId/nome/cargo/setor/turno/tempoCasaMeses/motivacao/em/status.
@@ -4340,7 +4368,10 @@
     const u = currentUser();
     if (!u) return;
     if (u.role === "colaborador") {
-      await carregarDadosCompletos(db); // ramo colab é leve e não assina listeners
+      // Reusa os MESMOS loaders da home (retry+diff+render coalescido) em vez de re-rodar o
+      // boot inteiro; o funcionário já está em state.funcionarios[0] (estável no foco). O
+      // throttle/guardas ficam no refetchAoFoco, que chama esta função.
+      await carregarHomeColab(db, u);
     } else {
       const tarefas = [carregarBancoHorasGestor(u)];
       if (window.recarregarComunicados) tarefas.push(window.recarregarComunicados());
@@ -4383,6 +4414,160 @@
   }
   window.addEventListener("focus", () => { if (typeof firebase !== "undefined" && firebase.auth?.().currentUser) refetchAoFoco(); });
 
+  // P2 (BOOT PERFEITO) · CONTRATO UNIFORME DE LOADER da home do colab. `ler` faz a leitura
+  // E grava no state (fetch-then-swap dele mesmo, NUNCA zera antes) e PODE lançar em falha
+  // de rede; retry 3x/1200ms no molde de carregarAniversariantes (cold start do PWA rejeita
+  // as 1ªs leituras com "client is offline"). `assina` resume o state observado num id
+  // BARATO (contagem+ids+marca de estado, NUNCA JSON de payload pesado como o base64 de
+  // documentosColab); se a assinatura mudou de antes->depois E a tela ativa (`telas`)
+  // consome o dado, repinta a home pelo agendador coalescido (renderApp). A falha final só
+  // loga; quem preserva/zera o state é o próprio `ler`. Exposto p/ o probe boot-loaders-verify.
+  async function loaderHome(nome, ler, assina, telas) {
+    const antes = assina();
+    for (let i = 0; i < 3; i++) {
+      try { await ler(); break; }
+      catch (e) {
+        debug?.("[colab] " + nome + " (tentativa " + (i + 1) + "):", (e && (e.code || e.message)) || e);
+        if (i < 2) await new Promise((r) => setTimeout(r, 1200));
+      }
+    }
+    if (assina() !== antes && telas.includes(state.view && state.view.page)) {
+      try { renderApp(); } catch (e) { /* render nunca derruba o loader */ }
+    }
+  }
+  // (seam __loaderHome exposto no topo do IIFE, antes do guard de demo)
+
+  // FASE B do colab: os 10 loaders da home, cada um sob o contrato loaderHome (retry+diff+
+  // render). Extraída de carregarDadosCompletos pra o refetch de foco (recarregarVolateis)
+  // reusar EXATAMENTE o mesmo contrato em vez de re-rodar o boot inteiro. Pressupõe o
+  // funcionário do colab já em state.funcionarios[0] (lido antes, no boot; estável no foco).
+  async function carregarHomeColab(db, u) {
+    const auth = firebase.auth(); // singleton (fora do closure), mesma razão de carregarDadosCompletos
+    await Promise.all([
+      // Saldo SELF do banco de horas (sem PII), por código. Coleção populada pelo pipeline.
+      loaderHome("saldo-bh", async () => {
+        if (!u.codigo) { state.meuSaldoBH = null; return; }
+        const bh = await db.collection("banco-horas-self").doc(String(u.codigo)).get();
+        state.meuSaldoBH = bh.exists ? bh.data() : null;
+      }, () => JSON.stringify(state.meuSaldoBH || null), ["colab-home", "colab-ponto"]),
+
+      // Comunicados do SEGMENTO (query por todos/turno/setor; a rule não filtra). Junta e
+      // dedupe no cliente; preserva o "visto" otimista (prevCom) quando a leitura falha.
+      loaderHome("comunicados", async () => {
+        const prevCom = state.comunicadosColab || [];
+        const f = state.funcionarios[0] || null;
+        const meuTurno = f ? f.turno : null, meuSetor = f ? f.setor : null;
+        const col = db.collection("comunicados");
+        const queries = [col.where("ativo", "==", true).where("segmento.tipo", "==", "todos")];
+        if (meuTurno != null) queries.push(col.where("ativo", "==", true).where("segmento.tipo", "==", "turno").where("segmento.valores", "array-contains", meuTurno));
+        if (meuSetor) queries.push(col.where("ativo", "==", true).where("segmento.tipo", "==", "setor").where("segmento.valores", "array-contains", meuSetor));
+        let algum = false;
+        const snaps = await Promise.all(queries.map((q) => q.get().then((s) => { algum = true; return s; }).catch((e) => { debug?.("[colab] comunicados q:", e?.message || e); state._dbgComErr = (e && (e.code || e.message)) || String(e); return null; })));
+        if (!algum) throw new Error("comunicados offline"); // TODAS falharam -> retry sem zerar
+        const seen = {}; const arr = [];
+        for (const sn of snaps) { if (!sn) continue; for (const d of sn.docs) { if (seen[d.id]) continue; seen[d.id] = 1; const dat = d.data(); arr.push({ id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm) }); } }
+        const uid = auth.currentUser && auth.currentUser.uid;
+        await Promise.all(arr.map(async (c) => {
+          const prev = prevCom.find((x) => x.id === c.id);
+          try { const l = await db.collection("comunicados").doc(c.id).collection("leituras").doc(uid).get(); c.minhaLeitura = l.exists ? { ...l.data(), em: tsToIso(l.data().em) } : ((prev && prev.minhaLeitura) || null); }
+          catch (e) { c.minhaLeitura = (prev && prev.minhaLeitura) || null; }
+        }));
+        state.comunicadosColab = arr; state._dbgComN = arr.length;
+      }, () => (state.comunicadosColab || []).map((c) => c.id + ":" + (c.ativo ? 1 : 0) + (c.fixado ? 1 : 0) + (c.minhaLeitura ? 1 : 0)).sort().join("|"), ["colab-home", "colab-comunicados"]),
+
+      // Documentos institucionais publicados do segmento (mesma lógica de query). Mantém o
+      // gate documentosColabProntos (o skeleton da tela só cede quando publicados chegaram).
+      loaderHome("documentos", async () => {
+        const f2 = state.funcionarios[0] || null;
+        const t2 = f2 ? f2.turno : null, s2 = f2 ? f2.setor : null;
+        const dbase = db.collection("documentos").where("status", "==", "publicado").where("escopo", "==", "institucional");
+        const dq = [dbase.where("segmento.tipo", "==", "todos")];
+        if (t2 != null) dq.push(dbase.where("segmento.tipo", "==", "turno").where("segmento.valores", "array-contains", t2));
+        if (s2) dq.push(dbase.where("segmento.tipo", "==", "setor").where("segmento.valores", "array-contains", s2));
+        let algum = false;
+        const dsnaps = await Promise.all(dq.map((q) => q.get().then((s) => { algum = true; return s; }).catch((e) => { debug?.("[colab] documentos q:", e?.message || e); state._dbgDocErr = (e && (e.code || e.message)) || String(e); return null; })));
+        if (!algum) throw new Error("documentos offline");
+        const dseen = {}; const darr = [];
+        for (const sn of dsnaps) { if (!sn) continue; for (const d of sn.docs) { if (dseen[d.id]) continue; dseen[d.id] = 1; const dat = d.data(); darr.push({ id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm), versaoEm: tsToIso(dat.versaoEm) }); } }
+        const uid2 = auth.currentUser && auth.currentUser.uid;
+        await Promise.all(darr.map(async (d) => {
+          d.minhaAssinatura = null; d.minhaLeitura = null;
+          try { const a = await db.collection("documentos").doc(d.id).collection("assinaturas").doc(uid2).get(); if (a.exists) d.minhaAssinatura = { ...a.data(), em: tsToIso(a.data().em) }; } catch (e) { /* */ }
+          try { const l = await db.collection("documentos").doc(d.id).collection("leituras").doc(uid2).get(); if (l.exists) d.minhaLeitura = { ...l.data(), em: tsToIso(l.data().em) }; } catch (e) { /* */ }
+        }));
+        state.documentosColab = darr; state._dbgDocN = darr.length;
+        state.documentosColabProntos = true;
+      }, () => (state.documentosColab || []).map((d) => d.id + ":" + (d.minhaAssinatura ? 1 : 0) + (d.minhaLeitura ? 1 : 0)).sort().join("|"), ["colab-documentos"]),
+
+      // Registro disciplinar do próprio colaborador (advertência/suspensão) + a própria ciência.
+      loaderHome("disciplinares", async () => {
+        if (!u.funcionarioId) { state.disciplinaresColab = []; return; }
+        const uidC = auth.currentUser && auth.currentUser.uid;
+        const dsnap = await db.collection("disciplinares").where("funcionarioId", "==", u.funcionarioId).get();
+        const arr = await Promise.all(dsnap.docs.map(async (dd) => {
+          const dat = dd.data();
+          const o = { id: dd.id, ...dat, criadoEm: tsToIso(dat.criadoEm), minhaCiencia: null };
+          try { const c = await dd.ref.collection("ciencia").doc(uidC).get(); if (c.exists) o.minhaCiencia = { ...c.data(), em: tsToIso(c.data().em) }; } catch (e) { /* */ }
+          return o;
+        }));
+        arr.sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
+        state.disciplinaresColab = arr;
+      }, () => (state.disciplinaresColab || []).map((d) => d.id + ":" + (d.minhaCiencia ? 1 : 0)).sort().join("|"), ["colab-home"]),
+
+      // Minhas ocorrências (read-only; a rule libera só as próprias). Excluídas fora da vista.
+      loaderHome("ocorrencias", async () => {
+        if (!u.funcionarioId) { state.ocorrenciasColab = []; return; }
+        const osnap = await db.collection("ocorrencias").where("funcionarioId", "==", u.funcionarioId).get();
+        state.ocorrenciasColab = osnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((o) => o.excluida !== true);
+      }, () => (state.ocorrenciasColab || []).map((o) => o.id + ":" + (o.lancada ? 1 : 0)).sort().join("|"), ["colab-ponto"]),
+
+      // Meus recibos (folha + cartão ponto): metadados leves + a MINHA assinatura de cada.
+      loaderHome("recibos", async () => {
+        if (!u.funcionarioId) { state.meusRecibos = []; return; }
+        const rsnap = await db.collection("recibos").where("funcionarioId", "==", u.funcionarioId).get();
+        const arr = rsnap.docs
+          .map((d) => { const x = d.data(); return { id: d.id, ...x, criadoEm: tsToIso(x.criadoEm) }; })
+          .sort((a, b) => String(b.competencia || "").localeCompare(String(a.competencia || "")));
+        const uidR = auth.currentUser && auth.currentUser.uid;
+        await Promise.all(arr.map(async (r) => {
+          try { const a = await db.collection("recibos").doc(r.id).collection("assinaturas").doc(uidR).get(); r.minhaAssinatura = a.exists ? { ...a.data(), em: tsToIso(a.data().em) } : null; }
+          catch (e) { r.minhaAssinatura = null; }
+        }));
+        state.meusRecibos = arr;
+      }, () => (state.meusRecibos || []).map((r) => r.id + ":" + (r.minhaAssinatura ? 1 : 0)).sort().join("|"), ["colab-home", "colab-folha", "colab-ponto"]),
+
+      // Clima + desempenho + gamificação (home). Em PARALELO entre si (independentes) pra o
+      // pior caso offline não serializar 3 retries; cada um com o próprio contrato.
+      (async () => {
+        await Promise.all([
+          loaderHome("clima", () => window.carregarPesquisasClimaColab(), () => (state.pesquisasClimaColab || []).map((p) => p.id + ":" + (p.jaRespondi ? 1 : 0)).sort().join("|"), ["colab-home"]),
+          loaderHome("desempenho", () => window.carregarCiclosDesempenhoColab(), () => (state.ciclosDesempenhoColab || []).map((c) => c.id + ":" + c.status + ":" + (c.minhaAuto ? 1 : 0) + (c.meuResultado ? 1 : 0)).sort().join("|"), ["colab-home"]),
+          // gami: config + placar + presença do dia (streak). São best-effort (não lançam);
+          // a config já não gruda em falha (P2), então o loaderHome cobre só o diff+render.
+          loaderHome("gami", async () => { await window.carregarGamiHome(); await window.gamiPingStreak(); }, () => ((state.gamiMeu && state.gamiMeu.total) || 0) + "|" + (state.gamiStreakDias || 0) + "|" + ((state.gamiConfig && state.gamiConfig.ativa) ? 1 : 0), ["colab-home", "colab-conquistas"]),
+        ]);
+      })(),
+
+      // Aniversariantes do mês + recém-chegados (card de boas-vindas). carregarAniversariantes
+      // já faz o próprio retry 3x e não lança; o loaderHome aqui garante só o diff+render.
+      loaderHome("aniversariantes", () => window.carregarAniversariantes(3), () => JSON.stringify(state.aniversariantes || null), ["colab-home"]),
+
+      // Vagas internas abertas + o meu interesse por vaga (fase 2).
+      loaderHome("vagas-internas", () => window.carregarVagasInternasColab(), () => (state.vagasInternasColab || []).map((v) => v.id).sort().join(",") + "|" + Object.keys(state.meusInteressesInternos || {}).sort().join(","), ["colab-home", "colab-oportunidades"]),
+
+      // Termos (adesão à assinatura eletrônica + canal de denúncias): já têm retry próprio
+      // (3x) e gate de exibição decidido no render. Fora do loaderHome (não repintam a home).
+      (async () => {
+        state.termoAdesaoOk = await window.verificarTermoAdesao(3);
+        state.termoCanalOk = await window.verificarTermoCanalDenuncia(3);
+      })(),
+    ]);
+    // Safety: mesmo num boot totalmente offline (3 retries falharam), o skeleton da tela
+    // Documentos precisa ceder (mantém o comportamento antigo de sempre marcar pronto).
+    state.documentosColabProntos = true;
+  }
+  window.carregarHomeColab = carregarHomeColab;
+
   async function carregarDadosCompletos(db) {
     if (window.__atualizandoApp) return; // boot com atualização na frente: recarrega em ~2s (ver app.js)
     const auth = firebase.auth(); // auth NÃO está no closure (irmã de installFirebaseStore) — singleton.
@@ -4410,191 +4595,11 @@
         state.funcionarios = [];
       }
 
-      // O resto do boot do colaborador roda em PARALELO. Os blocos são independentes entre
-      // si (só comunicados/documentos dependem do funcionário, já carregado acima). Antes
-      // eram ~7 idas à rede EM SÉRIE, o que fazia o login "parecer travado" no celular. Cada
-      // bloco mantém seu próprio try/catch e fetch-then-swap, então uma falha isolada não
-      // derruba as outras nem o boot.
-      await Promise.all([
-      (async () => {
-      // Saldo SELF do banco de horas (sem PII), por código. Coleção banco-horas-self é populada
-      // pelo pipeline; a rule SELF é deploy separado (autorizado). Sem rule/dado -> null -> "em breve".
-      if (u.codigo) {
-        try {
-          const bh = await db.collection("banco-horas-self").doc(String(u.codigo)).get();
-          state.meuSaldoBH = bh.exists ? bh.data() : null;
-        } catch (e) { debug?.("[colab] saldo BH self:", e?.message || e); }
-      } else {
-        state.meuSaldoBH = null;
-      }
-      })(),
-      (async () => {
-      // Comunicados do SEGMENTO do colaborador. A rule não filtra query: faço uma
-      // query por segmento (todos / turno dele / setor dele) — cada uma só retorna
-      // o que a rule já permite. turno/setor vêm do funcionário (WKRADAR mantém ==
-      // users.turno/.setor, que é o que a rule checa). Junta e dedupe no cliente.
-      const prevCom = state.comunicadosColab || []; // pra preservar "visto" otimista no reload volátil
-      state.comunicadosColab = [];
-      try {
-        const f = state.funcionarios[0] || null;
-        const meuTurno = f ? f.turno : null;
-        const meuSetor = f ? f.setor : null;
-        const col = db.collection("comunicados");
-        const queries = [col.where("ativo", "==", true).where("segmento.tipo", "==", "todos")];
-        if (meuTurno != null) queries.push(col.where("ativo", "==", true).where("segmento.tipo", "==", "turno").where("segmento.valores", "array-contains", meuTurno));
-        if (meuSetor) queries.push(col.where("ativo", "==", true).where("segmento.tipo", "==", "setor").where("segmento.valores", "array-contains", meuSetor));
-        const snaps = await Promise.all(queries.map((q) => q.get().catch((e) => { debug?.("[colab] comunicados q:", e?.message || e); state._dbgComErr = (e && (e.code || e.message)) || String(e); return null; })));
-        const seen = {}; const arr = [];
-        for (const sn of snaps) {
-          if (!sn) continue;
-          for (const d of sn.docs) {
-            if (seen[d.id]) continue; seen[d.id] = 1;
-            const dat = d.data();
-            arr.push({ id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm) });
-          }
-        }
-        const uid = auth.currentUser && auth.currentUser.uid;
-        await Promise.all(arr.map(async (c) => {
-          // Se o reload rodar antes do write da leitura propagar (ou sem sessão), mantém o
-          // "visto" local em vez de zerar — senão o aviso voltava eterno pra "não visto".
-          const prev = prevCom.find((x) => x.id === c.id);
-          try { const l = await db.collection("comunicados").doc(c.id).collection("leituras").doc(uid).get(); c.minhaLeitura = l.exists ? { ...l.data(), em: tsToIso(l.data().em) } : ((prev && prev.minhaLeitura) || null); }
-          catch (e) { c.minhaLeitura = (prev && prev.minhaLeitura) || null; }
-        }));
-        state.comunicadosColab = arr; state._dbgComN = arr.length;
-      } catch (e) { debug?.("[colab] comunicados:", e?.message || e); state._dbgComErr = (e && (e.code || e.message)) || String(e); state.comunicadosColab = []; }
-      })(),
-      (async () => {
-      // Documentos institucionais publicados do segmento. Mesma lógica de query por
-      // segmento (a rule não filtra). O ramo 'pessoal' entra quando existir doc pessoal.
-      // NUNCA zera a lista antes de re-buscar (auditoria William 2026-07-17, "termos
-      // aparecem antes"): o refetch de toda abertura de tela apagava os publicados por
-      // 1-2s e a tela pingava. A lista atual segue servindo e a troca é ATÔMICA no fim.
-      try {
-        const f2 = state.funcionarios[0] || null;
-        const t2 = f2 ? f2.turno : null;
-        const s2 = f2 ? f2.setor : null;
-        const dbase = db.collection("documentos").where("status", "==", "publicado").where("escopo", "==", "institucional");
-        const dq = [dbase.where("segmento.tipo", "==", "todos")];
-        if (t2 != null) dq.push(dbase.where("segmento.tipo", "==", "turno").where("segmento.valores", "array-contains", t2));
-        if (s2) dq.push(dbase.where("segmento.tipo", "==", "setor").where("segmento.valores", "array-contains", s2));
-        const dsnaps = await Promise.all(dq.map((q) => q.get().catch((e) => { debug?.("[colab] documentos q:", e?.message || e); state._dbgDocErr = (e && (e.code || e.message)) || String(e); return null; })));
-        const dseen = {}; const darr = [];
-        for (const sn of dsnaps) { if (!sn) continue; for (const d of sn.docs) { if (dseen[d.id]) continue; dseen[d.id] = 1; const dat = d.data(); darr.push({ id: d.id, ...dat, publicadoEm: tsToIso(dat.publicadoEm), versaoEm: tsToIso(dat.versaoEm) }); } }
-        const uid2 = auth.currentUser && auth.currentUser.uid;
-        await Promise.all(darr.map(async (d) => {
-          d.minhaAssinatura = null; d.minhaLeitura = null;
-          try { const a = await db.collection("documentos").doc(d.id).collection("assinaturas").doc(uid2).get(); if (a.exists) d.minhaAssinatura = { ...a.data(), em: tsToIso(a.data().em) }; } catch (e) { /* */ }
-          try { const l = await db.collection("documentos").doc(d.id).collection("leituras").doc(uid2).get(); if (l.exists) d.minhaLeitura = { ...l.data(), em: tsToIso(l.data().em) }; } catch (e) { /* */ }
-        }));
-        state.documentosColab = darr; state._dbgDocN = darr.length;
-      } catch (e) { debug?.("[colab] documentos:", e?.message || e); state._dbgDocErr = (e && (e.code || e.message)) || String(e); state.documentosColab = []; }
-      // Sinal de prontidão pro portão da carga única da tela Documentos (v369): o
-      // skeleton só cede quando PUBLICADOS e TERMOS chegaram; sem isto, abrir a tela
-      // no meio do boot mostrava só os termos e os publicados pingavam depois.
-      state.documentosColabProntos = true;
-      if ((state.view && state.view.page) === "colab-documentos") { try { renderApp(); } catch (e) { /* */ } }
-      })(),
-      (async () => {
-      // Registro disciplinar do PROPRIO colaborador (advertencia/suspensao). where(funcionarioId==)
-      // sem orderBy (sem indice composto); ordena no cliente. Le tambem a propria ciencia.
-      state.disciplinaresColab = [];
-      if (u.funcionarioId) {
-        try {
-          const uidC = auth.currentUser && auth.currentUser.uid;
-          const dsnap = await db.collection("disciplinares").where("funcionarioId", "==", u.funcionarioId).get();
-          // Ciências em PARALELO (era o único trecho sequencial do Promise.all do colab).
-          const arr = await Promise.all(dsnap.docs.map(async (dd) => {
-            const dat = dd.data();
-            const o = { id: dd.id, ...dat, criadoEm: tsToIso(dat.criadoEm), minhaCiencia: null };
-            try { const c = await dd.ref.collection("ciencia").doc(uidC).get(); if (c.exists) o.minhaCiencia = { ...c.data(), em: tsToIso(c.data().em) }; } catch (e) { /* */ }
-            return o;
-          }));
-          arr.sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
-          state.disciplinaresColab = arr;
-        } catch (e) { debug?.("[colab] disciplinares:", e?.message || e); state.disciplinaresColab = []; }
-      }
-      })(),
-      (async () => {
-      // Minhas ocorrências (read-only): a rule deixa o colaborador ler SÓ as próprias
-      // (isColaborador && euSouODono(funcionarioId)). Sem PII de terceiros.
-      state.ocorrenciasColab = [];
-      if (u.funcionarioId) {
-        try {
-          const osnap = await db.collection("ocorrencias").where("funcionarioId", "==", u.funcionarioId).get();
-          // Excluídas (soft delete) FORA da vista do colaborador (gate Fable: sem o
-          // filtro, uma ocorrência que o gestor excluiu seguiria em "Meu ponto").
-          state.ocorrenciasColab = osnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((o) => o.excluida !== true);
-        } catch (e) { debug?.("[colab] ocorrencias:", e?.message || e); state.ocorrenciasColab = []; }
-      }
-      })(),
-      (async () => {
-      // Meus recibos (folha de pagamento + cartão ponto em arquivo): SÓ metadados leves
-      // (o PDF fica na subcoleção arquivo e é buscado ao abrir). where(funcionarioId==) sem
-      // orderBy (sem índice composto); ordena por competência no cliente.
-      state.meusRecibos = [];
-      if (u.funcionarioId) {
-        try {
-          const rsnap = await db.collection("recibos").where("funcionarioId", "==", u.funcionarioId).get();
-          state.meusRecibos = rsnap.docs
-            .map((d) => { const x = d.data(); return { id: d.id, ...x, criadoEm: tsToIso(x.criadoEm) }; })
-            .sort((a, b) => String(b.competencia || "").localeCompare(String(a.competencia || "")));
-          // Fase B: a MINHA assinatura de cada recibo (1 get por recibo, <=12/ano) —
-          // alimenta o selo Assinado/pendente e o viewer da versão carimbada.
-          const uidR = auth.currentUser && auth.currentUser.uid;
-          await Promise.all(state.meusRecibos.map(async (r) => {
-            try {
-              const a = await db.collection("recibos").doc(r.id).collection("assinaturas").doc(uidR).get();
-              r.minhaAssinatura = a.exists ? { ...a.data(), em: tsToIso(a.data().em) } : null;
-            } catch (e) { r.minhaAssinatura = null; }
-          }));
-        } catch (e) { debug?.("[colab] recibos:", e?.message || e); state.meusRecibos = []; }
-      }
-      })(),
-      (async () => {
-      // Pesquisas de clima ABERTAS do segmento do colaborador (+ jaRespondi via recibo).
-      // Depende de state.funcionarios[0] (turno/setor), ja carregado acima. Falha isolada
-      // nao derruba o boot: cai em lista vazia.
-      try { await window.carregarPesquisasClimaColab(); } catch (e) { debug?.("[colab] clima:", e?.message || e); state.pesquisasClimaColab = []; }
-      // Ciclos de avaliacao de desempenho do segmento (ativos = autoavaliar,
-      // encerrados = resultado). Mesma tolerancia a falha do clima.
-      try { await window.carregarCiclosDesempenhoColab(); } catch (e) { debug?.("[colab] desempenho:", e?.message || e); state.ciclosDesempenhoColab = []; }
-      // Gamificacao: config + meu placar (alimenta o card da home; a tela carrega o resto)
-      // + marca a presenca do dia (streak).
-      try { await window.carregarGamiHome(); } catch (e) { debug?.("[colab] gami:", e?.message || e); }
-      try { await window.gamiPingStreak(); } catch (e) { debug?.("[colab] streak:", e?.message || e); }
-      })(),
-      (async () => {
-      // Aniversariantes do mês (config/aniversariantes, sem PII) — pro bloco da home e os
-      // recém-chegados do card de boas-vindas. RETRY 3x (cold start offline não entregava o
-      // dado). Se ele chegar DEPOIS do 1º render (refetch de foco, ou boot que já pintou a
-      // home), repinta a home — mas SÓ quando o dado mudou de fato (espelho do bloco de
-      // documentos acima): re-render coalescido, e sem mudança o DOM nasce idêntico (o
-      // flicker-guard cobre). Sem isto, o card "chegaram há pouco" nunca aparecia num boot frio.
-      const antesAniv = JSON.stringify(state.aniversariantes || null);
-      try { await window.carregarAniversariantes(3); } catch (e) { debug?.("[colab] aniversariantes:", e?.message || e); }
-      if (JSON.stringify(state.aniversariantes || null) !== antesAniv && (state.view && state.view.page) === "colab-home") {
-        try { renderApp(); } catch (e) { /* */ }
-      }
-      })(),
-      (async () => {
-      // Vagas internas abertas + o meu interesse por vaga (fase 2). Depende do vinculo
-      // (funcionarioId, ja em u). Falha isolada -> lista vazia, nao derruba o boot.
-      try { await window.carregarVagasInternasColab(); } catch (e) { debug?.("[colab] vagas internas:", e?.message || e); state.vagasInternasColab = []; }
-      })(),
-      (async () => {
-      // Termo de adesão à assinatura eletrônica (1º acesso): true = já aceitou a versão
-      // atual (não mostra o gate); false = precisa aceitar. null = leitura falhou (rede):
-      // o gate mostra mesmo assim e o registrarTermoAdesao trata o "já existe" sem travar.
-      // RETRY (bug William 2026-07-08): no cold start do PWA (iOS) o Firestore rejeita as
-      // primeiras leituras com "client is offline"; sem retry, o aceite EXISTENTE virava
-      // null e o gate reaparecia toda abertura. 3 tentativas com respiro.
-      state.termoAdesaoOk = await window.verificarTermoAdesao(3);
-      // Termo do canal de denúncias (2º gate, mesma mecânica). Lido em paralelo; a ORDEM de
-      // exibição (adesão primeiro, canal depois) é decidida no render (renderPortalColaborador).
-      state.termoCanalOk = await window.verificarTermoCanalDenuncia(3);
-      })(),
-      ]);
+      // O resto do boot do colaborador (FASE B) roda sob o CONTRATO UNIFORME de loader:
+      // os 10 blocos da home ganharam retry 3x + detector de mudança barato + render
+      // coalescido (loaderHome). Extraída pra carregarHomeColab, que o refetch de foco
+      // (recarregarVolateis) reusa com o MESMO contrato em vez de re-rodar o boot inteiro.
+      await carregarHomeColab(db, u);
       return;
     }
 

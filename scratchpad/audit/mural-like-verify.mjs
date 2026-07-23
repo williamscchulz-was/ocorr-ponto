@@ -1,6 +1,9 @@
 // Verifica o filtro "por pessoa" do card de boas-vindas na home do colaborador
 // (William, 2026-07-16): quem ja deu o like nao ve mais o card (some antes dos
 // 15 dias); quem ainda nao deu continua vendo ate o fim da janela.
+// P3 (BOOT PERFEITO, v397): o card so nasce com a reacao CONHECIDA (cache quente). Por
+// isso os setups semeiam state._reacoesCache com "conhecido, ainda nao reagi" antes de
+// esperar o card visivel (com reacao DESCONHECIDA o card nao nasceria, por design).
 // Uso: node scratchpad/audit/mural-like-verify.mjs  (reusa o harness/server 8081)
 setTimeout(() => { console.error("TIMEOUT"); process.exit(9); }, 60000);
 const H = await import("./harness.mjs");
@@ -16,8 +19,11 @@ const semReacao = await page.evaluate(() => {
   window.toggleReacaoAniversario = async () => true;
   const hoje = new Date();
   const admissao = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 5).toISOString();
-  state.aniversariantes = { pessoas: [], recemChegados: [{ nome: "Carlos Recente", admissao, setor: "Produção" }] };
-  state._reacoesCache = {};
+  const nome = "Carlos Recente";
+  state.aniversariantes = { pessoas: [], recemChegados: [{ nome, admissao, setor: "Produção" }] };
+  // P3: reação CONHECIDA e ainda não reagida -> o card nasce (cache quente via P1 no app real).
+  const post = bvPostId(nome, admissao);
+  state._reacoesCache = { [post]: { reacoes: [], minhaReacao: false, total: 0 } };
   state.view.page = "colab-home";
   _renderAppNow();
   const el = document.querySelector("[data-bv-post]");
@@ -62,8 +68,10 @@ console.log("(d.2) re-render duplo, ja reagiu:", JSON.stringify(dupComReacao));
 const cliqueSetup = await page.evaluate(() => {
   const hoje = new Date();
   const admissao = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 5).toISOString();
-  state.aniversariantes = { pessoas: [], recemChegados: [{ nome: "Beatriz Recente", admissao, setor: "Logística" }] };
-  state._reacoesCache = {};
+  const nome = "Beatriz Recente";
+  state.aniversariantes = { pessoas: [], recemChegados: [{ nome, admissao, setor: "Logística" }] };
+  const post = bvPostId(nome, admissao);
+  state._reacoesCache = { [post]: { reacoes: [], minhaReacao: false, total: 0 } };
   _renderAppNow();
   const el = document.querySelector("[data-bv-post]");
   return { temCard: !!el, post: el ? el.getAttribute("data-bv-post") : null };

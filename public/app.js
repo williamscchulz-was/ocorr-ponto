@@ -3397,9 +3397,10 @@ function aniversariantesDoMesHtml(meuNome) {
 // (preencherCardsBoasVindas/onBoasVindas ja operam por [data-bv-post] no DOM).
 // Filtro POR PESSOA (William, 2026-07-16): quem ja deu o like nao ve mais o card
 // (some antes dos 15 dias); quem ainda nao deu continua vendo ate o fim da janela.
-// So decide com cache QUENTE (contrato de DOM estavel entre re-renders); sem cache
-// ainda (1a carga da sessao) o card nasce normal e quem preenche depois
-// (preencherCardsBoasVindas) e quem colapsa se descobrir que ja foi reagido.
+// P3 (BOOT PERFEITO): o card de uma pessoa SO nasce quando o estado de reacao daquele
+// post e CONHECIDO (cache quente via P1, ou leitura concluida). Reacao desconhecida =
+// card nao nasce; preencherCardsBoasVindas le e, se nasce card novo, re-render coalescido
+// (nunca injecao/colapso de DOM). O colapso animado fica so pro gesto real (onBoasVindas).
 function colabBoasVindasHtml(meuNome) {
   const rec = (state.aniversariantes && Array.isArray(state.aniversariantes.recemChegados))
     ? state.aniversariantes.recemChegados : [];
@@ -3414,16 +3415,21 @@ function colabBoasVindasHtml(meuNome) {
     const adm = tsParaData(p.admissao);
     const dias = adm ? Math.max(1, Math.round((hoje - adm.getTime()) / 864e5)) : null;
     const post = bvPostId(nome, p.admissao);
-    const c = _reacoesCached(post); // nasce preenchido; sem cache, "..." até a 1a leitura
-    const mine = !!(c && c.minhaReacao);
-    if (mine) return ""; // ja reagiu: card nao nasce (cache quente == DOM identico)
+    const c = _reacoesCached(post);
+    // P3 (BOOT PERFEITO): estado de reacao DESCONHECIDO -> o card daquela pessoa NAO nasce
+    // (nada de botao que aparece e some). So nasce quando a reacao e CONHECIDA: cache quente
+    // via P1 (persistencia) ou leitura concluida por preencherCardsBoasVindas, que entao
+    // dispara o re-render coalescido. Com P1 o caso comum ja nasce daqui direto.
+    if (!c) return "";
+    const mine = !!c.minhaReacao;
+    if (mine) return ""; // ja reagiu: card nao nasce
     return `<div class="pp-bday" data-bv-post="${escapeHtml(post)}">
       <div class="pp-bday__ic">${cpIcon("users")}</div>
       <div class="pp-bday__bd">
         <div class="pp-bday__t">${escapeHtml(primeiro)} entrou pra equipe${p.setor ? ` (${escapeHtml(p.setor)})` : ""}${dias ? `, há ${dias} dia${dias > 1 ? "s" : ""}` : ""}</div>
-        <div class="pp-bday__s" data-bv-count>${c ? escapeHtml(_bvTexto(c.total, mine)) : "..."}</div>
+        <div class="pp-bday__s" data-bv-count>${escapeHtml(_bvTexto(c.total, mine))}</div>
       </div>
-      ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bv-hand data-bv-total="${c ? c.total : 0}" aria-pressed="${mine ? "true" : "false"}" aria-label="Dar as boas-vindas a ${escapeHtml(primeiro)}">${_bvHand(mine)}</button>`}
+      ${souEu ? "" : `<button class="pp-bday__heart" type="button" data-bv-hand data-bv-total="${c.total}" aria-pressed="false" aria-label="Dar as boas-vindas a ${escapeHtml(primeiro)}">${_bvHand(false)}</button>`}
     </div>`;
   }).join("");
 }
@@ -9222,9 +9228,30 @@ function _colapsarCardBv(el) {
   anim.onfinish = () => el.remove();
 }
 
-// Preenche contagem + estado da mão nos cards [data-bv-post] (mesma leitura do mural).
+// Resolve o estado real de reação dos cards de boas-vindas. P3 (BOOT PERFEITO): duas
+// liturgias, escolhidas pela tela ativa:
+//  · COLAB (home): os cards só nascem quando a reação é CONHECIDA. Aqui varremos os
+//    recém-chegados (mesmo os que NÃO nasceram por reação desconhecida), lemos as reações
+//    (que aquecem state._reacoesCache) e, se isso muda o que a home deve mostrar (card
+//    novo nasce, ou um que sumiu por já-reagido), re-render coalescido — o template decide
+//    quem nasce/some, NUNCA injeção/colapso de DOM. Descobrir mine=true de card que não
+//    nasceu: nada a fazer (a assinatura não muda o que já está na tela).
+//  · GESTOR (hub vg-adm) e demais: atualiza contagem/mão NO PRÓPRIO DOM (o card do gestor
+//    sempre aparece, mostra "on" quando já reagiu). Sem colapso (esse é só do gesto real).
 async function preencherCardsBoasVindas() {
   if (typeof window.carregarReacoesAniversario !== "function") return;
+  const naHome = (state.view && state.view.page) === "colab-home";
+  if (naHome) {
+    const rec = (state.aniversariantes && Array.isArray(state.aniversariantes.recemChegados)) ? state.aniversariantes.recemChegados : [];
+    const posts = [];
+    for (const p of rec) { const nome = String(p.nome || "").trim(); if (nome) posts.push(bvPostId(nome, p.admissao)); }
+    if (!posts.length) return;
+    const sig = (post) => { const c = _reacoesCached(post); return c ? (c.minhaReacao ? "m" : "n") + c.total : "?"; };
+    const antes = posts.map(sig).join("|");
+    await Promise.all(posts.map((post) => window.carregarReacoesAniversario(post).catch(() => {})));
+    if (posts.map(sig).join("|") !== antes && (state.view && state.view.page) === "colab-home") renderApp();
+    return;
+  }
   const cards = Array.from(document.querySelectorAll("[data-bv-post]"));
   await Promise.all(cards.map(async (el) => {
     const post = el.getAttribute("data-bv-post");
@@ -9233,11 +9260,6 @@ async function preencherCardsBoasVindas() {
     try { dados = await window.carregarReacoesAniversario(post); }
     catch { return; }
     if (!document.contains(el)) return;
-    // Colab (.pp-bday): a 1a carga da sessão pode não ter cache ainda, então o card
-    // nasceu visível; se a leitura chega dizendo que a pessoa já reagiu, ele não faz
-    // mais sentido (William, 2026-07-16) -- colapsa em vez de atualizar contagem/mão.
-    // O card do gestor (vg-adm) não entra nessa regra, continua mostrando "on".
-    if (dados.minhaReacao && el.classList.contains("pp-bday")) { _colapsarCardBv(el); return; }
     const cnt = el.querySelector("[data-bv-count]");
     if (cnt) cnt.textContent = _bvTexto(dados.total, dados.minhaReacao);
     const hand = el.querySelector("[data-bv-hand]");
@@ -19851,7 +19873,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.10.0";
+window.CURRENT_VERSION = "2.11.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.10.0", d: "23 jul 2026", current: true, items: [
+    v: "2.11.0", d: "23 jul 2026", current: true, items: [
+      { type: "fix", title: "Início abre completo mesmo com internet fraca" },
+    ],
+  },
+  {
+    v: "2.10.0", d: "23 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Aniversariantes com rosto em destaque e contagem do próximo" },
     ],
   },
