@@ -2065,29 +2065,48 @@ function cpRefreshAoAbrir() {
 function renderColabComunicados() {
   cpRefreshAoAbrir();
   const todos = colabAvisosOrdenados();
-  const naoVistos = todos.filter((c) => !(c.minhaLeitura)); // abriu o post = visto
-  const discSec = colabDiscSecaoHtml();
 
   if (todos.length === 0) {
     // Canal setHtml: html idêntico = no-op; attach SÓ quando escreveu (senão duplica).
     if (setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>
-      ${discSec}
+      ${colabDiscSecaoHtml()}
       ${colabVazioHtml("megafone", "Nenhum aviso pra você por enquanto. Quando a GP publicar algo do seu setor ou turno, aparece aqui.")}</div>`)) {
       bindColabVazioAtz($("#view"));
     }
     return;
   }
-  const filtro = (state.view.avFiltro === "naovistos" || state.view.avFiltro === "naolidos") ? "naovistos" : "todos";
-  const lista = filtro === "naovistos" ? naoVistos : todos;
-  const chips = `<div class="pp-chips-f" id="cp-av-tabs">
+  // Shell estável + regiões (rollout v390): registro disciplinar, chips (contagens) e a lista
+  // viram regiões que o updateRegion patcha. Aviso novo chegando, ou o estado "visto" mudando,
+  // NÃO reescreve a tela: cada card é keyed (id + hash do conteúdo/leitura), então morpha só a
+  // linha que mudou. Filtros (chips) por DELEGAÇÃO (_colabAvisoBound): vivem numa região morfada,
+  // re-atar listener duplicaria; o handler no document sobrevive ao patch.
+  setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div><div data-region="avisos:disc"></div><div data-region="avisos:chips"></div><div data-region="avisos:lista"></div></div>`);
+  updateRegion("avisos:disc", () => colabDiscSecaoHtml());
+  updateRegion("avisos:chips", avisosChipsHtml);
+  updateRegion("avisos:lista", avisosListaHtml);
+}
+
+// Filtro atual (chips) — normaliza o legado "naolidos" pro "naovistos".
+function avisosFiltro() {
+  return (state.view.avFiltro === "naovistos" || state.view.avFiltro === "naolidos") ? "naovistos" : "todos";
+}
+// Regiões de Avisos: chips (contagens + "on") e a lista filtrada. PURAS do state, pro
+// updateRegion renderar cada pedaço por conta própria (patch cirúrgico).
+function avisosChipsHtml() {
+  const todos = colabAvisosOrdenados();
+  const naoVistos = todos.filter((c) => !c.minhaLeitura);
+  const filtro = avisosFiltro();
+  return `<div class="pp-chips-f" id="cp-av-tabs">
     <button class="pp-chip-f ${filtro === "todos" ? "on" : ""}" data-av-filtro="todos">Todos <span class="pp-chip-f__c">${todos.length}</span></button>
     <button class="pp-chip-f ${filtro === "naovistos" ? "on" : ""}" data-av-filtro="naovistos">Não vistos <span class="pp-chip-f__c">${naoVistos.length}</span></button>
   </div>`;
-  const corpo = lista.length === 0
+}
+function avisosListaHtml() {
+  const todos = colabAvisosOrdenados();
+  const lista = avisosFiltro() === "naovistos" ? todos.filter((c) => !c.minhaLeitura) : todos;
+  return lista.length === 0
     ? `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("check")}</div><p>Tudo em dia. Você já viu todos os avisos.</p></div>`
     : lista.map(colabAvisoHtml).join("");
-  if (!setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Avisos</h1></div>${discSec}${chips}${corpo}</div>`)) return;
-  $$("#cp-av-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.avFiltro = b.dataset.avFiltro; renderApp(); }));
 }
 
 function colabAvisoHtml(c) {
@@ -2098,8 +2117,11 @@ function colabAvisoHtml(c) {
     : (!ehAviso && seg.tipo === "setor") ? "Seu setor" : "";
   const visto = !!(c.minhaLeitura); // abriu o post = visto
   const imgOk = c.imagem && (typeof ehUrlSegura === "function" ? ehUrlSegura(c.imagem) : true);
+  // data-key/data-hash: o morph por região (updateRegion) casa o card por id e pula quando o
+  // conteúdo/estado de leitura não mudou. Assinatura estável de tudo que colabAvisoHtml usa.
+  const hash = fnv1a([c.id, c.fixado ? 1 : 0, visto ? 1 : 0, c.tipo, seg.tipo, c.titulo, c.corpo, c.imagem, c.autorNome, c.publicadoEm].join("|"));
   return `
-    <article class="pp-card${c.fixado ? " pp-card--pin" : ""}${ehAviso ? " cp-avisocard" : ""}" data-colab-aviso="${c.id}" role="button" tabindex="0" aria-label="Abrir aviso ${escapeHtml(c.titulo || "")}">
+    <article class="pp-card${c.fixado ? " pp-card--pin" : ""}${ehAviso ? " cp-avisocard" : ""}" data-colab-aviso="${c.id}" data-key="${escapeHtml(c.id)}" data-hash="${hash}" role="button" tabindex="0" aria-label="Abrir aviso ${escapeHtml(c.titulo || "")}">
       ${!visto ? `<span class="cp-novo" aria-label="Não visto"></span>` : ""}
       ${imgOk ? `<img class="pp-card__img" src="${escapeHtml(c.imagem)}" alt="" loading="lazy">` : ""}
       <div class="pp-card__bd">
@@ -2137,6 +2159,9 @@ if (!window._colabAvisoBound) {
     if (az) { e.stopPropagation(); e.preventDefault(); openAvatarLightbox(az.getAttribute("data-avatar-zoom"), az); }
   }, true);
   document.addEventListener("click", (e) => {
+    // Chips de filtro (região morfada): delegação sobrevive ao patch, sem re-atar.
+    const flt = e.target.closest("[data-av-filtro]");
+    if (flt) { state.view.avFiltro = flt.dataset.avFiltro; renderApp(); return; }
     const b = e.target.closest("[data-colab-ciente]");
     if (b) { e.preventDefault(); const cid = b.dataset.colabCiente; withBusy("ciente:" + cid, b, () => colabCienteUI(cid)); return; }
     const dc = e.target.closest("[data-colab-disc-ciente]");
@@ -2356,7 +2381,10 @@ function rcbCompetenciaLabel(comp) {
 function colabReciboRowHtml(r) {
   const tipoLbl = RCB_TIPOS[r.tipo] || "Documento";
   const ass = !!r.minhaAssinatura;
-  return `<div class="pp-rw" data-recibo-abrir="${escapeHtml(r.id)}" style="cursor:pointer">
+  // data-key/data-hash: o morph por região casa a linha por id do recibo e pula quando o
+  // estado (assinado/pendente, competência, páginas) não mudou; assinar patcha só esta linha.
+  const hash = fnv1a([r.id, ass ? 1 : 0, r.tipo, r.competencia, r.paginas || 1].join("|"));
+  return `<div class="pp-rw" data-recibo-abrir="${escapeHtml(r.id)}" data-key="${escapeHtml(r.id)}" data-hash="${hash}" style="cursor:pointer">
     <span class="pp-ico ${ass ? "pp-ico--green" : "pp-ico--amber"}">${cpIcon(r.tipo === "cartao-ponto" ? "clock" : "briefcase")}</span>
     <span class="pp-rw__bd">
       <span class="pp-rw__t">${escapeHtml(rcbCompetenciaLabel(r.competencia))}</span>
@@ -2616,17 +2644,21 @@ async function assAssinar() {
 
 function renderColabFolha() {
   cpRefreshAoAbrir();
+  // Shell estável + região (rollout v390): o corpo (lista de recibos) vira região. Cada linha é
+  // keyed (id + hash do estado da assinatura), então assinar um recibo ou um recibo novo chegando
+  // patcha só aquela linha, sem reescrever a tela. Abrir o recibo é delegado (_rcbBound).
+  setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div><div data-region="folha:corpo"></div></div>`);
+  updateRegion("folha:corpo", folhaCorpoHtml);
+}
+// Corpo da região de Folha de pagamento: extração PURA do render acima (stub ou grupo de recibos).
+function folhaCorpoHtml() {
   const lista = (state.meusRecibos || []).filter((r) => r.tipo === "recibo");
   if (lista.length === 0) {
-    setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
-      <div class="cp-stub"><div class="cp-stub__ic">${cpIcon("briefcase")}</div><p>Nenhum recibo por enquanto. Quando a GP importar a folha do mês, o seu recibo aparece aqui.</p></div></div>`);
-    return;
+    return `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("briefcase")}</div><p>Nenhum recibo por enquanto. Quando a GP importar a folha do mês, o seu recibo aparece aqui.</p></div>`;
   }
-  setHtml($("#view"), `<div class="pp-fade"><div class="pp-hi"><h1>Folha de pagamento</h1></div>
-    <div class="pp-ovl">Meus recibos</div>
+  return `<div class="pp-ovl">Meus recibos</div>
     <div class="pp-grp">${lista.map(colabReciboRowHtml).join("")}</div>
-    <div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>Só você vê os seus recibos. Assine com sua senha e localização; o arquivo carimbado fica guardado e não muda mais.</span></div>
-  </div>`);
+    <div class="cp-bhnote" style="margin-top:12px">${cpIcon("info")}<span>Só você vê os seus recibos. Assine com sua senha e localização; o arquivo carimbado fica guardado e não muda mais.</span></div>`;
 }
 
 function renderColabDocumentos() {
@@ -3935,13 +3967,19 @@ function renderColabConquistas() {
     return;
   }
   const tab = state.view.gamiTab === "bdg" ? "bdg" : "pts";
-  const escreveu = setHtml(view, `<div class="pp-fade">
+  // Shell estável (abas) + região do corpo (rollout v390): o conteúdo volátil (card de pontos,
+  // extrato e marcos keyed, badges keyed) vive em conquistas:corpo. O sync da gamificação
+  // (catch-up, re-sincronia de toda abertura) patcha só o que mudou em vez de re-cascatear a
+  // tela. Troca de aba muda o "on" e reescreve o shell (status quo do piloto). Abas e decorações
+  // por DELEGAÇÃO (_gamiBound): sobrevivem ao morph do corpo, re-atar duplicaria.
+  setHtml(view, `<div class="pp-fade">
       <div class="gm-tabs" role="tablist">
         <button role="tab" aria-selected="${tab === "pts"}" class="${tab === "pts" ? "on" : ""}" data-gami-tab="pts">Pontos</button>
         <button role="tab" aria-selected="${tab === "bdg"}" class="${tab === "bdg" ? "on" : ""}" data-gami-tab="bdg">Badges</button>
       </div>
-      ${tab === "pts" ? gamiTabPontosHtml(cfg) : gamiTabBadgesHtml(cfg)}
+      <div data-region="conquistas:corpo"></div>
     </div>`);
+  updateRegion("conquistas:corpo", () => (state.view.gamiTab === "bdg" ? gamiTabBadgesHtml(state.gamiConfig) : gamiTabPontosHtml(state.gamiConfig)));
   // Revelação única pós-stub (achado William v368, "pisca ao entrar"): mesma
   // liturgia one-shot da tela Documentos, nunca classe persistente.
   if (state._gamiRevelar) {
@@ -3950,7 +3988,7 @@ function renderColabConquistas() {
     if (vc && typeof vc.animate === "function" && !prefereMenosMovimento())
       vc.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
   }
-  // Marco cruzado: celebra 1x quando os dados já estão de pé (independe do tab e de escreveu).
+  // Marco cruzado: celebra 1x quando os dados já estão de pé (independe do tab).
   gamiTalvezCelebrarMarco(cfg);
   talvezFaiscarPonto(); // D · faísca no total quando o extrato ganha item (crédito de verdade)
   // Re-sincroniza em TODA abertura (nao so na 1a da sessao): a GP pode ter mudado a
@@ -3967,18 +4005,26 @@ function renderColabConquistas() {
       } finally { state._gamiSync = false; }
     })();
   }
-  if (!escreveu) return;
-  $$("#view [data-gami-tab]").forEach((b) => b.addEventListener("click", () => { state.view.gamiTab = b.dataset.gamiTab; renderApp(); }));
-  if (tab === "bdg") {
-    $$("#view [data-gami-deco]").forEach((b) => b.addEventListener("click", () => {
-      const dec = b.dataset.gamiDeco;
-      if (b.classList.contains("lock") || b.classList.contains("sel")) return;
-      withBusy("gami-deco", b, async () => {
+}
+
+// Abas (Pontos|Badges) e decorações de Conquistas por DELEGAÇÃO: vivem no shell/região que o
+// updateRegion patcha, então o handler no document sobrevive ao morph (nunca re-atar).
+if (!window._gamiBound) {
+  window._gamiBound = true;
+  document.addEventListener("click", (e) => {
+    const tb = e.target.closest("#view [data-gami-tab]");
+    if (tb) { state.view.gamiTab = tb.dataset.gamiTab; renderApp(); return; }
+    const dc = e.target.closest("#view [data-gami-deco]");
+    if (dc) {
+      if (dc.classList.contains("lock") || dc.classList.contains("sel")) return;
+      const dec = dc.dataset.gamiDeco;
+      withBusy("gami-deco", dc, async () => {
         try { await window.equiparDecoracao(dec); toast(dec ? "Decoração equipada." : "Decoração removida."); renderApp(); }
-        catch (e) { toast("Não consegui equipar: " + (e?.message || e), "danger"); }
+        catch (e2) { toast("Não consegui equipar: " + (e2?.message || e2), "danger"); }
       });
-    }));
-  }
+      return;
+    }
+  });
 }
 
 function gamiTabPontosHtml(cfg) {
@@ -3993,7 +4039,11 @@ function gamiTabPontosHtml(cfg) {
     const ok = total >= m;
     const ent = entregaPorMarco[m];
     const sub = ok ? (ent ? escapeHtml(ent.premio) : "surpresa a caminho") : "surpresa";
-    return `<div class="gm-tmarco${ok ? " ok" : m === prox ? " next" : ""}"><b>${m}</b><i>${sub}</i>${ok ? '<span class="chk">conquistado</span>' : ""}</div>`;
+    // data-key/data-hash: o morph casa o marco por valor e pula quando estado/prêmio não mudou;
+    // o brilho 1x do marco recém-cruzado (brilhoGlare) sobrevive porque o hash short-circuita.
+    const cls = ok ? " ok" : m === prox ? " next" : "";
+    const inner = `<b>${m}</b><i>${sub}</i>${ok ? '<span class="chk">conquistado</span>' : ""}`;
+    return `<div class="gm-tmarco${cls}" data-key="m${m}" data-hash="${fnv1a(cls + "|" + inner)}">${inner}</div>`;
   }).join("");
   const meuUid = gamiMeuUid();
   const top = state.gamiTop || [];
@@ -4009,7 +4059,12 @@ function gamiTabPontosHtml(cfg) {
   }).join("");
   const linhas = top.slice(3).map((p) => `<div class="gm-toprow${p.uid === meuUid ? " me" : ""}"><span class="pos">${p.pos}</span><span class="nm">${escapeHtml(p.uid === meuUid ? `Você (${String(p.nome || "").split(" ")[0]})` : p.nome)}</span><span class="pt">${Number(p.total) || 0}</span></div>`).join("");
   const naLista = top.some((p) => p.uid === meuUid);
-  const extrato = (state.gamiExtrato || []).slice(0, 40).map((e) => `<div class="gm-ext"><span class="mais">+${Number(e.pontos) || 0}</span><span class="oq">${escapeHtml(e.rotulo || e.acao)}<br><span class="qd">${gamiData(e.em)}</span></span></div>`).join("");
+  // data-key/data-hash: o extrato é a lista que GANHA item (crédito novo do sync). Keyed por id
+  // do evento, o morph insere só a linha nova (entrada one-shot) sem rebuild da lista.
+  const extrato = (state.gamiExtrato || []).slice(0, 40).map((e, i) => {
+    const inner = `<span class="mais">+${Number(e.pontos) || 0}</span><span class="oq">${escapeHtml(e.rotulo || e.acao)}<br><span class="qd">${gamiData(e.em)}</span></span>`;
+    return `<div class="gm-ext" data-key="${escapeHtml(e.id || ("x" + i))}" data-hash="${fnv1a(inner)}">${inner}</div>`;
+  }).join("");
   return `
     <div class="gm-card">
       <div class="gm-card__top"><span class="gm-card__lbl">Temporada ${escapeHtml(cfg.ano)}</span><span class="gm-card__season">zera em 01/01</span></div>
@@ -4027,6 +4082,10 @@ function gamiTabPontosHtml(cfg) {
 }
 
 function gamiTabBadgesHtml(cfg) {
+  // ids de gradiente SVG DETERMINÍSTICOS por render: os medalhões são gerados só aqui, então
+  // zerar a sequência no topo faz cada render produzir os mesmos ids. Assim o data-hash do badge
+  // é estável e o morph pula o badge inalterado em vez de repatchar url() de gradiente a cada sync.
+  _gamiSvgSeq = 0;
   const u = currentUser();
   const f = (state.funcionarios || [])[0];
   const nome = (f && f.nome) || (u && u.nome) || "";
@@ -4095,7 +4154,10 @@ function gamiTabBadgesHtml(cfg) {
     <div class="gqb-grid">${andamento.join("")}</div>`;
 
   function badgeHtml(art, nomeB, sub, lock) {
-    return `<div class="gqb${lock ? " lock" : ""}"><div class="gqb__art">${art}</div><b>${escapeHtml(nomeB)}</b><span>${escapeHtml(sub)}</span></div>`;
+    // data-key = nome (único na aba); data-hash = assinatura ESTÁVEL do estado (nome+lock+sub),
+    // sem depender do SVG interno. O morph pula o badge inalterado e move o recém-conquistado
+    // (de "Em andamento" pra "Conquistadas") com entrada one-shot em vez de rebuild.
+    return `<div class="gqb${lock ? " lock" : ""}" data-key="${escapeHtml(nomeB)}" data-hash="${fnv1a(nomeB + "|" + (lock ? 1 : 0) + "|" + sub)}"><div class="gqb__art">${art}</div><b>${escapeHtml(nomeB)}</b><span>${escapeHtml(sub)}</span></div>`;
   }
 }
 
@@ -19128,7 +19190,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.5.2";
+window.CURRENT_VERSION = "2.5.3";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

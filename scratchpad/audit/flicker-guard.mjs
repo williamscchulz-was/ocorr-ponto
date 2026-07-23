@@ -206,6 +206,18 @@ async function mediaInteracao(rotulo, tipo) {
       };
       state._fotoReatorCache = { uA: "", uB: "" };
       state.view.page = "colab-home";
+    } else if (tipo === "aviso") {
+      // AVISOS (rollout de regiões v390): lista keyed. 2 avisos CURTOS (sem imagem/corpo, pra o
+      // insert no topo ficar sob o limiar de CLS, como o card de ocorrência) e a ação insere 1
+      // aviso novo no topo: o morph mete 1 linha keyed nova (entrada one-shot) sem rebuild da lista.
+      const A = new Date().toISOString();
+      state.disciplinaresColab = [];
+      state.comunicadosColab = [
+        { id: "gav-1", titulo: "Aviso um", tipo: "comunicado", ativo: true, fixado: false, publicadoEm: A, autorNome: "GP", segmento: { tipo: "todos" } },
+        { id: "gav-2", titulo: "Aviso dois", tipo: "comunicado", ativo: true, fixado: false, publicadoEm: A, autorNome: "GP", segmento: { tipo: "todos" } },
+      ];
+      state.view.page = "colab-comunicados";
+      state.view.avFiltro = "todos";
     } else {
       if (state.funcionarios && state.funcionarios[0]) state.funcionarios[0].bhExempt = false;
       state.meuSaldoBH = { minutosOriginal: 90, saldoOriginalFormatado: "+01:30", dias: DIAS3.map((d) => ({ ...d })) };
@@ -230,6 +242,7 @@ async function mediaInteracao(rotulo, tipo) {
     if (tipo === "aba") state.view.pontoTab = "ocorrencias";
     else if (tipo === "dia") state.meuSaldoBH.dias.unshift({ dataIso: "2026-07-17", diaSemana: "sex", marcacoes: ["07:01", "12:00", "13:00", "17:03"], maduro: true, saldoDiaOriginalFmt: "+00:05" });
     else if (tipo === "occ") state.ocorrenciasColab.unshift({ id: "occ-novo", tipo: "atraso", data: "2026-07-15", horario: "07:22" });
+    else if (tipo === "aviso") state.comunicadosColab.unshift({ id: "gav-novo", titulo: "Aviso novo", tipo: "comunicado", ativo: true, fixado: false, publicadoEm: new Date().toISOString(), autorNome: "GP", segmento: { tipo: "todos" } });
     else if (tipo === "like") _setReacaoOtimista(postTdc, true, 2); // liga meu coração no card do colega
     else if (tipo === "reacoes") { const c = state._reacoesCache[postAniv]; state._reacoesCache[postAniv] = { ...c, reacoes: [...c.reacoes, { uid: "uC", nome: "Colega C" }], total: 3 }; }
     let erro = null;
@@ -285,6 +298,13 @@ await p.evaluate(() => { state.view.page = "colab-home"; _renderAppNow(); });
 await p.waitForTimeout(700);
 await mediaInteracao("like via sheet (anel da faixa reflete)", "like");
 await mediaInteracao("chegada de reações novas no cache", "reacoes");
+
+// aquece AVISOS (rollout v390): a lista keyed. O aquecimento navega pra tela (stub vazio, pois
+// o seed dos avisos só entra no evaluate da mediaInteracao) e deixa a cascata terminar.
+console.log("FASE NOVA (rollout de regiões, colab-comunicados):");
+await p.evaluate(() => { state.view.page = "colab-comunicados"; _renderAppNow(); });
+await p.waitForTimeout(700);
+await mediaInteracao("chegada de aviso novo (lista keyed)", "aviso");
 
 await b.close();
 if (jsErros.length) console.log("\npageErrors:", jsErros);
