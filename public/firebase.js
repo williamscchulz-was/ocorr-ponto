@@ -58,9 +58,24 @@
         loadScript(`${SDK_BASE}/firebase-auth-compat.js`),
         loadScript(`${SDK_BASE}/firebase-firestore-compat.js`),
         loadScript(`${SDK_BASE}/firebase-storage-compat.js`),
+        // App Check (FASE 1, observação): best-effort. Se a rede da gstatic estiver
+        // bloqueada (harness/probe), a falha é engolida e firebase.appCheck fica
+        // undefined — o boot segue e a ativação abaixo é pulada pelo guard.
+        loadScript(`${SDK_BASE}/firebase-app-check-compat.js`).catch(() => {}),
       ]);
 
       const app = firebase.initializeApp(cfg);
+
+      // App Check · FASE 1 (observação, enforcement DESLIGADO no console). Cunha
+      // tokens reCAPTCHA v3 pra a fase de medição; nada é barrado ainda. Guard duplo à
+      // prova de boot: sem o script (harness/probe bloqueia a gstatic) firebase.appCheck
+      // fica undefined e o boot segue; o try engole qualquer falha de activate. O 2º arg
+      // (true) liga o auto-refresh do token. Chave pública do site (reCAPTCHA v3) por desenho.
+      if (firebase.appCheck) {
+        try {
+          firebase.appCheck().activate("6LfVfGEtAAAAAKvii4vlZ1V8P8whyNBF4eF6uyzy", true);
+        } catch (e) { /* nunca prende o boot */ }
+      }
       const auth = firebase.auth();
       // Templates de email (reset senha, verificação) saem em pt-BR
       auth.languageCode = "pt";

@@ -862,6 +862,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-check-compat.js"></script>
 <script src="firebase.config.js"></script>
 <script>
 (function () {
@@ -885,6 +886,14 @@
     lista.innerHTML = '<p class="vazio">Página em manutenção. Tente de novo mais tarde.</p>';
   } else {
     firebase.initializeApp(window.FIREBASE_CONFIG);
+    // App Check · FASE 1 (observação, enforcement DESLIGADO no console): cunha tokens
+    // reCAPTCHA v3 sem barrar ninguém. Guard à prova de boot: sem o script (rede da
+    // gstatic bloqueada, ou stub de teste) firebase.appCheck fica undefined e segue.
+    // Chave pública do site (reCAPTCHA v3) por desenho.
+    if (firebase.appCheck) {
+      try { firebase.appCheck().activate("6LfVfGEtAAAAAKvii4vlZ1V8P8whyNBF4eF6uyzy", true); }
+      catch (e) { /* nunca prende o boot */ }
+    }
     db = firebase.firestore();
 
     // Cache leve: corta leituras repetidas de quem navega/volta; TTL 5 min.

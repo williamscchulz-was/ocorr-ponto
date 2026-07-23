@@ -6,17 +6,19 @@
   <meta name="theme-color" content="#008835" />
   <title>FioPulse · Fiobras</title>
   <!-- Perf mobile (item 1 aprovado): adianta o SDK do Firebase. preconnect abre a
-       conexao com o gstatic cedo; preload baixa os 4 scripts EM PARALELO com o
+       conexao com o gstatic cedo; preload baixa os 5 scripts EM PARALELO com o
        app.js em vez de depois (bootFirebase roda no fim da cadeia defer). ATENCAO:
        sem crossorigin no preload -- os <script> do firebase.js sao injetados sem
        ele (modo no-cors); crossorigin so num lado faz o navegador baixar em DOBRO.
        A versao aqui casa com SDK_VERSION em firebase.js (10.12.5): mexeu num, mexe
-       no outro. -->
+       no outro. O app-check-compat entra na FASE 1 (observacao); firebase.js so o
+       ativa com guard, entao se este preload falhar o boot segue igual. -->
   <link rel="preconnect" href="https://www.gstatic.com" />
   <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" />
   <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" />
   <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" />
   <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js" />
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-check-compat.js" />
   <!-- Fonte da marca (Michroma) e o peso 600 do wordmark: preload com crossorigin
        (fetch de fonte e SEMPRE CORS-mode, o preload precisa casar senao baixa em
        dobro). Faz o wordmark "FioPulse" da cortina nascer no tamanho final ja no 1o
@@ -30,8 +32,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=388" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=388" />
+  <link rel="stylesheet" href="styles.css?v=389" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=389" />
   <!-- Decide ANTES de renderizar, sincrono, o MODO da abertura. Estilo Apple:
        com sessao a restaurar mostra o Pulso da marca (cobre so o load, some assim
        que o app fica pronto); sem sessao vai direto pro login.
@@ -347,16 +349,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=388"></script>
-  <script defer src="data.js?v=388"></script>
+  <script defer src="utils.js?v=389"></script>
+  <script defer src="data.js?v=389"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=388"></script>
+  <script defer src="app.js?v=389"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=388"></script>
-  <script defer src="google-drive.js?v=388"></script>
+  <script defer src="firebase.js?v=389"></script>
+  <script defer src="google-drive.js?v=389"></script>
 </body>
 </html>

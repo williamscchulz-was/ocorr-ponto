@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.5.1", d: "23 jul 2026", current: true, items: [
+    v: "2.5.2", d: "23 jul 2026", current: true, items: [
+      { type: "note", aud: "todos", title: "Proteção extra contra robôs nos bastidores" },
+    ],
+  },
+  {
+    v: "2.5.1", d: "23 jul 2026", items: [
       { type: "fix", aud: "colab", title: "Novidades com textos mais curtos e claros" },
       { type: "fix", aud: "gestor", title: "Histórico de Novidades revisado e enxugado" },
     ],
