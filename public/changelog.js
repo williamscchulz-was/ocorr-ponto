@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.8.0", d: "23 jul 2026", current: true, items: [
+    v: "2.9.0", d: "23 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Menu lateral novo, com seções que recolhem e modo régua" },
+    ],
+  },
+  {
+    v: "2.8.0", d: "23 jul 2026", items: [
       { type: "feat", aud: "gestor", title: "Aba Férias no perfil, com vencidas e proporcional" },
     ],
   },

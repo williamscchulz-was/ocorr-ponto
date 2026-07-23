@@ -125,8 +125,21 @@ html.cp-dark:not(.modo-colab) body,
 html.cp-dark:not(.modo-colab) .app { background: var(--bg); }
 /* Sidebar: deixa de ser verde vivo (var(--plum)) e vira verde bem escuro,
    mantendo a identidade do gestor; o texto creme das nav segue legível. */
-html.cp-dark:not(.modo-colab) .app__sidebar { background: #0F1A13; border-right: 1px solid #1E2A1F; color: var(--text); }
+html.cp-dark:not(.modo-colab) .app__sidebar {
+  background: linear-gradient(180deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,0) 24%), #0F1A13;
+  box-shadow: inset -1px 0 0 rgba(255,243,230,.08), 1px 0 0 rgba(0,0,0,.4);
+  color: var(--text);
+}
 html.cp-dark:not(.modo-colab) .app__brand-mark { background: var(--plum); color: #0E130E; }
+/* V2: no dark o --milk vira escuro, então ativo/hover e o badge ativo precisam de
+   cor clara própria (senão texto escuro sobre a sidebar escura). */
+html.cp-dark:not(.modo-colab) .nav__item:hover,
+html.cp-dark:not(.modo-colab) .nav__item.active { color: var(--text); }
+html.cp-dark:not(.modo-colab) .nav__ind { background: rgba(95,203,133,.20); }
+html.cp-dark:not(.modo-colab) .nav__item.active .nav__badge { background: #EDF3EA; color: #0F1A13; }
+html.cp-dark:not(.modo-colab) .app__user-info strong { color: var(--text); }
+html.cp-dark:not(.modo-colab) .app__user .avatar { background: #EDF3EA; color: #0F1A13; }
+html.cp-dark:not(.modo-colab) .app--rail .app__sidebar.nav-peek { box-shadow: inset -1px 0 0 rgba(255,243,230,.1), 26px 0 60px -22px rgba(0,0,0,.7); }
 html.cp-dark:not(.modo-colab) .topbar { background: var(--surface); color: var(--text-body); }
 
 * { box-sizing: border-box; }
@@ -595,22 +608,33 @@ html.splash-atualizando .splash, html.splash-retomada .splash { display: block; 
   transition: grid-template-columns .22s cubic-bezier(.4, 0, .2, 1);
 }
 
+/* ============================================================
+   SIDEBAR V2 (desktop) — mock aprovado docs/mockups/menu-gestor-v2-2026-07.html.
+   Grupos colapsáveis com mola nativa (--nav-ease-grp, o JS troca o fallback pela
+   linear() amostrada), indicador que desliza e modo rail com peek no hover.
+   Matéria premium: luz sutil no topo, hairline na borda direita, hover 120ms.
+   ============================================================ */
 .app__sidebar {
-  background: var(--plum);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 26%),
+    var(--plum);
   color: var(--text-on-plum);
-  padding: 24px 16px;
+  padding: 13px 12px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 10px;
   position: sticky;
   top: 0;
   height: 100dvh;
+  /* hairline direita + luz no topo = relevo, não um retângulo chapado */
+  box-shadow: inset -1px 0 0 rgba(255,243,230,.10), 1px 0 0 rgba(12,26,18,.20);
+  transition: box-shadow .3s ease, width .42s var(--nav-ease-grp, cubic-bezier(.4,0,.2,1));
 }
 
-/* Botão recolher/expandir — na borda direita da sidebar */
+/* Botão recolher/expandir (vira rail) — na borda direita da sidebar */
 .sidebar-toggle {
   position: absolute;
-  top: 22px; right: -13px;
+  top: 60px; right: -13px;
   z-index: 60;
   width: 26px; height: 26px;
   border-radius: 50%;
@@ -620,70 +644,75 @@ html.splash-atualizando .splash, html.splash-retomada .splash { display: block; 
   display: grid; place-items: center;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .14);
-  transition: background .15s;
+  transition: background .15s, color .15s;
 }
-.sidebar-toggle:hover { background: var(--milk-warm); }
-.sidebar-toggle svg { width: 15px; height: 15px; transition: transform .22s; }
+.sidebar-toggle:hover { background: var(--milk-warm); color: var(--plum-deep); }
+.sidebar-toggle svg { width: 15px; height: 15px; transition: transform .42s var(--nav-ease-grp, cubic-bezier(.4,0,.2,1)); }
 .app--rail .sidebar-toggle svg { transform: rotate(180deg); }
 
-/* ===== Estado recolhido (rail) — só desktop ===== */
+/* ===== Modo rail (régua de 72px) + peek no hover — só desktop ===== */
 @media (min-width: 901px) {
-  .app--rail { grid-template-columns: 76px 1fr; }
-  .app--rail .app__sidebar { padding: 24px 10px; }
-  .app--rail .app__brand { justify-content: center; padding: 0 0 16px; }
-  .app--rail .app__brand-text { display: none; }
-  .app--rail .nav__item { justify-content: center; padding: 11px 0; gap: 0; position: relative; }
-  .app--rail .nav__item > span:not(.nav__badge) { display: none; }
-  /* Recolhido: badge vira um dot no canto do ícone (o número não cabe sem cobrir
-     o desenho). font-size 0 zera o texto mantendo o mesmo elemento/cores. */
+  .app--rail { grid-template-columns: 72px 1fr; }
+  .app--rail .app__sidebar { width: 72px; }
+  .app--rail .app__brand { justify-content: center; padding: 0 0 10px; }
+  .app--rail .app__brand-text { opacity: 0; width: 0; }
+  .app--rail .nav__label { display: none; }
+  .app--rail .grp__head { pointer-events: none; padding: 4px 0; justify-content: center; }
+  .app--rail .grp__t,
+  .app--rail .grp__count,
+  .app--rail .grp__head .icon { display: none; }
+  .app--rail .grp { border-top: 1px solid rgba(255,243,230,.10); margin-top: 3px; padding-top: 3px; }
+  .app--rail .grp:first-of-type { border-top: 0; margin-top: 0; }
+  /* Rail (fora do peek) mostra TODOS os ícones, ignorando o colapso salvo. */
+  .app--rail .app__sidebar:not(.nav-peek) .grp__body { grid-template-rows: 1fr; }
+  .app--rail .nav__item { justify-content: center; padding: 8px 0; gap: 0; }
+  /* Recolhido: badge vira um dot no canto do ícone (o número não cabe). */
   .app--rail .nav__badge {
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 9px; height: 9px;
-    min-width: 0;
-    padding: 0;
-    font-size: 0;
-    border-radius: 50%;
-    transform: translate(9px, -13px);
+    position: absolute; top: 5px; right: 13px;
+    width: 8px; height: 8px; min-width: 0; padding: 0; font-size: 0; border-radius: 50%;
   }
+  .app--rail .nav__item--lacre::after { right: 14px; height: 14px; }
+  .app--rail .version-pill--side { opacity: 0; height: 0; padding: 0; margin: 0; overflow: hidden; }
   .app--rail .app__bottom { align-items: center; }
   .app--rail .app__user { justify-content: center; padding: 10px 0; }
   .app--rail .app__user-info,
-  .app--rail .app__user-logout { display: none; }
+  .app--rail .app__user-logout { opacity: 0; width: 0; overflow: hidden; }
   .app--rail .sidebar-presence .sp-header { display: none; }
-  .app--rail .sidebar-presence { display: flex; justify-content: center; padding: 10px 0 0; }
+  .app--rail .sidebar-presence { display: flex; justify-content: center; padding: 8px 0 0; }
   .app--rail .sp-avs { padding: 0; }
 
-  /* O menu ROLA POR DENTRO: com os grupos ele passa de 100dvh em telas baixas e
-   empurrava o rodape (avatar do usuario) pra fora da sidebar (bug 2026-07-14).
-   flex: 1 + min-height: 0 deixam o nav encolher; brand e rodape ficam fixos. */
-.nav { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.28) transparent; }
-@media (min-width: 901px) {
-  /* Rail: overflow visivel (o tooltip flutua pra fora do nav) + itens compactos
-     pra caber sem rolar; em telas muito baixas (<~850px) pode voltar a estourar,
-     residual aceito. */
-  .app--rail .nav { overflow: visible; }
-  .app--rail .nav__item { padding: 8px 0; }
-  .app--rail .nav__sec { padding: 5px 6px; }
+  /* peek: a sidebar vira uma lâmina de matéria elevada POR CIMA do conteúdo. A
+     trilha do grid fica em 72px; a sidebar cresce pra 244px e transborda, pintando
+     sobre o main (z-index alto + sombra), sem empurrar o layout. */
+  .app--rail .app__sidebar.nav-peek {
+    width: 244px; z-index: 60;
+    box-shadow: inset -1px 0 0 rgba(255,243,230,.12), 26px 0 60px -22px rgba(10,22,15,.65);
+  }
+  .app--rail .app__sidebar.nav-peek .app__brand { justify-content: flex-start; padding: 0 8px 8px; }
+  .app--rail .app__sidebar.nav-peek .app__brand-text { opacity: 1; width: auto; }
+  .app--rail .app__sidebar.nav-peek .nav__label { display: block; }
+  .app--rail .app__sidebar.nav-peek .grp__head { pointer-events: auto; padding: 7px 12px 2px; justify-content: flex-start; }
+  .app--rail .app__sidebar.nav-peek .grp__t,
+  .app--rail .app__sidebar.nav-peek .grp__head .icon { display: block; }
+  .app--rail .app__sidebar.nav-peek .grp:not(.open) .grp__count { display: inline-block; }
+  .app--rail .app__sidebar.nav-peek .grp { border-top: 0; margin-top: 0; padding-top: 0; }
+  .app--rail .app__sidebar.nav-peek .nav__item { justify-content: flex-start; padding: 6px 12px; gap: 11px; }
+  .app--rail .app__sidebar.nav-peek .nav__badge { position: static; width: auto; height: auto; min-width: 0; padding: 1px 8px; font-size: 11px; border-radius: 999px; margin-left: auto; }
+  .app--rail .app__sidebar.nav-peek .nav__item--lacre::after { right: 10px; height: 16px; }
+  .app--rail .app__sidebar.nav-peek .version-pill--side { opacity: 1; height: auto; padding: 3px 9px; margin: 0 0 2px 4px; overflow: visible; }
+  .app--rail .app__sidebar.nav-peek .app__user { justify-content: flex-start; padding: 7px; }
+  .app--rail .app__sidebar.nav-peek .app__user-info,
+  .app--rail .app__sidebar.nav-peek .app__user-logout { opacity: 1; width: auto; }
 }
-
-/* Grupos do menu + tooltip no rail (mock aprovado 2026-07-14) */
-  .app--rail .nav__sec { font-size: 0; padding: 7px 6px; }
-  .app--rail .nav__sec::after { content: ""; display: block; height: 1px; background: rgba(255,243,230,.14); border-radius: 1px; }
-  .app--rail .nav__item::before { content: attr(aria-label); position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%) translateX(-4px); background: #14241a; color: #f2efe7; font: 600 12.5px var(--font); padding: 7px 12px; border-radius: 9px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .12s ease, transform .14s ease; z-index: 80; }
-  .app--rail .nav__item:hover::before { opacity: 1; transform: translateY(-50%) translateX(0); }
-}
-
-/* Grupos do menu + tooltip no rail (mock aprovado 2026-07-14) */
-.nav__sec { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: rgba(255,243,230,.42); padding: 14px 12px 5px; user-select: none; }
-.nav > .nav__sec:first-child { padding-top: 0; }
 
 .app__brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 12px 16px;
-  border-bottom: 1px solid rgba(255, 243, 230, .1);
+  gap: 11px;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid rgba(255, 243, 230, .12);
+  flex-shrink: 0;
+  min-height: 34px;
 }
 
 .app__brand-mark {
@@ -696,12 +725,16 @@ html.splash-atualizando .splash, html.splash-retomada .splash { display: block; 
   place-items: center;
   font-weight: 800;
   font-size: 16px;
+  flex-shrink: 0;
 }
 
 .app__brand-text {
   font-weight: 700;
   font-size: 15px;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity .18s ease;
 }
 .app__brand-text small {
   display: block;
@@ -724,71 +757,112 @@ html.splash-atualizando .splash, html.splash-retomada .splash { display: block; 
   letter-spacing: 0;
 }
 
+/* Trilho de navegação: rola POR DENTRO (flex:1 + min-height:0), brand e rodapé
+   ficam fixos. O menu, mesmo com os grupos, cabe em 768; em telas mais baixas rola. */
 .nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.28) transparent;
+}
+.nav::-webkit-scrollbar { width: 7px; }
+.nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.26); border-radius: 4px; }
+.nav__scroll { position: relative; display: flex; flex-direction: column; gap: 1px; }
+
+/* Indicador ativo — uma peça só, reposicionada por mola (o JS lê o transform
+   presente e desliza; nunca pisca). Barra amarela Fiobras na borda esquerda. */
+.nav__ind {
+  position: absolute; left: 4px; right: 4px; top: 0; height: 0;
+  border-radius: 10px;
+  background: rgba(255,255,255,.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 6px 16px -10px rgba(0,0,0,.5);
+  pointer-events: none; z-index: 0; opacity: 0;
+  transition: opacity .2s ease;
+}
+.nav__ind::before {
+  content: ""; position: absolute; left: 0; top: 9px; bottom: 9px;
+  width: 3px; border-radius: 999px; background: var(--fiobras-yellow);
 }
 
 .nav__item {
+  position: relative; z-index: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
-  border-radius: var(--radius);
-  color: rgba(255, 243, 230, .75);
-  font-size: 14px;
+  gap: 11px;
+  padding: 4px 12px;
+  border-radius: 10px;
+  color: rgba(255, 243, 230, .76);
+  font-size: 13px;
   font-weight: 500;
-  transition: var(--transition);
   width: 100%;
   text-align: left;
+  transition: color .12s var(--ease-out), background .12s var(--ease-out), transform .12s var(--ease-out);
 }
-
-.nav__item:hover {
-  background: rgba(255, 243, 230, .08);
-  color: var(--milk);
-}
-
-/* Item ativo: realce sutil (bg leve + peso), sem a caixa branca cheia. */
-.nav__item.active {
-  background: rgba(255, 243, 230, .14);
-  color: var(--milk);
-  font-weight: 600;
-}
+.nav__item:hover { background: rgba(255, 243, 230, .09); color: var(--milk); }
+.nav__item:active { transform: scale(.985); }
+/* Item ativo: só cor + peso; o realce de caixa é o indicador que desliza atrás. */
+.nav__item.active { color: var(--milk); font-weight: 600; }
+.nav__item .icon { width: 18px; height: 18px; flex-shrink: 0; }
+.nav__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity .16s ease; }
 
 .nav__badge {
   margin-left: auto;
-  background: var(--milk);
-  color: var(--plum-deep);
+  background: rgba(255, 243, 230, .22);
+  color: #fff;
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 1px 8px;
   font-size: 11px;
   font-weight: 700;
+  flex-shrink: 0;
 }
 .nav__item.active .nav__badge { background: var(--milk); color: var(--plum-deep); }
-/* #fff sólido (não var(--milk)) + fundo um pouco mais opaco: a versão anterior
-   media 4.34:1 sobre o verde da sidebar, abaixo do mínimo AA de 4.5:1. */
-.nav__item:not(.active) .nav__badge { background: rgba(255, 243, 230, .22); color: #fff; }
 /* Obrigações: cor semântica (vermelho = atrasada · âmbar = pendente no prazo).
-   !important pra vencer as duas regras de cor acima na sidebar verde. */
+   !important pra vencer as regras de cor acima na sidebar verde. */
 .nav__badge--atras { background: var(--danger) !important; color: #fff !important; }
 /* Cor FIXA (não var(--plum-deep)): no tema escuro do colaborador essa variável vira
-   verde-claro e o texto ficava ilegível sobre o amarelo (contraste 1:1). #20342b é
-   escuro nos dois temas porque o fundo amarelo também não muda de tema. */
+   verde-claro e o texto ficava ilegível sobre o amarelo. #20342b é escuro nos dois. */
 .nav__badge--pend { background: var(--fiobras-yellow) !important; color: #20342b !important; }
 
-/* Lacre dourado (Denúncias · caixa da direção): filete sóbrio na borda esquerda quando
+/* Lacre dourado (Denúncias · caixa da direção): filete sóbrio na borda direita quando
    há denúncia nova ainda não aberta. Sem número, sem movimento; some ao abrir a tela. */
-.nav__item--lacre { position: relative; }
-.nav__item--lacre::before {
+.nav__item--lacre::after {
   content: "";
   position: absolute;
-  left: 4px; top: 9px; bottom: 9px;
-  width: 3px;
+  right: 10px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 16px;
   border-radius: 999px;
   background: linear-gradient(180deg, #C8A165 0%, #E4CFA6 55%, #C8A165 100%);
   box-shadow: 0 0 6px -1px rgba(200, 161, 101, .7);
 }
+
+/* ---- Grupo colapsável (cabeçalho de seção clicável) ---- */
+.grp { display: flex; flex-direction: column; }
+.grp__head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 12px 2px;
+  color: rgba(255, 243, 230, .5);
+  cursor: pointer;
+  transition: color .14s var(--ease-out);
+}
+.grp__head:hover { color: rgba(255, 243, 230, .82); }
+.grp__t { font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+/* Contagem (itens visíveis por papel): aparece quando o grupo está fechado. */
+.grp__count {
+  font-size: 9.5px; font-weight: 700;
+  background: rgba(255, 243, 230, .16); color: #fff;
+  border-radius: 999px; padding: 0 6px; margin-left: 5px;
+  opacity: 0; transform: scale(.8);
+  transition: opacity .16s ease, transform .16s var(--ease-out);
+}
+.grp:not(.open) .grp__count { opacity: 1; transform: scale(1); }
+.grp__head .icon { width: 14px; height: 14px; margin-left: auto; opacity: .7; transition: transform .42s var(--nav-ease-grp, cubic-bezier(.4,0,.2,1)); }
+.grp.open .grp__head .icon { transform: rotate(90deg); }
+/* Mola nativa no grid-template-rows: abre/fecha interrompível, sem overshoot. */
+.grp__body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .42s var(--nav-ease-grp, cubic-bezier(.4,0,.2,1)); }
+.grp.open .grp__body { grid-template-rows: 1fr; }
+.grp__inner { overflow: hidden; min-height: 0; display: flex; flex-direction: column; gap: 1px; }
 
 /* Acessibilidade: focus-visible em todos os interativos pra teclado/screen-reader */
 *:focus { outline: none; } /* baseline limpo */
@@ -844,7 +918,9 @@ textarea:focus-visible,
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-top: 8px;
 }
 .sidebar-presence {
   padding: 10px 6px 0;
@@ -886,13 +962,15 @@ textarea:focus-visible,
 }
 
 .app__user {
-  padding: 12px;
+  padding: 7px;
   border-radius: var(--radius);
   background: rgba(255, 243, 230, .06);
   display: flex;
   align-items: center;
   gap: 10px;
 }
+/* Avatar do rodapé um pouco menor que o padrão (o menu inteiro cabe em 768). */
+.app__user .avatar { width: 30px; height: 30px; font-size: 12px; }
 
 .avatar {
   width: 36px;
@@ -3832,12 +3910,6 @@ html.pp-anima .tab.active::after { animation: mi-tabInk .28s var(--ease); }
 @media (prefers-reduced-motion: reduce) {
 .fab { transition: none; } .fab--rec { transform: none; opacity: 1; pointer-events: auto; } }
 
-/* 5 · Proximidade na barra lateral — base; o JS aplica o scale por distância */
-.nav__item {
-  transition: background var(--transition), color var(--transition), transform .15s var(--ease);
-  transform-origin: left center;
-}
-
 /* Acessibilidade: respeita quem pediu menos movimento */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -3952,7 +4024,6 @@ code { font-family: inherit; }
 }
 .version-pill--side:hover { background: rgba(255, 243, 230, .2); color: #fff; }
 @media (max-width: 900px) { .version-pill--side { display: none; } } /* mobile usa o da topbar */
-.app--rail .version-pill--side { display: none; }
 
 .changelog-overlay {
   position: fixed; inset: 0; z-index: 9970;

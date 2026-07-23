@@ -417,27 +417,6 @@ function resetFabScrollState() {
   document.querySelectorAll(".fab").forEach((f) => f.classList.remove("fab--rec"));
 }
 
-// Proximidade na sidebar: itens crescem de leve conforme o cursor se aproxima
-// (eixo vertical). Atribui onpointermove (não addEventListener) p/ não empilhar.
-function ativarProximidadeNav() {
-  const nav = document.getElementById("nav");
-  if (!nav) return;
-  if (prefereMenosMovimento()) { nav.onpointermove = null; return; }
-  nav.onpointermove = (e) => {
-    nav.querySelectorAll(".nav__item").forEach((it) => {
-      const r = it.getBoundingClientRect();
-      const dist = Math.abs(e.clientY - (r.top + r.height / 2));
-      const t = Math.max(0, 1 - dist / 72);
-      it.style.transform = t > 0
-        ? `scale(${(1 + t * 0.05).toFixed(3)}) translateX(${(t * 4).toFixed(1)}px)`
-        : "";
-    });
-  };
-  nav.onpointerleave = () => {
-    nav.querySelectorAll(".nav__item").forEach((it) => { it.style.transform = ""; });
-  };
-}
-
 // ---------- Toast ----------
 
 function toast(msg, variant = "success", opts = {}) {
@@ -1941,13 +1920,13 @@ function renderNavColaborador() {
   const html = COLAB_NAV.map((it) => {
     const badge = it.id === "colab-comunicados" ? nAvisos : 0;
     return `
-    <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}">
-      ${cpIcon(it.icon)}<span>${it.label}</span>
+    <button class="nav__item ${state.view.page === it.id ? "active" : ""}" data-page="${it.id}" aria-label="${escapeHtml(it.label)}" title="${escapeHtml(it.label)}">
+      ${cpIcon(it.icon)}<span class="nav__label">${it.label}</span>
       ${badge ? `<span class="nav__badge nav__badge--pend">${badge > 9 ? "9+" : badge}</span>` : ""}
     </button>`;
   }).join("") + `
-    <button class="nav__item nav__item--sair" data-acao="sair">
-      ${cpIcon("logout")}<span>Sair</span>
+    <button class="nav__item nav__item--sair" data-acao="sair" aria-label="Sair" title="Sair">
+      ${cpIcon("logout")}<span class="nav__label">Sair</span>
     </button>`;
   if (!setHtml($("#nav"), html)) return;
   $$("#nav .nav__item").forEach((btn) => btn.addEventListener("click", () => {
@@ -6216,18 +6195,163 @@ const NAV_GRUPOS = [
   ["Sistema", ["pj", "obrigacoes", "denuncias", "auditoria", "config"]],
 ];
 
+// ============================================================
+// MENU LATERAL V2 (mock aprovado docs/mockups/menu-gestor-v2-2026-07.html): grupos
+// colapsáveis com mola nativa, indicador ativo que desliza e modo rail com peek no
+// hover. Contrato anti-flicker: renderNav nasce IDÊNTICO pro mesmo state. O colapso
+// vem do localStorage (assado no html); o .active e o indicador são DOM-locais,
+// aplicados DEPOIS do setHtml e FORA da string comparada, então navegar entre grupos
+// abertos = html igual = setHtml no-op = o slide DOM-local sobrevive ao re-render.
+// ============================================================
+
+// Mola nativa: easing linear() amostrando um oscilador amortecido (sem lib; a
+// plataforma aceita linear() como easing em CSS e WAAPI). Crava o fim no alvo.
+function _springEasing(rigidez, amortec, dur, passos) {
+  let x = 0, v = 0; const dt = dur / passos; const pts = [];
+  for (let i = 0; i <= passos; i++) {
+    const a = -rigidez * (x - 1) - amortec * v;
+    v += a * dt; x += v * dt; pts.push(x);
+  }
+  pts[pts.length - 1] = 1;
+  return "linear(" + pts.map((p, i) => `${p.toFixed(4)} ${(i / passos * 100).toFixed(2)}%`).join(", ") + ")";
+}
+const _NAV_EASE_GRP = _springEasing(190, 26, 0.42, 40); // grupo: crítico, sem overshoot
+const _NAV_EASE_IND = _springEasing(220, 22, 0.5, 44);  // indicador: leve overshoot, vivo
+let _navSpringPronto = false;
+function _aplicarNavSpring() {
+  if (_navSpringPronto) return;
+  _navSpringPronto = true;
+  try { document.documentElement.style.setProperty("--nav-ease-grp", _NAV_EASE_GRP); } catch (e) {}
+}
+
+// A 1ª pintura mede o item ativo ANTES das fontes carregarem; quando Poppins entra,
+// o layout desloca uns px e o indicador fica desalinhado. Re-snap único quando as
+// fontes ficam prontas (mesma rede de segurança do mock). One-shot: não atrapalha slide.
+let _navFontHook = false;
+function _navReSnapFontes() {
+  if (_navFontHook || !document.fonts || !document.fonts.ready) return;
+  _navFontHook = true;
+  document.fonts.ready.then(() => requestAnimationFrame(() => _navPosicionaInd(false)));
+}
+
+// Colapso lembrado por grupo (localStorage, padrão do cpSetTema). Sem nada salvo:
+// tudo aberto (decisão William: 16 destinos cabem em 768). Só guardo os FECHADOS.
+const _NAV_RAIL_KEY = "fiopulse:sidebarRail";
+const _NAV_GRP_KEY = "fiopulse:navGrupos";
+function _navGruposFechados() {
+  try { return JSON.parse(localStorage.getItem(_NAV_GRP_KEY) || "{}") || {}; } catch (e) { return {}; }
+}
+function _navSalvarGrupo(label, aberto) {
+  const m = _navGruposFechados();
+  if (aberto) delete m[label]; else m[label] = 1;
+  try { localStorage.setItem(_NAV_GRP_KEY, JSON.stringify(m)); } catch (e) {}
+}
+
+function _navIndEl() { const s = document.querySelector("#nav .nav__scroll"); return s ? s.querySelector(".nav__ind") : null; }
+function _navIndPos(el) {
+  const t = el && getComputedStyle(el).transform;
+  let y = 0;
+  if (t && t !== "none") { try { y = new DOMMatrixReadOnly(t).m42 || 0; } catch (e) {} }
+  return { y, h: el ? (el.getBoundingClientRect().height || 0) : 0 };
+}
+// Indicador = uma peça só, reposicionada. animar=true desliza LENDO a posição
+// presente (nunca salto). Guardas: sem item ativo ou item fora de layout = esconde.
+function _navPosicionaInd(animar) {
+  const el = _navIndEl(); if (!el) return;
+  const scroll = el.parentElement;
+  const ativo = scroll && scroll.querySelector(".nav__item.active");
+  if (!ativo || ativo.offsetParent === null) { el.style.opacity = "0"; return; }
+  const top = ativo.offsetTop, h = ativo.offsetHeight;
+  if (h < 6) { el.style.opacity = "0"; return; }
+  el.style.opacity = "1";
+  if (animar && !prefereMenosMovimento() && typeof el.animate === "function") {
+    const cur = _navIndPos(el);
+    // try: easing linear() lança em engine antigo (Safari <17.2); a navegação NUNCA
+    // pode quebrar por causa do slide, então o fallback é posicionar sem animar.
+    try {
+      const an = el.animate(
+        [{ transform: `translateY(${cur.y}px)`, height: `${cur.h}px` },
+         { transform: `translateY(${top}px)`, height: `${h}px` }],
+        { duration: 500, easing: _NAV_EASE_IND, fill: "forwards" });
+      an.onfinish = () => { el.style.transform = `translateY(${top}px)`; el.style.height = `${h}px`; try { an.cancel(); } catch (e) {} };
+    } catch (e) {
+      el.style.transform = `translateY(${top}px)`; el.style.height = `${h}px`;
+    }
+  } else {
+    el.style.transform = `translateY(${top}px)`; el.style.height = `${h}px`;
+  }
+}
+// Aplica o .active da página atual e posiciona o indicador. NÃO mexe se já está no
+// item certo (protege um slide em voo iniciado pelo clique + no-op no re-render).
+function _navSyncAtivo(animar) {
+  const scroll = document.querySelector("#nav .nav__scroll"); if (!scroll) return;
+  const alvo = state.view && state.view.page ? scroll.querySelector(`.nav__item[data-page="${state.view.page}"]`) : null;
+  const atual = scroll.querySelector(".nav__item.active");
+  if (atual === alvo) return;
+  scroll.querySelectorAll(".nav__item.active").forEach((x) => x.classList.remove("active"));
+  if (alvo) alvo.classList.add("active");
+  _navPosicionaInd(animar);
+}
+// Micro-cascata na abertura (WAAPI fill:none = não suja o DOM, contrato premium).
+function _navCascata(inner) {
+  if (!inner) return;
+  inner.querySelectorAll(".nav__item").forEach((el, i) => {
+    if (typeof el.animate !== "function") return;
+    el.animate(
+      [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "translateY(0)" }],
+      { duration: 260, delay: i * 38, easing: "cubic-bezier(0.23,1,0.32,1)", fill: "none" });
+  });
+}
+function _navToggleGrupo(grp) {
+  if (!grp) return;
+  if (grp.querySelector(".nav__item.active")) return; // grupo da tela ativa fica aberto
+  const abrindo = !grp.classList.contains("open");
+  grp.classList.toggle("open", abrindo);
+  const head = grp.querySelector(".grp__head");
+  if (head) head.setAttribute("aria-expanded", String(abrindo));
+  _navSalvarGrupo(grp.dataset.grp, abrindo);
+  const body = grp.querySelector(".grp__body");
+  if (prefereMenosMovimento()) { _navPosicionaInd(false); return; }
+  if (abrindo) _navCascata(grp.querySelector(".grp__inner"));
+  // cola o indicador no item ativo enquanto o layout se move (glue por frame)
+  let colando = true;
+  const passo = () => { if (!colando) return; _navPosicionaInd(false); requestAnimationFrame(passo); };
+  requestAnimationFrame(passo);
+  const fim = (e) => {
+    if (e && e.propertyName !== "grid-template-rows") return;
+    colando = false;
+    if (body) body.removeEventListener("transitionend", fim);
+    _navPosicionaInd(false);
+  };
+  if (body) body.addEventListener("transitionend", fim);
+  setTimeout(() => { if (colando) fim(); }, 620);
+}
+function _wireNav() {
+  const scroll = document.querySelector("#nav .nav__scroll"); if (!scroll) return;
+  scroll.querySelectorAll(".grp__head").forEach((h) => {
+    h.addEventListener("click", () => _navToggleGrupo(h.closest(".grp")));
+  });
+  scroll.querySelectorAll(".nav__item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const page = btn.dataset.page;
+      if (!btn.classList.contains("active")) {
+        scroll.querySelectorAll(".nav__item.active").forEach((x) => x.classList.remove("active"));
+        btn.classList.add("active");
+        _navPosicionaInd(true);      // desliza (DOM-local, sobrevive ao re-render setHtml)
+      }
+      state.view.page = page;
+      renderApp();
+      closeSidebar();
+    });
+  });
+}
+
 function navItemBtnHtml(it) {
-  return `
-    <button class="nav__item ${state.view.page === it.id ? "active" : ""}${it.lacre ? " nav__item--lacre" : ""}" data-page="${it.id}" aria-label="${escapeHtml(it.label)}" title="${escapeHtml(it.label)}">
-      ${icon(it.icon)}
-      <span>${it.label}</span>
-      ${it.beta ? `<span class="nav__beta">beta</span>` : ""}
-      ${it.badge ? `<span class="nav__badge ${it.badgeClass || ""}">${it.badge}</span>` : ""}
-    </button>
-  `;
+  return `<button type="button" class="nav__item${it.lacre ? " nav__item--lacre" : ""}" data-page="${it.id}" aria-label="${escapeHtml(it.label)}" title="${escapeHtml(it.label)}">${icon(it.icon)}<span class="nav__label">${it.label}</span>${it.beta ? `<span class="nav__beta">beta</span>` : ""}${it.badge ? `<span class="nav__badge ${it.badgeClass || ""}">${it.badge}</span>` : ""}</button>`;
 }
 
 function renderNav() {
+  _aplicarNavSpring();
   const u = currentUser();
   // Badge = a MESMA conta da aba Pendentes (manuais + automáticas com o líder);
   // três números diferentes pra "pendente" na mesma tela minava a confiança.
@@ -6270,26 +6394,33 @@ function renderNav() {
   if (can("auditoria.ver")) items.push({ id: "auditoria", label: "Auditoria", icon: "shield" });
   if (can("sistema.config")) items.push({ id: "config", label: "Configurações", icon: "settings" });
 
+  const fechados = _navGruposFechados();
+  const paginaAtual = state.view && state.view.page;
   const agrupados = new Set();
   const gruposHtml = NAV_GRUPOS.map(([label, ids]) => {
     const grupoItems = ids.map((id) => items.find((it) => it.id === id)).filter(Boolean);
     if (!grupoItems.length) return "";
     grupoItems.forEach((it) => agrupados.add(it.id));
-    const sec = label ? `<div class="nav__sec">${escapeHtml(label)}</div>` : "";
-    return sec + grupoItems.map(navItemBtnHtml).join("");
+    const itensHtml = grupoItems.map(navItemBtnHtml).join("");
+    if (!label) return itensHtml; // grupo sem rótulo (Visão geral) = itens soltos, sem cabeçalho
+    // Aberto se nada salvo como fechado, OU se contém a tela ativa (o indicador
+    // sempre precisa de um alvo visível). Contagem = itens VISÍVEIS por papel.
+    const temAtivo = grupoItems.some((it) => it.id === paginaAtual);
+    const aberto = temAtivo || !fechados[label];
+    const bodyId = "grp-body-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return `<div class="grp${aberto ? " open" : ""}" data-grp="${escapeHtml(label)}">`
+      + `<button type="button" class="grp__head" aria-expanded="${aberto}" aria-controls="${bodyId}" aria-label="${escapeHtml(label)}">`
+      + `<span class="grp__t">${escapeHtml(label)}</span>`
+      + `<span class="grp__count" aria-hidden="true">${grupoItems.length}</span>`
+      + `${icon("chevron")}</button>`
+      + `<div class="grp__body" id="${bodyId}"><div class="grp__inner">${itensHtml}</div></div></div>`;
   }).join("");
   const soltos = items.filter((it) => !agrupados.has(it.id)).map(navItemBtnHtml).join("");
-  if (!setHtml($("#nav"), gruposHtml + soltos)) return;
 
-  $$("#nav .nav__item").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.view.page = btn.dataset.page;
-      renderApp();
-      closeSidebar();
-    });
-  });
-
-  ativarProximidadeNav();
+  const html = `<div class="nav__scroll"><span class="nav__ind" aria-hidden="true"></span>${gruposHtml}${soltos}</div>`;
+  if (setHtml($("#nav"), html)) _wireNav();
+  _navSyncAtivo(false);
+  _navReSnapFontes();
 }
 
 // Barra de baixo ENXUTA do gestor (3 itens · hub aprovado 2026-07-02, alinhada ao
@@ -19693,7 +19824,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.8.0";
+window.CURRENT_VERSION = "2.9.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -20013,13 +20144,39 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#menu-btn").addEventListener("click", openSidebar);
   $("#sidebar-backdrop").addEventListener("click", closeSidebar);
 
-  // Sidebar retrátil (desktop): recolhe/expande + persiste o estado.
+  // Sidebar V2 (desktop): modo rail (régua de 72px) + peek no hover + ctrl/cmd+B.
+  // Preferência lembrada (mesmo padrão do tema). Rail não existe no mobile (drawer).
   const appElRail = $("#app");
-  try { if (localStorage.getItem("fiopulse:sidebarRail") === "1") appElRail?.classList.add("app--rail"); } catch {}
-  $("#sidebar-toggle")?.addEventListener("click", () => {
+  const sideEl = $("#sidebar");
+  try { if (localStorage.getItem(_NAV_RAIL_KEY) === "1") appElRail?.classList.add("app--rail"); } catch {}
+  const _ehMobile = () => !!(window.matchMedia && window.matchMedia("(max-width: 900px)").matches);
+  const _setRail = (on) => {
     if (!appElRail) return;
-    const recolhida = appElRail.classList.toggle("app--rail");
-    try { localStorage.setItem("fiopulse:sidebarRail", recolhida ? "1" : "0"); } catch {}
+    appElRail.classList.toggle("app--rail", on);
+    sideEl?.classList.remove("nav-peek");
+    try { localStorage.setItem(_NAV_RAIL_KEY, on ? "1" : "0"); } catch {}
+    requestAnimationFrame(() => _navPosicionaInd(false));
+  };
+  $("#sidebar-toggle")?.addEventListener("click", () => _setRail(!appElRail?.classList.contains("app--rail")));
+  // peek: no rail, o hover abre uma lâmina por cima do conteúdo (sem empurrar layout).
+  let _peekTimer = null;
+  sideEl?.addEventListener("mouseenter", () => {
+    if (_ehMobile() || !appElRail?.classList.contains("app--rail")) return;
+    clearTimeout(_peekTimer);
+    _peekTimer = setTimeout(() => { sideEl.classList.add("nav-peek"); requestAnimationFrame(() => _navPosicionaInd(false)); }, 90);
+  });
+  sideEl?.addEventListener("mouseleave", () => {
+    clearTimeout(_peekTimer);
+    if (!sideEl.classList.contains("nav-peek")) return;
+    _peekTimer = setTimeout(() => { sideEl.classList.remove("nav-peek"); requestAnimationFrame(() => _navPosicionaInd(false)); }, 130);
+  });
+  // atalho ctrl/cmd+B alterna o rail (desktop).
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+    if (e.key !== "b" && e.key !== "B") return;
+    if (_ehMobile()) return;
+    e.preventDefault();
+    _setRail(!appElRail?.classList.contains("app--rail"));
   });
 
   // ESC fecha modais e drawer da sidebar mobile

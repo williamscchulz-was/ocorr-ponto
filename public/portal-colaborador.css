@@ -79,6 +79,11 @@ html.modo-colab.cp-dark .app__sidebar{background:#121712}
 .modo-colab .app__brand-text{color:var(--text-body)}
 .modo-colab .app__brand-text small{color:var(--text-muted)}
 .modo-colab .app__brand-mark{background:var(--plum-soft)}
+/* A densidade V2 (itens de 4px, indicador que desliza, grupos) é SÓ do gestor: o
+   menu do colaborador é uma lista simples e mantém o respiro anterior (11px 14px,
+   14px). Escopo :not(.app--rail) pra o modo régua ainda colapsar os itens. */
+.modo-colab .app:not(.app--rail) .nav{display:flex;flex-direction:column;gap:2px}
+.modo-colab .app:not(.app--rail) .nav__item{padding:11px 14px;gap:12px;font-size:14px;border-radius:var(--radius)}
 .modo-colab .nav__item{color:var(--text-muted)}
 .modo-colab .nav__item:hover{color:var(--text-body);background:var(--surface-warm)}
 .modo-colab .nav__item.active{background:var(--surface-warm);color:var(--plum)}
