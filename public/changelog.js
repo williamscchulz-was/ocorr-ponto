@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.5.3", d: "23 jul 2026", current: true, items: [
+    v: "2.6.0", d: "23 jul 2026", current: true, items: [
+      { type: "feat", aud: "gestor", title: "Férias vencidas visíveis na lista de Funcionários" },
+    ],
+  },
+  {
+    v: "2.5.3", d: "23 jul 2026", items: [
       { type: "fix", aud: "colab", title: "Avisos, Pagamento e Conquistas mais estáveis" },
     ],
   },

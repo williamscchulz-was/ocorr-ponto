@@ -8626,6 +8626,15 @@ function saldoDiaStr(d) {
   return String((d && d.saldoDiaFmt) || "").trim();
 }
 
+// "X dias vencidos" (férias) no formato pt-BR: fração vira vírgula (27,5), inteiro fica limpo
+// (30). Singular só no 1 exato ("1 dia vencido"); qualquer fração é plural.
+function diasVencidosLabel(dias) {
+  const n = Number(dias) || 0;
+  const num = n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+  const sing = n === 1;
+  return `${num} dia${sing ? "" : "s"} vencido${sing ? "" : "s"}`;
+}
+
 // "2026-06" -> "Junho de 2026" (rótulo do filtro de mês). Capitaliza a inicial.
 function mesAnoLabel(ym) {
   if (!ym) return "";
@@ -8669,9 +8678,19 @@ function vgPrecisaDeVoce(u) {
     const nFoto = funcsSemFotoOficial(u).length;
     if (nFoto) pendFoto = { page: "funcionarios", semfoto: true, ic: "camera", n: nFoto, lb: `colaborador${nFoto > 1 ? "es" : ""} sem foto oficial` };
   }
-  const attrs = (l) => `${l.ir ? `data-vg-ir="${l.ir}"` : ""} ${l.page ? `data-vg-page="${l.page}"` : ""} ${l.tab ? `data-vg-tab="${l.tab}"` : ""}${l.semfoto ? ` data-vg-semfoto="1"` : ""}`;
+  // Férias vencidas: linha SECUNDÁRIA com o total de gente (no escopo do papel) que tem
+  // período vencido. Mesmo predicado do filtro "Férias vencidas" da lista (ativo + visível +
+  // temVencida) pra a conta bater com o que a tela mostra. Leva pra Funcionários já filtrado.
+  let pendFerias = null;
+  if (can("func.ver")) {
+    const nFerias = (state.funcionarios || []).filter((f) =>
+      f.ativo !== false && podeVerFuncionario(u, f) && state.ferias?.[f.id]?.resumo?.temVencida
+    ).length;
+    if (nFerias) pendFerias = { page: "funcionarios", funcstatus: "ferias-vencidas", ic: "calendar", n: nFerias, lb: `colaborador${nFerias > 1 ? "es" : ""} com férias vencidas` };
+  }
+  const attrs = (l) => `${l.ir ? `data-vg-ir="${l.ir}"` : ""} ${l.page ? `data-vg-page="${l.page}"` : ""} ${l.tab ? `data-vg-tab="${l.tab}"` : ""}${l.semfoto ? ` data-vg-semfoto="1"` : ""}${l.funcstatus ? ` data-vg-funcstatus="${l.funcstatus}"` : ""}`;
   const CHEV = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
-  if (!linhas.length && !pendFoto) {
+  if (!linhas.length && !pendFoto && !pendFerias) {
     return `
     <section class="vg-card">
       <h3 class="vg-h">${icon("alert")}<span>Precisa de você</span></h3>
@@ -8681,6 +8700,7 @@ function vgPrecisaDeVoce(u) {
   const dest = linhas.length ? linhas[0] : null;
   const pends = linhas.slice(dest ? 1 : 0);
   if (pendFoto) pends.push(pendFoto);
+  if (pendFerias) pends.push(pendFerias);
   const sub = pends.length ? "a fila mais urgente primeiro" : "é a única fila esperando por você hoje";
   return `
     <section class="vg-card">
@@ -9132,6 +9152,9 @@ function renderVisaoGeral() {
       else {
         if (b.dataset.vgTab) state.view.docTab = b.dataset.vgTab;
         state.view.funcSemFoto = !!b.dataset.vgSemfoto; // liga o filtro só quando a linha pede (limpa nas demais)
+        // Pré-seleção transitória do filtro de status (ex.: "ferias-vencidas") pra Funcionários
+        // já abrir filtrado; renderFuncionarios aplica no select e limpa a flag.
+        state.view.funcStatusInit = b.dataset.vgFuncstatus || null;
         state.view.page = b.dataset.vgPage;
       }
       renderApp();
@@ -10063,6 +10086,7 @@ function renderFuncionarios() {
         <option value="ativo" selected>Apenas ativos</option>
         <option value="operacional">Operacionais</option>
         <option value="afastado">Afastados</option>
+        <option value="ferias-vencidas">Férias vencidas</option>
         <option value="diretor">Diretores</option>
         <option value="aprendiz">Aprendizes</option>
         <option value="inativo">Apenas inativos</option>
@@ -10092,6 +10116,13 @@ function renderFuncionarios() {
     $("#func-turno-filter").addEventListener("change", () => renderFuncList());
   }
   renderFotoAviso(u);
+  // Pré-seleção transitória vinda da Visão geral (ex.: "ferias-vencidas"): aplica no select
+  // ANTES do renderFuncList (que lê o valor do DOM) e limpa a flag, pra a tela abrir filtrada.
+  if (state.view.funcStatusInit) {
+    const sel = $("#func-status-filter");
+    if (sel) sel.value = state.view.funcStatusInit;
+    state.view.funcStatusInit = null;
+  }
   renderFuncList(true);
   if (escreveu) animarNumeros("#view");
 }
@@ -10175,6 +10206,7 @@ function renderFuncList(animar) {
   else if (statusFilter === "ativo") list = list.filter((f) => f.ativo !== false);
   else if (statusFilter === "operacional") list = list.filter((f) => f.ativo !== false && f.afastado !== true && f.diretor !== true && f.aprendiz !== true);
   else if (statusFilter === "afastado") list = list.filter((f) => f.afastado === true);
+  else if (statusFilter === "ferias-vencidas") list = list.filter((f) => f.ativo !== false && state.ferias?.[f.id]?.resumo?.temVencida);
   else if (statusFilter === "diretor") list = list.filter((f) => f.diretor === true);
   else if (statusFilter === "aprendiz") list = list.filter((f) => f.aprendiz === true);
   else if (statusFilter === "inativo") list = list.filter((f) => f.ativo === false);
@@ -10254,10 +10286,17 @@ function renderFuncList(animar) {
       : (f.situacao
           ? `<span class="badge badge--${f.afastado === true ? "warning" : "neutral"}">${escapeHtml(f.situacao)}</span>`
           : (f.afastado === true ? `<span class="badge badge--warning">Afastado</span>` : ""));
+    // Férias vencidas (dado do pipeline via state.ferias, chave = f.id): badge âmbar com o
+    // total de dias vencidos, ao lado da situação (coexistem). Só ativo, só quando temVencida.
+    const fer = inativo ? null : state.ferias?.[f.id]?.resumo;
+    const feriasBadge = (fer && fer.temVencida)
+      ? `<span class="badge badge--warning">${diasVencidosLabel(fer.diasVencidos)}</span>`
+      : "";
     const marcadores =
       (f.diretor === true ? `<span class="badge badge--info">Diretor</span>` : "") +
       (f.aprendiz === true ? `<span class="badge badge--neutral">Menor Aprendiz</span>` : "") +
-      situacaoBadge;
+      situacaoBadge +
+      feriasBadge;
 
     return `
       <article class="func-row ${alertaSemTurno ? "func-row--semturno" : ""} ${inativo ? "func-row--inativo" : ""}" data-func="${f.id}" role="button" tabindex="0">
@@ -19190,7 +19229,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.5.3";
+window.CURRENT_VERSION = "2.6.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

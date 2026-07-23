@@ -2049,6 +2049,22 @@
         catch (e) { debug?.("[vagas] expurgo curriculo:", e?.code || e?.message); }
       }
       await db.collection("candidaturas").doc(id).delete();
+      // Expurgo dos IRMÃOS do funil (espelho da function apagarIrmaosFunil, functions/index.js):
+      // os avisos enfileirados por esta candidatura em /mail e /waMsg. 'recebida' é o próprio id
+      // (sem sufixo); os 3 status com mensagem viram sufixo. Tokens do MAIL são HIFENIZADOS
+      // (em-analise/aprovada/nao-seguiu), os do waMsg em UNDERSCORE (em_analise/aprovada/
+      // nao_seguiu), casando com o wiring de atualizarStatusCandidatura. Deletes idempotentes
+      // (doc ausente = no-op). Best-effort e SILENCIOSO: allSettled garante que os 8 disparam e a
+      // falha de um irmão NUNCA desfaz nem bloqueia a exclusão da candidatura (já concluída acima).
+      // Zero PII no console (só um aviso genérico).
+      try {
+        const mailIds = [id, id + "-em-analise", id + "-aprovada", id + "-nao-seguiu"];
+        const waIds = [id, id + "-em_analise", id + "-aprovada", id + "-nao_seguiu"];
+        await Promise.allSettled([
+          ...mailIds.map((mid) => db.collection("mail").doc(mid).delete()),
+          ...waIds.map((wid) => db.collection("waMsg").doc(wid).delete()),
+        ]);
+      } catch (e) { debug?.("[vagas] expurgo irmãos do funil (best-effort):", e?.code || e?.message); }
       window.registrarAuditoria?.({ tipo: "vagas", acao: "Excluiu candidatura", alvo: id });
     };
 
@@ -4510,6 +4526,7 @@
     state.comunicados = state.comunicados || [];
     state.documentos = state.documentos || [];
     state.disciplinares = state.disciplinares || [];
+    state.ferias = state.ferias || {};
     state.pjs = []; // preenchido no pós-render (abaixo)
     await Promise.all([
       (typeof can === "function" && can("comunicados.gerenciar")) ? recarregarComunicados() : null,
@@ -4518,6 +4535,20 @@
         ? recarregarDisciplinares().catch((e) => debug?.("[disciplinares] boot:", e?.message || e))
         : null,
       carregarBancoHorasGestor(u),
+      // Férias vencidas/proporcional (pipeline WKRADAR, SEM PII, só ATIVOS, ~95 docs). A rule
+      // libera leitura pros 4 papéis-gestor (global, igual a /funcionarios); a UI é quem escopa
+      // por podeVerFuncionario. Chave = funcionarioId ("f-"+código) pra casar direto com f.id na
+      // lista. Boot-only, seguindo a liturgia de /funcionarios (que também não refaz no foco):
+      // badge e linha nascem em lockstep com o cadastro. Falha isolada não derruba o boot.
+      db.collection("ferias").get().then((snap) => {
+        const m = {};
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          const key = data.funcionarioId || ("f-" + d.id);
+          m[key] = { ...data, atualizadoEm: tsToIso(data.atualizadoEm) };
+        });
+        state.ferias = m;
+      }).catch((e) => { state.ferias = state.ferias || {}; debug?.("[ferias] load:", e?.message || e); }),
     ]);
 
     // Log global de auditoria NÃO é lido no boot (perf): carrega sob demanda
