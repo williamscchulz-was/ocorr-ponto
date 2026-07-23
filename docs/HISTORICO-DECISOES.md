@@ -3180,3 +3180,22 @@ Isolado: 7 cenários (os 2 casos reais + um caso "Vinicius-like" de regressão +
 
 ### Transição dos 2 docs existentes — verificada segura, sem ação manual
 O `dedupId` muda pros 2 casos (inclui o rótulo da situação). Isso já tem proteção: **Zoz** (doc antigo ainda `rh_confere`) foi resolvido sozinho pela reconciliação/evidência assim que rodei o uploader. **Patricia** (doc antigo já `confirmada` por humano) **não duplicou** — a guarda `puladoEspLabelDrift` (já existente, achada pelo Fable na semana passada pra exatamente esse cenário de "rótulo mudou entre rodadas") bloqueou a criação do doc novo automaticamente. Bônus curioso: o humano que confirmou o caso da Patricia na época (Djoniffer Krieck Gonçalves) já tinha escrito manualmente "Não bateu saída para o lanche" — o sistema só agora chegou na mesma conclusão que um humano já tinha tirado sozinho meses atrás.
+
+## 2026-07-23 · Alinhamento posicional generalizado pro caso M=2 (2 apuradas, faltam 2) — card real do William (Anderson Dobuchak/612)
+
+William reportou um card no app (Anderson Dobuchak, 612, 22/07, "Atrasos", mostrando "Saída Almoço 17:32") e perguntou se estava certo. Confirmou ele mesmo: "ME PARECE CORRETO PQ NÃO TEM BATIDA DO ALMOÇO NÉ / AI TEM QUE TRAZER MESMO" — o card estava certo em gerar (dia parcial de verdade), a dúvida era só sobre a apresentação da posição.
+
+### Medição (não assumir, contar)
+`alinha_apurada_unica` (2026-07-22, caso Maristella) só cobre M=1 (1 apurada sobrando). Um comentário no código já registrava a generalização pra M=2 como "fica pra depois" até medir se valia a pena. Rodando contra os 22 casos incertos de um dia real: **9 (~41%) são exatamente M=2** (2 apuradas, escala de 4, faltam 2) — bem mais comum que o M=1 que motivou a primeira função. Valeu a pena generalizar.
+
+### 1ª ideia vetada pelo Fable, com prova numérica
+Reusar a métrica posição-aware de pausa-por-duração (do fix anterior, item acima) pra testar os pares de posições candidatas. Fable rodou os números: no próprio caso motivador (612), **5 das 6 combinações possíveis passariam** nesse teste — a métrica de pausa não resolve nem o caso que motivou o achado. Descartada.
+
+### Fix: relógio puro + consenso entre combinações (não "menor desvio")
+`alinha_apuradas_duas()` testa cada uma das `itertools.combinations(4, 2)` posições sobreviventes por relógio absoluto (`desvio_circular <= JANELA_MATCH_MIN`, igual aos extremos de sempre — a pausa desliza mas aqui não estamos testando SÓ a pausa, é o par todo). Gate não é "1 combinação só" (rejeitaria a maioria dos 9 casos por ambiguidade genuína de qual posição do meio bate) nem "menor desvio ganha" (matching guloso, já vetado em 2026-07-03 — a pausa desliza 30min-2h na prática, ver Zoz/Patricia acima, "mais perto" não é "certo"). Gate certo: **consenso entre todas as combinações válidas** (mesma semântica já aprovada no caso Moises 2026-07-07, `apuradas_alinhadas_parcial`) — posição em que toda combinação plausível concorda fica preenchida, onde diverge fica `None`. Nunca deriva `sit`/`posAusente`/`dedupId` — só `apuradasAlinhadas`, dica de apresentação; `classificacaoIncerta` continua sempre `True`.
+
+### Validação
+Isolado: os 9 casos reais bateram exatamente com a predição do Fable, incluindo o motivador (612 → `["07:50", null, null, "17:32"]`, batendo com o que o card já mostrava — "Saída Almoço" ficando `null`/ambíguo em vez de aparecer com hora errada). Pipeline real rodado de ponta a ponta: `incertoAlinhadoDuplo=8` ativações na rodada (7 registros finais visíveis — 1 ativação foi de um registro suprimido depois por outra regra, não é bug), zero regressão nos demais casos incertos, zero crash.
+
+### Deploy
+Código commitado (`process-ocorrencias-rh.py`). **Não fiz backfill dos 9 docs existentes no Firestore** — o mecanismo (`resync-ocorrencias-horario-relevante.mjs`) é seguro/idempotente/data-only, mas por prudência vou confirmar com o William antes de rodar uma atualização em massa nos docs já existentes; novas ocorrências já nascem com o fix a partir de agora.
