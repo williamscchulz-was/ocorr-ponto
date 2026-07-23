@@ -437,6 +437,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ----- ferias (periodos de ferias por funcionario · dado do pipeline WKRADAR · SEM PII) -----
+    // Doc por codigo (sem prefixo f-), escrito SO pelo pipeline (Admin SDK, ignora estas rules):
+    // periodos[] + resumo{temVencida, ...} + funcionarioId. LEITURA espelha a fronteira de
+    // /funcionarios pro LADO GESTOR (admin/RH/lider/supervisor, papel-gestor global; a UI filtra):
+    // e onde o badge "X dias vencidos" mora, a lista de Funcionarios, que os quatro papeis ja
+    // leem global. O doc NAO traz funcionarioTurno, entao nao da pra escopar lider por turno como
+    // o /bancoHoras faz; seguimos o precedente de /funcionarios (global) de proposito. Colaborador
+    // NAO le, nem o proprio codigo (v2 futura, decisao de produto). Escrita de cliente: false.
+    match /ferias/{codigo} {
+      allow read: if isAdmin() || isRH() || isLider() || isSupervisor();
+      allow write: if false;
+    }
+
     // ===== Pacote Gestor (ADITIVO) — Comunicados + Documentos institucionais =====
 
     // ----- comunicados (canal oficial 1→N originado no gestor) -----
@@ -1748,8 +1761,10 @@ service cloud.firestore {
     //       o email da candidatura contenha o texto de um status. Cada status e
     //       um ramo EXPLICITO (nao deriva string de template.name): lixo em
     //       template.name/id cai fora dos 3 e NEGA.
-    //   READ/UPDATE/DELETE de cliente: false. O doc ganha PII do candidato (to)
-    //   e status de entrega escrito pela extensao; so a extensao (Admin SDK) mexe.
+    //   READ/UPDATE de cliente: false (o doc ganha PII do candidato (to) + status de
+    //   entrega escrito pela extensao). DELETE: a GP (cap vagas.gerenciar) expurga o
+    //   irmao junto da candidatura (LGPD, William 23/07); so a extensao (Admin SDK)
+    //   cria/atualiza.
     // ============================================================
     match /mail/{mailId} {
       function gpCand() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
@@ -1790,7 +1805,10 @@ service cloud.firestore {
         || criaStatus('em-analise')
         || criaStatus('aprovada')
         || criaStatus('nao-seguiu');
-      allow read, update, delete: if false;
+      // delete: a GP expurga o irmao junto da candidatura (LGPD, William 23/07). read/update
+      // seguem false (PII do candidato + estado de entrega da extensao).
+      allow read, update: if false;
+      allow delete: if gpCand();
     }
 
     // ----- emailTemplates (moldes da extensao Trigger Email) -----
@@ -1836,8 +1854,9 @@ service cloud.firestore {
     //       telefone/email da candidatura contenha o texto de um status. Cada
     //       status e um ramo EXPLICITO (nao deriva string de template): lixo em
     //       template cai fora dos 3 e NEGA.
-    //   READ/UPDATE/DELETE de cliente: false. O doc ganha PII do candidato (para)
-    //   e status de envio escrito pela function; so a function (Admin SDK) mexe.
+    //   READ/UPDATE de cliente: false (o doc ganha PII do candidato (para) + status de
+    //   envio escrito pela function). DELETE: a GP (cap vagas.gerenciar) expurga o irmao
+    //   junto da candidatura (LGPD, William 23/07); so a function (Admin SDK) cria/atualiza.
     // ============================================================
     match /waMsg/{waId} {
       function gpCand() { return isAdmin() || temCap('vagas.gerenciar', isRH()); }
@@ -1883,7 +1902,10 @@ service cloud.firestore {
         || criaStatus('em_analise')
         || criaStatus('aprovada')
         || criaStatus('nao_seguiu');
-      allow read, update, delete: if false;
+      // delete: a GP expurga o irmao junto da candidatura (LGPD, William 23/07). read/update
+      // seguem false (PII do candidato + estado de envio da function).
+      allow read, update: if false;
+      allow delete: if gpCand();
     }
   }
 }

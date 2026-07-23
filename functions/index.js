@@ -148,8 +148,9 @@ exports.enviarWaMsg = onDocumentCreated(
 // Semantica identica ao canonico window.excluirCandidatura (firebase.js ~2041): condicao
 // = vaga ENCERRADA cujo encerradaEm ja passou de 6 meses; ordem = OBJETO do curriculo no
 // cofre ANTES do doc da candidatura; arquivo ja ausente NAO bloqueia (o Firestore e a fonte
-// de verdade do "existe"). NAO toca /mail nem /waMsg: o cliente tambem nao (excluirCandidatura
-// so mexe no cofre + doc), entao nem mais nem menos.
+// de verdade do "existe"). LEVA JUNTO os irmaos do funil (/mail e /waMsg) pelo id conhecido:
+// a paridade "nao toca irmaos" DEIXOU de valer (decisao William 23/07, "arrumar e deixar
+// perfeito"); o cliente (excluirCandidatura) ganha o mesmo num release futuro.
 //
 // ZERO PII nos logs: o id da candidatura ({vagaId}__{email}) e o curriculoPath CARREGAM o
 // email do candidato; so logamos id de vaga (id aleatorio do Firestore) e contagens.
@@ -158,6 +159,21 @@ const EXPURGO_CAND_MESES = 6; // espelha EXPURGO_CAND_MESES do front; janela de 
 // Admin SDK em Functions resolveria pra <projeto>.appspot.com, e os curriculos vivem no
 // bucket .firebasestorage.app, entao o delete tem que apontar pra ca.
 const CURRICULOS_BUCKET = 'ocorr-ponto.firebasestorage.app';
+
+// Irmaos do funil que uma candidatura dispara: os avisos enfileirados em /mail e /waMsg pelo
+// id da candidatura (mesma raiz + sufixo de status). A 'recebida' e o proprio id (sem sufixo);
+// os 3 status com mensagem viram sufixo. Tokens do MAIL sao HIFENIZADOS (em-analise/aprovada/
+// nao-seguiu); os do waMsg em UNDERSCORE (em_analise/aprovada/nao_seguiu) — espelham o wiring do
+// funil em public/firebase.js (atualizarStatusCandidatura). Deletes idempotentes: doc ausente =
+// no-op (Firestore), entao apagar um funil incompleto (nem todo status disparou) e seguro.
+async function apagarIrmaosFunil(candId) {
+  const mailIds = [candId, `${candId}-em-analise`, `${candId}-aprovada`, `${candId}-nao-seguiu`];
+  const waIds = [candId, `${candId}-em_analise`, `${candId}-aprovada`, `${candId}-nao_seguiu`];
+  await Promise.all([
+    ...mailIds.map((id) => db.collection('mail').doc(id).delete()),
+    ...waIds.map((id) => db.collection('waMsg').doc(id).delete()),
+  ]);
+}
 
 exports.expurgarCandidaturasVencidas = onSchedule(
   {
@@ -219,6 +235,13 @@ exports.expurgarCandidaturasVencidas = onSchedule(
           }
           await candDoc.ref.delete(); // Firestore delete e idempotente (doc ja ausente = ok)
           ok++;
+          // Irmaos do funil (mail/waMsg) junto: a paridade "nao toca irmaos" caiu (William 23/07).
+          // Best-effort e idempotente: uma falha aqui NAO desfaz o expurgo da candidatura. Honestidade:
+          // como a candidatura ja saiu, a proxima rodada NAO reencontra estes irmaos; falha transitoria
+          // nos 8 deletes deixa orfao raro (residual aceito no gate). ZERO PII no log: o id do
+          // irmao carrega o email, entao so logo a vaga (id aleatorio) + codigo do erro.
+          try { await apagarIrmaosFunil(candDoc.id); }
+          catch (e) { logger.warn('expurgo: irmao do funil nao apagou (segue mesmo assim)', { vaga: vagaDoc.id, erro: (e && e.code) || 'erro' }); }
         } catch (e) {
           logger.warn('expurgo: pulou 1 candidatura', { vaga: vagaDoc.id, erro: (e && e.code) || 'erro' });
         }

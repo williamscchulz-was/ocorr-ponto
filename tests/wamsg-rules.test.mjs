@@ -91,8 +91,20 @@ before(async () => {
       vagaId: "vWa", vagaTitulo: "Tecelão", nome: "Ana A", telefone: "47900005555",
       email: "ana-aprovada@mail.com", mensagem: "", em: new Date(), status: "nova",
     });
-    // waMsg ja gravado (pela "function"): prova que cliente nenhum le/edita/apaga.
+    // waMsg ja gravado (pela "function"): prova que cliente nenhum le/edita, e que
+    // colab/anon nao deletam.
     await setDoc(doc(db, "waMsg/seedWa"), {
+      para: "47900001111", template: "candidatura_recebida",
+      params: { nome: "João", vaga: "Tecelão" }, em: new Date(),
+      candidaturaId: "vWa__joao@mail.com", delivery: { state: "SENT" },
+    });
+    // Docs dedicados pro delete que PASSA (GP e admin expurgam o irmao no expurgo LGPD).
+    await setDoc(doc(db, "waMsg/delGp"), {
+      para: "47900001111", template: "candidatura_recebida",
+      params: { nome: "João", vaga: "Tecelão" }, em: new Date(),
+      candidaturaId: "vWa__joao@mail.com", delivery: { state: "SENT" },
+    });
+    await setDoc(doc(db, "waMsg/delAdmin"), {
       para: "47900001111", template: "candidatura_recebida",
       params: { nome: "João", vaga: "Tecelão" }, em: new Date(),
       candidaturaId: "vWa__joao@mail.com", delivery: { state: "SENT" },
@@ -262,8 +274,13 @@ test("NINGUEM atualiza waMsg (nem admin)", async () => {
   await assertFails(updateDoc(doc(rh(), "waMsg/seedWa"), { para: "47900000000" }));
   await assertFails(updateDoc(doc(admin(), "waMsg/seedWa"), { para: "47900000000" }));
 });
-test("NINGUEM deleta waMsg (nem admin)", async () => {
-  await assertFails(deleteDoc(doc(colab(), "waMsg/seedWa")));
-  await assertFails(deleteDoc(doc(rh(), "waMsg/seedWa")));
-  await assertFails(deleteDoc(doc(admin(), "waMsg/seedWa")));
-});
+// delete: a GP/admin expurgam o irmao junto da candidatura (LGPD, William 23/07);
+// colab/anon seguem negados (update continua negado pra todos, regressao acima).
+test("GP deleta waMsg PASSA (expurgo LGPD, paridade com a candidatura)", async () =>
+  assertSucceeds(deleteDoc(doc(rh(), "waMsg/delGp"))));
+test("ADMIN deleta waMsg PASSA", async () =>
+  assertSucceeds(deleteDoc(doc(admin(), "waMsg/delAdmin"))));
+test("COLABORADOR NAO deleta waMsg", async () =>
+  assertFails(deleteDoc(doc(colab(), "waMsg/seedWa"))));
+test("ANONIMO NAO deleta waMsg", async () =>
+  assertFails(deleteDoc(doc(anon(), "waMsg/seedWa"))));

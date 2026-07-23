@@ -86,8 +86,18 @@ before(async () => {
       vagaId: "vMail", vagaTitulo: "Tecelão", nome: "Ana A", telefone: "47900005555",
       email: "ana-aprovada@mail.com", mensagem: "", em: new Date(), status: "nova",
     });
-    // Mail ja gravado (pela "extensao"): prova que cliente nenhum le/edita/apaga.
+    // Mail ja gravado (pela "extensao"): prova que cliente nenhum le/edita, e que
+    // colab/anon nao deletam.
     await setDoc(doc(db, "mail/seedMail"), {
+      to: "joao@mail.com", template: { name: "candidatura-recebida", data: { nome: "João", vaga: "Tecelão" } },
+      delivery: { state: "SUCCESS" },
+    });
+    // Docs dedicados pro delete que PASSA (GP e admin expurgam o irmao no expurgo LGPD).
+    await setDoc(doc(db, "mail/delGp"), {
+      to: "joao@mail.com", template: { name: "candidatura-recebida", data: { nome: "João", vaga: "Tecelão" } },
+      delivery: { state: "SUCCESS" },
+    });
+    await setDoc(doc(db, "mail/delAdmin"), {
       to: "joao@mail.com", template: { name: "candidatura-recebida", data: { nome: "João", vaga: "Tecelão" } },
       delivery: { state: "SUCCESS" },
     });
@@ -228,11 +238,16 @@ test("NINGUEM atualiza mail (nem admin)", async () => {
   await assertFails(updateDoc(doc(rh(), "mail/seedMail"), { to: "x@y.com" }));
   await assertFails(updateDoc(doc(admin(), "mail/seedMail"), { to: "x@y.com" }));
 });
-test("NINGUEM deleta mail (nem admin)", async () => {
-  await assertFails(deleteDoc(doc(colab(), "mail/seedMail")));
-  await assertFails(deleteDoc(doc(rh(), "mail/seedMail")));
-  await assertFails(deleteDoc(doc(admin(), "mail/seedMail")));
-});
+// delete: a GP/admin expurgam o irmao junto da candidatura (LGPD, William 23/07);
+// colab/anon seguem negados (update continua negado pra todos, regressao acima).
+test("GP deleta mail PASSA (expurgo LGPD, paridade com a candidatura)", async () =>
+  assertSucceeds(deleteDoc(doc(rh(), "mail/delGp"))));
+test("ADMIN deleta mail PASSA", async () =>
+  assertSucceeds(deleteDoc(doc(admin(), "mail/delAdmin"))));
+test("COLABORADOR NAO deleta mail", async () =>
+  assertFails(deleteDoc(doc(colab(), "mail/seedMail"))));
+test("ANONIMO NAO deleta mail", async () =>
+  assertFails(deleteDoc(doc(anon(), "mail/seedMail"))));
 
 // ---------- emailTemplates (read authed, write so admin com shape) ----------
 test("ADMIN escreve molde (create) OK", async () =>
