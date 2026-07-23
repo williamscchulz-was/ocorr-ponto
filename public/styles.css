@@ -3264,17 +3264,44 @@ html.cp-dark:not(.modo-colab) .vg-dd { --vg-dim: rgba(95, 203, 133, .34); --vg-h
 .vg-feat__btn .icon:last-child { width: 15px; height: 15px; }
 @media (max-width: 640px) { .vg-feat { flex-wrap: wrap; gap: 12px 16px; } .vg-feat__btn { width: 100%; justify-content: center; } }
 
-/* Aniversariantes: destaque do dia + chips com inicial */
-.niver-hoje { display: flex; align-items: center; gap: 13px; background: var(--success-bg); border-radius: 12px; padding: 11px 14px; margin-bottom: 12px; }
-.niver-hoje__av { width: 42px; height: 42px; border-radius: 50%; background: var(--plum); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 15px; flex: none; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--plum); }
-.niver-hoje__bd { flex: 1; min-width: 0; }
-.niver-hoje__bd b { display: block; font-size: 14px; font-weight: 700; }
-.niver-hoje__bd span { display: block; font-size: 12px; color: var(--success); font-weight: 600; }
-.niver-hoje__pill { flex: none; background: var(--plum); color: #fff; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 4px 11px; border-radius: 999px; }
-.niver-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.niver-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12.5px; font-weight: 600; color: var(--text-body); }
-.niver-chip__av { width: 26px; height: 26px; border-radius: 50%; background: var(--success-bg); color: var(--plum); display: grid; place-items: center; font-size: 10.5px; font-weight: 700; flex: none; }
-.niver-chip__d { color: var(--text-muted); font-weight: 600; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+/* Aniversariantes (Visão geral): próximo em destaque + fila (mock opção C, jul 2026) */
+.niver-gift { width: 15px; height: 15px; flex: none; }
+.vg-h .mes { color: var(--plum-deep); }
+.vg-h .ct { margin-left: auto; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; text-transform: none; color: var(--text-muted); font-variant-numeric: tabular-nums; background: var(--milk-warm); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; }
+
+/* Base do avatar: iniciais sobre cor determinística (o brilho só nelas) ou foto oficial */
+.niver-av { border-radius: 50%; background-size: cover; background-position: center; display: grid; place-items: center; color: #fff; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; position: relative; flex: none; text-shadow: 0 1px 2px rgba(0, 0, 0, .28); }
+.niver-av:not(.av-foto)::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(120% 90% at 30% 22%, rgba(255, 255, 255, .42), rgba(255, 255, 255, 0) 55%); pointer-events: none; }
+
+.niver-hero { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, var(--success-bg), transparent 78%); border: 1px solid var(--border); border-radius: 14px; padding: 13px 15px; }
+html.cp-dark:not(.modo-colab) .niver-hero { background: linear-gradient(135deg, rgba(95, 203, 133, .12), transparent 80%); }
+.niver-hero__av { position: relative; flex: none; }
+.niver-hero__av .niver-av { width: 64px; height: 64px; font-size: 22px; box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--plum); }
+.niver-hero__ring { position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 3px rgba(0, 136, 53, .14); animation: niverPulse 2.6s ease-out infinite; pointer-events: none; }
+html.cp-dark:not(.modo-colab) .niver-hero__ring { box-shadow: 0 0 0 3px rgba(95, 203, 133, .18); }
+.niver-hero__bd { min-width: 0; flex: 1; }
+.niver-kicker { font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--plum); display: inline-flex; align-items: center; gap: 5px; }
+.niver-nm { font-size: 18px; font-weight: 700; letter-spacing: -.01em; color: var(--text-body); margin-top: 3px; line-height: 1.15; }
+.niver-when { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+.niver-when b { color: var(--plum-deep); font-weight: 700; font-variant-numeric: tabular-nums; }
+.niver-sep { display: flex; align-items: center; gap: 9px; margin: 14px 2px 10px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+.niver-sep::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.niver-fim { font-size: 12.5px; color: var(--text-muted); margin: 2px 2px 12px; }
+.niver-fila { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+.niver-fila::-webkit-scrollbar { display: none; }
+.niver-f { flex: none; width: 52px; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; cursor: default; }
+.niver-f__face { width: 40px; height: 40px; font-size: 14px; box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--border-strong); }
+.niver-fnm { font-size: 10px; font-weight: 600; color: var(--text-body); max-width: 52px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.niver-fd { font-size: 9.5px; font-weight: 700; color: var(--text-muted); margin-top: -4px; font-variant-numeric: tabular-nums; }
+.niver-f.passou { opacity: .5; filter: grayscale(.3); }
+.niver-f.futuro .niver-f__face { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--plum-soft); }
+.niver-f.futuro .niver-fnm { color: var(--plum-deep); }
+.niver-f.hoje .niver-f__face { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--warning); }
+/* nome completo no hover; data-full vive no wrapper (nunca no avatar absoluto) */
+.niver-f[data-full]:hover::after, .niver-f[data-full]:focus-visible::after { content: attr(data-full); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text-body); color: var(--surface); font-size: 10.5px; font-weight: 600; padding: 4px 9px; border-radius: 8px; white-space: nowrap; z-index: 20; box-shadow: var(--shadow); pointer-events: none; }
+
+@keyframes niverPulse { 0% { box-shadow: 0 0 0 0 rgba(0, 136, 53, .28); } 70% { box-shadow: 0 0 0 7px rgba(0, 136, 53, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 136, 53, 0); } }
+@media (prefers-reduced-motion: reduce) { .niver-hero__ring { animation: none; } }
 
 /* Demografia e Ranking: cards abertos lado a lado (deixaram de ser acordeão,
    William 2026-07-09). O par usa o .vg-grid (stretch + corpo centralizado), o

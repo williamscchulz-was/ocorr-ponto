@@ -8796,19 +8796,22 @@ const NOMES_MES_ABREV = [
   "jul", "ago", "set", "out", "nov", "dez",
 ];
 
-// Widget de aniversariantes no dashboard.
-// Mostra TODOS os funcionários ativos (aniversário é social, não tem escopo
-// por papel — admin/RH/líder/supervisor veem todos os aniversariantes do mês).
-// Só renderiza se houver pelo menos 1 aniversariante no mês corrente.
-// Campos vêm do pipeline RH (aniversarioDia/aniversarioMes em funcionarios/{id}).
+// Widget de aniversariantes no dashboard (Visão geral do gestor).
+// Aniversário é social, sem escopo por papel: todos veem todos os ativos do mês.
+// Afastado APARECE (aniversário não é situação funcional); só inativo sai.
+// OPÇÃO C do mock aniversariantes-premium-2026-07 (aprovada): o próximo
+// aniversariante em destaque (hero com rosto grande e contagem) + a fila compacta
+// dos demais. Foto oficial via avatarFuncHtml (fallback iniciais + lightbox), cor
+// de apoio determinística via _muralCor. Se todos do mês já passaram, mostra o mês
+// fechado com a fila esmaecida, sem hero. Sem ninguém no mês, não renderiza.
+// Campos do pipeline RH (aniversarioDia/aniversarioMes em funcionarios/{id}).
 function renderAniversariantesWidget(u) {
   const hoje = new Date();
   const dia = hoje.getDate();
   const mes = hoje.getMonth() + 1;
-  const pool = (state.funcionarios || []).filter((f) => f.ativo !== false);
 
-  const niverMes = pool
-    .filter((f) => Number(f.aniversarioMes) === mes && Number(f.aniversarioDia) > 0)
+  const niverMes = (state.funcionarios || [])
+    .filter((f) => f.ativo !== false && Number(f.aniversarioMes) === mes && Number(f.aniversarioDia) > 0)
     .sort((a, b) => (a.aniversarioDia || 99) - (b.aniversarioDia || 99));
 
   if (niverMes.length === 0) return "";
@@ -8817,28 +8820,52 @@ function renderAniversariantesWidget(u) {
     "janeiro", "fevereiro", "março", "abril", "maio", "junho",
     "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
   ];
-  const inic = (nome) => escapeHtml((nome || "?").trim().charAt(0).toUpperCase());
+  const nomeMes = MESES_FULL[mes - 1];
+  const pad = (n) => String(n).padStart(2, "0");
   const CAL = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+  const GIFT = `<svg class="niver-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>`;
 
-  const destaque = niverMes.filter((f) => Number(f.aniversarioDia) === dia).map((f) => `
-    <div class="niver-hoje">
-      <div class="niver-hoje__av">${inic(f.nome)}</div>
-      <div class="niver-hoje__bd"><b>${escapeHtml((f.nome || "?").split(" ")[0])}</b><span>faz aniversário hoje</span></div>
-      <span class="niver-hoje__pill">Hoje · ${String(f.aniversarioDia).padStart(2, "0")}</span>
+  // status pelo dia: quem já passou esmaece na fila; hoje/futuro seguem em cor.
+  const statusDe = (f) => Number(f.aniversarioDia) < dia ? "passou" : (Number(f.aniversarioDia) === dia ? "hoje" : "futuro");
+  // próximo = primeiro com dia >= hoje (hoje ou futuro), na ordem do mês.
+  const proximo = niverMes.find((f) => Number(f.aniversarioDia) >= dia) || null;
+  // Avatar: foto oficial (via avatarFuncHtml) ou iniciais sobre a cor determinística.
+  const av = (f, cls) => avatarFuncHtml(f, `niver-av ${cls}`, `background:${_muralCor(f.nome)}`);
+
+  const head = `<h3 class="vg-h">${CAL}<span>Aniversariantes de <span class="mes">${nomeMes}</span></span><span class="ct">${niverMes.length}</span></h3>`;
+
+  let hero = "";
+  if (proximo) {
+    const faltam = Number(proximo.aniversarioDia) - dia;
+    const quando = faltam <= 0 ? "é hoje" : (faltam === 1 ? "é amanhã" : `daqui a ${faltam} dias`);
+    const kicker = faltam <= 0 ? "Aniversário de hoje" : "Próximo aniversário";
+    hero = `
+      <div class="niver-hero">
+        <div class="niver-hero__av"><span class="niver-hero__ring"></span>${av(proximo, "niver-hero__face")}</div>
+        <div class="niver-hero__bd">
+          <span class="niver-kicker">${GIFT}<span>${kicker}</span></span>
+          <div class="niver-nm">${escapeHtml(proximo.nome || "?")}</div>
+          <div class="niver-when">dia <b>${pad(proximo.aniversarioDia)}</b> de ${nomeMes} · ${quando}</div>
+        </div>
+      </div>`;
+  }
+
+  const resto = niverMes.filter((f) => f !== proximo);
+  const fila = resto.map((f) => `
+    <div class="niver-f ${statusDe(f)}" data-full="${escapeHtml(f.nome || "?")}" tabindex="0">
+      ${av(f, "niver-f__face")}
+      <span class="niver-fnm">${escapeHtml((f.nome || "?").split(" ")[0])}</span>
+      <span class="niver-fd">${pad(f.aniversarioDia)}</span>
     </div>`).join("");
-  const chips = niverMes.filter((f) => Number(f.aniversarioDia) !== dia).map((f) => {
-    const primeiro = escapeHtml((f.nome || "?").split(" ")[0]);
-    const d = String(f.aniversarioDia).padStart(2, "0");
-    return `<span class="niver-chip" title="${escapeHtml(f.nome)}"><span class="niver-chip__av">${inic(f.nome)}</span>${primeiro}<span class="niver-chip__d">${d}</span></span>`;
-  }).join("");
+
+  const body = proximo
+    ? `${hero}${resto.length ? `<div class="niver-sep">No mês</div><div class="niver-fila">${fila}</div>` : ""}`
+    : `<p class="niver-fim">Os aniversários deste mês já passaram.</p><div class="niver-fila">${fila}</div>`;
 
   return `
     <section class="vg-card">
-      <h3 class="vg-h">${CAL}<span>Aniversariantes de ${MESES_FULL[mes - 1]}</span></h3>
-      <div class="vg-card__body">
-        ${destaque}
-        ${chips ? `<div class="niver-chips">${chips}</div>` : ""}
-      </div>
+      ${head}
+      <div class="vg-card__body">${body}</div>
     </section>`;
 }
 
@@ -19824,7 +19851,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.9.0";
+window.CURRENT_VERSION = "2.10.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
