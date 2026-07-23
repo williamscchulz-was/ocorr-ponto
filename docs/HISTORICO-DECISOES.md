@@ -3217,3 +3217,18 @@ Duas missões aprovadas pelo William, resgatadas pelo PC via bridge no mesmo lot
 **Limitação conhecida, não nova (já documentada em `process-espelho-ponto.mjs:53-62`):** o `saldoDiaOriginalFmt` só cobre o mês vigente (a janela do export de BH é reconfigurada toda rodada pro 1º do mês corrente) — dias do mês anterior (~69% do Espelho, medido ao vivo) ficam com esse campo `null` e caem pro `saldoDiaFmt` bruto do WK (cumulativo, multiplicado, sem garantia). Não é bug novo, é escopo conhecido — repassei ao PC pra registrar do lado dele se achar relevante pro copy da UI.
 
 Nenhum código mexido nesta missão — só verificação e correção da premissa. Resposta completa pra ambas as missões na bridge (`inbox-pc`).
+
+## 2026-07-23 · Abono pecuniário (dias comprados) no relatório de Férias — caso real Jairo Siquela (212)
+
+William viu um card de férias (Jairo Siquela, 212) mostrando "20 dias gozados" num período Concluídas de 30 dias de direito, e perguntou se tínhamos informação sobre os outros 10 (ele já sabia, por fora, que tinham sido comprados/abono pecuniário) — **explicitamente pediu pra não ser chute**: "não queria chute não, precisamos de certeza".
+
+### Descoberta: o campo já existia no WK, só não tinha sido selecionado
+Rodei a conta indireta primeiro (`Direito - Gozo - Saldo`) contra os 50 períodos "Concluídas" do relatório — achei 6 com gap: 4 com gap=10 (bate com o limite legal de abono, 1/3 de 30 dias) e 2 com gap=20 (não bate, mistério). William não aceitou a inferência e perguntou se dava pra melhorar o relatório do WK em vez de chutar. Reabriu o Modelador de Relatórios (Ferias Texto) e mandou print da lista COMPLETA de campos disponíveis — e lá estava: **"Dias de Abono" + "Data Início Abono" + "Data Fim Abono"**, desmarcados desde que criamos o relatório (não sabíamos que existiam). Marcou os 3 (+ "Data de Pagamento", bônus), regerou o config e o CSV (2 armadilhas conhecidas na regeração: auto-incremento de nome nos 2 campos de caminho — `Config_Ferias_Texto**1**.txt`/`ExpAuto_Ferias_Texto**1**.txt` — corrigidas antes de salvar, mesmo padrão já documentado no playbook).
+
+### Validação com dado real — certeza, não mais inferência
+Header novo: `...;Retorno;Abono;Início Abono;Fim Abono;Pagto`. Conferi os 6 códigos do gap contra o valor REAL de `Abono`:
+- **4 confirmados abono, com data exata**: Anderson Dobuchak (612), Geovani Tenfen Freitas (942), **Jairo Siquela (212)** — o caso motivador, bateu 20 gozo + 10 abono = 30 exatamente — e Rene Carlos Wolff (1065).
+- **2 NÃO são abono**: Josineire Ferreira Alves (1115) e Fabricia Albuquerque dos Santos (1112) têm `Abono=0,00` no WK — o gap de 20 dias nesses casos é outra coisa (talvez ligado ao período "Indenizadas" seguinte, que tem saldo estranho também) — sinalizei pro William investigar direto no WK/folha, **não inventei explicação**.
+
+### Deploy (autorizado explicitamente: "LIGAR AGORA")
+`process-ferias.mjs` ganha `abonos: []` por período (mesmo padrão de `gozos: []`: dias/início/fim/pagamento) + `resumo.diasAbonoTotal`. `upload-ferias.mjs` não precisou mudar (já sobe `f.periodos`/`f.resumo` inteiros, sem allowlist). Testado com `parsed-empregado.json` regenerado primeiro (armadilha conhecida — PII-cleanup apaga esse arquivo no fim de cada rodada real). Rodado de ponta a ponta e **confirmado ao vivo no Firestore** (`ferias/212`): `abonos: [{dias:10, inicio:"2026-01-11", fim:"2026-01-20", pagamento:"2025-12-20"}]`, `resumo.diasAbonoTotal: 10`. Shape aditivo — nada do que o PC já consome quebra. Aviso mandado pela bridge (`inbox-pc`).
