@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.11.0", d: "23 jul 2026", current: true, items: [
+    v: "2.12.0", d: "23 jul 2026", current: true, items: [
+      { type: "feat", title: "Suas férias no app, com saldo e períodos" },
+    ],
+  },
+  {
+    v: "2.11.0", d: "23 jul 2026", items: [
       { type: "fix", title: "Início abre completo mesmo com internet fraca" },
     ],
   },

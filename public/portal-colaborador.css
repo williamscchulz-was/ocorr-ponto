@@ -316,11 +316,13 @@ html.modo-colab.cp-dark #bottom-nav .bn-pill{background:rgba(95,203,133,.17)}
   /* âmbar COMO TEXTO: no claro, --warning (#B27429) fica <4.5:1 sobre surface/bg;
      usa o ink escuro que passa AA. No escuro o âmbar claro já passa. */
   --warning-tx:var(--warning-ink);
+  --amber-edge:#E6CFA6;
 }
 html.modo-colab.cp-dark{
   --pp-sh-card:0 2px 10px -4px rgba(0,0,0,.55);
   --pp-sh-hero:0 14px 34px -14px rgba(0,0,0,.7);
   --warning-tx:var(--warning);
+  --amber-edge:rgba(232,180,104,.34);
 }
 
 /* perfil */
@@ -619,6 +621,60 @@ html.modo-colab.cp-dark .cp-occ__st--lanc{background:rgba(74,168,230,.18);color:
 .cp-dia__s--zero{color:var(--text-muted)}
 html.modo-colab.cp-dark .cp-dia__s--pos{color:#1FB558}
 html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
+
+/* ---- Chip de situação na home (v398) ---- */
+/* Discreto, logo abaixo da saudação. Some (sem elemento) quando não há situação. */
+.pp-sit{display:inline-flex;align-items:center;gap:8px;margin:14px 2px 2px;padding:8px 14px 8px 11px;border-radius:999px;font-size:12.5px;font-weight:600;line-height:1.2}
+.pp-sit .icon{width:15px;height:15px;flex:none}
+.pp-sit b{font-weight:700}
+.pp-sit .sep{opacity:.55;margin:0 1px}
+.pp-sit--fer{background:var(--success-bg);color:var(--plum)}
+.pp-sit--lic{background:var(--info-bg);color:var(--info)}
+
+/* ---- Bloco Férias do colaborador (aba de Meu ponto, v398) · enxuto, factual ---- */
+/* Topo: dois stat cards compactos lado a lado. Números carregam, texto é rótulo. */
+.fc-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fc-stats--solo{grid-template-columns:1fr}
+.fc-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:14px 15px;display:flex;flex-direction:column}
+.fc-stat__rot{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.fc-stat__big{margin-top:7px;font-size:34px;font-weight:800;color:var(--plum);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.fc-stat__big small{font-size:14px;font-weight:600;color:var(--text-muted);margin-left:2px}
+.fc-stat__sub{margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.5}
+.fc-stat__sub b{color:var(--text-body);font-weight:600}
+.fc-stat--venc{background:var(--warning-bg);border-color:var(--amber-edge)}
+.fc-stat--venc .fc-stat__rot,.fc-stat--venc .fc-stat__big,.fc-stat--venc .fc-stat__sub{color:var(--warning-tx)}
+.fc-stat--venc .fc-stat__big small{color:var(--warning-tx);opacity:.75}
+.fc-mini-meter{display:inline-flex;gap:1.5px;margin-right:7px;vertical-align:middle}
+.fc-mini-meter i{width:3px;height:11px;border-radius:1.5px;background:var(--milk-edge)}
+.fc-mini-meter i.on{background:var(--plum-soft)}
+/* Períodos: accordion nativo (details/summary), 1 linha por período; datas só ao expandir. */
+.fc-tl{display:flex;flex-direction:column;gap:6px}
+.fc-per{border:1px solid var(--border);border-left:3px solid var(--border-strong);border-radius:12px;background:var(--surface);overflow:hidden}
+.fc-per[open]{box-shadow:var(--pp-sh-card)}
+.fc-per--venc{border-left-color:var(--warning)}
+.fc-per--pend{border-left-color:var(--info)}
+.fc-per--aquis{border-left-color:var(--plum-soft)}
+.fc-per--concl{border-left-color:var(--success)}
+.fc-per--neu{border-left-color:var(--border-strong)}
+.fc-per>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;padding:10px 12px}
+.fc-per>summary::-webkit-details-marker{display:none}
+.fc-per__ano{font-size:12.5px;font-weight:600;color:var(--text-body);font-variant-numeric:tabular-nums}
+.fc-per__dias{margin-left:auto;font-size:12px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fc-per__chev{width:14px;height:14px;color:var(--text-muted);transition:transform .2s var(--ease);flex:none}
+.fc-per[open] .fc-per__chev{transform:rotate(90deg)}
+.fc-per__det{padding:0 12px 11px 34px;font-size:11px;color:var(--text-muted);line-height:1.55}
+.fc-per__det b{color:var(--text-body);font-weight:600}
+.fc-chip{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;flex:none}
+.fc-chip--venc{background:var(--warning-bg);color:var(--warning-tx)}
+.fc-chip--pend{background:var(--info-bg);color:var(--info)}
+.fc-chip--aquis{background:var(--surface-warm);color:var(--text-muted)}
+.fc-chip--concl{background:var(--success-bg);color:var(--success)}
+.fc-chip--neu{background:var(--surface-warm);color:var(--text-muted)}
+/* Últimas férias: 1 linha por gozo (e linha irmã por abono vendido). */
+.fc-gozos{background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-rc);box-shadow:var(--pp-sh-card);padding:2px 14px}
+.fc-gozo{display:flex;align-items:baseline;gap:9px;padding:10px 0;font-size:12px;color:var(--text-muted);border-top:1px solid var(--border)}
+.fc-gozo:first-child{border-top:0}
+.fc-gozo b{color:var(--text-body);font-weight:600;flex:none}
 
 /* Aviso aberto em tela cheia (post) — tocar no card abre. Reusa o .modal do app. */
 .cp-post{display:flex;flex-direction:column}

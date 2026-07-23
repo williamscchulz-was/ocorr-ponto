@@ -1972,6 +1972,8 @@ function renderBottomNavColaborador() {
 
 function bindColabNav(scope) {
   scope.querySelectorAll("[data-nav]").forEach((el) => el.addEventListener("click", () => {
+    // Deep-link de aba (transitório): o atalho seta a flag, o render da tela-alvo consome e limpa.
+    if (el.dataset.pontoTabInit) state.view.pontoTabInit = el.dataset.pontoTabInit;
     state.view.page = el.dataset.nav; renderApp();
   }));
 }
@@ -3297,7 +3299,46 @@ function _reconciliarMuralRegioes() {
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
   updateRegion("home:greet", () => colabGreetHtml(f, nome));
+  updateRegion("home:sit", () => colabSitChipHtml(f));
   updateRegion("mural:strip", () => muralStripHtml(nome));
+}
+
+// Chip de situação na home (v398): discreto, logo abaixo da saudação. Três estados, derivados
+// de state.funcionarios[0] (situacao/afastado) + state.feriasMinha (deFeriasAgora + retorno):
+//   de férias  -> verde, com horizonte "até DD/MM" quando o gozo corrente dá a data;
+//   licença/afastamento -> azul-sereno, a grafia crua do campo situacao, humanizada;
+//   sem situação -> string vazia (o chip simplesmente não existe, home nasce idêntica).
+function colabSitChipHtml(f) {
+  if (!f) return "";
+  const fm = state.feriasMinha || null;
+  const resumo = (fm && fm.resumo) || {};
+  const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  const ehFerias = resumo.deFeriasAgora === true || norm(f.situacao) === "ferias";
+  if (ehFerias) {
+    const ate = _feriasRetornoStr(fm);
+    return `<div class="pp-sit pp-sit--fer">${cpIcon("sun")}<span>Você está de férias${ate ? ` <span class="sep">·</span> até <b>${escapeHtml(ate)}</b>` : ""}</span></div>`;
+  }
+  const temSit = f.afastado === true || (f.situacao && String(f.situacao).trim());
+  if (temSit) {
+    const bruto = (f.situacao && String(f.situacao).trim()) ? String(f.situacao).trim() : "Afastamento";
+    return `<div class="pp-sit pp-sit--lic">${cpIcon("roadmap")}<span>${escapeHtml(bruto)} em andamento</span></div>`;
+  }
+  return "";
+}
+
+// Fim do descanso corrente (gozo que abraça hoje), formatado DD/MM pra o horizonte do chip.
+// Sem gozo casando hoje (dado ainda não detalhado), devolve "" e o chip mostra só "de férias".
+function _feriasRetornoStr(fm) {
+  if (!fm || !Array.isArray(fm.periodos)) return "";
+  const hoje = new Date().toISOString().slice(0, 10);
+  for (const p of fm.periodos) {
+    if (!Array.isArray(p.gozos)) continue;
+    for (const g of p.gozos) {
+      const ini = String(g.inicio || "").slice(0, 10), fim = String(g.fim || "").slice(0, 10);
+      if (ini && fim && ini <= hoje && hoje <= fim) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(fim); return m ? `${m[3]}/${m[2]}` : ""; }
+    }
+  }
+  return "";
 }
 
 // Otimista do coração: muta SÓ o cache (a fonte das regiões). Minha reação entra na frente
@@ -3768,10 +3809,13 @@ function colabAtalhosHtml() {
     // "Pagamento" (não "Folha de pagamento") pra o rótulo do atalho caber em 1 linha, igual aos outros.
     { id: "colab-folha", label: "Pagamento", icon: "briefcase", badge: rcbNaoVistos("recibo") },
     { id: "colab-documentos", label: "Documentos", icon: "file", badge: (state.documentosColab || []).filter(colabDocPendente).length },
+    // Férias: deep-link pra Meu ponto já na aba Férias (flag transitória consumida no render).
+    // Ícone "sun" = descanso, o mesmo do chip de situação; lê bem em 390px sem apertar a fileira.
+    { id: "colab-ponto", label: "Férias", icon: "sun", badge: 0, tabInit: "ferias" },
   ];
   return `<div class="pp-atl">
     ${itens.map((it) => `
-      <button class="pp-atl__it" data-nav="${it.id}" aria-label="${it.label}${it.badge ? ` (${it.badge} pendente${it.badge > 1 ? "s" : ""})` : ""}">
+      <button class="pp-atl__it" data-nav="${it.id}"${it.tabInit ? ` data-ponto-tab-init="${it.tabInit}"` : ""} aria-label="${it.label}${it.badge ? ` (${it.badge} pendente${it.badge > 1 ? "s" : ""})` : ""}">
         <span class="pp-atl__c">${cpIcon(it.icon)}${b(it.badge)}</span>
         <span class="pp-atl__l">${it.label}</span>
       </button>`).join("")}
@@ -4166,6 +4210,7 @@ function renderColaboradorHome() {
   const escreveu = setHtml(view, `
     <div class="pp-fade pp-home">
       <div data-region="home:greet"></div>
+      <div data-region="home:sit"></div>
       ${colabOportunidadeHtml()}
       ${colabAtalhosHtml()}
       <div class="pp-home__grid">
@@ -4975,15 +5020,19 @@ async function denConsultar(btn) {
 // aceito, NOTA FABLE 2; o ganho do morph é no refetch com dado novo).
 function renderColabPonto() {
   const view = $("#view");
-  const tab = (state.view.pontoTab === "ocorrencias") ? "ocorrencias" : "bh";
+  // Deep-link de aba (transitório, padrão funcStatusInit): o atalho da home seta a flag, o render
+  // consome e LIMPA; re-render posterior mantém a aba via pontoTab, sem re-aplicar a flag.
+  if (state.view.pontoTabInit) { state.view.pontoTab = state.view.pontoTabInit; state.view.pontoTabInit = null; }
+  const tab = (state.view.pontoTab === "ocorrencias" || state.view.pontoTab === "ferias") ? state.view.pontoTab : "bh";
   const chips = `<div class="pp-chips-f" id="cp-ponto-tabs">
     <button class="pp-chip-f ${tab === "bh" ? "on" : ""}" data-ponto-tab="bh">Banco de horas</button>
     <button class="pp-chip-f ${tab === "ocorrencias" ? "on" : ""}" data-ponto-tab="ocorrencias">Ocorrências<span data-region="ponto:occ-cnt"></span></button>
+    <button class="pp-chip-f ${tab === "ferias" ? "on" : ""}" data-ponto-tab="ferias">Férias</button>
   </div>`;
   const escreveu = setHtml(view, `<div class="pp-fade"><div class="pp-hi"><h1>Meu ponto</h1></div>${chips}<div data-region="ponto:corpo"></div></div>`);
   // SEMPRE (mesmo com o shell no-op): as regiões se reconciliam com o state atual.
   updateRegion("ponto:occ-cnt", pontoOccCntHtml);
-  updateRegion("ponto:corpo", tab === "ocorrencias" ? pontoOccHtml : pontoBhHtml);
+  updateRegion("ponto:corpo", tab === "ocorrencias" ? pontoOccHtml : tab === "ferias" ? pontoFeriasHtml : pontoBhHtml);
   if (!escreveu) return; // shell inalterado: listeners de chips/nav seguem válidos (não re-atar)
   $$("#cp-ponto-tabs .pp-chip-f").forEach((b) => b.addEventListener("click", () => { state.view.pontoTab = b.dataset.pontoTab; renderApp(); }));
   bindColabNav(view);
@@ -5004,6 +5053,127 @@ function pontoOccHtml() {
 function pontoBhHtml() {
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   return colabBhTabHtml(f);
+}
+function pontoFeriasHtml() {
+  const f = (state.funcionarios && state.funcionarios[0]) || null;
+  return colabFeriasTabHtml(f);
+}
+
+// Aba "Férias" de Meu ponto (v398, ENXUTA/factual): a mesma substância da aba do gestor
+// (renderFuncFeriasTab), sem papo de direitos. Fonte: state.feriasMinha (doc ferias/{codigo}
+// do próprio; resumo + periodos[] com gozos[] e abonos[]). Topo = DOIS stat cards (proporcional
+// + a agendar); PERÍODOS = accordion nativo (1 linha por período, datas só ao expandir, cobre
+// as 7 situações do WK, desconhecida cai em neutro); ÚLTIMAS FÉRIAS = 1 linha por gozo, + linha
+// irmã por abono vendido. Sem doc ou nada a mostrar: vazio honesto, sem parede de "—".
+function colabFeriasTabHtml(f) {
+  const fm = state.feriasMinha || null;
+  const vazio = `<div class="cp-stub"><div class="cp-stub__ic">${cpIcon("sun")}</div><p>Suas férias aparecem aqui assim que o RH sincronizar seus períodos. Qualquer dúvida, fale com a Gestão de Pessoas.</p></div>`;
+  if (!fm) return vazio;
+
+  const resumo = fm.resumo || {};
+  const periodos = Array.isArray(fm.periodos) ? fm.periodos : [];
+  const nd = (n) => Number(n || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  const ddmmaaaa = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || "")); return m ? `${m[3]}/${m[2]}/${m[1]}` : ""; };
+  const ano = (p) => { const a = String(p.aquisitivoInicio || "").slice(0, 4); const b = String(p.aquisitivoFim || "").slice(0, 4); return a && b ? `${a}/${b}` : (a || b || ""); };
+  const diasDe = (p) => (p.saldo != null ? p.saldo : (p.direito != null ? p.direito : 0));
+  const soma = (arr) => (Array.isArray(arr) ? arr.reduce((s, x) => s + (Number(x.dias) || 0), 0) : 0);
+  // Janela DD a DD/MM/AAAA (mesmo mês), DD/MM a DD/MM/AAAA (mesmo ano), DD/MM/AAAA a DD/MM/AAAA.
+  const janela = (ini, fim) => {
+    const mi = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ini || "")), mf = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(fim || ""));
+    if (!mi && !mf) return "";
+    if (!mi || !mf) return ddmmaaaa(ini) || ddmmaaaa(fim);
+    if (mi[1] === mf[1] && mi[2] === mf[2]) return `${mi[3]} a ${mf[3]}/${mf[2]}/${mf[1]}`;
+    if (mi[1] === mf[1]) return `${mi[3]}/${mi[2]} a ${mf[3]}/${mf[2]}/${mf[1]}`;
+    return `${mi[3]}/${mi[2]}/${mi[1]} a ${mf[3]}/${mf[2]}/${mf[1]}`;
+  };
+
+  // ── Topo: DOIS stat cards. Proporcional (sempre que há período/proporcional) + Férias a
+  // agendar (só quando há vencidas). Puro fato: número carrega, texto é rótulo curto.
+  const aquis = periodos.find((p) => norm(p.situacao) === "em aquisicao");
+  const propDias = resumo.proporcionalAtual != null ? resumo.proporcionalAtual : (aquis ? diasDe(aquis) : null);
+  const avos = (aquis && aquis.avos != null) ? Math.max(0, Math.min(12, Math.round(aquis.avos))) : null;
+  const vencidos = periodos.filter((p) => norm(p.situacao) === "vencidas");
+  const diasVenc = resumo.diasVencidos != null ? resumo.diasVencidos : vencidos.reduce((s, p) => s + (Number(diasDe(p)) || 0), 0);
+  const temVenc = resumo.temVencida || (Number(resumo.diasVencidos) || 0) > 0 || vencidos.length > 0;
+  const cards = [];
+  if (propDias != null || aquis) {
+    const mini = avos != null ? `<span class="fc-mini-meter">${Array.from({ length: 12 }, (_, i) => `<i${i < avos ? ' class="on"' : ""}></i>`).join("")}</span>` : "";
+    const txt = [avos != null ? `${avos} de 12 avos` : "", temVenc ? "" : "sem nada a agendar"].filter(Boolean).join(" · ");
+    cards.push(`<div class="fc-stat"><div class="fc-stat__rot">Proporcional</div><div class="fc-stat__big">${nd(propDias)}<small>dias</small></div><div class="fc-stat__sub">${mini}${txt}</div></div>`);
+  }
+  if (temVenc) {
+    let sub;
+    if (vencidos.length === 1) sub = `Período <b>${escapeHtml(ano(vencidos[0]))}</b>${vencidos[0].concessivoFim ? `<br>prazo passou em <b>${ddmmaaaa(vencidos[0].concessivoFim)}</b>` : "<br>fora do prazo de agendamento"}`;
+    else if (vencidos.length > 1) { const antigo = vencidos.map((p) => p.concessivoFim).filter(Boolean).sort()[0]; sub = `${vencidos.length} períodos${antigo ? `<br>o mais antigo passou em <b>${ddmmaaaa(antigo)}</b>` : ""}`; }
+    else sub = "Fora do prazo de agendamento";
+    cards.push(`<div class="fc-stat fc-stat--venc"><div class="fc-stat__rot">Férias a agendar</div><div class="fc-stat__big">${nd(diasVenc)}<small>dias</small></div><div class="fc-stat__sub">${sub}</div></div>`);
+  }
+  const statsHtml = cards.length ? `<div class="fc-stats${cards.length === 1 ? " fc-stats--solo" : ""}">${cards.join("")}</div>` : "";
+
+  // ── Períodos: accordion nativo (details/summary), 1 linha por período, datas só ao expandir.
+  const SIT = {
+    "em aquisicao": { cls: "aquis", label: "Em aquisição" },
+    "pendentes": { cls: "pend", label: "Pendentes" },
+    "vencidas": { cls: "venc", label: "Vencidas" },
+    "concluidas": { cls: "concl", label: "Concluídas" },
+    "indenizadas": { cls: "neu", label: "Indenizadas" },
+    "canceladas": { cls: "neu", label: "Canceladas" },
+    "perdidas": { cls: "neu", label: "Perdidas" },
+  };
+  const sitDe = (p) => SIT[norm(p.situacao)] || { cls: "neu", label: (p.situacao && String(p.situacao).trim()) || "Período" };
+  const perDias = (p) => {
+    const n = norm(p.situacao);
+    const dir = p.direito != null ? p.direito : (soma(p.gozos) + soma(p.abonos));
+    if (n === "pendentes" || n === "vencidas") return `${nd(diasDe(p))} dias a agendar`;
+    if (n === "concluidas") return `${nd(dir)} dias`;
+    if (n === "canceladas") return "cancelado";
+    if (n === "indenizadas" || n === "perdidas") return `${nd(dir)} dias`;
+    return `${nd(diasDe(p))} dias`;
+  };
+  const perDet = (p) => {
+    const n = norm(p.situacao), ai = ddmmaaaa(p.aquisitivoInicio), af = ddmmaaaa(p.aquisitivoFim), cf = ddmmaaaa(p.concessivoFim);
+    const avosN = p.avos != null ? Math.max(0, Math.min(12, Math.round(p.avos))) : null;
+    const gozados = soma(p.gozos), vendidos = soma(p.abonos);
+    if (n === "em aquisicao") return `Aquisitivo desde <b>${ai}</b>${avosN != null ? ` · ${avosN} de 12 avos até aqui` : ""}.`;
+    if (n === "pendentes") return `Aquisitivo <b>${ai}</b> a <b>${af}</b>${cf ? ` · prazo de agendamento até <b>${cf}</b>` : ""}.`;
+    if (n === "vencidas") return `Aquisitivo <b>${ai}</b> a <b>${af}</b>${cf ? ` · prazo de agendamento passou em <b>${cf}</b>` : ""}.`;
+    if (n === "concluidas") { const bd = (gozados || vendidos) ? ` · ${nd(gozados)} dias gozados${vendidos ? `, ${nd(vendidos)} vendidos` : ""}` : ""; return `Aquisitivo <b>${ai}</b> a <b>${af}</b>${bd}.`; }
+    if (n === "indenizadas") return `Aquisitivo <b>${ai}</b> a <b>${af}</b> · dias indenizados em dinheiro.`;
+    if (n === "canceladas") return `Aquisitivo <b>${ai}</b> a <b>${af}</b> · período cancelado.`;
+    if (n === "perdidas") return `Aquisitivo <b>${ai}</b> a <b>${af}</b> · dias não usados no prazo.`;
+    return ai && af ? `Aquisitivo <b>${ai}</b> a <b>${af}</b>.` : (ai ? `Aquisitivo desde <b>${ai}</b>.` : "");
+  };
+  const chev = `<svg class="fc-per__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`;
+  const ordenados = periodos.slice().sort((a, b) => String(b.aquisitivoInicio || "").localeCompare(String(a.aquisitivoInicio || "")));
+  const timelineHtml = periodos.length ? `
+    <div class="pp-ovl">Períodos</div>
+    <div class="fc-tl">
+      ${ordenados.map((p) => { const s = sitDe(p), dias = perDias(p); return `
+        <details class="fc-per fc-per--${s.cls}">
+          <summary><span class="fc-chip fc-chip--${s.cls}">${escapeHtml(s.label)}</span><span class="fc-per__ano">${escapeHtml(ano(p))}</span>${dias ? `<span class="fc-per__dias">${escapeHtml(dias)}</span>` : ""}${chev}</summary>
+          <div class="fc-per__det">${perDet(p)}</div>
+        </details>`; }).join("")}
+    </div>` : "";
+
+  // ── Últimas férias: gozos + abonos (vendidos) numa lista só, mais recente primeiro.
+  const eventos = [];
+  periodos.forEach((p) => {
+    if (Array.isArray(p.gozos)) p.gozos.forEach((g) => eventos.push({ tipo: "gozo", dias: g.dias, inicio: g.inicio, fim: g.fim }));
+    if (Array.isArray(p.abonos)) p.abonos.forEach((a) => eventos.push({ tipo: "abono", dias: a.dias, inicio: a.inicio, fim: a.fim, pagamento: a.pagamento }));
+  });
+  eventos.sort((a, b) => String(b.inicio || "").localeCompare(String(a.inicio || "")));
+  const gozosHtml = eventos.length ? `
+    <div class="pp-ovl">Últimas férias</div>
+    <div class="fc-gozos">
+      ${eventos.slice(0, 6).map((e) => e.tipo === "abono"
+        ? `<div class="fc-gozo"><b>${nd(e.dias)} dias</b><span>vendidos · ${janela(e.inicio, e.fim)}${e.pagamento ? ` · pagos em ${ddmmaaaa(e.pagamento)}` : ""}</span></div>`
+        : `<div class="fc-gozo"><b>${nd(e.dias)} dias</b><span>${janela(e.inicio, e.fim)}</span></div>`).join("")}
+    </div>` : "";
+
+  if (!statsHtml && !timelineHtml && !gozosHtml) return vazio;
+  const nota = `<div class="cp-bhnote">${cpIcon("info")}<span>Só você vê as suas férias. Agendamento é com seu líder ou a Gestão de Pessoas.</span></div>`;
+  return `${statsHtml}${timelineHtml}${gozosHtml}${nota}`;
 }
 
 // Aba "Banco de horas": saldo (hero) + últimos 10 dias de marcação quando o pipeline publicar
@@ -11069,14 +11239,20 @@ function renderFuncFeriasTab(f) {
       }).join("")}
     </div>` : "";
 
-  // Últimos gozos (achatados de todos os períodos, mais recente primeiro).
+  // Últimos gozos + abonos (achatados de todos os períodos, mais recente primeiro). Abono
+  // pecuniário = dias COMPRADOS pela empresa (perspectiva do gestor; shape abonos[] do WK).
   const gozos = [];
-  periodos.forEach((p) => { if (Array.isArray(p.gozos)) p.gozos.forEach((g) => gozos.push(g)); });
+  periodos.forEach((p) => {
+    if (Array.isArray(p.gozos)) p.gozos.forEach((g) => gozos.push({ ...g, _tipo: "gozo" }));
+    if (Array.isArray(p.abonos)) p.abonos.forEach((a) => gozos.push({ ...a, _tipo: "abono" }));
+  });
   gozos.sort((a, b) => String(b.inicio || "").localeCompare(String(a.inicio || "")));
   const gozosHtml = gozos.length ? `
     <div class="fer-gozos">
       <div class="func-perfil-secao__titulo" style="margin-bottom:6px;">Últimos gozos</div>
-      ${gozos.slice(0, 4).map((g) => `<div class="fer-gozo"><span class="fer-gozo__d">${nd(g.dias)} dias</span><span>${iso(g.inicio)} a ${iso(g.fim)}${g.retorno ? ` · retorno ${iso(g.retorno)}` : ""}</span></div>`).join("")}
+      ${gozos.slice(0, 4).map((g) => g._tipo === "abono"
+        ? `<div class="fer-gozo"><span class="fer-gozo__d">${nd(g.dias)} dias</span><span>comprados · ${iso(g.inicio)} a ${iso(g.fim)}${g.pagamento ? ` · pago em ${iso(g.pagamento)}` : ""}</span></div>`
+        : `<div class="fer-gozo"><span class="fer-gozo__d">${nd(g.dias)} dias</span><span>${iso(g.inicio)} a ${iso(g.fim)}${g.retorno ? ` · retorno ${iso(g.retorno)}` : ""}</span></div>`).join("")}
     </div>` : "";
 
   const temAlgo = vencidasHtml || propHtml || timelineHtml || gozosHtml;
@@ -19873,7 +20049,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.11.0";
+window.CURRENT_VERSION = "2.12.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

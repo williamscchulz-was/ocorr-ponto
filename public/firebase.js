@@ -4451,6 +4451,20 @@
         state.meuSaldoBH = bh.exists ? bh.data() : null;
       }, () => JSON.stringify(state.meuSaldoBH || null), ["colab-home", "colab-ponto"]),
 
+      // Minhas férias (doc ferias/{codigo} do PRÓPRIO colaborador; a rule libera só o próprio).
+      // Mesmo shape do gestor (resumo + periodos[] com gozos[]), mas na voz do dono: alimenta o
+      // chip de situação na home e a aba Férias em Meu ponto. Fetch-then-swap: falha preserva o
+      // valor anterior; sem código ou sem doc => null e o chip/aba degradam honestos.
+      loaderHome("ferias-minha", async () => {
+        if (!u.codigo) { state.feriasMinha = null; return; }
+        const snap = await db.collection("ferias").doc(String(u.codigo)).get();
+        state.feriasMinha = snap.exists ? { ...snap.data(), atualizadoEm: tsToIso(snap.data().atualizadoEm) } : null;
+      }, () => {
+        const fm = state.feriasMinha; if (!fm) return "null";
+        const r = fm.resumo || {};
+        return [r.temVencida ? 1 : 0, r.diasVencidos || 0, r.proporcionalAtual || 0, r.deFeriasAgora ? 1 : 0, r.diasAbonoTotal || 0, (fm.periodos || []).length].join("|");
+      }, ["colab-home", "colab-ponto"]),
+
       // Comunicados do SEGMENTO (query por todos/turno/setor; a rule não filtra). Junta e
       // dedupe no cliente; preserva o "visto" otimista (prevCom) quando a leitura falha.
       loaderHome("comunicados", async () => {
