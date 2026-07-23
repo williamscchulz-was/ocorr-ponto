@@ -214,14 +214,14 @@ html.splash-off .splash { display: none; }
 html.splash-atualizando .splash-up, .splash--atualizando .splash-up { max-height: 220px; opacity: 1; }
 /* No 1º frame o pulso nem existe (sem transição); no morph ele recolhe suave. */
 html.splash-atualizando .splash-pl__ecg, html.splash-atualizando .splash-sk__msg { display: none; }
-/* Retomada pós-reload (William 2026-07-21, "segundo pulso"): a cortina re-pinta num
-   estado QUIETO — marca + wordmark, SEM o ECG batendo e SEM "Carregando..." — e revela
-   como sempre. O olho lê continuação do 1º Pulso, não um replay da abertura. */
-html.splash-retomada .splash-pl__ecg, html.splash-retomada .splash-sk__msg { display: none; }
 .splash--atualizando .splash-pl__ecg, .splash--atualizando .splash-sk__msg { opacity: 0; transition: opacity .3s ease; }
-/* A cortina fica em cena nesses estados mesmo sem sessão a restaurar, e vence o
+/* A cortina fica em cena no estado "atualizando" mesmo sem sessão a restaurar, e vence o
    splash-off (update de boot pra quem não marcou manter conectado). */
-html.splash-atualizando .splash, html.splash-retomada .splash { display: block; }
+html.splash-atualizando .splash { display: block; }
+/* ATO ÚNICO pós-reload (P4, 2026-07-23): a retomada nasce na MESMA tela de atualização com a
+   barra já no FIM (~90%) no 1º frame — o app.js completa até 100% e revela. Sem o terceiro ato
+   "FioPulse quieto": o olho lê a atualização terminando, não um segundo splash. */
+html.splash-atualizando-fim .splash-up__bar i { transform: scaleX(.9); }
 .splash-up__t { margin-top: 4px; font-family: var(--font-display, 'Poppins'), sans-serif; font-weight: 700; font-size: 18px; letter-spacing: -.01em; color: #1E2D1A; }
 .splash-up__s { font-size: 13.5px; color: #4e6357; margin-top: -4px; }
 .splash-up__bar { width: min(220px, 62vw); height: 7px; border-radius: 999px; background: #d7e4d8; overflow: hidden; margin-top: 10px; }

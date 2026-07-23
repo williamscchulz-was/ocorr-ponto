@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.12.0", d: "23 jul 2026", current: true, items: [
+    v: "2.13.0", d: "23 jul 2026", current: true, items: [
+      { type: "fix", title: "Atualização do app em uma cortina só" },
+    ],
+  },
+  {
+    v: "2.12.0", d: "23 jul 2026", items: [
       { type: "feat", title: "Suas férias no app, com saldo e períodos" },
     ],
   },

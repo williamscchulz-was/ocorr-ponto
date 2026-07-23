@@ -40,9 +40,12 @@ async function pagina(init) {
   ok(a.min === 0, "A: __splashMin devia ser 0");
   await p.screenshot({ path: "scratchpad/audit/out/bootref-primeira-tela.png" });
 
-  // maquinaria: mostrarTelaAtualizacao morfa A MESMA cortina; barra monotonica;
-  // fecho recarrega 1x, seta swReloaded e LIMPA o updatePendente.
+  // maquinaria: mostrarTelaAtualizacao morfa A MESMA cortina; barra monotonica; fecho
+  // recarrega 1x, grava upRetomada (timestamp, iOS-safe) e LIMPA o updatePendente.
+  // __upReset primeiro: devolve a cortina a um estado VISIVEL (o hideSplash demo pode ja
+  // ter comecado a despedida) pra o apply nao cair no ramo de "update tardio".
   const m = await p.evaluate(async () => {
+    window.__upReset();
     let reloads = 0;
     window.__swReload = () => { reloads++; };
     aplicarAtualizacaoBoot(null);
@@ -55,9 +58,10 @@ async function pagina(init) {
     const semTelaPropria = !document.getElementById("up-screen");
     swRecarregarUmaVez();
     await new Promise((r) => setTimeout(r, 2600));
+    const upRet = localStorage.getItem("fiopulse:upRetomada");
     return {
       f1, f2, mesmoEl, semTelaPropria, reloads,
-      swReloaded: sessionStorage.getItem("fiopulse:swReloaded"),
+      upRetSet: upRet != null && Number(upRet) > 0,
       pendente: localStorage.getItem("fiopulse:updatePendente"),
       pct: document.querySelector(".splash-up__pct").textContent,
     };
@@ -65,32 +69,35 @@ async function pagina(init) {
   ok(m.mesmoEl && m.semTelaPropria, "A: atualizacao nao esta na cortina (ou up-screen renasceu)");
   ok(m.f2 >= m.f1 && m.f2 > 0, `A: barra nao monotonica (${m.f1} -> ${m.f2})`);
   ok(m.reloads === 1, `A: reload chamado ${m.reloads}x (esperado 1)`);
-  ok(m.swReloaded === "1", "A: swReloaded nao marcado");
+  ok(m.upRetSet, "A: upRetomada nao gravado (timestamp) no reload");
   ok(m.pendente === null, "A: updatePendente nao foi limpo no apply");
   ok(m.pct === "100%", `A: fecho sem 100% (${m.pct})`);
   if (p.__erros.length) falhas.push("A pageErrors: " + p.__erros.join(" | "));
   await ctx.close();
 }
 
-// ---------- B. retomada pos-reload: cortina re-pinta sem replay ----------
+// ---------- B. retomada pos-reload: ATO UNICO, nasce na tela de atualizacao no FIM ----------
 {
   const { ctx, p } = await pagina(() => {
-    sessionStorage.setItem("fiopulse:swReloaded", "1");
+    localStorage.setItem("fiopulse:upRetomada", String(Date.now()));
     localStorage.setItem("fiopulse:manterConectado", "1");
   });
   const r = await p.evaluate(() => ({
-    retomada: document.documentElement.classList.contains("splash-retomada"),
+    fim: document.documentElement.classList.contains("splash-atualizando-fim"),
     atualizando: document.documentElement.classList.contains("splash-atualizando"),
+    upRetFlag: window.__upRetomada === true,
     splashVisivel: getComputedStyle(document.getElementById("splash")).display,
-    min: window.__splashMin,
-    // Retomada = estado QUIETO: sem ECG batendo, sem "Carregando..." (segundo pulso).
+    upVisivel: getComputedStyle(document.querySelector(".splash-up")).opacity,
+    // ATO UNICO: a MESMA tela de atualizacao (sem ECG batendo, sem "Carregando..."), nunca
+    // um terceiro ato "FioPulse quieto". O estado atualizando ja esconde ECG e mensagem.
     ecgOculto: getComputedStyle(document.querySelector(".splash-pl__ecg")).display,
     msgOculto: getComputedStyle(document.querySelector(".splash-sk__msg")).display,
   }));
-  ok(r.retomada, "B: sem splash-retomada");
-  ok(!r.atualizando, "B: retomada nao pode nascer atualizando");
+  ok(r.fim, "B: retomada nao nasceu em splash-atualizando-fim (ato unico)");
+  ok(r.atualizando, "B: retomada devia estar no estado atualizando");
+  ok(r.upRetFlag, "B: window.__upRetomada nao setado pelo head");
   ok(r.splashVisivel !== "none", "B: cortina fora de cena na retomada");
-  ok(r.min === 0, "B: retomada devia revelar sem minimo");
+  ok(Number(r.upVisivel) === 1, `B: bloco de atualizacao invisivel na retomada (${r.upVisivel})`);
   ok(r.ecgOculto === "none", "B: ECG deveria sumir na retomada (sem segundo pulso)");
   ok(r.msgOculto === "none", "B: 'Carregando...' deveria sumir na retomada");
   if (p.__erros.length) falhas.push("B pageErrors: " + p.__erros.join(" | "));
@@ -204,4 +211,4 @@ async function pagina(init) {
 await b.close();
 if (bootMarks) console.log("boot marks (demo, ms rel. head):", JSON.stringify(bootMarks));
 if (falhas.length) { console.error("FALHOU:\n- " + falhas.join("\n- ")); process.exit(1); }
-console.log("BOOT CONTINUO OK (A primeira tela + maquinaria, B retomada quieta, C costura + saida suave + marcos, D preload + cache persistente de fonte)");
+console.log("BOOT CONTINUO OK (A primeira tela + maquinaria, B retomada ato unico (atualizando-fim), C costura + saida suave + marcos, D preload + cache persistente de fonte)");

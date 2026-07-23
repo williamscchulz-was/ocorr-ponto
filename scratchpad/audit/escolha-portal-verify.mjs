@@ -140,85 +140,12 @@ console.log("(4) Sair leva à escolha:");
   await ctx.close();
 }
 
-// ===== (5) tela de atualização: texto exato, barra, SKIP_WAITING, palco mínimo,
-// reload 1x SÓ depois de ~2s com a barra passando por 100% antes =====
-console.log("(5) tela de atualização (SW):");
-{
-  const { ctx, p } = await abrir();
-  // reg.waiting no boot + controllerchange IMEDIATO (worker rápido, o caso que o
-  // William viu piscar): o reload NÃO pode ocorrer antes do palco mínimo (~2s) e a
-  // barra tem que estar em 100% quando ele ocorrer.
-  const r = await p.evaluate(async () => {
-    window.__swPosted = [];
-    window.__reloads = [];
-    const t0 = Date.now();
-    window.__swReload = () => window.__reloads.push({
-      t: Date.now() - t0,
-      w: document.querySelector(".up-screen__bar i")?.style.width || "",
-    });
-    const worker = { state: "installed", postMessage: (m) => window.__swPosted.push(m) };
-    aplicarAtualizacaoBoot(worker); // tela + piso do estado + SKIP_WAITING
-    swRecarregarUmaVez();           // controllerchange imediato (worker rápido)
-    await new Promise((res) => setTimeout(res, 250));
-    const cedo = {
-      titulo: document.querySelector(".up-screen__t")?.textContent || "",
-      sub: document.querySelector(".up-screen__s")?.textContent || "",
-      temBarra: !!document.querySelector(".up-screen__bar i"),
-      w250: parseFloat(document.querySelector(".up-screen__bar i")?.style.width) || 0,
-      reloads250: window.__reloads.length,
-    };
-    await new Promise((res) => setTimeout(res, 1250)); // ~1.5s de palco
-    const meio = {
-      reloads1500: window.__reloads.length,
-      w1500: parseFloat(document.querySelector(".up-screen__bar i")?.style.width) || 0,
-    };
-    await new Promise((res) => setTimeout(res, 1600)); // ~3.1s: palco + pausa vencidos
-    swRecarregarUmaVez(); // 2ª chamada tem que ser no-op (anti-loop)
-    await new Promise((res) => setTimeout(res, 400));
-    return { ...cedo, ...meio, posted: window.__swPosted, reloads: window.__reloads };
-  });
-  ok('(5) título exato "Estamos atualizando o app"', r.titulo === "Estamos atualizando o app");
-  ok('(5) subtítulo exato "pra você ter uma experiência melhor"', r.sub === "pra você ter uma experiência melhor");
-  ok("(5) SKIP_WAITING postado ao worker", Array.isArray(r.posted) && r.posted.includes("SKIP_WAITING"));
-  ok("(5) barra presente, regida pelo piso do estado (>=72%, <100%)", r.temBarra && r.w250 >= 72 && r.w250 < 100);
-  ok("(5) palco mínimo: ZERO reload até ~1.5s", r.reloads250 === 0 && r.reloads1500 === 0);
-  ok("(5) barra segue enchendo durante o palco (monotônica)", r.w1500 >= r.w250 && r.w1500 <= 90);
-  ok("(5) reload 1x, só após ~2s + pausa (anti-loop na 2ª chamada)",
-    r.reloads.length === 1 && r.reloads[0].t >= 2100 && r.reloads[0].t <= 3400);
-  ok("(5) barra passou por 100% ANTES do reload", r.reloads[0]?.w === "100%");
-  await ctx.close();
-}
+// (5)/(5b) da tela de atualização REMOVIDOS: testavam a tela-própria retirada no v366
+// (.up-screen + barra por style.width). Hoje a atualização é um ESTADO da cortina (#splash,
+// barra por transform:scaleX) e o fluxo inteiro (ato único, anti-loop, update tardio,
+// reduced-motion) é coberto por boot-update-verify.mjs + boot-refactor-verify.mjs.
 
-// ===== (5b) reduced motion: tempo mínimo mantido, passos discretos, sem exceção =====
-console.log("(5b) tela de atualização com prefers-reduced-motion:");
-{
-  const { ctx, p } = await abrir({ width: 420, height: 900 }, { reducedMotion: "reduce" });
-  const r = await p.evaluate(async () => {
-    const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.__reloads = [];
-    const t0 = Date.now();
-    window.__swReload = () => window.__reloads.push({
-      t: Date.now() - t0,
-      w: document.querySelector(".up-screen__bar i")?.style.width || "",
-    });
-    // Estado "installing" (piso 35): deixa os PASSOS discretos do tempo visíveis.
-    const worker = { state: "installing", postMessage: () => {} };
-    aplicarAtualizacaoBoot(worker);
-    swRecarregarUmaVez();
-    await new Promise((res) => setTimeout(res, 1200)); // frac ~0.6 → passo 45
-    const w1200 = document.querySelector(".up-screen__bar i")?.style.width || "";
-    await new Promise((res) => setTimeout(res, 1900)); // ~3.1s
-    return { rm, w1200, reloads: window.__reloads };
-  });
-  ok("(5b) contexto com prefers-reduced-motion ativo", r.rm === true);
-  // Meio do palco = passo 45%; 67.5% aceito se o timer atrasar pro passo seguinte.
-  ok("(5b) barra anda em passos discretos (sem easing)", r.w1200 === "45%" || r.w1200 === "67.5%");
-  ok("(5b) tempo mínimo mantido + reload 1x com barra em 100%",
-    r.reloads.length === 1 && r.reloads[0].t >= 2100 && r.reloads[0].t <= 3400 && r.reloads[0].w === "100%");
-  await ctx.close();
-}
-
-// ===== screenshots: escolha (sessão viva) + tela de atualização, claro e escuro =====
+// ===== screenshots: escolha (sessão viva), claro e escuro =====
 console.log("screenshots:");
 {
   const { ctx, p } = await abrir();
@@ -230,16 +157,7 @@ console.log("screenshots:");
   await p.evaluate(() => document.documentElement.classList.add("cp-dark"));
   await p.waitForTimeout(150);
   await p.screenshot({ path: OUT + "/escolha-portal-app-escuro.png" });
-
-  // Tela de atualização, claro.
-  await p.evaluate(() => { document.documentElement.classList.remove("cp-dark"); _upScreenEl = null; document.querySelector(".up-screen")?.remove(); const w = { state: "installing", postMessage: () => {} }; aplicarAtualizacaoBoot(w); progressoAtualizacao("activating"); });
-  await p.waitForTimeout(700);
-  await p.screenshot({ path: OUT + "/tela-atualizacao-claro.png" });
-  // Tela de atualização, escuro.
-  await p.evaluate(() => document.documentElement.classList.add("cp-dark"));
-  await p.waitForTimeout(400);
-  await p.screenshot({ path: OUT + "/tela-atualizacao-escuro.png" });
-  console.log("  escolha-portal-app-{claro,escuro}.png, tela-atualizacao-{claro,escuro}.png");
+  console.log("  escolha-portal-app-{claro,escuro}.png");
   await ctx.close();
 }
 

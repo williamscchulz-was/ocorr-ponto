@@ -3303,11 +3303,22 @@ function _reconciliarMuralRegioes() {
   updateRegion("mural:strip", () => muralStripHtml(nome));
 }
 
+// Situação "normal" do pipeline: NÃO é ausência, é ruído de UI (o campo funcionarios.situacao
+// usa "Trabalhando" como estado de quem está trabalhando). Só situação REAL (Férias, licenças,
+// afastamentos) vira chip/badge. Ponto único de supressão, normalizado (sem acento, minúsculo):
+// devolve a grafia crua a exibir, ou "" quando é estado normal.
+const _SIT_NORMAL = new Set(["", "trabalhando"]);
+function situacaoDeExibir(situacao) {
+  const s = (situacao == null ? "" : String(situacao)).trim();
+  const n = s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return _SIT_NORMAL.has(n) ? "" : s;
+}
+
 // Chip de situação na home (v398): discreto, logo abaixo da saudação. Três estados, derivados
 // de state.funcionarios[0] (situacao/afastado) + state.feriasMinha (deFeriasAgora + retorno):
 //   de férias  -> verde, com horizonte "até DD/MM" quando o gozo corrente dá a data;
 //   licença/afastamento -> azul-sereno, a grafia crua do campo situacao, humanizada;
-//   sem situação -> string vazia (o chip simplesmente não existe, home nasce idêntica).
+//   sem situação (ou "Trabalhando", estado normal) -> string vazia (chip não existe, home idêntica).
 function colabSitChipHtml(f) {
   if (!f) return "";
   const fm = state.feriasMinha || null;
@@ -3318,9 +3329,10 @@ function colabSitChipHtml(f) {
     const ate = _feriasRetornoStr(fm);
     return `<div class="pp-sit pp-sit--fer">${cpIcon("sun")}<span>Você está de férias${ate ? ` <span class="sep">·</span> até <b>${escapeHtml(ate)}</b>` : ""}</span></div>`;
   }
-  const temSit = f.afastado === true || (f.situacao && String(f.situacao).trim());
+  const sitExib = situacaoDeExibir(f.situacao);
+  const temSit = f.afastado === true || sitExib;
   if (temSit) {
-    const bruto = (f.situacao && String(f.situacao).trim()) ? String(f.situacao).trim() : "Afastamento";
+    const bruto = sitExib || "Afastamento";
     return `<div class="pp-sit pp-sit--lic">${cpIcon("roadmap")}<span>${escapeHtml(bruto)} em andamento</span></div>`;
   }
   return "";
@@ -10905,14 +10917,15 @@ function renderFuncList(animar) {
           ? `<span class="func-turno func-turno--sem"><span class="func-turno__dot"></span>Sem turno</span>`
           : `<span class="func-turno">${escapeHtml(TURNOS[f.turno].label)}</span>`);
     // Marcadores ortogonais: contam no quadro, mas são categoria à parte. A situação
-    // (Férias, Licença etc.: texto cru do pipeline) vira badge sempre que presente,
-    // independente de afastado: warning quando é ausência real (afastado), neutral
-    // quando é só FYI (Férias conta normal no quadro). Sem situação mas afastado, cai
-    // no rótulo genérico "Afastado". Inativo já carrega a própria tag na linha.
+    // REAL (Férias, Licença etc.: texto cru do pipeline) vira badge; "Trabalhando" e vazio
+    // são estado normal, viram ruído e não nascem (situacaoDeExibir). Warning quando é
+    // ausência real (afastado), neutral quando é só FYI (Férias conta normal no quadro).
+    // Sem situação mas afastado, cai no rótulo genérico "Afastado". Inativo já carrega a tag.
+    const sitExib = situacaoDeExibir(f.situacao);
     const situacaoBadge = inativo
       ? ""
-      : (f.situacao
-          ? `<span class="badge badge--${f.afastado === true ? "warning" : "neutral"}">${escapeHtml(f.situacao)}</span>`
+      : (sitExib
+          ? `<span class="badge badge--${f.afastado === true ? "warning" : "neutral"}">${escapeHtml(sitExib)}</span>`
           : (f.afastado === true ? `<span class="badge badge--warning">Afastado</span>` : ""));
     // Férias vencidas (dado do pipeline via state.ferias, chave = f.id): badge âmbar com o
     // total de dias vencidos, ao lado da situação (coexistem). Só ativo e NÃO afastado (afastado
@@ -11000,12 +11013,15 @@ function renderFuncPerfilHeader(f) {
   const inativo = f.ativo === false;
   const demStr = tsToDateStr(f.demissao);
   const turnoLabel = f.turno && TURNOS[f.turno] ? TURNOS[f.turno].label : null;
+  // Badge de situação no nome: só a REAL (Férias, licenças). "Trabalhando"/vazio = estado
+  // normal, não vira badge. O banner de afastado abaixo mantém a grafia crua (gate afastado).
+  const sitHeader = situacaoDeExibir(f.situacao);
 
   return `
     <div class="func-perfil-header">
       ${avatarFuncHtml(f, "avatar avatar--lg", "width:56px; height:56px; font-size:20px")}
       <div style="flex:1; min-width:0;">
-        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}${f.diretor === true ? ` <span class="func-selo-diretoria">Diretoria</span>` : ""}${f.aprendiz === true ? ` <span class="badge badge--neutral">Menor Aprendiz</span>` : ""}${!inativo && f.afastado !== true && f.situacao ? ` <span class="badge badge--neutral">${escapeHtml(f.situacao)}</span>` : ""}</div>
+        <div class="func-perfil-header__nome">${escapeHtml(f.nome)}${f.diretor === true ? ` <span class="func-selo-diretoria">Diretoria</span>` : ""}${f.aprendiz === true ? ` <span class="badge badge--neutral">Menor Aprendiz</span>` : ""}${!inativo && f.afastado !== true && sitHeader ? ` <span class="badge badge--neutral">${escapeHtml(sitHeader)}</span>` : ""}</div>
         <div class="func-perfil-header__sub">
           ${escapeHtml(f.cargo || "sem cargo")} · ${escapeHtml(f.setor || "sem setor")}${turnoLabel ? " · " + escapeHtml(turnoLabel) : ""}
         </div>
@@ -20049,7 +20065,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.12.0";
+window.CURRENT_VERSION = "2.13.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
@@ -20433,6 +20449,12 @@ let _upAnim = null; // animação WAAPI corrente da barra (transform: scaleX, CO
 let _upDone = false;
 let _upFallback = 0; // timer de segurança: solta o boot se o SW não assumir
 let _upPctRaf = 0;   // rAF leve que sincroniza o texto de percentual com a barra
+// Esta abertura é a retomada pós-reload de atualização? O head marcou (localStorage
+// upRetomada < 60s → window.__upRetomada). Guarda anti-loop EM MEMÓRIA: mesmo depois de a
+// flag ser consumida no reveal, um reg.waiting fantasma (o SW pode reportar "waiting" por um
+// instante logo após assumir) não pode remostrar a tela de atualização e reiniciar o ciclo.
+let _upRetomadaBoot = !!window.__upRetomada;
+let _upDbgMsg = "";  // último desvio registrado (anti-loop / update tardio), exposto no __upDbg
 // Tempo MÍNIMO de palco (William 2026-07-15, "aparece muito rápido"): mesmo que o
 // worker assuma em milissegundos, a tela fica ~2s antes do reload — mesmo princípio
 // do __splashMin do splash. E a barra pausa ~250ms cheia (a pessoa VÊ os 100%).
@@ -20521,6 +20543,21 @@ function enviarSkipWaiting(worker) {
 // Aplica a atualização achada no boot: mostra a tela, reflete o estado atual e manda
 // o SW ativar. O controllerchange (abaixo) recarrega 1x quando ele assume.
 function aplicarAtualizacaoBoot(worker) {
+  // ANTI-LOOP (P4): esta abertura é a retomada pós-reload de atualização (upRetomada < 60s).
+  // Acabamos de atualizar; um reg.waiting fantasma (o SW às vezes reporta "waiting" por um
+  // instante logo após assumir) NÃO pode remostrar a tela e reiniciar o ciclo. A cortina de
+  // retomada já está em cena revelando.
+  if (_upRetomadaBoot) { _upDbgMsg = "apply ignorado: retomada fresca (anti-loop)"; return; }
+  // UPDATE TARDIO (P4): se a cortina já se revelou (splash saiu de cena), NÃO re-assume no
+  // meio do uso. Vira fluxo de meio de sessão: marca updatePendente e a atualização será a
+  // 1ª tela da PRÓXIMA abertura. A janela de "ainda dá pra virar boot-update" é: splash visível.
+  if (splashRevelado()) {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      try { localStorage.setItem("fiopulse:updatePendente", "1"); } catch (e) {}
+    }
+    _upDbgMsg = "update tardio: splash já revelado, virou updatePendente";
+    return;
+  }
   // CORTA o boot pesado por baixo (bug William v353): vamos recarregar em ~2s, então
   // nada de restaurar sessão / carregar dados / renderizar o app por baixo da tela
   // (jank + trabalho jogado fora). O reload refaz o boot limpo; firebase.js checa esta
@@ -20533,30 +20570,38 @@ function aplicarAtualizacaoBoot(worker) {
   progressoAtualizacao(worker && worker.state ? worker.state : "installed");
   enviarSkipWaiting(worker);
   // Rede de segurança: se o SW não assumir (controllerchange não vem) em ~8s, SOLTA o
-  // boot normal em vez de prender na tela de atualização. Marca o guard de reload ANTES
-  // (sessionStorage) pra o boot pós-reload NÃO re-exibir a tela (sem loop) e recarrega uma vez.
+  // boot normal em vez de prender na tela de atualização. Grava o timestamp de retomada ANTES
+  // (localStorage) pra o boot pós-reload nascer na cortina "atualizando, fim" sem re-aplicar
+  // (anti-loop pela janela de 60s) e recarrega uma vez.
   if (!_upFallback) {
     const ms = window.__upFallbackMs || 8000;
     _upFallback = setTimeout(() => {
       if (_upDone) return; // já fechou pelo caminho normal
-      try { sessionStorage.setItem("fiopulse:swReloaded", "1"); } catch (e) {}
+      try { localStorage.setItem("fiopulse:upRetomada", String(Date.now())); } catch (e) {}
       window.__atualizandoApp = false;
       window.__swReload();
     }, ms);
   }
 }
-// Reload ÚNICO com guarda anti-loop (sessionStorage): nunca recarrega duas vezes
-// seguidas. window.__swReload é uma indireção pro reload (o probe a substitui por
-// um stub pra afirmar "chamado no máximo 1 vez" sem recarregar de verdade).
+// Reload ÚNICO com guarda anti-loop iOS-safe: a marca de "já recarreguei" mora em
+// localStorage com TIMESTAMP (upRetomada), não em sessionStorage — o PWA do iOS descarta
+// sessionStorage ao matar/restaurar o webview, o que repetia a tela de update; localStorage
+// sobrevive e a janela de 60s evita loop. window.__swReload é uma indireção pro reload (o
+// probe a substitui por um stub pra afirmar "chamado no máximo 1 vez" sem recarregar).
 window.__swReload = window.__swReload || function () { location.reload(); };
+function _upRetomadaFresca() {
+  try { const t = parseInt(localStorage.getItem("fiopulse:upRetomada") || "0", 10) || 0; return t > 0 && (Date.now() - t) < 60000; } catch (e) { return false; }
+}
 let _swRecarregou = false;
 function swRecarregarUmaVez() {
   if (_swRecarregou) return;
-  try { if (sessionStorage.getItem("fiopulse:swReloaded") === "1") return; } catch (e) {}
+  if (_upRetomadaFresca()) return; // já recarreguei há pouco (guarda anti-loop iOS-safe)
   _swRecarregou = true;
-  try { sessionStorage.setItem("fiopulse:swReloaded", "1"); } catch (e) {}
-  // Atualização sendo aplicada: o sinal "pendente" cumpriu o papel (o pós-reload usa
-  // splash-retomada, não o estado de atualização). Se vier outro pacote, ele volta.
+  // Grava o TIMESTAMP da retomada ANTES do reload: o head do próximo load nasce na cortina
+  // "atualizando, fim" (ATO ÚNICO) enquanto a flag for < 60s, e o app.js a consome ao revelar.
+  try { localStorage.setItem("fiopulse:upRetomada", String(Date.now())); } catch (e) {}
+  // Atualização sendo aplicada: o sinal "pendente" cumpriu o papel (o pós-reload usa a
+  // retomada, não uma nova detecção). Se vier outro pacote, ele volta.
   try { localStorage.removeItem("fiopulse:updatePendente"); } catch (e) {}
   // Palco mínimo: worker rápido (controllerchange quase junto da tela) espera o
   // resto dos ~2s; worker lento (decorrido já passou do mínimo) fecha na hora.
@@ -20579,25 +20624,65 @@ function _upAnimarBarraFinal() {
   i.animate([{ transform: `scaleX(${de})` }, { transform: "scaleX(1)" }],
     { duration: prefereMenosMovimento() ? 1 : 200, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
 }
+// A cortina já se revelou (ou está saindo de cena)? É a fronteira do "ainda dá pra virar
+// boot-update": enquanto o #splash está VISÍVEL um update pode assumir a cortina; depois de
+// hideSplash começar o fade (splash--out) ou escondê-la, um update tardio NÃO re-assume.
+function splashRevelado() {
+  const sp = document.getElementById("splash");
+  if (!sp) return true;
+  return sp.classList.contains("splash--out") || sp.style.display === "none";
+}
+// Retomada pós-reload de atualização (P4, ATO ÚNICO): o head já pintou a cortina no estado de
+// atualização com a barra no fim (~90%, via html.splash-atualizando-fim). Aqui completamos a
+// barra até 100% num tempo curto e deixamos o hideSplash revelar quando o app estiver pronto
+// (fluxo normal). NÃO seta __atualizandoApp: a cortina é só cosmética, quem revela é o
+// hideSplash. Consome a flag upRetomada; a guarda anti-loop segue viva em _upRetomadaBoot.
+const UP_RETOMADA_MS = 600;
+function revelarPosAtualizacao() {
+  const el = document.getElementById("splash");
+  if (!el) return;
+  _upScreenEl = el;
+  _upT0 = Date.now();
+  _upFloor = 90;
+  if (!_upPctRaf) _upPctRaf = requestAnimationFrame(_upPctTick);
+  const i = el.querySelector(".splash-up__bar i");
+  if (i) {
+    const de = _upFrac() || 0.9;      // nasce ~0.9 (CSS do head); nunca congela em 90%
+    i.style.transform = "scaleX(1)";
+    i.animate([{ transform: `scaleX(${de})` }, { transform: "scaleX(1)" }],
+      { duration: prefereMenosMovimento() ? 1 : UP_RETOMADA_MS, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
+  }
+  // Encerra o ticker do pct quando a barra completa (o reveal em si é do hideSplash).
+  setTimeout(() => { if (_upPctRaf) { cancelAnimationFrame(_upPctRaf); _upPctRaf = 0; } }, (prefereMenosMovimento() ? 1 : UP_RETOMADA_MS) + 120);
+  try { localStorage.removeItem("fiopulse:upRetomada"); } catch (e) {}
+  _upDbgMsg = "retomada: barra completa, reveal pelo hideSplash";
+}
+// Retomada pós-reload: roda no boot (demo ou firebase) assim que o app.js carrega.
+if (window.__upRetomada) revelarPosAtualizacao();
 // Sonda pro probe (harness): estado interno da barra de atualização.
-window.__upDbg = () => ({ frac: _upFrac(), floor: _upFloor, done: _upDone, ativo: !!window.__atualizandoApp });
+window.__upDbg = () => ({ frac: _upFrac(), floor: _upFloor, done: _upDone, ativo: !!window.__atualizandoApp, retomada: _upRetomadaBoot, msg: _upDbgMsg });
 // Reset SÓ pro harness (isola cenários da tela de atualização entre asserts). No-op em produção.
 window.__upReset = () => {
   if (_upFallback) { clearTimeout(_upFallback); _upFallback = 0; }
   if (_upPctRaf) { cancelAnimationFrame(_upPctRaf); _upPctRaf = 0; }
-  // A cortina é o #splash (permanente): reset tira o ESTADO, nunca o elemento.
-  if (_upScreenEl) {
-    _upScreenEl.classList.remove("splash--atualizando");
-    const i = _upScreenEl.querySelector(".splash-up__bar i");
+  // A cortina é o #splash (permanente): reset devolve o ELEMENTO a um estado limpo e VISÍVEL
+  // (sem despedida em curso) pra o próximo cenário poder re-testar o caminho de boot-update.
+  const sp = document.getElementById("splash");
+  if (sp) {
+    sp.classList.remove("splash--atualizando", "splash--out");
+    delete sp.dataset.splashHiding;
+    sp.style.display = "";
+    const i = sp.querySelector(".splash-up__bar i");
     if (i) { i.getAnimations?.().forEach((a) => a.cancel()); i.style.transform = ""; }
-    const p = _upScreenEl.querySelector(".splash-up__pct");
+    const p = sp.querySelector(".splash-up__pct");
     if (p) p.textContent = "0%";
-    _upScreenEl = null;
   }
-  document.documentElement.classList.remove("splash-atualizando");
+  _upScreenEl = null;
+  document.documentElement.classList.remove("splash-atualizando", "splash-atualizando-fim");
   _upAnim = null; _upDone = false; _upFloor = 0; _upT0 = 0; _swRecarregou = false;
+  _upRetomadaBoot = false; _upDbgMsg = "";
   window.__atualizandoApp = false;
-  try { sessionStorage.removeItem("fiopulse:swReloaded"); } catch (e) {}
+  try { localStorage.removeItem("fiopulse:upRetomada"); } catch (e) {}
   try { localStorage.removeItem("fiopulse:updatePendente"); } catch (e) {}
 };
 
@@ -20614,7 +20699,10 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   // aplica); depois disso ficam pro próximo open (silencioso, não interrompe).
   let janelaBoot = true;
   setTimeout(() => { janelaBoot = false; }, 12000);
-  const jaRecarregou = () => { try { return sessionStorage.getItem("fiopulse:swReloaded") === "1"; } catch (e) { return false; } };
+  // "Já recarreguei neste ciclo de atualização" = esta abertura é a retomada pós-reload
+  // (guarda em memória capturada do head, iOS-safe). Não re-lê storage: o reveal consome a
+  // flag upRetomada, mas o fato do boot (_upRetomadaBoot) persiste o resto da sessão.
+  const jaRecarregou = () => _upRetomadaBoot;
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (!tinhaController) { tinhaController = true; return; }
@@ -20647,16 +20735,19 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
     // Sinal local MENTIROSO (1º frame nasceu "atualizando" mas não há worker
     // esperando: pacote já aplicado ou sumiu): desliga o estado e limpa o sinal;
     // o boot normal segue e o hideSplash revela como sempre. Se um updatefound
-    // chegar logo depois, aplicarAtualizacaoBoot religa o estado sozinho.
-    if (!reg.waiting && !reg.installing && !window.__atualizandoApp && document.documentElement.classList.contains("splash-atualizando")) {
+    // chegar logo depois, aplicarAtualizacaoBoot religa o estado sozinho. NÃO na
+    // retomada: lá o estado "atualizando" é a cortina de ATO ÚNICO revelando (não mexer).
+    if (!_upRetomadaBoot && !reg.waiting && !reg.installing && !window.__atualizandoApp && document.documentElement.classList.contains("splash-atualizando")) {
       document.documentElement.classList.remove("splash-atualizando");
       try { localStorage.removeItem("fiopulse:updatePendente"); } catch (e) {}
     }
     reg.addEventListener("updatefound", () => {
       const sw = reg.installing;
       if (!sw) return;
-      // É ATUALIZAÇÃO (não 1º install) só quando já há um controller ativo.
-      const deBoot = janelaBoot && !!navigator.serviceWorker.controller && !jaRecarregou();
+      // É ATUALIZAÇÃO de boot só quando: há controller ativo, ainda na janela de boot, não é
+      // retomada e a cortina AINDA está visível. Se já revelou (splashRevelado), o update é
+      // tardio → cai no ramo de meio de sessão (updatePendente), sem re-assumir a cortina.
+      const deBoot = janelaBoot && !!navigator.serviceWorker.controller && !jaRecarregou() && !splashRevelado();
       if (!deBoot) {
         // Mid-sessão: instala e ESPERA, sem interromper nada. Anota o sinal local:
         // o PRÓXIMO boot já nasce com a cortina no estado de atualização (1ª tela,

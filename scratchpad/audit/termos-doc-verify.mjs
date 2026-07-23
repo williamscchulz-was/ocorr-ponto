@@ -235,14 +235,18 @@ console.log("(7) tela de atualizacao: percentual acompanha a barra:");
 {
   const { ctx: c2, p: p2 } = await abrir();
   const r = await p2.evaluate(async () => {
+    // Boot continuo (v366+): a atualizacao mora na cortina (#splash), o percentual e
+    // .splash-up__pct. __upReset devolve a cortina VISIVEL pra o apply nao cair no ramo
+    // de "update tardio" (o hideSplash do boot demo pode ja ter comecado a despedida).
+    window.__upReset();
     window.__reloads = [];
-    window.__swReload = () => window.__reloads.push({ pct: document.querySelector(".up-screen__pct")?.textContent || "" });
+    window.__swReload = () => window.__reloads.push({ pct: document.querySelector(".splash-up__pct")?.textContent || "" });
     aplicarAtualizacaoBoot({ state: "installed", postMessage: () => {} });
-    const existe = !!document.querySelector(".up-screen__pct");
-    const inicio = document.querySelector(".up-screen__pct")?.textContent || "";
+    const existe = !!document.querySelector(".splash-up__pct");
+    const inicio = document.querySelector(".splash-up__pct")?.textContent || "";
     swRecarregarUmaVez();
     await new Promise((res) => setTimeout(res, 700));
-    const meio = document.querySelector(".up-screen__pct")?.textContent || "";
+    const meio = document.querySelector(".splash-up__pct")?.textContent || "";
     await new Promise((res) => setTimeout(res, 2700)); // ~3.4s: palco + fecho + reload
     return { existe, inicio, meio, reloads: window.__reloads };
   });
@@ -259,10 +263,11 @@ console.log("(7b) reduced motion: comeca em 0%, 100% no fim:");
   const { ctx: c3, p: p3 } = await abrir({ width: 420, height: 900 }, { reducedMotion: "reduce" });
   const r = await p3.evaluate(async () => {
     const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.__upReset();
     window.__reloads = [];
-    window.__swReload = () => window.__reloads.push({ pct: document.querySelector(".up-screen__pct")?.textContent || "" });
+    window.__swReload = () => window.__reloads.push({ pct: document.querySelector(".splash-up__pct")?.textContent || "" });
     aplicarAtualizacaoBoot({ state: "installing", postMessage: () => {} });
-    const inicio = document.querySelector(".up-screen__pct")?.textContent || "";
+    const inicio = document.querySelector(".splash-up__pct")?.textContent || "";
     swRecarregarUmaVez();
     await new Promise((res) => setTimeout(res, 3400));
     return { rm, inicio, reloads: window.__reloads };

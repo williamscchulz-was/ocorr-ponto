@@ -32,8 +32,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=398" />
-  <link rel="stylesheet" href="portal-colaborador.css?v=398" />
+  <link rel="stylesheet" href="styles.css?v=399" />
+  <link rel="stylesheet" href="portal-colaborador.css?v=399" />
   <!-- Decide ANTES de renderizar, sincrono, o MODO da abertura. Estilo Apple:
        com sessao a restaurar mostra o Pulso da marca (cobre so o load, some assim
        que o app fica pronto); sem sessao vai direto pro login.
@@ -49,13 +49,23 @@
       // Boot continuo (mock aprovado 2026-07-17): a cortina e UMA e ja nasce no
       // estado certo, decidido AQUI, sincrono, antes do primeiro paint.
       var _retomada = false, _upPend = false;
-      try { _retomada = sessionStorage.getItem("fiopulse:swReloaded") === "1"; } catch (e2) {}
+      // ATO UNICO (P4, 2026-07-23): a retomada pos-reload de atualizacao NAO e mais um
+      // terceiro ato "FioPulse quieto". A flag e um TIMESTAMP em localStorage (o PWA do iOS
+      // descarta sessionStorage ao matar/restaurar o webview, o que repetia a tela de update).
+      // Menos de 60s = acabamos de atualizar: a cortina nasce na MESMA tela de atualizacao no
+      // FIM (barra ~90%), completa e revela. Mais de 60s = lixo de fluxo morto: ignora e limpa.
+      var _upRet = 0;
+      try { _upRet = parseInt(localStorage.getItem("fiopulse:upRetomada") || "0", 10) || 0; } catch (e2) {}
+      if (_upRet && (Date.now() - _upRet) < 60000) { _retomada = true; }
+      else if (_upRet) { try { localStorage.removeItem("fiopulse:upRetomada"); } catch (e2) {} }
       try { _upPend = localStorage.getItem("fiopulse:updatePendente") === "1"; } catch (e2) {}
       if (_retomada) {
-        // Acabamos de recarregar por atualizacao: re-pinta a MESMA cortina no 1o
-        // frame (sem replay de abertura) e revela assim que o app ficar pronto.
-        _root.classList.add("splash-skeleton", "splash-retomada");
-        window.__splashMin = 0;
+        // Retomada pos-reload: MESMA cortina de atualizacao, barra ja no fim (splash-atualizando-fim
+        // pinta a barra em ~90% no 1o frame). window.__upRetomada sinaliza pro app.js completar a
+        // barra e revelar pelo hideSplash; a flag e consumida quando o app.js carrega.
+        _root.classList.add("splash-skeleton", "splash-atualizando", "splash-atualizando-fim");
+        window.__upRetomada = true;
+        window.__splashMin = 600;
       } else if (_upPend) {
         // Pacote novo esperando desde a sessao anterior: a PRIMEIRA tela ja e a
         // atualizacao (marca + barra), sem pulso antes (William 2026-07-17). Se o
@@ -349,16 +359,16 @@
   <div class="toast-root" id="toast-root" aria-live="polite" aria-atomic="false"></div>
 
   <!-- utils.js primeiro: helpers puros globais que app.js/firebase.js usam -->
-  <script defer src="utils.js?v=398"></script>
-  <script defer src="data.js?v=398"></script>
+  <script defer src="utils.js?v=399"></script>
+  <script defer src="data.js?v=399"></script>
   <!-- roadmap.js NÃO carrega no boot: é lazy-loaded por carregarRoadmap()
        só quando o colaborador abre Novidades (~86KB fora do caminho crítico). -->
-  <script defer src="app.js?v=398"></script>
+  <script defer src="app.js?v=399"></script>
   <!-- firebase.config.js é gitignored: criar localmente (veja firebase.config.example.js).
        O onerror engole o 404 quando o arquivo não existe (modo demo).
        defer preserva ordem entre scripts deferred. -->
   <script defer src="firebase.config.js" onerror="void 0"></script>
-  <script defer src="firebase.js?v=398"></script>
-  <script defer src="google-drive.js?v=398"></script>
+  <script defer src="firebase.js?v=399"></script>
+  <script defer src="google-drive.js?v=399"></script>
 </body>
 </html>

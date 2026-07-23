@@ -211,7 +211,9 @@ const frac0 = await p.evaluate(() => {
   window.__upFallbackMs = 999999; // não deixa o fallback disparar durante o teste
   window.__swReload = () => { window.__swReloadCalled = true; };
   aplicarAtualizacaoBoot({ state: "installed", postMessage() {} }); // simula reg.waiting no boot
-  return { frac: window.__upDbg().frac, ativo: window.__upDbg().ativo, tela: !!document.getElementById("up-screen") };
+  // Boot continuo (v366+): a atualizacao e um ESTADO da cortina (#splash.splash--atualizando),
+  // nunca mais uma tela propria (#up-screen morreu). O sinal de "no ar" e a classe.
+  return { frac: window.__upDbg().frac, ativo: window.__upDbg().ativo, tela: document.getElementById("splash").classList.contains("splash--atualizando") };
 });
 check("update: barra NASCE em ~0 mesmo com reg.waiting no boot (frac " + frac0.frac.toFixed(3) + ")", frac0.frac < 0.15);
 check("update: tela de atualização no ar", frac0.tela === true);
