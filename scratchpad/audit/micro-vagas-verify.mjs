@@ -55,6 +55,22 @@ const STUB = () => {
     },
     upload: function () { return Promise.resolve(); }
   };
+  // Conta os glares (.vshine) DESDE O INIT, em subtree do documento inteiro. Com o header
+  // slim (variante A) a lista pode nascer parcialmente acima da dobra no mobile 390, então
+  // o glare de um card já visível dispara na 1ª carga, ANTES de qualquer observer instalado
+  // pós-load. Contar desde o init captura tanto os glares de carga quanto os de rolagem —
+  // sem depender de a lista estar abaixo da dobra (premissa que o header slim invalidou).
+  window.__glareCount = {};
+  function __bumpGlare(nd) {
+    if (nd.nodeType === 1 && nd.classList && nd.classList.contains("vshine")) {
+      var card = nd.closest && nd.closest(".vcompact");
+      if (card) { var id = card.getAttribute("data-vaga-id"); window.__glareCount[id] = (window.__glareCount[id] || 0) + 1; }
+    }
+  }
+  var __glareMo = new MutationObserver(function (muts) { muts.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, __bumpGlare); }); });
+  function __startGlareMo() { if (document.documentElement) __glareMo.observe(document.documentElement, { childList: true, subtree: true }); }
+  if (document.documentElement) __startGlareMo();
+  else document.addEventListener("DOMContentLoaded", __startGlareMo);
 };
 
 const b = await chromium.launch({ args: ["--lang=pt-BR"] });
@@ -76,38 +92,21 @@ await page.evaluate(() => window.scrollTo(0, 0));
 await wait(150);
 
 // ============================ E · GLARE 1x POR CARD ============================
-// A lista mora bem abaixo da dobra (hero + passos + valor), então no load nenhum card
-// está 35% visível: instalamos o contador ANTES de qualquer glare disparar.
-const preGlare = await page.evaluate(() => {
-  const cards = document.querySelectorAll("#lista .vcompact");
-  return {
-    n: cards.length,
-    jaGlared: Array.prototype.some.call(cards, (c) => c.getAttribute("data-glared")),
-    liveShines: document.querySelectorAll("#lista .vcompact .vshine").length,
-  };
-});
+// Contagem instalada no init (ver STUB). O glare é um IntersectionObserver (threshold .35)
+// com guarda data-glared + unobserve: cada card brilha UMA vez ao entrar na viewport e
+// NUNCA re-dispara. Com o header slim os primeiros cards podem já nascer visíveis no mobile,
+// então parte dos glares acontece na 1ª carga — a contagem desde o init cobre os dois casos.
+const preGlare = await page.evaluate(() => ({
+  n: document.querySelectorAll("#lista .vcompact").length,
+  count: window.__glareCount,
+}));
 check(preGlare.n === 3, "E: 3 cards de vaga na lista (" + preGlare.n + ")");
-check(!preGlare.jaGlared && preGlare.liveShines === 0, "E: nenhum glare disparou antes de rolar até a lista");
+check(Object.keys(preGlare.count).every((k) => preGlare.count[k] <= 1), "E: nenhum card brilhou mais de uma vez na 1ª carga (" + JSON.stringify(preGlare.count) + ")");
 
-await page.evaluate(() => {
-  window.__glareCount = {};
-  const cards = document.querySelectorAll("#lista .vcompact");
-  cards.forEach((c) => { window.__glareCount[c.getAttribute("data-vaga-id")] = 0; });
-  window.__glareObs = new MutationObserver((muts) => {
-    muts.forEach((m) => {
-      m.addedNodes.forEach((nd) => {
-        if (nd.nodeType === 1 && nd.classList && nd.classList.contains("vshine")) {
-          const card = nd.closest(".vcompact");
-          if (card) { const id = card.getAttribute("data-vaga-id"); window.__glareCount[id] = (window.__glareCount[id] || 0) + 1; }
-        }
-      });
-    });
-  });
-  cards.forEach((c) => window.__glareObs.observe(c, { childList: true }));
-});
-
-// rola até a lista: cada card entra na viewport e brilha 1x
+// rola a lista inteira: todo card entra na viewport e brilha (os que já não brilharam na carga)
 await page.$eval("#vagas", (el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
+await wait(400);
+await page.$eval("#lista .vcompact:last-child", (el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
 await wait(1300); // > 900ms do sweep + margem pro onfinish remover o elemento
 const eFirst = await page.evaluate(() => ({
   count: window.__glareCount,
@@ -124,12 +123,13 @@ check(eFirst.liveShines === 0, "E: elemento .vshine é efêmero, removido ao ter
 await page.evaluate(() => window.scrollTo(0, 0));
 await wait(400);
 await page.$eval("#vagas", (el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
+await page.$eval("#lista .vcompact:last-child", (el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
 await wait(1300);
 const eBack = await page.evaluate(() => ({
   count: window.__glareCount,
   liveShines: document.querySelectorAll("#lista .vcompact .vshine").length,
 }));
-const semReDisparo = Object.keys(eBack.count).every((k) => eBack.count[k] === 1);
+const semReDisparo = Object.keys(eBack.count).length === 3 && Object.keys(eBack.count).every((k) => eBack.count[k] === 1);
 check(semReDisparo, "E: rolar de volta NÃO re-dispara o glare (" + JSON.stringify(eBack.count) + ")");
 check(eBack.liveShines === 0, "E: sem .vshine residual após o retorno");
 

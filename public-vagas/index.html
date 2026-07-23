@@ -20,36 +20,36 @@
   /* ===== HERO: os fios da Fiobras ===== */
   .hero { position: relative; background: #04331a; color: #fff; overflow: hidden; }
   .hero__fios { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .hero__in { position: relative; max-width: 1060px; margin: 0 auto; padding: 46px 26px 120px; }
-  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: clamp(38px, 7vw, 72px); }
+  .hero__in { position: relative; max-width: 1060px; margin: 0 auto; padding: 26px 26px 58px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
   .logo { display: flex; align-items: center; gap: 11px; }
   .logo-mark { height: 31px; width: auto; display: block; }
   .logo b { font-size: 18px; letter-spacing: .02em; }
   .topbar a { color: #fff; text-decoration: none; font-size: 13.5px; font-weight: 600; opacity: .85; padding: 9px 16px; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; }
   .topbar a:hover { opacity: 1; background: rgba(255,255,255,.08); }
-  .hero h1 { margin: 0 0 14px; font-size: clamp(38px, 8vw, 68px); line-height: 1.04; font-weight: 900; letter-spacing: -.02em; max-width: 640px; }
+  .hero h1 { margin: 0 0 11px; font-size: clamp(28px, 4.6vw, 46px); line-height: 1.06; font-weight: 900; letter-spacing: -.02em; max-width: 600px; }
   /* isolation cria stacking context: sem ela o ::before de z-index -1 cai atras
      do fundo do hero e o texto verde-escuro some no verde-escuro */
   .hero h1 .marca { position: relative; display: inline-grid; color: #04331a; padding: 0 6px; isolation: isolate; }
   .hero h1 .marca::before { content: ""; position: absolute; inset: 8% -2% 4%; background: #FFCB00; border-radius: 8px; transform: rotate(-1.2deg); z-index: -1; }
   .hero h1 .marca .verbo { grid-area: 1 / 1; white-space: nowrap; opacity: 0; transition: opacity .6s ease; }
   .hero h1 .marca .verbo.ativo { opacity: 1; }
-  .hero p.sub { margin: 0; font-size: clamp(14.5px, 2vw, 17px); opacity: .88; line-height: 1.65; max-width: 460px; }
-  .hero__acao { display: flex; align-items: center; gap: 14px; margin-top: 26px; flex-wrap: wrap; }
+  .hero p.sub { margin: 0; font-size: clamp(13px, 1.5vw, 15px); opacity: .88; line-height: 1.55; max-width: 520px; }
+  .hero__acao { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
   .hero__cta { display: inline-flex; align-items: center; gap: 8px; background: #FFCB00; color: #332902; font-weight: 800; font-size: 15px; padding: 14px 24px; border-radius: 999px; text-decoration: none; box-shadow: 0 8px 24px rgba(255,203,0,.28); transition: transform .15s ease; }
   .hero__cta:hover { transform: translateY(-2px); }
   .hero__n { font-size: 13px; opacity: .8; }
 
   /* ===== COMO FUNCIONA: os 3 passos numa linha compacta que monta sobre a borda do herói ===== */
-  .passos-linha { max-width: 1060px; margin: -24px auto 0; padding: 0 26px; position: relative; }
+  .passos-linha { max-width: 1060px; margin: -20px auto 0; padding: 0 26px; position: relative; }
   .passos-linha__in { display: flex; align-items: center; justify-content: center; gap: 6px 4px; flex-wrap: wrap;
-    background: #fff; border: 1px solid #e0e6d9; border-radius: 999px; padding: 11px 20px; box-shadow: 0 10px 30px rgba(10,40,20,.08); }
+    background: #fff; border: 1px solid #e0e6d9; border-radius: 999px; padding: 9px 18px; box-shadow: 0 10px 30px rgba(10,40,20,.08); }
   .pl { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: #35422f; padding: 3px 8px; }
   .pl .n { width: 23px; height: 23px; border-radius: 50%; background: #eaf4ec; color: #0b6e33; display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
   .pl-sep { color: #c8d1bd; font-weight: 400; user-select: none; }
 
   /* ===== VAGAS EM GRID ===== */
-  .secao { max-width: 1060px; margin: 0 auto; padding: 26px 26px 10px; }
+  .secao { max-width: 1060px; margin: 0 auto; padding: 22px 26px 10px; }
   .secao > h2 { margin: 0 0 4px; font-size: clamp(22px, 3.4vw, 30px); font-weight: 800; letter-spacing: -.01em; }
   .secao > p.sub { margin: 0 0 22px; font-size: 14px; color: #5a6852; }
   .listlabel { font-size: 13px; font-weight: 500; color: #6b7563; margin: 0 2px 16px; }
@@ -322,9 +322,9 @@
   }
 
   /* ===== Gente no Coração: selo no herói ===== */
-  .selo-gc { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .09em;
+  .selo-gc { display: inline-flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
     text-transform: uppercase; color: #ffd83d; background: rgba(255,255,255,.1); border: 1px solid rgba(255,203,0,.28);
-    border-radius: 999px; padding: 8px 15px; margin-bottom: 16px; }
+    border-radius: 999px; padding: 6px 13px; margin-bottom: 11px; }
   .selo-gc svg { width: 17px; height: 17px; flex: 0 0 auto; }
 
   /* A no mobile: as 3 etapas viram 3 linhas curtas */
@@ -486,8 +486,6 @@
     <path d="M-40 520 C 260 430, 460 590, 740 480 S 1140 390, 1260 470" stroke="#0e7a3f" stroke-width="34" fill="none" stroke-linecap="round" opacity=".9"/>
     <path d="M-40 545 C 280 470, 500 620, 780 515 S 1160 430, 1260 505" stroke="#FFCB00" stroke-width="13" fill="none" stroke-linecap="round" opacity=".95"/>
     <path d="M-40 570 C 300 505, 540 645, 820 550 S 1180 470, 1260 540" stroke="#0076BE" stroke-width="9" fill="none" stroke-linecap="round" opacity=".85"/>
-    <circle cx="1050" cy="120" r="130" fill="#0a5c30" opacity=".5"/>
-    <circle cx="1120" cy="80" r="60" fill="#FFCB00" opacity=".14"/>
   </svg>
   <div class="hero__in">
     <div class="topbar">
@@ -496,7 +494,7 @@
     </div>
     <span class="selo-gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg>Gente no Coração</span>
     <h1>Venha <span class="marca"><span class="verbo ativo">tingir</span><span class="verbo">tecer</span></span> o seu futuro com a gente</h1>
-    <p class="sub">Na Fiobras, acreditamos que grandes resultados são construídos por pessoas. Encontre a oportunidade que combina com o seu talento, cadastre seu currículo e venha crescer conosco.</p>
+    <p class="sub">Na Fiobras, acreditamos que grandes resultados são construídos por pessoas.</p>
     <div class="hero__acao">
       <a class="hero__cta" href="#vagas">Ver vagas abertas</a>
       <span class="hero__n" id="contagem" hidden></span>
