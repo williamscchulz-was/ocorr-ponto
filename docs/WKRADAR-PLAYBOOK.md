@@ -344,4 +344,16 @@ Se o arquivo está fresco (mtime = hoje), `arquivoMaduroAte == maduroLimiteCalen
 
 **Implementado em:** `process-ocorrencias-rh.py` (`ARQUIVO_MADURO_ATE`/`MADURO_LIMITE_EFETIVO`, contador `naoIdentArquivoObsoleto`) e `process-espelho-ponto.mjs` (`arquivoMaduroAteIso`/`maduroLimiteEfetivoIso`) — ambos consumidores de `ExpAuto_Espelho_Ponto.txt`. Complementado com retry em `export-espelho.mjs` (`run-pipeline.mjs`, mesmo padrão já usado em `export-ocorrencias.mjs` desde 2026-07-08) pra reduzir a chance de precisar do gate. Detalhe completo em `HISTORICO-DECISOES.md`, entrada 2026-07-16.
 
+---
+
+## Quirk: "GerarSemAspas" marcado na tela do Integrador WK pode não gravar no config gerado (2026-07-23)
+
+Achado no 1º config novo criado desde os outros 4 (relatório de Férias, `Config_Ferias_Texto.txt`): a tela "Exportação de Relatórios" (Integrador WK, botão "Detalhes...") mostrava a caixa **"Gerar os campos alfanuméricos sem aspas"** marcada (confirmado por print do William antes de clicar OK) — mas o `.txt` gerado tinha `"GerarSemAspas"="0"`, e o CSV de fato saiu com aspas nos campos de texto (`"Vencidas"`, etc.).
+
+Não investigado o porquê (pode ser ordem de cliques, pode ser específico desse tipo de relatório/versão) — só confirmado o SINTOMA: **a caixa marcada na tela não é garantia de que o config final reflete isso**.
+
+**Mitigação (já padrão nos outros exports, reforçada aqui):** todo `export-XXX.mjs` novo deve **forçar** `GerarSemAspas="1"` via edição byte-safe do config (mesmo padrão de `IdsFuncionarios` vazio), em vez de confiar que a UI gravou certo — e o parser correspondente deve ser defensivo com aspas de qualquer jeito (`unq()`/replace regex tira aspas se vierem), nunca assumir que o CSV vai vir limpo só porque a caixa foi marcada uma vez. Se acontecer de novo em relatório futuro, promover de "quirk isolado" pra "sempre forçar, nunca confiar na tela" com mais confiança.
+
+**Implementado em:** `export-ferias.mjs`. Detalhe completo em `HISTORICO-DECISOES.md`, entrada 2026-07-22/23.
+
 **Quando aplicar em algo novo**: qualquer script que leia um CSV/export headless do WK e decida "esse dia já fechou, posso confiar" com base só em `dataIso <= hoje-N` deveria cruzar com o mtime do arquivo fonte, não só o relógio do sistema.

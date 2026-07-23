@@ -3121,3 +3121,42 @@ Generalização pra M>=2 apuradas (faltando 2+, mais de 1 batida real) fica pra 
 
 ### Validação
 7 casos-limite testados isolados (match único, ambíguo — apurada equidistante de 2 previstas próximas tipo par de almoço —, zero-match, N=3 match no meio/na borda, guard N<3, turno 3 madrugada): todos corretos, incluindo o cuidado do Fable sobre N=3+match-na-borda não disparar `intervaloAmbiguo` por engano (nulos ficam adjacentes, mas `restante` fica vazio depois de consumir a única apurada, então a condição `len(restante)==1` falha — confirmado). Contra dado real de hoje: 2 casos ativaram o fallback (Maristella + Manuel Alejandro Quintero Avendano, turno 3, "21:56" batendo só com a entrada prevista "22:00" — também corrigiu certo). Novo contador `incertoAlinhadoUnico` nas regras pra auditoria de quantas vezes ativa por rodada.
+
+---
+
+## 2026-07-22/23 · 🌴 Novo export: Férias (períodos aquisitivo/concessivo, vencidas, saldo proporcional)
+
+William, do caso Jacques Reinicke (476, entrou de férias em 22/07): "a gente tem acesso aos dias de férias vencidas; proporcional, seria animal ter isso".
+
+### Investigação: não tínhamos NADA disso
+Vasculhado o cadastro (`D_Empregado`) e todos os configs de relatório já existentes em `D:\WKRadar\BI\Config\` — nenhuma coluna, nenhum config aponta pra férias (período aquisitivo/concessivo, dias vencidos, proporcional). A única pista tangencial era o campo `situacao` do cadastro, que às vezes traz o valor "Férias" — só um rótulo categórico (tá de férias agora, sim/não), sem data nem saldo. Pesquisa externa (WK Sistemas) indicou que o controle nativo mora em **Radar Folha → Movimentos → Férias → Férias Individuais** — confirmado ao vivo pelo William, que achou e usou o Modelador de Relatórios de lá pra criar o relatório "Férias Texto".
+
+### Campos escolhidos (orientados por mim, confirmados no Modelador pelo William)
+Código Empregado, Período Aquisitivo I/F, Período Concessivo I/F, Dias de Direito, Situação das Férias, Avos de Férias (o "proporcional"), Saldo, Dias de Gozo, Data Início/Fim/Retorno de Férias. Deixado de fora de propósito: Nome/CPF/Salário/CTPS (não precisa, e evita puxar dado sensível à toa pra um export que não teria tratamento de PII pronto).
+
+### 2 problemas achados no config gerado pela UI (ambos corrigidos, byte-safe latin1)
+1. **`IdsFuncionario` veio com lista FIXA de códigos** (a armadilha clássica já documentada nesta seção do playbook — "Quirk: seleção dinâmica") — corrigido: esvaziado no `export-ferias.mjs`, mesmo padrão dos outros 3 exports.
+2. **`GerarSemAspas` ficou `"0"` no config, mesmo com a caixa marcada na tela da UI** (achado NOVO — primeira vez que a caixa marcada não bateu com o config gerado; talvez um bug/quirk específico deste tipo de relatório, ou a ordem de cliques importou). Forçado pra `"1"` no `export-ferias.mjs`. Vale ficar de olho se acontecer de novo em relatórios futuros — se sim, vira padrão de sempre forçar via código em vez de confiar na UI, não só neste caso.
+
+### Formato do CSV: agrupado + parcelamento (achado real, validado com o caso Jacques)
+Igual ao BH (forward-fill de código só na 1ª linha de cada período), MAS com uma camada extra: férias podem ser gozadas em até 3 parcelas (permitido por lei desde 2017) — cada parcela extra além da 1ª vira uma linha SEM código nem datas de período, só com a parcela de gozo (dias + início/fim/retorno). Regra de agrupamento: linha com "Per Aqui Ini" preenchido inicia um período NOVO; linha sem isso é parcela extra do período mais recente daquele funcionário.
+
+**Caso Jacques (476) validou o modelo perfeitamente**: período 14/08/2024-14/08/2025 (30 dias de direito), gozado em 2 parcelas — 20 dias em dez/2025-jan/2026 (na mesma linha do período) + 10 dias em 22/07-31/07/2026 (linha extra, essa é a que ele está gozando HOJE). Período seguinte (14/08/2025-atual) já em "Em Aquisição", saldo 27,5 dias — bate exatamente com o Avos=11 (11/12 × 30 dias) calculado pelo próprio WK.
+
+### Pipeline (isolado, nada nos 4 exports existentes foi tocado)
+`config.mjs` (WK_FERIAS_CONFIG/FERIAS_CSV_PATH/PARSED_FERIAS_OUT/COL_FERIAS) → `export-ferias.mjs` (headless, sem janela de data — o relatório traz todo o histórico de uma vez, não é escopado por "hoje") → `process-ferias.mjs` (parser agrupado + parcelamento, calcula `resumo` por funcionário: `temVencida`, `qtdPeriodosVencidos`, `diasVencidos`, `proporcionalAtual`, `deFeriasAgora`) → `upload-ferias.mjs` (coleção `ferias`, chave=código, SEM PII, só ATIVOS — o relatório traz histórico de desligados também, 149 códigos no relatório vs ~95 ativos). Novo bloco `[5b/10]` best-effort em `run-pipeline.mjs`.
+
+**Nasce com circuit breaker de 50% na limpeza de órfãos desde o 1º dia** — lição direta dos 2 incidentes desta semana (16/07 e 20/07): todo uploader novo com poda já entra protegido, não espera acontecer de novo pra corrigir depois.
+
+### Validação com dado real
+405 linhas / 149 funcionários (95 ativos após filtro) / distribuição de situação por PERÍODO: `Vencidas: 100, Em Aquisição: 90, Indenizadas: 63, Concluídas: 50, Pendentes: 41, Canceladas: 22, Perdidas: 1`. 5 funcionários concentram os 100 períodos vencidos (ex.: código 140 é o Nivaldo, já documentado em `config.mjs` como aposentado/afastado — números batem com o que já se sabia dele). 6 funcionários de férias hoje (22/07), incluindo o Jacques, validado campo a campo.
+
+Shape do doc final (`ferias/{codigo}`), pra referência de quem for consumir no front:
+```js
+{
+  periodos: [{ aquisitivoInicio, aquisitivoFim, concessivoInicio, concessivoFim,
+               direito, situacao, avos, saldo, gozos: [{dias, inicio, fim, retorno}] }, ...],
+  resumo: { temVencida, qtdPeriodosVencidos, diasVencidos, proporcionalAtual, deFeriasAgora },
+  funcionarioId, atualizadoEm,
+}
+```
