@@ -3150,43 +3150,66 @@ function _muralFotoHomenageado(nome, souEu) {
 // (nunca coração). data-story abre o sheet; data-bday-post alimenta carregarMuralAniv (o
 // estado do anel deriva de minhaReacao). data-key/data-hash: o morph patcha só o que mudou.
 const _muralHeartBadge = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.1C6.2 16.4 1.9 12.7 1.9 8.5 1.9 5.3 4.4 2.9 7.4 2.9c1.9 0 3.6 1 4.6 2.7 1-1.7 2.7-2.7 4.6-2.7 3 0 5.5 2.4 5.5 5.6 0 4.2-4.3 7.9-10.1 12.6z"/></svg>`;
+// Selo de "boas-vindas dadas" do recém-chegado (só a silhueta da mão opção C, cheia): aparece
+// no lugar do selo de tipo quando o anel esmaece (st--donebv), o análogo do coração do aniv.
+const _bvHandBadge = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M 7.2 18.9 L 7.2 16.2 C 5.3 16.3 4.1 14.9 4.3 13 C 4.5 11.1 5.7 12.4 7.2 11.8 L 7.4 8.4 A 1.5 1.5 0 0 1 10.4 8.4 Q 10.17 11.4 9.95 6.2 A 1.55 1.55 0 0 1 13.05 6.2 Q 12.75 11.4 12.45 5.4 A 1.55 1.55 0 0 1 15.55 5.4 Q 15.23 11.4 14.9 7 A 1.5 1.5 0 0 1 17.9 7 L 17.8 7 L 17.8 18.9 Q 17.8 21 15.7 21 L 9.3 21 Q 7.2 21 7.2 18.9 Z"/></svg>`;
+// Um rosto da faixa (story). kind 'novo' = recém-chegado: anel AMARELO, selo com o ícone users,
+// micro-rótulo "novo na equipe". Ao dar boas-vindas o anel ESMAECE (st--seen st--donebv, a
+// pessoa CONTINUA na faixa) com a mãozinha no selo — o análogo do coração do aniversário, que ao
+// parabenizar vira st--done. souEu (o próprio homenageado) tem anel âmbar e nunca reage.
 function _muralStoryHtml(it) {
+  const novo = it.kind === "novo";
   const c = _reacoesCached(it.post);
   const done = !it.souEu && !!(c && c.minhaReacao);
   const foto = _muralFotoHomenageado(it.nome, it.souEu);
-  const solido = done || it.souEu; // anel cheio: já parabenizado, ou é o próprio homenageado
+  const solido = done || it.souEu; // anel cheio: já reagido, ou é o próprio homenageado
   const dash = solido ? "0" : "3.5 4.5";
-  const sig = [it.post, done ? 1 : 0, it.souEu ? 1 : 0, foto, it.icone, it.amber ? 1 : 0, it.primeiro, it.mk].join("|");
+  const sig = [it.post, done ? 1 : 0, it.souEu ? 1 : 0, novo ? 1 : 0, foto, it.icone, it.amber ? 1 : 0, it.primeiro, it.mk].join("|");
   const avStyle = foto ? ` style="background-image:url('${foto}');color:transparent"` : ` style="background:${_muralCor(it.nome)}"`;
-  const rotulo = it.souEu ? `Você, ${escapeHtml(it.mk)}` : `Parabenizar ${escapeHtml(it.primeiro)}`;
-  return `<button class="st${done ? " st--done" : ""}${it.souEu ? " st--self" : ""}" type="button" data-story="${escapeHtml(it.post)}" data-bday-post="${escapeHtml(it.post)}" data-key="${escapeHtml(it.post)}" data-hash="${fnv1a(sig)}" aria-label="${rotulo}">
+  const rotulo = it.souEu
+    ? `Você, ${escapeHtml(it.mk)}`
+    : (novo ? `Dar boas-vindas a ${escapeHtml(it.primeiro)}` : `Parabenizar ${escapeHtml(it.primeiro)}`);
+  let cls = "st";
+  if (novo) cls += " st--novo";
+  if (it.souEu) cls += " st--self";
+  if (done) cls += novo ? " st--seen st--donebv" : " st--done";
+  const badgeMod = it.amber ? " amber" : (novo ? " novo" : "");
+  const selo = novo
+    ? `<span class="st__badge st__badge--hand">${_bvHandBadge}</span>`
+    : `<span class="st__badge st__badge--heart">${_muralHeartBadge}</span>`;
+  // Novato não entra no loader de aniv/tempo-de-casa (carregarMuralAniv por data-bday-post):
+  // as reações 'bemvindo' chegam por preencherCardsBoasVindas, que aquece o cache e reconcilia.
+  return `<button class="${cls}" type="button" data-story="${escapeHtml(it.post)}"${novo ? "" : ` data-bday-post="${escapeHtml(it.post)}"`} data-key="${escapeHtml(it.post)}" data-hash="${fnv1a(sig)}" aria-label="${rotulo}">
       <span class="st__ring">
         <svg class="st__rsvg" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" stroke-dasharray="${dash}"></circle></svg>
         <span class="st__av"${avStyle}>${foto ? "" : escapeHtml(initials(it.nome))}</span>
-        <span class="st__badge st__badge--type${it.amber ? " amber" : ""}">${cpIcon(it.icone)}</span>
-        <span class="st__badge st__badge--heart">${_muralHeartBadge}</span>
+        <span class="st__badge st__badge--type${badgeMod}">${cpIcon(it.icone)}</span>
+        ${selo}
       </span>
       <span class="st__nm">${escapeHtml(it.primeiro)}</span>
-      <span class="st__mk">${escapeHtml(it.mk)}</span>
+      <span class="${novo ? "st__mk st__mk--novo" : "st__mk"}">${escapeHtml(it.mk)}</span>
     </button>`;
 }
 
-// Homenageados do dia (aniversário + tempo de casa), fonte única da faixa e do sheet. Lê
-// config/aniversariantes (sem PII: nome/dia/mês/anos). O aniversário do PRÓPRIO colaborador
-// NÃO entra (a saudação já festeja); o tempo de casa do próprio ENTRA como selo especial (sem
-// coração). Determinístico do state.
+// Homenageados do dia, fonte única da faixa e do sheet. Ordem: aniversário e tempo de casa
+// (expiram à meia-noite, herói do dia) PRIMEIRO; recém-chegados (janela de vários dias) DEPOIS.
+// Lê config/aniversariantes (sem PII: nome/dia/mês/anos/setor/admissão). O aniversário do
+// PRÓPRIO colaborador NÃO entra (a saudação já festeja); o tempo de casa e o recém-chegado do
+// próprio ENTRAM como selo especial (souEu, sem ação). Determinístico do state.
 function _muralHomenageados(meuNome) {
   const av = (state.aniversariantes && Array.isArray(state.aniversariantes.pessoas)) ? state.aniversariantes.pessoas : [];
   const tc = (state.aniversariantes && Array.isArray(state.aniversariantes.tempoCasa)) ? state.aniversariantes.tempoCasa : [];
+  const rc = (state.aniversariantes && Array.isArray(state.aniversariantes.recemChegados)) ? state.aniversariantes.recemChegados : [];
   const hoje = new Date();
   const mes = hoje.getMonth() + 1, diaHoje = hoje.getDate();
+  const agora = Date.now();
   const eu = _normNome(meuNome);
   const out = [];
   av.filter((p) => Number(p.mes) === mes && Number(p.dia) === diaHoje && _normNome(p.nome) !== eu).forEach((p) => {
     const nome = String(p.nome || "").trim();
     if (!nome) return;
     const primeiro = nome.split(/\s+/)[0] || "?";
-    out.push({ post: muralPostId(nome), nome, primeiro, souEu: false, icone: "cake", amber: true, tdc: false,
+    out.push({ post: muralPostId(nome), nome, primeiro, souEu: false, kind: "aniv", icone: "cake", amber: true, tdc: false,
       mk: "aniversário", tituloFull: `Hoje é aniversário de ${primeiro}` });
   });
   tc.filter((p) => Number(p.mes) === mes && Number(p.dia) === diaHoje && Number(p.anos) >= 1).forEach((p) => {
@@ -3196,8 +3219,23 @@ function _muralHomenageados(meuNome) {
     const primeiro = souEu ? "Você" : (nome.split(/\s+/)[0] || "?");
     const anos = Number(p.anos);
     const anosTxt = `${anos} ano${anos > 1 ? "s" : ""}`;
-    out.push({ post: tdcPostId(nome), nome, primeiro, souEu, icone: "medalha", amber: false, tdc: true,
+    out.push({ post: tdcPostId(nome), nome, primeiro, souEu, kind: "tdc", icone: "medalha", amber: false, tdc: true,
       mk: anosTxt, tituloFull: souEu ? `Você completa ${anosTxt} de Fiobras hoje` : `${primeiro} completa ${anosTxt} de Fiobras hoje` });
+  });
+  // Recém-chegados na janela do pipeline (kind 'novo', anel amarelo). souEu é o próprio novato:
+  // recebe as boas-vindas, nunca dá — entra como selo, sem ação.
+  rc.forEach((p) => {
+    const nome = String(p.nome || "").trim();
+    if (!nome) return;
+    const souEu = !!(eu && _normNome(nome) === eu);
+    const primeiro = souEu ? "Você" : (nome.split(/\s+/)[0] || "?");
+    const adm = tsParaData(p.admissao);
+    const dias = adm ? Math.max(1, Math.round((agora - adm.getTime()) / 864e5)) : null;
+    const setor = String(p.setor || "").trim();
+    const quem = souEu ? "Você entrou" : `${primeiro} entrou`;
+    out.push({ post: bvPostId(nome, p.admissao), nome, primeiro, souEu, kind: "novo", icone: "users", amber: false, tdc: false,
+      setor, dias, mk: "novo na equipe",
+      tituloFull: `${quem} pra equipe${setor ? ` (${setor})` : ""}${dias ? `, há ${dias} dia${dias > 1 ? "s" : ""}` : ""}` });
   });
   return out;
 }
@@ -3228,10 +3266,56 @@ function _muralAnimarAnel(post) {
   );
 }
 
-// Bottom sheet do story (nasce/morre no body, nunca re-renderiza): o card CHEIO do
-// homenageado. Curtir ali dá o feedback (coração enche + faixa reflete o anel), fecha o sheet
-// e dispara a escrita (onParabenizar cuida de cache/reconcile/toggle/gami/revert). O próprio
-// homenageado abre sem coração. Física de sheet dos outros (arrasto no mobile).
+// Copy da contagem no viewer do recém-chegado (mesma família da _parabTexto). ehEu = o próprio
+// novato (recebe, não dá): "N colegas já te deram as boas-vindas".
+function _bvViewerTexto(total, mine, ehEu) {
+  if (ehEu) {
+    if (!total) return "Ninguém te deu as boas-vindas ainda";
+    return total === 1 ? "1 colega já te deu as boas-vindas" : `${total} colegas já te deram as boas-vindas`;
+  }
+  if (!total) return "Seja o primeiro a dar as boas-vindas";
+  if (mine) {
+    const outros = total - 1;
+    return outros > 0 ? `Você e mais ${outros} deram as boas-vindas` : "Você deu as boas-vindas";
+  }
+  return total === 1 ? "1 colega deu as boas-vindas" : `${total} colegas deram as boas-vindas`;
+}
+
+// Viewer rico do recém-chegado dentro do bottom sheet (mock bv-stories-2026-07, aprovado):
+// foto grande (casa por nome no gamiTop via _muralFotoHomenageado, fallback iniciais), setor +
+// tempo de casa e a MÃOZINHA C grande como ação. souEu abre sem mão (só recebe). O container
+// carrega data-bv-post e a mão data-bv-total pra o caminho onBoasVindas (cache/aceno/backend).
+function _bvViewerHtml(it) {
+  const c = _reacoesCached(it.post);
+  const mine = !it.souEu && !!(c && c.minhaReacao);
+  const total = c ? (Number(c.total) || 0) : 0;
+  const solido = mine || it.souEu;
+  const dash = solido ? "0" : "4 5";
+  const foto = _muralFotoHomenageado(it.nome, it.souEu);
+  const avStyle = foto ? `background-image:url('${foto}');color:transparent` : `background:${_muralCor(it.nome)}`;
+  const meta = `<span>${escapeHtml(it.setor || "")}</span><span class="dot"></span><span>${it.souEu ? "" : "entrou pra equipe "}${it.dias ? `há ${it.dias} dia${it.dias > 1 ? "s" : ""}` : ""}</span>`;
+  const nomeGrande = it.souEu ? "Você entrou pra equipe" : escapeHtml(it.primeiro);
+  const badge = solido
+    ? `<span class="bvv__badge on">${_bvHand(true)}</span>`
+    : `<span class="bvv__badge">${cpIcon("users")}</span>`;
+  return `<div class="bvv${it.souEu ? " bvv--self" : ""}" data-bv-post="${escapeHtml(it.post)}">
+      <div class="bvv__avwrap">
+        <svg class="bvv__rsvg" viewBox="0 0 88 88" aria-hidden="true"><circle cx="44" cy="44" r="41" stroke-dasharray="${dash}"></circle></svg>
+        <span class="bvv__av" style="${avStyle}">${foto ? "" : escapeHtml(initials(it.nome))}</span>
+        ${badge}
+      </div>
+      <div class="bvv__nm">${nomeGrande}</div>
+      <div class="bvv__meta">${meta}</div>
+      ${it.souEu ? "" : `<button class="bvv__hand${mine ? " on" : ""}" type="button" data-bv-total="${total}" aria-pressed="${mine ? "true" : "false"}" aria-label="Dar as boas-vindas a ${escapeHtml(it.primeiro)}">${_bvHand(mine)}</button>`}
+      <div class="bvv__count">${escapeHtml(_bvViewerTexto(total, mine, !!it.souEu))}</div>
+    </div>`;
+}
+
+// Bottom sheet do story (nasce/morre no body, nunca re-renderiza): o card CHEIO do aniversário/
+// tempo-de-casa, OU o viewer de boas-vindas do recém-chegado (kind 'novo'). Reagir ali dá o
+// feedback (coração/mão enche + faixa reflete), fecha o sheet e dispara a escrita (onParabenizar
+// pro aniv, onBoasVindas pro novato: ambos cuidam de cache/reconcile/toggle/gami/revert). O
+// próprio homenageado abre sem ação. Física de sheet dos outros (arrasto no mobile).
 function abrirMuralSheet(post) {
   if (document.querySelector(".mural-sheet")) return; // já aberto
   const f = (state.funcionarios && state.funcionarios[0]) || null;
@@ -3239,14 +3323,19 @@ function abrirMuralSheet(post) {
   const nome = (f && f.nome) || (u && u.nome) || "";
   const it = _muralHomenageados(nome).find((x) => x.post === post);
   if (!it) return;
+  const novo = it.kind === "novo";
   const prevFocus = document.activeElement;
   const semMov = prefereMenosMovimento();
+  const cardHtml = novo ? _bvViewerHtml(it) : _muralFullCardHtml(it);
+  const hint = novo
+    ? (it.souEu ? "É o começo por aqui. Os colegas vão te dar as boas-vindas ao longo do dia." : `Toque na mão para dar as boas-vindas a ${it.primeiro}.`)
+    : (it.souEu ? "É o seu dia, os colegas vão te parabenizar por aqui." : `Toque no coração para parabenizar ${it.primeiro}.`);
   const ov = document.createElement("div");
   ov.className = "mural-sheet";
   ov.innerHTML = `<div class="mural-sheet__folha" role="dialog" aria-modal="true" tabindex="-1" aria-label="${escapeHtml(it.tituloFull)}">
       <span class="grab"></span>
-      <div class="mural-sheet__card">${_muralFullCardHtml(it)}</div>
-      <p class="mural-sheet__hint" data-sheet-hint>${escapeHtml(it.souEu ? "É o seu dia, os colegas vão te parabenizar por aqui." : `Toque no coração para parabenizar ${it.primeiro}.`)}</p>
+      <div class="mural-sheet__card">${cardHtml}</div>
+      <p class="mural-sheet__hint" data-sheet-hint>${escapeHtml(hint)}</p>
     </div>`;
   document.body.appendChild(ov);
   const folha = ov.querySelector(".mural-sheet__folha");
@@ -3284,16 +3373,37 @@ function abrirMuralSheet(post) {
     // caminho), então nunca conta como churn nem re-cascateia num rebuild.
     setTimeout(() => { if (ligar) _muralAnimarAnel(post); fechar(); }, semMov ? 0 : (ligar ? 620 : 320));
   });
-  // Foco na ação primária (a11y): o coração quando há, senão a folha (dialog).
-  setTimeout(() => { try { (heart || folha).focus({ preventScroll: true }); } catch {} }, semMov ? 0 : 60);
+  // Recém-chegado: a mãozinha grande é a ação, ligada ao caminho onBoasVindas existente
+  // (aplica otimista + aceno _acenarMao no gesto + toggle + gami + revert). O container carrega
+  // data-bv-post; a mão NÃO é data-bv-hand (não passa pela delegação do document, wire local).
+  // Ao reagir a faixa ESMAECE (reconcile, cache já mutado por onBoasVindas) e o sheet fecha.
+  // Reagir de novo desliga (toggle), como o coração.
+  const bvHand = folha.querySelector(".bvv__hand");
+  if (bvHand) bvHand.addEventListener("click", () => {
+    if (bvHand.dataset.busy === "1") return;
+    const ligar = !bvHand.classList.contains("on");
+    onBoasVindas(bvHand); // aplica otimista (mão/cache/aceno) + backend; onBoasVindas reverte no erro
+    const badge = folha.querySelector(".bvv__badge");
+    if (badge) { badge.classList.toggle("on", ligar); badge.innerHTML = ligar ? _bvHand(true) : cpIcon("users"); }
+    const circle = folha.querySelector(".bvv__rsvg circle");
+    if (circle) circle.setAttribute("stroke-dasharray", ligar ? "0" : "4 5");
+    const cntEl = folha.querySelector(".bvv__count");
+    if (cntEl) cntEl.textContent = _bvViewerTexto(Number(bvHand.dataset.bvTotal || "0") || 0, ligar, false);
+    const hintEl = folha.querySelector("[data-sheet-hint]");
+    if (hintEl) hintEl.textContent = ligar ? `Pronto, você deu as boas-vindas a ${it.primeiro}.` : `Ok, tirei as suas boas-vindas a ${it.primeiro}.`;
+    _reconciliarMuralRegioes(); // a faixa esmaece o rosto (variante A: continua na faixa)
+    setTimeout(fechar, semMov ? 0 : (ligar ? 640 : 320));
+  });
+  // Foco na ação primária (a11y): o coração/mão quando há, senão a folha (dialog).
+  setTimeout(() => { try { (heart || bvHand || folha).focus({ preventScroll: true }); } catch {} }, semMov ? 0 : 60);
   // Física de arrasto no mobile (a entrada já foi animada acima; animarEntrada:false).
   aplicarFisicaSheet(folha, { mq: "(max-width: 640px)", onFechar: fechar, animarEntrada: false });
 }
 
-// Reconcilia as REGIÕES da home (piloto de regiões, v374; faixa de stories v379): saudação +
-// faixa "Hoje na Fiobras" a partir do CACHE; o morph do updateRegion patcha só o que mudou
-// (contagem da saudação, anel dos rostos) sem tocar em nó que não mexeu. Boas-vindas fica
-// FORA (colapso imperativo próprio, e o mesmo preenchedor serve o hub do gestor).
+// Reconcilia as REGIÕES da home (piloto de regiões, v374; faixa de stories v379; recém-chegados
+// na faixa v401): saudação + faixa "Hoje na Fiobras" a partir do CACHE; o morph do updateRegion
+// patcha só o que mudou (contagem da saudação, anel dos rostos, esmaecer do recém-chegado a quem
+// já dei boas-vindas) sem tocar em nó que não mexeu.
 function _reconciliarMuralRegioes() {
   const u = currentUser();
   const f = (state.funcionarios && state.funcionarios[0]) || null;
@@ -3441,50 +3551,6 @@ function aniversariantesDoMesHtml(meuNome) {
     </div>`;
   }).join("");
   return `<div class="pp-ovl">Aniversariantes do mês</div><div class="pp-aniv">${cards}</div>`;
-}
-
-// Boas-vindas aos recem-chegados na home do COLABORADOR (paridade com o card do
-// gestor). Fonte: config/aniversariantes.recemChegados [{nome, admissao, setor}],
-// populado pelo pipeline (missao no bridge 2026-07-14); sem o campo, o card nao
-// existe (dormente). Reusa a anatomia .pp-bday e a liturgia bv- do mural
-// (preencherCardsBoasVindas/onBoasVindas ja operam por [data-bv-post] no DOM).
-// Filtro POR PESSOA (William, 2026-07-16): quem ja deu o like nao ve mais o card
-// (some antes dos 15 dias); quem ainda nao deu continua vendo ate o fim da janela.
-// P3 (BOOT PERFEITO): o card de uma pessoa SO nasce quando o estado de reacao daquele
-// post e CONHECIDO (cache quente via P1, ou leitura concluida). Reacao desconhecida =
-// card nao nasce; preencherCardsBoasVindas le e, se nasce card novo, re-render coalescido
-// (nunca injecao/colapso de DOM). O colapso animado fica so pro gesto real (onBoasVindas).
-function colabBoasVindasHtml(meuNome) {
-  const rec = (state.aniversariantes && Array.isArray(state.aniversariantes.recemChegados))
-    ? state.aniversariantes.recemChegados : [];
-  if (!rec.length) return "";
-  const eu = _normNome(meuNome);
-  const hoje = Date.now();
-  return rec.map((p) => {
-    const nome = String(p.nome || "").trim();
-    if (!nome) return "";
-    const souEu = eu && _normNome(nome) === eu;
-    const primeiro = nome.split(/\s+/)[0];
-    const adm = tsParaData(p.admissao);
-    const dias = adm ? Math.max(1, Math.round((hoje - adm.getTime()) / 864e5)) : null;
-    const post = bvPostId(nome, p.admissao);
-    const c = _reacoesCached(post);
-    // P3 (BOOT PERFEITO): estado de reacao DESCONHECIDO -> o card daquela pessoa NAO nasce
-    // (nada de botao que aparece e some). So nasce quando a reacao e CONHECIDA: cache quente
-    // via P1 (persistencia) ou leitura concluida por preencherCardsBoasVindas, que entao
-    // dispara o re-render coalescido. Com P1 o caso comum ja nasce daqui direto.
-    if (!c) return "";
-    const mine = !!c.minhaReacao;
-    if (mine) return ""; // ja reagiu: card nao nasce
-    return `<div class="pp-bday" data-bv-post="${escapeHtml(post)}">
-      <div class="pp-bday__ic">${cpIcon("users")}</div>
-      <div class="pp-bday__bd">
-        <div class="pp-bday__t">${escapeHtml(primeiro)} entrou pra equipe${p.setor ? ` (${escapeHtml(p.setor)})` : ""}${dias ? `, há ${dias} dia${dias > 1 ? "s" : ""}` : ""}</div>
-        <div class="pp-bday__s" data-bv-count>${escapeHtml(_bvTexto(c.total, mine))}</div>
-      </div>
-      ${souEu ? "" : `<button class="pp-bday__heart" type="button" data-bv-hand data-bv-total="${c.total}" aria-pressed="false" aria-label="Dar as boas-vindas a ${escapeHtml(primeiro)}">${_bvHand(false)}</button>`}
-    </div>`;
-  }).join("");
 }
 
 // Comunicado fixado em destaque na home (reusa .pp-card--pin). Pega o 1o fixado do segmento.
@@ -4214,11 +4280,11 @@ function renderColaboradorHome() {
   // Dados reais do próprio funcionário (carregado no boot: state.funcionarios[0] = só o doc dele).
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
-  // SHELL estável + REGIÕES (piloto de regiões estendido à home, v374; faixa de stories v379):
-  // a saudação e a faixa "Hoje na Fiobras" vivem em regiões (data-region), que o updateRegion
-  // patcha no lugar. Assim a leitura assíncrona das reações e o parabéns NÃO repintam a tela:
-  // morpha só o anel que mudou, preservando nó/foco. Boas-vindas segue inline (colapso
-  // imperativo próprio + o mesmo preenchedor serve o hub do gestor, que não tem regiões).
+  // SHELL estável + REGIÕES (piloto de regiões estendido à home, v374; faixa de stories v379;
+  // recém-chegados na faixa v401): a saudação e a faixa "Hoje na Fiobras" (aniversário, tempo de
+  // casa E recém-chegados) vivem em regiões (data-region), que o updateRegion patcha no lugar.
+  // Assim a leitura assíncrona das reações e o reagir NÃO repintam a tela: morpha só o anel que
+  // mudou, preservando nó/foco. A faixa SOBE pra col1, logo abaixo da barra de pontos (v401).
   const escreveu = setHtml(view, `
     <div class="pp-fade pp-home">
       <div data-region="home:greet"></div>
@@ -4228,12 +4294,11 @@ function renderColaboradorHome() {
       <div class="pp-home__grid">
         <div class="pp-home__col">
           ${gamiCardHomeHtml()}
+          <div data-region="mural:strip"></div>
           ${precisaAtencaoHtml()}
         </div>
         <div class="pp-home__col">
           ${comunicadoFixadoHtml()}
-          <div data-region="mural:strip"></div>
-          <div class="pp-bday-m">${colabBoasVindasHtml(nome)}</div>
           <div class="pp-aniv-d">${aniversariantesDoMesHtml(nome)}</div>
         </div>
       </div>
@@ -4247,11 +4312,11 @@ function renderColaboradorHome() {
     bindClimaConvite(view);
     view.querySelector("[data-den-abrir]")?.addEventListener("click", abrirCanalDenuncia);
   }
-  // Leitura assíncrona das reações/fotos: atualiza o cache e reconcilia as regiões (nunca
-  // escreve em nó direto). Não bloqueia o render.
+  // Leitura assíncrona das reações/fotos (aniversário/tempo de casa): atualiza o cache e
+  // reconcilia as regiões (nunca escreve em nó direto). Não bloqueia o render.
   carregarMuralAniv();
-  // Boas-vindas aos recem-chegados: estado real assíncrono + colapso, inline e imperativo
-  // (mesmo preenchedor do hub do gestor; o clique já é delegado).
+  // Reações de boas-vindas dos recém-chegados da faixa: aquece o cache e reconcilia a região
+  // (esmaece o rosto de quem já recebeu as minhas boas-vindas). Sem DOM manual.
   preencherCardsBoasVindas();
   // F · saudação revelada por palavra 1x por dia (marca por uid); demais cargas nascem estáticas.
   talvezRevelarSaudacao();
@@ -9409,35 +9474,14 @@ function _bvTexto(total, mine) {
   return total === 1 ? "1 colega deu as boas-vindas" : `${total} colegas deram as boas-vindas`;
 }
 
-// Colapso elegante (WAAPI, mesmo espírito de animarEntrada: não mexe em classe/style
-// persistente) do card de boas-vindas quando a pessoa já reagiu. Anima altura+opacidade
-// e remove do DOM ao terminar -- nunca um pop seco, e o remove garante que o próximo
-// re-render (agora com cache quente) já nasce sem o card, sem depender do CSS.
-function _colapsarCardBv(el) {
-  if (!el || !el.parentNode) return;
-  if (prefereMenosMovimento() || typeof el.animate !== "function") { el.remove(); return; }
-  const h = el.getBoundingClientRect().height;
-  const cs = getComputedStyle(el);
-  const anim = el.animate(
-    [
-      { opacity: 1, transform: "scale(1)", maxHeight: h + "px", marginTop: cs.marginTop, marginBottom: cs.marginBottom },
-      { opacity: 0, transform: "scale(.96)", maxHeight: "0px", marginTop: "0px", marginBottom: "0px" },
-    ],
-    { duration: 320, easing: "cubic-bezier(.2, .8, .2, 1)" }
-  );
-  anim.onfinish = () => el.remove();
-}
-
-// Resolve o estado real de reação dos cards de boas-vindas. P3 (BOOT PERFEITO): duas
-// liturgias, escolhidas pela tela ativa:
-//  · COLAB (home): os cards só nascem quando a reação é CONHECIDA. Aqui varremos os
-//    recém-chegados (mesmo os que NÃO nasceram por reação desconhecida), lemos as reações
-//    (que aquecem state._reacoesCache) e, se isso muda o que a home deve mostrar (card
-//    novo nasce, ou um que sumiu por já-reagido), re-render coalescido — o template decide
-//    quem nasce/some, NUNCA injeção/colapso de DOM. Descobrir mine=true de card que não
-//    nasceu: nada a fazer (a assinatura não muda o que já está na tela).
-//  · GESTOR (hub vg-adm) e demais: atualiza contagem/mão NO PRÓPRIO DOM (o card do gestor
-//    sempre aparece, mostra "on" quando já reagiu). Sem colapso (esse é só do gesto real).
+// Resolve o estado real de reação de boas-vindas dos recém-chegados. Duas liturgias, escolhidas
+// pela tela ativa:
+//  · COLAB (home): a faixa já mostra TODO recém-chegado da janela (o rosto nasce, o anel deriva
+//    do cache). Aqui varremos os recém-chegados, lemos as reações (que aquecem state._reacoesCache)
+//    e, se a assinatura muda, RECONCILIAMOS a região da faixa (o morph esmaece o rosto de quem já
+//    recebeu minhas boas-vindas). Sem DOM manual, sem re-render de tela inteira.
+//  · GESTOR (hub vg-adm) e demais: atualiza contagem/mão NO PRÓPRIO DOM (o card do gestor sempre
+//    aparece, mostra "on" quando já reagiu).
 async function preencherCardsBoasVindas() {
   if (typeof window.carregarReacoesAniversario !== "function") return;
   const naHome = (state.view && state.view.page) === "colab-home";
@@ -9449,7 +9493,7 @@ async function preencherCardsBoasVindas() {
     const sig = (post) => { const c = _reacoesCached(post); return c ? (c.minhaReacao ? "m" : "n") + c.total : "?"; };
     const antes = posts.map(sig).join("|");
     await Promise.all(posts.map((post) => window.carregarReacoesAniversario(post).catch(() => {})));
-    if (posts.map(sig).join("|") !== antes && (state.view && state.view.page) === "colab-home") renderApp();
+    if (posts.map(sig).join("|") !== antes && (state.view && state.view.page) === "colab-home") _reconciliarMuralRegioes();
     return;
   }
   const cards = Array.from(document.querySelectorAll("[data-bv-post]"));
@@ -9472,7 +9516,11 @@ async function preencherCardsBoasVindas() {
   }));
 }
 
-// Toque na mão de boas-vindas: otimista, espelha onParabenizar (reverte + toast no erro).
+// Toque na mão de boas-vindas: otimista, espelha onParabenizar (reverte + toast no erro). Dois
+// chamadores: o card do gestor (hub vg-adm, via delegação [data-bv-hand]) e o viewer do
+// recém-chegado no bottom sheet do colab (via .bvv__hand, wire local em abrirMuralSheet, que
+// reconcilia a faixa e fecha depois). O elemento passado carrega data-bv-total e vive dentro de
+// um [data-bv-post]; o count opcional é [data-bv-count].
 async function onBoasVindas(hand) {
   if (!hand || hand.dataset.busy === "1") return;
   const card = hand.closest("[data-bv-post]");
@@ -9504,12 +9552,6 @@ async function onBoasVindas(hand) {
     if (ligar) {
       const primeiro = (hand.getAttribute("aria-label") || "").replace(/^Dar as boas-vindas a /, "").trim();
       window.gamiClaim?.("boas-vindas", post, primeiro ? `Deu boas-vindas a ${primeiro}` : "Deu boas-vindas a um colega");
-      // Colab (.pp-bday): assim que a pessoa deu o like o card não faz mais sentido
-      // (William, 2026-07-16) -- espera um instante pra ela ver a confirmação (mão
-      // acesa + contagem) e então colapsa. O card do gestor (vg-adm) fica como está.
-      if (card.classList.contains("pp-bday")) {
-        setTimeout(() => { if (hand.classList.contains("on")) _colapsarCardBv(card); }, 550);
-      }
     }
   } catch (err) {
     debug?.("[boas-vindas] falhou:", err?.code, err?.message);
@@ -20083,7 +20125,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.14.0";
+window.CURRENT_VERSION = "2.15.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

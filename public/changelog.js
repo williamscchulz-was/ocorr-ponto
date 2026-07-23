@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.14.0", d: "23 jul 2026", current: true, items: [
+    v: "2.15.0", d: "23 jul 2026", current: true, items: [
+      { type: "feat", aud: "colab", title: "Quem chegou agora entra nos destaques do dia" },
+    ],
+  },
+  {
+    v: "2.14.0", d: "23 jul 2026", items: [
       { type: "fix", aud: "colab", title: "Tela inicial do computador centrada e sem vão" },
       { type: "fix", title: "Troca de telas mais suave, sem pisca" },
     ],

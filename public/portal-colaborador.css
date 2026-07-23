@@ -466,24 +466,24 @@ html.modo-colab.cp-dark{
 .pp-bday__bd{flex:1;min-width:0;position:relative;z-index:1}
 .pp-bday__t{font-size:13.5px;font-weight:600;color:var(--text-body)}
 .pp-bday__s{font-size:11.5px;color:var(--text-muted);margin-top:1px}
-/* aniversariantes: mobile mostra só HOJE (pp-bday-m); desktop mostra HOJE (com o coração
-   de parabenizar, decisão William 2026-07-07) E a lista do mês (pp-aniv-d) */
+/* aniversariantes do mês: escondida no mobile (a faixa "Hoje na Fiobras" já festeja o dia),
+   revelada no desktop (a coluna secundária tem espaço pra lista completa, ver pp-aniv-d abaixo) */
 .pp-aniv-d{display:none}
-.pp-bday-m{margin-top:14px}
 @media (min-width:901px){
   /* Cap de largura no desktop: o portal esparramava na tela toda. Centra o
      conteúdo num container de 780px (só no colaborador, só no desktop). O #119
      encaixa junto: o contador da aba Documentos volta pro lado do título. */
   .modo-colab #view>.pp-fade{max-width:780px;margin-inline:auto}
   .pp-home__grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:start}
-  /* Degrada pra coluna única quando a coluna de gami+atenção não tem conteúdo
-     relevante (gami dormente + zero pendências): o grid reservava a coluna vazia
-     e sobrava um vão enorme à esquerda (a home ficava torta). Sem ela, o miolo
-     vira uma coluna de largura cheia (mesmo padrão de Avisos/Documentos), centrada
-     pelo cap de 780px acima. :has = recurso nativo (degrau 4); iOS 15.4+/Chrome 105+.
-     Só CSS: o DOM não muda, então o mobile (<=900px) fica intocado. */
-  .pp-home__grid:not(:has(> .pp-home__col:first-child > *)){display:block}
-  .pp-home__grid:not(:has(> .pp-home__col:first-child > *)) > .pp-home__col:first-child{display:none}
+  /* Degrada pra coluna única quando a col1 (pontos + FAIXA + atenção) não tem conteúdo
+     relevante (gami dormente + faixa vazia + zero pendências): o grid reservava a coluna vazia
+     e sobrava um vão enorme à esquerda (a home ficava torta). Sem ela, o miolo vira uma coluna
+     de largura cheia (mesmo padrão de Avisos/Documentos), centrada pelo cap de 780px acima.
+     :not(:empty) porque a faixa vive num <div data-region> SEMPRE presente (v401): vazio ele é
+     :empty e não conta como conteúdo; com um rosto na faixa ele conta e o grid segue em 2 colunas.
+     :has = recurso nativo (degrau 4); iOS 15.4+/Chrome 105+. Só CSS: o DOM não muda, mobile intocado. */
+  .pp-home__grid:not(:has(> .pp-home__col:first-child > *:not(:empty))){display:block}
+  .pp-home__grid:not(:has(> .pp-home__col:first-child > *:not(:empty))) > .pp-home__col:first-child{display:none}
   .pp-aniv-d{display:block}
   /* Roadmap desktop: lista alinhada, sem alternância l/r nem tocos de conector soltos
      (os fp-trib-svg pareciam artefato de renderização numa lista já vertical). */
@@ -772,29 +772,52 @@ html.modo-colab.cp-dark .cp-dia__s--neg{color:#E06A5A}
 .pp-bday--tdc::after{background:radial-gradient(circle,rgba(0,136,53,.13),transparent 70%)}
 .pp-bday--tdc .pp-bday__ic{background:rgba(0,136,53,.12);color:var(--plum)}
 /* ===== FAIXA DE STORIES "Hoje na Fiobras" (v379, direção A, mock home-premium-2026-07,
-   aprovado William 2026-07-21): rostos 56px dos homenageados do dia (aniversário + tempo
-   de casa). Anel TRACEJADO em quem falta parabenizar, PREENCHIDO + coração em quem já foi;
-   o próprio homenageado tem selo especial. Toque no rosto abre o bottom sheet. ===== */
+   aprovado William 2026-07-21; recém-chegados v401, mock bv-stories-2026-07): rostos dos
+   homenageados do dia (aniversário + tempo de casa, anel verde) MAIS os recém-chegados da
+   janela (anel AMARELO, st--novo). Anel TRACEJADO em quem falta reagir; ao reagir o aniv fica
+   PREENCHIDO + coração (st--done) e o recém-chegado ESMAECE + mão (st--seen, continua na faixa).
+   O próprio homenageado tem anel âmbar e selo, nunca reage. Toque no rosto abre o bottom sheet. ===== */
 .mural-strip{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 6px;margin-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .mural-strip::-webkit-scrollbar{display:none}
 .st{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;font:inherit;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
 .st__ring{position:relative;width:64px;height:64px;display:grid;place-items:center}
 .st__rsvg{position:absolute;inset:0;width:100%;height:100%}
-.st__rsvg circle{fill:none;stroke:var(--plum);stroke-width:2.4;stroke-linecap:round}
+/* Ouro do recém-chegado (selo + micro-rótulo): TOKEN pra o claro/escuro trocarem o VALOR sem que
+   o seletor precise de html.cp-dark (que venceria st--seen/st--self por especificidade). */
+:root{--gold-ink:#9A6E00}
+html.cp-dark{--gold-ink:#E8C15A}
+/* Anel: verde (aniv/tempo de casa), AMARELO (recém-chegado, st--novo), âmbar (o próprio, st--self),
+   esmaecido (já reagi ao recém-chegado, st--seen). Ordem importa (todas mesma especificidade, a
+   última vence): novo, depois self (o próprio novato é âmbar, não amarelo), depois seen (vence tudo).
+   --fiobras-yellow serve claro E escuro (nada de html.cp-dark aqui, senão passaria à frente de
+   self/seen). transition SÓ de cor, nunca de stroke-dasharray (troca instantânea, senão longtask). */
+.st__rsvg circle{fill:none;stroke:var(--plum);stroke-width:2.4;stroke-linecap:round;transition:stroke .3s}
+.st--novo .st__rsvg circle{stroke:var(--fiobras-yellow,#FFCB00)}
 .st--self .st__rsvg circle{stroke:var(--warning)}
-.st__av{width:52px;height:52px;border-radius:50%;background-size:cover;background-position:center;background-color:var(--surface-warm);display:grid;place-items:center;color:#fff;font-size:17px;font-weight:700;letter-spacing:.01em;text-transform:uppercase}
+.st--seen .st__rsvg circle{stroke:var(--border-strong)}
+.st__av{width:52px;height:52px;border-radius:50%;background-size:cover;background-position:center;background-color:var(--surface-warm);display:grid;place-items:center;color:#fff;font-size:17px;font-weight:700;letter-spacing:.01em;text-transform:uppercase;transition:opacity .3s,filter .3s}
+.st--seen .st__av{opacity:.5;filter:grayscale(.35)}
 .st__badge{position:absolute;right:-1px;bottom:-1px;width:22px;height:22px;border-radius:50%;border:2.5px solid var(--bg);display:flex;align-items:center;justify-content:center}
 .st__badge--type{background:var(--surface);color:var(--plum)}
 .st__badge--type.amber{color:var(--warning)}
+.st__badge--type.novo{color:var(--gold-ink)}
 .st__badge--type svg{width:12px;height:12px}
 .st__badge--heart{background:var(--plum);color:#fff;display:none}
 .st__badge--heart svg{width:12px;height:12px}
+.st__badge--hand{background:var(--plum);color:#fff;display:none}
+.st__badge--hand svg{width:13px;height:13px}
 .st--done .st__badge--type{display:none}
 .st--done .st__badge--heart{display:flex}
+.st--donebv .st__badge--type{display:none}
+.st--donebv .st__badge--hand{display:flex}
+.st--seen .st__badge--hand{background:var(--border-strong);color:var(--text-muted)}
 .st__nm{font-size:11px;font-weight:600;color:var(--text-body);max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st--seen .st__nm{color:var(--text-muted)}
 .st__mk{font-size:9.5px;font-weight:500;color:var(--text-muted);margin-top:-3px;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st__mk--novo{color:var(--gold-ink);font-weight:600;white-space:normal;line-height:1.15;max-width:66px}
+.st--seen .st__mk--novo{color:var(--text-muted);font-weight:500}
 .st:active .st__av{transform:scale(.94);transition:transform .12s var(--ease-ios)}
-@media (prefers-reduced-motion:reduce){.st__rsvg circle{transition:none}.st:active .st__av{transform:none}}
+@media (prefers-reduced-motion:reduce){.st__rsvg circle,.st__av{transition:none}.st:active .st__av{transform:none}}
 
 /* Bottom sheet do story (nasce/morre no body, nunca re-renderiza). Reusa a anatomia
    .pp-bday (título, pilha de reatores, coração grande) e a física dos outros sheets. */
@@ -805,6 +828,29 @@ html.cp-dark .mural-sheet{background:rgba(0,0,0,.5)}
 .mural-sheet__card .pp-bday{box-shadow:none}
 .mural-sheet__hint{font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:12px;line-height:1.4}
 @media (min-width:641px){.mural-sheet{align-items:center}.mural-sheet__folha{border-radius:22px}}
+
+/* Viewer rico do recém-chegado no bottom sheet (mock bv-stories-2026-07, aprovado): foto grande,
+   anel amarelo (âmbar quando é o próprio), a mãozinha C grande como ação. */
+.bvv{text-align:center;padding:2px 6px}
+.bvv__avwrap{position:relative;width:88px;height:88px;margin:2px auto 14px}
+.bvv__rsvg{position:absolute;inset:0;width:100%;height:100%}
+.bvv__rsvg circle{fill:none;stroke:var(--fiobras-yellow,#FFCB00);stroke-width:2.6;stroke-linecap:round}
+.bvv--self .bvv__rsvg circle{stroke:var(--warning)}
+.bvv__av{position:absolute;inset:8px;border-radius:50%;background:var(--surface-warm);display:grid;place-items:center;color:#fff;font-size:26px;font-weight:700;text-transform:uppercase;background-size:cover;background-position:center}
+.bvv__badge{position:absolute;right:2px;bottom:2px;width:28px;height:28px;border-radius:50%;border:3px solid var(--bg);background:var(--surface);color:var(--gold-ink);display:grid;place-items:center}
+.bvv--self .bvv__badge{color:var(--warning)}
+.bvv__badge.on{background:var(--plum);color:#fff}
+.bvv__badge svg{width:15px;height:15px}
+.bvv__nm{font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--text-body)}
+.bvv__meta{font-size:12.5px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
+.bvv__meta .dot{width:3px;height:3px;border-radius:50%;background:var(--border-strong)}
+.bvv__hand{margin:18px auto 4px;width:60px;height:60px;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface);color:var(--plum);display:grid;place-items:center;cursor:pointer;transition:transform .15s,background .18s,color .18s,border-color .18s;-webkit-tap-highlight-color:transparent}
+.bvv__hand svg{width:30px;height:30px}
+.bvv__hand:active{transform:scale(.93)}
+.bvv__hand.on{background:var(--plum);border-color:var(--plum);color:#fff;box-shadow:0 8px 20px rgba(0,136,53,.28)}
+@media (hover:hover){.bvv__hand:hover{border-color:var(--plum)}}
+.bvv__count{font-size:12.5px;color:var(--text-muted);margin-top:12px;font-weight:500}
+.bvv__count b{color:var(--text-body);font-weight:600}
 
 /* Carga única da tela Documentos (mock aprovado 2026-07-17): skeleton com a MESMA
    geometria das linhas reais + barra fina no topo como único movimento. Só na 1ª
