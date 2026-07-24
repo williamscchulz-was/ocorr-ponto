@@ -416,8 +416,8 @@
   /* E ainda: fileira secundária com as demais telas, em miniatura */
   .espera-mais{ margin-top:12px; }
   .espera-mais__lbl{ font-size:8.3pt; font-weight:600; letter-spacing:.15em; text-transform:uppercase; color:var(--tinta-suave); margin-bottom:7px; }
-  .espera-mini{ display:grid; grid-template-columns:repeat(3,1fr); gap:0 16px; justify-items:center; }
-  .espera-card--mini figcaption{ margin-top:8px; font-size:8.4pt; font-weight:700; color:var(--verde-deep); text-align:center; line-height:1.18; max-width:42mm; }
+  .espera-mini{ display:grid; grid-template-columns:repeat(4,1fr); gap:0 13px; justify-items:center; }
+  .espera-card--mini figcaption{ margin-top:8px; font-size:8.1pt; font-weight:700; color:var(--verde-deep); text-align:center; line-height:1.18; max-width:40mm; }
   .espera-card--mini figcaption span{ display:block; font-size:7.3pt; font-weight:400; color:var(--tinta-suave); margin-top:2px; line-height:1.26; }
   .fone--mini{ --pw:106px; --ph:230px; border-radius:18px; padding:4px; }
   .fone--mini .fone__scr{ border-radius:14px; }
@@ -973,7 +973,7 @@
   </div>
 
   <div class="espera">
-    <p class="espera__intro">Assim que você entra com o seu CPF, o portal aparece <b>com o seu nome</b> e com tudo à mão: o <b>seu ponto</b> do dia a dia, os <b>seus recibos de pagamento</b> pra ver e assinar, os avisos da empresa e um canal seguro pra falar. As telas abaixo são de verdade, tiradas do próprio aplicativo.</p>
+    <p class="espera__intro">Assim que você entra com o seu CPF, o portal aparece <b>com o seu nome</b> e com tudo à mão: o <b>seu ponto</b> do dia a dia, os <b>seus recibos de pagamento</b> pra ver e assinar, as suas <b>férias</b> e os avisos da empresa. As telas abaixo são de verdade, tiradas do próprio aplicativo.</p>
 
     <div class="espera-destaque">
       <figure class="espera-card espera-card--big">
@@ -1024,10 +1024,10 @@
                 <svg width="20" height="10" viewBox="0 0 26 13" aria-hidden="true"><rect x="0.6" y="0.9" width="22" height="11.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.5" width="16" height="8" rx="1.4" fill="currentColor"/><rect x="23.4" y="4.2" width="2.1" height="4.6" rx="1" fill="currentColor"/></svg>
               </span>
             </div>
-              <div class="fone__body"><img class="shot" src="tutorial-assets/home.png" alt="Tela inicial do FioPulse"></div>
+              <div class="fone__body"><img class="shot" src="tutorial-assets/onb-novo.png" alt="Apresentação de boas-vindas do FioPulse"></div>
             </div>
           </div>
-          <figcaption>Sua tela inicial<span>Já com o seu nome.</span></figcaption>
+          <figcaption>Boas-vindas<span>Uma apresentação te recebe no primeiro acesso.</span></figcaption>
         </figure>
         <figure class="espera-card espera-card--mini">
           <div class="fone fone--mini">
@@ -1040,10 +1040,10 @@
                 <svg width="20" height="10" viewBox="0 0 26 13" aria-hidden="true"><rect x="0.6" y="0.9" width="22" height="11.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.5" width="16" height="8" rx="1.4" fill="currentColor"/><rect x="23.4" y="4.2" width="2.1" height="4.6" rx="1" fill="currentColor"/></svg>
               </span>
             </div>
-              <div class="fone__body"><img class="shot" src="tutorial-assets/onb-6.png" alt="Tela de Conquistas"></div>
+              <div class="fone__body"><img class="shot" src="tutorial-assets/ferias.png" alt="Tela de Férias do FioPulse"></div>
             </div>
           </div>
-          <figcaption>Conquistas<span>O dia a dia vira ponto e prêmio.</span></figcaption>
+          <figcaption>Suas férias<span>Saldo de dias e períodos, sem mistério.</span></figcaption>
         </figure>
         <figure class="espera-card espera-card--mini">
           <div class="fone fone--mini">
@@ -1056,10 +1056,26 @@
                 <svg width="20" height="10" viewBox="0 0 26 13" aria-hidden="true"><rect x="0.6" y="0.9" width="22" height="11.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.5" width="16" height="8" rx="1.4" fill="currentColor"/><rect x="23.4" y="4.2" width="2.1" height="4.6" rx="1" fill="currentColor"/></svg>
               </span>
             </div>
-              <div class="fone__body"><img class="shot" src="tutorial-assets/onb-7.png" alt="Canal de denúncia"></div>
+              <div class="fone__body"><img class="shot" src="tutorial-assets/notificacoes.png" alt="Central de notificações do FioPulse"></div>
             </div>
           </div>
-          <figcaption>Canal seguro<span>Fale com a direção, se precisar.</span></figcaption>
+          <figcaption>Notificações<span>Tudo reunido, você não perde nada.</span></figcaption>
+        </figure>
+        <figure class="espera-card espera-card--mini">
+          <div class="fone fone--mini">
+            <div class="fone__scr">
+              <div class="sb">
+              <span class="sb__time">9:41</span>
+              <span class="sb__sys">
+                <svg width="14" height="10" viewBox="0 0 18 12" aria-hidden="true"><g fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
+                <svg width="13" height="10" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M1.4 4.3a10 10 0 0 1 13.2 0"/><path d="M3.9 6.9a6.2 6.2 0 0 1 8.2 0"/><path d="M6.4 9.4a2.5 2.5 0 0 1 3.2 0"/></svg>
+                <svg width="20" height="10" viewBox="0 0 26 13" aria-hidden="true"><rect x="0.6" y="0.9" width="22" height="11.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="2.2" y="2.5" width="16" height="8" rx="1.4" fill="currentColor"/><rect x="23.4" y="4.2" width="2.1" height="4.6" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+              <div class="fone__body"><img class="shot" src="tutorial-assets/vagas.png" alt="Tela de Vagas internas do FioPulse"></div>
+            </div>
+          </div>
+          <figcaption>Vagas internas<span>Oportunidades pra quem já é da casa.</span></figcaption>
         </figure>
       </div>
     </div>
