@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FioPulse · Vídeo tutorial (prévia)</title>
+<style>
+  @font-face{font-family:"Poppins";font-weight:400;font-display:swap;src:url("/public/fonts/poppins-400-latin.woff2") format("woff2")}
+  @font-face{font-family:"Poppins";font-weight:500;font-display:swap;src:url("/public/fonts/poppins-500-latin.woff2") format("woff2")}
+  @font-face{font-family:"Poppins";font-weight:600;font-display:swap;src:url("/public/fonts/poppins-600-latin.woff2") format("woff2")}
+  @font-face{font-family:"Poppins";font-weight:700;font-display:swap;src:url("/public/fonts/poppins-700-latin.woff2") format("woff2")}
+  :root{--verde:#008835;--verde-deep:#046a30;--verde-esc:#024e23;--tinta:#1E2D1A;--tinta-suave:#4A6245;--milk:#f3f6f2;--border:#e2ebe3;--amarelo:#FFCB00}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Poppins",system-ui,sans-serif;color:var(--tinta);background:#eef2ec;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 64px}
+  header.top{display:flex;align-items:center;gap:14px;padding-bottom:20px;border-bottom:2px solid var(--verde);margin-bottom:26px}
+  .brand{width:46px;height:46px;border-radius:24%;background:linear-gradient(160deg,#0a7a3a,#046a30);display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 4px 12px rgba(4,80,40,.24)}
+  .brand svg{width:28px;height:28px}
+  .top h1{font-size:20px;font-weight:700;color:var(--verde-deep);letter-spacing:-.01em}
+  .top .k{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--verde);margin-bottom:2px}
+  .grid{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:34px;align-items:start}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .player{position:sticky;top:20px}
+  video{width:100%;border-radius:22px;background:#024e23;box-shadow:0 18px 44px rgba(6,40,20,.28);display:block}
+  .specs{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-size:12px;font-weight:600;color:var(--verde-deep);background:#fff;border:1px solid var(--border);border-radius:999px;padding:6px 12px}
+  .lead{font-size:15px;color:var(--tinta-suave);margin-bottom:20px;max-width:60ch}
+  .lead b{color:var(--verde-deep)}
+  h2.sec{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-suave);margin:26px 0 12px}
+  ol.rot{list-style:none;counter-reset:c;display:flex;flex-direction:column;gap:8px}
+  ol.rot li{counter-increment:c;display:flex;gap:13px;align-items:flex-start;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 15px}
+  ol.rot li::before{content:counter(c);flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--verde-deep);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  ol.rot b{font-weight:600;color:var(--tinta)}
+  ol.rot span{display:block;font-size:13px;color:var(--tinta-suave);margin-top:1px}
+  .nota{margin-top:22px;background:#fff8e4;border:1px solid #f0dfa8;border-radius:14px;padding:15px 18px;font-size:13.5px;color:#5c4a12}
+  .nota b{color:#7a5200}
+  .rule{width:44px;height:4px;border-radius:2px;background:var(--amarelo);margin:0 0 18px}
+  footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:#8ea391;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2.5-7 5 15 2.5-8H22"/></svg></span>
+    <div>
+      <div class="k">Fiobras · Gestão de Pessoas</div>
+      <h1>Vídeo tutorial · Como usar o app</h1>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="player">
+      <video controls preload="metadata" playsinline>
+        <source src="../tutorial-assets/tutorial-fiopulse.mp4" type="video/mp4">
+        Seu navegador não reproduz este vídeo. Baixe o arquivo em docs/tutorial-assets/tutorial-fiopulse.mp4
+      </video>
+      <div class="specs">
+        <span class="chip">Vertical 810 x 1752</span>
+        <span class="chip">3 min 57 s</span>
+        <span class="chip">H.264 · MP4</span>
+        <span class="chip">7,3 MB</span>
+        <span class="chip">Narração pt-BR</span>
+      </div>
+    </div>
+
+    <div class="conteudo">
+      <div class="rule"></div>
+      <p class="lead">Tutorial animado do <b>portal do colaborador</b>, no mesmo espírito do PDF de instalação, agora em vídeo com narração. Passa pela instalação no celular, pelo primeiro acesso e por todas as áreas do app, em ritmo calmo, com legendas em cada cena. Feito para enviar no WhatsApp.</p>
+
+      <h2 class="sec">Roteiro, em 11 partes</h2>
+      <ol class="rot">
+        <li><b>Instalação no celular</b><span>Stills reais do iOS, passo a passo, com Ken Burns suave. O Android é citado na narração.</span></li>
+        <li><b>Primeiro acesso</b><span>Entrar com o CPF, o termo de adesão à assinatura eletrônica e a apresentação de boas-vindas.</span></li>
+        <li><b>Tela inicial</b><span>Saldo, atalhos, pontos, comunicado fixado e a oportunidade interna aberta.</span></li>
+        <li><b>Hoje na Fiobras</b><span>A faixa de aniversários e o gesto de parabenizar um colega com um toque.</span></li>
+        <li><b>Boas-vindas e canal de escuta</b><span>O cartão de boas-vindas a quem chega e o canal de denúncia, em tom sóbrio.</span></li>
+        <li><b>Meu ponto</b><span>Banco de horas com espelho, Ocorrências e a aba Férias, clara e factual.</span></li>
+        <li><b>Pagamento</b><span>Os recibos e o fluxo de assinatura pelo celular, com data, hora e local.</span></li>
+        <li><b>Documentos</b><span>Regras e políticas da empresa, abertas e assinadas dentro do próprio app.</span></li>
+        <li><b>Avisos e Conquistas</b><span>Os comunicados da empresa e o progresso pessoal em pontos, sem comparação.</span></li>
+        <li><b>Novidades e Conta</b><span>O que chegou de novo e as preferências, incluindo a troca de tema claro e escuro.</span></li>
+        <li><b>Fechamento</b><span>Dúvidas? Fale com a Gestão de Pessoas.</span></li>
+      </ol>
+
+      <div class="nota">
+        <b>Sobre esta versão.</b> A narração usa voz neural em português do Brasil. Todas as telas são capturas reais do app rodando em modo demonstração, com dados de exemplo. Sem trilha musical. Se aprovar, dá para ajustar textos, ritmo ou trocar a voz numa próxima rodada.
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>FioPulse · Fiobras · prévia interna</span>
+    <span>docs/tutorial-assets/tutorial-fiopulse.mp4</span>
+  </footer>
+</div>
