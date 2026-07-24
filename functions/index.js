@@ -77,11 +77,16 @@ exports.enviarWaMsg = onDocumentCreated(
       return;
     }
 
-    // to: so digitos + DDI. Sem DDI o numero BR tem 10-11 digitos, com DDI 55
-    // tem 12-13; discriminar por comprimento, senao DDD 55 (Santa Maria RS)
-    // seria confundido com DDI e ficaria sem prefixo.
-    const dig = data.para.replace(/\D/g, '');
-    const to = (dig.length >= 12 && dig.startsWith('55')) ? dig : '55' + dig;
+    // to: so digitos + DDI. Candidato do EXTERIOR (William 24/07): '+' ou '00'
+    // no inicio = o candidato ESCOLHEU o DDI, respeitar como esta (E.164), nunca
+    // prefixar 55. Sem esse sinal, heuristica BR de sempre: sem DDI o numero tem
+    // 10-11 digitos, com DDI 55 tem 12-13; discriminar por comprimento, senao
+    // DDD 55 (Santa Maria RS) seria confundido com DDI e ficaria sem prefixo.
+    const raw = String(data.para).trim();
+    const dig = raw.replace(/\D/g, '');
+    const to = raw.startsWith('+') ? dig
+      : dig.startsWith('00') ? dig.slice(2)
+      : (dig.length >= 12 && dig.startsWith('55')) ? dig : '55' + dig;
 
     const body = {
       messaging_product: 'whatsapp',
