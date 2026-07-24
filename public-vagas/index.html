@@ -32,7 +32,7 @@
      do fundo do hero e o texto verde-escuro some no verde-escuro */
   .hero h1 .marca { position: relative; display: inline-grid; color: #04331a; padding: 0 6px; isolation: isolate; }
   .hero h1 .marca::before { content: ""; position: absolute; inset: 8% -2% 4%; background: #FFCB00; border-radius: 8px; transform: rotate(-1.2deg); z-index: -1; }
-  .hero h1 .marca .verbo { grid-area: 1 / 1; white-space: nowrap; opacity: 0; transition: opacity .6s ease; }
+  .hero h1 .marca .verbo { grid-area: 1 / 1; white-space: nowrap; text-align: center; opacity: 0; transition: opacity .6s ease; }
   .hero h1 .marca .verbo.ativo { opacity: 1; }
   .hero p.sub { margin: 0; font-size: clamp(13px, 1.5vw, 15px); opacity: .88; line-height: 1.55; max-width: 520px; }
   .hero__acao { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
@@ -493,7 +493,7 @@
       <a href="#vagas">Ver as vagas</a>
     </div>
     <span class="selo-gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg>Gente no Coração</span>
-    <h1>Venha <span class="marca"><span class="verbo ativo">tingir</span><span class="verbo">tecer</span></span> o seu futuro com a gente</h1>
+    <h1>Venha <span class="marca"><span class="verbo ativo">fiar</span><span class="verbo">tecer</span><span class="verbo">tingir</span></span> o seu futuro com a gente</h1>
     <p class="sub">Na Fiobras, acreditamos que grandes resultados são construídos por pessoas.</p>
     <div class="hero__acao">
       <a class="hero__cta" href="#vagas">Ver vagas abertas</a>
@@ -1807,7 +1807,7 @@
 
   pintarStepper();
 
-  // ===== Headline: verbo alternando (tecer / tingir) =====
+  // ===== Headline: verbo alternando (fiar / tecer / tingir, a cadeia textil na ordem real) =====
   var reduzMovimento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var verbos = document.querySelectorAll(".hero h1 .verbo");
   if (verbos.length > 1 && !reduzMovimento) {
