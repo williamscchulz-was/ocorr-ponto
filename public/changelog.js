@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.16.0", d: "23 jul 2026", current: true, items: [
+    v: "2.17.0", d: "23 jul 2026", current: true, items: [
+      { type: "feat", aud: "colab", title: "Atalho Vagas na tela inicial" },
+    ],
+  },
+  {
+    v: "2.16.0", d: "23 jul 2026", items: [
       { type: "feat", title: "Central de notificações nos dois portais" },
     ],
   },

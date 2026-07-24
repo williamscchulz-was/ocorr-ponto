@@ -1818,6 +1818,7 @@ function cpIcon(name) {
     heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
     bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
     calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    growth: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -4068,7 +4069,9 @@ function colabAtalhosHtml() {
   const b = (n) => (n > 0 ? `<span class="pp-atl__b">${n > 9 ? "9+" : n}</span>` : "");
   // 3 atalhos (v379): só os que NÃO estão na barra de baixo (Avisos/Conquistas/Conta já vivem
   // lá; Novidades segue no menu lateral do desktop e no sino de versão da topbar). Badges
-  // preservados onde existem.
+  // preservados onde existem. Vagas (5º, v403): fileira já é rolável (.pp-atl overflow-x),
+  // então ele espia na borda; a técnica do fade vive no wrapper .pp-rail (variante B aprovada).
+  const nVagas = (state.vagasInternasColab || []).length;
   const itens = [
     { id: "colab-ponto", label: "Meu ponto", icon: "clock", badge: rcbNaoVistos("cartao-ponto") },
     // "Pagamento" (não "Folha de pagamento") pra o rótulo do atalho caber em 1 linha, igual aos outros.
@@ -4077,14 +4080,18 @@ function colabAtalhosHtml() {
     // Férias: deep-link pra Meu ponto já na aba Férias (flag transitória consumida no render).
     // Ícone "sun" = descanso, o mesmo do chip de situação; lê bem em 390px sem apertar a fileira.
     { id: "colab-ponto", label: "Férias", icon: "sun", badge: 0, tabInit: "ferias" },
+    // Vagas: leva a Oportunidades internas. Badge = vagas internas abertas (0 = sem badge).
+    // aria própria ("vaga aberta", não "pendente": oportunidade não é pendência).
+    { id: "colab-oportunidades", label: "Vagas", icon: "growth", badge: nVagas,
+      aria: nVagas ? ` (${nVagas} vaga${nVagas > 1 ? "s" : ""} aberta${nVagas > 1 ? "s" : ""})` : "" },
   ];
-  return `<div class="pp-atl">
+  return `<div class="pp-rail"><div class="pp-atl">
     ${itens.map((it) => `
-      <button class="pp-atl__it" data-nav="${it.id}"${it.tabInit ? ` data-ponto-tab-init="${it.tabInit}"` : ""} aria-label="${it.label}${it.badge ? ` (${it.badge} pendente${it.badge > 1 ? "s" : ""})` : ""}">
+      <button class="pp-atl__it" data-nav="${it.id}"${it.tabInit ? ` data-ponto-tab-init="${it.tabInit}"` : ""} aria-label="${it.label}${it.aria !== undefined ? it.aria : (it.badge ? ` (${it.badge} pendente${it.badge > 1 ? "s" : ""})` : "")}">
         <span class="pp-atl__c">${cpIcon(it.icon)}${b(it.badge)}</span>
         <span class="pp-atl__l">${it.label}</span>
       </button>`).join("")}
-  </div>`;
+  </div></div>`;
 }
 
 // ===== GAMIFICACAO: card da home + tela Conquistas (Pontos | Badges) =====
@@ -20498,7 +20505,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.16.0";
+window.CURRENT_VERSION = "2.17.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
