@@ -2282,19 +2282,26 @@
       // debug. Retorna se o mail foi enfileirado (o toast honra "gravado != entregue"). to ==
       // email da candidatura + molde pinado = shape exato de /mail (docs/firestore.rules).
       if (status === "recebida" || !c) return false;
+      // CANAL PREFERIDO do candidato (v409, campo do site; ausente/desconhecido = 'ambos',
+      // retrocompat). Honra a escolha na origem da fila: 'email' NAO cria waMsg (mesmo com
+      // telefone); 'whatsapp' NAO cria mail; 'ambos' = comportamento de sempre. Vem do site
+      // publico (fronteira de confianca): so 'email'/'whatsapp' sao aceitos, o resto vira 'ambos'.
+      const canalPref = (c.canalPreferido === "email" || c.canalPreferido === "whatsapp") ? c.canalPreferido : "ambos";
+      const usaEmail = canalPref === "ambos" || canalPref === "email";
+      const usaZap = canalPref === "ambos" || canalPref === "whatsapp";
       // FILA DE WHATSAPP (espelho estrutural do mail; go-live depende de pre-req na Meta).
       // waMsg/{id}-{status underscore}: os tokens Meta usam underscore (em_analise/aprovada/
       // nao_seguiu). Create-only, entao re-visitar o mesmo status NEGA (permission-denied
       // esperado, e o dedupe natural: 1 mensagem por status). Best-effort e SILENCIOSO como o
       // mail: nunca bloqueia o mail, nunca promete no toast (o email segue o canal anunciado;
       // o WhatsApp entra quando a Meta liberar). So dispara com telefone (candidatura legada
-      // pode nao ter); para == telefone da candidatura (a rule compara byte a byte). ZERO PII
-      // no console (loga so o token do status).
+      // pode nao ter) E se o canal preferido inclui WhatsApp; para == telefone da candidatura
+      // (a rule compara byte a byte). ZERO PII no console (loga so o token do status).
       // _WA_STATUS = os status COM mensagem automática (email + WhatsApp têm molde/template);
       // 'recebida' já saiu acima, 'contratada' (v383) NÃO está aqui: não manda nada.
       const _WA_STATUS = { "em-analise": "em_analise", aprovada: "aprovada", "nao-seguiu": "nao_seguiu" };
       const waSt = _WA_STATUS[status];
-      if (waSt && c.telefone) {
+      if (waSt && c.telefone && usaZap) {
         try {
           await db.collection("waMsg").doc(id + "-" + waSt).set({
             para: c.telefone,
@@ -2306,10 +2313,11 @@
           debug?.("[wa] status enfileirado:", waSt);
         } catch (e) { debug?.("[wa] status nao enfileirado:", waSt, e?.code || e?.message); }
       }
-      // Guarda equivalente à do WhatsApp: só os status com molde criam doc de /mail. Sem
-      // isto, 'contratada' tentaria mail/{id}-contratada com molde inexistente (a rule
-      // negaria, mas não se deve nem tentar). Toast honesto: retorna false = sem promessa.
-      if (!waSt) return false;
+      // Guarda equivalente à do WhatsApp: só os status com molde criam doc de /mail, e só quando
+      // o canal preferido inclui email. Sem isto, 'contratada' tentaria mail/{id}-contratada com
+      // molde inexistente (a rule negaria, mas não se deve nem tentar). Toast honesto: retorna
+      // false = nenhum email enfileirado (canal 'whatsapp' ou sem molde).
+      if (!waSt || !usaEmail) return false;
       try {
         await db.collection("mail").doc(id + "-" + status).set({
           to: c.email,

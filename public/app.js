@@ -4292,6 +4292,17 @@ function notifItensGestor() {
     const nFerias = (state.funcionarios || []).filter((f) => f.ativo !== false && f.afastado !== true && podeVerFuncionario(u, f) && state.ferias?.[f.id]?.resumo?.temVencida).length;
     if (nFerias) itens.push({ id: "g-ferias:" + nFerias, ic: "calendar", cls: "ava", t: "Férias vencidas", s: nFerias + " com período vencido", ts: null, nav: { gestorPage: "funcionarios", gestorFuncstatus: "ferias-vencidas" } });
   }
+  // Candidatura nova por vaga publicada (v409): deriva puro do state (contagem vista por vaga em
+  // localStorage). Item POR vaga com novas; o id embute a contagem, então uma fila que cresce
+  // re-notifica (id novo = não lido). ts = a candidatura mais recente (tempo relativo na central).
+  // Abrir a vaga marca vista => o item some da contagem. Denúncia segue fora da central (invariante).
+  if (can("vagas.gerenciar")) {
+    (state.vagas || []).forEach((v) => {
+      if (v.status !== "publicada") return;
+      const { novas, ts } = _vagaNovas(v.id);
+      if (novas > 0) itens.push({ id: "g-vaga-nova:" + v.id + ":" + novas, ic: "inbox", cls: "com", t: "Candidatura nova em " + (v.titulo || "vaga"), s: novas > 1 ? novas + " pessoas novas para conferir" : "1 pessoa nova para conferir", ts, nav: { gestorPage: "vagas" } });
+    });
+  }
   return itens;
 }
 
@@ -5176,20 +5187,41 @@ function meuSnapshotInterno() {
   return { cargo: f.cargo || "", setor: f.setor || "", turno: turnoLbl, tempoCasaMeses: meses };
 }
 
-function vioCardHtml(vg, jaEnviei) {
+// Status do interesse interno traduzido em rótulo de gente (mock status-interno, aprovado):
+// nova/recebida => neutro "Recebido pela GP"; em análise; aprovada E contratada => o mesmo
+// desfecho verde (a espera é a mesma); não seguiu => neutro sóbrio, SEM vermelho (a notícia
+// sensível é dada por uma pessoa, o app não dramatiza). Deriva de candStatusKey (normaliza
+// legado/'nova' -> recebida). Zero regra nova: só relê o doc de interesse que o colab já tem.
+const VIO_ST = {
+  recebida: { txt: "Recebido pela GP", tone: "neu" },
+  "em-analise": { txt: "Em análise", tone: "info" },
+  aprovada: { txt: "Aprovado, a GP vai falar com você", tone: "ok" },
+  contratada: { txt: "Aprovado, a GP vai falar com você", tone: "ok" },
+  "nao-seguiu": { txt: "Processo encerrado", tone: "end" },
+};
+function vioStatusChipHtml(status) {
+  const meta = VIO_ST[candStatusKey(status)] || VIO_ST.recebida;
+  return `<span class="vio-st vio-st--${meta.tone}"><span class="vio-st__dot"></span>${escapeHtml(meta.txt)}</span>`;
+}
+// meu = { status, em } do interesse (state.meusInteressesInternos[vg.id]) ou undefined (sem
+// interesse). Sem interesse: botão "Tenho interesse". Com interesse: o chip de status toma o
+// lugar do botão e a ação discreta "Retirar interesse" segue disponível.
+function vioCardHtml(vg, meu) {
   const chips = [
     vg.setor ? `<span class="vio__chip">${cpIcon("briefcase")}${escapeHtml(vg.setor)}</span>` : "",
     vg.turno ? `<span class="vio__chip">${cpIcon("clock")}${escapeHtml(vg.turno)}</span>` : "",
     vg.cidade ? `<span class="vio__chip">${cpIcon("mappin")}${escapeHtml(vg.cidade)}</span>` : "",
   ].join("");
   const desc = vg.descricao ? `<p class="vio__desc">${escapeHtml(String(vg.descricao).replace(/\s+/g, " ").trim())}</p>` : "";
-  return `<div class="vio${jaEnviei ? " vio--done" : ""}">
+  const foot = meu
+    ? `<div class="vio__foot vio__foot--st">${vioStatusChipHtml(meu.status)}</div>
+    <button class="vio__undo" type="button" data-vi-retirar="${escapeHtml(vg.id)}">Retirar interesse</button>`
+    : `<div class="vio__foot"><button class="vi-btn vi-btn--primary" type="button" data-vi-interesse="${escapeHtml(vg.id)}">${cpIcon("heart")}Tenho interesse</button></div>`;
+  return `<div class="vio${meu ? " vio--st" : ""}">
     <p class="vio__t">${escapeHtml(vg.titulo || "")}</p>
     ${chips ? `<div class="vio__meta">${chips}</div>` : ""}
     ${desc}
-    <div class="vio__foot"><button class="vi-btn vi-btn--primary" type="button" data-vi-interesse="${escapeHtml(vg.id)}">${cpIcon("heart")}Tenho interesse</button></div>
-    <div class="vio__done">${cpIcon("check")}Interesse enviado à GP</div>
-    <button class="vio__undo" type="button" data-vi-retirar="${escapeHtml(vg.id)}">Retirar interesse</button>
+    ${foot}
   </div>`;
 }
 
@@ -5198,7 +5230,7 @@ function renderColabOportunidades() {
   const vagas = state.vagasInternasColab || [];
   const meus = state.meusInteressesInternos || {};
   const lista = vagas.length
-    ? vagas.map((vg) => vioCardHtml(vg, !!meus[vg.id])).join("")
+    ? vagas.map((vg) => vioCardHtml(vg, meus[vg.id])).join("")
     : `<div class="vi-empty">Nenhuma oportunidade interna aberta agora. Quando abrir, ela aparece aqui.</div>`;
   const escreveu = setHtml(view, `
     <div class="pp-fade">
@@ -5415,12 +5447,17 @@ function renderNotifBellGestor() {
   const ct = bell.querySelector(".ntf-bell__ct");
   if (ct) { ct.textContent = naoLidas > 9 ? "9+" : String(naoLidas); ct.hidden = !naoLidas; }
   const drop = _notifDropGestorEl();
+  const nowG = Date.now();
   const linhas = lista.length
-    ? lista.map((it) => `<button class="ntf-drow${it.lido ? " ntf-drow--lido" : ""}" type="button" data-notif-id="${escapeHtml(it.id)}">
+    ? lista.map((it) => {
+      const quando = it.ts != null ? notifQuando(it.ts, nowG) : "";
+      return `<button class="ntf-drow${it.lido ? " ntf-drow--lido" : ""}" type="button" data-notif-id="${escapeHtml(it.id)}">
         <span class="ntf-drow__ic ntf-ic--${it.cls}">${icon(it.ic)}</span>
         <span class="ntf-drow__bd"><span class="ntf-drow__t">${escapeHtml(it.t)}</span><span class="ntf-drow__s">${escapeHtml(it.s || "")}</span></span>
+        ${quando ? `<span class="ntf-drow__when">${escapeHtml(quando)}</span>` : ""}
         ${it.lido ? "" : `<span class="ntf-drow__dot" aria-hidden="true"></span>`}
-      </button>`).join("")
+      </button>`;
+    }).join("")
     : `<div class="ntf-drop__empty">${icon("check")}<b>Tudo em dia</b><span>Nada esperando por você agora.</span></div>`;
   setHtml(drop.querySelector(".ntf-drop__list"), linhas);
   const ar = drop.querySelector("[data-notif-allread]");
@@ -7808,7 +7845,6 @@ function candStatusKey(s) {
   const k = String(s || "").trim();
   return CAND_STATUS.some((x) => x.k === k) ? k : "recebida";
 }
-function candStatusInfo(s) { const k = candStatusKey(s); return CAND_STATUS.find((x) => x.k === k); }
 // Mensagens ao candidato, VERBATIM de docs/emails-candidato-2026-07-v1.md (texto aprovado).
 // corpo = parágrafos; a quebra de linha do bloco de assinatura é preservada, o resto flui
 // (as quebras de 80-col do doc são formatação, não quebra real). {{nome}} = primeiro nome,
@@ -7868,38 +7904,235 @@ function moldeEmail(statusKey) {
 }
 // [{ id, key }] dos 4 moldes na ordem do funil (id = candidatura-<statusKey>).
 const MOLDES_EMAIL = Object.keys(CAND_MSG).map((k) => ({ id: "candidatura-" + k, key: k }));
+// Primeiro nome do candidato (GLOBAL: firebase.js usa nos params de /mail e /waMsg).
 function primeiroNomeCand(nome) { return String(nome || "").trim().split(/\s+/)[0] || ""; }
-function preencherMsg(tpl, nome, vaga) {
-  return String(tpl).replace(/\{\{nome\}\}/g, nome).replace(/\{\{vaga\}\}/g, vaga);
+
+// ===== FUNIL VIVO (v409, mock funil-status-anim, veredito B trilho vivo + assentamento A) =====
+// A mensagem ao candidato virou 100% automática ao mover o status (email + WhatsApp saem
+// sozinhos no atualizarStatusCandidatura). O botão manual saiu. No lugar: um TRILHO com a
+// bolinha que desliza (mola em rAF, animB), um SELO grande do status e uma CONFIRMAÇÃO da
+// automação (derivada pura do estado: origem + status + telefone). A animação dispara UMA vez
+// pela flag transiente state.view.candJustMoved, consumida no pós-render (padrão animarEntrada):
+// re-render nunca re-anima e o DOM estabilizado nasce idêntico (contrato do flicker-guard).
+
+// Posição de cada passo no trilho (0..100%). Ordem/tons casam com CAND_STATUS.cls.
+const CAND_POS = { recebida: 0, "em-analise": 24, aprovada: 48, contratada: 72, "nao-seguiu": 100 };
+// Status COM mensagem automática (têm molde de email; +WhatsApp quando há telefone). 'recebida'
+// já saiu no envio do site; 'contratada' não dispara nada (contato dos próximos passos é da GP).
+const CAND_TEM_MSG = { "em-analise": 1, aprovada: 1, "nao-seguiu": 1 };
+// Passos "vencidos" no caminho positivo (tudo antes do ativo); nao-seguiu exclui contratada.
+function candPassados(k) {
+  if (k === "nao-seguiu") return new Set(["recebida", "em-analise", "aprovada"]);
+  const p = CAND_POS[k];
+  return new Set(CAND_STATUS.filter((s) => CAND_POS[s.k] < p).map((s) => s.k));
 }
-// Assunto + corpo prontos (placeholders preenchidos) pro status ATUAL da candidatura.
-// Status sem molde ('contratada' não manda mensagem) retorna vazio: guarda de fronteira
-// pra nenhum chamador quebrar; a UI já esconde a sugestão/botão nesses passos.
-function candMensagem(c) {
-  const st = candStatusKey(c && c.status);
-  const nome = primeiroNomeCand(c && c.nome);
-  const vaga = String((c && c.vagaTitulo) || "");
-  const m = CAND_MSG[st];
-  if (!m) return { assunto: "", corpo: "" };
-  return {
-    assunto: preencherMsg(m.assunto, nome, vaga),
-    corpo: m.corpo.map((p) => preencherMsg(p, nome, vaga)).join("\n\n"),
+// Trilho: nós clicáveis (data-cand-st, o MESMO handler de sempre) + bolinha + preenchimento.
+// O estado estático já nasce no passo ATUAL (bolinha e fill no valor final); a mola só corre no
+// pós-render quando a flag candJustMoved existe.
+function candRailHtml(c) {
+  const k = candStatusKey(c.status);
+  const neg = k === "nao-seguiu";
+  const passados = candPassados(k);
+  const p = CAND_POS[k];
+  const nodes = CAND_STATUS.map((s) => {
+    const cls = s.k === k ? " on t-" + s.cls : (passados.has(s.k) ? " passed" : "");
+    return `<button type="button" class="rail__node t-${s.cls}${cls}" data-cand-st="${escapeHtml(s.k)}" data-cand-id="${escapeHtml(c.id)}" style="left:${CAND_POS[s.k]}%" role="tab" aria-selected="${s.k === k ? "true" : "false"}"><span class="rn-dot"></span><span class="rn-lbl">${escapeHtml(s.lbl)}</span></button>`;
+  }).join("");
+  return `<div class="rail"><div class="rail__track">
+    <span class="rail__base"></span><span class="rail__gap"></span>
+    <span class="rail__fill${neg ? " is-neg" : ""}" style="width:${p}%"></span>
+    <span class="rail__dot${neg ? " is-neg" : ""}" style="left:${p}%"></span>
+    ${nodes}
+  </div></div>`;
+}
+// Selo grande do status (à direita do trilho). O carimbo assenta no pós-render (animB + A).
+function candSealHtml(c) {
+  const s = CAND_STATUS.find((x) => x.k === candStatusKey(c.status)) || CAND_STATUS[0];
+  return `<div class="seal"><span class="seal__ink"></span><span class="seal__pill t-${s.cls}"><span class="sp-dot"></span>${escapeHtml(s.lbl)}</span></div>`;
+}
+// Canais que a automação DE FATO usa, honrando o canalPreferido do candidato (campo do site;
+// ausente/desconhecido = 'ambos', retrocompat). WhatsApp exige telefone. Espelha a decisão do
+// atualizarStatusCandidatura (firebase.js), pra a confirmação refletir o que realmente saiu.
+function candCanais(c) {
+  const pref = (c && (c.canalPreferido === "email" || c.canalPreferido === "whatsapp")) ? c.canalPreferido : "ambos";
+  const temTel = !!String((c && c.telefone) || "").replace(/\D/g, "");
+  return { email: pref === "ambos" || pref === "email", zap: (pref === "ambos" || pref === "whatsapp") && temTel };
+}
+function candCanaisTxt(c) {
+  const { email, zap } = candCanais(c);
+  if (email && zap) return "email e WhatsApp";
+  if (email) return "email";
+  if (zap) return "WhatsApp";
+  return "";
+}
+// Registro permanente do aviso: reflete o canal que saiu. SEM data de propósito (gate
+// v409): o doc não persiste QUANDO o aviso saiu, e carimbar a data da renderização
+// mentiria em qualquer visita futura. ponytail: persistir avisadoEm por status (regra
+// aditiva) se a GP sentir falta da data.
+function candConfPermInner(c) {
+  const txt = candCanaisTxt(c);
+  if (!txt) return `<span class="conf__neutral">${icon("info")}<span>Sem canal de contato pra avisar automaticamente o candidato.</span></span>`;
+  return `<span class="conf__perm">${icon("check")}Avisado por ${txt}</span>`;
+}
+// Corpo interno da confirmação (estado de repouso, derivado puro do estado).
+function candConfInner(c) {
+  if (c.origem === "interna") return `<span class="conf__neutral">${icon("home")}<span>Interno: a GP fala pessoalmente com o colaborador, sem email nem WhatsApp.</span></span>`;
+  const k = candStatusKey(c.status);
+  if (k === "recebida") return `<span class="conf__neutral">${icon("info")}<span>Recebida: o email de boas-vindas já saiu no momento da candidatura.</span></span>`;
+  if (k === "contratada") return `<span class="conf__neutral">${icon("info")}<span>Contratada não dispara mensagem automática, o contato dos próximos passos é da GP.</span></span>`;
+  return candConfPermInner(c);
+}
+function candConfHtml(c) { return `<div class="conf">${candConfInner(c)}</div>`; }
+// Fase fresca (recém-enviado), só na animação do pós-move. Ícones = os canais que saíram.
+function candConfFreshInner(c) {
+  const { email, zap } = candCanais(c);
+  return `<div class="conf__chip"><span class="ico2">${email ? icon("mail") : ""}${zap ? icon("message") : ""}</span><span class="live"></span><span>Mensagem automática enviada ao candidato</span></div>`;
+}
+
+// Mola do trilho (integrador rAF interrompível): response ~0.34s, damping ~0.8. O estado
+// persiste por id de candidatura (fora do DOM), então um clique rápido RETOMA do meio do
+// caminho mesmo com o re-render recriando a bolinha. K/C = mesmos números do mock aprovado.
+const _candSpring = {};
+function _candSpringTo(id, dot, fill, fromPct, toPct) {
+  let s = _candSpring[id];
+  if (!s) s = _candSpring[id] = { pos: fromPct / 100, vel: 0, raf: 0 };
+  if (s.raf) { cancelAnimationFrame(s.raf); s.raf = 0; }
+  s.el = dot; s.fill = fill; s.target = toPct / 100; s.targetPct = toPct;
+  const K = 341, C = 29.6;
+  let last = performance.now();
+  const step = (now) => {
+    const dt = Math.min(0.032, (now - last) / 1000); last = now;
+    const a = -K * (s.pos - s.target) - C * s.vel;
+    s.vel += a * dt; s.pos += s.vel * dt;
+    const pct = s.pos * 100;
+    if (s.el) s.el.style.left = pct + "%";
+    if (s.fill) s.fill.style.width = Math.max(0, pct) + "%";
+    if (Math.abs(s.pos - s.target) < 0.0006 && Math.abs(s.vel) < 0.02) {
+      s.pos = s.target;
+      // Assenta EXATO no valor inteiro do template (não em s.pos*100, que carrega ruído de
+      // float): assim o DOM estabilizado nasce byte a byte idêntico ao rebuild (contrato m1).
+      if (s.el) s.el.style.left = s.targetPct + "%";
+      if (s.fill) s.fill.style.width = s.targetPct + "%";
+      s.raf = 0; return;
+    }
+    s.raf = requestAnimationFrame(step);
   };
+  // pinta a posição atual (retoma do meio) antes de correr, pra não piscar no valor final
+  if (dot) dot.style.left = (s.pos * 100) + "%";
+  if (fill) fill.style.width = Math.max(0, s.pos * 100) + "%";
+  s.raf = requestAnimationFrame(step);
 }
-// mailto: assunto + corpo do status. TUDO encodeURIComponent (candidato vem do site público,
-// fronteira de confiança máxima: XSS/injeção de header não escapa da URL, nem o endereço).
-function candMailto(c) {
-  const { assunto, corpo } = candMensagem(c);
-  return "mailto:" + encodeURIComponent(String((c && c.email) || "")) +
-    "?subject=" + encodeURIComponent(assunto) + "&body=" + encodeURIComponent(corpo);
+// Timers da confirmação (fresh -> permanente), por id, pra clique rápido não deixar timer órfão.
+const _candConfTimers = {};
+// Pós-render: consome a flag UMA vez e anima o(s) card(s) movido(s). reduced-motion = nada.
+function _candAnimarMovido() {
+  const mv = state.view && state.view.candJustMoved;
+  if (!mv) return;
+  state.view.candJustMoved = null; // consome (idempotente; re-render não re-anima)
+  if (prefereMenosMovimento()) return;
+  const cards = [...document.querySelectorAll('#view .g-cand[data-cand-card]')].filter((el) => el.dataset.candCard === mv.id);
+  cards.forEach((card) => _candAnimarCard(card, mv));
 }
-// wa.me/<só dígitos, com 55 do Brasil>?text=<MESMO corpo, sem assunto>. Número já com DDI
-// (12-13 dígitos) fica; sem DDI (<=11) ganha o 55.
-function candWhats(c) {
-  const { corpo } = candMensagem(c);
-  let d = String((c && c.telefone) || "").replace(/\D/g, "");
-  if (d && d.length <= 11) d = "55" + d;
-  return "https://wa.me/" + d + "?text=" + encodeURIComponent(corpo);
+function _candAnimarCard(card, mv) {
+  const dot = card.querySelector(".rail__dot");
+  const fill = card.querySelector(".rail__fill");
+  const fromP = CAND_POS[mv.from] != null ? CAND_POS[mv.from] : 0;
+  const toP = CAND_POS[mv.to] != null ? CAND_POS[mv.to] : 0;
+  if (dot && fill) _candSpringTo(mv.id, dot, fill, fromP, toP);
+  // card respira ~360ms
+  if (typeof card.animate === "function") {
+    card.animate([
+      { transform: "translateY(0) scale(1)", boxShadow: "0 0 0 rgba(0,0,0,0)" },
+      { transform: "translateY(-2px) scale(1.006)", boxShadow: "var(--shadow-lg)", offset: .42 },
+      { transform: "translateY(0) scale(1)", boxShadow: "0 0 0 rgba(0,0,0,0)" },
+    ], { duration: 360, easing: "cubic-bezier(.23,1,.32,1)" });
+  }
+  // selo: o novo pill já está no DOM (estático = novo status). Entra em crossfade + carimbo A
+  // (scale-down, micro-rotação, sombra que assenta), 1x.
+  const pill = card.querySelector(".seal__pill");
+  const ink = card.querySelector(".seal__ink");
+  if (pill && typeof pill.animate === "function") {
+    pill.animate([
+      { opacity: 0, filter: "blur(3px)", transform: "scale(1.16) rotate(-4deg)", offset: 0 },
+      { opacity: 1, filter: "blur(0)", transform: "scale(.975) rotate(1deg)", offset: .62 },
+      { opacity: 1, transform: "scale(1.01) rotate(-.4deg)", offset: .82 },
+      { opacity: 1, transform: "scale(1) rotate(0)", offset: 1 },
+    ], { duration: 300, easing: "cubic-bezier(.2,.85,.25,1)" });
+    pill.animate([
+      { boxShadow: "0 10px 24px -8px rgba(0,60,30,.35)" },
+      { boxShadow: "0 1px 2px rgba(0,40,20,.05)" },
+    ], { duration: 320, easing: "ease-out" });
+  }
+  if (ink && typeof ink.animate === "function") ink.animate([{ opacity: .4, transform: "scale(.6)" }, { opacity: 0, transform: "scale(1.2)" }], { duration: 480, easing: "ease-out" });
+  // confirmação: fresh -> assenta em ~2s no registro permanente. Só p/ externo com mensagem.
+  _candConfAnimar(card, mv);
+}
+function _candConfAnimar(card, mv) {
+  const conf = card.querySelector(".conf");
+  if (!conf) return;
+  const c = (state.candidaturas || []).find((x) => x.id === mv.id);
+  if (!c || c.origem === "interna" || !CAND_TEM_MSG[mv.to]) return; // recebida/contratada/interno: sem fresh
+  const canais = candCanais(c);
+  if (!canais.email && !canais.zap) return; // nenhum canal saiu (ex.: whatsapp sem telefone): sem fase fresca
+  conf.innerHTML = candConfFreshInner(c); // troca transiente (fora de #view-write-guard: alvo 'conf')
+  const fresh = conf.firstElementChild;
+  if (fresh && typeof fresh.animate === "function") fresh.animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], { duration: 300, easing: "cubic-bezier(.23,1,.32,1)", fill: "backwards" });
+  clearTimeout(_candConfTimers[mv.id]);
+  _candConfTimers[mv.id] = setTimeout(() => {
+    if (!document.body.contains(conf)) return;
+    const perm = candConfPermInner(c);
+    if (fresh && typeof fresh.animate === "function") {
+      fresh.animate([{ opacity: 1, filter: "blur(0)" }, { opacity: 0, filter: "blur(2px)" }], { duration: 280, easing: "ease" }).finished
+        .then(() => { conf.innerHTML = perm; const pp = conf.firstElementChild; if (pp && pp.animate) pp.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: "ease" }); })
+        .catch(() => { conf.innerHTML = perm; });
+    } else { conf.innerHTML = perm; }
+  }, 2200);
+}
+
+// "Vistos" por vaga (candidaturas novas desde a última visita): mesmo padrão dos recibos-vistos,
+// localStorage por uid + fallback de sessão. Guarda a CONTAGEM vista por vaga; novas = atual -
+// vista (clamp >= 0). Abrir a vaga marca vista => zera. Deriva puro (localStorage estável entre
+// dois renders => flicker-safe). Chave própria fiopulse:vagasvistas:{uid}.
+const _vagasVistasMem = {};
+function _vagasVistasKey(uid) { return "fiopulse:vagasvistas:" + (uid || _notifUid()); }
+function _vagasVistasLocal() {
+  const uid = _notifUid();
+  try { const raw = localStorage.getItem(_vagasVistasKey(uid)); if (raw) { const o = JSON.parse(raw); if (o && typeof o === "object") return o; } } catch (e) {}
+  return _vagasVistasMem[uid] ? { ..._vagasVistasMem[uid] } : {};
+}
+function _vagaCandTotal(vId) { return (state.candidaturas || []).filter((c) => c.vagaId === vId).length; }
+function _vagaMarcarVista(vId) {
+  const uid = _notifUid();
+  const m = _vagasVistasLocal();
+  m[vId] = _vagaCandTotal(vId);
+  _vagasVistasMem[uid] = { ...m };
+  try { localStorage.setItem(_vagasVistasKey(uid), JSON.stringify(m)); } catch (e) {}
+}
+// { novas, ts } de uma vaga: novas = candidaturas além da última contagem vista; ts = a mais
+// recente entre elas (pro tempo relativo da central). Sem novas => ts null.
+function _vagaNovas(vId) {
+  const cands = (state.candidaturas || []).filter((c) => c.vagaId === vId);
+  const vista = _vagasVistasLocal()[vId] || 0;
+  const novas = Math.max(0, cands.length - vista);
+  let ts = null;
+  if (novas > 0) cands.forEach((c) => { const t = _notifTsVal(c.em); if (t != null && (ts == null || t > ts)) ts = t; });
+  return { novas, ts };
+}
+// Dispara UMA vez por vaga por sessão a pulsação do dot de "novas" (WAAPI one-shot, set-gated:
+// nunca re-pulsa em re-render nem no rebuild forçado do guard). Chamado no fim do renderVagas.
+const _vagasPulseFeito = new Set();
+function _vagasPulsarNovas() {
+  if (prefereMenosMovimento()) return;
+  $$("#view .g-vaga .nv-dot[data-nvvaga]").forEach((d) => {
+    const vid = d.dataset.nvvaga;
+    if (_vagasPulseFeito.has(vid)) return;
+    _vagasPulseFeito.add(vid);
+    if (typeof d.animate === "function") d.animate([
+      { boxShadow: "0 0 0 0 rgba(255,203,0,.55)" },
+      { boxShadow: "0 0 0 7px rgba(255,203,0,0)", offset: .6 },
+      { boxShadow: "0 0 0 0 rgba(255,203,0,0)" },
+    ], { duration: 1500, easing: "cubic-bezier(.23,1,.32,1)" });
+  });
 }
 
 function renderVagas() {
@@ -7928,17 +8161,23 @@ function renderVagas() {
   // MESMAS candidaturas já no state (mesma fonte do contador "N candidaturas" por vaga),
   // sem fetch novo: únicas = emails distintos (lower), envios = total, e os 3 status por
   // candidatura. Puro sobre o state → re-render nasce idêntico.
-  const kpi = { unicas: 0, envios: candidaturas.length, analise: 0, negadas: 0, contratadas: 0 };
+  const kpi = { unicas: 0, envios: candidaturas.length, internos: 0, analise: 0, negadas: 0, contratadas: 0 };
   const kpiEmails = new Set();
   candidaturas.forEach((c) => {
     const e = String(c.email || "").trim().toLowerCase();
     if (e) kpiEmails.add(e);
+    if (c.origem === "interna") kpi.internos++;
     const k = candStatusKey(c.status);
     if (k === "em-analise") kpi.analise++;
     else if (k === "nao-seguiu") kpi.negadas++;
     else if (k === "contratada") kpi.contratadas++;
   });
   kpi.unicas = kpiEmails.size;
+  // KPI "Internos" (v409, mock status-interno): só entra na faixa quando há canal interno
+  // aberto (vaga interna/ambas publicada), mesmo com contagem 0; sem canal, some (0 sem vaga
+  // interna é ruído). Clicável: filtra a lista pros candidatos de dentro (drill), toggle.
+  const temCanalInterno = vagas.some((x) => x.status === "publicada" && (x.visibilidade === "interna" || x.visibilidade === "ambas"));
+  const filtroInt = state.view.vagaCandFiltro === "internos";
   const edit = state.view.vagaEdit; // null | "nova" | id
   const v = edit && edit !== "nova" ? vagas.find((x) => x.id === edit) : null;
   const candAberta = state.view.vagaCandAberta; // id da vaga com a lista de candidaturas aberta, ou null
@@ -7983,41 +8222,32 @@ function renderVagas() {
           <p class="g-cand__leitura"><b>${escapeHtml(perfil.leitura[0])}</b> ${escapeHtml(perfil.leitura[1])}</p>
         </div>`;
     }
-    // Funil de status no rodapé (mock cena 1): segmented sóbrio dos 4 passos + botão
-    // "Mensagem ao candidato". O passo ATIVO = status atual (legado/'nova' = Recebida);
-    // a sugestão mostra o assunto pronto daquele status; o botão acende quando a GP
-    // acabou de mover (state.view.candMsgAceso), nudge pra enviar. Tudo escapado.
-    const stKey = candStatusKey(c.status);
-    // Status com mensagem automática (tem molde): mostra a sugestão + o botão de enviar.
-    // 'contratada' não tem molde: troca por uma nota honesta e some com o botão.
-    const temMsg = !!CAND_MSG[stKey];
-    const aceso = state.view.candMsgAceso === c.id;
-    const segBtns = CAND_STATUS.map((s) => {
-      const on = s.k === stKey;
-      // Separador antes do balde "não seguiu" (o único desfecho negativo), como no mock.
-      return `${s.k === "nao-seguiu" ? `<span class="g-cand__seg-sep"></span>` : ""}<button type="button" class="g-cand__st${on ? " on g-cand__st--" + s.cls : ""}" data-cand-st="${escapeHtml(s.k)}" data-cand-id="${escapeHtml(c.id)}" role="tab" aria-selected="${on ? "true" : "false"}"><span class="g-cand__sd"></span>${escapeHtml(s.lbl)}</button>`;
-    }).join("");
-    const sugHtml = temMsg
-      ? `<div class="g-cand__sug">${icon("send")}<span>Mensagem pronta: <b>${escapeHtml(candMensagem(c).assunto)}</b></span></div>`
-      : `<div class="g-cand__sug">${icon("info")}<span>Contratada não dispara mensagem automática.</span></div>`;
+    // Funil de status VIVO (v409, mock funil-status-anim): trilho com a bolinha que desliza +
+    // selo grande + confirmação da automação (a mensagem ao candidato virou automática, o botão
+    // manual saiu). Os nós do trilho são os MESMOS data-cand-st de sempre. Tudo escapado.
     const funilHtml = `
       <div class="g-cand__funil">
         <div class="g-cand__funil-l">
           <div class="g-cand__funil-rot">Status da candidatura</div>
-          <div class="g-cand__seg" role="tablist">${segBtns}</div>
-          ${sugHtml}
+          ${candRailHtml(c)}
         </div>
-        ${temMsg ? `<div class="g-cand__funil-r">
-          <button type="button" class="g-cand__msg${aceso ? " aceso" : ""}" data-cand-msg="${escapeHtml(c.id)}">${icon("send")}Mensagem ao candidato</button>
-          <span class="g-cand__canal">email ou WhatsApp</span>
-        </div>` : ""}
+        <div class="g-cand__funil-r">
+          ${candSealHtml(c)}
+          ${candConfHtml(c)}
+        </div>
       </div>`;
     return `
-    <div class="g-cand${perfil ? ` g-cand--${perfil.cls}` : ""}">
+    <div class="g-cand${perfil ? ` g-cand--${perfil.cls}` : ""}" data-cand-card="${escapeHtml(c.id)}">
       <div class="g-cand__main${perfil ? " g-cand__main--dual" : ""}">
         <div class="g-cand__bd">
           <div class="g-cand__id">${avatar}<div class="g-cand__idt"><b>${escapeHtml(c.nome || "")}</b>${sub ? `<span>${sub}</span>` : ""}</div></div>
-          <div class="g-cand__ct"><span>${[c.telefone, c.email].filter(Boolean).map(escapeHtml).join(" · ")}</span></div>
+          <div class="g-cand__ct"><span>${[c.telefone, c.email].filter(Boolean).map(escapeHtml).join(" · ")}</span>${(() => {
+            // Detalhe discreto do canal que o candidato prefere (v409). Só quando ele escolheu um
+            // canal específico ('ambos'/ausente = padrão, sem poluir).
+            const pref = c.canalPreferido;
+            if (pref !== "email" && pref !== "whatsapp") return "";
+            return `<span class="g-cand__canalpref">${icon(pref === "whatsapp" ? "message" : "mail")}prefere ${pref === "whatsapp" ? "WhatsApp" : "email"}</span>`;
+          })()}</div>
           ${metaLinha ? `<div class="g-cand__meta">${metaLinha}</div>` : ""}
           ${c.mensagem ? `<p class="g-cand__msg-txt">${escapeHtml(c.mensagem)}</p>` : ""}
           <div class="g-cand__acts">
@@ -8033,15 +8263,10 @@ function renderVagas() {
     </div>`;
   };
   // Candidatura de colaborador INTERNO (fase 2): selo Interno + barra azul + ficha vinda
-  // do sistema (snapshot congelado no doc), motivação opcional e o MESMO funil de 5 passos.
-  // SEM "Mensagem ao candidato" nem sugestão: interno não tem email/telefone (a GP fala
-  // direto). Todo campo passa por escapeHtml (defesa em profundidade, dado gravado pelo colab).
+  // do sistema (snapshot congelado no doc), motivação opcional e o MESMO funil vivo. A
+  // confirmação lembra que interno não recebe mensagem: a GP fala pessoalmente. Todo campo
+  // passa por escapeHtml (defesa em profundidade, dado gravado pelo colab).
   const candidaturaInternaHtml = (c) => {
-    const stKey = candStatusKey(c.status);
-    const segBtns = CAND_STATUS.map((s) => {
-      const on = s.k === stKey;
-      return `${s.k === "nao-seguiu" ? `<span class="g-cand__seg-sep"></span>` : ""}<button type="button" class="g-cand__st${on ? " on g-cand__st--" + s.cls : ""}" data-cand-st="${escapeHtml(s.k)}" data-cand-id="${escapeHtml(c.id)}" role="tab" aria-selected="${on ? "true" : "false"}"><span class="g-cand__sd"></span>${escapeHtml(s.lbl)}</button>`;
-    }).join("");
     const matricula = String(c.funcionarioId || "").replace(/^f-/, "");
     const sub = "Colaborador Fiobras" + (matricula ? ` · matrícula ${escapeHtml(matricula)}` : "");
     const tiles = [
@@ -8052,7 +8277,7 @@ function renderVagas() {
       ? `<div class="gi-mot"><div class="gi-mot__k">Motivação</div><p>${escapeHtml(c.motivacao.trim())}</p></div>`
       : `<p class="gi-nomot">Sem motivação escrita (o campo é opcional).</p>`;
     return `
-    <div class="g-cand g-cand--int">
+    <div class="g-cand g-cand--int" data-cand-card="${escapeHtml(c.id)}">
       <div class="g-cand__main">
         <div class="g-cand__bd">
           <div class="g-cand__id">
@@ -8070,8 +8295,11 @@ function renderVagas() {
       <div class="g-cand__funil">
         <div class="g-cand__funil-l">
           <div class="g-cand__funil-rot">Status da candidatura</div>
-          <div class="g-cand__seg" role="tablist">${segBtns}</div>
-          <div class="g-cand__sug">${icon("info")}<span>Colaborador interno: a GP fala direto, sem email nem WhatsApp automático.</span></div>
+          ${candRailHtml(c)}
+        </div>
+        <div class="g-cand__funil-r">
+          ${candSealHtml(c)}
+          ${candConfHtml(c)}
         </div>
       </div>
     </div>`;
@@ -8094,11 +8322,18 @@ function renderVagas() {
   };
   const linhas = vagas.map((x) => {
     const n = candidaturasDaVaga(x.id).length;
+    // Candidaturas novas desde a última visita (v409, chip A do mock funil-status-anim): sufixo
+    // âmbar "· M novas" + dot amarelo (pulsa 1x via _vagasPulsarNovas). Abrir a vaga zera. Sem
+    // novas = chip idêntico ao de hoje. Só publicada tem novidade (rascunho não recebe candidatura).
+    const nv = x.status === "publicada" ? _vagaNovas(x.id).novas : 0;
+    const badgeExtra = nv > 0
+      ? `<span class="nv-sfx">&#160;·&#160;<b>${nv} nova${nv > 1 ? "s" : ""}</b></span><span class="nv-dot" data-nvvaga="${escapeHtml(x.id)}"></span>`
+      : "";
     return `
     <div class="g-vaga">
       <div class="g-vaga__bd" data-cand-toggle="${escapeHtml(x.id)}"><b>${escapeHtml(x.titulo || "")}</b>
         <span>${[x.setor, x.turno].filter(Boolean).map(escapeHtml).join(" · ")}${x.status === "publicada" && x.publicadaEm ? ` · publicada em ${fmt(x.publicadaEm)}` : ""}</span></div>
-      ${n ? `<button class="g-cand-badge" data-cand-toggle="${escapeHtml(x.id)}">${n} candidatura${n > 1 ? "s" : ""}</button>` : ""}
+      ${n ? `<button class="g-cand-badge${nv > 0 ? " has-nv" : ""}" data-cand-toggle="${escapeHtml(x.id)}">${n} candidatura${n > 1 ? "s" : ""}${badgeExtra}</button>` : ""}
       ${(() => { const sl = vagaVisSelo(x.visibilidade); return sl ? `<span class="vsel">${icon("home")}${escapeHtml(sl)}</span>` : ""; })()}
       ${statusHtml(x.status)}
       ${x.status !== "encerrada" ? `<button class="btn btn--ghost btn--sm" data-vaga-editar="${escapeHtml(x.id)}">Editar</button>` : ""}
@@ -8173,6 +8408,11 @@ function renderVagas() {
         <span class="stat__value">${kpi.envios}</span>
         <p class="stat__hint">candidaturas recebidas</p>
       </div>
+      ${temCanalInterno ? `<button type="button" class="stat stat--int${filtroInt ? " on" : ""}" data-cand-filtro-int aria-pressed="${filtroInt ? "true" : "false"}">
+        <span class="stat__label">${icon("swap")} Internos</span>
+        <span class="stat__value">${kpi.internos}</span>
+        <p class="stat__hint">de quem já é da casa</p>
+      </button>` : ""}
       <div class="stat">
         <span class="stat__label"><span class="st-dot" style="background:var(--warning)"></span> Em análise</span>
         <span class="stat__value">${kpi.analise}</span>
@@ -8190,8 +8430,23 @@ function renderVagas() {
       </div>
     </div>
     <p class="gami-hint" style="margin:-6px 0 18px;"><b>Pessoas únicas</b> conta emails distintos entre as candidaturas. <b>Envios</b> conta cada candidatura, então a mesma pessoa em duas vagas conta duas. Em análise, negadas e contratadas são contadas por candidatura.</p>` : "";
+  // Drill do KPI Internos: filtra a lista pros candidatos de dentro. Como o app mostra
+  // candidaturas por vaga, o filtro abre um painel plano com todos os internos, cada card com o
+  // título da sua vaga. Deriva puro do state; some ao clicar de novo no card ou em Limpar filtro.
+  const internosLista = filtroInt ? candidaturas.filter((c) => c.origem === "interna") : [];
+  const drillHtml = filtroInt ? `
+    <div class="gami-card g-wrap vg-int-drill">
+      <div class="gami-card__h"><h3>Candidaturas internas</h3><button class="btn btn--ghost btn--sm" data-cand-filtro-int>Limpar filtro</button></div>
+      ${internosLista.length
+      ? internosLista.map((c) => {
+        const vt = (vagas.find((x) => x.id === c.vagaId) || {}).titulo || "";
+        return `${vt ? `<div class="vg-int-drill__vaga">${icon("briefcase")}<span>Vaga: ${escapeHtml(vt)}</span></div>` : ""}${candidaturaInternaHtml(c)}`;
+      }).join("")
+      : `<p class="g-cand-empty">Nenhuma candidatura interna ainda. Elas aparecem aqui quando alguém da casa demonstra interesse.</p>`}
+    </div>` : "";
   const vagasTabHtml = `
     ${kpiBandHtml}
+    ${drillHtml}
     <div class="gami-card g-wrap">
       <div class="gami-card__h"><h3>Vagas</h3>${edit ? "" : `<button class="btn btn--primary btn--sm" id="vg-nova">Nova vaga</button>`}</div>
       ${linhas || `<p class="gami-hint" style="margin:0;">Nenhuma vaga ainda. Crie a primeira que ela aparece no site assim que publicar.</p>`}
@@ -8313,7 +8568,15 @@ function renderVagas() {
   }));
   $$("#view [data-cand-toggle]").forEach((el) => el.addEventListener("click", () => {
     const id = el.dataset.candToggle;
-    state.view.vagaCandAberta = state.view.vagaCandAberta === id ? null : id;
+    const abrindo = state.view.vagaCandAberta !== id;
+    state.view.vagaCandAberta = abrindo ? id : null;
+    // Abrir a vaga = "vi tudo": marca a contagem vista (zera "novas" no chip e na central).
+    if (abrindo) _vagaMarcarVista(id);
+    renderApp();
+  }));
+  // Drill do KPI Internos: filtra a lista pros candidatos de dentro (toggle).
+  $$("#view [data-cand-filtro-int]").forEach((b) => b.addEventListener("click", () => {
+    state.view.vagaCandFiltro = state.view.vagaCandFiltro === "internos" ? null : "internos";
     renderApp();
   }));
   $$("#view [data-cand-cv]").forEach((b) => b.addEventListener("click", () => {
@@ -8327,16 +8590,20 @@ function renderVagas() {
       catch (e) { toast("Não excluiu: " + (e?.message || e), "danger"); }
     });
   }));
-  // Funil de status: clicar num passo move a candidatura e acende o botão de enviar.
+  // Funil vivo: clicar num passo do trilho move a candidatura. Grava a flag transiente
+  // candJustMoved (from/to/emailOk) e re-renderiza; o pós-render (_candAnimarMovido) dispara a
+  // animação UMA vez a partir do valor de apresentação e consome a flag. re-clique no passo atual
+  // é no-op (a bolinha já está lá). A mensagem sai sozinha no atualizarStatusCandidatura.
   $$("#view [data-cand-st]").forEach((b) => b.addEventListener("click", () => {
     const id = b.dataset.candId, st = b.dataset.candSt;
     const c = (state.candidaturas || []).find((x) => x.id === id);
     if (!c || !CAND_STATUS.some((s) => s.k === st)) return;
-    state.view.candMsgAceso = id; // mover acende o botão (sugere a mensagem do status)
-    if (candStatusKey(c.status) === st) { renderApp(); return; } // já neste status: só acende
+    const from = candStatusKey(c.status);
+    if (from === st) return; // já neste status: nada a mover
     withBusy("cand-st:" + id, b, async () => {
       try {
         const emailOk = await window.atualizarStatusCandidatura?.(id, st);
+        state.view.candJustMoved = { id, from, to: st, emailOk: !!emailOk };
         renderApp();
         // Toast honesto: o sufixo aparece SO quando um email foi enfileirado (gravado !=
         // entregue); mover pra Recebida (ou mail que ja existia) nao promete email novo.
@@ -8345,10 +8612,6 @@ function renderVagas() {
       }
       catch (e) { toast("Não atualizou o status: " + (e?.message || e), "danger"); }
     });
-  }));
-  $$("#view [data-cand-msg]").forEach((b) => b.addEventListener("click", () => {
-    const c = (state.candidaturas || []).find((x) => x.id === b.dataset.candMsg);
-    if (c) abrirEscolhaMensagem(c);
   }));
   $$("#view [data-cand-excluir-todas]").forEach((b) => b.addEventListener("click", async () => {
     const lista = candidaturasDaVaga(b.dataset.candExcluirTodas);
@@ -8369,55 +8632,10 @@ function renderVagas() {
     try { await window.salvarConfigVagas(num); toast("WhatsApp salvo."); $("#vg-zap-erro").textContent = ""; }
     catch (e) { $("#vg-zap-erro").textContent = "Não salvou: " + (e?.message || e); }
   }));
-}
-
-// Escolha de canal (Email | WhatsApp) da mensagem ao candidato (funil fase 1). Folha
-// mínima criada na hora (fora de #view, some ao escolher/fechar): não suja o DOM, então
-// o re-render do card nasce idêntico. Os canais são âncoras reais (mailto / wa.me),
-// href montado com encodeURIComponent → seguro mesmo com dado hostil do site público.
-function abrirEscolhaMensagem(c) {
-  const info = candStatusInfo(c.status);
-  const assunto = candMensagem(c).assunto;
-  const mailto = candMailto(c);
-  const wa = candWhats(c);
-  const temTel = !!String(c.telefone || "").replace(/\D/g, "");
-  const prevFocus = document.activeElement;
-  const root = document.createElement("div");
-  root.className = "modal-backdrop modal-backdrop--confirm";
-  root.innerHTML = `
-    <div class="modal modal--sm" role="dialog" aria-modal="true" aria-label="Enviar mensagem ao candidato">
-      <div class="modal__header">
-        <div><h2>Mensagem ao candidato</h2></div>
-        <button class="modal__close" data-fechar aria-label="Fechar">${icon("x")}</button>
-      </div>
-      <div class="modal__body">
-        <p class="msg-canal__sug">${icon("send")}<span>Mensagem de <b>${escapeHtml(info.lbl)}</b>: ${escapeHtml(assunto)}</span></p>
-        <div class="msg-canal__ops">
-          <a class="msg-canal__op" data-canal="email" href="${escapeHtml(mailto)}">${icon("mail")}<b>Email</b><span>${escapeHtml(c.email || "sem email")}</span></a>
-          ${temTel
-            ? `<a class="msg-canal__op" data-canal="whatsapp" href="${escapeHtml(wa)}" target="_blank" rel="noopener">${icon("message")}<b>WhatsApp</b><span>${escapeHtml(c.telefone)}</span></a>`
-            : `<span class="msg-canal__op" data-canal="whatsapp" aria-disabled="true">${icon("message")}<b>WhatsApp</b><span>sem telefone</span></span>`}
-        </div>
-        <p class="msg-canal__micro">${icon("info")}<span>O candidato recebe a mensagem do status por email ou WhatsApp, você escolhe na hora.</span></p>
-      </div>
-    </div>`;
-  document.body.appendChild(root);
-  let fechado = false;
-  const fechar = () => {
-    if (fechado) return;
-    fechado = true;
-    document.removeEventListener("keydown", onKey, true);
-    root.remove();
-    if (prevFocus && document.contains(prevFocus)) { try { prevFocus.focus(); } catch {} }
-  };
-  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fechar(); } };
-  document.addEventListener("keydown", onKey, true);
-  root.addEventListener("click", (e) => { if (e.target === root) fechar(); });
-  root.querySelectorAll("[data-fechar]").forEach((b) => b.addEventListener("click", fechar));
-  // Escolher um canal abre o app (mailto / wa.me) e fecha a folha logo em seguida.
-  root.querySelectorAll("a[data-canal]").forEach((a) => a.addEventListener("click", () => setTimeout(fechar, 0)));
-  aplicarFisicaSheet(root.querySelector(".modal"), { onFechar: fechar });
-  setTimeout(() => root.querySelector("[data-canal='email']")?.focus(), 30);
+  // Pós-render (síncrono, antes do paint): dispara a animação do funil movido UMA vez (consome
+  // a flag) e a pulsação one-shot dos dots de "novas". Sem flag/novas = nada (re-render idêntico).
+  _candAnimarMovido();
+  _vagasPulsarNovas();
 }
 
 // Ficha completa do candidato (modal padrão, 2 colunas no desktop). TODO campo passa por
@@ -20991,7 +21209,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.22.0";
+window.CURRENT_VERSION = "2.23.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

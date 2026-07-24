@@ -1475,15 +1475,19 @@ html.cp-dark .onb-ov .onb-cta { color: #08130B; box-shadow: 0 12px 26px -10px rg
 .vio__chip svg { width: 12px; height: 12px; opacity: .75; }
 .vio__desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0 0 15px; }
 .vio__foot { display: flex; align-items: center; gap: 10px; }
-.vio__done { display: none; align-items: center; gap: 9px; width: 100%; justify-content: center; padding: 12px; border-radius: 11px; background: var(--success-bg); color: var(--success); font-size: 13px; font-weight: 700; }
-.vio__done svg { width: 17px; height: 17px; }
-.vio--done { border-color: var(--success-bg); }
-.vio--done .vio__foot { display: none; }
-.vio--done .vio__done { display: flex; }
-/* Retirar interesse (v2): ação discreta, só no estado "enviado" */
-.vio__undo { display: none; }
-.vio--done .vio__undo { display: block; width: 100%; margin-top: 8px; padding: 6px; background: transparent; border: 0; color: var(--text-muted); font: 600 12.5px var(--font); cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent; }
-@media (hover:hover){ .vio--done .vio__undo:hover { color: var(--text-body); text-decoration: underline; } }
+/* Chip de STATUS do interesse interno (v409, mock status-interno): a pílula com ponto toma o
+   lugar do botão "Tenho interesse" quando o interesse já foi registrado. A cor traduz o
+   momento do processo, o texto dá a instrução calma. */
+.vio-st { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; line-height: 1; padding: 9px 14px; border-radius: 999px; border: 1px solid transparent; }
+.vio-st__dot { width: 8px; height: 8px; border-radius: 999px; flex: none; background: currentColor; opacity: .85; }
+.vio-st--neu { background: var(--surface-warm); color: var(--text-muted); border-color: var(--border); }
+.vio-st--info { background: var(--info-bg); color: var(--info); border-color: var(--info-edge); }
+.vio-st--ok { background: var(--success-bg); color: var(--success); }
+/* encerrado: neutro sóbrio, SEM vermelho, SEM alarme (a notícia sensível é dada por gente) */
+.vio-st--end { background: var(--surface-warm); color: var(--text-muted); border-color: var(--border); }
+/* Retirar interesse (v2): ação discreta, só existe no card com interesse enviado */
+.vio__undo { display: block; width: 100%; margin-top: 8px; padding: 6px; background: transparent; border: 0; color: var(--text-muted); font: 600 12.5px var(--font); cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent; }
+@media (hover:hover){ .vio__undo:hover { color: var(--text-body); text-decoration: underline; } }
 .vi-empty { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
 
 /* Botão do portal interno (block, primário/ghost) */

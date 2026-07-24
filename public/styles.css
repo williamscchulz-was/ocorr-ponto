@@ -1374,6 +1374,14 @@ textarea:focus-visible,
    pinta só o número de Contratadas (desfecho positivo). */
 .st-dot { width: 8px; height: 8px; border-radius: 999px; flex: none; }
 .stat--pos .stat__value { color: var(--success); }
+/* KPI "Internos" clicável (v409, drill do funil): mesma anatomia do .stat, ganha cursor + selo
+   "filtrar"/"filtrando ×" e o número no verde da marca. */
+.stat--int { cursor: pointer; font: inherit; text-align: left; color: inherit; }
+.stat--int .stat__value { color: var(--plum); }
+.stat--int::after { content: "filtrar"; position: absolute; top: 11px; right: 12px; font: 800 9.5px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--plum); opacity: .55; }
+.stat--int:hover { background: var(--surface-warm); box-shadow: 0 6px 16px -8px rgba(0, 60, 30, .35); }
+.stat--int.on { border-color: var(--plum); box-shadow: 0 0 0 1px var(--plum); }
+.stat--int.on::after { content: "filtrando ×"; opacity: 1; }
 
 @media (max-width: 700px) {
   .stat { flex: 1 1 44%; min-width: 44%; }
@@ -5102,7 +5110,12 @@ button.gm-card { cursor: pointer; }
 .g-zap input { padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: 9px; font: 500 13.5px var(--font); width: 220px; background: var(--surface); color: var(--text-body); }
 .g-wrap { max-width: 860px; }
 .g-vaga__bd[data-cand-toggle] { cursor: pointer; }
-.g-cand-badge { font: 700 11px var(--font); color: var(--plum); background: var(--surface-warm); border: 1px solid var(--border-strong); padding: 4px 11px; border-radius: 999px; cursor: pointer; }
+.g-cand-badge { display: inline-flex; align-items: center; font: 700 11px var(--font); color: var(--plum); background: var(--surface-warm); border: 1px solid var(--border-strong); padding: 4px 11px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+/* Candidaturas novas desde a última visita (v409, chip A): sufixo âmbar + dot amarelo que
+   pulsa 1x (WAAPI, disparada por _vagasPulsarNovas). white-space:nowrap mantém tudo numa linha. */
+.g-cand-badge.has-nv { border-color: color-mix(in srgb, var(--fiobras-yellow, #FFCB00) 55%, var(--border-strong)); }
+.nv-sfx { color: var(--warning-ink); font-weight: 700; white-space: nowrap; }
+.nv-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--fiobras-yellow, #FFCB00); margin-left: 6px; flex: 0 0 auto; }
 .g-cand-wrap { padding: 4px 0 16px; border-top: 1px dashed var(--border); display: flex; flex-direction: column; gap: 8px; }
 /* Candidatura na visão da GP: contato + currículo à esquerda, perfil DISC à direita
    (mock candidatura-completa-2026-07 Parte 2). Cores nos tokens semânticos = legível
@@ -5123,6 +5136,9 @@ button.gm-card { cursor: pointer; }
 .g-cand__idt span { font-size: 11.5px; color: var(--text-muted); }
 .g-cand__ct { margin-top: 9px; }
 .g-cand__ct span { font-size: 12px; color: var(--text-muted); word-break: break-word; }
+/* Canal preferido do candidato (v409): detalhe discreto ao lado do contato. */
+.g-cand__canalpref { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font: 600 10.5px var(--font); color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; vertical-align: middle; }
+.g-cand__canalpref .icon { width: 12px; height: 12px; color: var(--plum); }
 .g-cand__msg-txt { margin: 8px 0 0; font-size: 12.5px; color: var(--text-body); line-height: 1.5; white-space: pre-wrap; }
 .g-cand__cv { display: inline-flex; align-items: center; gap: 8px; margin-top: 11px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 10px; padding: 8px 12px; cursor: pointer; font: 600 12.5px var(--font); color: var(--text-body); transition: background .15s, border-color .15s; }
 .g-cand__cv:hover { background: var(--surface-warm); border-color: var(--plum); }
@@ -5192,55 +5208,72 @@ button.gm-card { cursor: pointer; }
 .gi-nomot { margin: 10px 0 0; font-size: 11.5px; color: var(--text-muted); }
 @media (max-width: 700px) { .gi-ficha { grid-template-columns: repeat(2, 1fr); } .vchip { min-width: 100%; } }
 
-/* Funil de status (fase 1, mock funil-email-2026-07 cena 1): rodapé full-width do card,
-   segmented sóbrio dos 4 passos + botão "Mensagem ao candidato". Cores nos tokens
-   semânticos = legível no claro e no dark do gestor. */
-.g-cand__funil { flex: 1 0 100%; margin-top: 4px; padding-top: 14px; border-top: 1px dashed var(--border-strong); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.g-cand__funil-l { flex: 1 1 360px; min-width: 260px; }
-.g-cand__funil-rot { font: 600 10px var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 8px; }
-.g-cand__seg { display: inline-flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; gap: 3px; }
-.g-cand__st { border: 0; background: none; cursor: pointer; border-radius: 9px; padding: 8px 13px; font: 600 12.5px var(--font); color: var(--text-muted); display: inline-flex; align-items: center; gap: 7px; transition: background .18s, color .18s, box-shadow .18s; }
-.g-cand__sd { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); flex: 0 0 auto; transition: background .18s; }
-.g-cand__st:hover { color: var(--text-body); }
-.g-cand__st.on { background: var(--surface-warm); box-shadow: 0 1px 2px rgba(0, 0, 0, .06), 0 2px 8px -4px rgba(4, 51, 26, .18); }
-.g-cand__st--rec { color: var(--info); } .g-cand__st--rec .g-cand__sd { background: var(--info); }
-.g-cand__st--ana { color: var(--warning-ink); } .g-cand__st--ana .g-cand__sd { background: var(--warning); }
-.g-cand__st--apr { color: var(--success); } .g-cand__st--apr .g-cand__sd { background: var(--success); }
-.g-cand__st--ctr { color: var(--success); } .g-cand__st--ctr .g-cand__sd { background: var(--success); }
-.g-cand__st--rec2 { color: var(--text-muted); } .g-cand__st--rec2 .g-cand__sd { background: var(--text-muted); }
-.g-cand__seg-sep { width: 1px; align-self: stretch; background: var(--border); margin: 4px 2px; }
-.g-cand__sug { margin-top: 10px; font-size: 12px; color: var(--text-body); display: flex; align-items: center; gap: 7px; line-height: 1.45; }
-.g-cand__sug .icon { width: 14px; height: 14px; color: var(--text-muted); flex: 0 0 auto; }
-.g-cand__sug b { font-weight: 600; }
-.g-cand__funil-r { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.g-cand__msg { display: inline-flex; align-items: center; gap: 9px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text-body); border-radius: 13px; padding: 10px 15px; cursor: pointer; font: 700 13px var(--font); transition: background .18s, border-color .18s, box-shadow .25s, transform .12s; }
-.g-cand__msg .icon { width: 16px; height: 16px; }
-.g-cand__msg:hover { border-color: var(--plum); }
-.g-cand__msg:active { transform: scale(.98); }
-.g-cand__msg.aceso { background: var(--plum); border-color: var(--plum); color: var(--text-on-plum, #fff); box-shadow: 0 6px 18px -6px rgba(0, 136, 53, .4); }
-.g-cand__msg.aceso .icon { color: currentColor; }
-.g-cand__canal { font-size: 11px; color: var(--text-muted); }
+/* Funil VIVO (v409, mock funil-status-anim, veredito B trilho vivo + assentamento A): rodapé
+   full-width do card. À esquerda o TRILHO (nós clicáveis + bolinha que desliza); à direita o
+   SELO grande do status + a CONFIRMAÇÃO da automação. Cores nos tokens semânticos = legível no
+   claro e no dark do gestor. A animação é WAAPI one-shot no pós-move (não escreve estilo em
+   repouso), então o DOM estabilizado nasce idêntico. */
+.g-cand__funil { flex: 1 0 100%; margin-top: 4px; padding-top: 16px; border-top: 1px dashed var(--border-strong); display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.g-cand__funil-l { flex: 1 1 420px; min-width: 300px; }
+.g-cand__funil-rot { font: 600 10px var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 6px; }
+.g-cand__funil-r { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 250px; max-width: 300px; }
+
+/* Trilho */
+.rail { position: relative; padding: 6px 48px 4px; user-select: none; }
+.rail__track { position: relative; height: 58px; }
+.rail__base { position: absolute; top: 13px; left: 0; width: 72%; height: 3px; border-radius: 999px; background: var(--border-strong); }
+.rail__gap { position: absolute; top: 13px; left: 72%; width: 28%; border-top: 2px dashed var(--border-strong); }
+.rail__fill { position: absolute; top: 13px; left: 0; width: 0; height: 3px; border-radius: 999px; background: linear-gradient(90deg, var(--plum-soft), var(--plum)); }
+.rail__fill.is-neg { background: linear-gradient(90deg, var(--warning), var(--danger)); }
+.rail__dot { position: absolute; top: 8px; left: 0; width: 13px; height: 13px; border-radius: 50%; background: var(--plum); border: 2.5px solid var(--surface); box-shadow: 0 2px 8px -2px rgba(0, 136, 53, .6); transform: translateX(-50%); }
+.rail__dot.is-neg { background: var(--danger); box-shadow: 0 2px 8px -2px rgba(150, 47, 50, .55); }
+.rail__node { position: absolute; top: 6px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 7px; background: none; border: 0; cursor: pointer; padding: 0; font: inherit; }
+.rn-dot { width: 15px; height: 15px; border-radius: 50%; background: var(--surface); border: 2px solid var(--border-strong); transition: transform .18s cubic-bezier(.23,1,.32,1), border-color .18s, background .18s; }
+.rn-lbl { font: 600 10.5px var(--font); color: var(--text-muted); white-space: nowrap; position: relative; }
+.rail__node:hover .rn-dot { border-color: var(--plum); }
+.rail__node.passed .rn-dot { background: var(--plum-soft); border-color: var(--plum-soft); }
+.rail__node.passed .rn-lbl { color: var(--text-body); }
+.rail__node.on .rn-dot { transform: scale(1.18); }
+.rail__node.on .rn-lbl { font-weight: 800; }
+.rail__node.on.t-rec .rn-dot { background: var(--info); border-color: var(--info); } .rail__node.on.t-rec .rn-lbl { color: var(--info); }
+.rail__node.on.t-ana .rn-dot { background: var(--warning); border-color: var(--warning); } .rail__node.on.t-ana .rn-lbl { color: var(--warning-ink); }
+.rail__node.on.t-apr .rn-dot { background: var(--success); border-color: var(--success); } .rail__node.on.t-apr .rn-lbl { color: var(--success); }
+.rail__node.on.t-ctr .rn-dot { background: var(--success); border-color: var(--success); } .rail__node.on.t-ctr .rn-lbl { color: var(--success); }
+.rail__node.on.t-rec2 .rn-dot { background: var(--danger); border-color: var(--danger); } .rail__node.on.t-rec2 .rn-lbl { color: var(--danger); }
+
+/* Selo grande do status */
+.seal { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; }
+.seal__ink { position: absolute; inset: -8px; border-radius: 14px; pointer-events: none; opacity: 0; }
+.seal__pill { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; border-radius: 12px; font: 800 12.5px var(--font); letter-spacing: .02em; border: 1.5px solid; background: var(--surface); }
+.seal__pill .sp-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.seal__pill.t-rec { color: var(--info); border-color: color-mix(in srgb, var(--info) 45%, transparent); background: var(--info-bg); }
+.seal__pill.t-ana { color: var(--warning-ink); border-color: color-mix(in srgb, var(--warning) 50%, transparent); background: var(--warning-bg); }
+.seal__pill.t-apr, .seal__pill.t-ctr { color: var(--success); border-color: color-mix(in srgb, var(--success) 50%, transparent); background: var(--success-bg); }
+.seal__pill.t-rec2 { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); background: var(--danger-bg); }
+
+/* Confirmação da automação */
+.conf { min-height: 44px; display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.conf__chip { display: inline-flex; align-items: center; gap: 9px; padding: 10px 13px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font: 600 12px var(--font); color: var(--text-body); }
+.conf__chip .ico2 { display: inline-flex; align-items: center; gap: 5px; color: var(--plum); }
+.conf__chip .ico2 .icon { width: 15px; height: 15px; }
+.conf__chip .live { width: 7px; height: 7px; border-radius: 50%; background: var(--plum); flex: 0 0 auto; box-shadow: 0 0 0 0 color-mix(in srgb, var(--plum) 60%, transparent); animation: confPulseLive 1.6s cubic-bezier(.23,1,.32,1) infinite; }
+@keyframes confPulseLive { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--plum) 55%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.conf__perm { display: inline-flex; align-items: center; gap: 7px; font: 600 11.5px var(--font); color: var(--text-muted); }
+.conf__perm .icon { width: 14px; height: 14px; color: var(--success); }
+.conf__neutral { display: inline-flex; align-items: flex-start; gap: 7px; font-size: 11.5px; color: var(--text-muted); line-height: 1.45; padding: 9px 12px; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: 12px; }
+.conf__neutral .icon { width: 14px; height: 14px; margin-top: 1px; flex: 0 0 auto; }
 @media (max-width: 700px) {
   .g-cand__main--dual { grid-template-columns: 1fr; gap: 14px; }
   .g-cand__perfil { border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 14px; }
   .g-cand__funil { flex-direction: column; align-items: stretch; }
-  .g-cand__funil-r { flex-direction: row; align-items: center; justify-content: space-between; }
+  .g-cand__funil-r { max-width: none; min-width: 0; }
 }
 
-/* Escolha de canal (Email | WhatsApp) da mensagem ao candidato (funil fase 1). */
-.msg-canal__sug { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--text-body); line-height: 1.45; margin: 0 0 14px; }
-.msg-canal__sug .icon { width: 15px; height: 15px; color: var(--text-muted); flex: 0 0 auto; margin-top: 2px; }
-.msg-canal__sug b { font-weight: 600; }
-.msg-canal__ops { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.msg-canal__op { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; text-decoration: none; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 13px; padding: 14px 15px; cursor: pointer; transition: background .15s, border-color .15s; color: var(--text-body); }
-.msg-canal__op:hover { background: var(--surface-warm); border-color: var(--plum); }
-.msg-canal__op .icon { width: 20px; height: 20px; color: var(--plum); }
-.msg-canal__op b { font: 700 14px var(--font); color: var(--text-body); }
-.msg-canal__op span { font-size: 11.5px; color: var(--text-muted); word-break: break-word; }
-.msg-canal__op[aria-disabled="true"] { opacity: .5; pointer-events: none; }
-.msg-canal__micro { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin: 14px 0 0; padding: 11px 13px; background: var(--surface-warm); border: 1px dashed var(--border-strong); border-radius: 12px; }
-.msg-canal__micro .icon { width: 15px; height: 15px; flex: 0 0 auto; margin-top: 1px; }
-@media (max-width: 480px) { .msg-canal__ops { grid-template-columns: 1fr; } }
+/* Drill do KPI Internos: painel plano com os candidatos de dentro, cada card com a sua vaga. */
+.vg-int-drill { margin-bottom: 16px; }
+.vg-int-drill__vaga { display: flex; align-items: center; gap: 7px; font: 700 11px var(--font); color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; margin: 14px 0 6px; }
+.vg-int-drill__vaga:first-of-type { margin-top: 4px; }
+.vg-int-drill__vaga .icon { width: 13px; height: 13px; }
 
 /* ===== Vagas: sub-abas (Vagas | Benefícios) ===== */
 .g-subtabs { display: inline-flex; gap: 4px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 16px; }
@@ -5570,6 +5603,11 @@ html.cp-dark:not(.modo-colab) .den-retencao--janela { background: rgba(95,203,13
 .ntf-drow__t { display: block; font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--text-body); }
 .ntf-drow__s { display: block; font-size: 11.5px; color: var(--text-muted); line-height: 1.4; margin-top: 3px; }
 .ntf-drow__dot { position: absolute; top: 14px; right: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--plum); }
+/* Tempo relativo no canto (v409, itens datados como "Candidatura nova"): quando presente,
+   afasta o texto e empurra o dot de não-lido pra baixo pra não colidir. */
+.ntf-drow__when { position: absolute; top: 12px; right: 12px; font-size: 10.5px; color: var(--text-muted); }
+.ntf-drow:has(.ntf-drow__when) .ntf-drow__bd { padding-right: 44px; }
+.ntf-drow:has(.ntf-drow__when) .ntf-drow__dot { top: 30px; right: 13px; }
 .ntf-drop__empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 30px 24px; color: var(--text-muted); }
 .ntf-drop__empty svg { width: 30px; height: 30px; color: var(--plum); margin-bottom: 10px; }
 .ntf-drop__empty b { font-size: 14px; font-weight: 700; color: var(--text-body); }

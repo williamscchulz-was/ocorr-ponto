@@ -1,18 +1,21 @@
 // ============================================================
-// PROBE — Oportunidades internas no Portal do Colaborador (v392, fase 2)
+// PROBE — Oportunidades internas no Portal do Colaborador (v409: chip de STATUS)
 // ------------------------------------------------------------
 // Dirige o APP REAL (localhost:8081, demo, sem Firebase), loga como colaborador e semeia
 // o proprio funcionario + state.vagasInternasColab + state.meusInteressesInternos. Prova:
 //   1) zero pageerror
 //   2) home: card discreto "Oportunidade interna aberta" com o titulo da vaga
-//   3) tela colab-oportunidades: cards, um em estado "enviado" (vio--done), cabecalho
-//   4) bottom sheet: abre, 3 linhas do snapshot (do app), microcopy de discricao EXATA,
-//      textarea maxlength 300
-//   5) envio: passa o snapshot correto (cargo/setor/turno/tempoCasaMeses) + motivacao ao
-//      registrarInteresseInterno; sucesso mostra cerimonia (vi-sheet--ok) e persiste "enviado"
-//   6) repetir NEGA gracioso (rule rejeita -> mensagem "já demonstrou interesse")
-//   7) SHAPE 1:1: as chaves do payload do cliente (firebase.js) == hasOnly do criaInterna
-//   8) re-render FORCADO da tela nasce identico (m1 anti-flicker)
+//   3) tela colab-oportunidades: cards, um com interesse (vio--st + chip de status), cabecalho
+//   4) OS 4 ROTULOS DE GENTE (v409): recebida/nova => "Recebido pela GP"; em-analise => "Em
+//      analise"; aprovada E contratada => "Aprovado, a GP vai falar com voce"; nao-seguiu =>
+//      "Processo encerrado" (tons neu/info/ok/ok/end)
+//   5) bottom sheet: abre, 3 linhas do snapshot, microcopy de discricao EXATA, textarea max 300
+//   6) envio: passa o snapshot correto + motivacao ao registrarInteresseInterno; sucesso mostra
+//      cerimonia (vi-sheet--ok) e persiste o chip
+//   7) repetir NEGA gracioso (rule rejeita)
+//   8) SHAPE 1:1: chaves do payload do cliente (firebase.js) == hasOnly do criaInterna
+//   9) RETIRAR interesse: acao so no card com interesse; confirmar chama retirarInteresseInterno
+//  10) re-render FORCADO da tela nasce identico (m1 anti-flicker), antes e depois de retirar
 //
 // Uso: node scratchpad/audit/vagas-internas-colab-verify.mjs   (servidor 8081 na raiz)
 // ============================================================
@@ -48,7 +51,7 @@ await p.evaluate(() => {
 await p.waitForTimeout(300);
 await p.evaluate(() => { document.querySelector("#acesso")?.remove(); });
 
-// SEED: meu funcionario (snapshot) + vagas internas + meu interesse na vi-2 (enviado)
+// SEED: meu funcionario (snapshot) + vagas internas + meu interesse na vi-2
 await p.evaluate(() => {
   state.funcionarios = [{ id: "f-0428", nome: "Camila Souza", cargo: "Op. de Máquina", setor: "Produção", turno: 1, admissao: "2023-07-23", codigo: "0428" }];
   state.vagasInternasColab = [
@@ -85,25 +88,54 @@ const tela = await p.evaluate(() => {
   document.querySelector("#view .vi-nudge")?.click(); // navega via bindColabNav
   _renderAppNow();
   const cards = [...document.querySelectorAll("#view .vio")];
+  const stCard = cards.find((c) => c.classList.contains("vio--st"));
   return {
     page: state.view.page,
     n: cards.length,
-    doneIdx: cards.findIndex((c) => c.classList.contains("vio--done")),
+    stIdx: cards.findIndex((c) => c.classList.contains("vio--st")),
     temHead: !!document.querySelector("#view .cp-head"),
-    doneTxt: (cards.find((c) => c.classList.contains("vio--done"))?.querySelector(".vio__done")?.textContent || "").replace(/\s+/g, " ").trim(),
-    btnLivre: !!cards.find((c) => !c.classList.contains("vio--done"))?.querySelector("[data-vi-interesse]"),
+    chipTxt: (stCard?.querySelector(".vio-st")?.textContent || "").replace(/\s+/g, " ").trim(),
+    btnLivre: !!cards.find((c) => !c.classList.contains("vio--st"))?.querySelector("[data-vi-interesse]"),
   };
 });
 check(tela.page === "colab-oportunidades", "navegou para a tela nova");
 check(tela.n === 2, "2 cards de oportunidade (achou " + tela.n + ")");
 check(tela.temHead, "cabeçalho com voltar + título");
-check(tela.doneIdx === 1, "a vaga com interesse enviado (vi-2) aparece como 'enviado'");
-check(/enviado à GP/i.test(tela.doneTxt), "estado 'Interesse enviado à GP' visível");
+check(tela.stIdx === 1, "a vaga com interesse (vi-2) aparece com o chip de status");
+check(tela.chipTxt === "Recebido pela GP", "status 'nova' vira o rótulo 'Recebido pela GP' → " + JSON.stringify(tela.chipTxt));
 check(tela.btnLivre, "a vaga sem interesse tem o botão 'Tenho interesse'");
 
-// 4) bottom sheet
+// 4) OS 4 ROTULOS DE GENTE (nunca o jargão do funil), com o tom certo
+const rotulos = await p.evaluate(() => {
+  const casos = [
+    ["nova", "Recebido pela GP", "vio-st--neu"],
+    ["recebida", "Recebido pela GP", "vio-st--neu"],
+    ["em-analise", "Em análise", "vio-st--info"],
+    ["aprovada", "Aprovado, a GP vai falar com você", "vio-st--ok"],
+    ["contratada", "Aprovado, a GP vai falar com você", "vio-st--ok"],
+    ["nao-seguiu", "Processo encerrado", "vio-st--end"],
+  ];
+  const out = [];
+  for (const [st, txt, tone] of casos) {
+    state.meusInteressesInternos = { "vi-2": { status: st, em: "2026-07-20T10:00:00.000Z" } };
+    state.view.page = "colab-oportunidades"; _renderAppNow();
+    const card = [...document.querySelectorAll("#view .vio")][1];
+    const chip = card?.querySelector(".vio-st");
+    out.push({ st, txt, tone, got: (chip?.textContent || "").replace(/\s+/g, " ").trim(), toneOk: !!chip && chip.classList.contains(tone) });
+  }
+  return out;
+});
+rotulos.forEach((r) => {
+  check(r.got === r.txt, `status '${r.st}' => "${r.txt}" (achou ${JSON.stringify(r.got)})`);
+  check(r.toneOk, `status '${r.st}' com o tom ${r.tone}`);
+});
+
+// restaura o estado base (nova) pra os próximos passos
+await p.evaluate(() => { state.meusInteressesInternos = { "vi-2": { status: "nova", em: "2026-07-20T10:00:00.000Z" } }; _renderAppNow(); });
+
+// 5) bottom sheet
 const sheet = await p.evaluate(async () => {
-  document.querySelector("#view .vio:not(.vio--done) [data-vi-interesse]").click();
+  document.querySelector("#view .vio:not(.vio--st) [data-vi-interesse]").click();
   await new Promise((r) => setTimeout(r, 120));
   const s = document.querySelector(".vi-sheet");
   return {
@@ -122,12 +154,12 @@ check(/Op\. de Máquina · Produção/.test(sheet.cargoRow), "linha cargo·setor
 check(/1º Turno/.test(sheet.turnoRow), "linha turno·tempo de casa do snapshot → " + JSON.stringify(sheet.turnoRow));
 check(sheet.maxlen === "300", "motivação com maxlength 300 (achou " + sheet.maxlen + ")");
 
-// 5) envio: captura snapshot + motivacao; sucesso -> cerimonia + persiste
+// 6) envio: captura snapshot + motivacao; sucesso -> cerimonia + persiste o chip
 const envio = await p.evaluate(async () => {
   window.__intArgs = null;
   window.registrarInteresseInterno = async (vagaId, snapshot, motivacao) => {
     window.__intArgs = { vagaId, snapshot, motivacao };
-    state.meusInteressesInternos[vagaId] = { status: "nova", em: new Date().toISOString() }; // espelha o real
+    state.meusInteressesInternos[vagaId] = { status: "nova", em: new Date().toISOString() };
   };
   document.querySelector("#vi-mot-tx").value = "  Tenho acompanhado as inspeções.  ";
   document.querySelector("#vi-confirm").click();
@@ -141,22 +173,23 @@ check(!!envio.args && envio.args.snapshot && envio.args.snapshot.turno === "1º 
 check(!!envio.args && envio.args.motivacao === "Tenho acompanhado as inspeções.", "motivação trimada e passada");
 check(envio.okShown, "sucesso mostra a cerimônia (vi-sheet--ok)");
 
-// fecha a cerimonia e confere que o card virou "enviado"
+// fecha a cerimonia e confere que o card virou chip de status
 const persist = await p.evaluate(async () => {
   document.querySelector("#vi-close")?.click();
   await new Promise((r) => setTimeout(r, 350));
   _renderAppNow();
   const c = [...document.querySelectorAll("#view .vio")][0];
-  return { done: !!c && c.classList.contains("vio--done"), semSheet: !document.querySelector(".vi-sheet") };
+  return { done: !!c && c.classList.contains("vio--st"), chip: (c?.querySelector(".vio-st")?.textContent || "").trim(), semSheet: !document.querySelector(".vi-sheet") };
 });
-check(persist.done, "após enviar, o card vi-1 mostra 'enviado' (persistente)");
+check(persist.done, "após enviar, o card vi-1 mostra o chip de status (persistente)");
+check(/Recebido pela GP/.test(persist.chip), "o chip persistido mostra 'Recebido pela GP'");
 check(persist.semSheet, "sheet removido do DOM ao fechar");
 
-// 6) repetir NEGA gracioso (a rule rejeita)
+// 7) repetir NEGA gracioso (a rule rejeita)
 const nega = await p.evaluate(async () => {
   state.meusInteressesInternos = {}; // reabre o botao pra forcar a tentativa
   _renderAppNow();
-  document.querySelector("#view .vio:not(.vio--done) [data-vi-interesse]").click();
+  document.querySelector("#view .vio:not(.vio--st) [data-vi-interesse]").click();
   await new Promise((r) => setTimeout(r, 120));
   window.registrarInteresseInterno = async () => { const e = new Error("denied"); e.code = "permission-denied"; throw e; };
   document.querySelector("#vi-confirm").click();
@@ -168,17 +201,16 @@ check(!nega.okShown, "erro NÃO mostra a cerimônia de sucesso (não é falso-su
 
 await p.evaluate(() => { document.querySelector(".vi-sheet")?.remove(); });
 
-// 7) SHAPE 1:1: chaves do payload do cliente == hasOnly do criaInterna
+// 8) SHAPE 1:1: chaves do payload do cliente == hasOnly do criaInterna
 const fbSrc = readFileSync("public/firebase.js", "utf8");
 const mPay = fbSrc.match(/registrarInteresseInterno[\s\S]*?const payload = \{([\s\S]*?)\};/);
-// aceita chave: valor E shorthand (uid,) — captura o identificador seguido de ':' ou ','
 const keys = mPay ? [...mPay[1].matchAll(/^\s*([a-zA-Z]+)\s*[:,]/gm)].map((x) => x[1]) : [];
 const esperado = ["vagaId", "origem", "uid", "funcionarioId", "nome", "cargo", "setor", "turno", "tempoCasaMeses", "motivacao", "em", "status"];
 check(JSON.stringify([...keys].sort()) === JSON.stringify([...esperado].sort()), "payload do cliente = 12 chaves do criaInterna → " + JSON.stringify(keys));
 
-// 8) m1 idempotente da tela
+// 9) m1 idempotente da tela (com interesse)
 const m1 = await p.evaluate(() => {
-  state.meusInteressesInternos = { "vi-2": { status: "nova", em: "2026-07-20T10:00:00.000Z" } };
+  state.meusInteressesInternos = { "vi-2": { status: "em-analise", em: "2026-07-20T10:00:00.000Z" } };
   state.view.page = "colab-oportunidades"; _renderAppNow();
   const view = document.querySelector("#view");
   const a = view.innerHTML;
@@ -187,21 +219,18 @@ const m1 = await p.evaluate(() => {
 });
 check(normaliza(m1.a) === normaliza(m1.b), "re-render forçado da tela nasce idêntico (m1)" + (normaliza(m1.a) !== normaliza(m1.b) ? " · DIVERGIU" : ""));
 
-// 9) RETIRAR interesse (v2): a ação discreta só aparece no estado "enviado"; confirmar chama
-//    retirarInteresseInterno (stub), o doc some do state e o card volta pra "Tenho interesse".
+// 10) RETIRAR interesse (v2): so aparece no card com interesse; confirmar chama a func real
 const retirar = await p.evaluate(async () => {
   state.meusInteressesInternos = { "vi-2": { status: "nova", em: "2026-07-20T10:00:00.000Z" } };
   state.view.page = "colab-oportunidades"; _renderAppNow();
-  // Gating do botão discreto: visível só no card enviado, oculto no card livre (prova o CSS).
   const cards = [...document.querySelectorAll("#view .vio")];
-  const doneCard = cards.find((c) => c.classList.contains("vio--done"));
-  const livreCard = cards.find((c) => !c.classList.contains("vio--done"));
-  const undoDone = doneCard?.querySelector("[data-vi-retirar]");
+  const stCard = cards.find((c) => c.classList.contains("vio--st"));
+  const livreCard = cards.find((c) => !c.classList.contains("vio--st"));
+  const undoDone = stCard?.querySelector("[data-vi-retirar]");
   const undoLivre = livreCard?.querySelector("[data-vi-retirar]");
   const undoVisivelDone = !!undoDone && getComputedStyle(undoDone).display !== "none";
-  const undoOcultoLivre = !!undoLivre && getComputedStyle(undoLivre).display === "none";
+  const semUndoLivre = !undoLivre; // no card livre o botão nem existe (não é renderizado)
   const undoAlvo = undoDone?.dataset.viRetirar;
-  // Stub do delete real (demo, sem Firebase): espelha a função real (some do state).
   window.__retirado = null;
   window.retirarInteresseInterno = async (vagaId) => {
     window.__retirado = vagaId;
@@ -215,26 +244,26 @@ const retirar = await p.evaluate(async () => {
   okBtn?.click();
   await new Promise((r) => setTimeout(r, 320));
   _renderAppNow();
-  const card = [...document.querySelectorAll("#view .vio")][1]; // vi-2 mantém a posição
+  const card = [...document.querySelectorAll("#view .vio")][1];
   return {
-    undoVisivelDone, undoOcultoLivre, undoAlvo,
+    undoVisivelDone, semUndoLivre, undoAlvo,
     temDlg: !!dlg, okLabel,
     retirado: window.__retirado,
     stateLimpo: !state.meusInteressesInternos["vi-2"],
-    cardLivre: !!card && !card.classList.contains("vio--done"),
+    cardLivre: !!card && !card.classList.contains("vio--st"),
     btnVoltou: !!card?.querySelector("[data-vi-interesse]"),
   };
 });
-check(retirar.undoVisivelDone, "botão 'Retirar interesse' visível no card enviado");
-check(retirar.undoOcultoLivre, "botão 'Retirar interesse' OCULTO no card livre (gating do CSS)");
+check(retirar.undoVisivelDone, "botão 'Retirar interesse' visível no card com interesse");
+check(retirar.semUndoLivre, "card livre NÃO renderiza o botão 'Retirar interesse'");
 check(retirar.undoAlvo === "vi-2", "retirar aponta pra vaga certa (vi-2)");
 check(retirar.temDlg && /retirar interesse/i.test(retirar.okLabel), "confirmação aparece com ação 'Retirar interesse' → " + JSON.stringify(retirar.okLabel));
 check(retirar.retirado === "vi-2", "confirmar chama retirarInteresseInterno(vi-2)");
 check(retirar.stateLimpo, "estado limpo: meusInteressesInternos['vi-2'] removido");
-check(retirar.cardLivre, "card vi-2 volta ao estado livre (sem vio--done)");
+check(retirar.cardLivre, "card vi-2 volta ao estado livre (sem vio--st)");
 check(retirar.btnVoltou, "card volta a mostrar 'Tenho interesse'");
 
-// 10) m1 idempotente após retirar (re-render da tela nasce idêntico)
+// 11) m1 idempotente após retirar
 const m1b = await p.evaluate(() => {
   state.view.page = "colab-oportunidades"; _renderAppNow();
   const view = document.querySelector("#view");
@@ -244,7 +273,7 @@ const m1b = await p.evaluate(() => {
 });
 check(normaliza(m1b.a) === normaliza(m1b.b), "re-render forçado após retirar nasce idêntico (m1)" + (normaliza(m1b.a) !== normaliza(m1b.b) ? " · DIVERGIU" : ""));
 
-try { await p.evaluate(() => { state.view.page = "colab-oportunidades"; _renderAppNow(); }); const el = await p.$("#view"); await el.screenshot({ path: OUT + "/vagas-internas-colab.png" }); } catch { /* */ }
+try { await p.evaluate(() => { state.meusInteressesInternos = { "vi-2": { status: "aprovada", em: "2026-07-20T10:00:00.000Z" } }; state.view.page = "colab-oportunidades"; _renderAppNow(); }); const el = await p.$("#view"); await el.screenshot({ path: OUT + "/vagas-internas-colab.png" }); } catch { /* */ }
 await b.close();
 
 console.log("\n=== VAGAS INTERNAS (colaborador) · verificação ===");

@@ -19,7 +19,15 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.22.0", d: "24 jul 2026", current: true, items: [
+    v: "2.23.0", d: "24 jul 2026", current: true, items: [
+      { type: "feat", aud: "colab", title: "Acompanhe o status da sua candidatura interna" },
+      { type: "feat", aud: "gestor", title: "Aviso ao candidato sai sozinho ao mover o status" },
+      { type: "feat", aud: "gestor", title: "Indicador de candidatos internos nas vagas" },
+      { type: "feat", aud: "gestor", title: "As vagas avisam quando chega candidatura nova" },
+    ],
+  },
+  {
+    v: "2.22.0", d: "24 jul 2026", items: [
       { type: "fix", aud: "colab", title: "Pontos sempre certos, mesmo usando dois aparelhos" },
       { type: "fix", aud: "colab", title: "Foto de quem chegou agora aparece na faixa do dia" },
       { type: "feat", aud: "colab", title: "Home do computador reorganizada" },
