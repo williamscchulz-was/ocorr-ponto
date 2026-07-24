@@ -329,6 +329,13 @@ test("curriculoPath fora do padrao (path traversal) nega", async () =>
   assertFails(setDoc(doc(anon(), cid("curr1@mail.com")), cand({ email: "curr1@mail.com", curriculoPath: "hack/../x.pdf" }))));
 test("curriculoPath com extensao errada nega", async () =>
   assertFails(setDoc(doc(anon(), cid("curr2@mail.com")), cand({ email: "curr2@mail.com", curriculoPath: "curriculos/x.exe" }))));
+// ----- canalPreferido (2026-07-24, preferencia de aviso do candidato) -----
+test("canalPreferido 'whatsapp' passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("canal1@mail.com")), cand({ email: "canal1@mail.com", canalPreferido: "whatsapp" }))));
+test("canalPreferido 'email' passa", async () =>
+  assertSucceeds(setDoc(doc(anon(), cid("canal2@mail.com")), cand({ email: "canal2@mail.com", canalPreferido: "email" }))));
+test("canalPreferido fora do enum ('sms') nega", async () =>
+  assertFails(setDoc(doc(anon(), cid("canal3@mail.com")), cand({ email: "canal3@mail.com", canalPreferido: "sms" }))));
 
 // ----- Ficha completa: happy paths (com/sem experiencias e curriculo) -----
 test("FELIZ: ficha completa SEM experiencias (primeiro emprego) e sem curriculo passa", async () =>

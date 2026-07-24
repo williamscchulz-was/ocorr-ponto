@@ -1813,7 +1813,7 @@ service cloud.firestore {
         // pra os opcionais (era 'in cc.keys()') evita reconstruir a lista de chaves 3x.
         let cc = request.resource.data;
         let vd = get(/databases/$(database)/documents/vagas/$(cc.vagaId)).data;
-        return cc.keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status', 'nascimento', 'estadoCivil', 'escolaridade', 'filhos', 'endereco', 'nacionalidade', 'naturalidade', 'experiencias', 'pretensaoSalarial', 'comoViria', 'indicacao', 'disc', 'discPrimario', 'curriculoPath'])
+        return cc.keys().hasOnly(['vagaId', 'vagaTitulo', 'nome', 'telefone', 'email', 'mensagem', 'em', 'status', 'nascimento', 'estadoCivil', 'escolaridade', 'filhos', 'endereco', 'nacionalidade', 'naturalidade', 'experiencias', 'pretensaoSalarial', 'comoViria', 'indicacao', 'disc', 'discPrimario', 'curriculoPath', 'canalPreferido'])
         // --- NOVOS obrigatorios (ficha da GP) ---
         && cc.estadoCivil in ['solteiro', 'casado', 'uniao-estavel', 'divorciado', 'viuvo']
         && cc.escolaridade in ['fundamental', 'medio-incompleto', 'medio-completo', 'tecnico', 'superior-incompleto', 'superior-completo', 'pos']
@@ -1839,6 +1839,10 @@ service cloud.firestore {
               && cc.disc.c is int && cc.disc.c >= -8 && cc.disc.c <= 8))
         && (!('discPrimario' in cc) || cc.discPrimario in ['D', 'I', 'S', 'C', 'equilibrado'])
         && (!('curriculoPath' in cc) || (cc.curriculoPath is string && cc.curriculoPath.size() <= 220 && cc.curriculoPath.matches('curriculos/[A-Za-z0-9@._-]+\\.pdf')))
+        // Preferencia de aviso do candidato (William 24/07): governa quais docs de
+        // fila (mail/waMsg) o cliente cria; ausente = ambos (retrocompat). A guarda
+        // dura dos envios segue sendo a das colecoes /mail e /waMsg, nao este campo.
+        && (!('canalPreferido' in cc) || cc.canalPreferido in ['ambos', 'email', 'whatsapp'])
         // --- Existentes (intocados) ---
         && cc.vagaId is string && cc.vagaId.size() >= 1 && cc.vagaId.size() <= 60
         && vd.status == 'publicada'
