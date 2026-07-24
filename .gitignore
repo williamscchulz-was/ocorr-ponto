@@ -48,3 +48,4 @@ Thumbs.db
 
 # Mapa supervisor→funcionários (nomes reais, não commitar)
 scripts/supervisores-map.json
+token.txt
