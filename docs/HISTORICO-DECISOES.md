@@ -3232,3 +3232,33 @@ Header novo: `...;Retorno;Abono;Início Abono;Fim Abono;Pagto`. Conferi os 6 có
 
 ### Deploy (autorizado explicitamente: "LIGAR AGORA")
 `process-ferias.mjs` ganha `abonos: []` por período (mesmo padrão de `gozos: []`: dias/início/fim/pagamento) + `resumo.diasAbonoTotal`. `upload-ferias.mjs` não precisou mudar (já sobe `f.periodos`/`f.resumo` inteiros, sem allowlist). Testado com `parsed-empregado.json` regenerado primeiro (armadilha conhecida — PII-cleanup apaga esse arquivo no fim de cada rodada real). Rodado de ponta a ponta e **confirmado ao vivo no Firestore** (`ferias/212`): `abonos: [{dias:10, inicio:"2026-01-11", fim:"2026-01-20", pagamento:"2025-12-20"}]`, `resumo.diasAbonoTotal: 10`. Shape aditivo — nada do que o PC já consome quebra. Aviso mandado pela bridge (`inbox-pc`).
+
+## 2026-07-24 · Auditoria "Ocorrências 100%" (pedido William) + achado real: pico de dados incompletos no dia 23/07
+
+William pediu uma checagem completa ("CHECAR SE OCORRENCIAS TA 100%, TUDO CERTINHO"). Rodei 4 lentes em paralelo (workflow, agentes independentes): saúde de execução do pipeline, sanidade dos contadores/regras, consistência ao vivo no Firestore, e um spot-check adversarial (tentando ativamente achar erro, não confirmar que está tudo bem).
+
+### Veredito do código: limpo nas 4 lentes
+- Execução: sem erro/warning nos últimos dias, breaker nunca abortou, todas as fontes frescas, heartbeat `status: ok`.
+- Contadores: aritmética fecha exata (368 brutas − 177 pré-go-live − 82 removidoGeral + 51 do detector 999 = 160 finais), zero `dedupId` duplicado, `porSituacao` soma bate com o total.
+- Firestore ao vivo (445 docs em `ocorrencias-auto`): zero duplicação entre doc principal e `esp_` do mesmo incidente, zero campo quebrado. Nota de schema corrigida: `dedupId` não é campo separado, é o próprio `doc.id`.
+- Spot-check em 8 casos reais recentes (incluindo o próprio Anderson/612, o motivador do fix de M=2): todos corretos — inclusive 2 casos (1192, 1206) onde meu palpite inicial de "isso parece errado" estava errado e o algoritmo estava certo (reforça que a cautela de não resolver por relógio puro é a escolha certa).
+
+### Achado real: 75% dos registros do Espelho em 23/07 têm só 1 batida (normal é 14-18%)
+Não é bug do parser nem staleness de arquivo — investigado a fundo antes de reportar:
+1. Conferido direto na coluna bruta "Originais" do CSV (não é um problema de reconciliação do WK escondendo marcações).
+2. Descartado RAID/disco (suspeita natural dado o histórico do server) — checado o Event Log do Windows (event 129 e providers de disco) no período, nada.
+3. Descartado staleness de export — reexportei o Espelho NA HORA, resultado idêntico (70/93 com 1 batida só). O WK genuinamente só tem essa marcação, agora, pra essas pessoas.
+
+Reportado ao William como "não é bug meu, precisa checar no WK/relógio físico" — não tentei mascarar isso afrouxando alguma regra do pipeline (o sistema está corretamente sinalizando um problema real de dado). Achado secundário: código 1153 (Maristella) com 3 dias seguidos de marcação incompleta — padrão crônico individual, distinto do pico do dia 23, sem agregação hoje que capture "mesma pessoa, N dias seguidos".
+
+## 2026-07-24 · Backup diário do pipeline (disco físico separado do RAID)
+
+William: "o pipeline é o coração do sistema, se eu perder ele, ferrou". Este repo não tem remote no GitHub (só local) — git sozinho não protege contra perda de disco.
+
+**`E:` é fisicamente separado de `C:`/`D:`** — confirmado via `Get-Partition` (`E:` = DiskNumber 1; `C:`/`D:` = DiskNumber 0, o mesmo RAID 1). Backup ali sobrevive a uma falha do RAID que já causou incidentes documentados neste histórico.
+
+`backup-pipeline.mjs` (novo): grava em `E:\Backup\Pipeline RH` — (1) `git bundle --all` (histórico completo, restaura com `git clone`), (2) `git archive HEAD` em zip (snapshot pronto pra uso), (3) cópia de `service-account.json` (credencial, gitignorada de propósito no repo, mas necessária pra um restore funcionar). Retenção 30 dias nos arquivos datados. **Nunca inclui PII** — bundle/archive só pegam o que o git rastreia, e `parsed-bh.json`/`parsed-empregado.json` são gitignorados exatamente por terem CPF/PIS/nome da mãe, então nunca entraram num commit pra começo de conversa.
+
+Scheduled task nova **"Fiobras Pipeline RH Backup"** (via `schtasks`, mesmo usuário `wkradar` da task principal — precisou do usuário qualificado `wkradar\wkradar`, sem isso o registro falhava com erro de schema no `UserId`), diária às 23:30 BRT (depois da última rodada do pipeline do dia). Testada de ponta a ponta via `schtasks /Run` — resultado 0 (sucesso), arquivos gerados e confirmados em `E:\Backup\Pipeline RH`.
+
+Pedido também ao William de mandar o mesmo pedido pro Claude que cuida do `C:\fiobras-pipeline\` (pipeline Comercial) — mesma lógica de risco (single point of failure no mesmo RAID), mesma solução.
