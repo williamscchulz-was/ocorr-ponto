@@ -154,11 +154,26 @@ await p.evaluate(() => {
   ];
   state.meusInteressesInternos = { "vi-2": { status: "nova", em: "2026-07-20T10:00:00.000Z" } };
 });
+// Central de notificacoes (v402): semeia itens datados com offsets REDONDOS (longe de borda de
+// balde de tempo, pra o "ha X" nascer estavel entre renders) pra a tela nova (colab-notificacoes)
+// e o sino da home entrarem no pente fino com conteudo nos 3 grupos (Hoje / Esta semana / Antes).
+await p.evaluate(() => {
+  const H = 3600000, DIA = 86400000;
+  const ago = (ms) => new Date(Date.now() - ms).toISOString();
+  state.comunicadosColab = [
+    { id: "gc-1", titulo: "Parada programada da caldeira", tipo: "comunicado", publicadoEm: ago(2 * H), minhaLeitura: null, segmento: { tipo: "todos" } },
+    { id: "gc-2", titulo: "Ajuste no ponto do turno", tipo: "aviso", publicadoEm: ago(3 * DIA), minhaLeitura: null, segmento: { tipo: "todos" } },
+    { id: "gc-3", titulo: "Cardapio do refeitorio", tipo: "comunicado", publicadoEm: ago(9 * DIA), minhaLeitura: null, segmento: { tipo: "todos" } },
+  ];
+  state.meusRecibos = [{ id: "gr-1", tipo: "recibo", competencia: "2026-06", criadoEm: ago(6 * H), minhaAssinatura: null, paginas: 1 }];
+});
 console.log("COLAB:");
 const paginasColab = await p.evaluate(() => COLAB_NAV.map((x) => x.id));
 // Oportunidades internas (fase 2): filha-da-home (fora de COLAB_NAV, como o canal de
 // denuncia), entra no pente fino explicitamente com a lista ja semeada acima.
 paginasColab.push({ page: "colab-oportunidades", label: "colab-oportunidades" });
+// Central de notificacoes: filha-do-hub (fora de COLAB_NAV, aberta pelo sino), entra explicita.
+paginasColab.push({ page: "colab-notificacoes", label: "colab-notificacoes" });
 // Canal de denuncia: colab-denuncia e filha-do-hub (fora de COLAB_NAV), entao TODAS as
 // vistas entram aqui como sub-estados, inclusive a porta (bifurcacao) e a tela nova.
 paginasColab.push(
@@ -312,9 +327,11 @@ await mediaInteracao("like via sheet (anel da faixa reflete)", "like");
 await mediaInteracao("chegada de reações novas no cache", "reacoes");
 
 // aquece AVISOS (rollout v390): a lista keyed. O aquecimento navega pra tela (stub vazio, pois
-// o seed dos avisos só entra no evaluate da mediaInteracao) e deixa a cascata terminar.
+// o seed dos avisos só entra no evaluate da mediaInteracao) e deixa a cascata terminar. Zera o
+// seed da Central de notificações (comunicados/recibos), senão o aquecimento nasceria com lista
+// e a 1a pintura da região viraria morph (entrada one-shot que a checagem de churn pegaria).
 console.log("FASE NOVA (rollout de regiões, colab-comunicados):");
-await p.evaluate(() => { state.view.page = "colab-comunicados"; _renderAppNow(); });
+await p.evaluate(() => { state.comunicadosColab = []; state.meusRecibos = []; state.view.page = "colab-comunicados"; _renderAppNow(); });
 await p.waitForTimeout(700);
 await mediaInteracao("chegada de aviso novo (lista keyed)", "aviso");
 

@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.15.0", d: "23 jul 2026", current: true, items: [
+    v: "2.16.0", d: "23 jul 2026", current: true, items: [
+      { type: "feat", title: "Central de notificações nos dois portais" },
+    ],
+  },
+  {
+    v: "2.15.0", d: "23 jul 2026", items: [
       { type: "feat", aud: "colab", title: "Quem chegou agora entra nos destaques do dia" },
     ],
   },

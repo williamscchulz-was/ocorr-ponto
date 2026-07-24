@@ -1816,6 +1816,8 @@ function cpIcon(name) {
     medalha: '<circle cx="12" cy="9" r="5.5"/><path d="M8.8 13.5 7 21l5-2.6L17 21l-1.8-7.5"/>',
     star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
     heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>',
+    bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
   };
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${P[name] || ""}</svg>`;
 }
@@ -1880,6 +1882,7 @@ function renderPortalColaborador(u) {
   $("#user-name").textContent = nomeColab;
   $("#user-role").textContent = "Colaborador";
   if ($("#presence")) $("#presence").innerHTML = "";
+  _notifEsconderBellGestor(); // o sino do gestor não aparece no chrome do colaborador
   renderNavColaborador();
   renderBottomNavColaborador();
   talvezAnelAvisos(); // C · anel no badge quando um aviso novo chega (compara com o render anterior)
@@ -1950,7 +1953,7 @@ function renderBottomNavColaborador() {
   ];
   // Telas filhas do hub (acessadas por atalho da Home) não têm item próprio na barra:
   // acendem "Início" pra a barra nunca ficar sem item ativo.
-  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap", "colab-pesquisa", "colab-desempenho", "colab-desempenho-res", "colab-denuncia"];
+  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap", "colab-pesquisa", "colab-desempenho", "colab-desempenho-res", "colab-denuncia", "colab-notificacoes"];
   const pageAtiva = filhasDoHub.includes(state.view.page) ? "colab-home" : state.view.page;
   const idxAtivo = Math.max(0, items.findIndex((it) => it.id === pageAtiva));
   // A barra é rebuilt a cada render; pra pill DESLIZAR (não teleportar), nasce na
@@ -1980,7 +1983,7 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação", "colab-denuncia": "Canal de denúncia", "colab-oportunidades": "Oportunidades internas" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação", "colab-denuncia": "Canal de denúncia", "colab-oportunidades": "Oportunidades internas", "colab-notificacoes": "Notificações" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conquistas") return renderColabConquistas();
   if (page === "colab-conta") return renderColabConta();
@@ -1994,6 +1997,7 @@ function renderViewColaborador() {
   if (page === "colab-documentos") return renderColabDocumentos();
   if (page === "colab-denuncia") return renderColabDenuncia();
   if (page === "colab-oportunidades") return renderColabOportunidades();
+  if (page === "colab-notificacoes") return renderColabNotificacoes();
   return renderColaboradorHome();
 }
 
@@ -3408,7 +3412,7 @@ function _reconciliarMuralRegioes() {
   const u = currentUser();
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
-  updateRegion("home:greet", () => colabGreetHtml(f, nome));
+  updateRegion("home:greet", () => colabHomeHeaderHtml(f, nome));
   updateRegion("home:sit", () => colabSitChipHtml(f));
   updateRegion("mural:strip", () => muralStripHtml(nome));
 }
@@ -3721,6 +3725,189 @@ function precisaAtencaoHtml() {
     </button>`;
   }).join("");
   return `<div class="pp-ovl">Precisa da sua atenção<span class="pp-ct">${n} ${n > 1 ? "itens" : "item"}</span></div>${rows}`;
+}
+
+// ============================================================
+// CENTRAL DE NOTIFICAÇÕES (v402) — mock aprovado docs/mockups/central-notificacoes-2026-07.html
+//
+// DERIVAÇÃO PURA: as notificações são CALCULADAS do state que o app JÁ carregou, no render,
+// sem coleção nova e sem leitura nova. O sino/badge e a lista compartilham a MESMA função de
+// cálculo (determinística do state + localStorage), então re-render nasce idêntico.
+//
+// DENÚNCIA NUNCA entra na central (invariante de discrição, Lei 14.457/2022).
+//
+// ESTADO LIDO/LIMPO: localStorage por usuário (fiopulse:notif:{uid}) com os ids vistos + o
+// timestamp de "limpei tudo". SEM sincronização entre aparelhos na v1.
+// ponytail: v2 sincroniza com notifEstado/{uid} own-only (create/update só do dono) + gate.
+// ============================================================
+const NOTIF_TETO = 50;                    // teto de itens exibidos
+const NOTIF_JANELA_MS = 30 * 864e5;       // janela de 30 dias
+// Campos de data candidatos por fonte (o extrator varre em ordem; a 1ª válida vence).
+const _NOTIF_TS_CAMPOS = ["publicadoEm", "criadoEm", "emitidoEm", "em", "atualizadoEm", "aberturaEm", "publicadaEm", "versaoEm", "data"];
+
+function _notifUid() { return state.currentUserId || (currentUser() && currentUser().id) || "anon"; }
+function notifStorageKey(uid) { return "fiopulse:notif:" + (uid || _notifUid()); }
+const _notifMem = {}; // fallback de sessão (iOS privado nega localStorage), igual aos "vistos" dos recibos
+function notifEstado(uid) {
+  uid = uid || _notifUid();
+  try {
+    const raw = localStorage.getItem(notifStorageKey(uid));
+    if (raw) { const o = JSON.parse(raw); return { vistos: Array.isArray(o.vistos) ? o.vistos : [], limpouEm: Number(o.limpouEm) || 0 }; }
+  } catch (e) {}
+  const m = _notifMem[uid];
+  return m ? { vistos: m.vistos.slice(), limpouEm: m.limpouEm } : { vistos: [], limpouEm: 0 };
+}
+function _notifSalvar(uid, est) {
+  uid = uid || _notifUid();
+  est.vistos = est.vistos.slice(-300); // teto do histórico local de "vistos" individuais
+  _notifMem[uid] = { vistos: est.vistos.slice(), limpouEm: est.limpouEm };
+  try { localStorage.setItem(notifStorageKey(uid), JSON.stringify(est)); } catch (e) {}
+}
+function notifMarcarVisto(id) {
+  const uid = _notifUid(); const est = notifEstado(uid);
+  if (!est.vistos.includes(id)) { est.vistos.push(id); _notifSalvar(uid, est); }
+}
+function notifMarcarTudo(ids) {
+  const uid = _notifUid(); const est = notifEstado(uid);
+  est.limpouEm = Date.now();                      // marca de "tudo até aqui é lido" (cobre itens com ts)
+  (ids || []).forEach((id) => { if (!est.vistos.includes(id)) est.vistos.push(id); }); // cobre itens sem ts
+  _notifSalvar(uid, est);
+}
+function _notifLido(est, it) {
+  return est.vistos.includes(it.id) || (it.ts != null && it.ts <= est.limpouEm);
+}
+// Converte ISO / Timestamp do Firestore / millis em ms; null se não der.
+function _notifTsVal(v) {
+  if (v == null) return null;
+  if (typeof v === "number") return isFinite(v) ? v : null;
+  if (typeof v === "object") {
+    if (typeof v.toDate === "function") { const d = v.toDate(); return d && !isNaN(d) ? d.getTime() : null; }
+    if (typeof v.seconds === "number") return v.seconds * 1000;
+    return null;
+  }
+  const t = new Date(v).getTime();
+  return isNaN(t) ? null : t;
+}
+function _notifTsDe(obj) {
+  if (!obj) return null;
+  for (const f of _NOTIF_TS_CAMPOS) { if (obj[f] != null) { const t = _notifTsVal(obj[f]); if (t != null) return t; } }
+  return null;
+}
+// Tempo relativo ESTÁVEL (baldes grosseiros: min/hora/dia), pra dois renders no mesmo minuto
+// darem string idêntica (contrato anti-flicker). ts null = sem meta.
+const _NOTIF_MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function notifQuando(ts, now) {
+  if (ts == null) return "";
+  const diff = Math.max(0, now - ts);
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return "há " + min + " min";
+  const h = Math.floor(min / 60);
+  if (h < 24) return "há " + h + " h";
+  const dias = Math.floor(h / 24);
+  if (dias === 1) return "ontem";
+  if (dias < 7) return "há " + dias + " dias";
+  const d = new Date(ts);
+  return d.getDate() + " " + _NOTIF_MES[d.getMonth()];
+}
+// Grupo do cabeçalho (Hoje / Esta semana / Antes). ts null = "hoje" (item ativo sem data conhecida).
+function _notifGrupo(ts, now) {
+  if (ts == null) return "hoje";
+  const d0 = new Date(now); d0.setHours(0, 0, 0, 0);
+  if (ts >= d0.getTime()) return "hoje";
+  if (ts >= now - 7 * 864e5) return "semana";
+  return "antes";
+}
+
+// ---- Itens do COLABORADOR (reusa os predicados de precisaAtencaoHtml, sem duplicar regra) ----
+function notifItensColab() {
+  const itens = [];
+  // Comunicado / aviso não visto
+  (state.comunicadosColab || []).forEach((c) => {
+    if (c.minhaLeitura) return;
+    const aviso = c.tipo === "aviso";
+    itens.push({ id: "com:" + c.id, ic: "megafone", cls: "com", t: aviso ? "Novo aviso" : "Novo comunicado", s: c.titulo || "", ts: _notifTsDe(c), nav: { page: "colab-comunicados" } });
+  });
+  // Documento pendente de assinatura / aceite (mesmo predicado colabDocPendente)
+  (state.documentosColab || []).forEach((d) => {
+    if (typeof colabDocPendente !== "function" || !colabDocPendente(d)) return;
+    const assina = docNivel(d) === "assinatura";
+    itens.push({ id: "doc:" + d.id + ":" + (d.versao || ""), ic: "edit", cls: "doc", t: assina ? "Documento para assinar" : "Documento para confirmar", s: d.titulo || "", ts: _notifTsDe(d), nav: { page: "colab-documentos" } });
+  });
+  // Recibo novo não assinado (holerite / cartão ponto)
+  (state.meusRecibos || []).forEach((r) => {
+    if (r.minhaAssinatura) return;
+    const holerite = r.tipo === "recibo";
+    itens.push({ id: "rcb:" + r.id, ic: "briefcase", cls: "pag", t: holerite ? "Holerite disponível" : "Cartão ponto disponível", s: (typeof rcbCompetenciaLabel === "function" ? rcbCompetenciaLabel(r.competencia) : ""), ts: _notifTsDe(r), nav: { page: "colab-folha" } });
+  });
+  // Disciplinar sem ciência
+  (state.disciplinaresColab || []).forEach((d) => {
+    if (d.minhaCiencia) return;
+    itens.push({ id: "disc:" + d.id, ic: "alert", cls: "doc", t: (d.tipo === "suspensao" ? "Suspensão" : "Advertência") + " aguarda ciência", s: d.motivo || "Registro disciplinar", ts: _notifTsDe(d), nav: { page: "colab-comunicados" } });
+  });
+  // Pesquisa de clima aberta não respondida
+  (state.pesquisasClimaColab || []).forEach((p) => {
+    if (p.jaRespondi) return;
+    itens.push({ id: "clima:" + p.id, ic: "smile", cls: "ava", t: "Pesquisa de clima aberta", s: p.titulo || "Responder pesquisa", ts: _notifTsDe(p), nav: { clima: p.id } });
+  });
+  // Desempenho: autoavaliação pendente ou resultado disponível (mesmas fontes de precisaAtencaoHtml)
+  (state.ciclosDesempenhoColab || []).forEach((c) => {
+    if (c.status === "ativo" && c.modalidade === "auto" && !(c.minhaAuto && c.minhaAuto.status === "concluida")) {
+      itens.push({ id: "dsmp:" + c.id, ic: "star", cls: "ava", t: "Autoavaliação de desempenho", s: c.nome || "Fazer a autoavaliação", ts: _notifTsDe(c), nav: { dsmp: c.id } });
+    } else if (c.status === "encerrado" && c.meuResultado) {
+      itens.push({ id: "dsmpRes:" + c.id, ic: "star", cls: "ava", t: "Sua avaliação de desempenho saiu", s: c.nome || "Ver o resultado", ts: _notifTsDe(c), nav: { dsmpRes: c.id } });
+    }
+  });
+  // Vaga interna aberta (sem data na fonte: ts null, some via "vistos")
+  (state.vagasInternasColab || []).forEach((v) => {
+    itens.push({ id: "vaga:" + v.id, ic: "briefcase", cls: "com", t: "Oportunidade interna aberta", s: v.titulo || "Vaga aberta pra quem já é da casa", ts: _notifTsDe(v), nav: { page: "colab-oportunidades" } });
+  });
+  return itens;
+}
+
+// ---- Itens do GESTOR (mesmos números do bloco "Precisa de você" da Visão geral; sem denúncia) ----
+// Cada tipo de pendência vira UM item agregado; o id embute a contagem, então uma fila que
+// cresce re-notifica (id novo = não lido). ts null: sem grupo/meta (a lista do gestor é plana).
+function notifItensGestor() {
+  const u = currentUser();
+  if (!u) return [];
+  const itens = [];
+  const visible = typeof visibleOcorrencias === "function" ? visibleOcorrencias() : [];
+  const pendConf = visible.filter(isPending).length + ocaDoEstagio("com_lider").length;
+  if (pendConf) itens.push({ id: "g-pend:" + pendConf, ic: "clipboard", cls: "doc", t: "Ocorrências para conferir", s: pendConf + " aguardando sua conferência", ts: null, nav: { gestorIr: "pendentes" } });
+  if (can("ocorrencias.revisarAuto")) {
+    const nRh = ocaDoEstagio("rh_confere").length;
+    if (nRh) itens.push({ id: "g-rh:" + nRh, ic: "shield", cls: "doc", t: "Ocorrências aguardando a GP", s: nRh + " para revisar", ts: null, nav: { gestorIr: "rh-confere" } });
+  }
+  if (can("func.ver")) {
+    const semTurno = (state.funcionarios || []).filter((f) => f.ativo !== false && !f.turno && f.diretor !== true).length;
+    if (semTurno) itens.push({ id: "g-semturno:" + semTurno, ic: "users", cls: "com", t: "Funcionários sem turno", s: semTurno + " sem turno definido", ts: null, nav: { gestorPage: "funcionarios" } });
+  }
+  if (can("documentos.gerenciar") && Array.isArray(state.recibos) && state.recibos.length) {
+    const semAss = state.recibos.filter((r) => !(r.assinaturas || []).length).length;
+    if (semAss) itens.push({ id: "g-rcb:" + semAss, ic: "file", cls: "pag", t: "Recibos aguardando assinatura", s: semAss + " sem assinatura", ts: null, nav: { gestorPage: "documentos", gestorTab: "recibos" } });
+  }
+  if (can("func.ver")) {
+    const nFerias = (state.funcionarios || []).filter((f) => f.ativo !== false && f.afastado !== true && podeVerFuncionario(u, f) && state.ferias?.[f.id]?.resumo?.temVencida).length;
+    if (nFerias) itens.push({ id: "g-ferias:" + nFerias, ic: "calendar", cls: "ava", t: "Férias vencidas", s: nFerias + " com período vencido", ts: null, nav: { gestorPage: "funcionarios", gestorFuncstatus: "ferias-vencidas" } });
+  }
+  return itens;
+}
+
+// Lista final: janela de 30 dias + teto de 50, ordenada por tempo (item sem ts vai pro topo).
+function notifLista(role) {
+  const itens = role === "colaborador" ? notifItensColab() : notifItensGestor();
+  const now = Date.now();
+  const janela = now - NOTIF_JANELA_MS;
+  const filt = itens.filter((it) => it.ts == null || it.ts >= janela);
+  filt.sort((a, b) => (b.ts == null ? now : b.ts) - (a.ts == null ? now : a.ts));
+  const corte = filt.slice(0, NOTIF_TETO);
+  const est = notifEstado();
+  corte.forEach((it) => { it.lido = _notifLido(est, it); });
+  return corte;
+}
+function notifNaoLidas(role) {
+  return notifLista(role).filter((it) => !it.lido).length;
 }
 
 // Texto único do estado "sem saldo ainda" (compartilhado pelos heróis da Home e da Conta,
@@ -4616,6 +4803,191 @@ function renderColabOportunidades() {
     bindColabNav(view);
     view.querySelectorAll("[data-vi-interesse]").forEach((b) => b.addEventListener("click", () => abrirInteresseInterno(b.dataset.viInteresse)));
   }
+}
+
+// ===== CENTRAL DE NOTIFICAÇÕES · Colaborador (sino na home + tela cheia) =====
+// Sino discreto no cabeçalho da home; navega pra tela cheia colab-notificacoes (data-nav,
+// ligado pelo bindColabNav). A contagem deriva do MESMO cálculo (notifNaoLidas), determinística.
+function colabBellHtml() {
+  const n = notifNaoLidas("colaborador");
+  return `<button class="ntf-bell" type="button" data-nav="colab-notificacoes" aria-label="Notificações${n ? `, ${n} não lida${n > 1 ? "s" : ""}` : ""}">
+    ${cpIcon("bell")}
+    <span class="ntf-bell__ct"${n ? "" : " hidden"}>${n > 9 ? "9+" : n}</span>
+  </button>`;
+}
+// Cabeçalho da home: a saudação (região que renasce do cache) + o sino, lado a lado.
+function colabHomeHeaderHtml(f, nome) {
+  return `<div class="ntf-homehd">${colabGreetHtml(f, nome)}${colabBellHtml()}</div>`;
+}
+
+// Destino de cada notificação (colab e gestor num só dispatcher). Reusa o state de navegação
+// já existente (pesquisaId, dsmpColabId, filterTab, funcStatusInit, docTab).
+function _notifNavegar(nav) {
+  if (nav) {
+    if (nav.clima) { state.view.pesquisaId = nav.clima; state.view.page = "colab-pesquisa"; }
+    else if (nav.dsmp) { state.view.dsmpColabId = nav.dsmp; state.view.page = "colab-desempenho"; }
+    else if (nav.dsmpRes) { state.view.dsmpColabId = nav.dsmpRes; state.view.page = "colab-desempenho-res"; }
+    else if (nav.gestorIr) { state.view.page = "dashboard"; state.view.filterTab = nav.gestorIr; }
+    else if (nav.gestorPage) {
+      if (nav.gestorTab) state.view.docTab = nav.gestorTab;
+      state.view.funcSemFoto = false;
+      state.view.funcStatusInit = nav.gestorFuncstatus || null;
+      state.view.page = nav.gestorPage;
+    } else if (nav.page) { state.view.page = nav.page; }
+  }
+  renderApp();
+}
+
+let _notifItensPorId = {}; // itens da última render da central, por id (o clique navega sem serializar nav)
+function _notifLinhaColabHtml(it, now) {
+  const meta = notifQuando(it.ts, now);
+  return `<button class="ntf-row${it.lido ? " ntf-row--lido" : ""}" type="button" data-notif-id="${escapeHtml(it.id)}">
+    <span class="ntf-row__ic ntf-ic--${it.cls}">${cpIcon(it.ic)}</span>
+    <span class="ntf-row__bd">
+      <span class="ntf-row__t">${escapeHtml(it.t)}</span>
+      ${it.s ? `<span class="ntf-row__s">${escapeHtml(it.s)}</span>` : ""}
+      ${meta ? `<span class="ntf-row__meta">${escapeHtml(meta)}</span>` : ""}
+    </span>
+    ${it.lido ? "" : `<span class="ntf-row__dot" aria-hidden="true"></span>`}
+  </button>`;
+}
+function renderColabNotificacoes() {
+  const view = $("#view");
+  const now = Date.now();
+  const lista = notifLista("colaborador");
+  _notifItensPorId = {};
+  lista.forEach((it) => { _notifItensPorId[it.id] = it; });
+  const naoLidas = lista.filter((it) => !it.lido).length;
+  let corpo;
+  if (!lista.length) {
+    corpo = `<div class="ntf-empty">
+      <div class="ntf-empty__ic">${cpIcon("check")}</div>
+      <b>Tudo em dia por aqui</b>
+      <span>Quando algo acontecer, aparece aqui. Você não perde nada importante.</span>
+    </div>`;
+  } else {
+    corpo = [["hoje", "Hoje"], ["semana", "Esta semana"], ["antes", "Antes"]].map(([k, rot]) => {
+      const doGrupo = lista.filter((it) => _notifGrupo(it.ts, now) === k);
+      if (!doGrupo.length) return "";
+      return `<div class="ntf-grp">${rot}</div>${doGrupo.map((it) => _notifLinhaColabHtml(it, now)).join("")}`;
+    }).join("");
+  }
+  const escreveu = setHtml(view, `
+    <div class="pp-fade">
+      <div class="cp-head ntf-head">
+        <button class="cp-back" type="button" data-nav="colab-home" aria-label="Voltar">${cpIcon("chevron")}</button>
+        <div class="cp-head__tx"><h2>Notificações</h2></div>
+        <button class="ntf-allread" type="button" data-notif-allread${naoLidas ? "" : " disabled"}>Marcar todas como lidas</button>
+      </div>
+      ${corpo}
+    </div>`);
+  if (escreveu) {
+    bindColabNav(view);
+    view.querySelectorAll("[data-notif-id]").forEach((el) => el.addEventListener("click", () => {
+      const it = _notifItensPorId[el.dataset.notifId];
+      if (it && !it.lido) notifMarcarVisto(it.id);
+      _notifNavegar(it && it.nav);
+    }));
+    const ar = view.querySelector("[data-notif-allread]");
+    if (ar) ar.addEventListener("click", () => { notifMarcarTudo(lista.map((it) => it.id)); renderApp(); });
+  }
+}
+
+// ===== CENTRAL DE NOTIFICAÇÕES · Gestor (sino na sidebar + painel ancorado) =====
+// O sino mora no cabeçalho da sidebar (chrome do gestor no desktop). O painel é posicionado
+// por coordenada fixa (lida do rect do sino) e VIVE FORA do #view, então não entra na medição
+// do flicker-guard. A lista é plana (sem grupos): são pendências agregadas, não eventos datados.
+let _notifDropAberto = false;
+let _notifGestorBound = false;
+function _notifDropGestorEl() {
+  let drop = document.getElementById("notif-drop");
+  if (!drop) {
+    drop = document.createElement("div");
+    drop.id = "notif-drop";
+    drop.className = "ntf-drop";
+    drop.hidden = true;
+    // Não é #view: innerHTML cru aqui é permitido (o guard estático só barra escrita crua em #view).
+    drop.innerHTML = `<div class="ntf-drop__hd"><b>Notificações</b><button class="ntf-allread" type="button" data-notif-allread>Marcar todas como lidas</button></div><div class="ntf-drop__list"></div>`;
+    document.body.appendChild(drop);
+    drop.addEventListener("click", (e) => {
+      const row = e.target.closest("[data-notif-id]");
+      if (row) { const it = _notifItensPorId[row.dataset.notifId]; if (it && !it.lido) notifMarcarVisto(it.id); _notifFecharDropGestor(); _notifNavegar(it && it.nav); return; }
+      if (e.target.closest("[data-notif-allread]")) { notifMarcarTudo(notifLista("gestor").map((it) => it.id)); renderApp(); }
+    });
+  }
+  return drop;
+}
+function _notifPosicionaDropGestor() {
+  const bell = document.getElementById("notif-bell");
+  const drop = document.getElementById("notif-drop");
+  if (!bell || !drop) return;
+  const r = bell.getBoundingClientRect();
+  drop.style.top = Math.round(r.bottom + 8) + "px";
+  drop.style.left = Math.round(Math.max(12, r.left)) + "px";
+}
+function _notifFecharDropGestor() {
+  _notifDropAberto = false;
+  const drop = document.getElementById("notif-drop");
+  if (drop) drop.hidden = true;
+  const bell = document.getElementById("notif-bell");
+  if (bell) bell.classList.remove("ntf-bell--on");
+}
+function _notifAbrirDropGestor() {
+  const bell = document.getElementById("notif-bell");
+  if (!bell) return;
+  _notifDropAberto = true;
+  const drop = _notifDropGestorEl();
+  renderNotifBellGestor();
+  drop.hidden = false;
+  _notifPosicionaDropGestor();
+  bell.classList.add("ntf-bell--on");
+  if (!prefereMenosMovimento() && typeof drop.animate === "function") {
+    drop.animate([{ opacity: 0, transform: "translateY(-6px) scale(.98)" }, { opacity: 1, transform: "none" }], { duration: 180, easing: "cubic-bezier(.2,.8,.2,1)" });
+  }
+}
+function _notifBindGestor() {
+  if (_notifGestorBound) return;
+  const bell = document.getElementById("notif-bell");
+  if (!bell) return;
+  _notifGestorBound = true;
+  bell.addEventListener("click", (e) => { e.stopPropagation(); if (_notifDropAberto) _notifFecharDropGestor(); else _notifAbrirDropGestor(); });
+  document.addEventListener("click", (e) => {
+    if (!_notifDropAberto) return;
+    const drop = document.getElementById("notif-drop");
+    if (drop && !drop.contains(e.target) && e.target !== bell && !bell.contains(e.target)) _notifFecharDropGestor();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && _notifDropAberto) _notifFecharDropGestor(); });
+  window.addEventListener("resize", () => { if (_notifDropAberto) _notifPosicionaDropGestor(); });
+}
+function _notifEsconderBellGestor() {
+  const wrap = document.getElementById("notif-bell-wrap");
+  if (wrap) wrap.hidden = true;
+  _notifFecharDropGestor();
+}
+function renderNotifBellGestor() {
+  const wrap = document.getElementById("notif-bell-wrap");
+  const bell = document.getElementById("notif-bell");
+  if (!wrap || !bell) return;
+  _notifBindGestor();
+  wrap.hidden = false;
+  const lista = notifLista("gestor");
+  _notifItensPorId = {};
+  lista.forEach((it) => { _notifItensPorId[it.id] = it; });
+  const naoLidas = lista.filter((it) => !it.lido).length;
+  const ct = bell.querySelector(".ntf-bell__ct");
+  if (ct) { ct.textContent = naoLidas > 9 ? "9+" : String(naoLidas); ct.hidden = !naoLidas; }
+  const drop = _notifDropGestorEl();
+  const linhas = lista.length
+    ? lista.map((it) => `<button class="ntf-drow${it.lido ? " ntf-drow--lido" : ""}" type="button" data-notif-id="${escapeHtml(it.id)}">
+        <span class="ntf-drow__ic ntf-ic--${it.cls}">${icon(it.ic)}</span>
+        <span class="ntf-drow__bd"><span class="ntf-drow__t">${escapeHtml(it.t)}</span><span class="ntf-drow__s">${escapeHtml(it.s || "")}</span></span>
+        ${it.lido ? "" : `<span class="ntf-drow__dot" aria-hidden="true"></span>`}
+      </button>`).join("")
+    : `<div class="ntf-drop__empty">${icon("check")}<b>Tudo em dia</b><span>Nada esperando por você agora.</span></div>`;
+  setHtml(drop.querySelector(".ntf-drop__list"), linhas);
+  const ar = drop.querySelector("[data-notif-allread]");
+  if (ar) ar.disabled = !naoLidas;
+  if (_notifDropAberto) _notifPosicionaDropGestor();
 }
 
 // Bottom sheet "Tenho interesse" (física .pp-sheet): mostra o snapshot que a GP recebe,
@@ -5866,6 +6238,7 @@ function _renderAppNow() {
   if (state.view.page === "denuncias") state._denVisto = true;
 
   renderNav();
+  renderNotifBellGestor();
   renderBottomNav();
   renderPresence();
   renderView();
@@ -20125,7 +20498,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.15.0";
+window.CURRENT_VERSION = "2.16.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -5506,3 +5506,39 @@ html.cp-dark:not(.modo-colab) .den-retencao--janela { background: rgba(95,203,13
   .den-mblock--notas textarea { flex: 1; min-height: 0; resize: none; }
   .den-mdl__foot { flex: none; margin-top: 0; border-top: 0; padding: 16px 0 0; }
 }
+
+/* ============================================================
+   CENTRAL DE NOTIFICAÇÕES · Gestor (v402) — sino na sidebar + painel ancorado
+   Mock aprovado docs/mockups/central-notificacoes-2026-07.html
+   ============================================================ */
+.notif-bell-wrap { margin-left: auto; flex: none; }
+.notif-bell-wrap[hidden] { display: none; }
+.ntf-bell--side { width: 38px; height: 38px; border-radius: 11px; background: rgba(255, 243, 230, .10); border: 1px solid rgba(255, 243, 230, .18); color: var(--milk); box-shadow: none; display: grid; place-items: center; cursor: pointer; position: relative; transition: background .16s ease; }
+.ntf-bell--side:hover { background: rgba(255, 243, 230, .18); }
+.ntf-bell--side.ntf-bell--on { background: rgba(255, 243, 230, .24); }
+.ntf-bell--side svg { width: 19px; height: 19px; }
+.ntf-bell--side .ntf-bell__ct { background: var(--fiobras-yellow); color: #20342b; border: 2px solid var(--plum); }
+/* Rail recolhido esconde o sino; o modo peek/expandido volta a mostrar */
+@media (min-width: 901px) { .app--rail .app__sidebar:not(.nav-peek) .notif-bell-wrap { display: none; } }
+
+.ntf-drop { position: fixed; z-index: 200; width: 360px; max-width: calc(100vw - 24px); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 30px 70px -20px rgba(0, 40, 20, .4), 0 4px 12px rgba(0, 0, 0, .08); overflow: hidden; }
+.ntf-drop[hidden] { display: none; }
+.ntf-drop__hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px 12px; border-bottom: 1px solid var(--border); }
+.ntf-drop__hd b { font-size: 15px; font-weight: 700; letter-spacing: -.01em; color: var(--text-body); }
+.ntf-drop .ntf-allread { margin: 0; color: var(--plum); background: none; border: 0; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 4px; }
+.ntf-drop .ntf-allread:disabled { color: var(--text-muted); opacity: .6; cursor: default; }
+.ntf-drop__list { max-height: 360px; overflow-y: auto; padding: 6px; }
+.ntf-drow { position: relative; display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; background: none; border: 0; padding: 11px 12px; border-radius: 12px; cursor: pointer; font: inherit; transition: background .14s ease; }
+.ntf-drow:hover { background: var(--surface-warm); }
+.ntf-drow--lido { opacity: .62; }
+.ntf-drow--lido .ntf-drow__t { color: var(--text-muted); font-weight: 500; }
+.ntf-drow__ic { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; }
+.ntf-drow__ic svg { width: 19px; height: 19px; }
+.ntf-drow__bd { flex: 1; min-width: 0; padding-right: 14px; }
+.ntf-drow__t { display: block; font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--text-body); }
+.ntf-drow__s { display: block; font-size: 11.5px; color: var(--text-muted); line-height: 1.4; margin-top: 3px; }
+.ntf-drow__dot { position: absolute; top: 14px; right: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--plum); }
+.ntf-drop__empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 30px 24px; color: var(--text-muted); }
+.ntf-drop__empty svg { width: 30px; height: 30px; color: var(--plum); margin-bottom: 10px; }
+.ntf-drop__empty b { font-size: 14px; font-weight: 700; color: var(--text-body); }
+.ntf-drop__empty span { font-size: 12px; margin-top: 3px; }
