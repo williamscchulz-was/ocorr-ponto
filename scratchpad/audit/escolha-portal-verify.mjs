@@ -60,7 +60,10 @@ console.log("(1) boot restaurado estaciona na escolha:");
   // ===== (2) toque no portal da sessão viva entra sem login =====
   console.log("(2) toque no card da sessão viva entra direto:");
   await p.evaluate(() => document.getElementById("acesso-gestor").click());
-  await p.waitForFunction(() => !document.querySelector("#app").classList.contains("hidden"), null, { timeout: 4000 }).catch(() => {});
+  // entrarPortalComSessao pinta o #app na hora e faz o #acesso SAIR em fade de overlay
+  // (220ms, one-shot). O estado "entrou" só estabiliza quando o fade acaba e o #acesso
+  // recebe .hidden; esperar só o #app aparecer lê a escolha ainda visível por baixo.
+  await p.waitForFunction(() => !document.querySelector("#app").classList.contains("hidden") && document.querySelector("#acesso").classList.contains("hidden"), null, { timeout: 4000 }).catch(() => {});
   const g2 = await gate(p);
   ok("(2) entrou no app sem passar por login", g2.app && !g2.acesso && !g2.login);
   ok("(2) landing do gestor = visao-geral", g2.page === "visao-geral");
