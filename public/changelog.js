@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.23.0", d: "24 jul 2026", current: true, items: [
+    v: "2.24.0", d: "24 jul 2026", current: true, items: [
+      { type: "note", aud: "colab", title: "Roadmap agora vive num link próprio, fora do app" },
+    ],
+  },
+  {
+    v: "2.23.0", d: "24 jul 2026", items: [
       { type: "feat", aud: "colab", title: "Acompanhe o status da sua candidatura interna" },
       { type: "feat", aud: "gestor", title: "Aviso ao candidato sai sozinho ao mover o status" },
       { type: "feat", aud: "gestor", title: "Indicador de candidatos internos nas vagas" },

@@ -2009,9 +2009,6 @@ function cpInjetarToggleTema() {
   cpAtualizarBotaoTema();
 }
 
-// Complexidade dos itens do Roadmap (usada pelo mapa mental vivo, renderPortalRoadmap).
-const CP_CX = { muito_facil: { t: "Muito fácil", n: 1 }, facil: { t: "Fácil", n: 2 }, medio: { t: "Médio", n: 3 }, dificil: { t: "Difícil", n: 4 }, muito_dificil: { t: "Muito difícil", n: 5 } };
-
 // ---- Shell do colaborador (chrome reaproveitado) ----
 function renderPortalColaborador(u) {
   // Modo colaborador: esconde o chrome de gestor (FAB #fab, presença).
@@ -2056,7 +2053,6 @@ const COLAB_NAV = [
   { id: "colab-comunicados", label: "Avisos", icon: "megafone" },
   { id: "colab-documentos", label: "Documentos", icon: "file" },
   { id: "colab-conquistas", label: "Conquistas", icon: "medalha" },
-  { id: "colab-roadmap", label: "Novidades", icon: "roadmap" },
   { id: "colab-conta", label: "Conta", icon: "user" },
 ];
 
@@ -2097,7 +2093,7 @@ function renderBottomNavColaborador() {
   ];
   // Telas filhas do hub (acessadas por atalho da Home) não têm item próprio na barra:
   // acendem "Início" pra a barra nunca ficar sem item ativo.
-  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-roadmap", "colab-pesquisa", "colab-desempenho", "colab-desempenho-res", "colab-denuncia", "colab-notificacoes"];
+  const filhasDoHub = ["colab-ponto", "colab-folha", "colab-documentos", "colab-pesquisa", "colab-desempenho", "colab-desempenho-res", "colab-denuncia", "colab-notificacoes"];
   const pageAtiva = filhasDoHub.includes(state.view.page) ? "colab-home" : state.view.page;
   const idxAtivo = Math.max(0, items.findIndex((it) => it.id === pageAtiva));
   // A barra é rebuilt a cada render; pra pill DESLIZAR (não teleportar), nasce na
@@ -2127,14 +2123,13 @@ function bindColabNav(scope) {
 
 function renderViewColaborador() {
   const page = state.view.page;
-  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-roadmap": "Novidades", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação", "colab-denuncia": "Canal de denúncia", "colab-oportunidades": "Oportunidades internas", "colab-notificacoes": "Notificações" };
+  const titulos = { "colab-home": "Início", "colab-ponto": "Meu ponto", "colab-folha": "Folha de pagamento", "colab-comunicados": "Avisos", "colab-documentos": "Documentos", "colab-conquistas": "Conquistas", "colab-conta": "Conta", "colab-pesquisa": "Pesquisa de clima", "colab-desempenho": "Autoavaliação", "colab-desempenho-res": "Minha avaliação", "colab-denuncia": "Canal de denúncia", "colab-oportunidades": "Oportunidades internas", "colab-notificacoes": "Notificações" };
   $("#topbar-title").textContent = titulos[page] || "Portal";
   if (page === "colab-conquistas") return renderColabConquistas();
   if (page === "colab-conta") return renderColabConta();
   if (page === "colab-pesquisa") return renderColabPesquisa();
   if (page === "colab-desempenho") return renderColabDesempenho();
   if (page === "colab-desempenho-res") return renderColabDesempenhoRes();
-  if (page === "colab-roadmap") return renderPortalRoadmap();
   if (page === "colab-folha") return renderColabFolha();
   if (page === "colab-ponto") return renderColabPonto();
   if (page === "colab-comunicados") return renderColabComunicados();
@@ -6366,11 +6361,6 @@ function renderColabConta() {
           <span class="pp-rw__bd"><span class="pp-rw__t">Tour do app</span><span class="pp-rw__s">Rever a apresentação e assistir ao vídeo guiado</span></span>
           <span class="pp-rw__chev">${cpIcon("chevron")}</span>
         </button>
-        <button class="pp-rw" data-acao="ver-novidades">
-          <span class="pp-ico pp-ico--neutral">${cpIcon("megafone")}</span>
-          <span class="pp-rw__bd"><span class="pp-rw__t">Novidades do portal</span><span class="pp-rw__s">O que chegou e o que vem por aí</span></span>
-          <span class="pp-rw__chev">${cpIcon("chevron")}</span>
-        </button>
         <button class="pp-rw" data-acao="canal-denuncia">
           <span class="pp-ico pp-ico--neutral">${DEN_ESC}</span>
           <span class="pp-rw__bd"><span class="pp-rw__t">Canal de denúncia</span><span class="pp-rw__s">Relato com sigilo, direto com a direção</span></span>
@@ -6412,9 +6402,6 @@ function renderColabConta() {
   });
   view.querySelector('[data-acao="trocar-portal"]')?.addEventListener("click", trocarDePortal);
   view.querySelector('[data-acao="rever-onboarding"]')?.addEventListener("click", () => mostrarOnboarding());
-  // Acesso mobile à tela Novidades (v380): os atalhos da home encolheram pra 3 no
-  // 2.0.0 e o roadmap perdeu o único caminho no colab <=900px; a Conta é a casa dele.
-  view.querySelector('[data-acao="ver-novidades"]')?.addEventListener("click", () => { state.view.page = "colab-roadmap"; renderApp(); });
   // 3a porta do canal (decisao William 21/07 apos o argumento da privacidade: rodape
   // da home discreto + Conta como entrada de quem procura com calma; NUNCA atalho no topo).
   view.querySelector('[data-acao="canal-denuncia"]')?.addEventListener("click", abrirCanalDenuncia);
@@ -6437,178 +6424,6 @@ function renderColabConta() {
   bindColabNav(view);
 }
 
-// roadmap.js (~86KB de dados estáticos) só é usado na tela Novidades do
-// colaborador. Carrega sob demanda pra não pesar no boot de quem nunca a abre.
-let _roadmapEstado = "ausente"; // ausente | carregando | pronto | falhou
-function carregarRoadmap(cb) {
-  if (window.ROADMAP) { _roadmapEstado = "pronto"; cb && cb(); return; }
-  if (_roadmapEstado === "carregando") return; // já em voo: o onload pendente re-renderiza
-  _roadmapEstado = "carregando";
-  const s = document.createElement("script");
-  s.src = "roadmap.js?v=" + (window.CURRENT_VERSION || "1");
-  s.onload = () => { _roadmapEstado = window.ROADMAP ? "pronto" : "falhou"; cb && cb(); };
-  s.onerror = () => { _roadmapEstado = "falhou"; cb && cb(); };
-  document.head.appendChild(s);
-}
-
-function cpRoadmapFocoIdx() {
-  const R = window.ROADMAP;
-  const itensDe = (id) => R.itens.filter((x) => x.fase === id);
-  // Fase em foco = a primeira com algo em andamento; senão a primeira não 100% concluída.
-  for (let i = 0; i < R.fases.length; i++) if (itensDe(R.fases[i].id).some((x) => x.status === "em_andamento")) return i;
-  for (let i = 0; i < R.fases.length; i++) { const it = itensDe(R.fases[i].id); if (it.length && it.some((x) => x.status !== "concluido")) return i; }
-  return 0;
-}
-// Roadmap do Portal — MAPA MENTAL (trilho de metrô vertical). Dados do window.ROADMAP,
-// contagens derivadas em runtime, expandir/recolher, rail SVG Bézier. Tema via cp-dark.
-const _CP_PRI = { critica: "Crítica", alta: "Alta", media: "Média", baixa: "Baixa", muito_baixa: "Muito baixa" };
-function renderPortalRoadmap() {
-  const view = $("#view");
-  const R = window.ROADMAP;
-  if (!R || !R.itens) {
-    // Dados ainda não baixados: carrega sob demanda e re-renderiza ao chegar.
-    if (!R && _roadmapEstado !== "falhou") {
-      setHtml(view, `<div class="cp-stub"><p>Carregando novidades...</p></div>`);
-      carregarRoadmap(() => { if (state.view.page === "colab-roadmap") renderPortalRoadmap(); });
-      return;
-    }
-    setHtml(view, `<div class="cp-stub"><p>Novidades indisponíveis.</p></div>`);
-    return;
-  }
-  const focoIdx = cpRoadmapFocoIdx();
-  const conta = (its) => { const c = { concluido: 0, em_andamento: 0, planejado: 0, pendente: 0, total: its.length }; its.forEach((i) => { if (i.status in c) c[i.status]++; }); return c; };
-  const G = conta(R.itens);
-  const fases = R.fases.map((f, i) => {
-    const itens = R.itens.filter((x) => x.fase === f.id);
-    const c = conta(itens);
-    const estado = (itens.length && c.concluido === itens.length) ? "concluida" : (i === focoIdx ? "em_foco" : "planejada");
-    return { f, itens, c, estado };
-  });
-  const leafHtml = (it, ix) => {
-    const side = ix % 2 === 0 ? "r" : "l";
-    const num = it.numero != null ? `#${it.numero}` : "—";
-    // "fp-lnum--vazio" e não "empty": a classe global .empty é o empty-state de
-    // lista e transformava o numerozinho num caixote de 166px (auditoria 2026-07-02).
-    const numCls = it.numero != null ? "" : " fp-lnum--vazio";
-    let ico;
-    if (it.status === "concluido") ico = `<span class="fp-lico">${cpIcon("check")}</span>`;
-    else if (it.status === "em_andamento") ico = `<span class="fp-lico">${cpIcon("spinner")}</span>`;
-    else ico = `<span class="fp-lico ${it.status}"></span>`;
-    const priCls = it.prioridade === "critica" ? "pri-crit" : "pri";
-    const tribPath = side === "r" ? "M0,30 C14,30 16,30 30,30" : "M30,30 C16,30 14,30 0,30";
-    return `<div class="fp-leaf ${side} fp-st-${it.status}" tabindex="0">`
-      + `<svg class="fp-trib-svg" viewBox="0 0 30 60" preserveAspectRatio="none" aria-hidden="true"><path d="${tribPath}" fill="none" stroke="var(--lcol)" stroke-width="1.6" stroke-linecap="round" opacity=".55"/></svg>`
-      + ico
-      + `<span class="fp-lnum${numCls}">${escapeHtml(num)}</span>`
-      + `<span class="fp-ltext">${escapeHtml(it.nome)}</span>`
-      + `<span class="fp-meta"><span class="fp-tag ${priCls}">${_CP_PRI[it.prioridade] || ""}</span><span class="fp-tag cx">${(CP_CX[it.complexidade] || {}).t || ""}</span></span>`
-      + `</div>`;
-  };
-  const stationHtml = ({ f, itens, c, estado }) => {
-    const pct = c.total ? Math.round(c.concluido / c.total * 100) : 0;
-    const solid = estado === "concluida", foc = estado === "em_foco";
-    const ringCol = solid ? "var(--done)" : foc ? "var(--prog)" : "var(--plan)";
-    const ringPct = solid ? 100 : pct;
-    // display inline vence o `.fp-ring svg{display:none}` do CSS (que, sem esta regra,
-    // engolia o check e deixava o anel concluído como um disco vazio).
-    const ringInner = solid ? cpIcon("check").replace("<svg ", '<svg style="display:block" ') : `<b>${ringPct}%</b>`;
-    const ringCls = "fp-ring" + (solid ? " solid" : "") + (foc ? " foc" : "");
-    const badge = solid ? '<span class="fp-sb sb-done">Concluída</span>'
-      : foc ? `<span class="fp-here">${cpIcon("mappin")}Você está aqui</span>`
-        : '<span class="fp-sb sb-plan">Planejada</span>';
-    const countLabel = foc
-      ? `<b>${c.concluido}</b>·<em>${c.em_andamento}</em>·${c.planejado} de ${c.total}`
-      : `<b>${c.concluido}</b>/${c.total}`;
-    const donePct = c.total ? c.concluido / c.total * 100 : 0;
-    const progPct = c.total ? c.em_andamento / c.total * 100 : 0;
-    return `<div class="fp-station" data-id="${f.id}">`
-      + `<div class="fp-node-dot"><div class="${ringCls}" style="--ringcol:${ringCol};--pct:${ringPct}">${ringInner}</div></div>`
-      + `<div class="fp-phase${foc ? " open focus" : ""}" data-phase>`
-      + `<div class="fp-phead" role="button" tabindex="0" aria-expanded="${foc}">`
-      + `<div class="fp-pmain"><div class="fp-pname"><h3>${escapeHtml(f.nome)}</h3>${badge}</div><p class="fp-psub">${escapeHtml(f.subtitulo)}</p></div>`
-      + `<span class="fp-count">${countLabel}</span><span class="fp-chev">${cpIcon("chevrondown")}</span>`
-      + `</div>`
-      + `<div class="fp-pbar"><i style="left:0;width:${donePct}%;background:var(--done)"></i><i style="left:${donePct}%;width:${progPct}%;background:var(--prog)"></i></div>`
-      + `<div class="fp-leaves"><div><div class="fp-leaflist">${itens.map(leafHtml).join("")}</div></div></div>`
-      + `</div></div>`;
-  };
-  const stat = (n, col, dotStyle, label) => `<div class="fp-stat"><div class="n" style="color:${col}">${n}</div><div class="l"><span class="fp-dot" style="${dotStyle}"></span>${label}</div></div>`;
-  if (!setHtml(view, `<div class="pp-fade"><div class="pp-hi"><h1>Novidades</h1></div><div class="fp-root">
-    <div class="fp-summary">
-      ${stat(G.concluido, "var(--success)", "background:var(--success)", "Concluídas")}
-      ${stat(G.em_andamento, "var(--warning)", "background:var(--warning)", "Em andamento")}
-      ${stat(G.planejado, "var(--text-body)", "background:transparent;border:1.5px solid var(--text-muted)", "Planejadas")}
-      ${stat(G.pendente, "var(--text-body)", "background:transparent;border:1.5px dashed var(--text-muted)", "Pendentes")}
-      <div class="fp-stat tot"><div class="n">${G.total}</div><div class="l">Itens no total</div></div>
-    </div>
-    <div class="fp-controls">
-      <div class="fp-legend">
-        <span><i class="fp-lg" style="background:var(--success)"></i>Concluído</span>
-        <span><i class="fp-lg" style="background:var(--warning)"></i>Em andamento</span>
-        <span><i class="fp-lg" style="background:transparent;border:1.5px solid var(--text-muted)"></i>Planejado</span>
-        <span><i class="fp-lg" style="background:transparent;border:1.5px dashed var(--text-muted)"></i>Pendente</span>
-      </div>
-      <div class="fp-btns">
-        <button class="fp-btn" data-acao="expandir">${cpIcon("expand")}Expandir tudo</button>
-        <button class="fp-btn" data-acao="recolher">${cpIcon("collapse")}Recolher tudo</button>
-      </div>
-    </div>
-    <div class="fp-canvas"><div class="fp-stage">
-      <svg class="fp-rail" id="fp-rail" preserveAspectRatio="none" aria-hidden="true"></svg>
-      <div class="fp-flow" id="fp-flow">
-        <div class="fp-rootnode"><div class="fp-orb">${cpIcon("users")}</div><div class="fp-rootlabel"><b>Portal do Colaborador</b><span>raiz da jornada</span></div></div>
-        ${fases.map(stationHtml).join("")}
-      </div>
-    </div></div>
-    <div class="fp-hint">${cpIcon("info")}Toque numa fase para abrir os itens; toque num item para ver prioridade e complexidade</div>
-  </div></div>`)) return;
-  // ---- interações + trilho ----
-  const flow = view.querySelector("#fp-flow");
-  const railSvg = view.querySelector("#fp-rail");
-  const rootEl = view.querySelector(".fp-root");
-  const drawRail = () => {
-    if (!flow || !railSvg) return;
-    const W = flow.offsetWidth, H = flow.offsetHeight;
-    if (!W || !H) return;
-    railSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    const fr = flow.getBoundingClientRect();
-    const orbEl = flow.querySelector(".fp-orb"); if (!orbEl) return;
-    // Arredonda pra INTEIRO: getBoundingClientRect tem ruído de subpixel entre
-    // medições (2 casas ainda flutuavam 0.01 e derrubavam o cache do canal
-    // setHtml); num traço de 3.4px, 1px de quantização é invisível.
-    const r2 = (n) => Math.round(n);
-    const o = orbEl.getBoundingClientRect();
-    const nodes = [{ x: r2(o.left - fr.left + o.width / 2), y: r2(o.top - fr.top + o.height / 2) }];
-    flow.querySelectorAll(".fp-ring").forEach((r) => { const b = r.getBoundingClientRect(); nodes.push({ x: r2(b.left - fr.left + b.width / 2), y: r2(b.top - fr.top + b.height / 2) }); });
-    if (nodes.length < 2) return;
-    const seg = (a, b) => { const my = r2((a.y + b.y) / 2); return `M${a.x} ${a.y} C ${a.x} ${my} ${b.x} ${my} ${b.x} ${b.y} `; };
-    let full = "", done = "";
-    for (let i = 0; i < nodes.length - 1; i++) { const s = seg(nodes[i], nodes[i + 1]); full += s; if (i <= focoIdx) done += s; }
-    const cs = getComputedStyle(rootEl);
-    const rail = cs.getPropertyValue("--rail").trim() || "#283027";
-    const railon = cs.getPropertyValue("--railon").trim() || "#1AA34F";
-    railSvg.innerHTML = `<path d="${full}" fill="none" stroke="${rail}" stroke-width="3.4" stroke-linecap="round"/><path d="${done}" fill="none" stroke="${railon}" stroke-width="3.4" stroke-linecap="round"/>`;
-  };
-  const togglePhase = (ph) => { if (ph) { ph.classList.toggle("open"); requestAnimationFrame(drawRail); } };
-  flow.querySelectorAll(".fp-phead").forEach((h) => {
-    h.addEventListener("click", () => togglePhase(h.closest("[data-phase]")));
-    h.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); togglePhase(h.closest("[data-phase]")); } });
-  });
-  flow.querySelectorAll(".fp-leaf").forEach((l) => l.addEventListener("click", () => l.classList.toggle("show")));
-  view.querySelector('[data-acao="expandir"]')?.addEventListener("click", () => { flow.querySelectorAll("[data-phase]").forEach((p) => p.classList.add("open")); setTimeout(drawRail, 360); });
-  view.querySelector('[data-acao="recolher"]')?.addEventListener("click", () => { flow.querySelectorAll("[data-phase]").forEach((p) => p.classList.remove("open")); setTimeout(drawRail, 360); });
-  flow.addEventListener("transitionend", (e) => { if (e.propertyName === "grid-template-rows") requestAnimationFrame(drawRail); });
-  if (window.__fpRailResize) window.removeEventListener("resize", window.__fpRailResize);
-  window.__fpRailResize = () => requestAnimationFrame(drawRail);
-  window.addEventListener("resize", window.__fpRailResize);
-  // Síncrono primeiro (nasce desenhado no mesmo paint do write, sem frame de
-  // placeholder); os agendados depois são rede de segurança pra layout que
-  // ainda está assentando (fonte/ícone carregando, transição em andamento).
-  drawRail();
-  requestAnimationFrame(drawRail);
-  setTimeout(drawRail, 120);
-  setTimeout(drawRail, 440);
-}
 // ---------- App Shell ----------
 
 // renderApp COALESCIDO (WKRADAR 2026-07-09, "texto some e volta sem reload"): o app
@@ -21209,7 +21024,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.23.0";
+window.CURRENT_VERSION = "2.24.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

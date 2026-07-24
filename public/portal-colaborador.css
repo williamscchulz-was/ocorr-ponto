@@ -129,129 +129,8 @@ html.modo-colab.cp-dark #bottom-nav .bn-pill{background:rgba(95,203,133,.17)}
 .modo-colab .bottom-nav__item .icon{width:23px;height:23px}
 .cp-dados{padding:2px 14px 12px;border-top:1px solid var(--border)}
 
-/* Modal (detalhe roadmap / perfil) tematizado no colaborador, pra não destoar no dark */
+/* Modal (perfil) tematizado no colaborador, pra não destoar no dark */
 .modo-colab .modal{background:var(--surface);color:var(--text-body)}
-
-/* ============================================================
-   ROADMAP — MAPA MENTAL (trilho de metrô vertical). Portado do mock
-   roadmap-portal-mapa-mental.html; vars mapeadas pros tokens do app
-   (tema dirigido por html.modo-colab.cp-dark). Dados do window.ROADMAP.
-   ============================================================ */
-.fp-root{
-  --card:var(--surface); --bd:var(--border); --bd2:var(--border-strong);
-  --brand:var(--plum-soft); --green:var(--success); --amber:var(--warning);
-  --tx:var(--text-body); --tx2:var(--text-muted); --tx3:var(--text-muted);
-  --plan:var(--text-muted); --pend:var(--text-muted); --done:var(--success); --prog:var(--warning);
-  --rail:var(--border-strong); --railon:var(--plum);
-  --sh1:0 1px 2px rgba(0,40,20,.10); --sh2:0 10px 30px -14px rgba(0,40,20,.30);
-  color:var(--tx); position:relative;
-}
-.fp-root *{box-sizing:border-box}
-.fp-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
-/* Mobile: linha única rolável (sem célula fantasma do antigo grid 3+2). */
-@media(max-width:520px){
-  .fp-summary{display:flex;overflow-x:auto;gap:8px;padding-bottom:4px;scrollbar-width:none}
-  .fp-summary::-webkit-scrollbar{display:none}
-  .fp-stat{flex:0 0 auto;min-width:96px}
-}
-.fp-stat{background:var(--card);border:1px solid var(--bd);border-radius:var(--pp-ri);padding:10px 12px;box-shadow:var(--sh1)}
-.fp-stat .n{font-size:clamp(18px,5vw,22px);font-weight:700;line-height:1;letter-spacing:-.5px}
-.fp-stat .l{font-size:10px;color:var(--tx2);margin-top:6px;display:flex;align-items:center;gap:5px;font-weight:500}
-.fp-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
-/* Total é neutro: verde o confundia com "Concluídas". */
-.fp-stat.tot{background:transparent} .fp-stat.tot .n{color:var(--tx)}
-.fp-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
-.fp-legend{display:flex;gap:11px;flex-wrap:wrap;font-size:10.5px;color:var(--tx2);font-weight:500}
-/* Mobile: a legenda repete os mesmos status do resumo acima — esconde pra não duplicar. */
-@media(max-width:520px){.fp-legend{display:none}}
-.fp-legend span{display:inline-flex;align-items:center;gap:5px}
-.fp-lg{width:14px;height:8px;border-radius:3px;flex:0 0 auto}
-.fp-btns{display:flex;gap:7px}
-.fp-btn{display:inline-flex;align-items:center;gap:6px;padding:13px 12px;border-radius:10px;font:inherit;font-size:11.5px;font-weight:600;background:var(--card);border:1px solid var(--bd2);color:var(--tx2);cursor:pointer;transition:.16s;white-space:nowrap}
-.fp-btn:hover{color:var(--tx);border-color:var(--brand)}
-.fp-btn svg{width:15px;height:15px}
-.fp-stage{position:relative}
-.fp-rail{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
-.fp-flow{position:relative;z-index:1;display:flex;flex-direction:column}
-.fp-rootnode{position:relative;display:flex;align-items:center;gap:13px;padding:4px 0 clamp(18px,4vw,24px);margin-left:clamp(2px,1vw,6px)}
-.fp-orb{width:clamp(54px,14vw,64px);height:clamp(54px,14vw,64px);border-radius:20px;flex:0 0 auto;background:radial-gradient(120% 120% at 30% 22%,var(--plum-soft),var(--plum-deep));display:grid;place-items:center;color:#fff;position:relative;box-shadow:0 12px 30px -8px rgba(0,80,40,.45)}
-.fp-orb svg{width:30px;height:30px}
-/* Halo/ping/spin do roadmap são decorações AMBIENTE contínuas (infinitas). NÃO podem ser
-   guardadas por html.pp-anima: essa classe cai em qualquer re-render da mesma tela e
-   CONGELARIA a animação (verificado 2026-07-18). Nesta tela os re-renders reais são no-op
-   (dados estáticos; expandir/recolher é DOM-direto via classList), então nunca churnam em
-   produção; só o rebuild FORÇADO do guard as reinicia — por isso o m3 as isenta pelo nome
-   (fpHalo/fpPing/fpSpin), documentado no flicker-guard. */
-.fp-orb::after{content:"";position:absolute;inset:-6px;border-radius:24px;border:1px solid color-mix(in srgb,var(--brand) 38%,transparent);animation:fpHalo 3.4s ease-in-out infinite}
-@keyframes fpHalo{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:.08;transform:scale(1.07)}}
-.fp-rootlabel b{display:block;font-size:clamp(13px,3.4vw,15px);font-weight:700;line-height:1.2;color:var(--tx)}
-.fp-rootlabel span{font-size:11px;color:var(--tx3);font-weight:500}
-.fp-station{position:relative;padding:0 0 clamp(14px,3vw,18px) clamp(40px,11vw,58px)}
-.fp-station:last-child{padding-bottom:2px}
-.fp-node-dot{position:absolute;left:0;top:18px;width:clamp(40px,11vw,58px);display:flex;justify-content:center;z-index:5}
-.fp-ring{--pct:0;--ringcol:var(--plan);width:38px;height:38px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;position:relative;background:radial-gradient(closest-side,var(--card) 66%,transparent 67%),conic-gradient(var(--ringcol) calc(var(--pct)*1%),var(--rail) 0);box-shadow:0 0 0 4px var(--bg),0 0 0 5px var(--bd2)}
-.fp-ring b{font-size:9px;font-weight:700;color:var(--ringcol);letter-spacing:-.3px}
-.fp-ring.solid{background:var(--ringcol)} .fp-ring.solid b{display:none} .fp-ring.solid svg{width:17px;height:17px;color:#fff}
-.fp-ring svg{display:none}
-.fp-ring.foc::after{content:"";position:absolute;inset:-2px;border-radius:50%;animation:fpPing 2.2s ease-out infinite}
-@keyframes fpPing{0%{box-shadow:0 0 0 0 rgba(232,180,104,.5)}70%{box-shadow:0 0 0 10px rgba(232,180,104,0)}100%{box-shadow:0 0 0 0 rgba(232,180,104,0)}}
-.fp-phase{background:var(--card);border:1px solid var(--bd);border-radius:var(--pp-rc);overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:var(--sh1)}
-.fp-phase:hover{box-shadow:var(--sh2)}
-.fp-phase.focus{border-color:color-mix(in srgb,var(--brand) 55%,var(--bd))}
-.fp-phead{display:flex;align-items:center;gap:11px;cursor:pointer;padding:13px 14px;user-select:none}
-.fp-pmain{min-width:0;flex:1}
-.fp-pname{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.fp-pname h3{margin:0;font-size:13.5px;font-weight:700;line-height:1.2;color:var(--tx)}
-.fp-psub{margin:3px 0 0;font-size:11px;color:var(--tx2);line-height:1.35}
-.fp-count{font-size:11px;font-weight:700;color:var(--tx2);background:var(--surface);border:1px solid var(--bd2);border-radius:8px;padding:4px 9px;white-space:nowrap;flex:0 0 auto;font-variant-numeric:tabular-nums}
-.fp-count b{color:var(--green)} .fp-count em{font-style:normal;color:var(--prog)}
-.fp-chev{color:var(--tx3);transition:transform .25s;flex:0 0 auto;display:flex}
-.fp-chev svg{width:18px;height:18px}
-.fp-phase.open .fp-chev{transform:rotate(180deg)}
-.fp-sb{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:6px}
-.sb-done{color:var(--green);background:color-mix(in srgb,var(--brand) 16%,transparent)}
-.sb-plan{color:var(--tx2);border:1px solid var(--bd2)}
-.fp-here{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#0E130E;background:var(--amber);padding:3px 8px;border-radius:6px;animation:fpPing 2s ease-out infinite}
-.fp-here svg{width:11px;height:11px}
-.fp-pbar{height:3px;background:var(--rail);position:relative}
-.fp-pbar i{position:absolute;top:0;height:100%;display:block}
-.fp-leaves{display:grid;grid-template-rows:0fr;transition:grid-template-rows .34s cubic-bezier(.4,0,.2,1)}
-.fp-phase.open .fp-leaves{grid-template-rows:1fr}
-.fp-leaves>div{overflow:hidden;min-height:0}
-.fp-leaflist{display:flex;flex-direction:column;gap:8px;padding:12px;border-top:1px solid var(--bd)}
-.fp-leaf{position:relative;display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:11px;background:var(--surface);border:1px solid var(--bd2);--lcol:var(--plan);transition:transform .16s,border-color .16s}
-.fp-leaf.r{margin-left:clamp(16px,5vw,38px)} .fp-leaf.l{margin-right:clamp(16px,5vw,38px)}
-.fp-leaf::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--lcol)}
-.fp-leaf.r:hover{transform:translateX(2px)} .fp-leaf.l:hover{transform:translateX(-2px)}
-.fp-leaf:hover{border-color:var(--lcol);z-index:2}
-.fp-trib-svg{position:absolute;top:0;height:100%;width:clamp(16px,5vw,38px);overflow:visible;pointer-events:none}
-.fp-leaf.r .fp-trib-svg{left:calc(-1*clamp(16px,5vw,38px))} .fp-leaf.l .fp-trib-svg{right:calc(-1*clamp(16px,5vw,38px))}
-.fp-st-concluido{--lcol:var(--done)} .fp-st-em_andamento{--lcol:var(--prog)} .fp-st-planejado{--lcol:var(--plan)} .fp-st-pendente{--lcol:var(--pend)}
-.fp-leaf.fp-st-planejado::before{background:transparent;border-left:2px solid var(--plan);width:0}
-.fp-leaf.fp-st-pendente{border-style:dashed} .fp-leaf.fp-st-pendente::before{background:repeating-linear-gradient(var(--pend) 0 3px,transparent 3px 6px)}
-.fp-lico{flex:0 0 auto;width:18px;height:18px;display:grid;place-items:center;color:var(--lcol)} .fp-lico svg{width:14px;height:14px}
-.fp-leaf.fp-st-em_andamento .fp-lico{animation:fpSpin 1.9s ease-in-out infinite}
-@keyframes fpSpin{0%,100%{opacity:1}50%{opacity:.35}}
-.fp-lico.planejado{border:1.5px solid var(--plan);border-radius:50%;width:13px;height:13px} .fp-lico.pendente{border:1.5px dashed var(--pend);border-radius:50%;width:13px;height:13px}
-.fp-lnum{flex:0 0 auto;font-size:10px;font-weight:700;color:var(--tx3);min-width:30px;text-align:center;font-variant-numeric:tabular-nums}
-.fp-lnum--vazio{color:var(--bd2)}
-.fp-ltext{flex:1;min-width:0;font-size:12px;font-weight:500;line-height:1.3;color:var(--tx)}
-.fp-meta{display:flex;gap:5px;flex:0 0 auto;max-width:0;overflow:hidden;opacity:0;transition:max-width .28s,opacity .2s}
-.fp-leaf:hover .fp-meta,.fp-leaf.show .fp-meta{max-width:170px;opacity:1}
-.fp-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;padding:2px 6px;border-radius:6px;white-space:nowrap;background:var(--card);border:1px solid var(--bd2);color:var(--tx2)}
-.fp-tag.pri{color:var(--green);border-color:color-mix(in srgb,var(--brand) 40%,var(--bd2))}
-.fp-tag.pri-crit{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,var(--bd2))}
-@media(max-width:400px){.fp-meta{display:none}.fp-leaf.show .fp-meta{display:flex;max-width:200px;opacity:1}}
-/* No mobile o zigzag l/r deixava metade da largura vazia ao lado de cada cartão: empilha
-   em coluna única de largura cheia (o trilho já é lateral pela station), sem os conectores. */
-@media(max-width:520px){
-  .fp-leaf.r,.fp-leaf.l{margin-left:0;margin-right:0}
-  .fp-leaf.r:hover,.fp-leaf.l:hover{transform:none}
-  .fp-trib-svg{display:none}
-}
-.fp-hint{font-size:10.5px;color:var(--tx3);text-align:center;padding:14px 14px 2px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:500}
-.fp-hint svg{width:14px;height:14px}
-@media (prefers-reduced-motion:reduce){.fp-orb::after,.fp-ring.foc::after,.fp-here,.fp-leaf.fp-st-em_andamento .fp-lico{animation:none}}
 
 /* ---- Stub (telas em construção) ---- */
 .cp-stub{text-align:center;color:var(--text-muted);padding:30px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--pp-ri)}
@@ -492,11 +371,6 @@ html.modo-colab.cp-dark{
      card) pro topo da coluna, sem tocar o DOM nem o mobile (só CSS, degrau 4). */
   .pp-home__col--dir > .pp-ovl--com,
   .pp-home__col--dir > .pp-card--pin{order:-1}
-  /* Roadmap desktop: lista alinhada, sem alternância l/r nem tocos de conector soltos
-     (os fp-trib-svg pareciam artefato de renderização numa lista já vertical). */
-  .fp-leaf.r,.fp-leaf.l{margin-left:0;margin-right:0}
-  .fp-leaf.r:hover,.fp-leaf.l:hover{transform:none}
-  .fp-trib-svg{display:none}
 }
 
 /* card de comunicado (home) */
