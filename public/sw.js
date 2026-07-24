@@ -1,4 +1,4 @@
-// Service Worker do FioPulse
+﻿// Service Worker do FioPulse
 //
 // Estratégia (anti cache velho + boot rápido com cache quente):
 //  - HTML/navegação: NETWORK-FIRST. Online sempre pega o index novo (que é
@@ -16,7 +16,7 @@
 //    a cada deploy que mexa em SW/estratégia (segue o ?v= do index.html). FONT_CACHE
 //    só muda se um dia os BYTES de uma fonte mudarem (bump manual do nome, raro).
 
-const CACHE = "fiopulse-v405";
+const CACHE = "fiopulse-v406";
 const FONT_CACHE = "fiopulse-fontes-v1";
 
 self.addEventListener("install", () => {

@@ -1757,8 +1757,9 @@ service cloud.firestore {
       // uid == quem chama, funcionarioId == o vinculo REAL dele (euSouODono, que exige vinculo
       // nao vazio) e nome == users/{uid}.nome (precedente do mural). So aceita em vaga PUBLICADA
       // com visibilidade interna/ambas — interesse em vaga 'publica' (ou legado sem o campo)
-      // NEGA no v1 (nesse caso o colaborador usa o site como qualquer um). Retirar interesse = v2
-      // (update/delete de colab negam: colab nao e gpCand).
+      // NEGA no v1 (nesse caso o colaborador usa o site como qualquer um). RETIRAR interesse (v2,
+      // 2026-07-23): o colab DELETA o proprio interesse interno (allow delete abaixo); mover
+      // status segue so-GP (update de colab NEGA).
       function criaInterna() {
         return isAuthed()
           && c().keys().hasOnly(['vagaId', 'origem', 'uid', 'funcionarioId', 'nome', 'cargo', 'setor', 'turno', 'tempoCasaMeses', 'motivacao', 'em', 'status'])
@@ -1804,7 +1805,15 @@ service cloud.firestore {
       allow update: if gpCand()
         && c().diff(resource.data).affectedKeys().hasOnly(['status'])
         && c().status in ['recebida', 'em-analise', 'aprovada', 'contratada', 'nao-seguiu'];
-      allow delete: if gpCand();
+      // RETIRAR INTERESSE (fase 2 v2, William 2026-07-23): o colaborador deleta EXCLUSIVAMENTE
+      // o proprio interesse INTERNO — mesmo predicado do read (origem 'interna' + uid == ele).
+      // Candidatura EXTERNA (sem 'origem') e docs alheios seguem SO-GP: o guard "'origem' in"
+      // mantem o doc externo FORA deste ramo. OR curto (4 termos), zero risco de orcamento.
+      allow delete: if gpCand()
+        || (isAuthed()
+            && 'origem' in resource.data
+            && resource.data.origem == 'interna'
+            && resource.data.uid == request.auth.uid);
     }
 
     // WhatsApp de candidaturas: publico por proposito (a pagina aberta precisa).

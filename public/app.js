@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // Ocorrências do Ponto — App Logic
 // ============================================
 
@@ -5039,6 +5039,7 @@ function vioCardHtml(vg, jaEnviei) {
     ${desc}
     <div class="vio__foot"><button class="vi-btn vi-btn--primary" type="button" data-vi-interesse="${escapeHtml(vg.id)}">${cpIcon("heart")}Tenho interesse</button></div>
     <div class="vio__done">${cpIcon("check")}Interesse enviado à GP</div>
+    <button class="vio__undo" type="button" data-vi-retirar="${escapeHtml(vg.id)}">Retirar interesse</button>
   </div>`;
 }
 
@@ -5060,7 +5061,36 @@ function renderColabOportunidades() {
   if (escreveu) {
     bindColabNav(view);
     view.querySelectorAll("[data-vi-interesse]").forEach((b) => b.addEventListener("click", () => abrirInteresseInterno(b.dataset.viInteresse)));
+    view.querySelectorAll("[data-vi-retirar]").forEach((b) => b.addEventListener("click", () => confirmarRetirarInteresse(b.dataset.viRetirar, b)));
   }
+}
+
+// Retirar interesse interno (v2): confirmação discreta + delete. withBusy com o pós-sucesso
+// DENTRO do callback (senão a exceção é engolida e vira falso-sucesso). ACOPLAMENTO: o delete
+// só é liberado DEPOIS do deploy das rules (colab deleta o próprio interesse interno); até lá
+// toma permission-denied e o erro é honesto, sem sumir com o card.
+async function confirmarRetirarInteresse(vagaId, btn) {
+  const vg = (state.vagasInternasColab || []).find((x) => x.id === vagaId);
+  const titulo = (vg && vg.titulo) ? vg.titulo : "esta vaga";
+  if (!(await confirmar({
+    titulo: "Retirar interesse?",
+    msg: `Você deixa de constar como interessado em ${titulo}. Pode demonstrar interesse de novo depois, se quiser.`,
+    okLabel: "Retirar interesse",
+    cancelLabel: "Manter",
+    perigo: true,
+  }))) return;
+  await withBusy("vi-ret:" + vagaId, btn, async () => {
+    try {
+      await window.retirarInteresseInterno(vagaId);
+      // Pós-sucesso DENTRO do callback: limpa o estado (a função já removeu do state) e
+      // re-renderiza coalescido pra o card voltar pra "Tenho interesse".
+      renderApp();
+      toast("Interesse retirado.");
+    } catch (e) {
+      toast(/permission|denied/i.test(String(e?.code || e?.message || e))
+        ? "Não foi possível retirar agora. Tente de novo em instantes." : "Não retirou agora. Tente de novo em instantes.", "danger");
+    }
+  });
 }
 
 // ===== CENTRAL DE NOTIFICAÇÕES · Colaborador (sino na home + tela cheia) =====
@@ -20811,7 +20841,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.19.0";
+window.CURRENT_VERSION = "2.20.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

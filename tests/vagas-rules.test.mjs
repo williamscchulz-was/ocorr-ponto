@@ -97,6 +97,17 @@ before(async () => {
     await setDoc(doc(db, "candidaturas/vSeedInt__int__f-1"), intSeed());
     await setDoc(doc(db, "candidaturas/vSeedIntOutro__int__f-2"), intSeed({ vagaId: "vSeedIntOutro", uid: "uColab2", funcionarioId: "f-2", nome: "Bruno" }));
     await setDoc(doc(db, "candidaturas/vSeedIntMove__int__f-1"), intSeed({ vagaId: "vSeedIntMove" }));
+    // v2 RETIRAR (2026-07-23): docs dedicados ao delete, nao mutados por outros testes (sem
+    // acoplar a ordem). vSeedIntDel = interesse do colab (f-1); vSeedIntGpDel = regressao da GP;
+    // vSeedIntAlheio = interesse de OUTRO (f-2, uColab2), pra o colab NAO poder retirar.
+    await setDoc(doc(db, "candidaturas/vSeedIntDel__int__f-1"), intSeed({ vagaId: "vSeedIntDel" }));
+    await setDoc(doc(db, "candidaturas/vSeedIntGpDel__int__f-1"), intSeed({ vagaId: "vSeedIntGpDel" }));
+    await setDoc(doc(db, "candidaturas/vSeedIntAlheio__int__f-2"), intSeed({ vagaId: "vSeedIntAlheio", uid: "uColab2", funcionarioId: "f-2", nome: "Bruno" }));
+    // Candidatura EXTERNA (sem 'origem') dedicada: o colab NAO pode deletar (guard "'origem' in").
+    await setDoc(doc(db, "candidaturas/vCand__extdel@mail.com"), {
+      vagaId: "vCand", vagaTitulo: "Tecelão", nome: "Externo Del", telefone: "47900002222",
+      email: "extdel@mail.com", mensagem: "", em: new Date(), status: "nova",
+    });
   });
 });
 after(async () => { await env.cleanup(); });
@@ -618,8 +629,20 @@ test("GP move status do interesse interno PASSA (mesmo funil)", async () =>
   assertSucceeds(updateDoc(doc(rh(), "candidaturas/vSeedIntMove__int__f-1"), { status: "recebida" })));
 test("COLABORADOR NAO move status do interesse (nem o proprio)", async () =>
   assertFails(updateDoc(doc(colab(), "candidaturas/vSeedInt__int__f-1"), { status: "recebida" })));
-test("COLABORADOR NAO deleta o proprio interesse (retirar = v2)", async () =>
-  assertFails(deleteDoc(doc(colab(), "candidaturas/vSeedInt__int__f-1"))));
+
+// ---------- Interesse interno · RETIRAR (v2, 2026-07-23): colab deleta o PROPRIO ----------
+// O colaborador retira EXCLUSIVAMENTE o proprio interesse interno (mesmo predicado do read:
+// origem 'interna' + uid == ele). Candidatura EXTERNA (sem 'origem') e docs alheios seguem so-GP.
+test("COLABORADOR retira (deleta) o PROPRIO interesse interno PASSA", async () =>
+  assertSucceeds(deleteDoc(doc(colab(), "candidaturas/vSeedIntDel__int__f-1"))));
+test("COLABORADOR NAO deleta interesse interno de OUTRO (uid alheio)", async () =>
+  assertFails(deleteDoc(doc(colab(), "candidaturas/vSeedIntAlheio__int__f-2"))));
+test("COLABORADOR NAO deleta candidatura EXTERNA (sem 'origem')", async () =>
+  assertFails(deleteDoc(doc(colab(), "candidaturas/vCand__extdel@mail.com"))));
+test("ANONIMO NAO deleta interesse interno", async () =>
+  assertFails(deleteDoc(doc(anon(), "candidaturas/vSeedInt__int__f-1"))));
+test("GP segue deletando QUALQUER candidatura, inclusive interesse interno (regressao)", async () =>
+  assertSucceeds(deleteDoc(doc(rh(), "candidaturas/vSeedIntGpDel__int__f-1"))));
 
 // ---------- Defesa em profundidade: /mail e /waMsg nao servem doc interno (sem email/telefone) ----------
 test("GP: mail de status pra doc INTERNO NEGA (guarda 'email' in)", async () =>

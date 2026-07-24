@@ -2149,6 +2149,17 @@
       state.meusInteressesInternos = state.meusInteressesInternos || {};
       state.meusInteressesInternos[vagaId] = { status: "nova", em: new Date().toISOString() };
     };
+    // RETIRAR INTERESSE (v2, 2026-07-23): deleta o proprio interesse interno (doc
+    // vagaId__int__funcionarioId). A rule libera o delete SO do proprio (origem 'interna' + uid
+    // == ele) e SO depois do DEPLOY das rules; ate la o delete toma permission-denied e o
+    // chamador trata o erro honesto. Limpa o state; o re-render coalescido fica com o chamador.
+    window.retirarInteresseInterno = async function (vagaId) {
+      const u = currentUser();
+      const uid = auth.currentUser && auth.currentUser.uid;
+      if (!u || !u.funcionarioId || !uid) throw new Error("Sem vínculo de colaborador.");
+      await db.collection("candidaturas").doc(`${vagaId}__int__${u.funcionarioId}`).delete();
+      if (state.meusInteressesInternos) delete state.meusInteressesInternos[vagaId];
+    };
     // config/vagas guarda whatsapp + catálogo de benefícios NO MESMO doc (shape
     // hasOnly(['whatsapp','beneficiosCatalogo']) nas rules; whatsapp SEMPRE presente).
     // Cada save reescreve o doc, então preserva o outro campo a partir do state.

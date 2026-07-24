@@ -1385,6 +1385,10 @@ html.cp-dark .onb-ov .onb-cta:hover { background: var(--plum-deep); filter: brig
 .vio--done { border-color: var(--success-bg); }
 .vio--done .vio__foot { display: none; }
 .vio--done .vio__done { display: flex; }
+/* Retirar interesse (v2): ação discreta, só no estado "enviado" */
+.vio__undo { display: none; }
+.vio--done .vio__undo { display: block; width: 100%; margin-top: 8px; padding: 6px; background: transparent; border: 0; color: var(--text-muted); font: 600 12.5px var(--font); cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent; }
+@media (hover:hover){ .vio--done .vio__undo:hover { color: var(--text-body); text-decoration: underline; } }
 .vi-empty { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
 
 /* Botão do portal interno (block, primário/ghost) */
