@@ -1795,31 +1795,41 @@
         const eid = `${acao}_${refId}`;
         if ((state.gamiExtrato || []).some((e) => e.id === eid)) return false; // ja creditado (economia; o dedup real e da regra)
         const meuRef = _gami().collection("pontos").doc(user.uid);
-        const atual = await meuRef.get();
-        const total = (atual.exists ? Number(atual.data().total) || 0 : 0) + pontos;
-        const b = db.batch();
+        const nome = String(u.nome || "").slice(0, 120);
         const ev = { acao, refId, pontos, em: _FV.serverTimestamp() };
         if (rotulo) ev.rotulo = String(rotulo).slice(0, 140);
-        b.set(meuRef.collection("eventos").doc(eid), ev);
-        const nome = String(u.nome || "").slice(0, 120);
-        if (atual.exists) {
-          // UPDATE parcial (gate delta 4): a foto so trafega quando MUDOU -- senao cada
-          // claim de 1 ponto re-subiria a imagem inteira no 3G. A igualdade anti-spoof
-          // avalia o doc final, entao a foto persistida continua valendo sem trafegar.
-          const upd = { total, nome, ultimoEvento: eid };
-          const persistida = atual.data().foto;
-          if (u.fotoBase64 && persistida !== u.fotoBase64) upd.foto = u.fotoBase64;
-          else if (!u.fotoBase64 && persistida !== undefined) upd.foto = _FV.delete();
-          if (u.decoracao != null && (atual.data().decoracao || "") !== (u.decoracao || "")) upd.decoracao = u.decoracao;
-          b.update(meuRef, upd);
-        } else {
-          const placar = { total, nome, ultimoEvento: eid };
-          if (u.decoracao != null) placar.decoracao = u.decoracao;
-          if (u.fotoBase64) placar.foto = u.fotoBase64;
-          b.set(meuRef, placar);
-        }
-        await b.commit();
-        state.gamiMeu = { ...(state.gamiMeu || {}), total, nome, ultimoEvento: eid };
+        // TRANSACAO (nao batch): o total do placar e read-modify-write. Com duas sessoes
+        // creditando ao mesmo tempo, o batch lia o total ANTES do commit da outra e gravava a
+        // soma velha (caso William: total desandou de 44 pra 39, sendo 39 a soma correta dos
+        // eventos). runTransaction le o placar e grava evento + total no MESMO commit atomico;
+        // sob contencao o Firestore re-roda a callback com o total fresco. As escritas sao AS
+        // MESMAS do batch (mesmos campos e valores), so a atomicidade muda -- a regra de /pontos
+        // (update: total == resource.total + pontosDoEvento, com o evento nascendo no mesmo
+        // commit) segue valendo. NAO mutar state DENTRO da callback: ela pode rodar mais de uma
+        // vez; o state so muda depois do commit, a partir do total retornado.
+        const novoTotal = await db.runTransaction(async (tx) => {
+          const atual = await tx.get(meuRef);
+          const total = (atual.exists ? Number(atual.data().total) || 0 : 0) + pontos;
+          tx.set(meuRef.collection("eventos").doc(eid), ev);
+          if (atual.exists) {
+            // UPDATE parcial (gate delta 4): a foto so trafega quando MUDOU -- senao cada
+            // claim de 1 ponto re-subiria a imagem inteira no 3G. A igualdade anti-spoof
+            // avalia o doc final, entao a foto persistida continua valendo sem trafegar.
+            const upd = { total, nome, ultimoEvento: eid };
+            const persistida = atual.data().foto;
+            if (u.fotoBase64 && persistida !== u.fotoBase64) upd.foto = u.fotoBase64;
+            else if (!u.fotoBase64 && persistida !== undefined) upd.foto = _FV.delete();
+            if (u.decoracao != null && (atual.data().decoracao || "") !== (u.decoracao || "")) upd.decoracao = u.decoracao;
+            tx.update(meuRef, upd);
+          } else {
+            const placar = { total, nome, ultimoEvento: eid };
+            if (u.decoracao != null) placar.decoracao = u.decoracao;
+            if (u.fotoBase64) placar.foto = u.fotoBase64;
+            tx.set(meuRef, placar);
+          }
+          return total;
+        });
+        state.gamiMeu = { ...(state.gamiMeu || {}), total: novoTotal, nome, ultimoEvento: eid };
         if (state.gamiExtrato) state.gamiExtrato.unshift({ id: eid, ...ev, em: new Date().toISOString() });
         return true;
       } catch (e) { debug?.("[gami] claim", acao, refId, ":", e?.code || e?.message); return false; }
@@ -1835,6 +1845,29 @@
         const s = await _gami().collection("pontos").doc(user.uid).get();
         state.gamiMeu = s.exists ? s.data() : { total: 0 };
       } catch (e) { debug?.("[gami] placar:", e?.code || e?.message); }
+    };
+
+    // Fotos do placar por NOME (cache de sessao) pra a faixa de stories da home achar o rosto de
+    // um homenageado que esta FORA do top 10 (novato sem ranking caia nas iniciais, achado
+    // William v408: "n aparece a foto ainda"). Le a colecao pontos do ano UMA vez (a MESMA
+    // leitura aberta a autenticado do ranking, foto denormalizada com autorizacao de imagem) e
+    // indexa foto por nome normalizado. undefined = ainda nao carregou; objeto (mesmo vazio) =
+    // carga conhecida (nao re-le, sem N+1). Erro NAO cacheia. O app so chama quando um rosto
+    // realmente falta, pra a leitura da colecao inteira nao pesar todo boot.
+    window.carregarGamiFotosPorNome = async function () {
+      if (state._gamiFotoNome !== undefined) return state._gamiFotoNome;
+      try {
+        const snap = await _gami().collection("pontos").get();
+        const mapa = {};
+        snap.docs.forEach((d) => {
+          const x = d.data() || {};
+          const f = x.foto;
+          if (x.nome && typeof f === "string" && f.indexOf("data:image/") === 0)
+            mapa[_normNome(x.nome)] = f;
+        });
+        state._gamiFotoNome = mapa;
+      } catch (e) { debug?.("[gami] fotos por nome:", e?.code || e?.message); }
+      return state._gamiFotoNome;
     };
 
     // Tela Conquistas: extrato + entregas (premios revelados) + ranking top 10.
@@ -1859,6 +1892,18 @@
           .sort((a, b) => String(b.em || "").localeCompare(String(a.em || "")));
         state.gamiEntregas = entr.docs.map((d) => ({ id: d.id, ...d.data(), em: tsToIso(d.data().em) }));
         state.gamiTop = top.docs.map((d, i) => ({ uid: d.id, pos: i + 1, ...d.data() }));
+        // AUTOCURA DE EXIBICAO (v408): aqui o extrato INTEIRO do ano esta carregado (eventos.get()
+        // sem filtro; o ano ja e o doc pai), entao a soma dos eventos e a fonte da verdade do meu
+        // total. Se o total denormalizado do placar divergir (corrida historica de escrita
+        // nao-transacional, hoje sanada pela transacao do gamiClaim), o placar/tela passam a
+        // exibir a SOMA. So EXIBICAO: a regra de /pontos NEGA um update arbitrario de total
+        // (update exige evento novo no mesmo commit -> total == resource.total + pontosDoEvento,
+        // OU diff cosmetico que nem toca em total; docs/firestore.rules linhas 1381-1394), entao
+        // NAO ha escrita de correcao. Nunca inflamos nem encolhemos o dado no servidor; a leitura
+        // apenas reflete o extrato completo (sem risco de perda: nada e gravado).
+        const somaEventos = state.gamiExtrato.reduce((s, e) => s + (Number(e.pontos) || 0), 0);
+        if (state.gamiMeu && Number(state.gamiMeu.total) !== somaEventos)
+          state.gamiMeu = { ...state.gamiMeu, total: somaEventos };
       } catch (e) { debug?.("[gami] colab:", e?.code || e?.message); }
       return state.gamiMeu;
     };

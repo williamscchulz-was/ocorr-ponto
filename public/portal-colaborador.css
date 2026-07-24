@@ -485,6 +485,13 @@ html.modo-colab.cp-dark{
   .pp-home__grid:not(:has(> .pp-home__col:first-child > *:not(:empty))){display:block}
   .pp-home__grid:not(:has(> .pp-home__col:first-child > *:not(:empty))) > .pp-home__col:first-child{display:none}
   .pp-aniv-d{display:block}
+  /* Home desktop OPÇÃO B (mock home-desktop-colab-2026-07, aprovado): coluna DIREITA = comunicado
+     fixado ACIMA de precisa de atenção. No DOM a ordem é precisa->comunicado DE PROPÓSITO: no
+     mobile o grid vira bloco e as duas colunas empilham em série (pontos, faixa, precisa,
+     comunicado — o mobile de hoje, intocado). No desktop o order iça o comunicado (overline +
+     card) pro topo da coluna, sem tocar o DOM nem o mobile (só CSS, degrau 4). */
+  .pp-home__col--dir > .pp-ovl--com,
+  .pp-home__col--dir > .pp-card--pin{order:-1}
   /* Roadmap desktop: lista alinhada, sem alternância l/r nem tocos de conector soltos
      (os fp-trib-svg pareciam artefato de renderização numa lista já vertical). */
   .fp-leaf.r,.fp-leaf.l{margin-left:0;margin-right:0}
@@ -1505,7 +1512,6 @@ html.cp-dark .onb-ov .onb-cta { color: #08130B; box-shadow: 0 12px 26px -10px rg
 .vi-recv__ic svg { width: 15px; height: 15px; }
 .vi-recv__k { font-size: 10.5px; color: var(--text-muted); }
 .vi-recv__v { font-size: 13px; font-weight: 700; color: var(--text-body); }
-.vi-recv__auto { margin-left: auto; font-size: 10px; font-weight: 700; color: var(--plum); background: var(--success-bg); border-radius: 999px; padding: 3px 9px; }
 .vi-mot { margin-bottom: 14px; }
 .vi-mot label { display: block; font-size: 12px; font-weight: 600; color: var(--text-body); margin-bottom: 7px; }
 .vi-mot label span { font-weight: 500; color: var(--text-muted); }

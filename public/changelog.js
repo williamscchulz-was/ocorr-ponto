@@ -19,7 +19,16 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.21.0", d: "24 jul 2026", current: true, items: [
+    v: "2.22.0", d: "24 jul 2026", current: true, items: [
+      { type: "fix", aud: "colab", title: "Pontos sempre certos, mesmo usando dois aparelhos" },
+      { type: "fix", aud: "colab", title: "Foto de quem chegou agora aparece na faixa do dia" },
+      { type: "feat", aud: "colab", title: "Home do computador reorganizada" },
+      { type: "fix", aud: "colab", title: "Tela de interesse na vaga mais enxuta" },
+      { type: "fix", aud: "gestor", title: "Lista de vagas sem quebra de linha" },
+    ],
+  },
+  {
+    v: "2.21.0", d: "24 jul 2026", items: [
       { type: "high", aud: "colab", title: "Apresentação nova do app pra estreia" },
     ],
   },

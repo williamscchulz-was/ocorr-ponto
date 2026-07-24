@@ -3287,15 +3287,19 @@ function _muralFullCardHtml(opts) {
 }
 
 // Foto do HOMENAGEADO da faixa. souEu -> minha foto do users doc (a mesma da saudação);
-// senão procura pelo NOME no placar da gamificação (state.gamiTop, denormalizado com foto e
-// autorização de imagem, a MESMA fonte dos reatores). Sem match/sem foto -> "" (cai nas
-// iniciais). Determinístico do state (m1).
+// senão procura pelo NOME no placar da gamificação. Primeiro no top 10 (state.gamiTop, já no
+// state), depois no PLACAR COMPLETO do ano (state._gamiFotoNome, cache alimentado sob demanda
+// por carregarGamiFotosPorNome): assim o novato fora do ranking também aparece com o rosto real
+// (v408), não só as iniciais. Sem match/sem foto -> "" (cai nas iniciais). Determinístico do
+// state (m1: o cache é lido, nunca disparado, daqui).
 function _muralFotoHomenageado(nome, souEu) {
   const ok = (f) => (typeof f === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(f)) ? f : "";
   if (souEu) return ok((currentUser() || {}).fotoBase64);
   const alvo = _normNome(nome);
   const hit = (state.gamiTop || []).find((p) => _normNome(p.nome) === alvo);
-  return hit ? ok(hit.foto) : "";
+  const doTop = hit ? ok(hit.foto) : "";
+  if (doTop) return doTop;
+  return ok(state._gamiFotoNome && state._gamiFotoNome[alvo]);
 }
 
 // Um rosto da faixa (story). Anel TRACEJADO quando falta parabenizar; PREENCHIDO + selo de
@@ -3876,6 +3880,20 @@ async function carregarMuralAniv() {
   _reconciliarMuralRegioes();
 }
 
+// Rostos dos HOMENAGEADOS da faixa que não estão no top 10 do placar (novato fora do ranking
+// caía nas iniciais, v408). Carrega o placar COMPLETO do ano UMA vez (cache de sessão) e
+// reconcilia a faixa pra o morph trocar iniciais->foto. GATE: só dispara se algum rosto realmente
+// falta (nenhum no top 10 nem no cache), pra a leitura da coleção inteira não pesar todo boot.
+async function preencherFotosHomenageados() {
+  if (typeof window.carregarGamiFotosPorNome !== "function") return;
+  if (state._gamiFotoNome !== undefined) return; // já carregado nesta sessão
+  const meuNome = (currentUser() || {}).nome || "";
+  const faltam = _muralHomenageados(meuNome).some((it) => !it.souEu && !_muralFotoHomenageado(it.nome, false));
+  if (!faltam) return;
+  await window.carregarGamiFotosPorNome();
+  if ((state.view && state.view.page) === "colab-home") _reconciliarMuralRegioes();
+}
+
 // Toque no coração "Parabenizar": otimista (muta o cache e reconcilia a região na hora),
 // chama o toggle, reverte + toast no erro. Trava o toque duplo por post enquanto a escrita voa
 // (_muralBusy). Chamado do bottom sheet do story (v379): sem morph de card; o feedback é o
@@ -3946,7 +3964,7 @@ function comunicadoFixadoHtml() {
   const fix = lista.find((c) => c.fixado);
   if (!fix) return "";
   const ehAviso = (fix.tipo === "aviso");
-  return `<div class="pp-ovl">Comunicados<button class="pp-ovl__link" data-nav="colab-comunicados" style="margin-left:auto;margin-right:-4px;background:none;border:0;color:var(--plum);font:inherit;font-size:11.5px;font-weight:600;letter-spacing:0;text-transform:none;padding:12px 4px;cursor:pointer">Ver todos</button></div>
+  return `<div class="pp-ovl pp-ovl--com">Comunicados<button class="pp-ovl__link" data-nav="colab-comunicados" style="margin-left:auto;margin-right:-4px;background:none;border:0;color:var(--plum);font:inherit;font-size:11.5px;font-weight:600;letter-spacing:0;text-transform:none;padding:12px 4px;cursor:pointer">Ver todos</button></div>
     <button class="pp-card pp-card--pin${ehAviso ? " cp-avisocard" : ""}" data-nav="colab-comunicados">
       <div class="pp-card__bd">
         ${ehAviso ? `<span class="cp-avisotag">${cpIcon("megafone")}Aviso</span>` : ""}
@@ -4870,11 +4888,11 @@ function renderColaboradorHome() {
         <div class="pp-home__col">
           ${gamiCardHomeHtml()}
           <div data-region="mural:strip"></div>
-          ${precisaAtencaoHtml()}
-        </div>
-        <div class="pp-home__col">
-          ${comunicadoFixadoHtml()}
           <div class="pp-aniv-d">${aniversariantesDoMesHtml(nome)}</div>
+        </div>
+        <div class="pp-home__col pp-home__col--dir">
+          ${precisaAtencaoHtml()}
+          ${comunicadoFixadoHtml()}
         </div>
       </div>
       ${colabDenunciaCardHtml()}
@@ -4893,6 +4911,8 @@ function renderColaboradorHome() {
   // Reações de boas-vindas dos recém-chegados da faixa: aquece o cache e reconcilia a região
   // (esmaece o rosto de quem já recebeu as minhas boas-vindas). Sem DOM manual.
   preencherCardsBoasVindas();
+  // Rostos dos homenageados fora do top 10 (novato): carrega o placar completo 1x e reconcilia.
+  preencherFotosHomenageados();
   // F · saudação revelada por palavra 1x por dia (marca por uid); demais cargas nascem estáticas.
   talvezRevelarSaudacao();
 }
@@ -5418,7 +5438,7 @@ function abrirInteresseInterno(vagaId) {
   const snap = meuSnapshotInterno();
   const u = currentUser();
   const matricula = String((u && u.codigo) || "").trim();
-  const recebe = (ic, k, val) => `<div class="vi-recv__it"><span class="vi-recv__ic">${cpIcon(ic)}</span><div><div class="vi-recv__k">${k}</div><div class="vi-recv__v">${escapeHtml(val || "—")}</div></div><span class="vi-recv__auto">do app</span></div>`;
+  const recebe = (ic, k, val) => `<div class="vi-recv__it"><span class="vi-recv__ic">${cpIcon(ic)}</span><div><div class="vi-recv__k">${k}</div><div class="vi-recv__v">${escapeHtml(val || "—")}</div></div></div>`;
   const prevFocus = document.activeElement;
   const root = document.createElement("div");
   root.className = "vi-sheet";
@@ -20971,7 +20991,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.21.0";
+window.CURRENT_VERSION = "2.22.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

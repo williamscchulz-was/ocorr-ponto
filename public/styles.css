@@ -5084,9 +5084,14 @@ button.gm-card { cursor: pointer; }
 .gami-erro { font-size: 12.5px; color: var(--danger); }
 
 /* Gestor Vagas: lista + status + WhatsApp (mock aprovado 2026-07-14) */
-.g-vaga { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.g-vaga { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .g-vaga:first-of-type { border-top: 0; }
-.g-vaga__bd { flex: 1; min-width: 220px; }
+.g-vaga__bd { flex: 1; min-width: 170px; }
+/* Ações compactas da linha (Editar/Copiar link/Encerrar): com o selo "Pública e interna" a
+   soma das larguras estourava e a linha quebrava, jogando Encerrar pra baixo (print William
+   v408). Botões e gap mais justos + título encolhendo mais mantêm tudo em UMA linha no cartão
+   (trava em 860px, ~820 úteis), em qualquer largura desktop. */
+.g-vaga .btn--sm { padding: 7px 11px; font-size: 12px; min-height: 32px; }
 .g-vaga__bd b { display: block; font-size: 14px; color: var(--text-body); }
 .g-vaga__bd span { font-size: 11.5px; color: var(--text-muted); }
 .g-status { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 4px 11px; border-radius: 999px; }
