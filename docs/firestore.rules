@@ -1024,17 +1024,20 @@ service cloud.firestore {
 
     // ============================================================
     // AVALIACAO DE DESEMPENHO (feature 2 das Avaliacoes, 2026-07-09).
-    // v1 = modalidades 'gestor' (so o gestor avalia) e 'auto' (gestor +
-    // autoavaliacao lado a lado); o '360' de pares anonimos FICA FORA ate
-    // existir Cloud Functions (sorteio/agregacao server-side; decisao do
-    // William). RH/admin cria os ciclos (cap desempenho.gerenciar, GLOBAL:
-    // NUNCA conceder 'turno'/'atrib'); o gestor avalia SO alvos do proprio
-    // escopo (lider por turno, supervisor por lista/turnos, validado NA REGRA
-    // via users/{alvoUid} denormalizado, mesmos campos do casaSegmento); o
-    // colaborador faz a autoavaliacao e le o que e sobre si SO concluido.
-    // Sem PII denormalizada no doc (identidade via funcionarios no runtime).
-    // Gaps gestor x auto calculados no cliente; por isso NAO ha colecao
-    // 'resultados' no v1 (ela e do 360 server-side).
+    // Modalidades 'gestor' (so o gestor avalia) e 'auto' (gestor +
+    // autoavaliacao lado a lado). A modalidade '360' (pares/equipe anonimos)
+    // ENTROU em 2026-07-24 SEM Cloud Functions, no molde do anonimato
+    // ESTRUTURAL do clima (pareceres orfaos + agregacao no cliente); as regras
+    // dela vivem no bloco AVALIACAO 360 abaixo (subcolecoes designacoes/
+    // pareceres/pareceresFeitos). RH/admin cria os ciclos (cap
+    // desempenho.gerenciar, GLOBAL: NUNCA conceder 'turno'/'atrib'); o gestor
+    // avalia SO alvos do proprio escopo (lider por turno, supervisor por
+    // lista/turnos, validado NA REGRA via users/{alvoUid} denormalizado,
+    // mesmos campos do casaSegmento); o colaborador faz a autoavaliacao e le o
+    // que e sobre si SO concluido. Sem PII denormalizada no doc (identidade via
+    // funcionarios no runtime). Gaps gestor x auto calculados no cliente; o 360
+    // tambem agrega no cliente sobre pareceres orfaos, entao NAO ha colecao
+    // 'resultados'.
     // ============================================================
     match /avaliacaoCiclos/{cicloId} {
       function gpDesemp() { return isAdmin() || temCap('desempenho.gerenciar', isRH()); }
@@ -1062,7 +1065,7 @@ service cloud.firestore {
       function cicloShapeOk() {
         return request.resource.data.nome is string
           && request.resource.data.nome.size() >= 1 && request.resource.data.nome.size() <= 120
-          && request.resource.data.modalidade in ['gestor', 'auto']
+          && request.resource.data.modalidade in ['gestor', 'auto', '360']
           && request.resource.data.competencias is list
           && request.resource.data.competencias.size() >= 1 && request.resource.data.competencias.size() <= 12
           && request.resource.data.escalaMax is int
@@ -1137,7 +1140,7 @@ service cloud.firestore {
           return isAuthed() && c.status == 'ativo' && request.time < c.periodoFim && avShapeOk()
             && (resource == null || resource.data.status == 'rascunho')
             && ( ( d().papel == 'auto'
-                   && c.modalidade == 'auto'
+                   && c.modalidade in ['auto', '360']
                    && d().alvoFid == meuFuncionarioId()
                    && casaSegmento(c.publico) )
                  ||
@@ -1161,6 +1164,112 @@ service cloud.firestore {
         );
         allow create: if podeEscrever();
         allow update: if podeEscrever();
+        allow delete: if gpDesemp();
+      }
+
+      // ============================================================
+      // AVALIACAO 360 (2026-07-24, William: "ja devemos deixar disponivel, com
+      // todo backend e frontend rodando"). Estende o ciclo de desempenho SEM
+      // Cloud Functions, no MOLDE DO ANONIMATO ESTRUTURAL do clima (ja auditado
+      // e no ar). A modalidade '360' (liberada no cicloShapeOk + no ramo 'auto'
+      // acima) acrescenta 3 subcolecoes:
+      //  - designacoes/{avaliadoFid}: a GP (cap desempenho.gerenciar) grava QUEM
+      //    avalia QUEM. Chave = funcionarioId do avaliado (mesmo alvoFid do resto
+      //    do ciclo). avaliadores = LISTA DE UIDS (uid cobre lider-gestor E
+      //    colega-colaborador de forma uniforme, e o lider NAO tem funcionarioId
+      //    em users; o cliente da GP resolve funcionarioId->uid via /users, que o
+      //    gestor ja le; quem nao tem conta nao avalia, pois nao loga). grupos =
+      //    map uid->grupo ('par'|'lider'|'equipe'). Read ESCOPADO: a GP le tudo;
+      //    o AVALIADOR le SO onde aparece, provavel doc a doc por
+      //    'uid in avaliadores' (o cliente descobre suas atribuicoes com
+      //    where('avaliadores','array-contains', uid); list amplo NEGA). Residual
+      //    aceito: quem le a propria designacao ve a LISTA de co-avaliadores
+      //    daquele avaliado (nao vaza NOTA, so quem esta no painel); o anonimato
+      //    protegido e o da NOTA (parecer orfao), nao o da composicao do painel.
+      //  - pareceres/{parecerId}: PARECER ORFAO ANONIMO (espelho da resposta
+      //    anonima do clima). SEM uid e SEM timestamp de cliente:
+      //    hasOnly(avaliadoFid, grupo, notas, comentario). notas = map
+      //    competencia->int, CADA valor 1..5 provado por values().hasOnly([1..5])
+      //    (sem loop, pega valor fora da faixa E tipo errado). create exige
+      //    designacao do avaliadoFid E marcador do proprio uid ja existente
+      //    (elegibilidade DELEGADA ao marcador; o create NAO recheca QUEM aqui,
+      //    pra o DOC ficar 100% orfao). Read: SO a GP (cap, pra agregacao) e o
+      //    PROPRIO avaliado com o ciclo ENCERRADO (euSouODono + status). update:
+      //    false (imutavel); delete SO da GP (expurgo LGPD, emenda do gate Fable:
+      //    diferente do clima, o parecer e dado pessoal DO AVALIADO, precisa haver
+      //    caminho de eliminacao). GUARDA DE FRONT (gate): parecerId ALEATORIO
+      //    (add()), NUNCA derivado de uid.
+      //  - pareceresFeitos/{uid}_{avaliadoFid}: marcador create-only que registra
+      //    QUE respondeu, nunca O QUE. create exige uid==auth.uid (id casado com
+      //    request.auth.uid) + uid consta na designacao (PROVA de elegibilidade)
+      //    + create-only (dedup do marcador). Read: o proprio (por id) e a GP
+      //    (progresso "quem respondeu"). update: false; delete SO da GP (expurgo).
+      // ANTI-CONLUIO / integridade: nao-designado nao cria marcador -> nao cria
+      // parecer (o parecer exige exists(marcador)); logo SO designados enviam.
+      // RESIDUAL ACEITO (mesmo trade do clima): o parecer NAO casa 1:1 com o
+      // marcador (o marcador dedupa a SI, nao ao parecer), entao um designado
+      // poderia enviar >1 parecer orfao; aceito em favor do anonimato (acoplar
+      // parecer+marcador no MESMO batch daria correlacao de createTime, ja que a
+      // GP le os marcadores). PISO k=3 por grupo: imposto na UI e reforcado na
+      // regra SO no gate do avaliado (le pareceres apenas com ciclo encerrado); a
+      // regra NAO conta docs, entao a GP le pareceres AO VIVO e a selagem <3 e do
+      // cliente (mesmo residual de createTime/k do clima; upgrade path = contador
+      // por grupo ou Cloud Function). grupo do parecer e AUTO-DECLARADO (nao
+      // cruzado com a designacao, pra nao rechecar QUEM): impacto so na rotulagem
+      // da agregacao, o autor e designado legitimo.
+      // ============================================================
+      match /designacoes/{avaliadoFid} {
+        function des() { return request.resource.data; }
+        allow read: if gpDesemp()
+                    || (isAuthed() && request.auth.uid in resource.data.avaliadores);
+        allow create, update: if gpDesemp()
+          && des().keys().hasOnly(['avaliadoFid', 'avaliadores', 'grupos'])
+          && des().avaliadoFid == avaliadoFid
+          && des().avaliadores is list
+          && des().avaliadores.size() >= 1 && des().avaliadores.size() <= 30
+          && des().grupos is map
+          && des().grupos.values().hasOnly(['par', 'lider', 'equipe']);
+        allow delete: if gpDesemp();
+      }
+
+      match /pareceresFeitos/{marcadorId} {
+        function m() { return request.resource.data; }
+        allow read: if gpDesemp()
+                    || (isAuthed() && marcadorId == request.auth.uid + '_' + resource.data.avaliadoFid);
+        allow create: if isAuthed()
+          && ciclo().status == 'ativo'
+          && request.time < ciclo().periodoFim
+          && m().keys().hasOnly(['avaliadoFid'])
+          && m().avaliadoFid is string
+          && marcadorId == request.auth.uid + '_' + m().avaliadoFid
+          && exists(/databases/$(database)/documents/avaliacaoCiclos/$(cicloId)/designacoes/$(m().avaliadoFid))
+          && request.auth.uid in get(/databases/$(database)/documents/avaliacaoCiclos/$(cicloId)/designacoes/$(m().avaliadoFid)).data.avaliadores;
+        // Imutavel pra todos; delete SO da GP (expurgo LGPD, gate Fable 24/07:
+        // paridade com waMsg/candidaturas, dado sobre pessoa nunca fica indelevel).
+        allow update: if false;
+        allow delete: if gpDesemp();
+      }
+
+      match /pareceres/{parecerId} {
+        function p() { return request.resource.data; }
+        allow read: if gpDesemp()
+                    || (euSouODono(resource.data.avaliadoFid) && ciclo().status == 'encerrado');
+        allow create: if isAuthed()
+          && ciclo().status == 'ativo'
+          && request.time < ciclo().periodoFim
+          && p().keys().hasOnly(['avaliadoFid', 'grupo', 'notas', 'comentario'])
+          && p().avaliadoFid is string
+          && p().grupo in ['par', 'lider', 'equipe']
+          && p().notas is map
+          && p().notas.size() >= 1 && p().notas.size() <= 12
+          && p().notas.values().hasOnly([1, 2, 3, 4, 5])
+          && (!('comentario' in p()) || (p().comentario is string && p().comentario.size() <= 500))
+          && exists(/databases/$(database)/documents/avaliacaoCiclos/$(cicloId)/designacoes/$(p().avaliadoFid))
+          && exists(/databases/$(database)/documents/avaliacaoCiclos/$(cicloId)/pareceresFeitos/$(request.auth.uid + '_' + p().avaliadoFid));
+        // Imutavel pra todos; delete SO da GP (expurgo LGPD, gate Fable 24/07: nota
+        // e comentario livre sao dado pessoal do avaliado, precisa haver caminho de
+        // eliminacao; o parecer segue orfao, apagar nao toca no anonimato).
+        allow update: if false;
         allow delete: if gpDesemp();
       }
     }

@@ -1,5 +1,7 @@
-// Rules da AVALIACAO DE DESEMPENHO (feature 2 das Avaliacoes). v1 = modalidades
-// 'gestor' e 'auto' (o 360 de pares fica pra quando houver Cloud Functions).
+// Rules da AVALIACAO DE DESEMPENHO (feature 2 das Avaliacoes). Modalidades
+// 'gestor' e 'auto' (o '360' de pares anonimos entrou em 2026-07-24, regras +
+// testes em tests/avaliacao-360-rules.test.mjs; aqui so a aresta de que criar
+// ciclo '360' agora PASSA no cicloShapeOk).
 //   - avaliacaoCiclos/{id}: RH/admin cria/gera (cap desempenho.gerenciar, fallback isRH);
 //     nasce rascunho; ativa com ativadoEm/Por; ativo congela config (so estende periodoFim
 //     ou encerra one-way); colaborador le ciclo ATIVO (autoavaliar) ou ENCERRADO (rotular
@@ -107,8 +109,8 @@ test("CICLO: lider NAO cria (cap global so RH)", async () =>
 test("CICLO: nascer ja 'ativo' falha", async () =>
   assertFails(setDoc(doc(ctxFor("uRh"), "avaliacaoCiclos/novo4"),
     ciclo({ status: "ativo", criadoEm: TS(), criadoPor: "uRh" }))));
-test("CICLO: modalidade '360' falha (fora do v1)", async () =>
-  assertFails(setDoc(doc(ctxFor("uRh"), "avaliacaoCiclos/novo5"),
+test("CICLO: modalidade '360' OK (feature 360 no ar desde 2026-07-24)", async () =>
+  assertSucceeds(setDoc(doc(ctxFor("uRh"), "avaliacaoCiclos/novo5"),
     ciclo({ status: "rascunho", modalidade: "360", criadoEm: TS(), criadoPor: "uRh" }))));
 test("CICLO: competencias nao-list falha", async () =>
   assertFails(setDoc(doc(ctxFor("uRh"), "avaliacaoCiclos/novo6"),
