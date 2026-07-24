@@ -1545,99 +1545,141 @@ function mostrarTermoCanalDenuncia() {
 // barra de progresso também). Toque à direita avança, à esquerda volta.
 // ponytail: upgrade futuro = campo no users doc pra valer entre aparelhos.
 // ============================================================
-const ONBOARD_VERSAO = "2026-07-v1";
-const _onbA = "var(--art-accent)";
-const _onbSvg = (inner) => '<svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">' + inner + "</svg>";
-const _onbChevron = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+// BUMP deliberado da estreia (27/07/2026): versão nova => TODO colaborador revê o
+// onboarding premium (decisão de lançamento). Persistência por uid não bate mais na v1.
+const ONBOARD_VERSAO = "2026-07-v2";
+// Selo de estreia "O portal da Fiobras chegou" no card de boas-vindas. LIGADO pra a
+// semana de estreia. Pós-estreia, a GP DESLIGA trocando esta linha pra `= false`: nada
+// mais no fluxo muda, o card só volta ao estado limpo.
+const ONBOARD_SELO_ESTREIA = true;
+
+// Ícones do onboarding (viewBox 24, stroke) curados no mock aprovado. Vivem aqui, e não
+// no cpIcon do app, pra as mini-telas reproduzidas nascerem fiéis ao traço do mock.
+const _onbIc = {
+  pulse: '<path d="M2 12h4l2.5-7 5 15 2.5-8H22"/>',
+  clock: '<circle cx="12" cy="12" r="8.4"/><path d="M12 7.4v4.9l3.3 2"/>',
+  receipt: '<rect x="4" y="7" width="16" height="12" rx="2.2"/><path d="M9 7V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6V7"/><path d="M4 12h16"/>',
+  sun: '<circle cx="12" cy="12" r="4.4"/><path d="M12 2.6v2.3M12 19.1v2.3M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.6 12h2.3M19.1 12h2.3M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>',
+  cake: '<path d="M4 20h16"/><path d="M5 20v-6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6"/><path d="M4.5 15.5c1.2 1 2.3 1 3.5 0s2.3-1 3.5 0 2.3 1 3.5 0 2.3-1 3.5 0"/><path d="M12 8.5V12M12 5.6l.9 1.2c.5.6.1 1.7-.9 1.7s-1.4-1.1-.9-1.7z"/>',
+  bell: '<path d="M18 8.5a6 6 0 1 0-12 0c0 6.5-2.5 7.5-2.5 7.5h17S18 15 18 8.5z"/><path d="M10.4 20a2 2 0 0 0 3.2 0"/>',
+  medal: '<circle cx="12" cy="14.5" r="5"/><path d="M9 9.5 6.5 3.5M15 9.5 17.5 3.5M12 12.5l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z" fill="currentColor" stroke="none"/>',
+  check: '<path d="m5 13 4.5 4.5L19 7"/>',
+  chevron: '<path d="m9 18 6-6-6-6"/>',
+  spark: '<path d="M12 2.5 13.9 9l6.6 1.9-6.6 1.9L12 19.4l-1.9-6.6L3.5 10.9 10.1 9z"/>',
+  heart: '<path d="M12 20s-7-4.4-9.2-8.4C1.2 8.4 3 5 6.2 5c2 0 3.2 1.2 3.8 2.2C10.6 6.2 11.8 5 13.8 5 17 5 18.8 8.4 21.2 11.6 19 15.6 12 20 12 20z"/>',
+  play: '<path d="M8 5v14l11-7z"/>',
+  lock: '<rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  mega: '<path d="M4 10v4a1 1 0 0 0 1 1h2l7 4V5L7 9H5a1 1 0 0 0-1 1z"/><path d="M17 8.5a4.5 4.5 0 0 1 0 7"/>',
+  doc: '<path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/>',
+};
+const _onbSvg = (name, extra = "") => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' + extra + ">" + (_onbIc[name] || "") + "</svg>";
+const _onbDisc = ["#0a7a3a", "#0076BE", "#c58a00", "#7a4fd0", "#c04a6b"];
+
+// Mini-telas reproduzidas em HTML fiel ao mock, pras cenas sem screenshot (o app não
+// carrega base64 pesado; screenshot só onde vale, servido de onb/*.png).
+const _onbRepro = {
+  ferias() {
+    return `
+      <div class="onb-rs">
+        <div class="onb-rs__h">Minhas férias</div>
+        <div class="onb-rs__card onb-rs__green">
+          <div class="onb-rs__grow"><span class="onb-rs__gk">${_onbSvg("sun")}Saldo de férias</span><span class="onb-rs__pill">Aquisitivo 25/26</span></div>
+          <div class="onb-rs__big">18 dias</div>
+          <div class="onb-rs__gsub">Vencem a partir de março de 2027</div>
+        </div>
+        <div class="onb-rs__lab" style="margin-top:12px">Próximos períodos</div>
+        <div class="onb-rs__card">
+          <div class="onb-rs__row"><span class="onb-rs__ic">${_onbSvg("sun")}</span><div><div class="onb-rs__tt">05 a 19 de janeiro</div><div class="onb-rs__st">15 dias · programado</div></div><span class="onb-rs__tag onb-rs__tag--ok">Aprovado</span></div>
+          <div class="onb-rs__row"><span class="onb-rs__ic onb-rs__ic--amber">${_onbSvg("sun")}</span><div><div class="onb-rs__tt">Segunda parcela</div><div class="onb-rs__st">10 dias · solicitado</div></div><span class="onb-rs__tag onb-rs__tag--wait">Em análise</span></div>
+        </div>
+      </div>`;
+  },
+  aniversario() {
+    const st = (col, ini, nome, cls = "", seen = "") => `<span class="onb-st"><span class="onb-st__r ${seen}"><span class="onb-st__a" style="background:${col}">${ini}</span></span><span class="onb-st__n ${cls}">${nome}</span></span>`;
+    return `
+      <div class="onb-rs">
+        <div class="onb-rs__lab">Hoje na Fiobras</div>
+        <div class="onb-band">
+          ${st(_onbDisc[1], "LG", "Novo", "onb-st__new")}
+          ${st(_onbDisc[3], "RS", "Novo", "onb-st__new")}
+          ${st(_onbDisc[2], "MA", "Marina")}
+          ${st(_onbDisc[0], "Jé", "Jé", "", "onb-st__r--seen")}
+          ${st(_onbDisc[4], "CA", "Caio", "", "onb-st__r--seen")}
+        </div>
+        <div class="onb-rs__card" style="margin-top:12px">
+          <div class="onb-rs__cake">
+            <span class="onb-rs__ic onb-rs__ic--amber">${_onbSvg("cake")}</span>
+            <div><div class="onb-rs__tt">Marina faz aniversário</div><div class="onb-rs__st">Time de Tecelagem · 3 anos de casa</div></div>
+            <span class="onb-rs__heart">${_onbSvg("heart", 'fill="currentColor" stroke="none"')}</span>
+          </div>
+        </div>
+        <div class="onb-rs__card" style="margin-top:10px">
+          <div class="onb-rs__row" style="padding-top:2px"><span class="onb-rs__ic">${_onbSvg("pulse")}</span><div><div class="onb-rs__tt">Lucas chegou agora</div><div class="onb-rs__st">Dê as boas vindas</div></div></div>
+        </div>
+      </div>`;
+  },
+  avisos() {
+    const row = (icn, tt, st, unread = "", amber = "") => `<div class="onb-rs__row"><span class="onb-rs__ic ${amber}">${_onbSvg(icn)}</span><div><div class="onb-rs__tt">${tt}</div><div class="onb-rs__st">${st}</div></div>${unread ? '<span class="onb-rs__unread"></span>' : ""}</div>`;
+    return `
+      <div class="onb-rs">
+        <div class="onb-rs__h" style="display:flex;align-items:center;gap:8px">Notificações <span style="color:var(--plum)">${_onbSvg("bell")}</span></div>
+        <div class="onb-rs__card">
+          ${row("mega", "Comunicado da GP", "Ajuste no horário do refeitório · há 2h", "1", "onb-rs__ic--amber")}
+          ${row("receipt", "Recibo de junho disponível", "Toque para assinar do celular · há 1d", "1")}
+          ${row("doc", "Nova política de segurança", "Confirmação de leitura pedida · há 2d", "")}
+          ${row("check", "Você deu ciência no aviso", "Registrado às 08:12 · ontem", "")}
+        </div>
+      </div>`;
+  },
+  conquistas() {
+    const r = 25, C = 2 * Math.PI * r, off = C * (1 - 120 / 200);
+    return `
+      <div class="onb-rs">
+        <div class="onb-rs__h">Conquistas</div>
+        <div class="onb-rs__card">
+          <div class="onb-pts">
+            <span class="onb-pts__ring">
+              <svg viewBox="0 0 62 62"><circle cx="31" cy="31" r="${r}" fill="none" stroke="var(--border-strong)" stroke-width="6"/>
+              <circle cx="31" cy="31" r="${r}" fill="none" stroke="var(--plum)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"/></svg>
+              <b>120<small>PONTOS</small></b>
+            </span>
+            <div class="onb-pts__side"><b>Faltam 80</b> para o marco de 200 desta temporada.</div>
+          </div>
+        </div>
+        <div class="onb-med">
+          <div class="onb-med__i"><span class="onb-med__d">${_onbSvg("medal")}</span><div class="onb-med__t">3 anos de casa</div></div>
+          <div class="onb-med__i"><span class="onb-med__d">${_onbSvg("check")}</span><div class="onb-med__t">Assinante em dia</div></div>
+          <div class="onb-med__i"><span class="onb-med__d onb-med__d--lock">${_onbSvg("lock")}</span><div class="onb-med__t">Prêmio surpresa</div></div>
+        </div>
+      </div>`;
+  },
+};
+
+// Cenas do onboarding (fonte também do anel segmentado). icon = ícone do centro do anel;
+// tt = título benefício-primeiro com a palavra-chave no <mark>; media = a mídia do postcard.
+// Copy EXATA do mock aprovado (docs/mockups/onboarding-premium-2026-07.html).
 const ONBOARD_CENAS = [
-  {
-    kicker: "Boas-vindas",
-    title: "Que bom te ver, {nome}",
-    value: "Este é o Portal do Colaborador da Fiobras, agora no seu bolso. Em um minuto, um passeio pelo que dá pra fazer aqui.",
-    art: _onbSvg(`
-      <circle cx="60" cy="60" r="46" fill="var(--art-bg)" stroke="none"/>
-      <path d="M20 60h16l9-26 14 52 10-34 6 14h16" stroke="var(--art-ink)" stroke-width="4.5"/>
-      <circle cx="97" cy="34" r="3.4" fill="var(--yellow)" stroke="none"/>
-      <path d="M92 30l1.6-5 1.6 5 5 1.6-5 1.6-1.6 5-1.6-5-5-1.6z" fill="var(--yellow)" stroke="none" opacity=".9"/>
-    `),
-  },
-  {
-    kicker: "Início",
-    title: "O mural que aproxima a equipe",
-    value: "Aniversários, tempo de casa e quem chegou agora aparecem no seu Início. Um toque no coração celebra o colega.",
-    art: _onbSvg(`
-      <rect x="20" y="30" width="80" height="60" rx="12" fill="var(--art-bg)" stroke="none"/>
-      <circle cx="42" cy="52" r="10" stroke="var(--art-ink)"/>
-      <path d="M28 78c1-9 7-14 14-14s13 5 14 14" stroke="var(--art-ink)"/>
-      <path d="M78 46c4-5 12-4 12 3 0 6-9 10-12 13-3-3-12-7-12-13 0-7 8-8 12-3z" fill="${_onbA}" stroke="none"/>
-      <path d="M72 74h20M72 82h13" stroke="var(--art-ink)" stroke-width="3.5"/>
-    `),
-  },
-  {
-    kicker: "Meu ponto",
-    title: "Seu ponto, sempre à mão",
-    value: "Acompanhe o saldo do banco de horas e o espelho de ponto, atualizados, sem precisar perguntar pra ninguém.",
-    art: _onbSvg(`
-      <circle cx="60" cy="58" r="46" fill="var(--art-bg)" stroke="none"/>
-      <rect x="34" y="66" width="10" height="22" rx="3" fill="${_onbA}" stroke="none"/>
-      <rect x="55" y="54" width="10" height="34" rx="3" fill="${_onbA}" stroke="none" opacity=".75"/>
-      <rect x="76" y="44" width="10" height="44" rx="3" fill="${_onbA}" stroke="none" opacity=".55"/>
-      <circle cx="60" cy="40" r="17" fill="var(--surface)" stroke="var(--art-ink)"/>
-      <path d="M60 32v9l6 4" stroke="var(--art-ink)" stroke-width="3.4"/>
-    `),
-  },
-  {
-    kicker: "Folha de pagamento",
-    title: "Sua folha, assinada com validade",
-    value: "Recibos e cartão ponto você assina dentro do app. A assinatura fica carimbada no arquivo, com data e local. Prova de verdade.",
-    art: _onbSvg(`
-      <rect x="30" y="20" width="60" height="80" rx="10" fill="var(--art-bg)" stroke="none"/>
-      <path d="M42 38h36M42 50h36M42 62h22" stroke="var(--art-ink)" stroke-width="3.4"/>
-      <path d="M40 82c6-8 10-8 14-4s8 3 16-6" stroke="${_onbA}" stroke-width="4"/>
-      <circle cx="86" cy="82" r="17" fill="var(--surface)" stroke="var(--art-ink)"/>
-      <path d="M79 82l5 5 9-10" stroke="${_onbA}" stroke-width="4"/>
-    `),
-  },
-  {
-    kicker: "Avisos e Documentos",
-    title: "Fique por dentro, tudo num lugar",
-    value: "Comunicados e avisos chegam aqui, com confirmação de leitura. Termos e comprovantes ficam guardados na tela Documentos.",
-    art: _onbSvg(`
-      <circle cx="60" cy="60" r="46" fill="var(--art-bg)" stroke="none"/>
-      <path d="M34 54v12l30 12V42z" fill="${_onbA}" stroke="none"/>
-      <path d="M34 54H26a4 4 0 0 0-4 4v4a4 4 0 0 0 4 4h8" stroke="var(--art-ink)"/>
-      <path d="M46 82l3 10a4 4 0 0 0 7 1" stroke="var(--art-ink)"/>
-      <rect x="72" y="42" width="30" height="38" rx="6" fill="var(--surface)" stroke="var(--art-ink)"/>
-      <path d="M79 78l5 5 9-11" stroke="${_onbA}" stroke-width="3.6"/>
-    `),
-  },
-  {
-    kicker: "Conquistas",
-    title: "O que você faz, agora vale ponto",
-    value: "Assinar, dar ciência e voltar todo dia somam pontos na temporada. Tem medalha de tempo de casa, ranking e prêmios surpresa.",
-    art: _onbSvg(`
-      <circle cx="60" cy="52" r="26" fill="var(--art-bg)" stroke="none"/>
-      <path d="M40 22h40v14a20 20 0 0 1-40 0z" fill="${_onbA}" stroke="none"/>
-      <path d="M40 26H30v4c0 7 5 12 12 13M80 26h10v4c0 7-5 12-12 13" stroke="var(--art-ink)"/>
-      <path d="M54 72h12v10H54z" stroke="var(--art-ink)"/>
-      <path d="M42 92h36" stroke="var(--art-ink)" stroke-width="4"/>
-      <circle cx="40" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
-      <circle cx="52" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
-      <circle cx="64" cy="102" r="3.2" fill="var(--art-ink)" stroke="none"/>
-      <circle cx="76" cy="102" r="3.2" fill="var(--yellow)" stroke="none"/>
-    `),
-  },
-  {
-    kicker: "Canal de denúncia",
-    title: "Um canal seguro pra falar",
-    value: "Relate assédio, fraude ou risco direto pra direção, de forma anônima. Você recebe um protocolo pra acompanhar sem se identificar.",
-    art: _onbSvg(`
-      <path d="M60 18l34 12v24c0 24-16 38-34 46-18-8-34-22-34-46V30z" fill="var(--art-bg)" stroke="var(--art-ink)"/>
-      <rect x="48" y="56" width="24" height="20" rx="4" fill="${_onbA}" stroke="none"/>
-      <path d="M52 56v-6a8 8 0 0 1 16 0v6" stroke="var(--art-ink)" stroke-width="3.2"/>
-      <circle cx="60" cy="65" r="3" fill="var(--surface)" stroke="none"/>
-    `),
-  },
+  { icon: "pulse", kick: "Boas-vindas", tt: "Que bom te ver, <mark><span>{nome}</span></mark>",
+    sup: "O Portal da Fiobras, agora no seu bolso. Em um minuto, um passeio pelo que dá para fazer aqui.",
+    media: { type: "hero" } },
+  { icon: "clock", kick: "Meu ponto", tt: "Suas horas, na <mark><span>palma da mão</span></mark>",
+    sup: "Saldo do banco de horas e espelho de ponto, sempre atualizados, sem precisar perguntar para ninguém.",
+    media: { type: "img", src: "onb/meu-ponto.png" } },
+  { icon: "receipt", kick: "Pagamento", tt: "Seu pagamento, assinado do <mark><span>celular</span></mark>",
+    sup: "Recibos e cartão ponto você assina aqui, com data e local carimbados no arquivo. Prova de verdade.",
+    media: { type: "img", src: "onb/folha.png" } },
+  { icon: "sun", kick: "Férias", tt: "Suas férias, sem <mark><span>mistério</span></mark>",
+    sup: "Saldo de dias, períodos programados e o andamento dos seus pedidos, tudo num lugar só.",
+    media: { type: "repro", key: "ferias" } },
+  { icon: "cake", kick: "Hoje na Fiobras", tt: "Quem chegou e quem faz <mark><span>aniversário</span></mark>",
+    sup: "Recém-chegados e aniversariantes aparecem no seu Início. Um toque no coração celebra o colega.",
+    media: { type: "repro", key: "aniversario" } },
+  { icon: "bell", kick: "Avisos", tt: "Nada importante passa <mark><span>despercebido</span></mark>",
+    sup: "Comunicados, avisos e lembretes chegam no sino, com confirmação de leitura.",
+    media: { type: "repro", key: "avisos" } },
+  { icon: "medal", kick: "Conquistas", tt: "Seus pontos e <mark><span>conquistas</span></mark>",
+    sup: "Cada gesto vira ponto na temporada, com medalhas de tempo de casa e prêmios surpresa.",
+    media: { type: "repro", key: "conquistas" } },
 ];
 
 function onbVisto(uid) { try { return localStorage.getItem("fiopulse:onboarding:" + uid); } catch { return null; } }
@@ -1648,8 +1690,11 @@ function onboardingPendente(u) {
   return !!u && u.role === "colaborador" && onbVisto(u.id) !== ONBOARD_VERSAO;
 }
 
-// Overlay do onboarding. Um único elemento no body, WAAPI one-shot (nunca classe re-
-// disparável), respeita prefereMenosMovimento. Concluir OU pular grava a marca de visto.
+// Overlay do onboarding premium. Um único elemento no body (fora do #view, então
+// renderApp nunca o toca), WAAPI one-shot (nunca classe re-disparável), respeita
+// prefereMenosMovimento. Anel segmentado estilo stories no topo; a cena renasce em
+// #onb-scene a cada navegação. Chegar ao card final OU sair pelo Esc grava a marca de
+// visto (1x por uid, por ONBOARD_VERSAO). Reabrível pela Conta (Tour do app).
 function mostrarOnboarding() {
   if (document.getElementById("onb-overlay")) return; // já montado
   const semMov = prefereMenosMovimento();
@@ -1657,91 +1702,169 @@ function mostrarOnboarding() {
   const uid = u && u.id;
   const fColab = (state.funcionarios && state.funcionarios[0]) || null;
   const nomeCompleto = (fColab && fColab.nome) || (u && u.nome) || "";
-  const primeiroNome = (nomeCompleto.trim().split(/\s+/)[0]) || "você";
+  const primeiroNome = escapeHtml((nomeCompleto.trim().split(/\s+/)[0]) || "você");
   const prevFocus = document.activeElement;
+  const CARDS = ONBOARD_CENAS, N = CARDS.length;
 
   const ov = document.createElement("div");
   ov.id = "onb-overlay";
   ov.className = "onb-ov";
   ov.innerHTML = `
     <div class="onb-shell" role="dialog" aria-modal="true" aria-label="Apresentação do portal">
-      <div class="onb-head">
-        <div class="onb-bars" id="onb-bars">${ONBOARD_CENAS.map(() => "<i><b></b></i>").join("")}</div>
-        <div class="onb-head__row">
-          <span class="onb-brand">${cpIcon("pulso")}FioPulse</span>
-          <button class="onb-skip" id="onb-skip" type="button">Pular</button>
-        </div>
+      <div class="onb-top">
+        <span class="onb-ring" id="onb-ring">
+          <svg viewBox="0 0 44 44">
+            <defs><linearGradient id="onbRgrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--plum-deep)"/><stop offset="1" stop-color="var(--plum-soft)"/>
+            </linearGradient></defs>
+            <g id="onb-ring-g"></g>
+          </svg>
+          <span class="onb-ring__ic" id="onb-ring-ic"></span>
+        </span>
+        <span class="onb-brand"><b>FioPulse</b><span>Fiobras</span></span>
+        <button class="onb-skip" id="onb-skip" type="button">Pular</button>
       </div>
       <div class="onb-stage" id="onb-stage">
         <span class="onb-zone onb-zone--prev" id="onb-prev"></span>
         <span class="onb-zone onb-zone--next" id="onb-next"></span>
-        <div class="onb-art" id="onb-art"></div>
-        <div class="onb-kicker" id="onb-kicker"></div>
-        <div class="onb-title" id="onb-title"></div>
-        <div class="onb-value" id="onb-value"></div>
+        <div class="onb-scene" id="onb-scene"></div>
       </div>
       <div class="onb-foot">
         <button class="onb-cta" id="onb-cta" type="button"></button>
         <button class="onb-back" id="onb-back" type="button">Voltar</button>
       </div>
-      <div class="onb-done" id="onb-done">
-        <div class="onb-done__in">
-          <div class="onb-seal">${cpIcon("check")}</div>
-          <h2 id="onb-done-t"></h2>
-          <p>O portal é seu. Comece pelo que precisar, no seu ritmo.</p>
-          <div class="onb-note">${cpIcon("info")}<span>Quer rever esta apresentação depois? Ela fica em <b>Conta</b>, sempre à mão.</span></div>
-          <div class="onb-done__acts">
-            <button class="onb-cta" id="onb-explorar" type="button">Explorar o portal</button>
-            <button class="onb-redo" id="onb-redo" type="button">Rever a apresentação</button>
-          </div>
-        </div>
-      </div>
     </div>`;
   document.body.appendChild(ov);
 
   const q = (sel) => ov.querySelector(sel);
-  const bars = [...q("#onb-bars").children];
-  const art = q("#onb-art"), kicker = q("#onb-kicker"), title = q("#onb-title"), value = q("#onb-value");
+  const stage = q("#onb-stage"), scene = q("#onb-scene");
   const cta = q("#onb-cta"), back = q("#onb-back"), skip = q("#onb-skip");
-  const done = q("#onb-done");
-  q("#onb-done-t").textContent = "Tudo pronto, " + primeiroNome;
+  const ringG = q("#onb-ring-g"), ringIc = q("#onb-ring-ic");
 
-  let i = 0, fechado = false;
+  // Anel segmentado: N gomos com vão, gerados uma vez.
+  const R = 19.5, CX = 22, CY = 22, GAP = 15; // vão em graus
+  const seglen = (2 * Math.PI * R) * ((360 / N - GAP) / 360);
+  const arco = (a0, a1) => {
+    const pt = (a) => [CX + R * Math.cos(a * Math.PI / 180), CY + R * Math.sin(a * Math.PI / 180)];
+    const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+    const large = (a1 - a0) > 180 ? 1 : 0;
+    return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+  };
+  for (let k = 0; k < N; k++) {
+    const a0 = -90 + k * (360 / N) + GAP / 2;
+    const a1 = -90 + (k + 1) * (360 / N) - GAP / 2;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", arco(a0, a1));
+    path.setAttribute("class", "onb-ring__seg future");
+    path.setAttribute("data-i", k);
+    ringG.appendChild(path);
+  }
+  const segs = [...ringG.children];
 
-  function paint() {
-    const c = ONBOARD_CENAS[i];
-    art.innerHTML = c.art;
-    kicker.textContent = c.kicker;
-    title.textContent = (c.title || "").replace("{nome}", primeiroNome);
-    value.textContent = c.value;
-    bars.forEach((el, k) => { el.classList.toggle("done", k < i); el.classList.toggle("on", k === i); });
-    const last = i === ONBOARD_CENAS.length - 1;
-    cta.innerHTML = last ? "Começar a usar" : "Continuar " + _onbChevron;
-    back.classList.toggle("show", i > 0);
-    skip.classList.toggle("hide", last);
-    // Entrada one-shot da cena (WAAPI): fade + subida curta, 1x por navegação. Não deixa
-    // classe/estilo que um re-render ressuscitaria (o overlay nem re-renderiza, mas segue
-    // o padrão animarEntrada da metodologia premium).
-    if (!semMov && typeof art.animate === "function") {
-      [art, kicker, title, value].forEach((el) => el.animate(
-        [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }],
-        { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" }));
+  // Pinta o anel pro passo ativo. O gomo corrente "desenha" 1x via WAAPI (one-shot, sem
+  // classe re-disparável): como o overlay vive fora do #view, um re-render do app não
+  // chama paintRing, então o anel NUNCA re-anima num re-render.
+  function paintRing(active) {
+    segs.forEach((s, k) => {
+      s.classList.remove("done", "current", "future");
+      s.style.strokeDasharray = "";
+      if (active >= N || k < active) s.classList.add("done");
+      else if (k === active) s.classList.add("current");
+      else s.classList.add("future");
+    });
+    if (active < N && !semMov && typeof segs[active].animate === "function") {
+      const s = segs[active];
+      s.style.strokeDasharray = seglen;
+      s.animate([{ strokeDashoffset: seglen }, { strokeDashoffset: 0 }],
+        { duration: 550, easing: "cubic-bezier(.4,0,.2,1)", fill: "backwards" });
     }
+    ringIc.innerHTML = active < N ? _onbSvg(CARDS[Math.min(active, N - 1)].icon) : _onbSvg("check", 'stroke-width="2.4"');
   }
 
-  function avancar() { if (i >= ONBOARD_CENAS.length - 1) return concluir(); i++; paint(); }
-  function voltar() { if (i > 0) { i--; paint(); } }
-  function concluir() {
+  function mediaHtml(m) {
+    if (m.type === "hero") {
+      return `<div class="onb-hero"><span class="onb-hero__spark">${_onbSvg("spark", 'fill="currentColor" stroke="none"')}</span>
+        <div class="onb-hero__disc"><svg viewBox="0 0 120 120" fill="none" stroke="var(--plum)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 60h20l12-30 16 60 12-42 8 24h12"/></svg></div></div>`;
+    }
+    if (m.type === "img") {
+      return `<div class="onb-device"><div class="onb-device__pad"><img class="onb-device__media" src="${m.src}" alt="" loading="lazy"></div></div>`;
+    }
+    return `<div class="onb-device"><div class="onb-device__pad"><div class="onb-device__media">${_onbRepro[m.key]()}</div></div></div>`;
+  }
+
+  // Entrada one-shot da cena (WAAPI): mídia com leve pop, texto em cascata curta. Não deixa
+  // classe/estilo que um re-render ressuscitaria (metodologia premium, item 2).
+  function entrada() {
+    if (semMov || typeof scene.animate !== "function") return;
+    const media = scene.querySelector(".onb-device, .onb-hero, .onb-fin__seal");
+    if (media) media.animate([{ opacity: 0, transform: "scale(.96)" }, { opacity: 1, transform: "none" }],
+      { duration: 440, easing: "cubic-bezier(.34,1.3,.5,1)", fill: "backwards" });
+    scene.querySelectorAll(".onb-selo, .onb-kick, .onb-tt, .onb-sup, .onb-tour, .onb-note").forEach((el, k) =>
+      el.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }],
+        { duration: 400, delay: 70 + k * 55, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" }));
+  }
+
+  let idx = 0, fechado = false;
+
+  function renderCard() {
+    const c = CARDS[idx];
+    const seloHtml = (idx === 0 && ONBOARD_SELO_ESTREIA)
+      ? `<span class="onb-selo"><span class="onb-selo__b">${_onbSvg("spark", 'fill="currentColor" stroke="none"')}</span>O portal da Fiobras chegou</span>` : "";
+    scene.innerHTML = `
+      ${mediaHtml(c.media)}
+      ${seloHtml}
+      <div class="onb-kick">${c.kick}</div>
+      <h2 class="onb-tt">${c.tt.replace("{nome}", primeiroNome)}</h2>
+      <p class="onb-sup">${c.sup}</p>`;
+    cta.innerHTML = "Continuar " + _onbSvg("chevron");
+    back.textContent = "Voltar";
+    back.classList.toggle("show", idx > 0);
+    skip.style.visibility = "visible";
+    stage.classList.remove("onb-fin-mode");
+    stage.scrollTop = 0;
+    paintRing(idx);
+    entrada();
+  }
+
+  function renderFinale() {
     if (uid) marcarOnbVisto(uid); // chegou ao fim = visto
-    done.classList.add("on");
-    if (!semMov && typeof done.animate === "function") {
-      const inner = done.querySelector(".onb-done__in");
-      if (inner) inner.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }],
-        { duration: 500, easing: "cubic-bezier(.2,.8,.2,1)" });
-    }
+    scene.innerHTML = `
+      <div class="onb-fin">
+        <div class="onb-fin__seal">${_onbSvg("check", 'stroke-width="2.4"')}</div>
+        <div class="onb-kick">Tudo pronto</div>
+        <h2 class="onb-tt" style="max-width:18ch">Tudo pronto, <mark><span>${primeiroNome}</span></mark></h2>
+        <p class="onb-sup" style="margin-top:11px">Quer ver com calma? O tour completo em vídeo, com narração, em cerca de 7 minutos.</p>
+        <div class="onb-tour" id="onb-tour" role="button" tabindex="0">
+          <span class="onb-tour__th"><img src="onb/home.png" alt="" loading="lazy"><span class="onb-tour__pl"><span>${_onbSvg("play", 'fill="var(--plum-deep)" stroke="none"')}</span></span></span>
+          <span class="onb-tour__tx"><span class="onb-tour__tt">Ver o tour completo</span><span class="onb-tour__st">vídeo guiado · 7 min</span></span>
+          <span class="onb-tour__go">${_onbSvg("play", 'fill="currentColor" stroke="none"')}</span>
+        </div>
+        <div class="onb-note">${_onbSvg("doc")}<span>A apresentação e o vídeo ficam sempre em <b>Conta › Tour do app</b>, é só voltar quando quiser.</span></div>
+      </div>`;
+    cta.innerHTML = "Começar a usar";
+    back.textContent = "Rever a apresentação";
+    back.classList.add("show");
+    skip.style.visibility = "hidden";
+    stage.classList.add("onb-fin-mode");
+    stage.scrollTop = 0;
+    paintRing(N);
+    entrada();
     vibrar(12);
+    // O cartão revela o player nativo apontando pro vídeo servido pelo hosting.
+    const card = q("#onb-tour");
+    const abrirVideo = () => {
+      card.outerHTML = `<div class="onb-video"><video controls autoplay playsinline preload="metadata" poster="onb/home.png"><source src="/tutorial-fiopulse.mp4" type="video/mp4"></video></div>`;
+    };
+    card.addEventListener("click", abrirVideo);
+    card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirVideo(); } });
   }
-  function recomecar() { done.classList.remove("on"); i = 0; paint(); }
+
+  function go(n) {
+    idx = Math.max(0, Math.min(N, n));
+    if (idx >= N) renderFinale(); else renderCard();
+  }
+  function avancar() { go(idx + 1); }
+  function voltar() { if (idx > 0) go(idx - 1); }
   function fechar() {
     if (fechado) return;
     fechado = true;
@@ -1751,23 +1874,29 @@ function mostrarOnboarding() {
     const a = ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease" });
     a.onfinish = remover; a.oncancel = remover;
   }
-  function pular() { if (uid) marcarOnbVisto(uid); fechar(); }
 
   q("#onb-next").addEventListener("click", avancar);
   q("#onb-prev").addEventListener("click", voltar);
-  cta.addEventListener("click", (e) => { e.stopPropagation(); avancar(); });
-  back.addEventListener("click", (e) => { e.stopPropagation(); voltar(); });
-  skip.addEventListener("click", (e) => { e.stopPropagation(); pular(); });
-  q("#onb-explorar").addEventListener("click", fechar);
-  q("#onb-redo").addEventListener("click", recomecar);
+  cta.addEventListener("click", (e) => { e.stopPropagation(); if (idx >= N) fechar(); else avancar(); });
+  back.addEventListener("click", (e) => { e.stopPropagation(); if (idx >= N) go(0); else voltar(); });
+  // "Pular" adianta pro card final (onde ficam o vídeo e o "Começar a usar"), fiel ao mock.
+  skip.addEventListener("click", (e) => { e.stopPropagation(); go(N); });
 
-  // Teclado (a11y): setas navegam; Esc encerra (na final = fecha, antes = pula, ambos
-  // gravam+fecham); Tab preso no overlay pra o foco não vazar pro app atrás.
+  // Swipe pra o lado: avança/volta (limiar 46px, horizontal dominante).
+  let sx = 0, sy = 0, sw = false;
+  stage.addEventListener("pointerdown", (e) => { sx = e.clientX; sy = e.clientY; sw = true; });
+  stage.addEventListener("pointerup", (e) => {
+    if (!sw) return; sw = false;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 46 && Math.abs(dx) > Math.abs(dy)) { dx < 0 ? avancar() : voltar(); }
+  });
+
+  // Teclado (a11y): setas navegam; Esc encerra (antes do final grava o visto pra não
+  // reabrir); Tab preso no overlay pra o foco não vazar pro app atrás.
   const onKey = (e) => {
-    const naFinal = done.classList.contains("on");
-    if (e.key === "ArrowRight") { e.preventDefault(); if (!naFinal) avancar(); return; }
-    if (e.key === "ArrowLeft") { e.preventDefault(); if (!naFinal) voltar(); return; }
-    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); naFinal ? fechar() : pular(); return; }
+    if (e.key === "ArrowRight") { e.preventDefault(); avancar(); return; }
+    if (e.key === "ArrowLeft") { e.preventDefault(); voltar(); return; }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (idx < N && uid) marcarOnbVisto(uid); fechar(); return; }
     if (e.key === "Tab") {
       const foc = [...ov.querySelectorAll(FOCAVEIS_SEL)].filter((el) => el.offsetParent !== null);
       if (!foc.length) { e.preventDefault(); return; }
@@ -1779,7 +1908,7 @@ function mostrarOnboarding() {
   document.addEventListener("keydown", onKey, true);
 
   if (!semMov && typeof ov.animate === "function") ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease" });
-  paint();
+  go(0);
   setTimeout(() => { try { cta.focus({ preventScroll: true }); } catch {} }, semMov ? 0 : 60);
 }
 
@@ -1807,6 +1936,7 @@ function cpIcon(name) {
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     chevron: '<polyline points="9 18 15 12 9 6"/>',
+    play: '<path d="M8 5v14l11-7z"/>',
     lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     pin: '<path d="M9 4h6l-1 6 3.5 2.5V15H6.5v-2.5L10 10z"/><line x1="12" y1="15" x2="12" y2="21"/>',
     edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
@@ -6175,8 +6305,8 @@ function renderColabConta() {
           <button class="pp-switch" id="cp-notif" role="switch" aria-checked="${notif ? "true" : "false"}" aria-label="Notificações"></button>
         </div>
         <button class="pp-rw" data-acao="rever-onboarding">
-          <span class="pp-ico pp-ico--neutral">${cpIcon("refresh")}</span>
-          <span class="pp-rw__bd"><span class="pp-rw__t">Rever a apresentação</span><span class="pp-rw__s">O passeio rápido pelo que o portal faz</span></span>
+          <span class="pp-ico pp-ico--neutral">${cpIcon("play")}</span>
+          <span class="pp-rw__bd"><span class="pp-rw__t">Tour do app</span><span class="pp-rw__s">Rever a apresentação e assistir ao vídeo guiado</span></span>
           <span class="pp-rw__chev">${cpIcon("chevron")}</span>
         </button>
         <button class="pp-rw" data-acao="ver-novidades">
@@ -20841,7 +20971,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.20.0";
+window.CURRENT_VERSION = "2.21.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

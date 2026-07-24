@@ -19,7 +19,12 @@
 // ============================================================
 window.CHANGELOG = [
   {
-    v: "2.20.0", d: "23 jul 2026", current: true, items: [
+    v: "2.21.0", d: "24 jul 2026", current: true, items: [
+      { type: "high", aud: "colab", title: "Apresentação nova do app pra estreia" },
+    ],
+  },
+  {
+    v: "2.20.0", d: "23 jul 2026", items: [
       { type: "feat", aud: "colab", title: "Dá pra retirar o interesse em uma vaga interna" },
     ],
   },
