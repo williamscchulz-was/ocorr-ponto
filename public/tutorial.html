@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Tutorial · FioPulse</title>
+  <style>
+    @font-face { font-family: 'Poppins'; font-weight: 400; src: url('/fonts/poppins-400-latin.woff2') format('woff2'); font-display: swap; }
+    @font-face { font-family: 'Poppins'; font-weight: 600; src: url('/fonts/poppins-600-latin.woff2') format('woff2'); font-display: swap; }
+    @font-face { font-family: 'Poppins'; font-weight: 700; src: url('/fonts/poppins-700-latin.woff2') format('woff2'); font-display: swap; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: #EEF3EC; color: #1E2D1A; min-height: 100vh; }
+    .topo { background: #04331a; color: #fff; padding: 34px 22px 42px; text-align: center; position: relative; overflow: hidden; }
+    .topo::after { content: ""; position: absolute; inset: auto 0 0 0; height: 5px;
+      background: linear-gradient(90deg, #008835, #FFCB00, #0076BE); }
+    .marca { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .marca__ic { width: 40px; height: 40px; border-radius: 11px; background: #008835; display: inline-flex; align-items: center; justify-content: center; }
+    .marca__ic svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .marca b { font-size: 22px; letter-spacing: .01em; }
+    .topo h1 { font-size: clamp(20px, 4.5vw, 27px); font-weight: 700; letter-spacing: -.01em; }
+    .topo p { font-size: 14px; opacity: .82; margin-top: 6px; }
+    main { max-width: 720px; margin: -18px auto 0; padding: 0 16px 40px; position: relative; }
+    .card { background: #fff; border: 1px solid #dfe7dc; border-radius: 18px; padding: 20px; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(10,40,20,.07); }
+    .card h2 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 9px; margin-bottom: 4px; }
+    .card h2 .tag { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #0b6e33; background: #eaf4ec; border-radius: 999px; padding: 4px 10px; }
+    .card > p { font-size: 13.5px; color: #55654d; margin-bottom: 14px; }
+    video { width: 100%; border-radius: 12px; background: #04331a; display: block; }
+    .acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 600; font-size: 14px;
+      padding: 12px 20px; border-radius: 999px; transition: filter .15s ease; }
+    .btn:hover { filter: brightness(1.06); }
+    .btn--p { background: #008835; color: #fff; }
+    .btn--s { background: #fff; color: #0b6e33; border: 1.5px solid #bcd3c0; }
+    .btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .nota { font-size: 12.5px; color: #6b7a63; text-align: center; padding: 14px 18px 0; line-height: 1.6; }
+    .nota b { color: #0b6e33; }
+  </style>
+</head>
+<body>
+  <header class="topo">
+    <div class="marca">
+      <span class="marca__ic"><svg viewBox="0 0 24 24"><polyline points="2 12 6 12 9 5 13 19 16 12 22 12"/></svg></span>
+      <b>FioPulse</b>
+    </div>
+    <h1>Como usar o portal do colaborador</h1>
+    <p>O material oficial da Fiobras, sempre na versão mais recente.</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Tutorial em vídeo <span class="tag">narrado</span></h2>
+      <p>O tour completo do app, capítulo por capítulo, com narração.</p>
+      <video controls preload="metadata" src="/tutorial-fiopulse.mp4"></video>
+    </section>
+    <section class="card">
+      <h2>Guia em PDF <span class="tag">passo a passo</span></h2>
+      <p>Instalação no celular e primeiros passos, pra ler no seu ritmo ou imprimir.</p>
+      <div class="acoes">
+        <a class="btn btn--p" href="/tutorial-fiopulse.pdf" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Ver online</a>
+        <a class="btn btn--s" href="/tutorial-fiopulse.pdf" download="Tutorial-FioPulse.pdf">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Baixar</a>
+      </div>
+    </section>
+    <p class="nota">Dica: compartilhe sempre <b>este link</b>, não o arquivo baixado. O link entrega a versão mais nova e completa, o arquivo baixado congela no tempo.</p>
+  </main>
+</body>
+</html>
