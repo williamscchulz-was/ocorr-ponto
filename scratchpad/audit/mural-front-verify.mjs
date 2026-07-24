@@ -151,16 +151,19 @@ const sheet = await p.evaluate(async ({ postVorlei, postMeu, PNG_VERDE, PNG_VERM
   ov?.click();
   await esperar(400);
 
-  // (B) Sheet do SELF: sem coração.
+  // (B) Sheet do SELF (tempo de casa): STORY RICO .cr (v404), sem ação, com marco + contagem.
   clicar(postMeu);
   await esperar(120);
   const ovMeu = document.querySelector(".mural-sheet");
-  const cardMeu = ovMeu && ovMeu.querySelector(".mural-sheet__card .pp-bday");
+  const cardMeu = ovMeu && ovMeu.querySelector(".mural-sheet__card .cr");
   const selfSheet = {
     abriu: !!ovMeu,
-    temCoracao: !!(cardMeu && cardMeu.querySelector("[data-bday-heart]")),
-    me: !!(cardMeu && cardMeu.hasAttribute("data-bday-me")),
-    titulo: cardMeu ? (cardMeu.querySelector(".pp-bday__t") || {}).textContent : null,
+    rico: !!cardMeu,
+    tdc: !!(cardMeu && cardMeu.classList.contains("cr--tdc")),
+    semAcao: !!(cardMeu && !cardMeu.querySelector("[data-bday-heart]") && !cardMeu.querySelector(".bvv__hand")),
+    mark: cardMeu ? ((cardMeu.querySelector(".cr__mark") || {}).textContent || "").trim() : null,
+    count: cardMeu ? ((cardMeu.querySelector(".cr__count") || {}).textContent || "").trim() : null,
+    reatores: cardMeu ? cardMeu.querySelectorAll(".cr-react").length : 0,
   };
   ovMeu?.click();
   await esperar(400);
@@ -241,11 +244,14 @@ if (st[1]?.foto !== true) falhas.push("chip 2 (Maria, placar) nao saiu com foto"
 if (st[2]?.foto !== false || st[2]?.ini !== "CS") falhas.push("chip 3 (Carla sem foto) nao caiu nas iniciais CS");
 if (st.length !== 4) falhas.push(`pilha do sheet com ${st.length} chips (esperado 4)`);
 if (sv.mais !== "+1") falhas.push(`contador +N do sheet errado: ${sv.mais}`);
-// --- SHEET do self: sem coracao ---
+// --- SHEET do self (v404): STORY RICO, sem acao, marco + contagem ---
 if (!sheet.selfSheet.abriu) falhas.push("sheet do self nao abriu");
-if (sheet.selfSheet.temCoracao) falhas.push("sheet do self NAO devia ter coracao");
-if (!sheet.selfSheet.me) falhas.push("card do self sem data-bday-me");
-if (!/Você completa 2 anos de Fiobras hoje/.test(sheet.selfSheet.titulo || "")) falhas.push(`titulo self: ${sheet.selfSheet.titulo}`);
+if (!sheet.selfSheet.rico) falhas.push("sheet do self NAO e o story rico (.cr)");
+if (!sheet.selfSheet.tdc) falhas.push("story do self (tempo de casa) sem cr--tdc");
+if (!sheet.selfSheet.semAcao) falhas.push("story do self NAO devia ter acao (coracao/mao)");
+if (!/2 anos de Fiobras/.test(sheet.selfSheet.mark || "")) falhas.push(`marco do self: ${sheet.selfSheet.mark}`);
+if (!/2 colegas/.test(sheet.selfSheet.count || "")) falhas.push(`contagem do self: ${sheet.selfSheet.count}`);
+if (sheet.selfSheet.reatores !== 2) falhas.push(`reatores no story do self: ${sheet.selfSheet.reatores} (esperado 2)`);
 // --- like no sheet: anel reflete + claim + fecha ---
 if (!gesto.heartOffAntes) falhas.push("sheet do Gesto devia abrir com coracao vazio");
 if (!gesto.antesTracejado) falhas.push("anel do Gesto devia estar tracejado antes do like");

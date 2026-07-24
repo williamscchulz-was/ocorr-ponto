@@ -1735,6 +1735,28 @@
       return false;
     };
 
+    // Recados (texto + autor) do post do mural, pro STORY RICO do próprio homenageado (v404).
+    // Subcoleção muralAniversario/{postId}/recados, leitura aberta a autenticado (rule
+    // read: isAuthed, já deployada). Cache de sessão em state._recadosCache (estilo
+    // _reacoesCache): o story do próprio nasce preenchido no re-open, sem re-fetch em re-render.
+    // Ordena por 'em' desc no cliente (campo obrigatório na regra; sem índice composto). Só
+    // LEITURA nesta versão — o compositor de recado não entra. Erro NÃO cacheia.
+    window.carregarRecadosMural = async function (postId) {
+      const base = db.collection("muralAniversario").doc(postId).collection("recados");
+      try {
+        const snap = await base.get();
+        const recados = snap.docs
+          .map((d) => { const x = d.data() || {}; return { autorNome: x.autorNome || "", texto: x.texto || "", _em: (x.em && x.em.toMillis) ? x.em.toMillis() : 0 }; })
+          .sort((a, b) => b._em - a._em)
+          .map(({ autorNome, texto }) => ({ autorNome, texto }));
+        (state._recadosCache || (state._recadosCache = {}))[postId] = recados;
+        return recados;
+      } catch (e) {
+        debug?.("[mural recados] carregar:", e?.message || e);
+        return (state._recadosCache && state._recadosCache[postId]) || [];
+      }
+    };
+
     // ===== GAMIFICACAO (cliente). Rules deployadas (tests/gamificacao-rules.test.mjs,
     // gate Fable 2026-07-14). O claim do ponto NUNCA participa da acao principal:
     // roda DEPOIS, em batch proprio (a regra aceita prova pre-existente), e toda

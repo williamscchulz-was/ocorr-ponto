@@ -86,7 +86,7 @@ const ordem = await page.evaluate(async (adm) => {
 }, admIso(3));
 check(ordem.posts[0]?.startsWith("aniv-") && ordem.posts[1]?.startsWith("bv-"), "colab: aniversariante do dia vem ANTES do recém-chegado na faixa");
 
-// ---------- (d) souEu (o próprio novato): anel âmbar, sheet SEM mãozinha ----------
+// ---------- (d) souEu (o próprio novato): anel âmbar; o rosto abre o STORY RICO (v404), sem ação ----------
 const souEu = await page.evaluate(async (adm) => {
   const u = currentUser();
   state.aniversariantes = { pessoas: [], recemChegados: [{ nome: u.nome, admissao: adm, setor: "Producao" }], tempoCasa: [] };
@@ -97,14 +97,21 @@ const souEu = await page.evaluate(async (adm) => {
   const clsStory = st ? st.className : null;
   abrirMuralSheet(st.getAttribute("data-story"));
   await new Promise((r) => setTimeout(r, 30));
-  const bvv = document.querySelector(".mural-sheet .bvv");
-  const r = { clsStory, self: /bvv--self/.test(bvv?.className || ""), semMao: !bvv?.querySelector(".bvv__hand"), nm: bvv?.querySelector(".bvv__nm")?.textContent };
+  const cr = document.querySelector(".mural-sheet .cr");
+  const r = {
+    clsStory,
+    rico: !!cr,
+    novoStory: !!(cr && cr.classList.contains("cr--novo")),
+    semAcao: !!(cr && !cr.querySelector(".bvv__hand") && !cr.querySelector("[data-bday-heart]")),
+    count: cr ? (cr.querySelector(".cr__count")?.textContent || "").trim() : null,
+  };
   document.querySelector(".mural-sheet")?.remove();
   return r;
 }, admIso(3));
 check(/st--self/.test(souEu.clsStory || ""), "colab: o próprio novato tem anel âmbar (st--self)");
-check(souEu.self && souEu.semMao, "colab: o sheet do próprio novato NÃO tem mãozinha (só recebe)");
-check(souEu.nm === "Você entrou pra equipe", "colab: o sheet do próprio diz 'Você entrou pra equipe'");
+check(souEu.rico && souEu.novoStory, "colab: o rosto do próprio novato abre o STORY RICO (.cr--novo)");
+check(souEu.semAcao, "colab: o story do próprio novato NÃO tem ação (só recebe)");
+check(/boas-vindas est.o chegando/i.test(souEu.count || ""), "colab: estado zero honesto do próprio novato ('As boas-vindas estão chegando')");
 
 // ---------- (e) reagir pelo SHEET: liga a mão + aceno WAAPI + gami/toggle + faixa esmaece ----------
 const react = await page.evaluate(async (adm) => {

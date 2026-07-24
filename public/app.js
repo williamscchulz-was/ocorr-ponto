@@ -3023,6 +3023,9 @@ if (!window._colabDocBound) {
     // O botão é <button>, então Enter/Espaço já disparam este mesmo click (sem keydown extra).
     const bs = e.target.closest("[data-story]");
     if (bs) { e.preventDefault(); abrirMuralSheet(bs.getAttribute("data-story")); return; }
+    // Linha discreta do carinho recebido na home (v404): abre o MESMO story rico do próprio.
+    const cr = e.target.closest("[data-carinho-open]");
+    if (cr) { e.preventDefault(); abrirMuralSheet(cr.getAttribute("data-carinho-open")); return; }
     const bv = e.target.closest("[data-bv-hand]");
     if (bv) { e.preventDefault(); onBoasVindas(bv); return; }
   });
@@ -3064,13 +3067,10 @@ function _muralCor(nome) {
 // curtido = cheio. Compartilhado por TODOS os corações do mural (aniv/tdc).
 const _muralHeart = (on) => `<svg class="icon" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.1C6.2 16.4 1.9 12.7 1.9 8.5 1.9 5.3 4.4 2.9 7.4 2.9c1.9 0 3.6 1 4.6 2.7 1-1.7 2.7-2.7 4.6-2.7 3 0 5.5 2.4 5.5 5.6 0 4.2-4.3 7.9-10.1 12.6z"/></svg>`;
 
-// Texto da contagem de parabéns (mesma copy do card e da própria saudação). total = quantas
-// reações; mine = se o próprio já parabenizou. Sem hífen/travessão (convenção do projeto).
-function _parabTexto(total, mine, ehEu) {
-  if (ehEu) {
-    if (!total) return "Ninguém te parabenizou ainda";
-    return total === 1 ? "1 colega já te parabenizou" : `${total} colegas já te parabenizaram`;
-  }
+// Texto da contagem de parabéns do card do COLEGA (o homenageado vê o story rico souEu, v404,
+// com copy própria). total = quantas reações; mine = se o próprio já parabenizou. Sem hífen/
+// travessão (convenção do projeto).
+function _parabTexto(total, mine) {
   if (!total) return "Seja o primeiro a parabenizar";
   if (mine) {
     const outros = total - 1;
@@ -3084,6 +3084,11 @@ function _parabTexto(total, mine, ehEu) {
 // Sem isto, TODO re-render voltava ao placeholder por ~1s até a leitura responder, o
 // "like some e volta" da auditoria do WKRADAR (2026-07-14).
 const _reacoesCached = (post) => (state._reacoesCache || {})[post] || null;
+
+// Recados do post (carinho recebido, v404), do cache de sessão alimentado por
+// carregarRecadosMural. null = ainda não lido; array (mesmo vazio) = leitura conhecida. Só o
+// story do PRÓPRIO homenageado (souEu) usa.
+const _recadosCached = (post) => (state._recadosCache || {})[post] || null;
 
 // Foto de um reator por uid, do cache de sessão (alimentado por carregarFotosReatores,
 // que lê o placar da gamificação: foto denormalizada com autorização de imagem, a MESMA
@@ -3118,23 +3123,23 @@ function _bdayStackHtml(reacoes) {
 // variante do card (cheio vs linha) deriva SÓ do state: compacto quando já parabenizei E
 // não reabri; toque na linha entra aqui, descurtir sai. Determinismo total (o rebuild
 // forçado do flicker-guard nasce na variante certa; m1/paridade).
-// Card CHEIO do mural (aniversário/tempo-de-casa) usado DENTRO do bottom sheet do story
-// (v379): título, contagem de parabéns, pilha de reatores (fotos/iniciais/+N) e o coração
-// grande. Nasce do cache (ou "..." na 1a leitura). O próprio homenageado (souEu) vê sem
-// coração. Sem data-key/data-hash: o sheet nasce/morre, nunca entra no morph de região.
-// opts: { post, primeiro, souEu, icone, tdc, tituloFull } (tituloFull cru: escapa uma vez).
+// Card CHEIO do mural (aniversário/tempo-de-casa de COLEGA) usado DENTRO do bottom sheet do story
+// (v379): título, contagem de parabéns, pilha de reatores (fotos/iniciais/+N) e o coração grande.
+// Nasce do cache (ou "..." na 1a leitura). O PRÓPRIO homenageado abre o story rico souEu (v404),
+// nunca este card. Sem data-key/data-hash: o sheet nasce/morre, nunca entra no morph de região.
+// opts: { post, primeiro, icone, tdc, tituloFull } (tituloFull cru: escapa uma vez).
 function _muralFullCardHtml(opts) {
-  const { post, primeiro, souEu, icone, tdc, tituloFull } = opts;
+  const { post, primeiro, icone, tdc, tituloFull } = opts;
   const c = _reacoesCached(post);
   const mine = !!(c && c.minhaReacao);
-  return `<div class="pp-bday${tdc ? " pp-bday--tdc" : ""}"${souEu ? " data-bday-me" : ""}>
+  return `<div class="pp-bday${tdc ? " pp-bday--tdc" : ""}">
       <div class="pp-bday__ic">${cpIcon(icone)}</div>
       <div class="pp-bday__bd">
         <div class="pp-bday__t">${escapeHtml(tituloFull)}</div>
-        <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine, !!souEu)) : "..."}</div>
+        <div class="pp-bday__s" data-bday-count>${c ? escapeHtml(_parabTexto(c.total, mine)) : "..."}</div>
         <div class="pp-bday__stack" data-bday-stack>${c ? _bdayStackHtml(c.reacoes) : ""}</div>
       </div>
-      ${souEu ? "" : `<button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>`}
+      <button class="pp-bday__heart${mine ? " on" : ""}" type="button" data-bday-heart aria-pressed="${mine ? "true" : "false"}" aria-label="Parabenizar ${escapeHtml(primeiro)}">${_muralHeart(mine)}</button>
     </div>`;
 }
 
@@ -3225,7 +3230,7 @@ function _muralHomenageados(meuNome) {
     const anos = Number(p.anos);
     const anosTxt = `${anos} ano${anos > 1 ? "s" : ""}`;
     out.push({ post: tdcPostId(nome), nome, primeiro, souEu, kind: "tdc", icone: "medalha", amber: false, tdc: true,
-      mk: anosTxt, tituloFull: souEu ? `Você completa ${anosTxt} de Fiobras hoje` : `${primeiro} completa ${anosTxt} de Fiobras hoje` });
+      anos, mk: anosTxt, tituloFull: souEu ? `Você completa ${anosTxt} de Fiobras hoje` : `${primeiro} completa ${anosTxt} de Fiobras hoje` });
   });
   // Recém-chegados na janela do pipeline (kind 'novo', anel amarelo). souEu é o próprio novato:
   // recebe as boas-vindas, nunca dá — entra como selo, sem ação.
@@ -3255,6 +3260,230 @@ function muralStripHtml(meuNome) {
     <div class="mural-strip">${itens.map(_muralStoryHtml).join("")}</div>`;
 }
 
+// ===== CARINHO RECEBIDO (v404, mock carinho-recebido-2026-07, aprovado) =====
+// A experiência de QUEM RECEBE o coração/cumprimento, nas três ocasiões (aniversário, boas-vindas
+// de novato, tempo de casa): uma linha discreta na home (region home:carinho) e o STORY RICO do
+// próprio (souEu) no bottom sheet. Deriva do mesmo _reacoesCache (anti-flicker) + recados.
+
+// Item de homenagem do PRÓPRIO usuário (ou null). O aniversário do próprio é EXCLUÍDO da faixa
+// (a saudação já festeja), então é montado aqui pela MESMA condição da saudação festiva (doc do
+// funcionário) — assim a linha nasce sempre que o h1 vira "Feliz aniversário". Tempo de casa e
+// recém-chegado do próprio já vêm de _muralHomenageados como souEu.
+function _meuCarinho(f, meuNome) {
+  const hoje = new Date();
+  if (f && Number(f.aniversarioDia) === hoje.getDate() && Number(f.aniversarioMes) === (hoje.getMonth() + 1)) {
+    const nome = String(meuNome || (f && f.nome) || "").trim();
+    if (nome) {
+      const primeiro = nome.split(/\s+/)[0] || "?";
+      return { post: muralPostId(nome), nome, primeiro, souEu: true, kind: "aniv", icone: "cake", amber: true, tdc: false, mk: "aniversário", tituloFull: "Você faz aniversário hoje" };
+    }
+  }
+  return _muralHomenageados(meuNome).find((x) => x.souEu) || null;
+}
+
+// Um chip de reator na mini-fileira da linha (23px). Foto do placar (via _fotoReator) ou iniciais
+// coloridas (via _muralCor). O próprio homenageado nunca reage a si mesmo, então não há caso souEu.
+function _carinhoChipHtml(r) {
+  const nome = r.nome || "";
+  const _foto = _fotoReator(r.uid);
+  const foto = (typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
+  const t = escapeHtml(nome);
+  if (foto) return `<span class="pp-carinho__stk" style="background-image:url('${foto}');color:transparent" title="${t}"></span>`;
+  return `<span class="pp-carinho__stk" style="background:${_muralCor(nome || r.uid || "")}" title="${t}">${escapeHtml(nome ? initials(nome) : "")}</span>`;
+}
+function _carinhoStackHtml(reacoes) {
+  const lista = reacoes || [];
+  if (!lista.length) return "";
+  const chips = lista.slice(0, 4).map(_carinhoChipHtml).join("");
+  const resto = lista.length - 4;
+  return `<span class="pp-carinho__stack">${chips}${resto > 0 ? `<span class="pp-carinho__mais">+${resto}</span>` : ""}</span>`;
+}
+
+// Frase quente (b) e contagem (span) da linha da home. Zero honesto no aniversário ("Seu dia está
+// só começando"), sem cobrança. total vem do cache; deriva por ocasião.
+function _carinhoLinhaFrase(kind, total) {
+  if (kind === "tdc") return "Hoje marca o seu tempo de casa";
+  if (kind === "novo") return "A equipe está te recebendo";
+  return total === 0 ? "Seu dia está só começando" : "Seus colegas estão comemorando com você"; // aniv
+}
+function _carinhoLinhaCont(it, total) {
+  if (total === 0) {
+    if (it.kind === "tdc") return "Os colegas vão comemorar com você ao longo do dia";
+    if (it.kind === "novo") return "Os colegas vão te dar as boas-vindas ao longo do dia";
+    return "Assim que um colega comemorar, aparece aqui";
+  }
+  if (it.kind === "tdc") {
+    const anos = Number(it.anos) || 0;
+    const anosTxt = `${anos} ano${anos > 1 ? "s" : ""}`;
+    return total === 1 ? `1 colega comemorou seus ${anosTxt}` : `${total} colegas comemoraram seus ${anosTxt}`;
+  }
+  if (it.kind === "novo") return total === 1 ? "1 colega te deu as boas-vindas" : `${total} colegas te deram as boas-vindas`;
+  return total === 1 ? "1 já te parabenizou" : `${total} já te parabenizaram`; // aniv
+}
+
+// Linha discreta na home (region home:carinho): mini-fileira de quem reagiu + frase + contagem.
+// Só existe quando o usuário é homenageado hoje. Toca pra abrir o story rico. Carrega data-bday-post
+// pra carregarMuralAniv aquecer o cache do próprio post (a contagem nasce/atualiza pelo morph).
+function carinhoRecebidoHtml(f, meuNome) {
+  const it = _meuCarinho(f, meuNome);
+  if (!it) return "";
+  const c = _reacoesCached(it.post);
+  const total = c ? (Number(c.total) || 0) : 0;
+  const reacoes = (c && c.reacoes) || [];
+  const zero = total === 0;
+  const tint = zero ? "zero" : (it.kind === "novo" ? "bv" : "");
+  return `<button class="pp-carinho${tint ? " pp-carinho--" + tint : ""}" type="button" data-carinho-open="${escapeHtml(it.post)}" data-bday-post="${escapeHtml(it.post)}" data-bday-me aria-label="Ver o carinho que você recebeu">
+      ${zero ? "" : _carinhoStackHtml(reacoes)}
+      <span class="pp-carinho__tx"><b>${escapeHtml(_carinhoLinhaFrase(it.kind, total))}</b><span>${escapeHtml(_carinhoLinhaCont(it, total))}</span></span>
+      <span class="pp-carinho__go">${cpIcon("chevron")}</span>
+    </button>`;
+}
+
+// Contagem central do story rico (com <b> no número; o resto é texto estático). Zero honesto.
+function _carinhoContRich(kind, total) {
+  if (total === 0) {
+    if (kind === "tdc") return "O seu marco está só começando";
+    if (kind === "novo") return "As boas-vindas estão chegando";
+    return "Seu dia está só começando"; // aniv
+  }
+  const n = `<b>${total} colega${total > 1 ? "s" : ""}</b>`;
+  if (kind === "tdc") return total === 1 ? `${n} comemorou com você` : `${n} comemoraram com você`;
+  if (kind === "novo") return total === 1 ? `${n} deu as boas-vindas` : `${n} deram as boas-vindas`;
+  return total === 1 ? `${n} desejou um feliz aniversário` : `${n} desejaram um feliz aniversário`; // aniv
+}
+
+// Meta do story (data / setor+tempo / "Desde ..."), como chips com ponto separador.
+function _carinhoMetaHtml(it) {
+  let chips = [];
+  if (it.kind === "tdc") {
+    const anos = Number(it.anos) || 0;
+    if (anos > 0) {
+      const mesNome = new Date().toLocaleDateString("pt-BR", { month: "long" });
+      chips = [`Desde ${mesNome} de ${new Date().getFullYear() - anos}`];
+    }
+  } else if (it.kind === "novo") {
+    chips = [it.setor, it.dias ? `entrou há ${it.dias} dia${it.dias > 1 ? "s" : ""}` : ""].filter(Boolean);
+  } else { // aniv: a data de hoje
+    const hoje = new Date();
+    let ds = hoje.toLocaleDateString("pt-BR", { weekday: "long" }).replace(/-feira$/i, "");
+    ds = ds.charAt(0).toUpperCase() + ds.slice(1);
+    const mesNome = hoje.toLocaleDateString("pt-BR", { month: "long" });
+    chips = [`${ds}, ${hoje.getDate()} de ${mesNome}`];
+  }
+  if (!chips.length) return "";
+  return `<div class="cr__meta">${chips.map((m, i) => (i ? '<span class="dot"></span>' : "") + `<span>${escapeHtml(m)}</span>`).join("")}</div>`;
+}
+
+// Um rosto da fileira "Quem passou por aqui" (44px + primeiro nome). Foto do placar ou iniciais.
+function _carinhoReactorHtml(r) {
+  const nome = r.nome || "";
+  const _foto = _fotoReator(r.uid);
+  const foto = (typeof _foto === "string" && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(_foto)) ? _foto : "";
+  const st = foto ? `background-image:url('${foto}');color:transparent` : `background:${_muralCor(nome || r.uid || "")}`;
+  return `<div class="cr-react"><div class="cr-react__av" style="${st}" title="${escapeHtml(nome)}">${foto ? "" : escapeHtml(nome ? initials(nome) : "")}</div><div class="cr-react__nm">${nome ? escapeHtml(nome.split(/\s+/)[0]) : ""}</div></div>`;
+}
+
+// Cartão de recado. Conteúdo de USUÁRIO: escapeHtml em autor E texto.
+function _carinhoRecadoHtml(r) {
+  const autor = r.autorNome || "";
+  return `<div class="cr-recado"><div class="cr-recado__av" style="background:${_muralCor(autor)}">${escapeHtml(autor ? initials(autor) : "")}</div><div class="cr-recado__bd"><div class="cr-recado__nm">${escapeHtml(autor)}</div><div class="cr-recado__tx">${escapeHtml(r.texto || "")}</div></div></div>`;
+}
+
+// Cauda do story (fileira de reatores + recados, OU estado vazio honesto). Isolada num container
+// [data-carinho-tail] pra o preenchedor assíncrono (fotos/recados) repintar SÓ ela sem tocar a
+// foto/contagem/delícia. Deriva do cache (reações + recados): nasce preenchido no re-open.
+function _carinhoTailInnerHtml(it) {
+  const c = _reacoesCached(it.post);
+  const reacoes = (c && c.reacoes) || [];
+  const recados = _recadosCached(it.post) || [];
+  if (!reacoes.length && !recados.length) {
+    const tx = it.kind === "novo"
+      ? "Assim que um colega deixar as boas-vindas ou um recado, aparece aqui pra você."
+      : "Assim que um colega deixar um coração ou um recado, aparece aqui pra você.";
+    return `<div class="cr__empty">${tx}</div>`;
+  }
+  let h = "";
+  if (reacoes.length) h += `<div class="cr__reactors"><div class="cr-lbl">Quem passou por aqui</div><div class="cr-react-row">${reacoes.map(_carinhoReactorHtml).join("")}</div></div>`;
+  if (recados.length) h += `<div class="cr__recados"><div class="cr-lbl">Recados</div>${recados.map(_carinhoRecadoHtml).join("")}</div>`;
+  return h;
+}
+
+// Story RICO do próprio homenageado (souEu) no bottom sheet: foto grande, contagem central, marco
+// (tempo de casa), meta, fileira de reatores e recados. Sem ação (não se reage a si mesmo). Nasce/
+// morre no body (nunca entra em region/morph), então é HTML puro; o corpo <b> da contagem é seguro
+// (número inteiro + texto estático).
+function _carinhoStoryHtml(it) {
+  const foto = _muralFotoHomenageado(it.nome, it.souEu);
+  const avStyle = foto ? ` style="background-image:url('${foto}');color:transparent"` : ` style="background:${_muralCor(it.nome)}"`;
+  const c = _reacoesCached(it.post);
+  const total = c ? (Number(c.total) || 0) : 0;
+  const vazio = total === 0 && !(_recadosCached(it.post) || []).length;
+  const mark = it.kind === "tdc" ? `<div class="cr__mark">${cpIcon("medalha")}${escapeHtml(`${it.mk} de Fiobras`)}</div>` : "";
+  return `<div class="cr cr--${it.kind}">
+      <div class="cr-delight" data-carinho-delight aria-hidden="true"></div>
+      <div class="cr__avwrap">
+        <svg class="cr__rsvg" viewBox="0 0 92 92" aria-hidden="true"><circle cx="46" cy="46" r="43"></circle></svg>
+        <span class="cr__av"${avStyle}>${foto ? "" : escapeHtml(initials(it.nome))}</span>
+        <span class="cr__badge">${cpIcon(it.icone)}</span>
+      </div>
+      ${mark}
+      <div class="cr__count">${_carinhoContRich(it.kind, total)}</div>
+      ${vazio ? "" : _carinhoMetaHtml(it)}
+      <div class="cr__tail" data-carinho-tail>${_carinhoTailInnerHtml(it)}</div>
+    </div>`;
+}
+
+// Frase de rodapé do story (por ocasião).
+function _carinhoStoryHint(it) {
+  if (it.kind === "novo") return "A equipe está feliz de ter você por perto.";
+  if (it.kind === "tdc") return it.mk ? `${it.mk} caminhando junto. Que venham muitos mais.` : "Que venham muitos mais.";
+  return "É o seu dia. Os parabéns dos colegas chegam por aqui.";
+}
+
+// Delícia one-shot ao abrir o story: 6 corações (mãozinhas no bv) sobem UMA vez, deriva/tamanho
+// variados. WAAPI com fill:none (some sozinho, DOM limpo), guardado por prefereMenosMovimento.
+// Nunca em re-render (o sheet nasce/morre, não re-renderiza).
+function _carinhoDelight(scope, kind) {
+  if (prefereMenosMovimento()) return;
+  const layer = scope && scope.querySelector("[data-carinho-delight]");
+  if (!layer || typeof layer.animate !== "function") return;
+  layer.innerHTML = "";
+  const glyph = kind === "hand" ? _bvHandBadge : _muralHeartBadge;
+  for (let i = 0; i < 6; i++) {
+    const g = document.createElement("span");
+    g.className = "cr-glyph";
+    g.innerHTML = glyph;
+    const size = 13 + Math.round(Math.random() * 9);
+    g.style.width = size + "px"; g.style.height = size + "px";
+    const startX = Math.round(Math.random() * 118 - 59);
+    const drift = Math.round(Math.random() * 28 - 14);
+    const rise = 96 + Math.round(Math.random() * 46);
+    layer.appendChild(g);
+    g.animate([
+      { transform: `translate(calc(-50% + ${startX}px), 8px) scale(.55)`, opacity: 0 },
+      { opacity: .9, offset: .28 },
+      { transform: `translate(calc(-50% + ${startX + drift}px), -${rise}px) scale(1)`, opacity: 0 },
+    ], { duration: 1250 + Math.random() * 420, delay: i * 95, easing: "cubic-bezier(.23,1,.32,1)", fill: "none" });
+  }
+}
+
+// Preenchedor assíncrono do story: acende fotos dos reatores (placar) e lê os recados (subcoleção,
+// com cache). Ao fim, repinta SÓ a cauda [data-carinho-tail] se algo mudou (nunca a foto/contagem/
+// delícia). Guardas de rede: se o loader não existe (offline/demo), pula sem quebrar.
+async function _carinhoConteudoAsync(post, it, folha) {
+  const c = _reacoesCached(post);
+  const uids = ((c && c.reacoes) || []).map((r) => r.uid).filter(Boolean);
+  await Promise.all([
+    window.carregarFotosReatores ? window.carregarFotosReatores(uids).catch(() => {}) : null,
+    window.carregarRecadosMural ? window.carregarRecadosMural(post).catch(() => {}) : null,
+  ]);
+  if (!folha || !folha.isConnected) return;
+  const tail = folha.querySelector("[data-carinho-tail]");
+  if (!tail) return;
+  const novo = _carinhoTailInnerHtml(it);
+  if (tail.innerHTML !== novo) tail.innerHTML = novo;
+}
+
 // Anel "enchendo" na faixa (WAAPI one-shot, só no like REAL via sheet). O anel já está sólido
 // (o reconcile pintou instantâneo, sem transition — evita o longtask do stroke-dasharray
 // interpolado); aqui uma volta desenhada com stroke-dashoffset dá o gesto de preenchimento e
@@ -3271,13 +3500,9 @@ function _muralAnimarAnel(post) {
   );
 }
 
-// Copy da contagem no viewer do recém-chegado (mesma família da _parabTexto). ehEu = o próprio
-// novato (recebe, não dá): "N colegas já te deram as boas-vindas".
-function _bvViewerTexto(total, mine, ehEu) {
-  if (ehEu) {
-    if (!total) return "Ninguém te deu as boas-vindas ainda";
-    return total === 1 ? "1 colega já te deu as boas-vindas" : `${total} colegas já te deram as boas-vindas`;
-  }
+// Copy da contagem no viewer do recém-chegado do COLEGA (mesma família da _parabTexto; o próprio
+// novato vê o story rico souEu, v404, com copy própria).
+function _bvViewerTexto(total, mine) {
   if (!total) return "Seja o primeiro a dar as boas-vindas";
   if (mine) {
     const outros = total - 1;
@@ -3288,53 +3513,57 @@ function _bvViewerTexto(total, mine, ehEu) {
 
 // Viewer rico do recém-chegado dentro do bottom sheet (mock bv-stories-2026-07, aprovado):
 // foto grande (casa por nome no gamiTop via _muralFotoHomenageado, fallback iniciais), setor +
-// tempo de casa e a MÃOZINHA C grande como ação. souEu abre sem mão (só recebe). O container
-// carrega data-bv-post e a mão data-bv-total pra o caminho onBoasVindas (cache/aceno/backend).
+// tempo de casa e a MÃOZINHA C grande como ação. Só do COLEGA (o próprio novato abre o story
+// rico souEu, v404). O container carrega data-bv-post e a mão data-bv-total pra o caminho
+// onBoasVindas (cache/aceno/backend).
 function _bvViewerHtml(it) {
   const c = _reacoesCached(it.post);
-  const mine = !it.souEu && !!(c && c.minhaReacao);
+  const mine = !!(c && c.minhaReacao);
   const total = c ? (Number(c.total) || 0) : 0;
-  const solido = mine || it.souEu;
-  const dash = solido ? "0" : "4 5";
-  const foto = _muralFotoHomenageado(it.nome, it.souEu);
+  const dash = mine ? "0" : "4 5";
+  const foto = _muralFotoHomenageado(it.nome, false);
   const avStyle = foto ? `background-image:url('${foto}');color:transparent` : `background:${_muralCor(it.nome)}`;
-  const meta = `<span>${escapeHtml(it.setor || "")}</span><span class="dot"></span><span>${it.souEu ? "" : "entrou pra equipe "}${it.dias ? `há ${it.dias} dia${it.dias > 1 ? "s" : ""}` : ""}</span>`;
-  const nomeGrande = it.souEu ? "Você entrou pra equipe" : escapeHtml(it.primeiro);
-  const badge = solido
+  const meta = `<span>${escapeHtml(it.setor || "")}</span><span class="dot"></span><span>entrou pra equipe ${it.dias ? `há ${it.dias} dia${it.dias > 1 ? "s" : ""}` : ""}</span>`;
+  const badge = mine
     ? `<span class="bvv__badge on">${_bvHand(true)}</span>`
     : `<span class="bvv__badge">${cpIcon("users")}</span>`;
-  return `<div class="bvv${it.souEu ? " bvv--self" : ""}" data-bv-post="${escapeHtml(it.post)}">
+  return `<div class="bvv" data-bv-post="${escapeHtml(it.post)}">
       <div class="bvv__avwrap">
         <svg class="bvv__rsvg" viewBox="0 0 88 88" aria-hidden="true"><circle cx="44" cy="44" r="41" stroke-dasharray="${dash}"></circle></svg>
         <span class="bvv__av" style="${avStyle}">${foto ? "" : escapeHtml(initials(it.nome))}</span>
         ${badge}
       </div>
-      <div class="bvv__nm">${nomeGrande}</div>
+      <div class="bvv__nm">${escapeHtml(it.primeiro)}</div>
       <div class="bvv__meta">${meta}</div>
-      ${it.souEu ? "" : `<button class="bvv__hand${mine ? " on" : ""}" type="button" data-bv-total="${total}" aria-pressed="${mine ? "true" : "false"}" aria-label="Dar as boas-vindas a ${escapeHtml(it.primeiro)}">${_bvHand(mine)}</button>`}
-      <div class="bvv__count">${escapeHtml(_bvViewerTexto(total, mine, !!it.souEu))}</div>
+      <button class="bvv__hand${mine ? " on" : ""}" type="button" data-bv-total="${total}" aria-pressed="${mine ? "true" : "false"}" aria-label="Dar as boas-vindas a ${escapeHtml(it.primeiro)}">${_bvHand(mine)}</button>
+      <div class="bvv__count">${escapeHtml(_bvViewerTexto(total, mine))}</div>
     </div>`;
 }
 
-// Bottom sheet do story (nasce/morre no body, nunca re-renderiza): o card CHEIO do aniversário/
-// tempo-de-casa, OU o viewer de boas-vindas do recém-chegado (kind 'novo'). Reagir ali dá o
-// feedback (coração/mão enche + faixa reflete), fecha o sheet e dispara a escrita (onParabenizar
-// pro aniv, onBoasVindas pro novato: ambos cuidam de cache/reconcile/toggle/gami/revert). O
-// próprio homenageado abre sem ação. Física de sheet dos outros (arrasto no mobile).
+// Bottom sheet do story (nasce/morre no body, nunca re-renderiza). Três conteúdos, pelo item:
+//   souEu -> STORY RICO do carinho recebido (v404): foto grande, contagem, reatores e recados,
+//     sem ação (não se reage a si mesmo); a delícia (corações/mãozinhas) sobe 1x ao abrir;
+//   colega aniv/tempo-de-casa -> card CHEIO com o coração grande (onParabenizar);
+//   colega recém-chegado -> viewer de boas-vindas com a mãozinha (onBoasVindas).
+// Reagir dá o feedback (coração/mão enche + faixa reflete), fecha o sheet e dispara a escrita
+// (cache/reconcile/toggle/gami/revert). Física de sheet dos outros (arrasto no mobile).
 function abrirMuralSheet(post) {
   if (document.querySelector(".mural-sheet")) return; // já aberto
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const u = currentUser();
   const nome = (f && f.nome) || (u && u.nome) || "";
-  const it = _muralHomenageados(nome).find((x) => x.post === post);
+  // O aniversário do próprio é excluído da faixa (montado por _meuCarinho); os demais souEu
+  // (tempo de casa, recém-chegado) já vêm de _muralHomenageados.
+  let it = _muralHomenageados(nome).find((x) => x.post === post);
+  if (!it) { const meu = _meuCarinho(f, nome); if (meu && meu.post === post) it = meu; }
   if (!it) return;
   const novo = it.kind === "novo";
   const prevFocus = document.activeElement;
   const semMov = prefereMenosMovimento();
-  const cardHtml = novo ? _bvViewerHtml(it) : _muralFullCardHtml(it);
-  const hint = novo
-    ? (it.souEu ? "É o começo por aqui. Os colegas vão te dar as boas-vindas ao longo do dia." : `Toque na mão para dar as boas-vindas a ${it.primeiro}.`)
-    : (it.souEu ? "É o seu dia, os colegas vão te parabenizar por aqui." : `Toque no coração para parabenizar ${it.primeiro}.`);
+  const cardHtml = it.souEu ? _carinhoStoryHtml(it) : (novo ? _bvViewerHtml(it) : _muralFullCardHtml(it));
+  const hint = it.souEu
+    ? _carinhoStoryHint(it)
+    : (novo ? `Toque na mão para dar as boas-vindas a ${it.primeiro}.` : `Toque no coração para parabenizar ${it.primeiro}.`);
   const ov = document.createElement("div");
   ov.className = "mural-sheet";
   ov.innerHTML = `<div class="mural-sheet__folha" role="dialog" aria-modal="true" tabindex="-1" aria-label="${escapeHtml(it.tituloFull)}">
@@ -3393,12 +3622,21 @@ function abrirMuralSheet(post) {
     const circle = folha.querySelector(".bvv__rsvg circle");
     if (circle) circle.setAttribute("stroke-dasharray", ligar ? "0" : "4 5");
     const cntEl = folha.querySelector(".bvv__count");
-    if (cntEl) cntEl.textContent = _bvViewerTexto(Number(bvHand.dataset.bvTotal || "0") || 0, ligar, false);
+    if (cntEl) cntEl.textContent = _bvViewerTexto(Number(bvHand.dataset.bvTotal || "0") || 0, ligar);
     const hintEl = folha.querySelector("[data-sheet-hint]");
     if (hintEl) hintEl.textContent = ligar ? `Pronto, você deu as boas-vindas a ${it.primeiro}.` : `Ok, tirei as suas boas-vindas a ${it.primeiro}.`;
     _reconciliarMuralRegioes(); // a faixa esmaece o rosto (variante A: continua na faixa)
     setTimeout(fechar, semMov ? 0 : (ligar ? 640 : 320));
   });
+  // Story do próprio (souEu): a delícia one-shot ao abrir (só quando já houve carinho, senão o
+  // estado zero "seu dia está só começando" segue sóbrio) + preenchedor assíncrono dos recados/
+  // fotos. Sem ação a wirar (não se reage a si mesmo).
+  if (it.souEu) {
+    const c0 = _reacoesCached(post);
+    const total0 = c0 ? (Number(c0.total) || 0) : 0;
+    if (total0 > 0) setTimeout(() => _carinhoDelight(folha, it.kind === "novo" ? "hand" : "heart"), semMov ? 0 : 260);
+    _carinhoConteudoAsync(post, it, folha);
+  }
   // Foco na ação primária (a11y): o coração/mão quando há, senão a folha (dialog).
   setTimeout(() => { try { (heart || bvHand || folha).focus({ preventScroll: true }); } catch {} }, semMov ? 0 : 60);
   // Física de arrasto no mobile (a entrada já foi animada acima; animarEntrada:false).
@@ -3414,6 +3652,7 @@ function _reconciliarMuralRegioes() {
   const f = (state.funcionarios && state.funcionarios[0]) || null;
   const nome = (f && f.nome) || (u && u.nome) || "";
   updateRegion("home:greet", () => colabHomeHeaderHtml(f, nome));
+  updateRegion("home:carinho", () => carinhoRecebidoHtml(f, nome));
   updateRegion("home:sit", () => colabSitChipHtml(f));
   updateRegion("mural:strip", () => muralStripHtml(nome));
 }
@@ -4001,14 +4240,12 @@ function colabGreetHtml(f, nome) {
   const seloMod = selo ? " pp-greet--seal" : "";
   const ehAniv = f && Number(f.aniversarioDia) === hoje.getDate() && Number(f.aniversarioMes) === (hoje.getMonth() + 1);
   if (ehAniv) {
-    // Sem coração (não se parabeniza a si mesmo). A linha de contagem (data-bday-count) nasce
-    // do cache com a copy "N colegas já te parabenizaram" e a leitura assíncrona morpha a
-    // região da saudação (home:greet). O selo vai NO h1 (nunca no [data-bday-count]).
-    const post = muralPostId(nome);
-    const c = _reacoesCached(post); // nasce com a contagem da última leitura (anti-flicker)
-    return `<div class="pp-greet pp-greet--bday${seloMod}" data-bday-post="${escapeHtml(post)}" data-bday-me>
+    // Sem coração (não se parabeniza a si mesmo) e SEM contagem no subtítulo: quem festeja o
+    // número é a linha .pp-carinho logo abaixo (region home:carinho, v404), pra não duplicar. A
+    // saudação fica só com o título festivo; o selo do BH vai NO h1.
+    return `<div class="pp-greet pp-greet--bday${seloMod}">
       <div class="pp-greet__av"${avSt}>${av}<span class="spark">${cpIcon("cake")}</span></div>
-      <div class="pp-greet__tx"><h1>Feliz aniversário, <b>${escapeHtml(primeiro)}</b> ${selo}</h1><p data-bday-count>${c ? escapeHtml(_parabTexto(c.total, c.minhaReacao, true)) : "Toda a Fiobras te deseja um dia incrível"}</p></div>
+      <div class="pp-greet__tx"><h1>Feliz aniversário, <b>${escapeHtml(primeiro)}</b> ${selo}</h1></div>
     </div>`;
   }
   const saud = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
@@ -4482,6 +4719,7 @@ function renderColaboradorHome() {
   const escreveu = setHtml(view, `
     <div class="pp-fade pp-home">
       <div data-region="home:greet"></div>
+      <div data-region="home:carinho"></div>
       <div data-region="home:sit"></div>
       ${colabOportunidadeHtml()}
       ${colabAtalhosHtml()}
@@ -20505,7 +20743,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.17.0";
+window.CURRENT_VERSION = "2.18.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada

@@ -858,6 +858,65 @@ html.cp-dark .mural-sheet{background:rgba(0,0,0,.5)}
 .bvv__count{font-size:12.5px;color:var(--text-muted);margin-top:12px;font-weight:500}
 .bvv__count b{color:var(--text-body);font-weight:600}
 
+/* CARINHO RECEBIDO (v404, mock carinho-recebido-2026-07, aprovado). Linha discreta na home +
+   story rico do próprio no bottom sheet. */
+/* linha discreta na home (region home:carinho) */
+.pp-carinho{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--amber-edge);background:rgba(224,163,58,.10);border-radius:14px;padding:9px 12px;margin-top:14px;cursor:pointer;font:inherit;-webkit-tap-highlight-color:transparent;transition:transform .15s var(--ease-out),box-shadow .18s}
+html.cp-dark .pp-carinho{background:rgba(232,180,104,.10)}
+.pp-carinho:active{transform:scale(.985)}
+@media(hover:hover){.pp-carinho:hover{box-shadow:var(--pp-sh-card)}}
+.pp-carinho--bv{border-color:rgba(0,136,53,.22);background:rgba(0,136,53,.07)}
+html.cp-dark .pp-carinho--bv{border-color:rgba(95,203,133,.24);background:rgba(95,203,133,.09)}
+.pp-carinho--zero{border-color:var(--border-strong);background:var(--surface-warm)}
+.pp-carinho__stack{display:flex;flex:none}
+.pp-carinho__stk{width:23px;height:23px;border-radius:50%;border:2px solid var(--bg);margin-left:-8px;display:grid;place-items:center;color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;background-size:cover;background-position:center}
+.pp-carinho__stk:first-child{margin-left:0}
+.pp-carinho__mais{width:23px;height:23px;border-radius:50%;border:2px solid var(--bg);margin-left:-8px;display:grid;place-items:center;background:var(--border-strong);color:var(--text-muted);font-size:8px;font-weight:700;flex:none}
+.pp-carinho__tx{flex:1;min-width:0}
+.pp-carinho__tx b{display:block;font-size:12.5px;font-weight:600;color:var(--text-body);line-height:1.28}
+.pp-carinho__tx span{display:block;font-size:11px;color:var(--warning-tx);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-carinho--bv .pp-carinho__tx span{color:var(--plum-deep)}
+.pp-carinho--zero .pp-carinho__tx span{color:var(--text-muted)}
+.pp-carinho__go{flex:none;color:var(--text-muted);width:17px;height:17px}
+.pp-carinho__go svg{width:17px;height:17px;display:block}
+
+/* story rico do próprio (souEu) dentro do .mural-sheet */
+.cr{text-align:center;padding:2px 6px 2px;position:relative}
+.cr-delight{position:absolute;left:0;right:0;top:-6px;height:150px;pointer-events:none;z-index:6}
+.cr-glyph{position:absolute;bottom:66px;left:50%;color:var(--warning);opacity:0;will-change:transform,opacity}
+.cr--novo .cr-glyph{color:var(--plum)}
+.cr-glyph svg{width:100%;height:100%;display:block}
+.cr__avwrap{position:relative;width:92px;height:92px;margin:6px auto 14px;z-index:2}
+.cr__rsvg{position:absolute;inset:0;width:100%;height:100%}
+.cr__rsvg circle{fill:none;stroke:var(--warning);stroke-width:2.6;stroke-linecap:round}
+.cr--novo .cr__rsvg circle{stroke:var(--yellow)}
+.cr__av{position:absolute;inset:8px;border-radius:50%;background:linear-gradient(150deg,#1AA34F,#0B7A36);display:grid;place-items:center;color:#fff;font-size:27px;font-weight:700;letter-spacing:.01em;text-transform:uppercase;background-size:cover;background-position:center}
+.cr__badge{position:absolute;right:0;bottom:0;width:30px;height:30px;border-radius:50%;border:3px solid var(--bg);background:var(--surface);display:grid;place-items:center;color:var(--warning)}
+.cr--tdc .cr__badge,.cr--novo .cr__badge{color:var(--plum)}
+.cr__badge svg{width:15px;height:15px}
+.cr__mark{display:inline-flex;align-items:center;gap:6px;margin:0 auto 8px;font-size:11px;font-weight:700;white-space:nowrap;color:var(--plum-deep);background:rgba(0,136,53,.10);border:1px solid rgba(0,136,53,.16);border-radius:999px;padding:3px 12px}
+.cr__mark svg{width:13px;height:13px;flex:none}
+html.cp-dark .cr__mark{background:rgba(95,203,133,.12);border-color:rgba(95,203,133,.2)}
+.cr__count{font-size:17.5px;font-weight:700;letter-spacing:-.01em;color:var(--text-body);line-height:1.32;padding:0 8px}
+.cr__count b{font-weight:800;color:var(--plum-deep)}
+.cr__meta{font-size:12px;color:var(--text-muted);margin-top:5px;display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap}
+.cr__meta .dot{width:3px;height:3px;border-radius:50%;background:var(--border-strong)}
+.cr-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);text-align:left;margin:0 2px 9px}
+.cr__reactors{margin-top:20px}
+.cr-react-row{display:flex;gap:13px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.cr-react-row::-webkit-scrollbar{display:none}
+.cr-react{flex:none;width:54px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.cr-react__av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:14px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;background-size:cover;background-position:center;box-shadow:var(--pp-sh-card)}
+.cr-react__nm{font-size:10px;font-weight:500;color:var(--text-muted);max-width:54px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.cr__recados{margin-top:20px;text-align:left}
+.cr-recado{display:flex;gap:11px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px;box-shadow:var(--pp-sh-card);margin-top:9px}
+.cr-recado__av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700;text-transform:uppercase;flex:none;background-size:cover;background-position:center}
+.cr-recado__bd{min-width:0}
+.cr-recado__nm{font-size:12px;font-weight:700;color:var(--text-body)}
+.cr-recado__tx{font-size:12.5px;color:var(--text-body);line-height:1.5;margin-top:3px;overflow-wrap:anywhere}
+.cr__empty{margin-top:16px;font-size:12.5px;color:var(--text-muted);line-height:1.55;padding:0 10px}
+@media (prefers-reduced-motion:reduce){.pp-carinho:active{transform:none}}
+
 /* Carga única da tela Documentos (mock aprovado 2026-07-17): skeleton com a MESMA
    geometria das linhas reais + barra fina no topo como único movimento. Só na 1ª
    carga da sessão; depois a tela nasce pronta do cache. */
