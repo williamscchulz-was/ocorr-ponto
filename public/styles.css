@@ -2835,6 +2835,33 @@ html.firebase-mode .login__forgot { display: block; }
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px 14px;
 }
+/* Redefinir senha (v405): bloco de sucesso (senha temporária copiável) e erro fixo. */
+.reset-ok {
+  background: var(--success-bg);
+  border: 1px solid var(--success);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.reset-ok__t {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 700; color: var(--success); font-size: 13px; margin-bottom: 10px;
+}
+.reset-ok__t .icon { width: 16px; height: 16px; }
+.reset-ok__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.reset-ok__senha {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px;
+}
+.reset-ok__hint { margin: 10px 0 0; font-size: 12px; color: var(--text-muted); }
+.reset-erro {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--danger-bg); border: 1px solid var(--danger);
+  border-radius: var(--radius); padding: 11px 14px;
+  color: var(--danger); font-size: 13px; font-weight: 500;
+}
+.reset-erro .icon { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 1px; }
 .func-perfil-grid__item label {
   display: block;
   font-size: 10px;

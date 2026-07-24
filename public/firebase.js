@@ -3720,6 +3720,31 @@
       catch (e) { return { ok: false, err: e.message }; }
     };
 
+    // Redefinição de senha de colaborador pela GP (v405). O gate REAL é server-side (Cloud
+    // Function redefinirSenhaColaborador: valida o papel do caller por users+config/permissoes
+    // e que o alvo é colaborador — nunca confia no cliente). Aqui só chamamos a callable e
+    // traduzimos o erro. O SDK de Functions carrega SOB DEMANDA (ação rara; não pesa no boot
+    // de todo mundo). Retorna { ok, senha } | { ok:false, err } — NUNCA lança (o botão trata o err).
+    window.redefinirSenhaColaborador = async function (uid) {
+      if (!uid) return { ok: false, err: "Este colaborador não tem conta de acesso vinculada." };
+      try {
+        if (!firebase.functions) await loadScript(`${SDK_BASE}/firebase-functions-compat.js`);
+        const call = firebase.app().functions("us-central1").httpsCallable("redefinirSenhaColaborador");
+        const res = await call({ uid });
+        const senha = res && res.data && res.data.senha;
+        if (!senha) return { ok: false, err: "Resposta inesperada do servidor." };
+        return { ok: true, senha };
+      } catch (e) {
+        const code = (e && e.code) || "";
+        if (code.indexOf("permission-denied") >= 0) return { ok: false, err: "Você não tem permissão para redefinir esta senha." };
+        if (code.indexOf("unauthenticated") >= 0) return { ok: false, err: "Sessão expirada. Entre de novo." };
+        if (code.indexOf("not-found") >= 0) return { ok: false, err: (e && e.message) || "Colaborador não encontrado." };
+        if (code.indexOf("resource-exhausted") >= 0) return { ok: false, err: (e && e.message) || "Limite diário de redefinições atingido. Tente amanhã." };
+        if (code.indexOf("invalid-argument") >= 0) return { ok: false, err: "Dados inválidos." };
+        return { ok: false, err: (e && e.message) || "Não foi possível redefinir a senha." };
+      }
+    };
+
     // Convida usuário novo (admin only).
     // Usa instância SECUNDÁRIA do Firebase Auth pra não deslogar o admin atual.
     window.inviteUser = async function ({ email, nome, role, turno }) {

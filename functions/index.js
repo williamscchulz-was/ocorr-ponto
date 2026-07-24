@@ -1,8 +1,10 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -251,5 +253,151 @@ exports.expurgarCandidaturasVencidas = onSchedule(
     }
 
     logger.info('expurgo concluido', { vagasVarridas, candidaturasApagadas });
+  }
+);
+
+// ===== RESET DE SENHA de colaborador pela GP (callable) =====
+// Decisao de produto (William): colaboradores logam com CPF+senha; quando esquecem, a GP
+// redefine pra uma senha TEMPORARIA e informa a pessoa (sem e-mail de reset, muitos nao tem).
+//
+// GATE server-side, NUNCA confia no cliente:
+//  - caller autenticado E com papel que TEM func.editar (admin sempre; demais so se
+//    can("func.editar") — MESMA semantica do can() do cliente, lida dos MESMOS docs:
+//    users/{caller}.role + config/permissoes). func.editar ja gateia a edicao do cadastro do
+//    funcionario (admin/RH por padrao), entao a superficie e a GP.
+//  - alvo tem que existir E ser role 'colaborador' (users/{uid}); NUNCA redefine senha de
+//    admin/gestao por este caminho (evita escalonamento). Alvo nao-colaborador = permission-denied.
+//  - senha e TEMPORARIA: forca a troca no proximo acesso (precisaTrocarSenha=true, reusa o gate
+//    mostrarTrocaSenha do portal do colaborador).
+//  - trilha em /eventos (shape do window.logEvento; SEM a senha) e rate limit best-effort.
+// ZERO PII nos logs: so papeis e contagens.
+
+// Espelho do PERM_DEFAULT do cliente (public/app.js) SO pra cap que esta funcao usa. admin
+// nunca entra (e sempre total). Bate com o default de hoje: so rh tem func.editar.
+const FUNC_EDITAR_DEFAULT = { rh: true, lider: false, supervisor: false, colaborador: false };
+
+// can() server-side = permEfetivo(role)['func.editar'], com o override de config/permissoes por
+// cima do default (mesma composicao do cliente). "turno"/"atrib" contam como ter acesso (paridade).
+function canFuncEditar(role, permOverrides) {
+  if (!role) return false;
+  if (role === 'admin') return true;
+  const over = (permOverrides && permOverrides[role]) || {};
+  const v = (over['func.editar'] !== undefined) ? over['func.editar'] : FUNC_EDITAR_DEFAULT[role];
+  return v === true || v === 'turno' || v === 'atrib';
+}
+
+// Senha temporaria forte e legivel: Fio-XXXX-99 (4 letras + 2 digitos), sem caracteres ambiguos
+// (0/O, 1/I/L). crypto.randomInt = fonte forte (nao Math.random). ~17,9M combinacoes; dura so ate
+// a troca obrigatoria no proximo acesso.
+const _SENHA_LETRAS = 'ABCDEFGHJKMNPQRSTUVWXYZ'; // sem I, L, O
+const _SENHA_DIGITOS = '23456789';               // sem 0, 1
+function gerarSenhaTemporaria() {
+  let letras = '';
+  for (let i = 0; i < 4; i++) letras += _SENHA_LETRAS[crypto.randomInt(_SENHA_LETRAS.length)];
+  let num = '';
+  for (let i = 0; i < 2; i++) num += _SENHA_DIGITOS[crypto.randomInt(_SENHA_DIGITOS.length)];
+  return `Fio-${letras}-${num}`;
+}
+
+const RESET_LIMITE_DIA = 20; // max por caller por dia (anti-abuso, best-effort)
+
+// Contador diario por caller em /rateLimits/{redefinirSenha__uid__YYYY-MM-DD}. Transacional
+// (evita corrida). Best-effort: falha de INFRA do contador NAO bloqueia (so o estouro do limite
+// propaga como resource-exhausted). Sobre o limite NAO incrementa mais (nao vaza contagem).
+async function checarRateLimitReset(callerUid) {
+  const dia = new Date().toISOString().slice(0, 10);
+  const ref = db.collection('rateLimits').doc(`redefinirSenha__${callerUid}__${dia}`);
+  try {
+    const r = await db.runTransaction(async (tx) => {
+      const cur = await tx.get(ref);
+      const atual = (cur.exists && typeof cur.data().n === 'number') ? cur.data().n : 0;
+      if (atual >= RESET_LIMITE_DIA) return { permitido: false };
+      tx.set(ref, { n: atual + 1, dia, atualizadoEm: FieldValue.serverTimestamp() }, { merge: true });
+      return { permitido: true };
+    });
+    if (!r.permitido) throw new HttpsError('resource-exhausted', `Limite diario de ${RESET_LIMITE_DIA} redefinicoes atingido. Tente novamente amanha.`);
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    logger.warn('reset senha: rate limit indisponivel (segue)', { erro: (e && e.code) || 'erro' });
+  }
+}
+
+exports.redefinirSenhaColaborador = onCall(
+  { region: 'us-central1' },
+  async (request) => {
+    const caller = request.auth;
+    if (!caller || !caller.uid) throw new HttpsError('unauthenticated', 'Faca login novamente.');
+    const alvoUid = request.data && request.data.uid;
+    if (typeof alvoUid !== 'string' || !alvoUid) throw new HttpsError('invalid-argument', 'uid do colaborador ausente.');
+
+    // ---- Autorizacao SERVER-SIDE (users/{caller} + config/permissoes) ----
+    let callerData;
+    try {
+      const callerSnap = await db.collection('users').doc(caller.uid).get();
+      if (!callerSnap.exists) throw new HttpsError('permission-denied', 'Sem permissao.');
+      callerData = callerSnap.data() || {};
+    } catch (e) {
+      if (e instanceof HttpsError) throw e;
+      logger.error('reset senha: leitura do caller falhou', { erro: (e && e.code) || 'erro' });
+      throw new HttpsError('internal', 'Nao foi possivel validar a permissao.');
+    }
+    let permOverrides = null;
+    try {
+      const permSnap = await db.collection('config').doc('permissoes').get();
+      permOverrides = permSnap.exists ? (permSnap.data() || null) : null;
+    } catch (e) { permOverrides = null; } // sem overrides = usa o default (mesma degradacao do cliente)
+    if (!canFuncEditar(callerData.role, permOverrides)) {
+      throw new HttpsError('permission-denied', 'Voce nao tem permissao para redefinir senhas.');
+    }
+
+    // ---- Alvo tem que existir E ser colaborador ----
+    let alvoData;
+    try {
+      const alvoSnap = await db.collection('users').doc(alvoUid).get();
+      if (!alvoSnap.exists) throw new HttpsError('not-found', 'Colaborador nao encontrado.');
+      alvoData = alvoSnap.data() || {};
+    } catch (e) {
+      if (e instanceof HttpsError) throw e;
+      logger.error('reset senha: leitura do alvo falhou', { erro: (e && e.code) || 'erro' });
+      throw new HttpsError('internal', 'Nao foi possivel localizar o colaborador.');
+    }
+    if (alvoData.role !== 'colaborador') {
+      // NUNCA redefine senha de admin/gestao por este caminho (superficie de escalonamento).
+      throw new HttpsError('permission-denied', 'So e possivel redefinir a senha de um colaborador.');
+    }
+
+    // ---- Rate limit (best-effort) ----
+    await checarRateLimitReset(caller.uid);
+
+    // ---- Gera + aplica ----
+    const senha = gerarSenhaTemporaria();
+    try {
+      await admin.auth().updateUser(alvoUid, { password: senha });
+    } catch (e) {
+      logger.error('reset senha: updateUser falhou', { erro: (e && e.code) || 'erro' });
+      // auth/user-not-found = doc existe mas a conta Auth nao (vinculo quebrado)
+      if (e && e.code === 'auth/user-not-found') throw new HttpsError('not-found', 'Este colaborador ainda nao tem conta de acesso.');
+      throw new HttpsError('internal', 'Nao foi possivel redefinir a senha.');
+    }
+    // Senha e TEMPORARIA: forca a troca no proximo acesso (reusa o gate do portal). Best-effort:
+    // a redefinicao ja valeu; se este update falhar, a senha temporaria ainda funciona.
+    try { await db.collection('users').doc(alvoUid).update({ precisaTrocarSenha: true }); }
+    catch (e) { logger.warn('reset senha: precisaTrocarSenha nao gravou (segue)', { erro: (e && e.code) || 'erro' }); }
+
+    // ---- Trilha em /eventos (shape do window.logEvento; SEM a senha) ----
+    try {
+      await db.collection('eventos').add({
+        por: caller.uid,
+        porNome: String(callerData.nome || '').slice(0, 120),
+        porRole: String(callerData.role || '').slice(0, 40),
+        tipo: 'auth',
+        acao: 'Senha redefinida pela GP',
+        alvo: alvoUid,
+        em: FieldValue.serverTimestamp(),
+      });
+    } catch (e) { logger.warn('reset senha: trilha /eventos nao gravou (segue)', { erro: (e && e.code) || 'erro' }); }
+
+    logger.info('reset senha concluido', { porRole: callerData.role });
+    return { senha };
   }
 );

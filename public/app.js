@@ -917,6 +917,19 @@ function fotoDoFuncionario(funcionarioId) {
   return _fotoFuncMap[funcionarioId] || null;
 }
 
+// Conta de acesso (users, role colaborador) vinculada a um funcionário, ou null. Espelha
+// o vínculo canônico da lista de usuários (subUsuarioLinha): funcionarioId OU, na falta,
+// match por código. Só serve pra saber se dá pra redefinir a senha (o uid do doc = uid Auth).
+function usuarioColabDeFuncionario(f) {
+  if (!f) return null;
+  return (state.users || []).find((u) =>
+    u.role === "colaborador" && (
+      u.funcionarioId === f.id ||
+      (u.codigo != null && f.codigo != null && String(u.codigo) === String(f.codigo))
+    )
+  ) || null;
+}
+
 // Avatar de funcionário (html string): foto quando existir, senão iniciais.
 // cls = classes existentes do site (o visual local não muda); av-foto só cobre a foto.
 function avatarFuncHtml(f, cls, styleExtra) {
@@ -11972,6 +11985,18 @@ function openFuncionarioModal(id) {
   // Só admin/RH editam o cadastro. Supervisor abre em modo leitura (vê o perfil).
   const podeEditarFunc = u && can("func.editar", u);
 
+  // Redefinir senha (v405): só quando quem edita o cadastro (func.editar) abre um funcionário
+  // existente que TEM conta de acesso vinculada. O gate REAL é server-side (Cloud Function);
+  // aqui é só UX (esconder o que não daria certo). Sem conta vinculada, o botão nem nasce.
+  const usuarioColab = (!isNew && podeEditarFunc) ? usuarioColabDeFuncionario(f) : null;
+  const resetSenhaHtml = usuarioColab ? `
+      <div class="func-perfil-secao" style="border-top:1px solid var(--border); padding-top:14px; margin-top:4px;">
+        <div class="func-perfil-secao__titulo">Acesso ao portal</div>
+        <p class="text-xs muted" style="margin:0 0 10px;">Esqueceu a senha? Gere uma temporária e informe pessoalmente.</p>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-reset-senha">${icon("lock")}<span>Redefinir senha</span></button>
+        <div id="reset-senha-slot" hidden style="margin-top:12px;"></div>
+      </div>` : "";
+
   // Form de edição (turno/setor/status). Fica dentro da aba Perfil quando editando
   // um cadastro; sozinho no corpo quando criando um novo (sem abas).
   const formEditarHtml = podeEditarFunc ? `
@@ -12020,6 +12045,7 @@ function openFuncionarioModal(id) {
           ` : ""}
         </form>
       </div>
+      ${resetSenhaHtml}
       ` : "";
 
   openModal(`
@@ -12057,6 +12083,48 @@ function openFuncionarioModal(id) {
       modal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeModal));
       if ($("#btn-save-func")) $("#btn-save-func").addEventListener("click", () => saveFuncionario(id));
       if (podeEditarFunc && !isNew && $("#btn-del-func")) $("#btn-del-func").addEventListener("click", () => deleteFuncionario(id));
+
+      // Redefinir senha do colaborador (v405). Só existe quando há conta vinculada e quem abre
+      // tem func.editar (o gate REAL é server-side). Confirmação clara → chama a callable → mostra
+      // a senha temporária num bloco copiável. withBusy com o pós-sucesso DENTRO do callback; erro
+      // FIXO no próprio modal (nunca toast fugaz).
+      const btnReset = modal.querySelector("#btn-reset-senha");
+      if (btnReset && usuarioColab) {
+        btnReset.addEventListener("click", async () => {
+          const nome = (f && f.nome) || "este colaborador";
+          const ok = await confirmar({
+            titulo: "Redefinir senha",
+            msg: `Redefinir a senha de ${nome}? Ela recebe uma senha temporária.`,
+            okLabel: "Redefinir",
+          });
+          if (!ok) return;
+          const slot = modal.querySelector("#reset-senha-slot");
+          await withBusy("reset-senha:" + usuarioColab.id, btnReset, async () => {
+            const res = (typeof window.redefinirSenhaColaborador === "function")
+              ? await window.redefinirSenhaColaborador(usuarioColab.id)
+              : { ok: false, err: "Redefinição de senha indisponível." };
+            if (!slot) return;
+            if (!res || !res.ok) {
+              slot.hidden = false;
+              slot.innerHTML = `<div class="reset-erro" role="alert">${icon("alert")}<span>${escapeHtml((res && res.err) || "Não foi possível redefinir a senha.")}</span></div>`;
+              return;
+            }
+            // pós-sucesso DENTRO do withBusy (nunca fora, senão falso-sucesso engolido)
+            slot.hidden = false;
+            slot.innerHTML = `
+              <div class="reset-ok" role="status">
+                <div class="reset-ok__t">${icon("check")}<span>Senha temporária criada</span></div>
+                <div class="reset-ok__row">
+                  <code class="reset-ok__senha">${escapeHtml(res.senha)}</code>
+                  <button type="button" class="btn btn--ghost btn--sm reset-ok__cop" id="btn-copiar-senha">${icon("clipboard")}<span data-cop-lbl>Copiar</span></button>
+                </div>
+                <p class="reset-ok__hint">Anote e informe pessoalmente. Ela vale já.</p>
+              </div>`;
+            const bc = slot.querySelector("#btn-copiar-senha");
+            if (bc) bc.addEventListener("click", () => denCopiar(res.senha, bc, "Senha copiada."));
+          });
+        });
+      }
 
       // Abas Perfil | Férias (v394): troca local, sem re-fetch (o dado já está no
       // state) e sem renderApp (o modal é overlay próprio). Entrada one-shot via
@@ -20743,7 +20811,7 @@ function closeSidebar() {
 // versão que ainda não viu. Conteúdo (CHANGELOG) carregado sob demanda.
 // DISCIPLINA: a cada mudança visível, bumpe CURRENT_VERSION + entry no changelog.js.
 // ============================================
-window.CURRENT_VERSION = "2.18.0";
+window.CURRENT_VERSION = "2.19.0";
 
 // Splash de boot: esconde a tela de abertura respeitando um tempo mínimo (pra
 // a animação da logo completar) e NUNCA prende o app. Idempotente. Chamada
