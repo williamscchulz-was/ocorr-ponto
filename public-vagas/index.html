@@ -32,13 +32,25 @@
      do fundo do hero e o texto verde-escuro some no verde-escuro */
   .hero h1 .marca { position: relative; display: inline-grid; color: #04331a; padding: 0 6px; isolation: isolate; }
   .hero h1 .marca::before { content: ""; position: absolute; inset: 8% -2% 4%; background: #FFCB00; border-radius: 8px; transform: rotate(-1.2deg); z-index: -1; }
-  .hero h1 .marca .verbo { grid-area: 1 / 1; white-space: nowrap; text-align: center; opacity: 0; transition: opacity .6s ease; }
+  .hero h1 .marca .verbo { grid-area: 1 / 1; white-space: nowrap; text-align: center; opacity: 0; position: relative; z-index: 1; transition: opacity .6s ease; }
   .hero h1 .marca .verbo.ativo { opacity: 1; }
+  /* 8 · sheen no marcador: brilho varre a caixa amarela a cada troca de verbo, clipado à forma. */
+  .hero h1 .marca .sheenbox { position: absolute; inset: 8% -2% 4%; border-radius: 8px; transform: rotate(-1.2deg); overflow: hidden; z-index: 0; pointer-events: none; }
+  .hero h1 .marca .sheen { position: absolute; top: 0; bottom: 0; left: 0; width: 45%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.6), transparent); transform: translateX(-160%) skewX(-14deg); }
   .hero p.sub { margin: 0; font-size: clamp(13px, 1.5vw, 15px); opacity: .88; line-height: 1.55; max-width: 520px; }
   .hero__acao { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
   .hero__cta { display: inline-flex; align-items: center; gap: 8px; background: #FFCB00; color: #332902; font-weight: 800; font-size: 15px; padding: 14px 24px; border-radius: 999px; text-decoration: none; box-shadow: 0 8px 24px rgba(255,203,0,.28); transition: transform .15s ease; }
   .hero__cta:hover { transform: translateY(-2px); }
   .hero__n { font-size: 13px; opacity: .8; }
+  /* 5 · contagem viva: odômetro vertical rola de 0 (1x/carga) + ponto verde respirando. */
+  .hero__n[data-viva] { display: inline-flex; align-items: center; gap: 7px; opacity: .9; }
+  .cont-dot { width: 8px; height: 8px; border-radius: 50%; background: #54e08a; flex: 0 0 auto; box-shadow: 0 0 0 0 rgba(84,224,138,.45); animation: contbreathe 3.8s ease-in-out infinite; }
+  .cont-odo { display: inline-flex; height: 18px; overflow: hidden; }
+  .cont-col { display: inline-block; height: 18px; overflow: hidden; }
+  .cont-tr { display: flex; flex-direction: column; }
+  .cont-tr span { height: 18px; line-height: 18px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
+  @keyframes contbreathe { 0%, 100% { transform: scale(1); opacity: .9; box-shadow: 0 0 0 0 rgba(84,224,138,.45); } 50% { transform: scale(1.35); opacity: 1; box-shadow: 0 0 0 5px rgba(84,224,138,0); } }
 
   /* ===== COMO FUNCIONA: os 3 passos numa linha compacta que monta sobre a borda do herói ===== */
   .passos-linha { max-width: 1060px; margin: -20px auto 0; padding: 0 26px; position: relative; }
@@ -73,6 +85,13 @@
   .cfoot .bn { color: #2f6b3f; font-weight: 600; }
   .cfoot .go { margin-left: auto; color: #008835; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
   .cfoot .go svg { width: 13px; height: 13px; }
+  /* 2 · costura no hover: borda pontilhada que caminha só com hover real (touch não simula). */
+  .vcompact .stitch { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+  .vcompact .stitch rect { fill: none; stroke: #008835; stroke-width: 1.6; stroke-dasharray: 7 5; stroke-linecap: round; opacity: 0; transition: opacity .18s ease; }
+  @media (hover: hover) {
+    .vcompact:hover .stitch rect { opacity: .9; animation: vmarch 1.1s linear infinite; }
+  }
+  @keyframes vmarch { to { stroke-dashoffset: -48; } }
 
   .cta { display: inline-flex; align-items: center; gap: 8px; background: #008835; color: #fff; border: 0; font: 700 13.5px "Poppins", sans-serif; padding: 12px 18px; border-radius: 999px; cursor: pointer; text-decoration: none; transition: background .15s ease, transform .15s ease; }
   .cta:hover { background: #0b6e33; transform: translateY(-1px); }
@@ -152,6 +171,8 @@
   @media (prefers-reduced-motion: reduce) {
     .vcompact, .cta, .hero__cta, .vp-share, .vp-share-msg { transition: none; }
     .hero h1 .marca .verbo { transition: none; }
+    .cont-dot { animation: none; transform: scale(1); opacity: 1; }
+    .vcompact .stitch rect { animation: none; transition: none; }
   }
   /* Botão flutuante do WhatsApp (criado por JS só quando a GP cadastrou o número) */
   .zapfab { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); z-index: 90;
@@ -163,7 +184,7 @@
 
   /* ===== CANDIDATURA COMPLETA (4 etapas · dentro do dialog) ===== */
   dialog.candidatura { --verde: #008835; --verde-esc: #04331a; --amarelo: #FFCB00; --azul: #0076BE;
-    --ink: #1d2a19; --muted: #68716a; --borda: #d8ded0; --ease-ios: cubic-bezier(.32,.72,.28,1); }
+    --ink: #1d2a19; --muted: #68716a; --borda: #d8ded0; --ease-ios: cubic-bezier(.32,.72,.28,1); --spring: cubic-bezier(.34,1.32,.5,1); }
   dialog.candidatura[open] { display: flex; flex-direction: column; }
   .candidatura .cand__head { flex: 0 0 auto; padding: 16px 20px 12px; }
   .candidatura .cand__headrow { display: flex; align-items: center; gap: 10px; padding-right: 30px; }
@@ -181,11 +202,22 @@
   .candidatura .step-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
   .candidatura .step-count { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.75); letter-spacing: .04em; }
   .candidatura .step-name { font-size: 12px; font-weight: 600; color: #fff; }
-  .candidatura .step-bar { display: flex; gap: 5px; }
-  .candidatura .step-seg { flex: 1; height: 4px; border-radius: 999px; background: rgba(255,255,255,.24); overflow: hidden; }
-  .candidatura .step-seg i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--amarelo); transition: width .5s var(--ease-ios); }
-  .candidatura .step-seg.done i { width: 100%; }
-  .candidatura .step-seg.now i { width: 100%; background: #fff; }
+  /* 6 · stepper de linha: trilho de nós; concluído = nó amarelo com check, atual = aro. */
+  .candidatura .step-bar { display: flex; align-items: center; }
+  .candidatura .stp-node { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    position: relative; background: rgba(255,255,255,.16); border: 2px solid rgba(255,255,255,.28);
+    transition: background .3s, border-color .3s, transform .3s var(--spring); }
+  .candidatura .stp-node b { font-size: 11.5px; font-weight: 800; color: rgba(255,255,255,.8); transition: opacity .2s; }
+  .candidatura .stp-node svg { position: absolute; width: 15px; height: 15px; opacity: 0; }
+  .candidatura .stp-node svg path { fill: none; stroke: var(--verde-esc); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 26; stroke-dashoffset: 26; }
+  .candidatura .stp-node.now { border-color: #fff; background: rgba(255,255,255,.28); transform: scale(1.08); }
+  .candidatura .stp-node.done { background: var(--amarelo); border-color: var(--amarelo); }
+  .candidatura .stp-node.done b { opacity: 0; }
+  .candidatura .stp-node.done svg { opacity: 1; }
+  .candidatura .stp-node.done svg path { stroke-dashoffset: 0; transition: stroke-dashoffset .42s var(--ease-ios); }
+  .candidatura .stp-conn { flex: 1; height: 4px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden; margin: 0 -1px; }
+  .candidatura .stp-conn i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--amarelo); transition: width .5s var(--ease-ios); }
+  .candidatura .stp-conn.fill i { width: 100%; }
 
   /* corpo · flex fill entre head e foot */
   .candidatura .cand__body { flex: 1 1 auto; min-height: 0; max-height: none; padding: 18px 22px 6px; }
@@ -234,6 +266,19 @@
   .candidatura .cv-ok { margin-top: 14px; font-size: 11.5px; color: var(--verde); display: none; align-items: center; gap: 6px; justify-content: center; }
   .candidatura .cv-ok.on { display: flex; }
   .candidatura .cv-ok svg { width: 14px; height: 14px; }
+  /* 4 · o tear no upload: a lançadeira tece a barra até 100% e assenta no chip com o check. */
+  .candidatura .cv-prog { margin-top: 14px; display: none; }
+  .candidatura .cv-prog.on { display: block; }
+  .candidatura .cv-progtop { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+  .candidatura .cv-progtop small { font-size: 11px; font-weight: 600; color: var(--muted); }
+  .candidatura .cv-progtop b { font-size: 12px; font-weight: 700; color: var(--verde); font-variant-numeric: tabular-nums; }
+  .candidatura .cv-track { position: relative; height: 12px; border-radius: 999px; background: #e6ece1; overflow: hidden; }
+  .candidatura .cv-fill { position: absolute; top: 0; left: 0; bottom: 0; width: 0; border-radius: 999px; background: var(--verde);
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.28) 0 2px, transparent 2px 7px); }
+  .candidatura .cv-shuttle { position: absolute; top: 50%; left: 0; width: 18px; height: 18px; margin-top: -9px; border-radius: 5px;
+    background: linear-gradient(135deg, #ffe27a, var(--amarelo)); box-shadow: 0 2px 6px -1px rgba(160,120,0,.6); opacity: 0; z-index: 2; }
+  .candidatura .cv-ok svg polyline { stroke-dasharray: 24; stroke-dashoffset: 24; }
+  .candidatura .cv-ok.drawn svg polyline { stroke-dashoffset: 0; transition: stroke-dashoffset .4s var(--ease-ios); }
 
   /* DISC */
   .candidatura .disc-top { margin-bottom: 15px; }
@@ -245,15 +290,20 @@
   .candidatura .disc-qs { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
   .candidatura .disc-opt { display: block; width: 100%; text-align: left; border: 1.5px solid var(--borda); background: #fff;
     border-radius: 14px; padding: 14px 15px; margin-bottom: 10px; font: 500 13.5px/1.4 "Poppins", sans-serif; color: var(--ink);
-    cursor: pointer; position: relative; transition: border-color .15s, background .15s, transform .12s var(--ease-ios); }
+    cursor: pointer; position: relative; overflow: hidden; transition: border-color .15s, color .15s, transform .12s var(--ease-ios); }
   .candidatura .disc-opt:hover { border-color: #bcd8c6; }
   .candidatura .disc-opt:active { transform: scale(.985); }
-  .candidatura .disc-opt .ot { display: block; }
-  .candidatura .disc-opt.most { border-color: var(--verde); background: #00883510; font-weight: 600; }
-  .candidatura .disc-opt.least { border-color: #cdd4c7; background: #eef0ea; color: #7a8170; }
+  /* 3 · tingimento na seleção: a cor inunda do ponto do toque (clip-path em --mx/--my). */
+  .candidatura .disc-opt .dye { position: absolute; inset: 0; z-index: 0; clip-path: circle(0% at var(--mx,50%) var(--my,50%)); transition: clip-path .42s var(--spring); }
+  .candidatura .disc-opt .ot { display: block; position: relative; z-index: 1; }
+  .candidatura .disc-opt.most { border-color: var(--verde); font-weight: 600; }
+  .candidatura .disc-opt.most .dye { background: #d0edd9; }
+  .candidatura .disc-opt.least { border-color: #cdd4c7; color: #5f6857; }
+  .candidatura .disc-opt.least .dye { background: #e6e9e0; }
+  .candidatura .disc-opt.most .dye, .candidatura .disc-opt.least .dye { clip-path: circle(150% at var(--mx,50%) var(--my,50%)); }
   .candidatura .disc-opt.locked, .candidatura .disc-opt:disabled { cursor: default; }
   .candidatura .disc-opt.most .ot, .candidatura .disc-opt.least .ot { padding-right: 60px; }
-  .candidatura .obadge { position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
+  .candidatura .obadge { position: absolute; top: 50%; right: 12px; z-index: 1; transform: translateY(-50%);
     font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: .05em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; }
   .candidatura .obadge.b-most { background: var(--verde); color: #fff; }
   .candidatura .obadge.b-least { background: #b6bfad; color: #fff; }
@@ -298,14 +348,9 @@
     backdrop-filter: blur(7px); opacity: 0; pointer-events: none; transition: opacity .3s; padding: 24px; }
   .candidatura .cer.on { opacity: 1; pointer-events: auto; }
   .candidatura .cer-in { text-align: center; }
-  .candidatura .ring { position: relative; width: 96px; height: 96px; margin: 0 auto 20px; }
-  .candidatura .ring svg.r { width: 96px; height: 96px; transform: rotate(-90deg); }
-  .candidatura .ring .trk { fill: none; stroke: #dfe4dc; stroke-width: 5; }
-  .candidatura .ring .arc { fill: none; stroke: var(--verde); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 276; stroke-dashoffset: 276; }
-  .candidatura .ring .ck { position: absolute; inset: 0; display: grid; place-items: center; }
-  .candidatura .ring .ck svg { width: 44px; height: 44px; }
-  .candidatura .ring .ck path { fill: none; stroke: var(--verde); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 48; stroke-dashoffset: 48; }
-  .candidatura .pulse { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid #00883555; opacity: 0; }
+  /* 7 · cerimônia em pico: o ECG do FioPulse se desenha (~900ms), depois o texto em cascata. */
+  .candidatura .cer-ecg { width: min(280px, 82%); height: 66px; display: block; margin: 0 auto 10px; }
+  .candidatura .cer-ecg polyline { fill: none; stroke: var(--verde); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
   .candidatura .cer-t { font-size: 19px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
   .candidatura .cer-s { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.55; max-width: 250px; margin-left: auto; margin-right: auto; }
   .candidatura .cer .cta { width: auto; padding: 12px 26px; margin-top: 22px; }
@@ -314,11 +359,10 @@
   @keyframes candsp { to { transform: rotate(360deg); } }
   @keyframes candpop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   @keyframes candfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  @keyframes candarco { to { stroke-dashoffset: 0; } }
-  @keyframes candtick { to { stroke-dashoffset: 0; } }
-  @keyframes candpuls { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) {
-    .candidatura .step-seg i, .candidatura .disc-prog i, .candidatura .cer, .candidatura .cv-chip { transition: none; animation: none; }
+    .candidatura .stp-conn i, .candidatura .stp-node, .candidatura .stp-node.done svg path,
+    .candidatura .disc-prog i, .candidatura .disc-opt .dye, .candidatura .cer, .candidatura .cv-chip,
+    .candidatura .cv-fill, .candidatura .cv-ok.drawn svg polyline { transition: none; animation: none; }
   }
 
   /* ===== Gente no Coração: selo no herói ===== */
@@ -477,6 +521,77 @@
   @media (prefers-reduced-motion: reduce) {
     .candidatura .cta__spin { animation: none; }
   }
+
+  /* ===== Seletor de país no WhatsApp (variante A compacta) + canal preferido de aviso ===== */
+  .candidatura .phone-wrap { position: relative; }
+  .candidatura .phone { display: flex; align-items: stretch; border: 1.5px solid var(--borda); border-radius: 12px; background: #fff; transition: border-color .15s, box-shadow .15s; }
+  .candidatura .phone:focus-within { border-color: var(--verde); box-shadow: 0 0 0 3px #00883521; }
+  .candidatura .field.err .phone { border-color: #d64545; }
+  .candidatura .field.err .phone:focus-within { box-shadow: 0 0 0 3px #d6454522; }
+  .candidatura .phone__prefix { display: inline-flex; align-items: center; gap: 7px; border: 0; border-right: 1.5px solid var(--borda); border-radius: 12px 0 0 12px; background: transparent; padding: 0 9px 0 12px; cursor: pointer; font: 600 14px "Poppins", sans-serif; color: var(--ink); flex: 0 0 auto; min-height: 46px; }
+  .candidatura .phone__prefix:focus-visible { outline: 2px solid var(--verde); outline-offset: -2px; }
+  .candidatura .phone__prefix .dial { font-variant-numeric: tabular-nums; }
+  .candidatura .phone__prefix .chev { width: 8px; height: 8px; border-right: 2px solid #7c8676; border-bottom: 2px solid #7c8676; transform: translateY(-2px) rotate(45deg); margin-left: 1px; transition: transform .2s var(--ease-ios); }
+  .candidatura .phone.open .phone__prefix .chev { transform: translateY(1px) rotate(-135deg); }
+  .candidatura .phone__num { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; border-radius: 0 12px 12px 0; padding: 11px 13px; font: 500 14.5px "Poppins", sans-serif; color: var(--ink); }
+  .candidatura .phone__num:focus { outline: none; box-shadow: none; border: 0; }
+  .candidatura .phone__num::placeholder { color: #a9b0a5; }
+  .candidatura .flag { width: 22px; height: 15px; border-radius: 3px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0,0,0,.10); display: inline-block; flex: 0 0 auto; }
+  .candidatura .flagsvg { display: block; width: 100%; height: 100%; }
+  .candidatura .flag--fb { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); background: linear-gradient(135deg, #eef1ea, #dde4d6); color: #55604f; display: grid; place-items: center; font: 700 8px "Poppins", sans-serif; }
+  .candidatura .flag--globe { box-shadow: none; background: transparent; display: grid; place-items: center; }
+  .candidatura .flag--globe svg { width: 18px; height: 18px; color: var(--verde); }
+  .candidatura .phone__pop { position: absolute; top: calc(100% + 7px); left: 0; right: 0; z-index: 40; background: #fff; border: 1px solid #e2e6dc; border-radius: 15px; box-shadow: 0 20px 48px -14px rgba(4,51,26,.34); overflow: hidden; display: none; }
+  .candidatura .phone__pop.on { display: block; animation: popin .17s var(--ease-ios); }
+  @keyframes popin { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .candidatura .phone__handle { display: none; }
+  .candidatura .phone__search { padding: 11px 12px; border-bottom: 1px solid #eef0ea; position: relative; }
+  .candidatura .phone__search svg { position: absolute; left: 22px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: #9aa392; pointer-events: none; }
+  .candidatura .phone__search input { width: 100%; border: 1.5px solid var(--borda); border-radius: 10px; padding: 9px 12px 9px 34px; font: 500 13.5px "Poppins", sans-serif; color: var(--ink); background: #fbfcf9; }
+  .candidatura .phone__search input:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px #00883518; background: #fff; }
+  .candidatura .phone__list { list-style: none; margin: 0; padding: 5px; max-height: 240px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .candidatura .phone__list li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; cursor: pointer; font-size: 13.5px; }
+  .candidatura .phone__list li .nm { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-weight: 500; }
+  .candidatura .phone__list li .dd { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+  .candidatura .phone__list li .ck { width: 15px; height: 15px; color: var(--verde); flex: 0 0 auto; opacity: 0; }
+  .candidatura .phone__list li.sel .ck { opacity: 1; }
+  .candidatura .phone__list li.active { background: #eef6f0; }
+  .candidatura .phone__list li.other { border-top: 1px solid #eef0ea; border-radius: 0; margin-top: 4px; color: var(--verde); font-weight: 600; }
+  .candidatura .phone__list li.other .lbl { flex: 1; }
+  .candidatura .phone__list li.other .arr { width: 14px; height: 14px; color: #9aa392; }
+  .candidatura .phone__empty { padding: 20px 12px; text-align: center; font-size: 12.5px; color: var(--muted); display: none; }
+  .candidatura .phone__empty.on { display: block; }
+  .candidatura .phone__other { display: none; padding: 14px 14px 16px; }
+  .candidatura .phone__other.on { display: block; }
+  .candidatura .phone__other .ol { font-size: 12px; font-weight: 600; color: #384a32; margin-bottom: 4px; }
+  .candidatura .phone__other .oh { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 0 0 12px; }
+  .candidatura .phone__other .orow { display: flex; gap: 8px; }
+  .candidatura .phone__ddi { display: flex; align-items: center; flex: 1 1 auto; min-width: 0; border: 1.5px solid var(--borda); border-radius: 11px; background: #fbfcf9; padding-left: 12px; }
+  .candidatura .phone__ddi:focus-within { border-color: var(--verde); box-shadow: 0 0 0 3px #00883518; background: #fff; }
+  .candidatura .phone__ddi .plus { font-weight: 700; color: var(--muted); font-size: 15px; }
+  .candidatura .phone__ddi input { border: 0; background: transparent; padding: 10px 8px; font: 600 15px "Poppins", sans-serif; color: var(--ink); width: 100%; min-width: 0; font-variant-numeric: tabular-nums; }
+  .candidatura .phone__ddi input:focus { outline: none; box-shadow: none; }
+  .candidatura .phone__other .ouse { flex: 0 0 auto; border: 0; background: var(--verde); color: #fff; font: 700 12.5px "Poppins", sans-serif; border-radius: 11px; padding: 0 16px; cursor: pointer; }
+  .candidatura .phone__other .ouse:disabled { opacity: .5; cursor: default; }
+  .candidatura .phone__other .oback { background: none; border: 0; color: var(--muted); font: 600 12px "Poppins", sans-serif; cursor: pointer; padding: 10px 0 0; display: inline-flex; align-items: center; gap: 5px; }
+  .candidatura .phone__other .oback svg { width: 12px; height: 12px; }
+  .candidatura .phone__backdrop { display: none; }
+  .candidatura .seg--canal { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .candidatura .seg--canal button { min-width: 0; padding: 9px 6px; font-size: 12px; text-align: center; line-height: 1.25; }
+  @media (max-width: 560px) {
+    .candidatura .phone__pop { position: fixed; left: 0; right: 0; bottom: 0; top: auto; border-radius: 20px 20px 0 0; max-height: 82vh; z-index: 120; box-shadow: 0 -12px 40px -8px rgba(4,51,26,.3); }
+    .candidatura .phone__pop.on { animation: sheetup .3s var(--ease-ios); }
+    @keyframes sheetup { from { transform: translateY(100%); } to { transform: none; } }
+    .candidatura .phone__handle { display: block; width: 38px; height: 4px; border-radius: 999px; background: #d4dbcd; margin: 9px auto 4px; }
+    .candidatura .phone__list { max-height: 54vh; }
+    .candidatura .phone__backdrop { position: fixed; inset: 0; background: rgba(4,26,15,.42); z-index: 119; border: 0; padding: 0; }
+    .candidatura .phone__backdrop.on { display: block; animation: fadein .25s ease; }
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .candidatura .phone__pop.on, .candidatura .phone__backdrop.on { animation: none !important; }
+    .candidatura .phone__prefix .chev, .candidatura .phone { transition: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -493,7 +608,7 @@
       <a href="#vagas">Ver as vagas</a>
     </div>
     <span class="selo-gc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 21 C 4.5 21.8 6.5 20 8.5 19.6 C 10 19.3 11.2 19.4 12 18.6 C 5.8 13.6 3.2 9.6 5.6 6.6 C 7.6 4.3 10.8 5.1 12 8 C 13.2 5.1 16.4 4.3 18.4 6.6 C 20.8 9.6 18.2 13.6 12 18.6"/></svg>Gente no Coração</span>
-    <h1>Venha <span class="marca"><span class="verbo ativo">fiar</span><span class="verbo">tingir</span><span class="verbo">tecer</span></span> o seu futuro com a gente</h1>
+    <h1>Venha <span class="marca"><span class="sheenbox"><span class="sheen" id="heroSheen"></span></span><span class="verbo ativo">fiar</span><span class="verbo">tingir</span><span class="verbo">tecer</span></span> o seu futuro com a gente</h1>
     <p class="sub">Na Fiobras, acreditamos que grandes resultados são construídos por pessoas.</p>
     <div class="hero__acao">
       <a class="hero__cta" href="#vagas">Ver vagas abertas</a>
@@ -575,7 +690,17 @@
     <div class="cand__stepper">
       <div class="step-line"><span class="step-count" id="stepCount">Etapa 1 de 6</span><span class="step-name" id="stepName">Dados pessoais</span></div>
       <div class="step-bar" id="stepBar">
-        <span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span><span class="step-seg"><i></i></span>
+        <span class="stp-node"><b>1</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span class="stp-conn"><i></i></span>
+        <span class="stp-node"><b>2</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span class="stp-conn"><i></i></span>
+        <span class="stp-node"><b>3</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span class="stp-conn"><i></i></span>
+        <span class="stp-node"><b>4</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span class="stp-conn"><i></i></span>
+        <span class="stp-node"><b>5</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <span class="stp-conn"><i></i></span>
+        <span class="stp-node"><b>6</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
       </div>
     </div>
   </div>
@@ -681,8 +806,42 @@
       <div class="grp">Contato</div>
       <div class="field" id="cf-zap">
         <label for="ci-zap">WhatsApp</label>
-        <input id="ci-zap" type="tel" maxlength="20" placeholder="(47) 9 9999-9999" autocomplete="tel" inputmode="tel">
+        <div class="phone-wrap" id="zapWrap">
+          <div class="phone">
+            <button type="button" class="phone__prefix" id="zapPrefix" aria-haspopup="listbox" aria-expanded="false" aria-label="Escolher país">
+              <span class="pf-flag"></span><span class="dial"></span><span class="chev"></span>
+            </button>
+            <input id="ci-zap" class="phone__num" type="tel" inputmode="numeric" maxlength="20" autocomplete="tel" placeholder="47 99999-9999">
+          </div>
+          <div class="phone__backdrop" id="zapBackdrop" hidden></div>
+          <div class="phone__pop" id="zapPop" role="dialog" aria-label="Escolha o país">
+            <div class="phone__handle"></div>
+            <div class="phone__search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2" stroke-linecap="round"/></svg>
+              <input type="text" id="zapBusca" placeholder="Buscar país ou código" aria-label="Buscar país ou código">
+            </div>
+            <ul class="phone__list" id="zapList" role="listbox" aria-label="Países"></ul>
+            <div class="phone__empty" id="zapEmpty">Nenhum país encontrado.</div>
+            <div class="phone__other" id="zapOther">
+              <div class="ol">Código do país (DDI)</div>
+              <p class="oh">Digite o código internacional. Ex.: Angola 244, Estados Unidos 1.</p>
+              <div class="orow">
+                <div class="phone__ddi"><span class="plus">+</span><input type="text" id="zapDdi" inputmode="numeric" maxlength="4" placeholder="244" aria-label="Código do país"></div>
+                <button type="button" class="ouse" id="zapUsar" disabled>Usar</button>
+              </div>
+              <button type="button" class="oback" id="zapVoltarLista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>Voltar à lista</button>
+            </div>
+          </div>
+        </div>
         <div class="msg">Informe um número válido com DDD.</div>
+      </div>
+      <div class="field" id="cf-canal">
+        <label id="canalLabel">Como prefere ser avisado?</label>
+        <div class="seg seg--canal" id="seg-canal" role="group" aria-labelledby="canalLabel">
+          <button type="button" class="on" data-val="ambos">E-mail e WhatsApp</button>
+          <button type="button" data-val="email">Só e-mail</button>
+          <button type="button" data-val="whatsapp">Só WhatsApp</button>
+        </div>
       </div>
       <div class="field" id="cf-mail">
         <label for="ci-mail">E-mail</label>
@@ -759,6 +918,10 @@
       </div>
       <input type="file" id="cvInput" accept="application/pdf" hidden>
       <div class="cv-erro" id="cvErro"></div>
+      <div class="cv-prog" id="cvProg">
+        <div class="cv-progtop"><small>Tecendo o envio</small><b id="cvPct">0%</b></div>
+        <div class="cv-track"><div class="cv-fill" id="cvFill"></div><div class="cv-shuttle" id="cvShuttle"></div></div>
+      </div>
       <div class="cv-chip" id="cvChip">
         <div class="pdf"><b>PDF</b></div>
         <div class="meta"><b id="cvNome">curriculo.pdf</b><span id="cvTam"></span></div>
@@ -845,13 +1008,11 @@
 
   <div class="cer" id="cer">
     <div class="cer-in">
-      <div class="ring">
-        <span class="pulse" id="cPulse"></span>
-        <svg class="r" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="44"/><circle class="arc" id="cArc" cx="50" cy="50" r="44"/></svg>
-        <span class="ck"><svg viewBox="0 0 46 46"><path id="cTick" d="M13 24 L20.5 31.5 L33 16"/></svg></span>
-      </div>
-      <div class="cer-t">Candidatura enviada</div>
-      <div class="cer-s">A Gestão de Pessoas já recebeu tudo e vai analisar. Boa sorte!</div>
+      <svg class="cer-ecg" id="cerEcg" viewBox="0 0 300 70" aria-hidden="true">
+        <polyline id="cerLine" points="4,40 96,40 116,40 128,40 138,18 150,58 162,8 176,62 188,40 204,40 296,40"/>
+      </svg>
+      <div class="cer-t" id="cerT">Candidatura enviada</div>
+      <div class="cer-s" id="cerS">A Gestão de Pessoas já recebeu tudo e vai analisar. Boa sorte!</div>
       <button type="button" class="cta" id="cerFechar">Fechar</button>
     </div>
   </div>
@@ -879,6 +1040,7 @@
   var VAGAS = {};
   var pageVagaId = "", pageVagaTitulo = "", pageAberta = false, veioDeLista = false;
   var SITE_HOST = "https://vagas.fiobras.com.br";
+  var contagemRolou = false;
 
   if (!window.FIREBASE_CONFIG) {
     lista.innerHTML = '<p class="vazio">Página em manutenção. Tente de novo mais tarde.</p>';
@@ -929,8 +1091,7 @@
       }
       VAGAS = {};
       vagas.forEach(function (v) { VAGAS[v.id] = v; });
-      contagem.hidden = false;
-      contagem.textContent = vagas.length + (vagas.length === 1 ? " vaga aberta agora" : " vagas abertas agora");
+      pintarContagem(vagas.length);
       listlabel.hidden = false;
       listlabel.innerHTML = "<b>" + vagas.length + (vagas.length === 1 ? " vaga</b> aberta agora" : " vagas</b> abertas agora");
       // Card COMPACTO (ideia B): título, chips, resumo de 1 linha e rodapé. O corpo completo
@@ -949,7 +1110,9 @@
           '<h3>' + esc(v.titulo) + "</h3>" +
           (tags ? '<div class="tags">' + tags + "</div>" : "") +
           (resumo ? '<p class="rsum">' + resumo + "</p>" : "") +
-          '<div class="cfoot">' + benTxt + go + "</div></article>";
+          '<div class="cfoot">' + benTxt + go + "</div>" +
+          '<svg class="stitch" viewBox="0 0 320 150" preserveAspectRatio="none" aria-hidden="true"><rect x="1.2" y="1.2" width="317.6" height="147.6" rx="15" ry="15"/></svg>' +
+          "</article>";
       }).join("");
       ativarGlare();
       // Link direto: com #vaga=<id> válido, abre a página daquela vaga na hora;
@@ -976,6 +1139,30 @@
       a.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
       document.body.appendChild(a);
     }).catch(function () { /* sem config, sem botão */ });
+  }
+
+  // 5 · odômetro que rola de 0 até n (1x/carga, guardado por contagemRolou) + dot respirando;
+  // n<1 mantém "#contagem" escondido e nada roda. O respiro do dot é o único loop permitido.
+  function pintarContagem(n) {
+    if (!n || n < 1) { contagem.hidden = true; return; }
+    var label = (n === 1 ? " vaga aberta agora" : " vagas abertas agora");
+    var cols = String(n).split("").map(function (d) {
+      var col = '<span class="cont-col"><span class="cont-tr" data-d="' + d + '">';
+      for (var k = 0; k <= 9; k++) col += "<span>" + k + "</span>";
+      return col + "</span></span>";
+    }).join("");
+    contagem.innerHTML = '<span class="cont-dot"></span><span class="cont-odo">' + cols + "</span>" + label;
+    contagem.setAttribute("data-viva", "1");
+    contagem.hidden = false;
+    var H = 18, trs = contagem.querySelectorAll(".cont-tr");
+    var estatico = contagemRolou || reduzMov || !("animate" in Element.prototype);
+    contagemRolou = true;
+    Array.prototype.forEach.call(trs, function (tr, i) {
+      var alvo = -parseInt(tr.getAttribute("data-d"), 10) * H;
+      if (estatico) { tr.style.transform = "translateY(" + alvo + "px)"; return; }
+      tr.animate([{ transform: "translateY(0)" }, { transform: "translateY(" + alvo + "px)" }],
+        { duration: 520 + i * 90, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" });
+    });
   }
 
   // E · brilho diagonal 1x por card: um IntersectionObserver dispara o glare quando o card
@@ -1021,10 +1208,10 @@
   var PANE_STEP = [1, 1, 2, 3, 4, 5, 6];
   var paneIdx = 0;
   var cvFile = null, cvEstado = "", discIdx = 0, pos = 0;
-  var discResp = [], ordemGrupos = null, discResult = null, lgpdOn = false, cerTimer = null;
+  var discResp = [], ordemGrupos = null, discResult = null, lgpdOn = false, cerTimer = null, cerLen = 0;
   // Dados que não moram no DOM entre navegações da ficha.
   var experiencias = [], expMode = "list", expEditIdx = null, primeiroEmprego = false;
-  var temFilhos = false, filhosCount = 1, comoViria = "", conheceAlguem = false;
+  var temFilhos = false, filhosCount = 1, comoViria = "", conheceAlguem = false, canalPreferido = "ambos";
   var MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
   // Os 8 grupos do teste (uma frase por dimensão D/I/S/C). Formato "mais e menos":
@@ -1045,6 +1232,142 @@
 
   // limite superior do date picker = hoje (sem nascimento no futuro)
   try { $c("ci-nasc").max = new Date().toISOString().slice(0, 10); } catch (e) {}
+  // 7 · mede o traço do ECG uma vez; nasce "não desenhado" (offset = comprimento total).
+  try { cerLen = $c("cerLine").getTotalLength(); $c("cerLine").style.strokeDasharray = cerLen; $c("cerLine").style.strokeDashoffset = cerLen; } catch (e) { cerLen = 0; }
+
+  // ===== Seletor de país no WhatsApp (variante A compacta do mock aprovado). Bandeiras em SVG
+  // desenhado (SEM emoji, pega do Windows). Valor gravado: Brasil = número local como hoje
+  // (retrocompat com o funil e a regra que compara telefone exato); outro país = "+DDI número". =====
+  function zapStar(cx, cy, r) {
+    var pts = [], inner = r * 0.42;
+    for (var i = 0; i < 10; i++) { var rad = (i % 2) ? inner : r, a = Math.PI / 5 * i - Math.PI / 2; pts.push((cx + rad * Math.cos(a)).toFixed(2) + "," + (cy + rad * Math.sin(a)).toFixed(2)); }
+    return pts.join(" ");
+  }
+  var zapUSA = '<rect width="24" height="16" fill="#b22234"/>';
+  for (var zs = 1; zs < 13; zs += 2) zapUSA += '<rect y="' + (zs * 16 / 13).toFixed(2) + '" width="24" height="' + (16 / 13).toFixed(2) + '" fill="#fff"/>';
+  zapUSA += '<rect width="10" height="' + (7 * 16 / 13).toFixed(2) + '" fill="#3c3b6e"/>';
+  for (var zry = 0; zry < 3; zry++) for (var zrx = 0; zrx < 3; zrx++) zapUSA += '<circle cx="' + (2 + zrx * 3) + '" cy="' + (1.6 + zry * 2.7) + '" r=".55" fill="#fff"/>';
+  var zapCHINA = '<rect width="24" height="16" fill="#de2910"/><polygon points="' + zapStar(5, 4.4, 2.7) + '" fill="#ffde00"/>';
+  var zapSmalls = [[9.6, 1.9], [11.4, 3.5], [11.4, 5.9], [9.6, 7.5]];
+  for (var zk = 0; zk < zapSmalls.length; zk++) zapCHINA += '<polygon points="' + zapStar(zapSmalls[zk][0], zapSmalls[zk][1], .95) + '" fill="#ffde00"/>';
+  var ZFLAGS = {
+    BR: '<rect width="24" height="16" fill="#009b3a"/><polygon points="12,1.6 22.4,8 12,14.4 1.6,8" fill="#fedf00"/><circle cx="12" cy="8" r="3.3" fill="#002776"/><path d="M8.9 7.3a6 6 0 0 1 6.2 .5" stroke="#fff" stroke-width=".5" fill="none"/>',
+    HT: '<rect width="24" height="8" fill="#00209f"/><rect y="8" width="24" height="8" fill="#d21034"/><rect x="9.5" y="5.5" width="5" height="5" fill="#fff"/>',
+    VE: '<rect width="24" height="16" fill="#cf142b"/><rect width="24" height="10.7" fill="#00247d"/><rect width="24" height="5.3" fill="#ffcc00"/><circle cx="10" cy="9.4" r=".5" fill="#fff"/><circle cx="12" cy="9.7" r=".5" fill="#fff"/><circle cx="14" cy="9.4" r=".5" fill="#fff"/>',
+    AR: '<rect width="24" height="16" fill="#75aadb"/><rect y="5.33" width="24" height="5.34" fill="#fff"/><circle cx="12" cy="8" r="1.5" fill="#f6b40e"/>',
+    PY: '<rect width="24" height="16" fill="#0038a8"/><rect width="24" height="10.67" fill="#fff"/><rect width="24" height="5.33" fill="#d52b1e"/>',
+    UY: '<rect width="24" height="16" fill="#fff"/><rect y="3.2" width="24" height="1.7" fill="#0038a8"/><rect y="6.4" width="24" height="1.7" fill="#0038a8"/><rect y="9.6" width="24" height="1.7" fill="#0038a8"/><rect y="12.8" width="24" height="1.7" fill="#0038a8"/><rect width="10" height="8.1" fill="#fff"/><circle cx="5" cy="4" r="1.9" fill="#fcd116"/>',
+    BO: '<rect width="24" height="16" fill="#007934"/><rect width="24" height="10.67" fill="#f9e300"/><rect width="24" height="5.33" fill="#d52b1e"/>',
+    PE: '<rect width="24" height="16" fill="#fff"/><rect width="8" height="16" fill="#d91023"/><rect x="16" width="8" height="16" fill="#d91023"/>',
+    CO: '<rect width="24" height="16" fill="#fcd116"/><rect y="8" width="24" height="4" fill="#003893"/><rect y="12" width="24" height="4" fill="#ce1126"/>',
+    CL: '<rect width="24" height="16" fill="#fff"/><rect y="8" width="24" height="8" fill="#d52b1e"/><rect width="8" height="8" fill="#0039a6"/><polygon points="' + zapStar(4, 4, 2.2) + '" fill="#fff"/>',
+    EC: '<rect width="24" height="16" fill="#ffdd00"/><rect y="8" width="24" height="4" fill="#034ea2"/><rect y="12" width="24" height="4" fill="#ed1c24"/>',
+    PT: '<rect width="24" height="16" fill="#da291c"/><rect width="9.4" height="16" fill="#006233"/><circle cx="9.4" cy="8" r="2.3" fill="#ffcb00"/><circle cx="9.4" cy="8" r="1.1" fill="#fff"/><circle cx="9.4" cy="8" r=".5" fill="#da291c"/>',
+    US: zapUSA,
+    ES: '<rect width="24" height="16" fill="#c60b1e"/><rect y="4" width="24" height="8" fill="#ffc400"/>',
+    DE: '<rect width="24" height="16" fill="#000"/><rect y="5.33" width="24" height="5.34" fill="#dd0000"/><rect y="10.67" width="24" height="5.33" fill="#ffce00"/>',
+    IT: '<rect width="24" height="16" fill="#fff"/><rect width="8" height="16" fill="#008c45"/><rect x="16" width="8" height="16" fill="#cd212a"/>',
+    FR: '<rect width="24" height="16" fill="#fff"/><rect width="8" height="16" fill="#0055a4"/><rect x="16" width="8" height="16" fill="#ef4135"/>',
+    AO: '<rect width="24" height="16" fill="#000"/><rect width="24" height="8" fill="#cc092f"/><circle cx="12" cy="8" r="2.2" fill="#ffcb00"/><circle cx="12" cy="8" r="1.1" fill="#000"/>',
+    MZ: '<rect width="24" height="16" fill="#009639"/><rect y="10.6" width="24" height="5.4" fill="#ffd100"/><rect y="5" width="24" height=".6" fill="#fff"/><rect y="5.6" width="24" height="5" fill="#000"/><rect y="10.5" width="24" height=".6" fill="#fff"/><polygon points="0,0 9,8 0,16" fill="#d21034"/>',
+    JP: '<rect width="24" height="16" fill="#fff"/><circle cx="12" cy="8" r="4.3" fill="#bc002d"/>',
+    CN: zapCHINA,
+  };
+  var ZGLOBE = '<span class="flag flag--globe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg></span>';
+  function zapFlagHtml(iso) { return ZFLAGS[iso] ? '<span class="flag"><svg class="flagsvg" viewBox="0 0 24 16">' + ZFLAGS[iso] + "</svg></span>" : '<span class="flag flag--fb">' + esc(iso) + "</span>"; }
+  // lista curada (Brasil no topo, região + destinos prováveis; resto vai em "Outro país")
+  var ZPAISES = [["Brasil", "BR", "55"], ["Haiti", "HT", "509"], ["Venezuela", "VE", "58"], ["Argentina", "AR", "54"], ["Paraguai", "PY", "595"], ["Uruguai", "UY", "598"], ["Bolívia", "BO", "591"], ["Peru", "PE", "51"], ["Colômbia", "CO", "57"], ["Chile", "CL", "56"], ["Equador", "EC", "593"], ["Portugal", "PT", "351"], ["Estados Unidos", "US", "1"], ["Espanha", "ES", "34"], ["Alemanha", "DE", "49"], ["Itália", "IT", "39"], ["França", "FR", "33"], ["Angola", "AO", "244"], ["Moçambique", "MZ", "258"], ["Japão", "JP", "81"], ["China", "CN", "86"]].map(function (a) { return { n: a[0], c: a[1], d: a[2] }; });
+  var zapByIso = {};
+  ZPAISES.forEach(function (o) { zapByIso[o.c] = o; });
+  var zapSel = zapByIso.BR, zapOtherDial = null;
+  function zapDial() { return zapOtherDial != null ? zapOtherDial : zapSel.d; }
+  function zapIsBR() { return zapOtherDial == null && zapSel.c === "BR"; }
+  function zapDigits() { return $c("ci-zap").value.replace(/\D/g, ""); }
+  function zapValido() { var d = zapDigits(); return zapIsBR() ? (d.length >= 10 && d.length <= 11) : (d.length >= 6 && d.length <= 12); }
+  // Brasil grava o número local formatado como hoje; internacional grava "+DDI dígitos".
+  function montarTelefone() { return zapIsBR() ? $c("ci-zap").value.trim() : ("+" + zapDial() + " " + zapDigits()); }
+  function zapMsgTxt() { return zapIsBR() ? "Informe DDD e número: 10 ou 11 dígitos." : "Informe o número local: 6 a 12 dígitos."; }
+  function zapRenderPrefix() {
+    var wrap = $c("zapWrap"); if (!wrap) return;
+    var pf = wrap.querySelector(".pf-flag");
+    var html = (zapOtherDial != null)
+      ? ZGLOBE.replace('class="flag flag--globe"', 'class="pf-flag flag flag--globe"')
+      : zapFlagHtml(zapSel.c).replace('class="flag', 'class="pf-flag flag');
+    pf.outerHTML = html;
+    wrap.querySelector(".dial").textContent = "+" + zapDial();
+    $c("ci-zap").placeholder = zapIsBR() ? "47 99999-9999" : "número local";
+  }
+  function initZapPais() {
+    var wrap = $c("zapWrap"); if (!wrap) return;
+    var phone = wrap.querySelector(".phone"), prefix = $c("zapPrefix"), num = $c("ci-zap");
+    var pop = $c("zapPop"), backdrop = $c("zapBackdrop"), busca = $c("zapBusca"), ul = $c("zapList"), empty = $c("zapEmpty");
+    var otherPanel = $c("zapOther"), ddi = $c("zapDdi"), usar = $c("zapUsar"), searchWrap = pop.querySelector(".phone__search");
+    var field = $c("cf-zap"), msg = field.querySelector(".msg"), rows = [], active = -1;
+    function norm(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+    function buildList() {
+      ul.innerHTML = ""; rows = [];
+      ZPAISES.forEach(function (co) {
+        var li = document.createElement("li");
+        li.setAttribute("role", "option");
+        li.innerHTML = zapFlagHtml(co.c) + '<span class="nm">' + esc(co.n) + '</span><span class="dd">+' + co.d + '</span><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        li.addEventListener("click", function () { escolher(co); });
+        ul.appendChild(li); rows.push({ el: li, co: co, hay: norm(co.n), d: co.d });
+      });
+      var lo = document.createElement("li");
+      lo.className = "other"; lo.setAttribute("role", "option");
+      lo.innerHTML = ZGLOBE + '<span class="lbl">Outro país</span><svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      lo.addEventListener("click", mostrarOutro);
+      ul.appendChild(lo); rows.push({ el: lo, other: true });
+    }
+    function marcarSel() {
+      rows.forEach(function (r) { if (r.other) return; var on = zapOtherDial == null && r.co.c === zapSel.c; r.el.classList.toggle("sel", on); r.el.setAttribute("aria-selected", on ? "true" : "false"); });
+    }
+    function visiveis() { return rows.filter(function (r) { return r.el.style.display !== "none"; }); }
+    function setActive(idx) { rows.forEach(function (r) { r.el.classList.remove("active"); }); active = idx; if (idx >= 0 && rows[idx]) { rows[idx].el.classList.add("active"); try { rows[idx].el.scrollIntoView({ block: "nearest" }); } catch (e) {} } }
+    function filtrar() {
+      var qraw = busca.value.trim(), q = norm(qraw), qd = qraw.replace(/[^\d]/g, ""), vis = 0;
+      rows.forEach(function (r) {
+        if (r.other) { r.el.style.display = q ? "none" : ""; return; }
+        var hit = !q || r.hay.indexOf(q) !== -1 || (qd && r.d.indexOf(qd) === 0) || ("+" + r.d).indexOf(qraw) === 0;
+        r.el.style.display = hit ? "" : "none"; if (hit) vis++;
+      });
+      empty.classList.toggle("on", vis === 0);
+      var v = visiveis(); setActive(v.length ? rows.indexOf(v[0]) : -1);
+    }
+    function moveActive(dir) { var v = visiveis(); if (!v.length) return; var pos2 = v.indexOf(rows[active]), next = pos2 + dir; if (next < 0) next = 0; if (next > v.length - 1) next = v.length - 1; setActive(rows.indexOf(v[next])); }
+    function abrir() {
+      otherPanel.classList.remove("on"); ul.style.display = ""; searchWrap.style.display = "";
+      phone.classList.add("open"); prefix.setAttribute("aria-expanded", "true");
+      pop.classList.add("on"); backdrop.hidden = false; backdrop.classList.add("on");
+      busca.value = ""; filtrar(); marcarSel();
+      if (window.matchMedia("(min-width:561px)").matches) {
+        try { var cb = $c("candBody"); cb.scrollTop += field.getBoundingClientRect().top - cb.getBoundingClientRect().top - 8; } catch (e) {}
+        setTimeout(function () { busca.focus(); }, 20);
+      }
+      document.addEventListener("click", onDoc, true);
+    }
+    function fechar() { phone.classList.remove("open"); prefix.setAttribute("aria-expanded", "false"); pop.classList.remove("on"); backdrop.classList.remove("on"); backdrop.hidden = true; document.removeEventListener("click", onDoc, true); }
+    function onDoc(e) { if (!wrap.contains(e.target)) fechar(); }
+    function mostrarOutro() { ul.style.display = "none"; empty.classList.remove("on"); searchWrap.style.display = "none"; otherPanel.classList.add("on"); ddi.value = ""; usar.disabled = true; setTimeout(function () { ddi.focus(); }, 20); }
+    function revalida() { if (field.classList.contains("err")) { field.classList.toggle("err", !zapValido()); msg.textContent = zapMsgTxt(); } }
+    function escolher(co) { zapSel = co; zapOtherDial = null; zapRenderPrefix(); marcarSel(); revalida(); fechar(); try { num.focus(); } catch (e) {} }
+    function aplicarOutro() { var d = ddi.value.replace(/[^\d]/g, ""); if (!d) return; zapOtherDial = d; zapRenderPrefix(); revalida(); fechar(); try { num.focus(); } catch (e) {} }
+    prefix.addEventListener("click", function () { pop.classList.contains("on") ? fechar() : abrir(); });
+    prefix.addEventListener("keydown", function (e) { if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
+    backdrop.addEventListener("click", fechar);
+    busca.addEventListener("input", filtrar);
+    busca.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); moveActive(1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); moveActive(-1); }
+      else if (e.key === "Enter") { e.preventDefault(); if (active >= 0 && rows[active]) { rows[active].other ? mostrarOutro() : escolher(rows[active].co); } }
+      else if (e.key === "Escape") { e.preventDefault(); fechar(); try { prefix.focus(); } catch (e2) {} }
+    });
+    ddi.addEventListener("input", function () { ddi.value = ddi.value.replace(/[^\d]/g, ""); usar.disabled = !ddi.value; });
+    ddi.addEventListener("keydown", function (e) { if (e.key === "Enter" && ddi.value) { e.preventDefault(); aplicarOutro(); } else if (e.key === "Escape") { fechar(); } });
+    usar.addEventListener("click", aplicarOutro);
+    $c("zapVoltarLista").addEventListener("click", function () { otherPanel.classList.remove("on"); ul.style.display = ""; searchWrap.style.display = ""; busca.focus(); });
+    buildList(); zapRenderPrefix(); marcarSel();
+  }
 
   function abrirCandidatura(id, titulo) {
     vagaAtualId = id || "";
@@ -1164,6 +1487,9 @@
     $c("candSite").value = "";
     setSeg("seg-filhos", "nao"); $c("segextra-filhos").hidden = true; $c("nstep-filhos").querySelector("[data-n]").textContent = "1";
     setSeg("seg-conhece", "nao"); $c("segextra-conhece").hidden = true;
+    canalPreferido = "ambos"; setSeg("seg-canal", "ambos");
+    zapSel = zapByIso.BR; zapOtherDial = null; zapRenderPrefix();
+    if ($c("zapPop")) { $c("zapPop").classList.remove("on"); $c("zapWrap").querySelector(".phone").classList.remove("open"); $c("zapBackdrop").classList.remove("on"); $c("zapBackdrop").hidden = true; $c("zapOther").classList.remove("on"); }
     $$(".chip", $c("chips-vem")).forEach(function (c) { c.classList.remove("on"); });
     $c("msg-vem").hidden = true;
     $c("expPrimeiro").classList.remove("on");
@@ -1171,9 +1497,8 @@
     $c("cLgpd").classList.remove("on");
     $c("erroGeral").textContent = "";
     $c("cer").classList.remove("on");
-    if ($c("cArc")) $c("cArc").style.animation = "none";
-    if ($c("cTick")) $c("cTick").style.animation = "none";
-    if ($c("cPulse")) $c("cPulse").style.animation = "none";
+    if ($c("cerLine")) { try { $c("cerLine").getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {} $c("cerLine").style.strokeDashoffset = String(cerLen); }
+    ["cerT", "cerS", "cerFechar"].forEach(function (id) { var el = $c(id); if (el) { try { el.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {} el.style.opacity = ""; el.style.transform = ""; } });
     $c("discDone").classList.remove("on");
     $c("discRun").style.display = "";
     expMode = "list"; renderExp();
@@ -1186,11 +1511,14 @@
     var step = PANE_STEP[paneIdx];
     $c("stepCount").textContent = "Etapa " + step + " de " + TOT;
     $c("stepName").textContent = STEP_NOMES[step - 1];
-    var segs = $c("stepBar").children;
-    for (var i = 0; i < segs.length; i++) {
-      segs[i].classList.toggle("done", (i + 1) < step);
-      segs[i].classList.toggle("now", (i + 1) === step);
+    // 6 · nó concluído (i<step-1) = amarelo+check; atual (i===step-1) = aro; conector preenche.
+    var nodes = $c("stepBar").querySelectorAll(".stp-node");
+    var conns = $c("stepBar").querySelectorAll(".stp-conn");
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].classList.toggle("done", i < step - 1);
+      nodes[i].classList.toggle("now", i === step - 1);
     }
+    for (var j = 0; j < conns.length; j++) { conns[j].classList.toggle("fill", j < step - 1); }
     $c("candBack").hidden = (paneIdx === 0);
   }
 
@@ -1296,7 +1624,8 @@
     checaCampo("cf-cidade", $c("ci-cidade").value.trim().length >= 1, st);
     checaCampo("cf-nac", $c("ci-nac").value.trim().length >= 1, st);
     checaCampo("cf-nat", $c("ci-nat").value.trim().length >= 1, st);
-    checaCampo("cf-zap", $c("ci-zap").value.replace(/\D/g, "").length >= 10, st);
+    var zapMsg = $c("cf-zap").querySelector(".msg"); if (zapMsg) zapMsg.textContent = zapMsgTxt();
+    checaCampo("cf-zap", zapValido(), st);
     checaCampo("cf-mail", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($c("ci-mail").value.trim()), st);
     return st.ok;
   }
@@ -1421,6 +1750,11 @@
     setSeg("seg-conhece", conheceAlguem ? "sim" : "nao");
     $c("segextra-conhece").hidden = !conheceAlguem;
   });
+  $c("seg-canal").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    canalPreferido = b.getAttribute("data-val") || "ambos";
+    setSeg("seg-canal", canalPreferido);
+  });
   $c("chips-vem").addEventListener("click", function (ev) {
     var c = ev.target.closest(".chip"); if (!c) return;
     comoViria = c.getAttribute("data-val") || "";
@@ -1444,6 +1778,7 @@
     if (b < 1024 * 1024) return Math.round(b / 1024) + " KB";
     return (b / 1024 / 1024).toFixed(1).replace(".", ",") + " MB";
   }
+  var cvRaf = null, cvShAnim = null;
   function mostrarChip(file) {
     cvFile = file; cvEstado = "anexado";
     $c("cvDrop").style.display = "none";
@@ -1451,14 +1786,48 @@
     $c("cvChip").classList.add("on");
     $c("cvNome").textContent = file.name;
     $c("cvTam").textContent = fmtTam(file.size);
-    $c("cvOk").classList.add("on");
+    var okEl = $c("cvOk");
+    okEl.classList.add("on");
+    requestAnimationFrame(function () { okEl.classList.add("drawn"); }); // 4 · o check assenta desenhando
     vibrar(8);
+  }
+  // 4 · a lançadeira tece a barra até 100% e assenta no chip; só após validação. reduzMov = direto.
+  function tecerUpload(file) {
+    cvFile = file; cvEstado = "anexado";
+    if (reduzMov || !("animate" in Element.prototype)) { mostrarChip(file); return; }
+    $c("cvDrop").style.display = "none";
+    $c("cvSkip").style.display = "none";
+    var prog = $c("cvProg"), fill = $c("cvFill"), sh = $c("cvShuttle"), pct = $c("cvPct");
+    prog.classList.add("on"); sh.style.opacity = "1"; fill.style.width = "0"; pct.textContent = "0%";
+    var trackW = prog.querySelector(".cv-track").clientWidth;
+    var travel = Math.max(20, trackW - 18);
+    cvShAnim = sh.animate([{ transform: "translateX(0)" }, { transform: "translateX(" + travel + "px)" }],
+      { duration: 420, easing: "cubic-bezier(.45,0,.55,1)", direction: "alternate", iterations: 6 });
+    var dur = 1500, t0 = null;
+    function passo(ts) {
+      if (t0 === null) t0 = ts;
+      var e = (ts - t0) / dur; if (e > 1) e = 1;
+      var v = Math.round((1 - Math.pow(1 - e, 2)) * 100);
+      fill.style.width = v + "%"; pct.textContent = v + "%";
+      if (e < 1) { cvRaf = requestAnimationFrame(passo); return; }
+      cvRaf = null;
+      try { cvShAnim.cancel(); } catch (x) {} cvShAnim = null;
+      sh.style.opacity = "0"; prog.classList.remove("on");
+      mostrarChip(file);
+    }
+    cvRaf = requestAnimationFrame(passo);
   }
   function limparCv() {
     cvFile = null; cvEstado = "";
+    if (cvRaf) { cancelAnimationFrame(cvRaf); cvRaf = null; }
+    if (cvShAnim) { try { cvShAnim.cancel(); } catch (x) {} cvShAnim = null; }
     var el;
     if ((el = $c("cvChip"))) el.classList.remove("on");
-    if ((el = $c("cvOk"))) el.classList.remove("on");
+    if ((el = $c("cvOk"))) el.classList.remove("on", "drawn");
+    if ((el = $c("cvProg"))) el.classList.remove("on");
+    if ((el = $c("cvFill"))) el.style.width = "0";
+    if ((el = $c("cvShuttle"))) el.style.opacity = "0";
+    if ((el = $c("cvPct"))) el.textContent = "0%";
     if ((el = $c("cvDrop"))) el.style.display = "";
     if ((el = $c("cvSkip"))) el.style.display = "";
     if ((el = $c("cvInput"))) el.value = "";
@@ -1472,7 +1841,7 @@
     if (!ehPdf) { erEl.textContent = "Envie um arquivo PDF."; this.value = ""; return; }
     if (f.size >= 3 * 1024 * 1024) { erEl.textContent = "O arquivo passa de 3 MB. Envie um PDF menor."; this.value = ""; return; }
     erEl.textContent = "";
-    mostrarChip(f);
+    tecerUpload(f);
   });
   $c("cvX").addEventListener("click", limparCv);
   $c("btnPular").addEventListener("click", function () { cvEstado = "pulado"; irPane(4, "frente"); });
@@ -1508,14 +1877,20 @@
       var trava = (st === "least" && resp.most === o.d);
       var cls = "disc-opt" + (trava ? " most locked" : "");
       var badge = trava ? '<span class="obadge b-most">Mais</span>' : "";
-      return '<button type="button" class="' + cls + '" data-dim="' + o.d + '"' + (trava ? " disabled" : "") + '><span class="ot">' + o.t + "</span>" + badge + "</button>";
+      return '<button type="button" class="' + cls + '" data-dim="' + o.d + '"' + (trava ? " disabled" : "") + '><span class="dye"></span><span class="ot">' + o.t + "</span>" + badge + "</button>";
     }).join("");
     if (!reduzMov) {
       var dx = (dir === "tras" ? -22 : 22);
       card.animate([{ opacity: 0, transform: "translateX(" + dx + "px)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: "cubic-bezier(.32,.72,.28,1)" });
     }
   }
-  function marcarSel(btn, tipo) {
+  function marcarSel(btn, tipo, ev) {
+    // 3 · tingimento: a cor inunda a partir do ponto do toque (clip-path circle em --mx/--my).
+    if (ev && ev.clientX != null) {
+      var r = btn.getBoundingClientRect();
+      btn.style.setProperty("--mx", ((ev.clientX - r.left) / r.width * 100) + "%");
+      btn.style.setProperty("--my", ((ev.clientY - r.top) / r.height * 100) + "%");
+    }
     btn.classList.add(tipo);
     var bd = document.createElement("span");
     bd.className = "obadge b-" + tipo;
@@ -1527,8 +1902,8 @@
     if (!btn || btn.disabled) return;
     var dim = btn.getAttribute("data-dim");
     var b = discIdx, st = stageAt(pos);
-    if (st === "most") { discResp[b] = { most: dim, least: undefined }; marcarSel(btn, "most"); }
-    else { if (discResp[b] && discResp[b].most === dim) return; discResp[b].least = dim; marcarSel(btn, "least"); }
+    if (st === "most") { discResp[b] = { most: dim, least: undefined }; marcarSel(btn, "most", ev); }
+    else { if (discResp[b] && discResp[b].most === dim) return; discResp[b].least = dim; marcarSel(btn, "least", ev); }
     vibrar(10);
     $c("discFill").style.width = ((pos + 1) / (2 * N) * 100) + "%";
     setTimeout(function () {
@@ -1583,7 +1958,7 @@
     var dp = [nome, nasc ? formatarData(nasc) : "", selText("ci-ec"), selText("ci-esc"), filhosTxt].filter(Boolean).join(" · ");
     var origem = [$c("ci-nac").value.trim(), $c("ci-nat").value.trim() ? ("natural de " + $c("ci-nat").value.trim()) : ""].filter(Boolean).join(", ");
     var endLine = [montarEndereco(), origem].filter(Boolean).join(" · ");
-    var contato = [$c("ci-zap").value.trim(), $c("ci-mail").value.trim()].filter(Boolean).join(" · ");
+    var contato = [montarTelefone(), $c("ci-mail").value.trim()].filter(Boolean).join(" · ");
     var expBody;
     if (primeiroEmprego) expBody = '<span class="li">Primeiro emprego</span>';
     else if (experiencias.length) expBody = experiencias.map(function (e) { var per = e.demissao ? (esc(mesAno(e.admissao)) + " a " + esc(mesAno(e.demissao))) : (esc(mesAno(e.admissao)) + " · atual"); return '<span class="li">' + esc(e.empresa) + " (" + per + ")</span>"; }).join("");
@@ -1693,7 +2068,7 @@
       vagaId: vagaAtualId,
       vagaTitulo: vagaAtualTitulo,
       nome: $c("ci-nome").value.trim().slice(0, 80),
-      telefone: $c("ci-zap").value.trim().slice(0, 20),
+      telefone: montarTelefone().slice(0, 20),
       email: $c("ci-mail").value.trim().slice(0, 120),
       mensagem: "",
       nascimento: $c("ci-nasc").value,
@@ -1711,6 +2086,7 @@
       indicacao: conheceAlguem ? $c("ci-quem").value.trim().slice(0, 80) : "",
       disc: { d: raw.D, i: raw.I, s: raw.S, c: raw.C },
       discPrimario: discResult ? (discResult.equilibrado ? "equilibrado" : discResult.primario) : "equilibrado",
+      canalPreferido: canalPreferido,
       em: (window.firebase && firebase.firestore) ? firebase.firestore.FieldValue.serverTimestamp() : null,
       status: "nova"
     };
@@ -1760,6 +2136,9 @@
     var email = $c("ci-mail").value.trim();
     var docId = vagaAtualId + "__" + email.toLowerCase();
     var payload = montarPayload();
+    // canal preferido de aviso: 'email' NÃO cria /waMsg; 'whatsapp' NÃO cria /mail; ambos/ausente = os dois.
+    var querEmail = payload.canalPreferido !== "whatsapp";
+    var querWa = payload.canalPreferido !== "email";
     // email 1 (recebida): MESMO batch, id == candidaturaId, to == email da candidatura, data =
     // primeiro nome (1o token, igual ao funil) + titulo da vaga. Shape exato da rule /mail.
     var primeiroNome = String(payload.nome).trim().split(/\s+/)[0] || "";
@@ -1771,12 +2150,13 @@
       // Se o upload falhar, a candidatura segue SEM currículo (não bloqueia o candidato).
       pre = doUpload(cvFile, path).then(function () { payload.curriculoPath = path; }).catch(function () {});
     }
-    pre.then(function () { return doCommit([
-      { col: "candidaturas", id: docId, data: payload },
-      { col: "mail", id: docId, data: mailDoc },
-    ]); })
+    pre.then(function () {
+      var writes = [{ col: "candidaturas", id: docId, data: payload }];
+      if (querEmail) writes.push({ col: "mail", id: docId, data: mailDoc });
+      return doCommit(writes);
+    })
       .then(function () {
-        try { enviarWaRecebida(docId, payload); } catch (e) {} // fila WhatsApp, separada do batch, nunca bloqueia
+        if (querWa) { try { enviarWaRecebida(docId, payload); } catch (e) {} } // fila WhatsApp, separada do batch, nunca bloqueia
         sucesso();
       })
       .catch(falha);
@@ -1788,34 +2168,54 @@
     morphCheck(btn);
     function revelar() {
       var cer = $c("cer"); cer.classList.add("on");
-      var arc = $c("cArc"), tick = $c("cTick"), pulse = $c("cPulse");
-      if (!reduzMov) {
-        if (arc) arc.style.animation = "candarco .55s cubic-bezier(.4,0,.2,1) forwards";
-        setTimeout(function () {
-          if (tick) tick.style.animation = "candtick .3s cubic-bezier(.2,.8,.2,1) forwards";
-          if (pulse) pulse.style.animation = "candpuls .7s ease-out forwards";
-          vibrar([12, 60, 18]);
-        }, 480);
-      } else {
-        if (arc) arc.style.strokeDashoffset = "0";
-        if (tick) tick.style.strokeDashoffset = "0";
+      var line = $c("cerLine"), casc = [$c("cerT"), $c("cerS"), $c("cerFechar")];
+      [line].concat(casc).forEach(function (el) { if (el) { try { el.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {} } });
+      if (reduzMov || !("animate" in Element.prototype) || !cerLen) {
+        if (line) line.style.strokeDashoffset = "0";
+        casc.forEach(function (el) { if (el) { el.style.opacity = "1"; el.style.transform = "none"; } });
+        vibrar([12, 60, 18]);
+        return;
       }
+      // 7 · o ECG do FioPulse se desenha (~900ms) e só então o texto sobe em cascata curta.
+      casc.forEach(function (el) { if (el) el.style.opacity = "0"; });
+      line.style.strokeDashoffset = String(cerLen);
+      var a = line.animate([{ strokeDashoffset: cerLen }, { strokeDashoffset: 0 }],
+        { duration: 900, easing: "cubic-bezier(.65,0,.35,1)", fill: "forwards" });
+      a.onfinish = function () {
+        casc.forEach(function (el, i) {
+          if (!el) return;
+          el.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "translateY(0)" }],
+            { duration: 420, delay: i * 110, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" });
+        });
+        vibrar([12, 60, 18]);
+      };
     }
     if (reduzMov) revelar();
     else cerTimer = setTimeout(revelar, 460);
   }
 
   pintarStepper();
+  initZapPais();
 
   // ===== Headline: verbo alternando (fiar / tecer / tingir, a cadeia textil na ordem real) =====
   var reduzMovimento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var verbos = document.querySelectorAll(".hero h1 .verbo");
+  // 8 · a cada troca do trio, o brilho varre a caixa amarela junto do crossfade (ordem/timing intactos).
+  var heroSheen = document.getElementById("heroSheen");
+  function varrerSheen() {
+    if (reduzMovimento || !heroSheen || !("animate" in Element.prototype)) return;
+    heroSheen.animate(
+      [{ transform: "translateX(-160%) skewX(-14deg)" }, { transform: "translateX(320%) skewX(-14deg)" }],
+      { duration: 600, easing: "cubic-bezier(.4,0,.2,1)" }
+    );
+  }
   if (verbos.length > 1 && !reduzMovimento) {
     var verboAtual = 0;
     setInterval(function () {
       verbos[verboAtual].classList.remove("ativo");
       verboAtual = (verboAtual + 1) % verbos.length;
       verbos[verboAtual].classList.add("ativo");
+      varrerSheen();
     }, 3500);
   }
 })();
